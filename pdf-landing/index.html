@@ -53,9 +53,19 @@ header { border-bottom: 1px solid var(--card-border); padding: 16px 0; backgroun
 .hero h1 { font-size: 40px; font-weight: 700; margin-bottom: 16px; letter-spacing: -0.5px; }
 .hero h1 span { color: var(--primary); }
 .hero p { font-size: 17px; color: var(--muted); max-width: 560px; margin: 0 auto 16px; }
-.hero p.tagline { font-family: Consolas, monospace; font-size: 18px; color: var(--primary); margin-bottom: 18px; letter-spacing: 0.2px; }
-.hero p.tagline::before { content: "> "; color: var(--primary-pressed); }
 .hero p:last-of-type { margin-bottom: 40px; }
+.terminal { background: #0a0a0a; border: 1px solid #2a2a2a; border-radius: 6px; max-width: 540px; margin: 0 auto 40px; text-align: left; overflow: hidden; }
+.terminal-bar { display: flex; align-items: center; gap: 6px; padding: 10px 14px; background: #151515; border-bottom: 1px solid #2a2a2a; }
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; background: #333; }
+.terminal-title { font-family: Consolas, monospace; font-size: 11px; color: #555; margin-left: auto; margin-right: auto; }
+.terminal-body { padding: 18px 20px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.8; }
+.terminal-body .prompt { color: var(--primary-pressed); font-weight: bold; }
+.terminal-body .cmd { color: var(--text); font-weight: bold; }
+.terminal-body .flag { color: var(--primary); }
+.terminal-body .out { color: var(--muted); }
+.terminal-body .out .label { color: var(--primary); }
+.terminal-body .cursor { display: inline-block; width: 8px; height: 15px; background: var(--primary); vertical-align: text-bottom; animation: blink 1s step-end infinite; }
+@keyframes blink { 50% { opacity: 0; } }
 .download-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--primary); color: #fff; font-size: 15px; font-weight: 600; padding: 14px 32px; border-radius: 4px; transition: background 0.15s; }
 .download-btn:hover { background: var(--primary-hover); color: #fff; }
 .download-btn:active { background: var(--primary-pressed); }
@@ -91,6 +101,7 @@ footer a:hover { color: var(--primary-hover); }
   .hero { padding: 48px 0 40px; }
   .hero h1 { font-size: 28px; }
   .hero p { font-size: 15px; }
+  .terminal-body { font-size: 12px; padding: 14px 16px; }
   .feature-grid { grid-template-columns: 1fr; }
 }
 </style>
@@ -115,11 +126,30 @@ footer a:hover { color: var(--primary-hover); }
 <div class="container">
 <section class="hero">
 <h1>Killer<span>PDF</span></h1>
-<p class="tagline">Free. Open. No subscription. No bullshit.</p>
-<p>One exe you drop on a USB stick and go. No installer, no agent, no account, no telemetry. The PDF equivalent of Notepad, built by a field tech who is really tired of Adobe.</p>
+<div class="terminal">
+<div class="terminal-bar">
+<span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+<span class="terminal-title">~/killerpdf</span>
+</div>
+<div class="terminal-body">
+<span class="prompt">$</span> <span class="cmd">killerpdf</span> <span class="flag">invoice.pdf</span><br>
+<br>
+<span class="out"><span class="label">view</span> high-quality rendering, thumbnails, zoom</span><br>
+<span class="out"><span class="label">edit</span> inline text editing with font matching</span><br>
+<span class="out"><span class="label">annotate</span> highlights, drawings, text boxes</span><br>
+<span class="out"><span class="label">sign</span> reusable signatures, click to place</span><br>
+<span class="out"><span class="label">merge</span> combine, split, reorder pages</span><br>
+<span class="out"><span class="label">print</span> annotations flattened into output</span><br>
+<br>
+<span class="out">No installer. No account. No subscription. No telemetry.</span><br>
+<span class="out">Free. Open. GPLv3. Built by a field tech who hates Adobe.</span><br>
+<br>
+<span class="prompt">$</span> <span class="cursor"></span>
+</div>
+</div>
 <a href="https://dl.killertools.net/KillerPDF.zip" class="download-btn">Download for Windows (.zip)</a>
-<div class="download-meta">Windows 10/11 x64 · ~10 MB · Requires <a href="https://dotnet.microsoft.com/download/dotnet/8.0">.NET 8 Desktop Runtime</a></div>
-<div class="version-badge"><span class="prompt">$</span> KillerPDF v1.0.1</div>
+<div class="download-meta">Windows 10/11 x64 · ~6 MB · No runtime required · <a href="https://dl.killertools.net/KillerPDF-1.1.0-src.zip">source (zip)</a></div>
+<div class="version-badge"><span class="prompt">$</span> KillerPDF v1.1.0</div>
 <div class="oss-banner">
 <svg viewBox="0 0 24 24"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.29 3.44 9.77 8.2 11.36.6.11.82-.26.82-.58v-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.38-1.34-1.75-1.34-1.75-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.17 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0112 6.8c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0024 12.5C24 5.87 18.63.5 12 .5z"/></svg>
 <span class="oss-text">Now open source under GPLv3.</span>
@@ -160,7 +190,7 @@ footer a:hover { color: var(--primary-hover); }
 </div>
 <div class="feature-card">
 <h3>Single File, No Install</h3>
-<p>One app, about 10 MB zipped. No installer, no admin rights, no config files. Drop it on a USB and go.</p>
+<p>Fully self-contained EXE. No installer, no runtime install, no admin rights, no config files. Drop it on a USB and go.</p>
 </div>
 </div>
 </section>
@@ -169,7 +199,7 @@ footer a:hover { color: var(--primary-hover); }
 <h2>Requirements</h2>
 <div class="req-box">
 <p><strong>OS:</strong> Windows 10 or 11 (x64)</p>
-<p><strong>Runtime:</strong> <a href="https://dotnet.microsoft.com/download/dotnet/8.0">.NET 8 Desktop Runtime</a></p>
+<p><strong>Runtime:</strong> None. Everything needed is inside the EXE.</p>
 </div>
 </section>
 </div>

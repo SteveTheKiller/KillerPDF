@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Weavers xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="FodyWeavers.xsd">
+  <Costura>
+    <!-- pdfium.dll is a native P/Invoke dependency brought in by Docnet.Core.
+         Embedding it so the single EXE stays truly portable. -->
+    <Unmanaged64Assemblies>
+      pdfium
+    </Unmanaged64Assemblies>
+  </Costura>
+</Weavers>

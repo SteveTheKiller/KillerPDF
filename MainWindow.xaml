@@ -369,7 +369,7 @@
                            Foreground="{StaticResource TextSecondary}"
                            FontFamily="Segoe UI" FontSize="11" VerticalAlignment="Center"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock x:Name="VersionLabel" Text="v1.0.1"
+                    <TextBlock x:Name="VersionLabel" Text="v1.1.0"
                                Foreground="#444444" FontFamily="Consolas"
                                FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0"/>
                     <TextBlock FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0">

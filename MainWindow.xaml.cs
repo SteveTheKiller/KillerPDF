@@ -79,6 +79,8 @@ namespace KillerPDF
         public MainWindow()
         {
             InitializeComponent();
+            var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            if (v != null) VersionLabel.Text = $"v{v.Major}.{v.Minor}.{v.Build}";
             _annotationCanvas = (Canvas)FindName("AnnotationCanvas")!;
             _pageContentGrid = (Grid)FindName("PageContentGrid")!;
             _toolSelectBtn = (Button)FindName("ToolSelectBtn")!;
@@ -835,8 +837,8 @@ namespace KillerPDF
             {
                 if (currentStroke is null || currentPoly is null) return;
                 var pos = e.GetPosition(drawCanvas);
-                pos.X = Math.Clamp(pos.X, 0, drawCanvas.ActualWidth);
-                pos.Y = Math.Clamp(pos.Y, 0, drawCanvas.ActualHeight);
+                pos.X = Math.Max(0, Math.Min(drawCanvas.ActualWidth, pos.X));
+                pos.Y = Math.Max(0, Math.Min(drawCanvas.ActualHeight, pos.Y));
                 currentStroke.Add(pos);
                 currentPoly.Points.Add(pos);
             };
@@ -1068,8 +1070,8 @@ namespace KillerPDF
         private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
             var pos = e.GetPosition(_annotationCanvas);
-            pos.X = Math.Clamp(pos.X, 0, _annotationCanvas.ActualWidth);
-            pos.Y = Math.Clamp(pos.Y, 0, _annotationCanvas.ActualHeight);
+            pos.X = Math.Max(0, Math.Min(_annotationCanvas.ActualWidth, pos.X));
+            pos.Y = Math.Max(0, Math.Min(_annotationCanvas.ActualHeight, pos.Y));
 
             // Text selection drag
             if (_isSelecting && _selectRect is not null)
