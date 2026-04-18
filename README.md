@@ -28,8 +28,8 @@ Part of [killertools.net](https://killertools.net).
 
 ## Download
 
-- Prebuilt binary: <https://dl.killertools.net/KillerPDF.zip>
-- Source (GPL3 corresponding source for this release): <https://dl.killertools.net/KillerPDF-1.1.0-src.zip>
+- Prebuilt binary: <https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.zip>
+- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.1.1/KillerPDF-1.1.1-src.zip>
 
 ## Build from source
 
