@@ -56,13 +56,37 @@ namespace TDPdf
             base.OnStartup(e);
             ThemeManager.Initialize(ParseThemeSetting(TDPdf.Properties.Settings.Default.Theme));
 
-            // Handle uninstall flag (called by Add/Remove Programs)
-            if (e.Args.Length > 0 &&
-                string.Equals(e.Args[0], "/uninstall", StringComparison.OrdinalIgnoreCase))
+            // Handle install/uninstall flags (called by Intune, Add/Remove Programs, or shell).
+            // `/install` and `/uninstall` accept an optional `/silent` second arg that
+            // suppresses all dialogs — used by the Intune Win32 app install/uninstall commands
+            // and by the QuietUninstallString in the Add/Remove Programs entry.
+            if (e.Args.Length > 0)
             {
-                Uninstall();
-                Shutdown();
-                return;
+                bool silent = e.Args.Length > 1 &&
+                              string.Equals(e.Args[1], "/silent", StringComparison.OrdinalIgnoreCase);
+
+                if (string.Equals(e.Args[0], "/install", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        DoInstall(wantDesktop: false, silent: silent);
+                        Shutdown();
+                    }
+                    catch
+                    {
+                        // In silent mode DoInstall rethrows; we surface failure to Intune
+                        // via exit code rather than a UI dialog the user can't see.
+                        Shutdown(1);
+                    }
+                    return;
+                }
+
+                if (string.Equals(e.Args[0], "/uninstall", StringComparison.OrdinalIgnoreCase))
+                {
+                    Uninstall(silent: silent);
+                    Shutdown();
+                    return;
+                }
             }
 
             ShutdownMode = ShutdownMode.OnLastWindowClose;
@@ -131,7 +155,7 @@ namespace TDPdf
         /// </summary>
         internal static void InstallAndRelaunch(string? fileToOpen, bool wantDesktop)
         {
-            DoInstall(wantDesktop);
+            DoInstall(wantDesktop, silent: false);
 
             if (!IsDefaultPdfHandler())
             {
@@ -398,11 +422,15 @@ namespace TDPdf
         // Installation
         // ============================================================
 
-        private static void DoInstall(bool wantDesktop)
+        private static void DoInstall(bool wantDesktop, bool silent = false)
         {
             try
             {
-                // Copy EXE to install location
+                // Copy EXE to install location.
+                // If the destination file is currently locked (TDPdf.exe is running from
+                // the install location), File.Copy throws IOException. In silent mode we
+                // rethrow so Intune sees a non-zero exit and retries; in interactive mode
+                // we surface a MessageBox below.
                 Directory.CreateDirectory(InstallDir);
                 string src = Process.GetCurrentProcess().MainModule!.FileName;
                 File.Copy(src, InstallExe, overwrite: true);
@@ -433,7 +461,7 @@ namespace TDPdf
                     key.SetValue("InstallLocation",      InstallDir);
                     key.SetValue("DisplayIcon",          $"{InstallExe},0");
                     key.SetValue("UninstallString",      $"\"{InstallExe}\" /uninstall");
-                    key.SetValue("QuietUninstallString", $"\"{InstallExe}\" /uninstall");
+                    key.SetValue("QuietUninstallString", $"\"{InstallExe}\" /uninstall /silent");
                     key.SetValue("NoModify",             1);
                     key.SetValue("NoRepair",             1);
                 }
@@ -443,6 +471,7 @@ namespace TDPdf
             }
             catch (Exception ex)
             {
+                if (silent) throw;
                 MessageBox.Show($"Installation failed:\n{ex.Message}", AppName,
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -504,14 +533,17 @@ namespace TDPdf
         // Uninstall
         // ============================================================
 
-        private static void Uninstall()
+        private static void Uninstall(bool silent = false)
         {
-            var res = MessageBox.Show(
-                "Uninstall TDPdf from this computer?",
-                $"{AppName} Uninstall",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-            if (res != MessageBoxResult.Yes) return;
+            if (!silent)
+            {
+                var res = MessageBox.Show(
+                    "Uninstall TDPdf from this computer?",
+                    $"{AppName} Uninstall",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Question);
+                if (res != MessageBoxResult.Yes) return;
+            }
 
             // Shortcuts
             try { File.Delete(StartMenuLnk); } catch { }
@@ -555,8 +587,11 @@ namespace TDPdf
                 UseShellExecute = true
             });
 
-            MessageBox.Show("TDPdf has been uninstalled.", AppName,
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!silent)
+            {
+                MessageBox.Show("TDPdf has been uninstalled.", AppName,
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
     }
 }

@@ -31,6 +31,13 @@
     .pfx has no password. Pass as a plain string; this is only held in
     memory long enough to invoke signtool.
 
+.PARAMETER PackageIntune
+    After signing, package the EXE as an Intune Win32 app (.intunewin) using
+    IntuneWinAppUtil.exe. Default: true. Pass -PackageIntune:$false to skip.
+
+.PARAMETER IntuneWinAppUtilPath
+    Path to IntuneWinAppUtil.exe. Defaults to C:\IntuneWinAppUtil.exe.
+
 .PARAMETER SkipSign
     Skip signing (useful for a test build).
 
@@ -46,16 +53,18 @@
     .\release.ps1 -CertThumbprint "ABCD1234...EF"
 
 .EXAMPLE
-    # Internal / Intune signing from a .pfx
-    .\release.ps1 -PfxPath C:\certs\internal-signing.pfx -PfxPassword 'hunter2'
+    # Internal / Intune signing from a .pfx (prompts for password if not given)
+    .\release.ps1 -PfxPath C:\certs\internal-signing.pfx
 #>
 param(
-    [string]$CertName       = "The Doodle Project",
-    [string]$CertThumbprint = "",
-    [string]$PfxPath        = "",
-    [string]$PfxPassword    = "",
+    [string]$CertName             = "The Doodle Project",
+    [string]$CertThumbprint       = "",
+    [string]$PfxPath              = "",
+    [string]$PfxPassword          = "",
     [switch]$SkipSign,
-    [string]$Tag            = ""
+    [string]$Tag                  = "",
+    [bool]$PackageIntune          = $true,
+    [string]$IntuneWinAppUtilPath = "C:\IntuneWinAppUtil.exe"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -66,15 +75,31 @@ $publishDir = Join-Path $PSScriptRoot "bin\Release\net9.0-windows\win-x64\publis
 $exe        = Join-Path $publishDir "TDPdf.exe"
 $hash       = $null
 $srcZip     = $null
+$intunewin  = $null
 
-# Parse <Version> from csproj so we don't drift between release.ps1 and the build.
-$projVersion = "unknown"
+# Parse <Version> and <AssemblyVersion> from csproj. <Version> (e.g. "1.0.0-tdpdf") is
+# used for human-readable filenames; <AssemblyVersion> (e.g. "1.0.0.0") is what Intune
+# detection rules compare against the published EXE's file version.
+$projVersion      = "unknown"
+$assemblyVersion  = "unknown"
 try {
     [xml]$projXml = Get-Content -Raw $proj
-    $verNode = $projXml.SelectSingleNode('//Project/PropertyGroup/Version')
-    if ($verNode) { $projVersion = $verNode.InnerText.Trim() }
+    $verNode      = $projXml.SelectSingleNode('//Project/PropertyGroup/Version')
+    $asmVerNode   = $projXml.SelectSingleNode('//Project/PropertyGroup/AssemblyVersion')
+    if ($verNode)    { $projVersion     = $verNode.InnerText.Trim() }
+    if ($asmVerNode) { $assemblyVersion = $asmVerNode.InnerText.Trim() }
 } catch {
     Write-Host "    (Could not parse <Version> from ${proj}: $($_.Exception.Message))" -ForegroundColor Yellow
+}
+
+# If signing with a PFX and no password was supplied on the command line,
+# prompt securely. We convert SecureString → plaintext only because signtool
+# takes the password as a CLI arg; the plaintext lives in $PfxPassword for
+# the duration of the signing step and is cleared at the end.
+if (-not $SkipSign -and ($PfxPath -ne "") -and ($PfxPassword -eq "")) {
+    Write-Host ""
+    $secPwd = Read-Host -Prompt "PFX password for $PfxPath" -AsSecureString
+    $PfxPassword = [System.Net.NetworkCredential]::new('', $secPwd).Password
 }
 
 try {
@@ -213,16 +238,85 @@ try {
         throw "Source zip lookup failed: $($_.Exception.Message)"
     }
 
-    # ── 5. Summary ───────────────────────────────────────────────────────────────
+    # ── 5. Intune Win32 package ─────────────────────────────────────────────────
+    # Bundles the signed TDPdf.exe into a .intunewin so it can be uploaded as an
+    # Intune Win32 app. We stage *only* the signed EXE (single-file publish bundles
+    # pdfium.dll and the rest), then invoke IntuneWinAppUtil.exe in quiet mode.
+    if ($PackageIntune) {
+        try {
+            if (-not (Test-Path $IntuneWinAppUtilPath)) {
+                Write-Host "`n==> Skipping Intune packaging — IntuneWinAppUtil.exe not found at $IntuneWinAppUtilPath" -ForegroundColor Yellow
+                Write-Host "    Download from: https://github.com/microsoft/Microsoft-Win32-Content-Prep-Tool" -ForegroundColor Yellow
+            } else {
+                Write-Host "`n==> Packaging for Intune (Win32 app)..." -ForegroundColor Cyan
+
+                $stagingDir = Join-Path $publishDir "intune-staging"
+                $intuneOut  = Join-Path $publishDir "intune"
+                if (Test-Path $stagingDir) { Remove-Item -Recurse -Force $stagingDir }
+                if (Test-Path $intuneOut)  { Remove-Item -Recurse -Force $intuneOut }
+                New-Item -ItemType Directory -Path $stagingDir | Out-Null
+                New-Item -ItemType Directory -Path $intuneOut  | Out-Null
+                Copy-Item $exe $stagingDir
+
+                & $IntuneWinAppUtilPath -c $stagingDir -s "TDPdf.exe" -o $intuneOut -q
+                if ($LASTEXITCODE -ne 0) { throw "IntuneWinAppUtil.exe exited with code $LASTEXITCODE." }
+
+                $generated = Join-Path $intuneOut "TDPdf.intunewin"
+                if (-not (Test-Path $generated)) {
+                    throw "Expected .intunewin at $generated was not produced."
+                }
+
+                $intunewin = Join-Path $publishDir "TDPdf-$projVersion.intunewin"
+                if (Test-Path $intunewin) { Remove-Item -Force $intunewin }
+                Move-Item -Force $generated $intunewin
+
+                Remove-Item -Recurse -Force $stagingDir
+                Remove-Item -Recurse -Force $intuneOut
+
+                Write-Host "    Packaged: $intunewin" -ForegroundColor Green
+            }
+        } catch {
+            throw "Intune packaging failed: $($_.Exception.Message)"
+        }
+    }
+
+    # Clear the plaintext PFX password from memory now that signing/packaging is done.
+    if ($PfxPassword -ne "") { $PfxPassword = "" }
+
+    # ── 6. Summary ───────────────────────────────────────────────────────────────
     try {
         Write-Host "`n╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
         Write-Host   "  TDPdf v$projVersion release artifacts" -ForegroundColor White
         Write-Host   "  EXE  : $exe"
-        if ($srcZip) { Write-Host "  SRC  : $($srcZip.FullName)" }
+        if ($srcZip)    { Write-Host "  SRC  : $($srcZip.FullName)" }
+        if ($intunewin) { Write-Host "  WIN32: $intunewin" -ForegroundColor Green }
         Write-Host   "  SHA256: $hash" -ForegroundColor Green
         Write-Host   ""
         Write-Host   "  Paste SHA256 into:"
         Write-Host   "    pdf-landing\index.html (search for SHA256)"
+
+        if ($intunewin) {
+            Write-Host ""
+            Write-Host   "  Intune Win32 app settings:" -ForegroundColor Cyan
+            Write-Host   "    Install command  : TDPdf.exe /install"
+            Write-Host   "    Uninstall command: %LocalAppData%\Programs\TDPdf\TDPdf.exe /uninstall /silent"
+            Write-Host   "    Install behavior : User"
+            Write-Host   "    Device restart   : No specific action"
+            Write-Host   "    Return codes     : 0 = success, 1 = failure (Intune will retry)"
+            Write-Host   ""
+            Write-Host   "    Detection rule (File):"
+            Write-Host   "      Path        : %LocalAppData%\Programs\TDPdf"
+            Write-Host   "      File        : TDPdf.exe"
+            Write-Host   "      Method      : String (version)"
+            Write-Host   "      Operator    : Greater than or equal to"
+            Write-Host   "      Value       : $assemblyVersion"
+            Write-Host   "      32-bit on 64 : No"
+            Write-Host   ""
+            Write-Host   "    Requirements:"
+            Write-Host   "      OS architecture : x64"
+            Write-Host   "      Min Windows     : Windows 10 1809"
+        }
+
         Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
     } catch {
         throw "Summary failed: $($_.Exception.Message)"
