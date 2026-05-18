@@ -41,6 +41,16 @@ $exe        = Join-Path $publishDir "TDPdf.exe"
 $hash       = $null
 $srcZip     = $null
 
+# Parse <Version> from csproj so we don't drift between release.ps1 and the build.
+$projVersion = "unknown"
+try {
+    [xml]$projXml = Get-Content $proj
+    $verNode = $projXml.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+    if ($verNode) { $projVersion = "$verNode".Trim() }
+} catch {
+    Write-Host "    (Could not parse <Version> from $proj: $($_.Exception.Message))" -ForegroundColor Yellow
+}
+
 try {
     if (($Tag -ne "") -and $SkipSign) {
         throw "Refusing to skip signing for a tagged release ($Tag). Pass without -Tag for a test build."
@@ -159,7 +169,7 @@ try {
     # ── 5. Summary ───────────────────────────────────────────────────────────────
     try {
         Write-Host "`n╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-        Write-Host   "  TDPdf v1.1.0 release artifacts" -ForegroundColor White
+        Write-Host   "  TDPdf v$projVersion release artifacts" -ForegroundColor White
         Write-Host   "  EXE  : $exe"
         if ($srcZip) { Write-Host "  SRC  : $($srcZip.FullName)" }
         Write-Host   "  SHA256: $hash" -ForegroundColor Green
