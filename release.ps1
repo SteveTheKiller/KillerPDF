@@ -4,17 +4,32 @@
     TDPdf release script: build → sign → SHA256 → print summary.
 .DESCRIPTION
     1. Publishes for net9.0-windows/win-x64 — also runs bundle-source.ps1 to zip the source.
-    2. Signs TDPdf.exe with your Certum cert via signtool.
+    2. Signs TDPdf.exe with your code-signing cert via signtool. Supports a
+       Certum cert in the Windows cert store (default), any other store cert
+       by thumbprint, or a .pfx file (e.g. an internal/Intune signing cert).
     3. Computes and prints the SHA256 for pasting into the landing pages.
 
 .PARAMETER CertName
-    CN (Subject) of your Certum certificate as it appears in the Windows cert store.
+    CN (Subject) of the code-signing cert in the Windows cert store.
     Run: Get-ChildItem Cert:\CurrentUser\My | Select Subject
-    to find it. Defaults to the placeholder below.
+    to find it. Defaults to "The Doodle Project" (Certum cert).
 
 .PARAMETER CertThumbprint
-    SHA1 thumbprint of your Certum certificate. When set, this is used instead
-    of CertName.
+    SHA1 thumbprint of a code-signing cert in the Windows cert store. When
+    set, this is used instead of CertName. Works with ANY cert in the store
+    (Certum, internal CA, self-signed, etc.) — signtool does not care about
+    the issuer.
+
+.PARAMETER PfxPath
+    Path to a .pfx file containing the code-signing cert + private key.
+    When set, signtool reads the cert from this file instead of the cert
+    store. Useful for internal/Intune signing in CI or when the cert is
+    not pre-installed.
+
+.PARAMETER PfxPassword
+    Password for the .pfx file. Required when -PfxPath is set unless the
+    .pfx has no password. Pass as a plain string; this is only held in
+    memory long enough to invoke signtool.
 
 .PARAMETER SkipSign
     Skip signing (useful for a test build).
@@ -23,11 +38,22 @@
     Release tag being published. Tagged releases cannot skip signing.
 
 .EXAMPLE
+    # Certum (default — requires SimplySign Desktop running)
     .\release.ps1 -CertName "The Doodle Project"
+
+.EXAMPLE
+    # Any store cert by thumbprint (no SimplySign needed)
+    .\release.ps1 -CertThumbprint "ABCD1234...EF"
+
+.EXAMPLE
+    # Internal / Intune signing from a .pfx
+    .\release.ps1 -PfxPath C:\certs\internal-signing.pfx -PfxPassword 'hunter2'
 #>
 param(
     [string]$CertName       = "The Doodle Project",
     [string]$CertThumbprint = "",
+    [string]$PfxPath        = "",
+    [string]$PfxPassword    = "",
     [switch]$SkipSign,
     [string]$Tag            = ""
 )
@@ -72,19 +98,34 @@ try {
     # ── 2. Sign ─────────────────────────────────────────────────────────────────
     try {
         if (-not $SkipSign) {
-            if ($CertThumbprint -ne "") {
+            # Pick a cert source: PFX file > store thumbprint > store CN.
+            # signtool happily accepts any of these; the Certum-specific bits
+            # (SimplySign Desktop check, "Certum" wording) only apply when the
+            # caller is actually using the default Certum store cert.
+            $usingPfx          = ($PfxPath -ne "")
+            $usingDefaultCertum = (-not $usingPfx) -and ($CertThumbprint -eq "") -and ($CertName -eq "The Doodle Project")
+
+            if ($usingPfx) {
+                if (-not (Test-Path $PfxPath)) { throw "PFX file not found: $PfxPath" }
+                Write-Host "`n==> Signing with PFX: $PfxPath..." -ForegroundColor Cyan
+                $certSelector = @("/f", $PfxPath)
+                if ($PfxPassword -ne "") { $certSelector += @("/p", $PfxPassword) }
+            } elseif ($CertThumbprint -ne "") {
                 $normalizedThumbprint = $CertThumbprint -replace '\s', ''
-                Write-Host "`n==> Signing with Certum cert thumbprint: $normalizedThumbprint..." -ForegroundColor Cyan
+                Write-Host "`n==> Signing with store cert thumbprint: $normalizedThumbprint..." -ForegroundColor Cyan
                 $certSelector = @("/sha1", $normalizedThumbprint)
             } else {
-                Write-Host "`n==> Signing with Certum cert: $CertName..." -ForegroundColor Cyan
+                Write-Host "`n==> Signing with store cert: $CertName..." -ForegroundColor Cyan
                 $certSelector = @("/n", $CertName)
             }
 
-            $simplySign = Get-Process -Name "SimplySignDesktop" -ErrorAction SilentlyContinue
-            if (-not $simplySign) {
-                Write-Host "    SimplySign Desktop process not detected. Signing will likely fail. Press Ctrl+C to abort or wait 10s to continue..." -ForegroundColor Yellow
-                Start-Sleep -Seconds 10
+            # SimplySign Desktop is Certum-specific — only check when actually using the default Certum flow.
+            if ($usingDefaultCertum) {
+                $simplySign = Get-Process -Name "SimplySignDesktop" -ErrorAction SilentlyContinue
+                if (-not $simplySign) {
+                    Write-Host "    SimplySign Desktop process not detected. Signing will likely fail. Press Ctrl+C to abort or wait 10s to continue..." -ForegroundColor Yellow
+                    Start-Sleep -Seconds 10
+                }
             }
 
             # Find signtool
@@ -132,7 +173,13 @@ try {
                 Write-Host "    Signing failed with timestamp authority: $timestampUrl" -ForegroundColor Yellow
             }
 
-            if (-not $signed) { throw "Signing failed with all timestamp authorities. Is Certum SimplySign Desktop running?" }
+            if (-not $signed) {
+                if ($usingDefaultCertum) {
+                    throw "Signing failed with all timestamp authorities. Is Certum SimplySign Desktop running?"
+                } else {
+                    throw "Signing failed with all timestamp authorities. Verify the cert is accessible and that signtool can read its private key."
+                }
+            }
             Write-Host "    Signed OK" -ForegroundColor Green
 
             & $signtool verify /pa /v $exe
