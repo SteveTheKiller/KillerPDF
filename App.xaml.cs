@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Principal;
 using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -23,16 +24,72 @@ namespace TDPdf
 
         private static readonly string AppName   = "TDPdf";
         private static readonly string ExeName   = "TDPdf.exe";
-        private static readonly string InstallDir = Path.Combine(
+
+        private enum InstallScope { PerUser, PerMachine }
+
+        // Possible install locations. Resolved lazily — never assume only one
+        // exists. An EXE running as SYSTEM (Intune install behavior=System)
+        // installs to PerMachine; an end user double-clicking the EXE falls
+        // back to PerUser. Uninstall detects which one is actually installed
+        // from the registry markers so the elevated UAC uninstall (which runs
+        // as the user, not SYSTEM) still removes a PerMachine install.
+
+        private static readonly string PerMachineInstallDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), AppName);
+        private static readonly string PerMachineInstallExe = Path.Combine(PerMachineInstallDir, ExeName);
+        private static readonly string PerMachineStartMenuDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), AppName);
+
+        private static readonly string PerUserInstallDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "Programs", AppName);
-        private static readonly string InstallExe = Path.Combine(InstallDir, ExeName);
-
-        private static readonly string StartMenuDir = Path.Combine(
+        private static readonly string PerUserInstallExe = Path.Combine(PerUserInstallDir, ExeName);
+        private static readonly string PerUserStartMenuDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.Programs), AppName);
-        private static readonly string StartMenuLnk = Path.Combine(StartMenuDir, $"{AppName}.lnk");
-        private static readonly string DesktopLnk   = Path.Combine(
+
+        private static readonly string DesktopLnk = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"{AppName}.lnk");
+
+        // Install destination for a *new* install. SYSTEM (Intune) → PerMachine,
+        // otherwise PerUser (matches the legacy interactive double-click flow).
+        private static InstallScope NewInstallScope =>
+            IsSystemContextSafe() ? InstallScope.PerMachine : InstallScope.PerUser;
+
+        private static bool IsSystemContextSafe()
+        {
+            try { return WindowsIdentity.GetCurrent().IsSystem; }
+            catch { return false; }
+        }
+
+        private static string InstallDirFor(InstallScope s) =>
+            s == InstallScope.PerMachine ? PerMachineInstallDir : PerUserInstallDir;
+        private static string InstallExeFor(InstallScope s) =>
+            s == InstallScope.PerMachine ? PerMachineInstallExe : PerUserInstallExe;
+        private static string StartMenuDirFor(InstallScope s) =>
+            s == InstallScope.PerMachine ? PerMachineStartMenuDir : PerUserStartMenuDir;
+        private static string StartMenuLnkFor(InstallScope s) =>
+            Path.Combine(StartMenuDirFor(s), $"{AppName}.lnk");
+        private static RegistryKey HiveFor(InstallScope s) =>
+            s == InstallScope.PerMachine ? Registry.LocalMachine : Registry.CurrentUser;
+
+        // Discover an existing install by checking registry markers. Used by
+        // Uninstall and IsInstalled so they don't depend on the current
+        // process's user context (PerMachine uninstall fires under UAC as the
+        // user, not SYSTEM — `IsSystemContextSafe()` would lie there).
+        private static InstallScope? DetectInstalledScope()
+        {
+            using (var k = Registry.LocalMachine.OpenSubKey(@"Software\TDPdf"))
+            {
+                if (k?.GetValue("Installed") is int hklm && hklm == 1)
+                    return InstallScope.PerMachine;
+            }
+            using (var k = Registry.CurrentUser.OpenSubKey(@"Software\TDPdf"))
+            {
+                if (k?.GetValue("Installed") is int hkcu && hkcu == 1)
+                    return InstallScope.PerUser;
+            }
+            return null;
+        }
 
         // ============================================================
         // Shell interop
@@ -140,12 +197,13 @@ namespace TDPdf
         // ============================================================
 
         /// <summary>
-        /// True when running from outside the installed location (i.e. portable mode).
+        /// True when running from outside any installed location (i.e. portable mode).
         /// </summary>
         internal static bool IsPortable()
         {
             string currentExe = Process.GetCurrentProcess().MainModule!.FileName;
-            return !string.Equals(currentExe, InstallExe, StringComparison.OrdinalIgnoreCase);
+            return !string.Equals(currentExe, PerMachineInstallExe, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(currentExe, PerUserInstallExe,    StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -168,7 +226,7 @@ namespace TDPdf
                         { UseShellExecute = true });
             }
 
-            var psi = new ProcessStartInfo(InstallExe);
+            var psi = new ProcessStartInfo(InstallExeFor(NewInstallScope));
             if (fileToOpen != null)
                 psi.Arguments = $"\"{fileToOpen}\"";
             Process.Start(psi);
@@ -179,12 +237,7 @@ namespace TDPdf
         // Registry helpers
         // ============================================================
 
-        private static bool IsInstalled()
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(@"Software\TDPdf");
-            if (key is null) return false;
-            return key.GetValue("Installed") is int i && i == 1;
-        }
+        private static bool IsInstalled() => DetectInstalledScope() is not null;
 
         private static bool IsDefaultPdfHandler()
         {
@@ -424,6 +477,13 @@ namespace TDPdf
 
         private static void DoInstall(bool wantDesktop, bool silent = false)
         {
+            var scope = NewInstallScope;
+            string installDir   = InstallDirFor(scope);
+            string installExe   = InstallExeFor(scope);
+            string startMenuDir = StartMenuDirFor(scope);
+            string startMenuLnk = StartMenuLnkFor(scope);
+            var hive = HiveFor(scope);
+
             try
             {
                 // Copy EXE to install location.
@@ -431,43 +491,43 @@ namespace TDPdf
                 // the install location), File.Copy throws IOException. In silent mode we
                 // rethrow so Intune sees a non-zero exit and retries; in interactive mode
                 // we surface a MessageBox below.
-                Directory.CreateDirectory(InstallDir);
+                Directory.CreateDirectory(installDir);
                 string src = Process.GetCurrentProcess().MainModule!.FileName;
-                File.Copy(src, InstallExe, overwrite: true);
+                File.Copy(src, installExe, overwrite: true);
 
                 // Shortcuts
-                Directory.CreateDirectory(StartMenuDir);
-                CreateShortcut(StartMenuLnk, InstallExe);
+                Directory.CreateDirectory(startMenuDir);
+                CreateShortcut(startMenuLnk, installExe);
                 if (wantDesktop)
-                    CreateShortcut(DesktopLnk, InstallExe);
+                    CreateShortcut(DesktopLnk, installExe);
 
-                // Installed marker
-                using (var key = Registry.CurrentUser.CreateSubKey(@"Software\TDPdf"))
+                // Installed marker. Use the full 4-part version so revision-only
+                // bumps (e.g. 1.0.0.2) are visible in Add/Remove Programs.
+                string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "";
+                using (var key = hive.CreateSubKey(@"Software\TDPdf"))
                 {
                     key.SetValue("Installed",    1);
-                    key.SetValue("InstallPath",  InstallExe);
-                    key.SetValue("Version",
-                        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "");
+                    key.SetValue("InstallPath",  installExe);
+                    key.SetValue("Version",      version);
                 }
 
                 // Add/Remove Programs entry
-                using (var key = Registry.CurrentUser.CreateSubKey(
+                using (var key = hive.CreateSubKey(
                     @"Software\Microsoft\Windows\CurrentVersion\Uninstall\TDPdf"))
                 {
                     key.SetValue("DisplayName",          AppName);
-                    key.SetValue("DisplayVersion",
-                        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "");
+                    key.SetValue("DisplayVersion",       version);
                     key.SetValue("Publisher",            "The Doodle Project");
-                    key.SetValue("InstallLocation",      InstallDir);
-                    key.SetValue("DisplayIcon",          $"{InstallExe},0");
-                    key.SetValue("UninstallString",      $"\"{InstallExe}\" /uninstall");
-                    key.SetValue("QuietUninstallString", $"\"{InstallExe}\" /uninstall /silent");
+                    key.SetValue("InstallLocation",      installDir);
+                    key.SetValue("DisplayIcon",          $"{installExe},0");
+                    key.SetValue("UninstallString",      $"\"{installExe}\" /uninstall");
+                    key.SetValue("QuietUninstallString", $"\"{installExe}\" /uninstall /silent");
                     key.SetValue("NoModify",             1);
                     key.SetValue("NoRepair",             1);
                 }
 
-                // Register as PDF file handler (per-user — no admin needed)
-                RegisterFileHandler();
+                // Register as PDF file handler in the same hive
+                RegisterFileHandler(scope);
             }
             catch (Exception ex)
             {
@@ -477,37 +537,41 @@ namespace TDPdf
             }
         }
 
-        private static void RegisterFileHandler()
+        private static void RegisterFileHandler(InstallScope scope)
         {
-            // ProgID definition
-            using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\TDPdf.pdf"))
+            // HKLM\Software\Classes is visible to all users; HKCU\Software\Classes
+            // is per-user. Stay consistent with the rest of the install.
+            string installExe = InstallExeFor(scope);
+            var hive = HiveFor(scope);
+
+            using (var k = hive.CreateSubKey(@"Software\Classes\TDPdf.pdf"))
                 k.SetValue("", "PDF Document");
 
-            using (var k = Registry.CurrentUser.CreateSubKey(
+            using (var k = hive.CreateSubKey(
                 @"Software\Classes\TDPdf.pdf\DefaultIcon"))
-                k.SetValue("", $"{InstallExe},0");
+                k.SetValue("", $"{installExe},0");
 
-            using (var k = Registry.CurrentUser.CreateSubKey(
+            using (var k = hive.CreateSubKey(
                 @"Software\Classes\TDPdf.pdf\shell\open\command"))
-                k.SetValue("", $"\"{InstallExe}\" \"%1\"");
+                k.SetValue("", $"\"{installExe}\" \"%1\"");
 
             // Associate .pdf extension — adds TDPdf to the "Open with" list
-            using (var k = Registry.CurrentUser.CreateSubKey(
+            using (var k = hive.CreateSubKey(
                 @"Software\Classes\.pdf\OpenWithProgids"))
                 k.SetValue("TDPdf.pdf", new byte[0], RegistryValueKind.None);
 
             // RegisteredApplications capability (used by Default Programs UI)
-            using (var k = Registry.CurrentUser.CreateSubKey(
+            using (var k = hive.CreateSubKey(
                 @"Software\TDPdf\Capabilities"))
             {
                 k.SetValue("ApplicationName",        AppName);
                 k.SetValue("ApplicationDescription", "Lightweight PDF viewer and editor");
             }
-            using (var k = Registry.CurrentUser.CreateSubKey(
+            using (var k = hive.CreateSubKey(
                 @"Software\TDPdf\Capabilities\FileAssociations"))
                 k.SetValue(".pdf", "TDPdf.pdf");
 
-            using (var k = Registry.CurrentUser.CreateSubKey(@"Software\RegisteredApplications"))
+            using (var k = hive.CreateSubKey(@"Software\RegisteredApplications"))
                 k.SetValue(AppName, @"Software\TDPdf\Capabilities");
 
             // Tell the shell file associations have changed
@@ -545,32 +609,45 @@ namespace TDPdf
                 if (res != MessageBoxResult.Yes) return;
             }
 
+            // Discover which install actually exists so we delete the right
+            // files. The interactive Add/Remove Programs uninstall fires the
+            // UninstallString elevated as the user (not SYSTEM), so we can't
+            // rely on `IsSystemContextSafe()` here for a per-machine install.
+            var scope = DetectInstalledScope() ?? InstallScope.PerUser;
+            string installDir   = InstallDirFor(scope);
+            string startMenuDir = StartMenuDirFor(scope);
+            string startMenuLnk = StartMenuLnkFor(scope);
+
             // Shortcuts
-            try { File.Delete(StartMenuLnk); } catch { }
-            try { Directory.Delete(StartMenuDir, recursive: false); } catch { }
+            try { File.Delete(startMenuLnk); } catch { }
+            try { Directory.Delete(startMenuDir, recursive: false); } catch { }
             try { File.Delete(DesktopLnk); } catch { }
 
-            // Registry cleanup
-            try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\TDPdf"); } catch { }
-            try { Registry.CurrentUser.DeleteSubKeyTree(
-                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\TDPdf"); } catch { }
-            try { Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\TDPdf.pdf"); } catch { }
-
-            try
+            // Registry cleanup — try both hives so we tear down whether the
+            // install was machine-wide (HKLM) or per-user (HKCU).
+            foreach (var root in new[] { Registry.LocalMachine, Registry.CurrentUser })
             {
-                using var k = Registry.CurrentUser.OpenSubKey(
-                    @"Software\Classes\.pdf\OpenWithProgids", writable: true);
-                k?.DeleteValue("TDPdf.pdf", throwOnMissingValue: false);
-            }
-            catch { }
+                try { root.DeleteSubKeyTree(@"Software\TDPdf"); } catch { }
+                try { root.DeleteSubKeyTree(
+                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\TDPdf"); } catch { }
+                try { root.DeleteSubKeyTree(@"Software\Classes\TDPdf.pdf"); } catch { }
 
-            try
-            {
-                using var k = Registry.CurrentUser.OpenSubKey(
-                    @"Software\RegisteredApplications", writable: true);
-                k?.DeleteValue(AppName, throwOnMissingValue: false);
+                try
+                {
+                    using var k = root.OpenSubKey(
+                        @"Software\Classes\.pdf\OpenWithProgids", writable: true);
+                    k?.DeleteValue("TDPdf.pdf", throwOnMissingValue: false);
+                }
+                catch { }
+
+                try
+                {
+                    using var k = root.OpenSubKey(
+                        @"Software\RegisteredApplications", writable: true);
+                    k?.DeleteValue(AppName, throwOnMissingValue: false);
+                }
+                catch { }
             }
-            catch { }
 
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
 
@@ -579,7 +656,7 @@ namespace TDPdf
             File.WriteAllText(bat,
                 "@echo off\r\n" +
                 "ping -n 3 127.0.0.1 >nul\r\n" +
-                $"rmdir /s /q \"{InstallDir}\"\r\n" +
+                $"rmdir /s /q \"{installDir}\"\r\n" +
                 "del \"%~f0\"\r\n");
             Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{bat}\"")
             {

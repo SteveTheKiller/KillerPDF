@@ -174,8 +174,15 @@ namespace TDPdf
         private Border? _signaturePopup;
         private Border? _cropPopup;
         private CheckBox? _cropApplyAllCheck;
-        private static readonly string SignatureDir = AppDomain.CurrentDomain.BaseDirectory;
+        // Signatures are stored under %LocalAppData%\TDPdf\ so the file stays
+        // writable when the EXE is installed machine-wide under %ProgramFiles%
+        // (no admin rights on that directory). A legacy file next to the EXE
+        // from older builds is migrated on first read.
+        private static readonly string SignatureDir = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TDPdf");
         private static readonly string SignatureFile = System.IO.Path.Combine(SignatureDir, "signatures.json");
+        private static readonly string LegacySignatureFile = System.IO.Path.Combine(
+            AppDomain.CurrentDomain.BaseDirectory, "signatures.json");
         private static readonly SolidColorBrush SignatureBorderBrush = FrozenSolidColorBrush(Color.FromRgb(0x44, 0x44, 0x44));
         private static readonly SolidColorBrush DialogCloseNormalBrush = FrozenSolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88));
         private static readonly SolidColorBrush DialogCloseHoverBrush = FrozenSolidColorBrush(Color.FromRgb(0xef, 0x44, 0x44));
@@ -2541,6 +2548,17 @@ namespace TDPdf
         {
             try
             {
+                // One-shot migration from the legacy beside-EXE location.
+                if (!File.Exists(SignatureFile) && File.Exists(LegacySignatureFile))
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(SignatureDir);
+                        File.Copy(LegacySignatureFile, SignatureFile, overwrite: false);
+                    }
+                    catch { /* best effort */ }
+                }
+
                 if (File.Exists(SignatureFile))
                 {
                     var json = File.ReadAllText(SignatureFile);

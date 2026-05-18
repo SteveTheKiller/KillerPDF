@@ -6,6 +6,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.0.0.2] - 2026-05-18
+
+### Fixed
+
+- **Intune system-context install** — when invoked by Intune with install behavior set to **System**, the installer now correctly installs machine-wide to `%ProgramFiles%\TDPdf\` and writes its registry entries under `HKLM` instead of dropping them in LocalSystem's user profile. This fixes the `0x80070005` access-denied deployment failure and the missing Start Menu shortcut. Per-user installs (interactive double-click) continue to work as before.
+- **Saved signatures lost on machine-wide installs** — `signatures.json` is now stored under `%LocalAppData%\TDPdf\` so it stays writable when the EXE lives under `%ProgramFiles%`. A legacy file next to the EXE is migrated automatically on first launch.
+
+### Changed
+
+- Start Menu shortcut is now placed in the **All Users** Start Menu (`%ProgramData%\Microsoft\Windows\Start Menu\Programs\TDPdf`) for system-context installs, so every user of the machine sees the entry.
+- `IsInstalled()` and `Uninstall()` discover the existing install (HKLM vs HKCU) from registry markers instead of inferring from the current process context, so the elevated Add/Remove Programs uninstall correctly tears down a machine-wide install even though it runs as the user (not SYSTEM).
+- Add/Remove Programs `DisplayVersion` is now the full 4-part assembly version (e.g. `1.0.0.2`) instead of being truncated to 3 parts.
+- `release.ps1` summary and `docs/intune-distribution.md` updated to reflect the system-context Intune configuration (install behavior **System**, paths under `%ProgramFiles%\TDPdf`).
+
 ## [1.0.0.1] - 2026-05-18
 
 ### Changed
@@ -151,7 +165,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.1...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.2...HEAD
+[1.0.0.2]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.1...v1.0.0.2
 [1.0.0.1]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0-tdpdf...v1.0.0.1
 [1.0.0-tdpdf]: https://github.com/doodlemania2/TDPdf/releases/tag/v1.0.0-tdpdf
 [1.3.2]: https://github.com/SteveTheKiller/KillerPDF/compare/v1.3.1...v1.3.2
