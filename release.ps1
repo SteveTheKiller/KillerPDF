@@ -44,11 +44,11 @@ $srcZip     = $null
 # Parse <Version> from csproj so we don't drift between release.ps1 and the build.
 $projVersion = "unknown"
 try {
-    [xml]$projXml = Get-Content $proj
-    $verNode = $projXml.Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
-    if ($verNode) { $projVersion = "$verNode".Trim() }
+    [xml]$projXml = Get-Content -Raw $proj
+    $verNode = $projXml.SelectSingleNode('//Project/PropertyGroup/Version')
+    if ($verNode) { $projVersion = $verNode.InnerText.Trim() }
 } catch {
-    Write-Host "    (Could not parse <Version> from $proj: $($_.Exception.Message))" -ForegroundColor Yellow
+    Write-Host "    (Could not parse <Version> from ${proj}: $($_.Exception.Message))" -ForegroundColor Yellow
 }
 
 try {
