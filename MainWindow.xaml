@@ -211,12 +211,69 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- ======================================================== -->
+        <!-- MenuItem — role-aware dark templates                    -->
+        <!--                                                          -->
+        <!-- A single <Setter Property="Template"> can't model the    -->
+        <!-- four MenuItem.Role values, and the previous template     -->
+        <!-- shipped without a Popup, so submenus never opened and    -->
+        <!-- access-key underscores ("_File") rendered literally.     -->
+        <!-- This style defines a template per role and uses          -->
+        <!-- RecognizesAccessKey on every header ContentPresenter.    -->
+        <!-- ======================================================== -->
+
+        <!-- Popup shell shared by TopLevelHeader and SubmenuHeader -->
+        <ControlTemplate x:Key="SubmenuPopupTemplate" TargetType="MenuItem">
+            <Grid>
+                <Border x:Name="HeaderBd"
+                        Background="{TemplateBinding Background}"
+                        Padding="12,4" CornerRadius="3">
+                    <ContentPresenter ContentSource="Header"
+                                      RecognizesAccessKey="True"
+                                      VerticalAlignment="Center"/>
+                </Border>
+                <Popup x:Name="PART_Popup"
+                       Placement="Bottom"
+                       IsOpen="{TemplateBinding IsSubmenuOpen}"
+                       AllowsTransparency="True"
+                       Focusable="False"
+                       PopupAnimation="Fade">
+                    <Border Background="{DynamicResource BgPanel}"
+                            BorderBrush="{DynamicResource BorderDim}"
+                            BorderThickness="1"
+                            CornerRadius="4"
+                            Padding="4"
+                            SnapsToDevicePixels="True">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.4"/>
+                        </Border.Effect>
+                        <ScrollViewer Style="{x:Null}"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
+                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                        </ScrollViewer>
+                    </Border>
+                </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsHighlighted" Value="True">
+                    <Setter TargetName="HeaderBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                </Trigger>
+                <Trigger Property="IsSubmenuOpen" Value="True">
+                    <Setter TargetName="HeaderBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- SubmenuHeader template is defined inline in the Style.Triggers below. -->
+
         <Style TargetType="MenuItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
             <Setter Property="Padding" Value="20,6,40,6"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="FontSize" Value="12"/>
+            <!-- Default Template = SubmenuItem (leaf rows inside a popup) -->
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="MenuItem">
@@ -227,7 +284,9 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <ContentPresenter ContentSource="Header" VerticalAlignment="Center"/>
+                                <ContentPresenter ContentSource="Header"
+                                                  RecognizesAccessKey="True"
+                                                  VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="1" Text="{TemplateBinding InputGestureText}"
                                            Foreground="{DynamicResource TextSecondary}" FontSize="11"
                                            VerticalAlignment="Center" Margin="24,0,0,0"/>
@@ -241,6 +300,89 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <!-- Top-level menu bar item with submenu (File, Edit, View, …) -->
+                <Trigger Property="Role" Value="TopLevelHeader">
+                    <Setter Property="Padding" Value="12,4"/>
+                    <Setter Property="Template" Value="{StaticResource SubmenuPopupTemplate}"/>
+                </Trigger>
+                <!-- Top-level menu bar item without a submenu -->
+                <Trigger Property="Role" Value="TopLevelItem">
+                    <Setter Property="Padding" Value="12,4"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="MenuItem">
+                                <Border x:Name="HeaderBd"
+                                        Background="{TemplateBinding Background}"
+                                        Padding="{TemplateBinding Padding}" CornerRadius="3">
+                                    <ContentPresenter ContentSource="Header"
+                                                      RecognizesAccessKey="True"
+                                                      VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="HeaderBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+                <!-- Submenu item that itself contains children -->
+                <Trigger Property="Role" Value="SubmenuHeader">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="MenuItem">
+                                <Grid>
+                                    <Border x:Name="HeaderBd"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}" CornerRadius="3">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <ContentPresenter ContentSource="Header"
+                                                              RecognizesAccessKey="True"
+                                                              VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="&#xE76C;"
+                                                       FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                                       Foreground="{DynamicResource TextSecondary}"
+                                                       VerticalAlignment="Center" Margin="16,0,0,0"/>
+                                        </Grid>
+                                    </Border>
+                                    <Popup x:Name="PART_Popup"
+                                           Placement="Right"
+                                           IsOpen="{TemplateBinding IsSubmenuOpen}"
+                                           AllowsTransparency="True"
+                                           Focusable="False"
+                                           PopupAnimation="Fade">
+                                        <Border Background="{DynamicResource BgPanel}"
+                                                BorderBrush="{DynamicResource BorderDim}"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                Padding="4"
+                                                SnapsToDevicePixels="True">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.4"/>
+                                            </Border.Effect>
+                                            <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                        </Border>
+                                    </Popup>
+                                </Grid>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsHighlighted" Value="True">
+                                        <Setter TargetName="HeaderBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSubmenuOpen" Value="True">
+                                        <Setter TargetName="HeaderBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <Style TargetType="Separator">
             <Setter Property="Background" Value="{DynamicResource BorderDim}"/>
@@ -814,7 +956,7 @@
                              Style="{StaticResource DarkButton}" Padding="6,2" Margin="0,0,12,0"
                              FontFamily="Consolas" FontSize="10"
                              Click="ResetZoom_Click" ToolTip="Reset zoom to 100% (Ctrl+0)" AutomationProperties.Name="Current zoom" AutomationProperties.HelpText="Reset zoom to 100 percent. Shortcut Control zero."/>
-                    <TextBlock x:Name="VersionLabel" Text="v1.0.0.3" Foreground="{DynamicResource TextMuted}" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0" AutomationProperties.Name="Application version"/>
+                    <TextBlock x:Name="VersionLabel" Text="v1.0.0.4" Foreground="{DynamicResource TextMuted}" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0" AutomationProperties.Name="Application version"/>
                     <TextBlock FontSize="10" VerticalAlignment="Center" FontFamily="Consolas">
                         <Run Text="&#x00A9; 2026 " Foreground="{DynamicResource TextMuted}"/>
                         <Hyperlink NavigateUri="https://thedoodleproject.com/tdpdf" RequestNavigate="Hyperlink_RequestNavigate" KeyboardNavigation.TabIndex="50" AutomationProperties.Name="The Doodle Project website" AutomationProperties.HelpText="Opens The Doodle Project website" Foreground="{DynamicResource TextMuted}" TextDecorations="None">

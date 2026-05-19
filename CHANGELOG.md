@@ -6,9 +6,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.0.0.4] - 2026-05-18
+
+### Fixed
+
+- **Menu bar didn't open and showed literal underscores** (`_File`, `_Edit`, `_View`, `_Tools`, `_Help`). The custom dark-themed `MenuItem` ControlTemplate had two latent bugs from #48: it omitted `RecognizesAccessKey="True"` on the header `ContentPresenter`, so access-key underscores rendered as literal characters; and it had no `PART_Popup`, so clicking a top-level menu never opened the dropdown. Replaced with role-aware templates (`TopLevelHeader`, `TopLevelItem`, `SubmenuHeader`, `SubmenuItem`) that include a proper `Popup`, render access keys correctly, and keep the existing dark palette.
+
 ### Changed
 
-- **Intune detection rule** — promoted a PowerShell detection script (`build/intune/Detect-TDPdf.ps1`) to recommended, demoted the manual registry rule to a fallback. Some Intune tenants reject the manual rule at save time with "invalid detection rule, unable to parse detection rule" when **Registry → Value comparison → Data type: Version** is used; the script form sidesteps tenant-side validation entirely. Manual-rule guidance now uses **String comparison** against the literal release version (e.g. `1.0.0.3`) and spells out the exact field formats (no `HKLM\` prefix, no leading backslash). A "value exists" rule on `Installed` is documented as the simplest fallback when no minimum-version gate is needed.
+- **Intune detection rule** — promoted a PowerShell detection script (`build/intune/Detect-TDPdf.ps1`) to recommended, demoted the manual registry rule to a fallback. Some Intune tenants reject the manual rule at save time with "invalid detection rule, unable to parse detection rule" when **Registry → Value comparison → Data type: Version** is used; the script form sidesteps tenant-side validation entirely. Manual-rule guidance now uses **String comparison** against the literal release version (e.g. `1.0.0.4`) and spells out the exact field formats (no `HKLM\` prefix, no leading backslash). A "value exists" rule on `Installed` is documented as the simplest fallback when no minimum-version gate is needed.
 
 ### Added
 
@@ -193,7 +199,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.3...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.4...HEAD
+[1.0.0.4]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.3...v1.0.0.4
 [1.0.0.3]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.2...v1.0.0.3
 [1.0.0.2]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.1...v1.0.0.2
 [1.0.0.1]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0-tdpdf...v1.0.0.1
