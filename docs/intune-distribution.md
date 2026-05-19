@@ -336,12 +336,20 @@ other Windows blocking layers behave independently:
 
 ## Telemetry (optional)
 
-Starting with **v1.0.0.5**, TDPdf can emit anonymous usage and crash
-telemetry to **Azure Application Insights**, but only on machines where
-you have explicitly provisioned a connection string. With no
-provisioning, TDPdf is a no-op: the SDK is initialized with an empty
-configuration and no network calls are made. This section describes how
-to enable it for your managed fleet.
+Starting with **v1.0.0.6**, TDPdf supports **two complementary** ways to
+opt a device into anonymous Application Insights telemetry. With neither
+in play, TDPdf is a no-op: the SDK is initialized with an empty
+configuration and no network calls are made.
+
+| Method | Who provisions | When the key lives in the package |
+|---|---|---|
+| **Build-time-embedded key** (recommended for managed fleets) | The release engineer, once, when running `release.ps1` | Compiled into `TDPdf.exe` itself; never in a separate file on the device |
+| **Per-device file-based provisioning** | An admin on the device via `TDPdf.exe /set-telemetry` | Only on devices where someone explicitly ran the command |
+
+Either method ends up at the same on-device state: a hardened
+`%ProgramData%\TDPdf\telemetry.dat` containing a DPAPI-LocalMachine-
+encrypted copy of the connection string. The only difference is **how
+that file gets there**.
 
 ### What gets sent (when enabled)
 
@@ -364,123 +372,154 @@ names, machine names, persistent device identifiers (no `User.Id`, no
 
 ### Recommended Azure setup
 
-1. Create a dedicated Application Insights resource (workspace-based) in
-   a resource group you control. **Do not reuse** one that already
+1. Create a **dedicated** Application Insights resource (workspace-based)
+   in a resource group you control. **Do not reuse** one that already
    receives traffic from other applications — it makes anomaly
    investigation harder and complicates a key rotation if you ever need
-   one.
-2. Set a **daily cap** on the resource (Application Insights → Usage and
+   one. The blast radius of a leaked TDPdf key should be bounded to
+   this resource and nothing else.
+2. Set a **daily ingestion cap** (Application Insights → Usage and
    estimated costs → Daily cap). Even though TDPdf events are small,
-   this protects against runaway costs from a buggy build or
-   ingestion-key abuse.
-3. Optionally configure an **anomaly alert** so you're notified if event
-   volume spikes (e.g. >10× the rolling 7-day average).
+   this protects against runaway costs from a buggy build or an attacker
+   who recovers the embedded key.
+3. Configure an **anomaly alert** so you're notified if event volume
+   spikes (e.g. >10× the rolling 7-day average) — first indicator that
+   a key has leaked.
 4. Copy the **connection string** (not the legacy instrumentation key)
    from the resource's Overview blade.
 
-### Provisioning a managed device
+### Method 1 — Build-time-embedded key (single Intune deployment)
 
-Provisioning writes a DPAPI-`LocalMachine`-encrypted blob to
-`%ProgramData%\TDPdf\telemetry.dat`. Both the file and its parent
-directory are ACL'd to allow `SYSTEM` and `BuiltinAdministrators`
-`FullControl` and `AuthenticatedUsers` `Read` only. The connection string
-must be supplied on **stdin** — it is never read from `argv` and never
-written to `InstallLog.txt`.
+This is the recommended path when you're shipping TDPdf via Intune to a
+fleet of devices you administer. The connection string is encrypted into
+`TDPdf.exe` at release time; the same single `.intunewin` you already
+deploy carries everything needed for telemetry to light up.
 
-From an elevated PowerShell session (or the Intune install context,
-which runs as `SYSTEM`):
+**Release-time (one-off, on your release machine):**
+
+1. Set the connection string in your **environment** for the shell
+   session that will run `release.ps1`. Never as a command-line argument
+   (it would land in process listings and the PowerShell history file):
+   ```powershell
+   $env:TDPDF_APPINSIGHTS_CONN = (Get-Content -Raw .\secret.txt).Trim()
+   .\release.ps1
+   Remove-Item Env:TDPDF_APPINSIGHTS_CONN
+   ```
+2. `release.ps1` will invoke `build\embed-telemetry-key.ps1` which
+   generates a per-release AES-256 key, encrypts the connection string,
+   XOR-splits the key across two compiled-in halves, and writes a
+   gitignored `Diagnostics/EmbeddedTelemetry.Generated.cs` that the
+   build picks up. Immediately after publish (success or failure) the
+   generated file is **deleted** from the working tree.
+3. Verify: `git status` should report a clean tree, and `git ls-files
+   Diagnostics/` should NOT list `EmbeddedTelemetry.Generated.cs`. The
+   source bundle (`TDPdf-<version>-src.zip`) is built from `git
+   ls-files`, so it carries only the placeholder.
+4. Deploy the resulting `.intunewin` as you normally do. **No
+   second Intune app, no per-device PowerShell.**
+
+**On the device (automatic):**
+
+1. Intune installs TDPdf via `TDPdf.exe /install /silent` running as
+   SYSTEM. The install branch attempts auto-provisioning: decrypts the
+   embedded key, writes `%ProgramData%\TDPdf\telemetry.dat`, hardens the
+   ACL.
+2. If the device user later runs TDPdf interactively, startup also
+   tries to auto-provision (covering the user-context-install case).
+3. Auto-provisioning skips if `telemetry.dat` already exists, if a
+   `telemetry.disabled` sentinel is present (see "Clearing", below), or
+   if the embedded constants are empty (dev/CI builds).
+
+**Threat model**: the encrypted blob and both XOR-split key halves live
+in `TDPdf.exe`. A non-admin user on the device can't pull the key out
+with a one-line PowerShell, but anyone who can reverse engineer or
+debug-attach the binary can recover it. This is a **speed bump, not
+strong cryptography**. The mitigations are the Azure-side daily cap,
+dedicated resource, anomaly alert, and key rotation — not the embedded
+encryption itself.
+
+### Method 2 — Per-device file-based provisioning (fallback)
+
+Useful when you don't want to (or can't) embed the key at release time:
+admin-managed dev machines, exploratory testing, customer-specific
+keys, etc. This is the original `1.0.0.5` workflow.
+
+`%ProgramData%\TDPdf\telemetry.dat` is written manually via stdin (never
+argv) to keep the connection string out of process listings and the
+installer log:
 
 ```powershell
-# secret.txt contains exactly the connection string on one line, e.g.
+# secret.txt contains exactly the connection string on one line:
 # InstrumentationKey=00000000-0000-0000-0000-000000000000;IngestionEndpoint=https://...
-Get-Content -Raw secret.txt | & 'C:\Program Files\TDPdf\TDPdf.exe' /set-telemetry
+Get-Content -Raw secret.txt | & "$env:LOCALAPPDATA\Programs\TDPdf\TDPdf.exe" /set-telemetry
 ```
 
-Or, equivalently from `cmd`:
+Or from `cmd`:
 
 ```cmd
-type secret.txt | "C:\Program Files\TDPdf\TDPdf.exe" /set-telemetry
+type secret.txt | "C:\Path\to\TDPdf.exe" /set-telemetry
 ```
 
-### Provisioning via Intune
-
-Treat the connection-string provisioning as a **separate Win32 app**
-from the TDPdf installer itself — that way you can rotate the key
-without redeploying TDPdf. A minimal pattern:
-
-1. Wrap a small PowerShell script + `secret.txt` into an `.intunewin`
-   package.
-2. Install command (example):
-   ```cmd
-   powershell.exe -ExecutionPolicy Bypass -NoProfile -File .\Set-TDPdfTelemetry.ps1
-   ```
-   Where `Set-TDPdfTelemetry.ps1` does roughly:
-   ```powershell
-   $exe = Join-Path $env:LOCALAPPDATA 'Programs\TDPdf\TDPdf.exe'
-   if (-not (Test-Path $exe)) { exit 1 }
-   Get-Content -Raw (Join-Path $PSScriptRoot 'secret.txt') | & $exe /set-telemetry
-   ```
-3. Uninstall command:
-   ```cmd
-   "%LOCALAPPDATA%\Programs\TDPdf\TDPdf.exe" /clear-telemetry
-   ```
-4. Detection rule: file presence check for
-   `%ProgramData%\TDPdf\telemetry.dat`.
-5. Make this app a **dependency** of (or assigned alongside) the main
-   TDPdf app, not bundled into the same `.intunewin` — that keeps the
-   secret out of the main package.
-
-**Per-user installs note**: TDPdf installs per-user under
-`%LOCALAPPDATA%\Programs\TDPdf\`. When Intune runs in user context, the
-provisioning command above works against that path. When the
-provisioning app runs in **system** context, point it at the device's
-installed copy (e.g. enumerate user profiles, or rely on `PATH` if you
-ship a per-machine install).
+Running `/set-telemetry` also clears the `telemetry.disabled` sentinel,
+so it re-enables on a previously-cleared device.
 
 ### Clearing telemetry on a device
 
 ```cmd
-"%LOCALAPPDATA%\Programs\TDPdf\TDPdf.exe" /clear-telemetry
+"C:\Path\to\TDPdf.exe" /clear-telemetry
 ```
 
-This deletes `%ProgramData%\TDPdf\telemetry.dat`. The next launch of
-TDPdf on that device emits nothing.
+This:
+- deletes `%ProgramData%\TDPdf\telemetry.dat`;
+- writes a `%ProgramData%\TDPdf\telemetry.disabled` sentinel that
+  suppresses auto-provisioning from the embedded key on subsequent
+  launches.
+
+So `/clear-telemetry` is **sticky**: an Intune re-install of the same
+build will not silently re-enable telemetry on a device the user
+opted out of. To re-enable, an admin must run `/set-telemetry` or
+delete the sentinel file.
 
 ### Rotating the connection string
 
-If the key is ever exposed (e.g. someone exfiltrates `telemetry.dat` and
-manages to decrypt it on the same machine), rotate as follows:
+The embedded key is encrypted with a fresh per-release AES key, so a
+key rotation means cutting a new TDPdf release. There is no on-device
+rotation step.
 
 1. In the Azure portal, **regenerate** the App Insights connection
-   string (Application Insights → Configure → API Access → or recreate
-   the resource if the SDK only honors a regenerated full connection
-   string in your tenant).
-2. Update `secret.txt` in your provisioning Intune package.
-3. Bump the package version and let Intune re-deploy. `/set-telemetry`
-   overwrites the existing file atomically, so devices pick up the new
-   key on the next provisioning run.
-4. Optionally push a one-off `/clear-telemetry` first if you want a
-   clean break before the new key lands.
+   string (or stand up a new App Insights resource entirely if you want
+   a clean break).
+2. Cut a new TDPdf release with the new value in
+   `$env:TDPDF_APPINSIGHTS_CONN`. Bump the patch version.
+3. Deploy via Intune as you normally do — the next install on each
+   device overwrites `telemetry.dat` with the new key (atomic write via
+   `.tmp` + `File.Replace`).
+4. Once you confirm new-resource events are flowing, you can disable
+   the old App Insights resource. The old key is now inert no matter
+   what's still on a device.
 
-The old key continues to work in the SDK until either Azure stops
-accepting it (regenerated resource) or `/clear-telemetry` is run on the
-device. Plan accordingly.
+The same flow works for the file-based fallback: replace `secret.txt`
+and re-run `/set-telemetry` on the device.
 
-### Why DPAPI + ACLs, not "real" encryption?
+### Why this design, not stronger crypto?
 
 The threat model is: an **administrator** of the device is trusted (they
-provisioned the key); a non-admin local user should not be able to read
-the connection string by inspecting `%ProgramData%`. DPAPI
-`LocalMachine` scope means SYSTEM can decrypt (so the interactive TDPdf
-process can read the file), but a non-admin can't easily exfiltrate the
-plaintext without running code as an admin or as SYSTEM. The fixed
-entropy parameter raises the bar against off-the-shelf DPAPI dumpers.
+deployed the package); a non-admin local user should not be able to
+casually read the connection string. Both the embedded-key path and the
+file-based path rely on:
 
-This is a **reasonable speed bump, not cryptography against a determined
-attacker**. Anyone who can run code as SYSTEM (or run a debugger against
-the elevated TDPdf process) can recover the key. Use a separate App
-Insights resource and a daily cap so a recovered key has a bounded blast
-radius. If you need stronger guarantees, don't enable telemetry.
+- DPAPI `LocalMachine` scope on `telemetry.dat` (a stolen file is
+  useless on another machine);
+- Explicit ACLs (no inheritance; SYSTEM + Admins FullControl,
+  AuthenticatedUsers Read only);
+- Compiled-in XOR-split entropy in `TDPdf.exe` for the embedded path
+  (raises the bar above a PowerShell one-liner).
+
+Anyone who can run code as SYSTEM (or attach a debugger to the elevated
+TDPdf process) can recover the key. Use a **dedicated resource +
+daily cap + anomaly alert + rotation discipline** so a recovered key
+has a bounded blast radius. If you need stronger guarantees, don't
+enable telemetry — the default no-op behavior is always safe.
 
 ## GPLv3 compliance reminder
 

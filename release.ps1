@@ -109,6 +109,10 @@ try {
 
     # ── 1. Build / Publish ──────────────────────────────────────────────────────
     try {
+        Write-Host "`n==> Embedding telemetry key (if `$env:TDPDF_APPINSIGHTS_CONN set)..." -ForegroundColor Cyan
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build\embed-telemetry-key.ps1') -ProjectDir $PSScriptRoot
+        if ($LASTEXITCODE -ne 0) { throw "embed-telemetry-key.ps1 failed." }
+
         Write-Host "`n==> Building (Release, net9.0-windows, win-x64)..." -ForegroundColor Cyan
 
         & dotnet publish $proj -c Release -r win-x64 -p:PublishSingleFile=true -p:SelfContained=true
@@ -118,6 +122,11 @@ try {
         Write-Host "    EXE: $exe" -ForegroundColor Green
     } catch {
         throw "Build / publish failed: $($_.Exception.Message)"
+    } finally {
+        # Always strip the generated key from the working tree, even on
+        # failure, so a subsequent test build or `git status` doesn't
+        # surface the secret.
+        & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build\embed-telemetry-key.ps1') -ProjectDir $PSScriptRoot -Remove | Out-Null
     }
 
     # ── 2. Sign ─────────────────────────────────────────────────────────────────

@@ -56,10 +56,30 @@ namespace TDPdf.Diagnostics
 
         public static string Path => System.IO.Path.Combine(s_dir, "telemetry.dat");
 
+        /// <summary>
+        /// Sentinel file that, when present, disables auto-provisioning
+        /// from the build-time-embedded connection string on the next
+        /// launch. Written by <see cref="MarkDisabled"/> when a user
+        /// runs <c>TDPdf.exe /clear-telemetry</c>; respected by
+        /// <see cref="IsDisabled"/>.
+        /// </summary>
+        public static string DisabledMarkerPath => System.IO.Path.Combine(s_dir, "telemetry.disabled");
+
         /// <summary>True if the provisioning file is present on disk.</summary>
         public static bool Exists()
         {
             try { return File.Exists(Path); }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// True if the user has explicitly disabled telemetry on this
+        /// device via <c>/clear-telemetry</c>. Auto-provisioning skips
+        /// when this returns true.
+        /// </summary>
+        public static bool IsDisabled()
+        {
+            try { return File.Exists(DisabledMarkerPath); }
             catch { return false; }
         }
 
@@ -134,6 +154,36 @@ namespace TDPdf.Diagnostics
                     File.Delete(Path);
             }
             catch { /* swallow — caller logs */ }
+        }
+
+        /// <summary>
+        /// Write the disabled-marker sentinel so the next launch will
+        /// not re-provision from the build-time-embedded key. Best
+        /// effort — failure is swallowed.
+        /// </summary>
+        public static void MarkDisabled()
+        {
+            try
+            {
+                EnsureHardenedDirectory();
+                File.WriteAllText(DisabledMarkerPath, "disabled\r\n");
+                HardenFileAcl(DisabledMarkerPath);
+            }
+            catch { /* swallow */ }
+        }
+
+        /// <summary>
+        /// Clear the disabled-marker sentinel so the next launch can
+        /// auto-provision again from the build-time-embedded key.
+        /// </summary>
+        public static void ClearDisabledMarker()
+        {
+            try
+            {
+                if (File.Exists(DisabledMarkerPath))
+                    File.Delete(DisabledMarkerPath);
+            }
+            catch { /* swallow */ }
         }
 
         // ============================================================

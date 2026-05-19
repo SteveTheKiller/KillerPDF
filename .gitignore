@@ -24,3 +24,8 @@ Thumbs.db
 *.exe
 bin/
 obj/
+
+# Build-time-generated telemetry key (release.ps1 produces this from
+# $env:TDPDF_APPINSIGHTS_CONN; the placeholder EmbeddedTelemetry.cs is
+# what ships in git and in the GPLv3 source bundle).
+Diagnostics/EmbeddedTelemetry.Generated.cs

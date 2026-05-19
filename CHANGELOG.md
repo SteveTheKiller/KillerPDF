@@ -6,6 +6,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.0.0.6] - 2026-05-19
+
+### Added
+
+- **Build-time-embedded telemetry key for managed deployments.** Release builds now bake an encrypted App Insights connection string into `TDPdf.exe` itself, so a managed/Intune deployment of TDPdf auto-provisions `%ProgramData%\TDPdf\telemetry.dat` on first launch (or at `/install` time when run as SYSTEM) — no separate provisioning app or `/set-telemetry` ceremony required. The connection string is read at release time from `$env:TDPDF_APPINSIGHTS_CONN`, encrypted with a fresh AES-256-CBC key per release, and the AES key is XOR-split across two compiled-in halves. When the env var is unset (dev / CI / source-bundle builds), no key is embedded and TDPdf is a no-op exactly as before. The GPLv3 source bundle ships the placeholder, never the real key.
+- **`/clear-telemetry` is now sticky.** Running `TDPdf.exe /clear-telemetry` on a device deletes `telemetry.dat` AND writes a `telemetry.disabled` sentinel; auto-provisioning on the next launch is suppressed by the sentinel, so the device stays disabled across re-installs of the same build. Running `/set-telemetry` clears the sentinel and re-enables.
+- **`build/embed-telemetry-key.ps1`** — release-time generator that produces the gitignored `Diagnostics/EmbeddedTelemetry.Generated.cs`. Reads the connection string only from the environment (never argv). `release.ps1` invokes it before `dotnet publish` and unconditionally strips the generated file afterwards so the working tree never contains the secret.
+
+### Security
+
+- **Threat model framing (unchanged):** the embedded key is a speed bump against casual extraction by a non-admin user on the device, not strong cryptography. Both XOR halves and the AES IV are compiled into `TDPdf.exe`, so a determined reverse engineer with the binary can still recover the connection string. Pair with a **dedicated** App Insights resource, a **daily ingestion cap**, and **key rotation** on suspected exposure. Documented in `docs/intune-distribution.md`.
+- **No secret in git, no secret in the source bundle.** The placeholder `Diagnostics/EmbeddedTelemetry.cs` is the only version tracked; the generated file is gitignored; `bundle-source.ps1` uses `git ls-files`, so the generated file is never copied into `TDPdf-<version>-src.zip` even when present in the working tree.
+
+### Changed
+
+- **Version** bumped to `1.0.0.6` (assembly, file, product). Detection script `build/intune/Detect-TDPdf.ps1`, landing page, and in-app version label updated to match.
+
 ## [1.0.0.5] - 2026-05-19
 
 ### Added
@@ -221,7 +238,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.5...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.6...HEAD
+[1.0.0.6]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.5...v1.0.0.6
 [1.0.0.5]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.4...v1.0.0.5
 [1.0.0.4]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.3...v1.0.0.4
 [1.0.0.3]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.2...v1.0.0.3

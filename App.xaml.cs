@@ -133,6 +133,13 @@ namespace TDPdf
                 if (string.Equals(e.Args[0], "/install", StringComparison.OrdinalIgnoreCase))
                 {
                     InstallLog.WriteHeader("INSTALL", e.Args);
+                    // SYSTEM-context install is the right moment to drop
+                    // %ProgramData%\TDPdf\telemetry.dat from the embedded
+                    // key (release builds only). No-op for dev / CI / user
+                    // /install if Embedded key isn't present, and a no-op
+                    // if telemetry.dat already exists or the user has
+                    // explicitly disabled telemetry on this device.
+                    TryAutoProvisionEmbeddedTelemetry();
                     Telemetry.Initialize(AppVersionString());
                     Telemetry.TrackEvent("Install.Start", InstallProps(silent));
                     try
@@ -203,6 +210,10 @@ namespace TDPdf
                     try
                     {
                         TelemetryStore.Clear();
+                        // Write the disabled-sentinel so the next launch
+                        // does not silently re-provision from the
+                        // build-time-embedded key.
+                        TelemetryStore.MarkDisabled();
                         InstallLog.Write("CLEAR-TELEMETRY OK");
                         Shutdown(0);
                     }
@@ -222,8 +233,16 @@ namespace TDPdf
 
             ThemeManager.Initialize(ParseThemeSetting(TDPdf.Properties.Settings.Default.Theme));
 
+            // Auto-provision from build-time-embedded key if present.
+            // Release builds (TDPDF_APPINSIGHTS_CONN set at release time)
+            // carry an encrypted connection string; dev / CI / source
+            // builds do not. This is a best-effort no-op when there's no
+            // embedded key, when telemetry.dat already exists, or when
+            // the user has run /clear-telemetry on this device.
+            TryAutoProvisionEmbeddedTelemetry();
+
             // Opt-in telemetry (see Diagnostics/Telemetry.cs). No-op
-            // unless the admin has provisioned %ProgramData%\TDPdf\telemetry.dat.
+            // unless telemetry.dat is present.
             string appVersion = AppVersionString();
             string installScope = DetectInstalledScope() switch
             {
@@ -298,7 +317,35 @@ namespace TDPdf
                     "Usage: type secret.txt | TDPdf.exe /set-telemetry");
 
             TelemetryStore.Save(connectionString);
+            // Clear the disabled-sentinel — if a previous /clear-telemetry
+            // wrote it, an explicit /set-telemetry should re-enable.
+            TelemetryStore.ClearDisabledMarker();
             InstallLog.Write($"Wrote telemetry.dat at {TelemetryStore.Path}");
+        }
+
+        /// <summary>
+        /// Best-effort attempt to write <c>telemetry.dat</c> from the
+        /// build-time-embedded connection string (release builds with
+        /// <c>$env:TDPDF_APPINSIGHTS_CONN</c> set during
+        /// <c>release.ps1</c>). No-op when the embedded key is empty
+        /// (dev/CI builds), when <c>telemetry.dat</c> already exists,
+        /// or when the user has run <c>/clear-telemetry</c> on this
+        /// device. Never throws.
+        /// </summary>
+        private static void TryAutoProvisionEmbeddedTelemetry()
+        {
+            try
+            {
+                if (!EmbeddedTelemetry.HasKey) return;
+                if (TelemetryStore.Exists()) return;
+                if (TelemetryStore.IsDisabled()) return;
+
+                string? conn = EmbeddedTelemetry.TryDecrypt();
+                if (string.IsNullOrWhiteSpace(conn)) return;
+
+                TelemetryStore.Save(conn);
+            }
+            catch { /* best-effort — never block startup */ }
         }
 
         // ============================================================

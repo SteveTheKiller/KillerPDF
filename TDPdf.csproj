@@ -12,9 +12,9 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\tdpdf-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.0.5</Version>
-    <AssemblyVersion>1.0.0.5</AssemblyVersion>
-    <FileVersion>1.0.0.5</FileVersion>
+    <Version>1.0.0.6</Version>
+    <AssemblyVersion>1.0.0.6</AssemblyVersion>
+    <FileVersion>1.0.0.6</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
@@ -41,6 +41,19 @@
 
   <ItemGroup>
     <Resource Include="Resources\tdpdf-icon.ico" />
+  </ItemGroup>
+
+  <!--
+    Build-time-embedded telemetry key. EmbeddedTelemetry.Generated.cs is
+    produced by build\embed-telemetry-key.ps1 just before publish and is
+    gitignored; when it exists, it replaces the placeholder constants in
+    EmbeddedTelemetry.cs so the published EXE auto-provisions on first
+    run. When the generated file is absent (CI builds, dev builds, the
+    GPLv3 source bundle), the placeholder ships and telemetry is a
+    no-op unless an admin opts in via `TDPdf.exe /set-telemetry`.
+  -->
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)Diagnostics\EmbeddedTelemetry.Generated.cs')">
+    <Compile Remove="Diagnostics\EmbeddedTelemetry.cs" />
   </ItemGroup>
 
   <ItemGroup>
