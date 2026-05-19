@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+### Changed
+
+- **Intune detection rule** — promoted a PowerShell detection script (`build/intune/Detect-TDPdf.ps1`) to recommended, demoted the manual registry rule to a fallback. Some Intune tenants reject the manual rule at save time with "invalid detection rule, unable to parse detection rule" when **Registry → Value comparison → Data type: Version** is used; the script form sidesteps tenant-side validation entirely. Manual-rule guidance now uses **String comparison** against the literal release version (e.g. `1.0.0.3`) and spells out the exact field formats (no `HKLM\` prefix, no leading backslash). A "value exists" rule on `Installed` is documented as the simplest fallback when no minimum-version gate is needed.
+
+### Added
+
+- `build/intune/Detect-TDPdf.ps1` — checks `HKLM\Software\TDPdf` for `Installed=1` and `Version >= $MinVersion`, writes one line to stdout on success, exits 0 otherwise. Bump `$MinVersion` per release.
+
 ## [1.0.0.3] - 2026-05-18
 
 ### Fixed

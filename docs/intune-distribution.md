@@ -147,7 +147,7 @@ In Intune admin center → **Apps → Windows → Add → Windows app (Win32)**:
 | Device restart behavior | No specific action |
 | Operating system architecture | x64 |
 | Minimum operating system | Windows 10 1809 |
-| Detection rule | **Registry** → Hive `HKEY_LOCAL_MACHINE` → Key path `Software\TDPdf` → Value name `Version` → Detection method **Value comparison** → Data type **Version** → Operator `Greater than or equal to` → Value `<AssemblyVersion>` (e.g. `1.0.0.3`) → **Associated with a 32-bit app on 64-bit clients: No** |
+| Detection rule | **Use a custom detection script** → upload `build/intune/Detect-TDPdf.ps1` from this repo (see "Detection rule" below). |
 
 > The `/silent` flag on the install command matters. Without it, an error
 > inside `DoInstall` running under LocalSystem (session 0) used to try to
@@ -156,16 +156,65 @@ In Intune admin center → **Apps → Windows → Add → Windows app (Win32)**:
 > dialog path entirely, but the headless flag is still the correct
 > production setting.
 
-> Use the **registry-based detection rule** above. The installer writes
-> `HKLM\Software\TDPdf` with `Installed=1`, `InstallPath`, and `Version`
-> only after every other install step has succeeded — registry detection
-> therefore can't false-positive on a half-finished install. A
-> file-version rule (`%ProgramFiles%\TDPdf\TDPdf.exe` String (version) >=
-> `<AssemblyVersion>`) works as a fallback if you need it, but expand
-> `%ProgramFiles%` to `C:\Program Files` and double-check the
-> "Associated with a 32-bit app on 64-bit clients" toggle is set to
-> **No** — otherwise Intune looks in `C:\Program Files (x86)\TDPdf` and
-> detection fails silently.
+#### Detection rule
+
+The installer writes `HKLM\Software\TDPdf` with `Installed=1`,
+`InstallPath`, and `Version` **last** in `DoInstall` — only after the
+EXE has been copied, ARP entry written, and PDF file association
+registered. Any of the three options below check that marker; pick one.
+
+**Recommended — Custom detection script (most robust):**
+
+1. Under **Detection rules** choose **Rules format: Use a custom
+   detection script**.
+2. Upload `build/intune/Detect-TDPdf.ps1` from this repo.
+3. Leave **Run script as 32-bit process on 64-bit clients = No**.
+4. Leave **Enforce script signature check = No** (the script isn't
+   signed; you can sign it yourself and flip this on if your tenant
+   requires it).
+
+The script reads the registry marker, parses `Version` with
+`[Version]::TryParse`, and emits stdout only when the installed version
+is greater than or equal to `$MinVersion` (defaulted to `1.0.0.3`). Bump
+`$MinVersion` in the script for each release.
+
+**Fallback A — Registry value comparison (manual rule):**
+
+If you prefer a manual rule, Intune validates the fields strictly and
+rejects malformed entries with "invalid detection rule, unable to parse
+detection rule." Use these exact values:
+
+| Field | Value |
+| --- | --- |
+| Rule type | `Registry` |
+| Key path | `Software\TDPdf` *(no hive prefix, no leading backslash)* |
+| Value name | `Version` |
+| Detection method | `String comparison` |
+| Operator | `Greater than or equal to` |
+| Value | `1.0.0.3` *(literal release version — do not paste `<AssemblyVersion>`)* |
+| Associated with a 32-bit app on 64-bit clients | `No` |
+
+The hive (`HKEY_LOCAL_MACHINE`) is implicit when "Associated with a
+32-bit app on 64-bit clients" is **No**. `String comparison` against a
+dotted version like `1.0.0.3` works because Intune compares
+left-to-right by numeric segment. Avoid the `Version` data type — some
+tenants reject it at save time.
+
+**Fallback B — Registry key exists (simplest):**
+
+If you don't need a minimum-version gate (a fresh deploy after
+uninstall always replaces the marker), the simplest possible rule is:
+
+| Field | Value |
+| --- | --- |
+| Rule type | `Registry` |
+| Key path | `Software\TDPdf` |
+| Value name | `Installed` |
+| Detection method | `Value exists` |
+| Associated with a 32-bit app on 64-bit clients | `No` |
+
+This will detect *any* installed TDPdf, including older versions — fine
+for first-time rollout, less useful for forcing upgrades.
 
 Assign to the test device group first, validate install on a real
 enrolled device, then promote to the broader assignment.
