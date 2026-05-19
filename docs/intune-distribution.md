@@ -1,6 +1,6 @@
 # TDPdf — Intune distribution & code signing
 
-Last reviewed: 2026-05-18
+Last reviewed: 2026-05-18 (1.0.0.3)
 
 This is the canonical workflow for shipping TDPdf to a corporate Windows
 fleet via Microsoft Intune. It supersedes the older `code-signing.md`
@@ -19,8 +19,8 @@ TDPdf is distributed as an **Intune Win32 app**, not as a public download:
   the lifecycle headlessly.
 - Updates ship by bumping `<Version>` / `<AssemblyVersion>` /
   `<FileVersion>` in `TDPdf.csproj`; Intune's detection rule
-  (`file version >= <AssemblyVersion>`) re-runs the installer on every
-  enrolled device.
+  (registry value `HKLM\Software\TDPdf!Version >= <AssemblyVersion>`)
+  re-runs the installer on every enrolled device.
 
 ## One-time setup
 
@@ -141,15 +141,31 @@ In Intune admin center → **Apps → Windows → Add → Windows app (Win32)**:
 | App package file | `TDPdf-<Version>.intunewin` |
 | Name | `TDPdf` |
 | Publisher | `The Doodle Project` |
-| Install command | `TDPdf.exe /install` |
+| Install command | `TDPdf.exe /install /silent` |
 | Uninstall command | `"%ProgramFiles%\TDPdf\TDPdf.exe" /uninstall /silent` |
 | Install behavior | **System** |
 | Device restart behavior | No specific action |
 | Operating system architecture | x64 |
 | Minimum operating system | Windows 10 1809 |
-| Detection rule | **File** → Path `%ProgramFiles%\TDPdf` → File `TDPdf.exe` → Detection method **String (version)** → Operator `Greater than or equal to` → Value `<AssemblyVersion>` (e.g. `1.1.0.0`) |
+| Detection rule | **Registry** → Hive `HKEY_LOCAL_MACHINE` → Key path `Software\TDPdf` → Value name `Version` → Detection method **Value comparison** → Data type **Version** → Operator `Greater than or equal to` → Value `<AssemblyVersion>` (e.g. `1.0.0.3`) → **Associated with a 32-bit app on 64-bit clients: No** |
 
-> Make sure to leave **"Associated with a 32-bit app on 64-bit clients"** set to **No** on both the install command and the detection rule. TDPdf is an x64 build that installs to the real `C:\Program Files\TDPdf`; if Intune treats the app as 32-bit it will look in `C:\Program Files (x86)\TDPdf` instead and detection will fail.
+> The `/silent` flag on the install command matters. Without it, an error
+> inside `DoInstall` running under LocalSystem (session 0) used to try to
+> raise a `MessageBox` on an invisible desktop, which could mask the
+> failure as "exit code 0, app not detected." `1.0.0.3` removes that
+> dialog path entirely, but the headless flag is still the correct
+> production setting.
+
+> Use the **registry-based detection rule** above. The installer writes
+> `HKLM\Software\TDPdf` with `Installed=1`, `InstallPath`, and `Version`
+> only after every other install step has succeeded — registry detection
+> therefore can't false-positive on a half-finished install. A
+> file-version rule (`%ProgramFiles%\TDPdf\TDPdf.exe` String (version) >=
+> `<AssemblyVersion>`) works as a fallback if you need it, but expand
+> `%ProgramFiles%` to `C:\Program Files` and double-check the
+> "Associated with a 32-bit app on 64-bit clients" toggle is set to
+> **No** — otherwise Intune looks in `C:\Program Files (x86)\TDPdf` and
+> detection fails silently.
 
 Assign to the test device group first, validate install on a real
 enrolled device, then promote to the broader assignment.
@@ -180,30 +196,55 @@ Install behavior (silent or interactive):
 1. Copies the running EXE to `%ProgramFiles%\TDPdf\TDPdf.exe` (when run
    as SYSTEM) or `%LocalAppData%\Programs\TDPdf\TDPdf.exe` (when run by
    a normal user — the legacy first-launch dialog path).
-2. Writes the `TDPdf.pdf` ProgID + `.pdf` extension association under the
+2. Verifies the copy landed on disk (file exists, non-zero length). If
+   not, throws — the caller in `OnStartup` maps the exception to
+   `Shutdown(1)` so Intune sees a real failure code rather than a
+   swallowed exception.
+3. Writes the `TDPdf.pdf` ProgID + `.pdf` extension association under the
    matching hive (`HKLM\Software\Classes` for SYSTEM, `HKCU\Software\Classes`
    otherwise).
-3. Writes the Add/Remove Programs entry under the matching hive's
+4. Writes the Add/Remove Programs entry under the matching hive's
    `Software\Microsoft\Windows\CurrentVersion\Uninstall\TDPdf` with both
    `UninstallString` (interactive) and `QuietUninstallString`
    (`/uninstall /silent`) set.
-4. Creates a Start Menu shortcut — All Users (`CommonPrograms`) for the
+5. Creates a Start Menu shortcut — All Users (`CommonPrograms`) for the
    system-context install, per-user (`Programs`) otherwise.
+6. **Last**, writes the Intune detection marker at
+   `Software\TDPdf` (`Installed=1`, `InstallPath`, `Version`). This is
+   intentionally the final step: a failure anywhere above must not
+   leave a "detected" half-install behind.
 
 Uninstall writes a deferred batch file that self-deletes the install
 directory after the process exits, then removes the HKCU entries.
+
+### Install log
+
+Every `/install` and `/uninstall` invocation appends a timestamped log
+to `install.log`. Location depends on the scope:
+
+- SYSTEM (Intune install behavior=System) → `%ProgramData%\TDPdf\install.log`
+- Interactive user install → `%LocalAppData%\TDPdf\install.log`
+
+The log records the resolved scope, the source EXE path, the
+destination path, the post-copy `FileVersionInfo`, every registry step,
+and the final `INSTALL OK` / `INSTALL FAILED: <exception>` line. It
+rotates at ~1 MB. This is the first thing to check when Intune reports
+"installed successfully" but the detection rule fails to flip — the log
+will show whether the file copy actually happened and which registry
+keys were written.
 
 ## Update model
 
 Intune polls each device on its sync cycle (default ~8 hours, manual
 sync from Company Portal forces it sooner). On each sync:
 
-1. Intune runs the detection rule: `file version` of
-   `%ProgramFiles%\TDPdf\TDPdf.exe` is read.
-2. If the installed version is `< <AssemblyVersion>` from the latest
-   upload, Intune re-runs the install command (`TDPdf.exe /install`).
+1. Intune runs the detection rule: the value at
+   `HKLM\Software\TDPdf!Version` is read and version-compared to the
+   `<AssemblyVersion>` from the uploaded `.intunewin`.
+2. If the installed version is `< <AssemblyVersion>`, Intune re-runs
+   the install command (`TDPdf.exe /install /silent`).
 3. The installer copies the new EXE over the old one in
-   `%ProgramFiles%\TDPdf\`.
+   `%ProgramFiles%\TDPdf\` and rewrites the registry marker last.
 
 So **bumping versions in `TDPdf.csproj` and re-uploading the
 `.intunewin` is the entire update procedure** — no separate "update"

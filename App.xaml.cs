@@ -106,17 +106,19 @@ namespace TDPdf
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            DispatcherUnhandledException += OnDispatcherUnhandledException;
-            AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
-            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
-
             base.OnStartup(e);
-            ThemeManager.Initialize(ParseThemeSetting(TDPdf.Properties.Settings.Default.Theme));
 
-            // Handle install/uninstall flags (called by Intune, Add/Remove Programs, or shell).
-            // `/install` and `/uninstall` accept an optional `/silent` second arg that
-            // suppresses all dialogs — used by the Intune Win32 app install/uninstall commands
-            // and by the QuietUninstallString in the Add/Remove Programs entry.
+            // Handle install/uninstall flags BEFORE wiring up UI / theme / crash plumbing.
+            //
+            // Intune (install behavior=System) runs us as LocalSystem in session 0 where
+            // there is no display, no message pump owner, and no user profile in the usual
+            // sense. Touching ThemeManager (pack-URI ResourceDictionary load, SystemEvents
+            // hook) or installing a crash dialog handler in that context adds failure
+            // surface for zero gain — the install/uninstall paths are headless by design.
+            //
+            // `/install` and `/uninstall` accept an optional `/silent` second arg used by
+            // the Intune Win32 app install/uninstall commands and by the QuietUninstallString
+            // in the Add/Remove Programs entry.
             if (e.Args.Length > 0)
             {
                 bool silent = e.Args.Length > 1 &&
@@ -124,15 +126,16 @@ namespace TDPdf
 
                 if (string.Equals(e.Args[0], "/install", StringComparison.OrdinalIgnoreCase))
                 {
+                    InstallLog.WriteHeader("INSTALL", e.Args);
                     try
                     {
                         DoInstall(wantDesktop: false, silent: silent);
-                        Shutdown();
+                        InstallLog.Write("INSTALL OK");
+                        Shutdown(0);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // In silent mode DoInstall rethrows; we surface failure to Intune
-                        // via exit code rather than a UI dialog the user can't see.
+                        InstallLog.WriteError("INSTALL FAILED", ex);
                         Shutdown(1);
                     }
                     return;
@@ -140,11 +143,28 @@ namespace TDPdf
 
                 if (string.Equals(e.Args[0], "/uninstall", StringComparison.OrdinalIgnoreCase))
                 {
-                    Uninstall(silent: silent);
-                    Shutdown();
+                    InstallLog.WriteHeader("UNINSTALL", e.Args);
+                    try
+                    {
+                        Uninstall(silent: silent);
+                        InstallLog.Write("UNINSTALL OK");
+                        Shutdown(0);
+                    }
+                    catch (Exception ex)
+                    {
+                        InstallLog.WriteError("UNINSTALL FAILED", ex);
+                        Shutdown(1);
+                    }
                     return;
                 }
             }
+
+            // Interactive launch: now wire up theme + crash handling.
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            ThemeManager.Initialize(ParseThemeSetting(TDPdf.Properties.Settings.Default.Theme));
 
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             new MainWindow().Show();
@@ -213,7 +233,17 @@ namespace TDPdf
         /// </summary>
         internal static void InstallAndRelaunch(string? fileToOpen, bool wantDesktop)
         {
-            DoInstall(wantDesktop, silent: false);
+            try
+            {
+                DoInstall(wantDesktop, silent: false);
+            }
+            catch (Exception ex)
+            {
+                InstallLog.WriteError("Interactive install failed", ex);
+                MessageBox.Show($"Installation failed:\n{ex.Message}", AppName,
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             if (!IsDefaultPdfHandler())
             {
@@ -483,58 +513,85 @@ namespace TDPdf
             string startMenuDir = StartMenuDirFor(scope);
             string startMenuLnk = StartMenuLnkFor(scope);
             var hive = HiveFor(scope);
+            string src = Process.GetCurrentProcess().MainModule!.FileName;
+
+            InstallLog.Write($"DoInstall scope={scope} src={src} dest={installExe} hive={hive.Name}");
+
+            // Copy EXE to install location. If the destination file is locked
+            // (TDPdf is running from the install location), File.Copy throws
+            // IOException; the caller maps any exception to a non-zero exit
+            // code so Intune retries on the next sync.
+            Directory.CreateDirectory(installDir);
+            File.Copy(src, installExe, overwrite: true);
+
+            // Post-copy verification. Without this, a partial / silently-failed
+            // copy could leave us with no file on disk and the caller would
+            // still see "success" — exactly the Intune "installed but not
+            // detected" footgun we are trying to fix.
+            var fi = new FileInfo(installExe);
+            if (!fi.Exists || fi.Length == 0)
+                throw new IOException($"Post-copy verification failed: {installExe} missing or empty.");
 
             try
             {
-                // Copy EXE to install location.
-                // If the destination file is currently locked (TDPdf.exe is running from
-                // the install location), File.Copy throws IOException. In silent mode we
-                // rethrow so Intune sees a non-zero exit and retries; in interactive mode
-                // we surface a MessageBox below.
-                Directory.CreateDirectory(installDir);
-                string src = Process.GetCurrentProcess().MainModule!.FileName;
-                File.Copy(src, installExe, overwrite: true);
+                var fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(installExe);
+                InstallLog.Write($"Copied {fi.Length} bytes; FileVersion={fvi.FileVersion} ProductVersion={fvi.ProductVersion}");
+            }
+            catch (Exception ex)
+            {
+                InstallLog.WriteError("FileVersionInfo lookup failed (non-fatal)", ex);
+            }
 
-                // Shortcuts
+            // Shortcuts — best-effort. A failed shortcut should not fail the
+            // entire install (and CreateShortcut already swallows internally),
+            // but we still log it.
+            try
+            {
                 Directory.CreateDirectory(startMenuDir);
                 CreateShortcut(startMenuLnk, installExe);
                 if (wantDesktop)
                     CreateShortcut(DesktopLnk, installExe);
-
-                // Installed marker. Use the full 4-part version so revision-only
-                // bumps (e.g. 1.0.0.2) are visible in Add/Remove Programs.
-                string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "";
-                using (var key = hive.CreateSubKey(@"Software\TDPdf"))
-                {
-                    key.SetValue("Installed",    1);
-                    key.SetValue("InstallPath",  installExe);
-                    key.SetValue("Version",      version);
-                }
-
-                // Add/Remove Programs entry
-                using (var key = hive.CreateSubKey(
-                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\TDPdf"))
-                {
-                    key.SetValue("DisplayName",          AppName);
-                    key.SetValue("DisplayVersion",       version);
-                    key.SetValue("Publisher",            "The Doodle Project");
-                    key.SetValue("InstallLocation",      installDir);
-                    key.SetValue("DisplayIcon",          $"{installExe},0");
-                    key.SetValue("UninstallString",      $"\"{installExe}\" /uninstall");
-                    key.SetValue("QuietUninstallString", $"\"{installExe}\" /uninstall /silent");
-                    key.SetValue("NoModify",             1);
-                    key.SetValue("NoRepair",             1);
-                }
-
-                // Register as PDF file handler in the same hive
-                RegisterFileHandler(scope);
             }
             catch (Exception ex)
             {
-                if (silent) throw;
-                MessageBox.Show($"Installation failed:\n{ex.Message}", AppName,
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                InstallLog.WriteError("Shortcut creation failed (non-fatal)", ex);
             }
+
+            // Add/Remove Programs entry. Use the full 4-part version so
+            // revision-only bumps (e.g. 1.0.0.3) are visible.
+            string version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "";
+            using (var key = hive.CreateSubKey(
+                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\TDPdf"))
+            {
+                key.SetValue("DisplayName",          AppName);
+                key.SetValue("DisplayVersion",       version);
+                key.SetValue("Publisher",            "The Doodle Project");
+                key.SetValue("InstallLocation",      installDir);
+                key.SetValue("DisplayIcon",          $"{installExe},0");
+                key.SetValue("UninstallString",      $"\"{installExe}\" /uninstall");
+                key.SetValue("QuietUninstallString", $"\"{installExe}\" /uninstall /silent");
+                key.SetValue("NoModify",             1);
+                key.SetValue("NoRepair",             1);
+            }
+            InstallLog.Write("Wrote Add/Remove Programs entry");
+
+            // Register as PDF file handler in the same hive. This creates
+            // `Software\TDPdf\Capabilities` under the scope hive.
+            RegisterFileHandler(scope);
+            InstallLog.Write("Registered PDF file handler");
+
+            // Installed marker — written LAST so the Intune registry detection
+            // rule (`HKLM\Software\TDPdf` value `Version` >= release version)
+            // only flips to "installed" once all required steps above have
+            // succeeded. A failure earlier in DoInstall must not leave a
+            // partial install that detects as complete.
+            using (var key = hive.CreateSubKey(@"Software\TDPdf"))
+            {
+                key.SetValue("Installed",    1);
+                key.SetValue("InstallPath",  installExe);
+                key.SetValue("Version",      version);
+            }
+            InstallLog.Write($"Wrote install marker: HKLM-or-HKCU\\Software\\TDPdf Version={version}");
         }
 
         private static void RegisterFileHandler(InstallScope scope)
@@ -606,7 +663,11 @@ namespace TDPdf
                     $"{AppName} Uninstall",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
-                if (res != MessageBoxResult.Yes) return;
+                if (res != MessageBoxResult.Yes)
+                {
+                    InstallLog.Write("User cancelled uninstall");
+                    return;
+                }
             }
 
             // Discover which install actually exists so we delete the right
@@ -618,10 +679,12 @@ namespace TDPdf
             string startMenuDir = StartMenuDirFor(scope);
             string startMenuLnk = StartMenuLnkFor(scope);
 
+            InstallLog.Write($"Uninstall scope={scope} installDir={installDir} silent={silent}");
+
             // Shortcuts
-            try { File.Delete(startMenuLnk); } catch { }
-            try { Directory.Delete(startMenuDir, recursive: false); } catch { }
-            try { File.Delete(DesktopLnk); } catch { }
+            try { File.Delete(startMenuLnk); } catch (Exception ex) { InstallLog.WriteError("Delete start menu lnk", ex); }
+            try { Directory.Delete(startMenuDir, recursive: false); } catch { /* non-empty or already gone */ }
+            try { File.Delete(DesktopLnk); } catch (Exception ex) { InstallLog.WriteError("Delete desktop lnk", ex); }
 
             // Registry cleanup — try both hives so we tear down whether the
             // install was machine-wide (HKLM) or per-user (HKCU).
@@ -648,6 +711,7 @@ namespace TDPdf
                 }
                 catch { }
             }
+            InstallLog.Write("Registry cleanup complete");
 
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
 
@@ -663,6 +727,7 @@ namespace TDPdf
                 WindowStyle    = ProcessWindowStyle.Hidden,
                 UseShellExecute = true
             });
+            InstallLog.Write($"Scheduled deferred delete via {bat}");
 
             if (!silent)
             {

@@ -6,6 +6,26 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.0.0.3] - 2026-05-18
+
+### Fixed
+
+- **Intune "installed but not detected" failures** — the `/install` and `/uninstall` headless paths could exit 0 even when the install never actually placed the EXE. Three changes close the loop:
+  - The install short-circuit now runs **before** `ThemeManager.Initialize` and the crash-dialog plumbing, so a SYSTEM/session-0 install never touches pack-URI ResourceDictionary loading, `SystemEvents`, or any code that wants a UI.
+  - `DoInstall` no longer shows a `MessageBox` from its catch (an invisible message box under SYSTEM was the silent-success vector). `OnStartup` now wraps `/install` and `/uninstall` in explicit `try/catch` that maps any exception to `Shutdown(1)`, so Intune sees a real failure code instead of a swallowed exception.
+  - `DoInstall` verifies the EXE actually landed on disk (exists, non-zero length, file version readable) and writes the `HKLM\Software\TDPdf` `Installed`/`Version` registry marker **last**, after the file copy, Add/Remove Programs entry, and file-handler registration all succeed. A partial install can no longer detect as complete.
+- **Interactive Install button** still surfaces a dark-themed error dialog on failure — `InstallAndRelaunch` now wraps `DoInstall` itself, since that callsite is guaranteed to have a UI thread.
+
+### Added
+
+- **Install / uninstall log** at `%ProgramData%\TDPdf\install.log` (SYSTEM-context machine install) or `%LocalAppData%\TDPdf\install.log` (interactive user install). Records process identity, scope, source / destination paths, post-copy `FileVersionInfo`, every registry step, and the final outcome. Rotates at ~1 MB. Strictly best-effort — a logging failure never blocks install. Designed for Intune triage when a deployment "succeeds" but the detection rule fails.
+
+### Changed
+
+- Recommended Intune detection rule is now **Registry-based** on `HKLM\Software\TDPdf` value `Version`, "Version comparison" `Greater than or equal to` the release version. This is more reliable than file-version sniffing through `%ProgramFiles%` and dodges the "Associated with a 32-bit app on 64-bit clients" footgun. The file-version rule is documented as a fallback.
+- Recommended Intune **install command** is now `TDPdf.exe /install /silent` (was `TDPdf.exe /install`). With `/silent` set, the headless install path will never even attempt to surface a UI dialog under SYSTEM.
+- `release.ps1` summary block prints the new registry-based detection rule and silent install command.
+
 ## [1.0.0.2] - 2026-05-18
 
 ### Fixed
@@ -165,7 +185,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.2...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.3...HEAD
+[1.0.0.3]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.2...v1.0.0.3
 [1.0.0.2]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.1...v1.0.0.2
 [1.0.0.1]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0-tdpdf...v1.0.0.1
 [1.0.0-tdpdf]: https://github.com/doodlemania2/TDPdf/releases/tag/v1.0.0-tdpdf
