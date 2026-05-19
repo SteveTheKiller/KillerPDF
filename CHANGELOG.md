@@ -6,6 +6,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.0.0.5] - 2026-05-19
+
+### Added
+
+- **Opt-in Application Insights telemetry** — TDPdf can now emit anonymous usage and crash telemetry to Azure Application Insights, but **only** when an administrator has explicitly provisioned a connection-string file on the device. With no provisioning, telemetry is fully no-op: the SDK is initialized with an empty configuration and no network calls are made. Events are limited to a small set (`App.Startup`, `Install.Start`/`Success`/`Crash`, `Tool.Selected`, `File.Open`/`New`/`Save`/`SaveFlattened`/`Merge`/`Split`/`Print`, `Crash`); no file paths, file names, document content, user names, or device identifiers are sent. Each session is anonymous (no persistent `User.Id` or `Device.Id`).
+- **`TDPdf.exe /set-telemetry`** — provisioning CLI. Reads the App Insights connection string from **stdin** (never from `argv`) so it can't leak via process listings or installer logs, then writes a DPAPI-`LocalMachine`-encrypted blob to `%ProgramData%\TDPdf\telemetry.dat`. Intended usage from an elevated Intune/MDM context: `type conn.txt | TDPdf.exe /set-telemetry`.
+- **`TDPdf.exe /clear-telemetry`** — removes the provisioning file and instantly disables all telemetry on the device.
+- **`Diagnostics/Sanitizer.cs`** — shared PII scrubber used by both the local crash log and outbound telemetry. Redacts `password=` / `passphrase=` / App Insights connection-string fragments, Windows UNC/drive/relative paths, POSIX paths, and portable-PDB `in /file:line N` frames. Provides a stable 12-hex-char `GroupingKey(Exception)` (SHA-256 prefix of `type|firstScrubbedFrame`) so crashes can be bucketed without exposing content.
+
+### Security
+
+- **Hardened-at-rest provisioning file** — `telemetry.dat` is encrypted with DPAPI `LocalMachine` scope plus a fixed 32-byte entropy parameter, written atomically (`.tmp` → `File.Replace`), and then ACL'd explicitly: inheritance disabled, `SYSTEM` and `BuiltinAdministrators` get `FullControl`, `AuthenticatedUsers` get `Read`/`ReadAndExecute` only. The parent `%ProgramData%\TDPdf` directory is hardened the same way to prevent pre-create squatting by a non-admin user.
+- **No `TrackException`** — the telemetry wrapper deliberately does not expose `TelemetryClient.TrackException`, which would serialize raw `Exception.Message` and `StackTrace` (often containing user file paths). All crashes flow through `Telemetry.TrackCrash(ex, source, recoverable)`, which builds a sanitized property bag (`ExceptionType`, scrubbed `Message`/`StackTrace`, `GroupingKey`) and emits it as a regular `TrackEvent("Crash", …)`.
+- **No on-disk telemetry buffer** — the SDK is configured with `InMemoryChannel` (not `ServerTelemetryChannel`), so unsent events live only in process memory. There is no per-user buffer directory whose ACLs could leak content. Acceptable trade-off: events may be lost on crash or network failure.
+- **No auto-collectors** — the wrapper builds its own `TelemetryConfiguration.CreateDefault()` instance (not `TelemetryConfiguration.Active`) and does not enable dependency tracking, live metrics, performance counters, or heartbeat. Only events explicitly emitted by TDPdf code are sent.
+- **`/set-telemetry` does not log its input** — that CLI branch deliberately bypasses `InstallLog.WriteHeader`, which echoes `e.Args` verbatim, to ensure that even an accidentally-passed positional secret never reaches the installer log.
+
+### Changed
+
+- **`Diagnostics/CrashReporter.cs`** — the inline path-scrubbing regex was removed; the local crash log and the outbound `TrackCrash` event now both route through `Sanitizer.Scrub`, guaranteeing identical redaction in both surfaces. On any unhandled exception, `Report()` now writes the local log first (best-effort), then emits a sanitized telemetry crash event (also best-effort); failures in either path never propagate.
+- **Version** bumped to `1.0.0.5` (assembly, file, and product). Detection script `build/intune/Detect-TDPdf.ps1`, landing page, and in-app version label updated to match.
+
 ## [1.0.0.4] - 2026-05-18
 
 ### Fixed
@@ -199,7 +221,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.4...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.5...HEAD
+[1.0.0.5]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.4...v1.0.0.5
 [1.0.0.4]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.3...v1.0.0.4
 [1.0.0.3]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.2...v1.0.0.3
 [1.0.0.2]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.1...v1.0.0.2

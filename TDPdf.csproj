@@ -12,9 +12,9 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\tdpdf-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.0.4</Version>
-    <AssemblyVersion>1.0.0.4</AssemblyVersion>
-    <FileVersion>1.0.0.4</FileVersion>
+    <Version>1.0.0.5</Version>
+    <AssemblyVersion>1.0.0.5</AssemblyVersion>
+    <FileVersion>1.0.0.5</FileVersion>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>
@@ -28,6 +28,7 @@
     <PackageReference Include="PdfPig" Version="0.1.14" />
     <!-- Docnet.Core supplies pdfium.dll as a win-x64 native runtime asset; the SDK bundles it for single-file publish. -->
     <PackageReference Include="Docnet.Core" Version="2.6.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights" Version="2.22.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.0" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />

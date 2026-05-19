@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
+using System.Text;
 using System.Windows.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -119,6 +120,11 @@ namespace TDPdf
             // `/install` and `/uninstall` accept an optional `/silent` second arg used by
             // the Intune Win32 app install/uninstall commands and by the QuietUninstallString
             // in the Add/Remove Programs entry.
+            //
+            // `/set-telemetry` and `/clear-telemetry` are admin/SYSTEM-only provisioning
+            // flags for opt-in Application Insights (see Diagnostics/TelemetryStore.cs).
+            // Connection string is read from STDIN, never the command line, so it can't
+            // leak into shell history, Intune script logs, or process inspection.
             if (e.Args.Length > 0)
             {
                 bool silent = e.Args.Length > 1 &&
@@ -127,15 +133,21 @@ namespace TDPdf
                 if (string.Equals(e.Args[0], "/install", StringComparison.OrdinalIgnoreCase))
                 {
                     InstallLog.WriteHeader("INSTALL", e.Args);
+                    Telemetry.Initialize(AppVersionString());
+                    Telemetry.TrackEvent("Install.Start", InstallProps(silent));
                     try
                     {
                         DoInstall(wantDesktop: false, silent: silent);
                         InstallLog.Write("INSTALL OK");
+                        Telemetry.TrackEvent("Install.Success", InstallProps(silent));
+                        Telemetry.Flush();
                         Shutdown(0);
                     }
                     catch (Exception ex)
                     {
                         InstallLog.WriteError("INSTALL FAILED", ex);
+                        Telemetry.TrackCrash(ex, "Install", recoverable: false);
+                        Telemetry.Flush();
                         Shutdown(1);
                     }
                     return;
@@ -144,15 +156,59 @@ namespace TDPdf
                 if (string.Equals(e.Args[0], "/uninstall", StringComparison.OrdinalIgnoreCase))
                 {
                     InstallLog.WriteHeader("UNINSTALL", e.Args);
+                    Telemetry.Initialize(AppVersionString());
+                    Telemetry.TrackEvent("Uninstall.Start", InstallProps(silent));
                     try
                     {
                         Uninstall(silent: silent);
                         InstallLog.Write("UNINSTALL OK");
+                        Telemetry.TrackEvent("Uninstall.Success", InstallProps(silent));
+                        Telemetry.Flush();
                         Shutdown(0);
                     }
                     catch (Exception ex)
                     {
                         InstallLog.WriteError("UNINSTALL FAILED", ex);
+                        Telemetry.TrackCrash(ex, "Uninstall", recoverable: false);
+                        Telemetry.Flush();
+                        Shutdown(1);
+                    }
+                    return;
+                }
+
+                if (string.Equals(e.Args[0], "/set-telemetry", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Deliberately do NOT log e.Args here — even though we
+                    // require stdin input, an accidental positional arg
+                    // would be the leaked-secret path. WriteHeader logs
+                    // args verbatim, so emit a hand-built header instead.
+                    InstallLog.Write("=== SET-TELEMETRY === (stdin)");
+                    try
+                    {
+                        SetTelemetryFromStdin();
+                        InstallLog.Write("SET-TELEMETRY OK");
+                        Shutdown(0);
+                    }
+                    catch (Exception ex)
+                    {
+                        InstallLog.WriteError("SET-TELEMETRY FAILED", ex);
+                        Shutdown(1);
+                    }
+                    return;
+                }
+
+                if (string.Equals(e.Args[0], "/clear-telemetry", StringComparison.OrdinalIgnoreCase))
+                {
+                    InstallLog.WriteHeader("CLEAR-TELEMETRY", e.Args);
+                    try
+                    {
+                        TelemetryStore.Clear();
+                        InstallLog.Write("CLEAR-TELEMETRY OK");
+                        Shutdown(0);
+                    }
+                    catch (Exception ex)
+                    {
+                        InstallLog.WriteError("CLEAR-TELEMETRY FAILED", ex);
                         Shutdown(1);
                     }
                     return;
@@ -166,9 +222,38 @@ namespace TDPdf
 
             ThemeManager.Initialize(ParseThemeSetting(TDPdf.Properties.Settings.Default.Theme));
 
+            // Opt-in telemetry (see Diagnostics/Telemetry.cs). No-op
+            // unless the admin has provisioned %ProgramData%\TDPdf\telemetry.dat.
+            string appVersion = AppVersionString();
+            string installScope = DetectInstalledScope() switch
+            {
+                InstallScope.PerMachine => "PerMachine",
+                InstallScope.PerUser    => "PerUser",
+                _                        => "Portable",
+            };
+            Telemetry.Initialize(appVersion);
+            Telemetry.TrackEvent("App.Startup", new Dictionary<string, string>
+            {
+                ["AppVersion"]      = appVersion,
+                ["InstallScope"]    = installScope,
+                ["OSVersion"]       = Environment.OSVersion.Version.ToString(),
+                ["Is64BitProcess"]  = Environment.Is64BitProcess ? "true" : "false",
+            });
+
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             new MainWindow().Show();
         }
+
+        private static string AppVersionString() =>
+            Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0.0";
+
+        private static Dictionary<string, string> InstallProps(bool silent) => new()
+        {
+            ["Silent"]          = silent ? "true" : "false",
+            ["IsSystemContext"] = IsSystemContextSafe() ? "true" : "false",
+            ["OSVersion"]       = Environment.OSVersion.Version.ToString(),
+            ["AppVersion"]      = AppVersionString(),
+        };
 
 
         private static Theme ParseThemeSetting(string? value)
@@ -179,8 +264,41 @@ namespace TDPdf
 
         protected override void OnExit(ExitEventArgs e)
         {
+            // Bounded best-effort telemetry flush. Capped at ~2s inside
+            // Telemetry.Flush so shutdown can never hang on the network.
+            Telemetry.Flush();
             ThemeManager.Cleanup();
             base.OnExit(e);
+        }
+
+        /// <summary>
+        /// Read the App Insights connection string from STDIN (one line
+        /// followed by EOF), encrypt it with DPAPI LocalMachine via
+        /// <see cref="TelemetryStore"/>, and write the hardened
+        /// ciphertext to <c>%ProgramData%\TDPdf\telemetry.dat</c>.
+        ///
+        /// Requires elevation. Caller (admin or SYSTEM) typically pipes
+        /// the connection string:
+        ///   <c>type secret.txt | TDPdf.exe /set-telemetry</c>
+        /// </summary>
+        private static void SetTelemetryFromStdin()
+        {
+            string? connectionString;
+            using (var reader = new StreamReader(Console.OpenStandardInput(), Encoding.UTF8))
+            {
+                // ReadLine is sufficient — connection strings are a
+                // single line by spec. ReadToEnd would also work but
+                // could pull trailing CR/LF noise we'd have to trim.
+                connectionString = reader.ReadLine();
+            }
+
+            if (string.IsNullOrWhiteSpace(connectionString))
+                throw new InvalidOperationException(
+                    "No connection string received on stdin. " +
+                    "Usage: type secret.txt | TDPdf.exe /set-telemetry");
+
+            TelemetryStore.Save(connectionString);
+            InstallLog.Write($"Wrote telemetry.dat at {TelemetryStore.Path}");
         }
 
         // ============================================================

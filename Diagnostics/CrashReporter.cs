@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
-using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Markup;
 
@@ -77,6 +76,10 @@ namespace TDPdf.Diagnostics
             {
                 Interlocked.Exchange(ref _writing, 0);
             }
+
+            // Best-effort sanitized telemetry. No-op unless the admin
+            // has provisioned Application Insights via TelemetryStore.
+            Telemetry.TrackCrash(exception, source, recoverable);
 
             return new CrashReport(exception, source, logPath, LogDirectory, recoverable, summary, details);
         }
@@ -223,20 +226,7 @@ namespace TDPdf.Diagnostics
             }
         }
 
-        private static string Sanitize(string value)
-        {
-            if (string.IsNullOrEmpty(value))
-                return value;
-
-            string sanitized = value;
-            sanitized = Regex.Replace(sanitized, @"(?i)(password\s*[:=]\s*)\S+", "$1[redacted]");
-            sanitized = Regex.Replace(sanitized, @"(?i)(passphrase\s*[:=]\s*)\S+", "$1[redacted]");
-            sanitized = Regex.Replace(sanitized, @"\\[^\s:;]+(?:\\[^\s:;]+)+", "[path redacted]");
-            sanitized = Regex.Replace(sanitized, @"[A-Za-z]:\\[^\r\n:;]+", "[path redacted]");
-            sanitized = Regex.Replace(sanitized, @"(?m) in /[^\r\n]+:line \d+", " in [path redacted]");
-            sanitized = Regex.Replace(sanitized, @"(?<!/)/[^\s\0]+", "[path redacted]");
-            return sanitized;
-        }
+        private static string Sanitize(string value) => Sanitizer.Scrub(value);
 
         private static void TrimLogDirectory()
         {

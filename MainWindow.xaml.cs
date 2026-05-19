@@ -16,6 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
+using TDPdf.Diagnostics;
 using TDPdf.Services;
 using Microsoft.Win32;
 using PdfSharpCore.Drawing;
@@ -1644,6 +1645,7 @@ namespace TDPdf
 
         private void SetTool(EditTool tool)
         {
+            Telemetry.TrackEvent("Tool.Selected", new Dictionary<string, string> { ["Tool"] = tool.ToString() });
             CommitActiveTextBox();
             ClearTextSelection();
             CancelActivePointerOperation(removePreview: true);
@@ -6089,7 +6091,11 @@ namespace TDPdf
         // File toolbar handlers
         // ============================================================
 
-        private void New_Click(object sender, RoutedEventArgs e) => _ = NewDocumentAsync();
+        private void New_Click(object sender, RoutedEventArgs e)
+        {
+            Telemetry.TrackEvent("File.New");
+            _ = NewDocumentAsync();
+        }
 
         private void NewDocument() => _ = NewDocumentAsync();
 
@@ -6128,12 +6134,14 @@ namespace TDPdf
 
         private async void Open_Click(object sender, RoutedEventArgs e)
         {
+            Telemetry.TrackEvent("File.Open");
             var dlg = new OpenFileDialog { Filter = "PDF files|*.pdf", Title = "Open PDF" };
             if (dlg.ShowDialog() == true) await OpenFileAsync(dlg.FileName);
         }
 
         private void Merge_Click(object sender, RoutedEventArgs e)
         {
+            Telemetry.TrackEvent("File.Merge");
             if (_doc is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             var doc = _doc;
             var dlg = new OpenFileDialog { Filter = "PDF files|*.pdf", Title = "Select PDF to merge", Multiselect = true };
@@ -6343,6 +6351,7 @@ namespace TDPdf
 
         private void Split_Click(object sender, RoutedEventArgs e)
         {
+            Telemetry.TrackEvent("File.Split");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             var currentFile = _currentFile;
             var selected = PageList.SelectedItems;
@@ -6581,6 +6590,7 @@ namespace TDPdf
 
         private async void SaveAs_Click(object sender, RoutedEventArgs e)
         {
+            Telemetry.TrackEvent("File.Save");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             CommitActiveTextBox();
             var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save PDF as" };
@@ -6635,6 +6645,7 @@ namespace TDPdf
 
         private async void SaveFlattened_Click(object sender, RoutedEventArgs e)
         {
+            Telemetry.TrackEvent("File.SaveFlattened");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             CommitActiveTextBox();
             var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save Flattened PDF" };
@@ -6707,6 +6718,7 @@ namespace TDPdf
 
         private void Print_Click(object sender, RoutedEventArgs e)
         {
+            Telemetry.TrackEvent("File.Print");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             CommitActiveTextBox();
             try

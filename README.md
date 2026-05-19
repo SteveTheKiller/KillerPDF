@@ -51,6 +51,14 @@ Output lands in `bin/Release/net9.0-windows/win-x64/publish/`. The publish step 
 
 Requires Windows and the .NET 9 SDK to build.
 
+## Privacy
+
+TDPdf does **not** phone home by default. Released binaries ship with no telemetry endpoint embedded.
+
+Telemetry support exists in the codebase but is gated on a per-machine provisioning file at `%ProgramData%\TDPdf\telemetry.dat`. If that file is missing (the default), no events are emitted and no outbound network calls are made.
+
+When an administrator explicitly provisions a connection string (intended for managed/Intune deployments), TDPdf may send anonymous usage and crash events to Azure Application Insights. Only event names plus coarse properties (app version, install scope, OS version) are sent. File paths, file names, document content, user names, and persistent device identifiers are never sent; stack traces are scrubbed of paths before transmission. Provisioning details and the rotation/clear procedure are documented in [`docs/intune-distribution.md`](docs/intune-distribution.md).
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
