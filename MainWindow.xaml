@@ -516,35 +516,35 @@
                 <!-- File operations -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Left">
                     <!-- File: New / Open / Close / Save / Print -->
-                    <Button Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="New Blank Document (Ctrl+N)"/>
-                    <Button Content="&#xE8DA;" Style="{StaticResource ToolbarButton}" Click="Open_Click" ToolTip="Open (Ctrl+O)"/>
-                    <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="Close File (Ctrl+W)" IsEnabled="False"/>
-                    <Button x:Name="SaveAsBtn" Content="&#xE74E;" Style="{StaticResource ToolbarButtonAccent}" Click="SaveAs_Click" ToolTip="Save As (Ctrl+Shift+S)"/>
-                    <Button Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="Save Flattened PDF (rasterize all pages — fully uneditable)"/>
-                    <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="Print (Ctrl+P)"/>
+                    <Button Content="&#xE7C3;" Style="{StaticResource ToolbarButton}" Click="New_Click" ToolTip="新增空白文件 (Ctrl+N)"/>
+                    <Button Content="&#xE8DA;" Style="{StaticResource ToolbarButton}" Click="Open_Click" ToolTip="開啟 (Ctrl+O)"/>
+                    <Button x:Name="CloseFileBtn" Content="&#xE711;" Style="{StaticResource ToolbarButton}" Click="CloseFile_Click" ToolTip="關閉檔案 (Ctrl+W)" IsEnabled="False"/>
+                    <Button x:Name="SaveAsBtn" Content="&#xE74E;" Style="{StaticResource ToolbarButtonAccent}" Click="SaveAs_Click" ToolTip="另存新檔 (Ctrl+Shift+S)"/>
+                    <Button Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="儲存扁平化 PDF (將所有頁面點陣化，內容不可再編輯)"/>
+                    <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="列印 (Ctrl+P)"/>
                     <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
                     <!-- Page ops: Merge / Extract -->
-                    <Button Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="Merge PDFs (combine additional PDFs into this one)"/>
-                    <Button Content="&#xE8B1;" Style="{StaticResource ToolbarButton}" Click="Split_Click" ToolTip="Extract Pages (save selected pages to a new PDF)"/>
+                    <Button Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="合併 PDF (將其他 PDF 加入目前文件)"/>
+                    <Button Content="&#xE8B1;" Style="{StaticResource ToolbarButton}" Click="Split_Click" ToolTip="擷取頁面 (將選取頁面另存成新 PDF)"/>
                     <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
                     <!-- Page ops: Delete / Move -->
-                    <Button Content="&#xE8C6;" Style="{StaticResource ToolbarButton}" Click="Delete_Click" ToolTip="Delete Selected Pages"/>
-                    <Button Content="&#xE74A;" Style="{StaticResource ToolbarButton}" Click="MoveUp_Click" ToolTip="Move Page Up (reorder)"/>
-                    <Button Content="&#xE74B;" Style="{StaticResource ToolbarButton}" Click="MoveDown_Click" ToolTip="Move Page Down (reorder)"/>
+                    <Button Content="&#xE8C6;" Style="{StaticResource ToolbarButton}" Click="Delete_Click" ToolTip="刪除選取頁面"/>
+                    <Button Content="&#xE74A;" Style="{StaticResource ToolbarButton}" Click="MoveUp_Click" ToolTip="頁面上移 (重新排序)"/>
+                    <Button Content="&#xE74B;" Style="{StaticResource ToolbarButton}" Click="MoveDown_Click" ToolTip="頁面下移 (重新排序)"/>
                 </StackPanel>
                 <!-- Edit tools + zoom -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button x:Name="ToolSelectBtn" Content="&#xE8B3;" Style="{StaticResource ToolbarButton}" Click="ToolSelect_Click" ToolTip="Select Tool - click annotations, drag to select text, double-click to edit"/>
-                    <Button x:Name="ToolTextBtn" Content="&#xE8D2;" Style="{StaticResource ToolbarButton}" Click="ToolText_Click" ToolTip="Text Tool - click to add text"/>
-                    <Button x:Name="ToolHighlightBtn" Content="&#xED56;" Style="{StaticResource ToolbarButton}" Click="ToolHighlight_Click" ToolTip="Highlight Tool - drag to highlight"/>
-                    <Button x:Name="ToolDrawBtn" Content="&#xED63;" Style="{StaticResource ToolbarButton}" Click="ToolDraw_Click" ToolTip="Draw Tool - freehand ink"/>
-                    <Button x:Name="ToolCropBtn" Content="&#xE7A8;" Style="{StaticResource ToolbarButton}" Click="ToolCrop_Click" ToolTip="Crop Tool - drag to set crop area, then apply to page(s)"/>
-                    <Button x:Name="ToolImageBtn" Content="&#xEB9F;" Style="{StaticResource ToolbarButton}" Click="ToolImage_Click" ToolTip="Image Tool - click to insert an image onto the page"/>
+                    <Button x:Name="ToolSelectBtn" Content="&#xE8B3;" Style="{StaticResource ToolbarButton}" Click="ToolSelect_Click" ToolTip="選取工具：點選註記、拖曳選取文字、雙擊編輯"/>
+                    <Button x:Name="ToolTextBtn" Content="&#xE8D2;" Style="{StaticResource ToolbarButton}" Click="ToolText_Click" ToolTip="文字工具：點一下新增文字"/>
+                    <Button x:Name="ToolHighlightBtn" Content="&#xED56;" Style="{StaticResource ToolbarButton}" Click="ToolHighlight_Click" ToolTip="螢光標示工具：拖曳以標示"/>
+                    <Button x:Name="ToolDrawBtn" Content="&#xED63;" Style="{StaticResource ToolbarButton}" Click="ToolDraw_Click" ToolTip="繪圖工具：手繪筆跡"/>
+                    <Button x:Name="ToolCropBtn" Content="&#xE7A8;" Style="{StaticResource ToolbarButton}" Click="ToolCrop_Click" ToolTip="裁切工具：拖曳設定裁切區域，再套用到頁面"/>
+                    <Button x:Name="ToolImageBtn" Content="&#xEB9F;" Style="{StaticResource ToolbarButton}" Click="ToolImage_Click" ToolTip="圖片工具：點一下將圖片插入頁面"/>
                     <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
-                    <Button x:Name="ToolSignatureBtn" Content="&#xEE56;" Style="{StaticResource ToolbarButton}" Click="ToolSignature_Click" ToolTip="Signature - create and place signatures"/>
+                    <Button x:Name="ToolSignatureBtn" Content="&#xEE56;" Style="{StaticResource ToolbarButton}" Click="ToolSignature_Click" ToolTip="簽名：建立並放置簽名"/>
                     <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
-                    <Button Content="&#xE7A7;" Style="{StaticResource ToolbarButton}" Click="Undo_Click" ToolTip="Undo Last (Ctrl+Z)"/>
-                    <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAnnotations_Click" ToolTip="Clear All Annotations"/>
+                    <Button Content="&#xE7A7;" Style="{StaticResource ToolbarButton}" Click="Undo_Click" ToolTip="復原上一個動作 (Ctrl+Z)"/>
+                    <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAnnotations_Click" ToolTip="清除所有註記"/>
                     <Rectangle Width="1" Fill="{StaticResource BorderDim}" Margin="4,6"/>
                     <ToggleButton x:Name="GridViewToggle"
                                   Content="&#xE8A9;"
@@ -552,15 +552,15 @@
                                   IsChecked="True"
                                   IsEnabled="False"
                                   Click="GridViewToggle_Click"
-                                  ToolTip="Multi-page grid view"
+                                  ToolTip="多頁網格檢視"
                                   Margin="0,0,4,0"/>
                     <ComboBox x:Name="ZoomBox" Width="96" Height="24" VerticalAlignment="Center"
                               Margin="0,0,4,0"
                               IsEditable="True" IsReadOnly="True"
                               Style="{StaticResource DarkComboBox}"
-                              SelectionChanged="ZoomBox_SelectionChanged" ToolTip="Zoom level (Ctrl+scroll to zoom)">
-                        <ComboBoxItem Tag="fitwidth">Fit Width</ComboBoxItem>
-                        <ComboBoxItem Tag="fitpage">Fit Page</ComboBoxItem>
+                              SelectionChanged="ZoomBox_SelectionChanged" ToolTip="縮放比例 (Ctrl+滾輪縮放)">
+                        <ComboBoxItem Tag="fitwidth">符合寬度</ComboBoxItem>
+                        <ComboBoxItem Tag="fitpage">符合頁面</ComboBoxItem>
                         <ComboBoxItem Tag="0.5">50%</ComboBoxItem>
                         <ComboBoxItem Tag="0.75">75%</ComboBoxItem>
                         <ComboBoxItem Tag="1.0" IsSelected="True">100%</ComboBoxItem>
@@ -594,7 +594,7 @@
                     <DockPanel>
                         <!-- Sticky header — lives outside the ScrollViewer so it never scrolls away -->
                         <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="12,8,8,4">
-                            <TextBlock Text="PAGES" DockPanel.Dock="Left"
+                            <TextBlock Text="頁面" DockPanel.Dock="Left"
                                        Foreground="{StaticResource TextSecondary}"
                                        FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
                                        VerticalAlignment="Center"/>
@@ -616,7 +616,7 @@
                                      FocusVisualStyle="{x:Null}"
                                      KeyDown="PageJumpBox_KeyDown"
                                      GotFocus="PageJumpBox_GotFocus"
-                                     ToolTip="Go to page (Enter to navigate)"
+                                     ToolTip="跳至頁面 (Enter 前往)"
                                      Margin="0,0,2,0">
                                     <TextBox.Style>
                                         <Style TargetType="TextBox">
@@ -654,7 +654,7 @@
                         BorderBrush="{StaticResource BorderDim}"
                         BorderThickness="1,0,0,0">
                     <Button x:Name="SidebarToggleBtn"
-                            Content="&#xE76B;" ToolTip="Collapse sidebar"
+                            Content="&#xE76B;" ToolTip="收合側邊欄"
                             Style="{StaticResource ToolbarButton}"
                             Width="24" Padding="0" FontSize="10"
                             VerticalAlignment="Top" Margin="0,6,0,0"
@@ -674,9 +674,9 @@
                                 HorizontalAlignment="Center" VerticalAlignment="Center"
                                 Background="Transparent" Style="{x:Null}">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="Drop PDF here" FontFamily="Segoe UI" FontSize="20"
+                                <TextBlock Text="將 PDF 拖曳到這裡" FontFamily="Segoe UI" FontSize="20"
                                            Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center"/>
-                                <TextBlock Text="or click to browse" FontFamily="Segoe UI" FontSize="13"
+                                <TextBlock Text="或點一下瀏覽檔案" FontFamily="Segoe UI" FontSize="13"
                                            Foreground="{StaticResource TextSecondary}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
                             </StackPanel>
                         </Border>
@@ -721,17 +721,17 @@
         <!-- Status bar -->
         <Border Grid.Row="3" Background="#222222" BorderBrush="{StaticResource BorderDim}" BorderThickness="0,1,0,0">
             <Grid Margin="16,0">
-                <TextBlock x:Name="StatusText" Text="Ready"
+                <TextBlock x:Name="StatusText" Text="就緒"
                            Foreground="{StaticResource TextSecondary}"
                            FontFamily="Segoe UI" FontSize="11" VerticalAlignment="Center"/>
                 <!-- Portable mode indicator (hidden when installed) -->
                 <StackPanel x:Name="PortableBadge" Orientation="Horizontal"
                             HorizontalAlignment="Center" VerticalAlignment="Center"
                             Visibility="Collapsed">
-                    <TextBlock Text="PORTABLE" Foreground="#555555"
+                    <TextBlock Text="可攜模式" Foreground="#555555"
                                FontFamily="Consolas" FontSize="9"
                                VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <Button x:Name="InstallBtn" Content="Install KillerPDF..."
+                    <Button x:Name="InstallBtn" Content="安裝 KillerPDF..."
                             Click="Install_Click"
                             FontFamily="Segoe UI" FontSize="10"
                             Foreground="{StaticResource AccentGreen}"
@@ -760,7 +760,7 @@
                     <Button Click="ShortcutHelp_Click"
                             Cursor="Hand" VerticalAlignment="Center"
                             Margin="0,0,12,0" FocusVisualStyle="{x:Null}"
-                            ToolTip="Keyboard shortcuts (Ctrl+?)">
+                            ToolTip="鍵盤快捷鍵 (Ctrl+?)">
                         <Button.Template>
                             <ControlTemplate TargetType="Button">
                                 <TextBlock Text="?"
@@ -805,7 +805,7 @@
                     MouseLeftButtonDown="ShortcutOverlayCard_MouseLeftButtonDown">
                 <StackPanel>
                     <Grid Margin="0,0,0,12">
-                        <TextBlock Text="Keyboard Shortcuts"
+                        <TextBlock Text="鍵盤快捷鍵"
                                    FontFamily="Segoe UI" FontSize="15" FontWeight="SemiBold"
                                    Foreground="{StaticResource TextPrimary}"
                                    HorizontalAlignment="Left" VerticalAlignment="Center"/>
@@ -844,40 +844,40 @@
 
                         <!-- Left column -->
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="FILE" Foreground="{StaticResource AccentGreen}"
+                            <TextBlock Text="檔案" Foreground="{StaticResource AccentGreen}"
                                        FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+O" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Open" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+W" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Close file" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+N" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="New blank document" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+S" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Save" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Shift+S" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Save As" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+P" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Print" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+O" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="開啟" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+W" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="關閉檔案" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+N" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="新增空白文件" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+S" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="儲存" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Shift+S" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="另存新檔" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+P" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="列印" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
 
-                            <TextBlock Text="NAVIGATION" Foreground="{StaticResource AccentGreen}"
+                            <TextBlock Text="導覽" Foreground="{StaticResource AccentGreen}"
                                        FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="&#x2190; / &#x2192; or &#x2191; / &#x2193;" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Previous / next page" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Scroll" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Zoom in / out" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Middle drag" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Pan view" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="&#x2190; / &#x2192; 或 &#x2191; / &#x2193;" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="上一頁 / 下一頁" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+滾輪" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="放大 / 縮小" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="中鍵拖曳" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="平移檢視" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
                         </StackPanel>
 
                         <!-- Right column -->
                         <StackPanel Grid.Column="2">
-                            <TextBlock Text="EDITING" Foreground="{StaticResource AccentGreen}"
+                            <TextBlock Text="編輯" Foreground="{StaticResource AccentGreen}"
                                        FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Z" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Undo" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Delete" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Delete selected annotation" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Escape" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Confirm / cancel text or crop" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Z" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="復原" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Delete" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="刪除選取註記" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Escape" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="確認 / 取消文字或裁切" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
 
-                            <TextBlock Text="SEARCH &amp; SELECT" Foreground="{StaticResource AccentGreen}"
+                            <TextBlock Text="搜尋與選取" Foreground="{StaticResource AccentGreen}"
                                        FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+F" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Find / search" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Shift+Enter" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Next / previous result" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+A" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Select all text on page" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+C" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="Copy selected text" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+F" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="尋找 / 搜尋" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Shift+Enter" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="下一個 / 上一個結果" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+A" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="選取本頁所有文字" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+C" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="複製選取文字" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
 
-                            <TextBlock Text="HELP" Foreground="{StaticResource AccentGreen}"
+                            <TextBlock Text="說明" Foreground="{StaticResource AccentGreen}"
                                        FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
-                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+?" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="This shortcut list" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+?" FontFamily="Consolas" FontSize="11" Foreground="{StaticResource TextSecondary}" Width="120"/><TextBlock Text="顯示此快捷鍵清單" FontSize="11" Foreground="{StaticResource TextPrimary}"/></DockPanel>
                         </StackPanel>
                     </Grid>
                 </StackPanel>

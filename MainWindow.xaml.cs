@@ -296,11 +296,11 @@ namespace KillerPDF
         private void Install_Click(object sender, RoutedEventArgs e)
         {
             var res = KillerDialog.Show(this,
-                "Install KillerPDF to your user profile?\n\n" +
-                "• Start Menu shortcut\n" +
-                "• Added to \"Open with\" for .pdf files\n" +
-                "• Appears in Add/Remove Programs",
-                "Install KillerPDF", MessageBoxButton.OKCancel);
+                "要將 KillerPDF 安裝到你的使用者設定檔嗎？\n\n" +
+                "• 建立開始功能表捷徑\n" +
+                "• 加入 .pdf 檔案的「開啟方式」清單\n" +
+                "• 顯示在新增/移除程式中",
+                "安裝 KillerPDF", MessageBoxButton.OKCancel);
             if (res != MessageBoxResult.OK) return;
 
             // Hide the badge immediately so it doesn't flash if relaunch is slow
@@ -322,7 +322,7 @@ namespace KillerPDF
             if (_isDirty)
             {
                 var res = KillerDialog.Show(this,
-                    "You have unsaved changes. Close KillerPDF without saving?",
+                    "你有尚未儲存的變更。要不儲存就關閉 KillerPDF 嗎？",
                     "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes)
                 {
@@ -363,17 +363,17 @@ namespace KillerPDF
         {
             var menu = new ContextMenu();
 
-            menu.Items.Add(MakeMenuItem("Copy Text", (s, e) => CopySelectedText(), "Ctrl+C"));
-            menu.Items.Add(MakeMenuItem("Print", (s, e) => Print_Click(s!, e), "Ctrl+P"));
+            menu.Items.Add(MakeMenuItem("複製文字", (s, e) => CopySelectedText(), "Ctrl+C"));
+            menu.Items.Add(MakeMenuItem("列印", (s, e) => Print_Click(s!, e), "Ctrl+P"));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem("Select Tool", (s, e) => SetTool(EditTool.Select)));
-            menu.Items.Add(MakeMenuItem("Text Tool", (s, e) => SetTool(EditTool.Text)));
-            menu.Items.Add(MakeMenuItem("Highlight Tool", (s, e) => SetTool(EditTool.Highlight)));
-            menu.Items.Add(MakeMenuItem("Draw Tool", (s, e) => SetTool(EditTool.Draw)));
+            menu.Items.Add(MakeMenuItem("選取工具", (s, e) => SetTool(EditTool.Select)));
+            menu.Items.Add(MakeMenuItem("文字工具", (s, e) => SetTool(EditTool.Text)));
+            menu.Items.Add(MakeMenuItem("螢光標示工具", (s, e) => SetTool(EditTool.Highlight)));
+            menu.Items.Add(MakeMenuItem("繪圖工具", (s, e) => SetTool(EditTool.Draw)));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem("Delete Selected", (s, e) => DeleteSelected(), "Delete"));
-            menu.Items.Add(MakeMenuItem("Undo Last", (s, e) => Undo_Click(s!, e), "Ctrl+Z"));
-            menu.Items.Add(MakeMenuItem("Clear Page Annotations", (s, e) => ClearAnnotations_Click(s!, e)));
+            menu.Items.Add(MakeMenuItem("刪除選取項目", (s, e) => DeleteSelected(), "Delete"));
+            menu.Items.Add(MakeMenuItem("復原上一個動作", (s, e) => Undo_Click(s!, e), "Ctrl+Z"));
+            menu.Items.Add(MakeMenuItem("清除此頁註記", (s, e) => ClearAnnotations_Click(s!, e)));
 
             _annotationCanvas.ContextMenu = menu;
         }
@@ -382,16 +382,16 @@ namespace KillerPDF
         {
             if (_doc is null) return;
             var menu = new ContextMenu();
-            menu.Items.Add(MakeMenuItem("Insert Blank Page After", (s, ev) => InsertBlankPage_Click(s!, ev)));
+            menu.Items.Add(MakeMenuItem("在後方插入空白頁", (s, ev) => InsertBlankPage_Click(s!, ev)));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem("Rotate CW",  (s, ev) => RotatePages_Click(90)));
-            menu.Items.Add(MakeMenuItem("Rotate CCW", (s, ev) => RotatePages_Click(-90)));
+            menu.Items.Add(MakeMenuItem("順時針旋轉",  (s, ev) => RotatePages_Click(90)));
+            menu.Items.Add(MakeMenuItem("逆時針旋轉", (s, ev) => RotatePages_Click(-90)));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem("Move Page Up",   (s, ev) => MoveUp_Click(s!, ev)));
-            menu.Items.Add(MakeMenuItem("Move Page Down", (s, ev) => MoveDown_Click(s!, ev)));
+            menu.Items.Add(MakeMenuItem("頁面上移",   (s, ev) => MoveUp_Click(s!, ev)));
+            menu.Items.Add(MakeMenuItem("頁面下移", (s, ev) => MoveDown_Click(s!, ev)));
             menu.Items.Add(new Separator());
-            menu.Items.Add(MakeMenuItem("Extract Page(s)", (s, ev) => Split_Click(s!, ev)));
-            menu.Items.Add(MakeMenuItem("Delete Page(s)", (s, ev) => Delete_Click(s!, ev)));
+            menu.Items.Add(MakeMenuItem("擷取頁面", (s, ev) => Split_Click(s!, ev)));
+            menu.Items.Add(MakeMenuItem("刪除頁面", (s, ev) => Delete_Click(s!, ev)));
             menu.PlacementTarget = PageList;
             menu.IsOpen = true;
             e.Handled = true;
@@ -411,11 +411,11 @@ namespace KillerPDF
                 int restoreIdx = PageList.SelectedIndex;
                 SaveTempAndReload();
                 PageList.SelectedIndex = Math.Min(restoreIdx, PageList.Items.Count - 1);
-                SetStatus($"Rotated {indices.Count} page(s)");
+                SetStatus($"已旋轉 {indices.Count} 頁");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Rotate failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"旋轉失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -451,11 +451,11 @@ namespace KillerPDF
                     _doc = PdfReader.Open(path, PdfDocumentOpenMode.ReadOnly);
                     _currentFile = path;
                     FinishOpenFile(path, path);
-                    SetStatus($"Opened {System.IO.Path.GetFileName(path)} (read-only - owner restrictions) - {_doc.PageCount} page(s)");
+                    SetStatus($"已開啟 {System.IO.Path.GetFileName(path)} (唯讀 - 擁有者限制) - 共 {_doc.PageCount} 頁");
                 }
                 catch (Exception ex2)
                 {
-                    KillerDialog.Show(this, $"Failed to open PDF:\n{ex2.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                    KillerDialog.Show(this, $"無法開啟 PDF：\n{ex2.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex) when (IsPasswordException(ex))
@@ -476,12 +476,12 @@ namespace KillerPDF
                 }
                 catch (Exception ex2)
                 {
-                    KillerDialog.Show(this, $"Failed to open PDF:\n{ex2.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                    KillerDialog.Show(this, $"無法開啟 PDF：\n{ex2.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Failed to open PDF:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"無法開啟 PDF：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -518,7 +518,7 @@ namespace KillerPDF
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
                     (Action)FitToWidth);
             }
-            SetStatus($"Opened {System.IO.Path.GetFileName(displayPath)} - {_doc.PageCount} page(s)");
+            SetStatus($"已開啟 {System.IO.Path.GetFileName(displayPath)} - 共 {_doc.PageCount} 頁");
         }
 
         private static bool IsPasswordException(Exception ex) =>
@@ -531,7 +531,7 @@ namespace KillerPDF
             string? result = null;
             var win = new Window
             {
-                Title = "Password Required",
+                Title = "需要密碼",
                 Width = 360,
                 Height = 165,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
@@ -542,7 +542,7 @@ namespace KillerPDF
             var sp = new StackPanel { Margin = new Thickness(20, 16, 20, 16) };
             sp.Children.Add(new TextBlock
             {
-                Text = $"\"{System.IO.Path.GetFileName(filename)}\" is password protected.",
+                Text = $"「{System.IO.Path.GetFileName(filename)}」受到密碼保護。",
                 Foreground = Brushes.White,
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 10)
@@ -550,8 +550,8 @@ namespace KillerPDF
             var pwBox = new PasswordBox { Margin = new Thickness(0, 0, 0, 14) };
             sp.Children.Add(pwBox);
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-            var okBtn = new Button { Content = "Open", Width = 76, Margin = new Thickness(0, 0, 8, 0) };
-            var cancelBtn = new Button { Content = "Cancel", Width = 76 };
+            var okBtn = new Button { Content = "開啟", Width = 76, Margin = new Thickness(0, 0, 8, 0) };
+            var cancelBtn = new Button { Content = "取消", Width = 76 };
             okBtn.Click += (s, ev) => { result = pwBox.Password; win.DialogResult = true; };
             cancelBtn.Click += (s, ev) => { win.DialogResult = false; };
             pwBox.KeyDown += (s, ev) => { if (ev.Key == Key.Enter) { result = pwBox.Password; win.DialogResult = true; } };
@@ -600,7 +600,7 @@ namespace KillerPDF
 
                     var label = new TextBlock
                     {
-                        Text = $"Page {i + 1}",
+                        Text = $"第 {i + 1} 頁",
                         Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                         FontFamily = new FontFamily("Segoe UI"),
                         FontSize = 10,
@@ -623,7 +623,7 @@ namespace KillerPDF
                     {
                         panel.Children.Add(new TextBlock
                         {
-                            Text = $"Page {i + 1}",
+                            Text = $"第 {i + 1} 頁",
                             Foreground = (SolidColorBrush)FindResource("TextPrimary"),
                             FontFamily = new FontFamily("Consolas"),
                             FontSize = 13,
@@ -639,7 +639,7 @@ namespace KillerPDF
             {
                 // Fallback to plain text list
                 for (int i = 0; i < _doc.PageCount; i++)
-                    PageList.Items.Add($"Page {i + 1}");
+                    PageList.Items.Add($"第 {i + 1} 頁");
             }
         }
 
@@ -669,7 +669,7 @@ namespace KillerPDF
                 if (width <= 0 || height <= 0 || rawBytes == null || rawBytes.Length == 0)
                 {
                     PageImage.Source = null;
-                    SetStatus($"Page {pageIndex + 1} - could not render");
+                    SetStatus($"第 {pageIndex + 1} 頁無法轉譯");
                     return;
                 }
 
@@ -696,7 +696,7 @@ namespace KillerPDF
                 ClearSelection();
                 ClearSecondaryPages();
                 RenderAllAnnotations(pageIndex);
-                SetStatus($"Page {pageIndex + 1} of {_doc.PageCount}");
+                SetStatus($"第 {pageIndex + 1} / {_doc.PageCount} 頁");
                 // Defer additional pages until layout has settled so ActualWidth is valid.
                 // RenderPageLinks runs AFTER RenderAdditionalPages so ClearSecondaryPages
                 // inside RenderAdditionalPages doesn't wipe the overlays we just added.
@@ -709,7 +709,7 @@ namespace KillerPDF
             catch (Exception ex)
             {
                 PageImage.Source = null;
-                SetStatus($"Render error: {ex.Message}");
+                SetStatus($"轉譯錯誤：{ex.Message}");
             }
         }
 
@@ -841,7 +841,7 @@ namespace KillerPDF
                     Width = pageDipW, Height = pageDipH,
                     Background = Brushes.Transparent,
                     Cursor = Cursors.Hand,
-                    ToolTip = $"Page {pi + 1} — click to navigate"
+                    ToolTip = $"第 {pi + 1} 頁 - 點一下前往"
                 };
                 int capturedPi = pi;
                 overlay.PreviewMouseLeftButtonDown += (_, _) => PageList.SelectedIndex = capturedPi;
@@ -971,7 +971,7 @@ namespace KillerPDF
                     if (targetPage is null && uri is null) continue;
 
                     object tag = targetPage.HasValue ? (object)targetPage.Value : uri!;
-                    string tip = targetPage.HasValue ? $"Go to page {targetPage.Value + 1}" : uri!;
+                    string tip = targetPage.HasValue ? $"前往第 {targetPage.Value + 1} 頁" : uri!;
                     links.Add(new LinkInfo(cx, cy, cw, ch, tag, tip));
                 }
             }
@@ -1009,7 +1009,7 @@ namespace KillerPDF
             }
 
             if (links.Count > 0)
-                SetStatus($"Page {pageIndex + 1} of {_doc.PageCount}  ({links.Count} link{(links.Count == 1 ? "" : "s")})");
+                SetStatus($"第 {pageIndex + 1} / {_doc.PageCount} 頁  ({links.Count} 個連結)");
         }
 
         /// <summary>
@@ -1290,7 +1290,7 @@ namespace KillerPDF
                 _sidebarCol.Width = new GridLength(24);
                 _sidebarCol.MinWidth = 24;
                 _sidebarToggleBtn.Content = "\uE76C"; // ChevronRight (Segoe MDL2)
-                _sidebarToggleBtn.ToolTip = "Expand sidebar";
+                _sidebarToggleBtn.ToolTip = "展開側邊欄";
             }
             else
             {
@@ -1298,7 +1298,7 @@ namespace KillerPDF
                 _sidebarCol.Width = new GridLength(180);
                 _sidebarCol.MinWidth = 24;
                 _sidebarToggleBtn.Content = "\uE76B"; // ChevronLeft (Segoe MDL2)
-                _sidebarToggleBtn.ToolTip = "Collapse sidebar";
+                _sidebarToggleBtn.ToolTip = "收合側邊欄";
             }
             if (PageList.SelectedIndex >= 0)
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
@@ -1349,7 +1349,7 @@ namespace KillerPDF
 
             var label = new TextBlock
             {
-                Text = "Apply crop to:",
+                Text = "套用裁切到：",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 12,
@@ -1369,13 +1369,13 @@ namespace KillerPDF
             btnStyle.Setters.Add(new Setter(Button.FontFamilyProperty, new FontFamily("Segoe UI")));
             btnStyle.Setters.Add(new Setter(Button.FontSizeProperty, 12.0));
 
-            var thisPageBtn = new Button { Content = "This Page", Style = btnStyle, ToolTip = "Crop this page (Enter)" };
+            var thisPageBtn = new Button { Content = "此頁", Style = btnStyle, ToolTip = "裁切此頁 (Enter)" };
             thisPageBtn.Click += (_, _) => ApplyCrop([currentPage]);
             panel.Children.Add(thisPageBtn);
 
             if (multiPage)
             {
-                var allPagesBtn = new Button { Content = "All Pages", Style = btnStyle };
+                var allPagesBtn = new Button { Content = "全部頁面", Style = btnStyle };
                 allPagesBtn.Click += (_, _) => ApplyCrop([..Enumerable.Range(0, _doc.PageCount)]);
                 panel.Children.Add(allPagesBtn);
             }
@@ -1390,15 +1390,15 @@ namespace KillerPDF
                 dimBtnStyle.Setters.Add(new Setter(Button.BorderBrushProperty,
                     new SolidColorBrush(Color.FromRgb(0xff, 0x80, 0x80))));
 
-                var removeBtn = new Button { Content = "Remove Crop", Style = dimBtnStyle,
-                    ToolTip = multiPage ? "Remove CropBox from this page" : "Remove existing CropBox" };
+                var removeBtn = new Button { Content = "移除裁切", Style = dimBtnStyle,
+                    ToolTip = multiPage ? "移除此頁的 CropBox" : "移除現有 CropBox" };
                 removeBtn.Click += (_, _) => RemoveCropBox([currentPage]);
                 panel.Children.Add(removeBtn);
 
                 if (multiPage)
                 {
-                    var removeAllBtn = new Button { Content = "Remove All", Style = dimBtnStyle,
-                        ToolTip = "Remove CropBox from all pages" };
+                    var removeAllBtn = new Button { Content = "全部移除", Style = dimBtnStyle,
+                        ToolTip = "移除所有頁面的 CropBox" };
                     removeAllBtn.Click += (_, _) => RemoveCropBox([..Enumerable.Range(0, _doc.PageCount)]);
                     panel.Children.Add(removeAllBtn);
                 }
@@ -1406,9 +1406,9 @@ namespace KillerPDF
 
             var cancelBtn = new Button
             {
-                Content = "Cancel",
+                Content = "取消",
                 Style = btnStyle,
-                ToolTip = "Cancel (Escape)",
+                ToolTip = "取消 (Escape)",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 BorderBrush = (SolidColorBrush)FindResource("TextSecondary"),
                 Background = Brushes.Transparent
@@ -1516,10 +1516,10 @@ namespace KillerPDF
 
         private void ApplyCrop(int[] pageIndices)
         {
-            if (_doc is null || _currentFile is null) { SetStatus("Crop: no document open"); return; }
+            if (_doc is null || _currentFile is null) { SetStatus("裁切：尚未開啟文件"); return; }
             int currentPage = PageList.SelectedIndex;
-            if (currentPage < 0) { SetStatus("Crop: no page selected"); return; }
-            if (!_renderDims.ContainsKey(currentPage)) { SetStatus("Crop: page dimensions unavailable"); return; }
+            if (currentPage < 0) { SetStatus("裁切：尚未選取頁面"); return; }
+            if (!_renderDims.ContainsKey(currentPage)) { SetStatus("裁切：頁面尺寸尚不可用"); return; }
 
             try
             {
@@ -1558,11 +1558,11 @@ namespace KillerPDF
                 HideCropConfirmBar();
                 SetTool(EditTool.Select);
                 SaveTempAndReload();
-                SetStatus($"Cropped {pageIndices.Length} page{(pageIndices.Length == 1 ? "" : "s")}");
+                SetStatus($"已裁切 {pageIndices.Length} 頁");
             }
             catch (Exception ex)
             {
-                SetStatus($"Crop failed: {ex.Message}");
+                SetStatus($"裁切失敗：{ex.Message}");
             }
         }
 
@@ -1580,11 +1580,11 @@ namespace KillerPDF
                 HideCropConfirmBar();
                 SetTool(EditTool.Select);
                 SaveTempAndReload();
-                SetStatus($"Removed CropBox from {pageIndices.Length} page{(pageIndices.Length == 1 ? "" : "s")}");
+                SetStatus($"已從 {pageIndices.Length} 頁移除 CropBox");
             }
             catch (Exception ex)
             {
-                SetStatus($"Remove crop failed: {ex.Message}");
+                SetStatus($"移除裁切失敗：{ex.Message}");
             }
         }
 
@@ -1613,7 +1613,7 @@ namespace KillerPDF
             // Color label
             panel.Children.Add(new TextBlock
             {
-                Text = "Color:",
+                Text = "顏色：",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
@@ -1660,7 +1660,7 @@ namespace KillerPDF
             {
                 panel.Children.Add(new TextBlock
                 {
-                    Text = "Size:",
+                    Text = "大小：",
                     Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                     FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
                     VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
@@ -1695,7 +1695,7 @@ namespace KillerPDF
             // Opacity slider
             panel.Children.Add(new TextBlock
             {
-                Text = "Opacity:",
+                Text = "透明度：",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
@@ -1776,7 +1776,7 @@ namespace KillerPDF
             // Font size label
             panel.Children.Add(new TextBlock
             {
-                Text = "Size:",
+                Text = "大小：",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
@@ -1815,7 +1815,7 @@ namespace KillerPDF
             // Color label
             panel.Children.Add(new TextBlock
             {
-                Text = "Color:",
+                Text = "顏色：",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 FontFamily = new FontFamily("Segoe UI"), FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 6, 0)
@@ -1909,7 +1909,7 @@ namespace KillerPDF
             // Title
             stack.Children.Add(new TextBlock
             {
-                Text = "Signatures",
+                Text = "簽名",
                 Foreground = (SolidColorBrush)FindResource("TextPrimary"),
                 FontFamily = new FontFamily("Segoe UI"),
                 FontWeight = FontWeights.SemiBold,
@@ -1963,7 +1963,7 @@ namespace KillerPDF
                                 IsHitTestVisible = false
                             };
                         }
-                        catch { item.Child = new TextBlock { Text = "(image)", IsHitTestVisible = false }; }
+                        catch { item.Child = new TextBlock { Text = "(圖片)", IsHitTestVisible = false }; }
                     }
                     else
                     {
@@ -1982,7 +1982,7 @@ namespace KillerPDF
                         _pendingSignature = sigCopy;
                         HideSignaturePopup();
                         _annotationCanvas.Cursor = Cursors.Cross;
-                        SetStatus("Click on the page to place your signature");
+                        SetStatus("請在頁面上點一下以放置簽名");
                     };
                     item.MouseEnter += (s, e) =>
                         ((Border)s!).BorderBrush = (SolidColorBrush)FindResource("AccentGreen");
@@ -2024,7 +2024,7 @@ namespace KillerPDF
             {
                 stack.Children.Add(new TextBlock
                 {
-                    Text = "No saved signatures",
+                    Text = "沒有已儲存的簽名",
                     Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                     FontFamily = new FontFamily("Segoe UI"),
                     FontSize = 11,
@@ -2045,7 +2045,7 @@ namespace KillerPDF
             // Create Signature button
             var createBtn = new Button
             {
-                Content = "Create Signature",
+                Content = "建立簽名",
                 Style = (Style)FindResource("DarkButton"),
                 Background = (SolidColorBrush)FindResource("AccentGreenDim"),
                 Foreground = (SolidColorBrush)FindResource("AccentGreen"),
@@ -2067,7 +2067,7 @@ namespace KillerPDF
             // Import image button
             var importBtn = new Button
             {
-                Content = "Import Image",
+                Content = "匯入圖片",
                 Style = (Style)FindResource("DarkButton"),
                 Background = new SolidColorBrush(Color.FromRgb(0x1e, 0x3a, 0x2e)),
                 Foreground = (SolidColorBrush)FindResource("AccentGreen"),
@@ -2151,7 +2151,7 @@ namespace KillerPDF
         {
             var win = new Window
             {
-                Title = "Create Signature",
+                Title = "建立簽名",
                 Width = 460, Height = 300,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 Owner = this,
@@ -2184,7 +2184,7 @@ namespace KillerPDF
             titleGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             var titleText = new TextBlock
             {
-                Text       = "Create Signature",
+                Text       = "建立簽名",
                 Foreground = new SolidColorBrush(Color.FromRgb(0x4a, 0xde, 0x80)),
                 FontWeight = FontWeights.SemiBold,
                 FontSize   = 13,
@@ -2234,7 +2234,7 @@ namespace KillerPDF
             // Placeholder text
             var placeholder = new TextBlock
             {
-                Text = "Draw your signature here",
+                Text = "在這裡手寫簽名",
                 Foreground = new SolidColorBrush(Color.FromRgb(0xbb, 0xbb, 0xbb)),
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 14, FontStyle = FontStyles.Italic,
@@ -2302,7 +2302,7 @@ namespace KillerPDF
 
             var clearBtn = new Button
             {
-                Content = "Clear",
+                Content = "清除",
                 Style = (Style)FindResource("DarkButton"),
                 Padding = new Thickness(16, 6, 16, 6),
                 Margin = new Thickness(0, 0, 8, 0),
@@ -2322,7 +2322,7 @@ namespace KillerPDF
 
             var saveBtn = new Button
             {
-                Content = "Save Signature",
+                Content = "儲存簽名",
                 Style = (Style)FindResource("DarkButton"),
                 Padding = new Thickness(16, 6, 16, 6),
                 Background = new SolidColorBrush(Color.FromRgb(0x22, 0x54, 0x3d)),
@@ -2336,7 +2336,7 @@ namespace KillerPDF
             {
                 if (strokes.Count == 0)
                 {
-                    KillerDialog.Show(this, "Draw a signature first.", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    KillerDialog.Show(this, "請先畫出簽名。", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -2347,7 +2347,7 @@ namespace KillerPDF
                 {
                     CanvasWidth = cw,
                     CanvasHeight = ch,
-                    Name = $"Signature {_savedSignatures.Count + 1}"
+                    Name = $"簽名 {_savedSignatures.Count + 1}"
                 };
                 foreach (var stroke in strokes)
                 {
@@ -2360,7 +2360,7 @@ namespace KillerPDF
                 // Auto-select the new signature for placement
                 _pendingSignature = saved;
                 _annotationCanvas.Cursor = Cursors.Cross;
-                SetStatus("Signature saved - click on the page to place it");
+                SetStatus("簽名已儲存 - 請在頁面上點一下以放置");
 
                 win.Close();
             };
@@ -2379,8 +2379,8 @@ namespace KillerPDF
         {
             var dlg = new OpenFileDialog
             {
-                Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif|All files|*.*",
-                Title = "Import Signature Image"
+                Filter = "圖片檔案|*.png;*.jpg;*.jpeg;*.bmp;*.gif|所有檔案|*.*",
+                Title = "匯入簽名圖片"
             };
             if (dlg.ShowDialog() != true) return;
 
@@ -2408,12 +2408,12 @@ namespace KillerPDF
 
                 _pendingSignature = saved;
                 _annotationCanvas.Cursor = Cursors.Cross;
-                SetStatus("Image loaded - click on the page to place it");
+                SetStatus("圖片已載入 - 請在頁面上點一下以放置");
                 ShowSignaturePopup(); // refresh to show the new entry
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Failed to import image:\n{ex.Message}", "KillerPDF",
+                KillerDialog.Show(this, $"匯入圖片失敗：\n{ex.Message}", "KillerPDF",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -2451,15 +2451,15 @@ namespace KillerPDF
             double sigW = sig.CanvasWidth * scale;
             double sigH = sig.CanvasHeight * scale;
             SelectAnnotation(annot, new Rect(pos.X, pos.Y, sigW, sigH));
-            SetStatus("Signature placed — drag to reposition, use the corner handle to resize");
+            SetStatus("簽名已放置 - 拖曳可移動，使用角落控制點可調整大小");
         }
 
         private void PlaceImageFromDialog(Point pos, int pageIdx)
         {
             var dlg = new OpenFileDialog
             {
-                Title = "Insert Image",
-                Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.tif|All files|*.*"
+                Title = "插入圖片",
+                Filter = "圖片檔案|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.tif|所有檔案|*.*"
             };
             if (dlg.ShowDialog() != true) return;
 
@@ -2494,11 +2494,11 @@ namespace KillerPDF
                 double w = srcW * scale;
                 double h = srcH * scale;
                 SelectAnnotation(imgAnnot, new Rect(pos.X, pos.Y, w, h));
-                SetStatus("Image placed - drag the corner handle to resize, switch to Select to move/delete");
+                SetStatus("圖片已放置 - 拖曳角落控制點可調整大小，切換到選取工具可移動/刪除");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Could not load image:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"無法載入圖片：\n{ex.Message}", "錯誤", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -3079,12 +3079,12 @@ namespace KillerPDF
                 Canvas.SetLeft(_resizeHandle, bounds.X + bounds.Width - 4 - hSize / 2);
                 Canvas.SetTop(_resizeHandle, bounds.Y + bounds.Height - 4 - hSize / 2);
                 _annotationCanvas.Children.Add(_resizeHandle);
-                string label = annot is SignatureAnnotation ? "Signature" : "Image";
-                SetStatus($"{label} selected — drag corner handle to resize, Delete to remove");
+                string label = annot is SignatureAnnotation ? "簽名" : "圖片";
+                SetStatus($"已選取{label} - 拖曳角落控制點可調整大小，按 Delete 可移除");
             }
             else
             {
-                SetStatus($"Selected {annot.GetType().Name.Replace("Annotation", "").ToLower()} annotation - press Delete to remove");
+                SetStatus($"已選取註記 - 按 Delete 可移除");
             }
         }
 
@@ -3126,7 +3126,7 @@ namespace KillerPDF
                 _annotations[pageIdx].Remove(_selectedAnnotation);
             ClearSelection();
             RenderAllAnnotations(pageIdx);
-            SetStatus("Deleted selected annotation");
+            SetStatus("已刪除選取註記");
         }
 
         private void SelectAllText()
@@ -3143,7 +3143,7 @@ namespace KillerPDF
                 _selectedText = page.Text;
                 if (string.IsNullOrWhiteSpace(_selectedText))
                 {
-                    SetStatus("No text found on this page");
+                    SetStatus("此頁找不到文字");
                     return;
                 }
                 Clipboard.SetText(_selectedText);
@@ -3161,11 +3161,11 @@ namespace KillerPDF
                 Canvas.SetLeft(_selectRect, 0);
                 Canvas.SetTop(_selectRect, 0);
                 _annotationCanvas.Children.Add(_selectRect);
-                SetStatus($"Selected all text - copied to clipboard");
+                SetStatus("已選取所有文字並複製到剪貼簿");
             }
             catch (Exception ex)
             {
-                SetStatus($"Select all error: {ex.Message}");
+                SetStatus($"全選文字錯誤：{ex.Message}");
             }
         }
 
@@ -3174,11 +3174,11 @@ namespace KillerPDF
             if (!string.IsNullOrEmpty(_selectedText))
             {
                 Clipboard.SetText(_selectedText);
-                SetStatus($"Copied to clipboard");
+                SetStatus("已複製到剪貼簿");
             }
             else
             {
-                SetStatus("No text selected - drag to select text");
+                SetStatus("尚未選取文字 - 請拖曳選取文字");
             }
         }
 
@@ -3233,7 +3233,7 @@ namespace KillerPDF
 
                 if (words.Count == 0)
                 {
-                    SetStatus("No text found in selection");
+                    SetStatus("選取範圍內找不到文字");
                     ClearTextSelection();
                     return;
                 }
@@ -3257,11 +3257,11 @@ namespace KillerPDF
 
                 Clipboard.SetText(_selectedText);
                 int wordCount = words.Count;
-                SetStatus($"Copied {wordCount} word(s) to clipboard");
+                SetStatus($"已複製 {wordCount} 個字到剪貼簿");
             }
             catch (Exception ex)
             {
-                SetStatus($"Text extraction error: {ex.Message}");
+                SetStatus($"文字擷取錯誤：{ex.Message}");
                 ClearTextSelection();
             }
         }
@@ -3315,7 +3315,7 @@ namespace KillerPDF
                     Content = "\ue711",  // MDL2 Cancel glyph \u2014 matches ToolbarButton font
                     Margin = new Thickness(4, 0, 0, 0),
                     Style = (Style)FindResource("ToolbarButton"),
-                    ToolTip = "Close search (Esc)"
+                    ToolTip = "關閉搜尋 (Esc)"
                 };
                 closeBtn.Click += (s, e) => CloseSearchBar();
 
@@ -3364,7 +3364,7 @@ namespace KillerPDF
 
             _searchBar.Visibility = Visibility.Visible;
             _searchBox!.Text = "";
-            if (_searchStatus != null) _searchStatus.Text = "Enter = next  Shift+Enter = prev";
+            if (_searchStatus != null) _searchStatus.Text = "Enter = 下一個  Shift+Enter = 上一個";
             _searchBox.Focus();
             Keyboard.Focus(_searchBox);
         }
@@ -3440,7 +3440,7 @@ namespace KillerPDF
 
                 if (_searchResultPages.Count == 0)
                 {
-                    if (_searchStatus != null) _searchStatus.Text = "No matches";
+                    if (_searchStatus != null) _searchStatus.Text = "沒有符合項目";
                     return;
                 }
 
@@ -3451,8 +3451,8 @@ namespace KillerPDF
 
                 if (_searchStatus != null)
                     _searchStatus.Text = totalHits == 1
-                        ? $"1 match ({_searchResultPages.Count} page)"
-                        : $"{totalHits} matches ({_searchResultPages.Count} page{(_searchResultPages.Count != 1 ? "s" : "")})";
+                        ? $"1 個符合項目 ({_searchResultPages.Count} 頁)"
+                        : $"{totalHits} 個符合項目 ({_searchResultPages.Count} 頁)";
 
                 int targetPage = _searchResultPages[_searchPageCursor];
                 if (PageList.SelectedIndex != targetPage)
@@ -3462,7 +3462,7 @@ namespace KillerPDF
             }
             catch
             {
-                if (_searchStatus != null) _searchStatus.Text = "Search error";
+                if (_searchStatus != null) _searchStatus.Text = "搜尋錯誤";
             }
         }
 
@@ -3651,7 +3651,7 @@ namespace KillerPDF
                     _annotationCanvas.Children.Insert(_annotationCanvas.Children.IndexOf(retb), rewo);
                     retb.KeyDown += EditTextBox_KeyDown;
                     retb.Loaded += (s, ev) => { retb.Focus(); Keyboard.Focus(retb); retb.SelectAll(); retb.LostFocus += EditTextBox_LostFocus; };
-                    SetStatus("Re-editing text — Enter to save, Escape to cancel");
+                    SetStatus("正在重新編輯文字 - Enter 儲存，Escape 取消");
                     return;
                 }
             }
@@ -3679,7 +3679,7 @@ namespace KillerPDF
                     return new { Word = w, Rect = new Rect(cx, cy, cw, ch) };
                 }).ToList();
 
-                if (canvasWords.Count == 0) { SetStatus("No selectable text — this page may be a scanned image"); return; }
+                if (canvasWords.Count == 0) { SetStatus("沒有可選取的文字 - 此頁可能是掃描影像"); return; }
 
                 // Find words on the same line as the click (Y overlap with tolerance)
                 var clickY = canvasPos.Y;
@@ -3702,7 +3702,7 @@ namespace KillerPDF
 
                 if (lineWords.Count == 0)
                 {
-                    SetStatus("No text line found at this position");
+                    SetStatus("此位置找不到文字行");
                     return;
                 }
 
@@ -3806,11 +3806,11 @@ namespace KillerPDF
                     tb.LostFocus += EditTextBox_LostFocus;
                 };
 
-                SetStatus("Editing text - Enter to save, Escape to cancel");
+                SetStatus("正在編輯文字 - Enter 儲存，Escape 取消");
             }
             catch (Exception ex)
             {
-                SetStatus($"Text edit error: {ex.Message}");
+                SetStatus($"文字編輯錯誤：{ex.Message}");
             }
         }
 
@@ -3861,7 +3861,7 @@ namespace KillerPDF
                 .FirstOrDefault(r => r.Tag is string s && s == "EditWhiteout");
             if (whiteout is not null)
                 _annotationCanvas.Children.Remove(whiteout);
-            SetStatus("Text edit cancelled");
+            SetStatus("已取消文字編輯");
         }
 
         private void CommitTextEdit()
@@ -3880,7 +3880,7 @@ namespace KillerPDF
 
             if (string.IsNullOrEmpty(newText) || newText == ctx.OriginalText)
             {
-                SetStatus(newText == ctx.OriginalText ? "No changes made" : "Text edit cancelled (empty)");
+                SetStatus(newText == ctx.OriginalText ? "沒有變更" : "已取消文字編輯 (空白)");
                 return;
             }
 
@@ -3904,7 +3904,7 @@ namespace KillerPDF
                 AddAnnotation(edit);
             }
             RenderAllAnnotations(ctx.PageIndex);
-            SetStatus($"Text edited: \"{ctx.OriginalText}\" -> \"{newText}\"");
+            SetStatus($"文字已編輯：「{ctx.OriginalText}」->「{newText}」");
         }
 
         // ============================================================
@@ -4295,7 +4295,7 @@ namespace KillerPDF
         {
             if (_undoStack.Count == 0)
             {
-                SetStatus("Nothing to undo");
+                SetStatus("沒有可復原的動作");
                 return;
             }
 
@@ -4308,7 +4308,7 @@ namespace KillerPDF
                     _annotations[pageIdx].RemoveAt(_annotations[pageIdx].Count - 1);
                 ClearSelection();
                 RenderAllAnnotations(pageIdx);
-                SetStatus("Undid last annotation");
+                SetStatus("已復原上一個註記");
             }
             else // Document snapshot
             {
@@ -4329,7 +4329,7 @@ namespace KillerPDF
                     PageList.SelectedIndex = selectedIdx;
                 else if (PageList.Items.Count > 0)
                     PageList.SelectedIndex = 0;
-                SetStatus("Undid document change");
+                SetStatus("已復原文件變更");
             }
         }
 
@@ -4344,7 +4344,7 @@ namespace KillerPDF
             }
             ClearSelection();
             _annotationCanvas.Children.Clear();
-            SetStatus("Cleared annotations on this page");
+            SetStatus("已清除此頁註記");
         }
 
         // ============================================================
@@ -4372,7 +4372,7 @@ namespace KillerPDF
             if (_isDirty)
             {
                 var res = KillerDialog.Show(this,
-                    "You have unsaved changes. Close this file without saving?",
+                    "你有尚未儲存的變更。要不儲存就關閉此檔案嗎？",
                     "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes) return;
             }
@@ -4402,7 +4402,7 @@ namespace KillerPDF
             _pageJumpBox.Text = "";
             _pageTotalLabel.Text = "/ –";
             MarkDirty(false);
-            SetStatus("Ready");
+            SetStatus("就緒");
         }
 
         private void CloseFile_Click(object sender, RoutedEventArgs e) => CloseFile();
@@ -4418,7 +4418,7 @@ namespace KillerPDF
             if (_isDirty)
             {
                 var res = KillerDialog.Show(this,
-                    "You have unsaved changes. Discard them and create a new document?",
+                    "你有尚未儲存的變更。要捨棄並建立新文件嗎？",
                     "KillerPDF", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes) return;
             }
@@ -4436,27 +4436,27 @@ namespace KillerPDF
 
                 _doc?.Close();
                 _doc = PdfReader.Open(tempPath, PdfDocumentOpenMode.Modify);
-                FinishOpenFile("Untitled.pdf", tempPath);
-                SetStatus("New blank document");
+                FinishOpenFile("未命名.pdf", tempPath);
+                SetStatus("已建立空白文件");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Could not create new document:\n{ex.Message}",
+                KillerDialog.Show(this, $"無法建立新文件：\n{ex.Message}",
                     "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void Open_Click(object sender, RoutedEventArgs e)
         {
-            var dlg = new OpenFileDialog { Filter = "PDF files|*.pdf", Title = "Open PDF" };
+            var dlg = new OpenFileDialog { Filter = "PDF 檔案|*.pdf", Title = "開啟 PDF" };
             if (dlg.ShowDialog() == true) OpenFile(dlg.FileName);
         }
 
         private void Merge_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             var doc = _doc;
-            var dlg = new OpenFileDialog { Filter = "PDF files|*.pdf", Title = "Select PDF to merge", Multiselect = true };
+            var dlg = new OpenFileDialog { Filter = "PDF 檔案|*.pdf", Title = "選取要合併的 PDF", Multiselect = true };
             if (dlg.ShowDialog() != true) return;
             try
             {
@@ -4478,11 +4478,11 @@ namespace KillerPDF
                         RewriteNamedDestLinks(doc, pageOffset, namedDestMap);
                 }
                 SaveTempAndReload();
-                SetStatus($"Merged {dlg.FileNames.Length} file(s) - {_doc?.PageCount} total pages");
+                SetStatus($"已合併 {dlg.FileNames.Length} 個檔案 - 共 {_doc?.PageCount} 頁");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Merge failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"合併失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -4663,11 +4663,11 @@ namespace KillerPDF
 
         private void Split_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             var currentFile = _currentFile;
             var selected = PageList.SelectedItems;
-            if (selected.Count == 0) { KillerDialog.Show(this, "Select pages to extract."); return; }
-            var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save extracted pages as" };
+            if (selected.Count == 0) { KillerDialog.Show(this, "請選取要擷取的頁面。"); return; }
+            var dlg = new SaveFileDialog { Filter = "PDF 檔案|*.pdf", Title = "將擷取頁面另存為" };
             if (dlg.ShowDialog() != true) return;
             try
             {
@@ -4678,21 +4678,21 @@ namespace KillerPDF
                 foreach (var idx in indices.OrderBy(i => i))
                     newDoc.AddPage(importDoc.Pages[idx]);
                 newDoc.Save(dlg.FileName);
-                SetStatus($"Extracted {indices.Count} page(s) to {System.IO.Path.GetFileName(dlg.FileName)}");
+                SetStatus($"已將 {indices.Count} 頁擷取到 {System.IO.Path.GetFileName(dlg.FileName)}");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Split failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"擷取失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void Delete_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             var doc = _doc;
             var selected = PageList.SelectedItems;
-            if (selected.Count == 0) { KillerDialog.Show(this, "Select pages to delete."); return; }
-            var result = KillerDialog.Show(this, $"Delete {selected.Count} {(selected.Count == 1 ? "page" : "pages")}?", "KillerPDF",
+            if (selected.Count == 0) { KillerDialog.Show(this, "請選取要刪除的頁面。"); return; }
+            var result = KillerDialog.Show(this, $"要刪除 {selected.Count} 頁嗎？", "KillerPDF",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes) return;
             try
@@ -4702,17 +4702,17 @@ namespace KillerPDF
                 foreach (var idx in indices.OrderByDescending(i => i))
                     doc.Pages.RemoveAt(idx);
                 SaveTempAndReload();
-                SetStatus($"Deleted {indices.Count} page(s) - {_doc?.PageCount} remaining");
+                SetStatus($"已刪除 {indices.Count} 頁 - 剩餘 {_doc?.PageCount} 頁");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Delete failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"刪除失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void InsertBlankPage_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             var doc = _doc;
             int insertAfter = PageList.SelectedIndex >= 0 ? PageList.SelectedIndex : doc.PageCount - 1;
             try
@@ -4721,11 +4721,11 @@ namespace KillerPDF
                 doc.Pages.Insert(insertAfter + 1, blank);
                 SaveTempAndReload();
                 PageList.SelectedIndex = insertAfter + 1;
-                SetStatus($"Inserted blank page at position {insertAfter + 2}");
+                SetStatus($"已在第 {insertAfter + 2} 頁位置插入空白頁");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Insert failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"插入失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -4755,7 +4755,7 @@ namespace KillerPDF
 
         private void SaveInPlace()
         {
-            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             CommitActiveTextBox();
             try
             {
@@ -4781,19 +4781,19 @@ namespace KillerPDF
                 }
 
                 MarkDirty(false);
-                SetStatus($"Saved — {System.IO.Path.GetFileName(_currentFile)}");
+                SetStatus($"已儲存 - {System.IO.Path.GetFileName(_currentFile)}");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Save failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"儲存失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void SaveAs_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             CommitActiveTextBox();
-            var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save PDF as" };
+            var dlg = new SaveFileDialog { Filter = "PDF 檔案|*.pdf", Title = "將 PDF 另存為" };
             if (dlg.ShowDialog() != true) return;
             try
             {
@@ -4810,28 +4810,28 @@ namespace KillerPDF
                     _doc = PdfReader.Open(tempClean, PdfDocumentOpenMode.Modify);
                     _currentFile = tempClean;
                     MarkDirty(false);
-                    SetStatus($"Saved with annotations to {System.IO.Path.GetFileName(dlg.FileName)}");
+                    SetStatus($"已將註記儲存到 {System.IO.Path.GetFileName(dlg.FileName)}");
                 }
                 else
                 {
                     _doc.Save(dlg.FileName);
                     MarkDirty(false);
-                    SetStatus($"Saved to {System.IO.Path.GetFileName(dlg.FileName)}");
+                    SetStatus($"已儲存到 {System.IO.Path.GetFileName(dlg.FileName)}");
                 }
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Save failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"儲存失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void SaveFlattened_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             CommitActiveTextBox();
-            var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save Flattened PDF" };
+            var dlg = new SaveFileDialog { Filter = "PDF 檔案|*.pdf", Title = "儲存扁平化 PDF" };
             if (dlg.ShowDialog() != true) return;
-            SetStatus("Flattening...");
+            SetStatus("正在扁平化...");
             try
             {
                 // Burn any pending annotations into a temp source for rasterization
@@ -4904,17 +4904,17 @@ namespace KillerPDF
 
                 outDoc.Save(dlg.FileName);
                 MarkDirty(false);
-                SetStatus($"Flattened PDF saved to {System.IO.Path.GetFileName(dlg.FileName)}");
+                SetStatus($"扁平化 PDF 已儲存到 {System.IO.Path.GetFileName(dlg.FileName)}");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Flatten failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"扁平化失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void Print_Click(object sender, RoutedEventArgs e)
         {
-            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "Open a PDF first."); return; }
+            if (_doc is null || _currentFile is null) { KillerDialog.Show(this, "請先開啟 PDF。"); return; }
             CommitActiveTextBox();
             try
             {
@@ -4989,11 +4989,11 @@ namespace KillerPDF
                     try { System.IO.File.Delete(tempFlattened); } catch { }
 
                 dlg.PrintDocument(fixedDoc.DocumentPaginator, "KillerPDF");
-                SetStatus("Sent to printer");
+                SetStatus("已送出列印");
             }
             catch (Exception ex)
             {
-                KillerDialog.Show(this, $"Print failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+                KillerDialog.Show(this, $"列印失敗：\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -5169,7 +5169,7 @@ namespace KillerPDF
                     : Math.Max(ZoomMin, _zoomLevel - ZoomStep);
                 ApplyZoom();
                 SyncZoomBox();
-                SetStatus($"Page {PageList.SelectedIndex + 1} of {_doc?.PageCount} - {_zoomLevel * 100:F0}%");
+                SetStatus($"第 {PageList.SelectedIndex + 1} / {_doc?.PageCount} 頁 - {_zoomLevel * 100:F0}%");
                 return;
             }
 
@@ -5282,7 +5282,7 @@ namespace KillerPDF
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, z));
                 ApplyZoom();
                 if (PageList.SelectedIndex >= 0 && _doc != null)
-                    SetStatus($"Page {PageList.SelectedIndex + 1} of {_doc.PageCount} - {_zoomLevel * 100:F0}%");
+                    SetStatus($"第 {PageList.SelectedIndex + 1} / {_doc.PageCount} 頁 - {_zoomLevel * 100:F0}%");
             }
         }
 
@@ -5295,7 +5295,7 @@ namespace KillerPDF
             _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, viewW / PageImage.ActualWidth));
             ApplyZoom();
             if (PageList.SelectedIndex >= 0 && _doc != null)
-                SetStatus($"Page {PageList.SelectedIndex + 1} of {_doc.PageCount} - Fit Width ({_zoomLevel * 100:F0}%)");
+                SetStatus($"第 {PageList.SelectedIndex + 1} / {_doc.PageCount} 頁 - 符合寬度 ({_zoomLevel * 100:F0}%)");
         }
 
         private void FitToPage()
@@ -5309,7 +5309,7 @@ namespace KillerPDF
                 Math.Min(viewW / PageImage.ActualWidth, viewH / PageImage.ActualHeight)));
             ApplyZoom();
             if (PageList.SelectedIndex >= 0 && _doc != null)
-                SetStatus($"Page {PageList.SelectedIndex + 1} of {_doc.PageCount} - Fit Page ({_zoomLevel * 100:F0}%)");
+                SetStatus($"第 {PageList.SelectedIndex + 1} / {_doc.PageCount} 頁 - 符合頁面 ({_zoomLevel * 100:F0}%)");
         }
 
         private void PagePreviewPanel_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -5643,20 +5643,20 @@ namespace KillerPDF
             switch (buttons)
             {
                 case MessageBoxButton.OK:
-                    btnPanel.Children.Add(MakeBtn("OK", MessageBoxResult.OK, accent: true));
+                    btnPanel.Children.Add(MakeBtn("確定", MessageBoxResult.OK, accent: true));
                     break;
                 case MessageBoxButton.OKCancel:
-                    btnPanel.Children.Add(MakeBtn("OK",     MessageBoxResult.OK,     accent: true));
-                    btnPanel.Children.Add(MakeBtn("Cancel", MessageBoxResult.Cancel));
+                    btnPanel.Children.Add(MakeBtn("確定",   MessageBoxResult.OK,     accent: true));
+                    btnPanel.Children.Add(MakeBtn("取消",   MessageBoxResult.Cancel));
                     break;
                 case MessageBoxButton.YesNo:
-                    btnPanel.Children.Add(MakeBtn("Yes", MessageBoxResult.Yes, accent: true));
-                    btnPanel.Children.Add(MakeBtn("No",  MessageBoxResult.No));
+                    btnPanel.Children.Add(MakeBtn("是", MessageBoxResult.Yes, accent: true));
+                    btnPanel.Children.Add(MakeBtn("否", MessageBoxResult.No));
                     break;
                 case MessageBoxButton.YesNoCancel:
-                    btnPanel.Children.Add(MakeBtn("Yes",    MessageBoxResult.Yes,    accent: true));
-                    btnPanel.Children.Add(MakeBtn("No",     MessageBoxResult.No));
-                    btnPanel.Children.Add(MakeBtn("Cancel", MessageBoxResult.Cancel));
+                    btnPanel.Children.Add(MakeBtn("是",     MessageBoxResult.Yes,    accent: true));
+                    btnPanel.Children.Add(MakeBtn("否",     MessageBoxResult.No));
+                    btnPanel.Children.Add(MakeBtn("取消",   MessageBoxResult.Cancel));
                     break;
             }
 

@@ -85,8 +85,8 @@ namespace KillerPDF
             if (!IsDefaultPdfHandler())
             {
                 var res = KillerDialog.Show(null,
-                    "Would you like to set KillerPDF as your default PDF viewer?\n\n" +
-                    "Opens Windows Settings → Default Apps.",
+                    "要將 KillerPDF 設為預設 PDF 檢視器嗎？\n\n" +
+                    "將開啟 Windows 設定 -> 預設應用程式。",
                     "KillerPDF", MessageBoxButton.YesNo);
                 if (res == MessageBoxResult.Yes)
                     Process.Start(new ProcessStartInfo("ms-settings:defaultapps")
@@ -269,7 +269,7 @@ namespace KillerPDF
             var version = Assembly.GetExecutingAssembly().GetName().Version;
             content.Children.Add(new TextBlock
             {
-                Text       = $"Version {version?.ToString(3)}",
+                Text       = $"版本 {version?.ToString(3)}",
                 Foreground = dimText,
                 FontSize   = 12,
                 Margin     = new Thickness(0, 2, 0, 18)
@@ -278,8 +278,8 @@ namespace KillerPDF
             content.Children.Add(new TextBlock
             {
                 Text         = alreadyInstalled
-                    ? "A newer version is available. Install it or run without updating."
-                    : "Install KillerPDF on this computer, or run it without installing.",
+                    ? "已有新版可用。你可以安裝更新，或不更新直接執行。"
+                    : "將 KillerPDF 安裝到這台電腦，或不安裝直接執行。",
                 Foreground   = Brushes.White,
                 TextWrapping = TextWrapping.Wrap,
                 Margin       = new Thickness(0, 0, 0, 16)
@@ -289,7 +289,7 @@ namespace KillerPDF
             {
                 IsChecked = true,
                 Margin    = new Thickness(0, 0, 0, 22),
-                Content   = new TextBlock { Text = "Create desktop shortcut", Foreground = Brushes.White }
+                Content   = new TextBlock { Text = "建立桌面捷徑", Foreground = Brushes.White }
             };
             content.Children.Add(desktopChk);
 
@@ -301,7 +301,7 @@ namespace KillerPDF
 
             var runBtn = new Button
             {
-                Content = "Run",
+                Content = "執行",
                 Width   = 88,
                 Margin  = new Thickness(0, 0, 8, 0),
                 Style   = MakeLauncherButtonStyle(
@@ -311,7 +311,7 @@ namespace KillerPDF
             };
             var installBtn = new Button
             {
-                Content    = alreadyInstalled ? "Update" : "Install",
+                Content    = alreadyInstalled ? "更新" : "安裝",
                 Width      = 110,
                 Style      = MakeLauncherButtonStyle(
                     normal: accent,
@@ -392,7 +392,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Installation failed:\n{ex.Message}", AppName,
+                MessageBox.Show($"安裝失敗：\n{ex.Message}", AppName,
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -401,7 +401,7 @@ namespace KillerPDF
         {
             // ProgID definition
             using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\KillerPDF.pdf"))
-                k.SetValue("", "PDF Document");
+                k.SetValue("", "PDF 文件");
 
             using (var k = Registry.CurrentUser.CreateSubKey(
                 @"Software\Classes\KillerPDF.pdf\DefaultIcon"))
@@ -421,7 +421,7 @@ namespace KillerPDF
                 @"Software\KillerPDF\Capabilities"))
             {
                 k.SetValue("ApplicationName",        AppName);
-                k.SetValue("ApplicationDescription", "Lightweight PDF viewer and editor");
+                k.SetValue("ApplicationDescription", "輕量 PDF 檢視與編輯工具");
             }
             using (var k = Registry.CurrentUser.CreateSubKey(
                 @"Software\KillerPDF\Capabilities\FileAssociations"))
@@ -456,8 +456,8 @@ namespace KillerPDF
         private static void Uninstall()
         {
             var res = MessageBox.Show(
-                "Uninstall KillerPDF from this computer?",
-                $"{AppName} Uninstall",
+                "要從這台電腦解除安裝 KillerPDF 嗎？",
+                $"{AppName} 解除安裝",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
             if (res != MessageBoxResult.Yes) return;
@@ -504,7 +504,7 @@ namespace KillerPDF
                 UseShellExecute = true
             });
 
-            MessageBox.Show("KillerPDF has been uninstalled.", AppName,
+            MessageBox.Show("KillerPDF 已解除安裝。", AppName,
                 MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
