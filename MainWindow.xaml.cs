@@ -43,6 +43,7 @@ namespace TDPdf
         private readonly PdfDocumentService _pdfDocumentService = new();
         private CancellationTokenSource? _openCancellationTokenSource;
         private CancellationTokenSource? _renderCancellationTokenSource;
+        private CancellationTokenSource? _secondaryRenderCts;
         private int _busyDepth;
         private bool _isFileOperationBusy;
         private PdfDocument? _doc;
@@ -1236,9 +1237,16 @@ namespace TDPdf
         /// The WrapPanel's Width is set to viewport/zoom so WPF handles row-breaking automatically.
         /// Each secondary page is click-to-navigate; annotation tools only work on the primary page.
         /// </summary>
-        private void RenderAdditionalPages(int primaryPageIdx)
+        private async void RenderAdditionalPages(int primaryPageIdx)
         {
             if (_currentFile is null || _doc is null) return;
+
+            // Cancel any in-flight secondary render so stale pages from the previous run
+            // don’t land on the panel after the user has navigated or re-zoomed.
+            _secondaryRenderCts?.Cancel();
+            _secondaryRenderCts = new CancellationTokenSource();
+            var ct = _secondaryRenderCts.Token;
+
             ClearSecondaryPages();
 
             if (!_gridViewEnabled)
@@ -1272,56 +1280,72 @@ namespace TDPdf
             double dpiScaleY = dpiInfo.DpiScaleY;
             int scaledMax = (int)(1536 * Math.Max(dpiScaleX, dpiScaleY));
 
+            // Cap how many secondary pages we render at once. Long documents otherwise
+            // allocate a (potentially multi-MB) bitmap per page on first grid display.
+            const int MaxSecondaryPages = 25;
+            int lastPage = Math.Min(_doc.PageCount - 1, primaryPageIdx + MaxSecondaryPages);
+            string currentFile = _currentFile;
+
+            List<(int pi, int w, int h, byte[] rawBytes)> pages;
             try
             {
-                using var docReader = DocLib.Instance.GetDocReader(_currentFile, new PageDimensions(scaledMax, scaledMax));
-
-                // Cap how many secondary pages we render at once. Long documents otherwise
-                // allocate a (potentially multi-MB) bitmap per page on first grid display.
-                const int MaxSecondaryPages = 25;
-                int lastPage = Math.Min(_doc.PageCount - 1, primaryPageIdx + MaxSecondaryPages);
-                for (int i = primaryPageIdx + 1; i <= lastPage; i++)
+                pages = await Task.Run(() =>
                 {
-                    int pi = i; // capture for lambda
-                    using var pageReader = docReader.GetPageReader(pi);
-                    int w = pageReader.GetPageWidth();
-                    int h = pageReader.GetPageHeight();
-                    var rawBytes = pageReader.GetImage();
-                    if (w <= 0 || h <= 0 || rawBytes is null) continue;
-
-                    _renderDims[pi] = (w, h);
-                    var bitmap = new WriteableBitmap(w, h, 96.0 * dpiScaleX, 96.0 * dpiScaleY, PixelFormats.Bgra32, null);
-                    bitmap.WritePixels(new Int32Rect(0, 0, w, h), rawBytes, w * 4, 0);
-
-                    var img = new Image { Source = bitmap, Stretch = Stretch.None };
-                    RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-
-                    var overlay = new Canvas
+                    var result = new List<(int pi, int w, int h, byte[] rawBytes)>();
+                    using var docReader = DocLib.Instance.GetDocReader(currentFile, new PageDimensions(scaledMax, scaledMax));
+                    for (int i = primaryPageIdx + 1; i <= lastPage; i++)
                     {
-                        Width = w, Height = h,
-                        Background = Brushes.Transparent,
-                        Cursor = Cursors.Hand,
-                        ToolTip = $"Page {pi + 1} — click to navigate"
-                    };
-                    overlay.PreviewMouseLeftButtonDown += (_, _) => PageList.SelectedIndex = pi;
-
-                    var pageGrid = new Grid();
-                    pageGrid.Children.Add(img);
-                    pageGrid.Children.Add(overlay);
-                    // Add link overlays on top of the full-page nav overlay so PDF links
-                    // in secondary pages are clickable and navigate to their targets directly.
-                    AddSecondaryPageLinks(pi, pageGrid, w, h);
-
-                    // Uniform right+bottom margin gives consistent gutters in both dimensions.
-                    _pageContentPanel.Children.Add(new Border
-                    {
-                        Background = Brushes.White,
-                        Margin = new Thickness(0, 0, 12, 12),
-                        Child = pageGrid
-                    });
-                }
+                        ct.ThrowIfCancellationRequested();
+                        using var pageReader = docReader.GetPageReader(i);
+                        int w = pageReader.GetPageWidth();
+                        int h = pageReader.GetPageHeight();
+                        var rawBytes = pageReader.GetImage();
+                        if (w <= 0 || h <= 0 || rawBytes is null) continue;
+                        result.Add((i, w, h, rawBytes));
+                    }
+                    return result;
+                }, ct);
             }
-            catch { /* non-critical; primary page already visible */ }
+            catch (OperationCanceledException) { return; }
+            catch { return; /* non-critical; primary page already visible */ }
+
+            if (ct.IsCancellationRequested) return;
+
+            foreach (var (pi, w, h, rawBytes) in pages)
+            {
+                if (ct.IsCancellationRequested) return;
+
+                _renderDims[pi] = (w, h);
+                var bitmap = new WriteableBitmap(w, h, 96.0 * dpiScaleX, 96.0 * dpiScaleY, PixelFormats.Bgra32, null);
+                bitmap.WritePixels(new Int32Rect(0, 0, w, h), rawBytes, w * 4, 0);
+
+                var img = new Image { Source = bitmap, Stretch = Stretch.None };
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+
+                var overlay = new Canvas
+                {
+                    Width = w, Height = h,
+                    Background = Brushes.Transparent,
+                    Cursor = Cursors.Hand,
+                    ToolTip = $"Page {pi + 1} — click to navigate"
+                };
+                overlay.PreviewMouseLeftButtonDown += (_, _) => PageList.SelectedIndex = pi;
+
+                var pageGrid = new Grid();
+                pageGrid.Children.Add(img);
+                pageGrid.Children.Add(overlay);
+                // Add link overlays on top of the full-page nav overlay so PDF links
+                // in secondary pages are clickable and navigate to their targets directly.
+                AddSecondaryPageLinks(pi, pageGrid, w, h);
+
+                // Uniform right+bottom margin gives consistent gutters in both dimensions.
+                _pageContentPanel.Children.Add(new Border
+                {
+                    Background = Brushes.White,
+                    Margin = new Thickness(0, 0, 12, 12),
+                    Child = pageGrid
+                });
+            }
         }
 
         private void SetStatus(string text) => StatusText.Text = text;
