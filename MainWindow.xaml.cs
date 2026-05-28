@@ -295,7 +295,7 @@ namespace TDPdf
         private void SaveCommand_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             if (ShouldIgnoreGlobalShortcut()) return;
-            SaveAs_Click(sender, e);
+            SaveInPlace_Click(sender, e);
         }
 
         private void PrintCommand_Executed(object sender, ExecutedRoutedEventArgs e)
@@ -6588,9 +6588,68 @@ namespace TDPdf
             PageList.SelectedIndex = idx + 1;
         }
 
+        private async void SaveInPlace_Click(object sender, RoutedEventArgs e)
+        {
+            if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
+            await SaveInPlaceAsync();
+        }
+
+        private async Task SaveInPlaceAsync()
+        {
+            Telemetry.TrackEvent("File.SaveInPlace");
+            if (_doc is null || _currentFile is null) return;
+            CommitActiveTextBox();
+            try
+            {
+                SetFileOperationBusy(true, "Saving...");
+                var doc = _doc;
+                string targetFile = _currentFile;
+                bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
+                string status;
+
+                if (hasAnnotations)
+                {
+                    var tempClean = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                        $"tdpdf_clean_{Guid.NewGuid():N}.pdf");
+                    await _pdfDocumentService.SaveAsync(() => doc.Save(tempClean), CancellationToken.None);
+                    DrawAnnotationsOnDocument();
+                    ExceptionDispatchInfo? saveError = null;
+                    try
+                    {
+                        await _pdfDocumentService.SaveAsync(() => doc.Save(targetFile), CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        saveError = ExceptionDispatchInfo.Capture(ex);
+                    }
+
+                    doc = await RestoreDocumentAsync(doc, tempClean, CancellationToken.None);
+                    saveError?.Throw();
+                    status = $"Saved — {System.IO.Path.GetFileName(targetFile)}";
+                }
+                else
+                {
+                    await _pdfDocumentService.SaveAsync(() => doc.Save(targetFile), CancellationToken.None);
+                    status = $"Saved — {System.IO.Path.GetFileName(targetFile)}";
+                }
+
+                MarkDirty(false);
+                SetStatus(status);
+            }
+            catch (Exception ex)
+            {
+                SetFileOperationBusy(false);
+                TdpDialog.Show(this, $"Save failed:\n{ex.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                SetFileOperationBusy(false);
+            }
+        }
+
         private async void SaveAs_Click(object sender, RoutedEventArgs e)
         {
-            Telemetry.TrackEvent("File.Save");
+            Telemetry.TrackEvent("File.SaveAs");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             CommitActiveTextBox();
             var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save PDF as" };
