@@ -164,16 +164,10 @@ namespace TDPdf.Services
                 .Select(pageIndex => CreatePageLayout(pageSizes[pageIndex], mediaSize))
                 .ToList();
 
-            int maxRenderWidth = 1;
-            int maxRenderHeight = 1;
-            foreach (var layout in pageLayouts)
-            {
-                maxRenderWidth = Math.Max(maxRenderWidth, ToPixels(layout.ContentWidth));
-                maxRenderHeight = Math.Max(maxRenderHeight, ToPixels(layout.ContentHeight));
-            }
-
             var fixedDocument = new FixedDocument();
-            using var docReader = DocLib.Instance.GetDocReader(pdfPath, new PageDimensions(maxRenderWidth, maxRenderHeight));
+            // Render at RenderDpi of each page's native size; Image.Stretch=Fill scales to fit the layout.
+            // Using the (dimOne, dimTwo) viewport overload requires dimOne <= dimTwo and breaks for landscape pages.
+            using var docReader = DocLib.Instance.GetDocReader(pdfPath, new PageDimensions(RenderDpi / PointPerInch));
 
             for (int i = 0; i < selectedPages.Count; i++)
             {
@@ -267,8 +261,6 @@ namespace TDPdf.Services
             page.UpdateLayout();
             return page;
         }
-
-        private static int ToPixels(double dip) => Math.Max(1, (int)Math.Ceiling(dip / DipPerInch * RenderDpi));
 
         private static string CreateScratchPath(string purpose) =>
             Path.Combine(Path.GetTempPath(), $"tdpdf_{purpose}_{Guid.NewGuid():N}.pdf");
