@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Generates Diagnostics\EmbeddedTelemetry.Generated.cs from an
