@@ -991,6 +991,21 @@
                              Style="{StaticResource DarkButton}" Padding="6,2" Margin="0,0,12,0"
                              FontFamily="Consolas" FontSize="10"
                              Click="ResetZoom_Click" ToolTip="Reset zoom to 100% (Ctrl+0)" AutomationProperties.Name="Current zoom" AutomationProperties.HelpText="Reset zoom to 100 percent. Shortcut Control zero."/>
+                    <Button Click="ShortcutHelp_Click"
+                            Cursor="Hand" VerticalAlignment="Center"
+                            Margin="0,0,12,0" FocusVisualStyle="{x:Null}"
+                            ToolTip="Keyboard shortcuts (Ctrl+?)"
+                            AutomationProperties.Name="Keyboard shortcuts"
+                            AutomationProperties.HelpText="Show the keyboard shortcut overlay. Shortcut Control question mark.">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <TextBlock Text="?"
+                                           Foreground="{DynamicResource TextMuted}"
+                                           FontFamily="Consolas" FontSize="10"
+                                           VerticalAlignment="Center"/>
+                            </ControlTemplate>
+                        </Button.Template>
+                    </Button>
                     <TextBlock x:Name="VersionLabel" Text="v1.0.0.6" Foreground="{DynamicResource TextMuted}" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0" AutomationProperties.Name="Application version"/>
                     <TextBlock FontSize="10" VerticalAlignment="Center" FontFamily="Consolas">
                         <Run Text="&#x00A9; 2026 " Foreground="{DynamicResource TextMuted}"/>
@@ -1001,6 +1016,102 @@
                 </StackPanel>
             </Grid>
         </Border>
+
+        <!-- Keyboard shortcut overlay -->
+        <Grid x:Name="ShortcutOverlay"
+              Grid.RowSpan="5"
+              Panel.ZIndex="10000"
+              Visibility="Collapsed"
+              Background="#BB000000"
+              MouseLeftButtonDown="ShortcutOverlay_MouseLeftButtonDown">
+            <Border Background="{DynamicResource BgPanel}"
+                    BorderBrush="{DynamicResource AccentGreen}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="28,16,28,22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    MinWidth="480"
+                    MaxWidth="640"
+                    MouseLeftButtonDown="ShortcutOverlayCard_MouseLeftButtonDown">
+                <StackPanel>
+                    <Grid Margin="0,0,0,12">
+                        <TextBlock Text="Keyboard Shortcuts"
+                                   FontFamily="Segoe UI" FontSize="15" FontWeight="SemiBold"
+                                   Foreground="{DynamicResource TextPrimary}"
+                                   HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                        <Button Click="ShortcutOverlayClose_Click"
+                                HorizontalAlignment="Right" VerticalAlignment="Center"
+                                Cursor="Hand" FocusVisualStyle="{x:Null}"
+                                Width="24" Height="24"
+                                AutomationProperties.Name="Close keyboard shortcuts">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <TextBlock Text="&#xE711;"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="11"
+                                               Foreground="{DynamicResource TextSecondary}"
+                                               HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="FILE" Foreground="{DynamicResource AccentGreen}"
+                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+O" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Open" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+W" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Close file" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+N" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="New blank document" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+S" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Save" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Shift+S" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Save As" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+P" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Print" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+
+                            <TextBlock Text="NAVIGATION" Foreground="{DynamicResource AccentGreen}"
+                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="&#x2190; / &#x2192; or &#x2191; / &#x2193;" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Previous / next page" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Scroll" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Zoom in / out" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Middle drag" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Pan view" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="EDITING" Foreground="{DynamicResource AccentGreen}"
+                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+Z" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Undo" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Delete" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Delete selected annotation" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Escape" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Confirm / cancel text or crop" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+
+                            <TextBlock Text="SEARCH &amp; SELECT" Foreground="{DynamicResource AccentGreen}"
+                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+F" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Find / search" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Enter / Shift+Enter" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Next / previous result" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,4"><TextBlock Text="Ctrl+A" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Select all text on page" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+C" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="Copy selected text" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+
+                            <TextBlock Text="HELP" Foreground="{DynamicResource AccentGreen}"
+                                       FontFamily="Consolas" FontSize="10" FontWeight="SemiBold" Margin="0,12,0,4"/>
+                            <DockPanel Margin="0,0,0,0"><TextBlock Text="Ctrl+?" FontFamily="Consolas" FontSize="11" Foreground="{DynamicResource TextSecondary}" Width="120"/><TextBlock Text="This shortcut list" FontSize="11" Foreground="{DynamicResource TextPrimary}"/></DockPanel>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- Film grain overlay — main content area only -->
         <Border x:Name="GrainOverlay"

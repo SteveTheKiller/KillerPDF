@@ -5492,6 +5492,17 @@ namespace TDPdf
                 CloseSearchBar();
                 e.Handled = true;
             }
+            else if (e.Key == Key.Escape && ShortcutOverlay.Visibility == Visibility.Visible)
+            {
+                ShortcutOverlay.Visibility = Visibility.Collapsed;
+                e.Handled = true;
+            }
+            else if (e.Key == Key.OemQuestion && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                ShortcutOverlay.Visibility = ShortcutOverlay.Visibility == Visibility.Visible
+                    ? Visibility.Collapsed : Visibility.Visible;
+                e.Handled = true;
+            }
             else if (e.Key == Key.Delete && _selectedAnnotation is not null)
             {
                 DeleteSelected();
@@ -7349,6 +7360,27 @@ namespace TDPdf
         }
 
         private void PageJumpBox_GotFocus(object sender, RoutedEventArgs e) => _pageJumpBox.SelectAll();
+
+        private void ShortcutHelp_Click(object sender, RoutedEventArgs e)
+        {
+            ShortcutOverlay.Visibility = ShortcutOverlay.Visibility == Visibility.Visible
+                ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void ShortcutOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            ShortcutOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShortcutOverlayCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+        }
+
+        private void ShortcutOverlayClose_Click(object sender, RoutedEventArgs e)
+        {
+            ShortcutOverlay.Visibility = Visibility.Collapsed;
+        }
 
         private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {
