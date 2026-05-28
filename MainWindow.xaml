@@ -98,6 +98,47 @@
         <Style x:Key="ToolbarButtonDanger" TargetType="Button" BasedOn="{StaticResource ToolbarButton}">
             <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
         </Style>
+        <Style x:Key="ToolbarToggleButton" TargetType="ToggleButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="FontFamily" Value="Segoe MDL2 Assets"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource VisibleFocusVisual}"/>
+            <Setter Property="Width" Value="36"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}"
+                                ToolTip="{TemplateBinding ToolTip}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource AccentGreenDim}"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentGreen}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentGreen}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <Style x:Key="ChromeButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -802,6 +843,16 @@
                     <Button Content="&#xE7A7;" Style="{StaticResource ToolbarButton}" Click="Undo_Click" ToolTip="Undo Last (Ctrl+Z, Alt+Z)" KeyboardNavigation.TabIndex="23" AutomationProperties.Name="Undo last annotation" AutomationProperties.HelpText="Undo the last annotation change. Shortcut Ctrl+Z. Access key Alt+Z." AutomationProperties.AccessKey="Z" AutomationProperties.LabeledBy="{Binding ElementName=UndoButtonLabel}"/>
                     <Button Content="&#xED62;" Style="{StaticResource ToolbarButtonDanger}" Click="ClearAnnotations_Click" ToolTip="Clear All Annotations (Alt+L)" KeyboardNavigation.TabIndex="24" AutomationProperties.Name="Clear all annotations" AutomationProperties.HelpText="Clear all annotations on the current page. Access key Alt+L." AutomationProperties.AccessKey="L" AutomationProperties.LabeledBy="{Binding ElementName=ClearAnnotationsButtonLabel}"/>
                     <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
+                    <ToggleButton x:Name="GridViewToggle"
+                                  Content="&#xE8A9;"
+                                  Style="{StaticResource ToolbarToggleButton}"
+                                  IsChecked="True"
+                                  IsEnabled="False"
+                                  Click="GridViewToggle_Click"
+                                  ToolTip="Multi-page grid view"
+                                  Margin="0,0,4,0"
+                                  AutomationProperties.Name="Multi-page grid view"
+                                  AutomationProperties.HelpText="Toggle the multi-page grid preview. When off, only the current page is rendered."/>
                     <Button Content="&#xE949;" Style="{StaticResource ToolbarButton}" Click="ZoomOut_Click" ToolTip="Zoom Out (Ctrl+-)" KeyboardNavigation.TabIndex="25" AutomationProperties.Name="Zoom out" AutomationProperties.HelpText="Decrease the page zoom level. Shortcut Control minus."/>
                     <ComboBox x:Name="ZoomBox" Width="104" Height="24" VerticalAlignment="Center" Margin="0,0,4,0" IsEditable="True" IsReadOnly="True" Style="{StaticResource DarkComboBox}" KeyboardNavigation.TabIndex="26" AutomationProperties.Name="Zoom level" AutomationProperties.HelpText="Choose the page zoom level. Use Control plus mouse wheel to zoom." AutomationProperties.LabeledBy="{Binding ElementName=ZoomLabel}"
                               ItemsSource="{Binding Zoom.AvailableLevels, RelativeSource={RelativeSource AncestorType=Window}}"

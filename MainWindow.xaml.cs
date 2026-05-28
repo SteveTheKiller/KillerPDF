@@ -204,6 +204,8 @@ namespace TDPdf
         private Button _toolShapeBtn = null!;
         private Button _saveAsBtnRef = null!;
         private Button _closeFileBtnRef = null!;
+        private System.Windows.Controls.Primitives.ToggleButton _gridViewToggle = null!;
+        private bool _gridViewEnabled = true;
         private ComboBox _zoomBox = null!;
         private StackPanel _portableBadge = null!;
         private TextBox _pageJumpBox = null!;
@@ -248,6 +250,7 @@ namespace TDPdf
             _pageContentPanel = (WrapPanel)FindName("PageContentPanel")!;
             _saveAsBtnRef = (Button)FindName("SaveAsBtn")!;
             _closeFileBtnRef = (Button)FindName("CloseFileBtn")!;
+            _gridViewToggle = (System.Windows.Controls.Primitives.ToggleButton)FindName("GridViewToggle")!;
             _zoomBox = (ComboBox)FindName("ZoomBox")!;
             _portableBadge = (StackPanel)FindName("PortableBadge")!;
             _pageJumpBox = (TextBox)FindName("PageJumpBox")!;
@@ -972,6 +975,7 @@ namespace TDPdf
                 DropZone.Visibility = Visibility.Collapsed;
                 PagePreviewPanel.Visibility = Visibility.Visible;
                 if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = true;
+                _gridViewToggle.IsEnabled = true;
                 _pageJumpBox.IsEnabled = true;
                 _pageTotalLabel.Text = $"/ {_doc.PageCount}";
                 MarkDirty(false);
@@ -1222,6 +1226,12 @@ namespace TDPdf
             if (_currentFile is null || _doc is null) return;
             ClearSecondaryPages();
 
+            if (!_gridViewEnabled)
+            {
+                _pageContentPanel.Width = double.NaN;
+                return;
+            }
+
             double viewportW = PagePreviewPanel.ActualWidth;
             if (viewportW <= 0 || _doc.PageCount <= 1)
             {
@@ -1326,9 +1336,34 @@ namespace TDPdf
         /// </summary>
         private void RefreshPageView(int pageIndex)
         {
-            RenderAdditionalPages(pageIndex);
+            if (_gridViewEnabled)
+            {
+                RenderAdditionalPages(pageIndex);
+            }
+            else
+            {
+                ClearSecondaryPages();
+                _pageContentPanel.Width = double.NaN;
+            }
             if (_renderDims.TryGetValue(pageIndex, out var dims))
                 RenderPageLinks(pageIndex, dims.w, dims.h);
+        }
+
+        private void GridViewToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _gridViewEnabled = _gridViewToggle.IsChecked == true;
+            int idx = PageList.SelectedIndex;
+            if (idx < 0) return;
+            if (_gridViewEnabled)
+            {
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                    () => RefreshPageView(idx));
+            }
+            else
+            {
+                ClearSecondaryPages();
+                _pageContentPanel.Width = double.NaN;
+            }
         }
 
         // ============================================================
@@ -6111,6 +6146,7 @@ namespace TDPdf
             ClearCropSelection();
             SetTool(EditTool.Select);
             if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = false;
+            _gridViewToggle.IsEnabled = false;
             _pageJumpBox.IsEnabled = false;
             _pageJumpBox.Text = "";
             _pageTotalLabel.Text = "/ –";
