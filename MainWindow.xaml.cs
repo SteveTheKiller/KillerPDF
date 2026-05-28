@@ -1159,8 +1159,7 @@ namespace TDPdf
                         return;
                     }
 
-                    double renderScale = dpiX / 96.0;
-                    renderedPage = new RenderedPage(result.Bitmap, result.Width / renderScale, result.Height / renderScale, result.Width, result.Height);
+                    renderedPage = new RenderedPage(result.Bitmap, result.DipWidth, result.DipHeight, result.Width, result.Height);
                     _renderCache[(pageIndex, dpiX)] = renderedPage;
                 }
 
