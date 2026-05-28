@@ -6,6 +6,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.1.0.0] - 2026-05-19
+
+Ports upstream KillerPDF v1.4.1 user-facing improvements into TDPdf, plus zoom-drift and HiDPI memory fixes uncovered during the port.
+
+### Added
+
+- **`Ctrl+S` / `Ctrl+Shift+S` keyboard shortcuts.** `Ctrl+S` saves in place to the currently open file (no dialog), `Ctrl+Shift+S` opens Save As. The previous behavior — every save going through a Save As dialog — was a usability papercut for anyone iterating on a single file.
+- **Arrow-key page navigation.** Up/Down/PageUp/PageDown move between pages in the sidebar without stealing focus from text edits or annotation tools.
+- **Page jump box in the sidebar header.** Type a page number and press Enter to jump; matches the upstream UX and is much faster than scrolling the thumbnail list on a long document.
+- **`Ctrl+?` keyboard-shortcut overlay.** Themed dialog listing every shortcut TDPdf binds, so the new key bindings above are discoverable.
+- **Multi-page grid view toggle.** Toolbar button switches between single-page and grid view. Grid view tiles up to 25 additional pages from the current position so wide monitors don't waste space on long PDFs.
+- **Scroll-wheel page navigation at scroll edges.** Reaching the top of the current page and continuing to scroll up moves to the previous page; reaching the bottom and continuing scrolls into the next page. Matches the upstream `KillerPDF` reading flow.
+- **Crop bar Remove Crop / Remove All buttons and corner-resize handles.** The crop bar now lets you delete a single crop or every crop on the page, and the four corners of an active crop rectangle have draggable resize handles instead of being width/height-only.
+
+### Fixed
+
+- **Signature and annotation drift across zoom changes.** Annotations rendered against the page raster at zoom A could end up a few pixels off when the page was re-rendered at zoom B because the DPI rounding path differed slightly between the two render entry points. `Services/PdfDocumentService.cs` and the zoom plumbing in `MainWindow.xaml.cs` now share a single DPI-to-pixel formula so signatures, ink, highlights, and text edits stay pinned to the same PDF coordinate at every zoom level.
+
+### Performance
+
+- **HiDPI memory: release secondary page bitmaps on grid clear; cap render count.** `ClearSecondaryPages` now nulls `Image.Source` on every removed page before dropping the `Border`, so the underlying `WriteableBitmap` (multi-MB per page on HiDPI) is eligible for GC immediately instead of staying pinned in WPF's visual tree. `RenderAdditionalPages` also caps the secondary render window at 25 pages so a 500-page PDF in grid view doesn't try to allocate half a gigabyte of bitmaps up front.
+- **Async secondary-page rendering with cancellation.** `RenderAdditionalPages` previously called Docnet (PDFium) synchronously on the UI thread, freezing the window while every secondary page was decoded; rapid zoom or page-change events could also stack overlapping renders whose stale pages would land on the panel after the user had moved on. A new `_secondaryRenderCts` cancels any in-flight render at the top of each call, the PDFium decode loop runs on `Task.Run`, and cancellation is re-checked between WPF rebuilds so late results are dropped cleanly.
+
+### Attribution
+
+- These features and fixes track [`SteveTheKiller/KillerPDF` v1.4.1](https://github.com/SteveTheKiller/KillerPDF/releases/tag/v1.4.1). See `NOTICE` for the GPLv3 §5(a) upstream attribution.
+
 ## [1.0.0.6] - 2026-05-19
 
 ### Added
@@ -238,7 +265,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.6...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.1.0.0...HEAD
+[1.1.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.6...v1.1.0.0
 [1.0.0.6]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.5...v1.0.0.6
 [1.0.0.5]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.4...v1.0.0.5
 [1.0.0.4]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.3...v1.0.0.4

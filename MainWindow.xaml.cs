@@ -43,6 +43,7 @@ namespace TDPdf
         private readonly PdfDocumentService _pdfDocumentService = new();
         private CancellationTokenSource? _openCancellationTokenSource;
         private CancellationTokenSource? _renderCancellationTokenSource;
+        private CancellationTokenSource? _secondaryRenderCts;
         private int _busyDepth;
         private bool _isFileOperationBusy;
         private PdfDocument? _doc;
@@ -114,6 +115,10 @@ namespace TDPdf
         private Rectangle? _cropPreviewRect;
         private Border? _cropConfirmBar;
         private readonly Button _toolCropBtn = null!;
+        private readonly List<Rectangle> _cropHandles = new();
+        private string? _activeCropHandleTag;
+        private Point _cropHandleDragStart;
+        private Rect _cropRectAtHandleDrag;
 
         // Pan tool / middle-mouse pan
         private bool _isPanning;
@@ -204,8 +209,12 @@ namespace TDPdf
         private Button _toolShapeBtn = null!;
         private Button _saveAsBtnRef = null!;
         private Button _closeFileBtnRef = null!;
+        private System.Windows.Controls.Primitives.ToggleButton _gridViewToggle = null!;
+        private bool _gridViewEnabled = true;
         private ComboBox _zoomBox = null!;
         private StackPanel _portableBadge = null!;
+        private TextBox _pageJumpBox = null!;
+        private TextBlock _pageTotalLabel = null!;
         private Border _customTitleBar = null!;
         private RowDefinition _titleBarRow = null!;
 
@@ -246,8 +255,11 @@ namespace TDPdf
             _pageContentPanel = (WrapPanel)FindName("PageContentPanel")!;
             _saveAsBtnRef = (Button)FindName("SaveAsBtn")!;
             _closeFileBtnRef = (Button)FindName("CloseFileBtn")!;
+            _gridViewToggle = (System.Windows.Controls.Primitives.ToggleButton)FindName("GridViewToggle")!;
             _zoomBox = (ComboBox)FindName("ZoomBox")!;
             _portableBadge = (StackPanel)FindName("PortableBadge")!;
+            _pageJumpBox = (TextBox)FindName("PageJumpBox")!;
+            _pageTotalLabel = (TextBlock)FindName("PageTotalLabel")!;
             _customTitleBar = (Border)FindName("CustomTitleBar")!;
             _titleBarRow = (RowDefinition)FindName("TitleBarRow")!;
             ApplyCustomChromeVisibility();
@@ -295,7 +307,7 @@ namespace TDPdf
         private void SaveCommand_Executed(object sender, ExecutedRoutedEventArgs e)
         {
             if (ShouldIgnoreGlobalShortcut()) return;
-            SaveAs_Click(sender, e);
+            SaveInPlace_Click(sender, e);
         }
 
         private void PrintCommand_Executed(object sender, ExecutedRoutedEventArgs e)
@@ -968,6 +980,9 @@ namespace TDPdf
                 DropZone.Visibility = Visibility.Collapsed;
                 PagePreviewPanel.Visibility = Visibility.Visible;
                 if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = true;
+                _gridViewToggle.IsEnabled = true;
+                _pageJumpBox.IsEnabled = true;
+                _pageTotalLabel.Text = $"/ {_doc.PageCount}";
                 MarkDirty(false);
                 if (_doc.PageCount > 0)
                 {
@@ -1145,8 +1160,7 @@ namespace TDPdf
                         return;
                     }
 
-                    double renderScale = dpiX / 96.0;
-                    renderedPage = new RenderedPage(result.Bitmap, result.Width / renderScale, result.Height / renderScale, result.Width, result.Height);
+                    renderedPage = new RenderedPage(result.Bitmap, result.DipWidth, result.DipHeight, result.Width, result.Height);
                     _renderCache[(pageIndex, dpiX)] = renderedPage;
                 }
 
@@ -1195,7 +1209,19 @@ namespace TDPdf
         {
             if (_pageContentPanel is null) return;
             while (_pageContentPanel.Children.Count > 1)
-                _pageContentPanel.Children.RemoveAt(_pageContentPanel.Children.Count - 1);
+            {
+                int last = _pageContentPanel.Children.Count - 1;
+                // Null Image.Source before remove so the WriteableBitmap (often several MB on
+                // HiDPI) can be collected promptly instead of lingering until WPF’s next GC.
+                if (_pageContentPanel.Children[last] is Border border && border.Child is Grid grid)
+                {
+                    foreach (var child in grid.Children)
+                    {
+                        if (child is Image img) img.Source = null;
+                    }
+                }
+                _pageContentPanel.Children.RemoveAt(last);
+            }
             // NOTE: do NOT reset _pageContentPanel.Width here.  Width is managed exclusively
             // by RenderAdditionalPages (which runs only via Dispatcher) so that no synchronous
             // call to ClearSecondaryPages triggers an intermediate layout pass that would cause
@@ -1211,10 +1237,23 @@ namespace TDPdf
         /// The WrapPanel's Width is set to viewport/zoom so WPF handles row-breaking automatically.
         /// Each secondary page is click-to-navigate; annotation tools only work on the primary page.
         /// </summary>
-        private void RenderAdditionalPages(int primaryPageIdx)
+        private async void RenderAdditionalPages(int primaryPageIdx)
         {
             if (_currentFile is null || _doc is null) return;
+
+            // Cancel any in-flight secondary render so stale pages from the previous run
+            // don’t land on the panel after the user has navigated or re-zoomed.
+            _secondaryRenderCts?.Cancel();
+            _secondaryRenderCts = new CancellationTokenSource();
+            var ct = _secondaryRenderCts.Token;
+
             ClearSecondaryPages();
+
+            if (!_gridViewEnabled)
+            {
+                _pageContentPanel.Width = double.NaN;
+                return;
+            }
 
             double viewportW = PagePreviewPanel.ActualWidth;
             if (viewportW <= 0 || _doc.PageCount <= 1)
@@ -1241,52 +1280,72 @@ namespace TDPdf
             double dpiScaleY = dpiInfo.DpiScaleY;
             int scaledMax = (int)(1536 * Math.Max(dpiScaleX, dpiScaleY));
 
+            // Cap how many secondary pages we render at once. Long documents otherwise
+            // allocate a (potentially multi-MB) bitmap per page on first grid display.
+            const int MaxSecondaryPages = 25;
+            int lastPage = Math.Min(_doc.PageCount - 1, primaryPageIdx + MaxSecondaryPages);
+            string currentFile = _currentFile;
+
+            List<(int pi, int w, int h, byte[] rawBytes)> pages;
             try
             {
-                using var docReader = DocLib.Instance.GetDocReader(_currentFile, new PageDimensions(scaledMax, scaledMax));
-
-                for (int i = primaryPageIdx + 1; i < _doc.PageCount; i++)
+                pages = await Task.Run(() =>
                 {
-                    int pi = i; // capture for lambda
-                    using var pageReader = docReader.GetPageReader(pi);
-                    int w = pageReader.GetPageWidth();
-                    int h = pageReader.GetPageHeight();
-                    var rawBytes = pageReader.GetImage();
-                    if (w <= 0 || h <= 0 || rawBytes is null) continue;
-
-                    _renderDims[pi] = (w, h);
-                    var bitmap = new WriteableBitmap(w, h, 96.0 * dpiScaleX, 96.0 * dpiScaleY, PixelFormats.Bgra32, null);
-                    bitmap.WritePixels(new Int32Rect(0, 0, w, h), rawBytes, w * 4, 0);
-
-                    var img = new Image { Source = bitmap, Stretch = Stretch.None };
-                    RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
-
-                    var overlay = new Canvas
+                    var result = new List<(int pi, int w, int h, byte[] rawBytes)>();
+                    using var docReader = DocLib.Instance.GetDocReader(currentFile, new PageDimensions(scaledMax, scaledMax));
+                    for (int i = primaryPageIdx + 1; i <= lastPage; i++)
                     {
-                        Width = w, Height = h,
-                        Background = Brushes.Transparent,
-                        Cursor = Cursors.Hand,
-                        ToolTip = $"Page {pi + 1} — click to navigate"
-                    };
-                    overlay.PreviewMouseLeftButtonDown += (_, _) => PageList.SelectedIndex = pi;
-
-                    var pageGrid = new Grid();
-                    pageGrid.Children.Add(img);
-                    pageGrid.Children.Add(overlay);
-                    // Add link overlays on top of the full-page nav overlay so PDF links
-                    // in secondary pages are clickable and navigate to their targets directly.
-                    AddSecondaryPageLinks(pi, pageGrid, w, h);
-
-                    // Uniform right+bottom margin gives consistent gutters in both dimensions.
-                    _pageContentPanel.Children.Add(new Border
-                    {
-                        Background = Brushes.White,
-                        Margin = new Thickness(0, 0, 12, 12),
-                        Child = pageGrid
-                    });
-                }
+                        ct.ThrowIfCancellationRequested();
+                        using var pageReader = docReader.GetPageReader(i);
+                        int w = pageReader.GetPageWidth();
+                        int h = pageReader.GetPageHeight();
+                        var rawBytes = pageReader.GetImage();
+                        if (w <= 0 || h <= 0 || rawBytes is null) continue;
+                        result.Add((i, w, h, rawBytes));
+                    }
+                    return result;
+                }, ct);
             }
-            catch { /* non-critical; primary page already visible */ }
+            catch (OperationCanceledException) { return; }
+            catch { return; /* non-critical; primary page already visible */ }
+
+            if (ct.IsCancellationRequested) return;
+
+            foreach (var (pi, w, h, rawBytes) in pages)
+            {
+                if (ct.IsCancellationRequested) return;
+
+                _renderDims[pi] = (w, h);
+                var bitmap = new WriteableBitmap(w, h, 96.0 * dpiScaleX, 96.0 * dpiScaleY, PixelFormats.Bgra32, null);
+                bitmap.WritePixels(new Int32Rect(0, 0, w, h), rawBytes, w * 4, 0);
+
+                var img = new Image { Source = bitmap, Stretch = Stretch.None };
+                RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
+
+                var overlay = new Canvas
+                {
+                    Width = w, Height = h,
+                    Background = Brushes.Transparent,
+                    Cursor = Cursors.Hand,
+                    ToolTip = $"Page {pi + 1} — click to navigate"
+                };
+                overlay.PreviewMouseLeftButtonDown += (_, _) => PageList.SelectedIndex = pi;
+
+                var pageGrid = new Grid();
+                pageGrid.Children.Add(img);
+                pageGrid.Children.Add(overlay);
+                // Add link overlays on top of the full-page nav overlay so PDF links
+                // in secondary pages are clickable and navigate to their targets directly.
+                AddSecondaryPageLinks(pi, pageGrid, w, h);
+
+                // Uniform right+bottom margin gives consistent gutters in both dimensions.
+                _pageContentPanel.Children.Add(new Border
+                {
+                    Background = Brushes.White,
+                    Margin = new Thickness(0, 0, 12, 12),
+                    Child = pageGrid
+                });
+            }
         }
 
         private void SetStatus(string text) => StatusText.Text = text;
@@ -1320,9 +1379,34 @@ namespace TDPdf
         /// </summary>
         private void RefreshPageView(int pageIndex)
         {
-            RenderAdditionalPages(pageIndex);
+            if (_gridViewEnabled)
+            {
+                RenderAdditionalPages(pageIndex);
+            }
+            else
+            {
+                ClearSecondaryPages();
+                _pageContentPanel.Width = double.NaN;
+            }
             if (_renderDims.TryGetValue(pageIndex, out var dims))
                 RenderPageLinks(pageIndex, dims.w, dims.h);
+        }
+
+        private void GridViewToggle_Click(object sender, RoutedEventArgs e)
+        {
+            _gridViewEnabled = _gridViewToggle.IsChecked == true;
+            int idx = PageList.SelectedIndex;
+            if (idx < 0) return;
+            if (_gridViewEnabled)
+            {
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
+                    () => RefreshPageView(idx));
+            }
+            else
+            {
+                ClearSecondaryPages();
+                _pageContentPanel.Width = double.NaN;
+            }
         }
 
         // ============================================================
@@ -1874,21 +1958,54 @@ namespace TDPdf
             btnStyle.Setters.Add(new Setter(Button.FontFamilyProperty, new FontFamily("Segoe UI")));
             btnStyle.Setters.Add(new Setter(Button.FontSizeProperty, 12.0));
 
-            var thisPageBtn = new Button { Content = "This Page", Style = btnStyle };
+            var thisPageBtn = new Button { Content = "This Page", Style = btnStyle, ToolTip = "Crop this page (Enter)" };
             thisPageBtn.Click += (_, _) => ApplyCrop([currentPage]);
             panel.Children.Add(thisPageBtn);
 
             if (multiPage)
             {
-                var allPagesBtn = new Button { Content = "All Pages", Style = btnStyle };
+                var allPagesBtn = new Button { Content = "All Pages", Style = btnStyle, ToolTip = "Crop all pages" };
                 allPagesBtn.Click += (_, _) => ApplyCrop([..Enumerable.Range(0, _doc.PageCount)]);
                 panel.Children.Add(allPagesBtn);
+            }
+
+            // "Remove Crop" — only shown if current page already has a CropBox
+            bool hasCropBox = _doc.Pages[currentPage].Elements.ContainsKey("/CropBox");
+            if (hasCropBox)
+            {
+                var dimBtnStyle = new Style(typeof(Button), btnStyle);
+                dimBtnStyle.Setters.Add(new Setter(Button.ForegroundProperty,
+                    new SolidColorBrush(Color.FromRgb(0xff, 0x80, 0x80))));
+                dimBtnStyle.Setters.Add(new Setter(Button.BorderBrushProperty,
+                    new SolidColorBrush(Color.FromRgb(0xff, 0x80, 0x80))));
+
+                var removeBtn = new Button
+                {
+                    Content = "Remove Crop",
+                    Style = dimBtnStyle,
+                    ToolTip = multiPage ? "Remove CropBox from this page" : "Remove existing CropBox"
+                };
+                removeBtn.Click += (_, _) => RemoveCropBox([currentPage]);
+                panel.Children.Add(removeBtn);
+
+                if (multiPage)
+                {
+                    var removeAllBtn = new Button
+                    {
+                        Content = "Remove All",
+                        Style = dimBtnStyle,
+                        ToolTip = "Remove CropBox from all pages"
+                    };
+                    removeAllBtn.Click += (_, _) => RemoveCropBox([..Enumerable.Range(0, _doc.PageCount)]);
+                    panel.Children.Add(removeAllBtn);
+                }
             }
 
             var cancelBtn = new Button
             {
                 Content = "Cancel",
                 Style = btnStyle,
+                ToolTip = "Cancel (Escape)",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 BorderBrush = (SolidColorBrush)FindResource("TextSecondary"),
                 Background = Brushes.Transparent
@@ -1910,6 +2027,7 @@ namespace TDPdf
             Canvas.SetLeft(bar, barLeft);
             Canvas.SetTop(bar, barTop);
             _annotationCanvas.Children.Add(bar);
+            AddCropHandles();
         }
 
         private void HideCropConfirmBar()
@@ -1923,6 +2041,105 @@ namespace TDPdf
             {
                 _annotationCanvas.Children.Remove(_cropPreviewRect);
                 _cropPreviewRect = null;
+            }
+            RemoveCropHandles();
+        }
+
+        private void AddCropHandles()
+        {
+            RemoveCropHandles();
+            const double hSize = 8;
+            var tags = new[] { "NW", "NE", "SE", "SW" };
+            var cursors = new[] { Cursors.SizeNWSE, Cursors.SizeNESW, Cursors.SizeNWSE, Cursors.SizeNESW };
+            var green = (SolidColorBrush)FindResource("AccentGreen");
+
+            for (int i = 0; i < 4; i++)
+            {
+                var h = new Rectangle
+                {
+                    Width = hSize,
+                    Height = hSize,
+                    Fill = green,
+                    Stroke = Brushes.White,
+                    StrokeThickness = 1,
+                    Tag = tags[i],
+                    Cursor = cursors[i],
+                };
+                _cropHandles.Add(h);
+                _annotationCanvas.Children.Add(h);
+            }
+            PositionCropHandles();
+        }
+
+        private void RemoveCropHandles()
+        {
+            foreach (var h in _cropHandles)
+                _annotationCanvas.Children.Remove(h);
+            _cropHandles.Clear();
+            _activeCropHandleTag = null;
+        }
+
+        private void PositionCropHandles()
+        {
+            if (_cropHandles.Count < 4) return;
+            const double hSize = 8;
+            var corners = new (double x, double y)[]
+            {
+                (_cropCanvasRect.X - hSize / 2,     _cropCanvasRect.Y - hSize / 2),
+                (_cropCanvasRect.Right - hSize / 2, _cropCanvasRect.Y - hSize / 2),
+                (_cropCanvasRect.Right - hSize / 2, _cropCanvasRect.Bottom - hSize / 2),
+                (_cropCanvasRect.X - hSize / 2,     _cropCanvasRect.Bottom - hSize / 2),
+            };
+            for (int i = 0; i < 4; i++)
+            {
+                Canvas.SetLeft(_cropHandles[i], corners[i].x);
+                Canvas.SetTop(_cropHandles[i], corners[i].y);
+            }
+        }
+
+        private void UpdateCropRectVisuals()
+        {
+            if (_cropPreviewRect is null) return;
+            Canvas.SetLeft(_cropPreviewRect, _cropCanvasRect.X);
+            Canvas.SetTop(_cropPreviewRect, _cropCanvasRect.Y);
+            _cropPreviewRect.Width = _cropCanvasRect.Width;
+            _cropPreviewRect.Height = _cropCanvasRect.Height;
+            PositionCropHandles();
+            RepositionCropConfirmBar();
+        }
+
+        private void RepositionCropConfirmBar()
+        {
+            if (_cropConfirmBar is null) return;
+            const double barHeight = 38;
+            double barLeft = Math.Max(4, _cropCanvasRect.X);
+            double barTopBelow = _cropCanvasRect.Y + _cropCanvasRect.Height + 8;
+            double barTopAbove = _cropCanvasRect.Y - barHeight - 8;
+            double barTop = barTopBelow + barHeight < _annotationCanvas.ActualHeight
+                ? barTopBelow : Math.Max(4, barTopAbove);
+            Canvas.SetLeft(_cropConfirmBar, barLeft);
+            Canvas.SetTop(_cropConfirmBar, barTop);
+        }
+
+        private void RemoveCropBox(int[] pageIndices)
+        {
+            if (_doc is null || _currentFile is null) return;
+            try
+            {
+                PushDocUndo();
+                foreach (int pi in pageIndices)
+                {
+                    if (pi < 0 || pi >= _doc.PageCount) continue;
+                    _doc.Pages[pi].Elements.Remove("/CropBox");
+                }
+                HideCropConfirmBar();
+                SetTool(EditTool.Select);
+                SaveTempAndReload();
+                SetStatus($"Removed CropBox from {pageIndices.Length} page{(pageIndices.Length == 1 ? "" : "s")}");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Remove crop failed: {ex.Message}");
             }
         }
 
@@ -3290,6 +3507,19 @@ namespace TDPdf
             int pageIdx = PageList.SelectedIndex;
             if (pageIdx < 0) return;
 
+            // Crop corner handle — must be checked before the tool switch so the normal
+            // Crop mousedown path (which calls HideCropConfirmBar) doesn't remove handles first.
+            if (_cropHandles.Count > 0 && e.OriginalSource is Rectangle cropHandleRect &&
+                _cropHandles.Contains(cropHandleRect))
+            {
+                _activeCropHandleTag = (string)cropHandleRect.Tag;
+                _cropHandleDragStart = pos;
+                _cropRectAtHandleDrag = _cropCanvasRect;
+                _annotationCanvas.CaptureMouse();
+                e.Handled = true;
+                return;
+            }
+
             if (_currentTool == EditTool.EditImage && _imageResizeHandle is not null &&
                 e.OriginalSource == _imageResizeHandle && _selectedAnnotation is ImageEditAnnotation selectedImage)
             {
@@ -3863,6 +4093,40 @@ namespace TDPdf
                     crect.Height = Math.Abs(pos.Y - _drawStart.Y);
                     break;
             }
+
+            // Crop corner handle drag — resize the crop rect live.
+            if (_activeCropHandleTag is not null && _cropPreviewRect is not null)
+            {
+                double dx = pos.X - _cropHandleDragStart.X;
+                double dy = pos.Y - _cropHandleDragStart.Y;
+                var r = _cropRectAtHandleDrag;
+                double newX = r.X, newY = r.Y, newW = r.Width, newH = r.Height;
+                switch (_activeCropHandleTag)
+                {
+                    case "NW":
+                        newX = Math.Min(r.Right - 10, r.X + dx);
+                        newY = Math.Min(r.Bottom - 10, r.Y + dy);
+                        newW = r.Right - newX;
+                        newH = r.Bottom - newY;
+                        break;
+                    case "NE":
+                        newY = Math.Min(r.Bottom - 10, r.Y + dy);
+                        newW = Math.Max(10, r.Width + dx);
+                        newH = r.Bottom - newY;
+                        break;
+                    case "SE":
+                        newW = Math.Max(10, r.Width + dx);
+                        newH = Math.Max(10, r.Height + dy);
+                        break;
+                    case "SW":
+                        newX = Math.Min(r.Right - 10, r.X + dx);
+                        newW = r.Right - newX;
+                        newH = Math.Max(10, r.Height + dy);
+                        break;
+                }
+                _cropCanvasRect = new Rect(newX, newY, newW, newH);
+                UpdateCropRectVisuals();
+            }
         }
 
         private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -3881,6 +4145,15 @@ namespace TDPdf
                 return;
 
             int pageIdx = PageList.SelectedIndex;
+
+            // Finish crop handle drag
+            if (_activeCropHandleTag is not null)
+            {
+                _activeCropHandleTag = null;
+                if (_annotationCanvas.IsMouseCaptured) _annotationCanvas.ReleaseMouseCapture();
+                e.Handled = true;
+                return;
+            }
 
             // Finish generic annotation move
             if (_isMovingAnnot)
@@ -4132,6 +4405,7 @@ namespace TDPdf
                     if (cr.Width > 10 && cr.Height > 10)
                     {
                         _cropCanvasRect = new Rect(Canvas.GetLeft(cr), Canvas.GetTop(cr), cr.Width, cr.Height);
+                        _cropPreviewRect = cr;
                         _activePreview = null; // keep the preview rect visible; don't null it
                         ShowCropConfirmBar();
                         return;
@@ -5486,9 +5760,33 @@ namespace TDPdf
                 CloseSearchBar();
                 e.Handled = true;
             }
+            else if (e.Key == Key.Escape && ShortcutOverlay.Visibility == Visibility.Visible)
+            {
+                ShortcutOverlay.Visibility = Visibility.Collapsed;
+                e.Handled = true;
+            }
+            else if (e.Key == Key.OemQuestion && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                ShortcutOverlay.Visibility = ShortcutOverlay.Visibility == Visibility.Visible
+                    ? Visibility.Collapsed : Visibility.Visible;
+                e.Handled = true;
+            }
             else if (e.Key == Key.Delete && _selectedAnnotation is not null)
             {
                 DeleteSelected();
+                e.Handled = true;
+            }
+            else if (Keyboard.Modifiers == ModifierKeys.None && _doc is not null && PageList.Items.Count > 1
+                     && (e.Key == Key.Left || e.Key == Key.Up || e.Key == Key.Right || e.Key == Key.Down))
+            {
+                int cur = PageList.SelectedIndex;
+                if (cur < 0) cur = 0;
+                int next = (e.Key == Key.Left || e.Key == Key.Up) ? cur - 1 : cur + 1;
+                if (next >= 0 && next < PageList.Items.Count)
+                {
+                    PageList.SelectedIndex = next;
+                    PageList.ScrollIntoView(PageList.SelectedItem);
+                }
                 e.Handled = true;
             }
         }
@@ -6081,6 +6379,10 @@ namespace TDPdf
             ClearCropSelection();
             SetTool(EditTool.Select);
             if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = false;
+            _gridViewToggle.IsEnabled = false;
+            _pageJumpBox.IsEnabled = false;
+            _pageJumpBox.Text = "";
+            _pageTotalLabel.Text = "/ –";
             MarkDirty(false);
             SetStatus("Ready");
         }
@@ -6588,9 +6890,68 @@ namespace TDPdf
             PageList.SelectedIndex = idx + 1;
         }
 
+        private async void SaveInPlace_Click(object sender, RoutedEventArgs e)
+        {
+            if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
+            await SaveInPlaceAsync();
+        }
+
+        private async Task SaveInPlaceAsync()
+        {
+            Telemetry.TrackEvent("File.SaveInPlace");
+            if (_doc is null || _currentFile is null) return;
+            CommitActiveTextBox();
+            try
+            {
+                SetFileOperationBusy(true, "Saving...");
+                var doc = _doc;
+                string targetFile = _currentFile;
+                bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
+                string status;
+
+                if (hasAnnotations)
+                {
+                    var tempClean = System.IO.Path.Combine(System.IO.Path.GetTempPath(),
+                        $"tdpdf_clean_{Guid.NewGuid():N}.pdf");
+                    await _pdfDocumentService.SaveAsync(() => doc.Save(tempClean), CancellationToken.None);
+                    DrawAnnotationsOnDocument();
+                    ExceptionDispatchInfo? saveError = null;
+                    try
+                    {
+                        await _pdfDocumentService.SaveAsync(() => doc.Save(targetFile), CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        saveError = ExceptionDispatchInfo.Capture(ex);
+                    }
+
+                    doc = await RestoreDocumentAsync(doc, tempClean, CancellationToken.None);
+                    saveError?.Throw();
+                    status = $"Saved — {System.IO.Path.GetFileName(targetFile)}";
+                }
+                else
+                {
+                    await _pdfDocumentService.SaveAsync(() => doc.Save(targetFile), CancellationToken.None);
+                    status = $"Saved — {System.IO.Path.GetFileName(targetFile)}";
+                }
+
+                MarkDirty(false);
+                SetStatus(status);
+            }
+            catch (Exception ex)
+            {
+                SetFileOperationBusy(false);
+                TdpDialog.Show(this, $"Save failed:\n{ex.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                SetFileOperationBusy(false);
+            }
+        }
+
         private async void SaveAs_Click(object sender, RoutedEventArgs e)
         {
-            Telemetry.TrackEvent("File.Save");
+            Telemetry.TrackEvent("File.SaveAs");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             CommitActiveTextBox();
             var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save PDF as" };
@@ -7018,16 +7379,34 @@ namespace TDPdf
             }
 
             // Regular scroll: let the ScrollViewer handle it first.
-            // If the ScrollViewer is already at its limit in the scroll direction
-            // (or content fits entirely and there's nothing to scroll), fall through
-            // to page navigation so the user can reach adjacent pages.
-            // Content fits entirely — wheel does nothing.
+            // At scroll boundaries, fall through to page navigation so the user
+            // can reach adjacent pages without touching the sidebar.
             if (PagePreviewPanel.ScrollableHeight <= 0)
             {
+                // No scrollable content — wheel navigates pages directly.
                 e.Handled = true;
+                NavigatePageByWheel(e.Delta);
                 return;
             }
+
+            bool atTop    = PagePreviewPanel.VerticalOffset <= 0;
+            bool atBottom = PagePreviewPanel.VerticalOffset >= PagePreviewPanel.ScrollableHeight - 1;
+            if ((atTop && e.Delta > 0) || (atBottom && e.Delta < 0))
+            {
+                e.Handled = true;
+                NavigatePageByWheel(e.Delta);
+            }
             // Otherwise let the ScrollViewer scroll naturally.
+        }
+
+        private void NavigatePageByWheel(int delta)
+        {
+            if (_doc is null) return;
+            int cur = PageList.SelectedIndex;
+            if (delta > 0 && cur > 0)
+                PageList.SelectedIndex = cur - 1;
+            else if (delta < 0 && cur < _doc.PageCount - 1)
+                PageList.SelectedIndex = cur + 1;
         }
 
         private void Zoom_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -7243,11 +7622,51 @@ namespace TDPdf
                 ClearCropSelection();
                 PagePreviewPanel.ScrollToTop();
                 RenderPage(PageList.SelectedIndex);
+                _pageJumpBox.Text = (PageList.SelectedIndex + 1).ToString();
                 // Re-highlight search results on this page if a search is active
                 if (_searchBar is not null && _searchBar.Visibility == Visibility.Visible
                     && _allSearchRects.Count > 0)
                     HighlightSearchResultsOnCurrentPage();
             }
+        }
+
+        private void PageJumpBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter || _doc is null) return;
+            e.Handled = true;
+            if (int.TryParse(_pageJumpBox.Text, out int pg))
+            {
+                int idx = Math.Clamp(pg - 1, 0, _doc.PageCount - 1);
+                PageList.SelectedIndex = idx;
+            }
+            else
+            {
+                _pageJumpBox.Text = (PageList.SelectedIndex + 1).ToString();
+            }
+            Keyboard.ClearFocus();
+        }
+
+        private void PageJumpBox_GotFocus(object sender, RoutedEventArgs e) => _pageJumpBox.SelectAll();
+
+        private void ShortcutHelp_Click(object sender, RoutedEventArgs e)
+        {
+            ShortcutOverlay.Visibility = ShortcutOverlay.Visibility == Visibility.Visible
+                ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private void ShortcutOverlay_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            ShortcutOverlay.Visibility = Visibility.Collapsed;
+        }
+
+        private void ShortcutOverlayCard_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            e.Handled = true;
+        }
+
+        private void ShortcutOverlayClose_Click(object sender, RoutedEventArgs e)
+        {
+            ShortcutOverlay.Visibility = Visibility.Collapsed;
         }
 
         private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)

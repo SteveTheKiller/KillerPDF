@@ -129,13 +129,22 @@ namespace TDPdf.Services
 
                     if (width <= 0 || height <= 0 || rawBytes == null || rawBytes.Length == 0)
                     {
-                        return new PdfRenderResult(null, width, height);
+                        return new PdfRenderResult(null, width, height, 0, 0);
                     }
 
-                    var bitmap = new WriteableBitmap(width, height, safeDpiX, safeDpiX, PixelFormats.Bgra32, null);
+                    // Round DIP dims once and derive bitmap DPI from them so the displayed
+                    // canvas width is exactly dipW/dipH DIPs. Without this, PDFium's per-zoom
+                    // pixel-rounding makes pixel/renderScale drift by ±1 DIP between zoom
+                    // levels and placed annotations creep on every re-render.
+                    int dipW = Math.Max(1, (int)Math.Round(width / renderScale));
+                    int dipH = Math.Max(1, (int)Math.Round(height / renderScale));
+                    double bitmapDpiX = 96.0 * width / dipW;
+                    double bitmapDpiY = 96.0 * height / dipH;
+
+                    var bitmap = new WriteableBitmap(width, height, bitmapDpiX, bitmapDpiY, PixelFormats.Bgra32, null);
                     bitmap.WritePixels(new Int32Rect(0, 0, width, height), rawBytes, width * 4, 0);
                     bitmap.Freeze();
-                    return new PdfRenderResult(bitmap, width, height);
+                    return new PdfRenderResult(bitmap, width, height, dipW, dipH);
                 }
             }, cancellationToken);
         }
@@ -269,15 +278,19 @@ namespace TDPdf.Services
 
     internal sealed class PdfRenderResult
     {
-        public PdfRenderResult(BitmapSource? bitmap, int width, int height)
+        public PdfRenderResult(BitmapSource? bitmap, int width, int height, int dipWidth, int dipHeight)
         {
             Bitmap = bitmap;
             Width = width;
             Height = height;
+            DipWidth = dipWidth;
+            DipHeight = dipHeight;
         }
 
         public BitmapSource? Bitmap { get; }
         public int Width { get; }
         public int Height { get; }
+        public int DipWidth { get; }
+        public int DipHeight { get; }
     }
 }
