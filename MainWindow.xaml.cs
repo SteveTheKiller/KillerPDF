@@ -206,6 +206,8 @@ namespace TDPdf
         private Button _closeFileBtnRef = null!;
         private ComboBox _zoomBox = null!;
         private StackPanel _portableBadge = null!;
+        private TextBox _pageJumpBox = null!;
+        private TextBlock _pageTotalLabel = null!;
         private Border _customTitleBar = null!;
         private RowDefinition _titleBarRow = null!;
 
@@ -248,6 +250,8 @@ namespace TDPdf
             _closeFileBtnRef = (Button)FindName("CloseFileBtn")!;
             _zoomBox = (ComboBox)FindName("ZoomBox")!;
             _portableBadge = (StackPanel)FindName("PortableBadge")!;
+            _pageJumpBox = (TextBox)FindName("PageJumpBox")!;
+            _pageTotalLabel = (TextBlock)FindName("PageTotalLabel")!;
             _customTitleBar = (Border)FindName("CustomTitleBar")!;
             _titleBarRow = (RowDefinition)FindName("TitleBarRow")!;
             ApplyCustomChromeVisibility();
@@ -968,6 +972,8 @@ namespace TDPdf
                 DropZone.Visibility = Visibility.Collapsed;
                 PagePreviewPanel.Visibility = Visibility.Visible;
                 if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = true;
+                _pageJumpBox.IsEnabled = true;
+                _pageTotalLabel.Text = $"/ {_doc.PageCount}";
                 MarkDirty(false);
                 if (_doc.PageCount > 0)
                 {
@@ -6094,6 +6100,9 @@ namespace TDPdf
             ClearCropSelection();
             SetTool(EditTool.Select);
             if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = false;
+            _pageJumpBox.IsEnabled = false;
+            _pageJumpBox.Text = "";
+            _pageTotalLabel.Text = "/ –";
             MarkDirty(false);
             SetStatus("Ready");
         }
@@ -7315,12 +7324,31 @@ namespace TDPdf
                 ClearCropSelection();
                 PagePreviewPanel.ScrollToTop();
                 RenderPage(PageList.SelectedIndex);
+                _pageJumpBox.Text = (PageList.SelectedIndex + 1).ToString();
                 // Re-highlight search results on this page if a search is active
                 if (_searchBar is not null && _searchBar.Visibility == Visibility.Visible
                     && _allSearchRects.Count > 0)
                     HighlightSearchResultsOnCurrentPage();
             }
         }
+
+        private void PageJumpBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter || _doc is null) return;
+            e.Handled = true;
+            if (int.TryParse(_pageJumpBox.Text, out int pg))
+            {
+                int idx = Math.Clamp(pg - 1, 0, _doc.PageCount - 1);
+                PageList.SelectedIndex = idx;
+            }
+            else
+            {
+                _pageJumpBox.Text = (PageList.SelectedIndex + 1).ToString();
+            }
+            Keyboard.ClearFocus();
+        }
+
+        private void PageJumpBox_GotFocus(object sender, RoutedEventArgs e) => _pageJumpBox.SelectAll();
 
         private void Hyperlink_RequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
         {

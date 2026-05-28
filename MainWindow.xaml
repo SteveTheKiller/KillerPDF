@@ -833,14 +833,49 @@
                 <Border x:Name="SidebarBorder" Grid.Column="0"
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,0,0,0">
-                    <ScrollViewer x:Name="SidebarScrollViewer"
-                                  VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Disabled">
-                        <DockPanel VerticalAlignment="Top">
-                            <TextBlock x:Name="PagesHeader" DockPanel.Dock="Top" Text="PAGES"
+                    <DockPanel>
+                        <!-- Sticky header — stays put when the page list scrolls -->
+                        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="12,8,8,4">
+                            <TextBlock x:Name="PagesHeader" Text="PAGES" DockPanel.Dock="Left"
                                        Foreground="{DynamicResource TextSecondary}"
                                        FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
-                                       Padding="12,10"/>
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="PageTotalLabel" DockPanel.Dock="Right"
+                                       Text="/ –" VerticalAlignment="Center"
+                                       FontFamily="Consolas" FontSize="11"
+                                       Foreground="{DynamicResource TextSecondary}"
+                                       Margin="2,0,0,0"/>
+                            <TextBox x:Name="PageJumpBox" DockPanel.Dock="Right"
+                                     Width="36" Height="20" VerticalAlignment="Center"
+                                     TextAlignment="Center" VerticalContentAlignment="Center"
+                                     FontFamily="Consolas" FontSize="11"
+                                     Background="{DynamicResource BgPanel}"
+                                     Foreground="{DynamicResource TextPrimary}"
+                                     BorderBrush="{DynamicResource BorderDim}" BorderThickness="1"
+                                     CaretBrush="{DynamicResource AccentGreen}"
+                                     SelectionBrush="{DynamicResource AccentGreenDim}"
+                                     IsEnabled="False"
+                                     FocusVisualStyle="{x:Null}"
+                                     KeyDown="PageJumpBox_KeyDown"
+                                     GotFocus="PageJumpBox_GotFocus"
+                                     ToolTip="Go to page (Enter to navigate)"
+                                     AutomationProperties.Name="Go to page"
+                                     Margin="0,0,2,0">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource BorderDim}"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsFocused" Value="True">
+                                                <Setter Property="BorderBrush" Value="{DynamicResource AccentGreen}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                        </DockPanel>
+                        <ScrollViewer x:Name="SidebarScrollViewer"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled">
                             <ListBox x:Name="PageList" Style="{StaticResource PageListBox}"
                                      BorderThickness="0" SelectionMode="Extended"
                                      KeyboardNavigation.TabIndex="30"
@@ -855,8 +890,8 @@
                                      PreviewMouseLeftButtonDown="PageList_PreviewMouseLeftButtonDown"
                                      PreviewMouseMove="PageList_PreviewMouseMove"
                                      MouseRightButtonUp="PageList_MouseRightButtonUp"/>
-                        </DockPanel>
-                    </ScrollViewer>
+                        </ScrollViewer>
+                    </DockPanel>
                 </Border>
 
                 <!-- Toggle strip — always 24px wide, right edge of sidebar column -->
