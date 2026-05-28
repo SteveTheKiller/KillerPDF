@@ -5491,6 +5491,19 @@ namespace TDPdf
                 DeleteSelected();
                 e.Handled = true;
             }
+            else if (Keyboard.Modifiers == ModifierKeys.None && _doc is not null && PageList.Items.Count > 1
+                     && (e.Key == Key.Left || e.Key == Key.Up || e.Key == Key.Right || e.Key == Key.Down))
+            {
+                int cur = PageList.SelectedIndex;
+                if (cur < 0) cur = 0;
+                int next = (e.Key == Key.Left || e.Key == Key.Up) ? cur - 1 : cur + 1;
+                if (next >= 0 && next < PageList.Items.Count)
+                {
+                    PageList.SelectedIndex = next;
+                    PageList.ScrollIntoView(PageList.SelectedItem);
+                }
+                e.Handled = true;
+            }
         }
 
         // ============================================================
