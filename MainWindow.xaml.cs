@@ -7146,16 +7146,34 @@ namespace TDPdf
             }
 
             // Regular scroll: let the ScrollViewer handle it first.
-            // If the ScrollViewer is already at its limit in the scroll direction
-            // (or content fits entirely and there's nothing to scroll), fall through
-            // to page navigation so the user can reach adjacent pages.
-            // Content fits entirely — wheel does nothing.
+            // At scroll boundaries, fall through to page navigation so the user
+            // can reach adjacent pages without touching the sidebar.
             if (PagePreviewPanel.ScrollableHeight <= 0)
             {
+                // No scrollable content — wheel navigates pages directly.
                 e.Handled = true;
+                NavigatePageByWheel(e.Delta);
                 return;
             }
+
+            bool atTop    = PagePreviewPanel.VerticalOffset <= 0;
+            bool atBottom = PagePreviewPanel.VerticalOffset >= PagePreviewPanel.ScrollableHeight - 1;
+            if ((atTop && e.Delta > 0) || (atBottom && e.Delta < 0))
+            {
+                e.Handled = true;
+                NavigatePageByWheel(e.Delta);
+            }
             // Otherwise let the ScrollViewer scroll naturally.
+        }
+
+        private void NavigatePageByWheel(int delta)
+        {
+            if (_doc is null) return;
+            int cur = PageList.SelectedIndex;
+            if (delta > 0 && cur > 0)
+                PageList.SelectedIndex = cur - 1;
+            else if (delta < 0 && cur < _doc.PageCount - 1)
+                PageList.SelectedIndex = cur + 1;
         }
 
         private void Zoom_PropertyChanged(object? sender, PropertyChangedEventArgs e)
