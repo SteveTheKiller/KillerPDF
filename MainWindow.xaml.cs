@@ -1208,7 +1208,19 @@ namespace TDPdf
         {
             if (_pageContentPanel is null) return;
             while (_pageContentPanel.Children.Count > 1)
-                _pageContentPanel.Children.RemoveAt(_pageContentPanel.Children.Count - 1);
+            {
+                int last = _pageContentPanel.Children.Count - 1;
+                // Null Image.Source before remove so the WriteableBitmap (often several MB on
+                // HiDPI) can be collected promptly instead of lingering until WPF’s next GC.
+                if (_pageContentPanel.Children[last] is Border border && border.Child is Grid grid)
+                {
+                    foreach (var child in grid.Children)
+                    {
+                        if (child is Image img) img.Source = null;
+                    }
+                }
+                _pageContentPanel.Children.RemoveAt(last);
+            }
             // NOTE: do NOT reset _pageContentPanel.Width here.  Width is managed exclusively
             // by RenderAdditionalPages (which runs only via Dispatcher) so that no synchronous
             // call to ClearSecondaryPages triggers an intermediate layout pass that would cause
@@ -1264,7 +1276,11 @@ namespace TDPdf
             {
                 using var docReader = DocLib.Instance.GetDocReader(_currentFile, new PageDimensions(scaledMax, scaledMax));
 
-                for (int i = primaryPageIdx + 1; i < _doc.PageCount; i++)
+                // Cap how many secondary pages we render at once. Long documents otherwise
+                // allocate a (potentially multi-MB) bitmap per page on first grid display.
+                const int MaxSecondaryPages = 25;
+                int lastPage = Math.Min(_doc.PageCount - 1, primaryPageIdx + MaxSecondaryPages);
+                for (int i = primaryPageIdx + 1; i <= lastPage; i++)
                 {
                     int pi = i; // capture for lambda
                     using var pageReader = docReader.GetPageReader(pi);
