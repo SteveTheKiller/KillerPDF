@@ -114,6 +114,10 @@ namespace TDPdf
         private Rectangle? _cropPreviewRect;
         private Border? _cropConfirmBar;
         private readonly Button _toolCropBtn = null!;
+        private readonly List<Rectangle> _cropHandles = new();
+        private string? _activeCropHandleTag;
+        private Point _cropHandleDragStart;
+        private Rect _cropRectAtHandleDrag;
 
         // Pan tool / middle-mouse pan
         private bool _isPanning;
@@ -1915,21 +1919,54 @@ namespace TDPdf
             btnStyle.Setters.Add(new Setter(Button.FontFamilyProperty, new FontFamily("Segoe UI")));
             btnStyle.Setters.Add(new Setter(Button.FontSizeProperty, 12.0));
 
-            var thisPageBtn = new Button { Content = "This Page", Style = btnStyle };
+            var thisPageBtn = new Button { Content = "This Page", Style = btnStyle, ToolTip = "Crop this page (Enter)" };
             thisPageBtn.Click += (_, _) => ApplyCrop([currentPage]);
             panel.Children.Add(thisPageBtn);
 
             if (multiPage)
             {
-                var allPagesBtn = new Button { Content = "All Pages", Style = btnStyle };
+                var allPagesBtn = new Button { Content = "All Pages", Style = btnStyle, ToolTip = "Crop all pages" };
                 allPagesBtn.Click += (_, _) => ApplyCrop([..Enumerable.Range(0, _doc.PageCount)]);
                 panel.Children.Add(allPagesBtn);
+            }
+
+            // "Remove Crop" — only shown if current page already has a CropBox
+            bool hasCropBox = _doc.Pages[currentPage].Elements.ContainsKey("/CropBox");
+            if (hasCropBox)
+            {
+                var dimBtnStyle = new Style(typeof(Button), btnStyle);
+                dimBtnStyle.Setters.Add(new Setter(Button.ForegroundProperty,
+                    new SolidColorBrush(Color.FromRgb(0xff, 0x80, 0x80))));
+                dimBtnStyle.Setters.Add(new Setter(Button.BorderBrushProperty,
+                    new SolidColorBrush(Color.FromRgb(0xff, 0x80, 0x80))));
+
+                var removeBtn = new Button
+                {
+                    Content = "Remove Crop",
+                    Style = dimBtnStyle,
+                    ToolTip = multiPage ? "Remove CropBox from this page" : "Remove existing CropBox"
+                };
+                removeBtn.Click += (_, _) => RemoveCropBox([currentPage]);
+                panel.Children.Add(removeBtn);
+
+                if (multiPage)
+                {
+                    var removeAllBtn = new Button
+                    {
+                        Content = "Remove All",
+                        Style = dimBtnStyle,
+                        ToolTip = "Remove CropBox from all pages"
+                    };
+                    removeAllBtn.Click += (_, _) => RemoveCropBox([..Enumerable.Range(0, _doc.PageCount)]);
+                    panel.Children.Add(removeAllBtn);
+                }
             }
 
             var cancelBtn = new Button
             {
                 Content = "Cancel",
                 Style = btnStyle,
+                ToolTip = "Cancel (Escape)",
                 Foreground = (SolidColorBrush)FindResource("TextSecondary"),
                 BorderBrush = (SolidColorBrush)FindResource("TextSecondary"),
                 Background = Brushes.Transparent
@@ -1951,6 +1988,7 @@ namespace TDPdf
             Canvas.SetLeft(bar, barLeft);
             Canvas.SetTop(bar, barTop);
             _annotationCanvas.Children.Add(bar);
+            AddCropHandles();
         }
 
         private void HideCropConfirmBar()
@@ -1964,6 +2002,105 @@ namespace TDPdf
             {
                 _annotationCanvas.Children.Remove(_cropPreviewRect);
                 _cropPreviewRect = null;
+            }
+            RemoveCropHandles();
+        }
+
+        private void AddCropHandles()
+        {
+            RemoveCropHandles();
+            const double hSize = 8;
+            var tags = new[] { "NW", "NE", "SE", "SW" };
+            var cursors = new[] { Cursors.SizeNWSE, Cursors.SizeNESW, Cursors.SizeNWSE, Cursors.SizeNESW };
+            var green = (SolidColorBrush)FindResource("AccentGreen");
+
+            for (int i = 0; i < 4; i++)
+            {
+                var h = new Rectangle
+                {
+                    Width = hSize,
+                    Height = hSize,
+                    Fill = green,
+                    Stroke = Brushes.White,
+                    StrokeThickness = 1,
+                    Tag = tags[i],
+                    Cursor = cursors[i],
+                };
+                _cropHandles.Add(h);
+                _annotationCanvas.Children.Add(h);
+            }
+            PositionCropHandles();
+        }
+
+        private void RemoveCropHandles()
+        {
+            foreach (var h in _cropHandles)
+                _annotationCanvas.Children.Remove(h);
+            _cropHandles.Clear();
+            _activeCropHandleTag = null;
+        }
+
+        private void PositionCropHandles()
+        {
+            if (_cropHandles.Count < 4) return;
+            const double hSize = 8;
+            var corners = new (double x, double y)[]
+            {
+                (_cropCanvasRect.X - hSize / 2,     _cropCanvasRect.Y - hSize / 2),
+                (_cropCanvasRect.Right - hSize / 2, _cropCanvasRect.Y - hSize / 2),
+                (_cropCanvasRect.Right - hSize / 2, _cropCanvasRect.Bottom - hSize / 2),
+                (_cropCanvasRect.X - hSize / 2,     _cropCanvasRect.Bottom - hSize / 2),
+            };
+            for (int i = 0; i < 4; i++)
+            {
+                Canvas.SetLeft(_cropHandles[i], corners[i].x);
+                Canvas.SetTop(_cropHandles[i], corners[i].y);
+            }
+        }
+
+        private void UpdateCropRectVisuals()
+        {
+            if (_cropPreviewRect is null) return;
+            Canvas.SetLeft(_cropPreviewRect, _cropCanvasRect.X);
+            Canvas.SetTop(_cropPreviewRect, _cropCanvasRect.Y);
+            _cropPreviewRect.Width = _cropCanvasRect.Width;
+            _cropPreviewRect.Height = _cropCanvasRect.Height;
+            PositionCropHandles();
+            RepositionCropConfirmBar();
+        }
+
+        private void RepositionCropConfirmBar()
+        {
+            if (_cropConfirmBar is null) return;
+            const double barHeight = 38;
+            double barLeft = Math.Max(4, _cropCanvasRect.X);
+            double barTopBelow = _cropCanvasRect.Y + _cropCanvasRect.Height + 8;
+            double barTopAbove = _cropCanvasRect.Y - barHeight - 8;
+            double barTop = barTopBelow + barHeight < _annotationCanvas.ActualHeight
+                ? barTopBelow : Math.Max(4, barTopAbove);
+            Canvas.SetLeft(_cropConfirmBar, barLeft);
+            Canvas.SetTop(_cropConfirmBar, barTop);
+        }
+
+        private void RemoveCropBox(int[] pageIndices)
+        {
+            if (_doc is null || _currentFile is null) return;
+            try
+            {
+                PushDocUndo();
+                foreach (int pi in pageIndices)
+                {
+                    if (pi < 0 || pi >= _doc.PageCount) continue;
+                    _doc.Pages[pi].Elements.Remove("/CropBox");
+                }
+                HideCropConfirmBar();
+                SetTool(EditTool.Select);
+                SaveTempAndReload();
+                SetStatus($"Removed CropBox from {pageIndices.Length} page{(pageIndices.Length == 1 ? "" : "s")}");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Remove crop failed: {ex.Message}");
             }
         }
 
@@ -3331,6 +3468,19 @@ namespace TDPdf
             int pageIdx = PageList.SelectedIndex;
             if (pageIdx < 0) return;
 
+            // Crop corner handle — must be checked before the tool switch so the normal
+            // Crop mousedown path (which calls HideCropConfirmBar) doesn't remove handles first.
+            if (_cropHandles.Count > 0 && e.OriginalSource is Rectangle cropHandleRect &&
+                _cropHandles.Contains(cropHandleRect))
+            {
+                _activeCropHandleTag = (string)cropHandleRect.Tag;
+                _cropHandleDragStart = pos;
+                _cropRectAtHandleDrag = _cropCanvasRect;
+                _annotationCanvas.CaptureMouse();
+                e.Handled = true;
+                return;
+            }
+
             if (_currentTool == EditTool.EditImage && _imageResizeHandle is not null &&
                 e.OriginalSource == _imageResizeHandle && _selectedAnnotation is ImageEditAnnotation selectedImage)
             {
@@ -3904,6 +4054,40 @@ namespace TDPdf
                     crect.Height = Math.Abs(pos.Y - _drawStart.Y);
                     break;
             }
+
+            // Crop corner handle drag — resize the crop rect live.
+            if (_activeCropHandleTag is not null && _cropPreviewRect is not null)
+            {
+                double dx = pos.X - _cropHandleDragStart.X;
+                double dy = pos.Y - _cropHandleDragStart.Y;
+                var r = _cropRectAtHandleDrag;
+                double newX = r.X, newY = r.Y, newW = r.Width, newH = r.Height;
+                switch (_activeCropHandleTag)
+                {
+                    case "NW":
+                        newX = Math.Min(r.Right - 10, r.X + dx);
+                        newY = Math.Min(r.Bottom - 10, r.Y + dy);
+                        newW = r.Right - newX;
+                        newH = r.Bottom - newY;
+                        break;
+                    case "NE":
+                        newY = Math.Min(r.Bottom - 10, r.Y + dy);
+                        newW = Math.Max(10, r.Width + dx);
+                        newH = r.Bottom - newY;
+                        break;
+                    case "SE":
+                        newW = Math.Max(10, r.Width + dx);
+                        newH = Math.Max(10, r.Height + dy);
+                        break;
+                    case "SW":
+                        newX = Math.Min(r.Right - 10, r.X + dx);
+                        newW = r.Right - newX;
+                        newH = Math.Max(10, r.Height + dy);
+                        break;
+                }
+                _cropCanvasRect = new Rect(newX, newY, newW, newH);
+                UpdateCropRectVisuals();
+            }
         }
 
         private void Canvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -3922,6 +4106,15 @@ namespace TDPdf
                 return;
 
             int pageIdx = PageList.SelectedIndex;
+
+            // Finish crop handle drag
+            if (_activeCropHandleTag is not null)
+            {
+                _activeCropHandleTag = null;
+                if (_annotationCanvas.IsMouseCaptured) _annotationCanvas.ReleaseMouseCapture();
+                e.Handled = true;
+                return;
+            }
 
             // Finish generic annotation move
             if (_isMovingAnnot)
@@ -4173,6 +4366,7 @@ namespace TDPdf
                     if (cr.Width > 10 && cr.Height > 10)
                     {
                         _cropCanvasRect = new Rect(Canvas.GetLeft(cr), Canvas.GetTop(cr), cr.Width, cr.Height);
+                        _cropPreviewRect = cr;
                         _activePreview = null; // keep the preview rect visible; don't null it
                         ShowCropConfirmBar();
                         return;
