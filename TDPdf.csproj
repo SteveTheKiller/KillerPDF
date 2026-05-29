@@ -41,6 +41,9 @@
 
   <ItemGroup>
     <Resource Include="Resources\tdpdf-icon.ico" />
+    <!-- Generic stock PDF icon used for the .pdf file-type association
+         (DefaultIcon). The company logo stays as the application icon. -->
+    <Resource Include="Resources\pdf-file.ico" />
   </ItemGroup>
 
   <!--
