@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
+using System.Threading;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
@@ -226,6 +228,40 @@ namespace TDPdf
                 }
             }
 
+            // Single-instance: when enabled (the default), a second launch — for
+            // example double-clicking another PDF in Explorer — forwards its file
+            // path to the already-running window (opened there as a new tab)
+            // instead of spawning a second window. Best-effort: any failure falls
+            // back to the normal one-window-per-process behavior.
+            if (TDPdf.Properties.Settings.Default.SingleInstanceTabs)
+            {
+                try
+                {
+                    _singleInstanceMutex = new Mutex(true, SingleInstanceMutexName, out bool createdNew);
+                    if (!createdNew)
+                    {
+                        string payload = (e.Args.Length > 0 && File.Exists(e.Args[0]))
+                            ? e.Args[0]
+                            : string.Empty;
+                        if (TrySendToRunningInstance(payload))
+                        {
+                            Shutdown(0);
+                            return;
+                        }
+                        // Couldn't reach the running instance — continue and open
+                        // a normal window so the user is never left with nothing.
+                    }
+                    else
+                    {
+                        StartSingleInstanceServer();
+                    }
+                }
+                catch
+                {
+                    // Ignore and degrade to multi-window behavior.
+                }
+            }
+
             // Interactive launch: now wire up theme + crash handling.
             DispatcherUnhandledException += OnDispatcherUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
@@ -260,7 +296,80 @@ namespace TDPdf
             });
 
             ShutdownMode = ShutdownMode.OnLastWindowClose;
-            new MainWindow().Show();
+            var window = new MainWindow();
+            MainWindow = window;
+            window.Show();
+        }
+
+        // ============================================================
+        // Single instance (open subsequent PDFs as tabs in one window)
+        // ============================================================
+
+        // Per-user names so concurrent logon sessions don't collide and so a
+        // per-user install never clashes with another account on the same box.
+        private static readonly string SingleInstanceMutexName =
+            "Local\\TDPdf.SingleInstance.Mutex." + Environment.UserName;
+        private static readonly string SingleInstancePipeName =
+            "TDPdf.SingleInstance.Pipe." + Environment.UserName;
+        private Mutex? _singleInstanceMutex;
+
+        // Sends a file path (or empty string = "just focus") to the running
+        // instance over a named pipe. Returns false if no instance answered.
+        private static bool TrySendToRunningInstance(string payload)
+        {
+            try
+            {
+                using var client = new NamedPipeClientStream(".", SingleInstancePipeName, PipeDirection.Out);
+                client.Connect(3000);
+                using var writer = new StreamWriter(client) { AutoFlush = true };
+                writer.WriteLine(payload);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void StartSingleInstanceServer()
+        {
+            var thread = new Thread(SingleInstanceServerLoop)
+            {
+                IsBackground = true,
+                Name = "TDPdf-SingleInstance"
+            };
+            thread.Start();
+        }
+
+        private void SingleInstanceServerLoop()
+        {
+            while (true)
+            {
+                try
+                {
+                    using var server = new NamedPipeServerStream(
+                        SingleInstancePipeName,
+                        PipeDirection.In,
+                        1,
+                        PipeTransmissionMode.Byte,
+                        PipeOptions.None);
+                    server.WaitForConnection();
+                    using var reader = new StreamReader(server);
+                    string? line = reader.ReadLine();
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (Current?.MainWindow is MainWindow mw)
+                            mw.OpenPathFromAnotherInstance(line);
+                    });
+                }
+                catch
+                {
+                    // Pipe broke, or the app is shutting down. Pause briefly and
+                    // retry; bail out if the application is gone.
+                    if (Current is null) break;
+                    try { Thread.Sleep(200); } catch { }
+                }
+            }
         }
 
         private static string AppVersionString() =>
@@ -287,6 +396,7 @@ namespace TDPdf
             // Telemetry.Flush so shutdown can never hang on the network.
             Telemetry.Flush();
             ThemeManager.Cleanup();
+            try { _singleInstanceMutex?.Dispose(); } catch { }
             base.OnExit(e);
         }
 

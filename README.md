@@ -17,8 +17,9 @@ PDF editor for Windows. View, annotate, merge, split, edit text, draw, sign, pri
 - Multi-page grid view at low zoom levels for context across the whole document
 - Zoom preset dropdown with scroll-wheel sync
 - Full-text search across the entire document with result highlighting, drag-select to copy text
-- Unsaved-changes protection with dirty tracking and title bar indicator
-- Close file without quitting (Ctrl+W)
+- Open multiple PDFs as tabs in a single window — File ▸ Open (multi-select), drag-and-drop, or double-clicking PDFs in Explorer all add tabs instead of new windows (toggleable in Settings)
+- Unsaved-changes protection with dirty tracking and title bar indicator, per tab
+- Close file/tab without quitting (Ctrl+W)
 - Print with annotations flattened into the output
 - Save Flattened PDF: rasterizes every page at 150 DPI via PDFium into a fully uneditable document
 - Password-protected PDF support: prompts for password instead of erroring, decrypted copy held in temp for the session

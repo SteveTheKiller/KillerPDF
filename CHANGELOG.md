@@ -6,6 +6,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+### Added
+
+- **Open multiple PDFs as tabs in a single window.** Opening another PDF — via File ▸ Open (now multi-select), drag-and-drop, or double-clicking a `.pdf` in Explorer while TDPdf is already running — now adds it as a tab instead of replacing the current document or spawning a separate window. A tab strip appears once a second document is open; each tab shows the file name, an unsaved-changes dot, and a close button, and `Ctrl+W` closes the active tab. Each tab keeps its own pages, annotations, undo/redo history, search results, and current page. The cross-process behavior (Explorer double-click forwarding to the existing window) is governed by a new **"Open PDFs as tabs in a single window"** setting (Settings dialog; on by default) — turn it off to restore one-window-per-file. Internally, every per-document field was moved into a `DocumentContext` so the existing single-document code paths continue to operate on whichever tab is active.
+
 ### Changed
 
 - **PDF file-type association now shows a generic PDF icon instead of the company logo.** The TDPdf company logo remains the application icon (taskbar, window, Add/Remove Programs), but `.pdf` files associated with TDPdf now display a stock PDF document icon in Explorer and the file-type association UI. The icon (`Resources\pdf-file.ico`) ships embedded in the single-file EXE and is extracted to the install directory on install; the `TDPdf.pdf\DefaultIcon` registry value points at it, falling back to the EXE icon if the extracted file is missing.

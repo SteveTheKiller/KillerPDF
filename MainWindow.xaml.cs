@@ -46,15 +46,27 @@ namespace TDPdf
         private CancellationTokenSource? _secondaryRenderCts;
         private int _busyDepth;
         private bool _isFileOperationBusy;
-        private PdfDocument? _doc;
-        private string? _currentFile;
+        // ── Multi-document tabs ─────────────────────────────────────────────
+        // Every open PDF lives in its own DocumentContext. The window always has
+        // exactly one "active" context (_ctx); _tabs holds them all. The legacy
+        // field names below (_doc, _currentFile, _annotations, _undoStack, …) are
+        // kept as thin properties that forward to the active context, so the
+        // thousands of existing references throughout this file keep working
+        // unchanged while the underlying state becomes per-tab.
+        private readonly List<DocumentContext> _tabs = new();
+        private DocumentContext _ctx = new();
+        private Border _tabStripBorder = null!;
+        private StackPanel _tabStrip = null!;
+
+        private PdfDocument? _doc { get => _ctx.Doc; set => _ctx.Doc = value; }
+        private string? _currentFile { get => _ctx.CurrentFile; set => _ctx.CurrentFile = value; }
         private Point _dragStartPoint;
 
         // Editing
         private EditTool _currentTool = EditTool.Select;
-        private readonly Dictionary<int, List<PageAnnotation>> _annotations = new();
-        private readonly Dictionary<int, (int w, int h)> _renderDims = new();
-        private readonly Dictionary<(int pageIndex, int dpiX), RenderedPage> _renderCache = new();
+        private Dictionary<int, List<PageAnnotation>> _annotations => _ctx.Annotations;
+        private Dictionary<int, (int w, int h)> _renderDims => _ctx.RenderDims;
+        private Dictionary<(int pageIndex, int dpiX), RenderedPage> _renderCache => _ctx.RenderCache;
         private double _currentDpiScale = 1.0;
 
         // Snapshot-based undo/redo.
@@ -68,8 +80,8 @@ namespace TDPdf
             byte[]? DocBytes = null,
             List<PageAnnotation>? PageAnnotations = null);
         private const int MaxUndoEntries = 100;
-        private readonly LinkedList<UndoEntry> _undoStack = new();
-        private readonly LinkedList<UndoEntry> _redoStack = new();
+        private LinkedList<UndoEntry> _undoStack => _ctx.UndoStack;
+        private LinkedList<UndoEntry> _redoStack => _ctx.RedoStack;
         private bool _isDrawing;
         private Point _drawStart;
         private UIElement? _activePreview;
@@ -83,7 +95,7 @@ namespace TDPdf
         private ImageEditAnnotation? _resizingImageEdit;
         private Point _imageResizeStart;
         private Rect _imageResizeOriginalBounds;
-        private readonly PdfContentEditor _contentEditor = new();
+        private PdfContentEditor _contentEditor => _ctx.ContentEditor;
 
         // Draw/Highlight settings
         private Color _drawColor = Colors.Red;
@@ -221,18 +233,19 @@ namespace TDPdf
         private readonly bool _useNativeWindowFrame = TDPdf.Properties.Settings.Default.UseNativeWindowFrame;
         private HwndSource? _hwndSource;
 
-        // Dirty / unsaved-change tracking
-        private bool _isDirty = false;
+        // Dirty / unsaved-change tracking (per active document)
+        private bool _isDirty { get => _ctx.IsDirty; set => _ctx.IsDirty = value; }
 
         // Whole-document search results (PDF-space rects per page)
-        private readonly Dictionary<int, List<(double left, double bottom, double right, double top)>> _allSearchRects = [];
-        private readonly List<int> _searchResultPages = [];
-        private int _searchPageCursor = -1;
+        private Dictionary<int, List<(double left, double bottom, double right, double top)>> _allSearchRects => _ctx.AllSearchRects;
+        private List<int> _searchResultPages => _ctx.SearchResultPages;
+        private int _searchPageCursor { get => _ctx.SearchPageCursor; set => _ctx.SearchPageCursor = value; }
 
         public MainWindow()
         {
             ApplyInitialWindowChromeSettings();
             InitializeComponent();
+            _tabs.Add(_ctx);
             var v = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
             if (v != null) VersionLabel.Text = $"v{v.Major}.{v.Minor}.{v.Build}";
             _annotationCanvas = (Canvas)FindName("AnnotationCanvas")!;
@@ -262,6 +275,9 @@ namespace TDPdf
             _pageTotalLabel = (TextBlock)FindName("PageTotalLabel")!;
             _customTitleBar = (Border)FindName("CustomTitleBar")!;
             _titleBarRow = (RowDefinition)FindName("TitleBarRow")!;
+            _tabStripBorder = (Border)FindName("TabStripBorder")!;
+            _tabStrip = (StackPanel)FindName("TabStrip")!;
+            RebuildTabStrip();
             ApplyCustomChromeVisibility();
             ThemeManager.ThemeChanged += ThemeManager_ThemeChanged;
             Zoom.SetZoomLevel(TDPdf.Properties.Settings.Default.LastZoomLevel);
@@ -282,7 +298,7 @@ namespace TDPdf
             {
                 var args = Environment.GetCommandLineArgs();
                 if (args.Length > 1 && System.IO.File.Exists(args[1]))
-                    await OpenFileAsync(args[1]);
+                    await OpenInTabAsync(args[1]);
 
                 if (App.IsPortable())
                     _portableBadge.Visibility = Visibility.Visible;
@@ -538,6 +554,35 @@ namespace TDPdf
             public uint dwFlags;
         }
 
+        // All state belonging to one open PDF (one tab). The shared UI controls
+        // (page sidebar, viewer, annotation canvas) are rebuilt from the active
+        // context when the user switches tabs.
+        private sealed class DocumentContext
+        {
+            public PdfDocument? Doc;
+            public string? CurrentFile;          // working path (may be a temp copy after edits)
+            public string DisplayName = "";      // shown in the tab header and title bar
+            public bool IsDirty;
+
+            public readonly Dictionary<int, List<PageAnnotation>> Annotations = new();
+            public readonly Dictionary<int, (int w, int h)> RenderDims = new();
+            public readonly Dictionary<(int pageIndex, int dpiX), RenderedPage> RenderCache = new();
+            public readonly LinkedList<UndoEntry> UndoStack = new();
+            public readonly LinkedList<UndoEntry> RedoStack = new();
+            public readonly PdfContentEditor ContentEditor = new();
+
+            public readonly Dictionary<int, List<(double left, double bottom, double right, double top)>> AllSearchRects = new();
+            public readonly List<int> SearchResultPages = new();
+            public int SearchPageCursor = -1;
+
+            // View state restored when this tab is re-activated.
+            public IReadOnlyList<BitmapSource?>? Thumbnails;
+            public int SelectedPageIndex = -1;
+
+            // The clickable tab-header chip (built lazily by RebuildTabStrip).
+            public Border? Chip;
+        }
+
         private sealed class RenderedPage
         {
             public RenderedPage(BitmapSource bitmap, double displayWidth, double displayHeight, int pixelWidth, int pixelHeight)
@@ -644,10 +689,14 @@ namespace TDPdf
 
         protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
         {
-            if (_isDirty)
+            CaptureViewState();
+            int dirtyCount = _tabs.Count(t => t.Doc is not null && t.IsDirty);
+            if (dirtyCount > 0)
             {
-                var res = TdpDialog.Show(this,
-                    "You have unsaved changes. Close TDPdf without saving?",
+                var msg = dirtyCount == 1
+                    ? "You have unsaved changes. Close TDPdf without saving?"
+                    : $"You have unsaved changes in {dirtyCount} open files. Close TDPdf without saving?";
+                var res = TdpDialog.Show(this, msg,
                     "TDPdf", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                 if (res != MessageBoxResult.Yes)
                 {
@@ -728,9 +777,20 @@ namespace TDPdf
             nativeFrame.Unchecked += NativeFrameSettingChanged;
             panel.Children.Add(nativeFrame);
 
+            var singleInstance = new CheckBox
+            {
+                Content = "Open PDFs as tabs in a single window",
+                IsChecked = TDPdf.Properties.Settings.Default.SingleInstanceTabs,
+                Foreground = BrushResource("TextPrimary"),
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            singleInstance.Checked += SingleInstanceSettingChanged;
+            singleInstance.Unchecked += SingleInstanceSettingChanged;
+            panel.Children.Add(singleInstance);
+
             var note = new TextBlock
             {
-                Text = "Native frame changes are applied after restarting TDPdf. Themes update immediately.",
+                Text = "Tab changes take effect after restarting TDPdf. Native frame changes are applied after restarting TDPdf. Themes update immediately.",
                 Foreground = BrushResource("TextSecondary"),
                 TextWrapping = TextWrapping.Wrap,
                 Margin = new Thickness(0, 0, 0, 16)
@@ -749,6 +809,22 @@ namespace TDPdf
 
             win.Content = panel;
             win.ShowDialog();
+        }
+
+        private void SingleInstanceSettingChanged(object sender, RoutedEventArgs e)
+        {
+            if (sender is not CheckBox cb)
+                return;
+
+            bool requested = cb.IsChecked == true;
+            if (TDPdf.Properties.Settings.Default.SingleInstanceTabs == requested)
+                return;
+
+            TDPdf.Properties.Settings.Default.SingleInstanceTabs = requested;
+            TDPdf.Properties.Settings.Default.Save();
+            TdpDialog.Show(this,
+                "Restart required for the single-window tabs setting to take effect.",
+                "TDPdf", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         private void NativeFrameSettingChanged(object sender, RoutedEventArgs e)
@@ -964,7 +1040,7 @@ namespace TDPdf
                 _doc = result.Document;
                 assignedDocument = true;
                 _currentFile = result.WorkingPath;
-                FileNameLabel.Text = System.IO.Path.GetFileName(result.DisplayPath);
+                SetDisplayName(System.IO.Path.GetFileName(result.DisplayPath));
                 _annotations.Clear();
                 _undoStack.Clear();
                 _redoStack.Clear();
@@ -977,6 +1053,7 @@ namespace TDPdf
                 ClearSecondaryPages();
                 ClearSelection();
                 RefreshPageList(thumbnails);
+                _ctx.Thumbnails = thumbnails;
                 DropZone.Visibility = Visibility.Collapsed;
                 PagePreviewPanel.Visibility = Visibility.Visible;
                 if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = true;
@@ -995,6 +1072,7 @@ namespace TDPdf
                 }
                 var readOnlySuffix = result.OpenedReadOnly ? " (read-only - owner restrictions)" : string.Empty;
                 SetStatus($"Opened {System.IO.Path.GetFileName(result.DisplayPath)}{readOnlySuffix} - {_doc.PageCount} page(s)");
+                UpdateTabChrome();
             }
             catch
             {
@@ -6326,51 +6404,74 @@ namespace TDPdf
                     ? BrushResource("WarningOrange")
                     : BrushResource("AccentGreen");
             }
+            UpdateTabChrome();
         }
 
         // ============================================================
-        // Close file (Ctrl+W) — returns to drop-zone state
+        // Multi-document tabs
         // ============================================================
+        // The page sidebar (PageList), the page viewer (PagePreviewPanel),
+        // and the annotation canvas are single shared controls. Switching tabs
+        // swaps the active DocumentContext (_ctx) and rebuilds those controls
+        // from it; the per-document model state follows automatically via the
+        // forwarding properties (_doc, _annotations, _undoStack, …).
 
-        private void CloseFile()
+        private void EnsureActiveTabRegistered()
         {
-            _openCancellationTokenSource?.Cancel();
+            if (!_tabs.Contains(_ctx)) _tabs.Add(_ctx);
+        }
+
+        /// <summary>
+        /// Single entry point for opening a PDF (Open dialog, drag-drop, command
+        /// line, and cross-instance forwarding). Reuses the current tab when it
+        /// holds no document yet, otherwise opens the file in a brand-new tab.
+        /// </summary>
+        private async Task OpenInTabAsync(string path)
+        {
+            EnsureActiveTabRegistered();
+            var previous = _ctx;
+            DocumentContext? created = null;
+            if (_ctx.Doc is not null)
+            {
+                created = new DocumentContext();
+                _tabs.Add(created);
+                ActivateContext(created);
+            }
+
+            await OpenFileAsync(path);
+
+            // If we spun up a brand-new tab but the open failed or was cancelled
+            // (bad file, wrong password, …), drop the empty tab and return to the
+            // previously active document instead of leaving a stray "Untitled" tab.
+            if (created is not null && created.Doc is null)
+            {
+                _tabs.Remove(created);
+                if (ReferenceEquals(_ctx, created))
+                    ActivateContext(_tabs.Contains(previous) ? previous : _tabs[^1]);
+            }
+            RebuildTabStrip();
+        }
+
+        /// <summary>Captures the live view state of the active tab before switching away.</summary>
+        private void CaptureViewState()
+        {
+            if (_ctx.Doc is not null)
+                _ctx.SelectedPageIndex = PageList.SelectedIndex;
+        }
+
+        /// <summary>Makes <paramref name="ctx"/> the active tab and rebuilds the shared UI from it.</summary>
+        private void ActivateContext(DocumentContext ctx)
+        {
+            if (ReferenceEquals(_ctx, ctx)) { UpdateTabChrome(); return; }
+
+            CommitActiveTextBox();
+            CaptureViewState();
             _renderCancellationTokenSource?.Cancel();
-            _openCancellationTokenSource?.Dispose();
-            _renderCancellationTokenSource?.Dispose();
-            _openCancellationTokenSource = null;
-            _renderCancellationTokenSource = null;
-            if (_doc is null) return;
-            if (_isDirty)
-            {
-                var res = TdpDialog.Show(this,
-                    "You have unsaved changes. Close this file without saving?",
-                    "TDPdf", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                if (res != MessageBoxResult.Yes) return;
-            }
-            _doc.Close();
-            _doc = null;
-            _currentFile = null;
-            _annotations.Clear();
-            InvalidateRenderCache();
-            _contentEditor.ClearCache();
-            _undoStack.Clear();
-            _redoStack.Clear();
-            _renderDims.Clear();
-            _allSearchRects.Clear();
-            _searchResultPages.Clear();
-            _searchPageCursor = -1;
-            PageList.Items.Clear();
-            if (FindName("PageImage") is System.Windows.Controls.Image img)
-            {
-                img.Source = null;
-                img.Width = double.NaN;
-                img.Height = double.NaN;
-            }
-            _annotationCanvas.Children.Clear();
-            FileNameLabel.Text = "";
-            DropZone.Visibility = Visibility.Visible;
-            PagePreviewPanel.Visibility = Visibility.Collapsed;
+
+            _ctx = ctx;
+
+            // Tear down transient overlays/tools tied to the previous document.
+            ClearSelection();
             CloseSearchBar();
             HideDrawSettings();
             HideTextSettings();
@@ -6378,13 +6479,231 @@ namespace TDPdf
             HideCropPopup();
             ClearCropSelection();
             SetTool(EditTool.Select);
-            if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = false;
-            _gridViewToggle.IsEnabled = false;
-            _pageJumpBox.IsEnabled = false;
-            _pageJumpBox.Text = "";
-            _pageTotalLabel.Text = "/ –";
-            MarkDirty(false);
+            _annotationCanvas.Children.Clear();
+            ClearSecondaryPages();
+
+            if (_ctx.Doc is null)
+            {
+                // Empty tab → drop-zone state.
+                PageList.Items.Clear();
+                if (FindName("PageImage") is System.Windows.Controls.Image img)
+                {
+                    img.Source = null;
+                    img.Width = double.NaN;
+                    img.Height = double.NaN;
+                }
+                FileNameLabel.Text = "";
+                DropZone.Visibility = Visibility.Visible;
+                PagePreviewPanel.Visibility = Visibility.Collapsed;
+                if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = false;
+                _gridViewToggle.IsEnabled = false;
+                _pageJumpBox.IsEnabled = false;
+                _pageJumpBox.Text = "";
+                _pageTotalLabel.Text = "/ –";
+            }
+            else
+            {
+                DropZone.Visibility = Visibility.Collapsed;
+                PagePreviewPanel.Visibility = Visibility.Visible;
+                FileNameLabel.Text = _ctx.DisplayName;
+                if (_closeFileBtnRef != null) _closeFileBtnRef.IsEnabled = true;
+                _gridViewToggle.IsEnabled = true;
+                _pageJumpBox.IsEnabled = true;
+                _pageTotalLabel.Text = $"/ {_ctx.Doc.PageCount}";
+                RefreshPageList(_ctx.Thumbnails);
+
+                int idx = _ctx.SelectedPageIndex;
+                if (idx < 0 || idx >= PageList.Items.Count)
+                    idx = PageList.Items.Count > 0 ? 0 : -1;
+                if (idx >= 0)
+                {
+                    // Setting SelectedIndex fires PageList_SelectionChanged (→ render).
+                    // If the index is unchanged, render explicitly.
+                    if (PageList.SelectedIndex == idx) RerenderCurrentPage();
+                    else PageList.SelectedIndex = idx;
+                }
+            }
+
+            // Sync the save-button color with this tab's dirty state without
+            // re-touching the model (MarkDirty(_ctx.IsDirty) is a no-op write).
+            MarkDirty(_ctx.IsDirty);
+            UpdateTabChrome();
+        }
+
+        /// <summary>Rebuilds every tab chip and toggles strip visibility.</summary>
+        private void RebuildTabStrip()
+        {
+            if (_tabStrip is null) return;
+            _tabStrip.Children.Clear();
+            foreach (var ctx in _tabs)
+            {
+                ctx.Chip = BuildTabChip(ctx);
+                _tabStrip.Children.Add(ctx.Chip);
+            }
+            // Keep the single-document experience unchanged — only show the strip
+            // once a second document is open.
+            _tabStripBorder.Visibility = _tabs.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+            UpdateTabChrome();
+        }
+
+        private Border BuildTabChip(DocumentContext ctx)
+        {
+            var text = new TextBlock
+            {
+                VerticalAlignment = VerticalAlignment.Center,
+                FontFamily = new FontFamily("Segoe UI"),
+                FontSize = 12,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                MaxWidth = 180
+            };
+            var close = new Button
+            {
+                Content = "", // Segoe MDL2 Assets close glyph
+                FontFamily = new FontFamily("Segoe MDL2 Assets"),
+                FontSize = 9,
+                Width = 18,
+                Height = 18,
+                Padding = new Thickness(0),
+                Margin = new Thickness(8, 0, 0, 0),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Foreground = BrushResource("TextSecondary"),
+                Cursor = Cursors.Hand,
+                ToolTip = "Close file (Ctrl+W)",
+                VerticalAlignment = VerticalAlignment.Center,
+                Focusable = false
+            };
+            close.Click += (_, e) => CloseTab(ctx);
+
+            var panel = new StackPanel { Orientation = Orientation.Horizontal };
+            panel.Children.Add(text);
+            panel.Children.Add(close);
+
+            var chip = new Border
+            {
+                Child = panel,
+                Padding = new Thickness(10, 5, 6, 5),
+                Margin = new Thickness(0, 4, 4, 0),
+                BorderThickness = new Thickness(1, 1, 1, 0),
+                CornerRadius = new CornerRadius(4, 4, 0, 0),
+                Cursor = Cursors.Hand,
+                Tag = ctx
+            };
+            chip.MouseLeftButtonUp += (_, e) =>
+            {
+                if (!ReferenceEquals(_ctx, ctx)) ActivateContext(ctx);
+            };
+            return chip;
+        }
+
+        /// <summary>Updates each chip's label (name + dirty marker) and active styling.</summary>
+        private void UpdateTabChrome()
+        {
+            if (_tabStrip is null) return;
+            foreach (var ctx in _tabs)
+            {
+                if (ctx.Chip is null) continue;
+                bool active = ReferenceEquals(ctx, _ctx);
+                ctx.Chip.Background = active ? BrushResource("BgPanel") : BrushResource("BgDark");
+                ctx.Chip.BorderBrush = active ? BrushResource("AccentGreen") : BrushResource("BorderDim");
+                if (ctx.Chip.Child is StackPanel sp && sp.Children.Count > 0 && sp.Children[0] is TextBlock tb)
+                {
+                    string name = string.IsNullOrEmpty(ctx.DisplayName) ? "Untitled.pdf" : ctx.DisplayName;
+                    tb.Text = (ctx.IsDirty ? "● " : "") + name;
+                    tb.FontWeight = active ? FontWeights.SemiBold : FontWeights.Normal;
+                    tb.Foreground = active ? BrushResource("TextPrimary") : BrushResource("TextSecondary");
+                }
+            }
+        }
+
+        /// <summary>Closes a tab (prompting if it has unsaved changes) and activates a neighbor.</summary>
+        private void CloseTab(DocumentContext ctx)
+        {
+            EnsureActiveTabRegistered();
+            if (!_tabs.Contains(ctx)) return;
+
+            if (ctx.Doc is not null && ctx.IsDirty)
+            {
+                if (!ReferenceEquals(_ctx, ctx)) ActivateContext(ctx);
+                var res = TdpDialog.Show(this,
+                    "You have unsaved changes. Close this file without saving?",
+                    "TDPdf", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                if (res != MessageBoxResult.Yes) return;
+            }
+
+            int removedIndex = _tabs.IndexOf(ctx);
+            bool closingActive = ReferenceEquals(_ctx, ctx);
+
+            if (closingActive)
+            {
+                _openCancellationTokenSource?.Cancel();
+                _renderCancellationTokenSource?.Cancel();
+            }
+
+            try { ctx.Doc?.Close(); } catch { }
+            ctx.Doc = null;
+            ctx.Annotations.Clear();
+            ctx.RenderCache.Clear();
+            ctx.RenderDims.Clear();
+            ctx.UndoStack.Clear();
+            ctx.RedoStack.Clear();
+            ctx.ContentEditor.ClearCache();
+            ctx.AllSearchRects.Clear();
+            ctx.SearchResultPages.Clear();
+            ctx.Thumbnails = null;
+            _tabs.Remove(ctx);
+
+            if (_tabs.Count == 0)
+            {
+                var empty = new DocumentContext();
+                _tabs.Add(empty);
+                ActivateContext(empty);
+            }
+            else if (closingActive)
+            {
+                int next = Math.Min(removedIndex, _tabs.Count - 1);
+                ActivateContext(_tabs[next]);
+            }
+            RebuildTabStrip();
             SetStatus("Ready");
+        }
+
+        /// <summary>Sets the active document's display name (tab header + title bar).</summary>
+        private void SetDisplayName(string name)
+        {
+            _ctx.DisplayName = name;
+            FileNameLabel.Text = name;
+            UpdateTabChrome();
+        }
+
+        /// <summary>
+        /// Called when a second process forwarded a file to this (primary) window
+        /// via the single-instance pipe. Brings the window forward and opens the
+        /// file in a new tab.
+        /// </summary>
+        public void OpenPathFromAnotherInstance(string? path)
+        {
+            if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+            Activate();
+            Topmost = true;
+            Topmost = false;
+            Focus();
+            if (!string.IsNullOrWhiteSpace(path) && System.IO.File.Exists(path))
+                _ = OpenInTabAsync(path);
+        }
+
+        // ============================================================
+        // Close file (Ctrl+W) — returns to drop-zone state
+        // ============================================================
+
+        // Ctrl+W / toolbar close: close the active tab. With multiple tabs open
+        // this closes only the current document and activates a neighbor; with a
+        // single document it returns the window to the drop-zone state.
+        private void CloseFile()
+        {
+            // Nothing to do when the only tab is already empty.
+            if (_ctx.Doc is null && _tabs.Count <= 1) return;
+            CloseTab(_ctx);
         }
 
         private void CloseFile_Click(object sender, RoutedEventArgs e) => CloseFile();
@@ -6403,14 +6722,7 @@ namespace TDPdf
 
         private async Task NewDocumentAsync()
         {
-            if (_isDirty)
-            {
-                var res = TdpDialog.Show(this,
-                    "You have unsaved changes. Discard them and create a new document?",
-                    "TDPdf", MessageBoxButton.YesNo, MessageBoxImage.Warning);
-                if (res != MessageBoxResult.Yes) return;
-            }
-
+            // Opens in a new tab — no need to discard the current document.
             string? tempPath = null;
             try
             {
@@ -6423,8 +6735,8 @@ namespace TDPdf
                 newDoc.Save(tempPath);
                 newDoc.Close();
 
-                await OpenFileAsync(tempPath);
-                FileNameLabel.Text = "Untitled.pdf";
+                await OpenInTabAsync(tempPath);
+                SetDisplayName("Untitled.pdf");
                 SetStatus("New blank document");
             }
             catch (Exception ex)
@@ -6437,8 +6749,10 @@ namespace TDPdf
         private async void Open_Click(object sender, RoutedEventArgs e)
         {
             Telemetry.TrackEvent("File.Open");
-            var dlg = new OpenFileDialog { Filter = "PDF files|*.pdf", Title = "Open PDF" };
-            if (dlg.ShowDialog() == true) await OpenFileAsync(dlg.FileName);
+            var dlg = new OpenFileDialog { Filter = "PDF files|*.pdf", Title = "Open PDF", Multiselect = true };
+            if (dlg.ShowDialog() == true)
+                foreach (var file in dlg.FileNames)
+                    await OpenInTabAsync(file);
         }
 
         private void Merge_Click(object sender, RoutedEventArgs e)
@@ -7543,8 +7857,9 @@ namespace TDPdf
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 var files = (string[])e.Data.GetData(DataFormats.FileDrop)!;
-                if (files.Length > 0 && files[0].EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                    await OpenFileAsync(files[0]);
+                foreach (var file in files)
+                    if (file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                        await OpenInTabAsync(file);
             }
         }
 
