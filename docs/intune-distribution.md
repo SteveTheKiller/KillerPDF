@@ -86,8 +86,8 @@ Edit `TDPdf.csproj` and bump **all three** version properties together:
 
 ```xml
 <Version>1.1.0-tdpdf</Version>
-<AssemblyVersion>1.1.0.0</AssemblyVersion>
-<FileVersion>1.1.0.0</FileVersion>
+<AssemblyVersion>1.1.0.1</AssemblyVersion>
+<FileVersion>1.1.0.1</FileVersion>
 ```
 
 - `<Version>` is SemVer — used for filenames, display, and the
