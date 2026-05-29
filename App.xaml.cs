@@ -697,6 +697,20 @@ namespace TDPdf
             if (!fi.Exists || fi.Length == 0)
                 throw new IOException($"Post-copy verification failed: {installExe} missing or empty.");
 
+            // Extract the stock PDF icon next to the EXE. This is what the
+            // .pdf file-type association (DefaultIcon) points at, so PDF files
+            // show the generic PDF logo while the EXE / taskbar keeps the
+            // company logo as the primary indicator. Best-effort: a failure
+            // here just means the association falls back to the EXE icon.
+            try
+            {
+                ExtractPdfFileIcon(installDir);
+            }
+            catch (Exception ex)
+            {
+                InstallLog.WriteError("PDF file-type icon extraction failed (non-fatal)", ex);
+            }
+
             try
             {
                 var fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(installExe);
@@ -769,9 +783,15 @@ namespace TDPdf
             using (var k = hive.CreateSubKey(@"Software\Classes\TDPdf.pdf"))
                 k.SetValue("", "PDF Document");
 
+            // File-type icon shown on .pdf files. Prefer the generic stock PDF
+            // icon extracted alongside the EXE so PDF files don't show the
+            // company logo; fall back to the EXE's own icon if the extracted
+            // file is missing for any reason.
+            string pdfIcon = PdfFileIconPathFor(scope);
+            string defaultIcon = File.Exists(pdfIcon) ? $"{pdfIcon},0" : $"{installExe},0";
             using (var k = hive.CreateSubKey(
                 @"Software\Classes\TDPdf.pdf\DefaultIcon"))
-                k.SetValue("", $"{installExe},0");
+                k.SetValue("", defaultIcon);
 
             using (var k = hive.CreateSubKey(
                 @"Software\Classes\TDPdf.pdf\shell\open\command"))
@@ -798,6 +818,26 @@ namespace TDPdf
 
             // Tell the shell file associations have changed
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+        }
+
+        // Full path to the stock PDF file-type icon for a given install scope.
+        private static string PdfFileIconPathFor(InstallScope scope) =>
+            Path.Combine(InstallDirFor(scope), "pdf-file.ico");
+
+        // Write the embedded stock PDF icon out to the install directory so the
+        // .pdf file-type association can point at it. The icon ships inside the
+        // single-file EXE as a WPF resource (Resources\pdf-file.ico).
+        private static void ExtractPdfFileIcon(string installDir)
+        {
+            var uri = new Uri("pack://application:,,,/Resources/pdf-file.ico", UriKind.Absolute);
+            var info = Application.GetResourceStream(uri)
+                       ?? throw new FileNotFoundException("Embedded resource Resources/pdf-file.ico not found.");
+
+            string dest = Path.Combine(installDir, "pdf-file.ico");
+            using var src = info.Stream;
+            using var dst = File.Create(dest);
+            src.CopyTo(dst);
+            InstallLog.Write($"Extracted PDF file-type icon to {dest}");
         }
 
         private static void CreateShortcut(string lnkPath, string targetPath)
