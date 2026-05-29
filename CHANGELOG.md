@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - **PDF file-type association now shows a generic PDF icon instead of the company logo.** The TDPdf company logo remains the application icon (taskbar, window, Add/Remove Programs), but `.pdf` files associated with TDPdf now display a stock PDF document icon in Explorer and the file-type association UI. The icon (`Resources\pdf-file.ico`) ships embedded in the single-file EXE and is extracted to the install directory on install; the `TDPdf.pdf\DefaultIcon` registry value points at it, falling back to the EXE icon if the extracted file is missing.
 
-## [1.1.0.0] - 2026-05-19
+## [1.1.0.1] - 2026-05-19
 
 Ports upstream KillerPDF v1.4.1 user-facing improvements into TDPdf, plus zoom-drift and HiDPI memory fixes uncovered during the port.
 
@@ -269,8 +269,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.1.0.0...HEAD
-[1.1.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.6...v1.1.0.0
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.1.0.1...HEAD
+[1.1.0.1]: https://github.com/doodlemania2/TDPdf/compare/v1.1.0.0...v1.1.0.1
 [1.0.0.6]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.5...v1.0.0.6
 [1.0.0.5]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.4...v1.0.0.5
 [1.0.0.4]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.3...v1.0.0.4
