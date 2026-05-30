@@ -1068,7 +1068,7 @@
                             </ControlTemplate>
                         </Button.Template>
                     </Button>
-                    <TextBlock x:Name="VersionLabel" Text="v1.1.0.1" Foreground="{DynamicResource TextMuted}" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0" AutomationProperties.Name="Application version"/>
+                    <TextBlock x:Name="VersionLabel" Text="v1.2.0.0" Foreground="{DynamicResource TextMuted}" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center" Margin="0,0,12,0" AutomationProperties.Name="Application version"/>
                     <TextBlock FontSize="10" VerticalAlignment="Center" FontFamily="Consolas">
                         <Run Text="&#x00A9; 2026 " Foreground="{DynamicResource TextMuted}"/>
                         <Hyperlink NavigateUri="https://thedoodleproject.com/tdpdf" RequestNavigate="Hyperlink_RequestNavigate" KeyboardNavigation.TabIndex="50" AutomationProperties.Name="The Doodle Project website" AutomationProperties.HelpText="Opens The Doodle Project website" Foreground="{DynamicResource TextMuted}" TextDecorations="None">
