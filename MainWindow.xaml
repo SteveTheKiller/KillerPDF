@@ -685,6 +685,7 @@
             <RowDefinition x:Name="TitleBarRow" Height="36"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="28"/>
         </Grid.RowDefinitions>
@@ -866,7 +867,17 @@
         </Border>
 
         <!-- Main content -->
-        <Grid Grid.Row="3" x:Name="MainContentGrid" KeyboardNavigation.TabNavigation="Continue">
+        <!-- Document tab strip — shown only when more than one PDF is open -->
+        <Border x:Name="TabStripBorder" Grid.Row="3" Visibility="Collapsed"
+                Background="{DynamicResource PanelBackground}"
+                BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,0,0,1"
+                Padding="8,0,8,0">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel x:Name="TabStrip" Orientation="Horizontal"/>
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="4" x:Name="MainContentGrid" KeyboardNavigation.TabNavigation="Continue">
             <Grid.ColumnDefinitions>
                 <!-- SidebarCol never collapses to 0 — it shrinks to 24px (the toggle strip width). -->
                 <ColumnDefinition x:Name="SidebarCol" Width="180" MinWidth="24" MaxWidth="260"/>
@@ -1000,7 +1011,7 @@
         </Grid>
 
         <!-- Status bar -->
-        <Border Grid.Row="4" Background="{DynamicResource StatusBarBackground}" BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,1,0,0">
+        <Border Grid.Row="5" Background="{DynamicResource StatusBarBackground}" BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,1,0,0">
             <Grid Margin="16,0" KeyboardNavigation.TabNavigation="Continue">
                 <TextBlock x:Name="StatusText" Text="Ready" Foreground="{DynamicResource TextSecondary}" FontFamily="Segoe UI" FontSize="11" VerticalAlignment="Center" AutomationProperties.Name="Status" AutomationProperties.HelpText="Current application status" AutomationProperties.LiveSetting="Polite"/>
                 <!-- Portable mode indicator (hidden when installed) -->
@@ -1070,7 +1081,7 @@
 
         <!-- Keyboard shortcut overlay -->
         <Grid x:Name="ShortcutOverlay"
-              Grid.RowSpan="5"
+              Grid.RowSpan="6"
               Panel.ZIndex="10000"
               Visibility="Collapsed"
               Background="#BB000000"
@@ -1166,7 +1177,7 @@
 
         <!-- Film grain overlay — main content area only -->
         <Border x:Name="GrainOverlay"
-                Grid.Row="3"
+                Grid.Row="4"
                 IsHitTestVisible="False"
                 Opacity="0.15"
                 Panel.ZIndex="9999">

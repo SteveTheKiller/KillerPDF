@@ -31,5 +31,16 @@ namespace TDPdf.Properties
             get => (double)this[nameof(LastZoomLevel)];
             set => this[nameof(LastZoomLevel)] = value;
         }
+
+        // When true (default), launching TDPdf while it is already running
+        // (e.g. double-clicking another PDF in Explorer) forwards the file to
+        // the existing window as a new tab instead of opening a second window.
+        [UserScopedSetting]
+        [DefaultSettingValue("True")]
+        public bool SingleInstanceTabs
+        {
+            get => (bool)this[nameof(SingleInstanceTabs)];
+            set => this[nameof(SingleInstanceTabs)] = value;
+        }
     }
 }
