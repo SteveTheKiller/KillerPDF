@@ -85,9 +85,9 @@ expects this path; override with `-IntuneWinAppUtilPath`).
 Edit `TDPdf.csproj` and bump **all three** version properties together:
 
 ```xml
-<Version>1.2.0-tdpdf</Version>
-<AssemblyVersion>1.2.0.0</AssemblyVersion>
-<FileVersion>1.2.0.0</FileVersion>
+<Version>1.8.0-tdpdf</Version>
+<AssemblyVersion>1.8.0.0</AssemblyVersion>
+<FileVersion>1.8.0.0</FileVersion>
 ```
 
 - `<Version>` is SemVer — used for filenames, display, and the
@@ -175,7 +175,7 @@ registered. Any of the three options below check that marker; pick one.
 
 The script reads the registry marker, parses `Version` with
 `[Version]::TryParse`, and emits stdout only when the installed version
-is greater than or equal to `$MinVersion` (defaulted to `1.0.0.3`). Bump
+is greater than or equal to `$MinVersion` (defaulted to `1.8.0.0`). Bump
 `$MinVersion` in the script for each release.
 
 **Fallback A — Registry value comparison (manual rule):**
