@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Channel;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.ApplicationInsights.Extensibility.Implementation;
 
@@ -107,6 +109,122 @@ namespace TDPdf.Diagnostics
                 s_client.TrackEvent(name, scrubbed);
             }
             catch { /* swallow — telemetry must never throw */ }
+        }
+
+        /// <summary>
+        /// Emit a single numeric measurement (e.g. page count, file
+        /// size in KB, render milliseconds). No-op when disabled.
+        /// </summary>
+        public static void TrackMetric(string name, double value, IDictionary<string, string>? properties = null)
+        {
+            if (!IsEnabled || s_client is null) return;
+            try
+            {
+                var mt = new MetricTelemetry(name, value);
+                IDictionary<string, string>? scrubbed = ScrubProperties(properties);
+                if (scrubbed is not null)
+                    foreach (var kv in scrubbed)
+                        mt.Properties[kv.Key] = kv.Value;
+                s_client.TrackMetric(mt);
+            }
+            catch { /* swallow */ }
+        }
+
+        /// <summary>
+        /// Lightweight structured log line. The message is scrubbed via
+        /// <see cref="Sanitizer"/> before it leaves the process, but
+        /// callers should still avoid embedding file paths or document
+        /// content. No-op when disabled.
+        /// </summary>
+        public static void TrackTrace(string message, SeverityLevel severity = SeverityLevel.Information, IDictionary<string, string>? properties = null)
+        {
+            if (!IsEnabled || s_client is null) return;
+            try
+            {
+                var tt = new TraceTelemetry(Sanitizer.Scrub(message), severity);
+                IDictionary<string, string>? scrubbed = ScrubProperties(properties);
+                if (scrubbed is not null)
+                    foreach (var kv in scrubbed)
+                        tt.Properties[kv.Key] = kv.Value;
+                s_client.TrackTrace(tt);
+            }
+            catch { /* swallow */ }
+        }
+
+        /// <summary>
+        /// Emit a completed-operation event carrying a duration metric
+        /// and a success flag. Prefer <see cref="StartOperation"/> for
+        /// the common "time a using-block" pattern.
+        /// </summary>
+        public static void TrackOperation(string name, double durationMs, bool success, IDictionary<string, string>? properties = null)
+        {
+            if (!IsEnabled || s_client is null) return;
+            try
+            {
+                var props = new Dictionary<string, string>
+                {
+                    ["Success"]    = success ? "true" : "false",
+                    ["DurationMs"] = ((long)durationMs).ToString(),
+                };
+                IDictionary<string, string>? scrubbed = ScrubProperties(properties);
+                if (scrubbed is not null)
+                    foreach (var kv in scrubbed)
+                        props[kv.Key] = kv.Value;
+
+                var metrics = new Dictionary<string, double> { ["DurationMs"] = durationMs };
+                s_client.TrackEvent("Op." + name, props, metrics);
+            }
+            catch { /* swallow */ }
+        }
+
+        /// <summary>
+        /// Begin timing an operation. Dispose the returned scope (ideally
+        /// via <c>using</c>) to emit an <c>Op.&lt;name&gt;</c> event with
+        /// the elapsed duration. Call <see cref="Operation.Fail"/> to mark
+        /// it unsuccessful. Always returns a usable object even when
+        /// telemetry is disabled (the emit is then a no-op), so callers
+        /// never have to null-check.
+        /// </summary>
+        public static Operation StartOperation(string name) => new(name);
+
+        /// <summary>
+        /// Disposable stopwatch scope produced by <see cref="StartOperation"/>.
+        /// Cheap to allocate; safe to use whether or not telemetry is on.
+        /// </summary>
+        public sealed class Operation : IDisposable
+        {
+            private readonly string _name;
+            private readonly Stopwatch _stopwatch;
+            private readonly Dictionary<string, string> _properties = new();
+            private bool _success = true;
+            private bool _completed;
+
+            internal Operation(string name)
+            {
+                _name = name;
+                _stopwatch = Stopwatch.StartNew();
+            }
+
+            public Operation With(string key, string value)
+            {
+                _properties[key] = value;
+                return this;
+            }
+
+            public void Fail(Exception? exception = null)
+            {
+                _success = false;
+                if (exception is not null)
+                    _properties["ExceptionType"] = exception.GetType().FullName ?? "Unknown";
+            }
+
+            public void Dispose()
+            {
+                if (_completed) return;
+                _completed = true;
+                _stopwatch.Stop();
+                TrackOperation(_name, _stopwatch.Elapsed.TotalMilliseconds, _success, _properties);
+            }
         }
 
         /// <summary>

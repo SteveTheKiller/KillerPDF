@@ -6,6 +6,38 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.8.0.0] - 2026-06-07
+
+Ports document outline / bookmark navigation from upstream [KillerPDF v1.4.2](https://github.com/SteveTheKiller/KillerPDF/releases/tag/v1.4.2), adapted to TDPdf's multi-tab sidebar.
+
+### Added
+
+- **Document outline / bookmark navigation.** The sidebar now has **PAGES** and **OUTLINES** tabs. When a PDF contains bookmarks, the OUTLINES tab becomes available and shows the document's bookmark tree (indented by nesting depth); clicking an entry jumps to its target page. Bookmark destinations are resolved through the same `/Dest` and `/GoTo`-action logic already used for in-document link annotations (including named destinations and name trees). The outline is parsed per tab and cached on each `DocumentContext`, with cycle and depth guards so a malformed outline tree can never break opening a document. PDFs without bookmarks keep the OUTLINES tab disabled and stay on PAGES.
+
+## [1.3.1.0] - 2026-06-06
+
+Ports the text-extraction ordering fix from upstream [KillerPDF v1.4.2](https://github.com/SteveTheKiller/KillerPDF/releases/tag/v1.4.2).
+
+### Fixed
+
+- **Copied text was out of order on PDFs that store glyphs in non-reading order** (upstream Issue #66). Both drag-select copy and Select All now route text through a shared `WordsToText` helper that sorts words top-to-bottom then left-to-right, groups them into lines using a dynamic threshold (~40% of average word height, minimum 4 PDF units) so words on slightly different baselines still land on the correct line, and re-sorts each line left-to-right. Select All previously used PdfPig's raw `page.Text`, which preserved the underlying glyph order.
+
+## [1.3.0.0] - 2026-06-06
+
+Resilience and observability release: the app now heals corrupt user settings, recovers from PDFs that the strict parser rejects, captures crashes to telemetry automatically, and turns previously-fatal recoverable exceptions into graceful errors.
+
+### Added
+
+- **Automatic recovery for "not a valid PDF" files.** Some scanner output (and other lightly-malformed PDFs) is rejected by PdfSharpCore's strict parser even though it renders fine. When the initial open fails, TDPdf now falls back to rasterizing every page through PDFium (Docnet) at 150 DPI into a fresh, editable document instead of giving up. Recovered documents open with a status note — "(recovered - pages rasterized, text not selectable)" — so it's clear the text layer was lost. Emits a `File.OpenRecovered` event; a hard failure emits `File.OpenFailed`.
+- **Self-healing user settings.** A corrupt `user.config` previously threw `ConfigurationErrorsException` at startup — before telemetry or the crash handlers were even wired up — which both crashed the app and left no trace in App Insights. Startup now proactively validates settings, deletes the corrupt per-user config, reloads defaults, and continues; a `Settings.Recovered` event is emitted so the recovery is visible.
+- **Operation timing + failure telemetry across file operations.** Open, Save, Save As, Save Flattened, and Print are now wrapped in timed operation scopes (`Op.*` events with a `DurationMs` metric and `Success` flag) and emit dedicated failure events (`File.OpenFailed`, `File.SaveFailed`, `File.PrintFailed`) with sanitized context instead of failing silently.
+- **Telemetry primitives:** `TrackMetric`, `TrackTrace`, `TrackOperation`, and a disposable `StartOperation` scope (stopwatch-based, with `.With(key,value)` enrichment and `.Fail(ex)`), all no-ops when telemetry is disabled.
+
+### Changed
+
+- **Crashes auto-report to App Insights.** Unhandled exceptions already routed through the crash reporter now reliably forward to telemetry as sanitized `Crash` events, and the global handlers (`DispatcherUnhandledException`, `AppDomain.UnhandledException`, `TaskScheduler.UnobservedTaskException`) flush telemetry before exit and are hardened so the handlers themselves can never throw a secondary exception.
+- **More exceptions recover instead of crashing.** The recoverable-exception classifier now also treats `ConfigurationErrorsException`, `COMException`, `NotSupportedException`, `FormatException`, `OverflowException`, `TimeoutException`, `OperationCanceledException`, `KeyNotFoundException`, `IndexOutOfRangeException`, and `NullReferenceException` as recoverable (shown as a graceful error dialog) rather than fatal. Genuinely unrecoverable conditions (`OutOfMemoryException`, `StackOverflowException`, `AccessViolationException`, and native PDFium stacks) remain fatal.
+
 ## [1.2.0.0] - 2026-05-30
 
 ### Added
@@ -275,7 +307,10 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.2.0.0...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.8.0.0...HEAD
+[1.8.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.3.1.0...v1.8.0.0
+[1.3.1.0]: https://github.com/doodlemania2/TDPdf/compare/v1.3.0.0...v1.3.1.0
+[1.3.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.2.0.0...v1.3.0.0
 [1.2.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.1.0.1...v1.2.0.0
 [1.1.0.1]: https://github.com/doodlemania2/TDPdf/compare/v1.1.0.0...v1.1.0.1
 [1.0.0.6]: https://github.com/doodlemania2/TDPdf/compare/v1.0.0.5...v1.0.0.6

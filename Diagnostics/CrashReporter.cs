@@ -114,7 +114,17 @@ namespace TDPdf.Diagnostics
                     current is UnauthorizedAccessException ||
                     current is ArgumentException ||
                     current is XamlParseException ||
-                    current is InvalidOperationException)
+                    current is InvalidOperationException ||
+                    current is NotSupportedException ||
+                    current is FormatException ||
+                    current is OverflowException ||
+                    current is TimeoutException ||
+                    current is OperationCanceledException ||
+                    current is System.Configuration.ConfigurationErrorsException ||
+                    current is System.Runtime.InteropServices.COMException ||
+                    current is KeyNotFoundException ||
+                    current is IndexOutOfRangeException ||
+                    current is NullReferenceException)
                     return true;
             }
 
