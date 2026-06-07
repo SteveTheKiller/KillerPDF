@@ -140,6 +140,39 @@
             </Setter>
         </Style>
 
+        <!-- Sidebar PAGES / OUTLINES tab selector -->
+        <Style x:Key="SidebarTabRadio" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{StaticResource VisibleFocusVisual}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Bd" Background="Transparent" BorderBrush="Transparent"
+                                BorderThickness="0,0,0,2" Padding="6,5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource AccentGreen}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentGreen}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BgHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ChromeButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
@@ -896,8 +929,25 @@
                         Background="{DynamicResource SidebarBackground}"
                         BorderBrush="{DynamicResource BorderDim}" BorderThickness="0,0,0,0">
                     <DockPanel>
+                        <!-- PAGES / OUTLINES tab selector -->
+                        <Grid x:Name="SidebarTabRow" DockPanel.Dock="Top" Margin="8,8,8,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <RadioButton x:Name="SidebarPagesTab" Grid.Column="0" Content="PAGES"
+                                         GroupName="SidebarTabs" IsChecked="True"
+                                         Style="{StaticResource SidebarTabRadio}"
+                                         Checked="SidebarPagesTab_Checked"
+                                         AutomationProperties.Name="Show page thumbnails"/>
+                            <RadioButton x:Name="SidebarOutlinesTab" Grid.Column="1" Content="OUTLINES"
+                                         GroupName="SidebarTabs" IsEnabled="False"
+                                         Style="{StaticResource SidebarTabRadio}"
+                                         Checked="SidebarOutlinesTab_Checked"
+                                         AutomationProperties.Name="Show document outline"/>
+                        </Grid>
                         <!-- Sticky header — stays put when the page list scrolls -->
-                        <DockPanel DockPanel.Dock="Top" LastChildFill="False" Margin="12,8,8,4">
+                        <DockPanel x:Name="PageControlsRow" DockPanel.Dock="Top" LastChildFill="False" Margin="12,8,8,4">
                             <TextBlock x:Name="PagesHeader" Text="PAGES" DockPanel.Dock="Left"
                                        Foreground="{DynamicResource TextSecondary}"
                                        FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
@@ -935,25 +985,39 @@
                                 </TextBox.Style>
                             </TextBox>
                         </DockPanel>
-                        <ScrollViewer x:Name="SidebarScrollViewer"
-                                      VerticalScrollBarVisibility="Auto"
-                                      HorizontalScrollBarVisibility="Disabled">
-                            <ListBox x:Name="PageList" Style="{StaticResource PageListBox}"
-                                     BorderThickness="0" SelectionMode="Extended"
-                                     KeyboardNavigation.TabIndex="30"
-                                     AutomationProperties.Name="Pages"
-                                     AutomationProperties.HelpText="List of pages in the current PDF. Select pages to preview, reorder, extract, or delete. Right-click for page operations."
-                                     AutomationProperties.LabeledBy="{Binding ElementName=PagesHeader}"
-                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
-                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                     PreviewMouseWheel="PageList_PreviewMouseWheel"
-                                     SelectionChanged="PageList_SelectionChanged"
-                                     AllowDrop="True" Drop="PageList_Drop" DragOver="PageList_DragOver"
-                                     PreviewMouseLeftButtonDown="PageList_PreviewMouseLeftButtonDown"
-                                     PreviewMouseMove="PageList_PreviewMouseMove"
-                                     MouseRightButtonUp="PageList_MouseRightButtonUp"/>
-                        </ScrollViewer>
+                        <Grid>
+                            <ScrollViewer x:Name="SidebarScrollViewer"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Disabled">
+                                <ListBox x:Name="PageList" Style="{StaticResource PageListBox}"
+                                         BorderThickness="0" SelectionMode="Extended"
+                                         KeyboardNavigation.TabIndex="30"
+                                         AutomationProperties.Name="Pages"
+                                         AutomationProperties.HelpText="List of pages in the current PDF. Select pages to preview, reorder, extract, or delete. Right-click for page operations."
+                                         AutomationProperties.LabeledBy="{Binding ElementName=PagesHeader}"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         PreviewMouseWheel="PageList_PreviewMouseWheel"
+                                         SelectionChanged="PageList_SelectionChanged"
+                                         AllowDrop="True" Drop="PageList_Drop" DragOver="PageList_DragOver"
+                                         PreviewMouseLeftButtonDown="PageList_PreviewMouseLeftButtonDown"
+                                         PreviewMouseMove="PageList_PreviewMouseMove"
+                                         MouseRightButtonUp="PageList_MouseRightButtonUp"/>
+                            </ScrollViewer>
+                            <ScrollViewer x:Name="OutlineScrollViewer" Visibility="Collapsed"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto">
+                                <ListBox x:Name="OutlineList" Style="{StaticResource PageListBox}"
+                                         BorderThickness="0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         SelectionChanged="OutlineList_SelectionChanged"
+                                         AutomationProperties.Name="Document outline"
+                                         AutomationProperties.HelpText="Bookmarks in the current PDF. Select an entry to jump to that page."/>
+                            </ScrollViewer>
+                        </Grid>
                     </DockPanel>
+
                 </Border>
 
                 <!-- Toggle strip — always 24px wide, right edge of sidebar column -->

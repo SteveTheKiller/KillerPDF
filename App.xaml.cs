@@ -228,6 +228,44 @@ namespace TDPdf
                 }
             }
 
+            // Interactive launch. Heal a corrupt user.config BEFORE any
+            // Settings.Default access (the single-instance check, theme
+            // load, and MainWindow field initializers all read settings).
+            // A truncated user.config — from a hard shutdown, a full disk,
+            // or a roaming-profile sync conflict — otherwise throws an
+            // uncaught ConfigurationErrorsException and the app dies before
+            // any window or crash handler exists.
+            EnsureSettingsHealthy();
+
+            // Wire crash handling FIRST so failures anywhere below (theme
+            // load, single-instance pipe, window construction) are caught,
+            // reported to telemetry, and recovered where possible instead
+            // of taking down the process silently.
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            // Auto-provision from build-time-embedded key if present.
+            // Release builds (TDPDF_APPINSIGHTS_CONN set at release time)
+            // carry an encrypted connection string; dev / CI / source
+            // builds do not. This is a best-effort no-op when there's no
+            // embedded key, when telemetry.dat already exists, or when
+            // the user has run /clear-telemetry on this device.
+            TryAutoProvisionEmbeddedTelemetry();
+
+            // Opt-in telemetry (see Diagnostics/Telemetry.cs). No-op
+            // unless telemetry.dat is present. Initialized up front so a
+            // crash during the rest of startup is captured.
+            string appVersion = AppVersionString();
+            Telemetry.Initialize(appVersion);
+
+            if (s_settingsRecovered)
+            {
+                // Signal: a user.config was corrupt and got reset. Valuable
+                // for spotting profile-sync or shutdown-integrity issues.
+                Telemetry.TrackEvent("Settings.Recovered");
+            }
+
             // Single-instance: when enabled (the default), a second launch — for
             // example double-clicking another PDF in Explorer — forwards its file
             // path to the already-running window (opened there as a new tab)
@@ -262,43 +300,116 @@ namespace TDPdf
                 }
             }
 
-            // Interactive launch: now wire up theme + crash handling.
-            DispatcherUnhandledException += OnDispatcherUnhandledException;
-            AppDomain.CurrentDomain.UnhandledException += OnDomainUnhandledException;
-            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
-
             ThemeManager.Initialize(ParseThemeSetting(TDPdf.Properties.Settings.Default.Theme));
 
-            // Auto-provision from build-time-embedded key if present.
-            // Release builds (TDPDF_APPINSIGHTS_CONN set at release time)
-            // carry an encrypted connection string; dev / CI / source
-            // builds do not. This is a best-effort no-op when there's no
-            // embedded key, when telemetry.dat already exists, or when
-            // the user has run /clear-telemetry on this device.
-            TryAutoProvisionEmbeddedTelemetry();
-
-            // Opt-in telemetry (see Diagnostics/Telemetry.cs). No-op
-            // unless telemetry.dat is present.
-            string appVersion = AppVersionString();
             string installScope = DetectInstalledScope() switch
             {
                 InstallScope.PerMachine => "PerMachine",
                 InstallScope.PerUser    => "PerUser",
                 _                        => "Portable",
             };
-            Telemetry.Initialize(appVersion);
             Telemetry.TrackEvent("App.Startup", new Dictionary<string, string>
             {
-                ["AppVersion"]      = appVersion,
-                ["InstallScope"]    = installScope,
-                ["OSVersion"]       = Environment.OSVersion.Version.ToString(),
-                ["Is64BitProcess"]  = Environment.Is64BitProcess ? "true" : "false",
+                ["AppVersion"]        = appVersion,
+                ["InstallScope"]      = installScope,
+                ["OSVersion"]         = Environment.OSVersion.Version.ToString(),
+                ["CLRVersion"]        = Environment.Version.ToString(),
+                ["Is64BitProcess"]    = Environment.Is64BitProcess ? "true" : "false",
+                ["ProcessorCount"]    = Environment.ProcessorCount.ToString(),
+                ["SettingsRecovered"] = s_settingsRecovered ? "true" : "false",
             });
 
             ShutdownMode = ShutdownMode.OnLastWindowClose;
             var window = new MainWindow();
             MainWindow = window;
             window.Show();
+        }
+
+        // ============================================================
+        // Settings self-heal
+        // ============================================================
+
+        private static bool s_settingsRecovered;
+
+        /// <summary>
+        /// Proactively parse the per-user settings file and, if it is
+        /// corrupt, delete it so defaults regenerate. Turns a fatal
+        /// <see cref="System.Configuration.ConfigurationErrorsException"/>
+        /// at first <c>Settings.Default</c> access into a transparent
+        /// self-heal. Must run before any other settings read.
+        /// </summary>
+        private static void EnsureSettingsHealthy()
+        {
+            try
+            {
+                // Force ApplicationSettingsBase to parse user.config now.
+                _ = TDPdf.Properties.Settings.Default.Theme;
+            }
+            catch (System.Configuration.ConfigurationErrorsException ex)
+            {
+                s_settingsRecovered = true;
+                InstallLog.WriteError("SETTINGS CORRUPT - resetting user.config", ex);
+                DeleteCorruptUserConfig(ex);
+                try { TDPdf.Properties.Settings.Default.Reload(); }
+                catch { /* in-memory defaults will be used for this session */ }
+            }
+            catch
+            {
+                // Any other failure: ignore. Downstream reads fall back to
+                // defaults or are individually guarded.
+            }
+        }
+
+        private static void DeleteCorruptUserConfig(System.Configuration.ConfigurationErrorsException ex)
+        {
+            foreach (string file in EnumerateConfigFiles(ex))
+            {
+                try
+                {
+                    if (File.Exists(file))
+                    {
+                        File.Delete(file);
+                        InstallLog.Write($"SETTINGS reset: deleted {file}");
+                    }
+                }
+                catch { /* best-effort */ }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateConfigFiles(System.Configuration.ConfigurationErrorsException root)
+        {
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            // The thrown exception (and its inner chain) names the offending
+            // file in Filename. Collect every distinct path we can find.
+            for (Exception? cur = root; cur is not null; cur = cur.InnerException)
+            {
+                if (cur is System.Configuration.ConfigurationErrorsException cee &&
+                    !string.IsNullOrEmpty(cee.Filename) && seen.Add(cee.Filename))
+                {
+                    yield return cee.Filename;
+                }
+            }
+
+            // Fallback: ask the config system directly for the per-user path.
+            string? viaApi;
+            try
+            {
+                viaApi = System.Configuration.ConfigurationManager
+                    .OpenExeConfiguration(System.Configuration.ConfigurationUserLevel.PerUserRoamingAndLocal)
+                    .FilePath;
+            }
+            catch (System.Configuration.ConfigurationErrorsException cee)
+            {
+                viaApi = cee.Filename;
+            }
+            catch
+            {
+                viaApi = null;
+            }
+
+            if (!string.IsNullOrEmpty(viaApi) && seen.Add(viaApi))
+                yield return viaApi;
         }
 
         // ============================================================
@@ -464,27 +575,60 @@ namespace TDPdf
 
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {
-            var report = CrashReporter.Report(e.Exception, "UI thread");
-            bool shouldContinue = CrashDialog.ShowCrash(report);
-            e.Handled = report.Recoverable && shouldContinue;
+            try
+            {
+                var report = CrashReporter.Report(e.Exception, "UI thread");
+                bool shouldContinue = CrashDialog.ShowCrash(report);
+                e.Handled = report.Recoverable && shouldContinue;
 
-            if (!e.Handled)
-                Shutdown(1);
+                if (!e.Handled)
+                {
+                    // App is going down — give the in-memory telemetry
+                    // channel a bounded window to ship the crash event.
+                    Telemetry.Flush();
+                    Shutdown(1);
+                }
+            }
+            catch
+            {
+                // Crash reporting itself must never throw. Recover the UI
+                // thread rather than entering an exception loop.
+                e.Handled = true;
+            }
         }
 
         private void OnDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            var exception = e.ExceptionObject as Exception
-                ?? new InvalidOperationException("A non-Exception object was thrown.");
-            var report = CrashReporter.Report(exception, "AppDomain unhandled exception");
-            CrashDialog.ShowCrash(report);
+            try
+            {
+                var exception = e.ExceptionObject as Exception
+                    ?? new InvalidOperationException("A non-Exception object was thrown.");
+                var report = CrashReporter.Report(exception, "AppDomain unhandled exception");
+                CrashDialog.ShowCrash(report);
+            }
+            catch { /* never throw from the last-chance handler */ }
+            finally
+            {
+                // A domain-level unhandled exception terminates the process;
+                // flush before the runtime tears us down.
+                Telemetry.Flush();
+            }
         }
 
         private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
-            var report = CrashReporter.Report(e.Exception, "Unobserved task exception");
-            CrashDialog.ShowCrash(report);
-            e.SetObserved();
+            try
+            {
+                var report = CrashReporter.Report(e.Exception, "Unobserved task exception");
+                CrashDialog.ShowCrash(report);
+                e.SetObserved();
+            }
+            catch
+            {
+                // Observe it anyway so an unobserved-task escalation can't
+                // tear the process down over a reporting failure.
+                try { e.SetObserved(); } catch { }
+            }
         }
 
         // ============================================================

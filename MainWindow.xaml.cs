@@ -230,6 +230,13 @@ namespace TDPdf
         private Border _customTitleBar = null!;
         private RowDefinition _titleBarRow = null!;
 
+        // Outline / bookmarks sidebar tab (manual refs — XAML codegen doesn't resolve these)
+        private ListBox _outlineList = null!;
+        private ScrollViewer _outlineScrollViewer = null!;
+        private RadioButton _sidebarPagesTab = null!;
+        private RadioButton _sidebarOutlinesTab = null!;
+        private DockPanel _pageControlsRow = null!;
+
         private readonly bool _useNativeWindowFrame = TDPdf.Properties.Settings.Default.UseNativeWindowFrame;
         private HwndSource? _hwndSource;
 
@@ -275,6 +282,11 @@ namespace TDPdf
             _pageTotalLabel = (TextBlock)FindName("PageTotalLabel")!;
             _customTitleBar = (Border)FindName("CustomTitleBar")!;
             _titleBarRow = (RowDefinition)FindName("TitleBarRow")!;
+            _outlineList = (ListBox)FindName("OutlineList")!;
+            _outlineScrollViewer = (ScrollViewer)FindName("OutlineScrollViewer")!;
+            _sidebarPagesTab = (RadioButton)FindName("SidebarPagesTab")!;
+            _sidebarOutlinesTab = (RadioButton)FindName("SidebarOutlinesTab")!;
+            _pageControlsRow = (DockPanel)FindName("PageControlsRow")!;
             _tabStripBorder = (Border)FindName("TabStripBorder")!;
             _tabStrip = (StackPanel)FindName("TabStrip")!;
             RebuildTabStrip();
@@ -575,6 +587,10 @@ namespace TDPdf
             public readonly List<int> SearchResultPages = new();
             public int SearchPageCursor = -1;
 
+            // Document outline / bookmarks (null = not yet loaded, empty = none).
+            public List<OutlineEntry>? Outline;
+
+
             // View state restored when this tab is re-activated.
             public IReadOnlyList<BitmapSource?>? Thumbnails;
             public int SelectedPageIndex = -1;
@@ -582,6 +598,10 @@ namespace TDPdf
             // The clickable tab-header chip (built lazily by RebuildTabStrip).
             public Border? Chip;
         }
+
+        /// <summary>A single flattened bookmark/outline entry: title, nesting depth, 0-based target page.</summary>
+        private sealed record OutlineEntry(string Title, int Depth, int Page);
+
 
         private sealed class RenderedPage
         {
@@ -967,13 +987,16 @@ namespace TDPdf
             var cancellationToken = _openCancellationTokenSource.Token;
 
             SetFileOperationBusy(true, $"Opening {System.IO.Path.GetFileName(path)}...");
+            var openOp = Telemetry.StartOperation("OpenFile");
             try
             {
                 var result = await OpenFileCoreAsync(path, null, cancellationToken);
                 await FinishOpenFileAsync(result, cancellationToken);
+                openOp.With("Recovered", result.RecoveredFromRaster ? "true" : "false");
             }
             catch (OperationCanceledException)
             {
+                openOp.With("Canceled", "true");
                 SetStatus("Open canceled");
             }
             catch (Exception ex) when (IsPasswordException(ex))
@@ -982,6 +1005,7 @@ namespace TDPdf
                 string? pw = PromptForPassword(path);
                 if (pw is null)
                 {
+                    openOp.With("Canceled", "true");
                     SetStatus("Open canceled");
                     return;
                 }
@@ -998,6 +1022,7 @@ namespace TDPdf
                     var retryCancellationToken = _openCancellationTokenSource.Token;
                     var result = await OpenFileCoreAsync(path, pw, retryCancellationToken);
                     await FinishOpenFileAsync(result, retryCancellationToken);
+                    openOp.With("Encrypted", "true");
                 }
                 catch (OperationCanceledException)
                 {
@@ -1005,17 +1030,30 @@ namespace TDPdf
                 }
                 catch (Exception ex2)
                 {
+                    openOp.Fail(ex2);
+                    Telemetry.TrackEvent("File.OpenFailed", new Dictionary<string, string>
+                    {
+                        ["ExceptionType"] = ex2.GetType().FullName ?? "Unknown",
+                        ["Stage"]         = "AfterPassword",
+                    });
                     SetFileOperationBusy(false);
                     TdpDialog.Show(this, $"Failed to open PDF:\n{ex2.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
+                openOp.Fail(ex);
+                Telemetry.TrackEvent("File.OpenFailed", new Dictionary<string, string>
+                {
+                    ["ExceptionType"] = ex.GetType().FullName ?? "Unknown",
+                    ["Stage"]         = "Initial",
+                });
                 SetFileOperationBusy(false);
                 TdpDialog.Show(this, $"Failed to open PDF:\n{ex.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
             }
             finally
             {
+                openOp.Dispose();
                 SetFileOperationBusy(false);
             }
         }
@@ -1053,6 +1091,7 @@ namespace TDPdf
                 ClearSecondaryPages();
                 ClearSelection();
                 RefreshPageList(thumbnails);
+                LoadOutlines();
                 _ctx.Thumbnails = thumbnails;
                 DropZone.Visibility = Visibility.Collapsed;
                 PagePreviewPanel.Visibility = Visibility.Visible;
@@ -1071,6 +1110,8 @@ namespace TDPdf
                         (Action)FitToWidth);
                 }
                 var readOnlySuffix = result.OpenedReadOnly ? " (read-only - owner restrictions)" : string.Empty;
+                if (result.RecoveredFromRaster)
+                    readOnlySuffix = " (recovered - pages rasterized, text not selectable)";
                 SetStatus($"Opened {System.IO.Path.GetFileName(result.DisplayPath)}{readOnlySuffix} - {_doc.PageCount} page(s)");
                 UpdateTabChrome();
             }
@@ -1799,6 +1840,143 @@ namespace TDPdf
             }
 
             return null;
+        }
+
+        // ============================================================
+        // Document outline / bookmarks (sidebar OUTLINES tab)
+        // ============================================================
+
+        /// <summary>
+        /// Walks the document catalog's /Outlines tree into a flat list of
+        /// (title, depth, target page) entries and refreshes the sidebar UI.
+        /// Destinations are resolved with the same helpers used for link annotations.
+        /// </summary>
+        private void LoadOutlines()
+        {
+            var entries = new List<OutlineEntry>();
+            try
+            {
+                if (_doc is not null)
+                {
+                    var root = _doc.Internals.Catalog.Elements.GetDictionary("/Outlines");
+                    var first = DerefItem(root?.Elements["/First"] ?? new PdfInteger(0)) as PdfDictionary;
+                    if (first is not null)
+                    {
+                        var visited = new HashSet<PdfDictionary>(ReferenceEqualityComparer.Instance);
+                        AddOutlineNodes(first, 0, entries, visited);
+                    }
+                }
+            }
+            catch
+            {
+                // A malformed outline tree must never break opening a document.
+                entries.Clear();
+            }
+            _ctx.Outline = entries;
+            RefreshOutlineUi();
+        }
+
+        /// <summary>
+        /// Recursively appends an outline node and its siblings (via /Next) and
+        /// children (via /First). Guarded against cycles and runaway trees.
+        /// </summary>
+        private void AddOutlineNodes(PdfDictionary? node, int depth,
+            List<OutlineEntry> entries, HashSet<PdfDictionary> visited)
+        {
+            int guard = 0;
+            while (node is not null && guard++ < 10000 && depth < 32)
+            {
+                if (!visited.Add(node)) break;        // cycle protection
+                if (entries.Count >= 10000) break;    // sanity cap
+
+                string title = node.Elements.GetString("/Title") ?? string.Empty;
+
+                // Destination may be a direct /Dest or a /GoTo action's /D.
+                PdfItem? destItem = node.Elements["/Dest"];
+                if (destItem is null)
+                {
+                    var action = node.Elements.GetDictionary("/A");
+                    if (action is not null &&
+                        (action.Elements.GetName("/S") == "/GoTo" || action.Elements.ContainsKey("/D")))
+                    {
+                        destItem = action.Elements["/D"];
+                    }
+                }
+                int page = ResolveDest(destItem) ?? -1;
+                entries.Add(new OutlineEntry(title, depth, page));
+
+                // Descend into children, then continue with the next sibling.
+                var child = DerefItem(node.Elements["/First"] ?? new PdfInteger(0)) as PdfDictionary;
+                if (child is not null)
+                    AddOutlineNodes(child, depth + 1, entries, visited);
+
+                node = DerefItem(node.Elements["/Next"] ?? new PdfInteger(0)) as PdfDictionary;
+            }
+        }
+
+        /// <summary>Rebuilds the OUTLINES list from the active document's cached outline.</summary>
+        private void RefreshOutlineUi()
+        {
+            _outlineList.Items.Clear();
+            var entries = _ctx.Outline;
+            bool has = entries is { Count: > 0 };
+            _sidebarOutlinesTab.IsEnabled = has;
+
+            if (!has)
+            {
+                // Don't leave the user stranded on an empty/disabled outline tab.
+                if (_sidebarOutlinesTab.IsChecked == true) _sidebarPagesTab.IsChecked = true;
+                return;
+            }
+
+            foreach (var entry in entries!)
+            {
+                string text = string.IsNullOrWhiteSpace(entry.Title) ? "(untitled)" : entry.Title;
+                var tb = new TextBlock
+                {
+                    Text = text,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    Foreground = BrushResource(entry.Page >= 0 ? "TextPrimary" : "TextSecondary"),
+                    FontFamily = new FontFamily("Segoe UI"),
+                    FontSize = 12,
+                    Margin = new Thickness(8 + entry.Depth * 14, 0, 4, 0)
+                };
+                var item = new ListBoxItem
+                {
+                    Content = tb,
+                    Tag = entry.Page,
+                    ToolTip = text,
+                    IsEnabled = entry.Page >= 0
+                };
+                _outlineList.Items.Add(item);
+            }
+        }
+
+        private void OutlineList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_outlineList.SelectedItem is ListBoxItem { Tag: int page }
+                && page >= 0 && _doc is not null && page < _doc.PageCount
+                && PageList.SelectedIndex != page)
+            {
+                PageList.SelectedIndex = page;
+            }
+        }
+
+        private void SidebarPagesTab_Checked(object sender, RoutedEventArgs e)
+        {
+            // Fires during XAML load before manual refs are assigned — guard.
+            if (_outlineScrollViewer is null) return;
+            _outlineScrollViewer.Visibility = Visibility.Collapsed;
+            SidebarScrollViewer.Visibility = Visibility.Visible;
+            _pageControlsRow.Visibility = Visibility.Visible;
+        }
+
+        private void SidebarOutlinesTab_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_outlineScrollViewer is null) return;
+            SidebarScrollViewer.Visibility = Visibility.Collapsed;
+            _outlineScrollViewer.Visibility = Visibility.Visible;
+            _pageControlsRow.Visibility = Visibility.Collapsed;
         }
 
         // ============================================================
@@ -4897,7 +5075,7 @@ namespace TDPdf
                 using var pigDoc = PdfPigDoc.Open(_currentFile);
                 if (pageIdx >= pigDoc.NumberOfPages) return;
                 var page = pigDoc.GetPage(pageIdx + 1);
-                _selectedText = page.Text;
+                _selectedText = WordsToText(page.GetWords());
                 if (string.IsNullOrWhiteSpace(_selectedText))
                 {
                     SetStatus("No text found on this page");
@@ -4984,8 +5162,6 @@ namespace TDPdf
                         double cy = (bb.Bottom + bb.Top) / 2;
                         return cx >= pdfLeft && cx <= pdfRight && cy >= pdfMinY && cy <= pdfMaxY;
                     })
-                    .OrderByDescending(w => w.BoundingBox.Top)
-                    .ThenBy(w => w.BoundingBox.Left)
                     .ToList();
 
                 if (words.Count == 0)
@@ -4995,22 +5171,7 @@ namespace TDPdf
                     return;
                 }
 
-                // Group into lines by Y proximity
-                var lines = new List<List<UglyToad.PdfPig.Content.Word>>();
-                double lastY = double.MaxValue;
-                foreach (var w in words)
-                {
-                    double wy = w.BoundingBox.Top;
-                    if (Math.Abs(wy - lastY) > 3)
-                    {
-                        lines.Add([]);
-                        lastY = wy;
-                    }
-                    lines[^1].Add(w);
-                }
-
-                _selectedText = string.Join("\n",
-                    lines.Select(line => string.Join(" ", line.Select(w => w.Text))));
+                _selectedText = WordsToText(words);
 
                 Clipboard.SetText(_selectedText);
                 int wordCount = words.Count;
@@ -5021,6 +5182,42 @@ namespace TDPdf
                 SetStatus($"Text extraction error: {ex.Message}");
                 ClearTextSelection();
             }
+        }
+
+        /// <summary>
+        /// Converts a collection of PdfPig words to a properly ordered string.
+        /// Sorts top-to-bottom then left-to-right, groups into lines using a
+        /// dynamic threshold (~40% of average word height) so words at slightly
+        /// different baselines still land on the correct line.
+        /// </summary>
+        private static string WordsToText(IEnumerable<UglyToad.PdfPig.Content.Word> source)
+        {
+            var words = source
+                .OrderByDescending(w => w.BoundingBox.Top)
+                .ThenBy(w => w.BoundingBox.Left)
+                .ToList();
+            if (words.Count == 0) return string.Empty;
+
+            // Dynamic threshold: 40% of average word height, minimum 4 PDF units
+            double avgH = words.Average(w => w.BoundingBox.Height);
+            double thresh = Math.Max(4.0, avgH * 0.4);
+
+            var lines = new List<List<UglyToad.PdfPig.Content.Word>>();
+            double lineY = double.MaxValue;
+            foreach (var w in words)
+            {
+                if (Math.Abs(w.BoundingBox.Top - lineY) > thresh)
+                {
+                    lines.Add([]);
+                    lineY = w.BoundingBox.Top;
+                }
+                lines[^1].Add(w);
+            }
+
+            // Re-sort each line by X in case the top-Y sort caused any grouping
+            // to pull words into the wrong order within a line.
+            return string.Join("\n", lines.Select(l =>
+                string.Join(" ", l.OrderBy(w => w.BoundingBox.Left).Select(w => w.Text))));
         }
 
         // ============================================================
@@ -6500,6 +6697,8 @@ namespace TDPdf
                 _pageJumpBox.IsEnabled = false;
                 _pageJumpBox.Text = "";
                 _pageTotalLabel.Text = "/ –";
+                _ctx.Outline = null;
+                RefreshOutlineUi();
             }
             else
             {
@@ -6511,6 +6710,7 @@ namespace TDPdf
                 _pageJumpBox.IsEnabled = true;
                 _pageTotalLabel.Text = $"/ {_ctx.Doc.PageCount}";
                 RefreshPageList(_ctx.Thumbnails);
+                if (_ctx.Outline is null) LoadOutlines(); else RefreshOutlineUi();
 
                 int idx = _ctx.SelectedPageIndex;
                 if (idx < 0 || idx >= PageList.Items.Count)
@@ -7212,7 +7412,7 @@ namespace TDPdf
 
         private async Task SaveInPlaceAsync()
         {
-            Telemetry.TrackEvent("File.SaveInPlace");
+            using var op = Telemetry.StartOperation("SaveInPlace");
             if (_doc is null || _currentFile is null) return;
             CommitActiveTextBox();
             try
@@ -7254,6 +7454,12 @@ namespace TDPdf
             }
             catch (Exception ex)
             {
+                op.Fail(ex);
+                Telemetry.TrackEvent("File.SaveFailed", new Dictionary<string, string>
+                {
+                    ["Operation"]     = "SaveInPlace",
+                    ["ExceptionType"] = ex.GetType().FullName ?? "Unknown",
+                });
                 SetFileOperationBusy(false);
                 TdpDialog.Show(this, $"Save failed:\n{ex.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -7265,11 +7471,11 @@ namespace TDPdf
 
         private async void SaveAs_Click(object sender, RoutedEventArgs e)
         {
-            Telemetry.TrackEvent("File.SaveAs");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             CommitActiveTextBox();
             var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save PDF as" };
             if (dlg.ShowDialog() != true) return;
+            using var op = Telemetry.StartOperation("SaveAs");
             try
             {
                 SetFileOperationBusy(true, "Saving...");
@@ -7309,6 +7515,12 @@ namespace TDPdf
             }
             catch (Exception ex)
             {
+                op.Fail(ex);
+                Telemetry.TrackEvent("File.SaveFailed", new Dictionary<string, string>
+                {
+                    ["Operation"]     = "SaveAs",
+                    ["ExceptionType"] = ex.GetType().FullName ?? "Unknown",
+                });
                 SetFileOperationBusy(false);
                 TdpDialog.Show(this, $"Save failed:\n{ex.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -7320,11 +7532,11 @@ namespace TDPdf
 
         private async void SaveFlattened_Click(object sender, RoutedEventArgs e)
         {
-            Telemetry.TrackEvent("File.SaveFlattened");
             if (_doc is null || _currentFile is null) { TdpDialog.Show(this, "Open a PDF first."); return; }
             CommitActiveTextBox();
             var dlg = new SaveFileDialog { Filter = "PDF files|*.pdf", Title = "Save Flattened PDF" };
             if (dlg.ShowDialog() != true) return;
+            using var op = Telemetry.StartOperation("SaveFlattened");
             SetFileOperationBusy(true, "Flattening...");
             try
             {
@@ -7365,6 +7577,12 @@ namespace TDPdf
             }
             catch (Exception ex)
             {
+                op.Fail(ex);
+                Telemetry.TrackEvent("File.SaveFailed", new Dictionary<string, string>
+                {
+                    ["Operation"]     = "SaveFlattened",
+                    ["ExceptionType"] = ex.GetType().FullName ?? "Unknown",
+                });
                 SetFileOperationBusy(false);
                 TdpDialog.Show(this, $"Flatten failed:\n{ex.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -7403,6 +7621,10 @@ namespace TDPdf
             }
             catch (Exception ex)
             {
+                Telemetry.TrackEvent("File.PrintFailed", new Dictionary<string, string>
+                {
+                    ["ExceptionType"] = ex.GetType().FullName ?? "Unknown",
+                });
                 TdpDialog.Show(this, $"Print failed:\n{ex.Message}", "TDPdf", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
