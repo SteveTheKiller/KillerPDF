@@ -1035,7 +1035,20 @@ namespace TDPdf
             var hive = HiveFor(scope);
 
             using (var k = hive.CreateSubKey(@"Software\Classes\TDPdf.pdf"))
+            {
                 k.SetValue("", "PDF Document");
+
+                // Mark the "open" verb as safe for the Windows Attachment
+                // Manager. Without this, opening a .pdf that carries a
+                // Mark-of-the-Web zone tag — e.g. an attachment double-clicked
+                // from Outlook (which drops the file in a temp folder tagged
+                // with the Internet/Restricted zone) or any downloaded file —
+                // raises the "Open File - Security Warning" prompt before the
+                // handler launches. FTA_OpenIsSafe (0x00010000) on the ProgID's
+                // EditFlags tells the shell this file type is safe to open with
+                // this handler, suppressing the warning. (FTA_OpenIsSafe.)
+                k.SetValue("EditFlags", unchecked((int)0x00010000), RegistryValueKind.DWord);
+            }
 
             // File-type icon shown on .pdf files. Prefer the generic stock PDF
             // icon extracted alongside the EXE so PDF files don't show the

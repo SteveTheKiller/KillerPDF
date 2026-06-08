@@ -37,7 +37,7 @@ The repo often lives on macOS/Linux in automation, but the project is a Windows-
 - XAML-defined controls that the codegen can't resolve are re-fetched in the constructor via `FindName(...)!` and stored in `_camelCase` fields (see the block under `// Manual element refs`). Follow that pattern for new named XAML elements rather than fighting the generator.
 - UI palette is centralized in `MainWindow.xaml` resources (`BgDark`, `BgPanel`, `AccentGreen`, `DangerRed`, etc.) and theme dictionaries under `Themes/`. Use those brushes; don't hardcode new hex colors. Toolbar glyphs are `Segoe MDL2 Assets`.
 - Track unsaved edits by setting `_isDirty = true` on any change that mutates the document, and route close/open paths through the existing dirty-check prompts.
-- Versioning: bump `<Version>`, `<AssemblyVersion>`, and `<FileVersion>` in `TDPdf.csproj` together, add a `## [x.y.z] - YYYY-MM-DD` section to `CHANGELOG.md` (Keep a Changelog format, SemVer), and update the compare links at the bottom.
+- Versioning: bump `<Version>`, `<AssemblyVersion>`, and `<FileVersion>` in `TDPdf.csproj` together, add a `## [x.y.z] - YYYY-MM-DD` section to `CHANGELOG.md` (Keep a Changelog format, SemVer), and update the compare links at the bottom. Also bump `$MinVersion` in `build/intune/Detect-TDPdf.ps1` to match — the Intune Win32 detection rule keys off `HKLM\Software\TDPdf` value `Version` >= `$MinVersion`, so leaving it stale makes Intune detect the old release as current.
 - GPLv3 compliance: keep `LICENSE` and `NOTICE` intact, preserve upstream copyright headers, and never reintroduce upstream personal branding stripped under §7(e). Any new dialog title or product string must use "TDPdf".
 
 ## Modernization notes

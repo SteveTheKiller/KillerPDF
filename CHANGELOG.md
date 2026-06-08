@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.8.1.0] - 2026-06-08
+
+### Fixed
+
+- **Opening a PDF attachment from Outlook no longer triggers a "Windows Security" / "Open File - Security Warning" prompt.** When Outlook opens an attachment it saves the file to a temp folder tagged with a Mark-of-the-Web zone identifier; the shell then warned before launching the associated handler because the `TDPdf.pdf` ProgID's open verb wasn't marked safe. The file-handler registration now writes `EditFlags = FTA_OpenIsSafe (0x00010000)` on the `TDPdf.pdf` ProgID, telling the Windows Attachment Manager that opening a `.pdf` with TDPdf is safe. This suppresses the prompt for zoned files (Outlook attachments, downloaded files, etc.). The fix applies on the next install/upgrade since it is written during file-association registration.
+
 ## [1.8.0.0] - 2026-06-07
 
 Ports document outline / bookmark navigation from upstream [KillerPDF v1.4.2](https://github.com/SteveTheKiller/KillerPDF/releases/tag/v1.4.2), adapted to TDPdf's multi-tab sidebar.
@@ -307,7 +313,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.8.0.0...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.8.1.0...HEAD
+[1.8.1.0]: https://github.com/doodlemania2/TDPdf/compare/v1.8.0.0...v1.8.1.0
 [1.8.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.3.1.0...v1.8.0.0
 [1.3.1.0]: https://github.com/doodlemania2/TDPdf/compare/v1.3.0.0...v1.3.1.0
 [1.3.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.2.0.0...v1.3.0.0
