@@ -31,6 +31,7 @@ namespace TDPdf.Diagnostics
     {
         private static TelemetryClient? s_client;
         private static TelemetryConfiguration? s_config;
+        private static string s_appVersion = string.Empty;
         private static readonly object s_lock = new();
 
         public static bool IsEnabled { get; private set; }
@@ -79,6 +80,7 @@ namespace TDPdf.Diagnostics
                     s_client = new TelemetryClient(config);
                     s_client.Context.Component.Version = appVersion;
                     s_client.Context.Cloud.RoleName = "TDPdf";
+                    s_appVersion = appVersion ?? string.Empty;
                     // Deliberately do NOT set Context.User.Id or
                     // Device.Id — no persistent device fingerprint.
 
@@ -245,6 +247,7 @@ namespace TDPdf.Diagnostics
                     ["Message"]       = Sanitizer.Scrub(exception.Message),
                     ["StackTrace"]    = Sanitizer.Scrub(exception.StackTrace ?? string.Empty),
                     ["GroupingKey"]   = Sanitizer.GroupingKey(exception),
+                    ["AppVersion"]    = s_appVersion,
                 };
                 s_client.TrackEvent("Crash", props);
             }

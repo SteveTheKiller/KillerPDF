@@ -6,6 +6,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [Unreleased]
 
+## [1.8.2.0] - 2026-06-09
+
+### Fixed
+
+- **Grid (multi-page) view no longer crashes the app intermittently with an `ArgumentOutOfRangeException` during layout.** When secondary pages were added to or removed from the page-grid panel from an async Dispatcher continuation while WPF was already mid-layout, the framework `WrapPanel` could index its internal visual collection out of range (`index ('2') must be less than '1'`) inside `MeasureOverride`/`ArrangeOverride`. Depending on timing this surfaced as a recoverable UI-thread fault or escaped to the AppDomain handler and terminated the process. The page-grid panel is now a hardened `SafeWrapPanel` that absorbs this transient framework race and re-queues a clean layout pass instead of letting it crash the app.
+
+### Notes
+
+- **"Windows Defender blocked this action" when opening a PDF attachment directly from Outlook is a Microsoft Defender Attack Surface Reduction (ASR) policy, not something TDPdf can change from its own code.** The block comes from the ASR rule *Block Office communication application from creating child processes* (`26190899-1602-49e8-8b27-eb1d0a1ce869`), which prevents Outlook from launching any child process (including `TDPdf.exe`) when a user double-clicks an attachment. Saving the attachment first and opening it from Explorer, the File menu, or drag-and-drop is unaffected. Remediation is an org-side ASR exclusion for `TDPdf.exe` (configured in Microsoft Defender / Intune); no application can self-exempt from ASR. The earlier `1.8.1.0` Attachment-Manager change does not affect this Defender prompt.
+
 ## [1.8.1.0] - 2026-06-08
 
 ### Fixed
@@ -313,7 +323,8 @@ First release under the **TDPdf** identity, maintained by **The Doodle Project, 
 
 _Historical entries to be backfilled._
 
-[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.8.1.0...HEAD
+[Unreleased]: https://github.com/doodlemania2/TDPdf/compare/v1.8.2.0...HEAD
+[1.8.2.0]: https://github.com/doodlemania2/TDPdf/compare/v1.8.1.0...v1.8.2.0
 [1.8.1.0]: https://github.com/doodlemania2/TDPdf/compare/v1.8.0.0...v1.8.1.0
 [1.8.0.0]: https://github.com/doodlemania2/TDPdf/compare/v1.3.1.0...v1.8.0.0
 [1.3.1.0]: https://github.com/doodlemania2/TDPdf/compare/v1.3.0.0...v1.3.1.0

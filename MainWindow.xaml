@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TDPdf"
+        xmlns:controls="clr-namespace:TDPdf.Controls"
         mc:Ignorable="d"
         Title="TDPdf" Height="700" Width="1000"
         WindowStartupLocation="CenterScreen"
@@ -1057,7 +1058,7 @@
                                 <Grid.LayoutTransform>
                                     <ScaleTransform ScaleX="1" ScaleY="1"/>
                                 </Grid.LayoutTransform>
-                                <WrapPanel x:Name="PageContentPanel" Orientation="Horizontal">
+                                <controls:SafeWrapPanel x:Name="PageContentPanel" Orientation="Horizontal">
                                     <!-- Primary page (always present) -->
                                     <Border Background="White" Margin="0,0,12,12">
                                         <Grid>
@@ -1066,7 +1067,7 @@
                                         </Grid>
                                     </Border>
                                     <!-- Additional pages rendered dynamically in code-behind -->
-                                </WrapPanel>
+                                </controls:SafeWrapPanel>
                             </Grid>
                         </Border>
                     </ScrollViewer>
