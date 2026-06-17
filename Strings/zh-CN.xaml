@@ -1,0 +1,148 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <sys:String x:Key="Str_TT_Open">打开 (Ctrl+O)</sys:String>
+    <sys:String x:Key="Str_TT_NewBlank">新建空白文档 (Ctrl+N)</sys:String>
+    <sys:String x:Key="Str_TT_CloseFile">关闭文件 (Ctrl+W)</sys:String>
+    <sys:String x:Key="Str_TT_SaveAs">另存为 (Ctrl+Shift+S)</sys:String>
+    <sys:String x:Key="Str_TT_SaveFlattened">保存展平的 PDF（栅格化所有页面，完全不可编辑）</sys:String>
+    <sys:String x:Key="Str_TT_Print">打印 (Ctrl+P)</sys:String>
+    <sys:String x:Key="Str_TT_MergePDFs">合并 PDF（将其他 PDF 加入此文件）</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">提取页面（将选中的页面另存为新 PDF）</sys:String>
+    <sys:String x:Key="Str_TT_DeletePages">删除选中的页面</sys:String>
+    <sys:String x:Key="Str_TT_MovePageUp">向上移动页面（重新排序）</sys:String>
+    <sys:String x:Key="Str_TT_MovePageDown">向下移动页面（重新排序）</sys:String>
+    <sys:String x:Key="Str_TT_SelectTool">选择工具 - 点击注释、拖拽选择文本、双击编辑</sys:String>
+ 
+    <sys:String x:Key="Str_TT_TextTool">文本工具 - 点击以添加文本</sys:String>
+    <sys:String x:Key="Str_TT_HighlightTool">高亮工具 - 拖拽以高亮标记</sys:String>
+    <sys:String x:Key="Str_TT_DrawTool">绘图工具 - 自由手绘</sys:String>
+    <sys:String x:Key="Str_TT_SignatureTool">签名 - 创建并放置签名</sys:String>
+    <sys:String x:Key="Str_TT_ImageTool">图片工具 - 点击以插入图片至页面</sys:String>
+    <sys:String x:Key="Str_TT_CropTool">裁剪工具 - 拖拽设定裁剪区域，然后应用至页面</sys:String>
+    <sys:String x:Key="Str_TT_ClearAnnotations">清除所有注释</sys:String>
+    <sys:String x:Key="Str_TT_UndoLast">撤销上一步 (Ctrl+Z)</sys:String>
+    <sys:String x:Key="Str_TT_MultiPageGrid">多页网格视图</sys:String>
+    <sys:String x:Key="Str_TT_ZoomOut">缩小 (Ctrl+-)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomLevel">缩放比例 (Ctrl+滚轮 · Ctrl+=/- · Ctrl+0=重置)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomIn">放大 (Ctrl+=)</sys:String>
+    <sys:String x:Key="Str_TT_GoToPage">前往页面（按 Enter 导航）</sys:String>
+    <sys:String x:Key="Str_TT_CollapseSidebar">折叠侧边栏</sys:String>
+    <sys:String x:Key="Str_TT_ExpandSidebar">展开侧边栏</sys:String>
+    
+    <sys:String x:Key="Str_TT_KeyboardShortcuts">键盘快捷键 (Ctrl+?)</sys:String>
+    <sys:String x:Key="Str_TT_Settings">设置</sys:String>
+    <sys:String x:Key="Str_TT_About">关于 KillerPDF</sys:String>
+
+    <sys:String x:Key="Str_About_Version">版本</sys:String>
+    <sys:String x:Key="Str_About_Publisher">发行者</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">证书指纹</sys:String>
+    <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
+    <sys:String x:Key="Str_About_Computing">计算中...</sys:String>
+
+    <sys:String x:Key="Str_TabPages">页面</sys:String>
+    <sys:String x:Key="Str_TabOutlines">大纲</sys:String>
+
+    <sys:String x:Key="Str_Settings">设置</sys:String>
+    <sys:String x:Key="Str_Theme">主题</sys:String>
+    <sys:String x:Key="Str_Language">语言</sys:String>
+    <sys:String x:Key="Str_Lang_English">English</sys:String>
+    
+    <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
+    <sys:String x:Key="Str_Lang_Chinese">中文 (简体)</sys:String>
+
+    <sys:String x:Key="Str_KS_Title">键盘快捷键</sys:String>
+    <sys:String x:Key="Str_KS_File">文件</sys:String>
+    <sys:String x:Key="Str_KS_Open">打开</sys:String>
+    <sys:String x:Key="Str_KS_CloseFile">关闭文件</sys:String>
+    <sys:String x:Key="Str_KS_NewBlank">新建空白文档</sys:String>
+    <sys:String x:Key="Str_KS_SaveAs">另存为</sys:String>
+    <sys:String x:Key="Str_KS_Print">打印</sys:String>
+    <sys:String x:Key="Str_KS_Navigation">导航</sys:String>
+    <sys:String x:Key="Str_KS_PrevNext">上一页 / 下一页</sys:String>
+    <sys:String x:Key="Str_KS_ZoomCursor">放大 / 缩小（以光标为中心）</sys:String>
+    <sys:String x:Key="Str_KS_ZoomInOut">放大 / 缩小</sys:String>
+    <sys:String x:Key="Str_KS_ResetZoom">重置缩放至 100%</sys:String>
+    <sys:String x:Key="Str_KS_PanView">平移视图</sys:String>
+    <sys:String x:Key="Str_KS_Editing">编辑</sys:String>
+    <sys:String x:Key="Str_KS_Undo">撤销</sys:String>
+ 
+    <sys:String x:Key="Str_KS_DeleteAnnot">删除选中的注释</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">确认 / 取消文本或裁剪</sys:String>
+    <sys:String x:Key="Str_KS_SearchSelect">搜索与选择</sys:String>
+    <sys:String x:Key="Str_KS_Find">查找 / 搜索</sys:String>
+    <sys:String x:Key="Str_KS_NextPrevResult">下一个 / 上一个结果</sys:String>
+    <sys:String x:Key="Str_KS_SelectAll">选择页面上所有文本</sys:String>
+    <sys:String x:Key="Str_KS_CopyText">复制选中的文本</sys:String>
+    <sys:String x:Key="Str_KS_Help">帮助</sys:String>
+    <sys:String x:Key="Str_KS_ThisList">此快捷键列表</sys:String>
+
+    <sys:String x:Key="Str_Ready">就绪</sys:String>
+    <sys:String x:Key="Str_Portable">便携版</sys:String>
+    <sys:String x:Key="Str_InstallBtn">安装 KillerPDF...</sys:String>
+
+    <sys:String x:Key="Str_Opened">已打开 {0} - {1} 页</sys:String>
+  
+    <sys:String x:Key="Str_OpenedReadOnly">已打开 {0}（只读 - 所有者限制）- {1} 页</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnlyXRef">已打开 {0}（只读 - 非标准 XRef 表）- {1} 页</sys:String>
+    <sys:String x:Key="Str_OpenedRepaired">已打开 {0}（已修复副本 - 请保存以保留更改）- {1} 页</sys:String>
+    <sys:String x:Key="Str_OpenedRasterRepair">已打开 {0}（栅格化修复 - 请保存以保留更改）- {1} 页</sys:String>
+    <sys:String x:Key="Str_PageOf">第 {0} 页，共 {1} 页</sys:String>
+    <sys:String x:Key="Str_PageOfLinks">第 {0} 页，共 {1} 页（{2} 个链接）</sys:String>
+    <sys:String x:Key="Str_PageFormFields">第 {0} 页，共 {1} 页 — 此页面包含可填写的表单字段</sys:String>
+    <sys:String x:Key="Str_PageRenderError">第 {0} 页 - 无法渲染</sys:String>
+    <sys:String x:Key="Str_RenderError">渲染错误：{0}</sys:String>
+    <sys:String x:Key="Str_Rotated">已旋转 {0} 页</sys:String>
+    <sys:String x:Key="Str_Cropped">已裁剪 {0} 页</sys:String>
+  
+    <sys:String x:Key="Str_CropFailed">裁剪失败：{0}</sys:String>
+    <sys:String x:Key="Str_RemovedCrop">已从 {0} 页移除 CropBox</sys:String>
+    <sys:String x:Key="Str_RemoveCropFailed">移除裁剪失败：{0}</sys:String>
+    <sys:String x:Key="Str_Extracted">已将 {0} 页提取至 {1}</sys:String>
+    <sys:String x:Key="Str_Deleted">已删除 {0} 页 - 剩余 {1} 页</sys:String>
+    <sys:String x:Key="Str_Printed">已将 {0} 页面发送至打印机</sys:String>
+    <sys:String x:Key="Str_LinkRemoved">链接已移除。</sys:String>
+    <sys:String x:Key="Str_InvalidRange">范围无效 — 请使用例如 1-3,5,7</sys:String>
+    <sys:String x:Key="Str_CropNoDoc">裁剪：未打开文档</sys:String>
+    <sys:String x:Key="Str_CropNoPage">裁剪：未选择页面</sys:String>
+    <sys:String x:Key="Str_CropNoDims">裁剪：页面尺寸无法获取</sys:String>
+    <sys:String x:Key="Str_RotateFailed">旋转失败：{0}</sys:String>
+
+    <sys:String x:Key="Str_Dlg_InstallTitle">安装 KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">要将 KillerPDF 安装到您的用户配置文件吗？
+
+这会将应用程序复制到 %LocalAppData%\KillerPDF 并创建开始菜单快捷方式。
+您可以随时通过“添加或删除程序”来卸载。</sys:String>
+ 
+    <sys:String x:Key="Str_Dlg_UnsavedClose">您有未保存的更改。要在不保存的情况下关闭此文件吗？</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">您有未保存的更改。要在不保存的情况下关闭 KillerPDF 吗？</sys:String>
+    <sys:String x:Key="Str_Dlg_FailedOpen">无法打开 PDF：
+{0}</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
+
+
+    <sys:String x:Key="Str_Theme_Dark">深色</sys:String>
+    <sys:String x:Key="Str_Theme_Light">浅色</sys:String>
+    <sys:String x:Key="Str_Theme_HighContrast">高对比度</sys:String>
+    <sys:String x:Key="Str_Theme_Blood">血色</sys:String>
+    <sys:String x:Key="Str_Theme_Greed">贪婪</sys:String>
+    <sys:String x:Key="Str_Theme_Cyanotic">青色</sys:String>
+
+    <sys:String x:Key="Str_Zoom_FitWidth">适合宽度</sys:String>
+    <sys:String x:Key="Str_Zoom_FitPage">适合页面</sys:String>
+    <sys:String x:Key="Str_FitWidth">第 {0} 页，共 {1} 页 - 适合宽度 ({2}%)</sys:String>
+    <sys:String x:Key="Str_FitPage">第 {0} 页，共 
+ {1} 页 - 适合页面 ({2}%)</sys:String>
+
+    <sys:Double x:Key="Str_KS_FontSize">12.5</sys:Double>
+
+
+    <sys:String x:Key="Str_ViewMode">视图模式</sys:String>
+    <sys:String x:Key="Str_View_Single">单页</sys:String>
+    <sys:String x:Key="Str_View_Continuous">连续滚动</sys:String>
+    <sys:String x:Key="Str_View_TwoPage">双页</sys:String>
+    <sys:String x:Key="Str_View_Grid">网格</sys:String>
+    <sys:String x:Key="Str_Continuous_EditMsg">请切换至单页模式以使用编辑工具</sys:String>
+
+</ResourceDictionary>
