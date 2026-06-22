@@ -57,6 +57,7 @@
     <sys:String x:Key="Str_Lang_Spanish">İspanyolca</sys:String>
     <sys:String x:Key="Str_Lang_Traditional_Chinese">Çince (Geleneksel)</sys:String>
     <sys:String x:Key="Str_Lang_Simple_Chinese">Çince (Basitleştirilmiş)</sys:String>
+    <sys:String x:Key="Str_Lang_Turkish">Türkçe</sys:String>
 
     <!-- ── Klavye kısayolları katmanı ───────────────────────────────── -->
     <sys:String x:Key="Str_KS_Title">Klavye Kısayolları</sys:String>

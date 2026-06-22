@@ -1075,6 +1075,11 @@
                                   GroupName="LangGroup"
                                   Style="{StaticResource ThemeRadio}"
                                   Checked="LangZhCNRadio_Checked"/>
+                     <RadioButton x:Name="LangTrRadio"
+                                 Content="{DynamicResource Str_Lang_Turkish}"
+                                 GroupName="LangGroup"
+                                 Style="{StaticResource ThemeRadio}"
+                                 Checked="LangTrRadio_Checked"/>
                      <TextBlock Text="{DynamicResource Str_ViewMode}" Foreground="{DynamicResource Accent}"
                                FontFamily="Segoe UI" FontSize="11" FontWeight="SemiBold"
                                Margin="0,12,0,8"/>
