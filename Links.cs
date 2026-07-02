@@ -344,6 +344,7 @@ namespace KillerPDF
         /// closes; the path check in EnsureLinkPdfiumDoc is the backstop for anything not closed here.</summary>
         private void CloseLinkPdfiumDoc()
         {
+            CloseTextPage();   // text-page/page handles are children of this doc - release them first
             if (_linkPdfiumDoc != IntPtr.Zero)
             {
                 try { FPDF_CloseDocument(_linkPdfiumDoc); } catch { }
