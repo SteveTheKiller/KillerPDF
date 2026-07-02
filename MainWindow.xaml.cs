@@ -287,7 +287,7 @@ namespace KillerPDF
             // the mouse-up can be lost and the dragged annotation would stay glued to the cursor with the
             // canvas still holding mouse capture. End any in-progress gesture on deactivate so control is
             // restored the moment the user comes back.
-            Deactivated += (_, _) => { if (_isDraggingAnnot || _isResizingSig) FinishStuckGesture(); };
+            Deactivated += (_, _) => { if (_isDraggingAnnot || _isResizingSig || _textDragging) FinishStuckGesture(); };
             _pageContentGrid = (Grid)FindName("PageContentGrid")!;
             _toolSelectBtn = (Button)FindName("ToolSelectBtn")!;
             _toolTextBtn = (Button)FindName("ToolTextBtn")!;

@@ -244,6 +244,10 @@ namespace KillerPDF
             // Search highlights live on this same canvas and were wiped by the clear above; repaint
             // them last so they sit on top and survive every re-render and continuous scroll.
             ApplySearchHighlights(pageIndex, _activeCanvas);
+
+            // The text-selection highlight also lives on this canvas and was wiped by the clear above;
+            // repaint it (no-op unless the current selection is on this page) so it survives re-renders.
+            RepaintTextSelection(pageIndex);
         }
 
         // Decode a placed annotation's Base64 image once and cache the frozen result on the annotation,
@@ -1012,6 +1016,11 @@ namespace KillerPDF
                         if (StampHitTest(pageIdx, pos)) { OpenStampTool(); e.Handled = true; return; }
                         ClearSelection();
                         ClearTextSelection();
+                        // A user-placed text box under the cursor is re-edited (below). Otherwise, if the
+                        // double-click landed on the PDF's own text, select that word (Chrome-style).
+                        bool overTextAnnot = _annotations.TryGetValue(pageIdx, out var dcAnnots)
+                            && dcAnnots.OfType<TextAnnotation>().Any(a => HitTestAnnotation(a, pos, out _));
+                        if (!overTextAnnot && SelectWordAt(pageIdx, pos)) { e.Handled = true; return; }
                         EditTextAtPosition(pos, pageIdx);
                         e.Handled = true;
                     }
@@ -1070,20 +1079,31 @@ namespace KillerPDF
                             if (!shiftSel) ClearSelection();
                             ClearTextSelection();
                             if (_viewMode == ViewMode.Grid && !shiftSel) PageList.SelectedIndex = pageIdx;  // grid: click selects the page
-                            _isSelecting = true;
-                            _selectStart = pos;
-                            _selectRect = new Rectangle
+                            // Familiar flowing text selection: a plain click on the PDF's text starts a
+                            // click-drag character selection. Shift-drag, box mode, or a click on blank
+                            // space fall through to the marquee (annotation multi-select / OCR / legacy box).
+                            if (!shiftSel && !_ocrRegionMode && !BoxTextSelectMode && TextBeginDrag(pageIdx, pos))
                             {
-                                Fill = AccentBrush(40),
-                                Stroke = AccentBrush(150),
-                                StrokeThickness = 1,
-                                Width = 0, Height = 0,
-                                IsHitTestVisible = false
-                            };
-                            MarqueeLayer.Children.Add(_selectRect);
-                            UpdateMarquee(pos, pos);
-                            _activeCanvas.CaptureMouse();
-                            e.Handled = true;
+                                _activeCanvas.CaptureMouse();
+                                e.Handled = true;
+                            }
+                            else
+                            {
+                                _isSelecting = true;
+                                _selectStart = pos;
+                                _selectRect = new Rectangle
+                                {
+                                    Fill = AccentBrush(40),
+                                    Stroke = AccentBrush(150),
+                                    StrokeThickness = 1,
+                                    Width = 0, Height = 0,
+                                    IsHitTestVisible = false
+                                };
+                                MarqueeLayer.Children.Add(_selectRect);
+                                UpdateMarquee(pos, pos);
+                                _activeCanvas.CaptureMouse();
+                                e.Handled = true;
+                            }
                         }
                     }
                     break;
@@ -1311,7 +1331,7 @@ namespace KillerPDF
             // Safety: a drag/resize is in progress but the left button is no longer down - the mouse-up was
             // lost (typically because the app was in the background when the user released). Finish the
             // gesture now so the annotation stops following the cursor and the canvas frees its capture.
-            if (e.LeftButton != MouseButtonState.Pressed && (_isDraggingAnnot || _isResizingSig))
+            if (e.LeftButton != MouseButtonState.Pressed && (_isDraggingAnnot || _isResizingSig || _textDragging))
             {
                 FinishStuckGesture();
                 return;
@@ -1505,7 +1525,14 @@ namespace KillerPDF
                 return;
             }
 
-            // Text selection drag
+            // Flowing text selection: extend to the char under the pointer.
+            if (_textDragging)
+            {
+                TextExtendDrag(e.GetPosition(gc));
+                return;
+            }
+
+            // Text selection drag (box marquee)
             if (_isSelecting && _selectRect is not null)
             {
                 // Raw (un-clamped) pointer so the marquee can extend past the start page onto the others;
@@ -1735,6 +1762,15 @@ namespace KillerPDF
                 return;
             }
 
+            // Flowing text selection release: finalise (copy + keep for Ctrl+C).
+            if (_textDragging)
+            {
+                TextEndDrag();
+                (_gestureCanvas ?? _activeCanvas)?.ReleaseMouseCapture();
+                e.Handled = true;
+                return;
+            }
+
             // Handle text selection release
             if (_isSelecting)
             {
@@ -1810,8 +1846,11 @@ namespace KillerPDF
                         foreach (var (a, b, cv) in hits) ToggleMultiSelect(a, b, cv);
                         SetStatus($"Selected {hits.Count} annotation{(hits.Count == 1 ? "" : "s")}");
                     }
-                    else
+                    else if (BoxTextSelectMode)
                     {
+                        // Legacy box text-selection (opt-in): copy the words inside the dragged rectangle.
+                        // In the default flowing mode this path is skipped - a blank-area drag that caught
+                        // no annotations simply selects nothing.
                         ExtractTextFromRegion(pageIdx, startRect);
                     }
                 }
@@ -2284,6 +2323,7 @@ namespace KillerPDF
             _resizeSigAnnot = null;
             _resizeInkOrigPoints = null;
             _dragGroupOrig.Clear();
+            CancelTextDrag();   // also cancel a stuck flowing text drag and free its capture
 
             // Release whatever element grabbed the mouse for this gesture (and the active canvas, in case).
             if (Mouse.Captured is FrameworkElement cap) cap.ReleaseMouseCapture();

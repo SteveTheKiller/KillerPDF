@@ -1,5 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using Docnet.Core;
 
 namespace KillerPDF
@@ -180,6 +183,140 @@ namespace KillerPDF
             var chars = new char[written - 1];               // drop the terminator
             for (int i = 0; i < chars.Length; i++) chars[i] = (char)buf[i];
             return new string(chars);
+        }
+
+        // --- selection state, word + flowing selection, highlight rendering (Increment 2a/2b) ---
+
+        private readonly List<Rectangle> _textSelRects = [];   // currently rendered highlight rects
+        private int  _textSelPage    = -1;                     // page of the current selection (for repaint)
+        private int  _textSelStart   = -1;                     // first char index of the current selection
+        private int  _textSelCount   = 0;                      // char count of the current selection
+        private bool _textDragging;                            // a flowing text drag is in progress
+        private int  _textAnchorChar = -1;                     // char index where a flowing drag started
+        private int  _textDragPage   = -1;                     // page the flowing selection is on (v1: single page)
+
+        // Legacy box text-selection (Settings toggle). Default off = familiar flowing drag selection.
+        private bool BoxTextSelectMode => App.GetSetting("BoxTextSelect") == "1";
+
+        /// <summary>
+        /// Double-click entry: selects the word under a canvas point on pageIndex. Returns false if there's
+        /// no selectable PDF text there (the caller then falls back to its existing double-click behaviour).
+        /// Highlights the word and copies it (the app's convention that a selection copies), and leaves it in
+        /// _selectedText so Ctrl+C works too.
+        /// </summary>
+        private bool SelectWordAt(int pageIndex, Point canvasPos)
+        {
+            int ch = TextCharAtCanvasPoint(pageIndex, canvasPos);
+            if (ch < 0) return false;
+            var (start, count) = TextWordRangeAt(pageIndex, ch);
+            if (count <= 0) return false;
+
+            RenderTextSelection(pageIndex, start, count);
+            var text = TextRangeString(pageIndex, start, count);
+            _selectedText = text;
+            if (!string.IsNullOrEmpty(text))
+            {
+                TrySetClipboard(text);
+                SetStatus($"Copied: {text}");
+            }
+            return true;
+        }
+
+        // Records the selection range, then (re)draws its highlight.
+        private void RenderTextSelection(int pageIndex, int start, int count)
+        {
+            _textSelPage = pageIndex; _textSelStart = start; _textSelCount = count;
+            DrawTextSelectionHighlight();
+        }
+
+        // Draws one translucent rect per visual line run for the current selection range. Targets the
+        // SELECTION's own page canvas (CanvasForPage), not _activeCanvas - which async tile renders can
+        // re-point to a neighbour page mid-gesture (the wrong-tile hazard the marquee's _gestureCanvas avoids).
+        private void DrawTextSelectionHighlight()
+        {
+            RemoveTextSelectionRects();
+            if (_textSelCount <= 0) return;
+            var canvas = CanvasForPage(_textSelPage);
+            var fill = AccentBrush(70);
+            foreach (var r in TextRangeRects(_textSelPage, _textSelStart, _textSelCount))
+            {
+                var rect = new Rectangle { Width = r.Width, Height = r.Height, Fill = fill, IsHitTestVisible = false };
+                Canvas.SetLeft(rect, r.X);
+                Canvas.SetTop(rect, r.Y);
+                canvas.Children.Add(rect);
+                _textSelRects.Add(rect);
+            }
+        }
+
+        // Re-draws the selection highlight after a page repaint. RenderAllAnnotations clears the page canvas's
+        // children (which would wipe the highlight while _selectedText stayed live), so it calls this at the
+        // end. No-op unless the current selection is on the repainted page.
+        private void RepaintTextSelection(int pageIndex)
+        {
+            if (_textSelCount > 0 && _textSelPage == pageIndex) DrawTextSelectionHighlight();
+        }
+
+        // Removes just the rendered rects (keeps the selection range so it can be redrawn).
+        private void RemoveTextSelectionRects()
+        {
+            foreach (var r in _textSelRects)
+                (r.Parent as Canvas)?.Children.Remove(r);
+            _textSelRects.Clear();
+        }
+
+        // Clears the selection entirely: drops the rects AND forgets the range. Called from ClearTextSelection
+        // (single click / tool switch / starting a new selection).
+        private void ClearTextSelectionHighlight()
+        {
+            RemoveTextSelectionRects();
+            _textSelPage = -1; _textSelStart = -1; _textSelCount = 0;
+        }
+
+        // Cancels an in-progress flowing drag and releases the mouse capture. Safe no-op if none is active.
+        // Called from ClearTextSelection (tool switch) and FinishStuckGesture (lost mouse-up / deactivation).
+        private void CancelTextDrag()
+        {
+            if (!_textDragging) return;
+            _textDragging = false;
+            (_gestureCanvas ?? _activeCanvas)?.ReleaseMouseCapture();
+        }
+
+        // Mouse-down: begin a flowing text selection if the point is on the page's text. Returns false when
+        // there's no char there (the caller then falls back to the box marquee). Anchors at that char.
+        private bool TextBeginDrag(int pageIndex, Point canvasPos)
+        {
+            int ch = TextCharAtCanvasPoint(pageIndex, canvasPos, 6.0);
+            if (ch < 0) return false;
+            _textDragging   = true;
+            _textAnchorChar = ch;
+            _textDragPage   = pageIndex;
+            RenderTextSelection(pageIndex, ch, 1);         // seed the highlight with the anchor char
+            _selectedText = TextRangeString(pageIndex, ch, 1);
+            return true;
+        }
+
+        // Mouse-move: extend the selection from the anchor to the char under the pointer (either direction).
+        private void TextExtendDrag(Point canvasPos)
+        {
+            if (!_textDragging) return;
+            int focus = TextCharAtCanvasPoint(_textDragPage, canvasPos, 10.0);
+            if (focus < 0) return;                          // off text / in a gap: keep the current selection
+            int start = Math.Min(_textAnchorChar, focus);
+            int count = Math.Abs(focus - _textAnchorChar) + 1;
+            RenderTextSelection(_textDragPage, start, count);
+            _selectedText = TextRangeString(_textDragPage, start, count);
+        }
+
+        // Mouse-up: finish the flowing selection - copy it (the app's selection-copies convention) and leave
+        // it in _selectedText so Ctrl+C works. The highlight stays until the next click / tool switch.
+        private void TextEndDrag()
+        {
+            _textDragging = false;
+            var text = _selectedText;
+            if (text is null || text.Length == 0) return;
+            TrySetClipboard(text);
+            int n = text.Length;
+            SetStatus($"Copied {n} character{(n == 1 ? "" : "s")}");
         }
     }
 }

@@ -2376,6 +2376,12 @@
                     <CheckBox x:Name="LinkConfirmCheck" Content="{DynamicResource Str_LinkConfirmSetting}"
                               Style="{StaticResource ThemeCheck}"
                               Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled"/>
+
+                    <!-- Text selection: flowing (browser/Word-style) by default; the legacy box drag is opt-in. -->
+                    <TextBlock Text="Selection" Style="{StaticResource SettingsSubheader}" Margin="0,12,0,8"/>
+                    <CheckBox x:Name="BoxSelectCheck" Content="Box text selection (drag a rectangle)"
+                              Style="{StaticResource ThemeCheck}"
+                              Checked="BoxSelectCheck_Toggled" Unchecked="BoxSelectCheck_Toggled"/>
                 </StackPanel>
                 </ScrollViewer>
                 </Grid>

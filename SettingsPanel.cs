@@ -72,6 +72,8 @@ namespace KillerPDF
             SidebarCurrentLabel.Text     = Loc(_sidebarRight ? "Str_Sidebar_Right" : "Str_Sidebar_Left");
             // Sync the Links section: confirm is ON unless the user has opted out ("Don't ask again").
             LinkConfirmCheck.IsChecked = App.GetSetting(SkipLinkConfirmSetting) != "1";
+            // Sync the Selection section: box text-select is opt-in (default = flowing selection).
+            BoxSelectCheck.IsChecked = App.GetSetting("BoxTextSelect") == "1";
             PositionSettingsPanel();
             SettingsOverlay.Visibility = Visibility.Visible;
             SlideSettingsOpen();
@@ -319,6 +321,14 @@ namespace KillerPDF
         {
             if (LinkConfirmCheck.IsChecked == true) App.RemoveSetting(SkipLinkConfirmSetting);
             else                                    App.SetSetting(SkipLinkConfirmSetting, "1");
+        }
+
+        // Selection section: opt in to the legacy box text-selection (drag a rectangle to copy the words
+        // inside) instead of the default flowing character selection. Read live via BoxTextSelectMode.
+        private void BoxSelectCheck_Toggled(object sender, RoutedEventArgs e)
+        {
+            if (BoxSelectCheck.IsChecked == true) App.SetSetting("BoxTextSelect", "1");
+            else                                  App.RemoveSetting("BoxTextSelect");
         }
 
         private void OnThemeChanged()
