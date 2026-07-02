@@ -1,16 +1,14 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 using System.Windows.Shapes;
-using Docnet.Core;
 
 namespace KillerPDF
 {
     public partial class MainWindow
     {
         // ============================================================
-        // PDFium text-selection engine (Phase 2 - foundation)
+        // PDFium text-selection engine
         //
         // Chrome-style character selection needs: char-index-at-a-point, per-char boxes, the selection
         // rectangles for a char range (for glyph-level highlighting), and range->text. PdfPig (used for
@@ -185,7 +183,7 @@ namespace KillerPDF
             return new string(chars);
         }
 
-        // --- selection state, word + flowing selection, highlight rendering (Increment 2a/2b) ---
+        // --- text selection state, word + flowing drag selection, and highlight rendering ---
 
         private readonly List<Rectangle> _textSelRects = [];   // currently rendered highlight rects
         private int  _textSelPage    = -1;                     // page of the current selection (for repaint)
@@ -194,6 +192,7 @@ namespace KillerPDF
         private bool _textDragging;                            // a flowing text drag is in progress
         private int  _textAnchorChar = -1;                     // char index where a flowing drag started
         private int  _textDragPage   = -1;                     // page the flowing selection is on (v1: single page)
+        private Point _textDragStartPt;                        // canvas point the drag began at (click-vs-drag test)
 
         // Legacy box text-selection (Settings toggle). Default off = familiar flowing drag selection.
         private bool BoxTextSelectMode => App.GetSetting("BoxTextSelect") == "1";
@@ -287,9 +286,10 @@ namespace KillerPDF
         {
             int ch = TextCharAtCanvasPoint(pageIndex, canvasPos, 6.0);
             if (ch < 0) return false;
-            _textDragging   = true;
-            _textAnchorChar = ch;
-            _textDragPage   = pageIndex;
+            _textDragging    = true;
+            _textAnchorChar  = ch;
+            _textDragPage    = pageIndex;
+            _textDragStartPt = canvasPos;
             RenderTextSelection(pageIndex, ch, 1);         // seed the highlight with the anchor char
             _selectedText = TextRangeString(pageIndex, ch, 1);
             return true;
@@ -317,6 +317,35 @@ namespace KillerPDF
             TrySetClipboard(text);
             int n = text.Length;
             SetStatus($"Copied {n} character{(n == 1 ? "" : "s")}");
+        }
+
+        // Highlight-tool release over text: lay a Fill highlight annotation over each selected text-run rect
+        // (one per visual line) in the current highlight colour, grouped as a single undo. Then clears the
+        // transient blue selection highlight so only the yellow highlight annotations remain.
+        private void CommitTextHighlight()
+        {
+            int page = _textSelPage, start = _textSelStart, count = _textSelCount;
+            if (count <= 0) { ClearTextSelection(); return; }
+
+            var rects = TextRangeRects(page, start, count);
+            if (!_annotations.TryGetValue(page, out var list)) { list = []; _annotations[page] = list; }
+            var group = new List<PageAnnotation>();
+            foreach (var r in rects)
+            {
+                if (r.Width < 1 || r.Height < 1) continue;
+                var ha = new HighlightAnnotation { PageIndex = page, Bounds = r, Style = HighlightStyle.Fill };
+                ha.SetColor(_highlightColor);
+                list.Add(ha);
+                group.Add(ha);
+            }
+
+            bool wasDirty = _isDirty;
+            ClearTextSelection();   // drop the transient selection highlight + reset range/drag
+            if (group.Count == 0) return;
+            _undoStack.Push(new UndoEntry(UndoKind.AnnotationGroup, page, WasDirty: wasDirty, AnnotGroup: group));
+            MarkDirty();
+            RenderAllAnnotations(page);
+            SetStatus($"Highlighted {group.Count} line{(group.Count == 1 ? "" : "s")}");
         }
     }
 }

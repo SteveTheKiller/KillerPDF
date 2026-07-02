@@ -79,7 +79,7 @@ namespace KillerPDF
             SlideSettingsOpen();
         }
 
-        private const double SettingsPanelWidth = 228;
+        private const double SettingsPanelWidth = 248;
 
         // Expands the panel out of the sidebar (Width grows from the flush left edge). Clipped while
         // animating so it reveals left-to-right; clip is dropped at the end so the drop shadow shows.
@@ -137,6 +137,7 @@ namespace KillerPDF
             if (btn == ToolbarMenuButton) return ToolbarSubmenu;
             if (btn == ViewMenuButton)    return ViewSubmenu;
             if (btn == SidebarMenuButton) return SidebarSubmenu;
+            if (btn == BehaviourMenuButton) return BehaviourSubmenu;
             return null;
         }
 

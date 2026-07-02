@@ -155,6 +155,9 @@
     <sys:String x:Key="Str_Ctx_RemoveLink">Remove Link from PDF</sys:String>
     <sys:String x:Key="Str_LinksSection">LINKS</sys:String>
     <sys:String x:Key="Str_LinkConfirmSetting">Confirm before opening links</sys:String>
+    <sys:String x:Key="Str_BehaviourSection">BEHAVIOUR</sys:String>
+    <sys:String x:Key="Str_BehaviourGroupLabel">Links &amp; text</sys:String>
+    <sys:String x:Key="Str_BoxSelectSetting">Box text selection</sys:String>
     <sys:String x:Key="Str_InvalidRange">Invalid range — use e.g. 1-3,5,7</sys:String>
     <sys:String x:Key="Str_CropNoDoc">Crop: no document open</sys:String>
     <sys:String x:Key="Str_CropNoPage">Crop: no page selected</sys:String>

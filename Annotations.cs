@@ -1127,6 +1127,16 @@ namespace KillerPDF
                 case EditTool.Strikethrough:
                 case EditTool.Underline:
                     ClearSelection();
+                    // Text highlight: with the Highlight tool over the PDF's text (not the eraser, not box
+                    // mode), drag to highlight the actual text runs (flowing), like a real highlighter. Falls
+                    // through to the freeform box for non-text, the eraser, box mode, and strike/underline.
+                    if (_currentTool == EditTool.Highlight && !_highlightErase && !BoxTextSelectMode
+                        && TextBeginDrag(pageIdx, pos))
+                    {
+                        _activeCanvas.CaptureMouse();
+                        e.Handled = true;
+                        break;
+                    }
                     _isDrawing = true;
                     _drawStart = pos;
                     var previewFill = _currentTool == EditTool.Highlight
@@ -1762,11 +1772,18 @@ namespace KillerPDF
                 return;
             }
 
-            // Flowing text selection release: finalise (copy + keep for Ctrl+C).
+            // Flowing text drag release. A click with no real movement isn't a selection - just clear it, so
+            // clicking on text doesn't copy a stray char or lay a 1-char highlight. A real drag commits: the
+            // Highlight tool lays highlights over the selected text runs; the Select tool copies the text.
             if (_textDragging)
             {
-                TextEndDrag();
-                (_gestureCanvas ?? _activeCanvas)?.ReleaseMouseCapture();
+                var gcv = _gestureCanvas ?? _activeCanvas;
+                var upPos = e.GetPosition(gcv);
+                bool moved = Math.Abs(upPos.X - _textDragStartPt.X) >= 4 || Math.Abs(upPos.Y - _textDragStartPt.Y) >= 4;
+                if (!moved)                                  ClearTextSelection();
+                else if (_currentTool == EditTool.Highlight) CommitTextHighlight();
+                else                                         TextEndDrag();
+                gcv?.ReleaseMouseCapture();
                 e.Handled = true;
                 return;
             }

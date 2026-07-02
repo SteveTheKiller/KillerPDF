@@ -160,8 +160,9 @@ namespace KillerPDF
 
         // Clipboard COM calls throw when another app is holding the clipboard open; swallow so a copy
         // never crashes the app (the worst case is the copy silently not happening).
-        private static void TrySetClipboard(string text)
+        private static void TrySetClipboard(string? text)
         {
+            if (string.IsNullOrEmpty(text)) return;
             try { Clipboard.SetText(text); } catch { }
         }
 

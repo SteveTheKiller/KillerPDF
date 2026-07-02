@@ -2369,19 +2369,59 @@
                                                  Checked="ViewGridRadio_Checked"/>
                         </StackPanel>
 
-                    <!-- Links: behaviour toggles for PDF hyperlinks. Plain checkboxes (not the picker
-                         accordion the other sections use) since these are independent on/off switches;
-                         more toggles drop straight in under this subheader. -->
-                    <TextBlock Text="{DynamicResource Str_LinksSection}" Style="{StaticResource SettingsSubheader}" Margin="0,12,0,8"/>
-                    <CheckBox x:Name="LinkConfirmCheck" Content="{DynamicResource Str_LinkConfirmSetting}"
-                              Style="{StaticResource ThemeCheck}"
-                              Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled"/>
-
-                    <!-- Text selection: flowing (browser/Word-style) by default; the legacy box drag is opt-in. -->
-                    <TextBlock Text="Selection" Style="{StaticResource SettingsSubheader}" Margin="0,12,0,8"/>
-                    <CheckBox x:Name="BoxSelectCheck" Content="Box text selection (drag a rectangle)"
-                              Style="{StaticResource ThemeCheck}"
-                              Checked="BoxSelectCheck_Toggled" Unchecked="BoxSelectCheck_Toggled"/>
+                    <!-- Behaviour: our added on/off toggles, consolidated into one collapsible section that
+                         matches the pickers above. New toggles just drop into BehaviourSubmenu below. -->
+                    <TextBlock Text="{DynamicResource Str_BehaviourSection}" Style="{StaticResource SettingsSubheader}" Margin="0,12,0,8"/>
+                    <Grid Margin="0,0,0,4">
+                        <ToggleButton x:Name="BehaviourMenuButton"
+                                      Checked="SettingsMenu_Toggled" Unchecked="SettingsMenu_Toggled"
+                                      Cursor="Hand" FocusVisualStyle="{x:Null}"
+                                      HorizontalAlignment="Stretch"
+                                      HorizontalContentAlignment="Stretch">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border x:Name="RowBd" Background="Transparent" Margin="-10,0,2,0" Padding="10,4,10,4" CornerRadius="3">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="RowBd" Property="Background" Value="{DynamicResource BgHover}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="RowBd" Property="Background" Value="{DynamicResource SettingsOpenRowBg}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                            <DockPanel LastChildFill="True">
+                                <TextBlock DockPanel.Dock="Right"
+                                           FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                           VerticalAlignment="Center" Margin="6,0,0,0"
+                                           Foreground="{DynamicResource TextSecondary}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="&#xE70E;"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsChecked, RelativeSource={RelativeSource AncestorType=ToggleButton}}" Value="True">
+                                                    <Setter Property="Text" Value="&#xE70D;"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{DynamicResource Str_BehaviourGroupLabel}" Style="{StaticResource SettingsAccentValue}"
+                                           Foreground="{DynamicResource TextPrimary}"/>
+                            </DockPanel>
+                        </ToggleButton>
+                    </Grid>
+                    <StackPanel x:Name="BehaviourSubmenu" Visibility="Collapsed" Margin="2,2,0,6">
+                        <CheckBox x:Name="LinkConfirmCheck" Content="{DynamicResource Str_LinkConfirmSetting}"
+                                  Style="{StaticResource ThemeCheck}"
+                                  Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled"/>
+                        <CheckBox x:Name="BoxSelectCheck" Content="{DynamicResource Str_BoxSelectSetting}"
+                                  Style="{StaticResource ThemeCheck}"
+                                  Checked="BoxSelectCheck_Toggled" Unchecked="BoxSelectCheck_Toggled"/>
+                    </StackPanel>
                 </StackPanel>
                 </ScrollViewer>
                 </Grid>
