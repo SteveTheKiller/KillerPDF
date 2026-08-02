@@ -16,7 +16,7 @@ namespace KillerPDF.Tests
     /// </summary>
     public class TextFormatterTests
     {
-        static void Draw(string content, TextFormatAlignment alignment = null)
+        static void Draw(string content, TextFormatAlignment? alignment = null)
         {
             var doc  = new PdfDocument();
             var page = doc.AddPage();

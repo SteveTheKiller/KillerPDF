@@ -1,7 +1,13 @@
-# Standards-conformance validation results - KillerPDF 1.6.5
+# Standards-conformance validation results - KillerPDF 1.7.0
 
-Run date: 2026-07-22. (Numbers identical to the 1.6.4 run of 2026-07-17 - the 1.6.5
-save-pipeline changes moved nothing.)
+veraPDF run date: 2026-08-01, against the 1.7.0 release candidate. Numbers identical to the
+1.6.4-1.6.6 runs (2026-07-17 through 2026-07-23): the 1.7.0 refactor moved the save pipeline
+into `Services/` verbatim (verified by diff at the time), and this fresh run reproduces every
+count exactly - same 2,236 resaves, same 671 refusals matching the SKIP rows one for one, same
+63 improvements, and the same single documented PDF/A-4 header case as the only flagged file.
+The qpdf sweep was also re-run fresh on 2026-08-01 (via `QpdfSweep.ps1`, new in this folder)
+and reproduces its table exactly: 2,032 clean both sides, 195 improved, 9 kept preexisting
+warnings, 0 worsened.
 
 Question under test: does saving a PDF through KillerPDF degrade its
 standards conformance? Every file in a 2,907-file public corpus was validated, resaved through
@@ -16,8 +22,9 @@ Result: **Zero** conformance regressions across every file KillerPDF will save, 
 |---|---|---|
 | veraPDF | 1.30.2 | PDF/A + PDF/UA validation (the industry reference validator) |
 | qpdf | 12.3.2 | Structural check (`--check` exit codes) |
-| KillerPDF | 1.6.5 | `--batch-resave` through the standard open/save pipeline |
+| KillerPDF | 1.7.0 | `--batch-resave` through the standard open/save pipeline |
 | Compare-VeraPDF.ps1 | this folder | Diffs the two veraPDF reports file by file |
+| QpdfSweep.ps1 | this folder | Structural before/after sweep (`qpdf --check` exit codes) |
 
 ## Corpus
 
@@ -72,7 +79,7 @@ does not claim PDF/A-4 output.
 
 | Exit code before -> after | Files |
 |---|---|
-| 0 -> 0 (clean both sides) | 2,031 |
+| 0 -> 0 (clean both sides) | 2,032 |
 | 3 -> 0 (warnings before, clean after) | 195 |
 | 3 -> 3 (kept preexisting warnings) | 9 |
 | Worsened | 0 |
@@ -117,11 +124,21 @@ corpora). On a tree containing the corpus:
 
 ```
 verapdf --recurse --format json C:\pdf-corpus > baseline.json
-KillerPDF.exe --batch-resave C:\pdf-corpus C:\pdf-corpus-resaved --log resave.csv
+Start-Process -Wait KillerPDF.exe -ArgumentList '--batch-resave','C:\pdf-corpus','C:\pdf-corpus-resaved','--log','resave.csv'
 verapdf --recurse --format json C:\pdf-corpus-resaved > after.json
 .\Compare-VeraPDF.ps1 -Baseline baseline.json -After after.json `
     -BaselineRoot C:\pdf-corpus -AfterRoot C:\pdf-corpus-resaved -CsvOut compare.csv
+.\QpdfSweep.ps1 -Corpus C:\pdf-corpus -Resaved C:\pdf-corpus-resaved `
+    -ResaveLog resave.csv -CsvOut qpdf-results.csv
 ```
 
-Exit code 0 from the compare script means no regressions. Cross-check any MISSING_AFTER rows
-against the SKIP rows in `resave.csv`.
+**The resave step must be `Start-Process -Wait`** (or otherwise blocked on): KillerPDF.exe is
+a GUI-subsystem binary, so a bare invocation returns immediately and the after-scan then
+validates a half-written tree - every not-yet-written file shows up as MISSING_AFTER (this
+burned the 1.7.0 run, twice).
+
+The compare script counts every MISSING_AFTER as a regression by design, so a run with skips
+exits 1 even when clean. The release bar is: every MISSING_AFTER row cross-checks against a
+SKIP row in `resave.csv` (encrypted/unparseable files KillerPDF refuses to touch), and the
+only rule-level change is the documented PDF/A-4 header case. Anything beyond that is a real
+regression.

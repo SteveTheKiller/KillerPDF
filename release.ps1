@@ -58,6 +58,27 @@ $tsaList = @(
     "http://ts.ssl.com"
 )
 
+# Resolve the repo's default branch instead of hardcoding it, so the same script works across
+# the Killer family. origin/HEAD is the best hint but it can go stale - it keeps naming a
+# branch that was renamed away, which is exactly the state this repo was in - so a candidate
+# is only accepted if it still exists on the remote. Order: origin/HEAD, then main, then master.
+# Call it from inside the Push-Location block so git runs against this repo.
+function Get-DefaultBranch {
+    $remoteHeads = @(git ls-remote --heads origin 2>$null) |
+        ForEach-Object { ($_ -split '\s+')[-1] -replace '^refs/heads/', '' }
+    if (-not $remoteHeads) { return $null }
+
+    $candidates = @()
+    $originHead = git symbolic-ref --quiet refs/remotes/origin/HEAD 2>$null
+    if ($originHead) { $candidates += (($originHead -replace '^refs/remotes/origin/', '').Trim()) }
+    foreach ($c in @('main', 'master')) { if ($candidates -notcontains $c) { $candidates += $c } }
+
+    foreach ($c in $candidates) {
+        if ($c -and $remoteHeads -contains $c) { return $c }
+    }
+    return $null
+}
+
 if (-not $PublishOnly) {
 
 # ── 0. SimplySign preflight ──────────────────────────────────────────────────
@@ -292,8 +313,8 @@ Write-Host   ""
 Write-Host   "  Signer : $actualCN"
 Write-Host   "  Thumbprint: $actualThumb"
 Write-Host   ""
-Write-Host   "  Paste EXE SHA256 into:"
-Write-Host   "    KillerPDF\pdf-landing\index.html (line ~183)"
+Write-Host   "  pdf-landing's hero (version/date/size/sha256) is updated automatically"
+Write-Host   "  in the publish preflight below - no hand-pasting."
 Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 
 # ============================================================================
@@ -313,8 +334,11 @@ Write-Host "    Version: $Version (tag $Tag)"
 
 Push-Location $PSScriptRoot
 try {
+    $defaultBranch = Get-DefaultBranch
+    if (-not $defaultBranch) { throw "Could not determine the default branch from origin" }
+    Write-Host "    Default branch: $defaultBranch"
     $branch = (git rev-parse --abbrev-ref HEAD).Trim()
-    if ($branch -ne 'main') { throw "On branch '$branch', expected main" }
+    if ($branch -ne $defaultBranch) { throw "On branch '$branch', expected $defaultBranch" }
     $dirty = git status --porcelain
     if ($dirty) { throw "Working tree is not clean. Commit or stash first:`n$($dirty -join "`n")" }
 
@@ -331,14 +355,79 @@ try {
             Write-Host "    Updating README source link to $Tag"
             [System.IO.File]::WriteAllText($readmePath, $readmeNew)
             git commit README.md -m "Point README source link at $Tag" --quiet
-            git push origin main --quiet
+            git push origin $defaultBranch --quiet
             if ($LASTEXITCODE -ne 0) { throw "README source-link commit failed to push" }
         }
     }
 
-    git fetch origin main --quiet
-    if ((git rev-parse HEAD).Trim() -ne (git rev-parse origin/main).Trim()) {
-        throw "Local main and origin/main differ. Push or pull first."
+    # ── Landing page release info (pdf-landing) ──────────────────────────────
+    # Ported from Killendar's release.ps1 step 7 (the family standard - KillerNotes has it
+    # too; KillerPDF was the odd one out and its hero went stale by hand every release).
+    # killerpdf.net is a MANUAL Cloudflare Pages drop, so nothing here deploys - the hero
+    # block (version, released, size, sha256), the verEgg footer on every page, and the ten
+    # translated footers in kp-i18n.js are rewritten and committed BEFORE the tag.
+    # Two site-specific differences from Killendar's copy: the hash is stored LOWERCASE
+    # here, and the size row carries a '~' prefix. ReadAllText/WriteAllText keep the files
+    # BOM-less UTF-8 (PS 5.1 Set-Content -Encoding UTF8 adds a BOM).
+    # ONE source of truth for the release date: the csproj <ReleaseDate> the preflight
+    # already checked against the CHANGELOG - Get-Date would stamp whatever day the script
+    # happened to run.
+    if ($csprojRaw -notmatch '<ReleaseDate>([0-9]{4}-[0-9]{2}-[0-9]{2})</ReleaseDate>') {
+        throw "No <ReleaseDate>yyyy-MM-dd</ReleaseDate> found in KillerPDF.csproj"
+    }
+    $releaseDate = $Matches[1]
+    $hashLower   = $exeHash.ToLower()
+    $exeMB       = [math]::Round((Get-Item $exe).Length / 1MB, 2)
+    $siteDir     = Join-Path $PSScriptRoot 'pdf-landing'
+
+    $indexPath = Join-Path $siteDir 'index.html'
+    $indexRaw  = [System.IO.File]::ReadAllText($indexPath)
+    $indexNew  = $indexRaw
+    $indexNew  = $indexNew -replace '(<span class="k">version</span>&nbsp;<span class="v">)KillerPDF v[0-9]+\.[0-9]+\.[0-9]+', ('${1}' + "KillerPDF v$Version")
+    $indexNew  = $indexNew -replace '(<span class="k">released</span>&nbsp;<span class="v">)[0-9]{4}-[0-9]{2}-[0-9]{2}', ('${1}' + $releaseDate)
+    $indexNew  = $indexNew -replace '(<span class="k">size</span>&nbsp;<span class="v">)[^<]*', ('${1}' + "~$exeMB MB exe")
+    $indexNew  = $indexNew -replace '(<span class="v hash">)[0-9A-Fa-f]{32}<br>[0-9A-Fa-f]{32}', ('${1}' + $hashLower.Substring(0, 32) + '<br>' + $hashLower.Substring(32, 32))
+    if ($indexNew -eq $indexRaw) {
+        Write-Warning 'index.html hero block did not change - check the release-info markup still matches the patterns in this script.'
+    }
+
+    if ($DryRun) {
+        Write-Host "    DryRun: would write these release facts to pdf-landing and commit:" -ForegroundColor Yellow
+        Write-Host "      version  : KillerPDF v$Version"
+        Write-Host "      released : $releaseDate"
+        Write-Host "      size     : ~$exeMB MB exe"
+        Write-Host "      sha256   : $hashLower"
+        Write-Host "      verEgg   : v$Version on index, help, technical, about + kp-i18n.js"
+    } else {
+        if ($indexNew -ne $indexRaw) { [System.IO.File]::WriteAllText($indexPath, $indexNew) }
+
+        # Footer version on every page, plus the ten translated footer strings in kp-i18n.js
+        # (their verEgg span is spelled with escaped quotes there, hence the \\? in the
+        # pattern matching both id="verEgg" and id=\"verEgg\").
+        foreach ($page in 'index.html', 'help.html', 'technical.html', 'about.html', 'kp-i18n.js') {
+            $p = Join-Path $siteDir $page
+            if (-not (Test-Path $p)) { continue }
+            $raw = [System.IO.File]::ReadAllText($p)
+            $new = $raw -replace '(id=\\?"verEgg\\?"[^>]*>)v[0-9]+\.[0-9]+\.[0-9]+', ('${1}' + "v$Version")
+            if ($new -ne $raw) { [System.IO.File]::WriteAllText($p, $new) }
+        }
+
+        $siteDirty = git status --porcelain pdf-landing
+        if ($siteDirty) {
+            git add pdf-landing
+            git commit -m "v${Version}: landing release info" --quiet
+            git push origin $defaultBranch --quiet
+            if ($LASTEXITCODE -ne 0) { throw "Landing page commit failed to push" }
+            Write-Host "    pdf-landing updated to v$Version and pushed"
+            Write-Host "    Remember: killerpdf.net does NOT auto-deploy. Drag pdf-landing/ into Cloudflare Pages." -ForegroundColor Yellow
+        } else {
+            Write-Host "    pdf-landing already current"
+        }
+    }
+
+    git fetch origin $defaultBranch --quiet
+    if ((git rev-parse HEAD).Trim() -ne (git rev-parse "origin/$defaultBranch").Trim()) {
+        throw "Local $defaultBranch and origin/$defaultBranch differ. Push or pull first."
     }
     if (git tag --list $Tag) { throw "Tag $Tag already exists" }
     if (git ls-remote --tags origin $Tag) { throw "Tag $Tag already exists on origin" }
@@ -349,6 +438,24 @@ try {
     if ($changelog -notmatch [regex]::Escape("## [$Version]")) {
         throw "CHANGELOG.md has no [$Version] section"
     }
+
+    # The About card shows <ReleaseDate> beside the version so users can tell how old
+    # their build is. It is a hand-edited csproj field, so it silently goes stale unless
+    # something checks it - that something is here. It must equal the date on this
+    # version's CHANGELOG section, which is the date the release actually goes out.
+    if ($csprojRaw -notmatch '<ReleaseDate>([0-9]{4}-[0-9]{2}-[0-9]{2})</ReleaseDate>') {
+        throw "No <ReleaseDate>yyyy-MM-dd</ReleaseDate> found in KillerPDF.csproj"
+    }
+    $releaseDate = $Matches[1]
+    if ($changelog -notmatch ('## \[' + [regex]::Escape($Version) + '\] - ([0-9]{4}-[0-9]{2}-[0-9]{2})')) {
+        throw "CHANGELOG.md section [$Version] has no yyyy-MM-dd date"
+    }
+    $changelogDate = $Matches[1]
+    if ($releaseDate -ne $changelogDate) {
+        throw "csproj <ReleaseDate> is $releaseDate but CHANGELOG [$Version] is dated $changelogDate. Bump the csproj."
+    }
+    Write-Host "    Release date: $releaseDate"
+
     Write-Host "    Preflight OK" -ForegroundColor Green
 
     # ── 9. Release notes from the CHANGELOG section ──────────────────────────

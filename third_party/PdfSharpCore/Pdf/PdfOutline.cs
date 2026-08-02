@@ -369,16 +369,22 @@ namespace PdfSharpCore.Pdf
                         Elements.Add(Keys.Dest, destArray);
                         SplitDestinationPage(destArray);
                     }
-                    else if (dest is PdfReference detRef)
+                    else if (dest is PdfReference detRef && detRef.Value is PdfArray refArray)
                     {
-                      // Replace Action with /Dest entry.
+                      // Replace Action with /Dest entry. Checked cast, matching the /Dest branch
+                      // above: an indirect /D that resolves to something other than an array threw
+                      // InvalidCastException here.
                       Elements.Remove(Keys.A);
-                      Elements.Add(Keys.Dest, detRef.Value);
-                      SplitDestinationPage((PdfArray)detRef.Value);
+                      Elements.Add(Keys.Dest, refArray);
+                      SplitDestinationPage(refArray);
                     }
                     else
                     {
-                        throw new Exception("Destination Array expected.");
+                        // A GoTo action whose /D is a NAMED destination (a name or string resolved
+                        // through the catalog's /Dests dictionary or /Names /Dests tree), which this
+                        // class cannot reach - the same legal construct already tolerated for a bare
+                        // /Dest above. Leave DestinationPage null rather than throwing: this killed
+                        // the open of any document whose bookmarks use named GoTo destinations.
                     }
                 }
                 else

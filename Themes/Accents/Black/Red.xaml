@@ -5,14 +5,18 @@
     <!-- Black family - RED neon accent overlay. The Black theme uses a coloured selection
          foreground (not white), so SelectionFg is overridden here too. Fixed greens (InstallBtnBg,
          AccentLogo) come from Black.xaml. -->
-    <SolidColorBrush x:Key="Accent"          Color="#FF2929" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"    Color="#FF2929" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#FF2929" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#FF2929" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#FF2929" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#FF2929" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#FF2929" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#FF2929" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"       Color="#380000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#380000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#380000" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"     Color="#380000" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg"     Color="#FFFFFF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"   Color="#88FF2929" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#FF2929" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#88FF2929" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#FF2929" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#FF2929" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#380000" po:Freeze="True"/>

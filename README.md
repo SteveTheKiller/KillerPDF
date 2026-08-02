@@ -1,8 +1,8 @@
-# KillerPDF
+<p align="center">
+  <a href="https://killerpdf.net"><img src="docs/wordmark.png" width="640" alt="KillerPDF - Free PDF Editor"></a>
+</p>
 
-Free and open-source PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Single Windows EXE, ~15.6 MB (ZIPs to 12.6MB), no runtime install required.
-
-Landing page is hosted at [KillerPDF.net](https://KillerPDF.net)
+Free and open-source PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home. Install or run portable. Single Windows EXE, ~15.9 MB (ZIPs to 11.4MB), no runtime install required.
 
 ## Features
 
@@ -11,6 +11,7 @@ Landing page is hosted at [KillerPDF.net](https://KillerPDF.net)
 - High-quality rendering via PDFium
 - Four view modes - Single Page, Continuous scroll, Two-Page, and Grid - that persist across sessions
 - Tabbed documents: open several PDFs at once, each restoring its page, zoom, and view mode
+- Split pane (F10): two documents side by side in one window, each pane with its own tab strip - drag a tab across to move it
 - Full-text search across the whole document with highlighting; drag-select to copy text
 - Outline/bookmark navigation and clickable links, including internal cross-references and TOC back-links
 - Bookmark editing in the sidebar: add, inline-rename, nest, reorder, retarget, and delete - with multi-select and full undo
@@ -80,13 +81,13 @@ Each command reuses the exact pipeline its GUI equivalent runs - merges rewrite 
 
 - Six themes - Dark, Light, Black, Blood, Greed, Cyanotic - with per-theme accent colors, switchable live
 - Toolbar style (icon size, text placement) and a resizable sidebar that docks left or right
-- Localized UI in 9 languages (English, Spanish, Traditional and Simplified Chinese, German, French, Turkish, Bengali, Japanese); contribute via `Strings/TRANSLATING.md`
+- Localized UI in 10 languages (English, Spanish, Traditional and Simplified Chinese, German, French, Turkish, Bengali, Japanese, Czech); contribute via `TRANSLATING.md`
 - Full keyboard shortcut overlay (F1 or Ctrl+?) with a list view and a visual keyboard view, color-coded by category, plus a link to the online guide
 
 ### App & files
 
-- Single portable Windows EXE, ~15.6 MB, no runtime install
-- Self-installs per-user to %LOCALAPPDATA% (no UAC), registers as a PDF handler with a branded file icon, and uninstalls cleanly via Add/Remove Programs
+- Single portable Windows EXE, ~15.9 MB, no runtime install
+- Per-user OR all-user install: self-installs per-user to %LOCALAPPDATA% (no UAC), or machine-wide to Program Files for every account (one admin prompt, `/silent` for scripted deployment); registers as a PDF handler with a branded file icon and uninstalls cleanly via Add/Remove Programs
 - Opens password-protected PDFs (prompts instead of erroring) and repairs damaged ones
 - Standards-safe saves: every release is validated with veraPDF across a 2,900-file conformance corpus with a zero-regressions bar - see [validation/RESULTS.md](validation/RESULTS.md)
 - Local-only: no account, no telemetry, no phone-home
@@ -94,12 +95,12 @@ Each command reuses the exact pipeline its GUI equivalent runs - merges rewrite 
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshot-02.png" width="32%" alt="KillerPDF" />
-  <img src="docs/screenshot-04.png" width="32%" alt="KillerPDF" />
-  <img src="docs/screenshot-06.png" width="32%" alt="KillerPDF" />
-  <img src="docs/screenshot-07.png" width="32%" alt="KillerPDF" />
-  <img src="docs/screenshot-12.png" width="32%" alt="KillerPDF" />
-  <img src="docs/screenshot-13.png" width="32%" alt="KillerPDF" />
+  <img src="pdf-landing/screenshots/01.png" width="32%" alt="KillerPDF - Grid view, Dark theme" />
+  <img src="pdf-landing/screenshots/02.png" width="32%" alt="KillerPDF - split pane and start screen, Black theme" />
+  <img src="pdf-landing/screenshots/05.png" width="32%" alt="KillerPDF - OCR language menu, Light theme, Traditional Chinese UI" />
+  <img src="pdf-landing/screenshots/07.png" width="32%" alt="KillerPDF - annotations and form filling, Czech UI" />
+  <img src="pdf-landing/screenshots/08.png" width="32%" alt="KillerPDF - the themed file dialog, Cyanotic theme, French UI" />
+  <img src="pdf-landing/screenshots/06.png" width="32%" alt="KillerPDF - About card with a verified signature" />
 </p>
 
 ## Requirements
@@ -122,7 +123,7 @@ choco install killerpdf
 ```
 
 - Prebuilt binary: <https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe>
-- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.6.5/KillerPDF-1.6.5-src.zip>
+- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.7.0/KillerPDF-1.7.0-src.zip>
 
 ## Build from source
 

@@ -44,7 +44,6 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Kenar çubuğunu daralt (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Kenar çubuğunu genişlet (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Klavye kısayolları (F1)</sys:String>
-    <sys:String x:Key="Str_TT_Settings">Ayarlar (F9)</sys:String>
     <sys:String x:Key="Str_TT_About">KillerPDF Hakkında (F12)</sys:String>
 
     <!-- ── Hakkında katmanı ──────────────────────────────────────────── -->
@@ -60,10 +59,11 @@
     <sys:String x:Key="Str_TabOutlines">ANA HATLAR</sys:String>
 
     <!-- ── Ayarlar paneli ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Settings">Ayarlar</sys:String>
     <sys:String x:Key="Str_Theme">TEMA</sys:String>
     <sys:String x:Key="Str_Language">DİL</sys:String>
     <sys:String x:Key="Str_Toolbar">ARAÇ ÇUBUĞU</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">Araç çubuğu</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">Metin yok</sys:String>
     <sys:String x:Key="Str_Toolbar_SmallIcons">Küçük simgeler</sys:String>
     <sys:String x:Key="Str_Toolbar_LargeIcons">Büyük simgeler</sys:String>
     <sys:String x:Key="Str_Toolbar_TextBeside">Simge yanında metin</sys:String>
@@ -78,6 +78,7 @@
     <sys:String x:Key="Str_KS_File">DOSYA</sys:String>
     <sys:String x:Key="Str_KS_Open">Aç</sys:String>
     <sys:String x:Key="Str_KS_CloseFile">Dosyayı kapat</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">Diğer sekmeleri kapat</sys:String>
     <sys:String x:Key="Str_KS_CloseAll">Tümünü kapat</sys:String>
     <sys:String x:Key="Str_KS_NewBlank">Yeni boş belge</sys:String>
     <sys:String x:Key="Str_KS_SaveAs">Farklı Kaydet</sys:String>
@@ -101,11 +102,11 @@
     <sys:String x:Key="Str_KS_Help">YARDIM</sys:String>
     <sys:String x:Key="Str_KS_ThisList">Bu kısayol listesi</sys:String>
     <sys:String x:Key="Str_KS_About">Hakkında penceresi</sys:String>
-    <sys:String x:Key="Str_KS_Settings">Ayarlar</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Belge bilgisi</sys:String>
     <sys:String x:Key="Str_KS_OnlineHelp">Tam kılavuz ve çevrimiçi rehber</sys:String>
     <sys:String x:Key="Str_KS_Tools">ARAÇLAR</sys:String>
     <sys:String x:Key="Str_KS_Paste">Görsel / metin yapıştır</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">Kalın / italik / altı çizili (metin kutusu)</sys:String>
     <sys:String x:Key="Str_KS_MultiSelect">Seçime ekle</sys:String>
 
     <!-- ── Durum çubuğu ──────────────────────────────────────────────── -->
@@ -140,11 +141,22 @@
     <sys:String x:Key="Str_RotateFailed">Döndürme başarısız: {0}</sys:String>
 
     <!-- ── İletişim kutusu metinleri ────────────────────────────────── -->
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF'i Yükle</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF kullanıcı profilinize yüklensin mi?
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">Diğer bölmede de "{0}" açık ve kendi kaydedilmemiş değişiklikleri var.
 
-Bu işlem uygulamayı %LocalAppData%\KillerPDF konumuna kopyalar ve bir Başlat Menüsü kısayolu oluşturur.
-İstediğiniz zaman Program Ekle/Kaldır üzerinden kaldırabilirsiniz.</sys:String>
+Şimdi kaydetmek dosyanın üzerine yazar ve bu değişiklikler kaybolur. Korumak istiyorsanız önce diğer bölmeyi kaydedin.</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Bölünmüş görünüm açık - kapatmak için F10</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">Bölünmüş görünüm kapalı</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF'i Yükle</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF bu bilgisayara yüklensin mi?
+
+KillerPDF programlar klasörünüze kopyalanır ve bir Başlat Menüsü girdisi eklenir. EXE dosyasının bu kopyası olduğu yerde kalır ve istediğiniz zaman Program Ekle/Kaldır üzerinden kaldırabilirsiniz.</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">Yükle</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">Masaüstü kısayolu ekle</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">Bu bilgisayardaki herkes için yükle (yönetici gerekir)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">Yükleme tamamlanmadı - KillerPDF hâlâ taşınabilir olarak çalışıyor.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg">KillerPDF varsayılan PDF görüntüleyiciniz olarak ayarlansın mı?
+
+Windows Ayarları - Varsayılan Uygulamalar bölümünü açar.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Kaydedilmemiş değişiklikleriniz var. Bu dosya kaydedilmeden kapatılsın mı?</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">Kaydedilmemiş değişiklikleriniz var. KillerPDF kaydedilmeden kapatılsın mı?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange">Bu belgede Adobe Reader'ın desteklediği aralığın (kenar başına 3 - 14.400 punto) dışında boyutlandırılmış {0} sayfa var - Adobe bu sayfaları boş gösterir.
@@ -392,6 +404,10 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Sidebar_Left">Sol</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">Sağ</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Kenar çubuğunu aç/kapat</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">Araç çubuğu görünümü</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Kenar çubuğu solda / sağda</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">Sonraki görünüm modu</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">Görünüm modu</sys:String>
     <sys:String x:Key="Str_KS_NextTab">Sonraki sekme (Shift: önceki)</sys:String>
     <sys:String x:Key="Str_Lbl_Search">Ara</sys:String>
     <sys:String x:Key="Str_TT_Search">Ara (Ctrl+F)</sys:String>
@@ -486,6 +502,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_St_NoTextOnPage">Bu sayfada metin bulunamadı</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">Metin seçilmedi - metin seçmek için sürükleyin</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">Seçimde metin bulunamadı</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">Burada metin yok - Şekiller 4'te</sys:String>
     <sys:String x:Key="Str_St_SignaturePlaced">İmza yerleştirildi - yeniden konumlandırmak için sürükleyin, boyutlandırmak için köşe tutamacını kullanın</sys:String>
     <sys:String x:Key="Str_St_FieldCleared">Alan temizlendi</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">Alan imzalandı</sys:String>
@@ -578,6 +595,8 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_PrivacySection">GİZLİLİK</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Son açılan dosyaları hatırlama</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Sayfaları görüntü olarak dışa aktar...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">Parolayı Kaldır</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">Parola koruması olmadan kaydedildi - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Sayfaları Görüntü Olarak Dışa Aktar</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Biçim</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Çözünürlük (DPI)</sys:String>
@@ -587,9 +606,53 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Print_OddOnly">Yalnızca tek sayfalar</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Yalnızca çift sayfalar</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Belge renklerini ters çevir</sys:String>
-    <sys:String x:Key="Str_TT_DocInvert">Belge renklerini ters çevir (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">Belge renklerini ters çevir (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">Bölünmüş görünüm - iki belge yan yana (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">Sekmeyi kapat</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">Açık tüm sekmeler</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">Görselleri de ters çevir</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs">Bu bilgisayardaki hiçbir yazı tipi bu karakterleri çizemiyor, bu nedenle kaydedilen PDF'de kutu olarak görünecekler:&#10;&#10;{0}&#10;&#10;Bunları içeren bir yazı tipi yükleyin veya bu metin için başka bir yazı tipi seçin.</sys:String>
     <sys:String x:Key="Str_TT_AppSize">Tüm uygulamayı boyutlandırmak için kaydırın (Ctrl+Shift+=/-/0)</sys:String>
     <sys:String x:Key="Str_St_AppSize">Uygulama boyutu %{0}</sys:String>
     <sys:String x:Key="Str_KS_AppSize">Tüm uygulamayı yakınlaştır (erişilebilirlik)</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">Bölünmüş görünüm - iki belge yan yana</sys:String>
     <sys:String x:Key="Str_LinkConfirmSetting">Bağlantıları açmadan önce sor</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">Geri Yükle</sys:String>
+    <sys:String x:Key="Str_Sys_Move">Taşı</sys:String>
+    <sys:String x:Key="Str_Sys_Size">Boyutlandır</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">Simge Durumuna Küçült</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">Ekranı Kapla</sys:String>
+    <sys:String x:Key="Str_Sys_Close">Kapat</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">İptal</sys:String>
+    <sys:String x:Key="Str_Btn_Open">Aç</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">Değiştir</sys:String>
+    <sys:String x:Key="Str_Btn_Save">Kaydet</sys:String>
+    <sys:String x:Key="Str_Col_Modified">değiştirilme</sys:String>
+    <sys:String x:Key="Str_Col_Name">ad</sys:String>
+    <sys:String x:Key="Str_Col_Size">boyut</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">Kes</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">Tümünü seç</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">Tüm dosyalar</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">Dosya adı:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">Dosya türü:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">Burada geçerli dosya türüyle eşleşen bir şey yok.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">Böyle bir dosya yok.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">Böyle bir klasör yok.</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} değiştirilsin mi?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">Yerlere sabitle</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">Yerlerden kaldır</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">Masaüstü</sys:String>
+    <sys:String x:Key="Str_QA_Documents">Belgeler</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">İndirilenler</sys:String>
+    <sys:String x:Key="Str_QA_Home">Ana klasör</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">Resimler</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} klasör, {1} dosya</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">Son konumlar</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">Gizli ve sistem öğelerini göster</sys:String>
+    <sys:String x:Key="Str_TT_Up">Bir klasör yukarı</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">Ayrıntı görünümü</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">Simge görünümü</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">Liste görünümü</sys:String>
 </ResourceDictionary>

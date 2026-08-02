@@ -5,13 +5,17 @@
     <!-- Light family - RED accent overlay. Accent is a deep red (readable on white, and the
          selected-page background with white text); the dim key is a pale tint for the highlight
          background. Fixed greens (InstallBtnBg, AccentLogo) come from Light.xaml. -->
-    <SolidColorBrush x:Key="Accent"          Color="#931A1A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"    Color="#931A1A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#931A1A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#931A1A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#931A1A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#931A1A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#931A1A" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#931A1A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"       Color="#F5D6D6" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#F5D6D6" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#F5D6D6" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"     Color="#931A1A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"   Color="#88931A1A" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#931A1A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#88931A1A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#931A1A" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#931A1A" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#F5D6D6" po:Freeze="True"/>

@@ -41,7 +41,6 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Réduire le panneau latéral (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Développer le panneau latéral (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Raccourcis clavier (F1)</sys:String>
-    <sys:String x:Key="Str_TT_Settings">Paramètres (F9)</sys:String>
     <sys:String x:Key="Str_TT_About">À propos de KillerPDF (F12)</sys:String>
 
     <!-- About overlay -->
@@ -56,20 +55,17 @@
     <sys:String x:Key="Str_TabOutlines">PLAN</sys:String>
 
     <!-- Settings panel -->
-    <sys:String x:Key="Str_Settings">Paramètres</sys:String>
     <sys:String x:Key="Str_Theme">THÈME</sys:String>
     <sys:String x:Key="Str_Language">LANGUE</sys:String>
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
-    <sys:String x:Key="Str_Lang_French">Français</sys:String>
-    <sys:String x:Key="Str_Lang_Traditional_Chinese">中文 (繁體)</sys:String>
-    <sys:String x:Key="Str_Lang_Simple_Chinese">中文 (简体)</sys:String>
 
     <!-- Keyboard shortcuts overlay -->
     <sys:String x:Key="Str_KS_Title">Raccourcis clavier</sys:String>
     <sys:String x:Key="Str_KS_File">FICHIER</sys:String>
     <sys:String x:Key="Str_KS_Open">Ouvrir</sys:String>
     <sys:String x:Key="Str_KS_CloseFile">Fermer le fichier</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">Fermer les autres onglets</sys:String>
     <sys:String x:Key="Str_KS_CloseAll">Tout fermer</sys:String>
     <sys:String x:Key="Str_KS_NewBlank">Nouveau document vierge</sys:String>
     <sys:String x:Key="Str_KS_SaveAs">Enregistrer sous</sys:String>
@@ -125,10 +121,22 @@
     <sys:String x:Key="Str_RotateFailed">Échec de la rotation : {0}</sys:String>
 
     <!-- Dialog strings -->
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">L'autre volet a également « {0} » ouvert, avec ses propres modifications non enregistrées.
+
+Enregistrer maintenant écrase le fichier et ces modifications seront perdues. Enregistrez d'abord l'autre volet si vous souhaitez les conserver.</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Volet divisé activé - F10 pour fermer</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">Volet divisé désactivé</sys:String>
     <sys:String x:Key="Str_Dlg_InstallTitle">Installer KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg">Installer KillerPDF dans votre profil utilisateur ?
-L'application sera copiée dans %LocalAppData%\KillerPDF et un raccourci sera créé dans le menu Démarrer.
-Vous pourrez désinstaller le programme à tout moment via « Ajouter ou supprimer des programmes ».</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">Installer KillerPDF sur cet ordinateur ?
+
+KillerPDF sera copié dans votre dossier de programmes et un raccourci sera ajouté au menu Démarrer. Cette copie de l'exécutable reste où elle est, et vous pourrez désinstaller le programme à tout moment via « Ajouter ou supprimer des programmes ».</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">Installer</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">Ajouter un raccourci sur le bureau</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">Installer pour tous les utilisateurs de cet ordinateur (nécessite un administrateur)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">L'installation n'a pas abouti - KillerPDF fonctionne toujours en mode portable.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg">Souhaitez-vous définir KillerPDF comme lecteur PDF par défaut ?
+
+Ouvre les Paramètres Windows - Applications par défaut.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Des modifications non enregistrées sont présentes. Fermer ce fichier sans enregistrer ?</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">Des modifications non enregistrées sont présentes. Quitter KillerPDF sans enregistrer ?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange">Ce document contient {0} page(s) dont la taille sort des limites prises en charge par Adobe Reader (3 à 14 400 points par côté) - Adobe les affiche comme des pages vides.
@@ -144,7 +152,6 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <!-- Theme names -->
     <sys:String x:Key="Str_Theme_Dark">Sombre</sys:String>
     <sys:String x:Key="Str_Theme_Light">Clair</sys:String>
-    <sys:String x:Key="Str_Theme_HighContrast">Contraste élevé</sys:String>
     <sys:String x:Key="Str_Theme_Blood">Blood</sys:String>
     <sys:String x:Key="Str_Theme_Greed">Greed</sys:String>
     <sys:String x:Key="Str_Theme_Cyanotic">Cyanotique</sys:String>
@@ -177,6 +184,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 
     <!-- Settings panel - toolbar style -->
     <sys:String x:Key="Str_Toolbar">BARRE D'OUTILS</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">Barre d'outils</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">Sans texte</sys:String>
     <sys:String x:Key="Str_Toolbar_SmallIcons">Petites icônes</sys:String>
     <sys:String x:Key="Str_Toolbar_LargeIcons">Grandes icônes</sys:String>
     <sys:String x:Key="Str_Toolbar_TextBeside">Texte à côté des icônes</sys:String>
@@ -186,11 +195,11 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
 
     <!-- Keyboard shortcuts (remainder) -->
     <sys:String x:Key="Str_KS_About">Boîte de dialogue À propos</sys:String>
-    <sys:String x:Key="Str_KS_Settings">Paramètres</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Informations du document</sys:String>
     <sys:String x:Key="Str_KS_OnlineHelp">Guide complet et tutoriels en ligne</sys:String>
     <sys:String x:Key="Str_KS_Tools">OUTILS</sys:String>
     <sys:String x:Key="Str_KS_Paste">Coller image / texte</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">Gras / italique / souligné (zone de texte)</sys:String>
     <sys:String x:Key="Str_KS_MultiSelect">Ajouter à la sélection</sys:String>
 
     <!-- Theme name -->
@@ -412,6 +421,10 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Sidebar_Left">Gauche</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">Droite</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Afficher/masquer le panneau latéral</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">Apparence de la barre d'outils</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Panneau latéral à gauche / droite</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">Mode d'affichage suivant</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">Mode d'affichage</sys:String>
     <sys:String x:Key="Str_KS_NextTab">Onglet suivant (Maj : précédent)</sys:String>
 
     <!-- OCR -->
@@ -504,6 +517,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_St_NoTextOnPage">Aucun texte trouvé sur cette page</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">Aucun texte sélectionné - faites glisser pour sélectionner du texte</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">Aucun texte trouvé dans la sélection</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">Pas de texte ici - Formes est sur 4</sys:String>
     <sys:String x:Key="Str_St_SignaturePlaced">Signature placée - faites glisser pour repositionner, utilisez la poignée d'angle pour redimensionner</sys:String>
     <sys:String x:Key="Str_St_FieldCleared">Champ effacé</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">Champ signé</sys:String>
@@ -596,6 +610,8 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_PrivacySection">CONFIDENTIALITÉ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Ne pas mémoriser les fichiers récemment ouverts</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Exporter les pages en images...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">Supprimer le mot de passe</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">Enregistré sans protection par mot de passe - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Exporter les pages en images</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Format</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Résolution (DPI)</sys:String>
@@ -605,10 +621,54 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Print_OddOnly">Pages impaires uniquement</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Pages paires uniquement</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Inverser les couleurs du document</sys:String>
-    <sys:String x:Key="Str_TT_DocInvert">Inverser les couleurs du document (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">Inverser les couleurs du document (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">Vue partagée - deux documents côte à côte (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">Fermer l'onglet</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">Tous les onglets ouverts</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">Inverser aussi les images</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs">Aucune police de ce PC ne peut afficher ces caractères ; ils apparaîtront sous forme de carrés dans le PDF enregistré :&#10;&#10;{0}&#10;&#10;Installez une police qui les contient ou choisissez une autre police pour ce texte.</sys:String>
     <sys:String x:Key="Str_TT_AppSize">Faites défiler pour redimensionner toute l'application (Ctrl+Maj+=/-/0)</sys:String>
     <sys:String x:Key="Str_St_AppSize">Taille de l'application {0} %</sys:String>
     <sys:String x:Key="Str_KS_AppSize">Zoomer toute l'application (accessibilité)</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">Vue partagée - deux documents côte à côte</sys:String>
     <sys:String x:Key="Str_LinkConfirmSetting">Confirmer avant d'ouvrir les liens</sys:String>
     <sys:Double x:Key="ZoomBoxWidth">96</sys:Double>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">Restaurer</sys:String>
+    <sys:String x:Key="Str_Sys_Move">Déplacer</sys:String>
+    <sys:String x:Key="Str_Sys_Size">Dimensionner</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">Réduire</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">Agrandir</sys:String>
+    <sys:String x:Key="Str_Sys_Close">Fermer</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">Annuler</sys:String>
+    <sys:String x:Key="Str_Btn_Open">Ouvrir</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">Remplacer</sys:String>
+    <sys:String x:Key="Str_Btn_Save">Enregistrer</sys:String>
+    <sys:String x:Key="Str_Col_Modified">modifié</sys:String>
+    <sys:String x:Key="Str_Col_Name">nom</sys:String>
+    <sys:String x:Key="Str_Col_Size">taille</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">Couper</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">Tout sélectionner</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">Tous les fichiers</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">Nom du fichier :</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">Type de fichier :</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">Rien ici ne correspond au type de fichier actuel.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">Ce fichier n'existe pas.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">Ce dossier n'existe pas.</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">Remplacer {0} ?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">Épingler aux emplacements</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">Retirer des emplacements</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">Bureau</sys:String>
+    <sys:String x:Key="Str_QA_Documents">Documents</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">Téléchargements</sys:String>
+    <sys:String x:Key="Str_QA_Home">Accueil</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">Images</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} dossier(s), {1} fichier(s)</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">Emplacements récents</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">Afficher les éléments masqués et système</sys:String>
+    <sys:String x:Key="Str_TT_Up">Dossier parent</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">Vue détails</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">Vue icônes</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">Vue liste</sys:String>
 </ResourceDictionary>

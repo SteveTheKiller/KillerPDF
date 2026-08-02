@@ -1,0 +1,474 @@
+﻿<UserControl x:Class="KillerPDF.Controls.PdfViewer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- One document view: this pane's tab strip and its card.
+
+         The card's MARGIN lives on this control, not on the borders below - ApplySidebarSide sets
+         it to flip the 8px gutter to whichever side the document is on. -->
+    <Grid>
+        <!-- Row 0 is the strip, row 1 the card. Each pane carrying its own strip means the strip
+             tracks its pane's width and position for free, including through a boundary drag.
+             Row 0 is Auto and the band collapses below two tabs. -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ZIndex above the card: the card's -1 top margin tucks its top border into this band's
+             row, and the active tab - which carries the pane's own BgCanvas - covers that pixel so
+             the two read as one surface. -->
+        <Border Grid.Row="0" x:Name="TabStripBorder" Panel.ZIndex="10"
+                Background="{DynamicResource BackgroundBrush}" Visibility="Collapsed"
+                SizeChanged="TabStripBorder_SizeChanged">
+            <Grid>
+                <!-- DynamicResource, NOT StaticResource. GrainBrushShared lives in
+                     MainWindow.Resources (not App.xaml: WPF freezes application-level Freezables
+                     and ApplyGrainTexture could then never assign its ImageSource). StaticResource
+                     resolves at parse time against this control's own scope, before the control is
+                     in the window's tree, and throws from InitializeComponent. DynamicResource
+                     walks the live tree at runtime and finds it. -->
+                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{DynamicResource GrainBrushShared}"/>
+                <Border x:Name="TabStripFade" IsHitTestVisible="False" Background="{DynamicResource TabStripFadeBrush}"/>
+                <!-- TabBarRing, ported from KillerShell. The card's top border drawn again, radii
+                     and all - 7px tall with a -6 bottom margin, so its 1px top edge lands in the
+                     band's last row and its curved sides drop out of the band onto the card's own
+                     left/right border. A flat 1px strip would run past the card's rounded corners.
+                     SyncPaneLeadingCorner keeps the radii in step with the card's; SetFocusHalo
+                     drives its brush alongside the card's.
+                     Declared after the fade (whose dark bottom would wash it out) and before the
+                     tabs, so the active tab covers its own segment and breaks the line at the tab. -->
+                <Border x:Name="TabBarRing" Height="7" VerticalAlignment="Bottom" Margin="0,0,0,-6"
+                        BorderThickness="1,1,1,0" CornerRadius="6,6,0,0" IsHitTestVisible="False"
+                        BorderBrush="{DynamicResource PaneBorderBrush}"/>
+                <DockPanel LastChildFill="True">
+                    <!-- Overflow chevron: every tab in this pane, hidden ones included
+                         (TabOverflowMenu). Docked BEFORE the strip so the strip measures against
+                         the band's REMAINING width - docked after, the strip would take the whole
+                         band and the chevron would sit on top of the last tab.
+                         Collapsed while everything fits, which is the normal case: a chevron that
+                         is always there is a control that does nothing most of the time, and its
+                         26px would come out of the tabs to say so. -->
+                    <!-- DynamicResource, NOT StaticResource, on the style - same reason as
+                         GrainBrushShared above. TabNewButton lives in MainWindow.Resources, and
+                         StaticResource resolves at parse time against this control's own scope,
+                         before the control is in the window's tree, so it throws from
+                         InitializeComponent. -->
+                    <Button x:Name="TabOverflowBtn" DockPanel.Dock="Right" Visibility="Collapsed"
+                            Style="{DynamicResource TabNewButton}"
+                            Content="&#xE70D;" FontFamily="{DynamicResource IconFont}" FontSize="10"
+                            Width="22" Height="20" Margin="2,4,2,3" VerticalAlignment="Center"
+                            FocusVisualStyle="{x:Null}"
+                            ToolTip="{DynamicResource Str_TT_TabOverflow}" Click="TabOverflow_Click"/>
+                    <!-- No side insets. The strip has to be flush with the card beneath it, or the
+                         first tab's left edge sits 6px inside the card's left border and the ring
+                         steps sideways where it should run straight up. -->
+                    <!-- Horizontal scrolling is DISABLED, not hidden: hidden still measures the
+                         content at infinite width, which would let the tabs size to their own
+                         content and defeat the UniformGrid below. Disabled constrains them to the
+                         band's actual width, which is the point.
+                         FocusVisualStyle nulled: a ScrollViewer is focusable, and once focus lands
+                         here WPF draws its stock dotted rectangle around the whole strip. -->
+                    <ScrollViewer x:Name="TabScroll" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled"
+                                  Background="Transparent" FocusVisualStyle="{x:Null}"
+                                  MouseLeftButtonDown="TabScroll_MouseLeftButtonDown">
+                        <ItemsControl x:Name="TabStrip">
+                            <!-- The ACTIVE tab draws above its neighbors. Items paint in index
+                                 order, so the tab to the RIGHT of the active one painted over the
+                                 active tab's 1px right border and the ring stopped dead at that
+                                 side - which is why a middle tab lost its right edge while the last
+                                 tab, having no neighbor after it, kept both. -->
+                            <ItemsControl.ItemContainerStyle>
+                                <Style TargetType="ContentPresenter">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                            <Setter Property="Panel.ZIndex" Value="1"/>
+                                        </DataTrigger>
+                                        <!-- Windowed out of the strip and living in the chevron
+                                             instead (ApplyTabWindow). Collapsed rather than removed
+                                             from the collection, which is what makes this cheap:
+                                             UniformGrid does not count a collapsed child when it
+                                             divides the band, so the survivors fill it edge to edge
+                                             on their own, and nothing about the tabs' order or
+                                             their drag indices moves. -->
+                                        <DataTrigger Binding="{Binding IsStripVisible}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ItemsControl.ItemContainerStyle>
+                            <ItemsControl.ItemsPanel>
+                                <!-- Tabs share the band equally and fill it, browser-style, instead
+                                     of hugging their titles and leaving dead space on the right.
+                                     This is also what makes the last tab always REACH the strip's
+                                     right edge, so edge ownership is a fact rather than something
+                                     that has to be measured after every reflow. -->
+                                <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <!-- No DataType: the item is PdfViewer.DocumentSession, an internal
+                                     nested type, which x:Type cannot name. -->
+                                <DataTemplate>
+                                    <!-- No MaxWidth: it would cap each cell and put the dead space
+                                         back. The MinWidth floor is low so a lot of open tabs still
+                                         divide the band rather than overflowing it.
+                                         CornerRadius matches the card's 6: the rightmost tab sits
+                                         directly above the card's top-right corner, and a 4px curve
+                                         stacked on a 6px one reads as a mistake rather than as two
+                                         rounded things.
+                                         No right MARGIN: the 1px right BorderThickness below
+                                         already separates one tab from the next, and a margin only
+                                         stopped the last tab reaching the strip's right edge -
+                                         which is the card's edge, so it left a 1px step under the
+                                         corner.
+                                         1px bottom margin keeps an inactive tab clear of
+                                         TabBarRing; the active tab drops it and covers its own
+                                         segment, which is what breaks that line exactly at the tab
+                                         and makes the browser-tab join. -->
+                                    <Border x:Name="tabBd" CornerRadius="6,6,0,0" Margin="0,3,0,1" Padding="12,4,5,5"
+                                            MinWidth="60"
+                                            Cursor="Hand" Background="{DynamicResource BackgroundBrush}"
+                                            BorderThickness="0,0,1,0" BorderBrush="{DynamicResource CardBorderBrush}"
+                                            ToolTip="{Binding TabTip}"
+                                            MouseDown="Tab_MouseDown"
+                                            MouseRightButtonUp="Tab_RightClick"
+                                            PreviewMouseLeftButtonDown="Tab_DragDown"
+                                            PreviewMouseMove="Tab_DragMove"
+                                            PreviewMouseLeftButtonUp="Tab_DragUp">
+                                        <Grid>
+                                            <!-- Grain follows the tab's radius, or the texture
+                                                 squares off the corner the border just rounded. -->
+                                            <Border IsHitTestVisible="False" CornerRadius="6,6,0,0" Margin="-12,-4,-5,-5"
+                                                    Background="{DynamicResource GrainBrushShared}" Opacity="{DynamicResource GrainOpacity}"/>
+                                            <DockPanel LastChildFill="True">
+                                                <Button DockPanel.Dock="Right" Content="&#xE711;"
+                                                        Style="{DynamicResource TabCloseButton}"
+                                                        FontFamily="{DynamicResource IconFont}" FontSize="9"
+                                                        Width="16" Height="16" Margin="6,0,0,0" Padding="0"
+                                                        VerticalAlignment="Center" FocusVisualStyle="{x:Null}"
+                                                        ToolTip="{DynamicResource Str_TT_CloseTab}"
+                                                        Tag="{Binding}" Click="CloseTab_Click"/>
+                                                <TextBlock x:Name="tabLbl" Text="{Binding TabLabel}"
+                                                           FontFamily="{DynamicResource UiFont}" FontSize="11"
+                                                           Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </DockPanel>
+                                        </Grid>
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <!-- Last tab drops its right border: that 1px is a divider
+                                             BETWEEN tabs, and on the strip's right edge it reads as
+                                             a stray rule instead. Declared BEFORE the IsActive
+                                             trigger so the active tab's accent-stripe thickness
+                                             still wins when the last tab is also the active one. -->
+                                        <DataTrigger Binding="{Binding IsLast}" Value="True">
+                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="0"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                            <!-- Front tab takes the card's own canvas color, so the
+                                                 tab and the card read as one surface. -->
+                                            <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource BgCanvas}"/>
+                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="0,3,0,0"/>
+                                            <!-- Reaches the foot of the band so its fill breaks the
+                                                 ring line where the tab is. -->
+                                            <Setter TargetName="tabBd" Property="Margin" Value="0,3,0,0"/>
+                                            <!-- Top padding gives back the 3px the accent stripe
+                                                 takes, so the title does not drop on activation. -->
+                                            <Setter TargetName="tabBd" Property="Padding" Value="12,1,5,5"/>
+                                            <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource SelectionBg}"/>
+                                            <!-- ShadowBar: the app's own named elevation for "a
+                                                 panel lifted slightly off the surface", which is
+                                                 what a raised tab is. The strip's ScrollViewer
+                                                 clips it, so it darkens the band around the tab and
+                                                 cannot bleed down onto the card. -->
+                                            <Setter TargetName="tabBd" Property="Effect" Value="{StaticResource ShadowBar}"/>
+                                            <Setter TargetName="tabLbl" Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                                            <Setter TargetName="tabLbl" Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                        <!-- Unfocused pane: the lip drops off the accent entirely
+                                             and takes the card's own border color, so the whole
+                                             unlit ring - lip, band line and card border - is ONE
+                                             value. At full accent both panes claimed to be the live
+                                             one. The active tab is still obvious on an unfocused
+                                             pane from its canvas fill and bold title, which is how
+                                             a browser marks it too.
+                                             Mutually exclusive with PaneFocused below, and NOT
+                                             simply !PaneFocused: with one pane open both are false
+                                             and the lone pane's lip stays bright. -->
+                                        <DataTrigger Binding="{Binding PaneDimmed}" Value="True">
+                                            <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource PaneBorderBrush}"/>
+                                        </DataTrigger>
+                                        <!-- Focused pane: the ring continues UP both sides of the
+                                             active tab, so the tab and the card read as one
+                                             outlined surface instead of the ring stopping dead at
+                                             the strip. Declared LAST on purpose - PaneFocused
+                                             implies IsActive, both triggers match, and with
+                                             multiple matches the last one wins. Put earlier,
+                                             IsActive would overwrite the thickness straight back to
+                                             a top-only stripe.
+                                             One brush for the whole lip, matching the card's ring:
+                                             a top stripe in one color meeting sides in another
+                                             reads as two edges rather than one ring.
+                                             Padding drops 1px each side to pay for the new borders,
+                                             so the title does not shift when focus arrives. -->
+                                        <DataTrigger Binding="{Binding PaneFocused}" Value="True">
+                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="1,3,1,0"/>
+                                            <Setter TargetName="tabBd" Property="Padding" Value="11,1,4,5"/>
+                                            <Setter TargetName="tabBd" Property="BorderBrush" Value="{DynamicResource SelectionAccent}"/>
+                                        </DataTrigger>
+                                        <!-- The OUTERMOST side is the band's to draw (TabEdgeLeft /
+                                             TabEdgeRight), so the first and last tab must not draw
+                                             it as well. Two 1px borders at the same x is a 2px edge
+                                             on a ring that is 1px everywhere else - and only
+                                             SOMETIMES, because whether the tab's own outer border
+                                             clears the ScrollViewer's clip depends on how the
+                                             UniformGrid divided a fractional band width. That is
+                                             where the halo came out uneven, and why it changed when
+                                             the split moved.
+                                             The padding gives the pixel back on that side so the
+                                             title does not shift, exactly as PaneFocused does.
+                                             Declared after PaneFocused - all three match on a first
+                                             or last tab and the last match wins. -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding PaneFocused}" Value="True"/>
+                                                <Condition Binding="{Binding IsFirst}"     Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="0,3,1,0"/>
+                                            <Setter TargetName="tabBd" Property="Padding" Value="12,1,4,5"/>
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding PaneFocused}" Value="True"/>
+                                                <Condition Binding="{Binding IsLast}"      Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="1,3,0,0"/>
+                                            <Setter TargetName="tabBd" Property="Padding" Value="11,1,5,5"/>
+                                        </MultiDataTrigger>
+                                        <!-- One tab in a focused pane owns BOTH edges, so it draws
+                                             neither. Last of the three for the same reason. -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding PaneFocused}" Value="True"/>
+                                                <Condition Binding="{Binding IsFirst}"     Value="True"/>
+                                                <Condition Binding="{Binding IsLast}"      Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBd" Property="BorderThickness" Value="0,3,0,0"/>
+                                            <Setter TargetName="tabBd" Property="Padding" Value="12,1,5,5"/>
+                                        </MultiDataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </DockPanel>
+                <!-- The ring's two vertical ends, drawn by the BAND rather than by the tab.
+                     A first or last tab's own outer border sits on the strip's clip edge and the
+                     ScrollViewer cuts it, so whether it survived depended on the pane width -
+                     which is why the halo came out uneven and changed as the split moved. These
+                     are anchored to the band's own edges, so there is no arithmetic to land
+                     wrong. Declared after the strip so they draw over the tabs, and shown only
+                     when the tab that owns that edge is the active one in the FOCUSED pane
+                     (UpdatePaneFocusRing) - an inactive edge tab leaves the card's corner rounded
+                     and there is nothing to continue. Top margin 9 = the tab's own 3 plus its 6px
+                     corner radius, so each strip starts where the tab's side actually becomes
+                     vertical. Square-topped at 3 it stood proud of the rounded corner as a little
+                     spike; inside the arc the tab's border is inset from the band edge, nowhere
+                     near the clip, and draws itself fine. -->
+                <Border x:Name="TabEdgeLeft" Width="1" HorizontalAlignment="Left" Margin="0,9,0,0"
+                        IsHitTestVisible="False" Visibility="Collapsed"/>
+                <Border x:Name="TabEdgeRight" Width="1" HorizontalAlignment="Right" Margin="0,9,0,0"
+                        IsHitTestVisible="False" Visibility="Collapsed"/>
+            </Grid>
+        </Border>
+
+        <!-- ── This pane's card ───────────────────────────────────────────────────────────
+             Row 1. The -1 top margin tucks the card's top border up into the strip band so the
+             active tab and the card read as one surface (see TabBarRing).
+
+             Margin is set in CODE, not here: it must be -1 only while this pane HAS a strip.
+             A pane with one tab collapses its strip, and the -1 then lifts that pane a pixel above
+             the other one instead of tucking under anything. RebuildTabStrip owns both. -->
+        <Grid x:Name="CardRow" Grid.Row="1">
+        <!-- Shadow caster: same geometry, NO content, not hit-testable. The effect must NOT go on
+             PaneBorder itself - a WPF Effect rasterizes its whole subtree, so every glyph in the
+             pane (drop-zone labels, page text, the annotate bars) would render through a bitmap
+             effect and lose ClearType, and the page bitmap would be re-rasterized on every scroll
+             and zoom. Family rule, and the same split RootBorder/WindowShadowBorder already use at
+             the window level. -->
+        <!-- Margin 0,1,0,0 cancels CardRow's -1 for the SHADOW ONLY. The -1 exists to tuck the
+             card's top BORDER under the tab band; applying it to the shadow caster as well lifts
+             the caster into the band, and its blur (16px, offset 5 down, so ~11px of spill upward)
+             then rides up into the strip and pools at the rounded top corners. PaneBorder keeps
+             the -1 and stays tucked. -->
+        <Border x:Name="PaneShadow" IsHitTestVisible="False" Margin="0,1,0,0"
+                Background="{DynamicResource BgCanvas}"
+                CornerRadius="{DynamicResource RadCard}"
+                Effect="{StaticResource PaneShadow}"/>
+        <Border x:Name="PaneBorder" Panel.ZIndex="6"
+                Background="{DynamicResource BgCanvas}"
+                BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1"
+                CornerRadius="{DynamicResource RadCard}">
+            <!-- Clipped to the card's own corners (DocPane_SizeChanged). A Border with a
+                 CornerRadius does NOT clip its child, so the canvas and the page square the
+                 corners straight back off. Same treatment as KillerShell's PaneContent. -->
+            <Grid x:Name="DocPaneContent" SizeChanged="DocPane_SizeChanged">
+                <!-- Film grain - sits on the canvas background, behind the document.
+                     Needs no CornerRadius of its own: the clip on DocPaneContent rounds
+                     everything inside the card, grain included. -->
+                <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}">
+                    <Border.Background>
+                        <ImageBrush x:Name="GrainBrush"
+                                    TileMode="Tile"
+                                    ViewportUnits="Absolute"
+                                    Viewport="0,0,256,256"
+                                    Stretch="None"/>
+                    </Border.Background>
+                </Border>
+
+                <!-- Drop zone -->
+                <Border x:Name="DropZone" Background="Transparent"
+                        AllowDrop="True" Drop="DropZone_Drop" DragOver="DropZone_DragOver"
+                        MouseLeftButtonDown="DropZone_Click">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Drop target, centered in the remaining space -->
+                        <Border Grid.Column="0" BorderBrush="{DynamicResource DropBorder}" BorderThickness="2"
+                                CornerRadius="8" Padding="40"
+                                HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Background="Transparent" Style="{x:Null}">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="{DynamicResource Str_Drop_Title}" FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="20"
+                                           Foreground="{DynamicResource MutedTextBrush}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Str_Drop_Sub}" FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI" FontSize="13"
+                                           Foreground="{DynamicResource MutedTextBrush}" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Recent files sidebar (populated in code-behind; hidden when empty).
+                             Width and visibility are driven by SyncRecentBoxWidth: at 340 fixed it
+                             swamped the drop target in a half-width pane, so it now scales with the
+                             pane and drops out entirely below a threshold. -->
+                        <Border x:Name="RecentFilesBox" Grid.Column="1" Width="340" Visibility="Collapsed"
+                                Background="{DynamicResource BgRecentPanel}"
+                                BorderBrush="{DynamicResource PaneBorderBrush}" BorderThickness="1,0,0,0">
+                            <Grid>
+                                <Border Background="{DynamicResource GrainBrushShared}" IsHitTestVisible="False"
+                                        Opacity="{DynamicResource GrainOpacity}"/>
+                                <DockPanel Margin="18,22,12,16">
+                                    <DockPanel DockPanel.Dock="Top" Margin="2,0,0,10">
+                                        <!-- Clear all (#146): one click empties the whole list, matching the
+                                             dropdown's Clear list item. Foreground lives in the style so the
+                                             hover trigger can override it (a local value would win over it). -->
+                                        <TextBlock DockPanel.Dock="Right" Text="{DynamicResource Str_Menu_ClearList}"
+                                                   FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"
+                                                   FontSize="11" Cursor="Hand" Margin="8,0,6,0"
+                                                   MouseLeftButtonDown="RecentClearAll_Click">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                                            <Setter Property="TextDecorations" Value="Underline"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBlock Text="RECENT" FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"
+                                                   FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource PrimaryBrush}"/>
+                                    </DockPanel>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <ItemsControl x:Name="RecentFilesList"/>
+                                    </ScrollViewer>
+                                </DockPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- PDF page with annotation overlay -->
+                <ScrollViewer x:Name="PagePreviewPanel" Visibility="Collapsed"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto"
+                              Background="Transparent"
+                              PreviewMouseWheel="PagePreview_PreviewMouseWheel"
+                              SizeChanged="PagePreviewPanel_SizeChanged"
+                              PreviewMouseDown="PagePreviewPanel_PreviewMouseDown"
+                              PreviewMouseMove="PagePreviewPanel_PreviewMouseMove"
+                              PreviewMouseUp="PagePreviewPanel_PreviewMouseUp"
+                              MouseRightButtonUp="DocPaneBackground_RightClick"
+                              AllowDrop="True" Drop="DropZone_Drop" DragOver="DropZone_DragOver">
+                    <!-- Custom template: the VERTICAL scrollbar spans the full height (RowSpan=2),
+                         covering the bottom-right corner cell, and the horizontal bar butts up
+                         against it. The default template puts a white system-colored corner
+                         rectangle there, which read as a stray white square against the dark
+                         canvas whenever both scrollbars were visible.
+                         The PART_ names below are TEMPLATE-scoped and so are unaffected by this
+                         control being its own namescope - do not "fix" them. -->
+                    <ScrollViewer.Template>
+                        <ControlTemplate TargetType="ScrollViewer">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <ScrollContentPresenter Grid.Row="0" Grid.Column="0"
+                                                        Margin="{TemplateBinding Padding}"
+                                                        Content="{TemplateBinding Content}"
+                                                        ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                        CanContentScroll="{TemplateBinding CanContentScroll}"/>
+                                <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Row="0" Grid.Column="1" Grid.RowSpan="2"
+                                           Value="{TemplateBinding VerticalOffset}"
+                                           Maximum="{TemplateBinding ScrollableHeight}"
+                                           ViewportSize="{TemplateBinding ViewportHeight}"
+                                           Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}"/>
+                                <ScrollBar x:Name="PART_HorizontalScrollBar" Grid.Row="1" Grid.Column="0"
+                                           Orientation="Horizontal"
+                                           Value="{TemplateBinding HorizontalOffset}"
+                                           Maximum="{TemplateBinding ScrollableWidth}"
+                                           ViewportSize="{TemplateBinding ViewportWidth}"
+                                           Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}"/>
+                            </Grid>
+                        </ControlTemplate>
+                    </ScrollViewer.Template>
+                    <Border x:Name="DocSurfacePad" VerticalAlignment="Top" HorizontalAlignment="Center" Padding="12">
+                        <!-- Override the window's Display/ClearType text mode for the zoomed
+                             document surface. Display + ClearType pixel-snaps and color-fringes
+                             when scaled, giving hard-edged text on annotations and form fields;
+                             Ideal + Grayscale stays smoothly anti-aliased at any zoom, matching
+                             how other PDF editors render. -->
+                        <Grid x:Name="PageContentGrid"
+                              TextOptions.TextFormattingMode="Ideal"
+                              TextOptions.TextRenderingMode="Grayscale">
+                            <Grid.LayoutTransform>
+                                <ScaleTransform ScaleX="1" ScaleY="1"/>
+                            </Grid.LayoutTransform>
+                            <WrapPanel x:Name="PageContentPanel" Orientation="Horizontal">
+                                <!-- Tile 0 (the primary page) is built in code by BuildPrimaryTile and
+                                     inserted at index 0; additional pages are rendered dynamically too. -->
+                            </WrapPanel>
+                            <!-- Continuous scroll panel - shown in Continuous view mode -->
+                            <StackPanel x:Name="ContinuousPanel"
+                                        HorizontalAlignment="Center"
+                                        Orientation="Vertical"
+                                        Visibility="Collapsed"/>
+                            <!-- Top-most layer for the selection marquee, so a drag can span pages -->
+                            <Canvas x:Name="MarqueeLayer" IsHitTestVisible="False"/>
+                        </Grid>
+                    </Border>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+        </Grid><!-- /card row -->
+    </Grid>
+</UserControl>

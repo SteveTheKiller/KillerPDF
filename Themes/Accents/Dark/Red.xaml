@@ -4,13 +4,17 @@
 
     <!-- Dark family - RED accent overlay. Overrides only the accent-hue keys; everything
          neutral (and the fixed greens: InstallBtnBg, AccentLogo) comes from Dark.xaml. -->
-    <SolidColorBrush x:Key="Accent"          Color="#DD504B" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"    Color="#DD504B" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#DD504B" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#DD504B" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#DD504B" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#DD504B" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#DD504B" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#DD504B" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"       Color="#2A0D0D" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#2A0D0D" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#2A0D0D" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"     Color="#5E1C1C" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"   Color="#55DD504B" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#DD504B" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#55DD504B" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#DD504B" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#DD504B" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#2A0D0D" po:Freeze="True"/>

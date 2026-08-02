@@ -46,7 +46,6 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">收合側邊欄 (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">展開側邊欄 (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">鍵盤快速鍵 (F1)</sys:String>
-    <sys:String x:Key="Str_TT_Settings">設定 (F9)</sys:String>
     <sys:String x:Key="Str_TT_About">關於 KillerPDF (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
@@ -62,10 +61,11 @@
     <sys:String x:Key="Str_TabOutlines">大綱</sys:String>
 
     <!-- ── Settings panel ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Settings">設定</sys:String>
     <sys:String x:Key="Str_Theme">佈景主題</sys:String>
     <sys:String x:Key="Str_Language">語言</sys:String>
     <sys:String x:Key="Str_Toolbar">工具列</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">工具列</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">無文字</sys:String>
     <sys:String x:Key="Str_Toolbar_SmallIcons">小圖示</sys:String>
     <sys:String x:Key="Str_Toolbar_LargeIcons">大圖示</sys:String>
     <sys:String x:Key="Str_Toolbar_TextBeside">圖示加文字</sys:String>
@@ -80,6 +80,7 @@
     <sys:String x:Key="Str_KS_File">檔案</sys:String>
     <sys:String x:Key="Str_KS_Open">開啟</sys:String>
     <sys:String x:Key="Str_KS_CloseFile">關閉檔案</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">關閉其他分頁</sys:String>
     <sys:String x:Key="Str_KS_CloseAll">全部關閉</sys:String>
     <sys:String x:Key="Str_KS_NewBlank">新增空白文件</sys:String>
     <sys:String x:Key="Str_KS_SaveAs">另存新檔</sys:String>
@@ -103,11 +104,11 @@
     <sys:String x:Key="Str_KS_Help">說明</sys:String>
     <sys:String x:Key="Str_KS_ThisList">此快速鍵清單</sys:String>
     <sys:String x:Key="Str_KS_About">關於對話方塊</sys:String>
-    <sys:String x:Key="Str_KS_Settings">設定</sys:String>
-    <sys:String x:Key="Str_KS_DocInfo">æ-‡ä»¶è³‡è¨Š</sys:String>
+    <sys:String x:Key="Str_KS_DocInfo">文件資訊</sys:String>
     <sys:String x:Key="Str_KS_OnlineHelp">完整指南與線上教學</sys:String>
     <sys:String x:Key="Str_KS_Tools">工具</sys:String>
     <sys:String x:Key="Str_KS_Paste">貼上圖片／文字</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">粗體／斜體／底線（文字方塊）</sys:String>
     <sys:String x:Key="Str_KS_MultiSelect">加入選取</sys:String>
 
     <!-- ── Status bar ────────────────────────────────────────────────── -->
@@ -142,11 +143,22 @@
     <sys:String x:Key="Str_RotateFailed">旋轉失敗：{0}</sys:String>
 
     <!-- ── Dialog strings ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Dlg_InstallTitle">安裝 KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg">要將 KillerPDF 安裝到您的使用者設定檔嗎？
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">另一個窗格中也開啟了「{0}」，並且有自己未儲存的變更。
 
-這將把應用程式複製到 %LocalAppData%\KillerPDF 並建立開始功能表捷徑。
-您可以隨時透過新增或移除程式來解除安裝。</sys:String>
+現在儲存會覆寫該檔案，那些變更將會遺失。若要保留，請先儲存另一個窗格。</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">分割檢視已開啟 - 按 F10 關閉</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">分割檢視已關閉</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">安裝 KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">要將 KillerPDF 安裝到這台電腦嗎？
+
+KillerPDF 將被複製到您的程式資料夾，並新增開始功能表項目。此 EXE 副本會保留在原處，您可以隨時透過新增或移除程式來解除安裝。</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">安裝</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">新增桌面捷徑</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">為這台電腦上的所有使用者安裝（需要系統管理員）</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">安裝未完成 - KillerPDF 仍以可攜方式執行。</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg">要將 KillerPDF 設為預設 PDF 檢視器嗎？
+
+將開啟 Windows 設定 - 預設應用程式。</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">您有未儲存的變更。要在不儲存的情況下關閉此檔案嗎？</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">您有未儲存的變更。要在不儲存的情況下關閉 KillerPDF 嗎？</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange">此文件有 {0} 個頁面的尺寸超出 Adobe Reader 支援的範圍（每邊 3 到 14400 點），Adobe 會將這些頁面顯示為空白。
@@ -394,6 +406,10 @@
     <sys:String x:Key="Str_Sidebar_Left">左側</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">右側</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">切換側邊欄</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">工具列外觀</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">側邊欄移到左 / 右側</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">下一個檢視模式</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">檢視模式</sys:String>
     <sys:String x:Key="Str_KS_NextTab">下一個分頁（Shift：上一個）</sys:String>
     <sys:String x:Key="Str_Lbl_Search">搜尋</sys:String>
     <sys:String x:Key="Str_TT_Search">搜尋 (Ctrl+F)</sys:String>
@@ -488,6 +504,7 @@
     <sys:String x:Key="Str_St_NoTextOnPage">本頁找不到文字</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">未選取文字-請拖曳以選取文字</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">選取範圍中找不到文字</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">此處沒有文字 - 形狀在 4 鍵</sys:String>
     <sys:String x:Key="Str_St_SignaturePlaced">已放置簽名-拖曳以重新定位，使用角落控點調整大小</sys:String>
     <sys:String x:Key="Str_St_FieldCleared">已清除欄位</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">已簽署欄位</sys:String>
@@ -580,6 +597,8 @@
     <sys:String x:Key="Str_PrivacySection">隱私</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">不記住最近開啟的檔案</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">將頁面匯出為圖片...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">移除密碼</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">已儲存，無密碼保護 - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">將頁面匯出為圖片</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">格式</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">解析度 (DPI)</sys:String>
@@ -589,9 +608,53 @@
     <sys:String x:Key="Str_Print_OddOnly">僅奇數頁</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">僅偶數頁</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">反轉文件顏色</sys:String>
-    <sys:String x:Key="Str_TT_DocInvert">反轉文件顏色 (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">反轉文件顏色 (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">分割視窗 - 兩份文件並排顯示 (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">關閉分頁</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">所有開啟的分頁</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">也反轉圖像</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs">此電腦上沒有字型可以顯示這些字元，因此它們在儲存的 PDF 中將顯示為方框：&#10;&#10;{0}&#10;&#10;請安裝包含這些字元的字型，或為此文字選擇其他字型。</sys:String>
     <sys:String x:Key="Str_TT_AppSize">捲動以調整整個應用程式大小 (Ctrl+Shift+=/-/0)</sys:String>
     <sys:String x:Key="Str_St_AppSize">應用程式大小 {0}%</sys:String>
     <sys:String x:Key="Str_KS_AppSize">縮放整個應用程式（無障礙）</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">分割視窗 - 兩份文件並排顯示</sys:String>
     <sys:String x:Key="Str_LinkConfirmSetting">開啟連結前確認</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">還原</sys:String>
+    <sys:String x:Key="Str_Sys_Move">移動</sys:String>
+    <sys:String x:Key="Str_Sys_Size">大小</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">最小化</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">最大化</sys:String>
+    <sys:String x:Key="Str_Sys_Close">關閉</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">取消</sys:String>
+    <sys:String x:Key="Str_Btn_Open">開啟</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">取代</sys:String>
+    <sys:String x:Key="Str_Btn_Save">儲存</sys:String>
+    <sys:String x:Key="Str_Col_Modified">修改時間</sys:String>
+    <sys:String x:Key="Str_Col_Name">名稱</sys:String>
+    <sys:String x:Key="Str_Col_Size">大小</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">剪下</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">全選</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">所有檔案</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">檔案名稱：</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">檔案類型：</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">此處沒有符合目前檔案類型的項目。</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">該檔案不存在。</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">該資料夾不存在。</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">要取代 {0} 嗎？</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">釘選到位置</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">從位置移除</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">桌面</sys:String>
+    <sys:String x:Key="Str_QA_Documents">文件</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">下載</sys:String>
+    <sys:String x:Key="Str_QA_Home">主目錄</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">圖片</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} 個資料夾，{1} 個檔案</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">最近的位置</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">顯示隱藏和系統項目</sys:String>
+    <sys:String x:Key="Str_TT_Up">上一層資料夾</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">詳細資料檢視</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">圖示檢視</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">清單檢視</sys:String>
 </ResourceDictionary>

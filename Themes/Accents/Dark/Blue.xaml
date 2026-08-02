@@ -5,13 +5,17 @@
     <!-- Dark family - BLUE accent overlay. Text keys are a lighter cyan-blue so they read on the
          dark panels; the selection-background keys stay deep navy. Fixed greens (InstallBtnBg,
          AccentLogo) come from Dark.xaml. -->
-    <SolidColorBrush x:Key="Accent"          Color="#50AEE8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"    Color="#50AEE8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#50AEE8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#50AEE8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#50AEE8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#50AEE8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#50AEE8" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#50AEE8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"       Color="#0D1B2A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#0D1B2A" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#0D1B2A" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"     Color="#1C3B5E" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"   Color="#5550AEE8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#50AEE8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#5550AEE8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#50AEE8" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#50AEE8" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#0D1B2A" po:Freeze="True"/>

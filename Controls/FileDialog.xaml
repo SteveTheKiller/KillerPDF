@@ -1,0 +1,503 @@
+<!-- Themed replacement for Microsoft.Win32.OpenFileDialog / SaveFileDialog.
+     Same chrome, places rail, view modes and sortable columns as FolderPickerDialog - the row
+     styles and templates are shared from Controls.xaml - plus a file name box, a filter combo
+     and Open/Save behavior. The property surface deliberately mirrors the Win32 dialogs
+     (Title, Filter, FilterIndex, FileName, InitialDirectory, DefaultExt, ...) so a call site
+     changes by one word. -->
+<Window x:Class="KillerPDF.Controls.FileDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kui="clr-namespace:KillerPDF.Controls"
+        Title="KillerPDF"
+        Width="720" Height="520" MinWidth="560" MinHeight="420"
+        WindowStyle="None" ResizeMode="CanResize" ShowInTaskbar="False"
+        AllowsTransparency="True"
+        Background="Transparent"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        WindowStartupLocation="CenterOwner">
+
+    <!-- The picker's styles are merged HERE, not into App.xaml. LocaleManager owns application
+         merged-dictionary slot [2] - it assigns the locale override there and, for English,
+         REMOVES it - so anything parked at [2] is deleted at startup. That is what "Cannot find
+         resource named 'DarkTextBox'" was. These styles are the picker's own, so scoping them to
+         the picker removes the index coupling entirely rather than competing for a slot. -->
+    <Window.Resources>
+        <ResourceDictionary Source="pack://application:,,,/Controls/PickerStyles.xaml"/>
+    </Window.Resources>
+
+    <!-- NO shell:WindowChrome. On an AllowsTransparency window it fills its own non-client area,
+         which paints as a flat band all the way round the card - the "halo". It was NOT the only
+         difference from the other four dialogs: the code-behind also called
+         DwmChrome.SetRoundedCorners/SetThemeBorder, and on a layered window the DWM corner
+         preference composites DWM's own rounded frame around the WINDOW rect (halo included),
+         tinted by the border color - the band survived the WindowChrome removal because of it.
+         Both are gone now; no WindowChrome, no DWM calls, same as the other four.
+
+         Resize is done by hand instead, on the halo itself: Resize_MouseDown works out which edge
+         or corner the pointer is in and hands the drag to Windows with WM_NCLBUTTONDOWN, the same
+         mechanism Shell/Chrome.cs uses for the main window's grip. That needs the halo to receive
+         mouse input, which is why this Grid is #01000000 (alpha 1/255) rather than Transparent -
+         a fully transparent area gets no mouse events at all.
+
+         Two earlier attempts blamed the wrong thing. The shadow WAS also wrong - it sat on the
+         content Border, and this is the only dialog with a ComboBox, whose dropdown is an
+         AllowsTransparency Popup; a WPF Effect over a subtree containing one renders as a filled
+         rectangle. That is fixed below and is a real bug, it just was not this one.
+         (Steve, 2026-07-30, four attempts.) -->
+    <!-- RootFade, not RootBorder, is what the open/close animation drives - and it starts at 0,
+         the same way KillerShell's RootGrid does. The fade used to run on RootBorder alone, but
+         the shadow layer below is a SIBLING carrying the identical BackgroundBrush and geometry,
+         with no starting opacity: it slammed in solid on the first frame and only the card faded
+         on top of it, so the dialog read as blinking into existence rather than fading. Fading the
+         shared parent takes the shadow with it. (Steve, 2026-07-31: "they kind of blink in".) -->
+    <Grid x:Name="RootFade" Opacity="0" Background="#01000000"
+          MouseMove="Resize_MouseMove" MouseLeftButtonDown="Resize_MouseDown">
+
+        <!-- Shadow layer: same geometry, NO content, not hit-testable. -->
+        <Border Margin="10" CornerRadius="6" Background="{DynamicResource BackgroundBrush}"
+                IsHitTestVisible="False">
+            <Border.Effect>
+                <!-- RenderingBias Quality: at radius 18 the default Performance bias renders the
+                     blur at reduced resolution and scales it up, which blocks up into stair-steps
+                     on this card's rounded corners. Same fix as App.xaml's PaneShadow. -->
+                <DropShadowEffect Color="Black" BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.6"
+                                  RenderingBias="Quality"/>
+            </Border.Effect>
+        </Border>
+
+        <Border x:Name="RootBorder" BorderBrush="{DynamicResource CardBorderBrush}" BorderThickness="1"
+                Background="{DynamicResource BackgroundBrush}" CornerRadius="6" Margin="10">
+            <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>    <!-- title bar -->
+                <RowDefinition Height="Auto"/>  <!-- heading -->
+                <RowDefinition Height="Auto"/>  <!-- path row -->
+                <RowDefinition Height="*"/>     <!-- places | entries -->
+                <RowDefinition Height="Auto"/>  <!-- file name + filter -->
+                <RowDefinition Height="Auto"/>  <!-- footer -->
+            </Grid.RowDefinitions>
+
+            <!-- Shared film grain over the whole dialog surface -->
+            <Border Grid.RowSpan="6" IsHitTestVisible="False"
+                    Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+
+            <!-- Title bar -->
+            <Border Grid.Row="0" Background="Transparent" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid Margin="16,0">
+                    <Grid VerticalAlignment="Center" HorizontalAlignment="Left" IsHitTestVisible="False">
+                        <TextBlock FontFamily="{DynamicResource WordmarkFont}" FontSize="15" Margin="1,2,0,0" Opacity="{DynamicResource IconShadowOpacity}">
+                            <TextBlock.Effect><BlurEffect Radius="3"/></TextBlock.Effect>
+                            <Run Text="The " Foreground="#D8000000"/><Run Text="KillerPDF" FontSize="19.5" FontWeight="Bold" Foreground="#D8000000"/>
+                        </TextBlock>
+                        <TextBlock FontFamily="{DynamicResource WordmarkFont}" FontSize="15">
+                            <Run Text="The " Foreground="{DynamicResource TextBrush}"/><Run Text="KillerPDF" FontSize="19.5" FontWeight="Bold" Foreground="{DynamicResource PrimaryBrush}"/>
+                        </TextBlock>
+                    </Grid>
+                    <Button Content="&#xE8BB;" Click="Cancel_Click" HorizontalAlignment="Right" Width="30" Height="26" FontSize="10"
+                            FontFamily="Segoe MDL2 Assets" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Foreground" Value="{DynamicResource ChromeTextBrush}"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="xb" Background="Transparent" CornerRadius="3">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter Property="Foreground" Value="{DynamicResource DangerRed}"/>
+                                                    <Setter TargetName="xb" Property="Background" Value="#33C42B1C"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- Heading: the caller's Title, so "Import iCalendar" still reads as the prompt -->
+            <TextBlock x:Name="HeadingText" Grid.Row="1" Margin="16,0,16,8"
+                       Foreground="{DynamicResource MutedTextBrush}" FontFamily="Consolas" FontSize="12"/>
+
+            <!-- Path row: up one level + current path + view modes -->
+            <Grid Grid.Row="2" Margin="16,0,16,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button x:Name="UpButton" Grid.Column="0" Content="&#xE74A;" Click="Up_Click" ToolTip="{DynamicResource Str_TT_Up}"
+                        Width="30" Height="28" Margin="0,0,6,0" FontSize="12" FontFamily="Segoe MDL2 Assets"
+                        Foreground="{DynamicResource TextBrush}" Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="ub" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource InputBorderBrush}"
+                                    BorderThickness="1" CornerRadius="4">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="ub" Property="BorderBrush" Value="{DynamicResource PrimaryBrush}"/></Trigger>
+                                <Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.4"/></Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+                <!-- Explicit style: an unstyled TextBox falls back to WPF's white fill and blue
+                     focus border. The chevron overlays the box's right edge (the box pads 28 to
+                     clear it) and drops the recent-locations list, like Explorer's address bar. -->
+                <Grid Grid.Column="1">
+                    <TextBox x:Name="PathBox" Height="28" Style="{StaticResource DarkTextBox}"
+                             FontFamily="Consolas" FontSize="12" Padding="8,0,28,0"
+                             VerticalContentAlignment="Center" KeyDown="PathBox_KeyDown"/>
+                    <Button x:Name="RecentsBtn" Content="&#xE70D;" Click="RecentsBtn_Click"
+                            ToolTip="{DynamicResource Str_TT_RecentLocations}"
+                            Width="24" Height="24" HorizontalAlignment="Right" Margin="0,0,2,0"
+                            FontFamily="Segoe MDL2 Assets" FontSize="10" Cursor="Hand" Focusable="False">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Foreground" Value="{DynamicResource DimTextBrush}"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="Transparent">
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource PrimaryBrush}"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <!-- Recent locations. Same raised-surface pattern as everything else:
+                         shadow on an item-free sibling, content border on top. -->
+                    <Popup x:Name="RecentsPopup" PlacementTarget="{Binding ElementName=PathBox}"
+                           Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                           VerticalOffset="2" HorizontalOffset="-8">
+                        <Grid Margin="8">
+                            <Border Background="{DynamicResource BackgroundBrush}" CornerRadius="4" IsHitTestVisible="False">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="0.5"/>
+                                </Border.Effect>
+                            </Border>
+                            <Border Background="{DynamicResource BackgroundBrush}" BorderBrush="{DynamicResource MenuBorderBrush}"
+                                    BorderThickness="1" CornerRadius="4">
+                                <Grid>
+                                    <Border IsHitTestVisible="False" CornerRadius="4"
+                                            Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                                    <ListBox x:Name="RecentsList" Background="Transparent" BorderThickness="0" Padding="2,4"
+                                             Width="{Binding ActualWidth, ElementName=PathBox}" MaxHeight="260"
+                                             ItemContainerStyle="{StaticResource PickerRow}"
+                                             SelectionChanged="RecentsList_SelectionChanged"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding}" FontFamily="Consolas" FontSize="12"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Popup>
+                </Grid>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <!-- E7B3 (off) / E890 (on) - KillerShell's build-proven pair (ViewOptions.cs). -->
+                    <Button x:Name="ShowHiddenBtn"  Style="{StaticResource PickerViewBtn}" Content="&#xE7B3;" ToolTip="{DynamicResource Str_TT_ShowHidden}"  Click="ShowHidden_Click"  Margin="0,0,6,0"/>
+                    <Button x:Name="ViewListBtn"    Style="{StaticResource PickerViewBtn}" Content="&#xE8FD;" ToolTip="{DynamicResource Str_TT_ViewList}"    Click="ViewList_Click"/>
+                    <Button x:Name="ViewIconsBtn"   Style="{StaticResource PickerViewBtn}" Content="&#xE80A;" ToolTip="{DynamicResource Str_TT_ViewIcons}"   Click="ViewIcons_Click"   Margin="2,0"/>
+                    <Button x:Name="ViewDetailsBtn" Style="{StaticResource PickerViewBtn}" Content="&#xE700;" ToolTip="{DynamicResource Str_TT_ViewDetails}" Click="ViewDetails_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Main: quick places on the left, folder contents on the right -->
+            <Grid Grid.Row="3" Margin="16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="170"/>
+                    <ColumnDefinition Width="8"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- NOT a raised pane, deliberately (Steve, 2026-07-30): KillerShell's sidebar
+                     sits flat on the chrome background, and this one matches - only the file
+                     LIST is the lifted card. No fill, no shadow, no grain of its own; the
+                     dialog card's shared grain shows through.
+
+                     KillerShell's own arrangement, not Explorer's: the tree fills the panel and
+                     the pinned places sit BELOW it, the same slot its favorites drawer occupies,
+                     so the two apps read identically. Draggable divider between. -->
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" MinHeight="56"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition x:Name="PlacesRow" Height="185" MinHeight="56"/>
+                    </Grid.RowDefinitions>
+                    <ListBox x:Name="PlacesList" Grid.Row="2" Background="Transparent" BorderThickness="0" Padding="2,4"
+                             ItemContainerStyle="{StaticResource PickerRow}" SelectionChanged="Places_SelectionChanged"
+                             ContextMenuOpening="Places_ContextMenuOpening"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{DynamicResource Str_Menu_UnpinPlace}" Click="UnpinPlace_Click"/>
+                            </ContextMenu>
+                        </ListBox.ContextMenu>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Style="{StaticResource PickerRowContent}">
+                                    <Image Source="{Binding Icon}" Width="16" Height="16" VerticalAlignment="Center"
+                                           Margin="0,0,8,0" SnapsToDevicePixels="True"
+                                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                    <TextBlock Text="{Binding Label}" FontFamily="Consolas" FontSize="12" VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <!-- KillerShell's divider verbatim (MainWindow.xaml, terms/filters split):
+                         invisible grab band, 1px CardBorderBrush line, accent on hover and
+                         while dragging. -->
+                    <GridSplitter Grid.Row="1" Height="7" HorizontalAlignment="Stretch" Background="Transparent"
+                                  ResizeBehavior="PreviousAndNext" ResizeDirection="Rows"
+                                  Cursor="SizeNS" ShowsPreview="False" Focusable="False">
+                        <GridSplitter.Template>
+                            <ControlTemplate TargetType="GridSplitter">
+                                <Border Background="Transparent">
+                                    <Border x:Name="line" Height="1" VerticalAlignment="Center"
+                                            Background="{DynamicResource CardBorderBrush}" Margin="12,0"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True"><Setter TargetName="line" Property="Background" Value="{DynamicResource PrimaryBrush}"/></Trigger>
+                                    <Trigger Property="IsDragging" Value="True"><Setter TargetName="line" Property="Background" Value="{DynamicResource PrimaryBrush}"/></Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </GridSplitter.Template>
+                    </GridSplitter>
+                    <!-- Left margin 0, not 4: the 16px expander gutter already provides the
+                         inset, and the extra margin pushed the root icons visibly right of the
+                         places icons below - dead space that cost horizontal room.
+                         (Steve, 2026-07-30.) -->
+                    <TreeView x:Name="FolderTreeCtl" Grid.Row="0" Style="{StaticResource FolderTreeView}"
+                              Margin="0,3,2,4"
+                              TreeViewItem.Expanded="FolderTree_Expanded"
+                              ContextMenuOpening="FolderTree_ContextMenuOpening"
+                              SelectedItemChanged="FolderTree_SelectedItemChanged">
+                        <TreeView.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="{DynamicResource Str_Menu_PinPlace}" Click="TreePin_Click"/>
+                            </ContextMenu>
+                        </TreeView.ContextMenu>
+                        <TreeView.ItemContainerStyle>
+                            <!-- Inherits the themed template and adds the two-way state bindings,
+                                 so RevealInTree can drive the tree from code. -->
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource FolderTreeItem}">
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                                <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                            </Style>
+                        </TreeView.ItemContainerStyle>
+                        <TreeView.ItemTemplate>
+                            <HierarchicalDataTemplate DataType="{x:Type kui:FolderNode}"
+                                                      ItemsSource="{Binding Children}">
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <Image Source="{Binding Icon}" Width="16" Height="16"
+                                           VerticalAlignment="Center" Margin="0,0,6,0" SnapsToDevicePixels="True"
+                                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                                    <TextBlock Text="{Binding Name}" Style="{StaticResource TreeName}"
+                                               ToolTip="{Binding Path}"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.ItemTemplate>
+                    </TreeView>
+                    <!-- Edge fades, KillerShell's tree pattern verbatim (MainWindow.xaml): the
+                         overlay IS the surface - BackgroundBrush plus the same grain, exactly as
+                         KillerShell's, now that the pane is flat on the card - under an opacity
+                         mask, so rows dissolve into an exact match instead of a flat band.
+                         Hit-test-transparent; each edge only shows while there is something PAST
+                         it, ramped in code (SyncTreeEdgeFades). Right inset clears the
+                         scrollbar; the bottom margin is driven from code when a horizontal bar
+                         appears (SyncTreeFade). -->
+
+                    <Border x:Name="TreeFadeTop" Grid.Row="0" Height="18" Opacity="0"
+                            VerticalAlignment="Top" Margin="0,3,14,0" IsHitTestVisible="False">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#FF000000" Offset="0"/>
+                                <GradientStop Color="#00000000" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                        <Grid>
+                            <Border Background="{DynamicResource BackgroundBrush}"/>
+                            <Border Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        </Grid>
+                    </Border>
+                    <Border x:Name="TreeFadeBottom" Grid.Row="0" Height="22" Opacity="0"
+                            VerticalAlignment="Bottom" Margin="0,0,14,4" IsHitTestVisible="False">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#00000000" Offset="0"/>
+                                <GradientStop Color="#FF000000" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                        <Grid>
+                            <Border Background="{DynamicResource BackgroundBrush}"/>
+                            <Border Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        </Grid>
+                    </Border>
+                    <!-- Same edge fades for the places list (Steve, 2026-07-30): rows dissolve
+                         at both ends unless the list is flush there. Same surface, same ramp
+                         (SyncPlacesEdgeFades); no scrollbar lift needed - horizontal scrolling
+                         is disabled on this list. -->
+                    <Border x:Name="PlacesFadeTop" Grid.Row="2" Height="18" Opacity="0"
+                            VerticalAlignment="Top" Margin="0,0,12,0" IsHitTestVisible="False">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#FF000000" Offset="0"/>
+                                <GradientStop Color="#00000000" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                        <Grid>
+                            <Border Background="{DynamicResource BackgroundBrush}"/>
+                            <Border Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        </Grid>
+                    </Border>
+                    <Border x:Name="PlacesFadeBottom" Grid.Row="2" Height="22" Opacity="0"
+                            VerticalAlignment="Bottom" Margin="0,0,12,0" IsHitTestVisible="False">
+                        <Border.OpacityMask>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#00000000" Offset="0"/>
+                                <GradientStop Color="#FF000000" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.OpacityMask>
+                        <Grid>
+                            <Border Background="{DynamicResource BackgroundBrush}"/>
+                            <Border Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Column="2">
+                  <Border Background="{DynamicResource PaneBrush}" CornerRadius="4" IsHitTestVisible="False">
+                    <Border.Effect>
+                      <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="2" Direction="270" Opacity="0.5"/>
+                    </Border.Effect>
+                  </Border>
+                  <Border Background="{DynamicResource PaneBrush}" CornerRadius="4">
+                  <Grid>
+                    <Border IsHitTestVisible="False" CornerRadius="4"
+                            Background="{DynamicResource GrainTileBrush}" Opacity="{DynamicResource GrainOpacity}"/>
+                    <DockPanel>
+                        <Grid DockPanel.Dock="Top" x:Name="DetailsHeader" Visibility="Collapsed" Margin="12,4,26,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="80"/>
+                                <ColumnDefinition Width="150"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Style="{StaticResource PickerColBtn}" Click="SortName_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{DynamicResource Str_Col_Name}"/>
+                                    <TextBlock x:Name="NameArrow" FontFamily="Segoe MDL2 Assets" FontSize="8" Margin="4,1,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="1" Style="{StaticResource PickerColBtn}" HorizontalContentAlignment="Right" Click="SortSize_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{DynamicResource Str_Col_Size}"/>
+                                    <TextBlock x:Name="SizeArrow" FontFamily="Segoe MDL2 Assets" FontSize="8" Margin="4,1,0,0"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Grid.Column="2" Style="{StaticResource PickerColBtn}" Margin="10,0,0,0" Click="SortModified_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{DynamicResource Str_Col_Modified}"/>
+                                    <TextBlock x:Name="ModArrow" FontFamily="Segoe MDL2 Assets" FontSize="8" Margin="4,1,0,0"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <Grid>
+                            <ListBox x:Name="FileList" Background="Transparent" BorderThickness="0" Padding="2,4"
+                                     ItemContainerStyle="{StaticResource PickerRow}"
+                                     ItemTemplate="{StaticResource RowTemplate}"
+                                     ItemsPanel="{StaticResource PanelStack}"
+                                     SelectionChanged="Files_SelectionChanged" MouseDoubleClick="Files_DoubleClick"
+                                     ContextMenuOpening="Files_ContextMenuOpening"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListBox.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="{DynamicResource Str_Menu_PinPlace}" Click="FilePin_Click"/>
+                                    </ContextMenu>
+                                </ListBox.ContextMenu>
+                            </ListBox>
+                            <TextBlock x:Name="EmptyHint" Text="{DynamicResource Str_Dlg_NoMatchingFiles}" Visibility="Collapsed"
+                                       Foreground="{DynamicResource DimTextBrush}" FontFamily="Consolas" FontSize="11"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"
+                                       TextAlignment="Center" Margin="20"/>
+                        </Grid>
+                    </DockPanel>
+                  </Grid>
+                  </Border>
+                </Grid>
+            </Grid>
+
+            <!-- File name + filter. Labels are DimTextBrush on the dark card: 3.15:1, the tier
+                 these brushes are calibrated for. -->
+            <Grid Grid.Row="4" Margin="16,12,16,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DynamicResource Str_Dlg_FileName}" VerticalAlignment="Center"
+                           Margin="0,0,10,0" Foreground="{DynamicResource MutedTextBrush}" FontFamily="Consolas" FontSize="11"/>
+                <!-- Left padding 5, not 8: a TextBox's content host carries its own ~2px inset
+                     (WPF's TextBoxView), so at 8 the name started visibly right of the filter
+                     combo's text directly below it (combo padding is 7 with no inherent inset).
+                     5 + 2 lines the two up. (Steve, 2026-07-31.) -->
+                <TextBox x:Name="FileNameBox" Grid.Row="0" Grid.Column="1" Height="28"
+                         Style="{StaticResource DarkTextBox}"
+                         FontFamily="Consolas" FontSize="12" Padding="5,0,8,0"
+                         VerticalContentAlignment="Center" KeyDown="FileNameBox_KeyDown"/>
+
+                <TextBlock x:Name="FilterLabel" Grid.Row="1" Grid.Column="0" Text="{DynamicResource Str_Dlg_FileType}" VerticalAlignment="Center"
+                           Margin="0,8,10,0" Foreground="{DynamicResource MutedTextBrush}" FontFamily="Consolas" FontSize="11"/>
+                <ComboBox x:Name="FilterCombo" Grid.Row="1" Grid.Column="1" Height="28" Margin="0,8,0,0"
+                          Style="{StaticResource DarkComboBox}"
+                          SelectionChanged="Filter_SelectionChanged"/>
+            </Grid>
+
+            <!-- Footer: selection details on the left, actions on the right -->
+            <Grid Grid.Row="5" Margin="16,12,16,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                    <TextBlock x:Name="SelName" FontFamily="Consolas" FontSize="12" Foreground="{DynamicResource TextBrush}"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock x:Name="SelMeta" FontFamily="Consolas" FontSize="10" Foreground="{DynamicResource MutedTextBrush}"
+                               TextTrimming="CharacterEllipsis" Margin="0,2,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="{DynamicResource Str_Btn_Cancel}" Style="{StaticResource SurfaceButton}" MinWidth="90" Margin="0,0,8,0" Click="Cancel_Click"/>
+                    <Button x:Name="AcceptButton" Style="{StaticResource OutlineButton}" MinWidth="90" Click="OK_Click"/>
+                </StackPanel>
+            </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

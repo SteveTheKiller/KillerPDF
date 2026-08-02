@@ -21,7 +21,7 @@
 **Features:**
 
 - High-quality rendering via PDFium
-- Four view modes (Single, Continuous, Two-Page, Grid) and tabbed documents, each restoring its page, zoom, and view mode
+- Four view modes (Single, Continuous, Two-Page, Grid) and tabbed documents, each restoring its page, zoom, and view mode; split pane (F10) shows two documents side by side
 - Inline text editing with font matching against the original document
 - Text boxes, freehand drawing, straight lines, and highlights, with a full RGB color picker and screen eyedropper
 - Built-in OCR, no cloud: OCR a page or dragged region to the clipboard, make a searchable PDF, or extract all text
@@ -35,9 +35,9 @@
 - Full-text search across the entire document with result highlighting
 - Undo and redo across annotations, page operations, and document edits, plus browser-style jump history (Alt+arrows)
 - Print with a real in-app preview (scale, position, margins, pages-per-sheet, two-sided); Save Flattened to make a page uneditable
-- Six themes with per-theme accent colors; localized in nine languages
+- Six themes with per-theme accent colors; localized in ten languages
 - Keyboard shortcut overlay (F1) with a list view and a visual keyboard view, color-coded by category
-- Single Windows EXE, ~15 MB, no runtime install; self-installs per-user or runs portable
+- Single Windows EXE, ~16 MB, no runtime install; self-installs per-user, machine-wide, or runs portable
 - GPLv3, local-only, no account, no telemetry
     </description>
     <releaseNotes>https://github.com/SteveTheKiller/KillerPDF/releases/tag/vREPLACE_VERSION</releaseNotes>

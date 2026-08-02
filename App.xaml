@@ -9,6 +9,11 @@
                 <ResourceDictionary Source="Themes/Dark.xaml"/>
                 <!-- [1] Strings (overridden at startup by LocaleManager.Initialize) -->
                 <ResourceDictionary Source="Strings/en-US.xaml"/>
+                <!-- NOTHING GOES HERE. Slot [2] belongs to LocaleManager (the locale override,
+                     removed entirely for English), and [0]/[1] are the theme and the en-US base.
+                     All three are addressed BY INDEX, so an extra dictionary in this collection
+                     is silently overwritten or deleted at startup. Window-scoped resources are
+                     the place for anything else - see Controls/FileDialog.xaml. -->
             </ResourceDictionary.MergedDictionaries>
 
             <!-- Chrome close-button corner. Defined at app scope (not just on MainWindow) so the dialog
@@ -44,13 +49,13 @@
                         <ControlTemplate TargetType="Thumb">
                             <!-- Solid at rest (the scrollbar's active color) so it's always visible,
                                  brightening to the accent while hovered/dragged. -->
-                            <Border x:Name="tb" Background="{DynamicResource ScrollThumbHover}" CornerRadius="3"/>
+                            <Border x:Name="tb" Background="{DynamicResource ScrollThumbHoverBrush}" CornerRadius="3"/>
                             <ControlTemplate.Triggers>
                                 <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="tb" Property="Background" Value="{DynamicResource Accent}"/>
+                                    <Setter TargetName="tb" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
                                 </Trigger>
                                 <Trigger Property="IsDragging" Value="True">
-                                    <Setter TargetName="tb" Property="Background" Value="{DynamicResource Accent}"/>
+                                    <Setter TargetName="tb" Property="Background" Value="{DynamicResource PrimaryBrush}"/>
                                 </Trigger>
                             </ControlTemplate.Triggers>
                         </ControlTemplate>
@@ -109,13 +114,60 @@
             <DropShadowEffect x:Key="ShadowText"   Color="Black" BlurRadius="3"  ShadowDepth="1" Direction="270" Opacity="0.6"/>
             <DropShadowEffect x:Key="ShadowIcon"   Color="Black" BlurRadius="4"  ShadowDepth="1" Direction="270" Opacity="0.9"/>
             <DropShadowEffect x:Key="ShadowBar"    Color="Black" BlurRadius="6"  ShadowDepth="3" Direction="270" Opacity="0.38"/>
-            <DropShadowEffect x:Key="ShadowDialog" Color="Black" BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.6"/>
+            <!-- Quality for the same reason as PaneShadow below: at radius 18 the default
+                 Performance bias blocks up visibly on a dialog's rounded corners. -->
+            <DropShadowEffect x:Key="ShadowDialog" Color="Black" BlurRadius="18" ShadowDepth="3" Direction="270" Opacity="0.6"
+                              RenderingBias="Quality"/>
+            <!-- Elevation for the content pane. Two hard-won constraints below, both measured on
+                 the running window rather than reasoned about - every attempt to reason this one
+                 out was wrong. Read both before changing any number here.
+                 BLUR MUST NOT EXCEED ~2x THE GUTTER WIDTH. A DropShadowEffect spreads about half
+                 its BlurRadius laterally, the gutter is 8px, and anything past that gets truncated
+                 by the window frame mid-falloff and terminates as a step - which is a hard edge no
+                 amount of RenderingBias fixes. Measured at blur 22: across the gutter the shadow
+                 ran 139 / 157 / 174 / 188 against an unshadowed 220, so it was still at ~85% of
+                 its travel when the window edge cut it off. Blur 16 (the family value) completes
+                 the falloff inside 8px. If the gutter is ever widened, the blur can grow with it.
+                 Opacity stays at 0.78 rather than the family 0.6: KillerPDF's card is usually
+                 filled edge to edge by a WHITE page, so the boundary is a near-full-range value
+                 jump and the family opacity is swallowed by it. (Steve, 2026-07-31: "the right
+                 gutter can use more depth", then "theres still a hard edge on the gradient".) -->
+            <!-- ShadowDepth 0, deliberately, and this is the ONE place in the family that wants it.
+                 MEASURED on the running window, sampling the 8px gutter down the right edge: with
+                 depth 2 the gutter was still light at 3px below the card's top border and only
+                 reached full shadow ~12px down. Any non-zero depth offsets the whole cast, so the
+                 lateral shadow is missing at the top and ramps in as it descends - and that onset
+                 is what reads as a hard edge at the corner. Going 5 -> 2 only shortened the ramp.
+                 Zero makes it a symmetric halo, which wraps the rounded corners evenly.
+                 The family rule against depth 0 ("a halo with nothing below to land on") was about
+                 the FOOTER cast, and no longer applies here: the footer is Panel.ZIndex -1 now, so
+                 it sits under the card and takes the shadow, and the blur alone puts plenty on it
+                 without an offset. Verify that still holds if the blur is reduced further.
+                 (Steve, 2026-07-31: "the drop shadow needs to be under the rounded edge smoothly",
+                 "theres still a hard edge on the gradient".) -->
+            <!-- RenderingBias Quality is REQUIRED here, not a nicety. The default (Performance)
+                 renders the blur into a reduced-resolution intermediate and scales it back up, so
+                 the falloff comes out as chunky stair-stepped blocks - worst exactly at a rounded
+                 corner, where the curve makes the downsampling obvious. It scales with BlurRadius,
+                 and showed up here while this was briefly at 22. Any large-radius shadow in the
+                 family needs it; the small ones (ShadowText/Icon/Bar, radius 3-6) are under the
+                 threshold where it reads, and Quality costs real render time.
+                 (Steve, 2026-07-31, caught at 491% in GIMP: "the shadows in the corners have hard
+                 edges".) -->
+            <DropShadowEffect x:Key="PaneShadow"   Color="Black" BlurRadius="16" ShadowDepth="0" Direction="270" Opacity="0.78"
+                              RenderingBias="Quality"/>
+
+            <!-- GrainBrushShared deliberately does NOT live here - see MainWindow.Resources.
+                 WPF freezes Freezables in APPLICATION-level dictionaries for cross-thread safety,
+                 so an ImageBrush declared here throws "Cannot set a property ... it is in a
+                 read-only state" the moment ApplyGrainTexture assigns its ImageSource. Any brush
+                 whose properties are written at runtime must stay at window scope. -->
 
             <!-- Global themed tooltip (replaces the plain white system box) -->
             <Style TargetType="ToolTip">
-                <Setter Property="Background" Value="{DynamicResource BgModal}"/>
-                <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
-                <Setter Property="BorderBrush" Value="{DynamicResource AccentBorder}"/>
+                <Setter Property="Background" Value="{DynamicResource MenuBackgroundBrush}"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource MenuBorderBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Setter Property="Padding" Value="8,4"/>
                 <Setter Property="FontFamily" Value="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
@@ -169,14 +221,14 @@
                                         </MultiBinding>
                                     </Track.ViewportSize>
                                     <Track.DecreaseRepeatButton>
-                                        <RepeatButton Command="ScrollBar.PageUpCommand" Focusable="False" IsTabStop="False">
+                                        <RepeatButton x:Name="PageBack" Command="ScrollBar.PageUpCommand" Focusable="False" IsTabStop="False">
                                             <RepeatButton.Template>
                                                 <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate>
                                             </RepeatButton.Template>
                                         </RepeatButton>
                                     </Track.DecreaseRepeatButton>
                                     <Track.IncreaseRepeatButton>
-                                        <RepeatButton Command="ScrollBar.PageDownCommand" Focusable="False" IsTabStop="False">
+                                        <RepeatButton x:Name="PageForward" Command="ScrollBar.PageDownCommand" Focusable="False" IsTabStop="False">
                                             <RepeatButton.Template>
                                                 <ControlTemplate TargetType="RepeatButton"><Border Background="Transparent"/></ControlTemplate>
                                             </RepeatButton.Template>
@@ -190,7 +242,7 @@
                                                         <Setter.Value>
                                                             <ControlTemplate TargetType="Thumb">
                                                                 <Border x:Name="thumbBorder"
-                                                                        Background="{DynamicResource BgScrollThumb}"
+                                                                        Background="{DynamicResource ScrollThumbBrush}"
                                                                         CornerRadius="3"
                                                                         Margin="4,0"/>
                                                                 <ControlTemplate.Triggers>
@@ -202,7 +254,7 @@
                                                                          binding this to the whole bar's IsMouseOver made the thumb shrink on mouse-down and
                                                                          dropped the grab). -->
                                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource ScrollThumbHover}"/>
+                                                                        <Setter TargetName="thumbBorder" Property="Background" Value="{DynamicResource ScrollThumbHoverBrush}"/>
                                                                         <Setter TargetName="thumbBorder" Property="Margin" Value="2,2"/>
                                                                         <Setter TargetName="thumbBorder" Property="Effect">
                                                                             <Setter.Value>
@@ -220,6 +272,16 @@
                                     </Track.Thumb>
                                 </Track>
                             </Grid>
+                            <ControlTemplate.Triggers>
+                                <!-- A vertical track counts downward, so it needs IsDirectionReversed;
+                                     a horizontal one counts rightward and must not, or dragging the thumb
+                                     left scrolls the content right. The paging commands flip with it. -->
+                                <Trigger Property="Orientation" Value="Horizontal">
+                                    <Setter TargetName="PART_Track"   Property="IsDirectionReversed" Value="False"/>
+                                    <Setter TargetName="PageBack"     Property="Command" Value="ScrollBar.PageLeftCommand"/>
+                                    <Setter TargetName="PageForward"  Property="Command" Value="ScrollBar.PageRightCommand"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
                         </ControlTemplate>
                     </Setter.Value>
                 </Setter>

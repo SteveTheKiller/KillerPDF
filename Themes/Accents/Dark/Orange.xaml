@@ -6,14 +6,18 @@
          hue-rotation (orange muddies at green's lightness). The selection background is a bright
          orange (a dark brown read as muddy), so SelectionFg is overridden to dark for legible text
          on it. Fixed greens (InstallBtnBg, AccentLogo) come from Dark.xaml. -->
-    <SolidColorBrush x:Key="Accent"          Color="#E8962C" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"    Color="#E8962C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#E8962C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#E8962C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#E8962C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#E8962C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#E8962C" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#E8962C" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"       Color="#2A1D0D" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#2A1D0D" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#2A1D0D" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"     Color="#F29A28" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg"     Color="#FFFFFF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"   Color="#55E8962C" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#E8962C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#55E8962C" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#E8962C" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#E8962C" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#2A1D0D" po:Freeze="True"/>

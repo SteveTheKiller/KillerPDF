@@ -4,10 +4,11 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- Greed: dark emerald chrome with a lighter emerald doc pane, warm cream text, white icons, heavy grain -->
-    <SolidColorBrush x:Key="BgDark"         Color="#002e1c" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgPanel"        Color="#003824" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgHover"        Color="#00593a" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgSidebar"      Color="#002115" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SurfaceBrush"    Color="#002e1c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PaneBrush"       Color="#003824" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowHoverBrush"   Color="#00593a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuHoverBrush"  Color="#00593a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#002115" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgRecentPanel"  Color="#05452c" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgFlyout"       Color="#02331f" po:Freeze="True"/>
     <LinearGradientBrush x:Key="TabStripFadeBrush" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
@@ -15,31 +16,47 @@
         <GradientStop Offset="0.55" Color="#1f000000"/>
         <GradientStop Offset="1.0" Color="#82000000"/>
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="BgModal"        Color="#001e13" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BorderDim"      Color="#0f4a30" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Accent"         Color="#ffffff" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"   Color="#3fbf6f" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#001e13" po:Freeze="True"/>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#0f4a30" po:Freeze="True"/>
+    <!-- The RGB themes take white as the accent and carry the hue in HeaderLineBrush. -->
+    <SolidColorBrush x:Key="PrimaryBrush"    Color="#ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OnPrimaryBrush"  Color="#002e1c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush" Color="#3fbf6f" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush" Color="#3fbf6f" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#138a42" po:Freeze="True"/>
     <SolidColorBrush x:Key="AccentLogo"     Color="#17b85a" po:Freeze="True"/>
     <SolidColorBrush x:Key="InstallBtnBg"   Color="#15803f" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentBorder"   Color="#07371f" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBorderBrush" Color="#07371f" po:Freeze="True"/>
     <SolidColorBrush x:Key="DropBorder"     Color="#07371f" po:Freeze="True"/>
-    <SolidColorBrush x:Key="PaneBorder"     Color="#07371f" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"      Color="#44ffffff" po:Freeze="True"/>
+    <!-- Adopted Killendar's lighter pane border 2026-07-31 (was #07371f). -->
+    <SolidColorBrush x:Key="PaneBorderBrush" Color="#0f4a30" po:Freeze="True"/>
+    <SolidColorBrush x:Key="AppBorderBrush"  Color="#0f4a30" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#44ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#44ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg" Color="#44ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <!-- Open settings row uses the translucent-white SelectionBg (matches selected page/tool). -->
     <SolidColorBrush x:Key="SettingsOpenRowBg" Color="#44ffffff" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextPrimary"    Color="#fffde8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextSecondary"  Color="#e0d49a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextBrush"      Color="#fffde8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#e0d49a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuTextBrush"  Color="#e0d49a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ChromeTextBrush" Color="#cfd6c2" po:Freeze="True"/>
     <SolidColorBrush x:Key="FilenameBrush"  Color="#a6a99a" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextDim"        Color="#c0aa68" po:Freeze="True"/>
+    <SolidColorBrush x:Key="DimTextBrush"   Color="#c0aa68" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextFooter"     Color="#3a8a5a" po:Freeze="True"/>
     <SolidColorBrush x:Key="DangerRed"      Color="#ff6666" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgDragHandle"   Color="#4a8a64" po:Freeze="True"/>
     <SolidColorBrush x:Key="DragLine"       Color="#0f3f27" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"  Color="#aae0d49a" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#f2ead0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#aae0d49a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#f2ead0" po:Freeze="True"/>
+    <!-- Added for the kit components 2026-07-31. -->
+    <SolidColorBrush x:Key="TableHeaderBrush" Color="#002e1c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowAltBrush"      Color="#18FFFFFF" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="#0f4a30" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputHoverBrush"  Color="#2a7a52" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TreeLineBrush"    Color="#156140" po:Freeze="True"/>
     <SolidColorBrush x:Key="SliderTrack"    Color="#00120b" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"    Color="#e0d49a" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgOverlay"      Color="#CC003322" po:Freeze="True"/>
@@ -62,5 +79,7 @@
     <SolidColorBrush x:Key="KsCatSearch"    Color="#00b3ff" po:Freeze="True"/>
     <SolidColorBrush x:Key="KsCatHelp"      Color="#39ff14" po:Freeze="True"/>
     <SolidColorBrush x:Key="KsCatOcr"       Color="#ff901f" po:Freeze="True"/>
+
+    <DropShadowEffect x:Key="TextStroke" Color="Black" BlurRadius="3" ShadowDepth="0.8" Direction="270" Opacity="0.7"/>
 
 </ResourceDictionary>

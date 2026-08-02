@@ -4,14 +4,18 @@
 
     <!-- Black family - TEAL neon accent overlay. Fixed greens (InstallBtnBg, AccentLogo) come
          from Black.xaml. -->
-    <SolidColorBrush x:Key="Accent"          Color="#0AFFE7" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"    Color="#0AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"        Color="#0AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#0AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#0AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush"     Color="#0AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush"     Color="#0AFFE7" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#0AFFE7" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"       Color="#003832" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#003832" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#003832" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg"     Color="#003832" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg"     Color="#FFFFFF" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"   Color="#880AFFE7" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#0AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#880AFFE7" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#0AFFE7" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"     Color="#0AFFE7" po:Freeze="True"/>
 
     <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"                      Color="#003832" po:Freeze="True"/>

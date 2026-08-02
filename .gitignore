@@ -31,3 +31,12 @@ obj/
 # Anchored with a leading slash so it only ignores KillerPDF/brand, NOT pdf-landing/brand
 # (the small web logos the landing site links to).
 /brand/
+
+# Validation run artifacts (the veraPDF/qpdf release checks write these into the repo root;
+# RESULTS.md is the record, the raw reports and logs stay local - baseline.json alone is ~5 MB).
+/baseline.json
+/after.json
+/resave.csv
+/vera-*.csv
+/vera-err.txt
+/qpdf-*.csv

@@ -11,23 +11,24 @@
 <meta name="description" content="A deep technical explanation of how KillerPDF renders, zooms, and stays robust.">
 <link rel="icon" type="image/x-icon" href="kp-icon.ico">
 <script defer src="https://koya.thekiller.net/script.js" data-website-id="4036b11d-f6c0-4254-b448-933d3e38b0cb"></script>
-<link rel="stylesheet" href="kp.css?v=11">
+<link rel="stylesheet" href="kp.css?v=13">
 <style>
 .page-hero { text-align: center; padding: 44px 16px 8px; }
 .page-hero .wm-logo { height: clamp(46px, 8vw, 76px); width: auto; margin: 0 auto 8px; display: block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.55)); }
 .page-hero p { color: var(--muted); font-size: 15px; margin-top: 4px; }
 .content-inner { max-width: 860px; margin: 0 auto; padding: 0 28px 56px; }
-.tech-sec { scroll-margin-top: 84px; }
+.tech-sec, .tech-sec h3 { scroll-margin-top: 84px; }
 .diagram { margin: 20px 0 6px; padding: 14px 16px; border: 1px solid var(--pane-border); border-radius: 10px; background: var(--modal); }
 .diagram svg { width: 100%; height: auto; display: block; }
 .diagram figcaption { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin-top: 10px; }
-@media (min-width: 901px){ .shell { grid-template-columns: 268px 1fr; } .frame-shadow { left: 268px; right: 0; border-left: 1px solid var(--dragline); border-right: 0; } }
+@media (min-width: 901px){ .shell { grid-template-columns: 268px 1fr; } .content { margin: 8px 8px 0 2px; } }
 .sb-tabs .on { border-bottom: 0; }
 .outline { padding: 8px 0; overflow-y: auto; flex: 1; }
 .outline a { display: block; padding: 8px 16px 8px 18px; font-size: 13px; color: var(--text2); border-left: 2px solid transparent; }
 .outline a:hover { color: var(--text); background: color-mix(in srgb, var(--accent) 8%, transparent); filter: none; }
 .outline a.on { color: var(--accent); border-left-color: var(--accent); background: color-mix(in srgb, var(--accent) 16%, var(--sidebar)); }
-@media (max-width: 900px) { .outline { display:flex; flex-direction:row; flex-wrap:wrap; padding:8px; gap:4px; } .outline a { border-left:0; border-radius:5px; padding:6px 10px; } .outline a.on { border-left:0; } }
+.outline a.sub { padding-left: 32px; font-size: 12px; opacity: 0.82; }
+@media (max-width: 900px) { .outline { display:flex; flex-direction:row; flex-wrap:wrap; padding:8px; gap:4px; } .outline a { border-left:0; border-radius:5px; padding:6px 10px; } .outline a.on { border-left:0; } .outline a.sub { padding-left:10px; } }
 </style>
 </head>
 <body>
@@ -85,27 +86,51 @@
 </div>
 </div>
 
-<div class="frame-shadow" aria-hidden="true"></div>
 <div class="shell">
 <aside class="sidebar">
 <div class="sb-tabs"><span class="on" data-i18n="pt_3">Technical</span></div>
 <nav class="outline">
 <a href="#stack" class="on" data-i18n="pt_4">Tech stack</a>
 <a href="#install" data-i18n="pt_5">Install &amp; data</a>
+<a href="#what-the-installer-does" class="sub" data-i18n="pt_36">What the installer does</a>
+<a href="#where-things-live" class="sub" data-i18n="pt_38">Where things live</a>
+<a href="#where-ocr-files-go" class="sub" data-i18n="pt_48">Where OCR files go</a>
+<a href="#temp-files" class="sub" data-i18n="pt_50">Temp files</a>
+<a href="#clear-all-data" class="sub" data-i18n="pt_52">Clear all data</a>
 <a href="#arch" data-i18n="pt_6">Architecture</a>
+<a href="#two-render-pipelines" class="sub" data-i18n="pt_56">Two render pipelines</a>
+<a href="#per-tab-sessions-an-lru-cache" class="sub" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</a>
+<a href="#canvas-overlay-maps" class="sub" data-i18n="pt_60">Canvas &amp; overlay maps</a>
 <a href="#coords" data-i18n="pt_7">Coordinate space</a>
+<a href="#render-dim-space" class="sub" data-i18n="pt_68">1. A fixed internal size ("render-dim")</a>
+<a href="#decoupled-bitmap-resolution" class="sub" data-i18n="pt_70">2. Drawing sharpness follows zoom, not position</a>
+<a href="#the-coordinate-y-flip" class="sub" data-i18n="pt_72">3. The coordinate Y-flip</a>
 <a href="#annots" data-i18n="pt_8">Annotation model</a>
+<a href="#one-funnel-every-repaint" class="sub" data-i18n="pt_92">One funnel, every repaint</a>
+<a href="#undo" class="sub" data-i18n="pt_94">Undo</a>
 <a href="#coverpair" data-i18n="pt_9">Editing text</a>
 <a href="#zoom" data-i18n="pt_10">Zoom &amp; interaction</a>
+<a href="#cursor-anchored-zoom" class="sub" data-i18n="pt_100">Cursor-anchored zoom</a>
+<a href="#grid-zoom-by-column-count" class="sub" data-i18n="pt_102">Grid zoom by column count</a>
 <a href="#saving" data-i18n="pt_11">Saving &amp; reload</a>
+<a href="#why-structural-edits-reload" class="sub" data-i18n="pt_106">Why structural edits reload</a>
 <a href="#robust" data-i18n="pt_12">Robustness</a>
+<a href="#the-open-fallback-ladder" class="sub" data-i18n="pt_110">The open fallback ladder</a>
+<a href="#encryption-is-stripped-at-open" class="sub" data-i18n="pt_124">Encryption is stripped at open</a>
+<a href="#network-and-partial-reads" class="sub" data-i18n="pt_126">Network and partial reads</a>
+<a href="#repair-works-on-a-copy" class="sub" data-i18n="pt_128">Repair works on a copy</a>
 <a href="#conformance">Standards conformance</a>
+<a href="#how-the-test-works" class="sub">How the test works</a>
+<a href="#the-numbers" class="sub">The numbers</a>
+<a href="#patching-the-write-engine" class="sub">Patching the write engine</a>
 <a href="#i18n" data-i18n="pt_13">Localization</a>
+<a href="#captions-and-tooltips-are-separate-strings" class="sub" data-i18n="pt_132">Captions and tooltips are separate strings</a>
 <a href="#specs" data-i18n="pt_14">Constants</a>
 <a href="#glossary" data-i18n="pt_15">Glossary</a>
 </nav>
 </aside>
 <div class="content">
+<div class="content-scroll">
 <div class="content-inner">
 
 <section class="page-hero">
@@ -153,7 +178,7 @@
 
 <div class="tech-sec" id="arch">
 <h2 data-i18n="pt_54">Architecture</h2>
-<p data-i18n="pt_55">The whole interface is built as one large class (<b>MainWindow</b>) split across about 38 source files, roughly 22,000 lines of C# on WPF and .NET Framework 4.8. Each pop-up dialog is its own class, and shared background work lives under <code>Services/</code>.</p>
+<p data-i18n="pt_55">The interface used to be one large <b>MainWindow</b> class split across about 40 source files. It has since been reorganized into the Killer Tools family layout. The document view - page rendering, zoom, annotations, text editing, crop, forms, links and text selection - is now a self-contained control of its own (<b>PdfViewer</b>, about 10,000 lines across 16 files). The remaining window chrome (toolbar, sidebar, tabs, keyboard shortcuts) lives in partials under <code>Shell/</code>. Document logic lives in service classes under <code>Services/</code>, and the About, CLI, OCR and search features sit behind controllers in <code>Features/</code>. Dialogs remain their own classes under <code>Controls/</code>. In total the app is about 124 C# files and 37,500 lines, not counting the vendored PdfSharpCore fork under <code>third_party/</code>.</p>
 <h3 id="two-render-pipelines" data-i18n="pt_56">Two render pipelines</h3>
 <p data-i18n="pt_57">KillerPDF draws pages in two different ways depending on the view you are in. Single, Two-Page and Grid views draw into one main tile (<b>RenderPage</b>). Continuous scrolling uses a separate path (<b>RenderContinuousPages</b>) that streams page images in the background as you scroll. RenderPage is deliberately switched off during Continuous so the two systems never fight over the same tile.</p>
 <h3 id="per-tab-sessions-an-lru-cache" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</h3>
@@ -345,7 +370,7 @@
 <p>A PDF editor has one obligation above all others: saving your file must not damage it. Starting with 1.6.4, that claim is tested rather than assumed. Every release is validated against <a href="https://verapdf.org/" target="_blank" rel="noopener">veraPDF</a>, the industry reference validator for PDF/A and PDF/UA, across a 2,907-file public conformance corpus (the veraPDF test corpus, the Isartor PDF/A-1b suite, and the TWG test files). These are deliberately hostile files, most built to violate exactly one clause of a standard, so any structural damage a save introduces shows up immediately as a newly failed rule.</p>
 <h3 id="how-the-test-works">How the test works</h3>
 <p>Every corpus file is validated pristine, resaved through KillerPDF's normal open/save pipeline (headlessly, via <code>--batch-resave</code>), and validated again. A comparison script then flags any file that fails a rule after the resave that it did not fail before. The bar for release is zero regressions. A second pass runs <code>qpdf --check</code> on every original/resave pair and flags any file whose structural health worsened.</p>
-<h3 id="the-numbers">The numbers (v1.6.5, veraPDF 1.30.2)</h3>
+<h3 id="the-numbers">The numbers (v1.7.0, veraPDF 1.30.2)</h3>
 <table class="spec-table"><tr><th>Outcome</th><th>Files</th></tr>
 <tr><td>Corpus total</td><td>2,907</td></tr>
 <tr><td>Resaved and revalidated</td><td>2,236</td></tr>
@@ -430,9 +455,10 @@
 </div>
 </div>
 </div>
+</div>
 <footer class="statusbar">
 <span class="left"><a href="https://github.com/SteveTheKiller/KillerPDF" target="_blank" rel="noopener" data-i18n="pt_216">Source on GitHub</a> &middot; GPLv3 &middot; Part of <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span>
-<span class="right"><span id="verEgg" title="click me">v1.6.5</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
+<span class="right"><span id="verEgg" title="click me">v1.7.0</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
 </footer>
 <div class="egg-toast" id="eggToast"></div>
 <script src="kp-i18n.js?v=3"></script>
@@ -441,7 +467,7 @@
 (function(){
   var links=[].slice.call(document.querySelectorAll('.outline a'));
   var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));}).filter(Boolean);
-  var sc=document.querySelector('.content');
+  var sc=document.querySelector('.content-scroll');
   function onScroll(){ var y=(sc?sc.scrollTop:window.scrollY)+100, cur=secs[0]; secs.forEach(function(s){ if(s&&s.offsetTop<=y) cur=s; });
     links.forEach(function(a){ a.classList.toggle('on', cur && a.getAttribute('href')==='#'+cur.id); }); }
   (sc||window).addEventListener('scroll',onScroll,{passive:true}); onScroll();

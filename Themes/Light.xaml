@@ -4,10 +4,11 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- KillerTools light theme -->
-    <SolidColorBrush x:Key="BgDark"         Color="#f0f0f0" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgPanel"        Color="#e8e8e8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgHover"        Color="#b2b2b2" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgSidebar"      Color="#dcdcdc" po:Freeze="True"/>
+    <SolidColorBrush x:Key="SurfaceBrush"    Color="#f0f0f0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PaneBrush"       Color="#e8e8e8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowHoverBrush"   Color="#b2b2b2" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuHoverBrush"  Color="#b2b2b2" po:Freeze="True"/>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#dcdcdc" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgRecentPanel"  Color="#d4d4d4" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgFlyout"       Color="#cacaca" po:Freeze="True"/>
     <LinearGradientBrush x:Key="TabStripFadeBrush" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
@@ -15,30 +16,45 @@
         <GradientStop Offset="0.55" Color="#12000000"/>
         <GradientStop Offset="1.0" Color="#3c000000"/>
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="BgModal"        Color="#ffffff" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BorderDim"      Color="#c0c0c0" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Accent"         Color="#1b5e20" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"   Color="#1b5e20" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#c0c0c0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"    Color="#1b5e20" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#1b5e20" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#1b5e20" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OnPrimaryBrush"  Color="#ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush" Color="#1b5e20" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush" Color="#1b5e20" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#1b5e20" po:Freeze="True"/>
     <SolidColorBrush x:Key="AccentLogo"     Color="#1b5e20" po:Freeze="True"/>
     <SolidColorBrush x:Key="InstallBtnBg"   Color="#1b5e20" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentBorder"   Color="#a8a8a8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBorderBrush" Color="#a8a8a8" po:Freeze="True"/>
     <SolidColorBrush x:Key="DropBorder"     Color="#a8a8a8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="PaneBorder"     Color="#a8a8a8" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"      Color="#c8f5d8" po:Freeze="True"/>
+    <!-- Adopted Killendar's lighter pane border 2026-07-31 (was #a8a8a8). -->
+    <SolidColorBrush x:Key="PaneBorderBrush" Color="#b0b0b0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="AppBorderBrush"  Color="#b0b0b0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#c8f5d8" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#c8f5d8" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg" Color="#1b5e20" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <SolidColorBrush x:Key="SettingsOpenRowBg" Color="#b2b2b2" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextPrimary"    Color="#1a1a1a" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextSecondary"  Color="#555555" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextBrush"      Color="#1a1a1a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#555555" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuTextBrush"  Color="#555555" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ChromeTextBrush" Color="#3a3a3a" po:Freeze="True"/>
     <SolidColorBrush x:Key="FilenameBrush"  Color="#555555" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextDim"        Color="#666666" po:Freeze="True"/>
+    <SolidColorBrush x:Key="DimTextBrush"   Color="#666666" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextFooter"     Color="#888888" po:Freeze="True"/>
     <SolidColorBrush x:Key="DangerRed"      Color="#dc2626" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgDragHandle"   Color="#707070" po:Freeze="True"/>
     <SolidColorBrush x:Key="DragLine"       Color="#a0a0a0" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"  Color="#8818843d" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#1b5e20" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#8818843d" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#1b5e20" po:Freeze="True"/>
+    <!-- Added for the kit components 2026-07-31. -->
+    <SolidColorBrush x:Key="TableHeaderBrush" Color="#f0f0f0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowAltBrush"      Color="#14000000" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="#c0c0c0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputHoverBrush"  Color="#8a8a8a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TreeLineBrush"    Color="#c2c2c2" po:Freeze="True"/>
     <SolidColorBrush x:Key="SliderTrack"    Color="#b0b0b0" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"    Color="#1b5e20" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgOverlay"      Color="#99000000" po:Freeze="True"/>
@@ -64,5 +80,9 @@
     <SolidColorBrush x:Key="KsCatSearch"    Color="#0077b3" po:Freeze="True"/>
     <SolidColorBrush x:Key="KsCatHelp"      Color="#128c07" po:Freeze="True"/>
     <SolidColorBrush x:Key="KsCatOcr"       Color="#cc6a00" po:Freeze="True"/>
+
+    <!-- Dialled back on light surfaces - the effect rasterizes ClearType and a heavier stroke
+         makes the label read blurry. -->
+    <DropShadowEffect x:Key="TextStroke" Color="Black" BlurRadius="2" ShadowDepth="0.6" Direction="270" Opacity="0.45"/>
 
 </ResourceDictionary>

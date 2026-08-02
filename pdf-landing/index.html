@@ -23,7 +23,7 @@
 <meta name="twitter:description" content="One exe. Install or run portable - no account, no subscription, no telemetry. Local PDF editor. GPLv3.">
 <meta name="twitter:image" content="https://killerpdf.net/og-image.png">
 <script defer src="https://koya.thekiller.net/script.js" data-website-id="4036b11d-f6c0-4254-b448-933d3e38b0cb"></script>
-<link rel="stylesheet" href="kp.css?v=11">
+<link rel="stylesheet" href="kp.css?v=13">
 <style>
 /* ---- Page-specific (landing) ---- */
 .content-inner { max-width: 1100px; margin: 0 auto; padding: 0 28px 50px; }
@@ -176,9 +176,9 @@ html[data-theme="light"] .blurb h3, html[data-theme="light"] .feature-card h3 { 
 </div>
 </div>
 
-<div class="frame-shadow" aria-hidden="true"></div>
 <div class="shell">
 <div class="content">
+<div class="content-scroll">
 <div class="content-inner">
 
 <section class="hero">
@@ -190,6 +190,7 @@ html[data-theme="light"] .blurb h3, html[data-theme="light"] .feature-card h3 { 
 <div class="hero-blurbs">
 <div class="blurb"><h3 data-i18n="b1_t">Fully featured</h3><ul class="blurb-list" data-i18n="b1_d">
 <li>Four view modes across unlimited tabs</li>
+<li>Split panes show two documents side by side</li>
 <li>Text, highlights, drawing and shapes</li>
 <li>Edit text inline and OCR scans</li>
 <li>Fill and sign PDF forms</li>
@@ -209,11 +210,11 @@ html[data-theme="light"] .blurb h3, html[data-theme="light"] .feature-card h3 { 
 </div>
 </div>
 <div class="hero-info">
-<div class="row"><span class="k">version</span>&nbsp;<span class="v">KillerPDF v1.6.5</span></div>
-<div class="row"><span class="k">released</span>&nbsp;<span class="v">2026-07-22</span></div>
-<div class="row"><span class="k">size</span>&nbsp;<span class="v">~15.69 MB exe</span></div>
+<div class="row"><span class="k">version</span>&nbsp;<span class="v">KillerPDF v1.7.0</span></div>
+<div class="row"><span class="k">released</span>&nbsp;<span class="v">2026-08-01</span></div>
+<div class="row"><span class="k">size</span>&nbsp;<span class="v">~15.91 MB exe</span></div>
 <div class="row"><span class="k">platform</span>&nbsp;<span class="v">Windows 10/11 x64</span></div>
-<div class="row"><span class="k">sha256</span>&nbsp;<span class="v hash">4bd44bc3eb3787932dff587362fd23ac<br>1f7f61eca303b6e664c68d68a4636781</span></div>
+<div class="row"><span class="k">sha256</span>&nbsp;<span class="v hash">3a0b403962772170a176dacc406b4492<br>8c2ae8cbd1bbbfdb1f949223454d6281</span></div>
 <p class="note" data-i18n="hero_note">Install or run portable. Free, open source, GPLv3.<br>No accounts or subscriptions required.<br>No telemetry is sent and no ads... ever.<br><br>Built by a field tech with an intense dislike for Adobe.</p>
 </div>
 </div>
@@ -223,6 +224,7 @@ html[data-theme="light"] .blurb h3, html[data-theme="light"] .feature-card h3 { 
 <h2 data-i18n="features_h">What it does</h2>
 <div class="feature-grid">
 <div class="feature-card"><h3 data-i18n="f_view_t">View &amp; navigate</h3><p data-i18n="f_view_d">PDFium rendering with four view modes - single page, continuous scroll, two-page, and a grid of every page. Open several PDFs in tabs, with search, outlines, and clickable links.</p></div>
+<div class="feature-card"><h3 data-i18n="f_split_t">Split pane</h3><p data-i18n="f_split_d">F10 shows two documents side by side in one window, sharing the same toolbar and sidebar. Drag a tab from one pane to the other to move it across, and F10 again closes the split.</p></div>
 <div class="feature-card"><h3 data-i18n="f_annot_t">Annotate &amp; edit</h3><p data-i18n="f_annot_d">Inline text editing with font matching, plus text boxes, freehand drawing, lines, shapes with optional fill, and text-hugging highlights - each with its own color, opacity, and width. A full RGB color picker on every swatch.</p></div>
 <div class="feature-card"><h3 data-i18n="f_ocr_t">OCR built in</h3><p data-i18n="f_ocr_d">OCR a page or a dragged region to the clipboard, make a scanned PDF searchable, or extract all text to a file. Tesseract ships in the exe; extra languages download on demand.</p></div>
 <div class="feature-card"><h3 data-i18n="f_org_t">Organize pages</h3><p data-i18n="f_org_d">Merge PDFs and split out pages, drag to reorder, rotate, extract, and stamp page numbers. Drop a folder or .zip to merge everything inside into one PDF or open each separately.</p></div>
@@ -230,13 +232,16 @@ html[data-theme="light"] .blurb h3, html[data-theme="light"] .feature-card h3 { 
 <div class="feature-card"><h3 data-i18n="f_transform_t">Transform</h3><p data-i18n="f_transform_d">Rotate, scale, flip, and straighten a crooked scan by drawing a level line - all with a live preview, and annotations follow the page.</p></div>
 <div class="feature-card"><h3 data-i18n="f_print_t">Print &amp; flatten</h3><p data-i18n="f_print_d">A real in-app print preview with scale, position, margins, pages-per-sheet, odd/even subsets, color, and two-sided options, rendered at 300 DPI. Or save a flattened copy, or export pages as PNG/JPEG images.</p></div>
 <div class="feature-card"><h3 data-i18n="f_themes_t">Themes &amp; languages</h3><p data-i18n="f_themes_d">Six themes with per-theme accent colors, switchable live, dark-mode reading with inverted document colors, and an app-wide size control. UI localized in ten languages.</p></div>
+<div class="feature-card"><h3 data-i18n="f_look_t">New look</h3><p data-i18n="f_look_d">The document view is a rounded, lifted card like the rest of the Killer Tools apps, with a divider that lights up in your accent color. Right-click the title bar for a themed system menu that matches the app instead of stock Windows chrome.</p></div>
 <div class="feature-card"><h3 data-i18n="f_docinfo_t">Document info</h3><p data-i18n="f_docinfo_d">View and edit a PDF's title, author, subject, keywords, and creator metadata, saved back into the file.</p></div>
 <div class="feature-card"><h3 data-i18n="f_stamp_t">Stamps &amp; watermarks</h3><p data-i18n="f_stamp_d">Stamp page numbers or a text watermark across any page range - positioned, sized, and styled - applied as a single undo.</p></div>
 <div class="feature-card"><h3 data-i18n="f_open_t">Opens anything</h3><p data-i18n="f_open_d">Opens password-protected PDFs by prompting instead of erroring, and repairs damaged or broken-xref files so they open and print.</p></div>
-<div class="feature-card"><h3 data-i18n="f_install_t">Install or run portable</h3><p data-i18n="f_install_d">Drop the exe anywhere and run it, or use the built-in per-user installer with no admin rights. You can also grab it from the command line:<br><code>winget install killerpdf</code></p></div>
+<div class="feature-card"><h3 data-i18n="f_filedlg_t">Themed file dialogs</h3><p data-i18n="f_filedlg_d">Every Open and Save dialog is KillerPDF's own now instead of the stock Windows one - a places rail, folder tree, list/icon/details views, sortable columns, and pinnable folders.</p></div>
+<div class="feature-card"><h3 data-i18n="f_install_t">Install or run portable</h3><p data-i18n="f_install_d">Drop the exe anywhere and run it, or use the built-in installer - per-user with no admin rights, or for everyone on the computer (needs an administrator). You can also grab it from the command line:<br><code>winget install killerpdf</code></p></div>
 </div>
 </section>
 
+</div>
 </div>
 </div>
 
@@ -249,14 +254,14 @@ html[data-theme="light"] .blurb h3, html[data-theme="light"] .feature-card h3 { 
 
 <footer class="statusbar">
 <span class="left"><a href="https://github.com/SteveTheKiller/KillerPDF" target="_blank" rel="noopener" data-i18n="footer_src">Source on GitHub</a> &middot; GPLv3 &middot; Part of <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span>
-<span class="right"><span id="verEgg" title="click me">v1.6.5</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
+<span class="right"><span id="verEgg" title="click me">v1.7.0</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
 </footer>
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="KillerPDF screenshot"></div>
 <div class="egg-toast" id="eggToast"></div>
 
 <script src="kp-i18n.js?v=3"></script>
-<script src="kp.js?v=3"></script>
+<script src="kp.js?v=4"></script>
 <script>
 (function () {
   var SHOTS = [];

@@ -40,6 +40,17 @@ namespace KillerPDF
         private static readonly string DesktopLnk   = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), $"{AppName}.lnk");
 
+        // ── Machine-wide install (all users), matching Killendar / KillerShell ─────────────
+        // ProgramFiles rather than LocalApplicationData\Programs, so it needs elevation - which
+        // is why it goes through the /silent path under a UAC prompt instead of being done inline.
+        private static readonly string MachineInstallDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), AppName);
+        private static readonly string MachineInstallExe = Path.Combine(MachineInstallDir, ExeName);
+        private static readonly string MachineFileIconPath = Path.Combine(MachineInstallDir, "pdf-file.ico");
+        private static readonly string MachineStartMenuDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonPrograms), AppName);
+        private static readonly string MachineStartMenuLnk = Path.Combine(MachineStartMenuDir, $"{AppName}.lnk");
+
         // ============================================================
         // Shell interop
         // ============================================================
@@ -61,7 +72,23 @@ namespace KillerPDF
 
             base.OnStartup(e);
 
+            // #168: install our font resolver before anything can create an XFont - PdfSharpCore
+            // caches the resolver on first use. Without this the save path sees only *.ttf and
+            // cannot embed the .ttc families every CJK script relies on.
+            Services.KillerFontResolver.Install();
+
             if (!CheckPdfiumIntegrity()) { Shutdown(2); return; }
+
+            // Machine-wide install, no UI. Used by winget / choco / RMM deployments and by the
+            // all-users checkbox, which re-runs this exe elevated with /silent. Checked before
+            // everything else: it must never show a window or touch the single-instance mutex.
+            if (e.Args.Length > 0 &&
+                string.Equals(e.Args[0], "/silent", StringComparison.OrdinalIgnoreCase))
+            {
+                DoSilentInstall();
+                Shutdown(0);
+                return;
+            }
 
             // Handle uninstall flag (called by Add/Remove Programs)
             if (e.Args.Length > 0 &&
@@ -72,10 +99,10 @@ namespace KillerPDF
                 return;
             }
 
-            // Headless CLI commands (see Cli.cs; --batch-resave in BatchMode.cs). Checked
-            // before the single-instance mutex so CLI runs work while a GUI instance is
-            // open, never forward to it, and never show a window.
-            if (KillerPDF.MainWindow.TryRunCli(e.Args, out int cliExit))
+            // Headless CLI commands (see Features/Cli/CliRunner.cs; --batch-resave in
+            // BatchRunner.cs). Checked before the single-instance mutex so CLI runs work
+            // while a GUI instance is open, never forward to it, and never show a window.
+            if (KillerPDF.Features.CliRunner.TryRunCli(e.Args, out int cliExit))
             {
                 Shutdown(cliExit);
                 return;
@@ -543,31 +570,66 @@ namespace KillerPDF
         /// </summary>
         internal static bool IsPortable()
         {
-            string currentExe = Process.GetCurrentProcess().MainModule!.FileName;
-            return !string.Equals(currentExe, InstallExe, StringComparison.OrdinalIgnoreCase);
+            try
+            {
+                string currentExe = Process.GetCurrentProcess().MainModule!.FileName;
+                return !string.Equals(currentExe, InstallExe, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(currentExe, MachineInstallExe, StringComparison.OrdinalIgnoreCase);
+            }
+            catch { return false; }
         }
 
+        /// <summary>True when KillerPDF is already installed machine-wide.</summary>
+        internal static bool MachineInstallExists() => File.Exists(MachineInstallExe);
+
         /// <summary>
-        /// Installs KillerPDF, offers to set as default PDF handler, then relaunches
-        /// from the installed location. Returns false if installation failed or was
-        /// already installed from this path.
+        /// Installs KillerPDF, offers to set it as the default PDF handler, then relaunches from
+        /// the installed location. Returns false if the install did not happen, so the caller can
+        /// put the portable badge back rather than leaving the user with a half-finished state.
+        ///
+        /// An all-users install re-runs this exe elevated with /silent - the same machine-wide path
+        /// winget and choco use - so UAC only appears when the user actually asked for it.
         /// </summary>
-        internal static void InstallAndRelaunch(string? fileToOpen, bool wantDesktop)
+        internal static bool InstallAndRelaunch(string? fileToOpen, bool wantDesktop, bool allUsers)
         {
-            DoInstall(wantDesktop);
+            string targetExe;
+
+            if (allUsers)
+            {
+                if (!RunElevatedSilentInstall()) return false;
+
+                // Only ever one install: drop the per-user copy so there is a single Start Menu
+                // entry and a single uninstall entry. Settings are deliberately left alone.
+                RemovePerUserInstall();
+
+                // Associations are registered HERE, not in the elevated pass. Under /silent the
+                // process runs as the ADMIN, so HKEY_CURRENT_USER is the admin's hive - writing
+                // the .pdf handler there would associate PDFs for the wrong account and leave the
+                // real user with nothing. This call is unelevated and in the right hive.
+                RegisterFileHandler(MachineInstallExe, MachineFileIconPath);
+                targetExe = MachineInstallExe;
+            }
+            else
+            {
+                DoInstall(wantDesktop);
+                if (!File.Exists(InstallExe)) return false;   // trust gate / copy failure already reported
+                targetExe = InstallExe;
+            }
 
             if (!IsDefaultPdfHandler())
             {
+                // Loc() is a MainWindow member; App resolves strings off the merged dictionaries
+                // directly, the same way Uninstall() does.
                 var res = KillerDialog.Show(null,
-                    "Would you like to set KillerPDF as your default PDF viewer?\n\n" +
-                    "Opens Windows Settings → Default Apps.",
-                    "KillerPDF", MessageBoxButton.YesNo);
+                    Current.TryFindResource("Str_Dlg_SetDefaultPdfMsg") as string
+                        ?? "Would you like to set KillerPDF as your default PDF viewer?",
+                    AppName, MessageBoxButton.YesNo);
                 if (res == MessageBoxResult.Yes)
                     Process.Start(new ProcessStartInfo("ms-settings:defaultapps")
                         { UseShellExecute = true });
             }
 
-            var psi = new ProcessStartInfo(InstallExe);
+            var psi = new ProcessStartInfo(targetExe);
             if (fileToOpen != null)
                 psi.Arguments = $"\"{fileToOpen}\"";
             // Free the single-instance mutex first so the launched copy becomes primary (and shows a
@@ -575,6 +637,122 @@ namespace KillerPDF
             (Current as App)?.ReleaseInstanceMutex();
             Process.Start(psi);
             Application.Current.Shutdown();
+            return true;
+        }
+
+        /// <summary>Re-run this exe elevated with /silent and wait for it to finish.</summary>
+        private static bool RunElevatedSilentInstall()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo(Process.GetCurrentProcess().MainModule!.FileName, "/silent")
+                {
+                    UseShellExecute = true,
+                    Verb = "runas",          // triggers the UAC prompt
+                };
+                using var p = Process.Start(psi);
+                p?.WaitForExit();
+                return p is not null && p.ExitCode == 0 && File.Exists(MachineInstallExe);
+            }
+            catch
+            {
+                // Declining the UAC prompt throws Win32Exception 1223 (ERROR_CANCELLED).
+                return false;
+            }
+        }
+
+        /// <summary>Remove a per-user install: files, shortcuts and its HKCU install markers.
+        /// The settings are deliberately left alone so theme, accent, locale, recent files and
+        /// window placement survive the move to a machine-wide install. The .pdf ASSOCIATION keys
+        /// are left alone too - they are re-pointed at the machine exe straight afterwards, and
+        /// deleting them here would briefly leave the user with no PDF handler at all.</summary>
+        private static void RemovePerUserInstall()
+        {
+            try { if (File.Exists(StartMenuLnk)) File.Delete(StartMenuLnk); } catch { }
+            try { if (Directory.Exists(StartMenuDir)) Directory.Delete(StartMenuDir, true); } catch { }
+            try { if (File.Exists(DesktopLnk)) File.Delete(DesktopLnk); } catch { }
+            try { if (Directory.Exists(InstallDir)) Directory.Delete(InstallDir, true); } catch { }
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(@"Software\KillerPDF", writable: true);
+                key?.DeleteValue("Installed", throwOnMissingValue: false);
+                key?.DeleteValue("InstallPath", throwOnMissingValue: false);
+            }
+            catch { }
+            try { Registry.CurrentUser.DeleteSubKeyTree(
+                @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF",
+                throwOnMissingSubKey: false); }
+            catch { }
+        }
+
+        // ============================================================
+        // Silent (machine-wide) install - winget / choco / RMM / the all-users checkbox
+        // ============================================================
+
+        /// <summary>
+        /// Machine-wide install. Runs elevated with no UI by definition, so the exit code is the
+        /// only signal a deployment tool - or RunElevatedSilentInstall - gets back.
+        ///
+        /// Deliberately does NOT register file associations: this process is the admin, so HKCU is
+        /// the wrong hive. InstallAndRelaunch does that afterwards as the real user.
+        /// </summary>
+        private static void DoSilentInstall()
+        {
+            try
+            {
+                string src = Process.GetCurrentProcess().MainModule!.FileName;
+
+                // Same trust gate as the interactive path - an unsigned or wrong-publisher exe must
+                // not be able to write itself into Program Files, least of all while elevated.
+                var (valid, _, _) = VerifyAuthenticode(src);
+                if (!valid)
+                {
+                    Console.Error.WriteLine("Silent install refused: EXE has no valid Authenticode signature.");
+                    Environment.Exit(1);
+                    return;
+                }
+
+                Directory.CreateDirectory(MachineInstallDir);
+                if (File.Exists(MachineInstallExe))
+                {
+                    try { File.SetAttributes(MachineInstallExe, FileAttributes.Normal); } catch { }
+                }
+                File.Copy(src, MachineInstallExe, overwrite: true);
+                try { File.SetAttributes(MachineInstallExe, FileAttributes.Normal); } catch { }
+
+                Directory.CreateDirectory(MachineStartMenuDir);
+                CreateShortcut(MachineStartMenuLnk, MachineInstallExe);
+
+                ExtractFileIcon(MachineFileIconPath);
+
+                using (var key = Registry.LocalMachine.CreateSubKey(@"Software\KillerPDF"))
+                {
+                    key.SetValue("Installed",   1);
+                    key.SetValue("InstallPath", MachineInstallExe);
+                    key.SetValue("Version",
+                        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "");
+                }
+
+                using (var key = Registry.LocalMachine.CreateSubKey(
+                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"))
+                {
+                    key.SetValue("DisplayName",          AppName);
+                    key.SetValue("DisplayVersion",
+                        Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "");
+                    key.SetValue("Publisher",            "Steve / thekiller.net");
+                    key.SetValue("InstallLocation",      MachineInstallDir);
+                    key.SetValue("DisplayIcon",          $"{MachineInstallExe},0");
+                    key.SetValue("UninstallString",      $"\"{MachineInstallExe}\" /uninstall");
+                    key.SetValue("QuietUninstallString", $"\"{MachineInstallExe}\" /uninstall");
+                    key.SetValue("NoModify",             1);
+                    key.SetValue("NoRepair",             1);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Silent install failed: " + ex.Message);
+                Environment.Exit(1);
+            }
         }
 
         // ============================================================
@@ -978,7 +1156,7 @@ namespace KillerPDF
             public uint   dwStateAction;       // 0 = WTD_STATEACTION_IGNORE
             public IntPtr hWVTStateData;
             public IntPtr pwszURLReference;
-            public uint   dwProvFlags;         // 0 = allow network fetch of intermediates
+            public uint   dwProvFlags;         // 0x1000 = WTD_CACHE_ONLY_URL_RETRIEVAL
             public uint   dwUIContext;
             public IntPtr pSignatureSettings;
         }
@@ -1032,7 +1210,7 @@ namespace KillerPDF
                     dwUIChoice    = 2,  // WTD_UI_NONE
                     dwUnionChoice = 1,  // WTD_CHOICE_FILE
                     pUnion        = fileInfoPtr,
-                    dwProvFlags   = 0   // allow network fetch of intermediate certs
+                    dwProvFlags   = 0x1000   // WTD_CACHE_ONLY_URL_RETRIEVAL, never hit the network
                 }, dataPtr, false);
 
                 var actionId = WTD_VERIFY_GENERIC;
@@ -1395,10 +1573,10 @@ namespace KillerPDF
                 }
 
                 // Drop the PDF file-type icon next to the exe so DefaultIcon can point at it
-                ExtractFileIcon();
+                ExtractFileIcon(FileIconPath);
 
                 // Register as PDF file handler (per-user - no admin needed)
-                RegisterFileHandler();
+                RegisterFileHandler(InstallExe, FileIconPath);
             }
             catch (Exception ex)
             {
@@ -1407,7 +1585,9 @@ namespace KillerPDF
             }
         }
 
-        private static void ExtractFileIcon()
+        // iconPath: which install location to drop it in. Parameterized for the machine-wide
+        // install, which writes into Program Files rather than the per-user folder.
+        private static void ExtractFileIcon(string iconPath)
         {
             try
             {
@@ -1418,18 +1598,23 @@ namespace KillerPDF
                 if (rn == null) return; // dev build running from bin/ without the embedded icon
 
                 using (var rs = asm.GetManifestResourceStream(rn)!)
-                using (var fs = File.Create(FileIconPath))
+                using (var fs = File.Create(iconPath))
                     rs.CopyTo(fs);
             }
             catch { }
         }
 
-        private static void RegisterFileHandler()
+        /// <summary>
+        /// Point the .pdf association at <paramref name="exePath"/>. ALWAYS writes HKCU, so it
+        /// must only ever be called from an UNELEVATED process - under /silent the current user is
+        /// the admin, and the keys would land in the wrong hive.
+        /// </summary>
+        private static void RegisterFileHandler(string exePath, string iconPath)
         {
             // Prefer the dedicated PDF file icon; fall back to the app icon if extraction didn't run
-            string iconRef = File.Exists(FileIconPath)
-                ? $"\"{FileIconPath}\",0"
-                : $"{InstallExe},0";
+            string iconRef = File.Exists(iconPath)
+                ? $"\"{iconPath}\",0"
+                : $"{exePath},0";
 
             // ProgID definition
             using (var k = Registry.CurrentUser.CreateSubKey(@"Software\Classes\KillerPDF.pdf"))
@@ -1441,7 +1626,7 @@ namespace KillerPDF
 
             using (var k = Registry.CurrentUser.CreateSubKey(
                 @"Software\Classes\KillerPDF.pdf\shell\open\command"))
-                k.SetValue("", $"\"{InstallExe}\" \"%1\"");
+                k.SetValue("", $"\"{exePath}\" \"%1\"");
 
             // Associate .pdf extension - adds KillerPDF to the "Open with" list
             using (var k = Registry.CurrentUser.CreateSubKey(
@@ -1523,12 +1708,27 @@ namespace KillerPDF
 
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
 
+            // Machine-wide half. Only reachable when Add/Remove Programs launched the Program Files
+            // copy, which Windows runs elevated from the HKLM uninstall entry - so these writes
+            // succeed there and simply fail harmlessly on a per-user uninstall.
+            bool machine = string.Equals(
+                Process.GetCurrentProcess().MainModule?.FileName, MachineInstallExe,
+                StringComparison.OrdinalIgnoreCase);
+            if (machine)
+            {
+                try { File.Delete(MachineStartMenuLnk); } catch { }
+                try { Directory.Delete(MachineStartMenuDir, recursive: false); } catch { }
+                try { Registry.LocalMachine.DeleteSubKeyTree(@"Software\KillerPDF"); } catch { }
+                try { Registry.LocalMachine.DeleteSubKeyTree(
+                    @"Software\Microsoft\Windows\CurrentVersion\Uninstall\KillerPDF"); } catch { }
+            }
+
             // Self-delete: deferred via cmd batch so the EXE can exit first
             string bat = Path.Combine(Path.GetTempPath(), "killerpdf_uninstall.bat");
             File.WriteAllText(bat,
                 "@echo off\r\n" +
                 "ping -n 3 127.0.0.1 >nul\r\n" +
-                $"rmdir /s /q \"{InstallDir}\"\r\n" +
+                $"rmdir /s /q \"{(machine ? MachineInstallDir : InstallDir)}\"\r\n" +
                 "del \"%~f0\"\r\n");
             Process.Start(new ProcessStartInfo("cmd.exe", $"/c \"{bat}\"")
             {

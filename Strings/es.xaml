@@ -44,7 +44,6 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Contraer barra lateral (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Expandir barra lateral (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Atajos de teclado (F1)</sys:String>
-    <sys:String x:Key="Str_TT_Settings">Configuración (F9)</sys:String>
     <sys:String x:Key="Str_TT_About">Acerca de KillerPDF (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
@@ -60,10 +59,11 @@
     <sys:String x:Key="Str_TabOutlines">ESQUEMA</sys:String>
 
     <!-- ── Settings panel ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Settings">Configuración</sys:String>
     <sys:String x:Key="Str_Theme">TEMA</sys:String>
     <sys:String x:Key="Str_Language">IDIOMA</sys:String>
     <sys:String x:Key="Str_Toolbar">BARRA DE HERRAMIENTAS</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">Barra de herramientas</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">Sin texto</sys:String>
     <sys:String x:Key="Str_Toolbar_SmallIcons">Iconos pequeños</sys:String>
     <sys:String x:Key="Str_Toolbar_LargeIcons">Iconos grandes</sys:String>
     <sys:String x:Key="Str_Toolbar_TextBeside">Texto junto a iconos</sys:String>
@@ -78,6 +78,7 @@
     <sys:String x:Key="Str_KS_File">ARCHIVO</sys:String>
     <sys:String x:Key="Str_KS_Open">Abrir</sys:String>
     <sys:String x:Key="Str_KS_CloseFile">Cerrar archivo</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">Cerrar otras pestañas</sys:String>
     <sys:String x:Key="Str_KS_CloseAll">Cerrar todo</sys:String>
     <sys:String x:Key="Str_KS_NewBlank">Nuevo documento en blanco</sys:String>
     <sys:String x:Key="Str_KS_SaveAs">Guardar como</sys:String>
@@ -101,11 +102,11 @@
     <sys:String x:Key="Str_KS_Help">AYUDA</sys:String>
     <sys:String x:Key="Str_KS_ThisList">Esta lista de atajos</sys:String>
     <sys:String x:Key="Str_KS_About">Cuadro Acerca de</sys:String>
-    <sys:String x:Key="Str_KS_Settings">Configuración</sys:String>
-    <sys:String x:Key="Str_KS_DocInfo">InformaciÃ³n del documento</sys:String>
+    <sys:String x:Key="Str_KS_DocInfo">Información del documento</sys:String>
     <sys:String x:Key="Str_KS_OnlineHelp">Guía completa y tutoriales en línea</sys:String>
     <sys:String x:Key="Str_KS_Tools">HERRAMIENTAS</sys:String>
     <sys:String x:Key="Str_KS_Paste">Pegar imagen / texto</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">Negrita / cursiva / subrayado (cuadro de texto)</sys:String>
     <sys:String x:Key="Str_KS_MultiSelect">Añadir a la selección</sys:String>
 
     <!-- ── Status bar ────────────────────────────────────────────────── -->
@@ -140,11 +141,22 @@
     <sys:String x:Key="Str_RotateFailed">Error al rotar: {0}</sys:String>
 
     <!-- ── Dialog strings ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Dlg_InstallTitle">Instalar KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg">¿Instalar KillerPDF en su perfil de usuario?
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">El otro panel también tiene «{0}» abierto, con cambios sin guardar propios.
 
-Esto copiará la aplicación a %LocalAppData%\KillerPDF y creará un acceso directo en el menú Inicio.
-Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:String>
+Al guardar ahora se sobrescribe el archivo y esos cambios se perderán. Guarde primero el otro panel si desea conservarlos.</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Vista dividida activada - F10 para cerrar</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">Vista dividida desactivada</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">Instalar KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">¿Instalar KillerPDF en este equipo?
+
+KillerPDF se copiará a su carpeta de programas y se añadirá una entrada en el menú Inicio. Esta copia del ejecutable se queda donde está, y puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">Instalar</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">Añadir un acceso directo en el escritorio</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">Instalar para todos los usuarios de este equipo (requiere administrador)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">La instalación no se completó - KillerPDF sigue ejecutándose en modo portátil.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg">¿Desea establecer KillerPDF como su visor de PDF predeterminado?
+
+Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Tiene cambios sin guardar. ¿Cerrar este archivo sin guardar?</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">Tiene cambios sin guardar. ¿Cerrar KillerPDF sin guardar?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange">Este documento tiene {0} página(s) con un tamaño fuera del rango que admite Adobe Reader (3 a 14.400 puntos por lado) - Adobe las muestra como páginas en blanco.
@@ -392,6 +404,10 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_Sidebar_Left">Izquierda</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">Derecha</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Mostrar/ocultar barra lateral</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">Apariencia de la barra de herramientas</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Barra lateral a la izquierda / derecha</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">Cambiar al siguiente modo de vista</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">Modo de vista</sys:String>
     <sys:String x:Key="Str_KS_NextTab">Pestaña siguiente (Mayús: anterior)</sys:String>
     <sys:String x:Key="Str_Lbl_Search">Buscar</sys:String>
     <sys:String x:Key="Str_TT_Search">Buscar (Ctrl+F)</sys:String>
@@ -486,6 +502,7 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_St_NoTextOnPage">No se encontró texto en esta página</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">No hay texto seleccionado - arrastre para seleccionar texto</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">No se encontró texto en la selección</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">No hay texto aquí - Formas está en 4</sys:String>
     <sys:String x:Key="Str_St_SignaturePlaced">Firma colocada - arrastre para reposicionarla, use el controlador de esquina para cambiar el tamaño</sys:String>
     <sys:String x:Key="Str_St_FieldCleared">Campo borrado</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">Campo firmado</sys:String>
@@ -578,6 +595,8 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_PrivacySection">PRIVACIDAD</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">No recordar los archivos abiertos recientemente</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Exportar páginas como imágenes...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">Quitar contraseña</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">Guardado sin protección por contraseña - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Exportar páginas como imágenes</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Formato</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Resolución (DPI)</sys:String>
@@ -587,9 +606,53 @@ Puede desinstalarla en cualquier momento desde Agregar o quitar programas.</sys:
     <sys:String x:Key="Str_Print_OddOnly">Solo páginas impares</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Solo páginas pares</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Invertir colores del documento</sys:String>
-    <sys:String x:Key="Str_TT_DocInvert">Invertir colores del documento (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">Invertir colores del documento (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">Vista dividida - dos documentos lado a lado (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">Cerrar pestaña</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">Todas las pestañas abiertas</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">Invertir también las imágenes</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs">Ninguna fuente de este PC puede dibujar estos caracteres, por lo que aparecerán como recuadros en el PDF guardado:&#10;&#10;{0}&#10;&#10;Instala una fuente que los incluya o elige otra fuente para este texto.</sys:String>
     <sys:String x:Key="Str_TT_AppSize">Desplácese para cambiar el tamaño de toda la aplicación (Ctrl+Shift+=/-/0)</sys:String>
     <sys:String x:Key="Str_St_AppSize">Tamaño de la aplicación {0}%</sys:String>
     <sys:String x:Key="Str_KS_AppSize">Zoom de toda la aplicación (accesibilidad)</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">Vista dividida - dos documentos lado a lado</sys:String>
     <sys:String x:Key="Str_LinkConfirmSetting">Confirmar antes de abrir enlaces</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">Restaurar</sys:String>
+    <sys:String x:Key="Str_Sys_Move">Mover</sys:String>
+    <sys:String x:Key="Str_Sys_Size">Tamaño</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">Minimizar</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">Maximizar</sys:String>
+    <sys:String x:Key="Str_Sys_Close">Cerrar</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">Cancelar</sys:String>
+    <sys:String x:Key="Str_Btn_Open">Abrir</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">Reemplazar</sys:String>
+    <sys:String x:Key="Str_Btn_Save">Guardar</sys:String>
+    <sys:String x:Key="Str_Col_Modified">modificado</sys:String>
+    <sys:String x:Key="Str_Col_Name">nombre</sys:String>
+    <sys:String x:Key="Str_Col_Size">tamaño</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">Cortar</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">Seleccionar todo</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">Todos los archivos</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">Nombre de archivo:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">Tipo de archivo:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">Aquí no hay nada que coincida con el tipo de archivo actual.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">Ese archivo no existe.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">Esa carpeta no existe.</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">¿Reemplazar {0}?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">Anclar a lugares</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">Quitar de lugares</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">Escritorio</sys:String>
+    <sys:String x:Key="Str_QA_Documents">Documentos</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">Descargas</sys:String>
+    <sys:String x:Key="Str_QA_Home">Inicio</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">Imágenes</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} carpeta(s), {1} archivo(s)</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">Ubicaciones recientes</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">Mostrar elementos ocultos y del sistema</sys:String>
+    <sys:String x:Key="Str_TT_Up">Subir una carpeta</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">Vista de detalles</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">Vista de iconos</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">Vista de lista</sys:String>
 </ResourceDictionary>

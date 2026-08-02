@@ -46,7 +46,6 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">Sbalit postranní panel (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">Rozbalit postranní panel (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">Klávesové zkratky (F1)</sys:String>
-    <sys:String x:Key="Str_TT_Settings">Nastavení (F9)</sys:String>
     <sys:String x:Key="Str_TT_About">O aplikaci KillerPDF (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
@@ -64,10 +63,11 @@
     <sys:String x:Key="Str_Outline_Untitled">(bez názvu)</sys:String>
 
     <!-- ── Settings panel ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Settings">Nastavení</sys:String>
     <sys:String x:Key="Str_Theme">MOTIV</sys:String>
     <sys:String x:Key="Str_Language">JAZYK</sys:String>
     <sys:String x:Key="Str_Toolbar">PANEL NÁSTROJŮ</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">Panel nástrojů</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">Bez textu</sys:String>
     <sys:String x:Key="Str_Toolbar_SmallIcons">Malé ikony</sys:String>
     <sys:String x:Key="Str_Toolbar_LargeIcons">Velké ikony</sys:String>
     <sys:String x:Key="Str_Toolbar_TextBeside">Text vedle ikon</sys:String>
@@ -82,6 +82,7 @@
     <sys:String x:Key="Str_KS_File">SOUBOR</sys:String>
     <sys:String x:Key="Str_KS_Open">Otevřít</sys:String>
     <sys:String x:Key="Str_KS_CloseFile">Zavřít soubor</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">Zavřít ostatní karty</sys:String>
     <sys:String x:Key="Str_KS_CloseAll">Zavřít vše</sys:String>
     <sys:String x:Key="Str_KS_NewBlank">Nový prázdný dokument</sys:String>
     <sys:String x:Key="Str_KS_SaveAs">Uložit jako</sys:String>
@@ -117,11 +118,11 @@
     <sys:String x:Key="Str_KS_Help">NÁPOVĚDA</sys:String>
     <sys:String x:Key="Str_KS_ThisList">Tento seznam zkratek</sys:String>
     <sys:String x:Key="Str_KS_About">Dialog O aplikaci</sys:String>
-    <sys:String x:Key="Str_KS_Settings">Nastavení</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">Informace o dokumentu</sys:String>
     <sys:String x:Key="Str_KS_OnlineHelp">Kompletní příručka &amp; návody online</sys:String>
     <sys:String x:Key="Str_KS_Tools">NÁSTROJE</sys:String>
     <sys:String x:Key="Str_KS_Paste">Vložit obrázek / text</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">Tučné / kurzíva / podtržení (textové pole)</sys:String>
     <sys:String x:Key="Str_KS_MultiSelect">Přidat do výběru</sys:String>
 
     <!-- ── Status bar ────────────────────────────────────────────────── -->
@@ -163,6 +164,8 @@
     <sys:String x:Key="Str_PrivacySection">SOUKROMÍ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Nepamatovat si naposledy otevřené soubory</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Exportovat stránky jako obrázky...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">Odebrat heslo</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">Uloženo bez ochrany heslem - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Exportovat stránky jako obrázky</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">Formát</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">Rozlišení (DPI)</sys:String>
@@ -172,10 +175,16 @@
     <sys:String x:Key="Str_Print_OddOnly">Pouze liché stránky</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">Pouze sudé stránky</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">Invertovat barvy dokumentu</sys:String>
-    <sys:String x:Key="Str_TT_DocInvert">Invertovat barvy dokumentu (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">Invertovat barvy dokumentu (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">Rozdělené zobrazení - dva dokumenty vedle sebe (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">Zavřít kartu</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">Všechny otevřené karty</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">Invertovat i obrázky</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs">Žádné písmo v tomto počítači neumí vykreslit tyto znaky, takže se v uloženém PDF zobrazí jako rámečky:&#10;&#10;{0}&#10;&#10;Nainstalujte písmo, které je obsahuje, nebo pro tento text zvolte jiné písmo.</sys:String>
     <sys:String x:Key="Str_TT_AppSize">Rolováním změníte velikost celé aplikace (Ctrl+Shift+=/-/0)</sys:String>
     <sys:String x:Key="Str_St_AppSize">Velikost aplikace {0} %</sys:String>
     <sys:String x:Key="Str_KS_AppSize">Zvětšení celé aplikace (usnadnění přístupu)</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">Rozdělené zobrazení - dva dokumenty vedle sebe</sys:String>
     <sys:String x:Key="Str_LinkConfirmSetting">Před otevřením odkazů se zeptat</sys:String>
     <sys:String x:Key="Str_InvalidRange">Neplatný rozsah - použijte např. 1-3,5,7</sys:String>
     <sys:String x:Key="Str_CropNoDoc">Ořez: není otevřen žádný dokument</sys:String>
@@ -184,11 +193,22 @@
     <sys:String x:Key="Str_RotateFailed">Otočení selhalo: {0}</sys:String>
 
     <!-- ── Dialog strings ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Dlg_InstallTitle">Nainstalovat KillerPDF</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg">Nainstalovat KillerPDF do vašeho uživatelského profilu?
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">Druhý panel má soubor „{0}“ rovněž otevřený a obsahuje vlastní neuložené změny.
 
-Aplikace se zkopíruje do %LocalAppData%\KillerPDF a v nabídce Start se vytvoří zástupce.
-Odinstalovat ji můžete kdykoli přes Přidat/odebrat programy.</sys:String>
+Uložením se soubor přepíše a tyto změny budou ztraceny. Pokud si je chcete ponechat, uložte nejprve druhý panel.</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Rozdělené zobrazení zapnuto - F10 zavře</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">Rozdělené zobrazení vypnuto</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">Nainstalovat KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">Nainstalovat KillerPDF do tohoto počítače?
+
+KillerPDF se zkopíruje do vaší složky programů a v nabídce Start se vytvoří zástupce. Tato kopie souboru EXE zůstane tam, kde je, a odinstalovat ji můžete kdykoli přes Přidat/odebrat programy.</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">Nainstalovat</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">Přidat zástupce na plochu</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">Nainstalovat pro všechny uživatele tohoto počítače (vyžaduje správce)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">Instalace nebyla dokončena - KillerPDF stále běží přenosně.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg">Chcete nastavit KillerPDF jako výchozí prohlížeč PDF?
+
+Otevře Nastavení Windows - Výchozí aplikace.</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">Máte neuložené změny. Zavřít tento soubor bez uložení?</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">Máte neuložené změny. Zavřít KillerPDF bez uložení?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange">Tento dokument obsahuje stránky (počet: {0}) s rozměry mimo rozsah podporovaný aplikací Adobe Reader (3 až 14 400 bodů na stranu) - Adobe je zobrazuje jako prázdné.
@@ -448,6 +468,10 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Sidebar_Left">Vlevo</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">Vpravo</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">Přepnout postranní panel</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">Vzhled panelu nástrojů</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Postranní panel vlevo / vpravo</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">Další režim zobrazení</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">Režim zobrazení</sys:String>
     <sys:String x:Key="Str_KS_NextTab">Další karta (Shift: předchozí)</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">Smazat stránku</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplikovat stránku</sys:String>
@@ -494,7 +518,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_KS_View">Zobrazení</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Celá obrazovka</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Celou obrazovku ukončíte stisknutím F11 nebo Esc</sys:String>
-    <!-- KillerFind-style quit prompt (family standard) -->
+    <!-- Quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">Ukončit KillerPDF?</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">Zavřít mé otevřené karty</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Ukončit</sys:String>
@@ -532,6 +556,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_St_NoTextOnPage">Na této stránce nebyl nalezen žádný text</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">Není vybrán žádný text - text vyberete tažením</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">Ve výběru nebyl nalezen žádný text</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">Zde není žádný text - Tvary jsou na 4</sys:String>
     <sys:String x:Key="Str_St_SignaturePlaced">Podpis umístěn - tažením jej přemístíte, rohovým úchytem změníte velikost</sys:String>
     <sys:String x:Key="Str_St_FieldCleared">Pole vymazáno</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">Pole podepsáno</sys:String>
@@ -597,4 +622,42 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Kb_PrevResult">Předchozí výsledek</sys:String>
     <sys:String x:Key="Str_Kb_Confirm">Potvrdit</sys:String>
     <sys:String x:Key="Str_Kb_Cancel">Zrušit</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">Obnovit</sys:String>
+    <sys:String x:Key="Str_Sys_Move">Přesunout</sys:String>
+    <sys:String x:Key="Str_Sys_Size">Velikost</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">Minimalizovat</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">Maximalizovat</sys:String>
+    <sys:String x:Key="Str_Sys_Close">Zavřít</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">Zrušit</sys:String>
+    <sys:String x:Key="Str_Btn_Open">Otevřít</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">Nahradit</sys:String>
+    <sys:String x:Key="Str_Btn_Save">Uložit</sys:String>
+    <sys:String x:Key="Str_Col_Modified">změněno</sys:String>
+    <sys:String x:Key="Str_Col_Name">název</sys:String>
+    <sys:String x:Key="Str_Col_Size">velikost</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">Vyjmout</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">Vybrat vše</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">Všechny soubory</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">Název souboru:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">Typ souboru:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">Zde nic neodpovídá aktuálnímu typu souboru.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">Tento soubor neexistuje.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">Tato složka neexistuje.</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">Nahradit {0}?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">Připnout k místům</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">Odebrat z míst</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">Plocha</sys:String>
+    <sys:String x:Key="Str_QA_Documents">Dokumenty</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">Stažené</sys:String>
+    <sys:String x:Key="Str_QA_Home">Domů</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">Obrázky</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">Složek: {0}, souborů: {1}</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">Nedávná umístění</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">Zobrazit skryté a systémové položky</sys:String>
+    <sys:String x:Key="Str_TT_Up">O úroveň výše</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">Zobrazení podrobností</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">Zobrazení ikon</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">Zobrazení seznamu</sys:String>
 </ResourceDictionary>

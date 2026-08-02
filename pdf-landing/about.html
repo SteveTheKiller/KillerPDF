@@ -11,7 +11,7 @@
 <meta name="description" content="About KillerPDF and its maker, Steve the Killer - a field tech who got tired of Adobe.">
 <link rel="icon" type="image/x-icon" href="kp-icon.ico">
 <script defer src="https://koya.thekiller.net/script.js" data-website-id="4036b11d-f6c0-4254-b448-933d3e38b0cb"></script>
-<link rel="stylesheet" href="kp.css?v=11">
+<link rel="stylesheet" href="kp.css?v=13">
 <style>
 .page-hero { text-align: center; padding: 44px 16px 8px; }
 .page-hero .wm-logo { height: clamp(46px, 8vw, 76px); width: auto; margin: 0 auto 8px; display: block; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.55)); }
@@ -92,9 +92,9 @@ html[data-theme="light"] .also-wm.light { display: block; }
 </div>
 </div>
 
-<div class="frame-shadow" aria-hidden="true"></div>
 <div class="shell">
 <div class="content">
+<div class="content-scroll">
 <div class="content-inner">
 
 <section class="page-hero">
@@ -106,7 +106,7 @@ html[data-theme="light"] .also-wm.light { display: block; }
 <div class="about-card" id="maker">
 <h2 data-i18n="pa_3">The maker</h2>
 <p class="about-quote" data-i18n="pa_4">"I got tired of closing the same Adobe ticket. So I wrote a PDF app that just works, ships as one .exe, and never asks the user to log in."</p>
-<p data-i18n="pa_5">I'm <b>Steve the Killer</b> - a field technician and systems administrator at a large MSP, working in IT since 2017. I did not start there, though: I have been building websites since the 90s and spent roughly six years as a full-stack developer before I moved into IT, so I am as at home in a codebase as I am in a server room.</p>
+<p data-i18n="pa_5">I'm <b>Steve the Killer</b> - a field technician and systems administrator at a large MSP, working in IT since 2018. I did not start there, though: I have been building websites since the 90s and spent roughly eight years as a full-stack developer before I moved into IT, so I am as at home in a codebase as I am in a server room.</p>
 <p data-i18n="pa_6">A steady share of my days has always been the same shape: a user can't fill a PDF, a form won't flatten, a licence won't activate, a viewer throws an error on a file that should just open. Adobe Acrobat tickets - install it, repair it, license it, work around it - added up to hours every week that never felt like they were actually fixing anything.</p>
 <p data-i18n="pa_7">So I built the tool I kept wishing my users already had, and KillerPDF is the result.</p>
 </div>
@@ -140,30 +140,39 @@ html[data-theme="light"] .also-wm.light { display: block; }
 <a class="also-card" href="https://killerscan.net" target="_blank" rel="noopener">
 <img class="also-icon" src="brand/ks-icon.png" alt="KillerScan" width="46" height="46">
 <span class="also-body">
-<img class="also-wm dark" src="brand/killerscan-wordmark-dark.png" alt="KillerScan">
-<img class="also-wm light" src="brand/killerscan-wordmark-light.png" alt="KillerScan">
+<img class="also-wm dark" src="brand/killerscan-logo-brand-dark.svg" alt="KillerScan">
+<img class="also-wm light" src="brand/killerscan-logo-brand-light.svg" alt="KillerScan">
 <span class="also-tag" data-i18n="pa_24">Open-source network scanner for Windows</span>
 </span>
 </a>
-<a class="also-card" href="https://killerfind.net" target="_blank" rel="noopener">
-<img class="also-icon" src="brand/kf-icon.png" alt="KillerFind" width="46" height="46">
+<a class="also-card" href="https://killershell.net" target="_blank" rel="noopener">
+<img class="also-icon" src="brand/ksh-icon.png" alt="KillerShell" width="46" height="46">
 <span class="also-body">
-<img class="also-wm dark" src="brand/killerfind-wordmark-dark.png" alt="KillerFind">
-<img class="also-wm light" src="brand/killerfind-wordmark-light.png" alt="KillerFind">
-<span class="also-tag" data-i18n="pa_kf">Open-source file search for Windows</span>
+<img class="also-wm dark" src="brand/killershell-logo-brand-dark.svg" alt="KillerShell">
+<img class="also-wm light" src="brand/killershell-logo-brand-light.svg" alt="KillerShell">
+<span class="also-tag" data-i18n="pa_kf">Open-source Windows shell for power users</span>
 </span>
 </a>
 <a class="also-card" href="https://killernotes.net" target="_blank" rel="noopener">
 <img class="also-icon" src="brand/kn-icon.png" alt="KillerNotes" width="46" height="46">
 <span class="also-body">
-<img class="also-wm dark" src="brand/killernotes-wordmark-dark.png" alt="KillerNotes">
-<img class="also-wm light" src="brand/killernotes-wordmark-light.png" alt="KillerNotes">
+<img class="also-wm dark" src="brand/killernotes-logo-brand-dark.svg" alt="KillerNotes">
+<img class="also-wm light" src="brand/killernotes-logo-brand-light.svg" alt="KillerNotes">
 <span class="also-tag" data-i18n="pa_kn">Open-source encrypted notepad for Windows</span>
+</span>
+</a>
+<a class="also-card" href="https://killendar.net" target="_blank" rel="noopener">
+<img class="also-icon" src="brand/kd-icon.png" alt="Killendar" width="46" height="46">
+<span class="also-body">
+<img class="also-wm dark" src="brand/killendar-logo-brand-dark.svg" alt="Killendar">
+<img class="also-wm light" src="brand/killendar-logo-brand-light.svg" alt="Killendar">
+<span class="also-tag" data-i18n="pa_kd">Open-source encrypted calendar for Windows</span>
 </span>
 </a>
 </div>
 </div>
 
+</div>
 </div>
 </div>
 <aside class="sidebar">
@@ -178,16 +187,16 @@ html[data-theme="light"] .also-wm.light { display: block; }
 </div>
 <footer class="statusbar">
 <span class="left" data-i18n="pa_30"><a href="https://github.com/SteveTheKiller/KillerPDF" target="_blank" rel="noopener">Source on GitHub</a> &middot; GPLv3 &middot; Part of <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span>
-<span class="right" data-i18n="pa_31"><span id="verEgg" title="click me">v1.6.5</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
+<span class="right" data-i18n="pa_31"><span id="verEgg" title="click me">v1.7.0</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
 </footer>
 <div class="egg-toast" id="eggToast"></div>
 <script src="kp-i18n.js?v=3"></script>
-<script src="kp.js?v=3"></script>
+<script src="kp.js?v=4"></script>
 <script>
 (function(){
   var links=[].slice.call(document.querySelectorAll('.outline a'));
   var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'));}).filter(Boolean);
-  var sc=document.querySelector('.content');
+  var sc=document.querySelector('.content-scroll');
   function onScroll(){ var y=(sc?sc.scrollTop:window.scrollY)+100, cur=secs[0]; secs.forEach(function(s){ if(s&&s.offsetTop<=y) cur=s; });
     links.forEach(function(a){ a.classList.toggle('on', cur && a.getAttribute('href')==='#'+cur.id); }); }
   (sc||window).addEventListener('scroll',onScroll,{passive:true}); onScroll();

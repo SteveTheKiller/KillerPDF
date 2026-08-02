@@ -44,7 +44,6 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">সাইডবার সংকুচিত করুন (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">সাইডবার প্রসারিত করুন (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">কীবোর্ড শর্টকাট (F1)</sys:String>
-    <sys:String x:Key="Str_TT_Settings">সেটিংস (F9)</sys:String>
     <sys:String x:Key="Str_TT_About">KillerPDF সম্পর্কে (F12)</sys:String>
 
     <!-- ── About overlay ─────────────────────────────────────────────── -->
@@ -60,10 +59,11 @@
     <sys:String x:Key="Str_TabOutlines">আউটলাইন</sys:String>
 
     <!-- ── Settings panel ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Settings">সেটিংস</sys:String>
     <sys:String x:Key="Str_Theme">থিম</sys:String>
     <sys:String x:Key="Str_Language">ভাষা</sys:String>
     <sys:String x:Key="Str_Toolbar">টুলবার</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">টুলবার</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">লেখা নেই</sys:String>
     <sys:String x:Key="Str_Toolbar_SmallIcons">ছোট আইকন</sys:String>
     <sys:String x:Key="Str_Toolbar_LargeIcons">বড় আইকন</sys:String>
     <sys:String x:Key="Str_Toolbar_TextBeside">আইকনের পাশে লেখা</sys:String>
@@ -78,6 +78,7 @@
     <sys:String x:Key="Str_KS_File">ফাইল</sys:String>
     <sys:String x:Key="Str_KS_Open">খুলুন</sys:String>
     <sys:String x:Key="Str_KS_CloseFile">ফাইল বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">অন্যান্য ট্যাব বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_KS_CloseAll">সব বন্ধ করুন</sys:String>
     <sys:String x:Key="Str_KS_NewBlank">নতুন ফাঁকা নথি</sys:String>
     <sys:String x:Key="Str_KS_SaveAs">এভাবে সংরক্ষণ করুন</sys:String>
@@ -101,11 +102,11 @@
     <sys:String x:Key="Str_KS_Help">সহায়তা</sys:String>
     <sys:String x:Key="Str_KS_ThisList">এই শর্টকাট তালিকা</sys:String>
     <sys:String x:Key="Str_KS_About">সম্পর্কে ডায়ালগ</sys:String>
-    <sys:String x:Key="Str_KS_Settings">সেটিংস</sys:String>
-    <sys:String x:Key="Str_KS_DocInfo">à¦¡à¦•à§à¦®à§‡à¦¨à§à¦Ÿà§‡à¦° à¦¤à¦¥à§à¦¯</sys:String>
+    <sys:String x:Key="Str_KS_DocInfo">ডকুমেন্টের তথ্য</sys:String>
     <sys:String x:Key="Str_KS_OnlineHelp">সম্পূর্ণ গাইড ও অনলাইন নির্দেশিকা</sys:String>
     <sys:String x:Key="Str_KS_Tools">টুল</sys:String>
     <sys:String x:Key="Str_KS_Paste">ছবি / টেক্সট পেস্ট করুন</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">গাঢ় / তির্যক / নিম্নরেখা (টেক্সট বক্স)</sys:String>
     <sys:String x:Key="Str_KS_MultiSelect">নির্বাচনে যোগ করুন</sys:String>
 
     <!-- ── Status bar ────────────────────────────────────────────────── -->
@@ -140,11 +141,22 @@
     <sys:String x:Key="Str_RotateFailed">ঘোরানো ব্যর্থ হয়েছে: {0}</sys:String>
 
     <!-- ── Dialog strings ───────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF ইনস্টল করুন</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg">আপনার ব্যবহারকারী প্রোফাইলে KillerPDF ইনস্টল করবেন?
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">অন্য প্যানেও "{0}" খোলা আছে এবং সেখানে নিজস্ব অসংরক্ষিত পরিবর্তন রয়েছে।
 
-এটি অ্যাপটি %LocalAppData%\KillerPDF-এ কপি করবে এবং স্টার্ট মেনু শর্টকাট তৈরি করবে।
-যেকোনো সময় Add/Remove Programs-এর মাধ্যমে আনইনস্টল করা যাবে।</sys:String>
+এখন সংরক্ষণ করলে ফাইলটি ওভাররাইট হবে এবং সেই পরিবর্তনগুলি হারিয়ে যাবে। রাখতে চাইলে আগে অন্য প্যানটি সংরক্ষণ করুন।</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">স্প্লিট প্যান চালু - বন্ধ করতে F10</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">স্প্লিট প্যান বন্ধ</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF ইনস্টল করুন</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">এই কম্পিউটারে KillerPDF ইনস্টল করবেন?
+
+KillerPDF আপনার প্রোগ্রাম ফোল্ডারে কপি করা হবে এবং একটি স্টার্ট মেনু এন্ট্রি যোগ করা হবে। EXE-র এই কপিটি যেখানে আছে সেখানেই থাকবে, এবং যেকোনো সময় Add/Remove Programs-এর মাধ্যমে আনইনস্টল করা যাবে।</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">ইনস্টল করুন</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">ডেস্কটপ শর্টকাট যোগ করুন</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">এই কম্পিউটারের সব ব্যবহারকারীর জন্য ইনস্টল করুন (অ্যাডমিন লাগবে)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">ইনস্টল সম্পূর্ণ হয়নি - KillerPDF এখনও পোর্টেবল হিসেবে চলছে।</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg">KillerPDF-কে আপনার ডিফল্ট PDF ভিউয়ার হিসেবে সেট করতে চান?
+
+Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে।</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">আপনার অসংরক্ষিত পরিবর্তন রয়েছে। সংরক্ষণ না করে এই ফাইলটি বন্ধ করবেন?</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">আপনার অসংরক্ষিত পরিবর্তন রয়েছে। সংরক্ষণ না করে KillerPDF বন্ধ করবেন?</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange">এই ডকুমেন্টে {0}টি পৃষ্ঠার আকার Adobe Reader-এর সমর্থিত সীমার (প্রতি পাশে 3 থেকে 14,400 পয়েন্ট) বাইরে - Adobe এই পৃষ্ঠাগুলিকে ফাঁকা দেখায়।
@@ -392,6 +404,10 @@
     <sys:String x:Key="Str_Sidebar_Left">বাঁ দিকে</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">ডান দিকে</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">সাইডবার টগল করুন</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">টুলবারের চেহারা</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">সাইডবার বাঁয়ে / ডানে</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">পরবর্তী ভিউ মোড</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">ভিউ মোড</sys:String>
     <sys:String x:Key="Str_KS_NextTab">পরবর্তী ট্যাব (Shift: পূর্ববর্তী)</sys:String>
     <sys:String x:Key="Str_Lbl_Search">অনুসন্ধান</sys:String>
     <sys:String x:Key="Str_TT_Search">অনুসন্ধান (Ctrl+F)</sys:String>
@@ -486,6 +502,7 @@
     <sys:String x:Key="Str_St_NoTextOnPage">এই পৃষ্ঠায় কোনো টেক্সট পাওয়া যায়নি</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">কোনো টেক্সট নির্বাচন করা হয়নি - টেক্সট নির্বাচন করতে টেনে আনুন</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">নির্বাচনে কোনো টেক্সট পাওয়া যায়নি</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">এখানে কোনো টেক্সট নেই - আকার ৪-এ আছে</sys:String>
     <sys:String x:Key="Str_St_SignaturePlaced">স্বাক্ষর স্থাপন করা হয়েছে - পুনরায় স্থাপন করতে টেনে আনুন, আকার পরিবর্তন করতে কোণার হ্যান্ডেল ব্যবহার করুন</sys:String>
     <sys:String x:Key="Str_St_FieldCleared">ফিল্ড মুছে ফেলা হয়েছে</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">ফিল্ড স্বাক্ষরিত হয়েছে</sys:String>
@@ -578,6 +595,8 @@
     <sys:String x:Key="Str_PrivacySection">গোপনীয়তা</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">সম্প্রতি খোলা ফাইলগুলি মনে রাখবেন না</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">পৃষ্ঠাগুলি ছবি হিসেবে এক্সপোর্ট করুন...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">পাসওয়ার্ড সরান</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">পাসওয়ার্ড সুরক্ষা ছাড়াই সংরক্ষিত হয়েছে - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">পৃষ্ঠাগুলি ছবি হিসেবে এক্সপোর্ট</sys:String>
     <sys:String x:Key="Str_ExportImg_Format">ফরম্যাট</sys:String>
     <sys:String x:Key="Str_ExportImg_Dpi">রেজোলিউশন (DPI)</sys:String>
@@ -587,9 +606,53 @@
     <sys:String x:Key="Str_Print_OddOnly">শুধু বিজোড় পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_Print_EvenOnly">শুধু জোড় পৃষ্ঠা</sys:String>
     <sys:String x:Key="Str_DocInvertSetting">ডকুমেন্টের রং উল্টে দিন</sys:String>
-    <sys:String x:Key="Str_TT_DocInvert">ডকুমেন্টের রং উল্টে দিন (Ctrl+I)</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">ডকুমেন্টের রং উল্টে দিন (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">বিভক্ত ভিউ - পাশাপাশি দুটি নথি (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">ট্যাব বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">সব খোলা ট্যাব</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">ছবিও উল্টে দিন</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs">এই পিসির কোনো ফন্ট এই অক্ষরগুলি আঁকতে পারে না, তাই সংরক্ষিত PDF-এ সেগুলি বাক্স হিসেবে দেখাবে:&#10;&#10;{0}&#10;&#10;এগুলি সমর্থন করে এমন ফন্ট ইনস্টল করুন, অথবা এই লেখার জন্য অন্য ফন্ট বেছে নিন।</sys:String>
     <sys:String x:Key="Str_TT_AppSize">পুরো অ্যাপের আকার বদলাতে স্ক্রোল করুন (Ctrl+Shift+=/-/0)</sys:String>
     <sys:String x:Key="Str_St_AppSize">অ্যাপের আকার {0}%</sys:String>
     <sys:String x:Key="Str_KS_AppSize">পুরো অ্যাপ জুম করুন (অ্যাক্সেসযোগ্যতা)</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">বিভক্ত ভিউ - পাশাপাশি দুটি নথি</sys:String>
     <sys:String x:Key="Str_LinkConfirmSetting">লিঙ্ক খোলার আগে নিশ্চিত করুন</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">পুনরুদ্ধার</sys:String>
+    <sys:String x:Key="Str_Sys_Move">সরান</sys:String>
+    <sys:String x:Key="Str_Sys_Size">আকার</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">ছোট করুন</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">বড় করুন</sys:String>
+    <sys:String x:Key="Str_Sys_Close">বন্ধ করুন</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">বাতিল</sys:String>
+    <sys:String x:Key="Str_Btn_Open">খুলুন</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">পরিবর্তন</sys:String>
+    <sys:String x:Key="Str_Btn_Save">সংরক্ষণ</sys:String>
+    <sys:String x:Key="Str_Col_Modified">পরিবর্তিত</sys:String>
+    <sys:String x:Key="Str_Col_Name">নাম</sys:String>
+    <sys:String x:Key="Str_Col_Size">আকার</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">কাট</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">সব নির্বাচন করুন</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">সব ফাইল</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">ফাইলের নাম:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">ফাইলের ধরন:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">বর্তমান ফাইলের ধরনের সঙ্গে মিলে এমন কিছু নেই।</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">ওই ফাইলটি নেই।</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">ওই ফোল্ডারটি নেই।</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} পরিবর্তন করবেন?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">স্থানে পিন করুন</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">স্থান থেকে সরান</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">ডেস্কটপ</sys:String>
+    <sys:String x:Key="Str_QA_Documents">ডকুমেন্ট</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">ডাউনলোড</sys:String>
+    <sys:String x:Key="Str_QA_Home">হোম</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">ছবি</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} টি ফোল্ডার, {1} টি ফাইল</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">সাম্প্রতিক অবস্থান</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">লুকানো ও সিস্টেম আইটেম দেখান</sys:String>
+    <sys:String x:Key="Str_TT_Up">এক ফোল্ডার উপরে</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">বিস্তারিত দেখা</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">আইকন দেখা</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">তালিকা দেখা</sys:String>
 </ResourceDictionary>

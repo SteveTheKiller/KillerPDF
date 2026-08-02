@@ -1,0 +1,8 @@
+root = true
+
+[*.cs]
+# IDE0130 (namespace must match folder structure) is deliberately OFF. The KillerUI refactor
+# keeps ONE flat KillerPDF.Features namespace across the Features/<Name>/ folders - every
+# partial of a class must share a single namespace, and Killendar (the family's reference
+# implementation) uses the same flat shape. Folder-matching namespaces would fight both.
+dotnet_diagnostic.IDE0130.severity = none

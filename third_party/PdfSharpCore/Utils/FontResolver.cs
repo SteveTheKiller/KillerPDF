@@ -123,12 +123,18 @@ namespace PdfSharpCore.Utils
                     Debug.WriteLine(fontPathFile);
                     tempFontInfoList.Add(fontInfo);
                 }
+                // The e variable only exists under DEBUG: naming it unconditionally leaves Release
+                // builds with CS0168 (declared but never used), which is what the split clause avoids.
+#if DEBUG
                 catch (System.Exception e)
                 {
-#if DEBUG
                     System.Console.Error.WriteLine(e);
-#endif
                 }
+#else
+                catch (System.Exception)
+                {
+                }
+#endif
             }
 
             // Deserialize all font families
@@ -139,12 +145,17 @@ namespace PdfSharpCore.Utils
                     FontFamilyModel family = DeserializeFontFamily(familyName, familyGroup);
                     InstalledFonts.Add(familyName.ToLower(), family);
                 }
+                // Split clause for the same CS0168 reason as the load loop above.
+#if DEBUG
                 catch (System.Exception e)
                 {
-#if DEBUG
                     System.Console.Error.WriteLine(e);
-#endif
                 }
+#else
+                catch (System.Exception)
+                {
+                }
+#endif
         }
 
 

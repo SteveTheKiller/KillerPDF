@@ -172,10 +172,10 @@ namespace KillerPDF.Services
             // "PDF" wordmark colour. In the accent-capable families (Dark/Light/Black) it tracks the chosen
             // accent; in the bold fixed-colour themes (Blood/Greed/Cyanotic) it reads as TextSecondary so it
             // doesn't fight their loud accents. AccentLogo is the brush the wordmark (and a few other marks)
-            // bind to; pointing it at the live Accent/TextSecondary brush updates them all via DynamicResource.
+            // bind to; pointing it at the live PrimaryBrush/MutedTextBrush updates them all via DynamicResource.
             {
                 var live = merged[0];
-                object src = HasAccents(theme) ? live["Accent"] : live["TextSecondary"];
+                object src = HasAccents(theme) ? live["PrimaryBrush"] : live["MutedTextBrush"];
                 if (src is not null) live["AccentLogo"] = src;
             }
 
@@ -228,7 +228,7 @@ namespace KillerPDF.Services
                 // window outline follows the palette instead of staying system gray.
                 // AppBorderBrush lets a theme override the tone (family standard).
                 if ((Application.Current?.TryFindResource("AppBorderBrush")
-                     ?? Application.Current?.TryFindResource("PaneBorder")) is SolidColorBrush b)
+                     ?? Application.Current?.TryFindResource("PaneBorderBrush")) is SolidColorBrush b)
                 {
                     // COLORREF is 0x00BBGGRR
                     int colorref = b.Color.R | (b.Color.G << 8) | (b.Color.B << 16);

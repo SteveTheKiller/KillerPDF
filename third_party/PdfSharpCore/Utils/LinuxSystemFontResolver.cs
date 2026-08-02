@@ -134,13 +134,20 @@ namespace PdfSharpCore.Utils
             {
                 return ResolveFontConfig().Where(x => x.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)).ToArray();
             }
+            // The ex variable only exists under DEBUG: naming it unconditionally leaves Release
+            // builds with CS0168 (declared but never used), which is what the split clause avoids.
+#if DEBUG
             catch(Exception ex)
             {
-#if DEBUG
                 Console.Error.WriteLine(ex.ToString());
-#endif
                 return ResolveFallback().Where(x => x.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)).ToArray();
             }
+#else
+            catch(Exception)
+            {
+                return ResolveFallback().Where(x => x.EndsWith(".ttf", StringComparison.OrdinalIgnoreCase)).ToArray();
+            }
+#endif
         }
 
 
@@ -194,13 +201,18 @@ namespace PdfSharpCore.Utils
                     } // Whend 
                 } // End Using reader 
             }
+            // Split clause for the same CS0168 reason as Resolve() above.
+#if DEBUG
             catch (Exception ex)
             {
-#if DEBUG
                 Console.Error.WriteLine(ex.Message);
                 Console.Error.WriteLine(ex.StackTrace);
-#endif
             }
+#else
+            catch (Exception)
+            {
+            }
+#endif
 
             dirs.Add("/usr/share/fonts");
             dirs.Add("/usr/local/share/fonts");

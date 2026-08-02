@@ -46,7 +46,6 @@
     <sys:String x:Key="Str_TT_CollapseSidebar">サイドバーを折りたたむ (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_ExpandSidebar">サイドバーを展開 (Ctrl+B)</sys:String>
     <sys:String x:Key="Str_TT_KeyboardShortcuts">キーボードショートカット (F1)</sys:String>
-    <sys:String x:Key="Str_TT_Settings">設定 (F9)</sys:String>
     <sys:String x:Key="Str_TT_About">KillerPDF について (F12)</sys:String>
 
     <!-- ── バージョン情報オーバーレイ ──────────────────────────────────── -->
@@ -60,12 +59,15 @@
     <!-- ── サイドバータブ ────────────────────────────────────────── -->
     <sys:String x:Key="Str_TabPages">ページ</sys:String>
     <sys:String x:Key="Str_TabOutlines">アウトライン</sys:String>
+    <sys:String x:Key="Str_PageLabel">ページ {0}</sys:String>
+    <sys:String x:Key="Str_Outline_Untitled">(無題)</sys:String>
 
     <!-- ── 設定パネル ──────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Settings">設定</sys:String>
     <sys:String x:Key="Str_Theme">テーマ</sys:String>
     <sys:String x:Key="Str_Language">言語</sys:String>
     <sys:String x:Key="Str_Toolbar">ツールバー</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">ツールバー</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">文字なし</sys:String>
     <sys:String x:Key="Str_Toolbar_SmallIcons">小さいアイコン</sys:String>
     <sys:String x:Key="Str_Toolbar_LargeIcons">大きいアイコン</sys:String>
     <sys:String x:Key="Str_Toolbar_TextBeside">アイコンの横にテキスト</sys:String>
@@ -74,13 +76,13 @@
     <sys:String x:Key="Str_Lang_English">English</sys:String>
     <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
     <sys:String x:Key="Str_Lang_Chinese">中文 (繁體)</sys:String>
-    <sys:String x:Key="Str_Lang_Japanese">日本語</sys:String>
 
     <!-- ── キーボードショートカットオーバーレイ ─────────────────────────────── -->
     <sys:String x:Key="Str_KS_Title">キーボードショートカット</sys:String>
     <sys:String x:Key="Str_KS_File">ファイル</sys:String>
     <sys:String x:Key="Str_KS_Open">開く</sys:String>
     <sys:String x:Key="Str_KS_CloseFile">ファイルを閉じる</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">他のタブを閉じる</sys:String>
     <sys:String x:Key="Str_KS_CloseAll">すべて閉じる</sys:String>
     <sys:String x:Key="Str_KS_NewBlank">新規空白ドキュメント</sys:String>
     <sys:String x:Key="Str_KS_SaveAs">名前を付けて保存</sys:String>
@@ -116,11 +118,11 @@
     <sys:String x:Key="Str_KS_Help">ヘルプ</sys:String>
     <sys:String x:Key="Str_KS_ThisList">このショートカット一覧</sys:String>
     <sys:String x:Key="Str_KS_About">バージョン情報</sys:String>
-    <sys:String x:Key="Str_KS_Settings">設定</sys:String>
     <sys:String x:Key="Str_KS_DocInfo">ドキュメント情報</sys:String>
     <sys:String x:Key="Str_KS_OnlineHelp">完全ガイド &amp; 使い方 (オンライン)</sys:String>
     <sys:String x:Key="Str_KS_Tools">ツール</sys:String>
     <sys:String x:Key="Str_KS_Paste">画像 / テキストを貼り付け</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">太字 / 斜体 / 下線（テキストボックス）</sys:String>
     <sys:String x:Key="Str_KS_MultiSelect">選択に追加</sys:String>
 
     <!-- ── ステータスバー ────────────────────────────────────────── -->
@@ -148,6 +150,42 @@
     <sys:String x:Key="Str_Deleted">{0} ページを削除しました - {1} ページ残っています</sys:String>
     <sys:String x:Key="Str_Printed">{0} ページをプリンターに送信しました</sys:String>
     <sys:String x:Key="Str_LinkRemoved">リンクを削除しました。</sys:String>
+    <sys:String x:Key="Str_LinkRemoveFailed">リンクの削除に失敗しました：</sys:String>
+    <sys:String x:Key="Str_LinkBlocked">ブロックされたリンク (未対応の種類)：</sys:String>
+    <sys:String x:Key="Str_LinkOpenFailed">リンクを開けませんでした</sys:String>
+    <sys:String x:Key="Str_LinkConfirmBody">このリンクをブラウザーで開きますか？</sys:String>
+    <sys:String x:Key="Str_LinkConfirmTitle">リンクを開きますか？</sys:String>
+    <sys:String x:Key="Str_LinkDontAsk">今後確認しない</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenLink">リンクを開く</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyLink">リンクアドレスをコピー</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyEmail">メールアドレスをコピー</sys:String>
+    <sys:String x:Key="Str_Ctx_RemoveLink">PDF からリンクを削除</sys:String>
+    <sys:String x:Key="Str_LinksSection">リンク</sys:String>
+    <sys:String x:Key="Str_PrivacySection">プライバシー</sys:String>
+    <sys:String x:Key="Str_NoRecentSetting">最近開いたファイルを記憶しない</sys:String>
+    <sys:String x:Key="Str_Menu_ExportImages">ページを画像としてエクスポート...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">パスワードを削除</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">パスワード保護なしで保存しました - {0}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Suffix">ページを画像としてエクスポート</sys:String>
+    <sys:String x:Key="Str_ExportImg_Format">形式</sys:String>
+    <sys:String x:Key="Str_ExportImg_Dpi">解像度 (DPI)</sys:String>
+    <sys:String x:Key="Str_ExportImg_Export">エクスポート</sys:String>
+    <sys:String x:Key="Str_ExportImg_Done">{0} ページを {1} にエクスポートしました</sys:String>
+    <sys:String x:Key="Str_Print_AllPages">すべてのページ</sys:String>
+    <sys:String x:Key="Str_Print_OddOnly">奇数ページのみ</sys:String>
+    <sys:String x:Key="Str_Print_EvenOnly">偶数ページのみ</sys:String>
+    <sys:String x:Key="Str_DocInvertSetting">文書の色を反転</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">文書の色を反転 (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">分割ビュー - 2つの文書を左右に並べて表示 (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">タブを閉じる</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">開いているすべてのタブ</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">画像も反転</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs">この PC のどのフォントにもこれらの文字がないため、保存した PDF では四角形として表示されます:&#10;&#10;{0}&#10;&#10;対応するフォントをインストールするか、このテキストに別のフォントを選んでください。</sys:String>
+    <sys:String x:Key="Str_TT_AppSize">スクロールでアプリ全体のサイズを変更 (Ctrl+Shift+=/-/0)</sys:String>
+    <sys:String x:Key="Str_St_AppSize">アプリのサイズ {0}%</sys:String>
+    <sys:String x:Key="Str_KS_AppSize">アプリ全体をズーム (アクセシビリティ)</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">分割ビュー - 2つの文書を左右に並べて表示</sys:String>
+    <sys:String x:Key="Str_LinkConfirmSetting">リンクを開く前に確認する</sys:String>
     <sys:String x:Key="Str_InvalidRange">無効な範囲です - 例 : 1-3,5,7</sys:String>
     <sys:String x:Key="Str_CropNoDoc">トリミング : 開かれているドキュメントがありません</sys:String>
     <sys:String x:Key="Str_CropNoPage">トリミング : ページが選択されていません</sys:String>
@@ -155,11 +193,22 @@
     <sys:String x:Key="Str_RotateFailed">回転に失敗しました : {0}</sys:String>
 
     <!-- ── ダイアログ文字列 ───────────────────────────────────────── -->
-    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF をインストール</sys:String>
-    <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF をユーザープロファイルにインストールしますか？
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty">もう一方のペインでも「{0}」が開かれており、そちらにも未保存の変更があります。
 
-アプリは %LocalAppData%\KillerPDF にコピーされ、スタートメニューにショートカットが作成されます。
-いつでも「プログラムの追加と削除」からアンインストールできます。</sys:String>
+ここで保存するとファイルが上書きされ、その変更は失われます。残したい場合は先にもう一方のペインを保存してください。</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">分割表示オン - F10 で閉じる</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">分割表示オフ</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF をインストール</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg">KillerPDF をこのコンピューターにインストールしますか？
+
+KillerPDF はプログラムフォルダーにコピーされ、スタートメニューに項目が追加されます。この EXE のコピーはそのままの場所に残り、いつでも「プログラムの追加と削除」からアンインストールできます。</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">インストール</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">デスクトップにショートカットを追加</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">このコンピューターのすべてのユーザーにインストール（管理者権限が必要）</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">インストールは完了しませんでした - KillerPDF はポータブルのまま実行中です。</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg">KillerPDF を既定の PDF ビューアーに設定しますか？
+
+Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">保存されていない変更があります。保存せずにこのファイルを閉じますか？</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">保存されていない変更があります。保存せずに KillerPDF を終了しますか？</sys:String>
     <sys:String x:Key="Str_Dlg_PageOutOfRange">この文書には、Adobe Reader が対応する範囲（1 辺あたり 3～14,400 ポイント）外のサイズのページが {0} ページあります。Adobe ではこれらのページは白紙で表示されます。
@@ -213,7 +262,6 @@
     <sys:String x:Key="Str_Lbl_Italic">斜体</sys:String>
     <sys:String x:Key="Str_Lbl_Draw">描画</sys:String>
     <sys:String x:Key="Str_Lbl_Shape">図形</sys:String>
-    <sys:String x:Key="Str_Bar_ShapeFill">塗りつぶし</sys:String>
     <sys:String x:Key="Str_Lbl_Crop">トリミング</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">変換</sys:String>
     <sys:String x:Key="Str_Lbl_Stamp">スタンプ</sys:String>
@@ -394,6 +442,7 @@
     <sys:String x:Key="Str_Bar_Level">レベル</sys:String>
     <sys:String x:Key="Str_Bar_Eraser">消しゴム</sys:String>
     <sys:String x:Key="Str_Bar_MoreColors">その他の色...</sys:String>
+    <sys:String x:Key="Str_Bar_ShapeFill">塗りつぶし</sys:String>
     <sys:String x:Key="Str_Sig_Signatures">署名</sys:String>
     <sys:String x:Key="Str_Sig_Initials">イニシャル</sys:String>
     <sys:String x:Key="Str_Sig_Pen">ペン</sys:String>
@@ -419,6 +468,10 @@
     <sys:String x:Key="Str_Sidebar_Left">左</sys:String>
     <sys:String x:Key="Str_Sidebar_Right">右</sys:String>
     <sys:String x:Key="Str_KS_ToggleSidebar">サイドバーの切り替え</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">ツールバーの外観</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">サイドバーを左 / 右に</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">次の表示モード</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">表示モード</sys:String>
     <sys:String x:Key="Str_KS_NextTab">次のタブ (Shift: 前のタブ)</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">ページを削除</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">ページを複製</sys:String>
@@ -465,46 +518,16 @@
     <sys:String x:Key="Str_KS_View">表示</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">全画面</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">F11 または Esc で全画面を終了します</sys:String>
-
-    <!-- リンク (右クリックメニュー / 確認) -->
-    <sys:String x:Key="Str_LinksSection">リンク</sys:String>
-    <sys:String x:Key="Str_Ctx_OpenLink">リンクを開く</sys:String>
-    <sys:String x:Key="Str_Ctx_CopyLink">リンクアドレスをコピー</sys:String>
-    <sys:String x:Key="Str_Ctx_CopyEmail">メールアドレスをコピー</sys:String>
-    <sys:String x:Key="Str_Ctx_RemoveLink">PDF からリンクを削除</sys:String>
-    <sys:String x:Key="Str_LinkConfirmTitle">リンクを開きますか？</sys:String>
-    <sys:String x:Key="Str_LinkConfirmBody">このリンクをブラウザーで開きますか？</sys:String>
-    <sys:String x:Key="Str_PrivacySection">プライバシー</sys:String>
-    <sys:String x:Key="Str_NoRecentSetting">最近開いたファイルを記憶しない</sys:String>
-    <sys:String x:Key="Str_Menu_ExportImages">ページを画像としてエクスポート...</sys:String>
-    <sys:String x:Key="Str_ExportImg_Suffix">ページを画像としてエクスポート</sys:String>
-    <sys:String x:Key="Str_ExportImg_Format">形式</sys:String>
-    <sys:String x:Key="Str_ExportImg_Dpi">解像度 (DPI)</sys:String>
-    <sys:String x:Key="Str_ExportImg_Export">エクスポート</sys:String>
-    <sys:String x:Key="Str_ExportImg_Done">{0} ページを {1} にエクスポートしました</sys:String>
-    <sys:String x:Key="Str_Print_AllPages">すべてのページ</sys:String>
-    <sys:String x:Key="Str_Print_OddOnly">奇数ページのみ</sys:String>
-    <sys:String x:Key="Str_Print_EvenOnly">偶数ページのみ</sys:String>
-    <sys:String x:Key="Str_DocInvertSetting">文書の色を反転</sys:String>
-    <sys:String x:Key="Str_TT_DocInvert">文書の色を反転 (Ctrl+I)</sys:String>
-    <sys:String x:Key="Str_TT_AppSize">スクロールでアプリ全体のサイズを変更 (Ctrl+Shift+=/-/0)</sys:String>
-    <sys:String x:Key="Str_St_AppSize">アプリのサイズ {0}%</sys:String>
-    <sys:String x:Key="Str_KS_AppSize">アプリ全体をズーム (アクセシビリティ)</sys:String>
-    <sys:String x:Key="Str_LinkConfirmSetting">リンクを開く前に確認する</sys:String>
-    <sys:String x:Key="Str_LinkDontAsk">今後確認しない</sys:String>
-    <sys:String x:Key="Str_LinkOpenFailed">リンクを開けませんでした</sys:String>
-    <sys:String x:Key="Str_LinkBlocked">ブロックされたリンク (未対応の種類)：</sys:String>
-    <sys:String x:Key="Str_LinkRemoveFailed">リンクの削除に失敗しました：</sys:String>
-
-    <!-- 終了ダイアログ -->
+    <!-- KillerFind-style quit prompt (family standard) -->
     <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF を終了しますか？</sys:String>
     <sys:String x:Key="Str_Chk_CloseTabs">開いているタブを閉じる</sys:String>
     <sys:String x:Key="Str_Btn_Quit">終了</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">キャンセル</sys:String>
 
-    <!-- Status-bar + dialog strings (extracted from code) -->
-    <sys:String x:Key="Str_St_DataCleared">すべてのKillerPDFデータを消去しました</sys:String>
-    <sys:String x:Key="Str_St_OcrRegionCancelled">OCR領域の選択をキャンセルしました</sys:String>
+
+    <!-- ステータスバーおよびダイアログの文字列 (コードから抽出) -->
+    <sys:String x:Key="Str_St_DataCleared">すべての KillerPDF データを消去しました</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionCancelled">OCR 領域の選択をキャンセルしました</sys:String>
     <sys:String x:Key="Str_St_Erased">消去しました</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">グループを解除しました</sys:String>
     <sys:String x:Key="Str_St_RemovedFromGroup">グループから削除しました</sys:String>
@@ -524,15 +547,16 @@
     <sys:String x:Key="Str_St_FlattenPrintFailed">印刷用に注釈をフラット化できませんでした。注釈なしで印刷します。</sys:String>
     <sys:String x:Key="Str_St_HqDownloadCancelled">高品質ダウンロードをキャンセルしました</sys:String>
     <sys:String x:Key="Str_St_LangDownloadCancelled">言語のダウンロードをキャンセルしました</sys:String>
-    <sys:String x:Key="Str_St_OcrCancelled">OCRをキャンセルしました</sys:String>
+    <sys:String x:Key="Str_St_OcrCancelled">OCR をキャンセルしました</sys:String>
     <sys:String x:Key="Str_St_OcrDragBox">認識する領域をドラッグして囲んでください</sys:String>
-    <sys:String x:Key="Str_St_OcrRegionTooSmall">OCR領域が小さすぎます</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionTooSmall">OCR 領域が小さすぎます</sys:String>
     <sys:String x:Key="Str_St_OcrNoText">OCR：選択した領域にテキストが見つかりませんでした</sys:String>
-    <sys:String x:Key="Str_St_SearchablePdfCancelled">検索可能なPDFの作成をキャンセルしました（ファイルは書き込まれていません）</sys:String>
+    <sys:String x:Key="Str_St_SearchablePdfCancelled">検索可能な PDF の作成をキャンセルしました（ファイルは書き込まれていません）</sys:String>
     <sys:String x:Key="Str_St_TextExtractCancelled">テキスト抽出をキャンセルしました（ファイルは書き込まれていません）</sys:String>
     <sys:String x:Key="Str_St_NoTextOnPage">このページにテキストが見つかりませんでした</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">テキストが選択されていません。ドラッグしてテキストを選択してください</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">選択範囲にテキストが見つかりませんでした</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">ここにテキストはありません - 図形は 4 です</sys:String>
     <sys:String x:Key="Str_St_SignaturePlaced">署名を配置しました。ドラッグで位置を変更し、角のハンドルでサイズを変更できます</sys:String>
     <sys:String x:Key="Str_St_FieldCleared">フィールドを消去しました</sys:String>
     <sys:String x:Key="Str_St_FieldSigned">フィールドに署名しました</sys:String>
@@ -548,8 +572,10 @@
     <sys:String x:Key="Str_St_ClipNoText">クリップボードに貼り付けるテキストがありません</sys:String>
     <sys:String x:Key="Str_St_PastedText">テキストを貼り付けました。ドラッグで位置を変更し、Deleteで削除します</sys:String>
     <sys:String x:Key="Str_St_ClipEmpty">クリップボードに貼り付けるものがありません</sys:String>
+
+    <!-- その他のダイアログ / メッセージボックス文字列（コードから抽出） -->
     <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">更新する前に変更を保存してください。</sys:String>
-    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDFをアンインストールしました。</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF をアンインストールしました。</sys:String>
     <sys:String x:Key="Str_Dlg_SelectExtract">抽出するページを選択してください。</sys:String>
     <sys:String x:Key="Str_Dlg_SelectDelete">削除するページを選択してください。</sys:String>
     <sys:String x:Key="Str_Dlg_NoPrinter">利用可能なプリンターがありません。</sys:String>
@@ -557,15 +583,13 @@
     <sys:String x:Key="Str_Dlg_SignedSavedTo">署名済みのコピーの保存先：</sys:String>
     <sys:String x:Key="Str_Dlg_DrawSignatureFirst">最初に署名を描いてください。</sys:String>
 
-    <!-- ── Bookmark editing (#133, added v1.6.4) ───────────────── -->
+    <!-- ── ブックマークの編集 (#133, v1.6.4 追加) ───────────────── -->
     <sys:String x:Key="Str_TT_AddBookmark">現在のページにブックマークを追加</sys:String>
     <sys:String x:Key="Str_Ctx_BmAdd">ブックマークを追加</sys:String>
     <sys:String x:Key="Str_Ctx_BmAddChild">子ブックマークを追加</sys:String>
     <sys:String x:Key="Str_Ctx_BmRename">名前を変更</sys:String>
     <sys:String x:Key="Str_Ctx_BmDelete">削除</sys:String>
     <sys:String x:Key="Str_Bm_DefaultTitle">ページ {0}</sys:String>
-    <sys:String x:Key="Str_PageLabel">ページ {0}</sys:String>
-    <sys:String x:Key="Str_Outline_Untitled">(無題)</sys:String>
     <sys:String x:Key="Str_Bm_DeleteKids">このブックマークと {0} 個の子ブックマークを削除しますか？</sys:String>
     <sys:String x:Key="Str_Ctx_BmMoveUp">上へ移動</sys:String>
     <sys:String x:Key="Str_Ctx_BmMoveDown">下へ移動</sys:String>
@@ -598,4 +622,42 @@
     <sys:String x:Key="Str_Kb_PrevResult">前の結果</sys:String>
     <sys:String x:Key="Str_Kb_Confirm">確定</sys:String>
     <sys:String x:Key="Str_Kb_Cancel">キャンセル</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">元のサイズに戻す</sys:String>
+    <sys:String x:Key="Str_Sys_Move">移動</sys:String>
+    <sys:String x:Key="Str_Sys_Size">サイズ変更</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">最小化</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">最大化</sys:String>
+    <sys:String x:Key="Str_Sys_Close">閉じる</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">キャンセル</sys:String>
+    <sys:String x:Key="Str_Btn_Open">開く</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">置き換え</sys:String>
+    <sys:String x:Key="Str_Btn_Save">保存</sys:String>
+    <sys:String x:Key="Str_Col_Modified">更新日</sys:String>
+    <sys:String x:Key="Str_Col_Name">名前</sys:String>
+    <sys:String x:Key="Str_Col_Size">サイズ</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">切り取り</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">すべて選択</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">すべてのファイル</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">ファイル名:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">ファイルの種類:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">現在のファイルの種類に一致するものはありません。</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">そのファイルは存在しません。</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">そのフォルダーは存在しません。</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} を置き換えますか?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">場所にピン留め</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">場所から削除</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">デスクトップ</sys:String>
+    <sys:String x:Key="Str_QA_Documents">ドキュメント</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">ダウンロード</sys:String>
+    <sys:String x:Key="Str_QA_Home">ホーム</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">ピクチャ</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">フォルダー {0}、ファイル {1}</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">最近の場所</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">隠しファイルとシステム項目を表示</sys:String>
+    <sys:String x:Key="Str_TT_Up">上のフォルダーへ</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">詳細表示</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">アイコン表示</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">一覧表示</sys:String>
 </ResourceDictionary>

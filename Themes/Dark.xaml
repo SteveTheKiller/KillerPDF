@@ -4,43 +4,72 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- KillerTools dark/green theme -->
-    <SolidColorBrush x:Key="BgDark"         Color="#333333" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgPanel"        Color="#3a3a3a" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgHover"        Color="#404040" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgSidebar"      Color="#1c1c1c" po:Freeze="True"/>
+    <!-- SURFACE TIERS. Renamed onto the KillerUI kit names 2026-07-31; the values did not move,
+         because the kit took them from KillerPDF in the first place.
+           BackgroundBrush = chrome  (#1c1c1c) - title bar, footer, sidebar
+           SurfaceBrush    = bar     (#333333) - toolbar, tab strip
+           PaneBrush       = content (#3a3a3a) - the lifted page pane
+         CardBorderBrush separates the tiers. -->
+    <SolidColorBrush x:Key="SurfaceBrush"    Color="#333333" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PaneBrush"       Color="#3a3a3a" po:Freeze="True"/>
+    <!-- BgHover was one key doing two jobs; split so a list row and a menu row can diverge. -->
+    <SolidColorBrush x:Key="RowHoverBrush"   Color="#404040" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuHoverBrush"  Color="#404040" po:Freeze="True"/>
+    <SolidColorBrush x:Key="BackgroundBrush" Color="#1c1c1c" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgRecentPanel"  Color="#2f2f2f" po:Freeze="True"/>
+    <!-- App-specific: the floating annotation/search/crop settings bars. Deliberately NOT
+         MenuBackgroundBrush - those bars are a surface of their own, not a menu. -->
     <SolidColorBrush x:Key="BgFlyout"       Color="#262626" po:Freeze="True"/>
     <LinearGradientBrush x:Key="TabStripFadeBrush" StartPoint="0,0" EndPoint="0,1" po:Freeze="True">
         <GradientStop Offset="0.0" Color="#00000000"/>
         <GradientStop Offset="0.55" Color="#1f000000"/>
         <GradientStop Offset="1.0" Color="#82000000"/>
     </LinearGradientBrush>
-    <SolidColorBrush x:Key="BgModal"        Color="#1e1e1e" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BorderDim"      Color="#2e2e2e" po:Freeze="True"/>
-    <SolidColorBrush x:Key="Accent"         Color="#1ea54c" po:Freeze="True"/>
-    <SolidColorBrush x:Key="HeaderAccent"   Color="#1ea54c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBackgroundBrush" Color="#1e1e1e" po:Freeze="True"/>
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#2e2e2e" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryBrush"    Color="#1ea54c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryHoverBrush"   Color="#1ea54c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="PrimaryPressedBrush" Color="#1ea54c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OnPrimaryBrush"  Color="#ffffff" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlineBtnBrush" Color="#1ea54c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="HeaderLineBrush" Color="#1ea54c" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionAccent" Color="#1ea54c" po:Freeze="True"/>
     <SolidColorBrush x:Key="AccentLogo"     Color="#1ea54c" po:Freeze="True"/>
     <SolidColorBrush x:Key="InstallBtnBg"   Color="#1ea54c" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentBorder"   Color="#404040" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuBorderBrush" Color="#404040" po:Freeze="True"/>
     <SolidColorBrush x:Key="DropBorder"     Color="#303030" po:Freeze="True"/>
-    <SolidColorBrush x:Key="PaneBorder"     Color="#2e2e2e" po:Freeze="True"/>
-    <SolidColorBrush x:Key="AccentDim"      Color="#0d2a18" po:Freeze="True"/>
+    <!-- Adopted Killendar's lighter pane border 2026-07-31 (was #2e2e2e). -->
+    <SolidColorBrush x:Key="PaneBorderBrush" Color="#3f3f3f" po:Freeze="True"/>
+    <!-- Overrides PaneBorderBrush for the DWM window frame only. -->
+    <SolidColorBrush x:Key="AppBorderBrush" Color="#3f3f3f" po:Freeze="True"/>
+    <!-- AccentDim was one key doing two jobs; split so the faint selected-row tint and the
+         pressed state of an outline button can diverge. -->
+    <SolidColorBrush x:Key="RowSelectedBrush"    Color="#0d2a18" po:Freeze="True"/>
+    <SolidColorBrush x:Key="OutlinePressedBrush" Color="#0d2a18" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionBg" Color="#1c5e38" po:Freeze="True"/>
     <SolidColorBrush x:Key="SelectionFg" Color="#ffffff" po:Freeze="True"/>
     <!-- Background of an open settings row. Solid hover tint here; the RGB themes override it with their
          translucent-white SelectionBg so the accent row text reads on it like a selected page/tool. -->
     <SolidColorBrush x:Key="SettingsOpenRowBg" Color="#404040" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextPrimary"    Color="#e0e0e0" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextSecondary"  Color="#a0a0a0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="TextBrush"      Color="#e0e0e0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#a0a0a0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="MenuTextBrush"  Color="#a0a0a0" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ChromeTextBrush" Color="#b6b6b6" po:Freeze="True"/>
     <SolidColorBrush x:Key="FilenameBrush"  Color="#a0a0a0" po:Freeze="True"/>
-    <SolidColorBrush x:Key="TextDim"        Color="#6a6a6a" po:Freeze="True"/>
+    <SolidColorBrush x:Key="DimTextBrush"   Color="#6a6a6a" po:Freeze="True"/>
     <SolidColorBrush x:Key="TextFooter"     Color="#6a6a6a" po:Freeze="True"/>
     <SolidColorBrush x:Key="DangerRed"      Color="#ef4444" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgDragHandle"   Color="#555555" po:Freeze="True"/>
     <SolidColorBrush x:Key="DragLine"       Color="#363636" po:Freeze="True"/>
-    <SolidColorBrush x:Key="BgScrollThumb"  Color="#551ea54c" po:Freeze="True"/>
-    <SolidColorBrush x:Key="ScrollThumbHover" Color="#1ea54c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbBrush"      Color="#551ea54c" po:Freeze="True"/>
+    <SolidColorBrush x:Key="ScrollThumbHoverBrush" Color="#1ea54c" po:Freeze="True"/>
+    <!-- Added for the kit components 2026-07-31. -->
+    <SolidColorBrush x:Key="TableHeaderBrush" Color="#333333" po:Freeze="True"/>
+    <SolidColorBrush x:Key="RowAltBrush"      Color="#18FFFFFF" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputBorderBrush" Color="#2e2e2e" po:Freeze="True"/>
+    <SolidColorBrush x:Key="InputHoverBrush"  Color="#707070" po:Freeze="True"/>
+    <!-- Folder-tree elbows in the file picker. KillerShell's value. -->
+    <SolidColorBrush x:Key="TreeLineBrush"    Color="#3d3d3d" po:Freeze="True"/>
     <SolidColorBrush x:Key="SliderTrack"    Color="#505050" po:Freeze="True"/>
     <SolidColorBrush x:Key="RadioAccent"    Color="#1ea54c" po:Freeze="True"/>
     <SolidColorBrush x:Key="BgOverlay"      Color="#BB000000" po:Freeze="True"/>
@@ -63,5 +92,9 @@
     <SolidColorBrush x:Key="KsCatSearch"    Color="#00b3ff" po:Freeze="True"/>
     <SolidColorBrush x:Key="KsCatHelp"      Color="#39ff14" po:Freeze="True"/>
     <SolidColorBrush x:Key="KsCatOcr"       Color="#ff901f" po:Freeze="True"/>
+
+    <!-- Stroke behind white-on-accent label text. Theme-varied because the effect rasterizes
+         ClearType, so on light surfaces it is dialled back or the label reads blurry. -->
+    <DropShadowEffect x:Key="TextStroke" Color="Black" BlurRadius="3" ShadowDepth="0.8" Direction="270" Opacity="0.7"/>
 
 </ResourceDictionary>

@@ -93,7 +93,7 @@
     var dragDx = 0, dragging = false, dragStartX = 0, dragStartDx = 0;
     function dragClamp(v) {
       var vw = window.innerWidth, pw = pill.offsetWidth, pad = 6, left = 8, right = vw - 8;
-      var f = document.querySelector('.frame-shadow');
+      var f = document.querySelector('.content');
       // Extra inset on the right so the pill clears the content scrollbar at its max position.
       if (f) { var fr = f.getBoundingClientRect(); if (fr.width > 0) { left = fr.left + pad; right = fr.right - pad - 12; } }
       var centerLeft = vw / 2 - pw / 2, min = left - centerLeft, max = right - pw - centerLeft;
