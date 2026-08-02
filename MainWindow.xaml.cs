@@ -855,7 +855,7 @@ namespace KillerPDF
                 await Task.Run(() =>
                 {
                     using var sw = new StringWriter();
-                    _ = Features.Cli.CliRunner.CliPrint(pos, options, sw);
+                    _ = KillerPDF.Features.CliRunner.CliPrint(pos, options, sw);
                 });
                 KillerDialog.Show(this, "Print job submitted.", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.None);
             }
