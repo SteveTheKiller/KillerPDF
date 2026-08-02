@@ -1102,7 +1102,7 @@
                     <Button x:Name="OcrBtn" Content="&#xEE6F;" Style="{StaticResource ToolbarSplitMain}" Click="Ocr_Click" MouseRightButtonUp="OcrMenu_Click" ToolTip="{DynamicResource Str_TT_Ocr}"/>
                     <Button x:Name="OcrMenuBtn" Content="&#xE70D;" FontSize="10" Width="13" Padding="0" Margin="-6,0,0,0" Style="{StaticResource ToolbarButton}" Click="OcrMenu_Click" ToolTip="OCR options"/>
                     <Button Content="&#xE8B9;" Style="{StaticResource ToolbarButton}" Click="SaveFlattened_Click" ToolTip="{DynamicResource Str_TT_SaveFlattened}"/>
-                    <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="Print_Click" ToolTip="{DynamicResource Str_TT_Print}"/>
+                    <Button Content="&#xE749;" Style="{StaticResource ToolbarButton}" Click="OpenPrintShop_Click" ToolTip="{DynamicResource Str_TT_Print}"/>
                     <StackPanel x:Name="GrpPageOps" Orientation="Horizontal">
                         <Rectangle Width="1" Fill="{DynamicResource BorderDim}" Margin="4,6"/>
                         <Button Content="&#xE710;" Style="{StaticResource ToolbarButton}" Click="Merge_Click" ToolTip="{DynamicResource Str_TT_MergePDFs}"/>
@@ -2715,6 +2715,23 @@
                 </Border>
             </Grid>
         </Grid>
+
+    <!-- Inline Print Shop panel (collapsed by default) -->
+    <Border x:Name="PrintShopPanel" Visibility="Collapsed" Background="{DynamicResource BgPanel}" Width="340" HorizontalAlignment="Left" VerticalAlignment="Stretch" Margin="12,80,0,12" Panel.ZIndex="50">
+      <StackPanel Margin="12">
+        <TextBlock Text="Print Shop" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource TextPrimary}" Margin="0,0,0,8"/>
+        <TextBlock Text="Printer" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+        <ComboBox x:Name="PrintPrinterCombo" Margin="0,6,0,12"/>
+        <TextBlock Text="Copies" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+        <TextBox x:Name="PrintCopiesBox" Text="1" Margin="0,6,0,12" Width="80"/>
+        <TextBlock Text="Pages (e.g. 1-3,5)" Foreground="{DynamicResource TextSecondary}" FontSize="12"/>
+        <TextBox x:Name="PrintPagesBox" Text="" Margin="0,6,0,12"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+          <Button Content="Cancel" Style="{StaticResource DarkButton}" Click="HidePrintPanel_Click" Margin="0,0,8,0"/>
+          <Button Content="Print" Style="{StaticResource DarkButton}" Click="PrintPanel_Print_Click"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
 
     </Grid>
     </Border>

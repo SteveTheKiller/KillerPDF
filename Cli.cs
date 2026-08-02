@@ -605,7 +605,7 @@ namespace KillerPDF
         // the printable area, build a FixedDocument, and write it to the
         // queue via XPS. Copies replicate the page sequence (ticket CopyCount
         // is unreliable across drivers - same reason the GUI does this, #83).
-        private static int CliPrint(List<string> pos, Dictionary<string, string> options, TextWriter con)
+        internal static int CliPrint(List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
             if (pos.Count != 1)
             {

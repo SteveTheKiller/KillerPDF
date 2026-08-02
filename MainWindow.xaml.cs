@@ -12,6 +12,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using Docnet.Core;
 using Docnet.Core.Models;
+using System.Printing;
 using Microsoft.Win32;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
@@ -751,6 +752,63 @@ namespace KillerPDF
             // to pull words into the wrong order within a line.
             return string.Join("\n", lines.Select(l =>
                 string.Join(" ", l.OrderBy(w => w.BoundingBox.Left).Select(w => w.Text))));
+        }
+
+        // ---- Inline Print Shop handlers (added to replace modal preview flow) ----
+        private void OpenPrintShop_Click(object sender, RoutedEventArgs e)
+        {
+            if (_doc is null || string.IsNullOrEmpty(_currentFile)) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            try
+            {
+                var server = new LocalPrintServer();
+                var queues = server.GetPrintQueues(new[] { EnumeratedPrintQueueTypes.Local, EnumeratedPrintQueueTypes.Connections }).ToList();
+                PrintPrinterCombo.Items.Clear();
+                foreach (var q in queues) PrintPrinterCombo.Items.Add(q.FullName);
+                var def = LocalPrintServer.GetDefaultPrintQueue();
+                if (def != null) PrintPrinterCombo.SelectedItem = def.FullName;
+                else if (PrintPrinterCombo.Items.Count > 0) PrintPrinterCombo.SelectedIndex = 0;
+            }
+            catch { /* best-effort */ }
+            PrintPagesBox.Text = "";
+            PrintCopiesBox.Text = "1";
+            PrintShopPanel.Visibility = Visibility.Visible;
+        }
+
+        private void HidePrintPanel_Click(object sender, RoutedEventArgs e)
+        {
+            PrintShopPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private async void PrintPanel_Print_Click(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(_currentFile) || !File.Exists(_currentFile)) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            string printer = PrintPrinterCombo.SelectedItem as string ?? "";
+            string pages = PrintPagesBox.Text?.Trim() ?? "";
+            string copiesS = PrintCopiesBox.Text?.Trim() ?? "1";
+            var options = new Dictionary<string, string>();
+            if (!string.IsNullOrEmpty(printer)) options["--printer"] = printer;
+            if (!string.IsNullOrEmpty(pages)) options["--pages"] = pages;
+            options["--copies"] = copiesS;
+            var pos = new List<string> { _currentFile };
+            var overlay = ShowBusyOverlay("Printing...");
+            try
+            {
+                await Task.Run(() =>
+                {
+                    using var sw = new StringWriter();
+                    _ = MainWindow.CliPrint(pos, options, sw);
+                });
+                KillerDialog.Show(this, "Print job submitted.", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.None);
+            }
+            catch (Exception ex)
+            {
+                KillerDialog.Show(this, $"Print failed:\n{ex.Message}", "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                HideBusyOverlay(overlay);
+                PrintShopPanel.Visibility = Visibility.Collapsed;
+            }
         }
     }
 }
