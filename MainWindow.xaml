@@ -1025,7 +1025,11 @@
                                     <Ellipse x:Name="ring" Width="14" Height="14"
                                              Stroke="{DynamicResource DimTextBrush}" StrokeThickness="1.5"
                                              Fill="Transparent"/>
-                                    <Ellipse x:Name="dot" Width="7" Height="7"
+                                    <!-- EVEN size, like the ring: both are centred in the 16px Grid, so an
+                                         odd width lands the dot on a half-pixel offset ((16-7)/2 = 4.5) while
+                                         the ring sits on a clean 1. That put the dot half a pixel off-centre
+                                         inside its own ring. 8 gives an offset of 4. -->
+                                    <Ellipse x:Name="dot" Width="8" Height="8"
                                              Fill="{DynamicResource RadioAccent}" Visibility="Collapsed"/>
                                 </Grid>
                                 <ContentPresenter VerticalAlignment="Center"/>
