@@ -389,7 +389,7 @@ namespace KillerPDF
 
         private Theme _stripFamily = Theme.Dark;   // the family the strip's dots currently show
         private bool  _stripOpen;
-        private const double AccentStripWidth   = 39;    // 1px rule + 10 gap + 26 swatch + 2 air
+        private const double AccentStripWidth   = 41;    // 1px rule + 14 gap + 26 swatch, centring it against the card's 14 right margin
         private const double AccentStripSlideMs = 180;
 
         private Border[] StripDots =>

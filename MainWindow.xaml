@@ -2375,7 +2375,7 @@
                                      Height="Auto" clears the AccentDot style's fixed 18 so the rows
                                      size them; the 9px radius caps the 18px width into capsule ends
                                      (98SE's 0 keeps them square). -->
-                                <Grid x:Name="AccentStrip" Margin="10,6,2,6">
+                                <Grid x:Name="AccentStrip" Margin="15,6,0,6">
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="*"/>
                                         <RowDefinition Height="*"/>
