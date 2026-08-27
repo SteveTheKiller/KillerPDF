@@ -93,12 +93,52 @@ namespace KillerPDF.Services
             try { root.DeleteSubKeyTree(RegistryPath, false); } catch { }
         }
 
+        // #267 follow-up: a refused launch used to fail silently, so the browser handed off, the
+        // app started (or a portable copy extracted its payload first) and nothing appeared. The
+        // caller cannot tell a refusal from a broken install without knowing which branch refused.
+        /// <summary>Why a launch is not a usable browser handoff.</summary>
+        internal enum HandoffRejection
+        {
+            /// <summary>Accepted; there is a target to open.</summary>
+            None,
+            /// <summary>Not a killerpdf: launch at all, so it is not ours to complain about.</summary>
+            NotAHandoff,
+            /// <summary>A killerpdf: launch whose host is something other than "open".</summary>
+            UnknownCommand,
+            /// <summary>killerpdf://open with no url parameter.</summary>
+            MissingUrl,
+            /// <summary>A url parameter that is not an absolute address.</summary>
+            MalformedUrl,
+            /// <summary>An absolute address that is not https.</summary>
+            SchemeNotAllowed,
+        }
+
+        /// <summary>
+        /// True when the argument is a killerpdf: URL, valid or not. The launch paths use this to
+        /// decide whether an argument is aimed at the protocol handler before asking why it failed.
+        /// </summary>
+        internal static bool IsHandoffLaunch(string? argument) =>
+            Uri.TryCreate(argument, UriKind.Absolute, out var launch) &&
+            launch.Scheme.Equals(Scheme, StringComparison.OrdinalIgnoreCase);
+
         internal static bool TryGetTargetUrl(string? protocolUrl, out Uri? target)
+            => TryGetTargetUrl(protocolUrl, out target, out _);
+
+        internal static bool TryGetTargetUrl(
+            string? protocolUrl, out Uri? target, out HandoffRejection rejection)
         {
             target = null;
             if (!Uri.TryCreate(protocolUrl, UriKind.Absolute, out var launch) ||
-                !launch.Scheme.Equals(Scheme, StringComparison.OrdinalIgnoreCase) ||
-                !launch.Host.Equals("open", StringComparison.OrdinalIgnoreCase)) return false;
+                !launch.Scheme.Equals(Scheme, StringComparison.OrdinalIgnoreCase))
+            {
+                rejection = HandoffRejection.NotAHandoff;
+                return false;
+            }
+            if (!launch.Host.Equals("open", StringComparison.OrdinalIgnoreCase))
+            {
+                rejection = HandoffRejection.UnknownCommand;
+                return false;
+            }
 
             string query = launch.Query.TrimStart('?');
             foreach (string pair in query.Split('&'))
@@ -108,11 +148,21 @@ namespace KillerPDF.Services
                 string name = Uri.UnescapeDataString(pair[..equals].Replace("+", " "));
                 if (!name.Equals("url", StringComparison.OrdinalIgnoreCase)) continue;
                 string value = Uri.UnescapeDataString(pair[(equals + 1)..].Replace("+", " "));
-                if (!Uri.TryCreate(value, UriKind.Absolute, out var parsed)) return false;
-                if (!parsed.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) return false;
+                if (!Uri.TryCreate(value, UriKind.Absolute, out var parsed))
+                {
+                    rejection = HandoffRejection.MalformedUrl;
+                    return false;
+                }
+                if (!parsed.Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+                {
+                    rejection = HandoffRejection.SchemeNotAllowed;
+                    return false;
+                }
                 target = parsed;
+                rejection = HandoffRejection.None;
                 return true;
             }
+            rejection = HandoffRejection.MissingUrl;
             return false;
         }
     }

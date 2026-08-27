@@ -468,8 +468,12 @@ namespace KillerPDF
                 FlushPendingExternalOpen();   // a forward that landed before the panes were wired
 
                 var args = Environment.GetCommandLineArgs();
+                // #267 follow-up: route every killerpdf: launch to OpenFromExternal, valid or not.
+                // Gating on a usable target here swallowed a refused handoff before anything could
+                // report it, and restored the last session instead, so a cold launch looked like a
+                // handoff that had simply done nothing.
                 if (args.Length > 1 && (System.IO.File.Exists(args[1]) ||
-                    Services.ProtocolRegistrar.TryGetTargetUrl(args[1], out _)))
+                    Services.ProtocolRegistrar.IsHandoffLaunch(args[1])))
                 {
                     OpenFromExternal(args[1]);
                 }

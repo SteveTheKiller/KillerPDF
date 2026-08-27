@@ -38,8 +38,36 @@ namespace KillerPDF
                 ActiveViewer.OpenInNewTabExt(path!);
                 return;
             }
-            if (ProtocolRegistrar.TryGetTargetUrl(path, out var target) && target != null)
+            if (ProtocolRegistrar.TryGetTargetUrl(path, out var target, out var rejection) && target != null)
+            {
                 await OpenProtocolUrlAsync(target);
+                return;
+            }
+            // #267 follow-up: say why a killerpdf: launch was refused. Without this the browser
+            // hands off, the app comes up on an empty viewer and nothing explains it. NotAHandoff
+            // stays silent because that is a plain path that simply is not on disk any more.
+            if (rejection != ProtocolRegistrar.HandoffRejection.NotAHandoff)
+                ShowRefusedHandoff(rejection);
+        }
+
+        /// <summary>The same dialog a failed browser download gets, with the refusal as the reason.</summary>
+        private void ShowRefusedHandoff(ProtocolRegistrar.HandoffRejection rejection)
+        {
+            string reason = rejection switch
+            {
+                ProtocolRegistrar.HandoffRejection.UnknownCommand =>
+                    "That browser command is not one KillerPDF knows.",
+                ProtocolRegistrar.HandoffRejection.MissingUrl =>
+                    "The handoff did not include a PDF address.",
+                ProtocolRegistrar.HandoffRejection.MalformedUrl =>
+                    "The PDF address in the handoff could not be read.",
+                ProtocolRegistrar.HandoffRejection.SchemeNotAllowed =>
+                    "KillerPDF only opens browser handoffs over https.",
+                _ => "The browser handoff could not be used.",
+            };
+            KillerDialog.Show(this,
+                $"KillerPDF could not open the browser PDF.\n\n{reason}",
+                "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 
         /// <summary>Replay whatever arrived during startup. No-op in the normal case.</summary>
