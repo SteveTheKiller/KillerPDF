@@ -22,7 +22,7 @@ KillerPDF 1.8 introduces The KillerPDF.Engine, an independent and reusable .NET 
 - Print with a real in-app preview, paper size and source selection, scale / position / margins / pages-per-sheet options at 300 DPI; Save Flattened rasterizes to a fully uneditable PDF
 - Full-text search with highlighting, and column-aware text selection that copies multi-column pages in reading order
 - Night-mode inversion works independently in each split pane. Thirteen themes, live accent colors, and toolbar styles provide 33 looks, while the resizable sidebar can dock on either side.
-- Localized UI in 12 languages (contribute via `TRANSLATING.md`); full keyboard shortcut overlay on F1 with list and visual keyboard views
+- Localized UI in 13 languages (contribute via `TRANSLATING.md`); full keyboard shortcut overlay on F1 with list and visual keyboard views
 - Opens password-protected PDFs (prompts instead of erroring) and repairs damaged ones
 - Separate standard and portable downloads: the compact installer supports per-user or machine-wide deployment, while the larger portable edition includes its own runtime
 - Standards-safe saves: every release is tested against a 2,900-file veraPDF conformance corpus with a zero-regressions requirement. See [validation/RESULTS.md](validation/RESULTS.md).
@@ -51,7 +51,7 @@ Full reference on the [help page](https://killerpdf.net/help.html).
 
 | | |
 | --- | --- |
-| ![KillerPDF showing a 111-page camera manual in Grid view with the language flyout open, in the Decay theme with the menu bar hidden](docs/grid-language-flyout.png)<br>**Grid view and twelve languages** - Survey a whole document at once, with the menu bar hidden and the interface switchable between twelve languages. | ![KillerPDF using split-pane view with a 98SE-themed Transform preview open over a scanned camera manual](docs/split-pane-transform.png)<br>**Split panes and Transform** - Work in two independent panes while previewing rotation, scale, flip, skew, perspective, and Levels before applying. |
+| ![KillerPDF showing a 111-page camera manual in Grid view with the language flyout open, in the Decay theme with the menu bar hidden](docs/grid-language-flyout.png)<br>**Grid view and thirteen languages** - Survey a whole document at once, with the menu bar hidden and the interface switchable between thirteen languages. | ![KillerPDF using split-pane view with a 98SE-themed Transform preview open over a scanned camera manual](docs/split-pane-transform.png)<br>**Split panes and Transform** - Work in two independent panes while previewing rotation, scale, flip, skew, perspective, and Levels before applying. |
 | ![KillerPDF showing its drawing controls, custom color picker, and interactive form pages in Grid view](docs/annotations-color-picker.png)<br>**Annotation colors and forms** - Draw with exact colors while viewing fillable fields, comb boxes, and the brochure's live form examples. | ![KillerPDF showing its themed image picker with a large thumbnail preview over a two-page document view](docs/image-picker-preview.png)<br>**Image picker and previews** - Browse images, inspect a large preview, and return directly to the open document. |
 
 ## Requirements

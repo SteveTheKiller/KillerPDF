@@ -65,6 +65,7 @@ namespace KillerPDF
             var italianRadio = LangSubmenu.FindName("LangItalianRadio") as RadioButton
                 ?? LangSubmenu.FindName("LangItRadio") as RadioButton;
             italianRadio?.IsChecked = curLoc == KillerPDF.Services.Locale.ItIT;
+            LangKkRadio.IsChecked   = curLoc == KillerPDF.Services.Locale.KkKZ;
             // Sync view mode radios. Against the PENDING mode while a fade-wrapped switch is in
             // flight (_viewMode lags until the fade-out lands), so wheel-cycling with the flyout
             // open moves the checkmark in step instead of one notch behind.
@@ -547,6 +548,7 @@ namespace KillerPDF
         // Compatibility for Visual Studio's stale design-time MainWindow.g.i.cs. The real XAML
         // uses LangItalianRadio_Checked, but an older generated file may still bind this name.
         private void LangItRadio_Checked(object sender, RoutedEventArgs e) => SelectLocale(KillerPDF.Services.Locale.ItIT);
+        private void LangKkRadio_Checked(object sender, RoutedEventArgs e)   => SelectLocale(KillerPDF.Services.Locale.KkKZ);
 
         private void SelectLocale(KillerPDF.Services.Locale loc)
         {
@@ -660,6 +662,7 @@ namespace KillerPDF
             KillerPDF.Services.Locale.ItIT => "Italiano",
             KillerPDF.Services.Locale.JaJP => "日本語",
             KillerPDF.Services.Locale.PlPL => "Polski",
+            KillerPDF.Services.Locale.KkKZ => "Қазақша",
             _                              => "English",
         };
 

@@ -13,6 +13,7 @@ Each language is a single XAML `ResourceDictionary` file in the `Strings/` folde
 - `hu-HU.xaml` - Hungarian
 - `it-IT.xaml` - Italian
 - `ja-JP.xaml` - Japanese
+- `kk-KZ.xaml` - Kazakh
 - `pl-PL.xaml` - Polish
 - `tr-TR.xaml` - Turkish
 - `zh-CN.xaml` - Simplified Chinese

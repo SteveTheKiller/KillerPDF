@@ -2133,6 +2133,19 @@
                                                        Foreground="{DynamicResource MutedTextBrush}"/>
                                         </Grid>
                                     </RadioButton>
+                                    <RadioButton x:Name="LangKkRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
+                                                 Checked="LangKkRadio_Checked">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Қазақша" VerticalAlignment="Center"
+                                                       FontFamily="Segoe UI, Microsoft JhengHei UI, Nirmala UI"/>
+                                            <TextBlock Grid.Column="1" Text="kk-KZ" Margin="12,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Right"
+                                                       Foreground="{DynamicResource MutedTextBrush}"/>
+                                        </Grid>
+                                    </RadioButton>
                                     <RadioButton x:Name="LangPlRadio" GroupName="LangGroup" Style="{StaticResource ThemeRadio}"
                                                  Checked="LangPlRadio_Checked">
                                         <Grid>

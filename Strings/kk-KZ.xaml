@@ -1,0 +1,994 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ================================================================
+         KillerPDF  -  Kazakh (kk-KZ) strings
+         ================================================================ -->
+
+    <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_TT_Open">Ашу (Ctrl+O)</sys:String>
+    <sys:String x:Key="Str_TT_NewBlank">Жаңа бос құжат (Ctrl+N)</sys:String>
+    <sys:String x:Key="Str_TT_CloseFile">Файлды жабу (Ctrl+W)</sys:String>
+    <sys:String x:Key="Str_TT_Save">Сақтау (Ctrl+S)</sys:String>
+
+    <!-- ── Drop zone / empty state ──────────────────────────────────── -->
+    <sys:String x:Key="Str_Drop_Title">PDF-ті осында тастаңыз</sys:String>
+    <sys:String x:Key="Str_Drop_Sub">немесе шолу үшін басыңыз</sys:String>
+    <sys:Double x:Key="ZoomBoxWidth">128</sys:Double>
+    <sys:String x:Key="Str_TT_SaveAs">Басқаша сақтау (Ctrl+Shift+S)</sys:String>
+    <sys:String x:Key="Str_TT_SaveFlattened">Тегістелген PDF сақтау (барлық беттерді растрлеу - толық өңделмейтін)</sys:String>
+    <sys:String x:Key="Str_TT_Print">Басып шығару (Ctrl+P)</sys:String>
+    <sys:String x:Key="Str_TT_MergePDFs">PDF біріктіру (қосымша PDF-терді осыған қосу)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Беттерді шығару (таңдалған беттерді жаңа PDF-ке сақтау)</sys:String>
+    <sys:String x:Key="Str_TT_DeletePages">Таңдалған беттерді жою</sys:String>
+    <sys:String x:Key="Str_TT_MovePageUp">Бетті жоғары жылжыту (қайта реттеу)</sys:String>
+    <sys:String x:Key="Str_TT_MovePageDown">Бетті төмен жылжыту (қайта реттеу)</sys:String>
+    <sys:String x:Key="Str_TT_SelectTool">Таңдау құралы - ескертпелерді басыңыз, мәтінді таңдау үшін сүйреңіз, өңдеу үшін екі рет басыңыз (V)</sys:String>
+    <sys:String x:Key="Str_TT_TextTool">Мәтін құралы - мәтін қосу үшін басыңыз (T)</sys:String>
+    <sys:String x:Key="Str_TT_HighlightTool">Бояп белгілеу құралы - белгілеу үшін сүйреңіз (H)</sys:String>
+    <sys:String x:Key="Str_TT_StrikeTool">Сызып тастау - мәтіннің үстінен сүйреңіз</sys:String>
+    <sys:String x:Key="Str_TT_UnderlineTool">Астын сызу - мәтіннің үстінен сүйреңіз</sys:String>
+    <sys:String x:Key="Str_TT_DrawTool">Сурет салу құралы - қолмен сызу (D)</sys:String>
+    <sys:String x:Key="Str_TT_ShapeTool">Пішіндер - тіктөртбұрыш, эллипс немесе еркін көпбұрыш</sys:String>
+    <sys:String x:Key="Str_TT_SignatureTool">Қолтаңба - қолтаңба жасау және қою (G)</sys:String>
+    <sys:String x:Key="Str_TT_ImageTool">Сурет құралы - бетке сурет кірістіру үшін басыңыз (I)</sys:String>
+    <sys:String x:Key="Str_TT_CropTool">Қию құралы - қию аумағын белгілеу үшін сүйреңіз, содан кейін бет(тер)ге қолданыңыз (C)</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Бетті түрлендіру - бұру / қисықтықты түзету (масштаб жақында) (R)</sys:String>
+    <sys:String x:Key="Str_TT_ClearAnnotations">Барлық ескертпелерді тазалау</sys:String>
+    <sys:String x:Key="Str_TT_Search">Іздеу (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_TT_UndoLast">Соңғы әрекетті кері қайтару (Ctrl+Z)</sys:String>
+    <sys:String x:Key="Str_TT_MultiPageGrid">Көпбеттік тор көрінісі (F8)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomOut">Кішірейту (Ctrl+-)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomLevel">Масштаб деңгейі (Ctrl+айналдыру · Ctrl++/- · Ctrl+0=қалпына келтіру)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomIn">Үлкейту (Ctrl++)</sys:String>
+    <sys:String x:Key="Str_TT_GoToPage">Бетке өту (өту үшін Enter)</sys:String>
+    <sys:String x:Key="Str_TT_CollapseSidebar">Бүйірлік панельді жиыру (F9)</sys:String>
+    <sys:String x:Key="Str_TT_ExpandSidebar">Бүйірлік панельді жаю (F9)</sys:String>
+    <sys:String x:Key="Str_TT_KeyboardShortcuts">Пернелер тіркесімі (F1)</sys:String>
+    <sys:String x:Key="Str_TT_About">KillerPDF туралы (F12)</sys:String>
+
+    <!-- ── About overlay ─────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_About_Version">НҰСҚА</sys:String>
+    <sys:String x:Key="Str_About_Publisher">ЖАРИЯЛАУШЫ</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">БАРМАҚ ІЗІ</sys:String>
+    <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
+    <sys:String x:Key="Str_About_Computing">Есептелуде...</sys:String>
+    <sys:String x:Key="Str_Tagline">Windows үшін ескертпе, біріктіру, OCR, қолтаңба және пішін құралдары бар жылдам, тегін PDF жиынтығы. {0} шығарған GPLv3 құралы.</sys:String>
+
+    <!-- ── Sidebar tabs ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_TabPages">БЕТТЕР</sys:String>
+    <sys:String x:Key="Str_TabOutlines">МАЗМҰН</sys:String>
+    <sys:String x:Key="Str_PageLabel">Бет {0}</sys:String>
+    <sys:String x:Key="Str_Outline_Untitled">(атаусыз)</sys:String>
+
+    <!-- ── Settings panel ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Theme">Тақырып</sys:String>
+    <sys:String x:Key="Str_Language">Тіл</sys:String>
+    <sys:String x:Key="Str_Toolbar">ҚҰРАЛДАР ТАҚТАСЫ</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">Құралдар тақтасы</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">Мәтін жоқ</sys:String>
+    <sys:String x:Key="Str_Toolbar_SmallIcons">Кішкентай белгішелер</sys:String>
+    <sys:String x:Key="Str_Toolbar_LargeIcons">Үлкен белгішелер</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextBeside">Мәтін белгішенің қасында</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextUnder">Мәтін белгішенің астында</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextOnly">Тек мәтін</sys:String>
+    <sys:String x:Key="Str_Toolbar_Hide">Құралдар тақтасын жасыру</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Құралдар тақтасы жасырылды - Alt+M оны қайта көрсетеді</sys:String>
+    <sys:String x:Key="Str_St_ToolbarShown">Құралдар тақтасы көрсетілді</sys:String>
+    <sys:String x:Key="Str_Lang_English">English</sys:String>
+    <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
+    <sys:String x:Key="Str_Lang_Chinese">中文 (繁體)</sys:String>
+
+    <!-- ── Keyboard shortcuts overlay ───────────────────────────────── -->
+    <sys:String x:Key="Str_KS_Title">Пернелер тіркесімі</sys:String>
+    <sys:String x:Key="Str_KS_File">ФАЙЛ</sys:String>
+    <sys:String x:Key="Str_KS_Open">Ашу</sys:String>
+    <sys:String x:Key="Str_KS_CloseFile">Файлды жабу</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">Басқа қойындыларды жабу</sys:String>
+    <sys:String x:Key="Str_KS_CloseAll">Барлығын жабу</sys:String>
+    <sys:String x:Key="Str_KS_NewBlank">Жаңа бос құжат</sys:String>
+    <sys:String x:Key="Str_KS_SaveAs">Басқаша сақтау</sys:String>
+    <sys:String x:Key="Str_KS_Print">Басып шығару</sys:String>
+    <sys:String x:Key="Str_KS_Navigation">ШАРЛАУ</sys:String>
+    <sys:String x:Key="Str_KS_PrevNext">Алдыңғы / келесі бет</sys:String>
+    <sys:String x:Key="Str_KS_ScrollView">Айналдыру (шетінде бет аударылады)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomCursor">Үлкейту / кішірейту (меңзерге байланысты)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomInOut">Үлкейту / кішірейту</sys:String>
+    <sys:String x:Key="Str_KS_ResetZoom">Масштабты 100%-ға қайтару</sys:String>
+    <sys:String x:Key="Str_KS_PanView">Көріністі жылжыту</sys:String>
+    <sys:String x:Key="Str_KS_Editing">ӨҢДЕУ</sys:String>
+    <sys:String x:Key="Str_KS_Undo">Кері қайтару</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Таңдалған ескертпені жою</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Мәтінді немесе қиюды растау / болдырмау</sys:String>
+    <sys:String x:Key="Str_KS_SearchSelect">ІЗДЕУ ЖӘНЕ ТАҢДАУ</sys:String>
+    <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
+
+    <!-- Document Info dialog -->
+    <sys:String x:Key="Str_TT_DocInfo">Құжат туралы мәлімет (F4)</sys:String>
+    <sys:String x:Key="Str_DocInfo_Suffix">Құжат туралы мәлімет</sys:String>
+    <sys:String x:Key="Str_DocInfo_Title">Тақырып</sys:String>
+    <sys:String x:Key="Str_DocInfo_Author">Автор</sys:String>
+    <sys:String x:Key="Str_DocInfo_Subject">Тақырыпша</sys:String>
+    <sys:String x:Key="Str_DocInfo_Keywords">Кілт сөздер</sys:String>
+    <sys:String x:Key="Str_DocInfo_Creator">Жасаушы</sys:String>
+    <sys:String x:Key="Str_DocInfo_Save">Сақтау</sys:String>
+    <sys:String x:Key="Str_DocInfo_Cancel">Болдырмау</sys:String>
+    <sys:String x:Key="Str_KS_Find">Табу / іздеу</sys:String>
+    <sys:String x:Key="Str_KS_NextPrevResult">Келесі / алдыңғы нәтиже</sys:String>
+    <sys:String x:Key="Str_KS_SelectAll">Беттегі барлық мәтінді таңдау</sys:String>
+    <sys:String x:Key="Str_KS_CopyText">Таңдалған мәтінді көшіру</sys:String>
+    <sys:String x:Key="Str_KS_Help">АНЫҚТАМА</sys:String>
+    <sys:String x:Key="Str_KS_ThisList">Осы тіркесім тізімі</sys:String>
+    <sys:String x:Key="Str_KS_About">Бағдарлама туралы терезе</sys:String>
+    <sys:String x:Key="Str_KS_DocInfo">Құжат туралы мәлімет</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Толық нұсқаулық пен онлайн көмек</sys:String>
+    <sys:String x:Key="Str_KS_Tools">ҚҰРАЛДАР</sys:String>
+    <sys:String x:Key="Str_KS_Paste">Сурет / мәтін қою</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">Қалың / курсив / астын сызу (мәтін өрісі)</sys:String>
+    <sys:String x:Key="Str_KS_MultiSelect">Таңдауға қосу</sys:String>
+
+    <!-- ── Status bar ────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ready">Дайын</sys:String>
+    <sys:String x:Key="Str_Portable">ТАСЫМАЛДЫ</sys:String>
+    <sys:String x:Key="Str_InstallBtn">KillerPDF орнату</sys:String>
+
+    <!-- ── Status messages (format strings - use string.Format) ─────── -->
+    <sys:String x:Key="Str_Opened">{0} ашылды - {1} бет</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnly">{0} ашылды (тек оқу - иесінің шектеулері) - {1} бет</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnlyXRef">{0} ашылды (тек оқу - стандартты емес XRef кестесі) - {1} бет</sys:String>
+    <sys:String x:Key="Str_OpenedRepaired">{0} ашылды (жөнделген көшірме - өзгерістерді сақтаңыз) - {1} бет</sys:String>
+    <sys:String x:Key="Str_OpenedRasterRepair">{0} ашылды (растрленген жөндеу - өзгерістерді сақтаңыз) - {1} бет</sys:String>
+    <sys:String x:Key="Str_PageOf">{0} / {1} бет</sys:String>
+    <sys:String x:Key="Str_PageOfLinks">{0} / {1} бет  ({2} сілтеме)</sys:String>
+    <sys:String x:Key="Str_PageFormFields">{0} / {1} бет - бұл бетте толтырылатын пішін өрістері бар</sys:String>
+    <sys:String x:Key="Str_PageRenderError">{0} бет - көрсетілмеді</sys:String>
+    <sys:String x:Key="Str_RenderError">Көрсету қатесі: {0}</sys:String>
+    <sys:String x:Key="Str_Rotated">{0} бет бұрылды</sys:String>
+    <sys:String x:Key="Str_Cropped">{0} бет қиылды</sys:String>
+    <sys:String x:Key="Str_CropFailed">Қию сәтсіз: {0}</sys:String>
+    <sys:String x:Key="Str_RemovedCrop">{0} беттен CropBox жойылды</sys:String>
+    <sys:String x:Key="Str_RemoveCropFailed">Қиюды алу сәтсіз: {0}</sys:String>
+    <sys:String x:Key="Str_Extracted">{0} бет {1} ішіне шығарылды</sys:String>
+    <sys:String x:Key="Str_Deleted">{0} бет жойылды - {1} қалды</sys:String>
+    <sys:String x:Key="Str_Printed">{0} бет принтерге жіберілді</sys:String>
+    <sys:String x:Key="Str_LinkRemoved">Сілтеме жойылды.</sys:String>
+    <sys:String x:Key="Str_LinkRemoveFailed">Сілтемені жою сәтсіз:</sys:String>
+    <sys:String x:Key="Str_LinkBlocked">Бұғатталған сілтеме (қолдау көрсетілмейтін түрі):</sys:String>
+    <sys:String x:Key="Str_LinkOpenFailed">Сілтемені ашу мүмкін болмады</sys:String>
+    <sys:String x:Key="Str_LinkConfirmBody">Осы сілтемені браузерде ашу керек пе?</sys:String>
+    <sys:String x:Key="Str_LinkConfirmTitle">Сілтемені ашу керек пе?</sys:String>
+    <sys:String x:Key="Str_LinkDontAsk">Қайта сұрамау</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenLink">Сілтемені ашу</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyLink">Сілтеме мекенжайын көшіру</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyEmail">Электрондық пошта мекенжайын көшіру</sys:String>
+    <sys:String x:Key="Str_Ctx_RemoveLink">Сілтемені PDF-тен жою</sys:String>
+    <sys:String x:Key="Str_LinksSection">СІЛТЕМЕЛЕР</sys:String>
+    <sys:String x:Key="Str_PrivacySection">ҚҰПИЯЛЫЛЫҚ</sys:String>
+    <sys:String x:Key="Str_NoRecentSetting">Жақында ашылған файлдарды есте сақтамау</sys:String>
+    <sys:String x:Key="Str_Menu_ExportImages">Беттерді сурет ретінде экспорттау...</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">Құпиясөзді жою</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">Құпиясөзсіз сақталды - {0}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Suffix">Беттерді сурет ретінде экспорттау</sys:String>
+    <sys:String x:Key="Str_ExportImg_Format">Пішім</sys:String>
+    <sys:String x:Key="Str_ExportImg_Dpi">Ажыратымдылық (DPI)</sys:String>
+    <sys:String x:Key="Str_ExportImg_Export">Экспорттау</sys:String>
+    <sys:String x:Key="Str_ExportImg_Done">{0} бет {1} ішіне экспортталды</sys:String>
+    <sys:String x:Key="Str_Print_AllPages">Барлық беттер</sys:String>
+    <sys:String x:Key="Str_Print_OddOnly">Тек тақ беттер</sys:String>
+    <sys:String x:Key="Str_Print_EvenOnly">Тек жұп беттер</sys:String>
+    <sys:String x:Key="Str_DocInvertSetting">Құжат түстерін терістеу</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">Құжат түстерін терістеу (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">Бөлінген панель - екі құжат қатар (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">Қойындыны жабу</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">Барлық ашық қойындылар</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">Суреттерді де терістеу</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs" xml:space="preserve">Осы компьютердегі ешбір қаріп бұл таңбаларды сала алмайды, сондықтан олар сақталған PDF-те шаршы болып көрінеді:&#10;&#10;{0}&#10;&#10;Оларды қамтитын қаріп орнатыңыз немесе осы мәтін үшін басқа қаріп таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_TT_AppSize">Бүкіл қолданбаның өлшемін өзгерту үшін айналдырыңыз (Ctrl+Shift++/-/0)</sys:String>
+    <sys:String x:Key="Str_St_AppSize">Қолданба өлшемі {0}%</sys:String>
+    <sys:String x:Key="Str_KS_AppSize">Бүкіл қолданбаны үлкейту (қолжетімділік)</sys:String>
+    <sys:String x:Key="Str_KS_FileSize">Ағымдағы файл өлшемін көрсету</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">Бөлінген панель - екі құжат қатар</sys:String>
+    <sys:String x:Key="Str_LinkConfirmSetting">Сілтемелерді ашар алдында растау</sys:String>
+    <sys:String x:Key="Str_InvalidRange">Жарамсыз аралық - мысалы: 1-3,5,7</sys:String>
+    <sys:String x:Key="Str_CropNoDoc">Қию: құжат ашылмаған</sys:String>
+    <sys:String x:Key="Str_CropNoPage">Қию: бет таңдалмаған</sys:String>
+    <sys:String x:Key="Str_CropNoDims">Қию: бет өлшемдері қолжетімсіз</sys:String>
+    <sys:String x:Key="Str_RotateFailed">Бұру сәтсіз: {0}</sys:String>
+
+    <!-- ── Dialog strings ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Екінші панельде де "{0}" ашық, оның өзінде сақталмаған өзгерістер бар.
+
+Қазір сақтасаңыз, файл үстінен жазылады және сол өзгерістер жоғалады. Оларды қалдырғыңыз келсе, алдымен екінші панельді сақтаңыз.</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Бөлінген панель қосулы - жабу үшін F10</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">Бөлінген панель өшірулі</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">KillerPDF орнату</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">KillerPDF-ті осы компьютерге орнату керек пе?
+
+Орнату қолданбаны Бағдарламалар қалтасына көшіреді (жылдам іске қосу үшін) және Бастау мәзіріне жазба қосады. Осы тасымалды файлды кейін қалдыра немесе жоя аласыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">KillerPDF-тің барлық пайдаланушыларға арналған орнатылымын жаңарту керек пе?
+
+Бұл Program Files ішіндегі көшірмені жылдамырақ көпфайлды нұсқамен ауыстырады. Ескі пайдаланушылық көшірме жойылады, сондықтан KillerPDF тек бір рет көрінеді. Осы тасымалды файлды кейін қалдыра немесе жоя аласыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Қолданыстағы KillerPDF орнатылымын жаңарту керек пе?
+
+Бұл орнатылған көшірмені жылдамырақ көпфайлды нұсқамен ауыстырады. Осы тасымалды файлды кейін қалдыра немесе жоя аласыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF осы компьютердегі барлық пайдаланушылар үшін әлдеқашан орнатылған. Сол орнатылымды жаңартыңыз немесе пайдаланушылық орнатуды таңдамас бұрын оны жойыңыз.
+
+KillerPDF екі орнатылған көшірме жасамайды.</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">Орнату</sys:String>
+    <sys:String x:Key="Str_Btn_DoUpdate">Жаңарту</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">Жұмыс үстеліндегі төте жолды қосу</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">Осы компьютердегі барлық пайдаланушылар үшін орнату (әкімші құқығы керек)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">Орнату аяқталмады - KillerPDF әлі тасымалды түрде жұмыс істеп тұр.</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">KillerPDF-ті әдепкі PDF қарау құралы етіп орнатқыңыз келе ме?
+
+Windows параметрлері - Әдепкі қолданбалар ашылады.</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedClose">Сақталмаған өзгерістер бар. Осы файлды сақтамай жабу керек пе?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Сақталмаған өзгерістер бар. KillerPDF-ті сақтамай жабу керек пе?</sys:String>
+    <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Бұл құжатта Adobe Reader қолдайтын өлшемнен тыс (әр жағы 3-тен 14 400 нүктеге дейін) {0} бет бар - Adobe оларды бос бет ретінде көрсетеді.
+
+Оларды қолдау көрсетілетін өлшемге масштабтау керек пе? Беттер түрі мен пропорцияларын сақтайды.</sys:String>
+    <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">PDF ашылмады:
+{0}</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">{0} ашық құжатыңыз бар. Қолданбадан шыққанда KillerPDF олардың барлығын жапсын ба?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">1 ашық құжатыңыз бар. Қолданбадан шыққанда KillerPDF оны жапсын ба?</sys:String>
+    <sys:String x:Key="Str_Dlg_RememberChoice">Таңдауымды есте сақтау</sys:String>
+
+
+    <!-- ── Theme names ────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Theme_Dark">Қараңғы</sys:String>
+    <sys:String x:Key="Str_Theme_Light">Жарық</sys:String>
+    <sys:String x:Key="Str_Theme_Black">Қара</sys:String>
+    <sys:String x:Key="Str_Theme_Blood">Қан</sys:String>
+    <sys:String x:Key="Str_Theme_Greed">Ашкөздік</sys:String>
+    <sys:String x:Key="Str_Theme_Cyanotic">Цианозды</sys:String>
+    <sys:String x:Key="Str_Theme_98SE">98SE</sys:String>
+    <sys:String x:Key="Str_Theme_Ectoplasm">Эктоплазма</sys:String>
+    <sys:String x:Key="Str_Theme_Decay">Ыдырау</sys:String>
+    <sys:String x:Key="Str_Theme_Mourning">Жоқтау</sys:String>
+    <sys:String x:Key="Str_Theme_Sepulchre">Қабірхана</sys:String>
+    <sys:String x:Key="Str_Theme_Delirium">Делирий</sys:String>
+    <sys:String x:Key="Str_Theme_Malaise">Әлсіздік</sys:String>
+
+    <!-- ── Zoom dropdown ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Zoom_FitWidth">Еніне сыйғызу</sys:String>
+    <sys:String x:Key="Str_Zoom_FitPage">Бетке сыйғызу</sys:String>
+    <sys:String x:Key="Str_FitWidth">{0} / {1} бет - Еніне сыйғызу ({2}%)</sys:String>
+    <sys:String x:Key="Str_FitPage">{0} / {1} бет - Бетке сыйғызу ({2}%)</sys:String>
+
+    <!-- ── KS overlay font size (sys:Double) ──────────────────────────── -->
+    <sys:Double x:Key="Str_KS_FontSize">11</sys:Double>
+
+
+    <!-- ── View mode ──────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_ViewMode">КӨРІНІС РЕЖИМІ</sys:String>
+    <sys:String x:Key="Str_View_Single">Бір бет</sys:String>
+    <sys:String x:Key="Str_View_Continuous">Үздіксіз</sys:String>
+    <sys:String x:Key="Str_View_TwoPage">Екі бет</sys:String>
+    <sys:String x:Key="Str_View_Grid">Тор</sys:String>
+    <sys:String x:Key="Str_View_BookMode">Кітап орналасуы</sys:String>
+    <sys:String x:Key="Str_Continuous_EditMsg">Өңдеу құралдарын пайдалану үшін Бір бет режиміне ауысыңыз</sys:String>
+
+    <!-- ── Overflow menu + menu item labels ───────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_Merge">PDF біріктіру</sys:String>
+    <sys:String x:Key="Str_Lbl_Extract">Беттерді шығару</sys:String>
+    <sys:String x:Key="Str_Lbl_Delete">Беттерді жою</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveUp">Бетті жоғары жылжыту</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveDown">Бетті төмен жылжыту</sys:String>
+    <sys:String x:Key="Str_Lbl_Text">Мәтін</sys:String>
+    <sys:String x:Key="Str_Lbl_Highlight">Бояп белгілеу</sys:String>
+    <sys:String x:Key="Str_Lbl_Strike">Сызып тастау</sys:String>
+    <sys:String x:Key="Str_Lbl_Underline">Астын сызу</sys:String>
+    <sys:String x:Key="Str_Lbl_Bold">Қалың</sys:String>
+    <sys:String x:Key="Str_Lbl_Italic">Курсив</sys:String>
+    <sys:String x:Key="Str_Lbl_Draw">Сурет салу</sys:String>
+    <sys:String x:Key="Str_Lbl_Shape">Пішіндер</sys:String>
+    <sys:String x:Key="Str_Lbl_Crop">Қию</sys:String>
+    <sys:String x:Key="Str_Lbl_Rotate">Түрлендіру</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Мөр</sys:String>
+    <sys:String x:Key="Str_Lbl_Image">Сурет қосу</sys:String>
+    <sys:String x:Key="Str_Lbl_Signature">Қолтаңба</sys:String>
+    <sys:String x:Key="Str_Lbl_Undo">Кері қайтару</sys:String>
+    <sys:String x:Key="Str_Lbl_Clear">Барлығын тазалау</sys:String>
+    <sys:String x:Key="Str_Lbl_New">Жаңа</sys:String>
+    <sys:String x:Key="Str_Lbl_Open">Ашу</sys:String>
+    <sys:String x:Key="Str_Lbl_Close">Жабу</sys:String>
+    <sys:String x:Key="Str_Lbl_Save">Сақтау</sys:String>
+    <sys:String x:Key="Str_Lbl_Flatten">Тегістеу</sys:String>
+    <sys:String x:Key="Str_Lbl_Print">Басып шығару</sys:String>
+    <sys:String x:Key="Str_Lbl_Select">Таңдау</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomOut">Кішірейту</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomIn">Үлкейту</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">Іздеу</sys:String>
+
+    <!-- ── Right-click menu labels ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ctx_CopyText">Мәтінді көшіру</sys:String>
+    <sys:String x:Key="Str_Ctx_Print">Басып шығару</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">OCR беті (мәтінді көшіру)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">OCR беті (мәтінді көшіру) (Ctrl+Shift+O)</sys:String>
+    <sys:String x:Key="Str_Ocr_Region">OCR аймағы...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">Ізделетін PDF жасау...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">Барлық мәтінді шығару...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">Тіл</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">Алдымен PDF ашыңыз</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - жақында</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectTool">Таңдау құралы</sys:String>
+    <sys:String x:Key="Str_Ctx_TextTool">Мәтін құралы</sys:String>
+    <sys:String x:Key="Str_Ctx_HighlightTool">Бояп белгілеу құралы</sys:String>
+    <sys:String x:Key="Str_Ctx_DrawTool">Сурет салу құралы</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCW">Бетті сағат тілімен бұру</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCW">Бетті сағат тіліне қарсы бұру</sys:String>
+    <sys:String x:Key="Str_Ctx_StampNumbers">Бет нөмірлерін қою...</sys:String>
+    <sys:String x:Key="Str_Ctx_DeleteSel">Таңдалғанды жою</sys:String>
+    <sys:String x:Key="Str_Ctx_UndoLast">Соңғы әрекетті кері қайтару</sys:String>
+    <sys:String x:Key="Str_Ctx_ClearPage">Бет ескертпелерін тазалау</sys:String>
+    <sys:String x:Key="Str_Ctx_InsertBlank">Кейін бос бет кірістіру</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCWShort">Сағат тілімен</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCWShort">Сағат тіліне қарсы</sys:String>
+    <sys:String x:Key="Str_Ctx_ExtractPages">Бет(тер)ді шығару</sys:String>
+    <sys:String x:Key="Str_Ctx_ExportPageImage">Бетті сурет ретінде экспорттау</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePages">Бет(тер)ді жою</sys:String>
+
+    <!-- ── Stamp Page Numbers dialog ──────────────────────────────────── -->
+    <sys:String x:Key="Str_Stamp_Title">Бет нөмірлерін қою</sys:String>
+    <sys:String x:Key="Str_Stamp_StartAt">Басталу нөмірі</sys:String>
+    <sys:String x:Key="Str_Stamp_Format">Пішім</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint">Бет нөмірі үшін {n}, барлығы үшін {N} пайдаланыңыз</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint2">Мысал: "{n} / {N} бет"</sys:String>
+    <sys:String x:Key="Str_Stamp_Position">Орын</sys:String>
+    <sys:String x:Key="Str_Stamp_FontSize">Қаріп өлшемі (pt)</sys:String>
+    <sys:String x:Key="Str_Stamp_Cancel">Болдырмау</sys:String>
+    <sys:String x:Key="Str_Stamp_Stamp">Қою</sys:String>
+    <sys:String x:Key="Str_Stamp_Suffix">Беттерге мөр</sys:String>
+    <sys:String x:Key="Str_Stamp_SecNumbers">Бет нөмірлері</sys:String>
+    <sys:String x:Key="Str_Stamp_SecWatermark">Су белгісі</sys:String>
+    <sys:String x:Key="Str_Stamp_Color">Түс</sys:String>
+    <sys:String x:Key="Str_Stamp_Pages">Беттер</sys:String>
+    <sys:String x:Key="Str_Stamp_WmText">Мәтін</sys:String>
+    <sys:String x:Key="Str_Stamp_WmImage">Сурет</sys:String>
+    <sys:String x:Key="Str_Stamp_WmTextLabel">Су белгісінің мәтіні</sys:String>
+    <sys:String x:Key="Str_Stamp_ChooseImage">Суретті таңдау...</sys:String>
+    <sys:String x:Key="Str_Stamp_Scale">Масштаб</sys:String>
+    <sys:String x:Key="Str_Stamp_Angle">Бұрыш</sys:String>
+    <sys:String x:Key="Str_Stamp_Opacity">Мөлдірлік</sys:String>
+    <sys:String x:Key="Str_Stamp_Mirror">Қарсы беттерде айналау (сыртқы жиек)</sys:String>
+    <sys:String x:Key="Str_Stamp_Applied">{0} бетке мөр қойылды</sys:String>
+    <sys:String x:Key="Str_TT_StampTool">Беттерге мөр (S)</sys:String>
+    <sys:String x:Key="Str_Ctx_StampPages">Беттерге мөр</sys:String>
+    <sys:String x:Key="Str_Pos_BottomCenter">Төменгі ортасы</sys:String>
+    <sys:String x:Key="Str_Pos_BottomRight">Төменгі оң</sys:String>
+    <sys:String x:Key="Str_Pos_BottomLeft">Төменгі сол</sys:String>
+    <sys:String x:Key="Str_Pos_TopCenter">Жоғарғы ортасы</sys:String>
+    <sys:String x:Key="Str_Pos_TopRight">Жоғарғы оң</sys:String>
+    <sys:String x:Key="Str_Pos_TopLeft">Жоғарғы сол</sys:String>
+
+    <!-- ── Print dialog ───────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Print_Title">KillerPDF - Басып шығару</sys:String>
+    <sys:String x:Key="Str_Print_Printer">Принтер</sys:String>
+    <sys:String x:Key="Str_Print_Paper">Қағаз өлшемі</sys:String>
+    <sys:String x:Key="Str_Print_PaperAuto">Құжатқа сәйкес</sys:String>
+    <sys:String x:Key="Str_Print_Source">Қағаз көзі</sys:String>
+    <sys:String x:Key="Str_Print_SourceAuto">Принтер әдепі</sys:String>
+    <sys:String x:Key="Str_Print_SecPrinter">ПРИНТЕР</sys:String>
+    <sys:String x:Key="Str_Print_SecLayout">ОРНАЛАСУ</sys:String>
+    <sys:String x:Key="Str_Print_SecOutput">ШЫҒАРЫЛЫМ</sys:String>
+    <sys:String x:Key="Str_Print_Orientation">Бағдар</sys:String>
+    <sys:String x:Key="Str_Print_Portrait">Кітаптық</sys:String>
+    <sys:String x:Key="Str_Print_Landscape">Альбомдық</sys:String>
+    <sys:String x:Key="Str_Print_Scale">Масштаб</sys:String>
+    <sys:String x:Key="Str_Print_Fit">Бетке сыйғызу</sys:String>
+    <sys:String x:Key="Str_Print_Actual">Нақты өлшем (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Custom">Реттелетін %</sys:String>
+    <sys:String x:Key="Str_Print_ScaleHint">Масштаб пайызы (мысалы, 50 немесе 50.23)</sys:String>
+    <sys:String x:Key="Str_Print_Copies">Көшірме</sys:String>
+    <sys:String x:Key="Str_Print_Pages">Беттер</sys:String>
+    <sys:String x:Key="Str_Print_PagesHint">мысалы: 1-3,5  (бос = барлығы)</sys:String>
+    <sys:String x:Key="Str_Print_NoPages">Бет жоқ</sys:String>
+    <sys:String x:Key="Str_Print_Margins">Жиектер</sys:String>
+    <sys:String x:Key="Str_Margin_None">Жоқ</sys:String>
+    <sys:String x:Key="Str_Margin_Narrow">Тар</sys:String>
+    <sys:String x:Key="Str_Margin_Normal">Қалыпты</sys:String>
+    <sys:String x:Key="Str_Margin_Wide">Кең</sys:String>
+    <sys:String x:Key="Str_Print_PagesPerSheet">Парақтағы бет саны</sys:String>
+    <sys:String x:Key="Str_Print_TwoSided">Екі жағынан басып шығару</sys:String>
+    <sys:String x:Key="Str_Print_Color">Түсті</sys:String>
+    <sys:String x:Key="Str_Print_BW">Ақ-қара</sys:String>
+    <sys:String x:Key="Str_Pos_Center">Ортасы</sys:String>
+    <sys:String x:Key="Str_Pos_Custom">Реттелетін (алдын ала қарауда сүйреу)</sys:String>
+    <sys:String x:Key="Str_Pos_Top">Жоғарғы</sys:String>
+    <sys:String x:Key="Str_Pos_Bottom">Төменгі</sys:String>
+    <sys:String x:Key="Str_Pos_Left">Сол</sys:String>
+    <sys:String x:Key="Str_Pos_Right">Оң</sys:String>
+
+    <!-- ── Save / recent menus + signature dialog ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">Сақтау</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">Басқаша сақтау...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">Сақтауға ештеңе жоқ</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">Жақындағы файлдар жоқ</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">Тізімді тазалау</sys:String>
+    <sys:String x:Key="Str_Menu_RemoveFromRecents">Жақындағылардан жою</sys:String>
+
+    <!-- Import images as PDF / Compress to ZIP -->
+    <sys:String x:Key="Str_Menu_Import">Суреттерді PDF ретінде импорттау</sys:String>
+    <sys:String x:Key="Str_Menu_CompressZip">ZIP-ке сығу</sys:String>
+    <sys:String x:Key="Str_Filter_Images">Суреттер</sys:String>
+    <sys:String x:Key="Str_Filter_AllFiles">Барлық файлдар</sys:String>
+    <sys:String x:Key="Str_Filter_Zip">ZIP мұрағаты</sys:String>
+    <sys:String x:Key="Str_Status_Imported">{0} сурет импортталды - әлі сақталмаған</sys:String>
+    <sys:String x:Key="Str_Err_ImportFailed">Импорт сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_NoImages">Ешбір сурет оқылмады.</sys:String>
+    <sys:String x:Key="Str_Drop_Prompt">Сіз {0} файл тастадыңыз. Оларды қалай ашқыңыз келеді?</sys:String>
+    <sys:String x:Key="Str_Drop_Merge">Бір PDF-ке біріктіру</sys:String>
+    <sys:String x:Key="Str_Drop_Separate">Бөлек ашу</sys:String>
+    <sys:String x:Key="Str_Drop_NothingOpenable">Ашуға PDF немесе сурет табылмады.</sys:String>
+    <sys:String x:Key="Str_Drop_ManyTabs">Бұл {0} бөлек қойынды ашады. Жалғастыру керек пе?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Бұл қалтада немесе мұрағатта {0} файл бар. KillerPDF тек алғашқы {1} файлды ашады. Жалғастыру керек пе?</sys:String>
+    <sys:String x:Key="Str_Status_Merged">{0} файл біріктірілді - әлі сақталмаған</sys:String>
+    <sys:String x:Key="Str_Drop_Merging">Файлдар біріктірілуде...</sys:String>
+    <sys:String x:Key="Str_Drop_MergeCanceled">Біріктіру болдырылмады</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedCloseAll">Барлық құжаттарды жабу керек пе? Сақталмаған өзгерістер жоғалады.</sys:String>
+    <sys:String x:Key="Str_Msg_OpenFirst">Алдымен PDF ашыңыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveBeforeZip">ZIP-ке сығар алдында өзгерістерді сақтау керек пе?</sys:String>
+    <sys:String x:Key="Str_Status_Zipped">{0} ішіне сығылды - {1} (бұрын {2})</sys:String>
+    <sys:String x:Key="Str_Err_ZipFailed">ZIP-ке сығу сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Sig_Title">Қолтаңбалар</sys:String>
+    <sys:String x:Key="Str_Sig_None">Сақталған қолтаңба жоқ</sys:String>
+    <sys:String x:Key="Str_Sig_Create">Қолтаңба жасау</sys:String>
+    <sys:String x:Key="Str_Sig_Import">Сурет импорттау</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">Қолтаңбаңызды осында сызыңыз</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">Тазалау</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">Қолтаңбаны сақтау</sys:String>
+
+    <!-- Crop confirm bar tooltips -->
+    <sys:String x:Key="Str_TT_CropThisPage">Осы бетті қию (Enter)</sys:String>
+    <sys:String x:Key="Str_TT_CropRange">Көрсетілген аралықтағы беттерді қию</sys:String>
+    <sys:String x:Key="Str_TT_CropRemove">Осы беттен CropBox (және TrimBox) жою</sys:String>
+    <sys:String x:Key="Str_TT_CropRemoveAll">Барлық беттерден CropBox жою</sys:String>
+    <sys:String x:Key="Str_TT_CropCancel">Болдырмау (Escape)</sys:String>
+
+    <!-- ── Line tool, layer / group menu (added v1.5.x) ───────────────── -->
+    <sys:String x:Key="Str_Lbl_Line">Сызық</sys:String>
+    <sys:String x:Key="Str_TT_LineTool">Сызық - түзу сызық сызу үшін сүйреңіз (L)</sys:String>
+    <sys:String x:Key="Str_Ctx_Edit">Өңдеу</sys:String>
+    <sys:String x:Key="Str_Ctx_Raise">Жоғары көтеру</sys:String>
+    <sys:String x:Key="Str_Ctx_Lower">Төмен түсіру</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectCover">Жабынды таңдау</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectText">Мәтінді таңдау</sys:String>
+    <sys:String x:Key="Str_Ctx_Unpair">Мәтін мен жабынды ажырату</sys:String>
+    <sys:String x:Key="Str_Ctx_Group">Таңдалғанды топтау</sys:String>
+    <sys:String x:Key="Str_Ctx_Ungroup">Топтан шығару</sys:String>
+    <sys:String x:Key="Str_Ctx_RemoveFromGroup">Топтан алу</sys:String>
+    <sys:String x:Key="Str_Ctx_Copy">Көшіру</sys:String>
+    <sys:String x:Key="Str_Ctx_Paste">Қою</sys:String>
+    <!-- ── Annotate-bar labels ────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Bar_Color">Түс:</sys:String>
+    <sys:String x:Key="Str_Bar_Fill">Толтыру:</sys:String>
+    <sys:String x:Key="Str_Bar_Size">Өлшем:</sys:String>
+    <sys:String x:Key="Str_Bar_Opacity">Мөлдірлік:</sys:String>
+    <sys:String x:Key="Str_Bar_FillOpacity">Толтыру мөлдірлігі:</sys:String>
+    <sys:String x:Key="Str_Bar_Font">Қаріп:</sys:String>
+    <sys:String x:Key="Str_Bar_Level">Деңгей</sys:String>
+    <sys:String x:Key="Str_Bar_Eraser">Өшіргіш</sys:String>
+    <sys:String x:Key="Str_Bar_MoreColors">Басқа түстер...</sys:String>
+    <sys:String x:Key="Str_Bar_ShapeFill">Толтыру</sys:String>
+    <sys:String x:Key="Str_Sig_Signatures">Қолтаңбалар</sys:String>
+    <sys:String x:Key="Str_Sig_Initials">Инициалдар</sys:String>
+    <sys:String x:Key="Str_Sig_Pen">Қалам</sys:String>
+    <sys:String x:Key="Str_Sig_Thin">Жіңішке</sys:String>
+    <sys:String x:Key="Str_Sig_Medium">Орташа</sys:String>
+    <sys:String x:Key="Str_Sig_Thick">Қалың</sys:String>
+    <!-- ── Digital Signature dialog ───────────────────────────────────── -->
+    <sys:String x:Key="Str_Sign_Desc">{0} құжатын сертификатпен мөрлейді және қол қойылған көшірмені сақтайды.</sys:String>
+    <sys:String x:Key="Str_Sign_Certificate">Сертификат</sys:String>
+    <sys:String x:Key="Str_Sign_FromFile">Файлдан (.pfx / .p12)</sys:String>
+    <sys:String x:Key="Str_Sign_FromStore">Windows сертификат қоймасынан</sys:String>
+    <sys:String x:Key="Str_Sign_Browse">Шолу...</sys:String>
+    <sys:String x:Key="Str_Sign_Password">Құпиясөз</sys:String>
+    <sys:String x:Key="Str_Sign_Reason">Себеп (міндетті емес)</sys:String>
+    <sys:String x:Key="Str_Sign_Location">Орын (міндетті емес)</sys:String>
+    <sys:String x:Key="Str_Sign_Contact">Байланыс (міндетті емес)</sys:String>
+    <sys:String x:Key="Str_Sign_SaveAs">Қол қойылған көшірмені сақтау</sys:String>
+    <sys:String x:Key="Str_Sign_Sign">Қол қою</sys:String>
+    <sys:String x:Key="Str_Sign_Cancel">Болдырмау</sys:String>
+    <sys:String x:Key="Str_Sign_TitleSuffix">Цифрлық қолтаңба</sys:String>
+    <sys:String x:Key="Str_Lbl_DigitalSig">Цифрлық қолтаңба...</sys:String>
+    <sys:String x:Key="Str_Sidebar">БҮЙІРЛІК ПАНЕЛЬ</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">Сол</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">Оң</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">Бүйірлік панельді ауыстыру</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">Құралдар тақтасының түрі</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Бүйірлік панельді солға / оңға жылжыту</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">Көрініс режимдерін ауыстыру</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">Көрініс режимі</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">Келесі қойынды (Shift: алдыңғы)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">Бетті жою</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">Беттің көшірмесін жасау</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">Бос бет қосу</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">Қойындыны жабу</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">Басқа қойындыларды жабу</sys:String>
+
+    <!-- Transform tool -->
+    <sys:String x:Key="Str_Tf_Suffix">Түрлендіру</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">БҰРУ</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">МАСШТАБ</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">АЙНАЛДЫРУ</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">ҚИЫСЫҚТЫҚ</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Бұрыш</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Өлшем</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">Масштабтағанда:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Бүкіл беттің өлшемін өзгерту</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Бет өлшемін сақтау (жиек қосу)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Көлденеңінен айналау</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Тігінен айналау</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Деңгей сызығын сызу</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Тегіс болуы керек нәрсенің бойымен сүйреңіз (жиек, мәтін жолы). Бет соған сәйкес бұрылады.</sys:String>
+    <sys:String x:Key="Str_Tf_Perspective">ПЕРСПЕКТИВА</sys:String>
+    <sys:String x:Key="Str_Tf_Levels">ДЕҢГЕЙЛЕР</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsBlack">Қара нүкте</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsWhite">Ақ нүкте</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsGamma">Ортаңғы тондар</sys:String>
+    <sys:String x:Key="Str_Tf_CorrectPerspective">Трапециялық бұрмалануды түзету</sys:String>
+    <sys:String x:Key="Str_Tf_PerspectiveHint">Төрт бұрышты суретке түсірілген беттің контурына сүйреңіз. Қолдану оны тіктөртбұрышқа түзетеді.</sys:String>
+    <sys:String x:Key="Str_Tf_ResetCorners">Бұрыштарды қалпына келтіру</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Шығарылым: {0} × {1} дюйм</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Барлығын қалпына келтіру</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Қалпына келтіру</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">Болдырмау</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Қолдану</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Бетті түрлендіру (бұру немесе масштаб) оны растрлейді: бет сурет ретінде қайта сақталады, сондықтан ондағы таңдалатын мәтін жоғалады. Ізделетін ету үшін кейін OCR іске қоса аласыз.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">Қайта ескертпеу</sys:String>
+    <sys:String x:Key="Str_Tf_Done">{0} бет түрлендірілді</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">Бетті көрсету мүмкін болмады - сәлден кейін қайталап көріңіз.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Түрлендіру сәтсіз: {0}</sys:String>
+
+    <!-- Crop bar -->
+    <sys:String x:Key="Str_Crop_Position">Орын</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Өлшем</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Беттер</sys:String>
+    <sys:String x:Key="Str_Crop_All">Барлығы</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Қию</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Бет аралығы, мысалы: 1-3,5 (бос = ағымдағы бет)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Әрбір бетті қию</sys:String>
+
+    <!-- View-mode + full-screen shortcuts -->
+    <sys:String x:Key="Str_KS_View">КӨРІНІС</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Толық экран</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Толық экраннан шығу үшін F11 немесе Esc басыңыз</sys:String>
+    <!-- Quit prompt (family standard) -->
+    <sys:String x:Key="Str_Dlg_QuitMsg">KillerPDF-тен шығу керек пе?</sys:String>
+    <sys:String x:Key="Str_Chk_CloseTabs">Ашық қойындыларымды жабу</sys:String>
+    <sys:String x:Key="Str_Btn_Quit">Шығу</sys:String>
+    <sys:String x:Key="Str_Btn_CancelDlg">Болдырмау</sys:String>
+
+
+    <!-- Status-bar messages (extracted from code) -->
+    <sys:String x:Key="Str_St_DataCleared">KillerPDF-тің барлық деректері тазаланды</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionCanceled">OCR аймағы болдырылмады</sys:String>
+    <sys:String x:Key="Str_St_Erased">Өшірілді</sys:String>
+    <sys:String x:Key="Str_St_Ungrouped">Топтан шығарылды</sys:String>
+    <sys:String x:Key="Str_St_RemovedFromGroup">Топтан алынды</sys:String>
+    <sys:String x:Key="Str_St_NothingToUndo">Кері қайтаратын ештеңе жоқ</sys:String>
+    <sys:String x:Key="Str_St_UndidAnnotation">Соңғы ескертпе кері қайтарылды</sys:String>
+    <sys:String x:Key="Str_St_UndidTextEdit">Мәтін өңдеуі кері қайтарылды</sys:String>
+    <sys:String x:Key="Str_St_RemovedStamps">Қойылған бет нөмірлері жойылды</sys:String>
+    <sys:String x:Key="Str_St_RestoredAnnotations">Тазаланған ескертпелер қалпына келтірілді</sys:String>
+    <sys:String x:Key="Str_St_Undone">Кері қайтарылды</sys:String>
+    <sys:String x:Key="Str_St_UndidDocChange">Құжат өзгерісі кері қайтарылды</sys:String>
+    <sys:String x:Key="Str_St_ClearedPageAnnotations">Осы беттегі ескертпелер тазаланды</sys:String>
+    <sys:String x:Key="Str_St_NoAnnotationsToClear">Тазалайтын ескертпе жоқ</sys:String>
+    <sys:String x:Key="Str_St_RepairCanceled">Жөндеу болдырылмады</sys:String>
+    <sys:String x:Key="Str_St_Canceled">Болдырылмады</sys:String>
+    <sys:String x:Key="Str_St_DocInfoUpdated">Құжат мәліметі жаңартылды - өзгерістерді сақтау үшін файлды сақтаңыз</sys:String>
+    <sys:String x:Key="Str_St_FlattenCanceled">Тегістеу болдырылмады (файл жазылмады)</sys:String>
+    <sys:String x:Key="Str_St_FlattenPrintFailed">Басып шығару үшін ескертпелерді тегістеу мүмкін болмады; оларсыз басып шығарылуда.</sys:String>
+    <sys:String x:Key="Str_St_HqDownloadCanceled">Жоғары сапалы жүктеу болдырылмады</sys:String>
+    <sys:String x:Key="Str_St_LangDownloadCanceled">Тіл жүктеуі болдырылмады</sys:String>
+    <sys:String x:Key="Str_St_OcrCanceled">OCR болдырылмады</sys:String>
+    <sys:String x:Key="Str_St_OcrDragBox">Тану аймағының үстінен төртбұрыш сүйреңіз</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionTooSmall">OCR аймағы тым кішкентай</sys:String>
+    <sys:String x:Key="Str_St_OcrNoText">OCR: таңдалған аймақта мәтін табылмады</sys:String>
+    <sys:String x:Key="Str_St_SearchablePdfCanceled">Ізделетін PDF болдырылмады (файл жазылмады)</sys:String>
+    <sys:String x:Key="Str_St_TextExtractCanceled">Мәтін шығару болдырылмады (файл жазылмады)</sys:String>
+    <sys:String x:Key="Str_St_NoTextOnPage">Осы бетте мәтін табылмады</sys:String>
+    <sys:String x:Key="Str_St_NoTextSelected">Мәтін таңдалмаған - таңдау үшін сүйреңіз</sys:String>
+    <sys:String x:Key="Str_St_NoTextInSelection">Таңдауда мәтін табылмады</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">Мұнда мәтін жоқ - Пішіндер 4 пернесінде</sys:String>
+    <sys:String x:Key="Str_St_SignaturePlaced">Қолтаңба қойылды - жылжыту үшін сүйреңіз, өлшемін өзгерту үшін бұрыш тұтқасын пайдаланыңыз</sys:String>
+    <sys:String x:Key="Str_St_FieldCleared">Өріс тазаланды</sys:String>
+    <sys:String x:Key="Str_St_FieldSigned">Өріске қол қойылды</sys:String>
+    <sys:String x:Key="Str_St_SignatureSaved">Қолтаңба сақталды - қою үшін бетті басыңыз</sys:String>
+    <sys:String x:Key="Str_St_ImageLoaded">Сурет жүктелді - қою үшін бетті басыңыз</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Мәтін өңделуде - жоғарыда өлшем/түсті өзгертіңіз, сақтау үшін Enter</sys:String>
+    <sys:String x:Key="Str_St_AlreadyEditHere">Мұнда әлдеқашан өңдеу бар - қайта өңдеу үшін мәтінін басыңыз немесе жабынды сүйреңіз</sys:String>
+    <sys:String x:Key="Str_St_NoTextLine">Осы орында мәтін жолы табылмады</sys:String>
+    <sys:String x:Key="Str_St_LineAlreadyEdited">Бұл жол әлдеқашан өңделген - өзгерту үшін мәтінін басыңыз</sys:String>
+    <sys:String x:Key="Str_St_ImagePlaced">Сурет қойылды - жылжыту үшін сүйреңіз, өлшемін өзгерту үшін бұрыш тұтқасын пайдаланыңыз</sys:String>
+    <sys:String x:Key="Str_St_ClipImageUnreadable">Алмасу буферіндегі сурет оқылмады</sys:String>
+    <sys:String x:Key="Str_St_PastedImage">Сурет қойылды - жылжыту үшін сүйреңіз, өлшемін өзгерту үшін бұрыш тұтқасын пайдаланыңыз</sys:String>
+    <sys:String x:Key="Str_St_ClipNoText">Алмасу буферінде қоятын мәтін жоқ</sys:String>
+    <sys:String x:Key="Str_St_PastedText">Мәтін қойылды - жылжыту үшін сүйреңіз, жою үшін Delete</sys:String>
+    <sys:String x:Key="Str_St_ClipEmpty">Алмасу буферінде қоятын ештеңе жоқ</sys:String>
+
+    <!-- Dialog / message-box strings (extracted from code) -->
+    <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Жаңарту алдында өзгерістерді сақтаңыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF жойылды.</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectExtract">Шығаратын беттерді таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectDelete">Жоятын беттерді таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoPrinter">Принтер қолжетімсіз.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoValidPages">Осы аралықта жарамды бет жоқ.</sys:String>
+    <sys:String x:Key="Str_Dlg_SignedSavedTo">Қол қойылған көшірме сақталды:</sys:String>
+    <sys:String x:Key="Str_Dlg_DrawSignatureFirst">Алдымен қолтаңба сызыңыз.</sys:String>
+
+    <!-- ── Bookmark editing (#133, added v1.6.4) ───────────────── -->
+    <sys:String x:Key="Str_TT_AddBookmark">Ағымдағы бетке бетбелгі қосу</sys:String>
+    <sys:String x:Key="Str_Ctx_BmAdd">Бетбелгі қосу</sys:String>
+    <sys:String x:Key="Str_Ctx_BmAddChild">Еншілес бетбелгі қосу</sys:String>
+    <sys:String x:Key="Str_Ctx_BmRename">Атауын өзгерту</sys:String>
+    <sys:String x:Key="Str_Ctx_BmDelete">Жою</sys:String>
+    <sys:String x:Key="Str_Bm_DefaultTitle">Бет {0}</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteKids">Осы бетбелгіні және оның {0} еншілес бетбелгісін жою керек пе?</sys:String>
+    <sys:String x:Key="Str_Ctx_BmMoveUp">Жоғары жылжыту</sys:String>
+    <sys:String x:Key="Str_Ctx_BmMoveDown">Төмен жылжыту</sys:String>
+    <sys:String x:Key="Str_Ctx_BmSetDest">Ағымдағы бетке бағыттау</sys:String>
+    <sys:String x:Key="Str_Ctx_BmDeleteAll">Барлық бетбелгілерді жою</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteMulti">{0} бетбелгіні жою керек пе?</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteAllConfirm">Осы құжаттан барлық бетбелгілерді жою керек пе?</sys:String>
+
+    <sys:String x:Key="Str_Ctx_Redo">Қайталау</sys:String>
+    <sys:String x:Key="Str_St_Redone">Қайталанды</sys:String>
+    <sys:String x:Key="Str_St_NothingToRedo">Қайталайтын ештеңе жоқ</sys:String>
+    <sys:String x:Key="Str_KS_FirstLast">Бірінші / соңғы бет</sys:String>
+    <sys:String x:Key="Str_KS_BackForward">Артқа / алға (секіру тарихы)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomPresets">Нақты өлшем / еніне сыйғызу / бетке сыйғызу</sys:String>
+    <sys:String x:Key="Str_KS_ContextMenu">Таңдаудағы мәтінмәндік мәзір</sys:String>
+
+    <sys:String x:Key="Str_KS_ViewList">ТІЗІМ</sys:String>
+    <sys:String x:Key="Str_KS_ViewKeyboard">ПЕРНЕТАҚТА</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Сол қабатты алдын ала көру үшін Ctrl, Shift немесе Alt ұстап тұрыңыз - әрекетін көру үшін жанып тұрған пернені меңзермен көрсетіңіз</sys:String>
+    <sys:String x:Key="Str_Zoom_ActualSize">Нақты өлшем</sys:String>
+    <sys:String x:Key="Str_KS_PrevTab">Алдыңғы қойынды</sys:String>
+
+    <sys:String x:Key="Str_Kb_PrevPage">Алдыңғы бет</sys:String>
+    <sys:String x:Key="Str_Kb_NextPage">Келесі бет</sys:String>
+    <sys:String x:Key="Str_Kb_FirstPage">Бірінші бет</sys:String>
+    <sys:String x:Key="Str_Kb_LastPage">Соңғы бет</sys:String>
+    <sys:String x:Key="Str_Kb_Back">Артқа</sys:String>
+    <sys:String x:Key="Str_Kb_Forward">Алға</sys:String>
+    <sys:String x:Key="Str_Kb_NextResult">Келесі нәтиже</sys:String>
+    <sys:String x:Key="Str_Kb_PrevResult">Алдыңғы нәтиже</sys:String>
+    <sys:String x:Key="Str_Kb_Confirm">Растау</sys:String>
+    <sys:String x:Key="Str_Kb_Cancel">Болдырмау</sys:String>
+
+    <!-- Themed Windows system menu (caption right-click / Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">Қалпына келтіру</sys:String>
+    <sys:String x:Key="Str_Sys_Move">Жылжыту</sys:String>
+    <sys:String x:Key="Str_Sys_Size">Өлшем</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">Жиыру</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">Жаю</sys:String>
+    <sys:String x:Key="Str_Sys_Close">Жабу</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">Болдырмау</sys:String>
+
+    <!-- The app's own wordmark, split into the family's two runs: neutral first word, accent
+         second. The file picker reads these rather than hardcoding a name, so the same compiled
+         dialog names whichever app is hosting it. -->
+    <!-- Key names for the shortcuts overlay (#230). Composed into the chords by
+         ShortcutsOverlay.FillKeyInlines, so translators get the words without the syntax. -->
+    <sys:String x:Key="Str_Key_Ctrl">Ctrl</sys:String>
+    <sys:String x:Key="Str_Key_Alt">Alt</sys:String>
+    <sys:String x:Key="Str_Key_Shift">Shift</sys:String>
+    <sys:String x:Key="Str_Key_Delete">Delete</sys:String>
+    <sys:String x:Key="Str_Key_Enter">Enter</sys:String>
+    <sys:String x:Key="Str_Key_Esc">Esc</sys:String>
+    <sys:String x:Key="Str_Key_Menu">Мәзір</sys:String>
+    <sys:String x:Key="Str_Key_Home">Home</sys:String>
+    <sys:String x:Key="Str_Key_End">End</sys:String>
+    <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
+    <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
+    <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Scroll">Айналдыру</sys:String>
+    <sys:String x:Key="Str_Key_Click">Басу</sys:String>
+    <sys:String x:Key="Str_Key_Or">немесе</sys:String>
+    <sys:String x:Key="Str_Key_WheelView">Көріністегі дөңгелек</sys:String>
+    <sys:String x:Key="Str_Key_WheelLogo">Логотиптегі дөңгелек</sys:String>
+    <sys:String x:Key="Str_Key_MiddleDrag">Ортаңғы батырмамен сүйреу</sys:String>
+    <sys:String x:Key="Str_Key_SpaceDrag">Бос орын + сүйреу</sys:String>
+    <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
+    <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
+    <sys:String x:Key="Str_Btn_Open">Ашу</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">Ауыстыру</sys:String>
+    <sys:String x:Key="Str_Btn_Save">Сақтау</sys:String>
+    <sys:String x:Key="Str_Col_Modified">өзгертілген</sys:String>
+    <sys:String x:Key="Str_Col_Name">атауы</sys:String>
+    <sys:String x:Key="Str_Col_Size">өлшемі</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">Қиып алу</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">Барлығын таңдау</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">Барлық файлдар</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">Файл атауы:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">Файл түрі:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">Мұнда ағымдағы файл түріне сәйкес келетін ештеңе жоқ.</sys:String>
+    <sys:String x:Key="Str_Dlg_Preview">Алдын ала қарау</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">Мұндай файл жоқ.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">Мұндай қалта жоқ.</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} ауыстырылсын ба?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">Орындарға бекіту</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">Орындардан жою</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">Жұмыс үстелі</sys:String>
+    <sys:String x:Key="Str_QA_Documents">Құжаттар</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">Жүктемелер</sys:String>
+    <sys:String x:Key="Str_QA_Home">Басты бет</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">Суреттер</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} қалта, {1} файл</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">Соңғы орындар</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">Жасырын және жүйелік элементтерді көрсету</sys:String>
+    <sys:String x:Key="Str_TT_Up">Бір қалта жоғары</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">Толық көрініс</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">Белгіше көрінісі</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">Тізім көрінісі</sys:String>
+
+    <!-- 1.7.4 hardcoded-string sweep (#227): dialog titles, file-dialog filters, and defaults
+         that were English literals in code and invisible to translators. -->
+    <sys:String x:Key="Str_Color_Name">Түс</sys:String>
+    <sys:String x:Key="Str_Color_Pick">Түс таңдау</sys:String>
+    <sys:String x:Key="Str_Color_Hex">Hex</sys:String>
+    <sys:String x:Key="Str_Color_Replace">Ауыстыру</sys:String>
+    <sys:String x:Key="Str_Color_Reset">Қалпына келтіру</sys:String>
+    <sys:String x:Key="Str_Color_ReplaceTT">Басыңыз, содан кейін ағымдағы түске орнату үшін үлгіні басыңыз</sys:String>
+    <sys:String x:Key="Str_Color_ResetTT">Үлгілерді әдепкіге қайтару</sys:String>
+    <sys:String x:Key="Str_Color_EyedropTT">Экранның кез келген жерінен түс алу</sys:String>
+    <sys:String x:Key="Str_Color_SwatchSetTT">Осы үлгіні ағымдағы түске орнату үшін басыңыз</sys:String>
+    <sys:String x:Key="Str_Color_SwatchUseTT">Осы түсті пайдалану үшін басыңыз</sys:String>
+    <sys:String x:Key="Str_Search_DragTT">Жылжыту үшін сүйреңіз</sys:String>
+    <sys:String x:Key="Str_Sign_Name">Цифрлық қолтаңба</sys:String>
+    <sys:String x:Key="Str_Sign_ChooseCert">Қол қою сертификатын таңдаңыз</sys:String>
+    <sys:String x:Key="Str_Sign_ImportImage">Қолтаңба суретін импорттау</sys:String>
+    <sys:String x:Key="Str_Filter_Pdf">PDF файлдары</sys:String>
+    <sys:String x:Key="Str_Filter_Cert">Сертификат файлдары</sys:String>
+    <sys:String x:Key="Str_Filter_Text">Мәтін файлы</sys:String>
+    <sys:String x:Key="Str_Print_Sending">Принтерге жіберілуде...</sys:String>
+    <sys:String x:Key="Str_Forms_FontSize">Қаріп өлшемі:</sys:String>
+    <sys:String x:Key="Str_Ocr_SaveSearchable">Ізделетін PDF сақтау</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractAllText">Барлық мәтінді шығару</sys:String>
+    <sys:String x:Key="Str_Ocr_HighQuality">Жоғары сапалы үлгілерді пайдалану</sys:String>
+    <sys:String x:Key="Str_Dlg_OpenPdf">PDF ашу</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectMerge">Біріктіретін PDF таңдау</sys:String>
+    <sys:String x:Key="Str_Dlg_SavePdfAs">PDF-ті басқаша сақтау</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveFlattened">Тегістелген PDF сақтау</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveExtractedAs">Шығарылған беттерді сақтау</sys:String>
+    <sys:String x:Key="Str_Dlg_InsertImage">Сурет кірістіру</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallShortcut">Жұмыс үстеліндегі төте жол жасау</sys:String>
+    <sys:String x:Key="Str_Stamp_DefaultText">ЖОБА</sys:String>
+    <sys:String x:Key="Str_Sign_NeedCertFile">Алдымен сертификат файлын (.pfx / .p12) таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_Sign_NoStoreCert">Windows қоймасында қол қою сертификаты жоқ.</sys:String>
+    <sys:String x:Key="Str_Sign_NeedOutput">Қол қойылған көшірмені қайда сақтау керектігін таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_Sign_BadCert" xml:space="preserve">Сертификат ашылмады.&#10;&#10;Құпиясөз қате болуы мүмкін немесе файл жарамды .pfx / .p12 сертификаты емес.</sys:String>
+    <sys:String x:Key="Str_Sign_CertLoadFailed">Сертификат жүктелмеді:</sys:String>
+    <sys:String x:Key="Str_Sign_Failed">Қол қою сәтсіз:</sys:String>
+    <sys:String x:Key="Str_St_ShapeHint">Нүктелер қосу үшін басыңыз - жабу үшін бірінші нүктені басыңыз немесе екі рет басыңыз, Esc болдырмайды, Backspace соңғы нүктені жояды</sys:String>
+    <sys:String x:Key="Str_St_ShapeCanceled">Пішін болдырылмады</sys:String>
+
+    <!-- Error-dialog prefixes (code appends the exception detail after a newline) -->
+    <sys:String x:Key="Str_Err_PrintFailed">Басып шығару сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_OcrFailed">OCR сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_PrepareDoc">Құжатты дайындау мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Err_SearchableFailed">Ізделетін PDF сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_ExtractFailed">Мәтін шығару сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_DuplicateFailed">Көшірме жасау сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_RepairFailed">Жөндеу сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_OpenProtected">Қорғалған PDF ашылмады:</sys:String>
+    <sys:String x:Key="Str_Err_NewDocFailed">Жаңа құжат жасау мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Err_FileNotFound">Файл табылмады:</sys:String>
+    <sys:String x:Key="Str_Err_MergeFailed">Біріктіру сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_SaveFailed">Сақтау сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_FlattenFailed">Тегістеу сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_ExportFailed">Экспорт сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_SplitFailed">Бөлу сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_DeleteFailed">Жою сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_InsertFailed">Кірістіру сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_AddPageFailed">Бет қосу сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_ImportImageFailed">Сурет импортталмады:</sys:String>
+    <sys:String x:Key="Str_Err_LoadImageFailed">Сурет жүктелмеді:</sys:String>
+    <sys:String x:Key="Str_Err_PasteFailed">Қою мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Err_HqDownloadFailed">Жоғары сапалы жүктеу сәтсіз:</sys:String>
+    <sys:String x:Key="Str_Err_ModelDownloadFailed">Тіл үлгісін жүктеу мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Err_LangDataFailed">{0} тіл деректерін жүктеу мүмкін болмады:</sys:String>
+    <sys:String x:Key="Str_Dlg_DownloadTimeout">{0} жүктеу уақыты аяқталды. Байланысты тексеріп, қайталап көріңіз.</sys:String>
+    <sys:String x:Key="Str_Dlg_CancelBusy">Ағымдағы {0} болдырылсын ба?</sys:String>
+    <sys:String x:Key="Str_Dlg_DeletePage1">Осы бетті жою керек пе?</sys:String>
+    <sys:String x:Key="Str_Dlg_DeletePagesN">{0} бетті жою керек пе?</sys:String>
+
+    <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
+    <sys:String x:Key="Str_Op_Repair">жөндеу</sys:String>
+    <sys:String x:Key="Str_Op_Operation">әрекет</sys:String>
+    <sys:String x:Key="Str_Op_Flatten">тегістеу</sys:String>
+    <sys:String x:Key="Str_Op_Export">экспорт</sys:String>
+    <sys:String x:Key="Str_Op_Merge">біріктіру</sys:String>
+    <sys:String x:Key="Str_Op_LangDownload">тіл жүктеуі</sys:String>
+    <sys:String x:Key="Str_Op_Ocr">OCR әрекеті</sys:String>
+    <sys:String x:Key="Str_Op_OcrRegion">OCR аймағы</sys:String>
+    <sys:String x:Key="Str_Busy_Ocr">OCR орындалуда...</sys:String>
+    <sys:String x:Key="Str_Busy_Region">Аймақ танылуда...</sys:String>
+    <sys:String x:Key="Str_Busy_Searchable">Ізделетін PDF жасалуда...</sys:String>
+    <sys:String x:Key="Str_Busy_Extracting">Мәтін шығарылуда...</sys:String>
+    <sys:String x:Key="Str_Busy_Repairing">PDF жөнделуде...</sys:String>
+    <sys:String x:Key="Str_Busy_HqModels">Жоғары сапалы тіл үлгілері жүктелуде...</sys:String>
+    <sys:String x:Key="Str_Busy_Model">Тіл үлгісі жүктелуде...</sys:String>
+
+    <!-- Status-line messages ({0}/{1}/{2} filled by string.Format) -->
+    <sys:String x:Key="Str_Print_Preparing">{0} / {1} бет дайындалуда...</sys:String>
+    <sys:String x:Key="Str_St_AnnotSelected">{0} таңдалды - {1}</sys:String>
+    <sys:String x:Key="Str_St_AnnotHowText">енін орнату үшін бүйір бұрышын сүйреңіз, өңдеу үшін екі рет басыңыз, жою үшін Delete</sys:String>
+    <sys:String x:Key="Str_St_AnnotHowGeneric">өлшемін өзгерту үшін кез келген бұрышты сүйреңіз, жою үшін Delete</sys:String>
+    <sys:String x:Key="Str_St_AnnotSelectedSimple">{0} ескертпесі таңдалды - жою үшін Delete басыңыз</sys:String>
+    <sys:String x:Key="Str_St_SelectedOne">1 ескертпе таңдалды</sys:String>
+    <sys:String x:Key="Str_St_SelectedMany">{0} ескертпе таңдалды</sys:String>
+    <sys:String x:Key="Str_St_Grouped">{0} ескертпе топталды - енді бірге жылжиды</sys:String>
+    <sys:String x:Key="Str_St_ClearedAll">Барлық ескертпелер тазаланды ({0})</sys:String>
+    <sys:String x:Key="Str_St_CopiedWords">{0} сөз алмасу буферіне көшірілді</sys:String>
+    <sys:String x:Key="Str_St_HighlightedLines">{0} жол бояп белгіленді</sys:String>
+    <sys:String x:Key="Str_St_StruckLines">{0} жол сызып тасталды</sys:String>
+    <sys:String x:Key="Str_St_UnderlinedLines">{0} жолдың асты сызылды</sys:String>
+    <sys:String x:Key="Str_St_SelectAllCopied">Барлық мәтін таңдалды - алмасу буферіне көшірілді</sys:String>
+    <sys:String x:Key="Str_St_SelectAllError">Барлығын таңдау қатесі: {0}</sys:String>
+    <sys:String x:Key="Str_St_Copied">Алмасу буферіне көшірілді</sys:String>
+    <sys:String x:Key="Str_St_ExtractError">Мәтін шығару қатесі: {0}</sys:String>
+    <sys:String x:Key="Str_St_AlreadyOpen">Әлдеқашан ашық: {0}</sys:String>
+    <sys:String x:Key="Str_St_TextEditError">Мәтін өңдеу қатесі: {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrNoTextPage">OCR: {0} бетте мәтін табылмады</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPage">OCR: {1} беттен {0} таңба көшірілді ({2} сенімділік)</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: аймақтан {0} таңба көшірілді ({1} сенімділік)</sys:String>
+    <sys:String x:Key="Str_St_SearchableSaved">Ізделетін PDF сақталды: {0} бет, {1} сөз танылды</sys:String>
+    <sys:String x:Key="Str_St_TextExtracted">{0} беттен мәтін шығарылды -> {1}</sys:String>
+    <sys:String x:Key="Str_St_DuplicatedPage">{0} беттің көшірмесі жасалды</sys:String>
+    <sys:String x:Key="Str_St_Merged">{0} файл біріктірілді - барлығы {1} бет</sys:String>
+    <sys:String x:Key="Str_St_Saved">Сақталды - {0}</sys:String>
+    <sys:String x:Key="Str_St_SavedWithAnnots">Ескертпелермен {0} ішіне сақталды</sys:String>
+    <sys:String x:Key="Str_St_SavedTo">{0} ішіне сақталды</sys:String>
+    <sys:String x:Key="Str_St_FlattenedSaved">Тегістелген PDF {0} ішіне сақталды</sys:String>
+    <sys:String x:Key="Str_St_OcrLanguage">OCR тілі: {0}</sys:String>
+    <sys:String x:Key="Str_St_LangInstalled">{0} орнатылды - OCR тілі: {1}</sys:String>
+    <sys:String x:Key="Str_St_LangCanceled">{0} жүктеуі болдырылмады</sys:String>
+    <sys:String x:Key="Str_St_HqFailed">Жоғары сапалы үлгілер орнатылды; сәтсіз: {0}</sys:String>
+    <sys:String x:Key="Str_St_HqInstalled">Жоғары сапалы үлгілер орнатылды: {0}</sys:String>
+    <sys:String x:Key="Str_St_InsertedBlank">{0} орнына бос бет кірістірілді</sys:String>
+    <sys:String x:Key="Str_St_AddedBlank">Бос бет қосылды (қазір {0} бет)</sys:String>
+    <sys:String x:Key="Str_St_RestorePane">Екінші панель қалпына келтірілмеді: {0}</sys:String>
+
+    <!-- Annotation-type labels for selection status text -->
+    <sys:String x:Key="Str_Annot_Signature">Қолтаңба</sys:String>
+    <sys:String x:Key="Str_Annot_Image">Сурет</sys:String>
+    <sys:String x:Key="Str_Annot_TextBox">Мәтін өрісі</sys:String>
+    <sys:String x:Key="Str_Annot_Cover">Мәтін жабыны</sys:String>
+    <sys:String x:Key="Str_Annot_Strikethrough">Сызып тастау</sys:String>
+    <sys:String x:Key="Str_Annot_Underline">Астын сызу</sys:String>
+    <sys:String x:Key="Str_Annot_Highlight">Бояп белгілеу</sys:String>
+    <sys:String x:Key="Str_Annot_Drawing">Сызба</sys:String>
+    <sys:String x:Key="Str_Annot_Item">Элемент</sys:String>
+    <sys:String x:Key="Str_Busy_SearchablePage">Ізделетін PDF жасалуда... {0} / {1} бет  (болдырмау үшін Esc)</sys:String>
+    <sys:String x:Key="Str_Busy_ExtractingPage">Мәтін шығарылуда... {0} / {1} бет  (болдырмау үшін Esc)</sys:String>
+    <sys:String x:Key="Str_Busy_LangData">{0} тіл деректері жүктелуде...</sys:String>
+    <sys:String x:Key="Str_Busy_Downloading">{0} жүктелуде...</sys:String>
+    <sys:String x:Key="Str_Busy_DownloadingHq">{0} (HQ) жүктелуде - {1} / {2} -</sys:String>
+    <sys:String x:Key="Str_Busy_Opening">PDF ашылуда...</sys:String>
+    <sys:String x:Key="Str_Busy_OpeningProtected">Қорғалған PDF ашылуда...</sys:String>
+    <sys:String x:Key="Str_St_HqAlready">Таңдалған барлық тілдер әлдеқашан жоғары сапада</sys:String>
+    <sys:String x:Key="Str_St_HqNextTime">Жоғары сапалы үлгілер келесі OCR іске қосқанда пайдаланылады</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownload">(жүктеу)</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(HQ жүктеу)</sys:String>
+    <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Ізделетін PDF сақталды:&#10;{0}&#10;&#10;{1} бет өңделді, {2} сөз танылды.</sys:String>
+    <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">"{0}" сәтті жөнделді.&#10;&#10;Бетбелгілер, пішіндер және басқа интерактивті мүмкіндіктер жоғалуы мүмкін. Жөнделген файлды жаңа орынға жазу үшін Басқаша сақтауды пайдаланыңыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">"{0}" PDFium арқылы растрлеу жолымен жөнделді.&#10;&#10;Жөнделген көшірмеде мәтін таңдалмайды. Оны жаңа орынға жазу үшін Басқаша сақтауды пайдаланыңыз.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" құрылымы зақымдалған және қосылмады.&#10;&#10;KillerPDF жөндеуді көшсін бе? Жөнделген көшірме жасалады - түпнұсқа файл өзгертілмейді.&#10;&#10;Ескерту: жөнделген файлдарда бетбелгілер, пішіндер және басқа интерактивті мүмкіндіктер болмауы мүмкін.</sys:String>
+    <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR іске қосылуы үшін қазір тіл үлгісі ({0}) жүктеледі.&#10;&#10;OCR мәзірінен кез келген уақытта қосымша тілдер қоса немесе жоғары сапалы үлгілерге ауыса аласыз.</sys:String>
+    <sys:String x:Key="Str_Bar_More">Қосымша параметрлер</sys:String>
+    <sys:String x:Key="Str_Bar_TT_Level">Сызықты ең жақын осьте ұстау (көлденең немесе тік)</sys:String>
+    <sys:String x:Key="Str_Bar_TT_EraserBox">Ішіндегі әрбір ескертпені жою үшін төртбұрыш сүйреңіз</sys:String>
+    <sys:String x:Key="Str_Bar_TT_EraserBrush">Ескертпелерді жою үшін олардың үстінен сызыңыз</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeBox">Қорап - тіктөртбұрыш сүйреңіз</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeEllipse">Эллипс - сопақ сүйреңіз</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeFreeform">Еркін пішін - нүктелерді басыңыз; жабу үшін бірінші нүктені басыңыз немесе екі рет басыңыз, Esc болдырмайды, Backspace соңғы нүктені жояды</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeFill">Пішіннің ішін толтыру</sys:String>
+    <sys:String x:Key="Str_TT_RecentFiles">Жақындағы файлдар</sys:String>
+    <sys:String x:Key="Str_TT_SaveOptions">Сақтау параметрлері</sys:String>
+    <sys:String x:Key="Str_TT_OcrOptions">OCR параметрлері</sys:String>
+    <sys:String x:Key="Str_RecentHeading">СОҢҒЫ</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Пернелер тіркесімі</sys:String>
+    <sys:String x:Key="Str_UpdateAvailable">Жаңарту бар: {0}</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} жүктеп орнату керек пе?&#10;&#10;Қолданба автоматты түрде жабылып, қайта ашылады.</sys:String>
+    <sys:String x:Key="Str_UpdateDownloading">Жүктелуде...</sys:String>
+    <sys:String x:Key="Str_ClearAllData">Барлық деректерді тазалау</sys:String>
+    <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Бұл барлық сақталған параметрлерді, жүктелген OCR тіл бумаларын және уақытша файлдарды жояды.&#10;&#10;PDF файлдарыңызға әсер етпейді. Жалғастыру керек пе?</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Параметрлер, тіл бумалары және уақытша файлдар тазаланды.&#10;&#10;Осы сеанста әлі қолданылып жатқан файлдарды аяқтау үшін KillerPDF-ті қайта іске қосыңыз.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">KillerPDF - Күтпеген қате</sys:String>
+    <sys:String x:Key="Str_Crash_Log">Журнал: {0}</sys:String>
+    <sys:String x:Key="Str_Crash_Copy">Есепті көшіру</sys:String>
+    <sys:String x:Key="Str_Crash_OpenLogs">Журналдарды ашу</sys:String>
+    <sys:String x:Key="Str_Crash_Report">GitHub-та хабарлау</sys:String>
+    <sys:String x:Key="Str_Crash_Continue">Жалғастыру</sys:String>
+    <sys:String x:Key="Str_Crash_Quit">Шығу</sys:String>
+    <!-- Shared text that must never bypass the active locale (#227) -->
+    <sys:String x:Key="Str_Btn_OK">OK</sys:String>
+    <sys:String x:Key="Str_Btn_Yes">Иә</sys:String>
+    <sys:String x:Key="Str_Btn_No">Жоқ</sys:String>
+    <sys:String x:Key="Str_RecentMissing">жоқ</sys:String>
+    <sys:String x:Key="Str_St_CopiedAnnotationOne">1 ескертпе көшірілді</sys:String>
+    <sys:String x:Key="Str_St_CopiedAnnotationMany">{0} ескертпе көшірілді</sys:String>
+    <sys:String x:Key="Str_St_PastedAnnotationOne">1 ескертпе қойылды</sys:String>
+    <sys:String x:Key="Str_St_PastedAnnotationMany">{0} ескертпе қойылды</sys:String>
+    <sys:String x:Key="Str_St_DeletedAnnotationOne">Таңдалған ескертпе жойылды</sys:String>
+    <sys:String x:Key="Str_St_DeletedAnnotationMany">{0} ескертпе жойылды</sys:String>
+    <sys:String x:Key="Str_Search_NoMatches">Сәйкестік жоқ</sys:String>
+    <sys:String x:Key="Str_Search_Error">Іздеу қатесі</sys:String>
+    <sys:String x:Key="Str_Search_Summary">{1} бетте {0} сәйкестік</sys:String>
+    <sys:String x:Key="Str_Search_PreviousTT">Алдыңғы сәйкестік (Shift+Enter)</sys:String>
+    <sys:String x:Key="Str_Search_NextTT">Келесі сәйкестік (Enter)</sys:String>
+    <sys:String x:Key="Str_Search_CloseTT">Жабу (Esc)</sys:String>
+    <sys:String x:Key="Str_Busy_FlattenPage">{0} / {1} бет тегістелуде...</sys:String>
+    <sys:String x:Key="Str_Busy_ExportPage">{0} / {1} бет экспортталуда...</sys:String>
+    <sys:String x:Key="Str_Busy_CancelHint">(болдырмау үшін Esc)</sys:String>
+    <sys:String x:Key="Str_Busy_DownloadingMany">{0} жүктелуде - {1} / {2} -</sys:String>
+    <!-- 1.8.1 үшін машиналық аударма; қазақ тілінің маманы тексеруі керек. -->
+    <sys:String x:Key="Str_TT_MeasureTool">Қашықтықты өлшеу және бет өлшемін тексеру</sys:String>
+    <sys:String x:Key="Str_Lbl_Measure">Өлшеу</sys:String>
+    <sys:String x:Key="Str_Ocr_FormAware">Пішінді ескеретін OCR</sys:String>
+    <sys:String x:Key="Str_Bar_LetterSpacing">Аралық:</sys:String>
+    <sys:String x:Key="Str_Sign_VisibleAppearance">Көрінетін қолтаңбаны көрсету</sys:String>
+    <sys:String x:Key="Str_Sign_AppearanceText">Қолтаңба мәтіні</sys:String>
+    <sys:String x:Key="Str_Sign_AppearanceDefault">{name} цифрлық қолтаңба қойды&#10;Күні: {date}&#10;Себебі: {reason}&#10;Орны: {location}</sys:String>
+    <sys:String x:Key="Str_Sign_Page">Бет</sys:String>
+    <sys:String x:Key="Str_Sign_Position">Орны</sys:String>
+    <sys:String x:Key="Str_Sign_BottomLeft">Төменгі сол жақ</sys:String>
+    <sys:String x:Key="Str_Sign_BottomRight">Төменгі оң жақ</sys:String>
+    <sys:String x:Key="Str_Sign_TopLeft">Жоғарғы сол жақ</sys:String>
+    <sys:String x:Key="Str_Sign_TopRight">Жоғарғы оң жақ</sys:String>
+    <sys:String x:Key="Str_Sign_Width">Ені</sys:String>
+    <sys:String x:Key="Str_Sign_Height">Биіктігі</sys:String>
+    <sys:String x:Key="Str_Sign_FontSize">Мәтін өлшемі</sys:String>
+    <sys:String x:Key="Str_Sign_PreviewSigner">Сертификат иесі</sys:String>
+    <sys:String x:Key="Str_Sign_BadAppearance">Қолтаңба бетін, өлшемдерін және мәтін өлшемін тексеріңіз.</sys:String>
+    <sys:String x:Key="Str_Tf_Quality">БЕТ САПАСЫ</sys:String>
+    <sys:String x:Key="Str_Tf_ColorMode">Түс режимі</sys:String>
+    <sys:String x:Key="Str_Tf_Grayscale">Сұр реңктер</sys:String>
+    <sys:String x:Key="Str_Tf_BlackWhite">Ақ-қара</sys:String>
+    <sys:String x:Key="Str_Tf_Threshold">Ақ-қара шегі</sys:String>
+    <sys:String x:Key="Str_Tf_SetDpi">Шығыс ажыратымдылығын орнату (DPI)</sys:String>
+    <sys:String x:Key="Str_Tf_UseJpeg">JPEG сығуын пайдалану</sys:String>
+    <sys:String x:Key="Str_Tf_DoneBatch">{0} бет түрлендірілді</sys:String>
+    <sys:String x:Key="Str_TT_ComparePDFs">PDF файлдарын салыстыру</sys:String>
+    <sys:String x:Key="Str_TT_ExitComparison">Салыстырудан шығу</sys:String>
+    <sys:String x:Key="Str_Compare_OpenOriginal">Салыстыруды бастамас бұрын түпнұсқа PDF файлын ашыңыз.</sys:String>
+    <sys:String x:Key="Str_Compare_SelectTitle">Салыстыру үшін PDF файлын таңдаңыз</sys:String>
+    <sys:String x:Key="Str_Compare_ChooseDifferent">Салыстыру үшін басқа PDF файлын таңдаңыз.</sys:String>
+    <sys:String x:Key="Str_Compare_Ended">PDF салыстыру аяқталды</sys:String>
+    <sys:String x:Key="Str_Compare_MissingRight">Салыстырылатын PDF файлында сәйкес бет жоқ</sys:String>
+    <sys:String x:Key="Str_Compare_MissingLeft">Түпнұсқа PDF файлында сәйкес бет жоқ</sys:String>
+    <sys:String x:Key="Str_Compare_PageOnlyOne">{0}-бет тек {1} PDF файлында бар</sys:String>
+    <sys:String x:Key="Str_Compare_Original">түпнұсқа</sys:String>
+    <sys:String x:Key="Str_Compare_Comparison">салыстырылатын</sys:String>
+    <sys:String x:Key="Str_Compare_Changed">{0}-бет: {1} өзгертілді</sys:String>
+    <sys:String x:Key="Str_Compare_NoDifferences">{0}-бет: көрнекі айырмашылықтар жоқ</sys:String>
+    <sys:String x:Key="Str_Compare_DimensionsDiffer">{0}-бет: бет өлшемдері әртүрлі</sys:String>
+    <sys:String x:Key="Str_Compare_Failed">Салыстыру сәтсіз аяқталды: {0}</sys:String>
+    <sys:String x:Key="Str_Compare_OpenTabs">Ашық қойындымен салыстыру</sys:String>
+    <sys:String x:Key="Str_Compare_NoOpenTabs">Басқа ашық PDF қойындылары жоқ</sys:String>
+    <sys:String x:Key="Str_Compare_Browse">Басқа PDF файлын таңдау...</sys:String>
+    <sys:String x:Key="Str_Compare_Bar">САЛЫСТЫРУ</sys:String>
+    <sys:String x:Key="Str_Compare_Comparing">Салыстырылуда...</sys:String>
+    <sys:String x:Key="Str_Compare_ChangedAndDimensions">{0}-бет: өлшемдері әртүрлі; {1} өзгертілді</sys:String>
+    <sys:String x:Key="Str_Compare_ViewLocked">Салыстыру құлыпталған бір беттік көріністі пайдаланады</sys:String>
+    <sys:String x:Key="Str_Compare_ViewDetails">Толық салыстыру есебін көру</sys:String>
+    <sys:String x:Key="Str_Compare_BuildingReport">Әр бет тексерілуде...</sys:String>
+    <sys:String x:Key="Str_Compare_DetailsTitle">PDF салыстыру мәліметтері</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">KillerPDF браузердегі PDF файлын аша алмады.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">KillerPDF бұл браузер пәрменін танымайды.</sys:String>
+    <sys:String x:Key="Str_Handoff_MissingUrl">Тасымалдауда PDF мекенжайы көрсетілмеген.</sys:String>
+    <sys:String x:Key="Str_Handoff_MalformedUrl">Тасымалдаудағы PDF мекенжайын оқу мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF браузерден тек https арқылы тасымалдауды ашады.</sys:String>
+    <sys:String x:Key="Str_Handoff_Unusable">Браузерден тасымалдауды пайдалану мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_Handoff_TooLarge">PDF файлы браузерден тасымалдаудың 256 МБ шегінен үлкен.</sys:String>
+    <sys:String x:Key="Str_Handoff_NotPdf">Жүктеп алынған файл PDF емес.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF PDF файлын жүктеп ала алмады.</sys:String>
+    <sys:String x:Key="Str_Handoff_TimedOut">PDF файлын жүктеп алу уақыты аяқталды.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">KillerPDF жүктеп алынған PDF файлын сақтай немесе оқи алмады.</sys:String>
+</ResourceDictionary>
