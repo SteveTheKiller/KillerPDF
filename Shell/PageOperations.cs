@@ -220,8 +220,14 @@ namespace KillerPDF
             var thumbnailOwner = ActiveViewer;
             // Cancel any in-flight thumbnail load for the previous file.
             _thumbCts?.Cancel();
-            _thumbCts = new System.Threading.CancellationTokenSource();
-            var ct = _thumbCts.Token;
+            // Hold the token locally rather than reading it back off _thumbCts. That property
+            // forwards to the ACTIVE TAB (PdfViewer.ThumbCts), and both sides are guarded on
+            // _active, so with no tab open the write is dropped and the read comes back null.
+            // A killerpdf: launch reaches here in exactly that state: it goes to
+            // OpenFromExternal, the one startup path that never calls EnsureInitialSession.
+            var freshCts = new System.Threading.CancellationTokenSource();
+            _thumbCts = freshCts;
+            var ct = freshCts.Token;
 
             if (_doc is null || _currentFile is null)
             {
