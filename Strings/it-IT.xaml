@@ -957,9 +957,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <!-- PDF comparison (#160) -->
     <sys:String x:Key="Str_TT_ComparePDFs">Confronta PDF</sys:String>
     <sys:String x:Key="Str_TT_ExitComparison">Esci dal confronto</sys:String>
-    <sys:String x:Key="Str_Compare_OpenOriginal">Prima di avviare il confronto apri PDF originale.</sys:String>
+    <sys:String x:Key="Str_Compare_OpenOriginal">Prima di avviare il confronto apri il PDF originale.</sys:String>
     <sys:String x:Key="Str_Compare_SelectTitle">Seleziona PDF da confrontare</sys:String>
-    <sys:String x:Key="Str_Compare_ChooseDifferent">Seleziona un PDF diverso da confrontare.</sys:String>
+    <sys:String x:Key="Str_Compare_ChooseDifferent">Scegli un PDF diverso da confrontare.</sys:String>
     <sys:String x:Key="Str_Compare_Ended">Confronto PDF completato</sys:String>
     <sys:String x:Key="Str_Compare_MissingRight">Nessuna pagina corrispondente nel PDF di confronto</sys:String>
     <sys:String x:Key="Str_Compare_MissingLeft">Nessuna pagina corrispondente nel PDF originale</sys:String>
@@ -972,7 +972,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Compare_Failed">Confronto non riuscito: {0}</sys:String>
     <sys:String x:Key="Str_Compare_OpenTabs">Confronta con una scheda aperta</sys:String>
     <sys:String x:Key="Str_Compare_NoOpenTabs">Nessun'altra scheda PDF aperta</sys:String>
-    <sys:String x:Key="Str_Compare_Browse">Seleziona un altro PDF...</sys:String>
+    <sys:String x:Key="Str_Compare_Browse">Scegli un altro PDF...</sys:String>
     <sys:String x:Key="Str_Compare_Bar">CONFRONTO</sys:String>
     <sys:String x:Key="Str_Compare_Comparing">Confronto...</sys:String>
     <sys:String x:Key="Str_Compare_ChangedAndDimensions">Pagina {0}: dimensioni diverse; {1} modificato</sys:String>
