@@ -55,18 +55,14 @@ namespace KillerPDF
         {
             string reason = rejection switch
             {
-                ProtocolRegistrar.HandoffRejection.UnknownCommand =>
-                    "That browser command is not one KillerPDF knows.",
-                ProtocolRegistrar.HandoffRejection.MissingUrl =>
-                    "The handoff did not include a PDF address.",
-                ProtocolRegistrar.HandoffRejection.MalformedUrl =>
-                    "The PDF address in the handoff could not be read.",
-                ProtocolRegistrar.HandoffRejection.SchemeNotAllowed =>
-                    "KillerPDF only opens browser handoffs over https.",
-                _ => "The browser handoff could not be used.",
+                ProtocolRegistrar.HandoffRejection.UnknownCommand => Loc("Str_Handoff_UnknownCommand"),
+                ProtocolRegistrar.HandoffRejection.MissingUrl => Loc("Str_Handoff_MissingUrl"),
+                ProtocolRegistrar.HandoffRejection.MalformedUrl => Loc("Str_Handoff_MalformedUrl"),
+                ProtocolRegistrar.HandoffRejection.SchemeNotAllowed => Loc("Str_Handoff_SchemeNotAllowed"),
+                _ => Loc("Str_Handoff_Unusable"),
             };
             KillerDialog.Show(this,
-                $"KillerPDF could not open the browser PDF.\n\n{reason}",
+                Loc("Str_Handoff_Failed") + "\n\n" + reason,
                 "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
 

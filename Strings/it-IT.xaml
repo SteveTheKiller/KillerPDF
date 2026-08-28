@@ -980,4 +980,12 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Compare_ViewDetails">Visualizza rapporto confronto completo</sys:String>
     <sys:String x:Key="Str_Compare_BuildingReport">Controllo di ogni pagina...</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">Dettagli confronto PDF</sys:String>
+
+    <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_Failed">KillerPDF could not open the browser PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">That browser command is not one KillerPDF knows.</sys:String>
+    <sys:String x:Key="Str_Handoff_MissingUrl">The handoff did not include a PDF address.</sys:String>
+    <sys:String x:Key="Str_Handoff_MalformedUrl">The PDF address in the handoff could not be read.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF only opens browser handoffs over https.</sys:String>
+    <sys:String x:Key="Str_Handoff_Unusable">The browser handoff could not be used.</sys:String>
 </ResourceDictionary>

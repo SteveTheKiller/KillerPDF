@@ -965,4 +965,12 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Compare_ViewDetails">View complete comparison report</sys:String>
     <sys:String x:Key="Str_Compare_BuildingReport">Checking every page...</sys:String>
     <sys:String x:Key="Str_Compare_DetailsTitle">PDF comparison details</sys:String>
+
+    <!-- ── Browser handoff refusals ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_Failed">KillerPDF could not open the browser PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">That browser command is not one KillerPDF knows.</sys:String>
+    <sys:String x:Key="Str_Handoff_MissingUrl">The handoff did not include a PDF address.</sys:String>
+    <sys:String x:Key="Str_Handoff_MalformedUrl">The PDF address in the handoff could not be read.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF only opens browser handoffs over https.</sys:String>
+    <sys:String x:Key="Str_Handoff_Unusable">The browser handoff could not be used.</sys:String>
 </ResourceDictionary>
