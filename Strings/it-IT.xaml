@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Italian (it-IT) strings - Revised: 27.08.2026
+         KillerPDF  -  Italian (it-IT) strings - Revised: 28.08.2026
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -375,7 +375,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Print_Source">Alimentazione carta</sys:String>
     <sys:String x:Key="Str_Print_SourceAuto">Predefinita stampante</sys:String>
     <sys:String x:Key="Str_Print_SecPrinter">STAMPANTE</sys:String>
-    <sys:String x:Key="Str_Print_SecLayout">DISPOSIZIONE</sys:String>
+    <sys:String x:Key="Str_Print_SecLayout">LAYOUT</sys:String>
     <sys:String x:Key="Str_Print_SecOutput">DESTINAZIONE</sys:String>
     <sys:String x:Key="Str_Print_Orientation">Orientamento</sys:String>
     <sys:String x:Key="Str_Print_Portrait">Verticale</sys:String>
@@ -472,7 +472,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Bar_LetterSpacing">Spaziatura:</sys:String>
     <sys:String x:Key="Str_Bar_Opacity">Opacità:</sys:String>
     <sys:String x:Key="Str_Bar_FillOpacity">Opacità riempimento:</sys:String>
-    <sys:String x:Key="Str_Bar_Font">Carattere:</sys:String>
+    <sys:String x:Key="Str_Bar_Font">Font:</sys:String>
     <sys:String x:Key="Str_Bar_Level">Livello</sys:String>
     <sys:String x:Key="Str_Bar_Eraser">Gomma</sys:String>
     <sys:String x:Key="Str_Bar_MoreColors">Altri colori...</sys:String>
@@ -557,7 +557,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Tf_CorrectPerspective">Correggi distorsione trapezoidale</sys:String>
     <sys:String x:Key="Str_Tf_PerspectiveHint">Trascina i quattro angoli sul contorno della pagina fotografata. Applica il raddrizzamento nel rettangolo.</sys:String>
     <sys:String x:Key="Str_Tf_ResetCorners">Ripristina angoli</sys:String>
-    <sys:String x:Key="Str_Tf_Output">Risultato: {0} × {1} pollici</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Output: {0} × {1} pollici</sys:String>
     <sys:String x:Key="Str_Tf_ResetAll">Ripristina tutto</sys:String>
     <sys:String x:Key="Str_Tf_Reset">Ripristina</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">Annulla</sys:String>
@@ -900,8 +900,8 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Busy_OpeningProtected">Apertura PDF protetto...</sys:String>
     <sys:String x:Key="Str_St_HqAlready">Tutte le lingue selezionate sono già in alta qualità</sys:String>
     <sys:String x:Key="Str_St_HqNextTime">Alla successiva esecuzione dell'OCR verranno usati modelli in alta qualità</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownload">(scarica)</sys:String>
-    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(scarica HQ)</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownload">(download)</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(download HQ)</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">PDF ricercabile salvato:&#10;{0}&#10;&#10;{1} pagine elaborate, {2} parole riconosciute.</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">'{0}' è stato correttamente riparato.&#10;&#10;Segnalibri, moduli, e altre funzionalità interattive potrebbero essere andate perse.&#10;Usa 'Salva con nome' per salvare il file riparato in una nuova posizione.</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">'{0}' è stato riparato rasterizzandolo con PDFium.&#10;&#10;Il testo non è selezionabile nella copia riparata.&#10;Usa 'Salva con nome' per salvare il file riparato in una nuova posizione.</sys:String>
@@ -982,15 +982,15 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Compare_DetailsTitle">Dettagli confronto PDF</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDF could not open the browser PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">That browser command is not one KillerPDF knows.</sys:String>
-    <sys:String x:Key="Str_Handoff_MissingUrl">The handoff did not include a PDF address.</sys:String>
-    <sys:String x:Key="Str_Handoff_MalformedUrl">The PDF address in the handoff could not be read.</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF only opens browser handoffs over https.</sys:String>
-    <sys:String x:Key="Str_Handoff_Unusable">The browser handoff could not be used.</sys:String>
-    <sys:String x:Key="Str_Handoff_TooLarge">The PDF is larger than the 256 MB browser handoff limit.</sys:String>
-    <sys:String x:Key="Str_Handoff_NotPdf">The downloaded file is not a PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF could not download the PDF.</sys:String>
-    <sys:String x:Key="Str_Handoff_TimedOut">The PDF download timed out.</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDF could not save or read the downloaded PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">KillerPDF non è riuscito ad aprire il PDF nel browser.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Quel comando del browser non è uno di quelli che KillerPDF conosce.</sys:String>
+    <sys:String x:Key="Str_Handoff_MissingUrl">Il trasferimento non includeva un indirizzo PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_MalformedUrl">Impossibile leggere l'indirizzo PDF nel trasferimento.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF apre i trasferimenti nel browser solo in https.</sys:String>
+    <sys:String x:Key="Str_Handoff_Unusable">Impossibile usare il trasferimento nel browser.</sys:String>
+    <sys:String x:Key="Str_Handoff_TooLarge">Il PDF supera il limite di trasferimento del browser di 256 MB.</sys:String>
+    <sys:String x:Key="Str_Handoff_NotPdf">Il file scaricato non è un PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF non è riuscito a scaricare il PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_TimedOut">Timeout per il download del PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">KillerPDF non è riuscito a salvare o leggere il PDF scaricato.</sys:String>
 </ResourceDictionary>
