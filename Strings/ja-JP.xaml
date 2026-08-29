@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">ページを下に移動 (並べ替え)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">選択ツール - 注釈をクリック、テキストをドラッグして選択、ダブルクリックで編集 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">テキストツール - クリックしてテキストを追加 (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">入力可能なテキストフィールド — フィールドの作成、選択、移動、サイズ変更、削除; 右クリックで塗りつぶしの色を変更 (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">入力可能なテキストフィールド。フィールドの作成、選択、移動、サイズ変更、削除。右クリックで塗りつぶしの色を変更 (F)</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">ハイライトツール - ドラッグしてハイライト (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">打消し線 - テキスト上をドラッグ</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">下線 - テキスト上をドラッグ</sys:String>
@@ -865,6 +865,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_TextEditError">テキスト編集エラー：{0}</sys:String>
     <sys:String x:Key="Str_St_OcrNoTextPage">OCR : ページ {0} にテキストが見つかりません</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedPage">OCR : ページ {1} から {0} 文字をコピーしました (信頼度 {2})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPages">OCR : {1} ページから {0} 文字をコピーしました (信頼度 {2})</sys:String>
     <sys:String x:Key="Str_St_OcrCopiedRegion">OCR : 領域から {0} 文字をコピーしました (信頼度 {1})</sys:String>
     <sys:String x:Key="Str_St_SearchableSaved">検索可能な PDF を保存しました : {0} ページ、{1} 語を認識</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">{0} ページからテキストを抽出 -> {1}</sys:String>
@@ -920,7 +921,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_RecentFiles">最近使ったファイル</sys:String>
     <sys:String x:Key="Str_TT_SaveOptions">保存オプション</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR オプション</sys:String>
-    <sys:String x:Key="Str_RecentHeading">RECENT</sys:String>
+    <sys:String x:Key="Str_RecentHeading">最近</sys:String>
     <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - キーボード ショートカット</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">更新があります: {0}</sys:String>
     <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} をダウンロードしてインストールしますか？&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
