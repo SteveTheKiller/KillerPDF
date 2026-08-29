@@ -309,7 +309,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Ctx_Print">Печать</sys:String>
     <sys:String x:Key="Str_Ctx_OcrPage">Распознать (скопировать текст)</sys:String>
     <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
-    <sys:String x:Key="Str_TT_Ocr">OCR страницу (копировать текст) (Ctrl+Shift+O)</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">Распознать страницу (копировать текст) (Ctrl+Shift+O)</sys:String>
     <sys:String x:Key="Str_Ocr_Region">OCR Регион...</sys:String>
     <sys:String x:Key="Str_Ocr_SearchablePdf">Сделайте PDF-файл доступным для поиска...</sys:String>
     <sys:String x:Key="Str_Ocr_ExtractText">Извлечь весь текст...</sys:String>
