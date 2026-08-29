@@ -103,7 +103,7 @@
     <sys:String x:Key="Str_KS_DeleteAnnot">Удалить выбранную аннотацию</sys:String>
     <sys:String x:Key="Str_KS_ConfirmCancel">Подтверждение / отмена текста или обрезка</sys:String>
     <sys:String x:Key="Str_KS_SearchSelect">ПОИСК &amp; ВЫДЕЛЕНИЕ</sys:String>
-    <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_KS_Ocr">Распознать</sys:String>
 
     <!-- Document Info dialog -->
     <sys:String x:Key="Str_TT_DocInfo">Информация о документе (F4)</sys:String>
