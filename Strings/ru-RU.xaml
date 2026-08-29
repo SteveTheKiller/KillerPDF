@@ -7,7 +7,7 @@
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
-    <sys:String x:Key="Str_TT_Open">Открыть (Ctrl+O)</sys:String>
+    <sys:String x:Key="Str_TT_Open">Открыть PDF-файл в новой вкладке (Ctrl+O)</sys:String>
     <sys:String x:Key="Str_TT_NewBlank">Новый пустой документ (Ctrl+N)</sys:String>
     <sys:String x:Key="Str_TT_CloseFile">Закрыть файл (Ctrl+W)</sys:String>
     <sys:String x:Key="Str_TT_Save">Сохранить (Ctrl+S)</sys:String>
