@@ -38,7 +38,7 @@
     <sys:String x:Key="Str_TT_RotateTool">Трансформация страницы - поворот / выравнивание по ширине (скоро появится масштаб) (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Очистите все аннотации</sys:String>
     <sys:String x:Key="Str_TT_Search">Поиск (Ctrl+F)</sys:String>
-    <sys:String x:Key="Str_TT_UndoLast">Отменить последнее (Ctrl+Z)</sys:String>
+    <sys:String x:Key="Str_TT_UndoLast">Отменить последнее изменение (Ctrl+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">Многостраничный вид сетки (F8)</sys:String>
     <sys:String x:Key="Str_TT_ZoomOut">Уменьшите масштаб (Ctrl+-)</sys:String>
     <sys:String x:Key="Str_TT_ZoomLevel">Уровень масштабирования (Ctrl+колесо мыши · Ctrl++/- · Ctrl+0=сброс)</sys:String>
@@ -325,7 +325,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Ctx_RotateCCW">Повернуть страницу против часовой стрелки</sys:String>
     <sys:String x:Key="Str_Ctx_StampNumbers">Пронумеровать страницы...</sys:String>
     <sys:String x:Key="Str_Ctx_DeleteSel">Удалить выбранное</sys:String>
-    <sys:String x:Key="Str_Ctx_UndoLast">Отменить последнее</sys:String>
+    <sys:String x:Key="Str_Ctx_UndoLast">Отменить последнее изменение</sys:String>
     <sys:String x:Key="Str_Ctx_ClearPage">Очистить аннотации к страницам</sys:String>
     <sys:String x:Key="Str_Ctx_InsertBlank">Вставить пустую страницу после</sys:String>
     <sys:String x:Key="Str_Ctx_RotateCWShort">Повернуть по часовой</sys:String>
