@@ -541,7 +541,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Tf_FlipH">Перевернуть горизонтально</sys:String>
     <sys:String x:Key="Str_Tf_FlipV">Перевернуть вертикально</sys:String>
     <sys:String x:Key="Str_Tf_LevelLine">Нарисовать ровную линию</sys:String>
-    <sys:String x:Key="Str_Tf_SkewHint">Протяните горизонтальную линию вдоль всего, что криво повернуто набок но должно находиться на одном горизонтальном или вертикальном уровне (кромку, строку текста). Страница поворачивается в соответствии с новой линией устраняя перекос.</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Протяните горизонтальную линию вдоль всего, что криво повернуто набок, но должно находиться на одном горизонтальном или вертикальном уровне (кромку, строку текста). Страница поворачивается в соответствии с новой линией устраняя перекос.</sys:String>
     <sys:String x:Key="Str_Tf_Perspective">ПЕРСПЕКТИВА</sys:String>
     <sys:String x:Key="Str_Tf_Levels">УРОВНИ</sys:String>
     <sys:String x:Key="Str_Tf_LevelsBlack">Черная точка</sys:String>
