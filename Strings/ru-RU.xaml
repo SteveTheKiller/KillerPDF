@@ -344,7 +344,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Stamp_FontSize">Размер шрифта (pt)</sys:String>
     <sys:String x:Key="Str_Stamp_Cancel">Отменить</sys:String>
     <sys:String x:Key="Str_Stamp_Stamp">Штамп</sys:String>
-    <sys:String x:Key="Str_Stamp_Suffix">Штамповать страницы</sys:String>
+    <sys:String x:Key="Str_Stamp_Suffix">Добавить штампы поверх страницы</sys:String>
     <sys:String x:Key="Str_Stamp_SecNumbers">Номера страниц</sys:String>
     <sys:String x:Key="Str_Stamp_SecWatermark">Водяной знак</sys:String>
     <sys:String x:Key="Str_Stamp_Color">Цвет</sys:String>
