@@ -272,7 +272,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Continuous_EditMsg">Переключитесь в одностраничный режим, чтобы использовать инструменты редактирования</sys:String>
 
     <!-- ── Overflow menu + menu item labels ───────────────────────────── -->
-    <sys:String x:Key="Str_Lbl_Merge">Объединение PDF-файлов</sys:String>
+    <sys:String x:Key="Str_Lbl_Merge">Добавить PDF-файлы</sys:String>
     <sys:String x:Key="Str_Lbl_Extract">Извлечь страницы</sys:String>
     <sys:String x:Key="Str_Lbl_Delete">Удалить страницы</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">Переместить страницу вверх</sys:String>
