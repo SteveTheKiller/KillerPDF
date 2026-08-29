@@ -338,7 +338,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Stamp_Title">Пронумеровать страницы</sys:String>
     <sys:String x:Key="Str_Stamp_StartAt">Начать с</sys:String>
     <sys:String x:Key="Str_Stamp_Format">Формат</sys:String>
-    <sys:String x:Key="Str_Stamp_Hint">Использовать {n} как номер страницы, {N} как конечный</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint">Номер текущей страницы это {n}, общее число страниц это {N} </sys:String>
     <sys:String x:Key="Str_Stamp_Hint2">Пример: "Страница {n} из {N}"</sys:String>
     <sys:String x:Key="Str_Stamp_Position">Позиция</sys:String>
     <sys:String x:Key="Str_Stamp_FontSize">Размер шрифта (pt)</sys:String>
