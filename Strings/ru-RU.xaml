@@ -19,7 +19,7 @@
     <sys:String x:Key="Str_TT_SaveAs">Сохранить как (Ctrl+Shift+S)</sys:String>
     <sys:String x:Key="Str_TT_SaveFlattened">Сохранить сжатый PDF-файл (растеризует все страницы - итоговый файл станет недоступным для редактирования)</sys:String>
     <sys:String x:Key="Str_TT_Print">Печать (Ctrl+P)</sys:String>
-    <sys:String x:Key="Str_TT_MergePDFs">Объединить PDF-файлы (объединить дополнительные PDF-файлы в этот файл)</sys:String>
+    <sys:String x:Key="Str_TT_MergePDFs">Добавить PDF-файлы в текущий проект</sys:String>
     <sys:String x:Key="Str_TT_ExtractPages">Извлечение страниц (сохранение выбранных страниц в новом PDF-файле)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Удаление выбранных страниц</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Переместить страницу вверх (изменить порядок)</sys:String>
@@ -423,7 +423,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Err_ImportFailed">Не удалось импортировать:</sys:String>
     <sys:String x:Key="Str_Err_NoImages">Нет изображений доступных к прочтению.</sys:String>
     <sys:String x:Key="Str_Drop_Prompt">Вы добавили {0} файлов. Как бы вы хотели их открыть?</sys:String>
-    <sys:String x:Key="Str_Drop_Merge">Объединить в один PDF-файл</sys:String>
+    <sys:String x:Key="Str_Drop_Merge">Добавить PDF-файл</sys:String>
     <sys:String x:Key="Str_Drop_Separate">Открыть отдельно</sys:String>
     <sys:String x:Key="Str_Drop_NothingOpenable">Не найдено PDF или изображений чтобы открыть.</sys:String>
     <sys:String x:Key="Str_Drop_ManyTabs">Будет открыто {0} отдельных вкладок. Продолжить?</sys:String>
