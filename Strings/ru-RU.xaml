@@ -358,7 +358,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Stamp_Opacity">Непрозрачность</sys:String>
     <sys:String x:Key="Str_Stamp_Mirror">Зеркальное отображение на лицевой стороне страницы (внешний край)</sys:String>
     <sys:String x:Key="Str_Stamp_Applied">Проштамповано {0} страница(ы)</sys:String>
-    <sys:String x:Key="Str_TT_StampTool">Штамповать страницы (S)</sys:String>
+    <sys:String x:Key="Str_TT_StampTool">Добавить штампы поверх страницы (S)</sys:String>
     <sys:String x:Key="Str_Ctx_StampPages">Штамповать страницы</sys:String>
     <sys:String x:Key="Str_Pos_BottomCenter">Нижний центр</sys:String>
     <sys:String x:Key="Str_Pos_BottomRight">Внизу справа</sys:String>
