@@ -29,7 +29,7 @@
     <sys:String x:Key="Str_TT_HighlightTool">Инструмент выделения - перетащите его, чтобы выделить (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Зачеркивание - перетаскивание по тексту</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Подчеркивание - перетаскивание по тексту</sys:String>
-    <sys:String x:Key="Str_TT_DrawTool">Инструмент для рисования - чернила от руки (D)</sys:String>
+    <sys:String x:Key="Str_TT_DrawTool">Инструмент для рисования от руки (D)</sys:String>
     <sys:String x:Key="Str_TT_ShapeTool">Формы - прямоугольник, эллипс или многоугольник произвольной формы</sys:String>
     <sys:String x:Key="Str_TT_SignatureTool">Подпись - создание и размещение подписей (G)</sys:String>
     <sys:String x:Key="Str_TT_ImageTool">Инструмент "Изображение" - нажмите, чтобы вставить изображение на страницу (I)</sys:String>
