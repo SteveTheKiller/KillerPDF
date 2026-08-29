@@ -20,7 +20,7 @@
     <sys:String x:Key="Str_TT_SaveFlattened">Сохраните сжатый PDF-файл (растеризуйте все страницы - полностью недоступный для редактирования)</sys:String>
     <sys:String x:Key="Str_TT_Print">Печать (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Объединить PDF-файлы (объединить дополнительные PDF-файлы в этот)</sys:String>
-    <sys:String x:Key="Str_TT_ExtractPages">Извлечение страниц (сохранение выбранных страниц в новом формате PDF)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Извлечение страниц (сохранение выбранных страниц в новом PDF-файле)</sys:String>
     <sys:String x:Key="Str_TT_DeletePages">Удаление выбранных страниц</sys:String>
     <sys:String x:Key="Str_TT_MovePageUp">Переместить страницу вверх (изменить порядок)</sys:String>
     <sys:String x:Key="Str_TT_MovePageDown">Переместить страницу вниз (изменить порядок)</sys:String>
