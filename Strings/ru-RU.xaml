@@ -414,7 +414,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Menu_RemoveFromRecents">Удалить из последних</sys:String>
 
     <!-- Import images as PDF / Compress to ZIP -->
-    <sys:String x:Key="Str_Menu_Import">Импорт изображений как PDF</sys:String>
+    <sys:String x:Key="Str_Menu_Import">Импорт изображения в новую PDF вкладку</sys:String>
     <sys:String x:Key="Str_Menu_CompressZip">Сжать в ZIP</sys:String>
     <sys:String x:Key="Str_Filter_Images">Изображения</sys:String>
     <sys:String x:Key="Str_Filter_AllFiles">Все файлы</sys:String>
