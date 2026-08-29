@@ -310,7 +310,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Ctx_OcrPage">Распознать (скопировать текст)</sys:String>
     <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
     <sys:String x:Key="Str_TT_Ocr">Распознать страницу (копировать текст) (Ctrl+Shift+O)</sys:String>
-    <sys:String x:Key="Str_Ocr_Region">OCR Регион...</sys:String>
+    <sys:String x:Key="Str_Ocr_Region">Распознать область страницы...</sys:String>
     <sys:String x:Key="Str_Ocr_SearchablePdf">Сделайте PDF-файл доступным для поиска...</sys:String>
     <sys:String x:Key="Str_Ocr_ExtractText">Извлечь весь текст...</sys:String>
     <sys:String x:Key="Str_Ocr_Language">Язык</sys:String>
@@ -591,7 +591,7 @@ KillerPDF не будет создавать две установленные �
 
     <!-- Status-bar messages (extracted from code) -->
     <sys:String x:Key="Str_St_DataCleared">Все данные KillerPDF очищены</sys:String>
-    <sys:String x:Key="Str_St_OcrRegionCanceled">OCR регион отменен</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionCanceled">Распознование области отменено</sys:String>
     <sys:String x:Key="Str_St_Erased">Стерто</sys:String>
     <sys:String x:Key="Str_St_Ungrouped">Разгруппировано</sys:String>
     <sys:String x:Key="Str_St_RemovedFromGroup">Удалено из группы</sys:String>
@@ -832,9 +832,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Op_Merge">поглощать</sys:String>
     <sys:String x:Key="Str_Op_LangDownload">загрузка языка</sys:String>
     <sys:String x:Key="Str_Op_Ocr">Операция распознавания текста</sys:String>
-    <sys:String x:Key="Str_Op_OcrRegion">Регион распознавания</sys:String>
+    <sys:String x:Key="Str_Op_OcrRegion">Распознавание области</sys:String>
     <sys:String x:Key="Str_Busy_Ocr">Запуск распознавания текста...</sys:String>
-    <sys:String x:Key="Str_Busy_Region">Распознаю регион...</sys:String>
+    <sys:String x:Key="Str_Busy_Region">Распознаю область...</sys:String>
     <sys:String x:Key="Str_Busy_Searchable">Создание PDF-файла с возможностью поиска...</sys:String>
     <sys:String x:Key="Str_Busy_Extracting">Извлечение текста...</sys:String>
     <sys:String x:Key="Str_Busy_Repairing">Восстановление PDF-файла...</sys:String>
