@@ -17,7 +17,7 @@
     <sys:String x:Key="Str_Drop_Sub">или нажмите, чтобы просмотреть</sys:String>
     <sys:Double x:Key="ZoomBoxWidth">96</sys:Double>
     <sys:String x:Key="Str_TT_SaveAs">Сохранить как (Ctrl+Shift+S)</sys:String>
-    <sys:String x:Key="Str_TT_SaveFlattened">Сохраните сжатый PDF-файл (растеризуйте все страницы - полностью недоступный для редактирования)</sys:String>
+    <sys:String x:Key="Str_TT_SaveFlattened">Сохранить сжатый PDF-файл (растеризует все страницы - итоговый файл станет недоступным для редактирования)</sys:String>
     <sys:String x:Key="Str_TT_Print">Печать (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">Объединить PDF-файлы (объединить дополнительные PDF-файлы в этот файл)</sys:String>
     <sys:String x:Key="Str_TT_ExtractPages">Извлечение страниц (сохранение выбранных страниц в новом PDF-файле)</sys:String>
@@ -297,7 +297,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Lbl_Open">Открыть</sys:String>
     <sys:String x:Key="Str_Lbl_Close">Закрыть</sys:String>
     <sys:String x:Key="Str_Lbl_Save">Сохранить</sys:String>
-    <sys:String x:Key="Str_Lbl_Flatten">Выравнивать</sys:String>
+    <sys:String x:Key="Str_Lbl_Flatten">Сведение</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Печать</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Выделить</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Уменьшите масштаб</sys:String>
