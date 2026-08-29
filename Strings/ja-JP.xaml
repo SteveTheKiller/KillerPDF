@@ -17,7 +17,7 @@
     <sys:String x:Key="Str_Drop_Sub">またはクリックして参照</sys:String>
     <sys:Double x:Key="ZoomBoxWidth">96</sys:Double>
     <sys:String x:Key="Str_TT_SaveAs">名前を付けて保存 (Ctrl+Shift+S)</sys:String>
-    <sys:String x:Key="Str_TT_SaveFlattened">フラット化して保存 (全ページをラスタライズ - 完全に編集不可)</sys:String>
+    <sys:String x:Key="Str_TT_SaveFlattened">統合して保存 (全ページをラスタライズ - 完全に編集不可)</sys:String>
     <sys:String x:Key="Str_TT_Print">印刷 (Ctrl+P)</sys:String>
     <sys:String x:Key="Str_TT_MergePDFs">PDF を結合 (この PDF に他の PDF を追加)</sys:String>
     <sys:String x:Key="Str_TT_ExtractPages">ページを抽出 (選択ページを新しい PDF に保存)</sys:String>
@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">ページを下に移動 (並べ替え)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">選択ツール - 注釈をクリック、テキストをドラッグして選択、ダブルクリックで編集 (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">テキストツール - クリックしてテキストを追加 (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">入力可能なテキストフィールド - 作成、選択、移動、サイズ変更、削除。右クリックで塗りつぶし色を変更 (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">入力可能なテキストフィールド — フィールドの作成、選択、移動、サイズ変更、削除; 右クリックで塗りつぶしの色を変更 (F)</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">ハイライトツール - ドラッグしてハイライト (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">打消し線 - テキスト上をドラッグ</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">下線 - テキスト上をドラッグ</sys:String>
@@ -155,8 +155,8 @@
     <sys:String x:Key="Str_Deleted">{0} ページを削除しました - {1} ページ残っています</sys:String>
     <sys:String x:Key="Str_Printed">{0} ページをプリンターに送信しました</sys:String>
     <sys:String x:Key="Str_LinkRemoved">リンクを削除しました。</sys:String>
-    <sys:String x:Key="Str_LinkRemoveFailed">リンクの削除に失敗しました：</sys:String>
-    <sys:String x:Key="Str_LinkBlocked">ブロックされたリンク (未対応の種類)：</sys:String>
+    <sys:String x:Key="Str_LinkRemoveFailed">リンクの削除に失敗しました :</sys:String>
+    <sys:String x:Key="Str_LinkBlocked">ブロックされたリンク (未対応の種類):</sys:String>
     <sys:String x:Key="Str_LinkOpenFailed">リンクを開けませんでした</sys:String>
     <sys:String x:Key="Str_LinkConfirmBody">このリンクをブラウザーで開きますか？</sys:String>
     <sys:String x:Key="Str_LinkConfirmTitle">リンクを開きますか？</sys:String>
@@ -208,26 +208,26 @@
     <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">KillerPDF をこのコンピューターにインストールしますか？
 
 KillerPDF はプログラムフォルダーにコピーされ、スタートメニューに項目が追加されます。この EXE のコピーはそのままの場所に残り、いつでも「プログラムの追加と削除」からアンインストールできます。</sys:String>
-    <sys:String x:Key="Str_Btn_DoInstall">インストール</sys:String>
-    <sys:String x:Key="Str_Btn_DoUpdate">更新</sys:String>
-    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">既存の KillerPDF インストールを更新しますか？
-
-インストール済みのコピーを、より高速なマルチファイル版に置き換えます。このポータブルファイルはその後、保持しても削除してもかまいません。</sys:String>
     <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">全ユーザー向けの既存の KillerPDF インストールを更新しますか？
 
 Program Files のコピーを、より高速なマルチファイル版に置き換えます。古いユーザーごとのコピーは削除され、KillerPDF は 1 つだけ表示されます。このポータブルファイルはその後、保持しても削除してもかまいません。</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">既存の KillerPDF インストールを更新しますか？
+
+インストール済みのコピーを、より高速なマルチファイル版に置き換えます。このポータブルファイルはその後、保持しても削除してもかまいません。</sys:String>
     <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF はこのコンピューターの全ユーザー向けに既にインストールされています。ユーザーごとのインストールを選ぶ前に、そのインストールを更新するかアンインストールしてください。
 
 KillerPDF がインストール済みコピーを 2 つ作成することはありません。</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">インストール</sys:String>
+    <sys:String x:Key="Str_Btn_DoUpdate">更新</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">デスクトップにショートカットを追加</sys:String>
-    <sys:String x:Key="Str_Chk_AllUsers">このコンピューターのすべてのユーザーにインストール（管理者権限が必要）</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">このコンピューターのすべてのユーザーにインストール (管理者権限が必要)</sys:String>
     <sys:String x:Key="Str_Status_InstallFailed">インストールは完了しませんでした - KillerPDF はポータブルのまま実行中です。</sys:String>
     <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">KillerPDF を既定の PDF ビューアーに設定しますか？
 
 Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedClose">保存されていない変更があります。保存せずにこのファイルを閉じますか？</sys:String>
     <sys:String x:Key="Str_Dlg_UnsavedExit">保存されていない変更があります。保存せずに KillerPDF を終了しますか？</sys:String>
-    <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">この文書には、Adobe Reader が対応する範囲（1 辺あたり 3～14,400 ポイント）外のサイズのページが {0} ページあります。Adobe ではこれらのページは白紙で表示されます。
+    <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">この文書には、Adobe Reader が対応する範囲 (1 辺あたり 3～14,400 ポイント) 外のサイズのページが {0} ページあります。Adobe ではこれらのページは白紙で表示されます。
 
 対応するサイズに拡大・縮小しますか？ページの見た目と縦横比は変わりません。</sys:String>
     <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">PDF を開けませんでした :
@@ -246,20 +246,20 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Theme_Greed">グリード</sys:String>
     <sys:String x:Key="Str_Theme_Cyanotic">シアノティック</sys:String>
     <sys:String x:Key="Str_Theme_98SE">98SE</sys:String>
-    <sys:String x:Key="Str_Theme_Ectoplasm">Ectoplasm</sys:String>
-    <sys:String x:Key="Str_Theme_Decay">Decay</sys:String>
-    <sys:String x:Key="Str_Theme_Mourning">Mourning</sys:String>
-    <sys:String x:Key="Str_Theme_Sepulchre">Sepulchre</sys:String>
-    <sys:String x:Key="Str_Theme_Delirium">Delirium</sys:String>
-    <sys:String x:Key="Str_Theme_Malaise">Malaise</sys:String>
+    <sys:String x:Key="Str_Theme_Ectoplasm">エクトプラズム</sys:String>
+    <sys:String x:Key="Str_Theme_Decay">ディケイ</sys:String>
+    <sys:String x:Key="Str_Theme_Mourning">モーニング</sys:String>
+    <sys:String x:Key="Str_Theme_Sepulchre">セパルカー</sys:String>
+    <sys:String x:Key="Str_Theme_Delirium">デリリアム</sys:String>
+    <sys:String x:Key="Str_Theme_Malaise">マレーズ</sys:String>
 
-    <!-- ── ズームドロップダウン ─────────────────────────────────────── -->
+    <!-- ── ズーム ドロップダウン ─────────────────────────────────────── -->
     <sys:String x:Key="Str_Zoom_FitWidth">幅に合わせる</sys:String>
     <sys:String x:Key="Str_Zoom_FitPage">ページに合わせる</sys:String>
     <sys:String x:Key="Str_FitWidth">{0} / {1} ページ - 幅に合わせる ({2}%)</sys:String>
     <sys:String x:Key="Str_FitPage">{0} / {1} ページ - ページに合わせる ({2}%)</sys:String>
 
-    <!-- ── KSオーバーレイのフォントサイズ (sys:Double) ──────────────────────────── -->
+    <!-- ── KS オーバーレイのフォントサイズ (sys:Double) ──────────────────────────── -->
     <sys:Double x:Key="Str_KS_FontSize">11</sys:Double>
 
 
@@ -269,6 +269,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_View_Continuous">連続</sys:String>
     <sys:String x:Key="Str_View_TwoPage">見開き</sys:String>
     <sys:String x:Key="Str_View_Grid">グリッド</sys:String>
+    <sys:String x:Key="Str_View_BookMode">ブックのレイアウト</sys:String>
     <sys:String x:Key="Str_Continuous_EditMsg">編集ツールを使用するには単ページ表示に切り替えてください</sys:String>
 
     <!-- ── オーバーフローメニュー + メニュー項目ラベル ──────────────────────────── -->
@@ -298,7 +299,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Lbl_Open">開く</sys:String>
     <sys:String x:Key="Str_Lbl_Close">閉じる</sys:String>
     <sys:String x:Key="Str_Lbl_Save">保存</sys:String>
-    <sys:String x:Key="Str_Lbl_Flatten">フラット化</sys:String>
+    <sys:String x:Key="Str_Lbl_Flatten">統合</sys:String>
     <sys:String x:Key="Str_Lbl_Print">印刷</sys:String>
     <sys:String x:Key="Str_Lbl_Select">選択</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">ズームアウト</sys:String>
@@ -371,6 +372,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <!-- ── 印刷ダイアログ ────────────────────────────────────────── -->
     <sys:String x:Key="Str_Print_Title">KillerPDF - 印刷</sys:String>
     <sys:String x:Key="Str_Print_Printer">プリンター</sys:String>
+    <sys:String x:Key="Str_Print_Paper">用紙サイズ</sys:String>
+    <sys:String x:Key="Str_Print_PaperAuto">文書に合わせる</sys:String>
+    <sys:String x:Key="Str_Print_Source">給紙方法</sys:String>
+    <sys:String x:Key="Str_Print_SourceAuto">プリンターの既定</sys:String>
+    <sys:String x:Key="Str_Print_SecPrinter">プリンター</sys:String>
+    <sys:String x:Key="Str_Print_SecLayout">レイアウト</sys:String>
+    <sys:String x:Key="Str_Print_SecOutput">出力</sys:String>
     <sys:String x:Key="Str_Print_Orientation">向き</sys:String>
     <sys:String x:Key="Str_Print_Portrait">縦</sys:String>
     <sys:String x:Key="Str_Print_Landscape">横</sys:String>
@@ -498,7 +506,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sign_TopRight">右上</sys:String>
     <sys:String x:Key="Str_Sign_Width">幅</sys:String>
     <sys:String x:Key="Str_Sign_Height">高さ</sys:String>
-    <sys:String x:Key="Str_Sign_FontSize">文字の大きさ</sys:String>
+    <sys:String x:Key="Str_Sign_FontSize">テキストサイズ</sys:String>
     <sys:String x:Key="Str_Sign_PreviewSigner">証明書の所有者</sys:String>
     <sys:String x:Key="Str_Sign_BadAppearance">署名のページ、寸法、文字サイズを確認してください。</sys:String>
     <sys:String x:Key="Str_Sign_SaveAs">署名済みコピーを保存</sys:String>
@@ -537,6 +545,17 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Tf_LevelLine">水平線を描画</sys:String>
     <sys:String x:Key="Str_Tf_SkewHint">水平にすべきもの (端、テキスト行など)に沿ってドラッグします。ページがそれに合わせて回転します。</sys:String>
     <sys:String x:Key="Str_Tf_Perspective">遠近補正</sys:String>
+    <sys:String x:Key="Str_Tf_Levels">レベル補正</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsBlack">ブラックポイント</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsWhite">ホワイトポイント</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsGamma">中間調</sys:String>
+    <sys:String x:Key="Str_Tf_Quality">ページ品質</sys:String>
+    <sys:String x:Key="Str_Tf_ColorMode">カラーモード</sys:String>
+    <sys:String x:Key="Str_Tf_Grayscale">グレースケール</sys:String>
+    <sys:String x:Key="Str_Tf_BlackWhite">白黒</sys:String>
+    <sys:String x:Key="Str_Tf_Threshold">白黒の閾値</sys:String>
+    <sys:String x:Key="Str_Tf_SetDpi">出力解像度を設定 (DPI)</sys:String>
+    <sys:String x:Key="Str_Tf_UseJpeg">JPEG 圧縮を使用</sys:String>
     <sys:String x:Key="Str_Tf_CorrectPerspective">台形歪みを補正</sys:String>
     <sys:String x:Key="Str_Tf_PerspectiveHint">4 つの角を撮影したページの輪郭にドラッグします。適用すると長方形に補正されます。</sys:String>
     <sys:String x:Key="Str_Tf_ResetCorners">角をリセット</sys:String>
@@ -545,7 +564,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Tf_Reset">リセット</sys:String>
     <sys:String x:Key="Str_Tf_Cancel">キャンセル</sys:String>
     <sys:String x:Key="Str_Tf_Apply">適用</sys:String>
-    <sys:String x:Key="Str_Tf_Warn">ページの変換 (回転または拡大縮小)はラスタライズを伴います ：ページは画像として再保存されるため、選択可能なテキストは失われます。後で OCR を実行して再び検索可能にすることができます。</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">ページの変換 (回転または拡大縮小)はラスタライズを伴います : ページは画像として再保存されるため、選択可能なテキストは失われます。後で OCR を実行して再び検索可能にすることができます。</sys:String>
     <sys:String x:Key="Str_Tf_DontWarn">再度警告しない</sys:String>
     <sys:String x:Key="Str_Tf_Done">ページ {0} を変換しました</sys:String>
     <sys:String x:Key="Str_Tf_DoneBatch">{0} ページを変換しました</sys:String>
@@ -598,8 +617,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_OcrDragBox">認識する領域をドラッグして囲んでください</sys:String>
     <sys:String x:Key="Str_St_OcrRegionTooSmall">OCR 領域が小さすぎます</sys:String>
     <sys:String x:Key="Str_St_OcrNoText">OCR：選択した領域にテキストが見つかりませんでした</sys:String>
-    <sys:String x:Key="Str_St_SearchablePdfCanceled">検索可能な PDF の作成をキャンセルしました（ファイルは書き込まれていません）</sys:String>
-    <sys:String x:Key="Str_St_TextExtractCanceled">テキスト抽出をキャンセルしました（ファイルは書き込まれていません）</sys:String>
+    <sys:String x:Key="Str_St_SearchablePdfCanceled">検索可能な PDF の作成をキャンセルしました (ファイルは書き込まれていません)</sys:String>
+    <sys:String x:Key="Str_St_TextExtractCanceled">テキスト抽出をキャンセルしました (ファイルは書き込まれていません)</sys:String>
     <sys:String x:Key="Str_St_NoTextOnPage">このページにテキストが見つかりませんでした</sys:String>
     <sys:String x:Key="Str_St_NoTextSelected">テキストが選択されていません。ドラッグしてテキストを選択してください</sys:String>
     <sys:String x:Key="Str_St_NoTextInSelection">選択範囲にテキストが見つかりませんでした</sys:String>
@@ -678,6 +697,12 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sys_Maximize">最大化</sys:String>
     <sys:String x:Key="Str_Sys_Close">閉じる</sys:String>
     <sys:String x:Key="Str_Btn_Cancel">キャンセル</sys:String>
+
+    <!-- The app's own wordmark, split into the family's two runs: neutral first word, accent
+         second. The file picker reads these rather than hardcoding a name, so the same compiled
+         dialog names whichever app is hosting it. -->
+    <!-- Key names for the shortcuts overlay (#230). Composed into the chords by
+         ShortcutsOverlay.FillKeyInlines, so translators get the words without the syntax. -->
     <sys:String x:Key="Str_Key_Ctrl">Ctrl</sys:String>
     <sys:String x:Key="Str_Key_Alt">Alt</sys:String>
     <sys:String x:Key="Str_Key_Shift">Shift</sys:String>
@@ -708,13 +733,13 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Ctx_Cut">切り取り</sys:String>
     <sys:String x:Key="Str_Ctx_SelectAll">すべて選択</sys:String>
     <sys:String x:Key="Str_Dlg_AllFiles">すべてのファイル</sys:String>
-    <sys:String x:Key="Str_Dlg_FileName">ファイル名:</sys:String>
-    <sys:String x:Key="Str_Dlg_FileType">ファイルの種類:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">ファイル名 :</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">ファイルの種類 :</sys:String>
     <sys:String x:Key="Str_Dlg_NoMatchingFiles">現在のファイルの種類に一致するものはありません。</sys:String>
     <sys:String x:Key="Str_Dlg_Preview">プレビュー</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFile">そのファイルは存在しません。</sys:String>
     <sys:String x:Key="Str_Dlg_NoSuchFolder">そのフォルダーは存在しません。</sys:String>
-    <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} を置き換えますか?</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">{0} を置き換えますか？</sys:String>
     <sys:String x:Key="Str_Menu_PinPlace">場所にピン留め</sys:String>
     <sys:String x:Key="Str_Menu_UnpinPlace">場所から削除</sys:String>
     <sys:String x:Key="Str_QA_Desktop">デスクトップ</sys:String>
@@ -730,27 +755,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_ViewIcons">アイコン表示</sys:String>
     <sys:String x:Key="Str_TT_ViewList">一覧表示</sys:String>
 
-    <!-- 1.7.2: print dialog paper/source/sections, book layout, Transform levels -->
-    <sys:String x:Key="Str_Print_Paper">用紙サイズ</sys:String>
-    <sys:String x:Key="Str_Print_PaperAuto">文書に合わせる</sys:String>
-    <sys:String x:Key="Str_Print_Source">給紙方法</sys:String>
-    <sys:String x:Key="Str_Print_SourceAuto">プリンターの既定</sys:String>
-    <sys:String x:Key="Str_Print_SecPrinter">プリンター</sys:String>
-    <sys:String x:Key="Str_Print_SecLayout">レイアウト</sys:String>
-    <sys:String x:Key="Str_Print_SecOutput">出力</sys:String>
-    <sys:String x:Key="Str_View_BookMode">見開きレイアウト</sys:String>
-    <sys:String x:Key="Str_Tf_Levels">レベル補正</sys:String>
-    <sys:String x:Key="Str_Tf_LevelsBlack">ブラックポイント</sys:String>
-    <sys:String x:Key="Str_Tf_LevelsWhite">ホワイトポイント</sys:String>
-    <sys:String x:Key="Str_Tf_LevelsGamma">中間調</sys:String>
-    <sys:String x:Key="Str_Tf_Quality">ページ品質</sys:String>
-    <sys:String x:Key="Str_Tf_ColorMode">カラーモード</sys:String>
-    <sys:String x:Key="Str_Tf_Grayscale">グレースケール</sys:String>
-    <sys:String x:Key="Str_Tf_BlackWhite">白と黒</sys:String>
-    <sys:String x:Key="Str_Tf_Threshold">白黒しきい値</sys:String>
-    <sys:String x:Key="Str_Tf_SetDpi">出力解像度（ DPI ）を設定する</sys:String>
-    <sys:String x:Key="Str_Tf_UseJpeg">JPEG圧縮を使用</sys:String>
-    <!-- 1.7.4 hardcoded-string sweep (#227) -->
+    <!-- 1.7.4 hardcoded-string sweep (#227): dialog titles, file-dialog filters, and defaults
+         that were English literals in code and invisible to translators. -->
     <sys:String x:Key="Str_Color_Name">色</sys:String>
     <sys:String x:Key="Str_Color_Pick">色を選択</sys:String>
     <sys:String x:Key="Str_Color_Hex">Hex</sys:String>
@@ -789,6 +795,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Sign_Failed">署名に失敗しました：</sys:String>
     <sys:String x:Key="Str_St_ShapeHint">クリックで点を追加 - 最初の点をクリックまたはダブルクリックで閉じる、Esc でキャンセル、Backspace で最後の点を削除</sys:String>
     <sys:String x:Key="Str_St_ShapeCanceled">図形をキャンセルしました</sys:String>
+
+    <!-- Error-dialog prefixes (code appends the exception detail after a newline) -->
     <sys:String x:Key="Str_Err_PrintFailed">印刷に失敗しました：</sys:String>
     <sys:String x:Key="Str_Err_OcrFailed">OCR に失敗しました：</sys:String>
     <sys:String x:Key="Str_Err_PrepareDoc">文書を準備できませんでした：</sys:String>
@@ -817,6 +825,8 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_CancelBusy">実行中の{0}をキャンセルしますか？</sys:String>
     <sys:String x:Key="Str_Dlg_DeletePage1">このページを削除しますか？</sys:String>
     <sys:String x:Key="Str_Dlg_DeletePagesN">{0} ページを削除しますか？</sys:String>
+
+    <!-- Cancellable-operation labels (fill {0} in Str_Dlg_CancelBusy) and busy-overlay messages -->
     <sys:String x:Key="Str_Op_Repair">修復</sys:String>
     <sys:String x:Key="Str_Op_Operation">操作</sys:String>
     <sys:String x:Key="Str_Op_Flatten">統合</sys:String>
@@ -832,8 +842,10 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Busy_Repairing">PDF を修復中...</sys:String>
     <sys:String x:Key="Str_Busy_HqModels">高品質言語モデルをダウンロード中...</sys:String>
     <sys:String x:Key="Str_Busy_Model">言語モデルをダウンロード中...</sys:String>
-    <sys:String x:Key="Str_Print_Preparing">ページを準備中：{0} / {1}…</sys:String>
-    <sys:String x:Key="Str_St_AnnotSelected">{0}を選択 - {1}</sys:String>
+
+    <!-- Status-line messages ({0}/{1}/{2} filled by string.Format) -->
+    <sys:String x:Key="Str_Print_Preparing">ページを準備中 {0} / {1}…</sys:String>
+    <sys:String x:Key="Str_St_AnnotSelected">{0} を選択 - {1}</sys:String>
     <sys:String x:Key="Str_St_AnnotHowText">側面の角をドラッグで幅を設定、ダブルクリックで編集、Delete で削除</sys:String>
     <sys:String x:Key="Str_St_AnnotHowGeneric">任意の角をドラッグでサイズ変更、Delete で削除</sys:String>
     <sys:String x:Key="Str_St_AnnotSelectedSimple">{0} 注釈を選択 - Delete で削除</sys:String>
@@ -851,26 +863,27 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_ExtractError">テキスト抽出エラー：{0}</sys:String>
     <sys:String x:Key="Str_St_AlreadyOpen">すでに開いています：{0}</sys:String>
     <sys:String x:Key="Str_St_TextEditError">テキスト編集エラー：{0}</sys:String>
-    <sys:String x:Key="Str_St_OcrNoTextPage">OCR：ページ {0} にテキストが見つかりません</sys:String>
-    <sys:String x:Key="Str_St_OcrCopiedPage">OCR：ページ {1} から {0} 文字をコピーしました（信頼度 {2}）</sys:String>
-    <sys:String x:Key="Str_St_OcrCopiedPages">OCR：{1} ページから {0} 文字をコピーしました（信頼度 {2}）</sys:String>
-    <sys:String x:Key="Str_St_OcrCopiedRegion">OCR：領域から {0} 文字をコピーしました（信頼度 {1}）</sys:String>
-    <sys:String x:Key="Str_St_SearchableSaved">検索可能な PDF を保存しました：{0} ページ、{1} 語を認識</sys:String>
+    <sys:String x:Key="Str_St_OcrNoTextPage">OCR : ページ {0} にテキストが見つかりません</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPage">OCR : ページ {1} から {0} 文字をコピーしました (信頼度 {2})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedRegion">OCR : 領域から {0} 文字をコピーしました (信頼度 {1})</sys:String>
+    <sys:String x:Key="Str_St_SearchableSaved">検索可能な PDF を保存しました : {0} ページ、{1} 語を認識</sys:String>
     <sys:String x:Key="Str_St_TextExtracted">{0} ページからテキストを抽出 -> {1}</sys:String>
     <sys:String x:Key="Str_St_DuplicatedPage">ページ {0} を複製しました</sys:String>
     <sys:String x:Key="Str_St_Merged">{0} 個のファイルを結合 - 合計 {1} ページ</sys:String>
     <sys:String x:Key="Str_St_Saved">保存しました - {0}</sys:String>
     <sys:String x:Key="Str_St_SavedWithAnnots">注釈付きで保存しました：{0}</sys:String>
-    <sys:String x:Key="Str_St_SavedTo">保存しました：{0}</sys:String>
-    <sys:String x:Key="Str_St_FlattenedSaved">統合された PDF を保存しました：{0}</sys:String>
-    <sys:String x:Key="Str_St_OcrLanguage">OCR 言語：{0}</sys:String>
-    <sys:String x:Key="Str_St_LangInstalled">{0} をインストールしました - OCR 言語：{1}</sys:String>
+    <sys:String x:Key="Str_St_SavedTo">保存しました : {0}</sys:String>
+    <sys:String x:Key="Str_St_FlattenedSaved">統合された PDF を保存しました : {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrLanguage">OCR 言語 : {0}</sys:String>
+    <sys:String x:Key="Str_St_LangInstalled">{0} をインストールしました - OCR 言語 : {1}</sys:String>
     <sys:String x:Key="Str_St_LangCanceled">{0} のダウンロードをキャンセルしました</sys:String>
-    <sys:String x:Key="Str_St_HqFailed">高品質モデルをインストールしました。失敗：{0}</sys:String>
-    <sys:String x:Key="Str_St_HqInstalled">高品質モデルをインストールしました：{0}</sys:String>
+    <sys:String x:Key="Str_St_HqFailed">高品質モデルをインストールしました。失敗 : {0}</sys:String>
+    <sys:String x:Key="Str_St_HqInstalled">高品質モデルをインストールしました : {0}</sys:String>
     <sys:String x:Key="Str_St_InsertedBlank">位置 {0} に空白ページを挿入しました</sys:String>
-    <sys:String x:Key="Str_St_AddedBlank">空白ページを追加しました（現在 {0} ページ）</sys:String>
-    <sys:String x:Key="Str_St_RestorePane">2 つ目のペインを復元できませんでした：{0}</sys:String>
+    <sys:String x:Key="Str_St_AddedBlank">空白ページを追加しました (現在 {0} ページ)</sys:String>
+    <sys:String x:Key="Str_St_RestorePane">2 つ目のペインを復元できませんでした : {0}</sys:String>
+
+    <!-- Annotation-type labels for selection status text -->
     <sys:String x:Key="Str_Annot_Signature">署名</sys:String>
     <sys:String x:Key="Str_Annot_Image">画像</sys:String>
     <sys:String x:Key="Str_Annot_TextBox">テキストボックス</sys:String>
@@ -894,10 +907,10 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">検索可能な PDF を保存しました：&#10;{0}&#10;&#10;{1} ページを処理、{2} 語を認識。</sys:String>
     <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">「{0}」の修復に成功しました。&#10;&#10;しおり、フォーム、その他のインタラクティブ機能は失われている可能性があります。名前を付けて保存で修復済みファイルを新しい場所に書き出してください。</sys:String>
     <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">「{0}」は PDFium によるラスタライズで修復されました。&#10;&#10;修復済みコピーではテキストを選択できません。名前を付けて保存で新しい場所に書き出してください。</sys:String>
-    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">「{0}」は構造が破損しているため追加できませんでした。&#10;&#10;KillerPDF で修復を試みますか？修復済みコピーが作成されます - 元のファイルは変更されません。&#10;&#10;注意：修復済みファイルでは、しおり、フォーム、その他のインタラクティブ機能が失われる場合があります。</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">「{0}」は構造が破損しているため追加できませんでした。&#10;&#10;KillerPDF で修復を試みますか？修復済みコピーが作成されます - 元のファイルは変更されません。&#10;&#10;注意 : 修復済みファイルでは、しおり、フォーム、その他のインタラクティブ機能が失われる場合があります。</sys:String>
     <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">OCR を実行するため、言語モデル（{0}）を今すぐダウンロードします。&#10;&#10;OCR メニューからいつでも言語を追加したり、より高品質なモデルに切り替えたりできます。</sys:String>
     <sys:String x:Key="Str_Bar_More">その他の設定</sys:String>
-    <sys:String x:Key="Str_Bar_TT_Level">線を最も近い軸（水平または垂直）に揃えます</sys:String>
+    <sys:String x:Key="Str_Bar_TT_Level">線を最も近い軸 (水平または垂直) に揃えます</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBox">ボックスをドラッグして、その中のすべての注釈を削除します</sys:String>
     <sys:String x:Key="Str_Bar_TT_EraserBrush">注釈をなぞって削除します</sys:String>
     <sys:String x:Key="Str_Bar_TT_ShapeBox">ボックス - ドラッグで長方形を描きます</sys:String>
@@ -907,21 +920,22 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_TT_RecentFiles">最近使ったファイル</sys:String>
     <sys:String x:Key="Str_TT_SaveOptions">保存オプション</sys:String>
     <sys:String x:Key="Str_TT_OcrOptions">OCR オプション</sys:String>
-    <sys:String x:Key="Str_RecentHeading">最近</sys:String>
+    <sys:String x:Key="Str_RecentHeading">RECENT</sys:String>
     <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - キーボード ショートカット</sys:String>
     <sys:String x:Key="Str_UpdateAvailable">更新があります: {0}</sys:String>
-    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} をダウンロードしてインストールしますか?&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">KillerPDF {0} をダウンロードしてインストールしますか？&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
     <sys:String x:Key="Str_UpdateDownloading">ダウンロード中...</sys:String>
     <sys:String x:Key="Str_ClearAllData">すべてのデータを消去</sys:String>
-    <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">保存されたすべての設定、ダウンロード済みの OCR 言語パック、一時ファイルを削除します。&#10;&#10;PDF ファイルには影響しません。続行しますか?</sys:String>
+    <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">保存されたすべての設定、ダウンロード済みの OCR 言語パック、一時ファイルを削除します。&#10;&#10;PDF ファイルには影響しません。続行しますか？</sys:String>
     <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">設定、言語パック、一時ファイルを消去しました。&#10;&#10;このセッションで使用中のファイルの消去を完了するには、KillerPDF を再起動してください。</sys:String>
     <sys:String x:Key="Str_Crash_Title">KillerPDF - 予期しないエラー</sys:String>
-    <sys:String x:Key="Str_Crash_Log">ログ: {0}</sys:String>
+    <sys:String x:Key="Str_Crash_Log">ログ : {0}</sys:String>
     <sys:String x:Key="Str_Crash_Copy">レポートをコピー</sys:String>
     <sys:String x:Key="Str_Crash_OpenLogs">ログを開く</sys:String>
     <sys:String x:Key="Str_Crash_Report">GitHub で報告</sys:String>
     <sys:String x:Key="Str_Crash_Continue">続行</sys:String>
     <sys:String x:Key="Str_Crash_Quit">終了</sys:String>
+    <!-- Shared text that must never bypass the active locale (#227) -->
     <sys:String x:Key="Str_Btn_OK">OK</sys:String>
     <sys:String x:Key="Str_Btn_Yes">はい</sys:String>
     <sys:String x:Key="Str_Btn_No">いいえ</sys:String>
@@ -943,42 +957,42 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Busy_CancelHint">(Esc でキャンセル)</sys:String>
     <sys:String x:Key="Str_Busy_DownloadingMany">{0} をダウンロード中 - {1} / {2} -</sys:String>
     <!-- PDF comparison (#160) -->
-    <sys:String x:Key="Str_TT_ComparePDFs">PDFを比較</sys:String>
+    <sys:String x:Key="Str_TT_ComparePDFs">PDF を比較</sys:String>
     <sys:String x:Key="Str_TT_ExitComparison">比較を終了</sys:String>
     <sys:String x:Key="Str_Compare_OpenOriginal">比較を開始する前に元のPDFを開いてください。</sys:String>
-    <sys:String x:Key="Str_Compare_SelectTitle">比較するPDFを選択</sys:String>
-    <sys:String x:Key="Str_Compare_ChooseDifferent">比較する別のPDFを選択してください。</sys:String>
-    <sys:String x:Key="Str_Compare_Ended">PDF比較を終了しました</sys:String>
-    <sys:String x:Key="Str_Compare_MissingRight">比較PDFに対応するページがありません</sys:String>
-    <sys:String x:Key="Str_Compare_MissingLeft">元のPDFに対応するページがありません</sys:String>
-    <sys:String x:Key="Str_Compare_PageOnlyOne">ページ{0}は{1}PDFにのみ存在します</sys:String>
+    <sys:String x:Key="Str_Compare_SelectTitle">比較する PDF を選択</sys:String>
+    <sys:String x:Key="Str_Compare_ChooseDifferent">比較する別の PDF を選択してください。</sys:String>
+    <sys:String x:Key="Str_Compare_Ended">PDF 比較を終了しました</sys:String>
+    <sys:String x:Key="Str_Compare_MissingRight">比較 PDF に対応するページがありません</sys:String>
+    <sys:String x:Key="Str_Compare_MissingLeft">元の PDF に対応するページがありません</sys:String>
+    <sys:String x:Key="Str_Compare_PageOnlyOne">ページ {0} は {1} PDF にのみ存在します</sys:String>
     <sys:String x:Key="Str_Compare_Original">元の</sys:String>
     <sys:String x:Key="Str_Compare_Comparison">比較</sys:String>
-    <sys:String x:Key="Str_Compare_Changed">ページ{0}: {1}変更</sys:String>
-    <sys:String x:Key="Str_Compare_NoDifferences">ページ{0}: 視覚的な違いはありません</sys:String>
-    <sys:String x:Key="Str_Compare_DimensionsDiffer">ページ{0}: ページサイズが異なります</sys:String>
-    <sys:String x:Key="Str_Compare_Failed">比較に失敗しました: {0}</sys:String>
+    <sys:String x:Key="Str_Compare_Changed">ページ {0} : {1} 変更</sys:String>
+    <sys:String x:Key="Str_Compare_NoDifferences">ページ {0} : 視覚的な違いはありません</sys:String>
+    <sys:String x:Key="Str_Compare_DimensionsDiffer">ページ {0} : ページサイズが異なります</sys:String>
+    <sys:String x:Key="Str_Compare_Failed">比較に失敗しました : {0}</sys:String>
     <sys:String x:Key="Str_Compare_OpenTabs">開いているタブと比較</sys:String>
-    <sys:String x:Key="Str_Compare_NoOpenTabs">他に開いているPDFタブはありません</sys:String>
-    <sys:String x:Key="Str_Compare_Browse">別のPDFを選択...</sys:String>
+    <sys:String x:Key="Str_Compare_NoOpenTabs">他に開いている PDF タブはありません</sys:String>
+    <sys:String x:Key="Str_Compare_Browse">別の PDF を選択...</sys:String>
     <sys:String x:Key="Str_Compare_Bar">比較</sys:String>
     <sys:String x:Key="Str_Compare_Comparing">比較中...</sys:String>
-    <sys:String x:Key="Str_Compare_ChangedAndDimensions">ページ{0}: サイズが異なります。{1}変更</sys:String>
+    <sys:String x:Key="Str_Compare_ChangedAndDimensions">ページ {0} : サイズが異なります。{1} 変更</sys:String>
     <sys:String x:Key="Str_Compare_ViewLocked">比較では単一ページ表示に固定されます</sys:String>
     <sys:String x:Key="Str_Compare_ViewDetails">完全な比較レポートを表示</sys:String>
-    <sys:String x:Key="Str_Compare_BuildingReport">すべてのページを確認しています...</sys:String>
-    <sys:String x:Key="Str_Compare_DetailsTitle">PDF比較の詳細</sys:String>
+    <sys:String x:Key="Str_Compare_BuildingReport">全ページを確認中...</sys:String>
+    <sys:String x:Key="Str_Compare_DetailsTitle">PDF 比較の詳細</sys:String>
 
     <!-- ── Browser handoff refusals ────────────────────────────────────── -->
-    <sys:String x:Key="Str_Handoff_Failed">KillerPDFはブラウザのPDFを開けませんでした。</sys:String>
-    <sys:String x:Key="Str_Handoff_UnknownCommand">そのブラウザコマンドは、KillerPDFが知っているものではありません。</sys:String>
-    <sys:String x:Key="Str_Handoff_MissingUrl">ハンドオフにはPDFアドレスが含まれていませんでした。</sys:String>
-    <sys:String x:Key="Str_Handoff_MalformedUrl">ハンドオフのPDFアドレスを読み取れませんでした。</sys:String>
-    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDFは、https経由のブラウザハンドオフのみを開きます。</sys:String>
-    <sys:String x:Key="Str_Handoff_Unusable">ブラウザのハンドオフを使用できませんでした。</sys:String>
-    <sys:String x:Key="Str_Handoff_TooLarge">PDFが256 MBのブラウザハンドオフ制限を超えています。</sys:String>
-    <sys:String x:Key="Str_Handoff_NotPdf">ダウンロードしたファイルはPDFではありません。</sys:String>
-    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDFはPDFをダウンロードできませんでした。</sys:String>
-    <sys:String x:Key="Str_Handoff_TimedOut">PDFのダウンロードがタイムアウトしました。</sys:String>
-    <sys:String x:Key="Str_Handoff_FileError">KillerPDFは、ダウンロードしたPDFを保存または読み取ることができませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_Failed">KillerPDF はブラウザーの PDF を開けませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">そのブラウザーコマンドは KillerPDF には認識できません。</sys:String>
+    <sys:String x:Key="Str_Handoff_MissingUrl">引き渡し情報に PDF のアドレスが含まれていませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_MalformedUrl">引き渡し情報内の PDF アドレスを読み取れませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF は https 経由のブラウザからの引き渡しのみを開きます。</sys:String>
+    <sys:String x:Key="Str_Handoff_Unusable">ブラウザからの引き渡し情報を使用できませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_TooLarge">PDF がブラウザ引き渡しの上限である 256 MB を超えています。</sys:String>
+    <sys:String x:Key="Str_Handoff_NotPdf">ダウンロードされたファイルは PDF ではありません。</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF は PDF をダウンロードできませんでした。</sys:String>
+    <sys:String x:Key="Str_Handoff_TimedOut">PDF のダウンロードがタイムアウトしました。</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">KillerPDF はダウンロードした PDF を保存または読み取ることができませんでした。</sys:String>
 </ResourceDictionary>
