@@ -41,7 +41,7 @@
     <sys:String x:Key="Str_TT_Search">Поиск (Ctrl+F)</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">Отменить последнее изменение (Ctrl+Z)</sys:String>
     <sys:String x:Key="Str_TT_MultiPageGrid">Многостраничный вид сетки (F8)</sys:String>
-    <sys:String x:Key="Str_TT_ZoomOut">Уменьшите масштаб (Ctrl+-)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomOut">Уменьшить масштаб (Ctrl+-)</sys:String>
     <sys:String x:Key="Str_TT_ZoomLevel">Уровень масштабирования (Ctrl+колесо мыши · Ctrl++/- · Ctrl+0=сброс)</sys:String>
     <sys:String x:Key="Str_TT_ZoomIn">Увеличить масштаб(Ctrl++)</sys:String>
     <sys:String x:Key="Str_TT_GoToPage">Перейти на страницу (введите для навигации)</sys:String>
