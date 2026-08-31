@@ -278,8 +278,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Lbl_Merge">Добавить PDF</sys:String>
     <sys:String x:Key="Str_Lbl_Extract">Извл.страниц</sys:String>
     <sys:String x:Key="Str_Lbl_Delete">Удалить</sys:String>
-    <sys:String x:Key="Str_Lbl_MoveUp">Перем.стр.вверх</sys:String>
-    <sys:String x:Key="Str_Lbl_MoveDown">Перем.стр.вниз</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveUp">Вверх</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveDown">Вниз</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Текст</sys:String>
     <sys:String x:Key="Str_Lbl_FormField">Поля форм (F)</sys:String>
     <sys:String x:Key="Str_Lbl_Highlight">Маркер</sys:String>
