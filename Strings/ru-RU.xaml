@@ -304,8 +304,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Lbl_Flatten">Сведение</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Печать</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Выделить</sys:String>
-    <sys:String x:Key="Str_Lbl_ZoomOut">Уменьш</sys:String>
-    <sys:String x:Key="Str_Lbl_ZoomIn">Увелич</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomOut">Уменьш.</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomIn">Увелич.</sys:String>
     <sys:String x:Key="Str_Lbl_Search">Поиск</sys:String>
 
     <!-- ── Right-click menu labels ────────────────────────────────────── -->
