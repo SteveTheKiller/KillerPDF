@@ -256,8 +256,8 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Theme_Malaise">Недомогание</sys:String>
 
     <!-- ── Zoom dropdown ──────────────────────────────────────────────── -->
-    <sys:String x:Key="Str_Zoom_FitWidth">Подогнать по ширине</sys:String>
-    <sys:String x:Key="Str_Zoom_FitPage">Подогнать по странице</sys:String>
+    <sys:String x:Key="Str_Zoom_FitWidth">По ширине</sys:String>
+    <sys:String x:Key="Str_Zoom_FitPage">По странице</sys:String>
     <sys:String x:Key="Str_FitWidth">Страница {0} из {1} - Подогнано по ширине ({2}%)</sys:String>
     <sys:String x:Key="Str_FitPage">Страница {0} из {1} - Подогнано по странице ({2}%)</sys:String>
 
@@ -275,14 +275,14 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Continuous_EditMsg">Переключитесь в одностраничный режим, чтобы использовать инструменты редактирования</sys:String>
 
     <!-- ── Overflow menu + menu item labels ───────────────────────────── -->
-    <sys:String x:Key="Str_Lbl_Merge">Добавить PDF-файлы</sys:String>
-    <sys:String x:Key="Str_Lbl_Extract">Извлечь страницы</sys:String>
-    <sys:String x:Key="Str_Lbl_Delete">Удалить страницы</sys:String>
+    <sys:String x:Key="Str_Lbl_Merge">Добавить PDF</sys:String>
+    <sys:String x:Key="Str_Lbl_Extract">Извл.страниц</sys:String>
+    <sys:String x:Key="Str_Lbl_Delete">Удалить</sys:String>
     <sys:String x:Key="Str_Lbl_MoveUp">Перем.стр.вверх</sys:String>
     <sys:String x:Key="Str_Lbl_MoveDown">Перем.стр.вниз</sys:String>
     <sys:String x:Key="Str_Lbl_Text">Текст</sys:String>
     <sys:String x:Key="Str_Lbl_FormField">Поля форм (F)</sys:String>
-    <sys:String x:Key="Str_Lbl_Highlight">Выделить</sys:String>
+    <sys:String x:Key="Str_Lbl_Highlight">Маркер</sys:String>
     <sys:String x:Key="Str_Lbl_Strike">Зачеркнуть</sys:String>
     <sys:String x:Key="Str_Lbl_Underline">Подчеркнуть</sys:String>
     <sys:String x:Key="Str_Lbl_Bold">Жирный</sys:String>
@@ -291,16 +291,16 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Lbl_Shape">Формы</sys:String>
     <sys:String x:Key="Str_Lbl_Crop">Обрезка</sys:String>
     <sys:String x:Key="Str_Lbl_Measure">Измерить</sys:String>
-    <sys:String x:Key="Str_Lbl_Rotate">Трансформировать</sys:String>
+    <sys:String x:Key="Str_Lbl_Rotate">Трансформ.</sys:String>
     <sys:String x:Key="Str_Lbl_Stamp">Штамп</sys:String>
     <sys:String x:Key="Str_Lbl_Image">Добав. изобр.</sys:String>
     <sys:String x:Key="Str_Lbl_Signature">Подпись</sys:String>
-    <sys:String x:Key="Str_Lbl_Undo">Отменить</sys:String>
-    <sys:String x:Key="Str_Lbl_Clear">Очистить все</sys:String>
+    <sys:String x:Key="Str_Lbl_Undo">Отмена</sys:String>
+    <sys:String x:Key="Str_Lbl_Clear">Очист.все</sys:String>
     <sys:String x:Key="Str_Lbl_New">Новый</sys:String>
-    <sys:String x:Key="Str_Lbl_Open">Открыть</sys:String>
-    <sys:String x:Key="Str_Lbl_Close">Закрыть</sys:String>
-    <sys:String x:Key="Str_Lbl_Save">Сохранить</sys:String>
+    <sys:String x:Key="Str_Lbl_Open">Откр.</sys:String>
+    <sys:String x:Key="Str_Lbl_Close">Закр.</sys:String>
+    <sys:String x:Key="Str_Lbl_Save">Сохр.</sys:String>
     <sys:String x:Key="Str_Lbl_Flatten">Сведение</sys:String>
     <sys:String x:Key="Str_Lbl_Print">Печать</sys:String>
     <sys:String x:Key="Str_Lbl_Select">Выделить</sys:String>
@@ -312,7 +312,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Ctx_CopyText">Копировать текст</sys:String>
     <sys:String x:Key="Str_Ctx_Print">Печать</sys:String>
     <sys:String x:Key="Str_Ctx_OcrPage">Распознать (скопировать текст)</sys:String>
-    <sys:String x:Key="Str_Lbl_Ocr">Распознать</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
     <sys:String x:Key="Str_TT_Ocr">Распознать страницу (копировать текст) (Ctrl+Shift+O)</sys:String>
     <sys:String x:Key="Str_Ocr_Region">Распознать область страницы...</sys:String>
     <sys:String x:Key="Str_Ocr_SearchablePdf">Сделайте PDF-файл доступным для поиска...</sys:String>
