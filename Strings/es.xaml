@@ -195,12 +195,12 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Theme_Greed">Codicia</sys:String>
     <sys:String x:Key="Str_Theme_Cyanotic">Cianótico</sys:String>
     <sys:String x:Key="Str_Theme_98SE">98SE</sys:String>
-    <sys:String x:Key="Str_Theme_Ectoplasm">Ectoplasm</sys:String>
-    <sys:String x:Key="Str_Theme_Decay">Decay</sys:String>
-    <sys:String x:Key="Str_Theme_Mourning">Mourning</sys:String>
-    <sys:String x:Key="Str_Theme_Sepulchre">Sepulchre</sys:String>
-    <sys:String x:Key="Str_Theme_Delirium">Delirium</sys:String>
-    <sys:String x:Key="Str_Theme_Malaise">Malaise</sys:String>
+    <sys:String x:Key="Str_Theme_Ectoplasm">Ectoplasma</sys:String>
+    <sys:String x:Key="Str_Theme_Decay">Decadencia</sys:String>
+    <sys:String x:Key="Str_Theme_Mourning">Luto</sys:String>
+    <sys:String x:Key="Str_Theme_Sepulchre">Sepulcro</sys:String>
+    <sys:String x:Key="Str_Theme_Delirium">Delirio</sys:String>
+    <sys:String x:Key="Str_Theme_Malaise">Malestar</sys:String>
 
     <!-- ── Zoom dropdown ──────────────────────────────────────────────── -->
     <sys:String x:Key="Str_Zoom_FitWidth">Ajustar ancho</sys:String>
@@ -428,7 +428,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Sign_AppearanceDefault">Firmado digitalmente por {name}&#10;Fecha: {date}&#10;Motivo: {reason}&#10;Ubicación: {location}</sys:String>
     <sys:String x:Key="Str_Sign_Page">Página</sys:String>
     <sys:String x:Key="Str_Sign_Position">Posición</sys:String>
-    <sys:String x:Key="Str_Sign_BottomLeft">Inferior Izquierdo</sys:String>
+    <sys:String x:Key="Str_Sign_BottomLeft">Abajo a la izquierda</sys:String>
     <sys:String x:Key="Str_Sign_BottomRight">Abajo a la derecha</sys:String>
     <sys:String x:Key="Str_Sign_TopLeft">Arriba a la izquierda</sys:String>
     <sys:String x:Key="Str_Sign_TopRight">Arriba a la derecha</sys:String>
@@ -513,8 +513,8 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_KS_FullScreen">Pantalla completa</sys:String>
     <sys:String x:Key="Str_FullScreen_Hint">Pulsa F11 o Esc para salir de pantalla completa</sys:String>
     <!-- Quit prompt -->
-    <sys:String x:Key="Str_Dlg_QuitMsg">Salir de KillerPDF?</sys:String>
-    <sys:String x:Key="Str_Chk_CloseTabs">Cerrar mis pestanas abiertas</sys:String>
+    <sys:String x:Key="Str_Dlg_QuitMsg">¿Salir de KillerPDF?</sys:String>
+    <sys:String x:Key="Str_Chk_CloseTabs">Cerrar mis pestañas abiertas</sys:String>
     <sys:String x:Key="Str_Btn_Quit">Salir</sys:String>
     <sys:String x:Key="Str_Btn_CancelDlg">Cancelar</sys:String>
 
@@ -740,7 +740,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Tf_LevelsBlack">Punto negro</sys:String>
     <sys:String x:Key="Str_Tf_LevelsWhite">Punto blanco</sys:String>
     <sys:String x:Key="Str_Tf_LevelsGamma">Medios tonos</sys:String>
-    <sys:String x:Key="Str_Tf_Quality">Calidad de la Página</sys:String>
+    <sys:String x:Key="Str_Tf_Quality">Calidad de la página</sys:String>
     <sys:String x:Key="Str_Tf_ColorMode">Modo de color</sys:String>
     <sys:String x:Key="Str_Tf_Grayscale">Escala de grises</sys:String>
     <sys:String x:Key="Str_Tf_BlackWhite">Negro y blanco</sys:String>
