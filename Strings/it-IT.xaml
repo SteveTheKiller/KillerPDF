@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Italian (it-IT) strings - Revised: 28.08.2026
+         KillerPDF  -  Italian (it-IT) strings - Revised: 30.08.2026
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -26,7 +26,7 @@
     <sys:String x:Key="Str_TT_MovePageDown">Sposta pagina in giù (riordina)</sys:String>
     <sys:String x:Key="Str_TT_SelectTool">Strumento selezione: clic sulle annotazioni, trascina per selezionare il testo, doppio clic per modificare (V)</sys:String>
     <sys:String x:Key="Str_TT_TextTool">Strumento testo: clic per aggiungere testo (T)</sys:String>
-    <sys:String x:Key="Str_TT_FormFieldTool">Campo di testo compilabile: crea, seleziona, sposta, ridimensiona o elimina i campi; clic destro per cambiare il colore di riempimento (F)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Campo testo compilabile: crea, seleziona, sposta, ridimensiona o elimina i campi; clic destro per modificare il colore di riempimento (F)</sys:String>
     <sys:String x:Key="Str_TT_HighlightTool">Strumento evidenziazione: trascina per evidenziare (H)</sys:String>
     <sys:String x:Key="Str_TT_StrikeTool">Barrato: trascina sul testo</sys:String>
     <sys:String x:Key="Str_TT_UnderlineTool">Sottolineato: trascina sul testo</sys:String>
@@ -943,10 +943,10 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Btn_Yes">Sì</sys:String>
     <sys:String x:Key="Str_Btn_No">No</sys:String>
     <sys:String x:Key="Str_RecentMissing">mancante</sys:String>
-    <sys:String x:Key="Str_St_PlaceSignature">Fare clic sulla pagina per inserire la firma</sys:String>
-    <sys:String x:Key="Str_St_PlaceInitials">Fare clic sulla pagina per inserire le iniziali</sys:String>
+    <sys:String x:Key="Str_St_PlaceSignature">Clic sulla pagina per inserire la firma</sys:String>
+    <sys:String x:Key="Str_St_PlaceInitials">Clic sulla pagina per inserire le iniziali</sys:String>
     <sys:String x:Key="Str_St_SelectionCleared">Selezione cancellata</sys:String>
-    <sys:String x:Key="Str_St_AnnotationsSelected">{0} annotazioni selezionate - premere Canc per rimuoverle</sys:String>
+    <sys:String x:Key="Str_St_AnnotationsSelected">{0} annotazioni selezionate - premi 'Canc' per rimuoverle</sys:String>
     <sys:String x:Key="Str_St_CopiedAnnotationOne">Copiato 1 annotazione</sys:String>
     <sys:String x:Key="Str_St_CopiedAnnotationMany">Copiate {0} annotazioni</sys:String>
     <sys:String x:Key="Str_St_PastedAnnotationOne">Incollata 1 annotazione</sys:String>
