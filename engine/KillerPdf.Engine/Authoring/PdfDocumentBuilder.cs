@@ -2662,11 +2662,25 @@ public sealed partial class PdfDocumentBuilder
             AddOutputIntentObjects(
                 objects, _outputIntent, iccProfileNumber!.Value, outputIntentNumber!.Value);
         foreach (PdfOptionalContentGroup group in optionalContentGroups)
-            objects.Add(new PdfIndirectObject(optionalContentNumbers[group], 0,
-                Dictionary(
+        {
+            var groupEntries = new List<(string Name, PdfObject Value)>
+            {
                     ("Type", Name("OCG")),
                     ("Name", UnicodeString(group.Name)),
-                    ("Intent", new PdfArray([Name("View"), Name("Design")]))), 0));
+                    ("Intent", new PdfArray([Name("View"), Name("Design")]))
+            };
+            var usageEntries = new List<(string Name, PdfObject Value)>();
+            if (group.VisibleWhenPrinting.HasValue)
+                usageEntries.Add(("Print", Dictionary(("PrintState",
+                    Name(group.VisibleWhenPrinting.Value ? "ON" : "OFF")))));
+            if (group.VisibleWhenExporting.HasValue)
+                usageEntries.Add(("Export", Dictionary(("ExportState",
+                    Name(group.VisibleWhenExporting.Value ? "ON" : "OFF")))));
+            if (usageEntries.Count > 0)
+                groupEntries.Add(("Usage", Dictionary([.. usageEntries])));
+            objects.Add(new PdfIndirectObject(optionalContentNumbers[group], 0,
+                Dictionary([.. groupEntries]), 0));
+        }
         foreach (PdfGraphicsState state in graphicsStates)
         {
             var entries = new List<(string Name, PdfObject Value)>

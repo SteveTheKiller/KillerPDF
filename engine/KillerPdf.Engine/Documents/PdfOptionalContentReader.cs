@@ -20,6 +20,8 @@ public static class PdfOptionalContentReader
         PdfArray groupsArray = RequiredArray(document, properties, "OCGs");
         var groupReferences = new List<PdfIndirectReference>(groupsArray.Count);
         var groupNames = new List<string>(groupsArray.Count);
+        var printVisibility = new List<bool?>(groupsArray.Count);
+        var exportVisibility = new List<bool?>(groupsArray.Count);
         var seen = new HashSet<(int, int)>();
         foreach (PdfObject value in groupsArray)
         {
@@ -33,6 +35,8 @@ public static class PdfOptionalContentReader
             if (type != "OCG") throw new InvalidOperationException("An optional-content group does not declare /Type /OCG.");
             groupReferences.Add(reference);
             groupNames.Add(RequiredText(document, group, "Name"));
+            printVisibility.Add(UsageState(document, group, "Print", "PrintState"));
+            exportVisibility.Add(UsageState(document, group, "Export", "ExportState"));
         }
 
         var configurations = new List<PdfOptionalContentConfigurationInfo>();
@@ -52,7 +56,9 @@ public static class PdfOptionalContentReader
             Generation = reference.Generation,
             Name = groupNames[index],
             IsInitiallyVisible = selected?.VisibleGroupObjectNumbers.Contains(reference.ObjectNumber) ?? true,
-            IsLocked = selected?.LockedGroupObjectNumbers.Contains(reference.ObjectNumber) ?? false
+            IsLocked = selected?.LockedGroupObjectNumbers.Contains(reference.ObjectNumber) ?? false,
+            IsVisibleWhenPrinting = printVisibility[index],
+            IsVisibleWhenExporting = exportVisibility[index]
         }).ToArray();
         return new PdfOptionalContentInfo
         {
@@ -117,6 +123,28 @@ public static class PdfOptionalContentReader
     private static PdfArray RequiredArray(PdfDocument document, PdfDictionary dictionary, string key) =>
         TryValue(document, dictionary, key, out PdfObject? value) && value is PdfArray array
             ? array : throw new InvalidOperationException($"The /OCProperties /{key} value is not an array.");
+    private static bool? UsageState(
+        PdfDocument document, PdfDictionary group,
+        string category, string stateKey)
+    {
+        if (!TryValue(document, group, "Usage", out PdfObject? usageValue)) return null;
+        if (usageValue is not PdfDictionary usage)
+            throw new InvalidOperationException(
+                "An optional-content group /Usage value is not a dictionary.");
+        if (!TryValue(document, usage, category, out PdfObject? categoryValue)) return null;
+        if (categoryValue is not PdfDictionary categoryDictionary)
+            throw new InvalidOperationException(
+                $"An optional-content group /Usage /{category} value is not a dictionary.");
+        string? state = OptionalName(document, categoryDictionary, stateKey);
+        return state switch
+        {
+            null => null,
+            "ON" => true,
+            "OFF" => false,
+            _ => throw new InvalidOperationException(
+                $"An optional-content group /{stateKey} value is invalid.")
+        };
+    }
     private static string RequiredName(PdfDocument document, PdfDictionary dictionary, string key) =>
         OptionalName(document, dictionary, key)
         ?? throw new InvalidOperationException($"An optional-content group has no /{key} name.");
@@ -175,6 +203,10 @@ public sealed record PdfOptionalContentGroupInfo
     public bool IsInitiallyVisible { get; init; }
     /// <summary>Gets whether the default configuration locks the layer state.</summary>
     public bool IsLocked { get; init; }
+    /// <summary>Gets the preferred print visibility, or null when unspecified.</summary>
+    public bool? IsVisibleWhenPrinting { get; init; }
+    /// <summary>Gets the preferred export visibility, or null when unspecified.</summary>
+    public bool? IsVisibleWhenExporting { get; init; }
 }
 
 /// <summary>One optional-content configuration.</summary>

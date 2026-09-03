@@ -10,7 +10,8 @@ public sealed class PdfOptionalContentReaderTests
     public void ReadReturnsNamedGroupsAndDefaultVisibility()
     {
         var hidden = new PdfOptionalContentGroup("Measurements", initiallyVisible: false);
-        var visible = new PdfOptionalContentGroup("Artwork");
+        var visible = new PdfOptionalContentGroup(
+            "Artwork", visibleWhenPrinting: false, visibleWhenExporting: true);
         var content = new PdfContentStreamBuilder()
             .BeginOptionalContent(hidden).Rectangle(0, 0, 10, 10).Stroke().EndMarkedContent()
             .BeginOptionalContent(visible).Rectangle(20, 20, 10, 10).Fill().EndMarkedContent();
@@ -21,6 +22,8 @@ public sealed class PdfOptionalContentReaderTests
 
         Assert.Equal(2, result.Groups.Count);
         Assert.Equal("Artwork", result.Groups[0].Name);
+        Assert.False(result.Groups[0].IsVisibleWhenPrinting);
+        Assert.True(result.Groups[0].IsVisibleWhenExporting);
         Assert.True(result.Groups[0].IsInitiallyVisible);
         Assert.Equal("Measurements", result.Groups[1].Name);
         Assert.False(result.Groups[1].IsInitiallyVisible);

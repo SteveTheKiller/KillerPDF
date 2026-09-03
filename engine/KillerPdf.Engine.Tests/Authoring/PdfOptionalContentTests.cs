@@ -12,7 +12,8 @@ public sealed class PdfOptionalContentTests
     public void Build_WritesLayerCatalogVisibilityAndPagePropertyResources()
     {
         var measurements = new PdfOptionalContentGroup("Measurements Ω", initiallyVisible: false);
-        var artwork = new PdfOptionalContentGroup("Artwork");
+        var artwork = new PdfOptionalContentGroup(
+            "Artwork", visibleWhenPrinting: true, visibleWhenExporting: false);
         var content = new PdfContentStreamBuilder()
             .BeginOptionalContent(measurements)
             .Rectangle(10, 10, 20, 20).Stroke()
@@ -45,6 +46,14 @@ public sealed class PdfOptionalContentTests
             Assert.IsType<PdfIndirectReference>(hidden[0]).ObjectNumber);
         Assert.Equal("Artwork", DecodeUnicode(Assert.IsType<PdfString>(
             ResolveDictionary(document, artworkReference)[Name("Name")])));
+        PdfDictionary artworkDictionary = ResolveDictionary(document, artworkReference);
+        PdfDictionary usage = Assert.IsType<PdfDictionary>(artworkDictionary[Name("Usage")]);
+        Assert.Equal("ON", Assert.IsType<PdfName>(
+            Assert.IsType<PdfDictionary>(usage[Name("Print")])[Name("PrintState")])
+            .ValueAsLatin1());
+        Assert.Equal("OFF", Assert.IsType<PdfName>(
+            Assert.IsType<PdfDictionary>(usage[Name("Export")])[Name("ExportState")])
+            .ValueAsLatin1());
         Assert.Equal("Measurements Ω", DecodeUnicode(Assert.IsType<PdfString>(
             ResolveDictionary(document, measurementsReference)[Name("Name")])));
         Assert.Equal(measurementsReference.ObjectNumber,
