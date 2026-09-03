@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- Added safe XFA packet inspection without executing form scripts (#330).
 - Added attachment metadata and integrity checks to the 1.9 engine (#347).
 - Added calibrated coordinates, directional deltas, and point snapping to measurement tools (#348).
 - Added step-and-repeat and manual page sequences to imposition planning (#349).
