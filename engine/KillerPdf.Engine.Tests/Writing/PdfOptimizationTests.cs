@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 using Xunit;
 
@@ -47,5 +48,35 @@ public sealed class PdfOptimizationTests
 
         Assert.Equal([PdfOptimizationChangeKind.ConsolidateRevisions], plan.Changes);
         Assert.True(PdfDocument.Open(plan.Apply().Data).CrossReferences.Sections.Count == 1);
+    }
+
+    [Fact]
+    public void SelectiveSanitizationRemovesOnlyRequestedDocumentFeatures()
+    {
+        byte[] input = new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("private.txt", "secret"u8.ToArray())
+            .SetOpenAction(0, PdfDestination.FitPage())
+            .AddBookmark("Private bookmark", 0).Build();
+        PdfDocument document = PdfDocument.Open(input);
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document, new PdfOptimizationOptions
+        {
+            RemoveAttachments = true,
+            RemoveOpenAction = true,
+            RemoveBookmarks = true,
+            PackObjects = false,
+            CompressStructure = false
+        });
+        PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(sanitized.Resolve(
+            Assert.IsType<PdfIndirectReference>(sanitized.Trailer[
+                new PdfName("Root"u8)])));
+
+        Assert.Contains(PdfOptimizationChangeKind.RemoveAttachments, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.RemoveOpenAction, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.RemoveBookmarks, plan.Changes);
+        Assert.Empty(PdfAttachmentReader.Read(sanitized));
+        Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "OpenAction");
+        Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "Outlines");
     }
 }

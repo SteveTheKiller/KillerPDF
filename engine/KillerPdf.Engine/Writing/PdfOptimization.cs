@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Writing;
@@ -10,6 +11,12 @@ public enum PdfOptimizationChangeKind
     ConsolidateRevisions,
     /// <summary>Remove document information and XMP metadata.</summary>
     RemoveMetadata,
+    /// <summary>Remove every embedded file.</summary>
+    RemoveAttachments,
+    /// <summary>Remove the action performed when the document opens.</summary>
+    RemoveOpenAction,
+    /// <summary>Remove the document outline.</summary>
+    RemoveBookmarks,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -21,6 +28,12 @@ public sealed record PdfOptimizationOptions
 {
     /// <summary>Gets whether descriptive document information and XMP are removed.</summary>
     public bool RemoveMetadata { get; init; }
+    /// <summary>Gets whether every embedded file is removed.</summary>
+    public bool RemoveAttachments { get; init; }
+    /// <summary>Gets whether the document open action is removed.</summary>
+    public bool RemoveOpenAction { get; init; }
+    /// <summary>Gets whether every bookmark is removed.</summary>
+    public bool RemoveBookmarks { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -42,12 +55,14 @@ public sealed class PdfOptimizationPlan
 {
     private readonly PdfDocument _document;
     private readonly PdfOptimizationOptions _options;
+    private readonly string[] _attachmentNames;
 
     internal PdfOptimizationPlan(PdfDocument document, PdfOptimizationOptions options,
-        IEnumerable<PdfOptimizationChangeKind> changes)
+        IEnumerable<PdfOptimizationChangeKind> changes, IEnumerable<string> attachmentNames)
     {
         _document = document;
         _options = options;
+        _attachmentNames = attachmentNames.ToArray();
         Changes = Array.AsReadOnly(changes.ToArray());
     }
 
@@ -60,7 +75,8 @@ public sealed class PdfOptimizationPlan
     public PdfOptimizationResult Apply()
     {
         int pageCount = PdfPageTree.Read(_document).Pages.Count;
-        byte[] output = PdfDocumentWriter.Write(_document, new PdfDocumentWriteOptions
+        PdfDocument source = ApplySelectiveSanitization();
+        byte[] output = PdfDocumentWriter.Write(source, new PdfDocumentWriteOptions
         {
             MetadataPolicy = _options.RemoveMetadata
                 ? PdfMetadataPolicy.RemoveDocumentInformationAndXmp : PdfMetadataPolicy.Preserve,
@@ -77,6 +93,21 @@ public sealed class PdfOptimizationPlan
             throw new InvalidOperationException("The optimized document still contains revision history.");
         return new PdfOptimizationResult(output, OriginalSize, output.Length, Changes);
     }
+
+    private PdfDocument ApplySelectiveSanitization()
+    {
+        bool removesAttachments = Changes.Contains(PdfOptimizationChangeKind.RemoveAttachments);
+        bool removesOpenAction = Changes.Contains(PdfOptimizationChangeKind.RemoveOpenAction);
+        bool removesBookmarks = Changes.Contains(PdfOptimizationChangeKind.RemoveBookmarks);
+        if (!removesAttachments && !removesOpenAction && !removesBookmarks)
+            return _document;
+        var editor = new PdfIncrementalPageEditor(_document);
+        if (removesAttachments)
+            foreach (string name in _attachmentNames) editor.RemoveAttachment(name);
+        if (removesOpenAction) editor.ClearOpenAction();
+        if (removesBookmarks) editor.ClearBookmarks();
+        return PdfDocument.Open(editor.Build());
+    }
 }
 
 /// <summary>Previews deterministic lossless structural optimization and metadata sanitization.</summary>
@@ -84,6 +115,8 @@ public static class PdfOptimizer
 {
     private static readonly PdfName InformationName = Name("Info");
     private static readonly PdfName MetadataName = Name("Metadata");
+    private static readonly PdfName OpenActionName = Name("OpenAction");
+    private static readonly PdfName OutlinesName = Name("Outlines");
 
     /// <summary>Creates an explainable plan without changing the document.</summary>
     public static PdfOptimizationPlan CreatePlan(PdfDocument document,
@@ -93,12 +126,20 @@ public static class PdfOptimizer
         options ??= new PdfOptimizationOptions();
         var changes = new List<PdfOptimizationChangeKind> { PdfOptimizationChangeKind.ConsolidateRevisions };
         PdfPageTree tree = PdfPageTree.Read(document);
+        string[] attachmentNames = options.RemoveAttachments
+            ? [.. PdfAttachmentReader.Read(document).Select(attachment => attachment.FileName)] : [];
         if (options.RemoveMetadata && (document.Trailer.ContainsKey(InformationName)
             || tree.Catalog.ContainsKey(MetadataName)))
             changes.Add(PdfOptimizationChangeKind.RemoveMetadata);
+        if (attachmentNames.Length > 0)
+            changes.Add(PdfOptimizationChangeKind.RemoveAttachments);
+        if (options.RemoveOpenAction && tree.Catalog.ContainsKey(OpenActionName))
+            changes.Add(PdfOptimizationChangeKind.RemoveOpenAction);
+        if (options.RemoveBookmarks && tree.Catalog.ContainsKey(OutlinesName))
+            changes.Add(PdfOptimizationChangeKind.RemoveBookmarks);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
-        return new PdfOptimizationPlan(document, options, changes);
+        return new PdfOptimizationPlan(document, options, changes, attachmentNames);
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
