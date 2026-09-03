@@ -18,6 +18,33 @@ public sealed class PdfImpositionPlannerTests
     }
 
     [Fact]
+    public void StepAndRepeatFillsSlotsAndKeepsTrailingBlanks()
+    {
+        IReadOnlyList<PdfImposedSheetSide> sides =
+            PdfImpositionPlanner.PlanStepAndRepeat(
+                sourcePageIndex: 3, copyCount: 5,
+                columns: 2, rows: 2, duplex: true);
+
+        AssertSide(sides[0], 0, PdfImposedSheetFace.Front, 3, 3, 3, 3);
+        AssertSide(sides[1], 0, PdfImposedSheetFace.Back, 3, null, null, null);
+    }
+
+    [Fact]
+    public void ManualSequencePreservesOrderBlanksAndDuplexFaces()
+    {
+        IReadOnlyList<PdfImposedSheetSide> sides =
+            PdfImpositionPlanner.PlanManual(
+                sourcePageCount: 6,
+                sequence: [5, null, 0, 4, 1],
+                slotsPerSide: 3, duplex: true);
+
+        AssertSide(sides[0], 0, PdfImposedSheetFace.Front, 5, null, 0);
+        AssertSide(sides[1], 0, PdfImposedSheetFace.Back, 4, 1, null);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.PlanManual(6, [6], 1));
+    }
+
+    [Fact]
     public void BookletAndNUpInsertExplicitBlankSlots()
     {
         IReadOnlyList<PdfImposedSheetSide> booklet = PdfImpositionPlanner.PlanBooklet(5);

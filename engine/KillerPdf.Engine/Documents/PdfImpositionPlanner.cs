@@ -29,6 +29,59 @@ public static class PdfImpositionPlanner
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Plans repeated copies of one source page across N-up sheet sides.</summary>
+    public static IReadOnlyList<PdfImposedSheetSide> PlanStepAndRepeat(
+        int sourcePageIndex, int copyCount, int columns, int rows,
+        bool duplex = false)
+    {
+        if (sourcePageIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
+        if (copyCount < 0)
+            throw new ArgumentOutOfRangeException(nameof(copyCount));
+        IReadOnlyList<PdfImposedSheetSide> layout =
+            PlanNUp(copyCount, columns, rows, duplex);
+        return Array.AsReadOnly(layout.Select(side => side with
+        {
+            SourcePageIndices = Array.AsReadOnly(side.SourcePageIndices
+                .Select(page => page.HasValue ? (int?)sourcePageIndex : null)
+                .ToArray())
+        }).ToArray());
+    }
+
+    /// <summary>Plans a caller-supplied page sequence with explicit blank slots.</summary>
+    public static IReadOnlyList<PdfImposedSheetSide> PlanManual(
+        int sourcePageCount, IReadOnlyList<int?> sequence,
+        int slotsPerSide, bool duplex = false)
+    {
+        if (sourcePageCount < 0)
+            throw new ArgumentOutOfRangeException(nameof(sourcePageCount));
+        ArgumentNullException.ThrowIfNull(sequence);
+        if (slotsPerSide <= 0)
+            throw new ArgumentOutOfRangeException(nameof(slotsPerSide));
+        if (sequence.Any(page => page is < 0 || page >= sourcePageCount))
+            throw new ArgumentOutOfRangeException(nameof(sequence),
+                "A manual imposition page is outside the source document.");
+        if (sequence.Count == 0) return [];
+        int sideCount = (sequence.Count + slotsPerSide - 1) / slotsPerSide;
+        var result = new List<PdfImposedSheetSide>(sideCount);
+        for (int sideIndex = 0; sideIndex < sideCount; sideIndex++)
+        {
+            var slots = new int?[slotsPerSide];
+            for (int slot = 0; slot < slots.Length; slot++)
+            {
+                int sequenceIndex = sideIndex * slotsPerSide + slot;
+                if (sequenceIndex < sequence.Count)
+                    slots[slot] = sequence[sequenceIndex];
+            }
+            result.Add(new PdfImposedSheetSide(
+                duplex ? sideIndex / 2 : sideIndex,
+                duplex && sideIndex % 2 == 1
+                    ? PdfImposedSheetFace.Back : PdfImposedSheetFace.Front,
+                Array.AsReadOnly(slots)));
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
     /// <summary>Plans two-up saddle-stitched booklet signatures in left-to-right slot order.</summary>
     public static IReadOnlyList<PdfImposedSheetSide> PlanBooklet(int pageCount)
     {
