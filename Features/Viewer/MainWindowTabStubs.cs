@@ -14,7 +14,12 @@ namespace KillerPDF
     public partial class MainWindow
     {
         private void OpenInNewTab(string path) => ActiveViewer.OpenInNewTabExt(path);
-        private void CloseTab(Controls.PdfViewer.DocumentSession? s) => ActiveViewer.CloseTabExt(s);
+        private void CloseTab(Controls.PdfViewer.DocumentSession? s)
+        {
+            if (s == null) return;
+            if (Viewer.SessionsRef.Contains(s)) Viewer.CloseTabExt(s);
+            else if (ViewerB.SessionsRef.Contains(s)) ViewerB.CloseTabExt(s);
+        }
         private void CloseAllTabs() => ActiveViewer.CloseAllTabsExt();
         private void CloseOtherTabs(Controls.PdfViewer.DocumentSession? s) => ActiveViewer.CloseOtherTabsExt(s);
         private void CycleTab(int dir) => ActiveViewer.CycleTabExt(dir);

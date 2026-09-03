@@ -805,10 +805,20 @@ namespace KillerPDF.Controls
                 CloseTab(s);
         }
 
+        private bool _closingTab;
+
         private void CloseTab(DocumentSession? s)
         {
+            if (s == null || _closingTab || !_sessions.Contains(s)) return;
+            _closingTab = true;
+            try { CloseTabCore(s); }
+            finally { _closingTab = false; }
+        }
+
+        private void CloseTabCore(DocumentSession s)
+        {
             EnsureInitialSession();
-            if (s == null) return;
+            if (!_sessions.Contains(s)) return;
 
             // Same reason as the top of SwitchToTab: claim the shared fields for this pane before
             // touching them below, in case this pane is not (yet) ActiveViewer - e.g. the tab
@@ -817,6 +827,7 @@ namespace KillerPDF.Controls
             Host?.FocusViewer(this);
 
             // Make the target the live working set so its dirty flag / document are current.
+            if (!_sessions.Contains(s)) return;
             if (s != _active)
             {
                 CommitActiveTextBox();
@@ -840,11 +851,13 @@ namespace KillerPDF.Controls
                 if (res != MessageBoxResult.Yes) { RebuildTabStrip(); return; }
             }
 
+            int idx = _sessions.IndexOf(s);
+            if (idx < 0 || !ReferenceEquals(_active, s)) return;
+
             CancelRenderWork();
             try { _doc?.Close(); } catch { }
             _doc = null;
 
-            int idx = _sessions.IndexOf(s);
             _sessions.Remove(s);
             _renderLru.Remove(s);    // don't pin a closed tab's render cache in the LRU list
             s.RenderCache.Clear();
