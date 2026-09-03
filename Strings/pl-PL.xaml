@@ -1007,4 +1007,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_St_PagesCopiedHere">Skopiowano {0} stron do tego dokumentu.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Kopiowanie strony nie powiodło się:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">Nie można naprawić pliku „{0}”.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Edycja czcionką {0}, {1} pkt. Metryki czcionki mogą różnić się od oryginału.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Czcionka {0} jest niedostępna. Edycja czcionką {1}, {2} pkt.</sys:String>
 </ResourceDictionary>

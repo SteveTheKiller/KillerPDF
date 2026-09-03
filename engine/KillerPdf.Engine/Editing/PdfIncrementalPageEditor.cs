@@ -1373,16 +1373,31 @@ public sealed class PdfIncrementalPageEditor
     /// </summary>
     public PdfIncrementalPageEditor AppendPageContent(
         int pageIndex, double width, double height, PdfContentStreamBuilder content)
+        => AppendTypedPageContent(pageIndex, width, height, content, artifact: false);
+
+    /// <summary>
+    /// Appends decorative content as an artifact without changing the page's logical structure.
+    /// Do not use this method for semantic text replacements or other accessible content.
+    /// </summary>
+    public PdfIncrementalPageEditor AppendPageArtifact(
+        int pageIndex, double width, double height, PdfContentStreamBuilder content)
+        => AppendTypedPageContent(pageIndex, width, height, content, artifact: true);
+
+    private PdfIncrementalPageEditor AppendTypedPageContent(
+        int pageIndex, double width, double height, PdfContentStreamBuilder content, bool artifact)
     {
         ValidateIndex(pageIndex, nameof(pageIndex));
         ValidatePositiveFinite(width, nameof(width));
         ValidatePositiveFinite(height, nameof(height));
         ArgumentNullException.ThrowIfNull(content);
+        if (artifact && content.MarkedContentIds.Count > 0)
+            throw new ArgumentException(
+                "An artifact overlay cannot contain logical-structure marked-content identifiers.", nameof(content));
         PageState page = _pages[pageIndex];
         if (page.Entry is null)
             throw new InvalidOperationException(
                 "Typed content can only be appended to an existing destination page.");
-        page.TypedOverlays.Add(BuildTypedPage(width, height, content));
+        page.TypedOverlays.Add(new TypedOverlay(BuildTypedPage(width, height, content), artifact));
         _pagePresentationChanged = true;
         return this;
     }
@@ -3842,8 +3857,9 @@ public sealed class PdfIncrementalPageEditor
         var xObjectEntries = xObjects.ToDictionary(entry => entry.Key, entry => entry.Value);
         var invocation = new MemoryStream();
 
-        foreach (PdfDocument overlay in state.TypedOverlays)
+        foreach (TypedOverlay pendingOverlay in state.TypedOverlays)
         {
+            PdfDocument overlay = pendingOverlay.Document;
             PdfPageTreeEntry overlayPage = AssertSinglePage(overlay);
             PdfObject overlayResources = overlayPage.InheritedValues.TryGetValue(
                     Name("Resources"), out PdfObject? inheritedResources)
@@ -3870,9 +3886,11 @@ public sealed class PdfIncrementalPageEditor
             do resourceName = Name($"KPO{suffix++}");
             while (xObjectEntries.ContainsKey(resourceName));
             xObjectEntries.Add(resourceName, formReference);
+            if (pendingOverlay.Artifact) invocation.Write("/Artifact BMC\n"u8);
             invocation.Write("q /"u8);
             invocation.Write(resourceName.Bytes.Span);
             invocation.Write(" Do Q\n"u8);
+            if (pendingOverlay.Artifact) invocation.Write("EMC\n"u8);
         }
 
         var resourceEntries = resources
@@ -3883,7 +3901,9 @@ public sealed class PdfIncrementalPageEditor
 
         byte[] commands = invocation.ToArray();
         state.Content = state.Content is null ? commands : [.. state.Content, .. commands];
-        state.ContentUpdate = PageContentUpdate.Append;
+        state.ContentUpdate = state.ContentUpdate is PageContentUpdate.None or PageContentUpdate.ArtifactAppend
+            && state.TypedOverlays.All(overlay => overlay.Artifact)
+                ? PageContentUpdate.ArtifactAppend : PageContentUpdate.Append;
 
         static PdfPageTreeEntry AssertSinglePage(PdfDocument document)
         {
@@ -8424,8 +8444,8 @@ public sealed class PdfIncrementalPageEditor
     private void ValidateExistingStructureTreePageSet()
     {
         if (!_tree.Catalog.ContainsKey(StructTreeRootName)) return;
-        if (_pages.Any(page => page.ContentUpdate != PageContentUpdate.None
-                || page.TypedOverlays.Count > 0))
+        if (_pages.Any(page => page.ContentUpdate is not (PageContentUpdate.None or PageContentUpdate.ArtifactAppend)
+                || page.TypedOverlays.Any(overlay => !overlay.Artifact)))
             throw new NotSupportedException(
                 "Content cannot be appended to or replace content in an existing tagged PDF without matching structure updates.");
         bool additionsAreSupported = _pages.Where(page => page.Entry is null)
@@ -10999,7 +11019,7 @@ public sealed class PdfIncrementalPageEditor
             PdfIndirectReference? newContent = state.Content is { Length: > 0 }
                 ? update.AddObject(new PdfStream(
                     new PdfDictionary([]), state.Content)) : null;
-            if (state.ContentUpdate == PageContentUpdate.Append
+            if (state.ContentUpdate is PageContentUpdate.Append or PageContentUpdate.ArtifactAppend
                 && newContent is not null
                 && contentEntries.TryGetValue(
                     ContentsName, out PdfObject? existingContent))
@@ -17617,7 +17637,7 @@ public sealed class PdfIncrementalPageEditor
         internal bool RemoveThumbnail { get; set; }
         internal byte[]? Content { get; set; }
         internal PageContentUpdate ContentUpdate { get; set; }
-        internal List<PdfDocument> TypedOverlays { get; } = [];
+        internal List<TypedOverlay> TypedOverlays { get; } = [];
         internal bool ReplaceAnnotations { get; set; }
         internal PdfArray? Annotations { get; set; }
     }
@@ -17661,7 +17681,8 @@ public sealed class PdfIncrementalPageEditor
 
     private enum FieldDefaultKind { Remove, Text, CheckBox, Radio, Choice }
 
-    private enum PageContentUpdate { None, Append, Replace }
+    private sealed record TypedOverlay(PdfDocument Document, bool Artifact);
+    private enum PageContentUpdate { None, Append, ArtifactAppend, Replace }
 
     private static PdfName PageTabOrderName(PdfPageTabOrder tabOrder) => tabOrder switch
     {

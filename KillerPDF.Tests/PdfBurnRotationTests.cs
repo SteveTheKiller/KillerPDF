@@ -21,6 +21,40 @@ namespace KillerPDF.Tests;
 //      it leaves the rect numbers right but the content turned 90 degrees on the page.
 public sealed class PdfBurnRotationTests
 {
+    [Fact]
+    public void EngineBurn_RasterPreparationAcceptsTaggedPagesWithoutRemovingTheirStructure()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-raster-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder()
+                .SetMetadata(new PdfDocumentMetadata { Title = "Tagged source", Language = "en-US" })
+                .EnablePdfUa2Conformance()
+                .AddPage(100, 100, new PdfContentStreamBuilder()
+                    .BeginMarkedContent(PdfStructureType.Figure, 0)
+                    .Rectangle(10, 10, 20, 20).Fill().EndMarkedContent())
+                .AddStructureContainer(PdfStructureType.Document)
+                .AddStructureElement(PdfStructureType.Figure, 0, 0, 1, alternateDescription: "Square")
+                .Build();
+            File.WriteAllBytes(path, source);
+            var annotations = new Dictionary<int, List<PageAnnotation>>
+            {
+                [0] = [new HighlightAnnotation { PageIndex = 0, Bounds = new Rect(20, 30, 40, 12) }]
+            };
+            var dimensions = new Dictionary<int, (int w, int h)> { [0] = (100, 100) };
+            Assert.Throws<NotSupportedException>(() => PdfEngineBurn.Burn(path, annotations, dimensions));
+            PdfEngineBurn.Burn(path, annotations, dimensions, forRasterization: true);
+            EngineDocument result = EngineDocument.Open(File.ReadAllBytes(path));
+            var catalog = Assert.IsType<PdfDictionary>(result.Resolve(
+                Assert.IsType<PdfIndirectReference>(result.Trailer[new PdfName("Root"u8)])));
+            Assert.True(catalog.ContainsKey(new PdfName("StructTreeRoot"u8)));
+            Assert.Contains("/Artifact BMC", AllDecodedStreams(path));
+            Assert.Contains("/MCID 0", AllDecodedStreams(path));
+            Assert.Single(annotations[0]);
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     // A5-ish landscape map on a portrait MediaBox, the shape from the #169 repro files.
     private const double BoxW = 842, BoxH = 1191;
 

@@ -1004,4 +1004,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_St_PagesCopiedHere">Do tohoto dokumentu bylo zkopírováno {0} stránek.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Kopírování stránky selhalo:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">Soubor „{0}“ se nepodařilo opravit.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Úprava písmem {0}, {1} pt. Metriky písma se mohou lišit od originálu.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Písmo {0} není dostupné. Úprava písmem {1}, {2} pt.</sys:String>
 </ResourceDictionary>

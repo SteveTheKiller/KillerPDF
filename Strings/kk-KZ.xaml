@@ -1018,4 +1018,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_St_PagesCopiedHere">Осы құжатқа {0} бет көшірілді.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Бетті көшіру сәтсіз аяқталды:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">«{0}» файлын жөндеу мүмкін болмады.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">{0}, {1} pt қарпімен өңделуде. Қаріп өлшемдері түпнұсқадан өзгеше болуы мүмкін.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">{0} қарпі қолжетімсіз. {1}, {2} pt қарпімен өңделуде.</sys:String>
 </ResourceDictionary>

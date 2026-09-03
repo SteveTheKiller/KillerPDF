@@ -1019,4 +1019,6 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_St_PagesCopiedHere">{0} pages copiées dans ce document.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Échec de la copie de la page :&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">Impossible de réparer « {0} ».</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Modification avec {0}, {1} pt. Les métriques de la police peuvent différer de l’original.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">La police {0} n’est pas disponible. Modification avec {1}, {2} pt.</sys:String>
 </ResourceDictionary>

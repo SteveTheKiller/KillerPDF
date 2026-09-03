@@ -1019,4 +1019,6 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_St_PagesCopiedHere">В этот документ скопировано страниц: {0}.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Не удалось скопировать страницу:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">Не удалось восстановить файл «{0}».</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Редактирование шрифтом {0}, {1} пт. Метрики шрифта могут отличаться от оригинала.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Шрифт {0} недоступен. Редактирование шрифтом {1}, {2} пт.</sys:String>
 </ResourceDictionary>

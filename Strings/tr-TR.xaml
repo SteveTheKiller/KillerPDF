@@ -999,4 +999,6 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_St_PagesCopiedHere">Bu belgeye {0} sayfa kopyalandı.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Sayfa kopyalanamadı:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">&quot;{0}&quot; onarılamadı.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">{0}, {1} pt ile düzenleniyor. Yazı tipi ölçüleri orijinalden farklı olabilir.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">{0} yazı tipi kullanılamıyor. {1}, {2} pt ile düzenleniyor.</sys:String>
 </ResourceDictionary>

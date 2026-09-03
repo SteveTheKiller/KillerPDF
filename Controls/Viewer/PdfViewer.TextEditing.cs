@@ -155,7 +155,7 @@ namespace KillerPDF.Controls
                     double syp = 1.0;
                     if (_doc is not null && _renderDims.TryGetValue(pageIdx, out var prd) && prd.h > 0)
                         syp = EnsureEngineDocumentSession().Pages[pageIdx].Height / prd.h;
-                    _textFontSize = Math.Max(1, Math.Round(placed.FontSize * syp));
+                    _textFontSize = Math.Max(1, placed.FontSize * syp);
                     _textLetterSpacing = placed.LetterSpacing * syp;
                     // Sync the bar's typeface + B/I/S to the box being re-edited.
                     _textFontName = string.IsNullOrEmpty(placed.FontName) ? "Segoe UI" : placed.FontName;
@@ -363,15 +363,20 @@ namespace KillerPDF.Controls
                 }
                 catch { /* use fallbacks */ }
 
-                // Drop the cover + editable text box for the detected line. Detected size carries the
-                // EditTextSizeCorrection (WPF renders the source point size ~25% large); manual edits don't.
+                // Preserve the detected point size. Canvas scaling already converts PDF points
+                // to the editor's coordinates, so applying another correction shrinks the text.
                 // Scanned PDFs with a broken glyph->Unicode map extract as mojibake; in that case start the
                 // box empty (like a manual edit) instead of pre-filling garbage - the user types over the
                 // whited-out original.
                 string prefill = LooksGarbled(lineText) ? "" : lineText;
+                string requestedFamily = fontName;
+                fontName = PdfFontStyle.ResolveInstalledFamily(fontName, MainWindow.SystemFontNames);
                 StartCoverTextEdit(pageIdx, new Rect(cLeft, cTop, cWidth, cHeight), prefill,
-                    Math.Max(canvasFontSize * EditTextSizeCorrection, 8), fontName, syInv,
+                    Math.Max(canvasFontSize, syInv), fontName, syInv,
                     fontBold, fontItalic);
+                SetStatus(string.Equals(requestedFamily, fontName, StringComparison.OrdinalIgnoreCase)
+                    ? string.Format(Loc("Str_St_TextEditDetectedFont"), fontName, _textFontSize.ToString("0.##"))
+                    : string.Format(Loc("Str_St_TextEditFontSubstituted"), requestedFamily, fontName, _textFontSize.ToString("0.##")));
             }
             catch (Exception ex)
             {
@@ -399,7 +404,7 @@ namespace KillerPDF.Controls
             Color inkColor = SampleTextColor(pageIdx, sampleRect, coverBg);
             cover.SetColor(coverBg);
             _textColor = inkColor; _textOpacity = inkColor.A;
-            _textFontSize = Math.Max(1, Math.Round(boxFontCanvas / syInv));   // canvas units -> points
+            _textFontSize = Math.Max(1, boxFontCanvas / syInv);   // canvas units -> points
             // Replacing raw PDF text starts from the detected font and its face styling. PDF fonts
             // encode bold and italic in the font name, so resetting these flags made every detected
             // line plain as soon as it was double-clicked (#182).

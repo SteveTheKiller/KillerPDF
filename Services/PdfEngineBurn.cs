@@ -22,7 +22,8 @@ internal static class PdfEngineBurn
         IReadOnlyDictionary<int, (int w, int h)> renderDims,
         StampSpec? stamps = null,
         int? onlyPage = null,
-        IReadOnlyDictionary<int, int>? rotations = null)
+        IReadOnlyDictionary<int, int>? rotations = null,
+        bool forRasterization = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (annotations.Values.Any(items => items.Count > 0))
@@ -72,7 +73,10 @@ internal static class PdfEngineBurn
             }
 
             content.RestoreState();
-            editor.AppendPageContent(pageIndex, page.Width, page.Height, content);
+            if (forRasterization)
+                editor.AppendPageArtifact(pageIndex, page.Width, page.Height, content);
+            else
+                editor.AppendPageContent(pageIndex, page.Width, page.Height, content);
         }
 
         Replace(path, editor.Build());

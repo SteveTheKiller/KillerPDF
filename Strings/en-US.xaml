@@ -1019,4 +1019,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_St_PagesCopiedHere">Copied {0} pages to this document.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Page copy failed:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">&quot;{0}&quot; could not be repaired.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Editing with {0}, {1} pt. Font metrics may differ from the original.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Font {0} is unavailable. Editing with {1}, {2} pt.</sys:String>
 </ResourceDictionary>

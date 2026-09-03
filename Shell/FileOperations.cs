@@ -1077,70 +1077,58 @@ namespace KillerPDF
         private async void SaveFlattened_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null || _currentFile is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
-            CommitActiveTextBox();
             var dlg = new Controls.FileDialog(Controls.FileDialogMode.Save)
                           { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveFlattened"),
                             CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
             if (dlg.ShowDialog(this) != true) return;
-            CloseEngineDocumentSession();
-            OfferRescaleOutOfRangePages();   // Adobe page-size guard (pageDims below must be in range)
-
-            // Burn any pending annotations into a temp source for rasterization
-            // (must happen on UI thread before we go async)
-            string sourcePath;
-            bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
-            if (hasAnnotations || HasActiveStamps)   // #147: stamps alone must still burn
-            {
-                var tempClean  = App.MakeTempFile("clean");
-                var tempBurned = App.MakeTempFile("burned");
-                _doc.Save(tempClean);
-                PdfEngineIntegration.RepairHarmlessSaveArtifacts(tempClean);
-                System.IO.File.Copy(tempClean, tempBurned, true);
-                PdfEngineBurn.Burn(tempBurned, _annotations, _renderDims,
-                    _docStampSpec, null, _pageRotations);
-                _doc.Close();
-                try
-                {
-                    _doc = PdfWorkingDocument.Open(tempClean);
-                }
-                catch (Exception saveOpenEx) when (PdfImport.IsXRefException(saveOpenEx))
-                {
-                    var fixedPath = App.MakeTempFile("savefixed");
-                    if (!PdfImport.TryImportRepairToPath(tempClean, fixedPath)
-                        && !PdfiumInterop.TryPdfiumSaveWithZeroRotations(tempClean, fixedPath))
-                        throw;
-                    tempClean = fixedPath;
-                    _doc = PdfWorkingDocument.Open(tempClean);
-                }
-                _currentFile = tempClean;
-                sourcePath = tempBurned;
-            }
-            else
-            {
-                var temp = App.MakeTempFile("src");
-                _doc.Save(temp);
-                PdfEngineIntegration.RepairHarmlessSaveArtifacts(temp);
-                sourcePath = temp;
-            }
-
-            PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
-            int pageCount = engineSession.PageCount;
-
-            // Snapshot per-page dimensions (CropBox-aware) before going off-thread
-            var pageDims = new (double widthPt, double heightPt)[pageCount];
-            for (int i = 0; i < pageCount; i++)
-            {
-                PdfPageInformation p = engineSession.Pages[i];
-                pageDims[i] = (p.Width, p.Height);
-            }
-
-            // Show a progress overlay so the user knows we're working
-            var overlay = ShowFlattenProgress(pageCount, Loc("Str_Busy_FlattenPage"));
-            string outputPath = dlg.FileName;
-
+            Border? overlay = null;
+            bool operationStarted = false;
             try
             {
+                CommitActiveTextBox();
+                CloseEngineDocumentSession();
+                OfferRescaleOutOfRangePages();   // Adobe page-size guard (pageDims below must be in range)
+
+                // Burn any pending annotations into a temp source for rasterization
+                // (must happen on UI thread before we go async)
+                string sourcePath;
+                bool hasAnnotations = _annotations.Values.Any(list => list.Count > 0);
+                if (hasAnnotations || HasActiveStamps)   // #147: stamps alone must still burn
+                {
+                    var tempClean  = App.MakeTempFile("clean");
+                    var tempBurned = App.MakeTempFile("burned");
+                    _doc.Save(tempClean);
+                    PdfEngineIntegration.RepairHarmlessSaveArtifacts(tempClean);
+                    System.IO.File.Copy(tempClean, tempBurned, true);
+                    PdfEngineBurn.Burn(tempBurned, _annotations, _renderDims,
+                        _docStampSpec, null, _pageRotations, forRasterization: true);
+                    sourcePath = tempBurned;
+                }
+                else
+                {
+                    var temp = App.MakeTempFile("src");
+                    _doc.Save(temp);
+                    PdfEngineIntegration.RepairHarmlessSaveArtifacts(temp);
+                    sourcePath = temp;
+                }
+
+                PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
+                int pageCount = engineSession.PageCount;
+
+                // Snapshot per-page dimensions (CropBox-aware) before going off-thread
+                var pageDims = new (double widthPt, double heightPt)[pageCount];
+                for (int i = 0; i < pageCount; i++)
+                {
+                    PdfPageInformation p = engineSession.Pages[i];
+                    pageDims[i] = (p.Width, p.Height);
+                }
+
+                // Show a progress overlay so the user knows we're working
+                overlay = ShowFlattenProgress(pageCount, Loc("Str_Busy_FlattenPage"));
+                string outputPath = dlg.FileName;
+
                 var ct = BeginCancellableOp(Loc("Str_Op_Flatten"));
+                operationStarted = true;
                 // Rasterize on a background thread - keeps the UI responsive. The core lives in
                 // Services/PdfRasterize.cs; progress marshals back to the overlay here.
                 await Task.Run(() => PdfRasterize.FlattenToPdf(sourcePath, pageCount, pageDims, outputPath,
@@ -1148,7 +1136,6 @@ namespace KillerPDF
                     ct));
 
                 if (ct.IsCancellationRequested) { SetStatus(Loc("Str_St_FlattenCanceled")); return; }
-                MarkDirty(false);
                 SetStatus(string.Format(Loc("Str_St_FlattenedSaved"), System.IO.Path.GetFileName(outputPath)));
             }
             catch (Exception ex)
@@ -1158,8 +1145,8 @@ namespace KillerPDF
             }
             finally
             {
-                try { HideFlattenProgress(overlay); } catch { /* ensure overlay never leaks */ }
-                EndCancellableOp();
+                try { if (overlay is not null) HideFlattenProgress(overlay); } catch { /* ensure overlay never leaks */ }
+                if (operationStarted) EndCancellableOp();
             }
         }
 

@@ -1001,4 +1001,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_St_PagesCopiedHere">已將 {0} 頁複製到此文件。</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">頁面複製失敗：&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">無法修復「{0}」。</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">正在使用 {0}、{1} 點編輯。字型度量可能與原文不同。</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">字型 {0} 無法使用。正在使用 {1}、{2} 點編輯。</sys:String>
 </ResourceDictionary>

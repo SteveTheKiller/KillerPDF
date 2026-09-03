@@ -33,6 +33,16 @@ namespace KillerPDF.Services
             ["segoeui"]           = "Segoe UI",
         };
 
+        // Return the installed spelling so the editor and font selector use the same family.
+        internal static string ResolveInstalledFamily(string requested, IEnumerable<string> installed)
+        {
+            string key = FamilySeparatorRegex().Replace(requested, "");
+            foreach (string family in installed)
+                if (string.Equals(FamilySeparatorRegex().Replace(family, ""), key, StringComparison.OrdinalIgnoreCase))
+                    return family;
+            return "Segoe UI";
+        }
+
         // PDF font resources commonly carry face styling in their PostScript names rather than
         // separate metadata. Keep that styling when a source line is lifted into the text editor.
         internal static DetectedPdfFontStyle FromPdfName(string rawName)

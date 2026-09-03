@@ -535,6 +535,50 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void Build_AppendsArtifactPreservingExistingMarkedContentAndParentTree()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.Figure, 0)
+            .Rectangle(10, 10, 20, 20).Fill().EndMarkedContent();
+        byte[] original = new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Tagged figure", Language = "en-US" })
+            .EnablePdfUa2Conformance()
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Figure, 0, 0, 1, alternateDescription: "A square")
+            .Build();
+        PdfDocument source = PdfDocument.Open(original);
+        PdfDictionary originalPage = FlatPages(source).Pages[0];
+        PdfObject rootReference = ResolveDictionary(source, source.Trailer[Name("Root")])[Name("StructTreeRoot")];
+        PdfDictionary originalRoot = ResolveDictionary(source, rootReference);
+        byte[] updated = new PdfIncrementalPageEditor(source)
+            .AppendPageArtifact(0, 100, 100,
+                new PdfContentStreamBuilder().Rectangle(30, 30, 10, 10).Fill())
+            .Build();
+        PdfDocument result = PdfDocument.Open(updated);
+        PdfDictionary page = FlatPages(result).Pages[0];
+        PdfObject resultRootReference = ResolveDictionary(result, result.Trailer[Name("Root")])[Name("StructTreeRoot")];
+        Assert.Equal(PdfObjectWriter.Write(rootReference), PdfObjectWriter.Write(resultRootReference));
+        Assert.Equal(PdfObjectWriter.Write(originalRoot),
+            PdfObjectWriter.Write(ResolveDictionary(result, resultRootReference)));
+        Assert.Equal(PdfObjectWriter.Write(ResolveDictionary(source, originalRoot[Name("ParentTree") ])),
+            PdfObjectWriter.Write(ResolveDictionary(result, originalRoot[Name("ParentTree") ])));
+        Assert.Equal(PdfObjectWriter.Write(originalPage[Name("StructParents")]),
+            PdfObjectWriter.Write(page[Name("StructParents")]));
+        PdfArray streams = Assert.IsType<PdfArray>(page[Name("Contents")]);
+        Assert.Equal(PdfObjectWriter.Write(originalPage[Name("Contents")]), PdfObjectWriter.Write(streams[0]));
+        Assert.Equal("/Artifact BMC\nq /KPO1 Do Q\nEMC\n",
+            Encoding.ASCII.GetString(PdfStreamDecoder.Decode(ResolveStream(result, streams[^1]))));
+        Assert.True(updated.AsSpan(0, original.Length).SequenceEqual(original));
+
+        Assert.Throws<NotSupportedException>(() => new PdfIncrementalPageEditor(source)
+            .AppendPageArtifact(0, 100, 100, new PdfContentStreamBuilder().Rectangle(1, 1, 2, 2).Fill())
+            .AppendPageContent(0, "q Q\n"u8.ToArray()).Build());
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(source)
+            .AppendPageArtifact(0, 100, 100, content));
+    }
+
+    [Fact]
     public void Build_InsertsTypedPageWithResourcesAtMinimumRequiredVersion()
     {
         PdfDocument target = PdfDocument.Open(new PdfDocumentBuilder(PdfVersion.Pdf10)

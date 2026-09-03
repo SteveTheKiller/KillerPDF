@@ -1019,4 +1019,6 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_St_PagesCopiedHere">{0} pagine copiate in questo documento.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Copia della pagina non riuscita:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">Impossibile riparare &quot;{0}&quot;.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Modifica con {0}, {1} pt. Le metriche del carattere possono differire dall’originale.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Il carattere {0} non è disponibile. Modifica con {1}, {2} pt.</sys:String>
 </ResourceDictionary>

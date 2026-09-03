@@ -999,4 +999,6 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_St_PagesCopiedHere">এই নথিতে {0}টি পৃষ্ঠা কপি করা হয়েছে।</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">পৃষ্ঠা কপি ব্যর্থ হয়েছে:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">“{0}” মেরামত করা যায়নি।</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">{0}, {1} pt দিয়ে সম্পাদনা করা হচ্ছে। ফন্টের মাপ মূলের থেকে আলাদা হতে পারে।</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">{0} ফন্টটি উপলব্ধ নয়। {1}, {2} pt দিয়ে সম্পাদনা করা হচ্ছে।</sys:String>
 </ResourceDictionary>

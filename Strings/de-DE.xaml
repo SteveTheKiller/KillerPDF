@@ -1005,4 +1005,6 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_St_PagesCopiedHere">{0} Seiten in dieses Dokument kopiert.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Kopieren der Seite fehlgeschlagen:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">&quot;{0}&quot; konnte nicht repariert werden.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Bearbeitung mit {0}, {1} pt. Die Schriftmaße können vom Original abweichen.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Die Schriftart {0} ist nicht verfügbar. Bearbeitung mit {1}, {2} pt.</sys:String>
 </ResourceDictionary>

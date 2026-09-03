@@ -999,4 +999,6 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_St_PagesCopiedHere">Se copiaron {0} páginas a este documento.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Error al copiar la página:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">No se pudo reparar &quot;{0}&quot;.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Editando con {0}, {1} pt. Las métricas de la fuente pueden diferir del original.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">La fuente {0} no está disponible. Editando con {1}, {2} pt.</sys:String>
 </ResourceDictionary>

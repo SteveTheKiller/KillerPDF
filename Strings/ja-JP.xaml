@@ -1019,4 +1019,6 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_St_PagesCopiedHere">この文書に {0} ページをコピーしました。</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">ページのコピーに失敗しました:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">「{0}」を修復できませんでした。</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">{0}、{1} pt で編集中です。フォントのメトリクスが元のものと異なる場合があります。</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">フォント {0} は使用できません。{1}、{2} pt で編集中です。</sys:String>
 </ResourceDictionary>

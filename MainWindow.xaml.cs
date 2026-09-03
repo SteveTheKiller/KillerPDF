@@ -138,9 +138,6 @@ namespace KillerPDF
             [.. System.Windows.Media.Fonts.SystemFontFamilies
                 .Select(f => f.Source).Where(s => !string.IsNullOrWhiteSpace(s))
                 .Distinct().OrderBy(s => s, StringComparer.OrdinalIgnoreCase)];
-        // WPF renders a given point size visually ~25% larger than the source PDF text, so scale the
-        // detected size down when seeding an existing-text edit. The user can still fine-tune after.
-        private const double EditTextSizeCorrection = 0.8;
         private bool _suppressSizeSync;   // guards the slider<->size-box two-way binding from feedback loops
         private TextAnnotation? _reeditOriginal { get => ActiveViewer.ReeditOriginalRef; set => ActiveViewer.ReeditOriginalRef = value; }
         // The opaque cover dropped when starting an existing-text edit, awaiting its paired text commit.

@@ -1006,4 +1006,6 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_St_PagesCopiedHere">{0} oldal átmásolva ebbe a dokumentumba.</sys:String>
     <sys:String x:Key="Str_Err_PageCopyFailed">Az oldal másolása sikertelen:&#10;{0}</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">A(z) „{0}” nem javítható.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Szerkesztés ezzel: {0}, {1} pt. A betűméretek eltérhetnek az eredetitől.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">A(z) {0} betűtípus nem érhető el. Szerkesztés ezzel: {1}, {2} pt.</sys:String>
 </ResourceDictionary>

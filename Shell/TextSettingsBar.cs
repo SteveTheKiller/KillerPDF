@@ -374,7 +374,7 @@ namespace KillerPDF
             // Editable size box (type an exact value; the slider stays for quick coarse adjustment).
             var sizeBox = new TextBox
             {
-                Text = $"{_textFontSize:F0}",
+                Text = $"{_textFontSize:0.##}",
                 FontFamily = UiKit.UiFont,
                 FontSize = 11,
                 Width = 32,
@@ -405,29 +405,29 @@ namespace KillerPDF
             {
                 if (_suppressSizeSync) return;
                 _textFontSize = e.NewValue;
-                sizeBox.Text = $"{e.NewValue:F0}";
+                sizeBox.Text = $"{e.NewValue:0.##}";
                 ApplyTextStyleToSelection();
             };
             void CommitSizeBox()
             {
-                if (double.TryParse(sizeBox.Text, out double v))
+                if (double.TryParse(sizeBox.Text, out double v) && double.IsFinite(v))
                 {
-                    _textFontSize = Math.Max(1, Math.Min(400, Math.Round(v)));
+                    _textFontSize = Math.Clamp(v, 1, 400);
                     _suppressSizeSync = true;
                     sizeSlider.Value = Math.Max(8, Math.Min(72, _textFontSize));   // thumb clamps; box keeps exact
                     _suppressSizeSync = false;
                     ApplyTextStyleToSelection();
                 }
-                sizeBox.Text = $"{_textFontSize:F0}";   // normalize / revert invalid input
+                sizeBox.Text = $"{_textFontSize:0.##}";   // normalize / revert invalid input
             }
             // Set an exact size and keep the slider + box in step (slider thumb clamps to 8-72).
             void SetSize(double v)
             {
-                _textFontSize = Math.Max(1, Math.Min(400, Math.Round(v)));
+                _textFontSize = Math.Clamp(v, 1, 400);
                 _suppressSizeSync = true;
                 sizeSlider.Value = Math.Max(8, Math.Min(72, _textFontSize));
                 _suppressSizeSync = false;
-                sizeBox.Text = $"{_textFontSize:F0}";
+                sizeBox.Text = $"{_textFontSize:0.##}";
                 ApplyTextStyleToSelection();
             }
             // Tiny stepper button (− / +) for one-point nudges next to the slider.
@@ -460,7 +460,7 @@ namespace KillerPDF
             sizeBox.PreviewKeyDown += (s, e) =>
             {
                 if (e.Key == Key.Enter) { CommitSizeBox(); e.Handled = true; }
-                else if (e.Key == Key.Escape) { sizeBox.Text = $"{_textFontSize:F0}"; e.Handled = true; }
+                else if (e.Key == Key.Escape) { sizeBox.Text = $"{_textFontSize:0.##}"; e.Handled = true; }
             };
             sizeBox.LostFocus += (s, e) => CommitSizeBox();
             sizeBox.GotFocus += (s, e) => sizeBox.SelectAll();

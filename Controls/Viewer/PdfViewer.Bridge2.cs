@@ -51,7 +51,6 @@ namespace KillerPDF.Controls
         private CoverAnnotation? _pendingCover;
         private bool _pendingEditWasDirty;
         private Border? _textSettingsBar;
-        private const double EditTextSizeCorrection = 0.8;
         private const double TextBoxDefaultWidth = 220;
 
         // ── Resize handles ───────────────────────────────────────────────────────────────────
