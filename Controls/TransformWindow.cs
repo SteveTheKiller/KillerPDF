@@ -806,7 +806,8 @@ namespace KillerPDF
             var (width, height) = OutputPixelDimensions.FromPoints(
                 widthPoints, heightPoints, dpi);
             _dpiReadout.Text = $"{dpi:0} DPI  |  " +
-                string.Format(S("Str_OutputPixels"), width, height);
+                string.Format(S("Str_OutputPixels"), width, height) + "  |  " +
+                OutputPixelDimensions.ScaleLabel(width, height, b.PixelWidth, b.PixelHeight);
         }
 
         // Sizes the page to its TRUE relative scale within the preview box, so "Resize the whole page" makes

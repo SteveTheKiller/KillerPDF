@@ -108,7 +108,10 @@ namespace KillerPDF
             var (width, height) = OutputPixelDimensions.FromPoints(
                 _pageWidthPoints, _pageHeightPoints, dpi);
             _pixelDimensions.Text = width > 0 && height > 0
-                ? string.Format(L("Str_OutputPixels"), width, height)
+                ? string.Format(L("Str_OutputPixels"), width, height) + "  |  " +
+                  OutputPixelDimensions.ScaleLabel(width, height,
+                      OutputPixelDimensions.FromPoints(_pageWidthPoints, _pageHeightPoints, 150).Width,
+                      OutputPixelDimensions.FromPoints(_pageWidthPoints, _pageHeightPoints, 150).Height)
                 : "";
         }
 

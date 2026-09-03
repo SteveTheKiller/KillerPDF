@@ -25,4 +25,14 @@ public sealed class OutputPixelDimensionsTests
     {
         Assert.Equal((0, 0), OutputPixelDimensions.FromPoints(width, height, dpi));
     }
+
+    [Theory]
+    [InlineData(1000, 1000, 500, 500, "x2")]
+    [InlineData(250, 250, 500, 500, "x0.5")]
+    public void ScaleLabel_ReportsLinearResolutionChange(
+        int outputWidth, int outputHeight, int sourceWidth, int sourceHeight, string expected)
+    {
+        Assert.Equal(expected, OutputPixelDimensions.ScaleLabel(
+            outputWidth, outputHeight, sourceWidth, sourceHeight));
+    }
 }
