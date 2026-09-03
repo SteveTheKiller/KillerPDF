@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -135,6 +136,21 @@ public sealed class PdfOcrReview
         return output.ToString();
     }
 
+    /// <summary>Exports the complete recognition and review state as stable JSON.</summary>
+    public string ExportJson() => JsonSerializer.Serialize(new PdfOcrReviewFile(1, _words));
+
+    /// <summary>Restores a previously exported recognition and review state.</summary>
+    public static PdfOcrReview ImportJson(string json)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
+        PdfOcrReviewFile file = JsonSerializer.Deserialize<PdfOcrReviewFile>(json)
+            ?? throw new JsonException("The OCR review file is empty.");
+        if (file.Version != 1)
+            throw new NotSupportedException($"OCR review file version {file.Version} is not supported.");
+        return new PdfOcrReview(file.Words
+            ?? throw new JsonException("The OCR review file has no words."));
+    }
+
     private PdfOcrReview Change(string id, Func<PdfOcrWord, PdfOcrWord> change)
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -147,6 +163,8 @@ public sealed class PdfOcrReview
 
     private static string Csv(string value) =>
         value.IndexOfAny([',', '"', '\r', '\n']) < 0 ? value : $"\"{value.Replace("\"", "\"\"")}\"";
+
+    private sealed record PdfOcrReviewFile(int Version, PdfOcrWord[] Words);
 }
 
 /// <summary>One source page supplied to an OCR provider.</summary>

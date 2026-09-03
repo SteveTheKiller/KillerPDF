@@ -83,6 +83,24 @@ public sealed class PdfOcrReviewTests
         Assert.True(results[0].WasCanceled);
     }
 
+    [Fact]
+    public void JsonRoundTripPreservesCorrectionsGeometryAndReviewState()
+    {
+        var review = new PdfOcrReview([
+            Word("a", 0, 0, "Kiler", 0.42), Word("b", 1, 0, "café", 0.91)])
+            .Correct("a", "Killer").Ignore("b");
+
+        string json = review.ExportJson();
+        PdfOcrReview restored = PdfOcrReview.ImportJson(json);
+
+        Assert.Equal(review.Words, restored.Words);
+        Assert.Equal(PdfOcrWordStatus.Corrected, restored.Words[0].Status);
+        Assert.Equal(PdfOcrWordStatus.Ignored, restored.Words[1].Status);
+        Assert.Contains("\"Version\":1", json);
+        Assert.Throws<NotSupportedException>(() => PdfOcrReview.ImportJson(
+            json.Replace("\"Version\":1", "\"Version\":2", StringComparison.Ordinal)));
+    }
+
     private static PdfOcrWord Word(string id, int page, int sequence, string text, double confidence) =>
         new(id, page, sequence, text, text, new PdfContentBounds(0, 0, 10, 10), confidence, "en-US");
 }
