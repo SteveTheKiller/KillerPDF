@@ -27,6 +27,13 @@ public sealed class PdfObjectParser(
 
     internal PdfToken PeekContentToken() => Peek();
     internal PdfToken TakeContentToken() => Take();
+    internal int ContentPosition => _lookahead.Count == 0 ? _tokenizer.Position
+        : throw new InvalidOperationException("Content lookahead must be consumed before reading raw bytes.");
+    internal void SetContentPosition(int position)
+    {
+        _lookahead.Clear();
+        _tokenizer.SetRawPosition(position);
+    }
 
     /// <summary>Creates a parser positioned at the beginning of a PDF byte sequence.</summary>
     public PdfObjectParser(

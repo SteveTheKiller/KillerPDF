@@ -30,9 +30,13 @@
 </div>
 
 <div class="shell">
-<aside class="sidebar"><div class="sb-tabs"><span class="on">Results</span></div><nav class="outline"><a href="corpus.html">Corpus overview</a><a href="#v183" class="on">KillerPDF v1.8.3</a><a href="#v182">KillerPDF v1.8.2</a><a href="#v181">KillerPDF v1.8.1</a><a href="https://github.com/SteveTheKiller/KillerPDF-Corpus/tree/main/baselines" target="_blank" rel="noopener">Machine-readable data</a></nav></aside>
+<aside class="sidebar"><div class="sb-tabs"><span class="on">Results</span></div><nav class="outline"><a href="corpus.html">Corpus overview</a><a href="#v190-development" class="on">1.9.0 development checks</a><a href="#v183">KillerPDF v1.8.3</a><a href="#v182">KillerPDF v1.8.2</a><a href="#v181">KillerPDF v1.8.1</a><a href="https://github.com/SteveTheKiller/KillerPDF-Corpus/tree/main/baselines" target="_blank" rel="noopener">Machine-readable data</a></nav></aside>
 <main class="content"><div class="content-scroll"><div class="content-inner">
 <section class="results-hero"><div class="eyebrow">Reproducible release history</div><div class="results-title"><img src="brand/corpus_icon.png" alt=""><span>Corpus results</span></div><p>Every comparable KillerPDF full-corpus result, newest first. Each run uses the same four-card layout so outcome totals and measured timing can be compared without losing the details.</p></section>
+
+<section class="results-sec baseline-group" id="v190-development"><div class="baseline-head"><h2>KillerPDF 1.9.0 development checks</h2><span class="baseline-meta">2026-09-02 | Extraction and structural validation</span></div>
+<ul class="baseline-note"><li>Compared extraction on 162 PDFs, including all 86 pages of two private regression documents.</li><li>The 2,907-file incremental structural check matched 1.8.3 exactly: 2,894 passes and the same 13 rejected inputs.</li><li>These checks cover extraction and incremental structure. The release benchmarks below remain the latest full-corpus save measurements.</li></ul>
+<p class="results-source"><a href="extraction-1.9.0-summary.json">Download the extraction comparison totals.</a></p></section>
 
 <section class="results-sec baseline-group" id="v183"><div class="baseline-head"><h2>KillerPDF v1.8.3</h2><span class="baseline-meta">2026-09-02 | 5 measured runs</span></div><p class="baseline-note">KillerPDF 1.8.3 saved 40,563 PDFs across the three main collections, 1,485 more than 1.8.2. No previously successful input became a skip or save failure. All five measured passes matched on every file&#39;s outcome and diagnostic detail. The 80 damaged inputs produced no crashes or timeouts.</p>
 <div class="result-grid">

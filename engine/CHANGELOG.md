@@ -6,11 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.0] - Unreleased
 
-The 1.9.0 engine development cycle begins the PdfPig extraction replacement.
+The 1.9.0 engine adds text and image placement extraction.
 
 ### Added
 
-- Added bounded content parsing, ToUnicode decoding, and horizontal text positioning as the foundation for text extraction.
+- Added page extraction with words, glyph bounds, font sizes, baselines, and image placements, including nested forms, inline images, vertical text, and ActualText replacements.
+- Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
 
 ## [1.8.3] - 2026-09-02
 

@@ -15,7 +15,6 @@ using Docnet.Core.Models;
 using Microsoft.Win32;
 using KillerPDF.Features;
 using KillerPDF.Services;
-using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
 namespace KillerPDF
 {
@@ -375,7 +374,7 @@ namespace KillerPDF
             double cw = (right - left) * sx;
             double ch = (top - bottom) * sy;
             // A little breathing room so the box (and the current-match outline) wraps the whole word -
-            // PdfPig's glyph bounds sit tight against the letters. Scales with text height so it looks
+            // the engine's glyph bounds sit tight against the letters. Scales with text height so it looks
             // consistent across font sizes.
             double pad = ch * 0.30;
             double cx = left * sx - pad;

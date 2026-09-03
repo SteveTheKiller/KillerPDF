@@ -1,0 +1,974 @@
+[
+  {
+    "Id": "conformance/bfo-pdfa/pdfa2-6-1-13-bfo-t07-pass.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "66e1c2ae58494d862224ba48aee7f7770877c4a13d4d9502b74bf9f9e0b1cf3b"
+  },
+  {
+    "Id": "conformance/color/altona/altona_measure_1v1a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "6b230db4c2ca9e235b450107e92fbaec61bf391b6d0a405bbdb14d769bed3b67"
+  },
+  {
+    "Id": "conformance/color/ghent-gos5/patches/Ghent_PDF_Output_Suite_V50_Patches/Categories/1-CMYK/Patches/GWG181_16Bit_DeviceCMYK_x4.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "358bfbec1319cc76a2fd1e0e9171694cbb6e373325cba753391993058269eaef"
+  },
+  {
+    "Id": "conformance/color/ghent-gos5/patches/Ghent_PDF_Output_Suite_V50_Patches/Categories/1-CMYK/ReadMes/GWG091_FontSupport-OpenType_ReadMe.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "d8a4521249813a5a96658370493b3e82825a3c6d1fe57c422ef6e4b5d2091bc3"
+  },
+  {
+    "Id": "conformance/color/ghent-gos5/patches/Ghent_PDF_Output_Suite_V50_Patches/Categories/2-SPOT/Patches/GWG080_DeviceN-Support_6c_x3.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "d8eaa8b365f17c02f358e535e495768ce8741109bc90b9d6b4bc5c3a6d9240cb"
+  },
+  {
+    "Id": "conformance/color/ghent-gos5/patches/Ghent_PDF_Output_Suite_V50_Patches/Categories/2-SPOT/ReadMes/GWG080_DeviceN-Support_6c_ReadMe.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "71fcaaa024a9ce86209da11eb8b27b9a071a487210c421b5eed2c0c531dbc152"
+  },
+  {
+    "Id": "conformance/color/ghent-gos5/patches/Ghent_PDF_Output_Suite_V50_Patches/Categories/3-ICC-CMS/Patches/GWG133_ICCbasedRGB_OverPrint_x4.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "276847756104229d1f35c7ef5ce0254aae69aeb5c614b8fbc656ee7dbd822cb9"
+  },
+  {
+    "Id": "conformance/color/ghent-gos5/patches/Ghent_PDF_Output_Suite_V50_Patches/Categories/3-ICC-CMS/ReadMes/GWG130_ICC_Source_Profile_README.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "af3e6af37de11891ec58b0f72bee8ffdc656936cecb3e3f6ec8c5d1b74e6b12c"
+  },
+  {
+    "Id": "conformance/color/ghent-gos5/testpages/Ghent_PDF_Output_Suite_V50_Testpages/Ghent_PDF-Output-Test-V50_ALL_REFERENCE.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "684db67a2d7f1d6a04168670ed42e6672490614f6f128157ba5092747c93f67b"
+  },
+  {
+    "Id": "conformance/pdf-differences/Dashing-EndBeforeBend/Dashing-EndBeforeBend.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "c59152a0483ce8578b49d501e68bddb5615e874bad95e70f6a6fb3015f93b298"
+  },
+  {
+    "Id": "conformance/pdf-differences/LargeMitreLimit/LargeMitreLimit-Beziers.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "aa409792549d998466cfcd6e1fd3f6e3467863839dba1c8d5679b68d8947aae9"
+  },
+  {
+    "Id": "conformance/pdf-differences/Negative-DashPhase/CutHereExample.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "f6178abd6ffbe1299c00064ea2673511c9f7fc936975317a42d201dff0b5c415"
+  },
+  {
+    "Id": "conformance/pdf-differences/UnknownFilter/UnknownFilter-PageContentStream.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "e2dd6a46f0f41256b8796770bbbd523179cbbd77aacc6abb045c4151108afcad"
+  },
+  {
+    "Id": "conformance/pdfua-techniques/fundamentals/2-text/G2_02-Text-content-correctly-tagged-one-container-per-word/UA1_Tpdf-G2_02.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "73042971c1a46b000a398dfcbb7cafc1a7be78bae4cb34920ee42590dd75fdd7"
+  },
+  {
+    "Id": "conformance/pdfua-techniques/fundamentals/4-logical-content-order/G4_05-Tab-order-for-pages-with-annotations-correctly-set/UA1_Tpdf-G4_05.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ae8d29468f6000db0ef6c6c42a2e83d20720617879fd4e3d25255fe665411a3f"
+  },
+  {
+    "Id": "conformance/pdfua-techniques/fundamentals/5-appropriate-semantics/G5_F02-Similar-real-content-inappropriately-tagged/UA1_Tpdf-G5_F02.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "91dbe5df72fe60408aebb9d858ccfa947ee4c06d241d42735a4430280b71ebbe"
+  },
+  {
+    "Id": "conformance/pdfua-techniques/headings/H_F04-Incorrect-use-of-headings-instead-of-table-header-cells/UA1_Tpdf-H_F04.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "910bce53080a01c112683cfe338b6b72d780be11df112f242e09fd646572c162"
+  },
+  {
+    "Id": "conformance/pdfua-techniques/list/L_F03-Ordered-list-with-missing-ListNumbering-attribute/UA1_Tpdf-L_F03.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ac135c407388ab9081492993d3505ed3be86f004f2f792241d6e5cb00ef9fbad"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/ebooks/calibre 0.8.57/Lorem Ipsum - Andrew Jackson.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "de27b8feda2ab31df801c4894732389a5255f39a1c6a979c418f0d134161b151"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/ebooks/calibre 0.9.0/lorem-ipsum.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ed5f14efaada2cb0eb76cc3529e08859667b2319adb38c0be601ae044b7dccb0"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/ebooks/iBooks Author 2.0 (327)/lorem-ipsum-plus-image-updated-opencopyprintpw.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2eb1873d43589e63a5212b275bec83a1e8d3e7a8b55dfc03aa9683e8983b1d68"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/govdocs1-error-pdfs/error_set_1/032270.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "7f310f196e2878f49c738ba8435d1f98a4bc4499ea133a50cb82f423c86e11f0"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/govdocs1-error-pdfs/error_set_2/492484.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "bd680a5ccd0c882964444c1850d1ae53edda8923f8cf85e91b805b9b2100c81a"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-123/hisn13056.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "5042f03661034a54ac374a545ce0b6ee57e19fb7159549d38c372155ef290e55"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-126/drafts_David-Cyberstructure_Washington(Brussels-5)+2figs.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "96a460625799ec57f647869d493654eef94f7533d53178d44ca3335b2a04895c"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-133/wp315.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "24fd55fe298b4cb58dec5fa439bab57adb0cc96120f6607efccaaae14be2ae18"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-15/meeram_1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "df35b57de303bb3d68ea0150cb963cb3a95327f48c56fa0968c397d0a179ecbd"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-2/UMTRI-2008-80.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "4d9ea8d9aca477afef1e69e3ed3a2c62973df3bc4280c4397359f8b057040da2"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-27/10.1177_019394598600800118.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "a1e5ef37e5208caede95a2395f08aa2a8ae9aaf7de48d690cf4f8c85ab771e1d"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-29/66307685772445958696367606316017333077.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "332f44a1ef5397906cd530548982656c74ec75efc016ae12de6d2e45b2a4580a"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-45/10531_2004_Article_5096977.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "8e60411e80d29000d62441ce149b8e7a54c168edc1b8aa5ec7e8b17d212c4c67"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-66/Wiki SI 563 2021.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "cedb21319375ad5d013e40ced4c431367467483522fb538f247f3b6596c5245a"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-71/MICOM MI Lighthouse Poster.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "6aa88d9f5cd431b76c5ca3a00505937e28b4e03b031be8ee012cbc835f58ee5b"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/jhove-errors/PDF-HUL-86/NeilJairath_3.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "bb96cdc1ca23d7560fec90b52e11b414fbde99ce4796ded706de203494ccb969"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/pdf-handbuilt-test-corpus/T02-01_007_document-catalog-type-key-value-pair-missing.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "32996d6807253cd0ad2111d950ac2b21722e79a2ae7ac9f1121eecb1624f17ed"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/pdfCabinetOfHorrors/externalLink.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "14ca68bc60b188279ffa9b2dae926d9fe5cefe83b52fcdfd0a64e67232407008"
+  },
+  {
+    "Id": "conformance/preservation/openpreserve-format-corpus/variations/variations/application/pdf/lorem-ipsum.oo3.2.export-pdfa.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2df43480ffc930cd0ab78227df923d2390bcd1b42c602bf37b15c10059a322fe"
+  },
+  {
+    "Id": "conformance/safedocs/Dialects/Dialect-ContentStreams.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "916486e480bd74299ca4470584b2c1503452f86bac43c6d9c7276e36d7f5f88d"
+  },
+  {
+    "Id": "conformance/safedocs/Miscellaneous Targeted Test PDFs/uri-ismap-test.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "a3a8368b9d511fbacb23bef3870a928664a6ff017c53b5c2efe91f9177e8f518"
+  },
+  {
+    "Id": "conformance/validation/synthetic-pdf-testset/T02-03_004_page-object-wrong-parent.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "da766857100176f6a26136f641f446f36e340468711d2aea0260eb23f9b6de1d"
+  },
+  {
+    "Id": "fuzz/pdftoolskit-samples/sample-corrupted.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ce46a4623725ac4497ded46604283789e193719e934656d00ff219725a21954a"
+  },
+  {
+    "Id": "fuzz/pikepdf/tests/resources/fuzz/378014596.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "3003f613b4c123b7038903cfe81e4aeb07a1f2c74278dcee6047466208867694"
+  },
+  {
+    "Id": "regression/apache-fop-pdf-images/pdfbox/ttsubset24_6.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "04e232b739ee539d1208ed37c5d00160688c3a55b3a07b4b5c760ee69329155a"
+  },
+  {
+    "Id": "regression/arxiv-cc-2025-01-08-to-14-batch1/2405.13417v2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "7327c41ca6376037ab860c4f305f306a94c65afc2a1d627b577b816105da7c6b"
+  },
+  {
+    "Id": "regression/arxiv-cc-2025-01-08-to-14-batch2/2408.01894v2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "779d57be0b38c11121dd9f7b991f4cc16072af4427190142e7f21319d4a81bf8"
+  },
+  {
+    "Id": "regression/arxiv-cc-2025-01-08-to-14-batch3/2501.03395v1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "a9f447c807c6ee26ca25edcad59eef80ccbf244a7d8c4ff3540650f46c80b722"
+  },
+  {
+    "Id": "regression/arxiv-cc-2025-01-08-to-14-final/2501.05289v1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "41acd0bc71bed64af32a78033b911377c764bc3b282bd526eab56d02a3405b9f"
+  },
+  {
+    "Id": "regression/arxiv-cc-2025-01-batch2/2410.12504v2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "09b7e2898a867d7e140e3b8f7e2c508779341f0320ef454494e7fcf8f3c35fa6"
+  },
+  {
+    "Id": "regression/arxiv-cc-2025-01-batch3/2501.02558v1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "9cd5e01c60017463a4c081357d524364588cd00358fe5d76bfc162e651342dd5"
+  },
+  {
+    "Id": "regression/arxiv-cc-2025-01/2401.06136v1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "31daabb2f84cdbc0c27fe917ed98675d41c04f97ef0ee2be92034ee40ef32fd2"
+  },
+  {
+    "Id": "regression/gendx-pdf-corpus/contentstream/color/color-space.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "bd2bd4f6326ab5f85f28aa199079a66251a7995fe044b050f01bf0615975bd47"
+  },
+  {
+    "Id": "regression/itext/forms/src/test/resources/com/itextpdf/forms/form/element/FixedPositionTest/cmp_ni_setFixedPosition.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "fe75efc2bfca60f4482688ea07b9ee5e2b59e01c8e31169e20ee1174d46bb065"
+  },
+  {
+    "Id": "regression/itext/forms/src/test/resources/com/itextpdf/forms/form/element/InputFieldTest/cmp_minHeightInputField.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "3f2f1da7c66de3736f8c8903542b6a16972e1d6d2c3fadd6b59b87cd45c0806e"
+  },
+  {
+    "Id": "regression/itext/forms/src/test/resources/com/itextpdf/forms/PdfFormCopyTest/cmp_AnnotationSampleStandard_copy.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "4eb6dda57471589c62932c9dabf34fbcec4028e40c4656a5e58a700513443994"
+  },
+  {
+    "Id": "regression/itext/forms/src/test/resources/com/itextpdf/forms/XfdfReaderTest/cmp_xfdfAnnotationInk.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "3ca1da5d7b31505c90b00ed9b328a81889802ff94e0c229a057baa5a3e53d498"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/colors/gradients/LinearGradientBuilderTest/cmp_autoStopRelativeBetweenColorsHint.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "9612cf959cb435fd08616992d3ca742628f86fc37bb718d100a963c297991899"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/crypto/pdfencryption/UnicodeBasedPasswordEncryptionTest/cmp_unicodePassword_khmer01.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "975f3ebef92483aee048f4119efa8e3d20f9c4d26120352cdb79c502ff10093d"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/crypto/PdfEncryptionManuallyPortedTest/cmp_appended_encryptWithCertificateStandard40.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "db2947d97bde11ebb04aa13c09534e7f7a5b2758a1425ccaf7b19cf60fba9074"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/mac/MacIntegrityProtectorReadingAndRewritingTest/cmp_doNotThrowOnValidationTest2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "804549edfbb9a3519c0a4e0868383d1c61dc43cb61d35c69ac92d4b5fdccfc69"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/annot/AddTextMarkupAnnotationTest/cmp_textMarkupAnnotation04.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "66ffb87379e8a0c928b9c8be0cbf39c1038b09854183170a4f38c861cdb7b475"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/canvas/parser/HighlightItemsTest/cmp_fillStandardEncodingType1FontDescriptorTest.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "401f7499c910c7e38eb103c7da1d276053567fa46f5399864752b30c68478fcb"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/PageResizerTest/cmp_nestedMixedXObjectsDefault.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "feb779ac423796ca8b3e15e460df4adee1d072d911855805e18309eb32c68e84"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/ParentTreeTest/cmp_xObjDoesntHaveStructParentTest.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "0d2b52593eef2b06a708a3c1006799796bed3ea985d5af9f8a49531525c0d8f0"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/PdfCopyTest/cmp_objRefAsStreamCopy.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "47f8ff6ead1a34b7ca4a6a483b6b166977c08cdf78355c0a755011a246d01cfb"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/PdfDocumentTest/cmp_freeReference.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "3c55e02740c25cbd053a1bc76a17cc938b58af7a8f79ae2ccf79b0ffa0ce38f1"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/PdfOutlineTest/outlinesInvalidParentLink.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2a5dfaf3f4ce904b07ecf0b536b24a513ed1a37d04f3382e4d16c450533c97ad"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/pdf/PdfReaderDecodeTest/timing.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "d8e46bfc55f3d804db5916fbc3376653b3c062517e30ed5fd0fc1ffb4997008f"
+  },
+  {
+    "Id": "regression/itext/kernel/src/test/resources/com/itextpdf/kernel/utils/PdfMergerTest/firstDocumentWithStylePropertyInOutline.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ad78bb0b875122aff00cac22236f89068aa0574fe0e660b73da2b125fdf96173"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/AlignmentTest/cmp_inlineVerticalAlignmentMiddle.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "a97ccbb2db849889ad59a21a0959b62eb9231963b700897b50f814bcf5b60aaa"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/FlexContainerColumnTest/cmp_flexContainerWithFixedHeightPagination3.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ee70df584f4b2f75ba46cc2a313cb77771042f2dfa47c7bbf0dabb3ee7a0deab"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/FlexContainerTest/cmp_flexContainerBoxSizingTest5.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "56ce05e4706b5ac208896a16305d99622f3e885225d260577691b50ca521ae5f"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/FlexPageMarginsTest/cmp_flexPerPageDocMargins.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "3797a7b9df8caf01cf0bdd6058222826fce79d31da53217a781209cfb1c0bc6f"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/FloatTest/cmp_floatsInParagraphPartialSplit07.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2eff7509b75e18bf794972db5f371fd0ead7882f7c0dd94e9940f8c949ca7a80"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/HugeFootnoteLayoutResultTest/cmp_hugeFontAnchorWithMultipleFootnotes.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "04ab0e6c37c15b0fea0f4c4423b768b7be561e326e075262418832b71ba6609d"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/ImageColorProfileTest/cmp_pngGreyscaleIncorrectColorProfile.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "b335be876061ebde6efd73d4ed7322491e2c575e6e90016bb33e1a431fbefda0"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/KeepTogetherTest/cmp_smallFloatInsideKeptTogetherDivTest01.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "36303c70871e98ba8a4875af689bff423369050d814184e536d9b869a4291201"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/LargeElementTest/cmp_flushingLargeTableAfterStartingNewRowTest.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "a1f9aa97f7ce453b61e4095a3baaa515b3c8dcac99181b391ba4592738daaa05"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/ListAlignmentDirectionTest/cmp_item-text-align-justify_item-dir-rtl_list-text-align-justify_list-dir-ltr.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "955b28a800b2e9e39b7a927eae3420e23d740b6f41de311e8e2addbfe8331371"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/ObjectFitTest/cmp_objectFit_test_scale_down_small_image.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "eeff92c0e2c4f886132c3bf9da3e8005444f25e21f0f598dfc0bfc553475830a"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/PageMarginsTest/cmp_footnoteInTableFooter.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "9fee1df17c93836054f47ec7767a1f4c8e5504ca264186c2db398e8c1ec0e013"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/RotationTest/cmp_fixedTextRotationTest04.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "20edf1255ae67beae62bdfcdab9237e444c14a0b20c2f858b7cdd3bc8f168371"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/TableBorderTest/cmp_tableWithHeaderFooterTest02A.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "0c242dabf375c8e2a2e512c88c3c1ae06c2c71b44e2c6a631d40c84471b41270"
+  },
+  {
+    "Id": "regression/itext/layout/src/test/resources/com/itextpdf/layout/TextRendererIntegrationTest/cmp_clippedTextWithoutDrawerTest.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "287a32cd2223bd70deb7a6c3fc0f25252dfaa7d565f0bd3fe65d8191a6033cb5"
+  },
+  {
+    "Id": "regression/itext/sign/src/test/resources/com/itextpdf/signatures/sign/AnnotationsSigningTest/cmp_signedTwiceDocWithDAEntry.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "36441fe6afe21baaef942b3d8fd097b45697798fd1c945676fabc113872017e6"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/converter/SvgConverterTest/cmp_eclipse_-50_-100.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "5224a4395a118ab0476541074f1576e7c839d9d834f88670bc2127a3d5eb25ef"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/css/DefaultInheritance/cmp_strokeOpacityInheritance.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "1eb43b96ba40e339b831504f070ebe03336178a0d5851d2bd0610f9f6e69649f"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/css/FontRelativeUnitTest/cmp_textFontSizeFromUseTest.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "d8f92c7b53480ad2af805443208b1b1e1ef30b818df496a29833e8dd8e080d1e"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/renderers/impl/ClipPathTest/cmp_clipPathFillText.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "217f6a13fbd3eedc1dd5db56bad95483aaf22606f3c4da0e27dace0918ff7abc"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/renderers/impl/EllipseSvgNodeRendererIntegrationTest/cmp_ellipseRyNegative.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "3a2dcf66d1d648040184a386d6ae7cd2911de60c8e89cf35c15323e611a305ee"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/renderers/impl/LinkTest/cmp_nestedSvgLink.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "68d8d78d4d474b161192596f4a1757e8ca707811fb22ee2b614af758765ba32a"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/renderers/impl/TextSvgBranchRendererIntegrationTest/cmp_textRotate.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "597c8a8d544abeeb58a2553d56f3747bbcc38c38aa1a6c4f355ba8271628ba92"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/renderers/RelativePositionsTest/cmp_relativePositionsBasic2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "bc4ea76ac0e4f5a9bbd14264e1b012401a2a6883c73393124fcdd8f7329fb162"
+  },
+  {
+    "Id": "regression/itext/svg/src/test/resources/com/itextpdf/svg/renderers/StrokeTest/cmp_stroke-combined-graphical-properties.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "b21639297f542bc39a2fba3b352e5f262aefbb187ea0a60989b9f6155ef59b23"
+  },
+  {
+    "Id": "regression/ocrmypdf/tests/resources/c03-29.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "c2ff83af7d028c95209cc7eebdf80fd5bb4cd292973ed6601e4bab7d1929f201"
+  },
+  {
+    "Id": "regression/pdfbox/pdfbox/src/test/resources/org/apache/pdfbox/pdmodel/documentinterchange/logicalstructure/PDFBOX-2725-878725.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2391439547bd98bad35a7f5574f88bf80b9043ac60abdf825d20b2f069328853"
+  },
+  {
+    "Id": "regression/pdfcpu/stamp/text/utf8/German.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "484bada9112318f2280fdaf8b8b4c665b3c1eb9d5184ebb02c82b66027320d6e"
+  },
+  {
+    "Id": "regression/pdfium/fx/path/edit_getdash.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "d8f9339f43819f40aa071d7ddd5e106e753ef3334d2311b703196ae32486c72f"
+  },
+  {
+    "Id": "regression/pdfium/pdfium/annots/annotation_highlight_author_content.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "f8d35974188b7c9fa4297dbcdc5f8bbe74354d6df8d3519de41f1a14e72f14d2"
+  },
+  {
+    "Id": "regression/pdfium/third_party/tcpdf/example_047.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "c37874a68ba84186685e2063022a095d060d96beae22638c41cf6866ae3299bc"
+  },
+  {
+    "Id": "regression/pdfjs/test/pdfs/bug847420.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "fe901e3bb96f249adf75dc06e3e1fc852b74608db0e6d35f2cd2a1846e03a927"
+  },
+  {
+    "Id": "regression/pikepdf/tests/resources/pike-flate-jp2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "1bfa13db0b154b8a308e4b59c4a0243d31cae3c6dd8e3707a57c6f1e5305f1ed"
+  },
+  {
+    "Id": "regression/qpdf/qpdf/qtest/qpdf/issue-449.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "91f9ab67a63773f799bb0a585ef882858940953b4c0de4bb748bb135c44d7936"
+  },
+  {
+    "Id": "regression/verapdf/Isartor test files/PDFA-1b/6.4 Transparency/isartor-6-4-t05-fail-a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "b9b856734468443a5b3e1442557c6ee676b07c740d6bedb4589707c6e9a8dd6b"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-1b/6.2 Graphics/6.2.3.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-3-4-t01-pass-b.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "8af75094908c10478fb4bfeca07f6b5816603bb50811ba01762e909a1299d214"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-1b/6.7 Metadata/6.7.2 Properties/veraPDF test suite 6-7-2-t14-pass-r.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "289a0c07bed2b2b43a1314c6b0e667437ee39841cde29ef9abc24bbcf3fee507"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-2b/6.2 Graphics/6.2.10 Transparency/veraPDF test suite 6-2-10-t05-fail-g.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "a0a7e854dc620f280b3f50871b767bb0ddff454fc0cb0494b4453aade3ab8070"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-2b/6.2 Graphics/6.2.11 Fonts/6.2.11.6 Character encodings/veraPDF test suite 6-2-11-6-t03-fail-a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2b844909e265969b4104de31a2f99d2390ab00f63cd12f74eb8479be608b6c64"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-2b/6.2 Graphics/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t01-pass-a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "28dfb33309df59e2f40ae0acd4d0e411208e38b99208ad077f3d960794dfe055"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-2b/6.2 Graphics/6.2.8 Images/6.2.8.3 JPEG2000/veraPDF test suite 6-2-8-3-t01-fail-b.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "6e13458877c6d58a5b923bf6fca1529edfddd85cdf6361e7b6ed0c9675c87770"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-2b/6.3 Annotations/6.3.2 Annotation dictionaries/veraPDF test suite 6-3-2-t01-fail-n.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "1852d8b7aa7580ad4e19795bfb773d12f23085ae710fd9edb08bafd8a448d05a"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-2b/6.6 Metadata/6.6.2 Metadata streams/6.6.2.3 Schemas/6.6.2.3.1 General/veraPDF test suite 6-6-2-3-1-t01-pass-s.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "3b30e3014830d6ca5110d79ed3e67e510e68f4839174427d1300826e7a39e6d8"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-4/6.2 Graphics/6.2.10 Fonts/6.2.10.3 Composite fonts/6.2.10.3.2 CIDFonts/veraPDF test suite 6-2-10-3-2-t01-fail-a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "57d0189a42cc097b0c5bedee6c7541aca242ec9f405b1273cf851ca1f1b9c509"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-4/6.2 Graphics/6.2.3 Output intent/veraPDF test suite 6-2-3-t01-fail-d.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "b0bc23d816cf627ad6d8099495952dcc5ddf84d0a02f78eade42e3a8f05155f5"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-4/6.2 Graphics/6.2.4 Colour spaces/6.2.4.3 Uncalibrated -Device colour spaces/veraPDF test suite 6-2-4-3-t03-pass-c.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "97f0cb45a92c3848c576ea25defec59f365647f50f6429ae186beefb1b6e4836"
+  },
+  {
+    "Id": "regression/verapdf/PDF_A-4/6.2 Graphics/6.2.4 Colour spaces/6.2.4.4 Separation and DeviceN colour spaces/veraPDF test suite 6-2-4-4-t01-pass-g.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "95b9c158e3626f9588be31b61b4b5db99cac120240d420d7d61d8203a19a7e02"
+  },
+  {
+    "Id": "regression/verapdf/PDF_UA-1/7.2 Text/7.2-t17-pass-b.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "9417179ccaa473f7544bdc3b8ae507f02e4486d01b22ecf12870b75934926b07"
+  },
+  {
+    "Id": "regression/verapdf/PDF_UA-1/7.21 Fonts/7.21.3 Composite fonts/7.21.3.1 General/7.21.3.1-t01-pass-c.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "219c0efb18c6429ddbbc6617e777dd2a8380d790f9caf32ba159cd22726b8d6a"
+  },
+  {
+    "Id": "regression/verapdf/PDF_UA-1/7.21 Fonts/7.21.8 Use of .notdef glyph/7.21.8-t01-fail-a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "55d0f9b6a25fce6c078db6aa964bd5abf4e753f1fe5728d07ce645f6801c2c9f"
+  },
+  {
+    "Id": "regression/verapdf/PDF_UA-1/7.4 Headings/7.4.2 Numbered headings/7.4.2-t01-fail-a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "8ca9c3916ff06667f59389d69005cce78fa0596c01931147d7d300c7cf227986"
+  },
+  {
+    "Id": "regression/verapdf/PDF_UA-2/8.8 Intra-document destinations/8.8-t02-fail-a.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "e7c097cb620a00f400d7c1cd84f61e0bb6e96da5593aa2d0d11606f9d52adfdf"
+  },
+  {
+    "Id": "regression/xberg-regression/arxiv/2102.02280v5.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "553c0fb36a3d202dfb9b6270ffc80110eb709c7630c66a66fcf1f68295c90b53"
+  },
+  {
+    "Id": "regression/xberg-regression/govdocs1/000_000146.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "e635a6241b0645cdf8cc8e5b8c7a3dcd5a7aaa0af7c89305533bfe0efbaaf458"
+  },
+  {
+    "Id": "stress/pdf-association/androidpdfviewer/androidpdfviewer-253-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "b60d7921817f3421471204753b6c05c54d9a5172a423ef0f851a14675d1e847e"
+  },
+  {
+    "Id": "stress/pdf-association/cairo-gitlab/cairo-LINK-253-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "26c326ba33b52934c33f0b94734aaa2ddaead810abb086000eaef9794a1e2dfd"
+  },
+  {
+    "Id": "stress/pdf-association/cairo/cairo-84811-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "fc86b658be97fc2ddf81707e6f3347ee13e0bd9dd7b91641d3ea6e99d6a24fe0"
+  },
+  {
+    "Id": "stress/pdf-association/dejavu/dejavu-12078-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "6f787d9647c484049f124d927f32749dde392471b36fd4eb01a3bc837b3ce9e6"
+  },
+  {
+    "Id": "stress/pdf-association/DSS/DSS-1622-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "bbe361a91d645ab99331f1c23d7dba1f5eed3494b01ddbb85c73587ff52e6c7f"
+  },
+  {
+    "Id": "stress/pdf-association/evince/evince-337-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "cf8172175937525613d434ef90a37889f29b61060744018a99bb511fab6bf4ec"
+  },
+  {
+    "Id": "stress/pdf-association/evince/evince-644-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ee720a59474efc78926cb0f018f51beb9401661433aea57052eeb14f81c68d95"
+  },
+  {
+    "Id": "stress/pdf-association/FOP/FOP-2737-5.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "8f43cb881fa736f892052ffcc15bcd9bd54c7764456a6ab5ab8d09e4bbe8ef12"
+  },
+  {
+    "Id": "stress/pdf-association/GHOSTSCRIPT/GHOSTSCRIPT-687201-5.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "102c7570b08c42ebc0ffb5334a799279f3405f5bc31293b08c54917937d6470b"
+  },
+  {
+    "Id": "stress/pdf-association/GHOSTSCRIPT/GHOSTSCRIPT-688607-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "b0fe0680e7db3f69355afc7646fc4280e4ea866519611940824670e16eb48bde"
+  },
+  {
+    "Id": "stress/pdf-association/laravel-snappy/laravel-snappy-341-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "7b9896dbb753efa94e46f7a9e9e9d2363a317c3eac2c5e97d1309364d0228e7d"
+  },
+  {
+    "Id": "stress/pdf-association/LIBRE_OFFICE/LIBRE_OFFICE-31606-1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2dd7e6c6bd730eec46bd5287641f2fcdbff807e6804d86711c1064a109d732e6"
+  },
+  {
+    "Id": "stress/pdf-association/libvips/libvips-995-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "79c45f8718bd1dc4f84dede030feaf1547c4cd437e53953072399da2df3cb3b5"
+  },
+  {
+    "Id": "stress/pdf-association/MOZILLA/MOZILLA-1265683-21.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "a4ce2b2ad59a54551092bffe4156f3ea04149aa17a8f28fe658d8f64f5289e91"
+  },
+  {
+    "Id": "stress/pdf-association/MOZILLA/MOZILLA-1413250-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "fc91178932da7ab19ef38bbc061db032ab9c5f88866a575ef24c6bde32f131dd"
+  },
+  {
+    "Id": "stress/pdf-association/NUTCH/NUTCH-1949-1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "606b9243ccd9028be1ddd2d425fbe90eceab14b40491b5d829b03d4b23158133"
+  },
+  {
+    "Id": "stress/pdf-association/ocrmypdf/ocrmypdf-79-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "bba55a64f0d8eec5bd4d5e83262bc37d0d49abe35e6bb2dbaf8f10fdb4eae2ec"
+  },
+  {
+    "Id": "stress/pdf-association/OOO/OOO-104877-0.zip-2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "ca0c517577a9c71c694ba0c4fb416537e0dfc0ce68d76287ebafc43d2e7cc1fd"
+  },
+  {
+    "Id": "stress/pdf-association/openpdf/openpdf-LINK-320-1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "c1029497920b41774b823a2b286771ca0f37c4dd3ba1c82fc88ac1ac16bd9945"
+  },
+  {
+    "Id": "stress/pdf-association/parsr/parsr-466-2.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "f142d210c0cb1091433eb6ae5c1c507a213643812e67325d5596cd160b56807d"
+  },
+  {
+    "Id": "stress/pdf-association/pdf.js/pdf.js-LINK-4332-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "e45cce596612f70f6b435dd356a7d3049c3bd3e0d299f6b037718306fae25558"
+  },
+  {
+    "Id": "stress/pdf-association/PDFBOX/PDFBOX-510-1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "6a6a89d6c903131dba61b5d8240de8427757ce785a1106a21d88d44470140b2a"
+  },
+  {
+    "Id": "stress/pdf-association/pdfcpu/pdfcpu-94-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "e57b86962514a272b3024f4295d10c1716a3d38fb35d9363f140a3636b5c88c8"
+  },
+  {
+    "Id": "stress/pdf-association/PDFIUM/PDFIUM-1003-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "11bea4f40014241ee8c58164953a029b1e6b01a2a09cf387327b4cfa6552a4b5"
+  },
+  {
+    "Id": "stress/pdf-association/pdfkit/pdfkit-814-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "9c10e8f1b5fa949b65812cfdc446bbee00c48ef5fdee8ef4c3d6634092249263"
+  },
+  {
+    "Id": "stress/pdf-association/pdfminer.six/pdfminer.six-231-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "313db4e30fb869f8a815065789dd75f549299364332815541fbb4aaec090f428"
+  },
+  {
+    "Id": "stress/pdf-association/pikepdf/pikepdf-118-1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "c25386d9d12bf73c0e9aec43379889f33981e11afa863700c54c6b24e8abfed1"
+  },
+  {
+    "Id": "stress/pdf-association/POI/POI-58048-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "086bd408b67f7a9123e29120f32535770abec88a7d8889a81cc2987a1be8f840"
+  },
+  {
+    "Id": "stress/pdf-association/poppler-gitlab/poppler-757-1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "6eca11e61afb7eed5f339f942bfb8fca0fb525673bcc77b5e5730ce3837a65eb"
+  },
+  {
+    "Id": "stress/pdf-association/poppler/poppler-30892-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "89c1addd16f27922166920d0d4f5bd4c54b74e204c0545babb5dac2f4fab8810"
+  },
+  {
+    "Id": "stress/pdf-association/prawn/prawn-1142-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "778823af7398280be01e63fa2dce07264b25480f98b39cf5558c8f0faeca6f69"
+  },
+  {
+    "Id": "stress/pdf-association/qpdf/qpdf-363-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "9d88948b55e5ea7d74b467a95050bb92a09925f0452d6f81af964749a114797f"
+  },
+  {
+    "Id": "stress/pdf-association/react-pdf/react-pdf-631-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "b5c621665a7fd4bae730f3a5ec5ffb99ec27fd06437f2160df4f7a149be2b87d"
+  },
+  {
+    "Id": "stress/pdf-association/REDHAT/REDHAT-1540370-1.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "c404ed73d7a39c24e2704929f1e9cee49dbd893dfae0e5849fb20dff99888036"
+  },
+  {
+    "Id": "stress/pdf-association/sumatrapdf/sumatrapdf-1629-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "56ff8f31da132a42afd6408afe8d04744358c7a86a9ac08980f730344a78059d"
+  },
+  {
+    "Id": "stress/pdf-association/tabula-java/tabula-java-202-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "2a0f3a49d0e9ba90f323733f3afb5ad28db7c255784e1ed1fb1782635685f814"
+  },
+  {
+    "Id": "stress/pdf-association/tabula/tabula-LINK-707-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "4ca8e3e01c251369309100d201dc24aa076aafb0952b24f6e9502659cc84c1d5"
+  },
+  {
+    "Id": "stress/pdf-association/TIKA/TIKA-369-0.pdf",
+    "Private": false,
+    "Scope": "first two pages",
+    "Sha256": "79466d5787963a1093c560a1d42bfd816a824b781ad71c2827cc4cb5a7f81490"
+  },
+  {
+    "Id": "private-regression-01",
+    "Private": true,
+    "Scope": "all pages",
+    "Sha256": null
+  },
+  {
+    "Id": "private-regression-02",
+    "Private": true,
+    "Scope": "all pages",
+    "Sha256": null
+  }
+]

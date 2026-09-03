@@ -14,7 +14,6 @@ using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
 using KillerPDF.Services;
-using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
 namespace KillerPDF
 {
@@ -816,12 +815,12 @@ namespace KillerPDF
         // ============================================================
 
         /// <summary>
-        /// Converts a collection of PdfPig words to a properly ordered string.
+        /// Converts a collection of engine words to a properly ordered string.
         /// Sorts top-to-bottom then left-to-right, groups into lines using a
         /// dynamic threshold (~40% of average word height) so words at slightly
         /// different baselines still land on the correct line.
         /// </summary>
-        private static string WordsToText(IEnumerable<UglyToad.PdfPig.Content.Word> source)
+        private static string WordsToText(IEnumerable<KillerPdf.Engine.Documents.PdfExtractedWord> source)
         {
             var words = source
                 .OrderByDescending(w => w.BoundingBox.Top)
@@ -833,7 +832,7 @@ namespace KillerPDF
             double avgH   = words.Average(w => w.BoundingBox.Height);
             double thresh = Math.Max(4.0, avgH * 0.4);
 
-            var lines = new List<List<UglyToad.PdfPig.Content.Word>>();
+            var lines = new List<List<KillerPdf.Engine.Documents.PdfExtractedWord>>();
             double lineY = double.MaxValue;
             foreach (var w in words)
             {

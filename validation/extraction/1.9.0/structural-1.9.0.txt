@@ -1,0 +1,14 @@
+FAIL  Isartor test files\PDFA-1b\6.1 File structure\6.1.2 File header\isartor-6-1-2-t01-fail-a.pdf  An indirect object must begin with an object number (byte offset 2075).
+FAIL  Isartor test files\PDFA-1b\6.1 File structure\6.1.3 File trailer\isartor-6-1-3-t02-fail-a.pdf  An encrypted PDF must be opened with a password before it can be updated.
+FAIL  Isartor test files\PDFA-1b\6.2 Graphics\6.2.3 Colour spaces\6.2.3.3 Uncalibrated colour spaces\isartor-6-2-3-3-t03-fail-a.pdf  An indirect object must begin with an object number (byte offset 2296).
+FAIL  PDF_A-1b\6.1 File structure\6.1.2 File header\veraPDF test suite 6-1-2-t01-fail-b.pdf  The PDF header does not contain a valid major.minor version.
+FAIL  PDF_A-2b\6.1 File structure\6.1.2 File header\veraPDF test suite 6-1-2-t01-fail-b.pdf  An indirect object must begin with an object number (byte offset 2699).
+FAIL  PDF_A-2b\6.1 File structure\6.1.3 File trailer\veraPDF test suite 6-1-3-t02-fail-a.pdf  An encrypted PDF must be opened with a password before it can be updated.
+FAIL  PDF_A-2b\6.2 Graphics\6.2.11 Fonts\6.2.11.4 Embedding\6.2.11.4.1 General\veraPDF test suite 6-2-11-4-1-t01-fail-a.pdf  An incremental update requires trailer /Info to reference a live dictionary.
+FAIL  PDF_A-4\6.1 File structure\6.1.12 Document catalog dictionary\veraPDF test suite 6-1-12-t01-fail-b.pdf  The catalog /Version value is not a PDF version.
+FAIL  PDF_A-4\6.1 File structure\6.1.12 Document catalog dictionary\veraPDF test suite 6-1-12-t01-fail-c.pdf  The catalog /Version value is not a PDF version.
+FAIL  PDF_A-4\6.1 File structure\6.1.12 Document catalog dictionary\veraPDF test suite 6-1-12-t01-fail-d.pdf  The catalog /Version value is not a PDF version.
+FAIL  PDF_A-4\6.1 File structure\6.1.2 File header\veraPDF test suite 6-1-2-t01-fail-b.pdf  A single greater-than sign is not a valid PDF token (byte offset 2714).
+FAIL  PDF_A-4\6.1 File structure\6.1.3 File trailer\veraPDF test suite 6-1-3-t02-fail-a.pdf  An encrypted PDF must be opened with a password before it can be updated.
+FAIL  PDF_UA-1\7.16 Security\7.16-t01-fail-a.pdf  An encrypted PDF must be opened with a password before it can be updated.
+Checked 2,907: 2,894 passed, 13 failed in 1.9s.

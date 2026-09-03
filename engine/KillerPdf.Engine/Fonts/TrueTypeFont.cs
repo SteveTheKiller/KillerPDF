@@ -14,7 +14,7 @@ public sealed class TrueTypeFont
     private readonly VariationCmap? _variationCmap;
     private readonly ushort[] _advanceWidths;
 
-    private TrueTypeFont(byte[] data, Dictionary<uint, Table> tables, bool hasCffOutlines)
+    private TrueTypeFont(byte[] data, Dictionary<uint, Table> tables, bool hasCffOutlines, bool extraction = false)
     {
         _data = data;
         _tables = tables;
@@ -34,10 +34,15 @@ public sealed class TrueTypeFont
         if (GlyphCount == 0 || horizontalMetricCount is < 1 || horizontalMetricCount > GlyphCount)
             throw Error("The horizontal metric count is invalid");
         _advanceWidths = ReadWidths(hmtx, GlyphCount, horizontalMetricCount);
-        Table cmap = Required("cmap");
-        _cmap = ReadCmap(cmap);
-        _variationCmap = ReadVariationCmap(cmap);
-        PostScriptName = ReadPostScriptName(Required("name"));
+        if (extraction && !TryTable("cmap", out _)) _cmap = new EmptyCmap();
+        else
+        {
+            Table cmap = Required("cmap");
+            try { _cmap = ReadCmap(cmap, extraction); }
+            catch (NotSupportedException) when (extraction) { _cmap = new EmptyCmap(); }
+            _variationCmap = ReadVariationCmap(cmap);
+        }
+        PostScriptName = extraction && !TryTable("name", out _) ? "EmbeddedFont" : ReadPostScriptName(Required("name"));
 
         if (TryTable("OS/2", out Table os2) && os2.Length >= 10)
             EmbeddingFlags = U16(os2, 8);
@@ -72,6 +77,12 @@ public sealed class TrueTypeFont
 
     /// <summary>Loads and validates an OpenType font with TrueType or CFF outlines.</summary>
     public static TrueTypeFont Load(ReadOnlyMemory<byte> source)
+        => LoadCore(source, false);
+
+    internal static TrueTypeFont LoadForExtraction(ReadOnlyMemory<byte> source)
+        => LoadCore(source, true);
+
+    private static TrueTypeFont LoadCore(ReadOnlyMemory<byte> source, bool extraction)
     {
         byte[] data = source.ToArray();
         if (data.Length < 12)
@@ -99,7 +110,7 @@ public sealed class TrueTypeFont
         if (hasCffOutlines && !tables.ContainsKey(Tag("CFF "))
             && !tables.ContainsKey(Tag("CFF2")))
             throw Error("An OTTO font has no CFF or CFF2 outline table");
-        return new TrueTypeFont(data, tables, hasCffOutlines);
+        return new TrueTypeFont(data, tables, hasCffOutlines, extraction);
     }
 
     /// <summary>Maps a valid Unicode scalar to a glyph identifier, or zero when unmapped.</summary>
@@ -176,7 +187,7 @@ public sealed class TrueTypeFont
         return widths;
     }
 
-    private ICmap ReadCmap(Table cmap)
+    private ICmap ReadCmap(Table cmap, bool extraction = false)
     {
         if (cmap.Length < 4)
             throw Error("The cmap table is truncated");
@@ -211,6 +222,9 @@ public sealed class TrueTypeFont
                 (0, _, 6) => 330,
                 (0, _, 0) => 320,
                 (0, _, 2) => 310,
+                (3, 0, 4) when extraction => 200,
+                (1, 0, 0) when extraction => 100,
+                (1, 0, 6) when extraction => 110,
                 _ => 0
             };
             if (score > 0 && (!best.HasValue || score > best.Value.Score))
@@ -582,6 +596,7 @@ public sealed class TrueTypeFont
 
     private readonly record struct Table(int Offset, int Length) { public int End => Offset + Length; }
     private interface ICmap { ushort Map(int scalar); }
+    private sealed class EmptyCmap : ICmap { public ushort Map(int scalar) => 0; }
     private readonly record struct Format12Group(uint Start, uint End, uint StartGlyph);
     private readonly record struct Format13Group(uint Start, uint End, ushort Glyph);
     private readonly record struct UnicodeRange(int Start, int End);

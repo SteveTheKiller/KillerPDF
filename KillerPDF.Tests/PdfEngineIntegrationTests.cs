@@ -10,7 +10,7 @@ using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Security;
 using KillerPDF.Services;
 using Xunit;
-using PigDocument = UglyToad.PdfPig.PdfDocument;
+using ContentDocument = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Tests;
 
@@ -349,7 +349,7 @@ public sealed class PdfEngineIntegrationTests
 
             Assert.Equal(4, count);
             Assert.True(File.ReadAllBytes(output).AsSpan(0, source.Length).SequenceEqual(source));
-            using PigDocument extracted = PigDocument.Open(output);
+            using ContentDocument extracted = ContentDocument.Open(output);
             string text = extracted.GetPage(1).Text;
             Assert.Contains("Hello", text);
             Assert.Contains("বাংলা", text);
@@ -389,7 +389,7 @@ public sealed class PdfEngineIntegrationTests
             Assert.Equal(4, PdfEngineIntegration.AddSearchableTextLayers(
                 input, output, layers));
 
-            using PigDocument extracted = PigDocument.Open(output);
+            using ContentDocument extracted = ContentDocument.Open(output);
             for (int index = 0; index < 4; index++)
                 Assert.Contains($"Rotation{index}", extracted.GetPage(index + 1).Text);
         }

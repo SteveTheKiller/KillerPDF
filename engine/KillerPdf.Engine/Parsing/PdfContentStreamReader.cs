@@ -5,7 +5,7 @@ namespace KillerPdf.Engine.Parsing;
 
 /// <summary>Reads instructions from decoded PDF content without interpreting graphics or text.</summary>
 /// <remarks>
-/// Inline image data is not supported yet and causes an explicit exception. Unknown operators
+/// Inline images use exact sample lengths or encoded end markers. Unknown operators
 /// are retained for the interpreter to handle, including compatibility sections. This reader
 /// does not resolve fonts, validate operator arity, or extract Unicode text.
 /// </remarks>
@@ -19,12 +19,14 @@ public static class PdfContentStreamReader
     /// <param name="maximumInstructions">Maximum number of instructions to collect.</param>
     /// <param name="maximumOperands">Maximum direct operands preceding any one operator.</param>
     /// <param name="cancellationToken">Cancellation checked between operands and instructions.</param>
+    /// <param name="resolveColorComponents">Resolves component counts for resource-named inline image color spaces.</param>
     /// <returns>Instructions in source order. No partial result is returned on failure.</returns>
     public static IReadOnlyList<PdfContentInstruction> Read(
         ReadOnlyMemory<byte> source,
         int maximumInstructions = 1_000_000,
         int maximumOperands = 4096,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Func<PdfName, int?>? resolveColorComponents = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumInstructions);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOperands);
@@ -58,7 +60,13 @@ public static class PdfContentStreamReader
 
             string operation = parser.TakeContentToken().ValueAsLatin1();
             if (operation == "BI")
-                throw new NotSupportedException($"Inline image content is not supported (byte offset {token.Offset}).");
+            {
+                if (operands.Count != 0)
+                    throw new PdfSyntaxException("BI cannot follow operands", token.Offset);
+                instructions.Add(PdfInlineImageReader.Read(parser, source, token.Offset,
+                    maximumOperands, cancellationToken, resolveColorComponents));
+                continue;
+            }
             if (operation is "R" or "obj" or "endobj" or "stream" or "endstream" or "ID" or "EI")
                 throw new PdfSyntaxException("Object or inline-image syntax is invalid here", token.Offset);
 

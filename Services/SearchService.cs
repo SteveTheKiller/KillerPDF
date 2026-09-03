@@ -1,4 +1,4 @@
-using UglyToad.PdfPig;
+using PdfDocument = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Services
 {
@@ -42,7 +42,7 @@ namespace KillerPDF.Services
         }
 
         internal static List<(double Left, double Bottom, double Right, double Top)> FindMatchesOnPage(
-            UglyToad.PdfPig.Content.Page page, string query)
+            KillerPdf.Engine.Documents.PdfPageContent page, string query)
         {
             var result = new List<(double, double, double, double)>();
             var words = page.GetWords().ToList();

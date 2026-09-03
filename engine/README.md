@@ -49,6 +49,23 @@ byte[] rewritten = PdfDocumentWriter.Write(document);
 File.WriteAllBytes("output.pdf", rewritten);
 ```
 
+Extract text and image placements from a page:
+
+```csharp
+using KillerPdf.Engine.Documents;
+
+PdfDocument document = PdfDocument.Open(File.ReadAllBytes("input.pdf"), string.Empty);
+var reader = new PdfPageContentReader(document);
+PdfPageContent page = reader.Read(0);
+foreach (PdfExtractedWord word in page.Words)
+    Console.WriteLine($"{word.Text}: {word.BoundingBox}");
+```
+
+Page indices are zero-based. Bounds use unrotated, crop-relative PDF points with a
+bottom-left origin. Letters include the font name, raw font size, effective point size,
+and baseline endpoints. `Diagnostics` reports compatibility recoveries. Text extraction
+does not certify visual visibility or PDF conformance; image clipping uses bounding rectangles.
+
 ## Major capabilities
 
 ### Read and understand real PDF files
@@ -90,6 +107,7 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 ## Capability summary
 
 - PDF syntax, objects, streams, classic cross-reference tables, cross-reference streams, object streams, trailers, and incremental revisions
+- Page text, word and glyph geometry, font information, and image placements, including nested forms and inline images
 - Deterministic full rewrites and byte-preserving incremental updates
 - PDF 2.0 document authoring with pages, content streams, graphics state, fonts, images, color spaces, shadings, patterns, transparency, and resources
 - Navigation, bookmarks, named destinations, page labels, viewer preferences, transitions, optional content, and attachments
@@ -103,7 +121,7 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 
 ## What it does not do
 
-The KillerPDF.Engine is a document engine, not a renderer or desktop framework. It does not render pages, provide UI controls, or perform text extraction. KillerPDF uses PDFium for rendering and PdfPig for text extraction outside this library.
+The KillerPDF.Engine reads and edits documents and extracts text and image placements. It does not render pages or provide UI controls. KillerPDF uses PDFium for rendering.
 
 ## Repository layout
 
@@ -134,7 +152,7 @@ The project treats compiler warnings as errors and generates XML API documentati
 
 The release gate includes:
 
-- 1,436 engine tests
+- The full engine test suite
 - A strict Release build with zero warnings
 - A 2,907-file incremental structural corpus gate
 - A 2,907-file selected-page import corpus gate with zero unexpected failures
@@ -156,10 +174,12 @@ The original architecture decision is recorded in [ADR-001](https://github.com/S
 
 ## KillerPDF integration
 
-KillerPDF directly references The KillerPDF.Engine as its document parser, writer, and editing library. The Windows application no longer references or vendors PdfSharpCore; PDFium remains responsible for rendering and PdfPig for text extraction.
+KillerPDF directly references The KillerPDF.Engine for document parsing, text extraction, writing, and editing. The Windows application no longer references PdfPig or PdfSharpCore. PDFium remains responsible for rendering.
 
 See [The KillerPDF.Engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md) for detailed capability history.
 
 ## License
 
 The KillerPDF.Engine is licensed under GPLv3 as part of the KillerPDF repository. See the repository [LICENSE](https://github.com/SteveTheKiller/KillerPDF/blob/main/LICENSE).
+
+Bundled font metrics and character maps retain their original licenses in [THIRD-PARTY-NOTICES.txt](THIRD-PARTY-NOTICES.txt), also included in the NuGet package.

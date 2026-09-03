@@ -88,4 +88,20 @@ public sealed class PdfTextContentReaderTests
 
     private static IReadOnlyList<PdfTextPlacement> Read(string content) =>
         PdfTextContentReader.Read(Encoding.ASCII.GetBytes(content), Fonts);
+
+    [Fact]
+    public void ActualTextCannotBypassCharacterBudget()
+    {
+        Assert.Throws<FormatException>(() => PdfTextContentReader.Read(Encoding.ASCII.GetBytes(
+            "/Span << /ActualText (long replacement) >> BDC BT /F1 10 Tf (A) Tj ET EMC"),
+            Fonts, maximumCharacters: 5));
+    }
+
+    [Fact]
+    public void UnusedActualTextDoesNotDecodeInvalidReplacement()
+    {
+        Assert.Empty(Read("/Span << /ActualText <FEFF00> >> BDC EMC"));
+        var text = Read("/Span << /ActualText (outer) >> BDC /Span << /ActualText <FEFF00> >> BDC BT /F1 10 Tf (A) Tj ET EMC EMC");
+        Assert.Equal("outer", Assert.Single(text).Text);
+    }
 }

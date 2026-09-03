@@ -12,7 +12,7 @@
     <Title>The KillerPDF.Engine</Title>
     <Authors>Steve the Killer</Authors>
     <Copyright>Copyright (c) 2026 Steve the Killer</Copyright>
-    <Description>An independent .NET PDF 2.0 document engine for reading, validating, authoring, editing, signing, encrypting, and writing PDF files.</Description>
+    <Description>An independent .NET PDF 2.0 document engine for reading, text extraction, validation, authoring, editing, signing, encryption, and writing PDF files.</Description>
     <PackageTags>pdf;pdf-2.0;pdf-a;pdf-ua;validation;authoring;signing;encryption;document-processing;csharp</PackageTags>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://killerpdf.net/engine.html</PackageProjectUrl>
@@ -41,6 +41,7 @@
 
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\THIRD-PARTY-NOTICES.txt" Pack="true" PackagePath="\" />
     <None Include="icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 

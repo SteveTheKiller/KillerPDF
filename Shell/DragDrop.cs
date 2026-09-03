@@ -16,7 +16,6 @@ using Docnet.Core.Models;
 using Microsoft.Win32;
 using KillerPDF.Controls;
 using KillerPDF.Services;
-using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
 
 namespace KillerPDF
 {

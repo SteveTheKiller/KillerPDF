@@ -14,7 +14,7 @@ using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
 using KillerPDF.Services;
-using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
+using ContentDoc = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Controls
 {
@@ -49,7 +49,7 @@ namespace KillerPDF.Controls
         // ============================================================
         // A drag that STARTS on a text character tracks the actual run of characters in reading
         // order, browser-style, instead of the rectangle marquee. Geometry comes from
-        // TextRunService (PdfPig words, the same source as search), endpoints are caret positions
+        // TextRunService (engine words, the same source as search), endpoints are caret positions
         // (page, 0..N over the page's flattened chars), and the painted quads use the exact
         // PDF-to-render math AddSearchHighlight uses, so everything lands where search lands.
         // Drags that start on empty page keep the classic marquee (annotation box-select,
@@ -440,9 +440,9 @@ namespace KillerPDF.Controls
             {
                 var (renderW, renderH) = renderDimensions;
 
-                using var pigDoc = PdfPigDoc.Open(_currentFile);
-                if (pageIdx >= pigDoc.NumberOfPages) return;
-                var page = pigDoc.GetPage(pageIdx + 1); // PdfPig is 1-based
+                using var contentDoc = ContentDoc.Open(_currentFile);
+                if (pageIdx >= contentDoc.NumberOfPages) return;
+                var page = contentDoc.GetPage(pageIdx + 1); // The app facade is 1-based
 
                 double pdfW = page.Width;
                 double pdfH = page.Height;

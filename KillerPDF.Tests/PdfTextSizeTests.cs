@@ -1,16 +1,16 @@
 using System.Text;
-using UglyToad.PdfPig;
+using PdfDocument = KillerPDF.Services.PdfContentDocument;
 using Xunit;
 
 namespace KillerPDF.Tests
 {
     /// <summary>
-    /// Pins the PdfPig property that in-place text editing reads its font size from (#163).
+    /// Pins the engine property that in-place text editing reads its font size from (#163).
     /// Letter.FontSize is the size as written in the content stream, so a generator that emits
     /// "/F1 1 Tf" and applies the scale through the text matrix reports 1 no matter how large the
     /// glyphs actually draw. Detection used that value, which collapsed the replacement text onto
     /// its lower clamp and read back as 3pt. Letter.PointSize is the size in points and is right
-    /// for both spellings, so these tests fail if a PdfPig upgrade changes either meaning.
+    /// for both spellings, so these tests fail if an extraction change changes either meaning.
     /// </summary>
     public class PdfTextSizeTests
     {
@@ -22,7 +22,7 @@ namespace KillerPDF.Tests
 
         /// <summary>A single-page PDF holding <see cref="Content"/>, built by hand so the two runs
         /// keep their exact Tf and Tm operands - no library would emit the second one.</summary>
-        static byte[] BuildPdf()
+        internal static byte[] BuildPdf()
         {
             string[] objects =
             [

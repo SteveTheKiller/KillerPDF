@@ -1,5 +1,5 @@
 using System.IO;
-using UglyToad.PdfPig;
+using PdfDocument = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Services
 {
@@ -7,7 +7,7 @@ namespace KillerPDF.Services
     /// (points, bottom-left origin), matching SearchService and ExtractTextFromRegion.</summary>
     internal readonly struct RunChar(string value, double left, double right, int word, int line)
     {
-        public readonly string Value = value;   // PdfPig letters can be multi-char (ligatures)
+        public readonly string Value = value;   // engine letters can be multi-char (ligatures)
         public readonly double Left = left;
         public readonly double Right = right;
         public readonly int Word = word;       // ordinal of the word this char belongs to (for word counts / spacing)
@@ -40,7 +40,7 @@ namespace KillerPDF.Services
 
     /// <summary>
     /// Builds and caches per-page reading-order character runs for flowing text selection (#127).
-    /// Word geometry comes from PdfPig's GetWords - the same source SearchService and the region
+    /// Word geometry comes from the engine's GetWords - the same source SearchService and the region
     /// text extractor use - so selection quads land exactly where search highlights do. Words are
     /// grouped into lines by vertical overlap and ordered top-to-bottom, then in each line's
     /// detected reading direction.
@@ -51,7 +51,7 @@ namespace KillerPDF.Services
     internal sealed class TextRunService
     {
         // Keyed by (path, last-write ticks, page): a resave or temp-reload changes the key, so stale
-        // geometry can never serve a newer file. Nulls are cached too - a file PdfPig cannot open
+        // geometry can never serve a newer file. Nulls are cached too - a file engine cannot open
         // should not be re-parsed on every click.
         private readonly Dictionary<(string Path, long Ticks, int Page), PageTextRuns?> _cache = [];
 
@@ -71,7 +71,7 @@ namespace KillerPDF.Services
             {
                 using var doc = PdfDocument.Open(path);
                 if (pageIdx < doc.NumberOfPages)
-                    runs = Build(doc.GetPage(pageIdx + 1));   // PdfPig is 1-based
+                    runs = Build(doc.GetPage(pageIdx + 1));   // The app facade is 1-based
             }
             catch { /* encrypted/broken: selection just is not offered on this page */ }
 
@@ -81,8 +81,8 @@ namespace KillerPDF.Services
 
         // #185 helper: see the call site comment. Bands arrive top-to-bottom; the result is the
         // same tuple shape, reordered so the flattened char order reads one column at a time.
-        private static List<(List<UglyToad.PdfPig.Content.Word> Words, double Top, double Bottom)>
-            OrderColumnAware(List<(List<UglyToad.PdfPig.Content.Word> Words, double Top, double Bottom)> bands)
+        private static List<(List<KillerPdf.Engine.Documents.PdfExtractedWord> Words, double Top, double Bottom)>
+            OrderColumnAware(List<(List<KillerPdf.Engine.Documents.PdfExtractedWord> Words, double Top, double Bottom)> bands)
         {
             if (bands.Count < 2) return bands;
 
@@ -95,8 +95,8 @@ namespace KillerPDF.Services
                 }
             double wideW = (textR - textL) * 0.62;   // spans most of the text width = not a column line
 
-            var reordered = new List<(List<UglyToad.PdfPig.Content.Word>, double, double)>();
-            var pending = new List<(List<UglyToad.PdfPig.Content.Word> Words, double Top, double Bottom, double L, double R)>();
+            var reordered = new List<(List<KillerPdf.Engine.Documents.PdfExtractedWord>, double, double)>();
+            var pending = new List<(List<KillerPdf.Engine.Documents.PdfExtractedWord> Words, double Top, double Bottom, double L, double R)>();
 
             void Flush()
             {
@@ -136,7 +136,7 @@ namespace KillerPDF.Services
                 foreach (var w in sorted) { tw += w.BoundingBox.Width; tn += Math.Max(1, w.Text.Length); }
                 double gapT = Math.Max(10, (tn > 0 ? tw / tn : 5) * 3);
 
-                var segs = new List<List<UglyToad.PdfPig.Content.Word>> { new() { sorted[0] } };
+                var segs = new List<List<KillerPdf.Engine.Documents.PdfExtractedWord>> { new() { sorted[0] } };
                 for (int i = 1; i < sorted.Count; i++)
                 {
                     if (sorted[i].BoundingBox.Left - sorted[i - 1].BoundingBox.Right > gapT)
@@ -161,7 +161,7 @@ namespace KillerPDF.Services
             return reordered;
         }
 
-        private static PageTextRuns Build(UglyToad.PdfPig.Content.Page page)
+        private static PageTextRuns Build(KillerPdf.Engine.Documents.PdfPageContent page)
         {
             var result = new PageTextRuns { PdfWidth = page.Width, PdfHeight = page.Height };
             var words = page.GetWords().ToList();
@@ -169,7 +169,7 @@ namespace KillerPDF.Services
 
             // Group words into lines: a word joins a line when its vertical band overlaps the line's
             // band by at least half the smaller height. Bands grow as members join.
-            var lineWords = new List<(List<UglyToad.PdfPig.Content.Word> Words, double Top, double Bottom)>();
+            var lineWords = new List<(List<KillerPdf.Engine.Documents.PdfExtractedWord> Words, double Top, double Bottom)>();
             foreach (var w in words)
             {
                 var bb = w.BoundingBox;
@@ -183,7 +183,7 @@ namespace KillerPDF.Services
                     if (minH > 0 && overlap >= minH * 0.5) { found = i; break; }
                 }
                 if (found < 0)
-                    lineWords.Add((new List<UglyToad.PdfPig.Content.Word> { w }, wTop, wBottom));
+                    lineWords.Add((new List<KillerPdf.Engine.Documents.PdfExtractedWord> { w }, wTop, wBottom));
                 else
                 {
                     var (Words, Top, Bottom) = lineWords[found];

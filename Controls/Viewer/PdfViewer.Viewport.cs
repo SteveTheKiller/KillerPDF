@@ -14,7 +14,7 @@ using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Win32;
 using KillerPDF.Services;
-using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
+using ContentDoc = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Controls
 {
@@ -39,22 +39,22 @@ namespace KillerPDF.Controls
             _pageImageRects = new();
 
         /// <summary>The page's image boxes for the inversion carve-out, cached per (file, page).
-        /// On a miss, opens PdfPig into the caller's ref (so a worker loop pays ONE open however
+        /// On a miss, opens engine into the caller's ref (so a worker loop pays ONE open however
         /// many pages it fills) - the caller disposes it; a held handle on the temp file would
         /// block the save-time file swap. Encrypted or unparsable pages cache an empty set, which
         /// falls back to inverting everything - the pre-carve-out behavior.</summary>
-        private BitmapHelpers.FracRect[] ImageRectsFor(string file, int page, ref PdfPigDoc? pig)
+        private BitmapHelpers.FracRect[] ImageRectsFor(string file, int page, ref ContentDoc? contentDoc)
         {
             // Opt-in full inversion (moon right-click, "Invert images too"): no carve-out, and
-            // no PdfPig open paid for rects nobody will use.
+            // no engine open paid for rects nobody will use.
             if (BitmapHelpers.DocInvertImages) return [];
             string key = page + "|" + file;
             if (_pageImageRects.TryGetValue(key, out var hit)) return hit;
             BitmapHelpers.FracRect[] rects;
             try
             {
-                pig ??= PdfPigDoc.Open(file);
-                rects = PdfImages.GetFracRects(pig, page);
+                contentDoc ??= ContentDoc.Open(file);
+                rects = PdfImages.GetFracRects(contentDoc, page);
             }
             catch { rects = []; }
             _pageImageRects[key] = rects;
@@ -532,7 +532,7 @@ namespace KillerPDF.Controls
             await System.Threading.Tasks.Task.Run(() =>
             {
                 Docnet.Core.Readers.IDocReader? docReader = null;
-                PdfPigDoc? pig = null;   // opened lazily by ImageRectsFor on the first uncached page
+                ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                 try
                 {
                     foreach (int i in todo)
@@ -565,7 +565,7 @@ namespace KillerPDF.Controls
                         // pixel-buffer rotation (the ops commute for the full page) so the image
                         // carve-out rects stay in unrotated page space.
                         if (DocInvert)
-                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, ImageRectsFor(currentFile, i, ref pig));
+                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, ImageRectsFor(currentFile, i, ref contentDoc));
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
 
@@ -589,7 +589,7 @@ namespace KillerPDF.Controls
                     }
                 }
                 catch { /* render canceled or doc closed */ }
-                finally { docReader?.Dispose(); pig?.Dispose(); }
+                finally { docReader?.Dispose(); contentDoc?.Dispose(); }
             }, cts.Token);
         }
 
@@ -781,7 +781,7 @@ namespace KillerPDF.Controls
             _ = System.Threading.Tasks.Task.Run(() =>
             {
                 Docnet.Core.Readers.IDocReader? docReader = null;
-                PdfPigDoc? pig = null;   // opened lazily by ImageRectsFor on the first uncached page
+                ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                 try
                 {
                     foreach (int p in work)
@@ -798,7 +798,7 @@ namespace KillerPDF.Controls
                         // #135: dark mode with pictures excluded; invert before the rotation so
                         // the carve-out rects stay in unrotated page space.
                         if (DocInvert)
-                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, ImageRectsFor(currentFile, p, ref pig));
+                            BitmapHelpers.InvertBgraInPlaceExcept(raw, w, h, ImageRectsFor(currentFile, p, ref contentDoc));
                         if (rot != 0) (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
 
                         int fp = p, fw = w, fh = h;
@@ -815,7 +815,7 @@ namespace KillerPDF.Controls
                     }
                 }
                 catch { /* canceled or doc closed */ }
-                finally { docReader?.Dispose(); pig?.Dispose(); }
+                finally { docReader?.Dispose(); contentDoc?.Dispose(); }
             }, cts.Token);
         }
 
@@ -887,13 +887,13 @@ namespace KillerPDF.Controls
                         return;
                     }
                     // #135: display-only dark mode, pictures excluded. Before the rotation so the
-                    // carve-out rects stay in unrotated page space; the one-shot PdfPig open is
+                    // carve-out rects stay in unrotated page space; the one-shot engine open is
                     // paid only on this page's first inverted render (the rects cache after).
                     if (DocInvert)
                     {
-                        PdfPigDoc? pig = null;
-                        try { BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, width, height, ImageRectsFor(_currentFile, pageIndex, ref pig)); }
-                        finally { pig?.Dispose(); }
+                        ContentDoc? contentDoc = null;
+                        try { BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, width, height, ImageRectsFor(_currentFile, pageIndex, ref contentDoc)); }
+                        finally { contentDoc?.Dispose(); }
                     }
                     // The temp file has /Rotate stripped so Docnet renders unrotated (no clipping); rotate
                     // the pixel buffer to match the visual.
@@ -1150,7 +1150,7 @@ namespace KillerPDF.Controls
                 await System.Threading.Tasks.Task.Run(() =>
                 {
                     Docnet.Core.Readers.IDocReader? docReader = null;
-                    PdfPigDoc? pig = null;   // opened lazily by ImageRectsFor on the first uncached page
+                    ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                     try
                     {
                         for (int i = primaryPageIdx + 1; i < limit; i++)
@@ -1193,7 +1193,7 @@ namespace KillerPDF.Controls
                                 // #135: dark mode with pictures excluded; invert before the rotation
                                 // so the carve-out rects stay in unrotated page space.
                                 if (DocInvert)
-                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, i, ref pig));
+                                    BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, w, h, ImageRectsFor(currentFile, i, ref contentDoc));
                                 if (rot != 0)
                                     (rawBytes, w, h) = BitmapHelpers.RotateBitmap(rawBytes, w, h, rot);
 
@@ -1217,7 +1217,7 @@ namespace KillerPDF.Controls
                             catch { continue; }   // skip this page, keep streaming the rest
                         }
                     }
-                    finally { docReader?.Dispose(); pig?.Dispose(); }
+                    finally { docReader?.Dispose(); contentDoc?.Dispose(); }
                 }, cts.Token);
             }
             catch (OperationCanceledException) { return; }   // superseded - the newer render owns the tiles now

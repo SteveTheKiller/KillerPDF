@@ -6,11 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.0] - Unreleased
 
-1.9.0 (Overkill) begins the next development cycle with PdfPig replacement as the first priority.
+1.9.0 (Overkill) moves text and image placement extraction into The KillerPDF.Engine.
 
 ### Changed
 
-- Started engine-owned text decoding and positioning for the PdfPig replacement; search and selection still use PdfPig.
+- Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
 - Click the footer page dimensions to switch between millimeters and inches, with the preference remembered.
 
 ## [1.8.3] - 2026-09-02

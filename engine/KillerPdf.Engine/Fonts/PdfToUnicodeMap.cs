@@ -16,8 +16,36 @@ public sealed class PdfToUnicodeMap
     private readonly List<(uint Low, uint High, int Length)> _spaces = [];
     private PdfToUnicodeMap() { }
 
+    internal static PdfToUnicodeMap Create(IReadOnlyDictionary<uint, string> characters, int byteLength)
+    {
+        var map = new PdfToUnicodeMap();
+        map._spaces.Add((0, byteLength == 4 ? uint.MaxValue : (1u << (byteLength * 8)) - 1, byteLength));
+        foreach (var pair in characters) map._characters.Add((pair.Key, byteLength), pair.Value);
+        return map;
+    }
+
+    internal string? Lookup(uint code, int length) => _characters.GetValueOrDefault((code, length));
+
+    internal static PdfToUnicodeMap CreateCodeSpaces(IEnumerable<(uint Low, uint High, int Length)> spaces)
+    {
+        var map = new PdfToUnicodeMap();
+        map._spaces.AddRange(spaces);
+        if (map._spaces.Count == 0) throw new FormatException("Font encoding has no character code space.");
+        map.ValidateSpaces();
+        return map;
+    }
+
     /// <summary>Parses decoded CMap bytes with a bound on expanded mappings.</summary>
     public static PdfToUnicodeMap Parse(ReadOnlyMemory<byte> source, int maximumMappings = 65536)
+        => ParseCore(source, maximumMappings, false);
+
+    internal static PdfToUnicodeMap ParseSimpleFont(ReadOnlyMemory<byte> source)
+        => ParseFont(source, true);
+
+    internal static PdfToUnicodeMap ParseFont(ReadOnlyMemory<byte> source, bool simpleFont)
+        => ParseCore(PdfCMapMetadata.WithoutDictionaries(source), 65536, simpleFont);
+
+    private static PdfToUnicodeMap ParseCore(ReadOnlyMemory<byte> source, int maximumMappings, bool simpleFont)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumMappings);
         var map = new PdfToUnicodeMap();
@@ -84,6 +112,15 @@ public sealed class PdfToUnicodeMap
             block = null;
         }
         if (block is not null) throw new FormatException("Unterminated ToUnicode block.");
+        if (simpleFont)
+        {
+            // Simple-font strings contain one-byte codes even when a producer declares a two-byte CMap code space.
+            var normalized = map._characters.Where(p => p.Key.Code <= 255).ToArray();
+            map._characters.Clear();
+            foreach (var pair in normalized) map._characters[(pair.Key.Code, 1)] = pair.Value;
+            map._spaces.Clear();
+            map._spaces.Add((0, 255, 1));
+        }
         if (map._spaces.Count == 0) throw new FormatException("ToUnicode map has no code space.");
         map.ValidateSpaces();
         foreach (var key in map._characters.Keys)
@@ -94,6 +131,12 @@ public sealed class PdfToUnicodeMap
 
     /// <summary>Decodes character codes, retaining ligatures and supplementary Unicode characters.</summary>
     public IReadOnlyList<PdfDecodedCharacter> Decode(ReadOnlySpan<byte> source)
+        => DecodeCore(source, null, false);
+
+    internal IReadOnlyList<PdfDecodedCharacter> DecodeWithFallback(ReadOnlySpan<byte> source, Func<uint, string?>? fallback)
+        => DecodeCore(source, fallback, true);
+
+    private IReadOnlyList<PdfDecodedCharacter> DecodeCore(ReadOnlySpan<byte> source, Func<uint, string?>? fallback, bool replaceMissing)
     {
         var result = new List<PdfDecodedCharacter>();
         int offset = 0;
@@ -106,7 +149,10 @@ public sealed class PdfToUnicodeMap
                 code = (code << 8) | source[offset + length - 1];
                 if (!_spaces.Any(s => s.Length == length && code >= s.Low && code <= s.High)) continue;
                 if (!_characters.TryGetValue((code, length), out string? text))
-                    throw new NotSupportedException($"No Unicode mapping for character code {code:X}.");
+                {
+                    if (!replaceMissing) throw new NotSupportedException($"No Unicode mapping for character code {code:X}.");
+                    text = fallback?.Invoke(code) ?? "\uFFFD";
+                }
                 result.Add(new PdfDecodedCharacter(code, length, text));
                 offset += length;
                 matched = true;

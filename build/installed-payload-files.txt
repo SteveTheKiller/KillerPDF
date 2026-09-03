@@ -11,10 +11,4 @@ pdf-file.ico
 pdfium.dll
 SixLabors.Fonts.dll
 Tesseract.dll
-UglyToad.PdfPig.Core.dll
-UglyToad.PdfPig.dll
-UglyToad.PdfPig.DocumentLayoutAnalysis.dll
-UglyToad.PdfPig.Fonts.dll
-UglyToad.PdfPig.Package.dll
-UglyToad.PdfPig.Tokenization.dll
-UglyToad.PdfPig.Tokens.dll
+THIRD-PARTY-NOTICES.txt

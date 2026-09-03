@@ -178,7 +178,7 @@ namespace KillerPDF.Features
 
         // ============================================================
         // Make Searchable PDF - OCR every page and write an invisible text
-        // layer aligned to the image, so the existing PdfPig search and text
+        // layer aligned to the image, so the existing engine search and text
         // selection start working on scans.
         // ============================================================
 
@@ -247,7 +247,7 @@ namespace KillerPDF.Features
         }
 
         // Renders each page, OCRs it, and appends an invisible text layer positioned over the
-        // recognized words. The text is real content-stream text, so PdfPig extracts it for search/select;
+        // recognized words. The text is real content-stream text, so engine extracts it for search/select;
         // invisible text rendering keeps it from showing or printing. Runs entirely off the UI thread. Also the core of the
         // CLI's --ocr command (CliRunner).
         internal static (int pages, int words) BuildSearchablePdf(string src, string outPath,

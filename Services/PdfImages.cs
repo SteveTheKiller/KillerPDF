@@ -1,11 +1,11 @@
-using PdfPigDoc = UglyToad.PdfPig.PdfDocument;
+using ContentDoc = KillerPDF.Services.PdfContentDocument;
 
 namespace KillerPDF.Services
 {
     // ============================================================
     // Image placement extraction for the display dark mode (#135
     // follow-up: pictures keep their real colors while the page
-    // inverts). Pure functions over an OPEN PdfPig document - the
+    // inverts). Pure functions over an OPEN engine document - the
     // caller owns the open/dispose, because a held handle on the
     // temp file would block the save-time file swap.
     // ============================================================
@@ -13,12 +13,12 @@ namespace KillerPDF.Services
     {
         /// <summary>
         /// The page's image bounding boxes as fractions of the unrotated page, top-left origin
-        /// (PdfPig reports PDF points, bottom-left origin - the same y-flip the annotation
+        /// (engine reports PDF points, bottom-left origin - the same y-flip the annotation
         /// pipeline uses). Fractional so one cached set serves every render resolution, and
         /// computed against the UNROTATED page because the render sites apply the display
-        /// inversion before the pixel-buffer rotation. pageIndex is 0-based (PdfPig is 1-based).
+        /// inversion before the pixel-buffer rotation. pageIndex is 0-based (The app facade is 1-based).
         /// </summary>
-        internal static BitmapHelpers.FracRect[] GetFracRects(PdfPigDoc doc, int pageIndex)
+        internal static BitmapHelpers.FracRect[] GetFracRects(ContentDoc doc, int pageIndex)
         {
             var page = doc.GetPage(pageIndex + 1);
             double pw = page.Width, ph = page.Height;
@@ -27,7 +27,7 @@ namespace KillerPDF.Services
             var list = new List<BitmapHelpers.FracRect>();
             foreach (var img in page.GetImages())
             {
-                var b = img.BoundingBox;   // Bounds is obsolete in current PdfPig
+                var b = img.BoundingBox;   // Page-relative image bounds
                 double l = b.Left / pw, r = b.Right / pw;
                 double t = (ph - b.Top) / ph, bo = (ph - b.Bottom) / ph;
                 if (r < l) {

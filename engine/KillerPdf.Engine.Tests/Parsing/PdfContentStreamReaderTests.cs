@@ -57,8 +57,8 @@ public sealed class PdfContentStreamReaderTests
         Assert.Throws<PdfSyntaxException>(() => Read(content));
 
     [Fact]
-    public void RejectsInlineImagesBeforeTreatingTheirBytesAsText() =>
-        Assert.Throws<NotSupportedException>(() => Read("q BI /W 1 /H 1 ID (fake) Tj EI Q"));
+    public void RejectsMalformedInlineImagesBeforeTreatingTheirBytesAsText() =>
+        Assert.Throws<PdfSyntaxException>(() => Read("q BI /W 1 /H 1 ID (fake) Tj EI Q"));
 
     [Fact]
     public void EnforcesInstructionAndOperandBudgets()

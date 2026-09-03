@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Documents;
 
 namespace KillerPdf.Engine.Parsing;
 
@@ -10,4 +11,12 @@ public sealed record PdfTextPlacement(
     string FontResource,
     double FontSize,
     PdfPoint Origin,
-    PdfPoint AdvanceEnd);
+    PdfPoint AdvanceEnd)
+{
+    /// <summary>Gets the font's face name.</summary>
+    public string FontName { get; init; } = FontResource;
+    /// <summary>Gets the effective size after text and graphics transforms.</summary>
+    public double PointSize { get; init; } = Math.Abs(FontSize);
+    /// <summary>Gets the transformed glyph bounds.</summary>
+    public PdfContentBounds Bounds { get; init; }
+}
