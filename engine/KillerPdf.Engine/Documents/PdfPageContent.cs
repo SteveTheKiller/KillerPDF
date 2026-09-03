@@ -97,6 +97,12 @@ public sealed record PdfExtractedPath(
     string PaintOperator,
     bool IsClippingPath);
 
+/// <summary>A shading paint operation and its active page-space bounds.</summary>
+public sealed record PdfExtractedShading(
+    string ResourceName,
+    int ShadingType,
+    PdfContentBounds BoundingBox);
+
 /// <summary>A contiguous sequence of extracted characters sharing font and writing direction.</summary>
 public sealed class PdfExtractedTextRun
 {
@@ -153,7 +159,9 @@ public sealed class PdfPageContent
 {
     internal PdfPageContent(double width, double height, IEnumerable<PdfExtractedLetter> letters,
         IEnumerable<PdfExtractedImage> images, IEnumerable<PdfContentInstruction> instructions,
-        IEnumerable<PdfExtractedPath> paths, IEnumerable<string>? diagnostics = null)
+        IEnumerable<PdfExtractedPath> paths,
+        IEnumerable<PdfExtractedShading> shadings,
+        IEnumerable<string>? diagnostics = null)
     {
         Width = width;
         Height = height;
@@ -161,6 +169,7 @@ public sealed class PdfPageContent
         Images = Array.AsReadOnly(images.ToArray());
         Instructions = Array.AsReadOnly(instructions.ToArray());
         Paths = Array.AsReadOnly(paths.ToArray());
+        Shadings = Array.AsReadOnly(shadings.ToArray());
         Diagnostics = Array.AsReadOnly((diagnostics ?? []).ToArray());
         Words = GroupWords(Letters);
         TextRuns = GroupTextRuns(Letters);
@@ -185,6 +194,8 @@ public sealed class PdfPageContent
     public IReadOnlyList<PdfContentInstruction> Instructions { get; }
     /// <summary>Gets vector paths in interpreted painting order.</summary>
     public IReadOnlyList<PdfExtractedPath> Paths { get; }
+    /// <summary>Gets shading paint operations in interpreted painting order.</summary>
+    public IReadOnlyList<PdfExtractedShading> Shadings { get; }
     /// <summary>Gets compatibility recoveries encountered while extracting this page.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
     /// <summary>Gets words separated by spaces in content order.</summary>

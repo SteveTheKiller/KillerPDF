@@ -165,6 +165,25 @@ public sealed class PdfPageContentReaderTests
         Assert.Equal("abc"u8.ToArray(), reopened[1].InlineImageData?.ToArray());
     }
 
+    [Fact]
+    public void RecordsShadingResourcesAndActiveClipBounds()
+    {
+        PdfPageContent page = Read(
+            "10 20 30 40 re W n /Shade sh",
+            extraResources: "/Shading << /Shade 6 0 R >>",
+            extras:
+            [
+                "<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [0 0 100 0] " +
+                "/Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 0] " +
+                "/C1 [1 1 1] /N 1 >> /Extend [true true] >>"
+            ]);
+
+        PdfExtractedShading shading = Assert.Single(page.Shadings);
+        Assert.Equal("Shade", shading.ResourceName);
+        Assert.Equal(2, shading.ShadingType);
+        Assert.Equal(new PdfContentBounds(10, 20, 40, 60), shading.BoundingBox);
+    }
+
     private static PdfPageContent Read(string content, string crop = "", string extraResources = "", string[]? extras = null) =>
         new PdfPageContentReader(Document(content, crop, extraResources, extras ?? [])).Read(0);
 

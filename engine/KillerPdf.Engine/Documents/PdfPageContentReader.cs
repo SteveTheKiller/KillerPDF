@@ -67,6 +67,7 @@ public sealed class PdfPageContentReader
         var fontNames = new Dictionary<PdfDictionary, string>();
         var images = new List<PdfExtractedImage>();
         var paths = new List<PdfExtractedPath>();
+        var shadings = new List<PdfExtractedShading>();
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         long decodedBytes = 0;
@@ -78,7 +79,8 @@ public sealed class PdfPageContentReader
         var text = PdfTextContentReader.ReadInstructions(instructions, fonts, cancellationToken: cancellationToken);
         return new PdfPageContent(box.Width, box.Height,
             text.Select(t => new PdfExtractedLetter(t.Text, t.Bounds, t.FontName, t.FontSize,
-                t.PointSize, t.Origin, t.AdvanceEnd)), images, interpretedInstructions, paths, diagnostics);
+                t.PointSize, t.Origin, t.AdvanceEnd)), images, interpretedInstructions,
+            paths, shadings, diagnostics);
 
         string Font(PdfObject value)
         {
@@ -205,6 +207,18 @@ public sealed class PdfPageContentReader
                             throw new FormatException("Invalid inline image dictionary.");
                         Image(ctm, clip, null, true, inlineImage);
                         continue;
+                    case "sh":
+                        if (args.Count != 1 || args[0] is not PdfName shadingName
+                            || Resolve(Resource(current, "Shading", shadingName))
+                                is not PdfDictionary shading
+                            || !shading.TryGetValue(Name("ShadingType"),
+                                out PdfObject? shadingTypeValue)
+                            || Resolve(shadingTypeValue) is not PdfInteger shadingType
+                            || shadingType.Value is < 1 or > 7)
+                            throw new FormatException("Invalid shading resource.");
+                        shadings.Add(new PdfExtractedShading(
+                            shadingName.ValueAsLatin1(), (int)shadingType.Value, clip));
+                        break;
                     case "BDC":
                         if (args.Count == 2 && args[1] is PdfName propertyName)
                         {
