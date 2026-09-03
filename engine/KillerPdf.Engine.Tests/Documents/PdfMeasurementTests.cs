@@ -19,6 +19,27 @@ public sealed class PdfMeasurementTests
     }
 
     [Fact]
+    public void DeltaCoordinatesAndSnappingPreservePdfSpaceDirection()
+    {
+        var profile = new PdfMeasurementProfile("Plan", 0.5, "m");
+
+        Assert.Equal(new PdfMeasurementDelta(3, -4),
+            PdfMeasurement.Delta(profile, new(2, 10), new(8, 2)));
+        Assert.Equal(new PdfMeasurementPoint(3, -4),
+            PdfMeasurement.Coordinates(profile, new(8, 2), new(2, 10)));
+        Assert.Equal(new PdfMeasurementPoint(10, 10),
+            PdfMeasurement.SnapToNearest(new(9, 11),
+                [new(10, 10), new(20, 20)], 2));
+        Assert.Equal(new PdfMeasurementPoint(9, 11),
+            PdfMeasurement.SnapToNearest(new(9, 11),
+                [new(10, 10)], 1));
+        Assert.Equal(new PdfMeasurementPoint(8, 2),
+            PdfMeasurement.SnapOrthogonal(new(2, 2), new(8, 4)));
+        Assert.Equal(new PdfMeasurementPoint(2, 9),
+            PdfMeasurement.SnapOrthogonal(new(2, 2), new(4, 9)));
+    }
+
+    [Fact]
     public void ReportsUseStableJsonAndEscapedCsv()
     {
         PdfMeasurementResult[] results = [new()

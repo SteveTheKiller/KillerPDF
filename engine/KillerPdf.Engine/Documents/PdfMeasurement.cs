@@ -44,12 +44,70 @@ public sealed record PdfMeasurementProfile
 /// <summary>A point in PDF user space.</summary>
 public readonly record struct PdfMeasurementPoint(double X, double Y);
 
+/// <summary>Calibrated horizontal and vertical movement.</summary>
+public readonly record struct PdfMeasurementDelta(double Horizontal, double Vertical);
+
 /// <summary>Calibrated geometry calculations for PDF measurement tools.</summary>
 public static class PdfMeasurement
 {
     /// <summary>Measures the straight-line distance between two points.</summary>
     public static double Distance(PdfMeasurementProfile profile, PdfMeasurementPoint start,
         PdfMeasurementPoint end) => CheckedProfile(profile) * DistanceInPoints(start, end);
+
+    /// <summary>Measures signed horizontal and vertical movement.</summary>
+    public static PdfMeasurementDelta Delta(
+        PdfMeasurementProfile profile, PdfMeasurementPoint start,
+        PdfMeasurementPoint end)
+    {
+        DistanceInPoints(start, end);
+        double scale = CheckedProfile(profile);
+        return new PdfMeasurementDelta(
+            (end.X - start.X) * scale,
+            (end.Y - start.Y) * scale);
+    }
+
+    /// <summary>Converts a PDF-space point to calibrated coordinates from an origin.</summary>
+    public static PdfMeasurementPoint Coordinates(
+        PdfMeasurementProfile profile, PdfMeasurementPoint point,
+        PdfMeasurementPoint origin)
+    {
+        PdfMeasurementDelta delta = Delta(profile, origin, point);
+        return new PdfMeasurementPoint(delta.Horizontal, delta.Vertical);
+    }
+
+    /// <summary>Snaps a point to the nearest candidate within a PDF-point tolerance.</summary>
+    public static PdfMeasurementPoint SnapToNearest(
+        PdfMeasurementPoint point,
+        IReadOnlyList<PdfMeasurementPoint> candidates,
+        double tolerancePoints)
+    {
+        ArgumentNullException.ThrowIfNull(candidates);
+        if (!double.IsFinite(tolerancePoints) || tolerancePoints < 0)
+            throw new ArgumentOutOfRangeException(nameof(tolerancePoints));
+        DistanceInPoints(point, point);
+        PdfMeasurementPoint result = point;
+        double nearest = tolerancePoints;
+        foreach (PdfMeasurementPoint candidate in candidates)
+        {
+            double distance = DistanceInPoints(point, candidate);
+            if (distance <= nearest)
+            {
+                nearest = distance;
+                result = candidate;
+            }
+        }
+        return result;
+    }
+
+    /// <summary>Locks a point to the nearest horizontal or vertical direction from an origin.</summary>
+    public static PdfMeasurementPoint SnapOrthogonal(
+        PdfMeasurementPoint origin, PdfMeasurementPoint point)
+    {
+        DistanceInPoints(origin, point);
+        return Math.Abs(point.X - origin.X) >= Math.Abs(point.Y - origin.Y)
+            ? new PdfMeasurementPoint(point.X, origin.Y)
+            : new PdfMeasurementPoint(origin.X, point.Y);
+    }
 
     /// <summary>Measures the perimeter of an open or closed sequence of points.</summary>
     public static double Perimeter(PdfMeasurementProfile profile,
