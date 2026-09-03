@@ -120,8 +120,11 @@ try {
 finally { $zipStream.Dispose() }
 
 Write-Host "==> Building the public portable launcher..." -ForegroundColor Cyan
+$launcherTitle = if ($isInstaller) { 'KillerPDF Installer' } else { 'KillerPDF' }
 & dotnet publish $launcherProject -c $Configuration `
     -p:LauncherAssemblyName=KillerPDF `
+    -p:AssemblyTitle="$launcherTitle" `
+    -p:Copyright="Copyright $([DateTime]::Now.Year) Steve the Killer" `
     -p:LauncherVersion=$version `
     -p:LauncherFileVersion=$fileVersion `
     -p:LauncherIcon="$(Join-Path $projectDir 'Resources\kp-icon.ico')" `

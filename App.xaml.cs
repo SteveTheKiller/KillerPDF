@@ -2028,6 +2028,7 @@ namespace KillerPDF
                 key.SetValue("DisplayName", AppName);
                 key.SetValue("DisplayVersion", AppVersion.Display);
                 key.SetValue("Publisher", "Steve the Killer");
+                key.SetValue("EstimatedSize", GetInstalledSizeKilobytes(installDirectory), RegistryValueKind.DWord);
                 key.SetValue("InstallLocation", installDirectory);
                 key.SetValue("DisplayIcon", $"{exePath},0");
                 key.SetValue("UninstallString", $"\"{exePath}\" /uninstall");
@@ -2037,6 +2038,20 @@ namespace KillerPDF
             }
 
             SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, IntPtr.Zero, IntPtr.Zero);
+        }
+
+        private static int GetInstalledSizeKilobytes(string installDirectory)
+        {
+            long bytes = 0;
+            var options = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                IgnoreInaccessible = true,
+                AttributesToSkip = FileAttributes.ReparsePoint
+            };
+            foreach (var file in new DirectoryInfo(installDirectory).EnumerateFiles("*", options))
+                bytes += file.Length;
+            return (int)Math.Min(int.MaxValue, (bytes + 1023) / 1024);
         }
 
         private static void Uninstall(bool silent)
