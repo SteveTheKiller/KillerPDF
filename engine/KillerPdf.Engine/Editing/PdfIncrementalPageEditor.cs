@@ -6,6 +6,7 @@ using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Security;
 using KillerPdf.Engine.Signing;
 using KillerPdf.Engine.Syntax;
@@ -1349,6 +1350,11 @@ public sealed class PdfIncrementalPageEditor
         _pagePresentationChanged = true;
         return this;
     }
+
+    /// <summary>Replaces a page's content with a rewritten instruction sequence.</summary>
+    public PdfIncrementalPageEditor SetPageContent(
+        int pageIndex, IEnumerable<PdfContentInstruction> instructions) =>
+        SetPageContent(pageIndex, PdfContentStreamWriter.Write(instructions));
 
     /// <summary>Appends a raw PDF content stream after a page's existing content.</summary>
     public PdfIncrementalPageEditor AppendPageContent(

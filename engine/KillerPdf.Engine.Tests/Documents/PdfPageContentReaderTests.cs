@@ -118,6 +118,21 @@ public sealed class PdfPageContentReaderTests
         Assert.Throws<OperationCanceledException>(() => new PdfPageContentReader(document).Read(0, new CancellationToken(true)));
     }
 
+    [Fact]
+    public void RawInstructionsRoundTripUnknownOperatorsAndInlineImages()
+    {
+        PdfDocument document = Document("1 2 FutureOp BI /W 1 /H 1 /BPC 8 /CS /RGB ID abc EI", "", "", []);
+        var reader = new PdfPageContentReader(document);
+        IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions = reader.ReadInstructions(0);
+
+        byte[] rewritten = KillerPdf.Engine.Parsing.PdfContentStreamWriter.Write(instructions);
+        IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> reopened =
+            KillerPdf.Engine.Parsing.PdfContentStreamReader.Read(rewritten);
+
+        Assert.Equal(["FutureOp", "BI"], reopened.Select(item => item.Operator));
+        Assert.Equal("abc"u8.ToArray(), reopened[1].InlineImageData?.ToArray());
+    }
+
     private static PdfPageContent Read(string content, string crop = "", string extraResources = "", string[]? extras = null) =>
         new PdfPageContentReader(Document(content, crop, extraResources, extras ?? [])).Read(0);
 

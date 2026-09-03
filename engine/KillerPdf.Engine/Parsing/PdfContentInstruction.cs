@@ -5,9 +5,17 @@ namespace KillerPdf.Engine.Parsing;
 /// <summary>An operator and its direct operands in a decoded page-content stream.</summary>
 public sealed class PdfContentInstruction
 {
-    internal PdfContentInstruction(string operation, int offset, IEnumerable<PdfObject> operands,
+    /// <summary>Creates an instruction for inspection or content-stream rewriting.</summary>
+    public PdfContentInstruction(string operation, int offset, IEnumerable<PdfObject> operands,
         ReadOnlyMemory<byte>? inlineImageData = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(operation);
+        ArgumentNullException.ThrowIfNull(operands);
+        if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
+        if (operation == "BI" && !inlineImageData.HasValue)
+            throw new ArgumentException("An inline-image instruction requires image data.", nameof(inlineImageData));
+        if (operation != "BI" && inlineImageData.HasValue)
+            throw new ArgumentException("Only an inline-image instruction can contain image data.", nameof(inlineImageData));
         Operator = operation;
         Offset = offset;
         Operands = Array.AsReadOnly(operands.ToArray());

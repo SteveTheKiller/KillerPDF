@@ -24,6 +24,32 @@ public sealed class PdfPageContentReader
     /// <summary>Gets the number of pages.</summary>
     public int PageCount => _tree.Pages.Count;
 
+    /// <summary>Reads the unexpanded instructions in a page's decoded content streams.</summary>
+    public IReadOnlyList<PdfContentInstruction> ReadInstructions(
+        int pageIndex, CancellationToken cancellationToken = default)
+    {
+        if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        PdfPageTreeEntry page = _tree.Pages[pageIndex];
+        if (!page.Dictionary.TryGetValue(Name("Contents"), out PdfObject? content)) return [];
+        using var output = new MemoryStream();
+        PdfObject resolved = Resolve(content);
+        IEnumerable<PdfObject> items = resolved is PdfArray array ? array : [resolved];
+        foreach (PdfObject item in items)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Resolve(item) is PdfNull) continue;
+            PdfStream stream = Resolve(item) as PdfStream
+                ?? throw new FormatException("Page content is not a stream.");
+            byte[] bytes = PdfStreamDecoder.Decode(stream, _document.Resolve,
+                PdfContentStreamReader.MaximumSourceBytes);
+            if (output.Length + bytes.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
+                throw new FormatException("Page content exceeds the extraction limit.");
+            output.Write(bytes);
+            output.WriteByte((byte)'\n');
+        }
+        return PdfContentStreamReader.Read(output.ToArray(), cancellationToken: cancellationToken);
+    }
+
     /// <summary>Extracts one zero-based page in unrotated, crop-relative PDF points.</summary>
     public PdfPageContent Read(int pageIndex, CancellationToken cancellationToken = default)
     {

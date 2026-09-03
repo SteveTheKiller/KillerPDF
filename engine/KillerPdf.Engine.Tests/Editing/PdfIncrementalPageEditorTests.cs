@@ -7,6 +7,7 @@ using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Writing;
 using KillerPdf.Engine.Security;
 using KillerPdf.Engine.Filters;
@@ -506,6 +507,25 @@ public sealed class PdfIncrementalPageEditorTests
             imported, importedContents[0]).EncodedData.ToArray());
         Assert.Equal("after\n"u8.ToArray(), ResolveStream(
             imported, importedContents[1]).EncodedData.ToArray());
+    }
+
+    [Fact]
+    public void Build_RewritesSelectedInstructionsAndPreservesUnknownOperators()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(200, 300, "1 2 KeepOp\n3 4 RemoveOp\n"u8.ToArray()).Build());
+        IReadOnlyList<PdfContentInstruction> instructions =
+            new PdfPageContentReader(source).ReadInstructions(0);
+
+        PdfDocument rewritten = PdfDocument.Open(new PdfIncrementalPageEditor(source)
+            .SetPageContent(0, instructions.Where(item => item.Operator != "RemoveOp"))
+            .Build());
+        IReadOnlyList<PdfContentInstruction> reopened =
+            new PdfPageContentReader(rewritten).ReadInstructions(0);
+
+        PdfContentInstruction kept = Assert.Single(reopened);
+        Assert.Equal("KeepOp", kept.Operator);
+        Assert.Equal([1L, 2L], kept.Operands.Cast<PdfInteger>().Select(value => value.Value));
     }
 
     [Fact]
