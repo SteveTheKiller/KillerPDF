@@ -431,6 +431,11 @@ internal static class PdfEngineIntegration
         using DrawingImage source = DrawingImage.FromFile(path);
         var dimension = new System.Drawing.Imaging.FrameDimension(source.FrameDimensionsList[0]);
         int frameCount = Math.Max(1, source.GetFrameCount(dimension));
+        bool useOriginalJpeg = frameCount == 1
+            && Path.GetExtension(path) is string extension
+            && (extension.Equals(".jpg", StringComparison.OrdinalIgnoreCase)
+                || extension.Equals(".jpeg", StringComparison.OrdinalIgnoreCase));
+        byte[]? originalJpeg = useOriginalJpeg ? File.ReadAllBytes(path) : null;
         for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
         {
             source.SelectActiveFrame(dimension, frameIndex);
@@ -449,12 +454,20 @@ internal static class PdfEngineIntegration
             pageWidth *= grow;
             pageHeight *= grow;
 
-            using var bitmap = new DrawingBitmap(width, height,
-                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-            using (DrawingGraphics graphics = DrawingGraphics.FromImage(bitmap))
-                graphics.DrawImage(source, 0, 0, width, height);
-            byte[] rgba = CopyRgba(bitmap);
-            PdfImage image = PdfImage.FromRgba(width, height, rgba);
+            PdfImage image;
+            if (originalJpeg is not null)
+            {
+                image = PdfImage.FromJpeg(originalJpeg);
+            }
+            else
+            {
+                using var bitmap = new DrawingBitmap(width, height,
+                    System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+                using (DrawingGraphics graphics = DrawingGraphics.FromImage(bitmap))
+                    graphics.DrawImage(source, 0, 0, width, height);
+                byte[] rgba = CopyRgba(bitmap);
+                image = PdfImage.FromRgba(width, height, rgba);
+            }
             editor.AddPage(pageWidth, pageHeight,
                 new PdfContentStreamBuilder().DrawImage(
                     image, 0, 0, pageWidth, pageHeight));

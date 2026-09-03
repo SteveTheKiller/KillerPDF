@@ -654,6 +654,34 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void MergeFiles_EmbedsJpegInputWithoutLosslessExpansion()
+    {
+        string imagePath = Path.Combine(
+            Path.GetTempPath(), $"killerpdf-import-{Guid.NewGuid():N}.jpg");
+        try
+        {
+            using (var bitmap = new System.Drawing.Bitmap(80, 60))
+            {
+                bitmap.SetResolution(96, 96);
+                using System.Drawing.Graphics graphics = System.Drawing.Graphics.FromImage(bitmap);
+                graphics.Clear(System.Drawing.Color.CornflowerBlue);
+                bitmap.Save(imagePath, System.Drawing.Imaging.ImageFormat.Jpeg);
+            }
+            byte[] jpeg = File.ReadAllBytes(imagePath);
+
+            byte[] merged = PdfEngineIntegration.MergeFiles([imagePath]);
+
+            string syntax = System.Text.Encoding.Latin1.GetString(merged);
+            Assert.Contains("/Filter /DCTDecode", syntax);
+            Assert.True(merged.AsSpan().IndexOf(jpeg) >= 0);
+        }
+        finally
+        {
+            if (File.Exists(imagePath)) File.Delete(imagePath);
+        }
+    }
+
+    [Fact]
     public void CreateRasterDocument_AuthorsBgraPagesWithRequestedPointSizes()
     {
         byte[] result = PdfEngineIntegration.CreateRasterDocument([

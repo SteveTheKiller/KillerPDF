@@ -40,6 +40,36 @@ public sealed class PdfPageRasterInformationTests
             PdfPageRasterInformation.ReadJpegImagePageHints(PdfDocument.Open(source)));
     }
 
+    [Fact]
+    public void ReadJpegImagePageHints_FindsJpegInsideNestedForm()
+    {
+        PdfImage jpeg = PdfImage.FromJpeg(MinimalJpeg(2, 1));
+        var nestedJpeg = new PdfFormXObject(100, 100,
+            new PdfContentStreamBuilder().DrawImage(jpeg, 0, 0, 100, 100));
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(100, 100,
+                new PdfContentStreamBuilder().DrawForm(nestedJpeg, 0, 0))
+            .Build();
+
+        Assert.Equal([true],
+            PdfPageRasterInformation.ReadJpegImagePageHints(PdfDocument.Open(source)));
+    }
+
+    [Fact]
+    public void ReadJpegImagePageHints_RejectsMixedImageCompression()
+    {
+        PdfImage jpeg = PdfImage.FromJpeg(MinimalJpeg(2, 1));
+        PdfImage color = PdfImage.FromRgb(1, 1, new byte[] { 255, 0, 0 });
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .DrawImage(jpeg, 0, 0, 50, 100)
+                .DrawImage(color, 50, 0, 50, 100))
+            .Build();
+
+        Assert.Equal([false],
+            PdfPageRasterInformation.ReadJpegImagePageHints(PdfDocument.Open(source)));
+    }
+
     private static byte[] MinimalJpeg(int width, int height)
     {
         const int components = 3;

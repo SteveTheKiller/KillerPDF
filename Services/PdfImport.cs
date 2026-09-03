@@ -1,6 +1,7 @@
 using System.IO;
 using Docnet.Core;
 using Docnet.Core.Models;
+using KillerPdf.Engine.Documents;
 
 namespace KillerPDF.Services
 {
@@ -159,6 +160,20 @@ namespace KillerPDF.Services
                 if (pageCount <= 0) return null;
 
                 var pages = new List<PdfEngineIntegration.RasterPage>(pageCount);
+                IReadOnlyList<bool> bitonalHints = [];
+                IReadOnlyList<bool> jpegHints = [];
+                try
+                {
+                    PdfDocument sourceDocument = PdfDocument.Open(File.ReadAllBytes(path));
+                    bitonalHints =
+                        PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument);
+                    jpegHints =
+                        PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument);
+                }
+                catch
+                {
+                    // The raster repair remains available when the engine cannot parse the source.
+                }
 
                 for (int i = 0; i < pageCount; i++)
                 {
@@ -174,8 +189,13 @@ namespace KillerPDF.Services
                     // Build the page at correct aspect ratio scaled to A4-ish width.
                     double pageW = 595.28;
                     double pageH = pageW * bh / bw;
+                    bool bitonal = i < bitonalHints.Count && bitonalHints[i]
+                        && BitonalPageDetector.IsOpaqueGrayscaleBgra(raw, bw, bh);
+                    ReadOnlyMemory<byte> jpeg = !bitonal && i < jpegHints.Count && jpegHints[i]
+                        ? BitmapHelpers.EncodeJpeg(raw, bw, bh)
+                        : default;
                     pages.Add(new PdfEngineIntegration.RasterPage(
-                        bw, bh, pageW, pageH, raw));
+                        bw, bh, pageW, pageH, raw, jpeg, Bitonal: bitonal));
                 }
 
                 if (pages.Count == 0) return null;

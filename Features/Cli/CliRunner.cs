@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Docnet.Core;
 using Docnet.Core.Models;
+using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
 // The scrubs, bitmap helpers, import helpers and PDFium interop all live in Services
 // (BitmapHelpers.cs, PdfImport.cs, PdfiumInterop.cs; KillerUI refactor,
@@ -541,6 +542,11 @@ namespace KillerPDF.Features
 
             using var dr = DocLib.Instance.GetDocReader(renderPath, new PageDimensions(dpi / 72.0));
             int pageCount = dr.GetPageCount();
+            PdfDocument renderDocument = PdfDocument.Open(File.ReadAllBytes(renderPath));
+            IReadOnlyList<bool> bitonalHints =
+                PdfPageRasterInformation.ReadBitonalImagePageHints(renderDocument);
+            IReadOnlyList<bool> jpegHints =
+                PdfPageRasterInformation.ReadJpegImagePageHints(renderDocument);
 
             var pages = new List<PdfEngineIntegration.RasterPage>(pageCount);
             for (int i = 0; i < pageCount; i++)
@@ -572,7 +578,13 @@ namespace KillerPDF.Features
                     hPt = h * 72.0 / dpi;
                 }
 
-                pages.Add(new PdfEngineIntegration.RasterPage(w, h, wPt, hPt, raw));
+                bool bitonal = i < bitonalHints.Count && bitonalHints[i]
+                    && BitonalPageDetector.IsOpaqueGrayscaleBgra(raw, w, h);
+                ReadOnlyMemory<byte> jpeg = !bitonal && i < jpegHints.Count && jpegHints[i]
+                    ? BitmapHelpers.EncodeJpeg(raw, w, h, dpi)
+                    : default;
+                pages.Add(new PdfEngineIntegration.RasterPage(
+                    w, h, wPt, hPt, raw, jpeg, Bitonal: bitonal));
             }
             CliEnsureParentDir(outPath);
             File.WriteAllBytes(outPath, PdfEngineIntegration.CreateRasterDocument(pages));

@@ -16,7 +16,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- Kept JPEG-compressed pages compact when saving a flattened copy (#366).
+- Preserved JPEG compression when flattening, repairing, and importing image-based pages (#366).
 - Prevented crashes from stale or repeated tab-close requests (#353).
 - Kept the footer page number current during Continuous navigation and scaled footer controls with the interface (#354, #355).
 - Preserved detected text sizes, identified unavailable font substitutions, and fixed Save Flattened crashes on edited tagged PDFs (#356).
@@ -39,7 +39,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- Kept JPEG-compressed pages compact when saving a flattened copy (#366).
+- Preserved JPEG compression when flattening, repairing, and importing image-based pages (#366).
 - Prevented crashes from stale or repeated tab-close requests (#353).
 - Kept the footer page number current during Continuous navigation and scaled footer controls with the interface (#354, #355).
 - Preserved detected text sizes, identified unavailable font substitutions, and fixed Save Flattened crashes on edited tagged PDFs (#356).

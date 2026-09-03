@@ -57,33 +57,59 @@ public static class PdfPageRasterInformation
     private static bool IsJpegImagePage(PdfDocument document, PdfPageTreeEntry page)
     {
         if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
-            || Resolve(document, resourcesValue) is not PdfDictionary resources
-            || !resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
-            || Resolve(document, xObjectsValue) is not PdfDictionary xObjects
-            || xObjects.Count == 0)
+            || Resolve(document, resourcesValue) is not PdfDictionary resources)
             return false;
+
+        bool foundImage = false;
+        return ContainsOnlyJpegImages(
+            document, resources, [], ref foundImage) && foundImage;
+    }
+
+    private static bool ContainsOnlyJpegImages(
+        PdfDocument document, PdfDictionary resources,
+        HashSet<(int ObjectNumber, int Generation)> visited,
+        ref bool foundImage)
+    {
+        if (!resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
+            || Resolve(document, xObjectsValue) is not PdfDictionary xObjects)
+            return true;
 
         foreach (PdfObject value in xObjects.Values)
         {
-            if (Resolve(document, value) is not PdfStream stream
-                || !IsName(document, stream.Dictionary, "Subtype", "Image")
-                || !HasFilter(document, stream.Dictionary, "DCTDecode"))
+            if (value is PdfIndirectReference reference
+                && !visited.Add((reference.ObjectNumber, reference.Generation)))
+                continue;
+            if (Resolve(document, value) is not PdfStream stream)
+                return false;
+            if (IsName(document, stream.Dictionary, "Subtype", "Image"))
+            {
+                foundImage = true;
+                if (!HasJpegFilter(document, stream.Dictionary))
+                    return false;
+                continue;
+            }
+            if (!IsName(document, stream.Dictionary, "Subtype", "Form"))
+                return false;
+            if (stream.Dictionary.TryGetValue(Name("Resources"), out PdfObject? nestedValue)
+                && Resolve(document, nestedValue) is PdfDictionary nestedResources
+                && !ContainsOnlyJpegImages(
+                    document, nestedResources, visited, ref foundImage))
                 return false;
         }
         return true;
     }
 
-    private static bool HasFilter(
-        PdfDocument document, PdfDictionary dictionary, string expected)
+    private static bool HasJpegFilter(
+        PdfDocument document, PdfDictionary dictionary)
     {
         if (!dictionary.TryGetValue(Name("Filter"), out PdfObject? value))
             return false;
         PdfObject resolved = Resolve(document, value);
         if (resolved is PdfName name)
-            return name.ValueAsLatin1() == expected;
+            return name.ValueAsLatin1() is "DCTDecode" or "DCT";
         return resolved is PdfArray array && array.Any(item =>
             Resolve(document, item) is PdfName filter
-            && filter.ValueAsLatin1() == expected);
+            && filter.ValueAsLatin1() is "DCTDecode" or "DCT");
     }
 
     private static bool IsName(
