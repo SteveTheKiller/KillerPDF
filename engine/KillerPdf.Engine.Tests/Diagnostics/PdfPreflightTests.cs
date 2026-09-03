@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Diagnostics;
+using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Tests.Fonts;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Diagnostics;
@@ -92,6 +94,30 @@ public sealed class PdfPreflightTests
         Assert.Equal(PdfDiagnosticSeverity.Warning, finding.Severity);
         Assert.Equal(0, finding.PageIndex);
         Assert.Contains("50 by 100 DPI", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FontEmbeddingFindsUnembeddedFontsAndAcceptsEmbeddedFonts()
+    {
+        var standardContent = new PdfContentStreamBuilder()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12).ShowLatin1Text("A").EndText();
+        TrueTypeFont embeddedFont = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+        var embeddedContent = new PdfContentStreamBuilder()
+            .BeginText().SetFont(embeddedFont, 12).ShowUnicodeText("A").EndText();
+        var profile = new PdfPreflightProfile("Embedded fonts",
+            [PdfPreflightCheck.FontEmbedding]);
+
+        PdfPreflightReport standard = PdfPreflightRunner.Run(
+            new PdfDocumentBuilder().AddPage(100, 100, standardContent).Build(), profile);
+        PdfPreflightReport embedded = PdfPreflightRunner.Run(
+            new PdfDocumentBuilder().AddPage(100, 100, embeddedContent).Build(), profile);
+
+        PdfPreflightFinding finding = Assert.Single(standard.Findings);
+        Assert.Equal("FontEmbedding.NotEmbedded", finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.Contains("Helvetica", finding.Message, StringComparison.Ordinal);
+        Assert.Empty(embedded.Findings);
     }
 
     private static byte[] Profile()

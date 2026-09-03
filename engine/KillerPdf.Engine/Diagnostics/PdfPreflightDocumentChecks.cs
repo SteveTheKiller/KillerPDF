@@ -9,6 +9,9 @@ internal static class PdfPreflightDocumentChecks
     private static readonly PdfName MediaBoxName = Name("MediaBox");
     private static readonly PdfName CropBoxName = Name("CropBox");
     private static readonly PdfName OutputIntentsName = Name("OutputIntents");
+    private static readonly PdfName ResourcesName = Name("Resources");
+    private static readonly PdfName FontName = Name("Font");
+    private static readonly PdfName XObjectName = Name("XObject");
 
     internal static IReadOnlyList<PdfPreflightFinding> CheckPageBoxes(PdfDocument document)
     {
@@ -107,6 +110,92 @@ internal static class PdfPreflightDocumentChecks
         return Array.AsReadOnly(findings.ToArray());
     }
 
+    internal static IReadOnlyList<PdfPreflightFinding> CheckFontEmbedding(PdfDocument document)
+    {
+        var findings = new List<PdfPreflightFinding>();
+        var visitedFonts = new HashSet<(int, int)>();
+        var visitedForms = new HashSet<(int, int)>();
+        try
+        {
+            foreach (PdfPageTreeEntry page in PdfPageTree.Read(document).Pages)
+                if (page.InheritedValues.TryGetValue(ResourcesName, out PdfObject? resources))
+                    InspectResources(resources, page.Index);
+        }
+        catch (Exception error) when (IsDocumentFailure(error))
+        {
+            findings.Add(Error("FontEmbedding.Invalid", error.Message));
+        }
+        return Array.AsReadOnly(findings.ToArray());
+
+        void InspectResources(PdfObject value, int pageIndex)
+        {
+            PdfDictionary resources = Resolve(document, value) as PdfDictionary
+                ?? throw new InvalidOperationException("A page or form resource value is not a dictionary.");
+            if (resources.TryGetValue(FontName, out PdfObject? fontsValue))
+            {
+                PdfDictionary fonts = Resolve(document, fontsValue) as PdfDictionary
+                    ?? throw new InvalidOperationException("A font resource value is not a dictionary.");
+                foreach (KeyValuePair<PdfName, PdfObject> item in fonts)
+                {
+                    PdfIndirectReference? reference = item.Value as PdfIndirectReference;
+                    if (reference is not null
+                        && !visitedFonts.Add((reference.ObjectNumber, reference.Generation)))
+                        continue;
+                    PdfDictionary font = Resolve(document, item.Value) as PdfDictionary
+                        ?? throw new InvalidOperationException("A font resource is not a dictionary.");
+                    if (!IsEmbeddedFont(font))
+                    {
+                        string name = FontDisplayName(font, item.Key.ValueAsLatin1());
+                        findings.Add(Warning("FontEmbedding.NotEmbedded",
+                            $"Font {name} has no embedded font program.", pageIndex,
+                            reference?.ObjectNumber));
+                    }
+                }
+            }
+            if (!resources.TryGetValue(XObjectName, out PdfObject? xObjectsValue)) return;
+            PdfDictionary xObjects = Resolve(document, xObjectsValue) as PdfDictionary
+                ?? throw new InvalidOperationException("An XObject resource value is not a dictionary.");
+            foreach (KeyValuePair<PdfName, PdfObject> item in xObjects)
+            {
+                PdfIndirectReference? reference = item.Value as PdfIndirectReference;
+                if (reference is not null
+                    && !visitedForms.Add((reference.ObjectNumber, reference.Generation)))
+                    continue;
+                if (Resolve(document, item.Value) is not PdfStream stream
+                    || !IsName(stream.Dictionary, "Subtype", "Form")) continue;
+                if (stream.Dictionary.TryGetValue(ResourcesName, out PdfObject? formResources))
+                    InspectResources(formResources, pageIndex);
+            }
+        }
+
+        bool IsEmbeddedFont(PdfDictionary font)
+        {
+            if (IsName(font, "Subtype", "Type3")) return true;
+            if (IsName(font, "Subtype", "Type0"))
+            {
+                if (!font.TryGetValue(Name("DescendantFonts"), out PdfObject? descendantsValue)
+                    || Resolve(document, descendantsValue) is not PdfArray descendants
+                    || descendants.Count == 0) return false;
+                return descendants.All(item => Resolve(document, item) is PdfDictionary descendant
+                    && HasEmbeddedProgram(descendant));
+            }
+            return HasEmbeddedProgram(font);
+        }
+
+        bool HasEmbeddedProgram(PdfDictionary font)
+        {
+            if (!font.TryGetValue(Name("FontDescriptor"), out PdfObject? descriptorValue)
+                || Resolve(document, descriptorValue) is not PdfDictionary descriptor) return false;
+            return descriptor.ContainsKey(Name("FontFile"))
+                || descriptor.ContainsKey(Name("FontFile2"))
+                || descriptor.ContainsKey(Name("FontFile3"));
+        }
+
+        string FontDisplayName(PdfDictionary font, string fallback) =>
+            font.TryGetValue(Name("BaseFont"), out PdfObject? value)
+                && Resolve(document, value) is PdfName name ? name.ValueAsLatin1() : fallback;
+    }
+
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,
         PdfName name, bool required)
     {
@@ -146,6 +235,10 @@ internal static class PdfPreflightDocumentChecks
         }
         return value;
     }
+
+    private static bool IsName(PdfDictionary dictionary, string key, string expected) =>
+        dictionary.TryGetValue(Name(key), out PdfObject? value)
+            && value is PdfName name && name.ValueAsLatin1() == expected;
 
     private static bool IsDocumentFailure(Exception error) =>
         error is ArgumentException or InvalidOperationException or FormatException

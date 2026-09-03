@@ -18,7 +18,9 @@ public enum PdfPreflightCheck
     /// <summary>Checks for a usable document output intent and ICC profile.</summary>
     OutputIntent,
     /// <summary>Checks the effective resolution of every placed image.</summary>
-    ImageResolution
+    ImageResolution,
+    /// <summary>Checks that page and form fonts include an embedded font program.</summary>
+    FontEmbedding
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
@@ -52,7 +54,8 @@ public sealed record PdfPreflightProfile
         PdfPreflightCheck.StructuralIntegrity,
         PdfPreflightCheck.PageBoxes,
         PdfPreflightCheck.OutputIntent,
-        PdfPreflightCheck.ImageResolution
+        PdfPreflightCheck.ImageResolution,
+        PdfPreflightCheck.FontEmbedding
     ]);
 
     /// <summary>Gets the profile name.</summary>
@@ -176,6 +179,8 @@ public static class PdfPreflightRunner
         if (profile.Checks.Contains(PdfPreflightCheck.ImageResolution))
             findings.AddRange(PdfPreflightDocumentChecks.CheckImageResolution(
                 checkedDocument, profile.MinimumImageDpi));
+        if (profile.Checks.Contains(PdfPreflightCheck.FontEmbedding))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckFontEmbedding(checkedDocument));
         return new PdfPreflightReport(profile.Name, findings);
     }
 }
