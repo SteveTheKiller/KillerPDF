@@ -23,7 +23,8 @@ internal static class PageSizeFormatter
         new("ANSI E", 2448, 3168, false),
     ];
 
-    internal static (string Label, string Details, bool Metric) Format(double widthPoints, double heightPoints, bool? metric = null)
+    internal static (string Label, string Details, bool Metric, string Pixels, string Inches,
+        string Millimeters, string Points) Format(double widthPoints, double heightPoints, bool? metric = null)
     {
         double inchesWide = widthPoints / 72.0;
         double inchesHigh = heightPoints / 72.0;
@@ -40,11 +41,13 @@ internal static class PageSizeFormatter
             : $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in";
         string label = string.IsNullOrEmpty(name) ? primary : $"{name}  {primary}";
         var pixels = OutputPixelDimensions.FromPoints(widthPoints, heightPoints, 150);
-        string details = $"{pixels.Width} x {pixels.Height} px at 150 DPI | " +
-                         $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in | " +
-                         $"{FormatNumber(mmWide, 1)} x {FormatNumber(mmHigh, 1)} mm | " +
-                         $"{FormatNumber(widthPoints, 1)} x {FormatNumber(heightPoints, 1)} pt";
-        return (label, details, useMetric);
+        string px = $"{pixels.Width} x {pixels.Height} px at 150 DPI";
+        string inches = $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in";
+        string millimeters = $"{FormatNumber(mmWide, 1)} x {FormatNumber(mmHigh, 1)} mm";
+        string points = $"{FormatNumber(widthPoints, 1)} x {FormatNumber(heightPoints, 1)} pt";
+        string details = $"{px} | {inches} | {millimeters} | {points}";
+        string Prefix(string value) => string.IsNullOrEmpty(name) ? value : $"{name}  {value}";
+        return (label, details, useMetric, Prefix(px), Prefix(inches), Prefix(millimeters), Prefix(points));
     }
 
     private static KnownSize? FindKnownSize(double width, double height)

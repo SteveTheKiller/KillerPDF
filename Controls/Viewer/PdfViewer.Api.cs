@@ -71,7 +71,8 @@ namespace KillerPDF.Controls
             => ShowMissingComparisonPage(page, text);
         internal string? CurrentFilePathExt => _currentFile;
         internal int PageCountExt => _doc?.PageCount ?? 0;
-        internal (string Label, string Details, bool Metric)? CurrentPageSizeExt(bool? metric = null)
+        internal (string Label, string Details, bool Metric, string Pixels, string Inches,
+            string Millimeters, string Points)? CurrentPageSizeExt(bool? metric = null)
         {
             int page = State.CurrentPage;
             if (_doc is null || page < 0 || page >= _doc.PageCount) return null;

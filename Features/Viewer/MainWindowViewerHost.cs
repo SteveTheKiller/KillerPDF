@@ -122,21 +122,41 @@ namespace KillerPDF
             if (PageList.SelectedIndex != pageIndex) PageList.SelectedIndex = pageIndex;
         }
 
-        private bool FooterPageSizeExpanded => App.GetSetting("FooterPageSizeExpanded") == "1";
+        private string FooterPageSizeUnit => App.GetSetting("FooterPageSizeUnit") switch
+        {
+            "Pixels" => "Pixels",
+            "Imperial" or "Inches" => "Inches",
+            "Metric" or "Millimeters" => "Millimeters",
+            "Points" => "Points",
+            _ => "Default"
+        };
 
         private void PageSizeLabel_Click(object sender, RoutedEventArgs e)
         {
             var size = ActiveViewer?.CurrentPageSizeExt();
             if (size is null) return;
-            App.SetSetting("FooterPageSizeExpanded", FooterPageSizeExpanded ? "0" : "1");
+            string next = FooterPageSizeUnit switch
+            {
+                "Pixels" => "Inches",
+                "Inches" => "Millimeters",
+                "Millimeters" => "Points",
+                _ => "Pixels"
+            };
+            App.SetSetting("FooterPageSizeUnit", next);
             UpdatePageSizeDisplay();
         }
 
         private void UpdatePageSizeDisplay()
         {
             var size = ActiveViewer?.CurrentPageSizeExt();
-            PageSizeLabel.Content = size is null ? string.Empty
-                : FooterPageSizeExpanded ? size.Value.Details : size.Value.Label;
+            PageSizeLabel.Content = size is null ? string.Empty : FooterPageSizeUnit switch
+            {
+                "Pixels" => size.Value.Pixels,
+                "Inches" => size.Value.Inches,
+                "Millimeters" => size.Value.Millimeters,
+                "Points" => size.Value.Points,
+                _ => size.Value.Label
+            };
             PageSizeLabel.ToolTip = size?.Details;
             PageSizeLabel.IsEnabled = size is not null;
         }
