@@ -65,6 +65,8 @@ try {
         throw 'Port these changes to 1.9.0. For an adapted fix, record its exact development commit and reason in .github/maintenance-forward-ports.json.'
     }
     Write-Host "Forward-port check passed: $($commits.Count) maintenance commits covered."
+    # Git ancestry probes can return 1 without failing the coverage check.
+    exit 0
 } catch {
     Write-Error $_ -ErrorAction Continue
     exit 1
