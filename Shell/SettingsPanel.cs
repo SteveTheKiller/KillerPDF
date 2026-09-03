@@ -699,6 +699,7 @@ namespace KillerPDF
         private readonly List<(Button btn, string glyph, string labelKey)> _toolbarButtons = [];
         private const string TransformGlyph = "TransformBoxMove";
         private const string CompareGlyph = "CompareDocuments";
+        private const string FormFieldGlyph = "FillableTextField";
 
         // Maps each toolbar glyph (Segoe MDL2 Assets code point) to its caption string key. Buttons
         // whose glyph isn't listed keep their icon with no caption.
@@ -737,6 +738,7 @@ namespace KillerPDF
             [""] = "Str_Lbl_Search",    // magnifier - toolbar search button
             [""] = "Str_Lbl_Stamp",     // page-number / watermark stamp tool
             [""] = "Str_Lbl_Shape",   // Shapes tool (rect / ellipse / polygon)
+            ["\uED5E"] = "Str_Lbl_Measure",
         };
 
         // Walks LeftBar + RightBar once and records each icon button with its glyph + label key.
@@ -751,6 +753,8 @@ namespace KillerPDF
                         _toolbarButtons.Add((btn, TransformGlyph, "Str_Lbl_Rotate"));
                     else if (ReferenceEquals(btn, ComparePdfBtn))
                         _toolbarButtons.Add((btn, CompareGlyph, "Str_TT_ComparePDFs"));
+                    else if (ReferenceEquals(btn, ToolFormFieldBtn))
+                        _toolbarButtons.Add((btn, FormFieldGlyph, "Str_Lbl_FormField"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
                         _toolbarButtons.Add((btn, g, key));
             }
@@ -768,6 +772,28 @@ namespace KillerPDF
 
         private static FrameworkElement MakeToolbarGlyph(string glyph, double glyphSize)
         {
+            if (glyph == FormFieldGlyph)
+            {
+                double scale = glyphSize / 16;
+                var field = new Grid { Width = 18 * scale, Height = glyphSize };
+                var border = new Border
+                {
+                    BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(1),
+                    Margin = new Thickness(scale, 2 * scale, scale, scale)
+                };
+                border.SetBinding(Border.BorderBrushProperty, new System.Windows.Data.Binding(nameof(Button.Foreground))
+                {
+                    RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(Button), 1)
+                });
+                field.Children.Add(border);
+                field.Children.Add(new TextBlock
+                {
+                    Text = "T", FontFamily = UiKit.UiFont, FontWeight = FontWeights.SemiBold,
+                    FontSize = 10 * scale, HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, scale, 0, 0)
+                });
+                return field;
+            }
             if (glyph == CompareGlyph)
             {
                 var documents = new Grid { Width = glyphSize * 18 / 16, Height = glyphSize };
