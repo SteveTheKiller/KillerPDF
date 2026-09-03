@@ -168,16 +168,16 @@ namespace KillerPDF
                 GetMonitorInfo(monitor, ref info);
                 RECT work = info.rcWork;
                 RECT mon = info.rcMonitor;
-                // Normal maximize respects the taskbar (work area). F11 full screen needs the whole monitor:
-                // ptMaxTrackSize caps how large the window can ever be sized, so without this the explicit
-                // full-screen bounds get silently clamped back to the work area (taskbar stays visible).
+                // Normal maximize respects the taskbar; F11 uses the whole monitor.
                 RECT bounds = _fullScreen ? mon : work;
                 mmi.ptMaxPosition.x = Math.Abs(bounds.left - mon.left);
                 mmi.ptMaxPosition.y = Math.Abs(bounds.top - mon.top);
                 mmi.ptMaxSize.x = Math.Abs(bounds.right - bounds.left);
                 mmi.ptMaxSize.y = Math.Abs(bounds.bottom - bounds.top);
-                mmi.ptMaxTrackSize.x = mmi.ptMaxSize.x;
-                mmi.ptMaxTrackSize.y = mmi.ptMaxSize.y;
+                // Windows supplies desktop-wide tracking limits. Do not shrink them to the
+                // source monitor: a drag can maximize onto a larger monitor in the same move.
+                mmi.ptMaxTrackSize.x = Math.Max(mmi.ptMaxTrackSize.x, mmi.ptMaxSize.x);
+                mmi.ptMaxTrackSize.y = Math.Max(mmi.ptMaxTrackSize.y, mmi.ptMaxSize.y);
                 // Enforce the window's MinWidth/MinHeight during user resize. The custom chrome
                 // marks WM_GETMINMAXINFO handled, so WPF's own minimum enforcement is bypassed.
                 try

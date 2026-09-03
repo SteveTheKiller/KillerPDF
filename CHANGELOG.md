@@ -19,6 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Kept the footer page number current during Continuous navigation and scaled footer controls with the interface (#354, #355).
 - Preserved detected text sizes, identified unavailable font substitutions, and fixed Save Flattened crashes on edited tagged PDFs (#356).
 - Preserved landscape page orientation and proportions when flattening rotated PDFs (#362).
+- Removed a size limit that could prevent maximizing correctly after moving to a larger monitor (#363).
 - Localized remaining round-trip validation messages in all 15 supported languages (#227).
 - Added installer file details and the installed size in Windows' program list (#361).
 
