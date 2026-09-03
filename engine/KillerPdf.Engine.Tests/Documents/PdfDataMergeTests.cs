@@ -39,4 +39,37 @@ public sealed class PdfDataMergeTests
         Assert.True(results[2].Succeeded);
         Assert.Equal("third", Encoding.UTF8.GetString(results[2].Data!.Value.Span));
     }
+
+    [Fact]
+    public void CsvRecordsSupportQuotedValuesAndMissingColumns()
+    {
+        IReadOnlyList<IReadOnlyDictionary<string, string?>> records =
+            PdfDataRecordReader.FromCsv(
+                "Name,Company,Note\r\nAda,Analytical Engines,\"First, \"\"programmer\"\"\"\r\nGrace,Navy");
+
+        Assert.Equal(2, records.Count);
+        Assert.Equal("First, \"programmer\"", records[0]["Note"]);
+        Assert.Equal("Grace", records[1]["name"]);
+        Assert.Null(records[1]["Note"]);
+        Assert.Throws<FormatException>(() =>
+            PdfDataRecordReader.FromCsv("Name,name\nAda,Lovelace"));
+    }
+
+    [Fact]
+    public void JsonRecordsConvertScalarValuesWithoutStoringSourceData()
+    {
+        IReadOnlyList<IReadOnlyDictionary<string, string?>> records =
+            PdfDataRecordReader.FromJson(
+                """
+                [{"Name":"Ada","Count":3,"Enabled":true,"Note":null}]
+                """);
+
+        IReadOnlyDictionary<string, string?> record = Assert.Single(records);
+        Assert.Equal("Ada", record["name"]);
+        Assert.Equal("3", record["Count"]);
+        Assert.Equal("true", record["Enabled"]);
+        Assert.Null(record["Note"]);
+        Assert.Throws<FormatException>(() =>
+            PdfDataRecordReader.FromJson("[{\"Nested\":{}}]"));
+    }
 }
