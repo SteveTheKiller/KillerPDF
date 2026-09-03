@@ -23,7 +23,7 @@ internal static class PageSizeFormatter
         new("ANSI E", 2448, 3168, false),
     ];
 
-    internal static (string Label, string Details) Format(double widthPoints, double heightPoints)
+    internal static (string Label, string Details, bool Metric) Format(double widthPoints, double heightPoints, bool? metric = null)
     {
         double inchesWide = widthPoints / 72.0;
         double inchesHigh = heightPoints / 72.0;
@@ -34,14 +34,15 @@ internal static class PageSizeFormatter
         string name = known?.Name ?? string.Empty;
         if (name == "Tabloid" && widthPoints > heightPoints) name = "Ledger";
 
-        string primary = known?.Metric == true
+        bool useMetric = metric ?? known?.Metric ?? false;
+        string primary = useMetric
             ? $"{FormatNumber(mmWide, 1)} x {FormatNumber(mmHigh, 1)} mm"
             : $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in";
         string label = string.IsNullOrEmpty(name) ? primary : $"{name}  {primary}";
         string details = $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in | " +
                          $"{FormatNumber(mmWide, 1)} x {FormatNumber(mmHigh, 1)} mm | " +
                          $"{FormatNumber(widthPoints, 1)} x {FormatNumber(heightPoints, 1)} pt";
-        return (label, details);
+        return (label, details, useMetric);
     }
 
     private static KnownSize? FindKnownSize(double width, double height)

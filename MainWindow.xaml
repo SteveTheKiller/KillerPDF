@@ -2699,9 +2699,9 @@
                             BorderThickness="{DynamicResource FooterCellDarkThickness}" Panel.ZIndex="2"/>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"
                                 VerticalAlignment="Center" Margin="{DynamicResource FooterCellPadding}">
-                    <TextBlock x:Name="PageSizeLabel" Margin="4,0,5,0" MinWidth="90"
-                               Foreground="{DynamicResource TextFooter}" FontFamily="Consolas" FontSize="10"
-                               VerticalAlignment="Center" TextAlignment="Center"/>
+                    <Button x:Name="PageSizeLabel" Margin="4,0,5,0" MinWidth="90" Width="Auto"
+                            Style="{StaticResource FooterNavButton}" Click="PageSizeLabel_Click"
+                            FontFamily="Consolas" FontSize="10" VerticalAlignment="Center"/>
                     <Border Width="1" Height="14" Background="{DynamicResource CardBorderBrush}" Margin="2,0,5,0"/>
                     <RadioButton x:Name="ViewContinuousRadio" GroupName="ViewGroup"
                                  Style="{StaticResource FooterModeButton}"

@@ -122,11 +122,27 @@ namespace KillerPDF
             if (PageList.SelectedIndex != pageIndex) PageList.SelectedIndex = pageIndex;
         }
 
+        private bool? FooterPageSizeMetric => App.GetSetting("FooterPageSizeUnit") switch
+        {
+            "Metric" => true,
+            "Imperial" => false,
+            _ => null
+        };
+
+        private void PageSizeLabel_Click(object sender, RoutedEventArgs e)
+        {
+            var size = ActiveViewer?.CurrentPageSizeExt(FooterPageSizeMetric);
+            if (size is null) return;
+            App.SetSetting("FooterPageSizeUnit", size.Value.Metric ? "Imperial" : "Metric");
+            UpdatePageSizeDisplay();
+        }
+
         private void UpdatePageSizeDisplay()
         {
-            var size = ActiveViewer?.CurrentPageSizeExt();
-            PageSizeLabel.Text = size?.Label ?? string.Empty;
+            var size = ActiveViewer?.CurrentPageSizeExt(FooterPageSizeMetric);
+            PageSizeLabel.Content = size?.Label ?? string.Empty;
             PageSizeLabel.ToolTip = size?.Details;
+            PageSizeLabel.IsEnabled = size is not null;
         }
 
         void IViewerHost.EnsureSidebarPageVisible(PdfViewer viewer, int pageIndex)
