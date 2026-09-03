@@ -1,4 +1,6 @@
 using KillerPdf.Engine.Syntax;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Diagnostics;
 
@@ -9,6 +11,8 @@ public enum PdfDiagnosticSeverity
     Information,
     /// <summary>A suspicious condition that does not prevent structural use.</summary>
     Warning,
+    /// <summary>The requested check is recognized but unavailable for this document or engine build.</summary>
+    Unsupported,
     /// <summary>A structural failure requiring repair or rejection.</summary>
     Error
 }
@@ -80,4 +84,26 @@ public sealed class PdfInspectionReport
             && diagnostic.Code != PdfDiagnosticCode.AuthenticationFailed);
     /// <summary>Gets whether structural repair is required before normal processing.</summary>
     public bool RequiresRepair => !IsStructurallyValid;
+
+    /// <summary>Serializes the complete report using stable camel-case property and enum names.</summary>
+    public string ToJson(bool indented = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return JsonSerializer.Serialize(new
+        {
+            Version = Version?.ToString(),
+            StartXrefOffset,
+            CrossReferenceEntryCount,
+            InspectedObjectCount,
+            RequiresAuthentication,
+            IsStructurallyValid,
+            RequiresRepair,
+            Diagnostics
+        }, options);
+    }
 }

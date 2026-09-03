@@ -7,11 +7,26 @@ using KillerPdf.Engine.Security;
 using KillerPdf.Engine.Syntax;
 using KillerPdf.Engine.Writing;
 using Xunit;
+using System.Text.Json;
 
 namespace KillerPdf.Engine.Tests.Diagnostics;
 
 public sealed class PdfDocumentInspectorTests
 {
+    [Fact]
+    public void ReportExportsStableMachineReadableJson()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
+        PdfInspectionReport report = PdfDocumentInspector.Inspect(source);
+
+        using JsonDocument json = JsonDocument.Parse(report.ToJson(indented: true));
+        JsonElement root = json.RootElement;
+        Assert.Equal(report.Version?.ToString(), root.GetProperty("version").GetString());
+        Assert.Equal(report.InspectedObjectCount, root.GetProperty("inspectedObjectCount").GetInt32());
+        Assert.True(root.GetProperty("isStructurallyValid").GetBoolean());
+        Assert.Equal(JsonValueKind.Array, root.GetProperty("diagnostics").ValueKind);
+    }
+
     [Fact]
     public void Inspect_ReportsAValidDocumentWithoutFindings()
     {
