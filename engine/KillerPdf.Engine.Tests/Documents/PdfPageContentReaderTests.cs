@@ -17,6 +17,11 @@ public sealed class PdfPageContentReaderTests
         Assert.Equal(40, page.Letters[0].StartBaseLine.Y);
         Assert.Equal("Helvetica", page.Letters[0].FontName);
         Assert.All(page.Letters, l => Assert.Equal(12, l.PointSize));
+        var run = Assert.Single(page.TextRuns);
+        Assert.Equal("Hello world", run.Text);
+        Assert.Equal("Helvetica", run.FontName);
+        Assert.Equal(PdfWritingDirection.LeftToRight, run.WritingDirection);
+        Assert.Equal("Hello world", Assert.Single(page.Lines).Text);
     }
 
     [Fact]
@@ -45,7 +50,11 @@ public sealed class PdfPageContentReaderTests
             extras: ["<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB /Length 3 >>\nstream\nabc\nendstream"]);
         Assert.Equal(2, page.Images.Count);
         Assert.Equal(new PdfContentBounds(10, 20, 40, 60), page.Images[0].BoundingBox);
+        Assert.Equal("Im", page.Images[0].ResourceName);
+        Assert.False(page.Images[0].IsInline);
         Assert.Equal(new PdfContentBounds(70, 80, 75, 86), page.Images[1].BoundingBox);
+        Assert.Null(page.Images[1].ResourceName);
+        Assert.True(page.Images[1].IsInline);
     }
 
     [Fact]
@@ -93,6 +102,9 @@ public sealed class PdfPageContentReaderTests
         Assert.Equal(190, page.Letters[0].EndBaseLine.Y);
         Assert.Equal(189, page.Letters[1].StartBaseLine.Y);
         Assert.Equal(100, page.Letters[1].StartBaseLine.X);
+        Assert.All(page.Letters, letter => Assert.Equal(PdfWritingDirection.TopToBottom, letter.WritingDirection));
+        Assert.Equal(PdfWritingDirection.TopToBottom, Assert.Single(page.TextRuns).WritingDirection);
+        Assert.Single(page.Lines);
     }
 
     [Fact]

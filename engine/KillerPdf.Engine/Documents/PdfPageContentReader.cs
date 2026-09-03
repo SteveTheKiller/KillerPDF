@@ -37,7 +37,7 @@ public sealed class PdfPageContentReader
         var instructions = new List<PdfContentInstruction>();
         var fonts = new Dictionary<string, PdfExtractionFont>();
         var fontNames = new Dictionary<PdfDictionary, string>();
-        var images = new List<PdfContentBounds>();
+        var images = new List<PdfExtractedImage>();
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         long decodedBytes = 0;
@@ -142,7 +142,7 @@ public sealed class PdfPageContentReader
                         if (args.Count != 1 || args[0] is not PdfName xName || Resolve(Resource(current, "XObject", xName)) is not PdfStream xobject)
                             throw new FormatException("Invalid XObject resource.");
                         var subtype = xobject.Dictionary.TryGetValue(Name("Subtype"), out var type) ? Resolve(type) as PdfName : null;
-                        if (subtype?.ValueAsLatin1() == "Image") { Image(ctm, clip); continue; }
+                        if (subtype?.ValueAsLatin1() == "Image") { Image(ctm, clip, xName.ValueAsLatin1(), false); continue; }
                         if (subtype?.ValueAsLatin1() != "Form") continue;
                         if (!activeForms.Add(xobject)) throw new FormatException("Cyclic form XObject.");
                         try
@@ -165,7 +165,7 @@ public sealed class PdfPageContentReader
                         }
                         finally { activeForms.Remove(xobject); }
                         continue;
-                    case "BI": Image(ctm, clip); continue;
+                    case "BI": Image(ctm, clip, null, true); continue;
                     case "BDC":
                         if (args.Count == 2 && args[1] is PdfName propertyName)
                         {
@@ -224,10 +224,10 @@ public sealed class PdfPageContentReader
                 _ => null
             };
         }
-        void Image(Matrix matrix, PdfContentBounds clip)
+        void Image(Matrix matrix, PdfContentBounds clip, string? resourceName, bool isInline)
         {
             var bounds = Intersect(Transform(new(0, 0, 1, 1), matrix), clip);
-            if (bounds.Width > 0 && bounds.Height > 0) images.Add(bounds);
+            if (bounds.Width > 0 && bounds.Height > 0) images.Add(new(bounds, resourceName, isInline));
         }
     }
 

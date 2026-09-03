@@ -10,7 +10,7 @@ The 1.9.0 engine adds text and image placement extraction.
 
 ### Added
 
-- Added page extraction with words, glyph bounds, font sizes, baselines, and image placements, including nested forms, inline images, vertical text, and ActualText replacements.
+- Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, and identified image placements, including nested forms, inline images, vertical text, and ActualText replacements.
 - Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
 
 ### Fixed
