@@ -76,6 +76,37 @@ internal static class PdfPreflightDocumentChecks
         }
     }
 
+    internal static IReadOnlyList<PdfPreflightFinding> CheckImageResolution(
+        PdfDocument document, double minimumDpi)
+    {
+        var findings = new List<PdfPreflightFinding>();
+        IReadOnlyList<PdfPageContentBatchResult> pages = PdfPageContentBatch.Read(document);
+        foreach (PdfPageContentBatchResult page in pages)
+        {
+            if (!page.Succeeded)
+            {
+                findings.Add(Error("ImageResolution.PageUnreadable",
+                    page.Error ?? "The page content could not be read.", page.PageIndex));
+                continue;
+            }
+            foreach (PdfExtractedImage image in page.Content!.Images)
+            {
+                if (image.HorizontalDpi is not double horizontal
+                    || image.VerticalDpi is not double vertical)
+                {
+                    findings.Add(Warning("ImageResolution.Unknown",
+                        "An image's effective resolution could not be determined.", page.PageIndex));
+                    continue;
+                }
+                if (horizontal < minimumDpi || vertical < minimumDpi)
+                    findings.Add(Warning("ImageResolution.BelowMinimum",
+                        $"An image is {horizontal:0.#} by {vertical:0.#} DPI; the minimum is {minimumDpi:0.#} DPI.",
+                        page.PageIndex));
+            }
+        }
+        return Array.AsReadOnly(findings.ToArray());
+    }
+
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,
         PdfName name, bool required)
     {
@@ -123,6 +154,10 @@ internal static class PdfPreflightDocumentChecks
     private static PdfPreflightFinding Error(string code, string message,
         int? pageIndex = null, int? objectNumber = null) =>
         new(code, PdfDiagnosticSeverity.Error, message, pageIndex, objectNumber);
+
+    private static PdfPreflightFinding Warning(string code, string message,
+        int? pageIndex = null, int? objectNumber = null) =>
+        new(code, PdfDiagnosticSeverity.Warning, message, pageIndex, objectNumber);
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private sealed record PdfBox(double Left, double Bottom, double Right, double Top);

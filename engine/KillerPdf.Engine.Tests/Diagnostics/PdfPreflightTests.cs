@@ -20,6 +20,7 @@ public sealed class PdfPreflightTests
         PdfPreflightReport report = PdfPreflightRunner.Run(source, restored);
 
         Assert.Equal("Language check", report.ProfileName);
+        Assert.Equal(300, restored.MinimumImageDpi);
         PdfPreflightFinding finding = Assert.Single(report.Findings);
         Assert.Equal("Accessibility.MissingDocumentLanguage", finding.Code);
         Assert.DoesNotContain(report.Findings,
@@ -71,6 +72,26 @@ public sealed class PdfPreflightTests
         Assert.DoesNotContain(complete.Findings,
             finding => finding.Code.StartsWith("PageBoxes.", StringComparison.Ordinal)
                 || finding.Code.StartsWith("OutputIntent.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ImageResolutionUsesTheProfileThresholdAndPageIndex()
+    {
+        PdfImage image = PdfImage.FromRgb(100, 100, new byte[30_000]);
+        byte[] source = new PdfDocumentBuilder().AddPage(300, 300,
+            new PdfContentStreamBuilder().DrawImage(image, 20, 30, 144, 72)).Build();
+        var profile = new PdfPreflightProfile("Newsprint",
+            [PdfPreflightCheck.ImageResolution], minimumImageDpi: 75);
+
+        PdfPreflightProfile restored = PdfPreflightProfile.FromJson(profile.ToJson());
+        PdfPreflightReport report = PdfPreflightRunner.Run(source, restored);
+
+        Assert.Equal(75, restored.MinimumImageDpi);
+        PdfPreflightFinding finding = Assert.Single(report.Findings);
+        Assert.Equal("ImageResolution.BelowMinimum", finding.Code);
+        Assert.Equal(PdfDiagnosticSeverity.Warning, finding.Severity);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.Contains("50 by 100 DPI", finding.Message, StringComparison.Ordinal);
     }
 
     private static byte[] Profile()

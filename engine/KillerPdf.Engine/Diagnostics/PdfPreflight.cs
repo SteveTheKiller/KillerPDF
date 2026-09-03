@@ -16,14 +16,17 @@ public enum PdfPreflightCheck
     /// <summary>Checks effective media and crop boxes on every page.</summary>
     PageBoxes,
     /// <summary>Checks for a usable document output intent and ICC profile.</summary>
-    OutputIntent
+    OutputIntent,
+    /// <summary>Checks the effective resolution of every placed image.</summary>
+    ImageResolution
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
 public sealed record PdfPreflightProfile
 {
     /// <summary>Creates a validated profile.</summary>
-    public PdfPreflightProfile(string name, IEnumerable<PdfPreflightCheck> checks)
+    public PdfPreflightProfile(string name, IEnumerable<PdfPreflightCheck> checks,
+        double minimumImageDpi = 300)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preflight profile name is required.", nameof(name));
@@ -33,8 +36,11 @@ public sealed record PdfPreflightProfile
             throw new ArgumentException("A preflight profile requires at least one check.", nameof(checks));
         if (selected.Any(check => !Enum.IsDefined(check)))
             throw new ArgumentOutOfRangeException(nameof(checks), "A preflight check is not defined.");
+        if (!double.IsFinite(minimumImageDpi) || minimumImageDpi <= 0)
+            throw new ArgumentOutOfRangeException(nameof(minimumImageDpi));
         Name = name;
         Checks = Array.AsReadOnly(selected);
+        MinimumImageDpi = minimumImageDpi;
     }
 
     /// <summary>Gets a structural validation profile suitable for ordinary PDFs.</summary>
@@ -45,17 +51,20 @@ public sealed record PdfPreflightProfile
     public static PdfPreflightProfile PrintProduction { get; } = new("Print production", [
         PdfPreflightCheck.StructuralIntegrity,
         PdfPreflightCheck.PageBoxes,
-        PdfPreflightCheck.OutputIntent
+        PdfPreflightCheck.OutputIntent,
+        PdfPreflightCheck.ImageResolution
     ]);
 
     /// <summary>Gets the profile name.</summary>
     public string Name { get; }
     /// <summary>Gets the selected checks in profile order.</summary>
     public IReadOnlyList<PdfPreflightCheck> Checks { get; }
+    /// <summary>Gets the minimum effective image resolution in dots per inch.</summary>
+    public double MinimumImageDpi { get; }
 
     /// <summary>Serializes the profile with stable camel-case names.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new PdfPreflightProfileFile(1, Name, Checks.ToArray()), JsonOptions(indented));
+        new PdfPreflightProfileFile(1, Name, Checks.ToArray(), MinimumImageDpi), JsonOptions(indented));
 
     /// <summary>Reads and validates a serialized profile.</summary>
     public static PdfPreflightProfile FromJson(string json)
@@ -66,7 +75,7 @@ public sealed record PdfPreflightProfile
         if (file.Version != 1)
             throw new NotSupportedException(
                 $"Preflight profile version {file.Version} is not supported.");
-        return new PdfPreflightProfile(file.Name, file.Checks);
+        return new PdfPreflightProfile(file.Name, file.Checks, file.MinimumImageDpi ?? 300);
     }
 
     private static JsonSerializerOptions JsonOptions(bool indented)
@@ -82,7 +91,7 @@ public sealed record PdfPreflightProfile
     }
 
     private sealed record PdfPreflightProfileFile(
-        int Version, string Name, PdfPreflightCheck[] Checks);
+        int Version, string Name, PdfPreflightCheck[] Checks, double? MinimumImageDpi);
 }
 
 /// <summary>One finding produced by a preflight profile.</summary>
@@ -164,6 +173,9 @@ public static class PdfPreflightRunner
             findings.AddRange(PdfPreflightDocumentChecks.CheckPageBoxes(checkedDocument));
         if (profile.Checks.Contains(PdfPreflightCheck.OutputIntent))
             findings.AddRange(PdfPreflightDocumentChecks.CheckOutputIntent(checkedDocument));
+        if (profile.Checks.Contains(PdfPreflightCheck.ImageResolution))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckImageResolution(
+                checkedDocument, profile.MinimumImageDpi));
         return new PdfPreflightReport(profile.Name, findings);
     }
 }

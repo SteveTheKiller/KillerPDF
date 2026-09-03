@@ -20,7 +20,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added localized round-trip failures with stable codes and numeric details in all 15 supported languages (#227).
 - Added explicit artifact overlays for temporary rasterization of tagged PDFs, preserving existing structure and ordinary content-editing guards (#356).
 - Added inspectable repair and lossless optimization plans with metadata sanitization and measured output sizes (#333).
-- Added reusable preflight profiles for structural, language, and tagged-document checks with stable JSON reports (#334).
+- Added reusable preflight profiles for structural, language, tagged-document, page-box, output-intent, and image-resolution checks with stable JSON reports (#334).
 - Added stable document-level accessibility findings for language, structure trees, and marked-content declarations (#335).
 - Added configurable signature trust roots and separate certificate validity, identity trust, revocation, and chain-detail results (#336).
 - Added document attachment inspection with decoded payloads, source objects, executable-content warnings, and traversal-safe extraction paths (#347).
