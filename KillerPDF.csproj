@@ -13,10 +13,10 @@
     <UseWPF>true</UseWPF>
     <ApplicationIcon>Resources\kp-icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.8.3</Version>
+    <Version>1.9.0</Version>
 
-    <AssemblyVersion>1.8.3.0</AssemblyVersion>
-    <FileVersion>1.8.3.0</FileVersion>
+    <AssemblyVersion>1.9.0.0</AssemblyVersion>
+    <FileVersion>1.9.0.0</FileVersion>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <!-- Shown in the About card beside the version so a user can tell how old their build.
          Keep this as Unreleased during development. A final release must use the date on its
