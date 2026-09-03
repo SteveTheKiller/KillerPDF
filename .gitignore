@@ -11,11 +11,12 @@ obj/
 publish/
 *.pubxml.user
 
-# Generated NuGet packages
-/artifacts/nuget/
+# Generated artifacts
+/artifacts/
 
 # Local notes / scratch
 *.odt
+/tmp/
 
 # Cloudflare Wrangler
 .wrangler/
