@@ -20,6 +20,13 @@ public sealed class PdfObjectParser(
     private readonly PdfTokenizer _tokenizer = new(source, startOffset);
     private readonly Func<PdfIndirectReference, long>? _streamLengthResolver = streamLengthResolver;
     private readonly List<PdfToken> _lookahead = [];
+    private bool _allowIndirectReferences = true;
+
+    internal static PdfObjectParser ForContent(ReadOnlyMemory<byte> source) =>
+        new(source) { _allowIndirectReferences = false };
+
+    internal PdfToken PeekContentToken() => Peek();
+    internal PdfToken TakeContentToken() => Take();
 
     /// <summary>Creates a parser positioned at the beginning of a PDF byte sequence.</summary>
     public PdfObjectParser(
@@ -108,6 +115,7 @@ public sealed class PdfObjectParser(
     private PdfObject ParseIntegerOrReference(PdfToken first)
     {
         long value = ParseInteger(first);
+        if (!_allowIndirectReferences) return new PdfInteger(value);
         if (Peek().Kind != PdfTokenKind.Integer
             || Peek(1).Kind != PdfTokenKind.Keyword
             || !Peek(1).Value.Span.SequenceEqual("R"u8))

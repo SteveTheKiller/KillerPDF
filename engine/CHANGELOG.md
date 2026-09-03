@@ -4,6 +4,14 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - Unreleased
+
+The 1.9.0 engine development cycle begins the PdfPig extraction replacement.
+
+### Added
+
+- Added bounded page-content instruction parsing as the foundation for text extraction.
+
 ## [1.8.3] - Unreleased
 
 - Empty signature strings emitted by other PDF tools are treated as unsigned fields during reading, writing, and signing.

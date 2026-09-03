@@ -1,6 +1,16 @@
 # PdfPig replacement for 1.9.0 Overkill
 
-Status: inventory complete; replacement not yet implemented.
+Status: content instruction reader implemented; text extraction and application migration remain pending.
+
+## First implementation checkpoint
+
+`PdfContentStreamReader` reuses the engine tokenizer and direct-object parser to read operators,
+text strings, spacing arrays, and marked-content dictionaries. It retains byte offsets and applies
+source-size, instruction, operand, and nesting limits. Inline images currently cause an explicit
+unsupported-content error rather than allowing binary image bytes to be mistaken for text.
+
+Next: interpret graphics and text state, resolve font resources and Unicode mappings, and emit
+character positions. No application feature has switched away from PdfPig yet.
 
 ## Current uses
 
