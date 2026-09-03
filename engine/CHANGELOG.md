@@ -35,7 +35,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added unified bookmark and link auditing for unresolved local targets and unsupported URI schemes (#351).
 - Added immutable OCR review results, low-confidence correction workflows, reports, and isolated page batches (#345).
 - Added immutable automatic-field proposals with an explicit accept or reject review boundary before form authoring (#342).
-- Added bounded text, phrase, regular-expression, email, and phone redaction search with reviewable exclusions (#341).
+- Added reviewable redaction search and verified image-only rebuilding that removes recoverable document data (#341).
 
 ## [1.8.3] - 2026-09-02
 
