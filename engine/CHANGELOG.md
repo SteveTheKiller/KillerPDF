@@ -13,7 +13,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, and identified image placements, including nested forms, inline images, vertical text, and ActualText replacements.
 - Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
 - Added typed reading of saved initial-view layouts, panels, viewer chrome preferences, opening pages, zoom, and fit modes (#338).
-- Added immutable interpreted and raw instruction sequences, typed vector paths, safe unknown-operator round trips, and instruction-based page-content replacement as the foundation for direct transformations (#332).
+- Added direct instruction replacement and affine page-content transformations that preserve untouched and unknown operators (#332).
 
 ### Fixed
 
