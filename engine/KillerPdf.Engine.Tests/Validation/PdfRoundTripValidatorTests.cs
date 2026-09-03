@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
@@ -80,7 +81,9 @@ public sealed class PdfRoundTripValidatorTests
         Assert.False(result.Succeeded);
         Assert.False(result.IsDeterministic);
         Assert.Null(result.RewrittenBytes);
-        Assert.Contains("password is incorrect", result.FailureMessage, StringComparison.Ordinal);
+        Assert.Equal(PdfRoundTripFailureCode.AuthenticationFailed, result.Failure?.Code);
+        Assert.Contains("password is incorrect", result.Failure!.Format(CultureInfo.GetCultureInfo("en-US")),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -100,7 +103,8 @@ public sealed class PdfRoundTripValidatorTests
         Assert.False(result.Succeeded);
         Assert.True(result.SourceInspection.RequiresAuthentication);
         Assert.False(result.SourceInspection.RequiresRepair);
-        Assert.Contains("authentication is required", result.FailureMessage,
+        Assert.Equal(PdfRoundTripFailureCode.AuthenticationRequired, result.Failure?.Code);
+        Assert.Contains("authentication is required", result.Failure!.Format(CultureInfo.GetCultureInfo("en-US")),
             StringComparison.Ordinal);
     }
 

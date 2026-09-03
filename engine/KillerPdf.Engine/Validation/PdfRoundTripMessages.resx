@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <data name="en.SourceInspection" xml:space="preserve"><value>The source PDF failed structural inspection.</value></data>
+  <data name="en.RewrittenInspection" xml:space="preserve"><value>The rewritten PDF failed structural inspection.</value></data>
+  <data name="en.SecondAuthenticatedInspection" xml:space="preserve"><value>The second authenticated rewrite failed structural inspection.</value></data>
+  <data name="en.AuthenticatedGraphMismatch" xml:space="preserve"><value>The authenticated rewrites do not contain the same resolved object graph.</value></data>
+  <data name="en.RewriteMismatch" xml:space="preserve"><value>The second rewrite first differs at byte {0:N0}; the outputs contain {1:N0} and {2:N0} bytes.</value></data>
+  <data name="en.AuthenticationRequired" xml:space="preserve"><value>PDF authentication is required.</value></data>
+  <data name="en.AuthenticationFailed" xml:space="preserve"><value>The PDF password is incorrect.</value></data>
+  <data name="de.SourceInspection" xml:space="preserve"><value>Die Strukturprüfung der Quell-PDF ist fehlgeschlagen.</value></data>
+  <data name="de.RewrittenInspection" xml:space="preserve"><value>Die Strukturprüfung der neu geschriebenen PDF ist fehlgeschlagen.</value></data>
+  <data name="de.SecondAuthenticatedInspection" xml:space="preserve"><value>Die Strukturprüfung der zweiten authentifizierten Neuschreibung ist fehlgeschlagen.</value></data>
+  <data name="de.AuthenticatedGraphMismatch" xml:space="preserve"><value>Die authentifizierten Neuschreibungen enthalten nicht denselben aufgelösten Objektgraphen.</value></data>
+  <data name="de.RewriteMismatch" xml:space="preserve"><value>Die zweite Neuschreibung unterscheidet sich erstmals bei Byte {0:N0}; die Ausgaben enthalten {1:N0} und {2:N0} Bytes.</value></data>
+  <data name="de.AuthenticationRequired" xml:space="preserve"><value>Eine PDF-Authentifizierung ist erforderlich.</value></data>
+  <data name="de.AuthenticationFailed" xml:space="preserve"><value>Das PDF-Passwort ist falsch.</value></data>
+  <data name="fr.SourceInspection" xml:space="preserve"><value>La vérification de la structure du PDF source a échoué.</value></data>
+  <data name="fr.RewrittenInspection" xml:space="preserve"><value>La vérification de la structure du PDF réécrit a échoué.</value></data>
+  <data name="fr.SecondAuthenticatedInspection" xml:space="preserve"><value>La vérification de la structure de la deuxième réécriture authentifiée a échoué.</value></data>
+  <data name="fr.AuthenticatedGraphMismatch" xml:space="preserve"><value>Les réécritures authentifiées ne contiennent pas le même graphe d’objets résolus.</value></data>
+  <data name="fr.RewriteMismatch" xml:space="preserve"><value>La deuxième réécriture diffère pour la première fois à l’octet {0:N0} ; les sorties contiennent {1:N0} et {2:N0} octets.</value></data>
+  <data name="fr.AuthenticationRequired" xml:space="preserve"><value>L’authentification du PDF est requise.</value></data>
+  <data name="fr.AuthenticationFailed" xml:space="preserve"><value>Le mot de passe du PDF est incorrect.</value></data>
+  <data name="es.SourceInspection" xml:space="preserve"><value>El PDF de origen no superó la inspección estructural.</value></data>
+  <data name="es.RewrittenInspection" xml:space="preserve"><value>El PDF reescrito no superó la inspección estructural.</value></data>
+  <data name="es.SecondAuthenticatedInspection" xml:space="preserve"><value>La segunda reescritura autenticada no superó la inspección estructural.</value></data>
+  <data name="es.AuthenticatedGraphMismatch" xml:space="preserve"><value>Las reescrituras autenticadas no contienen el mismo grafo de objetos resueltos.</value></data>
+  <data name="es.RewriteMismatch" xml:space="preserve"><value>La segunda reescritura difiere por primera vez en el byte {0:N0}; las salidas contienen {1:N0} y {2:N0} bytes.</value></data>
+  <data name="es.AuthenticationRequired" xml:space="preserve"><value>Se requiere autenticación del PDF.</value></data>
+  <data name="es.AuthenticationFailed" xml:space="preserve"><value>La contraseña del PDF es incorrecta.</value></data>
+  <data name="it.SourceInspection" xml:space="preserve"><value>Il PDF di origine non ha superato il controllo strutturale.</value></data>
+  <data name="it.RewrittenInspection" xml:space="preserve"><value>Il PDF riscritto non ha superato il controllo strutturale.</value></data>
+  <data name="it.SecondAuthenticatedInspection" xml:space="preserve"><value>La seconda riscrittura autenticata non ha superato il controllo strutturale.</value></data>
+  <data name="it.AuthenticatedGraphMismatch" xml:space="preserve"><value>Le riscritture autenticate non contengono lo stesso grafo degli oggetti risolti.</value></data>
+  <data name="it.RewriteMismatch" xml:space="preserve"><value>La seconda riscrittura differisce per la prima volta al byte {0:N0}; i risultati contengono {1:N0} e {2:N0} byte.</value></data>
+  <data name="it.AuthenticationRequired" xml:space="preserve"><value>È richiesta l’autenticazione del PDF.</value></data>
+  <data name="it.AuthenticationFailed" xml:space="preserve"><value>La password del PDF non è corretta.</value></data>
+  <data name="cs.SourceInspection" xml:space="preserve"><value>Zdrojový PDF neprošel kontrolou struktury.</value></data>
+  <data name="cs.RewrittenInspection" xml:space="preserve"><value>Přepsaný PDF neprošel kontrolou struktury.</value></data>
+  <data name="cs.SecondAuthenticatedInspection" xml:space="preserve"><value>Druhý autentizovaný přepis neprošel kontrolou struktury.</value></data>
+  <data name="cs.AuthenticatedGraphMismatch" xml:space="preserve"><value>Autentizované přepisy neobsahují stejný graf vyhodnocených objektů.</value></data>
+  <data name="cs.RewriteMismatch" xml:space="preserve"><value>Druhý přepis se poprvé liší na bajtu {0:N0}; výstupy obsahují {1:N0} a {2:N0} bajtů.</value></data>
+  <data name="cs.AuthenticationRequired" xml:space="preserve"><value>Je vyžadováno ověření přístupu k PDF.</value></data>
+  <data name="cs.AuthenticationFailed" xml:space="preserve"><value>Heslo k PDF je nesprávné.</value></data>
+  <data name="hu.SourceInspection" xml:space="preserve"><value>A forrás-PDF szerkezeti ellenőrzése sikertelen.</value></data>
+  <data name="hu.RewrittenInspection" xml:space="preserve"><value>Az újraírt PDF szerkezeti ellenőrzése sikertelen.</value></data>
+  <data name="hu.SecondAuthenticatedInspection" xml:space="preserve"><value>A második hitelesített újraírás szerkezeti ellenőrzése sikertelen.</value></data>
+  <data name="hu.AuthenticatedGraphMismatch" xml:space="preserve"><value>A hitelesített újraírások nem ugyanazt a feloldott objektumgráfot tartalmazzák.</value></data>
+  <data name="hu.RewriteMismatch" xml:space="preserve"><value>A második újraírás először a(z) {0:N0}. bájtnál tér el; a kimenetek {1:N0} és {2:N0} bájtot tartalmaznak.</value></data>
+  <data name="hu.AuthenticationRequired" xml:space="preserve"><value>A PDF hitelesítést igényel.</value></data>
+  <data name="hu.AuthenticationFailed" xml:space="preserve"><value>A PDF jelszava helytelen.</value></data>
+  <data name="pl.SourceInspection" xml:space="preserve"><value>Źródłowy PDF nie przeszedł kontroli struktury.</value></data>
+  <data name="pl.RewrittenInspection" xml:space="preserve"><value>Ponownie zapisany PDF nie przeszedł kontroli struktury.</value></data>
+  <data name="pl.SecondAuthenticatedInspection" xml:space="preserve"><value>Drugi uwierzytelniony zapis nie przeszedł kontroli struktury.</value></data>
+  <data name="pl.AuthenticatedGraphMismatch" xml:space="preserve"><value>Uwierzytelnione zapisy nie zawierają tego samego grafu rozwiązanych obiektów.</value></data>
+  <data name="pl.RewriteMismatch" xml:space="preserve"><value>Drugi zapis różni się po raz pierwszy na bajcie {0:N0}; wyniki zawierają {1:N0} i {2:N0} bajtów.</value></data>
+  <data name="pl.AuthenticationRequired" xml:space="preserve"><value>Wymagane jest uwierzytelnienie PDF.</value></data>
+  <data name="pl.AuthenticationFailed" xml:space="preserve"><value>Hasło do PDF jest nieprawidłowe.</value></data>
+  <data name="ru.SourceInspection" xml:space="preserve"><value>Исходный PDF не прошел проверку структуры.</value></data>
+  <data name="ru.RewrittenInspection" xml:space="preserve"><value>Перезаписанный PDF не прошел проверку структуры.</value></data>
+  <data name="ru.SecondAuthenticatedInspection" xml:space="preserve"><value>Вторая перезапись с аутентификацией не прошла проверку структуры.</value></data>
+  <data name="ru.AuthenticatedGraphMismatch" xml:space="preserve"><value>Перезаписи с аутентификацией не содержат одинаковый граф разрешенных объектов.</value></data>
+  <data name="ru.RewriteMismatch" xml:space="preserve"><value>Вторая перезапись впервые отличается в байте {0:N0}; результаты содержат {1:N0} и {2:N0} байт.</value></data>
+  <data name="ru.AuthenticationRequired" xml:space="preserve"><value>Требуется аутентификация PDF.</value></data>
+  <data name="ru.AuthenticationFailed" xml:space="preserve"><value>Неверный пароль PDF.</value></data>
+  <data name="tr.SourceInspection" xml:space="preserve"><value>Kaynak PDF yapısal denetimden geçemedi.</value></data>
+  <data name="tr.RewrittenInspection" xml:space="preserve"><value>Yeniden yazılan PDF yapısal denetimden geçemedi.</value></data>
+  <data name="tr.SecondAuthenticatedInspection" xml:space="preserve"><value>Kimliği doğrulanmış ikinci yeniden yazım yapısal denetimden geçemedi.</value></data>
+  <data name="tr.AuthenticatedGraphMismatch" xml:space="preserve"><value>Kimliği doğrulanmış yeniden yazımlar aynı çözümlenmiş nesne grafiğini içermiyor.</value></data>
+  <data name="tr.RewriteMismatch" xml:space="preserve"><value>İkinci yeniden yazım ilk kez {0:N0}. baytta farklılaşıyor; çıktılar {1:N0} ve {2:N0} bayt içeriyor.</value></data>
+  <data name="tr.AuthenticationRequired" xml:space="preserve"><value>PDF kimlik doğrulaması gerekiyor.</value></data>
+  <data name="tr.AuthenticationFailed" xml:space="preserve"><value>PDF parolası yanlış.</value></data>
+  <data name="ja.SourceInspection" xml:space="preserve"><value>元のPDFの構造検査に失敗しました。</value></data>
+  <data name="ja.RewrittenInspection" xml:space="preserve"><value>書き直したPDFの構造検査に失敗しました。</value></data>
+  <data name="ja.SecondAuthenticatedInspection" xml:space="preserve"><value>認証済みの2回目の書き直しで構造検査に失敗しました。</value></data>
+  <data name="ja.AuthenticatedGraphMismatch" xml:space="preserve"><value>認証済みの書き直し結果に含まれる解決済みオブジェクトグラフが一致しません。</value></data>
+  <data name="ja.RewriteMismatch" xml:space="preserve"><value>2回目の書き直しではバイト位置 {0:N0} で最初の差異があります。出力サイズは {1:N0} バイトと {2:N0} バイトです。</value></data>
+  <data name="ja.AuthenticationRequired" xml:space="preserve"><value>PDFの認証が必要です。</value></data>
+  <data name="ja.AuthenticationFailed" xml:space="preserve"><value>PDFのパスワードが正しくありません。</value></data>
+  <data name="zh-Hans.SourceInspection" xml:space="preserve"><value>源 PDF 未通过结构检查。</value></data>
+  <data name="zh-Hans.RewrittenInspection" xml:space="preserve"><value>重写后的 PDF 未通过结构检查。</value></data>
+  <data name="zh-Hans.SecondAuthenticatedInspection" xml:space="preserve"><value>第二次经过身份验证的重写未通过结构检查。</value></data>
+  <data name="zh-Hans.AuthenticatedGraphMismatch" xml:space="preserve"><value>经过身份验证的重写结果不包含相同的已解析对象图。</value></data>
+  <data name="zh-Hans.RewriteMismatch" xml:space="preserve"><value>第二次重写首次在字节位置 {0:N0} 处出现差异；输出分别包含 {1:N0} 和 {2:N0} 个字节。</value></data>
+  <data name="zh-Hans.AuthenticationRequired" xml:space="preserve"><value>需要进行 PDF 身份验证。</value></data>
+  <data name="zh-Hans.AuthenticationFailed" xml:space="preserve"><value>PDF 密码不正确。</value></data>
+  <data name="zh-Hant.SourceInspection" xml:space="preserve"><value>來源 PDF 未通過結構檢查。</value></data>
+  <data name="zh-Hant.RewrittenInspection" xml:space="preserve"><value>重寫後的 PDF 未通過結構檢查。</value></data>
+  <data name="zh-Hant.SecondAuthenticatedInspection" xml:space="preserve"><value>第二次經過身分驗證的重寫未通過結構檢查。</value></data>
+  <data name="zh-Hant.AuthenticatedGraphMismatch" xml:space="preserve"><value>經過身分驗證的重寫結果不包含相同的已解析物件圖。</value></data>
+  <data name="zh-Hant.RewriteMismatch" xml:space="preserve"><value>第二次重寫首次在位元組位置 {0:N0} 處出現差異；輸出分別包含 {1:N0} 和 {2:N0} 個位元組。</value></data>
+  <data name="zh-Hant.AuthenticationRequired" xml:space="preserve"><value>需要進行 PDF 身分驗證。</value></data>
+  <data name="zh-Hant.AuthenticationFailed" xml:space="preserve"><value>PDF 密碼不正確。</value></data>
+  <data name="kk.SourceInspection" xml:space="preserve"><value>Бастапқы PDF құрылымдық тексеруден өтпеді.</value></data>
+  <data name="kk.RewrittenInspection" xml:space="preserve"><value>Қайта жазылған PDF құрылымдық тексеруден өтпеді.</value></data>
+  <data name="kk.SecondAuthenticatedInspection" xml:space="preserve"><value>Екінші аутентификацияланған қайта жазу құрылымдық тексеруден өтпеді.</value></data>
+  <data name="kk.AuthenticatedGraphMismatch" xml:space="preserve"><value>Аутентификацияланған қайта жазуларда сілтемелері шешілген нысандар графы бірдей емес.</value></data>
+  <data name="kk.RewriteMismatch" xml:space="preserve"><value>Екінші қайта жазудағы алғашқы айырмашылық {0:N0}-байтта; нәтижелерде {1:N0} және {2:N0} байт бар.</value></data>
+  <data name="kk.AuthenticationRequired" xml:space="preserve"><value>PDF аутентификациясы қажет.</value></data>
+  <data name="kk.AuthenticationFailed" xml:space="preserve"><value>PDF құпиясөзі қате.</value></data>
+  <data name="bn.SourceInspection" xml:space="preserve"><value>উৎস PDF-এর কাঠামোগত পরীক্ষা ব্যর্থ হয়েছে।</value></data>
+  <data name="bn.RewrittenInspection" xml:space="preserve"><value>পুনর্লিখিত PDF-এর কাঠামোগত পরীক্ষা ব্যর্থ হয়েছে।</value></data>
+  <data name="bn.SecondAuthenticatedInspection" xml:space="preserve"><value>দ্বিতীয় প্রমাণীকৃত পুনর্লিখনের কাঠামোগত পরীক্ষা ব্যর্থ হয়েছে।</value></data>
+  <data name="bn.AuthenticatedGraphMismatch" xml:space="preserve"><value>প্রমাণীকৃত পুনর্লিখনগুলিতে একই সমাধানকৃত অবজেক্ট গ্রাফ নেই।</value></data>
+  <data name="bn.RewriteMismatch" xml:space="preserve"><value>দ্বিতীয় পুনর্লিখনে প্রথম পার্থক্য {0:N0} নম্বর বাইটে; আউটপুটগুলিতে {1:N0} এবং {2:N0} বাইট রয়েছে।</value></data>
+  <data name="bn.AuthenticationRequired" xml:space="preserve"><value>PDF প্রমাণীকরণ প্রয়োজন।</value></data>
+  <data name="bn.AuthenticationFailed" xml:space="preserve"><value>PDF পাসওয়ার্ডটি ভুল।</value></data>
+</root>

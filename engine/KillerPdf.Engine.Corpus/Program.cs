@@ -2179,9 +2179,9 @@ foreach (string file in files)
             string findings = string.Join(
                 "; ",
                 result.SourceInspection.Diagnostics.Select(item => $"{item.Code}: {item.Message}"));
-            string details = findings.Length > 0
-                ? findings
-                : result.FailureMessage ?? "Unknown validation failure.";
+            string summary = result.Failure?.Format() ?? result.FailureMessage
+                ?? "Unknown validation failure.";
+            string details = findings.Length > 0 ? $"{summary} ({findings})" : summary;
             Console.WriteLine($"FAIL  {Path.GetRelativePath(root, file)}  {details}");
         }
     }

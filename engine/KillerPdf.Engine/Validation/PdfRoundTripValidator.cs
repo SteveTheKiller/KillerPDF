@@ -22,7 +22,11 @@ public sealed record PdfRoundTripResult(
     byte[]? RewrittenBytes,
     PdfInspectionReport SourceInspection,
     PdfInspectionReport? RewrittenInspection,
-    string? FailureMessage);
+    string? FailureMessage)
+{
+    /// <summary>Structured details for recognized failures, suitable for localized presentation.</summary>
+    public PdfRoundTripFailure? Failure { get; init; }
+}
 
 /// <summary>Runs the preservation writer through reopen and second-write verification.</summary>
 public static class PdfRoundTripValidator
@@ -53,12 +57,14 @@ public static class PdfRoundTripValidator
             : PdfDocumentInspector.InspectAuthenticated(source, password);
         if (!sourceInspection.IsStructurallyValid || sourceInspection.RequiresAuthentication)
         {
-            string sourceFailure = sourceInspection.Diagnostics.FirstOrDefault(
-                item => item.Code == PdfDiagnosticCode.AuthenticationFailed)?.Message
-                ?? "The source PDF failed structural inspection.";
+            var failure = new PdfRoundTripFailure(password is null && sourceInspection.RequiresAuthentication
+                ? PdfRoundTripFailureCode.AuthenticationRequired
+                : sourceInspection.Diagnostics.Any(item => item.Code == PdfDiagnosticCode.AuthenticationFailed)
+                    ? PdfRoundTripFailureCode.AuthenticationFailed
+                    : PdfRoundTripFailureCode.SourceInspection);
             return new PdfRoundTripResult(
                 false, false, null, null, sourceInspection, null,
-                sourceFailure);
+                failure.Format()) { Failure = failure };
         }
 
         try
@@ -73,9 +79,10 @@ public static class PdfRoundTripValidator
             if (!rewrittenInspection.IsStructurallyValid
                 || rewrittenInspection.RequiresAuthentication)
             {
+                var failure = new PdfRoundTripFailure(PdfRoundTripFailureCode.RewrittenInspection);
                 return new PdfRoundTripResult(
                     false, false, Hex(rewritten), rewritten, sourceInspection, rewrittenInspection,
-                    "The rewritten PDF failed structural inspection.");
+                    failure.Format()) { Failure = failure };
             }
 
             PdfDocument reopened = password is null
@@ -89,21 +96,29 @@ public static class PdfRoundTripValidator
                     PdfDocumentInspector.InspectAuthenticated(secondPass, password);
                 if (!secondInspection.IsStructurallyValid
                     || secondInspection.RequiresAuthentication)
+                {
+                    var failure = new PdfRoundTripFailure(PdfRoundTripFailureCode.SecondAuthenticatedInspection);
                     return new PdfRoundTripResult(
                         false, false, Hex(rewritten), rewritten, sourceInspection,
                         rewrittenInspection,
-                        "The second authenticated rewrite failed structural inspection.");
+                        failure.Format()) { Failure = failure };
+                }
                 PdfDocument secondDocument = PdfDocument.Open(secondPass, password);
                 if (!EquivalentResolvedObjects(reopened, secondDocument))
+                {
+                    var failure = new PdfRoundTripFailure(PdfRoundTripFailureCode.AuthenticatedGraphMismatch);
                     return new PdfRoundTripResult(
                         false, false, Hex(rewritten), rewritten, sourceInspection,
                         rewrittenInspection,
-                        "The authenticated rewrites do not contain the same resolved object graph.");
+                        failure.Format()) { Failure = failure };
+                }
                 return new PdfRoundTripResult(
                     true, deterministic, Hex(rewritten), rewritten, sourceInspection,
                     rewrittenInspection, null);
             }
             int firstDifference = deterministic ? -1 : FirstDifference(rewritten, secondPass);
+            PdfRoundTripFailure? mismatch = deterministic ? null : new(
+                PdfRoundTripFailureCode.RewriteMismatch, firstDifference, rewritten.Length, secondPass.Length);
             return new PdfRoundTripResult(
                 deterministic,
                 deterministic,
@@ -111,9 +126,7 @@ public static class PdfRoundTripValidator
                 rewritten,
                 sourceInspection,
                 rewrittenInspection,
-                deterministic ? null
-                    : $"The second rewrite first differs at byte {firstDifference:N0}; "
-                        + $"the outputs contain {rewritten.Length:N0} and {secondPass.Length:N0} bytes.");
+                mismatch?.Format()) { Failure = mismatch };
         }
         catch (Exception error)
         {
