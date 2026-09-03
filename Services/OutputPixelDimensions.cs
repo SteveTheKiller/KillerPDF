@@ -14,10 +14,10 @@ internal static class OutputPixelDimensions
             Math.Max(1, (int)Math.Round(heightPoints / 72.0 * dpi)));
     }
 
-    internal static string ScaleLabel(int outputWidth, int outputHeight, int sourceWidth, int sourceHeight)
+    internal static string ScaleLabel(double outputWidth, double outputHeight, double sourceWidth, double sourceHeight)
     {
         if (outputWidth <= 0 || outputHeight <= 0 || sourceWidth <= 0 || sourceHeight <= 0) return string.Empty;
-        double scale = Math.Sqrt((double)outputWidth * outputHeight / ((double)sourceWidth * sourceHeight));
+        double scale = Math.Sqrt(outputWidth * outputHeight / (sourceWidth * sourceHeight));
         return "x" + scale.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture);
     }
 }

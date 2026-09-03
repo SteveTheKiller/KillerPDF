@@ -11,8 +11,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Changed
 
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
-- Click the footer page dimensions to switch between millimeters and inches, with pixel dimensions in its details (#364).
-- Transform and image export DPI previews show the output scale (#365).
+- Click the footer page dimensions to switch between compact and expanded pixel, inch, millimeter, and point dimensions (#364).
+- Transform output and image export DPI previews show the output scale (#365).
 
 ### Fixed
 
@@ -33,8 +33,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
-- Added pixel dimensions to the footer details and made its units clickable (#364).
-- Added output scale to the Transform and image export DPI previews (#365).
+- Added a clickable compact and expanded footer size display with pixel, inch, millimeter, and point dimensions (#364).
+- Added output scale to Transform output and image export DPI previews (#365).
 
 ### Fixed
 

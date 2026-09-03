@@ -122,25 +122,21 @@ namespace KillerPDF
             if (PageList.SelectedIndex != pageIndex) PageList.SelectedIndex = pageIndex;
         }
 
-        private bool? FooterPageSizeMetric => App.GetSetting("FooterPageSizeUnit") switch
-        {
-            "Metric" => true,
-            "Imperial" => false,
-            _ => null
-        };
+        private bool FooterPageSizeExpanded => App.GetSetting("FooterPageSizeExpanded") == "1";
 
         private void PageSizeLabel_Click(object sender, RoutedEventArgs e)
         {
-            var size = ActiveViewer?.CurrentPageSizeExt(FooterPageSizeMetric);
+            var size = ActiveViewer?.CurrentPageSizeExt();
             if (size is null) return;
-            App.SetSetting("FooterPageSizeUnit", size.Value.Metric ? "Imperial" : "Metric");
+            App.SetSetting("FooterPageSizeExpanded", FooterPageSizeExpanded ? "0" : "1");
             UpdatePageSizeDisplay();
         }
 
         private void UpdatePageSizeDisplay()
         {
-            var size = ActiveViewer?.CurrentPageSizeExt(FooterPageSizeMetric);
-            PageSizeLabel.Content = size?.Label ?? string.Empty;
+            var size = ActiveViewer?.CurrentPageSizeExt();
+            PageSizeLabel.Content = size is null ? string.Empty
+                : FooterPageSizeExpanded ? size.Value.Details : size.Value.Label;
             PageSizeLabel.ToolTip = size?.Details;
             PageSizeLabel.IsEnabled = size is not null;
         }

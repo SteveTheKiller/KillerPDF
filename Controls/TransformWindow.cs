@@ -788,7 +788,9 @@ namespace KillerPDF
             {
                 double outWin = b.PixelWidth * (_pageWpt / _srcW) / 72.0;
                 double outHin = b.PixelHeight * (_pageHpt / _srcH) / 72.0;
-                _sizeReadout.Text = string.Format(S("Str_Tf_Output"), outWin.ToString("0.0"), outHin.ToString("0.0"));
+                _sizeReadout.Text = string.Format(S("Str_Tf_Output"), outWin.ToString("0.0"), outHin.ToString("0.0")) +
+                    "  |  " + OutputPixelDimensions.ScaleLabel(
+                        b.PixelWidth, b.PixelHeight, _srcW, _srcH);
             }
             UpdateDpiReadout();
             SizePreviewImage();
