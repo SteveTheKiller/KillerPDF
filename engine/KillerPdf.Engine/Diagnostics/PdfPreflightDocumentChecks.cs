@@ -12,6 +12,7 @@ internal static class PdfPreflightDocumentChecks
     private static readonly PdfName ResourcesName = Name("Resources");
     private static readonly PdfName FontName = Name("Font");
     private static readonly PdfName XObjectName = Name("XObject");
+    private static readonly PdfName ExtGStateName = Name("ExtGState");
 
     internal static IReadOnlyList<PdfPreflightFinding> CheckPageBoxes(PdfDocument document)
     {
@@ -194,6 +195,96 @@ internal static class PdfPreflightDocumentChecks
         string FontDisplayName(PdfDictionary font, string fallback) =>
             font.TryGetValue(Name("BaseFont"), out PdfObject? value)
                 && Resolve(document, value) is PdfName name ? name.ValueAsLatin1() : fallback;
+    }
+
+    internal static IReadOnlyList<PdfPreflightFinding> CheckTransparency(PdfDocument document)
+    {
+        var findings = new List<PdfPreflightFinding>();
+        var visitedStates = new HashSet<(int, int)>();
+        var visitedObjects = new HashSet<(int, int)>();
+        try
+        {
+            foreach (PdfPageTreeEntry page in PdfPageTree.Read(document).Pages)
+                if (page.InheritedValues.TryGetValue(ResourcesName, out PdfObject? resources))
+                    InspectResources(resources, page.Index);
+        }
+        catch (Exception error) when (IsDocumentFailure(error))
+        {
+            findings.Add(Error("Transparency.Invalid", error.Message));
+        }
+        return Array.AsReadOnly(findings.ToArray());
+
+        void InspectResources(PdfObject value, int pageIndex)
+        {
+            PdfDictionary resources = Resolve(document, value) as PdfDictionary
+                ?? throw new InvalidOperationException("A page or form resource value is not a dictionary.");
+            if (resources.TryGetValue(ExtGStateName, out PdfObject? statesValue))
+            {
+                PdfDictionary states = Resolve(document, statesValue) as PdfDictionary
+                    ?? throw new InvalidOperationException("An extended graphics-state resource is not a dictionary.");
+                foreach (KeyValuePair<PdfName, PdfObject> item in states)
+                {
+                    PdfIndirectReference? reference = item.Value as PdfIndirectReference;
+                    if (reference is not null
+                        && !visitedStates.Add((reference.ObjectNumber, reference.Generation)))
+                        continue;
+                    PdfDictionary state = Resolve(document, item.Value) as PdfDictionary
+                        ?? throw new InvalidOperationException("An extended graphics state is not a dictionary.");
+                    if (UsesTransparency(state))
+                        findings.Add(Warning("Transparency.GraphicsState",
+                            "An extended graphics state uses transparency or a non-normal blend mode.",
+                            pageIndex, reference?.ObjectNumber));
+                }
+            }
+            if (!resources.TryGetValue(XObjectName, out PdfObject? xObjectsValue)) return;
+            PdfDictionary xObjects = Resolve(document, xObjectsValue) as PdfDictionary
+                ?? throw new InvalidOperationException("An XObject resource value is not a dictionary.");
+            foreach (KeyValuePair<PdfName, PdfObject> item in xObjects)
+            {
+                PdfIndirectReference? reference = item.Value as PdfIndirectReference;
+                if (reference is not null
+                    && !visitedObjects.Add((reference.ObjectNumber, reference.Generation)))
+                    continue;
+                if (Resolve(document, item.Value) is not PdfStream stream) continue;
+                if (stream.Dictionary.ContainsKey(Name("SMask")))
+                    findings.Add(Warning("Transparency.ImageSoftMask",
+                        "An image uses a transparency soft mask.", pageIndex,
+                        reference?.ObjectNumber));
+                if (!IsName(stream.Dictionary, "Subtype", "Form")) continue;
+                if (stream.Dictionary.TryGetValue(Name("Group"), out PdfObject? groupValue)
+                    && Resolve(document, groupValue) is PdfDictionary group
+                    && IsName(group, "S", "Transparency"))
+                    findings.Add(Warning("Transparency.Group",
+                        "A form uses a transparency group.", pageIndex,
+                        reference?.ObjectNumber));
+                if (stream.Dictionary.TryGetValue(ResourcesName, out PdfObject? formResources))
+                    InspectResources(formResources, pageIndex);
+            }
+        }
+
+        bool UsesTransparency(PdfDictionary state)
+        {
+            bool fillAlpha = state.TryGetValue(Name("ca"), out PdfObject? fillValue)
+                && Number(document, fillValue) < 1;
+            bool strokeAlpha = state.TryGetValue(Name("CA"), out PdfObject? strokeValue)
+                && Number(document, strokeValue) < 1;
+            bool blend = state.TryGetValue(Name("BM"), out PdfObject? blendValue)
+                && !IsNormalBlendMode(Resolve(document, blendValue));
+            bool softMask = false;
+            if (state.TryGetValue(Name("SMask"), out PdfObject? maskValue))
+            {
+                PdfObject mask = Resolve(document, maskValue);
+                softMask = mask is not PdfName name || name.ValueAsLatin1() != "None";
+            }
+            return fillAlpha || strokeAlpha || blend || softMask;
+        }
+
+        static bool IsNormalBlendMode(PdfObject value) => value switch
+        {
+            PdfName name => name.ValueAsLatin1() is "Normal" or "Compatible",
+            PdfArray array => array.All(IsNormalBlendMode),
+            _ => false
+        };
     }
 
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,

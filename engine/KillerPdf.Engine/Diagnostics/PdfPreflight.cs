@@ -20,7 +20,9 @@ public enum PdfPreflightCheck
     /// <summary>Checks the effective resolution of every placed image.</summary>
     ImageResolution,
     /// <summary>Checks that page and form fonts include an embedded font program.</summary>
-    FontEmbedding
+    FontEmbedding,
+    /// <summary>Checks for transparency, soft masks, and non-normal blend modes.</summary>
+    Transparency
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
@@ -55,7 +57,8 @@ public sealed record PdfPreflightProfile
         PdfPreflightCheck.PageBoxes,
         PdfPreflightCheck.OutputIntent,
         PdfPreflightCheck.ImageResolution,
-        PdfPreflightCheck.FontEmbedding
+        PdfPreflightCheck.FontEmbedding,
+        PdfPreflightCheck.Transparency
     ]);
 
     /// <summary>Gets the profile name.</summary>
@@ -181,6 +184,8 @@ public static class PdfPreflightRunner
                 checkedDocument, profile.MinimumImageDpi));
         if (profile.Checks.Contains(PdfPreflightCheck.FontEmbedding))
             findings.AddRange(PdfPreflightDocumentChecks.CheckFontEmbedding(checkedDocument));
+        if (profile.Checks.Contains(PdfPreflightCheck.Transparency))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckTransparency(checkedDocument));
         return new PdfPreflightReport(profile.Name, findings);
     }
 }

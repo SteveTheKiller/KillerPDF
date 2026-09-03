@@ -120,6 +120,24 @@ public sealed class PdfPreflightTests
         Assert.Empty(embedded.Findings);
     }
 
+    [Fact]
+    public void TransparencyFindsOpacityAndBlendModes()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetGraphicsState(new PdfGraphicsState(
+                fillOpacity: 0.5, blendMode: PdfBlendMode.Multiply))
+            .Rectangle(10, 10, 50, 50).Fill();
+        var profile = new PdfPreflightProfile("Transparency",
+            [PdfPreflightCheck.Transparency]);
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(
+            new PdfDocumentBuilder().AddPage(100, 100, content).Build(), profile);
+
+        PdfPreflightFinding finding = Assert.Single(report.Findings);
+        Assert.Equal("Transparency.GraphicsState", finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+    }
+
     private static byte[] Profile()
     {
         byte[] result = new byte[132];
