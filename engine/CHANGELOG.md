@@ -25,6 +25,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added configurable signature trust roots and separate certificate validity, identity trust, revocation, and chain-detail results (#336).
 - Added document attachment inspection with decoded payloads, source objects, executable-content warnings, and traversal-safe extraction paths (#347).
 - Added typed inspection of PDF layers, default visibility, locks, and alternate optional-content configurations (#350).
+- Added calibrated distance, perimeter, area, and angle calculations with reusable profiles and JSON or CSV reports (#348).
 
 ## [1.8.3] - 2026-09-02
 
