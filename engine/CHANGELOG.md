@@ -32,6 +32,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added safe FDF and XFDF field-data reading, writing, preview, and AcroForm application with Unicode, hierarchical names, multi-select values, source references, and non-executing script detection (#329).
 - Added deterministic header and footer token formatting plus continuous Bates numbering across ordered document batches (#344).
 - Added plain-text, semantic HTML, and structured JSON export from the engine page-content model (#346).
+- Added unified bookmark and link auditing for unresolved local targets and unsupported URI schemes (#351).
 
 ## [1.8.3] - 2026-09-02
 
