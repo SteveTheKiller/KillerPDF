@@ -10,7 +10,7 @@ The 1.9.0 engine development cycle begins the PdfPig extraction replacement.
 
 ### Added
 
-- Added bounded page-content instruction parsing as the foundation for text extraction.
+- Added bounded content parsing, ToUnicode decoding, and horizontal text positioning as the foundation for text extraction.
 
 ## [1.8.3] - 2026-09-02
 

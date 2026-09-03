@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
-- Started engine-owned content parsing for the PdfPig replacement; search and selection still use PdfPig.
+- Started engine-owned text decoding and positioning for the PdfPig replacement; search and selection still use PdfPig.
 - Click the footer page dimensions to switch between millimeters and inches, with the preference remembered.
 
 ## [1.8.3] - 2026-09-02

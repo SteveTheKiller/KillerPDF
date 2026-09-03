@@ -1,6 +1,6 @@
 # PdfPig replacement for 1.9.0 Overkill
 
-Status: content instruction reader implemented; text extraction and application migration remain pending.
+Status: content reader, explicit Unicode maps, and horizontal text placement implemented. Font-resource resolution and application migration remain pending.
 
 ## First implementation checkpoint
 
@@ -9,8 +9,18 @@ text strings, spacing arrays, and marked-content dictionaries. It retains byte o
 source-size, instruction, operand, and nesting limits. Inline images currently cause an explicit
 unsupported-content error rather than allowing binary image bytes to be mistaken for text.
 
-Next: interpret graphics and text state, resolve font resources and Unicode mappings, and emit
-character positions. No application feature has switched away from PdfPig yet.
+`PdfToUnicodeMap` decodes explicit character and range mappings, including ligatures and
+supplementary Unicode characters. Missing mappings and inherited maps are reported explicitly.
+`PdfTextContentReader` uses caller-supplied font maps and source-code widths to produce character
+baselines in PDF coordinates. It handles text matrices, graphics transforms, text spacing,
+line movement, horizontal scaling, rise, and saved graphics state. These baselines describe
+advance widths, not glyph outlines or ready-to-use selection rectangles.
+
+Next: resolve font dictionaries, embedded ToUnicode streams, and character/CID widths directly
+from page resources. Then add fallback font encodings, nested forms, inline images, vertical
+writing, glyph bounds, and reading-order grouping. No application feature has switched away
+from PdfPig yet. Marked-content ActualText replacement and visibility/clipping interpretation
+also remain pending; current placement results preserve source character order.
 
 ## Current uses
 

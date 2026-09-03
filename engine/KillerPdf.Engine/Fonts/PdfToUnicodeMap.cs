@@ -1,0 +1,165 @@
+using System.Text;
+using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
+
+namespace KillerPdf.Engine.Fonts;
+
+/// <summary>A decoded source character, preserving its code for font-width lookup.</summary>
+public readonly record struct PdfDecodedCharacter(uint Code, int ByteLength, string Text);
+
+/// <summary>Reads explicit ToUnicode mappings without relying on a platform font library.</summary>
+/// <remarks>Inherited usecmap mappings are not supported. Missing mappings are reported, not guessed.</remarks>
+public sealed class PdfToUnicodeMap
+{
+    private static readonly Encoding Utf16 = new UnicodeEncoding(true, false, true);
+    private readonly Dictionary<(uint Code, int Length), string> _characters = [];
+    private readonly List<(uint Low, uint High, int Length)> _spaces = [];
+    private PdfToUnicodeMap() { }
+
+    /// <summary>Parses decoded CMap bytes with a bound on expanded mappings.</summary>
+    public static PdfToUnicodeMap Parse(ReadOnlyMemory<byte> source, int maximumMappings = 65536)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumMappings);
+        var map = new PdfToUnicodeMap();
+        string? block = null;
+        int count = 0;
+        foreach (var instruction in PdfContentStreamReader.Read(source))
+        {
+            string op = instruction.Operator;
+            var operands = instruction.Operands;
+            if (op == "usecmap") throw new NotSupportedException("Inherited ToUnicode maps are not supported.");
+            if (op is "begincodespacerange" or "beginbfchar" or "beginbfrange")
+            {
+                if (block is not null || operands.Count != 1 || operands[0] is not PdfInteger number ||
+                    number.Value < 0 || number.Value > maximumMappings)
+                    throw new FormatException("Invalid ToUnicode block count.");
+                block = op;
+                count = (int)number.Value;
+                continue;
+            }
+            if (block is null)
+            {
+                if (op is "endcodespacerange" or "endbfchar" or "endbfrange")
+                    throw new FormatException("ToUnicode block end has no matching start.");
+                continue;
+            }
+            if (op != "end" + block[5..]) throw new FormatException("Unterminated ToUnicode block.");
+            int stride = block == "beginbfrange" ? 3 : 2;
+            if ((long)count * stride != operands.Count) throw new FormatException("ToUnicode block count does not match its entries.");
+            for (int i = 0; i < operands.Count; i += stride)
+            {
+                var low = Code(operands[i]);
+                if (block == "beginbfchar")
+                {
+                    map.Add(low, Unicode(Bytes(operands[i + 1])), maximumMappings);
+                    continue;
+                }
+                var high = Code(operands[i + 1]);
+                if (low.Length != high.Length || high.Code < low.Code)
+                    throw new FormatException("Invalid ToUnicode source range.");
+                if (block == "begincodespacerange")
+                {
+                    if (map._spaces.Count >= 256) throw new FormatException("Too many ToUnicode code spaces.");
+                    map._spaces.Add((low.Code, high.Code, low.Length));
+                    continue;
+                }
+                ulong length = (ulong)high.Code - low.Code + 1;
+                if (length > (ulong)maximumMappings) throw new FormatException("ToUnicode range exceeds the mapping limit.");
+                if (operands[i + 2] is PdfArray destinations)
+                {
+                    if ((ulong)destinations.Count != length) throw new FormatException("ToUnicode destination array has the wrong length.");
+                    for (int j = 0; j < destinations.Count; j++)
+                        map.Add((low.Code + (uint)j, low.Length), Unicode(Bytes(destinations[j])), maximumMappings);
+                }
+                else
+                {
+                    byte[] destination = Bytes(operands[i + 2]);
+                    for (ulong j = 0; j < length; j++)
+                    {
+                        map.Add((low.Code + (uint)j, low.Length), Unicode(destination), maximumMappings);
+                        if (j + 1 < length) Increment(destination);
+                    }
+                }
+            }
+            block = null;
+        }
+        if (block is not null) throw new FormatException("Unterminated ToUnicode block.");
+        if (map._spaces.Count == 0) throw new FormatException("ToUnicode map has no code space.");
+        map.ValidateSpaces();
+        foreach (var key in map._characters.Keys)
+            if (!map._spaces.Any(s => s.Length == key.Length && key.Code >= s.Low && key.Code <= s.High))
+                throw new FormatException("ToUnicode mapping lies outside its code space.");
+        return map;
+    }
+
+    /// <summary>Decodes character codes, retaining ligatures and supplementary Unicode characters.</summary>
+    public IReadOnlyList<PdfDecodedCharacter> Decode(ReadOnlySpan<byte> source)
+    {
+        var result = new List<PdfDecodedCharacter>();
+        int offset = 0;
+        while (offset < source.Length)
+        {
+            uint code = 0;
+            bool matched = false;
+            for (int length = 1; length <= 4 && offset + length <= source.Length; length++)
+            {
+                code = (code << 8) | source[offset + length - 1];
+                if (!_spaces.Any(s => s.Length == length && code >= s.Low && code <= s.High)) continue;
+                if (!_characters.TryGetValue((code, length), out string? text))
+                    throw new NotSupportedException($"No Unicode mapping for character code {code:X}.");
+                result.Add(new PdfDecodedCharacter(code, length, text));
+                offset += length;
+                matched = true;
+                break;
+            }
+            if (!matched) throw new FormatException("Text contains an incomplete or invalid character code.");
+        }
+        return result.AsReadOnly();
+    }
+
+    private void ValidateSpaces()
+    {
+        for (int i = 0; i < _spaces.Count; i++)
+        for (int j = i + 1; j < _spaces.Count; j++)
+        {
+            var a = _spaces[i];
+            var b = _spaces[j];
+            int length = Math.Min(a.Length, b.Length);
+            uint al = a.Low >> (8 * (a.Length - length)), ah = a.High >> (8 * (a.Length - length));
+            uint bl = b.Low >> (8 * (b.Length - length)), bh = b.High >> (8 * (b.Length - length));
+            if (al <= bh && bl <= ah) throw new FormatException("Overlapping or ambiguous ToUnicode code spaces.");
+        }
+    }
+
+    private void Add((uint Code, int Length) code, string text, int maximum)
+    {
+        if (_characters.Count >= maximum) throw new FormatException("ToUnicode mapping limit exceeded.");
+        if (!_characters.TryAdd(code, text)) throw new FormatException("Duplicate ToUnicode source mapping.");
+    }
+
+    private static (uint Code, int Length) Code(PdfObject value)
+    {
+        byte[] bytes = Bytes(value);
+        if (bytes.Length is < 1 or > 4) throw new FormatException("Character codes must contain one to four bytes.");
+        uint code = 0;
+        foreach (byte b in bytes) code = (code << 8) | b;
+        return (code, bytes.Length);
+    }
+
+    private static byte[] Bytes(PdfObject value) => value is PdfString text && text.Form == PdfStringForm.Hexadecimal
+        ? text.Bytes.ToArray() : throw new FormatException("Expected a CMap hexadecimal string.");
+
+    private static string Unicode(byte[] bytes)
+    {
+        if (bytes.Length == 0 || bytes.Length % 2 != 0) throw new FormatException("Expected nonempty UTF-16BE text.");
+        try { return Utf16.GetString(bytes); }
+        catch (DecoderFallbackException e) { throw new FormatException("Invalid UTF-16BE mapping.", e); }
+    }
+
+    private static void Increment(byte[] bytes)
+    {
+        for (int i = bytes.Length - 1; i >= 0; i--)
+            if (++bytes[i] != 0) return;
+        throw new FormatException("ToUnicode destination range overflow.");
+    }
+}
