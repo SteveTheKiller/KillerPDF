@@ -597,13 +597,15 @@ public sealed partial class PdfDocumentBuilder
         string mimeType = "application/octet-stream",
         string? description = null,
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
-        DateTimeOffset? modificationDate = null)
+        DateTimeOffset? modificationDate = null,
+        DateTimeOffset? creationDate = null)
     {
         PdfAttachmentFactory.Validate(fileName, mimeType, relationship);
         if (_attachments.Any(item => string.Equals(item.FileName, fileName, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("Attachment file names must be unique.", nameof(fileName));
         _attachments.Add(new AttachmentDefinition(
-            fileName, data.ToArray(), mimeType, description, relationship, modificationDate));
+            fileName, data.ToArray(), mimeType, description, relationship,
+            modificationDate, creationDate));
         return this;
     }
 
@@ -3039,7 +3041,8 @@ public sealed partial class PdfDocumentBuilder
         AttachmentDefinition attachment = allocated.Definition;
         objects.Add(new PdfIndirectObject(allocated.EmbeddedFileNumber, 0,
             PdfAttachmentFactory.EmbeddedFile(
-                attachment.Data, attachment.MimeType, attachment.ModificationDate), 0));
+                attachment.Data, attachment.MimeType, attachment.ModificationDate,
+                attachment.CreationDate), 0));
         objects.Add(new PdfIndirectObject(allocated.FileSpecificationNumber, 0,
             PdfAttachmentFactory.FileSpecification(
                 attachment.FileName, attachment.Description,
@@ -6192,7 +6195,8 @@ public sealed partial class PdfDocumentBuilder
         string MimeType,
         string? Description,
         PdfAssociatedFileRelationship Relationship,
-        DateTimeOffset? ModificationDate);
+        DateTimeOffset? ModificationDate,
+        DateTimeOffset? CreationDate);
     private sealed record AllocatedAttachment(
         AttachmentDefinition Definition, int EmbeddedFileNumber, int FileSpecificationNumber);
     private sealed record FileAttachmentAnnotationDefinition(

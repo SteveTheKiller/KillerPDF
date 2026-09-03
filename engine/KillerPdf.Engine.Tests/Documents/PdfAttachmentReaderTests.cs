@@ -10,10 +10,14 @@ public sealed class PdfAttachmentReaderTests
     public void ReadReturnsAttachmentMetadataPayloadAndSourceObjects()
     {
         byte[] payload = "attachment payload"u8.ToArray();
+        var modificationDate = new DateTimeOffset(
+            2026, 8, 22, 20, 0, 0, TimeSpan.FromHours(-7));
+        var creationDate = new DateTimeOffset(
+            2026, 8, 21, 9, 30, 0, TimeSpan.FromHours(-7));
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
             .AddBlankPage()
             .AddAttachment("evidence.txt", payload, "text/plain", "Case evidence",
-                PdfAssociatedFileRelationship.Data)
+                PdfAssociatedFileRelationship.Data, modificationDate, creationDate)
             .Build());
 
         PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(document));
@@ -23,6 +27,12 @@ public sealed class PdfAttachmentReaderTests
         Assert.Equal("text/plain", attachment.MimeType);
         Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
         Assert.Equal(payload, attachment.Data.ToArray());
+        Assert.Equal(payload.LongLength, attachment.DeclaredSize);
+        Assert.True(attachment.SizeMatches);
+        Assert.Equal(creationDate, attachment.CreationDate);
+        Assert.Equal(modificationDate, attachment.ModificationDate);
+        Assert.Equal(16, attachment.DeclaredChecksum?.Length);
+        Assert.True(attachment.ChecksumMatches);
         Assert.NotNull(attachment.FileSpecificationObjectNumber);
         Assert.NotNull(attachment.EmbeddedFileObjectNumber);
         Assert.False(attachment.HasUnsafeFileName);

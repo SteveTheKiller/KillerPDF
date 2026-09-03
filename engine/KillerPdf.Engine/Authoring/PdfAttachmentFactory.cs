@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using KillerPdf.Engine.Objects;
 
@@ -28,7 +29,8 @@ internal static class PdfAttachmentFactory
 
     internal static PdfStream EmbeddedFile(
         ReadOnlyMemory<byte> data, string mimeType,
-        DateTimeOffset? modificationDate)
+        DateTimeOffset? modificationDate,
+        DateTimeOffset? creationDate)
     {
         var parameters = new List<KeyValuePair<PdfName, PdfObject>>
         {
@@ -37,6 +39,12 @@ internal static class PdfAttachmentFactory
         if (modificationDate.HasValue)
             parameters.Add(new KeyValuePair<PdfName, PdfObject>(
                 Name("ModDate"), Latin1String(PdfDate(modificationDate.Value))));
+        if (creationDate.HasValue)
+            parameters.Add(new KeyValuePair<PdfName, PdfObject>(
+                Name("CreationDate"), Latin1String(PdfDate(creationDate.Value))));
+        parameters.Add(new KeyValuePair<PdfName, PdfObject>(
+            Name("CheckSum"), new PdfString(MD5.HashData(data.Span),
+                PdfStringForm.Hexadecimal)));
         return new PdfStream(new PdfDictionary([
             new(Name("Type"), Name("EmbeddedFile")),
             new(Name("Subtype"), Name(mimeType)),

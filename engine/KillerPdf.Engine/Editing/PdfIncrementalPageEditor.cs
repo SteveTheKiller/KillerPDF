@@ -1066,7 +1066,8 @@ public sealed class PdfIncrementalPageEditor
         string? description = null,
         PdfAssociatedFileRelationship relationship =
             PdfAssociatedFileRelationship.Data,
-        DateTimeOffset? modificationDate = null)
+        DateTimeOffset? modificationDate = null,
+        DateTimeOffset? creationDate = null)
     {
         PdfAttachmentFactory.Validate(fileName, mimeType, relationship);
         (bool pdfA4, string? pdfA4Conformance, bool pdfUa2) =
@@ -1084,7 +1085,7 @@ public sealed class PdfIncrementalPageEditor
                 "Attachment file names must be unique.", nameof(fileName));
         _attachments.Add(new PendingAttachment(
             fileName, data.ToArray(), mimeType, description,
-            relationship, modificationDate));
+            relationship, modificationDate, creationDate));
         _catalogPresentationChanged = true;
         RequireVersion(PdfVersion.Pdf20);
         return this;
@@ -16952,7 +16953,8 @@ public sealed class PdfIncrementalPageEditor
             update.SetObject(embeddedReference,
                 PdfAttachmentFactory.EmbeddedFile(
                     attachment.Data, attachment.MimeType,
-                    attachment.ModificationDate));
+                    attachment.ModificationDate,
+                    attachment.CreationDate));
             PdfIndirectReference fileReference = update.ReserveObject();
             update.SetObject(fileReference,
                 PdfAttachmentFactory.FileSpecification(
@@ -17659,7 +17661,8 @@ public sealed class PdfIncrementalPageEditor
         string FileName, byte[] Data, string MimeType,
         string? Description,
         PdfAssociatedFileRelationship Relationship,
-        DateTimeOffset? ModificationDate);
+        DateTimeOffset? ModificationDate,
+        DateTimeOffset? CreationDate);
     private sealed record PendingBookmark(
         string Title, PageState? Page, string? NamedDestination,
         int Level, PdfBookmarkOptions Options)

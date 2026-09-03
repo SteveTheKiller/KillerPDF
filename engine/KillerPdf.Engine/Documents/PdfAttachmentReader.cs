@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Security.Cryptography;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Filters;
@@ -47,6 +49,15 @@ public static class PdfAttachmentReader
                 ? parsedRelationship : PdfAssociatedFileRelationship.Unspecified;
             byte[] data = PdfStreamDecoder.Decode(stream, document.Resolve,
                 PdfContentStreamReader.MaximumSourceBytes);
+            PdfDictionary? parameters = stream.Dictionary.TryGetValue(
+                Name("Params"), out PdfObject? parametersValue)
+                ? Resolve(document, parametersValue) as PdfDictionary
+                    ?? throw new InvalidOperationException(
+                        "An embedded file /Params value is not a dictionary.")
+                : null;
+            long? declaredSize = OptionalInteger(document, parameters, "Size");
+            byte[]? declaredChecksum = OptionalBytes(
+                document, parameters, "CheckSum");
             result.Add(new PdfAttachmentInfo
             {
                 FileName = fileName,
@@ -54,6 +65,17 @@ public static class PdfAttachmentReader
                 MimeType = mimeType,
                 Relationship = relationshipKind,
                 Data = data,
+                DeclaredSize = declaredSize,
+                SizeMatches = declaredSize.HasValue
+                    ? declaredSize.Value == data.LongLength : null,
+                CreationDate = OptionalDate(
+                    document, parameters, "CreationDate"),
+                ModificationDate = OptionalDate(
+                    document, parameters, "ModDate"),
+                DeclaredChecksum = declaredChecksum,
+                ChecksumMatches = declaredChecksum is not null
+                    ? CryptographicOperations.FixedTimeEquals(
+                        declaredChecksum, MD5.HashData(data)) : null,
                 FileSpecificationObjectNumber = specificationReference?.ObjectNumber,
                 EmbeddedFileObjectNumber = streamReference?.ObjectNumber,
                 HasUnsafeFileName = !IsSafeFileName(fileName),
@@ -100,6 +122,77 @@ public static class PdfAttachmentReader
             : throw new InvalidOperationException($"A file specification /{key} value is not a string.");
     }
 
+    private static long? OptionalInteger(
+        PdfDocument document, PdfDictionary? dictionary, string key)
+    {
+        if (dictionary is null
+            || !dictionary.TryGetValue(Name(key), out PdfObject? value)) return null;
+        return Resolve(document, value) is PdfInteger integer && integer.Value >= 0
+            ? integer.Value
+            : throw new InvalidOperationException(
+                $"An embedded file /{key} value is not a nonnegative integer.");
+    }
+
+    private static byte[]? OptionalBytes(
+        PdfDocument document, PdfDictionary? dictionary, string key)
+    {
+        if (dictionary is null
+            || !dictionary.TryGetValue(Name(key), out PdfObject? value)) return null;
+        return Resolve(document, value) is PdfString text ? text.Bytes.ToArray()
+            : throw new InvalidOperationException(
+                $"An embedded file /{key} value is not a string.");
+    }
+
+    private static DateTimeOffset? OptionalDate(
+        PdfDocument document, PdfDictionary? dictionary, string key)
+    {
+        if (dictionary is null
+            || !dictionary.TryGetValue(Name(key), out PdfObject? value)) return null;
+        if (Resolve(document, value) is not PdfString text)
+            throw new InvalidOperationException(
+                $"An embedded file /{key} value is not a string.");
+        string date = PdfUnicodeEncoding.DecodeTextString(
+            text.Bytes.Span, $"An embedded file /{key} value");
+        try
+        {
+            if (!date.StartsWith("D:", StringComparison.Ordinal) || date.Length < 6)
+                throw new FormatException();
+            string digits = new([.. date.Skip(2).TakeWhile(char.IsAsciiDigit)]);
+            if (digits.Length is not (4 or 6 or 8 or 10 or 12 or 14))
+                throw new FormatException();
+            int Part(int offset, int length, int fallback) =>
+                digits.Length >= offset + length
+                    ? int.Parse(digits.AsSpan(offset, length),
+                        CultureInfo.InvariantCulture) : fallback;
+            int year = Part(0, 4, 1), month = Part(4, 2, 1);
+            int day = Part(6, 2, 1), hour = Part(8, 2, 0);
+            int minute = Part(10, 2, 0), second = Part(12, 2, 0);
+            string suffix = date[(2 + digits.Length)..];
+            TimeSpan zone = TimeSpan.Zero;
+            if (suffix.Length > 0 && suffix != "Z")
+            {
+                char sign = suffix[0];
+                if (sign is not ('+' or '-')) throw new FormatException();
+                string compact = suffix[1..].Replace(
+                    "'", string.Empty, StringComparison.Ordinal);
+                if (compact.Length != 4
+                    || !int.TryParse(compact[..2], out int zoneHour)
+                    || !int.TryParse(compact[2..], out int zoneMinute))
+                    throw new FormatException();
+                zone = new TimeSpan(zoneHour, zoneMinute, 0)
+                    * (sign == '-' ? -1 : 1);
+            }
+            return new DateTimeOffset(
+                year, month, day, hour, minute, second, zone);
+        }
+        catch (Exception error) when (
+            error is FormatException or ArgumentOutOfRangeException)
+        {
+            throw new InvalidOperationException(
+                $"An embedded file /{key} value is not a valid PDF date.", error);
+        }
+    }
+
     private static PdfObject Resolve(PdfDocument document, PdfObject value)
     {
         var visited = new HashSet<(int, int)>();
@@ -128,6 +221,18 @@ public sealed record PdfAttachmentInfo
     public PdfAssociatedFileRelationship Relationship { get; init; }
     /// <summary>Gets an immutable copy of the decoded payload.</summary>
     public required ReadOnlyMemory<byte> Data { get; init; }
+    /// <summary>Gets the payload size declared by the embedded-file parameters.</summary>
+    public long? DeclaredSize { get; init; }
+    /// <summary>Gets whether the declared size matches the decoded payload.</summary>
+    public bool? SizeMatches { get; init; }
+    /// <summary>Gets the optional embedded-file creation date.</summary>
+    public DateTimeOffset? CreationDate { get; init; }
+    /// <summary>Gets the optional embedded-file modification date.</summary>
+    public DateTimeOffset? ModificationDate { get; init; }
+    /// <summary>Gets the optional checksum declared by the embedded-file parameters.</summary>
+    public ReadOnlyMemory<byte>? DeclaredChecksum { get; init; }
+    /// <summary>Gets whether the declared checksum matches the decoded payload.</summary>
+    public bool? ChecksumMatches { get; init; }
     /// <summary>Gets the source file-specification object number when indirect.</summary>
     public int? FileSpecificationObjectNumber { get; init; }
     /// <summary>Gets the source embedded-file stream object number when indirect.</summary>
