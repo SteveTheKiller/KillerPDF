@@ -1,3 +1,5 @@
+using KillerPdf.Engine.Editing;
+
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>A field type proposed by automatic form recognition.</summary>
@@ -111,6 +113,46 @@ public sealed class PdfFormRecognitionReview
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
         Change(id, item => item.Review(PdfFormProposalStatus.Rejected));
+
+    /// <summary>Creates accepted text, checkbox, and signature fields in an existing document.</summary>
+    public byte[] ApplyAccepted(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!IsReadyToApply)
+            throw new InvalidOperationException(
+                "Every form proposal must be accepted or rejected before authoring.");
+        PdfFormFieldProposal? unsupported = Accepted.FirstOrDefault(item =>
+            item.Kind is not PdfRecognizedFieldKind.Text
+                and not PdfRecognizedFieldKind.CheckBox
+                and not PdfRecognizedFieldKind.Signature);
+        if (unsupported is not null)
+            throw new NotSupportedException(
+                $"Accepted {unsupported.Kind} proposal '{unsupported.Id}' requires additional authoring choices.");
+        if (Accepted.Count == 0) return CopySource(document);
+        var editor = new PdfIncrementalPageEditor(document);
+        foreach (PdfFormFieldProposal proposal in Accepted)
+        {
+            PdfContentBounds bounds = proposal.Bounds;
+            switch (proposal.Kind)
+            {
+                case PdfRecognizedFieldKind.Text:
+                    editor.AddTextField(proposal.PageIndex, proposal.SuggestedName,
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+                    break;
+                case PdfRecognizedFieldKind.CheckBox:
+                    editor.AddCheckBox(proposal.PageIndex, proposal.SuggestedName,
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+                    break;
+                case PdfRecognizedFieldKind.Signature:
+                    editor.AddSignatureField(proposal.PageIndex, proposal.SuggestedName,
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+                    break;
+            }
+        }
+        return editor.Build();
+    }
+
+    private static byte[] CopySource(PdfDocument document) => document.Source.ToArray();
 
     private PdfFormRecognitionReview Change(string id,
         Func<PdfFormFieldProposal, PdfFormFieldProposal> change)

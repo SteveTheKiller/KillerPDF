@@ -1,3 +1,4 @@
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -44,6 +45,42 @@ public sealed class PdfFormRecognitionTests
             new PdfContentBounds(10, 10, 10, 20), PdfRecognizedFieldKind.Text, 1, "bad"));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldProposal("bad", 0,
             new PdfContentBounds(0, 0, 10, 20), PdfRecognizedFieldKind.Text, 1.01, "bad"));
+    }
+
+    [Fact]
+    public void ReviewedBasicProposalsPersistAsFormFields()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var pending = new PdfFormRecognitionReview([
+            Proposal("text", 0, 1),
+            new("check", 0, new PdfContentBounds(110, 10, 130, 30),
+                PdfRecognizedFieldKind.CheckBox, 1, "check"),
+            new("signature", 0, new PdfContentBounds(10, 50, 150, 80),
+                PdfRecognizedFieldKind.Signature, 1, "signature")]);
+        Assert.Throws<InvalidOperationException>(() => pending.ApplyAccepted(document));
+
+        PdfFormRecognitionReview reviewed = pending.Accept("text").Accept("check").Accept("signature");
+        PdfDocument reopened = PdfDocument.Open(reviewed.ApplyAccepted(document));
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(reopened, 0);
+
+        Assert.Equal(3, widgets.Count);
+        Assert.Contains(widgets, widget => widget.FieldName == "text" && widget.FieldKind == PdfFormFieldKind.Text);
+        Assert.Contains(widgets, widget => widget.FieldName == "check" && widget.FieldKind == PdfFormFieldKind.Button);
+        Assert.Contains(widgets, widget => widget.FieldName == "signature" && widget.FieldKind == PdfFormFieldKind.Signature);
+    }
+
+    [Fact]
+    public void ApplyRejectsAcceptedKindsThatNeedMoreAuthoringChoices()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+        var review = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("choice", 0, new PdfContentBounds(0, 0, 100, 20),
+                PdfRecognizedFieldKind.DropDown, 1, "choice")]).Accept("choice");
+
+        NotSupportedException error = Assert.Throws<NotSupportedException>(
+            () => review.ApplyAccepted(document));
+
+        Assert.Contains("additional authoring choices", error.Message);
     }
 
     private static PdfFormFieldProposal Proposal(string id, int page, double confidence) =>
