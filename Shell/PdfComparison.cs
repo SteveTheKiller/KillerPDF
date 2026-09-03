@@ -44,16 +44,19 @@ public partial class MainWindow
             return;
         }
 
+        // Keep the overflow entry visible while its comparison choices are open.
+        // Otherwise the parent click handler closes the anchor and dismisses both menus.
+        if (ReferenceEquals(sender, MiCompare)) e.Handled = true;
         ShowComparisonMenu(sender as FrameworkElement ?? ComparePdfBtn, source);
     }
 
     private void ShowComparisonMenu(FrameworkElement anchor, string source)
     {
-        var menu = new ContextMenu
-        {
-            PlacementTarget = anchor,
-            Placement = PlacementMode.Bottom
-        };
+        var menu = MakeThemedMenu();
+        menu.PlacementTarget = anchor;
+        menu.Placement = PlacementMode.Bottom;
+        if (ReferenceEquals(anchor, MiCompare))
+            menu.Closed += (_, _) => OverflowChevron.IsChecked = false;
         PopulateComparisonChoices(menu.Items, source);
         menu.IsOpen = true;
     }

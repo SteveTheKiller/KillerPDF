@@ -698,6 +698,7 @@ namespace KillerPDF
         // appearance can be rebuilt without re-walking the tree.
         private readonly List<(Button btn, string glyph, string labelKey)> _toolbarButtons = [];
         private const string TransformGlyph = "TransformBoxMove";
+        private const string CompareGlyph = "CompareDocuments";
 
         // Maps each toolbar glyph (Segoe MDL2 Assets code point) to its caption string key. Buttons
         // whose glyph isn't listed keep their icon with no caption.
@@ -748,6 +749,8 @@ namespace KillerPDF
                 foreach (var btn in DescendantButtons(bar))
                     if (ReferenceEquals(btn, ToolRotateBtn))
                         _toolbarButtons.Add((btn, TransformGlyph, "Str_Lbl_Rotate"));
+                    else if (ReferenceEquals(btn, ComparePdfBtn))
+                        _toolbarButtons.Add((btn, CompareGlyph, "Str_TT_ComparePDFs"));
                     else if (btn.Content is string g && g.Length > 0 && _toolbarLabelKeys.TryGetValue(g, out var key))
                         _toolbarButtons.Add((btn, g, key));
             }
@@ -765,6 +768,31 @@ namespace KillerPDF
 
         private static FrameworkElement MakeToolbarGlyph(string glyph, double glyphSize)
         {
+            if (glyph == CompareGlyph)
+            {
+                var documents = new Grid { Width = glyphSize * 18 / 16, Height = glyphSize };
+                foreach (bool right in new[] { false, true })
+                {
+                    string brush = right ? "PrimaryBrush" : "TextBrush";
+                    var line = new Rectangle
+                    {
+                        Height = 1, Margin = new Thickness(1),
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+                    line.SetResourceReference(Shape.FillProperty, brush);
+                    var document = new Border
+                    {
+                        Width = glyphSize * 7 / 16, Height = glyphSize * 13 / 16,
+                        HorizontalAlignment = right ? HorizontalAlignment.Right : HorizontalAlignment.Left,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        BorderThickness = new Thickness(1), CornerRadius = new CornerRadius(1),
+                        Child = line
+                    };
+                    document.SetResourceReference(Border.BorderBrushProperty, brush);
+                    documents.Children.Add(document);
+                }
+                return documents;
+            }
             if (glyph != TransformGlyph)
             {
                 return new TextBlock
