@@ -34,8 +34,11 @@ namespace KillerPDF.Services
             // document parses) - the dominant cost on large files. A single scaling
             // factor renders each page at its own size at 150 DPI (150/72), so the doc
             // no longer needs reopening to apply per-page pixel dimensions.
-            IReadOnlyList<bool> bitonalHints = PdfPageRasterInformation
-                .ReadBitonalImagePageHints(PdfDocument.Open(File.ReadAllBytes(sourcePath)));
+            PdfDocument sourceDocument = PdfDocument.Open(File.ReadAllBytes(sourcePath));
+            IReadOnlyList<bool> bitonalHints =
+                PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument);
+            IReadOnlyList<bool> jpegHints =
+                PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument);
             var rasterPages = new PdfEngineIntegration.RasterPage[pageCount];
             var docGate  = new object();
             int done     = 0;
@@ -60,8 +63,12 @@ namespace KillerPDF.Services
                 }
                 bool bitonal = i < bitonalHints.Count && bitonalHints[i]
                     && BitonalPageDetector.IsOpaqueGrayscaleBgra(bgra, rw, rh);
+                ReadOnlyMemory<byte> jpeg = !bitonal && i < jpegHints.Count && jpegHints[i]
+                    ? BitmapHelpers.EncodeJpeg(bgra, rw, rh, 150)
+                    : default;
                 rasterPages[i] = new PdfEngineIntegration.RasterPage(
                     rw, rh, pageDims[i].widthPt, pageDims[i].heightPt, bgra,
+                    JpegData: jpeg,
                     Bitonal: bitonal);
 
                 int n = System.Threading.Interlocked.Increment(ref done);
