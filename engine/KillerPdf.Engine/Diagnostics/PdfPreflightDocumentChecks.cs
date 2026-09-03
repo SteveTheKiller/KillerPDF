@@ -13,6 +13,7 @@ internal static class PdfPreflightDocumentChecks
     private static readonly PdfName FontName = Name("Font");
     private static readonly PdfName XObjectName = Name("XObject");
     private static readonly PdfName ExtGStateName = Name("ExtGState");
+    private static readonly PdfName ColorSpaceName = Name("ColorSpace");
 
     internal static IReadOnlyList<PdfPreflightFinding> CheckPageBoxes(PdfDocument document)
     {
@@ -287,6 +288,100 @@ internal static class PdfPreflightDocumentChecks
         };
     }
 
+    internal static IReadOnlyList<PdfPreflightFinding> CheckColorUsage(PdfDocument document)
+    {
+        var findings = new List<PdfPreflightFinding>();
+        var visitedColorSpaces = new HashSet<(int, int)>();
+        var visitedStates = new HashSet<(int, int)>();
+        var visitedForms = new HashSet<(int, int)>();
+        foreach (PdfPageContentBatchResult page in PdfPageContentBatch.Read(document))
+        {
+            if (!page.Succeeded) continue;
+            if (page.Content!.Instructions.Any(instruction =>
+                instruction.Operator is "rg" or "RG"))
+                findings.Add(Warning("ColorUsage.DeviceRgb",
+                    "The page paints with device RGB color.", page.PageIndex));
+        }
+        try
+        {
+            foreach (PdfPageTreeEntry page in PdfPageTree.Read(document).Pages)
+                if (page.InheritedValues.TryGetValue(ResourcesName, out PdfObject? resources))
+                    InspectResources(resources, page.Index);
+        }
+        catch (Exception error) when (IsDocumentFailure(error))
+        {
+            findings.Add(Error("ColorUsage.Invalid", error.Message));
+        }
+        return Array.AsReadOnly(findings.ToArray());
+
+        void InspectResources(PdfObject value, int pageIndex)
+        {
+            PdfDictionary resources = Resolve(document, value) as PdfDictionary
+                ?? throw new InvalidOperationException("A page or form resource value is not a dictionary.");
+            if (resources.TryGetValue(ColorSpaceName, out PdfObject? spacesValue))
+            {
+                PdfDictionary spaces = Resolve(document, spacesValue) as PdfDictionary
+                    ?? throw new InvalidOperationException("A color-space resource value is not a dictionary.");
+                foreach (KeyValuePair<PdfName, PdfObject> item in spaces)
+                {
+                    PdfIndirectReference? reference = item.Value as PdfIndirectReference;
+                    if (reference is not null
+                        && !visitedColorSpaces.Add((reference.ObjectNumber, reference.Generation)))
+                        continue;
+                    PdfObject space = Resolve(document, item.Value);
+                    if (space is not PdfArray array || array.Count == 0
+                        || Resolve(document, array[0]) is not PdfName family) continue;
+                    if (family.ValueAsLatin1() is "Separation" or "DeviceN")
+                        findings.Add(Information("ColorUsage.SpotColor",
+                            "The document declares a spot color space.", pageIndex,
+                            reference?.ObjectNumber));
+                    if (family.ValueAsLatin1() == "ICCBased"
+                        && (array.Count < 2 || Resolve(document, array[1]) is not PdfStream profile
+                            || !profile.Dictionary.ContainsKey(Name("N"))))
+                        findings.Add(Error("ColorUsage.InvalidIccProfile",
+                            "An ICCBased color space has no usable profile.", pageIndex,
+                            reference?.ObjectNumber));
+                }
+            }
+            if (resources.TryGetValue(ExtGStateName, out PdfObject? statesValue))
+            {
+                PdfDictionary states = Resolve(document, statesValue) as PdfDictionary
+                    ?? throw new InvalidOperationException("An extended graphics-state resource is not a dictionary.");
+                foreach (KeyValuePair<PdfName, PdfObject> item in states)
+                {
+                    PdfIndirectReference? reference = item.Value as PdfIndirectReference;
+                    if (reference is not null
+                        && !visitedStates.Add((reference.ObjectNumber, reference.Generation)))
+                        continue;
+                    PdfDictionary state = Resolve(document, item.Value) as PdfDictionary
+                        ?? throw new InvalidOperationException("An extended graphics state is not a dictionary.");
+                    if (IsTrue(state, "op") || IsTrue(state, "OP"))
+                        findings.Add(Information("ColorUsage.Overprint",
+                            "An extended graphics state enables overprint.", pageIndex,
+                            reference?.ObjectNumber));
+                }
+            }
+            if (!resources.TryGetValue(XObjectName, out PdfObject? xObjectsValue)) return;
+            PdfDictionary xObjects = Resolve(document, xObjectsValue) as PdfDictionary
+                ?? throw new InvalidOperationException("An XObject resource value is not a dictionary.");
+            foreach (KeyValuePair<PdfName, PdfObject> item in xObjects)
+            {
+                PdfIndirectReference? reference = item.Value as PdfIndirectReference;
+                if (reference is not null
+                    && !visitedForms.Add((reference.ObjectNumber, reference.Generation)))
+                    continue;
+                if (Resolve(document, item.Value) is PdfStream stream
+                    && IsName(stream.Dictionary, "Subtype", "Form")
+                    && stream.Dictionary.TryGetValue(ResourcesName, out PdfObject? formResources))
+                    InspectResources(formResources, pageIndex);
+            }
+        }
+
+        bool IsTrue(PdfDictionary dictionary, string key) =>
+            dictionary.TryGetValue(Name(key), out PdfObject? value)
+                && Resolve(document, value) is PdfBoolean { Value: true };
+    }
+
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,
         PdfName name, bool required)
     {
@@ -342,6 +437,10 @@ internal static class PdfPreflightDocumentChecks
     private static PdfPreflightFinding Warning(string code, string message,
         int? pageIndex = null, int? objectNumber = null) =>
         new(code, PdfDiagnosticSeverity.Warning, message, pageIndex, objectNumber);
+
+    private static PdfPreflightFinding Information(string code, string message,
+        int? pageIndex = null, int? objectNumber = null) =>
+        new(code, PdfDiagnosticSeverity.Information, message, pageIndex, objectNumber);
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private sealed record PdfBox(double Left, double Bottom, double Right, double Top);

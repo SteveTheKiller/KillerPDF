@@ -138,6 +138,24 @@ public sealed class PdfPreflightTests
         Assert.Equal(0, finding.PageIndex);
     }
 
+    [Fact]
+    public void ColorUsageFindsDeviceRgbAndOverprint()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0)
+            .SetGraphicsState(new PdfGraphicsState(fillOverprint: true))
+            .Rectangle(10, 10, 50, 50).Fill();
+        var profile = new PdfPreflightProfile("Color usage",
+            [PdfPreflightCheck.ColorUsage]);
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(
+            new PdfDocumentBuilder().AddPage(100, 100, content).Build(), profile);
+
+        Assert.Equal(["ColorUsage.DeviceRgb", "ColorUsage.Overprint"],
+            report.Findings.Select(finding => finding.Code));
+        Assert.All(report.Findings, finding => Assert.Equal(0, finding.PageIndex));
+    }
+
     private static byte[] Profile()
     {
         byte[] result = new byte[132];
