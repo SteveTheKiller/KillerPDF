@@ -35,6 +35,7 @@ public sealed class PdfPageContentReader
         var resources = page.InheritedValues.TryGetValue(Name("Resources"), out var inherited)
             ? Resolve(inherited) as PdfDictionary ?? Empty : Empty;
         var instructions = new List<PdfContentInstruction>();
+        var interpretedInstructions = new List<PdfContentInstruction>();
         var fonts = new Dictionary<string, PdfExtractionFont>();
         var fontNames = new Dictionary<PdfDictionary, string>();
         var images = new List<PdfExtractedImage>();
@@ -49,7 +50,7 @@ public sealed class PdfPageContentReader
         var text = PdfTextContentReader.ReadInstructions(instructions, fonts, cancellationToken: cancellationToken);
         return new PdfPageContent(box.Width, box.Height,
             text.Select(t => new PdfExtractedLetter(t.Text, t.Bounds, t.FontName, t.FontSize,
-                t.PointSize, t.Origin, t.AdvanceEnd)), images, diagnostics);
+                t.PointSize, t.Origin, t.AdvanceEnd)), images, interpretedInstructions, diagnostics);
 
         string Font(PdfObject value)
         {
@@ -108,6 +109,7 @@ public sealed class PdfPageContentReader
                 resolveColorComponents: name => ColorComponents(Resource(current, "ColorSpace", name), current, 0)))
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                interpretedInstructions.Add(instruction);
                 var args = instruction.Operands;
                 if (++visitedInstructions > 1_000_000)
                     throw new FormatException("Expanded page instruction limit exceeded.");
@@ -142,7 +144,11 @@ public sealed class PdfPageContentReader
                         if (args.Count != 1 || args[0] is not PdfName xName || Resolve(Resource(current, "XObject", xName)) is not PdfStream xobject)
                             throw new FormatException("Invalid XObject resource.");
                         var subtype = xobject.Dictionary.TryGetValue(Name("Subtype"), out var type) ? Resolve(type) as PdfName : null;
-                        if (subtype?.ValueAsLatin1() == "Image") { Image(ctm, clip, xName.ValueAsLatin1(), false); continue; }
+                        if (subtype?.ValueAsLatin1() == "Image")
+                        {
+                            Image(ctm, clip, xName.ValueAsLatin1(), false);
+                            continue;
+                        }
                         if (subtype?.ValueAsLatin1() != "Form") continue;
                         if (!activeForms.Add(xobject)) throw new FormatException("Cyclic form XObject.");
                         try

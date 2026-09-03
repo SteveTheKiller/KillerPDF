@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -125,12 +126,14 @@ public sealed class PdfExtractedLine
 public sealed class PdfPageContent
 {
     internal PdfPageContent(double width, double height, IEnumerable<PdfExtractedLetter> letters,
-        IEnumerable<PdfExtractedImage> images, IEnumerable<string>? diagnostics = null)
+        IEnumerable<PdfExtractedImage> images, IEnumerable<PdfContentInstruction> instructions,
+        IEnumerable<string>? diagnostics = null)
     {
         Width = width;
         Height = height;
         Letters = Array.AsReadOnly(letters.ToArray());
         Images = Array.AsReadOnly(images.ToArray());
+        Instructions = Array.AsReadOnly(instructions.ToArray());
         Diagnostics = Array.AsReadOnly((diagnostics ?? []).ToArray());
         Words = GroupWords(Letters);
         TextRuns = GroupTextRuns(Letters);
@@ -151,6 +154,8 @@ public sealed class PdfPageContent
     public IReadOnlyList<PdfExtractedLine> Lines { get; }
     /// <summary>Gets image placements.</summary>
     public IReadOnlyList<PdfExtractedImage> Images { get; }
+    /// <summary>Gets the interpreted page instructions, including expanded Form XObjects.</summary>
+    public IReadOnlyList<PdfContentInstruction> Instructions { get; }
     /// <summary>Gets compatibility recoveries encountered while extracting this page.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
     /// <summary>Gets words separated by spaces in content order.</summary>

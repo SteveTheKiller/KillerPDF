@@ -22,6 +22,7 @@ public sealed class PdfPageContentReaderTests
         Assert.Equal("Helvetica", run.FontName);
         Assert.Equal(PdfWritingDirection.LeftToRight, run.WritingDirection);
         Assert.Equal("Hello world", Assert.Single(page.Lines).Text);
+        Assert.Contains(page.Instructions, instruction => instruction.Operator == "Tj");
     }
 
     [Fact]
@@ -55,6 +56,7 @@ public sealed class PdfPageContentReaderTests
         Assert.Equal(new PdfContentBounds(70, 80, 75, 86), page.Images[1].BoundingBox);
         Assert.Null(page.Images[1].ResourceName);
         Assert.True(page.Images[1].IsInline);
+        Assert.Equal(2, page.Instructions.Count(instruction => instruction.Operator == "BI" || instruction.Operator == "Do"));
     }
 
     [Fact]
