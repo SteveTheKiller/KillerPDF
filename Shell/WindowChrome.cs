@@ -40,6 +40,16 @@ namespace KillerPDF
             // Alt+Space before anything else, or Windows draws its stock white HMENU.
             if (TryHandleSystemMenu(msg, wParam, lParam)) { handled = true; return IntPtr.Zero; }
 
+            if (msg == WM_NCCALCSIZE)
+            {
+                handled = WmNcCalcSize(hwnd, wParam, lParam);
+                return IntPtr.Zero;
+            }
+            if (msg == WM_NCHITTEST)
+            {
+                handled = true;
+                return new IntPtr(WmNcHitTest(hwnd, msg, wParam, lParam));
+            }
             if (msg == WM_ERASEBKGND)
             {
                 // WPF paints the whole client area itself, so let nothing erase the background to a flat
@@ -95,68 +105,92 @@ namespace KillerPDF
                         if (idx >= 0) ActiveViewer.RenderPage(idx);
                     }));
             }
-            // WM_NCHITTEST is handled natively by WindowChrome.ResizeBorderThickness. The document scrollbar
-            // is kept grabbable over the right resize band via WindowChrome.IsHitTestVisibleInChrome on the
-            // ScrollBar style (App.xaml), which is the WindowChrome-native way to exempt an element from the
-            // resize border - no manual hit-test override (that fought WindowChrome and killed scrollbar clicks).
             return IntPtr.Zero;
         }
 
-        private int WmNcHitTest(IntPtr hwnd, IntPtr lParam)
+        // ------------------------------------------------------------
+        // Frame: real OS borders, custom caption
+        // ------------------------------------------------------------
+        // No WindowChrome. Windows owns the left, right and bottom borders; WM_NCCALCSIZE strips
+        // only the caption so the title bar row sits at the top of the client area. Owning every
+        // edge ourselves made a top or left drag jitter.
+
+        private int _osFrameWidth;   // width of the OS border at the current DPI, from WM_NCCALCSIZE
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NCCALCSIZE_PARAMS { public RECT rgrc0, rgrc1, rgrc2; public IntPtr lppos; }
+
+        // Handles the wParam == TRUE form only.
+        private bool WmNcCalcSize(IntPtr hwnd, IntPtr wParam, IntPtr lParam)
         {
-            // lParam is screen coords: lo-word = X, hi-word = Y.
-            // Cast through short to preserve sign (handles negative coords on left/above primary monitor).
-            long lp  = lParam.ToInt64();
-            int  mx  = unchecked((short)(lp & 0xFFFF));
-            int  my  = unchecked((short)((lp >> 16) & 0xFFFF));
-
-            if (!GetWindowRect(hwnd, out RECT rc)) return 0;
-
-            // The floating window has a transparent ShadowMargin around the visible content, so the resize
-            // grips must sit at the CONTENT edge (inset by the margin), not the window edge - otherwise you
-            // have to reach out into the shadow to resize. Maximized/snapped has no margin.
-            int sm = _chromeSquared ? 0 : (int)ShadowMargin;
-            bool onLeft   = mx >= rc.left   + sm                 && mx <  rc.left   + sm + ResizeBorder;
-            bool onRight  = mx <  rc.right  - sm                 && mx >= rc.right  - sm - ResizeBorder;
-            bool onTop    = my >= rc.top    + sm                 && my <  rc.top    + sm + ResizeBorder;
-            bool onBottom = my <  rc.bottom - sm                 && my >= rc.bottom - sm - ResizeBorder;
-
-            // Never hijack a scrollbar for window resizing. The vertical scrollbar sits flush
-            // against the window's right edge, so the resize border used to swallow it - the
-            // cursor showed the resize arrow and dragging resized the window instead of moving
-            // the thumb. If a ScrollBar is under the cursor, report client area so it stays grabbable.
-            if ((onLeft || onRight || onTop || onBottom) && IsOverScrollBar(mx, my))
-                return HTCLIENT;
-
-            if (onTop    && onLeft)  return HTTOPLEFT;
-            if (onTop    && onRight) return HTTOPRIGHT;
-            if (onBottom && onLeft)  return HTBOTTOMLEFT;
-            if (onBottom && onRight) return HTBOTTOMRIGHT;
-            if (onLeft)              return HTLEFT;
-            if (onRight)             return HTRIGHT;
-            if (onTop)               return HTTOP;
-            if (onBottom)            return HTBOTTOM;
-
-            return 0;
+            if (wParam == IntPtr.Zero) return false;
+            var p    = Marshal.PtrToStructure<NCCALCSIZE_PARAMS>(lParam);
+            var orig = p.rgrc0;                                  // proposed window rect
+            if (WindowState == WindowState.Maximized || _fullScreen)
+            {
+                // Maximized: the OS hangs the border off screen, so clip the client to the work area.
+                IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                if (monitor == IntPtr.Zero) return true;
+                var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+                if (!GetMonitorInfo(monitor, ref info)) return true;
+                RECT b = _fullScreen ? info.rcMonitor : info.rcWork;
+                p.rgrc0.left   = Math.Max(orig.left,   b.left);
+                p.rgrc0.top    = Math.Max(orig.top,    b.top);
+                p.rgrc0.right  = Math.Min(orig.right,  b.right);
+                p.rgrc0.bottom = Math.Min(orig.bottom, b.bottom);
+                Marshal.StructureToPtr(p, lParam, false);
+                return true;
+            }
+            DefWindowProc(hwnd, WM_NCCALCSIZE, wParam, lParam);  // OS lays out the full frame
+            p = Marshal.PtrToStructure<NCCALCSIZE_PARAMS>(lParam);
+            _osFrameWidth = p.rgrc0.left - orig.left;
+            p.rgrc0.top   = orig.top;                            // drop the caption, keep the sides
+            Marshal.StructureToPtr(p, lParam, false);
+            return true;
         }
 
-        // Hit-tests the visual tree at a screen point (physical pixels from WM_NCHITTEST)
-        // and reports whether a ScrollBar sits under the cursor.
-        private bool IsOverScrollBar(int screenX, int screenY)
+        private int WmNcHitTest(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam)
+        {
+            // Let the OS answer for its own borders first.
+            int def = DefWindowProc(hwnd, msg, wParam, lParam).ToInt32();
+            if (def != HTCLIENT) return def;
+
+            // Screen coords; short cast keeps the sign on monitors left of or above the primary.
+            long lp = lParam.ToInt64();
+            int  mx = unchecked((short)(lp & 0xFFFF));
+            int  my = unchecked((short)((lp >> 16) & 0xFFFF));
+
+            // The top edge lost its OS border with the caption, so give it a grip of the same width.
+            if (WindowState != WindowState.Maximized && !_fullScreen && _osFrameWidth > 0
+                && GetWindowRect(hwnd, out RECT rc) && my < rc.top + _osFrameWidth)
+            {
+                if (mx <  rc.left  + _osFrameWidth) return HTTOPLEFT;
+                if (mx >= rc.right - _osFrameWidth) return HTTOPRIGHT;
+                return HTTOP;
+            }
+
+            return IsCaptionAt(mx, my) ? HTCAPTION : HTCLIENT;
+        }
+
+        // Title-bar row is the caption, except over a control or the logo (scroll-wheel scaling).
+        private bool IsCaptionAt(int screenX, int screenY)
         {
             try
             {
                 var pt  = PointFromScreen(new Point(screenX, screenY));
                 var res = VisualTreeHelper.HitTest(this, pt);
                 DependencyObject? hit = res?.VisualHit;
+                bool inTitleBar = false;
                 while (hit != null)
                 {
-                    if (hit is System.Windows.Controls.Primitives.ScrollBar) return true;
+                    if (hit is Control && !ReferenceEquals(hit, this)) return false;
+                    if (ReferenceEquals(hit, LogoBar))        return false;
+                    if (ReferenceEquals(hit, TitleBarBorder)) inTitleBar = true;
                     hit = VisualTreeHelper.GetParent(hit);
                 }
+                return inTitleBar;
             }
-            catch { /* best-effort; fall through to normal resize handling */ }
-            return false;
+            catch { return false; }   // not laid out yet; treat as client
         }
 
         private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
@@ -212,8 +246,12 @@ namespace KillerPDF
         [return: MarshalAs(UnmanagedType.Bool)]
         private static partial bool GetWindowRect(IntPtr hwnd, out RECT rect);
 
+        [LibraryImport("user32.dll", EntryPoint = "DefWindowProcW")]
+        private static partial IntPtr DefWindowProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
         private const int WM_NCLBUTTONDOWN = 0x00A1;
         private const int WM_NCHITTEST     = 0x0084;
+        private const int WM_NCCALCSIZE    = 0x0083;
         private const int HTCLIENT         = 1;
         private const int HTCAPTION        = 2;
         private const int HTLEFT           = 10;
