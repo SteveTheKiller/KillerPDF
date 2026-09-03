@@ -11,7 +11,30 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Changed
 
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
-- Click the footer page dimensions to switch between millimeters and inches, with the preference remembered.
+- Click the footer page dimensions to switch between millimeters and inches, with pixel dimensions in its details (#364).
+- Transform and image export DPI previews show the output scale (#365).
+
+### Fixed
+
+- Prevented crashes from stale or repeated tab-close requests (#353).
+- Kept the footer page number current during Continuous navigation and scaled footer controls with the interface (#354, #355).
+- Preserved detected text sizes, identified unavailable font substitutions, and fixed Save Flattened crashes on edited tagged PDFs (#356).
+- Preserved landscape page orientation and proportions when flattening rotated PDFs (#362).
+- Removed a size limit that could prevent maximizing correctly after moving to a larger monitor (#363).
+- Restored the Compare PDFs toolbar caption and kept its choices open when launched from the overflow menu (#360).
+- Opened PDF comparison with equal document pane widths, excluding the sidebar (#359).
+- Restored toolbar captions for fillable text fields and the measuring tool.
+- Localized remaining round-trip validation messages in all 15 supported languages (#227).
+- Added installer file details and the installed size in Windows' program list (#361).
+
+## [1.8.4] - Unreleased
+
+1.8.4 addresses document closing, text editing, saving, footer behavior, and remaining diagnostic translations.
+
+### Changed
+
+- Added pixel dimensions to the footer details and made its units clickable (#364).
+- Added output scale to the Transform and image export DPI previews (#365).
 
 ### Fixed
 

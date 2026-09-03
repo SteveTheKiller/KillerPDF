@@ -39,7 +39,9 @@ internal static class PageSizeFormatter
             ? $"{FormatNumber(mmWide, 1)} x {FormatNumber(mmHigh, 1)} mm"
             : $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in";
         string label = string.IsNullOrEmpty(name) ? primary : $"{name}  {primary}";
-        string details = $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in | " +
+        var pixels = OutputPixelDimensions.FromPoints(widthPoints, heightPoints, 150);
+        string details = $"{pixels.Width} x {pixels.Height} px at 150 DPI | " +
+                         $"{FormatNumber(inchesWide, 2)} x {FormatNumber(inchesHigh, 2)} in | " +
                          $"{FormatNumber(mmWide, 1)} x {FormatNumber(mmHigh, 1)} mm | " +
                          $"{FormatNumber(widthPoints, 1)} x {FormatNumber(heightPoints, 1)} pt";
         return (label, details, useMetric);
