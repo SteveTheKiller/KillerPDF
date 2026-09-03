@@ -13,6 +13,11 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added page extraction with words, glyph bounds, font sizes, baselines, and image placements, including nested forms, inline images, vertical text, and ActualText replacements.
 - Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
 
+### Fixed
+
+- Added localized round-trip failures with stable codes and numeric details in all 15 supported languages (#227).
+- Added explicit artifact overlays for temporary rasterization of tagged PDFs, preserving existing structure and ordinary content-editing guards (#356).
+
 ## [1.8.3] - 2026-09-02
 
 The 1.8.3 engine package matches the engine source shipped with KillerPDF 1.8.3.
