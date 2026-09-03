@@ -1,6 +1,16 @@
 # Contributing to KillerPDF
 
-KillerPDF welcomes focused fixes, tests, translations, documentation, and carefully scoped features.
+KillerPDF welcomes features, fixes, experiments, tests, translations, documentation, and interface improvements.
+
+## 1.9.0 Overkill development
+
+The public [`dev/1.9-overkill`](https://github.com/SteveTheKiller/KillerPDF/tree/dev/1.9-overkill) branch is open to pull requests across just about every part of KillerPDF, including the engine. New tools, larger features, workflow improvements, performance work, and experimental ideas are welcome alongside smaller fixes.
+
+Base 1.9 work on this branch and target `dev/1.9-overkill` when opening the pull request. `main` remains the 1.8.x maintenance line.
+
+You do not need an assigned issue or advance permission to open a PR. Early draft PRs are welcome, especially when you want feedback on an approach before finishing it. For architectural changes, new dependencies, or work that could take weeks, start a discussion early so we can coordinate. That is an invitation to collaborate, not a prerequisite for submitting work.
+
+Keep each PR focused on one coherent change, explain what it does, and state what you tested. Reuse the existing interface styles and preserve the engine's platform-independent boundary. Contributions still receive review; opening a PR does not guarantee inclusion in 1.9.
 
 The project moves quickly. Small, reviewable contributions are much easier to integrate than large speculative rewrites. If you find a bug and understand the fix, I would rather see a focused pull request while the issue is current than hold a release open waiting for a larger redesign.
 
@@ -16,7 +26,7 @@ You do not need permission to submit:
 - A documentation correction
 - A small theme or layout fix that preserves the established design
 
-Please open an issue or discussion before starting:
+For maintenance work targeting `main`, please open an issue or discussion before starting:
 
 - A large feature
 - An architectural change
