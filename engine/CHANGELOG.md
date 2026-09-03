@@ -30,6 +30,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added reusable data placeholder expansion with explicit missing-value policies and isolated per-record batch results (#352).
 - Added typed PDF macros with ordered supported operations, source preservation, cancellation, and isolated per-file results (#343).
 - Added safe FDF and XFDF field-data reading, writing, preview, and AcroForm application with Unicode, hierarchical names, multi-select values, source references, and non-executing script detection (#329).
+- Added deterministic header and footer token formatting plus continuous Bates numbering across ordered document batches (#344).
 
 ## [1.8.3] - 2026-09-02
 

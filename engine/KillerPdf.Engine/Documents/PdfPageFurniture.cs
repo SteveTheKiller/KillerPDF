@@ -1,0 +1,131 @@
+using System.Globalization;
+using System.Text;
+
+namespace KillerPdf.Engine.Documents;
+
+/// <summary>Values available while formatting a repeated page header or footer.</summary>
+public sealed record PdfPageFurnitureContext
+{
+    /// <summary>Gets the one-based physical page number.</summary>
+    public required int PageNumber { get; init; }
+    /// <summary>Gets the total physical page count.</summary>
+    public required int TotalPages { get; init; }
+    /// <summary>Gets the optional logical page label.</summary>
+    public string? PageLabel { get; init; }
+    /// <summary>Gets the optional source filename.</summary>
+    public string? FileName { get; init; }
+    /// <summary>Gets the optional document title.</summary>
+    public string? Title { get; init; }
+    /// <summary>Gets the optional document author.</summary>
+    public string? Author { get; init; }
+    /// <summary>Gets the date used for deterministic formatting.</summary>
+    public required DateOnly Date { get; init; }
+    /// <summary>Gets additional case-sensitive token values.</summary>
+    public IReadOnlyDictionary<string, string?> CustomTokens { get; init; }
+        = new Dictionary<string, string?>();
+}
+
+/// <summary>Formats header and footer templates with bounded, explicit tokens.</summary>
+public static class PdfPageFurnitureFormatter
+{
+    /// <summary>Expands page, pages, label, filename, title, author, date, and custom tokens.</summary>
+    public static string Format(string template, PdfPageFurnitureContext context)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(context);
+        if (context.PageNumber <= 0 || context.TotalPages <= 0
+            || context.PageNumber > context.TotalPages)
+            throw new ArgumentOutOfRangeException(nameof(context),
+                "Page numbering must be within the document page count.");
+        if (template.Length > 1_000_000)
+            throw new ArgumentException("A page-furniture template cannot exceed 1,000,000 characters.",
+                nameof(template));
+
+        var values = new Dictionary<string, string?>(context.CustomTokens, StringComparer.Ordinal)
+        {
+            ["page"] = context.PageNumber.ToString(CultureInfo.InvariantCulture),
+            ["pages"] = context.TotalPages.ToString(CultureInfo.InvariantCulture),
+            ["label"] = context.PageLabel,
+            ["filename"] = context.FileName,
+            ["title"] = context.Title,
+            ["author"] = context.Author,
+            ["date"] = context.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+        };
+        var output = new StringBuilder(template.Length);
+        for (int index = 0; index < template.Length;)
+        {
+            int opening = template.IndexOf('{', index);
+            if (opening < 0)
+            {
+                output.Append(template, index, template.Length - index);
+                break;
+            }
+            output.Append(template, index, opening - index);
+            if (opening + 1 < template.Length && template[opening + 1] == '{')
+            {
+                output.Append('{');
+                index = opening + 2;
+                continue;
+            }
+            int closing = template.IndexOf('}', opening + 1);
+            if (closing < 0) throw new FormatException("A page-furniture token is not closed.");
+            string name = template[(opening + 1)..closing];
+            if (name.Length == 0) throw new FormatException("A page-furniture token has no name.");
+            if (!values.TryGetValue(name, out string? value))
+                throw new KeyNotFoundException($"The page-furniture token '{name}' is not defined.");
+            output.Append(value);
+            index = closing + 1;
+        }
+        return output.ToString();
+    }
+}
+
+/// <summary>Settings for continuous Bates numbering across an ordered document batch.</summary>
+public sealed record PdfBatesNumberingOptions
+{
+    /// <summary>Gets the first numeric value.</summary>
+    public long StartNumber { get; init; } = 1;
+    /// <summary>Gets the minimum zero-padded digit count.</summary>
+    public int DigitCount { get; init; } = 6;
+    /// <summary>Gets the text before the numeric value.</summary>
+    public string Prefix { get; init; } = string.Empty;
+    /// <summary>Gets the text after the numeric value.</summary>
+    public string Suffix { get; init; } = string.Empty;
+}
+
+/// <summary>One deterministic Bates value assigned to a page.</summary>
+public sealed record PdfBatesNumber(int DocumentIndex, int PageIndex, long Number, string Text);
+
+/// <summary>Plans continuous Bates numbering in document and page order.</summary>
+public static class PdfBatesNumbering
+{
+    /// <summary>Assigns one Bates value to every page in an ordered batch.</summary>
+    public static IReadOnlyList<PdfBatesNumber> Plan(
+        IEnumerable<int> documentPageCounts, PdfBatesNumberingOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(documentPageCounts);
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.StartNumber < 0) throw new ArgumentOutOfRangeException(nameof(options));
+        if (options.DigitCount is < 1 or > 18) throw new ArgumentOutOfRangeException(nameof(options));
+        int[] counts = documentPageCounts.ToArray();
+        if (counts.Any(count => count < 0))
+            throw new ArgumentException("Document page counts cannot be negative.", nameof(documentPageCounts));
+        long pageCount = counts.Aggregate(0L, (total, count) => checked(total + count));
+        if (pageCount > 0) _ = checked(options.StartNumber + pageCount - 1);
+
+        var result = new List<PdfBatesNumber>();
+        long number = options.StartNumber;
+        for (int documentIndex = 0; documentIndex < counts.Length; documentIndex++)
+        {
+            for (int pageIndex = 0; pageIndex < counts[documentIndex]; pageIndex++)
+            {
+                string text = options.Prefix
+                    + number.ToString("D" + options.DigitCount, CultureInfo.InvariantCulture)
+                    + options.Suffix;
+                result.Add(new PdfBatesNumber(documentIndex, pageIndex, number, text));
+                number++;
+            }
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+}
