@@ -208,6 +208,12 @@ public sealed class PdfSignatureReaderTests
             }, new PdfSignatureOptions
             {
                 FieldName = "certification",
+                SignerName = "Steve",
+                Reason = "Approval",
+                Location = "Seattle",
+                ContactInformation = "thekiller.net",
+                SigningTime = new DateTimeOffset(2026, 9, 3, 12, 34, 56,
+                    TimeSpan.FromHours(-7)),
                 CertificationPermission =
                     PdfSignatureCertificationPermission.FormFillingAndSignatures,
                 ReservedSignatureSize = 16
@@ -232,6 +238,12 @@ public sealed class PdfSignatureReaderTests
         Assert.True(certification.CoversWholeDocument);
         Assert.Equal("Adobe.PPKLite", certification.Filter);
         Assert.Equal("ETSI.CAdES.detached", certification.SubFilter);
+        Assert.Equal("Steve", certification.SignerName);
+        Assert.Equal("Approval", certification.Reason);
+        Assert.Equal("Seattle", certification.Location);
+        Assert.Equal("thekiller.net", certification.ContactInformation);
+        Assert.Equal(new DateTimeOffset(2026, 9, 3, 12, 34, 56,
+            TimeSpan.FromHours(-7)), certification.SigningTime);
         Assert.Equal(16, certification.Contents.Length);
         Assert.True(certification.HasValidCmsEncoding);
         Assert.Equal([0x30, 0x01, 0x00], certification.Cms.ToArray());

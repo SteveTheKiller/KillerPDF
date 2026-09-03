@@ -23,6 +23,16 @@ public sealed record PdfSignatureInfo
     public string? Filter { get; init; }
     /// <summary>Gets the signature encoding subfilter name.</summary>
     public string? SubFilter { get; init; }
+    /// <summary>Gets the signer name stored in the signature dictionary.</summary>
+    public string? SignerName { get; init; }
+    /// <summary>Gets the stated reason for signing.</summary>
+    public string? Reason { get; init; }
+    /// <summary>Gets the stated signing location.</summary>
+    public string? Location { get; init; }
+    /// <summary>Gets the signer contact information.</summary>
+    public string? ContactInformation { get; init; }
+    /// <summary>Gets the signing time stored in the signature dictionary.</summary>
+    public DateTimeOffset? SigningTime { get; init; }
     /// <summary>Gets the declared signed byte ranges.</summary>
     public IReadOnlyList<long>? ByteRange { get; init; }
     /// <summary>The complete PDF /Contents string, including hexadecimal placeholder padding.</summary>
