@@ -12,9 +12,12 @@ The 1.9.0 engine development cycle begins the PdfPig extraction replacement.
 
 - Added bounded page-content instruction parsing as the foundation for text extraction.
 
-## [1.8.3] - Unreleased
+## [1.8.3] - 2026-09-02
+
+The 1.8.3 engine package matches the engine source shipped with KillerPDF 1.8.3.
 
 - Empty signature strings emitted by other PDF tools are treated as unsigned fields during reading, writing, and signing.
+- Engine packages now follow app releases automatically, with matching versions required before building or publishing.
 
 ## [1.8.2] - 2026-08-31
 

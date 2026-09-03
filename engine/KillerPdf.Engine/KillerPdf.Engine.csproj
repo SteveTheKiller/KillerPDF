@@ -28,6 +28,13 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
+  <Target Name="VerifyAppEngineVersion" BeforeTargets="PrepareForBuild;GenerateNuspec">
+    <XmlPeek XmlInputPath="$(MSBuildThisFileDirectory)../../KillerPDF.csproj" Query="/Project/PropertyGroup/Version/text()">
+      <Output TaskParameter="Result" PropertyName="KillerAppVersion" />
+    </XmlPeek>
+    <Error Condition="'$(Version)' != '$(KillerAppVersion)'" Text="Engine version $(Version) must match app version $(KillerAppVersion). Update both before building or packaging." />
+  </Target>
+
   <ItemGroup>
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.10" />
   </ItemGroup>

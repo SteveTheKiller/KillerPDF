@@ -93,6 +93,12 @@ if ($csprojRaw -notmatch '<Version>([0-9]+\.[0-9]+\.[0-9]+)</Version>') {
 }
 $Version = $Matches[1]
 $Tag = "v$Version"
+$engineProject = Join-Path $PSScriptRoot 'engine\KillerPdf.Engine\KillerPdf.Engine.csproj'
+[xml]$engineMetadata = Get-Content -LiteralPath $engineProject -Raw
+$engineVersion = [string]$engineMetadata.Project.PropertyGroup.Version
+if ($engineVersion -ne $Version) {
+    throw "Engine version $engineVersion does not match app version $Version. Update both before releasing."
+}
 $changelog = Get-Content -Path (Join-Path $PSScriptRoot 'CHANGELOG.md') -Raw
 if ($changelog -match ('(?im)^## \[' + [regex]::Escape($Version) + '\] - UNRELEASED\s*$')) {
     throw "CHANGELOG.md section [$Version] is still marked Unreleased"

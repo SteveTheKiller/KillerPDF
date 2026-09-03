@@ -1,11 +1,16 @@
 name: NuGet Engine Release
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Engine package version, for example 1.8.0'
+        description: 'Published app version, for example 1.8.3'
         required: true
+      source_ref:
+        description: 'Optional metadata-repair commit; engine code must match the release tag'
+        required: false
 
 concurrency:
   group: nuget-engine-release
@@ -13,28 +18,56 @@ concurrency:
 
 jobs:
   publish:
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'release' && !github.event.release.prerelease) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
+    env:
+      REQUESTED_VERSION: ${{ inputs.version }}
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      SOURCE_REF: ${{ inputs.source_ref }}
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Select and verify release source
+        id: release
+        shell: pwsh
+        run: |
+          $version = $env:REQUESTED_VERSION
+          if ($env:RELEASE_TAG) { $version = $env:RELEASE_TAG -replace '^v', '' }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Expected a stable x.y.z version.' }
+          $tag = "v$version"
+          $release = gh release view $tag --json isDraft,isPrerelease | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or $release.isDraft -or $release.isPrerelease) { throw 'A published stable app release is required.' }
+          $source = $tag
+          if ($env:SOURCE_REF) {
+            $source = $env:SOURCE_REF
+            if ($source -notmatch '^[a-fA-F0-9]{40}$') { throw 'Metadata repair requires a full commit SHA.' }
+            git merge-base --is-ancestor $source origin/main
+            if ($LASTEXITCODE -ne 0) { throw 'Repair commit must be on main.' }
+            git diff --exit-code $tag $source -- engine ':!engine/CHANGELOG.md' ':!engine/KillerPdf.Engine/KillerPdf.Engine.csproj'
+            if ($LASTEXITCODE -ne 0) { throw 'Engine code differs from the released source.' }
+          }
+          git checkout --detach $source
+          if ($LASTEXITCODE -ne 0) { throw 'Release source checkout failed.' }
+          [xml]$app = Get-Content 'KillerPDF.csproj'
+          [xml]$engine = Get-Content 'engine/KillerPdf.Engine/KillerPdf.Engine.csproj'
+          if ($app.SelectSingleNode('/Project/PropertyGroup/Version').InnerText -ne $version -or
+              $engine.SelectSingleNode('/Project/PropertyGroup/Version').InnerText -ne $version) {
+            throw 'App, engine, and release versions must match.'
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
 
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
-
-      - name: Verify Engine version
-        shell: pwsh
-        run: |
-          [xml]$project = Get-Content 'engine/KillerPdf.Engine/KillerPdf.Engine.csproj'
-          $actual = [string]$project.Project.PropertyGroup.Version
-          $requested = '${{ inputs.version }}'
-          if ($actual -ne $requested) {
-              throw "Requested version $requested does not match Engine project version $actual."
-          }
 
       - name: Restore
         run: dotnet restore engine/KillerPdf.Engine.Tests/KillerPdf.Engine.Tests.csproj
@@ -45,6 +78,13 @@ jobs:
       - name: Pack
         run: dotnet pack engine/KillerPdf.Engine/KillerPdf.Engine.csproj -c Release --no-restore -o artifacts/nuget
 
+      - name: Preserve packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: engine-${{ steps.release.outputs.version }}
+          path: artifacts/nuget/*
+          if-no-files-found: error
+
       - name: Sign in to NuGet
         id: nuget-login
         uses: NuGet/login@v1
@@ -53,10 +93,11 @@ jobs:
 
       - name: Publish package and symbols
         shell: pwsh
+        env:
+          ENGINE_VERSION: ${{ steps.release.outputs.version }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
-          $version = '${{ inputs.version }}'
-          $key = '${{ steps.nuget-login.outputs.NUGET_API_KEY }}'
-          dotnet nuget push "artifacts/nuget/KillerPdf.Engine.$version.nupkg" --api-key $key --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push "artifacts/nuget/KillerPdf.Engine.$env:ENGINE_VERSION.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dotnet nuget push "artifacts/nuget/KillerPdf.Engine.$version.snupkg" --api-key $key --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push "artifacts/nuget/KillerPdf.Engine.$env:ENGINE_VERSION.snupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json --skip-duplicate
           exit $LASTEXITCODE

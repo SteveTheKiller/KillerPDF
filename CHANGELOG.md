@@ -25,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
+- Engine NuGet packages now follow app releases automatically, with matching app and engine versions required before building or publishing.
 - The footer now shows page size with direct view-mode and zoom controls (#301).
 - Image export and Transform now show output pixel dimensions for the selected DPI (#310).
 - First launch now uses a supported Windows display language instead of always starting in English (#322).
