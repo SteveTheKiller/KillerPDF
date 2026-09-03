@@ -1,0 +1,37 @@
+name: Maintenance forward ports
+
+on:
+  push:
+    branches: [main, dev/1.9-overkill]
+  pull_request:
+    branches: [main, dev/1.9-overkill]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  forward-ports:
+    name: Maintenance changes reach Overkill
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check branch coverage
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_BRANCH: ${{ github.base_ref }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          $maintenance = 'origin/main'
+          $development = 'origin/dev/1.9-overkill'
+          if ($env:EVENT_NAME -eq 'pull_request') {
+            if ($env:BASE_BRANCH -eq 'main') { $maintenance = 'HEAD' }
+            else { $development = 'HEAD' }
+          } elseif ($env:BRANCH -eq 'main') { $maintenance = 'HEAD' }
+          elseif ($env:BRANCH -eq 'dev/1.9-overkill') { $development = 'HEAD' }
+          ./build/Check-MaintenanceForwardPorts.ps1 -MaintenanceRef $maintenance -DevelopmentRef $development

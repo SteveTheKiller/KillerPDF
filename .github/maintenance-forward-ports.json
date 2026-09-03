@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "maintenanceBaseline": "3fd395385857cde086d216b564e7747092f26c83",
+  "developmentBaseline": "be14536bcfec562363319f0cb893fad9abff0f34",
+  "baselineReason": "Issues #227 and #353 through #356 were verified on both branches before this check was introduced.",
+  "ports": []
+}
