@@ -69,7 +69,23 @@ public sealed class PdfExtractedWord
 }
 
 /// <summary>An image placement in PDF coordinates.</summary>
-public sealed record PdfExtractedImage(PdfContentBounds BoundingBox, string? ResourceName = null, bool IsInline = false);
+public sealed record PdfExtractedImage(
+    PdfContentBounds BoundingBox,
+    string? ResourceName = null,
+    bool IsInline = false,
+    int PixelWidth = 0,
+    int PixelHeight = 0,
+    double RenderedWidth = 0,
+    double RenderedHeight = 0)
+{
+    /// <summary>Gets the effective horizontal resolution in dots per inch.</summary>
+    public double? HorizontalDpi => PixelWidth > 0 && RenderedWidth > 0
+        ? PixelWidth * 72d / RenderedWidth : null;
+
+    /// <summary>Gets the effective vertical resolution in dots per inch.</summary>
+    public double? VerticalDpi => PixelHeight > 0 && RenderedHeight > 0
+        ? PixelHeight * 72d / RenderedHeight : null;
+}
 
 /// <summary>One geometry-building operator in an extracted vector path.</summary>
 public sealed record PdfExtractedPathSegment(string Operator, IReadOnlyList<PdfPoint> Points);

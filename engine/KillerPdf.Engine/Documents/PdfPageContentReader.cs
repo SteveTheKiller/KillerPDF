@@ -175,7 +175,7 @@ public sealed class PdfPageContentReader
                         var subtype = xobject.Dictionary.TryGetValue(Name("Subtype"), out var type) ? Resolve(type) as PdfName : null;
                         if (subtype?.ValueAsLatin1() == "Image")
                         {
-                            Image(ctm, clip, xName.ValueAsLatin1(), false);
+                            Image(ctm, clip, xName.ValueAsLatin1(), false, xobject.Dictionary);
                             continue;
                         }
                         if (subtype?.ValueAsLatin1() != "Form") continue;
@@ -200,7 +200,11 @@ public sealed class PdfPageContentReader
                         }
                         finally { activeForms.Remove(xobject); }
                         continue;
-                    case "BI": Image(ctm, clip, null, true); continue;
+                    case "BI":
+                        if (args.Count != 1 || args[0] is not PdfDictionary inlineImage)
+                            throw new FormatException("Invalid inline image dictionary.");
+                        Image(ctm, clip, null, true, inlineImage);
+                        continue;
                     case "BDC":
                         if (args.Count == 2 && args[1] is PdfName propertyName)
                         {
@@ -270,10 +274,21 @@ public sealed class PdfPageContentReader
                 _ => null
             };
         }
-        void Image(Matrix matrix, PdfContentBounds clip, string? resourceName, bool isInline)
+        void Image(Matrix matrix, PdfContentBounds clip, string? resourceName, bool isInline, PdfDictionary dictionary)
         {
             var bounds = Intersect(Transform(new(0, 0, 1, 1), matrix), clip);
-            if (bounds.Width > 0 && bounds.Height > 0) images.Add(new(bounds, resourceName, isInline));
+            double renderedWidth = Math.Sqrt(matrix.A * matrix.A + matrix.B * matrix.B);
+            double renderedHeight = Math.Sqrt(matrix.C * matrix.C + matrix.D * matrix.D);
+            int pixelWidth = ImageDimension(dictionary, "Width");
+            int pixelHeight = ImageDimension(dictionary, "Height");
+            if (bounds.Width > 0 && bounds.Height > 0)
+                images.Add(new(bounds, resourceName, isInline, pixelWidth, pixelHeight, renderedWidth, renderedHeight));
+        }
+        int ImageDimension(PdfDictionary dictionary, string key)
+        {
+            if (!dictionary.TryGetValue(Name(key), out var value)) return 0;
+            double number = Number(value);
+            return number > 0 && number <= int.MaxValue && number == Math.Truncate(number) ? (int)number : 0;
         }
     }
 
