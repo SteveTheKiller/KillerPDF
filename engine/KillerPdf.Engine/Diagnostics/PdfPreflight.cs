@@ -12,7 +12,11 @@ public enum PdfPreflightCheck
     /// <summary>Checks for a declared primary document language.</summary>
     DocumentLanguage,
     /// <summary>Checks for a structure tree and marked-content declaration.</summary>
-    TaggedStructure
+    TaggedStructure,
+    /// <summary>Checks effective media and crop boxes on every page.</summary>
+    PageBoxes,
+    /// <summary>Checks for a usable document output intent and ICC profile.</summary>
+    OutputIntent
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
@@ -36,6 +40,13 @@ public sealed record PdfPreflightProfile
     /// <summary>Gets a structural validation profile suitable for ordinary PDFs.</summary>
     public static PdfPreflightProfile General { get; } =
         new("General PDF", [PdfPreflightCheck.StructuralIntegrity]);
+
+    /// <summary>Gets the current print-production profile.</summary>
+    public static PdfPreflightProfile PrintProduction { get; } = new("Print production", [
+        PdfPreflightCheck.StructuralIntegrity,
+        PdfPreflightCheck.PageBoxes,
+        PdfPreflightCheck.OutputIntent
+    ]);
 
     /// <summary>Gets the profile name.</summary>
     public string Name { get; }
@@ -133,12 +144,13 @@ public static class PdfPreflightRunner
             return new PdfPreflightReport(profile.Name, findings);
         }
 
+        PdfDocument checkedDocument = password is null
+            ? PdfDocument.Open(source) : PdfDocument.Open(source, password);
         if (profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage)
             || profile.Checks.Contains(PdfPreflightCheck.TaggedStructure))
         {
-            PdfDocument document = password is null
-                ? PdfDocument.Open(source) : PdfDocument.Open(source, password);
-            foreach (PdfAccessibilityFinding finding in PdfAccessibilityInspector.Inspect(document).Findings)
+            foreach (PdfAccessibilityFinding finding in
+                PdfAccessibilityInspector.Inspect(checkedDocument).Findings)
             {
                 bool selected = finding.Code == PdfAccessibilityFindingCode.MissingDocumentLanguage
                     ? profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage)
@@ -148,6 +160,10 @@ public static class PdfPreflightRunner
                         $"Accessibility.{finding.Code}", finding.Severity, finding.Message));
             }
         }
+        if (profile.Checks.Contains(PdfPreflightCheck.PageBoxes))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckPageBoxes(checkedDocument));
+        if (profile.Checks.Contains(PdfPreflightCheck.OutputIntent))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckOutputIntent(checkedDocument));
         return new PdfPreflightReport(profile.Name, findings);
     }
 }

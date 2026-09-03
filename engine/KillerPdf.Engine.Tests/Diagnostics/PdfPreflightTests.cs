@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Diagnostics;
@@ -50,5 +52,33 @@ public sealed class PdfPreflightTests
         Assert.False(report.Passed);
         Assert.Contains(report.Findings,
             finding => finding.Code == "Structural.InvalidHeader");
+    }
+
+    [Fact]
+    public void PrintProductionChecksPageBoxesAndOutputIntent()
+    {
+        byte[] withoutIntent = new PdfDocumentBuilder().AddBlankPage(200, 300).Build();
+        byte[] withIntent = new PdfDocumentBuilder()
+            .SetOutputIntent(PdfIccProfile.Load(Profile()), "Test RGB")
+            .AddBlankPage(200, 300).Build();
+
+        PdfPreflightReport missing = PdfPreflightRunner.Run(
+            withoutIntent, PdfPreflightProfile.PrintProduction);
+        PdfPreflightReport complete = PdfPreflightRunner.Run(
+            withIntent, PdfPreflightProfile.PrintProduction);
+
+        Assert.Contains(missing.Findings, finding => finding.Code == "OutputIntent.Missing");
+        Assert.DoesNotContain(complete.Findings,
+            finding => finding.Code.StartsWith("PageBoxes.", StringComparison.Ordinal)
+                || finding.Code.StartsWith("OutputIntent.", StringComparison.Ordinal));
+    }
+
+    private static byte[] Profile()
+    {
+        byte[] result = new byte[132];
+        BinaryPrimitives.WriteUInt32BigEndian(result, (uint)result.Length);
+        Encoding.ASCII.GetBytes("RGB ").CopyTo(result, 16);
+        "acsp"u8.CopyTo(result.AsSpan(36, 4));
+        return result;
     }
 }
