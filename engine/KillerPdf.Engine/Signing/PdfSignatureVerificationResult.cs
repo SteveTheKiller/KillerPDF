@@ -10,7 +10,41 @@ public sealed record PdfSignatureVerificationResult
     /// <summary>Gets whether certificate-chain trust was evaluated.</summary>
     public bool CertificateTrustWasChecked { get; init; }
     /// <summary>Gets whether the signing certificate chains to a trusted root.</summary>
-    public bool IsCertificateTrusted { get; init; }
+    public bool IsCertificateTrusted => CertificateTrustStatus == PdfCertificateTrustStatus.Trusted;
+    /// <summary>Gets the independently evaluated certificate-chain trust outcome.</summary>
+    public PdfCertificateTrustStatus CertificateTrustStatus { get; init; }
+    /// <summary>Gets whether the signing certificate was within its validity period.</summary>
+    public bool? IsCertificateTimeValid { get; init; }
+    /// <summary>Gets the independently evaluated certificate revocation outcome.</summary>
+    public PdfCertificateRevocationStatus RevocationStatus { get; init; }
+    /// <summary>Gets certificate-chain status details supplied by the platform.</summary>
+    public IReadOnlyList<string> CertificateChainErrors { get; init; } = [];
     /// <summary>Gets the verification failure message, if any.</summary>
     public string? Error { get; init; }
+}
+
+/// <summary>Trust result for the signing certificate identity.</summary>
+public enum PdfCertificateTrustStatus
+{
+    /// <summary>Certificate trust was not requested.</summary>
+    NotChecked,
+    /// <summary>The certificate chains to an accepted trust anchor.</summary>
+    Trusted,
+    /// <summary>The certificate chain was evaluated and rejected.</summary>
+    Untrusted,
+    /// <summary>The certificate chain could not be evaluated conclusively.</summary>
+    Indeterminate
+}
+
+/// <summary>Revocation result for the signing certificate chain.</summary>
+public enum PdfCertificateRevocationStatus
+{
+    /// <summary>Revocation was not requested.</summary>
+    NotChecked,
+    /// <summary>The checked chain contains no revoked certificate.</summary>
+    Good,
+    /// <summary>A certificate in the chain is revoked.</summary>
+    Revoked,
+    /// <summary>Revocation evidence was unavailable or inconclusive.</summary>
+    Indeterminate
 }

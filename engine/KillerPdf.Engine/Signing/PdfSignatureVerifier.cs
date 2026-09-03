@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
+using System.Security.Cryptography.X509Certificates;
 using KillerPdf.Engine.Documents;
 
 namespace KillerPdf.Engine.Signing;
@@ -15,10 +16,19 @@ public static class PdfSignatureVerifier
     /// <summary>Verifies signature integrity and evaluates the signing certificate's system trust.</summary>
     public static PdfSignatureVerificationResult VerifyTrust(
         PdfDocument document, PdfSignatureInfo signature) =>
-        Verify(document, signature, checkCertificateTrust: true);
+        VerifyTrust(document, signature, new PdfSignatureTrustOptions());
+
+    /// <summary>Verifies signature integrity using a configurable certificate trust policy.</summary>
+    public static PdfSignatureVerificationResult VerifyTrust(
+        PdfDocument document, PdfSignatureInfo signature, PdfSignatureTrustOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        return Verify(document, signature, checkCertificateTrust: true, options);
+    }
 
     private static PdfSignatureVerificationResult Verify(
-        PdfDocument document, PdfSignatureInfo signature, bool checkCertificateTrust)
+        PdfDocument document, PdfSignatureInfo signature, bool checkCertificateTrust,
+        PdfSignatureTrustOptions? trustOptions = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(signature);
@@ -40,27 +50,61 @@ public static class PdfSignatureVerifier
             cms.CheckSignature(verifySignatureOnly: true);
             if (checkCertificateTrust)
             {
-                try
+                X509Certificate2? signer = cms.SignerInfos.Count > 0
+                    ? cms.SignerInfos[0].Certificate : null;
+                if (signer is null)
+                    return TrustFailure("The CMS signature does not contain a signing certificate.",
+                        PdfCertificateTrustStatus.Indeterminate, null,
+                        PdfCertificateRevocationStatus.Indeterminate, []);
+                PdfSignatureTrustOptions policy = trustOptions ?? new();
+                using var chain = new X509Chain();
+                chain.ChainPolicy.RevocationMode = policy.RevocationMode;
+                chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
+                chain.ChainPolicy.VerificationTime = policy.VerificationTime;
+                chain.ChainPolicy.UrlRetrievalTimeout = policy.UrlRetrievalTimeout;
+                foreach (X509Certificate2 certificate in policy.ExtraCertificates)
+                    chain.ChainPolicy.ExtraStore.Add(certificate);
+                if (policy.CustomTrustRoots.Count > 0)
                 {
-                    cms.CheckSignature(verifySignatureOnly: false);
+                    chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
+                    foreach (X509Certificate2 certificate in policy.CustomTrustRoots)
+                        chain.ChainPolicy.CustomTrustStore.Add(certificate);
                 }
-                catch (CryptographicException exception)
+                bool trusted = chain.Build(signer);
+                X509ChainStatusFlags flags = chain.ChainStatus.Aggregate(
+                    X509ChainStatusFlags.NoError, (current, status) => current | status.Status);
+                bool timeValid = (flags & X509ChainStatusFlags.NotTimeValid) == 0;
+                PdfCertificateRevocationStatus revocation = policy.RevocationMode == X509RevocationMode.NoCheck
+                    ? PdfCertificateRevocationStatus.NotChecked
+                    : (flags & X509ChainStatusFlags.Revoked) != 0
+                        ? PdfCertificateRevocationStatus.Revoked
+                        : (flags & (X509ChainStatusFlags.RevocationStatusUnknown | X509ChainStatusFlags.OfflineRevocation)) != 0
+                            ? PdfCertificateRevocationStatus.Indeterminate
+                            : PdfCertificateRevocationStatus.Good;
+                string[] errors = chain.ChainStatus.Select(status => status.StatusInformation.Trim())
+                    .Where(message => message.Length > 0).ToArray();
+                if (!trusted)
+                    return TrustFailure(errors.FirstOrDefault() ?? "The signing certificate is not trusted.",
+                        revocation == PdfCertificateRevocationStatus.Indeterminate
+                            ? PdfCertificateTrustStatus.Indeterminate : PdfCertificateTrustStatus.Untrusted,
+                        timeValid, revocation, errors);
+                return new PdfSignatureVerificationResult
                 {
-                    return new PdfSignatureVerificationResult
-                    {
-                        IsStructurallyValid = true,
-                        IsCryptographicallyValid = true,
-                        CertificateTrustWasChecked = true,
-                        Error = exception.Message
-                    };
-                }
+                    IsStructurallyValid = true,
+                    IsCryptographicallyValid = true,
+                    CertificateTrustWasChecked = true,
+                    CertificateTrustStatus = PdfCertificateTrustStatus.Trusted,
+                    IsCertificateTimeValid = true,
+                    RevocationStatus = revocation
+                };
             }
             return new PdfSignatureVerificationResult
             {
                 IsStructurallyValid = true,
                 IsCryptographicallyValid = true,
                 CertificateTrustWasChecked = checkCertificateTrust,
-                IsCertificateTrusted = checkCertificateTrust
+                CertificateTrustStatus = PdfCertificateTrustStatus.NotChecked,
+                RevocationStatus = PdfCertificateRevocationStatus.NotChecked
             };
         }
         catch (CryptographicException exception)
@@ -72,5 +116,20 @@ public static class PdfSignatureVerifier
                 Error = exception.Message
             };
         }
+
+        PdfSignatureVerificationResult TrustFailure(string error,
+            PdfCertificateTrustStatus trustStatus, bool? timeValid,
+            PdfCertificateRevocationStatus revocationStatus, IReadOnlyList<string> chainErrors) =>
+            new()
+            {
+                IsStructurallyValid = true,
+                IsCryptographicallyValid = true,
+                CertificateTrustWasChecked = true,
+                CertificateTrustStatus = trustStatus,
+                IsCertificateTimeValid = timeValid,
+                RevocationStatus = revocationStatus,
+                CertificateChainErrors = chainErrors,
+                Error = error
+            };
     }
 }

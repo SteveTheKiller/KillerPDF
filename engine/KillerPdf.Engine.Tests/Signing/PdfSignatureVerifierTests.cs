@@ -116,7 +116,38 @@ public sealed class PdfSignatureVerifierTests
         Assert.True(result.IsCryptographicallyValid);
         Assert.True(result.CertificateTrustWasChecked);
         Assert.False(result.IsCertificateTrusted);
+        Assert.Equal(PdfCertificateTrustStatus.Untrusted, result.CertificateTrustStatus);
         Assert.NotNull(result.Error);
+    }
+
+    [Fact]
+    public void VerifyTrustAcceptsExplicitTrustRootAndSeparatesRevocationPolicy()
+    {
+        using RSA key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=Explicit KillerPDF Trust", key,
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509BasicConstraintsExtension(true, false, 0, true));
+        using X509Certificate2 certificate = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        byte[] signed = PdfDetachedSignatureWriter.Sign(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()),
+            content => Sign(content, certificate),
+            new PdfSignatureOptions { ReservedSignatureSize = 4_096 });
+        PdfDocument document = PdfDocument.Open(signed);
+
+        PdfSignatureVerificationResult result = PdfSignatureVerifier.VerifyTrust(document,
+            Assert.Single(PdfSignatureReader.Read(document)), new PdfSignatureTrustOptions
+            {
+                CustomTrustRoots = [certificate],
+                RevocationMode = X509RevocationMode.NoCheck
+            });
+
+        Assert.True(result.IsCryptographicallyValid);
+        Assert.True(result.IsCertificateTrusted);
+        Assert.Equal(PdfCertificateTrustStatus.Trusted, result.CertificateTrustStatus);
+        Assert.True(result.IsCertificateTimeValid);
+        Assert.Equal(PdfCertificateRevocationStatus.NotChecked, result.RevocationStatus);
+        Assert.Empty(result.CertificateChainErrors);
     }
 
     private static byte[] Sign(ReadOnlyMemory<byte> content, X509Certificate2 certificate)
