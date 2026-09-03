@@ -33,6 +33,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added deterministic header and footer token formatting plus continuous Bates numbering across ordered document batches (#344).
 - Added plain-text, semantic HTML, and structured JSON export from the engine page-content model (#346).
 - Added unified bookmark and link auditing for unresolved local targets and unsupported URI schemes (#351).
+- Added immutable OCR review results, low-confidence correction workflows, reports, and isolated page batches (#345).
 
 ## [1.8.3] - 2026-09-02
 
