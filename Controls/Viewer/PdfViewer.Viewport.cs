@@ -259,6 +259,10 @@ namespace KillerPDF.Controls
                 Host?.ViewerPageChanged(this, nearest);
                 Host?.PageJumpText = (nearest + 1).ToString();
                 Host?.EnsureSidebarPageVisible(this, nearest);
+                // Explicit navigation already assigned the page before the scroll settles.
+                // Its status still needs refreshing even when the page index now agrees.
+                if (_doc is not null)
+                    SetStatus(string.Format(Loc("Str_PageOf"), nearest + 1, _doc.PageCount) + $" - {DisplayZoomPct():F0}%");
                 return;
             }
             Host?.PageJumpText = (nearest + 1).ToString();
