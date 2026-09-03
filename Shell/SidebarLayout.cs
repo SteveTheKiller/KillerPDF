@@ -221,7 +221,7 @@ namespace KillerPDF
 
             double footerWidth = FooterBorder.ActualWidth;
             double badgeWidth = PortableBadge.ActualWidth;
-            double rightWidth = FooterDocumentControls.ActualWidth + FooterVersionCell.ActualWidth;
+            double rightWidth = FooterDocumentControls.ActualWidth * _appScale + FooterVersionCell.ActualWidth;
             bool centerBadge = PortableBadge.Visibility == Visibility.Visible
                 && footerWidth > 0 && badgeWidth > 0
                 && footerWidth / 2 + badgeWidth / 2 + 16 <= footerWidth - rightWidth;

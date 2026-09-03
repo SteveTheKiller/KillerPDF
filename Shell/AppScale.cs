@@ -9,7 +9,7 @@ namespace KillerPDF
     // App-wide accessibility size, ported from KillerNotes: a LayoutTransform scale on the
     // chrome (toolbar row, sidebar, tab strip) grows or shrinks the UI crisply -
     // LayoutTransform reflows and re-rasterizes text rather than bitmap-stretching it. The
-    // title bar and footer stay fixed, so the logo you scroll to drive this (MainWindow.xaml,
+    // title bar stays fixed, so the logo you scroll to drive this (MainWindow.xaml,
     // LogoBar) never moves. The document pane is deliberately NOT scaled: app size and page
     // zoom are two separate controls. Persisted app-wide ("AppScale").
     public partial class MainWindow
@@ -71,6 +71,7 @@ namespace KillerPDF
             var t = scale == 1.0 ? Transform.Identity : new ScaleTransform(scale, scale);
             ToolbarRowBorder.LayoutTransform = t;
             SidebarOuterGrid.LayoutTransform = t;
+            FooterDocumentControls.LayoutTransform = t;
             // BOTH panes: each carries its own strip, and scaling only the focused one would leave
             // the other pane's tabs at the previous size.
             Viewer.TabStripBorderCtl.LayoutTransform  = t;

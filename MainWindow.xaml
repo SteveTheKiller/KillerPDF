@@ -1323,7 +1323,7 @@
             <RowDefinition Height="Auto"/>   <!-- 1: toolbar -->
             <RowDefinition Height="Auto"/>   <!-- 2: document tab strip (collapses when no PDF is open) -->
             <RowDefinition Height="*"/>      <!-- 3: document content -->
-            <RowDefinition Height="24"/>     <!-- 4: footer / status bar (KillerNotes exact) -->
+            <RowDefinition Height="Auto"/>   <!-- 4: footer grows with accessible document controls -->
         </Grid.RowDefinitions>
 
         <!-- Title bar -->
@@ -2643,7 +2643,7 @@
              lifting the content keeps the About overlay - declared later still - on top of both.
              (Family rule; see KillerShell and Killendar.) -->
         <Border Grid.Row="4" x:Name="FooterBorder" Panel.ZIndex="-1"
-                Background="{DynamicResource BackgroundBrush}">
+                MinHeight="24" Background="{DynamicResource BackgroundBrush}">
             <Grid>
             <Grid Margin="{DynamicResource FooterPadding}">
                 <Grid.ColumnDefinitions>
