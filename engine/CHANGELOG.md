@@ -29,6 +29,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added deterministic N-up and saddle-stitched booklet planning with duplex sides and explicit blank slots (#349).
 - Added reusable data placeholder expansion with explicit missing-value policies and isolated per-record batch results (#352).
 - Added typed PDF macros with ordered supported operations, source preservation, cancellation, and isolated per-file results (#343).
+- Added safe XFDF field-data reading and writing with Unicode, hierarchical names, multi-select values, source references, and non-executing script detection (#329).
 
 ## [1.8.3] - 2026-09-02
 
