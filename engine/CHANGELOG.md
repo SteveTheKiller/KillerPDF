@@ -27,6 +27,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added typed inspection of PDF layers, default visibility, locks, and alternate optional-content configurations (#350).
 - Added calibrated distance, perimeter, area, and angle calculations with reusable profiles and JSON or CSV reports (#348).
 - Added deterministic N-up and saddle-stitched booklet planning with duplex sides and explicit blank slots (#349).
+- Added reusable data placeholder expansion with explicit missing-value policies and isolated per-record batch results (#352).
 
 ## [1.8.3] - 2026-09-02
 
