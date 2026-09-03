@@ -19,6 +19,7 @@ The 1.9.0 engine adds text and image placement extraction.
 
 - Added localized round-trip failures with stable codes and numeric details in all 15 supported languages (#227).
 - Added explicit artifact overlays for temporary rasterization of tagged PDFs, preserving existing structure and ordinary content-editing guards (#356).
+- Added inspectable, deterministic repair plans that report harmless structural changes before applying them (#333).
 
 ## [1.8.3] - 2026-09-02
 

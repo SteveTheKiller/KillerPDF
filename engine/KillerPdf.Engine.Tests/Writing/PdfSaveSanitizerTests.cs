@@ -14,7 +14,22 @@ public sealed class PdfSaveSanitizerTests
     {
         byte[] source = WithArtifacts(invalidCrop: true, emptyOutlines: true);
 
-        byte[] result = PdfSaveSanitizer.RepairHarmlessArtifacts(PdfDocument.Open(source));
+        PdfSaveRepairPlan plan = PdfSaveSanitizer.CreateRepairPlan(PdfDocument.Open(source));
+        Assert.True(plan.HasChanges);
+        Assert.Equal(source.Length, plan.OriginalSize);
+        Assert.Collection(plan.Changes,
+            change =>
+            {
+                Assert.Equal(PdfSaveRepairKind.RemoveDanglingOutlines, change.Kind);
+                Assert.Null(change.PageIndex);
+            },
+            change =>
+            {
+                Assert.Equal(PdfSaveRepairKind.RemoveInvalidCropBox, change.Kind);
+                Assert.Equal(0, change.PageIndex);
+            });
+
+        byte[] result = plan.Apply();
         PdfDocument reopened = PdfDocument.Open(result);
         PdfDictionary catalog = Dictionary(reopened, reopened.Trailer[Name("Root")]);
         Assert.False(catalog.ContainsKey(Name("Outlines")));
@@ -28,8 +43,10 @@ public sealed class PdfSaveSanitizerTests
     public void RepairHarmlessArtifacts_PreservesValidStateByteForByte()
     {
         byte[] source = WithArtifacts(invalidCrop: false, emptyOutlines: false);
-        Assert.Equal(source,
-            PdfSaveSanitizer.RepairHarmlessArtifacts(PdfDocument.Open(source)));
+        PdfSaveRepairPlan plan = PdfSaveSanitizer.CreateRepairPlan(PdfDocument.Open(source));
+        Assert.False(plan.HasChanges);
+        Assert.Empty(plan.Changes);
+        Assert.Equal(source, plan.Apply());
     }
 
     private static PdfDictionary Dictionary(PdfDocument document, PdfObject value) =>
