@@ -1,4 +1,5 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -57,6 +58,25 @@ public sealed class PdfPageContentReaderTests
         Assert.Null(page.Images[1].ResourceName);
         Assert.True(page.Images[1].IsInline);
         Assert.Equal(2, page.Instructions.Count(instruction => instruction.Operator == "BI" || instruction.Operator == "Do"));
+        PdfExtractedPath clippingPath = Assert.Single(page.Paths);
+        Assert.True(clippingPath.IsClippingPath);
+        Assert.Equal("n", clippingPath.PaintOperator);
+        Assert.Equal(new PdfContentBounds(10, 20, 40, 60), clippingPath.BoundingBox);
+        Assert.Equal("re", Assert.Single(clippingPath.Segments).Operator);
+    }
+
+    [Fact]
+    public void ExtractsTransformedVectorPathSegmentsInPaintingOrder()
+    {
+        PdfPageContent page = Read("q 2 0 0 3 10 20 cm 1 2 m 4 5 l 6 7 8 9 10 11 c h S Q");
+
+        PdfExtractedPath path = Assert.Single(page.Paths);
+        Assert.False(path.IsClippingPath);
+        Assert.Equal("S", path.PaintOperator);
+        Assert.Equal(new PdfContentBounds(12, 26, 30, 53), path.BoundingBox);
+        Assert.Equal(["m", "l", "c", "h"], path.Segments.Select(segment => segment.Operator));
+        Assert.Equal(new PdfPoint(12, 26), path.Segments[0].Points[0]);
+        Assert.Equal(new PdfPoint(30, 53), path.Segments[2].Points[2]);
     }
 
     [Fact]

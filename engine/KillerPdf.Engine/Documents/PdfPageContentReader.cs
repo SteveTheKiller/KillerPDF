@@ -1,4 +1,5 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
@@ -65,6 +66,7 @@ public sealed class PdfPageContentReader
         var fonts = new Dictionary<string, PdfExtractionFont>();
         var fontNames = new Dictionary<PdfDictionary, string>();
         var images = new List<PdfExtractedImage>();
+        var paths = new List<PdfExtractedPath>();
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         long decodedBytes = 0;
@@ -76,7 +78,7 @@ public sealed class PdfPageContentReader
         var text = PdfTextContentReader.ReadInstructions(instructions, fonts, cancellationToken: cancellationToken);
         return new PdfPageContent(box.Width, box.Height,
             text.Select(t => new PdfExtractedLetter(t.Text, t.Bounds, t.FontName, t.FontSize,
-                t.PointSize, t.Origin, t.AdvanceEnd)), images, interpretedInstructions, diagnostics);
+                t.PointSize, t.Origin, t.AdvanceEnd)), images, interpretedInstructions, paths, diagnostics);
 
         string Font(PdfObject value)
         {
@@ -130,6 +132,7 @@ public sealed class PdfPageContentReader
             if (depth >= 32) throw new FormatException("Form nesting limit exceeded.");
             var stack = new Stack<(Matrix Matrix, PdfContentBounds Clip)>();
             var path = new List<PdfContentBounds>();
+            var pathSegments = new List<PdfExtractedPathSegment>();
             bool pendingClip = false;
             foreach (var instruction in PdfContentStreamReader.Read(bytes, cancellationToken: cancellationToken,
                 resolveColorComponents: name => ColorComponents(Resource(current, "ColorSpace", name), current, 0)))
@@ -210,20 +213,31 @@ public sealed class PdfPageContentReader
                         if (args.Count == 4)
                         {
                             double x = Number(args[0]), y = Number(args[1]), w = Number(args[2]), h = Number(args[3]);
-                            path.Add(Transform(new(Math.Min(x, x + w), Math.Min(y, y + h), Math.Max(x, x + w), Math.Max(y, y + h)), ctm));
+                            PdfPoint[] points = [ctm.Point(x, y), ctm.Point(x + w, y),
+                                ctm.Point(x + w, y + h), ctm.Point(x, y + h)];
+                            path.Add(new(points.Min(point => point.X), points.Min(point => point.Y),
+                                points.Max(point => point.X), points.Max(point => point.Y)));
+                            pathSegments.Add(new("re", Array.AsReadOnly(points)));
                         }
                         break;
                     case "m": case "l": case "c": case "v": case "y":
+                        var segmentPoints = new List<PdfPoint>();
                         for (int i = 0; i + 1 < args.Count; i += 2)
                         {
                             var point = ctm.Point(Number(args[i]), Number(args[i + 1]));
                             path.Add(new(point.X, point.Y, point.X, point.Y));
+                            segmentPoints.Add(point);
                         }
+                        pathSegments.Add(new(instruction.Operator, segmentPoints.AsReadOnly()));
                         break;
+                    case "h": pathSegments.Add(new("h", Array.Empty<PdfPoint>())); break;
                     case "W": case "W*": pendingClip = true; break;
                     case "n": case "S": case "s": case "f": case "F": case "f*": case "B": case "B*": case "b": case "b*":
+                        if (path.Count > 0)
+                            paths.Add(new PdfExtractedPath(Array.AsReadOnly(pathSegments.ToArray()),
+                                PdfContentBounds.Union(path), instruction.Operator, pendingClip));
                         if (pendingClip) clip = path.Count == 0 ? default : Intersect(clip, PdfContentBounds.Union(path));
-                        pendingClip = false; path.Clear(); break;
+                        pendingClip = false; path.Clear(); pathSegments.Clear(); break;
                 }
                 Add(instruction);
             }

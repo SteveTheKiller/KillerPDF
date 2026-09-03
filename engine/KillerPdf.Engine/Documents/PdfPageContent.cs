@@ -71,6 +71,16 @@ public sealed class PdfExtractedWord
 /// <summary>An image placement in PDF coordinates.</summary>
 public sealed record PdfExtractedImage(PdfContentBounds BoundingBox, string? ResourceName = null, bool IsInline = false);
 
+/// <summary>One geometry-building operator in an extracted vector path.</summary>
+public sealed record PdfExtractedPathSegment(string Operator, IReadOnlyList<PdfPoint> Points);
+
+/// <summary>A vector path and the operator that paints, clips, or discards it.</summary>
+public sealed record PdfExtractedPath(
+    IReadOnlyList<PdfExtractedPathSegment> Segments,
+    PdfContentBounds BoundingBox,
+    string PaintOperator,
+    bool IsClippingPath);
+
 /// <summary>A contiguous sequence of extracted characters sharing font and writing direction.</summary>
 public sealed class PdfExtractedTextRun
 {
@@ -127,13 +137,14 @@ public sealed class PdfPageContent
 {
     internal PdfPageContent(double width, double height, IEnumerable<PdfExtractedLetter> letters,
         IEnumerable<PdfExtractedImage> images, IEnumerable<PdfContentInstruction> instructions,
-        IEnumerable<string>? diagnostics = null)
+        IEnumerable<PdfExtractedPath> paths, IEnumerable<string>? diagnostics = null)
     {
         Width = width;
         Height = height;
         Letters = Array.AsReadOnly(letters.ToArray());
         Images = Array.AsReadOnly(images.ToArray());
         Instructions = Array.AsReadOnly(instructions.ToArray());
+        Paths = Array.AsReadOnly(paths.ToArray());
         Diagnostics = Array.AsReadOnly((diagnostics ?? []).ToArray());
         Words = GroupWords(Letters);
         TextRuns = GroupTextRuns(Letters);
@@ -156,6 +167,8 @@ public sealed class PdfPageContent
     public IReadOnlyList<PdfExtractedImage> Images { get; }
     /// <summary>Gets the interpreted page instructions, including expanded Form XObjects.</summary>
     public IReadOnlyList<PdfContentInstruction> Instructions { get; }
+    /// <summary>Gets vector paths in interpreted painting order.</summary>
+    public IReadOnlyList<PdfExtractedPath> Paths { get; }
     /// <summary>Gets compatibility recoveries encountered while extracting this page.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
     /// <summary>Gets words separated by spaces in content order.</summary>
