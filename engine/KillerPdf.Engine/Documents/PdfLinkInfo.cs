@@ -7,6 +7,10 @@ public sealed record PdfLinkInfo
     public required int PageIndex { get; init; }
     /// <summary>Gets the link's index in the page annotation array.</summary>
     public required int AnnotationIndex { get; init; }
+    /// <summary>Gets the annotation object number when the link is indirect.</summary>
+    public int? ObjectNumber { get; init; }
+    /// <summary>Gets the annotation object generation when the link is indirect.</summary>
+    public int? Generation { get; init; }
     /// <summary>Gets the normalized left coordinate in PDF points.</summary>
     public required double Left { get; init; }
     /// <summary>Gets the normalized bottom coordinate in PDF points.</summary>

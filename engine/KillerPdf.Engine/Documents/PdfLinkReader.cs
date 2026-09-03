@@ -78,6 +78,8 @@ public static class PdfLinkReader
             {
                 PageIndex = pageIndex,
                 AnnotationIndex = index,
+                ObjectNumber = (annotationValue as PdfIndirectReference)?.ObjectNumber,
+                Generation = (annotationValue as PdfIndirectReference)?.Generation,
                 Left = Math.Min(x1, x2), Bottom = Math.Min(y1, y2),
                 Right = Math.Max(x1, x2), Top = Math.Max(y1, y2),
                 DestinationPageIndex = destinationPage,
