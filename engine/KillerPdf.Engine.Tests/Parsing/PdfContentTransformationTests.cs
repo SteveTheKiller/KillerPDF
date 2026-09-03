@@ -50,4 +50,21 @@ public sealed class PdfContentTransformationTests
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfContentTransformation.Rewrite([],
             new Dictionary<int, PdfContentInstruction?> { [0] = null }));
     }
+
+    [Fact]
+    public void TransformRangeChangesOnlySelectedInstructions()
+    {
+        IReadOnlyList<PdfContentInstruction> source =
+            PdfContentStreamReader.Read("1 A 2 B 3 C 4 D"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.TransformRange(
+                source, 1, 2, PdfContentTransformMatrix.Translation(10, 20));
+
+        Assert.Equal(["A", "q", "cm", "B", "C", "Q", "D"],
+            result.Select(instruction => instruction.Operator));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfContentTransformation.TransformRange(source, 3, 2,
+                PdfContentTransformMatrix.Translation(0, 0)));
+    }
 }

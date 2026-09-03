@@ -85,4 +85,30 @@ public static class PdfContentTransformation
         result.Add(new PdfContentInstruction("Q", 0, []));
         return Array.AsReadOnly(result.ToArray());
     }
+
+    /// <summary>Wraps a contiguous instruction range in an isolated affine transformation.</summary>
+    public static IReadOnlyList<PdfContentInstruction> TransformRange(
+        IEnumerable<PdfContentInstruction> instructions,
+        int startIndex, int count,
+        PdfContentTransformMatrix matrix)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        PdfContentInstruction[] source = instructions.ToArray();
+        if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
+            throw new ArgumentOutOfRangeException(nameof(startIndex),
+                "The transformed instruction range is outside the stream.");
+        var result = new List<PdfContentInstruction>(source.Length + 3);
+        result.AddRange(source.Take(startIndex));
+        result.Add(new PdfContentInstruction("q", 0, []));
+        result.Add(new PdfContentInstruction("cm", 0,
+            [
+                new PdfReal(matrix.A), new PdfReal(matrix.B),
+                new PdfReal(matrix.C), new PdfReal(matrix.D),
+                new PdfReal(matrix.E), new PdfReal(matrix.F)
+            ]));
+        result.AddRange(source.Skip(startIndex).Take(count));
+        result.Add(new PdfContentInstruction("Q", 0, []));
+        result.AddRange(source.Skip(startIndex + count));
+        return Array.AsReadOnly(result.ToArray());
+    }
 }
