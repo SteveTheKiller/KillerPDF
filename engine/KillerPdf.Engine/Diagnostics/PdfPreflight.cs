@@ -175,7 +175,8 @@ public static class PdfPreflightRunner
                     : profile.Checks.Contains(PdfPreflightCheck.TaggedStructure);
                 if (selected)
                     findings.Add(new PdfPreflightFinding(
-                        $"Accessibility.{finding.Code}", finding.Severity, finding.Message));
+                        $"Accessibility.{finding.Code}", finding.Severity, finding.Message,
+                        finding.PageIndex, finding.ObjectNumber));
             }
         }
         if (profile.Checks.Contains(PdfPreflightCheck.PageBoxes))

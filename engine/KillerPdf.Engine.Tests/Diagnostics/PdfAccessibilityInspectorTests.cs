@@ -42,4 +42,45 @@ public sealed class PdfAccessibilityInspectorTests
         Assert.True(report.PassesImplementedChecks);
         Assert.Empty(report.Findings);
     }
+
+    [Fact]
+    public void InspectReportsFigureWithoutAlternateDescription()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.Figure, 0)
+            .Rectangle(10, 10, 20, 20).Fill()
+            .EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Figure", Language = "en-US" })
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Figure, 0, 0, 1)
+            .Build());
+
+        PdfAccessibilityFinding finding = Assert.Single(
+            PdfAccessibilityInspector.Inspect(document).Findings);
+
+        Assert.Equal(PdfAccessibilityFindingCode.MissingFigureAlternateDescription,
+            finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+    }
+
+    [Fact]
+    public void InspectAcceptsFigureAlternateDescription()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.Figure, 0)
+            .Rectangle(10, 10, 20, 20).Fill()
+            .EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Figure", Language = "en-US" })
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Figure, 0, 0, 1,
+                alternateDescription: "A square")
+            .Build());
+
+        Assert.Empty(PdfAccessibilityInspector.Inspect(document).Findings);
+    }
 }
