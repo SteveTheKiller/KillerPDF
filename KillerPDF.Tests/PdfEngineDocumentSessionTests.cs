@@ -66,4 +66,63 @@ public sealed class PdfEngineDocumentSessionTests
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }
+
+    [Fact]
+    public void VisualPageSize_UsesExpectedDimensionsForNativeAndApplicationRotations()
+    {
+        string portraitPath = Path.Combine(Path.GetTempPath(), $"killerpdf-portrait-visual-{Guid.NewGuid():N}.pdf");
+        string landscapePath = Path.Combine(Path.GetTempPath(), $"killerpdf-landscape-visual-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(portraitPath, new PdfDocumentBuilder().AddBlankPage(320, 480).Build());
+            File.WriteAllBytes(landscapePath, new PdfDocumentBuilder().AddBlankPage(640, 360).Build());
+
+            foreach (int rotation in new[] { 0, 90, 180, 270 })
+            {
+                if (rotation != 0)
+                {
+                    PdfEngineIntegration.ApplyPageRotations(portraitPath,
+                        new Dictionary<int, int> { [0] = rotation });
+                    PdfEngineIntegration.ApplyPageRotations(landscapePath,
+                        new Dictionary<int, int> { [0] = rotation });
+                }
+
+                PdfEngineDocumentSession portrait = PdfEngineDocumentSession.Open(portraitPath);
+                PdfEngineDocumentSession landscape = PdfEngineDocumentSession.Open(landscapePath);
+
+                (double, double) expectedPortrait = rotation is 90 or 270
+                    ? (480d, 320d)
+                    : (320d, 480d);
+                (double, double) expectedLandscape = rotation is 90 or 270
+                    ? (360d, 640d)
+                    : (640d, 360d);
+
+                Assert.Equal(expectedPortrait, portrait.VisualPageSize(0));
+                Assert.Equal(expectedLandscape, landscape.VisualPageSize(0));
+
+                Assert.Equal((320d, 480d), portrait.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 0 }));
+                Assert.Equal((480d, 320d), portrait.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 90 }));
+                Assert.Equal((320d, 480d), portrait.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 180 }));
+                Assert.Equal((480d, 320d), portrait.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 270 }));
+
+                Assert.Equal((640d, 360d), landscape.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 0 }));
+                Assert.Equal((360d, 640d), landscape.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 90 }));
+                Assert.Equal((640d, 360d), landscape.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 180 }));
+                Assert.Equal((360d, 640d), landscape.VisualPageSize(0,
+                    new Dictionary<int, int> { [0] = 270 }));
+            }
+        }
+        finally
+        {
+            if (File.Exists(portraitPath)) File.Delete(portraitPath);
+            if (File.Exists(landscapePath)) File.Delete(landscapePath);
+        }
+    }
 }

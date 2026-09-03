@@ -18,6 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Prevented crashes from stale or repeated tab-close requests (#353).
 - Kept the footer page number current during Continuous navigation and scaled footer controls with the interface (#354, #355).
 - Preserved detected text sizes, identified unavailable font substitutions, and fixed Save Flattened crashes on edited tagged PDFs (#356).
+- Preserved landscape page orientation and proportions when flattening rotated PDFs (#362).
 - Localized remaining round-trip validation messages in all 15 supported languages (#227).
 
 ## [1.8.3] - 2026-09-02

@@ -1115,12 +1115,13 @@ namespace KillerPDF
                 PdfEngineDocumentSession engineSession = EnsureEngineDocumentSession();
                 int pageCount = engineSession.PageCount;
 
-                // Snapshot per-page dimensions (CropBox-aware) before going off-thread
+                // Snapshot the viewed page dimensions (CropBox-aware, rotation-aware)
+                // before going off-thread so the rebuilt raster pages keep their
+                // on-screen orientation.
                 var pageDims = new (double widthPt, double heightPt)[pageCount];
                 for (int i = 0; i < pageCount; i++)
                 {
-                    PdfPageInformation p = engineSession.Pages[i];
-                    pageDims[i] = (p.Width, p.Height);
+                    pageDims[i] = engineSession.VisualPageSize(i, _pageRotations);
                 }
 
                 // Show a progress overlay so the user knows we're working
