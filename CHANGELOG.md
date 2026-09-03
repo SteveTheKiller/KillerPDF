@@ -21,6 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Preserved landscape page orientation and proportions when flattening rotated PDFs (#362).
 - Removed a size limit that could prevent maximizing correctly after moving to a larger monitor (#363).
 - Restored the Compare PDFs toolbar caption and kept its choices open when launched from the overflow menu (#360).
+- Opened PDF comparison with equal document pane widths, excluding the sidebar (#359).
 - Localized remaining round-trip validation messages in all 15 supported languages (#227).
 - Added installer file details and the installed size in Windows' program list (#361).
 

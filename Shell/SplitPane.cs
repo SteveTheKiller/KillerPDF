@@ -316,7 +316,8 @@ namespace KillerPDF
                 aFrom: evenSplit ? aNow : (double?)null, aTo: evenSplit ? _paneAWidth : (double?)null,
                 done: () =>
             {
-                ApplyPaneWidths();     // hand pane B back to the star column
+                if (_comparisonActive) BalanceComparisonPanes();
+                else ApplyPaneWidths();     // hand pane B back to the star column
                 SyncSplitMinWidth();
                 // Both panes just changed width, so both have to re-fit. Queued at Loaded so it
                 // runs once the columns are real - on the startup restore the split opens before

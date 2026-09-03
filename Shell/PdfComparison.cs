@@ -192,10 +192,20 @@ public partial class MainWindow
         ComparisonFilesText.Text = $"{Path.GetFileName(source)}  ↔  {Path.GetFileName(comparison)}";
         ComparisonResultText.Text = Loc("Str_Compare_Comparing");
         ComparisonBar.Visibility = Visibility.Visible;
+        BalanceComparisonPanes();
         int page = Math.Max(0, Viewer.CurrentPageIndex);
         Viewer.EnterComparisonViewExt(page);
         ViewerB.EnterComparisonViewExt(Math.Min(page, Math.Max(0, ViewerB.PageCountExt - 1)));
         _ = RefreshComparisonAsync(page);
+    }
+
+    private void BalanceComparisonPanes()
+    {
+        if (!_comparisonActive || !_isSplit || _splitAnimating) return;
+        SplitHost.UpdateLayout();
+        _paneAWidth = (SplitHost.ActualWidth - SplitGutter) / 2;
+        ApplyPaneWidths();
+        SplitHost.UpdateLayout();
     }
 
     private void ComparisonClose_Click(object sender, RoutedEventArgs e)
