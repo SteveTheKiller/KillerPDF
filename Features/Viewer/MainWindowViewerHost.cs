@@ -122,7 +122,7 @@ namespace KillerPDF
             if (PageList.SelectedIndex != pageIndex) PageList.SelectedIndex = pageIndex;
         }
 
-        private string FooterPageSizeUnit => App.GetSetting("FooterPageSizeUnit") switch
+        private static string FooterPageSizeUnit => App.GetSetting("FooterPageSizeUnit") switch
         {
             "Pixels" => "Pixels",
             "Imperial" or "Inches" => "Inches",

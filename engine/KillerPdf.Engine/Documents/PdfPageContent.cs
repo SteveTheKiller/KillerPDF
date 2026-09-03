@@ -78,7 +78,7 @@ public sealed class PdfPageContent
     /// <summary>Enumerates image placements.</summary>
     public IEnumerable<PdfExtractedImage> GetImages() => Images;
 
-    private static IReadOnlyList<PdfExtractedWord> GroupWords(IReadOnlyList<PdfExtractedLetter> letters)
+    private static List<PdfExtractedWord> GroupWords(IReadOnlyList<PdfExtractedLetter> letters)
     {
         var words = new List<PdfExtractedWord>();
         var current = new List<PdfExtractedLetter>();
@@ -106,6 +106,6 @@ public sealed class PdfPageContent
             current.Add(letter);
         }
         Flush();
-        return words.AsReadOnly();
+        return words;
     }
 }

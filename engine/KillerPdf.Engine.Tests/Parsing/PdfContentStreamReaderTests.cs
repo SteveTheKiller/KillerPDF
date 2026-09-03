@@ -13,7 +13,7 @@ public sealed class PdfContentStreamReaderTests
     {
         const string content = "BT /F1 12 Tf 1 0 0 1 40 700 Tm (Hello) Tj ET";
         var instructions = Read(content);
-        Assert.Equal(new[] { "BT", "Tf", "Tm", "Tj", "ET" }, instructions.Select(i => i.Operator));
+        Assert.Equal(["BT", "Tf", "Tm", "Tj", "ET"], instructions.Select(i => i.Operator));
         Assert.Empty(instructions[0].Operands);
         Assert.Equal("F1", Assert.IsType<PdfName>(instructions[1].Operands[0]).ValueAsLatin1());
         Assert.Equal(12, Assert.IsType<PdfInteger>(instructions[1].Operands[1]).Value);

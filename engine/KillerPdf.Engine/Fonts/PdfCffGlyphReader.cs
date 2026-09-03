@@ -71,7 +71,7 @@ public sealed class PdfCffGlyphReader
         var names = Index(ref position);
         var top = Index(ref position);
         if (names.Length != 1 || top.Length != 1) throw new NotSupportedException("CFF font sets are not supported.");
-        _strings = Index(ref position).Select(s => Encoding.Latin1.GetString(s.Span)).ToArray();
+        _strings = [.. Index(ref position).Select(s => Encoding.Latin1.GetString(s.Span))];
         _global = Index(ref position);
         var dict = Dict(top[0]);
         if (Value(dict, 1206, 2) != 2) throw new NotSupportedException("Only Type 2 CFF charstrings are supported.");
@@ -135,7 +135,7 @@ public sealed class PdfCffGlyphReader
         if (offsets[0] != 0) throw Bad();
         var bytes = Slice(position, offsets[^1]);
         var result = new ReadOnlyMemory<byte>[count];
-        for (int i = 0; i < count; i++) result[i] = bytes.Slice(offsets[i], offsets[i + 1] - offsets[i]);
+        for (int i = 0; i < count; i++) result[i] = bytes[offsets[i]..offsets[i + 1]];
         position += offsets[^1];
         return result;
     }
@@ -201,7 +201,7 @@ public sealed class PdfCffGlyphReader
                 continue;
             }
             int op = value == 12 ? 1200 + Take(bytes, ref position) : value;
-            result[op] = stack.ToArray(); stack.Clear();
+            result[op] = [.. stack]; stack.Clear();
         }
         if (stack.Count != 0) throw Bad();
         return result;
@@ -428,9 +428,9 @@ public sealed class PdfCffGlyphReader
         private void CurveAt(int i) => Curve(_stack[i],_stack[i+1],_stack[i+2],_stack[i+3],_stack[i+4],_stack[i+5]);
         private void Curve(double dx1,double dy1,double dx2,double dy2,double dx3,double dy3)
         {
-            var p0=Transform(_x,_y);_x+=dx1;_y+=dy1;var p1=Transform(_x,_y);
+            var p0=Transform(_x,_y);_x+=dx1;_y+=dy1;var (X, Y) = Transform(_x,_y);
             _x+=dx2;_y+=dy2;var p2=Transform(_x,_y);_x+=dx3;_y+=dy3;var p3=Transform(_x,_y);
-            Point(p0);Point(p3);Extrema(p0.X,p1.X,p2.X,p3.X);Extrema(p0.Y,p1.Y,p2.Y,p3.Y);
+            Point(p0);Point(p3);Extrema(p0.X,X,p2.X,p3.X);Extrema(p0.Y,Y,p2.Y,p3.Y);
             void Extrema(double v0,double v1,double v2,double v3)
             {
                 double a=-v0+3*v1-3*v2+v3,b=2*(v0-2*v1+v2),c=v1-v0;
@@ -440,8 +440,8 @@ public sealed class PdfCffGlyphReader
             void At(double t)
             {
                 if(t<=0 || t>=1)return;double u=1-t;
-                Point((u*u*u*p0.X+3*u*u*t*p1.X+3*u*t*t*p2.X+t*t*t*p3.X,
-                    u*u*u*p0.Y+3*u*u*t*p1.Y+3*u*t*t*p2.Y+t*t*t*p3.Y));
+                Point((u*u*u*p0.X+3*u*u*t*X+3*u*t*t*p2.X+t*t*t*p3.X,
+                    u*u*u*p0.Y+3*u*u*t*Y+3*u*t*t*p2.Y+t*t*t*p3.Y));
             }
         }
     }

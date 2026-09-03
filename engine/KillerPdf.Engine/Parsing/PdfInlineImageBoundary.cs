@@ -5,7 +5,7 @@ namespace KillerPdf.Engine.Parsing;
 
 internal static class PdfInlineImageBoundary
 {
-    internal static int Find(ReadOnlyMemory<byte> source, string filter, CancellationToken cancellationToken, int earlyChange)
+    internal static int Find(ReadOnlyMemory<byte> source, string filter, int earlyChange, CancellationToken cancellationToken)
     {
         var bytes = source.Span;
         if (filter == "FlateDecode") return FlateLength(source, cancellationToken);

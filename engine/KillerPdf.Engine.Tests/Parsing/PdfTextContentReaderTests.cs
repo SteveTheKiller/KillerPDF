@@ -41,8 +41,8 @@ public sealed class PdfTextContentReaderTests
     public void PreservesLineMatrixAcrossShowsAndQuoteOperators()
     {
         var text = Read("BT /F1 10 Tf 12 TL 1 0 0 1 40 700 Tm (AA) Tj (A) ' 0 0 (A) \" 5 -14 TD (A) Tj T* (A) Tj ET");
-        Assert.Equal(new double[] { 40, 46, 40, 40, 45, 45 }, text.Select(p => p.Origin.X));
-        Assert.Equal(new double[] { 700, 700, 688, 676, 662, 648 }, text.Select(p => p.Origin.Y));
+        Assert.Equal([40, 46, 40, 40, 45, 45], text.Select(p => p.Origin.X));
+        Assert.Equal([700, 700, 688, 676, 662, 648], text.Select(p => p.Origin.Y));
     }
 
     [Fact]
@@ -59,8 +59,8 @@ public sealed class PdfTextContentReaderTests
     public void RestoresFontStateWithoutRestoringTextMatrix()
     {
         var text = Read("BT /F1 10 Tf (A) Tj q /F1 20 Tf (A) Tj Q (A) Tj ET");
-        Assert.Equal(new double[] { 0, 6, 18 }, text.Select(p => p.Origin.X));
-        Assert.Equal(new double[] { 10, 20, 10 }, text.Select(p => p.FontSize));
+        Assert.Equal([0, 6, 18], text.Select(p => p.Origin.X));
+        Assert.Equal([10, 20, 10], text.Select(p => p.FontSize));
     }
 
     [Theory]

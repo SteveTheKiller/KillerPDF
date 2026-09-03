@@ -124,7 +124,7 @@ public sealed class PdfPageContentReader
                         ctm = new Matrix(Number(args[0]), Number(args[1]), Number(args[2]), Number(args[3]), Number(args[4]), Number(args[5])).Then(ctm); break;
                     case "Tf":
                         if (args.Count != 2 || args[0] is not PdfName fontName) throw new FormatException("Invalid font selection.");
-                        Add(new PdfContentInstruction("Tf", instruction.Offset, new PdfObject[] { Name(Font(Resource(current, "Font", fontName))), args[1] }));
+                        Add(new PdfContentInstruction("Tf", instruction.Offset, [Name(Font(Resource(current, "Font", fontName))), args[1]]));
                         continue;
                     case "gs":
                         if (args.Count != 1 || args[0] is not PdfName gsName)
@@ -136,7 +136,7 @@ public sealed class PdfPageContentReader
                             continue;
                         }
                         if (gs.TryGetValue(Name("Font"), out var gsFont) && Resolve(gsFont) is PdfArray fontArray && fontArray.Count == 2)
-                            Add(new PdfContentInstruction("Tf", instruction.Offset, new PdfObject[] { Name(Font(fontArray[0])), Resolve(fontArray[1]) }));
+                            Add(new PdfContentInstruction("Tf", instruction.Offset, [Name(Font(fontArray[0])), Resolve(fontArray[1])]));
                         continue;
                     case "Do":
                         if (args.Count != 1 || args[0] is not PdfName xName || Resolve(Resource(current, "XObject", xName)) is not PdfStream xobject)
@@ -170,7 +170,7 @@ public sealed class PdfPageContentReader
                         if (args.Count == 2 && args[1] is PdfName propertyName)
                         {
                             Add(new PdfContentInstruction("BDC", instruction.Offset,
-                                new[] { args[0], Resolve(Resource(current, "Properties", propertyName)) }));
+                                [args[0], Resolve(Resource(current, "Properties", propertyName))]));
                             continue;
                         }
                         break;

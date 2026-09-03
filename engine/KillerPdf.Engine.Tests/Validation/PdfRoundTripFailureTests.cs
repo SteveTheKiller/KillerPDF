@@ -6,11 +6,11 @@ namespace KillerPdf.Engine.Tests.Validation;
 
 public sealed class PdfRoundTripFailureTests
 {
-    public static TheoryData<string> SupportedCultures => new()
-    {
+    public static TheoryData<string> SupportedCultures =>
+    [
         "en-US", "de-DE", "fr-FR", "es", "it-IT", "cs-CZ", "hu-HU", "pl-PL",
         "ru-RU", "tr-TR", "ja-JP", "zh-CN", "zh-TW", "kk-KZ", "bn"
-    };
+    ];
 
     [Theory]
     [MemberData(nameof(SupportedCultures))]

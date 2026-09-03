@@ -50,7 +50,7 @@ public sealed class PdfFontResourceReaderTests
         var encoding = D(("BaseEncoding", N("WinAnsiEncoding")), ("Differences", new PdfArray([
             new PdfInteger(65), N("Aacute"), N("f_f_i"), N("uni03A9"), N("u1F600"), N("A.alt")])));
         var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")), ("Encoding", encoding)));
-        Assert.Equal(new[] { "\u00C1", "ffi", "\u03A9", "\U0001F600", "A" }, font.Decode("ABCDE"u8.ToArray()).Select(c => c.Text));
+        Assert.Equal(["\u00C1", "ffi", "\u03A9", "\U0001F600", "A"], font.Decode("ABCDE"u8.ToArray()).Select(c => c.Text));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class PdfFontResourceReaderTests
     {
         var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
             ("ToUnicode", Stream("1 begincodespacerange <00> <FF> endcodespacerange 1 beginbfchar <41> <03A9> endbfchar"))));
-        Assert.Equal(new[] { "\u03A9", "B" }, font.Decode("AB"u8.ToArray()).Select(c => c.Text));
+        Assert.Equal(["\u03A9", "B"], font.Decode("AB"u8.ToArray()).Select(c => c.Text));
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class PdfFontResourceReaderTests
     {
         var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
             ("ToUnicode", Stream("1 begincodespacerange <0000> <FFFF> endcodespacerange 2 beginbfchar <41> <03A9> <42> <0042> endbfchar"))));
-        Assert.Equal(new[] { "\u03A9", "B" }, font.Decode("AB"u8.ToArray()).Select(c => c.Text));
+        Assert.Equal(["\u03A9", "B"], font.Decode("AB"u8.ToArray()).Select(c => c.Text));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public sealed class PdfFontResourceReaderTests
         var font = Read(Type0(descendant,
             Stream("1 begincodespacerange <0000> <FFFF> endcodespacerange 1 begincidrange <0041> <0042> 5 endcidrange"),
             Stream("1 begincodespacerange <0000> <FFFF> endcodespacerange 1 beginbfrange <0041> <0042> <0041> endbfrange")));
-        Assert.Equal(new[] { "A", "B" }, font.Decode(new byte[] { 0, 65, 0, 66 }).Select(c => c.Text));
+        Assert.Equal(["A", "B"], font.Decode(new byte[] { 0, 65, 0, 66 }).Select(c => c.Text));
         Assert.Equal(600, font.GetWidth(65));
         Assert.Equal(600, font.GetWidth(66));
     }
@@ -177,8 +177,8 @@ public sealed class PdfFontResourceReaderTests
         var descriptor = D(("FontFile2", new PdfStream(D(), TrueTypeFontTests.BuildTestFont(false))));
         var font = Read(Type0(D(("FontDescriptor", descriptor)),
             Stream("2 begincodespacerange <00> <7F> <8000> <FFFF> endcodespacerange 2 begincidchar <41> 1 <8001> 1 endcidchar")));
-        Assert.Equal(new[] { 1, 2 }, font.Decode(new byte[] { 65, 128, 1 }).Select(c => c.ByteLength));
-        Assert.Equal(new[] { "A", "A" }, font.Decode(new byte[] { 65, 128, 1 }).Select(c => c.Text));
+        Assert.Equal([1, 2], font.Decode(new byte[] { 65, 128, 1 }).Select(c => c.ByteLength));
+        Assert.Equal(["A", "A"], font.Decode(new byte[] { 65, 128, 1 }).Select(c => c.Text));
     }
 
     [Fact]
@@ -187,7 +187,7 @@ public sealed class PdfFontResourceReaderTests
         var descendant = D(("CIDSystemInfo", D(("Registry", Text("Adobe")), ("Ordering", Text("Japan1")))));
         var font = Read(Type0(descendant, N("90ms-RKSJ-H")));
         Assert.Equal("A\u65E5\u672C", string.Concat(font.Decode(Convert.FromHexString("4193FA967B")).Select(c => c.Text)));
-        Assert.Equal(new[] { 1, 2, 2 }, font.Decode(Convert.FromHexString("4193FA967B")).Select(c => c.ByteLength));
+        Assert.Equal([1, 2, 2], font.Decode(Convert.FromHexString("4193FA967B")).Select(c => c.ByteLength));
     }
 
     [Theory]
@@ -222,7 +222,7 @@ public sealed class PdfFontResourceReaderTests
     {
         var font = Read(D(("Subtype", N("Type3")), ("Encoding", D(("Differences",
             new PdfArray([new PdfInteger(98), N("Bullet"), N("Circle")]))))));
-        Assert.Equal("bc", string.Concat(font.Decode(new byte[] { 98, 99 }).Select(c => c.Text)));
+        Assert.Equal("bc", string.Concat(font.Decode("bc"u8.ToArray()).Select(c => c.Text)));
     }
 
     [Fact]

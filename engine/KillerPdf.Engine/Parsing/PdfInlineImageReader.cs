@@ -7,8 +7,8 @@ namespace KillerPdf.Engine.Parsing;
 internal static class PdfInlineImageReader
 {
     internal static PdfContentInstruction Read(PdfObjectParser parser, ReadOnlyMemory<byte> source,
-        int offset, int maximumEntries, CancellationToken cancellationToken,
-        Func<PdfName, int?>? resolveColorComponents)
+        int offset, int maximumEntries, Func<PdfName, int?>? resolveColorComponents,
+        CancellationToken cancellationToken)
     {
         var entries = new Dictionary<PdfName, PdfObject>();
         while (true)
@@ -49,7 +49,7 @@ internal static class PdfInlineImageReader
             }
             length = filterName.ValueAsLatin1() == "CCITTFaxDecode"
                 ? PdfInlineFaxBoundary.Find(source[start..], parameters as PdfDictionary, cancellationToken)
-                : PdfInlineImageBoundary.Find(source[start..], filterName.ValueAsLatin1(), cancellationToken, earlyChange);
+                : PdfInlineImageBoundary.Find(source[start..], filterName.ValueAsLatin1(), earlyChange, cancellationToken);
         }
         else length = SampleLength(dictionary, offset, resolveColorComponents);
         if (length > bytes.Length - start)

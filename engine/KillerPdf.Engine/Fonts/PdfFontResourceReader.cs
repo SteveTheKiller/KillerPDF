@@ -57,15 +57,14 @@ public static class PdfFontResourceReader
                 ReadCidWidths(Get(metrics, "W") as PdfArray, widths);
                 if (Get(font, "Encoding") is PdfStream encodingStream)
                 {
-                    var cmap = ReadCidMap(Decode(encodingStream));
-                    cidSelector = c => cmap.Map.GetValueOrDefault(c, 0u);
-                    encodingSpaces = PdfToUnicodeMap.CreateCodeSpaces(cmap.Spaces);
-                    vertical = cmap.Vertical;
+                    var (Map, Spaces, Vertical) = ReadCidMap(Decode(encodingStream));
+                    cidSelector = c => Map.GetValueOrDefault(c, 0u);
+                    encodingSpaces = PdfToUnicodeMap.CreateCodeSpaces(Spaces);
+                    vertical = Vertical;
                 }
                 else if (encodingName is not "Identity-H" and not "Identity-V")
                 {
-                    predefined = encodingName is null ? null : PdfPredefinedCMaps.Find(encodingName);
-                    if (predefined is null) throw new NotSupportedException($"Predefined composite encoding /{encodingName} is not supported.");
+                    predefined = (encodingName is null ? null : PdfPredefinedCMaps.Find(encodingName)) ?? throw new NotSupportedException($"Predefined composite encoding /{encodingName} is not supported.");
                     cidSelector = predefined.Cid;
                 }
             }
@@ -302,10 +301,10 @@ public static class PdfFontResourceReader
                 if (values.Count % 2 != 0 || values.Count > 512) throw new FormatException("Invalid CID code spaces.");
                 for (int i = 0; i < values.Count; i += 2)
                 {
-                    var low = ReadCode(values[i]);
+                    var (Code, Length) = ReadCode(values[i]);
                     var high = ReadCode(values[i + 1]);
-                    if (low.Length != high.Length || high.Code < low.Code) throw new FormatException("Invalid CID code space range.");
-                    spaces.Add((low.Code, high.Code, low.Length));
+                    if (Length != high.Length || high.Code < Code) throw new FormatException("Invalid CID code space range.");
+                    spaces.Add((Code, high.Code, Length));
                 }
             }
             if (instruction.Operator is not "endcidchar" and not "endcidrange") continue;

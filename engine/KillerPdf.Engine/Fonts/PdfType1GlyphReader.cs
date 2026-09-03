@@ -121,7 +121,7 @@ internal sealed class PdfType1GlyphReader
                 reading = true;
                 var initial = tokens.Read();
                 EncodingNames = initial.Kind == PdfTokenKind.Integer
-                    ? Enumerable.Repeat(".notdef", 256).ToArray()
+                    ? [.. Enumerable.Repeat(".notdef", 256)]
                     : PdfFontTables.EncodingNames(initial.ValueAsLatin1());
             }
             else if (reading)
@@ -131,7 +131,7 @@ internal sealed class PdfType1GlyphReader
                     && beforePrevious.Kind == PdfTokenKind.Integer && thirdPrevious.ValueAsLatin1() == "dup"
                     && int.TryParse(beforePrevious.ValueAsLatin1(), out int code) && code is >= 0 and < 256)
                 {
-                    EncodingNames ??= Enumerable.Repeat(".notdef", 256).ToArray();
+                    EncodingNames ??= [.. Enumerable.Repeat(".notdef", 256)];
                     EncodingNames[code] = previous.ValueAsLatin1();
                 }
             }
@@ -289,7 +289,7 @@ internal sealed class PdfType1GlyphReader
                 case 16:
                     int subr = checked((int)Pop()), count = checked((int)Pop());
                     if (count < 0 || count > _stack.Count) throw new FormatException("Invalid Type1 OtherSubr arguments.");
-                    double[] args = _stack.GetRange(_stack.Count - count, count).ToArray();
+                    double[] args = [.. _stack.GetRange(_stack.Count - count, count)];
                     _stack.RemoveRange(_stack.Count - count, count);
                     if (subr == 1) { _flexing = true; _flex.Clear(); _flex.Add((_x, _y)); }
                     else if (subr == 2) { if (_flexing) _flex.Add((_x, _y)); }
@@ -302,7 +302,7 @@ internal sealed class PdfType1GlyphReader
                             _x = _flex[0].X; _y = _flex[0].Y;
                             CurveTo(p[0], p[1], p[2]); CurveTo(p[3], p[4], p[5]);
                         }
-                        else foreach (var p in _flex) Include(p.X, p.Y);
+                        else foreach (var (X, Y) in _flex) Include(X, Y);
                         _other.Push(_y); _other.Push(_x);
                     }
                     else if (subr == 3 && args.Length > 0) _other.Push(args[0]);
@@ -325,11 +325,11 @@ internal sealed class PdfType1GlyphReader
         }
         private void CurveTo((double X, double Y) a, (double X, double Y) b, (double X, double Y) c)
         {
-            var p0 = Transform(_x, _y); var p1 = Transform(a.X, a.Y);
+            var (X, Y) = Transform(_x, _y); var p1 = Transform(a.X, a.Y);
             var p2 = Transform(b.X, b.Y); var p3 = Transform(c.X, c.Y);
-            IncludeTransformed(p0.X, p0.Y); IncludeTransformed(p3.X, p3.Y);
-            foreach (double t in Roots(p0.X, p1.X, p2.X, p3.X).Concat(Roots(p0.Y, p1.Y, p2.Y, p3.Y)))
-                IncludeTransformed(Bezier(p0.X, p1.X, p2.X, p3.X, t), Bezier(p0.Y, p1.Y, p2.Y, p3.Y, t));
+            IncludeTransformed(X, Y); IncludeTransformed(p3.X, p3.Y);
+            foreach (double t in Roots(X, p1.X, p2.X, p3.X).Concat(Roots(Y, p1.Y, p2.Y, p3.Y)))
+                IncludeTransformed(Bezier(X, p1.X, p2.X, p3.X, t), Bezier(Y, p1.Y, p2.Y, p3.Y, t));
             _x = c.X; _y = c.Y;
         }
         private static IEnumerable<double> Roots(double p0, double p1, double p2, double p3)
@@ -349,7 +349,7 @@ internal sealed class PdfType1GlyphReader
             return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
         }
         private (double X, double Y) Transform(double x, double y) => (x * font._xx + y * font._yx + font._tx, x * font._xy + y * font._yy + font._ty);
-        private void Include(double x, double y) { var p = Transform(x, y); IncludeTransformed(p.X, p.Y); }
+        private void Include(double x, double y) { var (X, Y) = Transform(x, y); IncludeTransformed(X, Y); }
         private void IncludeTransformed(double x, double y)
         {
             if (!double.IsFinite(x) || !double.IsFinite(y)) throw new FormatException("Nonfinite Type1 outline coordinate.");

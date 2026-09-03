@@ -50,7 +50,7 @@ public sealed record PdfRoundTripFailure(
             if (template is not null) break;
         }
         template ??= Messages.GetString($"en.{Code}", CultureInfo.InvariantCulture)
-            ?? throw new ArgumentOutOfRangeException(nameof(Code));
+            ?? throw new InvalidOperationException($"No message is defined for round-trip failure code {Code}.");
         return string.Format(culture, template, FirstDifference, FirstLength, SecondLength);
     }
 }

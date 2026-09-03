@@ -58,7 +58,7 @@ public sealed class PdfType1GlyphReaderTests
             program.AddRange([.. Number(x), .. Number(y), 21, .. Number(0), .. Number(2), 12, 16]);
         program.AddRange([.. Number(50), .. Number(200), .. Number(-10), .. Number(3), .. Number(0),
             12, 16, 12, 17, 12, 17, 12, 33, 14]);
-        Assert.Equal(new PdfGlyphBounds(100, -10, 200, 0), Font(program.ToArray()).GetGlyphBounds(65));
+        Assert.Equal(new PdfGlyphBounds(100, -10, 200, 0), Font([.. program]).GetGlyphBounds(65));
     }
 
     [Fact]

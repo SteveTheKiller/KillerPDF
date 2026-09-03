@@ -136,7 +136,7 @@ public sealed class PdfToUnicodeMap
     internal IReadOnlyList<PdfDecodedCharacter> DecodeWithFallback(ReadOnlySpan<byte> source, Func<uint, string?>? fallback)
         => DecodeCore(source, fallback, true);
 
-    private IReadOnlyList<PdfDecodedCharacter> DecodeCore(ReadOnlySpan<byte> source, Func<uint, string?>? fallback, bool replaceMissing)
+    private List<PdfDecodedCharacter> DecodeCore(ReadOnlySpan<byte> source, Func<uint, string?>? fallback, bool replaceMissing)
     {
         var result = new List<PdfDecodedCharacter>();
         int offset = 0;
@@ -160,7 +160,7 @@ public sealed class PdfToUnicodeMap
             }
             if (!matched) throw new FormatException("Text contains an incomplete or invalid character code.");
         }
-        return result.AsReadOnly();
+        return result;
     }
 
     private void ValidateSpaces()
@@ -168,10 +168,10 @@ public sealed class PdfToUnicodeMap
         for (int i = 0; i < _spaces.Count; i++)
         for (int j = i + 1; j < _spaces.Count; j++)
         {
-            var a = _spaces[i];
+            var (Low, High, Length) = _spaces[i];
             var b = _spaces[j];
-            int length = Math.Min(a.Length, b.Length);
-            uint al = a.Low >> (8 * (a.Length - length)), ah = a.High >> (8 * (a.Length - length));
+            int length = Math.Min(Length, b.Length);
+            uint al = Low >> (8 * (Length - length)), ah = High >> (8 * (Length - length));
             uint bl = b.Low >> (8 * (b.Length - length)), bh = b.High >> (8 * (b.Length - length));
             if (al <= bh && bl <= ah) throw new FormatException("Overlapping or ambiguous ToUnicode code spaces.");
         }

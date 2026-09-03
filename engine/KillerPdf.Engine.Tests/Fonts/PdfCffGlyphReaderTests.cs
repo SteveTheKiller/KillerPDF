@@ -49,7 +49,7 @@ public sealed class PdfCffGlyphReaderTests
     public void TruncatedIndexOffsetsAndUnfinishedCharstringAreRejected()
     {
         byte[] bytes = Build([.. Numbers(10, 20), 21]);
-        Assert.Null(PdfCffGlyphReader.TryRead(bytes[..^4]));
+        Assert.Null(PdfCffGlyphReader.TryRead(bytes.AsMemory()[..^4]));
         var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(bytes));
         Assert.Null(font.GetBounds(1));
         bytes[2] = 255;
@@ -108,11 +108,11 @@ public sealed class PdfCffGlyphReaderTests
         byte[] dict = [.. Offset(charsetOffset), 15, .. Offset(charstringsOffset), 17,
             141, .. Offset(privateOffset), 18];
         return [1, 0, 4, 4, .. name, .. Index(dict), 0, 0, 0, 0, 0, 0, 34,
-            .. charstrings, 141, 19, .. (subr is null ? new byte[] { 0, 0 } : Index(subr))];
+            .. charstrings, 141, 19, .. (subr is null ? [0, 0] : Index(subr))];
     }
     private static byte[] Offset(int value) => [29, (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
-    private static byte[] Numbers(params int[] values) => values.SelectMany(value => value is >= -107 and <= 107
-        ? new byte[] { (byte)(value + 139) } : new byte[] { 28, (byte)(value >> 8), (byte)value }).ToArray();
+    private static byte[] Numbers(params int[] values) => [.. values.SelectMany(value => value is >= -107 and <= 107
+        ? new byte[] { (byte)(value + 139) } : [28, (byte)(value >> 8), (byte)value])];
     private static byte[] Index(params byte[][] values)
     {
         var result = new List<byte> { (byte)(values.Length >> 8), (byte)values.Length, 2 };
@@ -120,6 +120,6 @@ public sealed class PdfCffGlyphReaderTests
         foreach (var value in values) { result.Add((byte)(offset >> 8)); result.Add((byte)offset); offset += value.Length; }
         result.Add((byte)(offset >> 8)); result.Add((byte)offset);
         foreach (var value in values) result.AddRange(value);
-        return result.ToArray();
+        return [.. result];
     }
 }

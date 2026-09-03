@@ -12,8 +12,8 @@ public sealed class PdfToUnicodeMapTests
     public void DecodesLigaturesAndSupplementaryCharacters()
     {
         var map = Parse(Space + "3 beginbfchar <0001> <0041> <0002> <00660069> <0003> <D83DDE00> endbfchar");
-        var decoded = map.Decode(new byte[] { 0, 1, 0, 2, 0, 3 });
-        Assert.Equal(new[] { "A", "fi", char.ConvertFromUtf32(0x1F600) }, decoded.Select(c => c.Text));
+        var decoded = map.Decode([0, 1, 0, 2, 0, 3]);
+        Assert.Equal(["A", "fi", char.ConvertFromUtf32(0x1F600)], decoded.Select(c => c.Text));
         Assert.Equal(new uint[] { 1, 2, 3 }, decoded.Select(c => c.Code));
         Assert.All(decoded, c => Assert.Equal(2, c.ByteLength));
     }
@@ -22,7 +22,7 @@ public sealed class PdfToUnicodeMapTests
     public void ExpandsSequentialAndArrayRanges()
     {
         var map = Parse(Space + "2 beginbfrange <0001> <0003> <0041> <0004> <0005> [<00660069> <03A9>] endbfrange");
-        Assert.Equal("ABCfi\u03A9", string.Concat(map.Decode(new byte[] { 0, 1, 0, 2, 0, 3, 0, 4, 0, 5 }).Select(c => c.Text)));
+        Assert.Equal("ABCfi\u03A9", string.Concat(map.Decode([0, 1, 0, 2, 0, 3, 0, 4, 0, 5]).Select(c => c.Text)));
     }
 
     [Fact]
@@ -30,9 +30,9 @@ public sealed class PdfToUnicodeMapTests
     {
         var map = Parse("2 begincodespacerange <00> <7F> <8000> <FFFF> endcodespacerange " +
             "2 beginbfchar <41> <0041> <8001> <4E2D> endbfchar");
-        Assert.Equal(new[] { "A", "\u4E2D" }, map.Decode(new byte[] { 65, 128, 1 }).Select(c => c.Text));
-        Assert.Throws<FormatException>(() => map.Decode(new byte[] { 128 }));
-        Assert.Throws<NotSupportedException>(() => map.Decode(new byte[] { 66 }));
+        Assert.Equal(["A", "\u4E2D"], map.Decode([65, 128, 1]).Select(c => c.Text));
+        Assert.Throws<FormatException>(() => map.Decode([128]));
+        Assert.Throws<NotSupportedException>(() => map.Decode("B"u8));
     }
 
     [Theory]
