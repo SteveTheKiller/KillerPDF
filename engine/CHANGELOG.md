@@ -23,6 +23,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added stable JSON inspection reports and explicit unsupported-check severity for preflight integrations (#334).
 - Added stable document-level accessibility findings for language, structure trees, and marked-content declarations (#335).
 - Added configurable signature trust roots and separate certificate validity, identity trust, revocation, and chain-detail results (#336).
+- Added document attachment inspection with decoded payloads, source objects, executable-content warnings, and traversal-safe extraction paths (#347).
 
 ## [1.8.3] - 2026-09-02
 
