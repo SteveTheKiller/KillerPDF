@@ -33,6 +33,8 @@ public sealed record PdfDocumentInformation
     public required PdfVersion Version { get; init; }
     /// <summary>Gets the number of leaf pages in the page tree.</summary>
     public required int PageCount { get; init; }
+    /// <summary>Gets the presentation settings applied when the document opens.</summary>
+    public required PdfInitialView InitialView { get; init; }
 
     /// <summary>Reads document information from an open PDF.</summary>
     public static PdfDocumentInformation Read(PdfDocument document)
@@ -46,6 +48,7 @@ public sealed record PdfDocumentInformation
                 ?? throw new InvalidOperationException("The trailer /Info value is not a dictionary.");
         }
 
+        PdfPageTree pageTree = PdfPageTree.Read(document);
         return new PdfDocumentInformation
         {
             Title = Text(info, "Title"),
@@ -59,7 +62,8 @@ public sealed record PdfDocumentInformation
             ModificationDate = Date(info, "ModDate"),
             Trapped = ReadTrapped(info),
             Version = document.Header.Version,
-            PageCount = PdfPageTree.Read(document).Pages.Count
+            PageCount = pageTree.Pages.Count,
+            InitialView = PdfInitialView.Read(document, pageTree)
         };
     }
 

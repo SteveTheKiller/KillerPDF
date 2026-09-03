@@ -24,8 +24,18 @@ public sealed class PdfDocumentInformationTests
                 ModificationDate = new DateTimeOffset(2026, 8, 24, 11, 12, 13, TimeSpan.Zero),
                 Trapped = PdfTrappedStatus.False
             })
+            .SetPageLayout(PdfPageLayout.TwoColumnRight)
+            .SetPageMode(PdfPageMode.UseOutlines)
+            .SetViewerPreferences(new PdfViewerPreferences
+            {
+                HideToolbar = true,
+                HideMenuBar = true,
+                FitWindow = true,
+                DisplayDocumentTitle = true
+            })
             .AddBlankPage()
             .AddBlankPage()
+            .SetOpenAction(1, PdfDestination.FitWidth(720))
             .Build();
 
         PdfDocumentInformation info = PdfDocumentInformation.Read(PdfDocument.Open(bytes));
@@ -42,6 +52,15 @@ public sealed class PdfDocumentInformationTests
         Assert.Equal(PdfTrappedStatus.False, info.Trapped);
         Assert.Equal(PdfVersion.Pdf20, info.Version);
         Assert.Equal(2, info.PageCount);
+        Assert.Equal(PdfPageLayout.TwoColumnRight, info.InitialView.PageLayout);
+        Assert.Equal(PdfPageMode.UseOutlines, info.InitialView.PageMode);
+        Assert.True(info.InitialView.ViewerPreferences.HideToolbar);
+        Assert.True(info.InitialView.ViewerPreferences.HideMenuBar);
+        Assert.True(info.InitialView.ViewerPreferences.FitWindow);
+        Assert.True(info.InitialView.ViewerPreferences.DisplayDocumentTitle);
+        Assert.Equal(1, info.InitialView.PageIndex);
+        Assert.Equal(PdfDestinationKind.FitH, info.InitialView.Destination?.Kind);
+        Assert.Equal(720, info.InitialView.Destination?.Values.Single());
     }
 
     [Fact]
@@ -54,5 +73,9 @@ public sealed class PdfDocumentInformationTests
         Assert.Null(info.Title);
         Assert.Null(info.Author);
         Assert.Equal(1, info.PageCount);
+        Assert.NotNull(info.InitialView);
+        Assert.Null(info.InitialView.PageLayout);
+        Assert.Null(info.InitialView.PageMode);
+        Assert.Null(info.InitialView.PageIndex);
     }
 }
