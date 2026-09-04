@@ -13,22 +13,7 @@ public static class PdfXfaDatasets
     public static PdfFormDataSet Read(PdfXfaInfo info)
     {
         ArgumentNullException.ThrowIfNull(info);
-        PdfXfaPacket packet = info.Packets.FirstOrDefault(item =>
-            string.Equals(item.Name, "datasets", StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException("The XFA data has no datasets packet.");
-        using var input = new MemoryStream(packet.Data.ToArray(), writable: false);
-        using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings
-        {
-            DtdProcessing = DtdProcessing.Prohibit,
-            XmlResolver = null,
-            MaxCharactersInDocument = MaximumCharacters,
-            IgnoreComments = true
-        });
-        XDocument document = XDocument.Load(reader, LoadOptions.None);
-        XElement root = document.Root
-            ?? throw new InvalidOperationException("The XFA datasets packet has no root element.");
-        if (!string.Equals(root.Name.LocalName, "datasets", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The XFA datasets packet has an unexpected root element.");
+        (_, _, XElement root) = DatasetDocument(info, preserveWhitespace: false);
         XElement data = root.Elements().FirstOrDefault(element =>
             string.Equals(element.Name.LocalName, "data", StringComparison.OrdinalIgnoreCase))
             ?? throw new InvalidOperationException("The XFA datasets packet has no data element.");
@@ -111,15 +96,21 @@ public static class PdfXfaDatasets
     }
 
     /// <summary>
-    /// Replaces the datasets packet in an XFA packet array while preserving every other packet.
+    /// Replaces the datasets packet while preserving every other packet or XDP element.
     /// </summary>
     public static PdfXfaInfo Replace(PdfXfaInfo info, PdfFormDataSet data)
     {
         ArgumentNullException.ThrowIfNull(info);
         ArgumentNullException.ThrowIfNull(data);
         if (!info.IsPacketArray)
-            throw new NotSupportedException(
-                "Replacing datasets inside a combined XDP stream is not supported.");
+        {
+            (int packetIndex, XDocument document, XElement datasets) =
+                DatasetDocument(info, preserveWhitespace: true);
+            using var replacementInput = new MemoryStream(Write(data), writable: false);
+            XDocument replacement = XDocument.Load(replacementInput, LoadOptions.PreserveWhitespace);
+            datasets.ReplaceWith(new XElement(replacement.Root!));
+            return ReplacePacket(info, packetIndex, Serialize(document));
+        }
         int index = -1;
         for (int packetIndex = 0; packetIndex < info.Packets.Count; packetIndex++)
         {
@@ -134,12 +125,7 @@ public static class PdfXfaDatasets
             throw new InvalidOperationException("The XFA data has no datasets packet.");
         PdfXfaPacket[] packets = info.Packets.ToArray();
         packets[index] = new PdfXfaPacket(packets[index].Name, Write(data));
-        return new PdfXfaInfo
-        {
-            IsPacketArray = true,
-            Packets = Array.AsReadOnly(packets),
-            ContainsScript = info.ContainsScript
-        };
+        return info with { Packets = Array.AsReadOnly(packets) };
     }
 
     /// <summary>
@@ -154,13 +140,8 @@ public static class PdfXfaDatasets
         if (occurrenceIndex < 0)
             throw new ArgumentOutOfRangeException(nameof(occurrenceIndex));
         ArgumentNullException.ThrowIfNull(value);
-        if (!info.IsPacketArray)
-            throw new NotSupportedException(
-                "Editing datasets inside a combined XDP stream is not supported.");
-
-        int packetIndex = DatasetPacketIndex(info);
-        XDocument document = LoadDocument(info.Packets[packetIndex]);
-        XElement root = document.Root!;
+        (int packetIndex, XDocument document, XElement root) =
+            DatasetDocument(info, preserveWhitespace: true);
         XElement data = root.Elements().First(element =>
             string.Equals(element.Name.LocalName, "data", StringComparison.OrdinalIgnoreCase));
         string[] parts = fieldName.Split('.');
@@ -176,6 +157,38 @@ public static class PdfXfaDatasets
                 $"XFA dataset field '{fieldName}' occurrence {occurrenceIndex} was not found.");
         matches[occurrenceIndex].Value = value;
 
+        return ReplacePacket(info, packetIndex, Serialize(document));
+    }
+
+    private static (int PacketIndex, XDocument Document, XElement Datasets)
+        DatasetDocument(PdfXfaInfo info, bool preserveWhitespace)
+    {
+        int packetIndex = info.IsPacketArray ? DatasetPacketIndex(info) :
+            info.Packets.Count == 1 ? 0 : throw new InvalidOperationException(
+                "Combined XDP data requires exactly one stream packet.");
+        XDocument document = LoadXml(info.Packets[packetIndex], preserveWhitespace);
+        XElement[] datasets = document.Root!.DescendantsAndSelf().Where(element =>
+            string.Equals(element.Name.LocalName, "datasets",
+                StringComparison.OrdinalIgnoreCase)).ToArray();
+        if (datasets.Length != 1)
+            throw new InvalidOperationException(
+                "The XFA data must contain exactly one datasets element.");
+        if (!datasets[0].Elements().Any(element => string.Equals(
+                element.Name.LocalName, "data", StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("The XFA datasets packet has no data element.");
+        return (packetIndex, document, datasets[0]);
+    }
+
+    private static PdfXfaInfo ReplacePacket(
+        PdfXfaInfo info, int packetIndex, byte[] data)
+    {
+        PdfXfaPacket[] packets = info.Packets.ToArray();
+        packets[packetIndex] = new PdfXfaPacket(packets[packetIndex].Name, data);
+        return info with { Packets = Array.AsReadOnly(packets) };
+    }
+
+    private static byte[] Serialize(XDocument document)
+    {
         using var output = new MemoryStream();
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings
         {
@@ -184,9 +197,7 @@ public static class PdfXfaDatasets
             NewLineChars = "\n",
             OmitXmlDeclaration = document.Declaration is null
         })) document.Save(writer);
-        PdfXfaPacket[] packets = info.Packets.ToArray();
-        packets[packetIndex] = new PdfXfaPacket(packets[packetIndex].Name, output.ToArray());
-        return info with { Packets = Array.AsReadOnly(packets) };
+        return output.ToArray();
     }
 
     private static int DatasetPacketIndex(PdfXfaInfo info)
@@ -205,7 +216,7 @@ public static class PdfXfaDatasets
             "The XFA data has no datasets packet.");
     }
 
-    private static XDocument LoadDocument(PdfXfaPacket packet)
+    private static XDocument LoadXml(PdfXfaPacket packet, bool preserveWhitespace)
     {
         using var input = new MemoryStream(packet.Data.ToArray(), writable: false);
         using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings
@@ -215,14 +226,10 @@ public static class PdfXfaDatasets
             MaxCharactersInDocument = MaximumCharacters,
             IgnoreComments = false
         });
-        XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        XDocument document = XDocument.Load(reader, preserveWhitespace
+            ? LoadOptions.PreserveWhitespace : LoadOptions.None);
         XElement root = document.Root
-            ?? throw new InvalidOperationException("The XFA datasets packet has no root element.");
-        if (!string.Equals(root.Name.LocalName, "datasets", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("The XFA datasets packet has an unexpected root element.");
-        if (!root.Elements().Any(element => string.Equals(
-                element.Name.LocalName, "data", StringComparison.OrdinalIgnoreCase)))
-            throw new InvalidOperationException("The XFA datasets packet has no data element.");
+            ?? throw new InvalidOperationException("The XFA packet has no root element.");
         return document;
     }
 

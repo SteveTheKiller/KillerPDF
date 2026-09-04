@@ -103,8 +103,39 @@ public sealed class PdfXfaReaderTests
         Assert.Equal(["Zoë"], PdfXfaDatasets.Read(replaced).Fields[0].Values);
         Assert.Contains("<old>value</old>",
             Encoding.UTF8.GetString(source.Packets[1].Data.Span), StringComparison.Ordinal);
-        Assert.Throws<NotSupportedException>(() => PdfXfaDatasets.Replace(
-            source with { IsPacketArray = false }, new PdfFormDataSet()));
+    }
+
+    [Fact]
+    public void ReadsReplacesAndEditsDatasetsInsideCombinedXdp()
+    {
+        const string xdp = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <xdp:xdp xmlns:xdp="http://ns.adobe.com/xdp/">
+              <template><subform name="preserved"/></template>
+              <xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/">
+                <xfa:data><form><name>Old</name></form></xfa:data>
+              </xfa:datasets>
+              <localeSet><locale name="en_US"/></localeSet>
+            </xdp:xdp>
+            """;
+        var source = new PdfXfaInfo
+        {
+            IsPacketArray = false,
+            Packets = [new PdfXfaPacket("xdp", Encoding.UTF8.GetBytes(xdp))]
+        };
+
+        Assert.Equal("Old", Assert.Single(PdfXfaDatasets.Read(source).Fields).Values[0]);
+        PdfXfaInfo edited = PdfXfaDatasets.SetValue(source, "form.name", 0, "Zoë");
+        PdfXfaInfo replaced = PdfXfaDatasets.Replace(edited, new PdfFormDataSet
+        {
+            Fields = [new PdfFormDataField { Name = "form.name", Values = ["Ada"] }]
+        });
+        string output = Encoding.UTF8.GetString(replaced.Packets[0].Data.Span);
+
+        Assert.Equal("Ada", Assert.Single(PdfXfaDatasets.Read(replaced).Fields).Values[0]);
+        Assert.Contains("name=\"preserved\"", output, StringComparison.Ordinal);
+        Assert.Contains("name=\"en_US\"", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("Old", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -133,9 +164,6 @@ public sealed class PdfXfaReaderTests
             field.Name == "form.color").Values);
         Assert.Throws<KeyNotFoundException>(() =>
             PdfXfaDatasets.SetValue(source, "form.color", 2, "green"));
-        Assert.Throws<NotSupportedException>(() =>
-            PdfXfaDatasets.SetValue(source with { IsPacketArray = false },
-                "form.color", 0, "green"));
     }
 
     [Fact]
