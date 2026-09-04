@@ -1,4 +1,5 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Documents;
@@ -32,6 +33,84 @@ public static class PdfPageRasterInformation
         for (int index = 0; index < tree.Pages.Count; index++)
             result[index] = IsJpegImagePage(document, tree.Pages[index]);
         return result;
+    }
+
+    /// <summary>
+    /// Reads a direct, unmasked JPEG when it is the page's only painted content and covers the
+    /// complete crop box. Returns false for annotations, nested forms, clipping, or extra content.
+    /// </summary>
+    public static bool TryReadFullPageJpeg(
+        PdfDocument document, int pageIndex, out PdfImage? image)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (pageIndex < 0 || pageIndex >= tree.Pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        image = null;
+        PdfPageTreeEntry page = tree.Pages[pageIndex];
+        if (page.Dictionary.ContainsKey(Name("Annots"))) return false;
+
+        PdfPageContent content;
+        try { content = new PdfPageContentReader(document).Read(pageIndex); }
+        catch (Exception exception) when (exception is FormatException or NotSupportedException)
+        {
+            return false;
+        }
+        if (content.Diagnostics.Count != 0 || content.Images.Count != 1
+            || content.Letters.Count != 0 || content.Paths.Count != 0
+            || content.Shadings.Count != 0)
+            return false;
+        PdfExtractedImage placement = content.Images[0];
+        if (placement.IsInline || string.IsNullOrEmpty(placement.ResourceName)
+            || !CoversPage(placement.BoundingBox, content.Width, content.Height)
+            || content.Instructions.Any(instruction =>
+                instruction.Operator is not ("q" or "Q" or "cm" or "Do"))
+            || content.Instructions.Count(instruction => instruction.Operator == "Do") != 1)
+            return false;
+
+        if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
+            || Resolve(document, resourcesValue) is not PdfDictionary resources
+            || !resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
+            || Resolve(document, xObjectsValue) is not PdfDictionary xObjects
+            || !xObjects.TryGetValue(Name(placement.ResourceName), out PdfObject? imageValue)
+            || Resolve(document, imageValue) is not PdfStream stream
+            || !IsName(document, stream.Dictionary, "Subtype", "Image")
+            || !HasJpegFilter(document, stream.Dictionary)
+            || !IsInteger(document, stream.Dictionary, "BitsPerComponent", 8)
+            || !IsDeviceColorSpace(document, stream.Dictionary)
+            || stream.Dictionary.ContainsKey(Name("Mask"))
+            || stream.Dictionary.ContainsKey(Name("SMask"))
+            || stream.Dictionary.ContainsKey(Name("Decode")))
+            return false;
+
+        PdfImage candidate;
+        try { candidate = PdfImage.FromJpeg(stream.EncodedData); }
+        catch (Exception exception) when (exception is FormatException or NotSupportedException)
+        {
+            return false;
+        }
+        if (candidate.Width != placement.PixelWidth || candidate.Height != placement.PixelHeight)
+            return false;
+        image = candidate;
+        return true;
+    }
+
+    private static bool CoversPage(PdfContentBounds bounds, double width, double height)
+    {
+        const double tolerance = 0.01;
+        return Math.Abs(bounds.Left) <= tolerance
+            && Math.Abs(bounds.Bottom) <= tolerance
+            && Math.Abs(bounds.Right - width) <= tolerance
+            && Math.Abs(bounds.Top - height) <= tolerance;
+    }
+
+    private static bool IsDeviceColorSpace(
+        PdfDocument document, PdfDictionary dictionary)
+    {
+        if (!dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value)
+            || Resolve(document, value) is not PdfName name)
+            return false;
+        return name.ValueAsLatin1() is "DeviceGray" or "DeviceRGB" or "DeviceCMYK";
     }
 
     private static bool IsBitonalImagePage(PdfDocument document, PdfPageTreeEntry page)

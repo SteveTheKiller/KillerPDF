@@ -70,6 +70,44 @@ public sealed class PdfPageRasterInformationTests
             PdfPageRasterInformation.ReadJpegImagePageHints(PdfDocument.Open(source)));
     }
 
+    [Fact]
+    public void TryReadFullPageJpeg_ReturnsExactPayloadForSafeImageOnlyPage()
+    {
+        byte[] sourceJpeg = MinimalJpeg(2, 1);
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(100, 50, new PdfContentStreamBuilder()
+                .DrawImage(PdfImage.FromJpeg(sourceJpeg), 0, 0, 100, 50))
+            .Build();
+
+        bool found = PdfPageRasterInformation.TryReadFullPageJpeg(
+            PdfDocument.Open(source), 0, out PdfImage? image);
+
+        Assert.True(found);
+        Assert.NotNull(image);
+        Assert.Equal(sourceJpeg, image.Data.ToArray());
+    }
+
+    [Fact]
+    public void TryReadFullPageJpeg_RejectsPartialAndMultipleImagePages()
+    {
+        PdfImage jpeg = PdfImage.FromJpeg(MinimalJpeg(2, 1));
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(100, 50, new PdfContentStreamBuilder()
+                .DrawImage(jpeg, 0, 0, 90, 50))
+            .AddPage(100, 50, new PdfContentStreamBuilder()
+                .DrawImage(jpeg, 0, 0, 50, 50)
+                .DrawImage(jpeg, 50, 0, 50, 50))
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+
+        Assert.False(PdfPageRasterInformation.TryReadFullPageJpeg(
+            document, 0, out _));
+        Assert.False(PdfPageRasterInformation.TryReadFullPageJpeg(
+            document, 1, out _));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfPageRasterInformation.TryReadFullPageJpeg(document, 2, out _));
+    }
+
     private static byte[] MinimalJpeg(int width, int height)
     {
         const int components = 3;
