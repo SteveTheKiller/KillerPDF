@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -14,7 +15,11 @@ public enum PdfNavigationFindingCode
     /// <summary>A link uses an invalid or unsupported URI scheme.</summary>
     LinkUnsafeUri,
     /// <summary>A link destination does not resolve to a local page.</summary>
-    LinkUnresolvedDestination
+    LinkUnresolvedDestination,
+    /// <summary>The document contains a JavaScript action that was not executed.</summary>
+    DocumentJavaScript,
+    /// <summary>The document contains an unsafe launch action that was not executed.</summary>
+    UnsafeLaunchAction
 }
 
 /// <summary>A safe repair that can be offered for a navigation problem.</summary>
@@ -109,7 +114,63 @@ public static class PdfNavigationAudit
                         PdfNavigationRepairKind.ChooseDestination, link.ObjectNumber));
             }
         }
+        InspectUnsafeActions(document, PdfPageTree.Read(document).Catalog, findings);
         return Array.AsReadOnly(findings.ToArray());
+    }
+
+    private static void InspectUnsafeActions(PdfDocument document, PdfObject root,
+        ICollection<PdfNavigationFinding> findings)
+    {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        int visitedValues = 0;
+        Walk(root, null, 0);
+
+        void Walk(PdfObject value, int? sourceObjectNumber, int depth)
+        {
+            if (depth >= 256 || ++visitedValues > 1_000_000)
+                throw new InvalidOperationException(
+                    "The navigation action graph exceeds the inspection limit.");
+            if (value is PdfIndirectReference reference)
+            {
+                if (!visited.Add((reference.ObjectNumber, reference.Generation))) return;
+                Walk(document.Resolve(reference), reference.ObjectNumber, depth + 1);
+                return;
+            }
+            if (value is PdfArray array)
+            {
+                foreach (PdfObject item in array) Walk(item, sourceObjectNumber, depth + 1);
+                return;
+            }
+            if (value is not PdfDictionary dictionary) return;
+            if (dictionary.TryGetValue(new PdfName("S"u8), out PdfObject? actionValue)
+                && Resolve(actionValue) is PdfName action)
+            {
+                string actionName = action.ValueAsLatin1();
+                if (actionName == "JavaScript")
+                    findings.Add(new(PdfNavigationFindingCode.DocumentJavaScript,
+                        "Action", null, "JavaScript",
+                        "The document contains JavaScript that was not executed.",
+                        PdfNavigationRepairKind.Remove, sourceObjectNumber));
+                else if (actionName == "Launch")
+                    findings.Add(new(PdfNavigationFindingCode.UnsafeLaunchAction,
+                        "Action", null, "Launch",
+                        "The document contains an unsafe launch action that was not executed.",
+                        PdfNavigationRepairKind.Remove, sourceObjectNumber));
+            }
+            foreach ((PdfName _, PdfObject child) in dictionary)
+                Walk(child, sourceObjectNumber, depth + 1);
+        }
+
+        PdfObject Resolve(PdfObject value)
+        {
+            var local = new HashSet<(int, int)>();
+            while (value is PdfIndirectReference reference)
+            {
+                if (!local.Add((reference.ObjectNumber, reference.Generation))) return value;
+                value = document.Resolve(reference);
+            }
+            return value;
+        }
     }
 
     private static IEnumerable<PdfBookmarkInfo> Flatten(IEnumerable<PdfBookmarkInfo> roots)
