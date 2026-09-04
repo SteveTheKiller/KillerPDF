@@ -108,7 +108,7 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 
 - PDF syntax, objects, streams, classic cross-reference tables, cross-reference streams, object streams, trailers, and incremental revisions
 - Page text, word and glyph geometry, font information, and image placements, including nested forms and inline images
-- Bounded BGRA32 rendering for blank pages and transformed device-color rectangle fills
+- Bounded BGRA32 rendering for device-color paths and decoded image XObjects
 - Deterministic full rewrites and byte-preserving incremental updates
 - PDF 2.0 document authoring with pages, content streams, graphics state, fonts, images, color spaces, shadings, patterns, transparency, and resources
 - Navigation, bookmarks, named destinations, page labels, viewer preferences, transitions, optional content, and attachments
@@ -122,10 +122,11 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 
 ## Rendering status
 
-The engine has the first bounded CPU-rendering slice for blank pages and transformed DeviceGray,
-DeviceRGB, and DeviceCMYK rectangle fills. Text, images, general paths, clipping, transparency,
-annotations, and forms are not rendered yet, so KillerPDF continues using PDFium for complete
-application rendering while coverage expands. The engine does not provide UI controls.
+The engine has a bounded CPU-rendering foundation for transformed device-color paths and unmasked
+DeviceGray, DeviceRGB, DeviceCMYK, and one-bit image XObjects. Text, JPEG and inline images,
+clipping, transparency, annotations, and forms are not rendered yet, so KillerPDF continues using
+PDFium for complete application rendering while coverage expands. The engine does not provide UI
+controls.
 
 ## Repository layout
 

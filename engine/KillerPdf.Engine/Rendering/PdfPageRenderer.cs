@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 
@@ -10,6 +11,7 @@ public sealed class PdfPageRenderer
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
+    private readonly PdfPageTree _tree;
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document)
@@ -18,6 +20,7 @@ public sealed class PdfPageRenderer
         if (!document.IsDecrypted)
             throw new InvalidOperationException("Authenticate the document before rendering pages.");
         _content = new PdfPageContentReader(document);
+        _tree = PdfPageTree.Read(document);
         _pages = PdfPageInformation.Read(document);
     }
 
@@ -151,8 +154,13 @@ public sealed class PdfPageRenderer
                     or "'" or "\"":
                     diagnostics.Add("Text rendering is not implemented.");
                     break;
-                case "Do" or "BI":
-                    diagnostics.Add("Image rendering is not implemented.");
+                case "Do" when values.Count == 1 && values[0] is PdfName imageName:
+                    if (!TryRenderImage(pageIndex, imageName, state.Transform, pixels,
+                        options.Width, options.Height, scaleX, scaleY, out string? imageDiagnostic))
+                        diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
+                    break;
+                case "BI":
+                    diagnostics.Add("Inline-image rendering is not implemented.");
                     break;
             }
         }
@@ -162,6 +170,137 @@ public sealed class PdfPageRenderer
             diagnostics.Add("Form-field rendering is not implemented.");
         return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
     }
+
+    private bool TryRenderImage(int pageIndex, PdfName resourceName, Matrix transform,
+        byte[] target, int targetWidth, int targetHeight, double scaleX, double scaleY,
+        out string? diagnostic)
+    {
+        diagnostic = null;
+        PdfPageTreeEntry page = _tree.Pages[pageIndex];
+        if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
+            || Resolve(resourcesValue) is not PdfDictionary resources
+            || !resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
+            || Resolve(xObjectsValue) is not PdfDictionary xObjects
+            || !xObjects.TryGetValue(resourceName, out PdfObject? imageValue)
+            || Resolve(imageValue) is not PdfStream stream
+            || !IsName(stream.Dictionary, "Subtype", "Image"))
+        {
+            diagnostic = "Form XObject rendering is not implemented.";
+            return false;
+        }
+        if (stream.Dictionary.ContainsKey(Name("Mask"))
+            || stream.Dictionary.ContainsKey(Name("SMask")))
+        {
+            diagnostic = "Masked-image rendering is not implemented.";
+            return false;
+        }
+        int width = PositiveInteger(stream.Dictionary, "Width");
+        int height = PositiveInteger(stream.Dictionary, "Height");
+        int bits = PositiveInteger(stream.Dictionary, "BitsPerComponent");
+        string colorSpace = NameValue(stream.Dictionary, "ColorSpace");
+        int components = colorSpace switch
+        {
+            "DeviceGray" => 1,
+            "DeviceRGB" => 3,
+            "DeviceCMYK" => 4,
+            _ => 0
+        };
+        if (components == 0 || bits is not (1 or 8))
+        {
+            diagnostic = "The image color space or sample depth is not implemented.";
+            return false;
+        }
+        byte[] samples;
+        try
+        {
+            int expected = checked(((width * components * bits + 7) / 8) * height);
+            samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
+            if (samples.Length != expected) throw new FormatException("Image sample data has an invalid length.");
+        }
+        catch (PdfFilterException)
+        {
+            diagnostic = "The image compression filter is not implemented.";
+            return false;
+        }
+        PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
+            transform, samples, width, height, components, bits);
+        return true;
+    }
+
+    private static void PaintImage(byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY, Matrix transform, byte[] samples,
+        int sourceWidth, int sourceHeight, int components, int bits)
+    {
+        Point[] corners =
+        [
+            transform.Apply(0, 0), transform.Apply(1, 0),
+            transform.Apply(0, 1), transform.Apply(1, 1)
+        ];
+        int left = Math.Clamp((int)Math.Floor(corners.Min(p => p.X) * scaleX), 0, targetWidth);
+        int right = Math.Clamp((int)Math.Ceiling(corners.Max(p => p.X) * scaleX), 0, targetWidth);
+        int top = Math.Clamp(targetHeight - (int)Math.Ceiling(corners.Max(p => p.Y) * scaleY), 0, targetHeight);
+        int bottom = Math.Clamp(targetHeight - (int)Math.Floor(corners.Min(p => p.Y) * scaleY), 0, targetHeight);
+        if (!transform.TryInverse(out Matrix inverse)) return;
+        int rowBytes = (sourceWidth * components * bits + 7) / 8;
+        for (int y = top; y < bottom; y++)
+            for (int x = left; x < right; x++)
+            {
+                Point unit = inverse.Apply((x + 0.5) / scaleX,
+                    (targetHeight - y - 0.5) / scaleY);
+                if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
+                int sx = Math.Clamp((int)(unit.X * sourceWidth), 0, sourceWidth - 1);
+                int sy = Math.Clamp((int)((1 - unit.Y) * sourceHeight), 0, sourceHeight - 1);
+                sy = Math.Min(sy, sourceHeight - 1);
+                Color color;
+                if (bits == 1)
+                {
+                    int bit = sx * components;
+                    bool white = (samples[sy * rowBytes + bit / 8] & (0x80 >> (bit & 7))) != 0;
+                    color = white ? Color.White : Color.Black;
+                }
+                else
+                {
+                    int offset = sy * rowBytes + sx * components;
+                    color = components switch
+                    {
+                        1 => new Color(samples[offset], samples[offset], samples[offset]),
+                        3 => new Color(samples[offset], samples[offset + 1], samples[offset + 2]),
+                        _ => Color.Cmyk(samples[offset] / 255d, samples[offset + 1] / 255d,
+                            samples[offset + 2] / 255d, samples[offset + 3] / 255d)
+                    };
+                }
+                SetPixel(target, targetWidth, x, y, color);
+            }
+    }
+
+    private int PositiveInteger(PdfDictionary dictionary, string key)
+    {
+        if (!dictionary.TryGetValue(Name(key), out PdfObject? value)
+            || Resolve(value) is not PdfInteger integer || integer.Value <= 0 || integer.Value > int.MaxValue)
+            throw new FormatException($"An image /{key} value is invalid.");
+        return (int)integer.Value;
+    }
+
+    private string NameValue(PdfDictionary dictionary, string key) =>
+        dictionary.TryGetValue(Name(key), out PdfObject? value) && Resolve(value) is PdfName name
+            ? name.ValueAsLatin1() : string.Empty;
+
+    private bool IsName(PdfDictionary dictionary, string key, string expected) =>
+        NameValue(dictionary, key) == expected;
+
+    private PdfObject Resolve(PdfObject value)
+    {
+        var visited = new HashSet<(int, int)>();
+        while (value is PdfIndirectReference reference)
+        {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)) || visited.Count > 32)
+                throw new FormatException("An image resource contains an invalid reference chain.");
+            value = _document.Resolve(reference);
+        }
+        return value;
+    }
+
+    private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
 
     private static void FillPaths(byte[] pixels, int width, int height, double scaleX,
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, bool evenOdd)
@@ -253,11 +392,25 @@ public sealed class PdfPageRenderer
             E * next.A + F * next.C + next.E, E * next.B + F * next.D + next.F);
         internal Point Apply(double x, double y) =>
             new(x * A + y * C + E, x * B + y * D + F);
+        internal bool TryInverse(out Matrix inverse)
+        {
+            double determinant = A * D - B * C;
+            if (!double.IsFinite(determinant) || Math.Abs(determinant) < 1e-12)
+            {
+                inverse = default;
+                return false;
+            }
+            inverse = new Matrix(D / determinant, -B / determinant,
+                -C / determinant, A / determinant,
+                (C * F - D * E) / determinant, (B * E - A * F) / determinant);
+            return true;
+        }
     }
 
     private readonly record struct Color(byte Red, byte Green, byte Blue)
     {
         internal static Color Black => new(0, 0, 0);
+        internal static Color White => new(255, 255, 255);
         internal static Color Gray(double gray) => Rgb(gray, gray, gray);
         internal static Color Rgb(double red, double green, double blue) =>
             new(Channel(red), Channel(green), Channel(blue));

@@ -62,6 +62,26 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 255, 255, 255], Pixel(page, 0, 9));
     }
 
+    [Fact]
+    public void Render_DecodesAndTransformsRgbImageXObject()
+    {
+        PdfImage image = PdfImage.FromRgb(2, 1, new byte[]
+        {
+            255, 0, 0,
+            0, 255, 0
+        });
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(image, 2, 3, 6, 2))
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 3, 6));
+        Assert.Equal([0, 255, 0, 255], Pixel(page, 7, 6));
+        Assert.DoesNotContain("Image rendering is not implemented.", page.Diagnostics);
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }
