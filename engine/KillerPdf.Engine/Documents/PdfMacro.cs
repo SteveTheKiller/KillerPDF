@@ -157,6 +157,18 @@ public enum PdfMacroOperation
 /// <summary>Runs typed PDF macros with per-file isolation and cancellation.</summary>
 public static class PdfMacroRunner
 {
+    /// <summary>Runs a macro and returns aggregate and per-file outcomes.</summary>
+    public static PdfMacroRunReport RunReport(
+        PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
+        Func<PdfMacroStep, ReadOnlyMemory<byte>, CancellationToken, ReadOnlyMemory<byte>> operation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        return new PdfMacroRunReport(supplied.Length,
+            Run(macro, supplied, operation, cancellationToken));
+    }
+
     /// <summary>Runs a macro against every input while preserving each source buffer.</summary>
     public static IReadOnlyList<PdfMacroFileResult> Run(
         PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
@@ -195,6 +207,35 @@ public static class PdfMacroRunner
         }
         return Array.AsReadOnly(results.ToArray());
     }
+}
+
+/// <summary>Aggregate and per-file outcomes from one macro batch.</summary>
+public sealed record PdfMacroRunReport
+{
+    /// <summary>Creates a report for a bounded input batch.</summary>
+    public PdfMacroRunReport(int totalInputCount, IEnumerable<PdfMacroFileResult> results)
+    {
+        if (totalInputCount < 0) throw new ArgumentOutOfRangeException(nameof(totalInputCount));
+        ArgumentNullException.ThrowIfNull(results);
+        PdfMacroFileResult[] values = results.ToArray();
+        if (values.Length > totalInputCount)
+            throw new ArgumentException("Macro results exceed the input count.", nameof(results));
+        TotalInputCount = totalInputCount;
+        Results = Array.AsReadOnly(values);
+    }
+
+    /// <summary>Gets the number of supplied inputs.</summary>
+    public int TotalInputCount { get; }
+    /// <summary>Gets each attempted input result.</summary>
+    public IReadOnlyList<PdfMacroFileResult> Results { get; }
+    /// <summary>Gets the number of successful inputs.</summary>
+    public int SucceededCount => Results.Count(result => result.Succeeded);
+    /// <summary>Gets the number of failed inputs.</summary>
+    public int FailedCount => Results.Count(result => result.Error is not null);
+    /// <summary>Gets the number of canceled inputs.</summary>
+    public int CanceledCount => Results.Count(result => result.WasCanceled);
+    /// <summary>Gets the number of inputs not started after cancellation.</summary>
+    public int UnprocessedCount => TotalInputCount - Results.Count;
 }
 
 /// <summary>The isolated result for one macro input.</summary>

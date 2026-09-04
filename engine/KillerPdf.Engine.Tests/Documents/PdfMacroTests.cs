@@ -49,6 +49,23 @@ public sealed class PdfMacroTests
     }
 
     [Fact]
+    public void RunReportSummarizesTheCompleteBatch()
+    {
+        var macro = new PdfMacro("Validate", [new(PdfMacroOperation.Validate)]);
+        ReadOnlyMemory<byte>[] inputs = [new byte[] { 1 }, new byte[] { 2 }, new byte[] { 3 }];
+
+        PdfMacroRunReport report = PdfMacroRunner.RunReport(macro, inputs,
+            (_, input, _) => input.Span[0] == 2
+                ? throw new InvalidOperationException("Bad input") : input);
+
+        Assert.Equal(3, report.TotalInputCount);
+        Assert.Equal(2, report.SucceededCount);
+        Assert.Equal(1, report.FailedCount);
+        Assert.Equal(0, report.CanceledCount);
+        Assert.Equal(0, report.UnprocessedCount);
+    }
+
+    [Fact]
     public void MacroStepsCanBeInsertedReplacedAndRemoved()
     {
         var macro = new PdfMacro("Prepare", [
