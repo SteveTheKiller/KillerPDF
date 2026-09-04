@@ -204,6 +204,11 @@ public sealed class PdfOcrReviewTests
         Assert.Equal(1, report.FailedCount);
         Assert.Equal(0, report.CanceledCount);
         Assert.Equal(0, report.UnprocessedCount);
+        Assert.Equal(2, report.Sources.Count);
+        Assert.Equal(new PdfOcrBatchSourceSummary("first.pdf", 1, 1, 0, 0), report.Sources[0]);
+        Assert.Equal(new PdfOcrBatchSourceSummary("bad.pdf", 1, 0, 1, 0), report.Sources[1]);
+        Assert.Equal("bad.pdf", parsed.RootElement.GetProperty("sources")[1]
+            .GetProperty("sourceName").GetString());
         Assert.Equal("first.pdf", parsed.RootElement.GetProperty("results")[0]
             .GetProperty("sourceName").GetString());
         Assert.Equal(1, parsed.RootElement.GetProperty("results")[0]

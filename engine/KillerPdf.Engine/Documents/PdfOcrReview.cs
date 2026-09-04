@@ -454,6 +454,10 @@ public sealed record PdfOcrBatchResult(PdfOcrBatchPage Input, PdfOcrReview? Revi
     public bool Succeeded => Review is not null && Error is null && !WasCanceled;
 }
 
+/// <summary>Data-safe OCR outcome counts for one source document.</summary>
+public sealed record PdfOcrBatchSourceSummary(
+    string SourceName, int PageCount, int SucceededCount, int FailedCount, int CanceledCount);
+
 /// <summary>A bounded OCR provider used by direct, batch, and macro workflows.</summary>
 public interface IPdfOcrProvider
 {
@@ -482,6 +486,13 @@ public sealed record PdfOcrBatchReport
     public int TotalPageCount { get; }
     /// <summary>Gets completed, failed, or canceled page results.</summary>
     public IReadOnlyList<PdfOcrBatchResult> Results { get; }
+    /// <summary>Gets source summaries in first-seen batch order.</summary>
+    public IReadOnlyList<PdfOcrBatchSourceSummary> Sources => Array.AsReadOnly(Results
+        .GroupBy(result => result.Input.SourceName, StringComparer.Ordinal)
+        .Select(group => new PdfOcrBatchSourceSummary(group.Key, group.Count(),
+            group.Count(result => result.Succeeded),
+            group.Count(result => result.Error is not null),
+            group.Count(result => result.WasCanceled))).ToArray());
     /// <summary>Gets the number of successful pages.</summary>
     public int SucceededCount => Results.Count(result => result.Succeeded);
     /// <summary>Gets the number of failed pages.</summary>
@@ -500,6 +511,7 @@ public sealed record PdfOcrBatchReport
         FailedCount,
         CanceledCount,
         UnprocessedCount,
+        Sources,
         Results = Results.Select(result => new
         {
             result.Input.SourceName,
