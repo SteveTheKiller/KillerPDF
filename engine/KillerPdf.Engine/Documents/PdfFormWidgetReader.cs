@@ -15,6 +15,7 @@ public static class PdfFormWidgetReader
     private static readonly PdfName FieldTypeName = Name("FT");
     private static readonly PdfName PartialName = Name("T");
     private static readonly PdfName TooltipName = Name("TU");
+    private static readonly PdfName MappingName = Name("TM");
     private static readonly PdfName ValueName = Name("V");
     private static readonly PdfName DefaultAppearanceName = Name("DA");
     private static readonly PdfName FlagsName = Name("Ff");
@@ -63,6 +64,7 @@ public static class PdfFormWidgetReader
             PdfName? fieldType = null;
             string value = string.Empty;
             string tooltip = string.Empty;
+            string mappingName = string.Empty;
             IReadOnlyList<string> values = [];
             string defaultAppearance = string.Empty;
             long flags = 0;
@@ -92,6 +94,16 @@ public static class PdfFormWidgetReader
                         ?? throw new InvalidOperationException("An AcroForm /TU value is not a string.");
                     tooltip = PdfUnicodeEncoding.DecodeTextString(
                         text.Bytes.Span, "An AcroForm /TU value");
+                }
+                if (mappingName.Length == 0
+                    && node.TryGetValue(MappingName, out PdfObject? mappingValue))
+                {
+                    PdfString text = Resolve(document, mappingValue,
+                        "An AcroForm /TM value") as PdfString
+                        ?? throw new InvalidOperationException(
+                            "An AcroForm /TM value is not a string.");
+                    mappingName = PdfUnicodeEncoding.DecodeTextString(
+                        text.Bytes.Span, "An AcroForm /TM value");
                 }
                 if (values.Count == 0 && node.TryGetValue(ValueName, out PdfObject? currentValue))
                 {
@@ -138,6 +150,7 @@ public static class PdfFormWidgetReader
                 Generation = generation,
                 FieldName = string.Join('.', nameParts),
                 Tooltip = tooltip,
+                MappingName = mappingName,
                 FieldKind = FieldKind(fieldType),
                 Flags = flags,
                 Value = value,

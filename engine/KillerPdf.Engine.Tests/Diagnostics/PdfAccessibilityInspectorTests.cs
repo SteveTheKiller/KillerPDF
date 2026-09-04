@@ -178,6 +178,33 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void RepairsMissingFormFieldDescriptionAndPreservesMappingName()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 10, 10, 100, 20,
+                fieldMetadata: new PdfFormFieldMetadata
+                {
+                    MappingName = "customer_name"
+                }).Build());
+
+        PdfAccessibilityFormFieldRepair preview =
+            PdfAccessibilityRepair.PreviewFormFieldDescription(
+                document, "customer.name", "Customer name");
+        PdfAccessibilityRepairResult result =
+            PdfAccessibilityRepair.ApplyFormFieldDescription(document, preview);
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(result.Document), 0));
+
+        Assert.True(preview.WillChange);
+        Assert.Equal("Customer name", widget.Tooltip);
+        Assert.Equal("customer_name", widget.MappingName);
+        Assert.DoesNotContain(result.After.Findings,
+            item => item.Code == PdfAccessibilityFindingCode.MissingFormFieldDescription);
+        Assert.False(PdfAccessibilityRepair.PreviewFormFieldDescription(
+            PdfDocument.Open(result.Document), "customer.name", "Replacement").WillChange);
+    }
+
+    [Fact]
     public void InspectReportsOnlyLinksWithoutDescriptions()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()

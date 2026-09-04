@@ -1,3 +1,4 @@
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
@@ -14,6 +15,10 @@ public sealed record PdfAccessibilityLanguageRepair(
 public sealed record PdfAccessibilityFigureRepair(
     int ObjectNumber, string AlternateDescription, PdfAccessibilityReport Before, bool WillChange);
 
+/// <summary>A reviewed description correction for one AcroForm field.</summary>
+public sealed record PdfAccessibilityFormFieldRepair(
+    string FieldName, string Description, PdfAccessibilityReport Before, bool WillChange);
+
 /// <summary>The saved document and accessibility reports surrounding one repair.</summary>
 public sealed record PdfAccessibilityRepairResult(
     ReadOnlyMemory<byte> Document,
@@ -23,6 +28,55 @@ public sealed record PdfAccessibilityRepairResult(
 /// <summary>Previews and applies accessibility corrections that require no semantic inference.</summary>
 public static class PdfAccessibilityRepair
 {
+    /// <summary>Previews adding a supplied user-facing description to one form field.</summary>
+    public static PdfAccessibilityFormFieldRepair PreviewFormFieldDescription(
+        PdfDocument document, string fieldName, string description)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fieldName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
+        PdfFormWidgetInfo[] widgets = Widgets(document, fieldName);
+        bool missing = widgets.Length > 0
+            && widgets.Any(widget => string.IsNullOrWhiteSpace(widget.Tooltip));
+        return new PdfAccessibilityFormFieldRepair(
+            fieldName, description, before, missing);
+    }
+
+    /// <summary>Applies a previewed form-field description and verifies the saved result.</summary>
+    public static PdfAccessibilityRepairResult ApplyFormFieldDescription(
+        PdfDocument document, PdfAccessibilityFormFieldRepair repair)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(repair);
+        PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
+        PdfFormWidgetInfo[] widgets = Widgets(document, repair.FieldName);
+        if (!repair.WillChange || widgets.Length == 0
+            || widgets.All(widget => !string.IsNullOrWhiteSpace(widget.Tooltip)))
+            throw new InvalidOperationException(
+                "The document does not have the previewed missing form-field description.");
+        string[] mappings = [.. widgets.Select(widget => widget.MappingName)
+            .Where(value => value.Length > 0).Distinct(StringComparer.Ordinal)];
+        if (mappings.Length > 1)
+            throw new InvalidOperationException(
+                "The form field has conflicting export mapping names.");
+        byte[] saved = new PdfIncrementalPageEditor(document)
+            .SetFormFieldMetadata(repair.FieldName, new PdfFormFieldMetadata
+            {
+                Tooltip = repair.Description,
+                MappingName = mappings.SingleOrDefault()
+            })
+            .Build();
+        PdfDocument reopened = PdfDocument.Open(saved);
+        PdfFormWidgetInfo[] repaired = Widgets(reopened, repair.FieldName);
+        if (repaired.Length == 0 || repaired.Any(widget =>
+                !string.Equals(widget.Tooltip, repair.Description, StringComparison.Ordinal)))
+            throw new InvalidOperationException(
+                "The saved form field still has no matching user-facing description.");
+        return new PdfAccessibilityRepairResult(
+            saved, before, PdfAccessibilityInspector.Inspect(reopened));
+    }
+
     /// <summary>Previews adding supplied alternate text to one reported figure.</summary>
     public static PdfAccessibilityFigureRepair PreviewFigureAlternateDescription(
         PdfDocument document, int objectNumber, string alternateDescription)
@@ -107,4 +161,10 @@ public static class PdfAccessibilityRepair
     private static PdfString TextString(string value) => new(
         [0xFE, 0xFF, .. Encoding.BigEndianUnicode.GetBytes(value)],
         PdfStringForm.Hexadecimal);
+
+    private static PdfFormWidgetInfo[] Widgets(PdfDocument document, string fieldName) =>
+        [.. PdfPageTree.Read(document).Pages.SelectMany((_, pageIndex) =>
+            PdfFormWidgetReader.ReadPage(document, pageIndex))
+            .Where(widget => string.Equals(
+                widget.FieldName, fieldName, StringComparison.Ordinal))];
 }
