@@ -103,12 +103,22 @@ public static class PdfXfaAcroFormConverter
             Tooltip = field.Description,
             MappingName = field.Path
         };
+        double fontSize = field.Appearance.FontSize ?? 12;
+        PdfTextFieldAlignment alignment = field.Appearance.Alignment ?? PdfTextFieldAlignment.Left;
+        var style = new PdfFormFieldAppearanceStyle
+        {
+            BackgroundColor = field.Appearance.BackgroundColor ?? new PdfRgbColor(1, 1, 1),
+            BorderColor = field.Appearance.BorderColor ?? new PdfRgbColor(0, 0, 0),
+            TextColor = field.Appearance.TextColor ?? new PdfRgbColor(0, 0, 0)
+        };
         if (TextControls.Contains(field.ControlType!))
             editor.AddTextField(pageIndex, name, x, bottom, width, height,
-                value ?? string.Empty, fieldMetadata: metadata);
+                value ?? string.Empty, fontSize,
+                options: new PdfTextFieldOptions { Alignment = alignment },
+                fieldMetadata: metadata, appearanceStyle: style);
         else if (field.ControlType!.Equals("checkButton", StringComparison.OrdinalIgnoreCase))
             editor.AddCheckBox(pageIndex, name, x, bottom, width, height,
-                Checked(value), fieldMetadata: metadata);
+                Checked(value), fieldMetadata: metadata, appearanceStyle: style);
         else if (field.ControlType.Equals("choiceList", StringComparison.OrdinalIgnoreCase))
         {
             if (field.ChoiceOptions.Count == 0)
@@ -116,7 +126,12 @@ public static class PdfXfaAcroFormConverter
             editor.AddComboBoxOptions(pageIndex, name, x, bottom, width, height,
                 field.ChoiceOptions.Select(option => new PdfChoiceOption(
                     option.ExportValue, option.DisplayValue)), value,
-                fieldMetadata: metadata);
+                fontSize: fontSize, fieldMetadata: metadata,
+                choiceOptions: new PdfChoiceFieldOptions
+                {
+                    Alignment = alignment,
+                    AppearanceStyle = style
+                });
         }
         else
         {
@@ -124,7 +139,8 @@ public static class PdfXfaAcroFormConverter
                 throw new NotSupportedException(
                     $"Signed XFA field '{field.Path}' cannot be converted safely.");
             editor.AddSignatureField(pageIndex, name, x, bottom, width, height,
-                fieldMetadata: metadata);
+                fieldMetadata: metadata, fontSize: fontSize,
+                appearanceStyle: style, appearanceAlignment: alignment);
         }
     }
 

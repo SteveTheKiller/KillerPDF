@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
+using KillerPdf.Engine.Authoring;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -60,7 +62,8 @@ public static class PdfXfaTemplate
                     element.Name.LocalName, "format", StringComparison.OrdinalIgnoreCase)))
             {
                 ChoiceOptions = ChoiceOptions(field, path),
-                Description = AssistText(field)
+                Description = AssistText(field),
+                Appearance = Appearance(field, path)
             });
             foreach (XElement behavior in field.Elements().Where(element =>
                 PdfXfaTemplateBehaviorKindExtensions.TryParse(
@@ -123,6 +126,68 @@ public static class PdfXfaTemplate
                 element.Name.LocalName.Equals("speak", StringComparison.OrdinalIgnoreCase));
         return string.IsNullOrWhiteSpace(text?.Value) ? null : text.Value;
     }
+
+    private static PdfXfaFieldAppearance Appearance(XElement field, string path)
+    {
+        XElement? font = Child(field, "font");
+        XElement? paragraph = Child(field, "para");
+        XElement? fill = Child(field, "fill");
+        XElement? border = Child(field, "border");
+        return new PdfXfaFieldAppearance
+        {
+            Typeface = EmptyToNull(Attribute(font, "typeface")),
+            FontSize = Measurement(Attribute(font, "size"), path, "font size"),
+            TextColor = Color(Child(font, "fill"), path, "text color"),
+            BackgroundColor = Color(fill, path, "background color"),
+            BorderColor = Color(border, path, "border color"),
+            Alignment = Alignment(Attribute(paragraph, "hAlign"), path)
+        };
+    }
+
+    private static XElement? Child(XElement? parent, string name) =>
+        parent?.Elements().FirstOrDefault(element =>
+            element.Name.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+    private static string? EmptyToNull(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static double? Measurement(string? source, string path, string label)
+    {
+        if (string.IsNullOrWhiteSpace(source)) return null;
+        string value = source.Trim();
+        string number = value.EndsWith("pt", StringComparison.OrdinalIgnoreCase)
+            ? value[..^2] : value;
+        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture,
+                out double result) || !double.IsFinite(result) || result <= 0)
+            throw new InvalidOperationException($"XFA field '{path}' has an invalid {label}.");
+        return result;
+    }
+
+    private static PdfRgbColor? Color(XElement? container, string path, string label)
+    {
+        XElement? color = container is not null
+            && container.Name.LocalName.Equals("color", StringComparison.OrdinalIgnoreCase)
+                ? container : Child(container, "color");
+        string? source = Attribute(color, "value");
+        if (string.IsNullOrWhiteSpace(source)) return null;
+        string[] parts = source.Split(',', StringSplitOptions.TrimEntries);
+        if (parts.Length != 3 || parts.Any(part => !byte.TryParse(part,
+                NumberStyles.Integer, CultureInfo.InvariantCulture, out _)))
+            throw new InvalidOperationException($"XFA field '{path}' has an invalid {label}.");
+        return new PdfRgbColor(
+            byte.Parse(parts[0], CultureInfo.InvariantCulture) / 255d,
+            byte.Parse(parts[1], CultureInfo.InvariantCulture) / 255d,
+            byte.Parse(parts[2], CultureInfo.InvariantCulture) / 255d);
+    }
+
+    private static PdfTextFieldAlignment? Alignment(string? source, string path)
+    {
+        if (string.IsNullOrWhiteSpace(source)) return null;
+        if (Enum.TryParse(source, ignoreCase: true, out PdfTextFieldAlignment alignment)
+            && Enum.IsDefined(alignment)) return alignment;
+        throw new NotSupportedException(
+            $"XFA field '{path}' uses unsupported horizontal alignment '{source}'.");
+    }
 }
 
 /// <summary>A safe summary of an XFA template packet.</summary>
@@ -147,6 +212,25 @@ public sealed record PdfXfaTemplateField(
     public IReadOnlyList<PdfXfaChoiceOption> ChoiceOptions { get; init; } = [];
     /// <summary>Gets the field's user-facing assist text.</summary>
     public string? Description { get; init; }
+    /// <summary>Gets safely representable field appearance metadata.</summary>
+    public PdfXfaFieldAppearance Appearance { get; init; } = new();
+}
+
+/// <summary>Safely representable appearance metadata declared by an XFA field.</summary>
+public sealed record PdfXfaFieldAppearance
+{
+    /// <summary>Gets the declared typeface name without loading external font resources.</summary>
+    public string? Typeface { get; init; }
+    /// <summary>Gets the declared font size in points.</summary>
+    public double? FontSize { get; init; }
+    /// <summary>Gets the declared text color.</summary>
+    public PdfRgbColor? TextColor { get; init; }
+    /// <summary>Gets the declared field background color.</summary>
+    public PdfRgbColor? BackgroundColor { get; init; }
+    /// <summary>Gets the declared field border color.</summary>
+    public PdfRgbColor? BorderColor { get; init; }
+    /// <summary>Gets the declared horizontal text alignment.</summary>
+    public PdfTextFieldAlignment? Alignment { get; init; }
 }
 
 /// <summary>One saved and displayed XFA choice-list item.</summary>

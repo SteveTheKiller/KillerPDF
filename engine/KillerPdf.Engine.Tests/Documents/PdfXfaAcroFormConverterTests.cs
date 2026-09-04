@@ -1,4 +1,5 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -57,6 +58,29 @@ public sealed class PdfXfaAcroFormConverterTests
         Assert.Equal("b", widget.Value);
         Assert.Equal(["Red", "Blue"], widget.Options.Select(option => option.DisplayValue));
         Assert.Equal(["r", "b"], widget.Options.Select(option => option.ExportValue));
+    }
+
+    [Fact]
+    public void ConvertPreservesRepresentableFieldAppearance()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="form" layout="position"><field name="name" x="10pt" y="20pt" w="70pt" h="15pt"><font typeface="Source Sans" size="9pt"><fill><color value="255,0,0"/></fill></font><para hAlign="right"/><fill><color value="240,241,242"/></fill><border><color value="10,20,30"/></border><ui><textEdit/></ui></field></subform></template>""",
+            """<datasets><data><form><name>Ada</name></form></data></datasets>""");
+
+        PdfXfaTemplateField templateField = Assert.Single(
+            PdfXfaTemplate.Read(PdfXfaReader.Read(source)!).Fields);
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(PdfXfaAcroFormConverter.Convert(source)), 0));
+
+        Assert.Equal("Source Sans", templateField.Appearance.Typeface);
+        Assert.Equal(9, templateField.Appearance.FontSize);
+        Assert.Equal(PdfTextFieldAlignment.Right, widget.Alignment);
+        Assert.Contains(" 9 Tf ", widget.DefaultAppearance, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 rg", widget.DefaultAppearance, StringComparison.Ordinal);
+        Assert.Equal(new PdfRgbColor(240 / 255d, 241 / 255d, 242 / 255d),
+            widget.BackgroundColor);
+        Assert.Equal(new PdfRgbColor(10 / 255d, 20 / 255d, 30 / 255d),
+            widget.BorderColor);
     }
 
     [Fact]
