@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Documents;
@@ -227,6 +229,32 @@ public sealed record PdfOptionalContentInfo
     public IReadOnlyList<PdfOptionalContentGroupInfo> Groups { get; init; } = [];
     /// <summary>Gets the default and alternate optional-content configurations.</summary>
     public IReadOnlyList<PdfOptionalContentConfigurationInfo> Configurations { get; init; } = [];
+
+    /// <summary>Exports layer identities and effective configuration state as stable JSON.</summary>
+    public string ToJson(bool indented = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            Groups,
+            Configurations = Configurations.Select(configuration => new
+            {
+                configuration.Name,
+                configuration.Creator,
+                configuration.IsDefault,
+                configuration.BaseState,
+                VisibleGroupObjectNumbers = configuration.VisibleGroupObjectNumbers.Order(),
+                LockedGroupObjectNumbers = configuration.LockedGroupObjectNumbers.Order(),
+                configuration.DisplayOrderGroupObjectNumbers
+            })
+        }, options);
+    }
 }
 
 /// <summary>One registered PDF layer.</summary>

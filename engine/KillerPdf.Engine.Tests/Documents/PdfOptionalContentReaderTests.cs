@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -35,6 +36,12 @@ public sealed class PdfOptionalContentReaderTests
         Assert.DoesNotContain(result.Groups[1].ObjectNumber, configuration.VisibleGroupObjectNumbers);
         Assert.Equal(result.Groups.Select(group => group.ObjectNumber),
             configuration.DisplayOrderGroupObjectNumbers);
+        using JsonDocument json = JsonDocument.Parse(result.ToJson());
+        Assert.Equal(1, json.RootElement.GetProperty("version").GetInt32());
+        Assert.Equal("Artwork",
+            json.RootElement.GetProperty("groups")[0].GetProperty("name").GetString());
+        Assert.Equal("on", json.RootElement.GetProperty("configurations")[0]
+            .GetProperty("baseState").GetString());
     }
 
     [Fact]
