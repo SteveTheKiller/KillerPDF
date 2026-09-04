@@ -1,4 +1,6 @@
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 
@@ -54,8 +56,33 @@ public static class PdfXfaReader
         {
             IsPacketArray = isPacketArray,
             Packets = Array.AsReadOnly(packets.ToArray()),
+            FormType = DetectFormType(packets),
             ContainsScript = packets.Any(packet => ContainsScript(packet.Data.Span))
         };
+    }
+
+    private static PdfXfaFormType DetectFormType(IReadOnlyList<PdfXfaPacket> packets)
+    {
+        PdfXfaPacket? config = packets.FirstOrDefault(packet =>
+            string.Equals(packet.Name, "config", StringComparison.OrdinalIgnoreCase));
+        if (config is null) return PdfXfaFormType.Unknown;
+        using var input = new MemoryStream(config.Data.ToArray(), writable: false);
+        using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = 16 * 1024 * 1024,
+            IgnoreComments = true
+        });
+        XDocument document = XDocument.Load(reader, LoadOptions.None);
+        XElement root = document.Root
+            ?? throw new InvalidOperationException("The XFA config packet has no root element.");
+        XElement? dynamicRender = root.Descendants().FirstOrDefault(element =>
+            string.Equals(element.Name.LocalName, "dynamicRender", StringComparison.OrdinalIgnoreCase));
+        if (dynamicRender is null) return PdfXfaFormType.Static;
+        return string.Equals(dynamicRender.Value.Trim(), "required", StringComparison.OrdinalIgnoreCase)
+            ? PdfXfaFormType.Dynamic
+            : PdfXfaFormType.Static;
     }
 
     private static PdfXfaPacket Packet(
@@ -101,8 +128,21 @@ public sealed record PdfXfaInfo
     public bool IsPacketArray { get; init; }
     /// <summary>Gets the XFA packets in source order.</summary>
     public IReadOnlyList<PdfXfaPacket> Packets { get; init; } = [];
+    /// <summary>Gets the form layout type declared by the config packet.</summary>
+    public PdfXfaFormType FormType { get; init; }
     /// <summary>Gets whether a packet declares script content.</summary>
     public bool ContainsScript { get; init; }
+}
+
+/// <summary>The layout type declared by an XFA form.</summary>
+public enum PdfXfaFormType
+{
+    /// <summary>No config packet declares the layout type.</summary>
+    Unknown,
+    /// <summary>The form uses a fixed page layout.</summary>
+    Static,
+    /// <summary>The form can reflow and add pages as data changes.</summary>
+    Dynamic
 }
 
 /// <summary>One named XFA packet and its decoded bytes.</summary>
