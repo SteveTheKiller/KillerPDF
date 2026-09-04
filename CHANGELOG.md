@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added reviewable OCR correction, searchable output, batches, accuracy checks, and reports (#345).
 - Added reusable headers, footers, page numbering, Bates batches, and reports (#344).
 - Added reviewable permanent redaction searches, removals, verification, batches, and reports (#341).
 - Added signature trust, validation evidence, timestamps, and certificate-recipient encryption (#336).

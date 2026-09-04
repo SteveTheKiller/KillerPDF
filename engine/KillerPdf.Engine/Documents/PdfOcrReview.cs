@@ -186,6 +186,30 @@ public sealed record PdfOcrAccuracyReport
                 .Append(',').Append(page.EmptyTextCount).Append('\n');
         return output.ToString();
     }
+
+    /// <summary>Exports a readable accuracy summary without recognized text.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder()
+            .Append("OCR accuracy: ")
+            .AppendLine(HasWarnings ? "Review required" : "No warnings")
+            .Append("Words: ").AppendLine(WordCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Average confidence: ")
+            .AppendLine(AverageConfidence.ToString("0.####", CultureInfo.InvariantCulture))
+            .Append("Low-confidence threshold: ")
+            .AppendLine(LowConfidenceThreshold.ToString("0.####", CultureInfo.InvariantCulture));
+        if (Pages.Count == 0) return output.AppendLine("No pages.").ToString();
+        foreach (PdfOcrPageAccuracy page in Pages)
+            output.Append("Page ").Append(page.PageIndex + 1)
+                .Append(" | Words ").Append(page.WordCount)
+                .Append(" | Confidence ").Append(page.AverageConfidence.ToString("0.####", CultureInfo.InvariantCulture))
+                .Append(" | Low confidence ").Append(page.LowConfidenceCount)
+                .Append(" | Pending ").Append(page.PendingCount)
+                .Append(" | Corrected ").Append(page.CorrectedCount)
+                .Append(" | Ignored ").Append(page.IgnoredCount)
+                .Append(" | Empty ").Append(page.EmptyTextCount).AppendLine();
+        return output.ToString();
+    }
 }
 
 /// <summary>A recognized word with stable page order, geometry, confidence, and review state.</summary>
@@ -540,6 +564,30 @@ public sealed record PdfOcrBatchReport
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
     });
+
+    /// <summary>Exports readable data-safe batch outcomes without recognized text.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder()
+            .Append("OCR batch pages: ").AppendLine(TotalPageCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Succeeded: ").AppendLine(SucceededCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Failed: ").AppendLine(FailedCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Canceled: ").AppendLine(CanceledCount.ToString(CultureInfo.InvariantCulture))
+            .Append("Unprocessed: ").AppendLine(UnprocessedCount.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfOcrBatchResult result in Results)
+        {
+            output.Append(result.Input.SourceName).Append(" | Page ")
+                .Append(result.Input.PageIndex + 1).Append(" | ");
+            if (result.Succeeded)
+                output.Append("Succeeded | Words ").Append(result.Review!.Words.Count);
+            else if (result.WasCanceled)
+                output.Append("Canceled");
+            else
+                output.Append("Failed: ").Append(result.Error);
+            output.AppendLine();
+        }
+        return output.ToString();
+    }
 }
 
 /// <summary>Runs OCR page recognition with source preservation, failure isolation, and cancellation.</summary>

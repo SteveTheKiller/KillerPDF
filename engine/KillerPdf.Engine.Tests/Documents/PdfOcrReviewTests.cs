@@ -253,6 +253,14 @@ public sealed class PdfOcrReviewTests
         Assert.DoesNotContain("AQID", json, StringComparison.Ordinal);
         Assert.DoesNotContain("secret text", json, StringComparison.Ordinal);
         Assert.DoesNotContain("secret-id", json, StringComparison.Ordinal);
+        string text = report.ToText();
+        Assert.Contains("OCR batch pages: 2", text, StringComparison.Ordinal);
+        Assert.Contains("first.pdf | Page 1 | Succeeded | Words 1", text,
+            StringComparison.Ordinal);
+        Assert.Contains("bad.pdf | Page 3 | Failed: Unreadable page", text,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("secret text", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret-id", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -316,6 +324,13 @@ public sealed class PdfOcrReviewTests
         Assert.Contains("1,2,0.7,1,0,1,1,0", csv, StringComparison.Ordinal);
         Assert.DoesNotContain("Killer", json, StringComparison.Ordinal);
         Assert.DoesNotContain("Kiler", csv, StringComparison.Ordinal);
+        string text = report.ToText();
+        Assert.Contains("OCR accuracy: Review required", text, StringComparison.Ordinal);
+        Assert.Contains("Words: 3", text, StringComparison.Ordinal);
+        Assert.Contains("Page 1 | Words 2 | Confidence 0.7", text,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Killer", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Kiler", text, StringComparison.Ordinal);
     }
 
     [Fact]
