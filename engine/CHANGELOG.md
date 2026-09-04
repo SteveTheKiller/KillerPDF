@@ -30,7 +30,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added deterministic styled header and footer placement, independent visible number formats, PDF writing, content collision checks, continuous Bates numbering across ordered document batches, and saved furniture JSON reporting, removal, and replacement (#344).
 - Added plain-text, semantic HTML, structured JSON, Markdown, editable Word, spreadsheet, and geometry-preserving presentation export with isolated batches and loss reports (#346).
 - Added unified bookmark, link, named-destination, and page-label navigation with auditing, editing, JSON bookmark exchange, TOC planning, safe-link removal, retargeting, and bookmark styling (#351).
-- Added searchable OCR text-layer writing, review persistence, confidence-based acceptance, exportable accuracy summaries, configurable processing, macro settings, and isolated page batches with data-safe reports (#345).
+- Added searchable OCR text-layer writing, review persistence, confidence-based acceptance, exportable accuracy summaries, configurable provider integration, macro settings, and isolated page batches with data-safe reports (#345).
 - Added automatic-field proposals and reviewed field values, descriptions, requirements, text layout, choice fields, and selected radio groups behind an explicit accept or reject boundary (#342).
 - Added common sensitive-data searches including payment card checksums, bulk review selection, privacy-safe reports, and isolated batch verification of image-only rebuilding with active-object scans for recoverable text (#341).
 - Added locally saved and editable fillable text-field presets with reusable dimensions and visual styles (#340).

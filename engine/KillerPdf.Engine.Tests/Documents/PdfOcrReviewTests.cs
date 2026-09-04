@@ -78,6 +78,20 @@ public sealed class PdfOcrReviewTests
     }
 
     [Fact]
+    public void BatchRunnerUsesTheReusableProviderContract()
+    {
+        var options = new PdfOcrOptions(["en-US", "fr"]);
+        var provider = new RecordingProvider();
+
+        PdfOcrBatchReport report = PdfOcrBatchRunner.RunReport([
+            new PdfOcrBatchPage("scan.pdf", 2, new byte[] { 7 })], options, provider);
+
+        Assert.Equal(1, report.SucceededCount);
+        Assert.Same(options, provider.Options);
+        Assert.Equal(("scan.pdf", 2, (byte)7), provider.Input);
+    }
+
+    [Fact]
     public void ReviewCorrectsIgnoresAndReplacesWithoutChangingOriginal()
     {
         var original = new PdfOcrReview([
@@ -253,12 +267,13 @@ public sealed class PdfOcrReviewTests
         PdfDocument original = PdfDocument.Open(
             new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
         var review = new PdfOcrReview([
-            new PdfOcrWord("a", 0, 0, "A", "A",
+            new PdfOcrWord("a", 0, 0, "B", "B",
                 new PdfContentBounds(20, 30, 50, 50), 0.9, "en-US")]);
         TrueTypeFont font = TrueTypeFont.Load(
             TrueTypeFontTests.BuildTestFont(format12: false));
 
-        PdfDocument searchable = PdfDocument.Open(review.WriteSearchableText(original, font));
+        PdfDocument searchable = PdfDocument.Open(
+            review.Correct("a", "A").WriteSearchableText(original, font));
 
         PdfPageContent extracted = new PdfPageContentReader(searchable).Read(0);
         Assert.Equal("A", extracted.Text);
@@ -268,4 +283,19 @@ public sealed class PdfOcrReviewTests
 
     private static PdfOcrWord Word(string id, int page, int sequence, string text, double confidence) =>
         new(id, page, sequence, text, text, new PdfContentBounds(0, 0, 10, 10), confidence, "en-US");
+
+    private sealed class RecordingProvider : IPdfOcrProvider
+    {
+        public PdfOcrOptions? Options { get; private set; }
+        public (string Name, int Page, byte Value) Input { get; private set; }
+
+        public PdfOcrReview Recognize(PdfOcrBatchPage page, PdfOcrOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Options = options;
+            Input = (page.SourceName, page.PageIndex, page.Source.Span[0]);
+            return new PdfOcrReview([Word("provider", page.PageIndex, 0, "text", 1)]);
+        }
+    }
 }

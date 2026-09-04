@@ -443,6 +443,14 @@ public sealed record PdfOcrBatchResult(PdfOcrBatchPage Input, PdfOcrReview? Revi
     public bool Succeeded => Review is not null && Error is null && !WasCanceled;
 }
 
+/// <summary>A bounded OCR provider used by direct, batch, and macro workflows.</summary>
+public interface IPdfOcrProvider
+{
+    /// <summary>Recognizes one isolated page using validated provider options.</summary>
+    PdfOcrReview Recognize(PdfOcrBatchPage page, PdfOcrOptions options,
+        CancellationToken cancellationToken = default);
+}
+
 /// <summary>A data-safe aggregate report for an OCR page batch.</summary>
 public sealed record PdfOcrBatchReport
 {
@@ -500,6 +508,15 @@ public sealed record PdfOcrBatchReport
 /// <summary>Runs OCR page recognition with source preservation, failure isolation, and cancellation.</summary>
 public static class PdfOcrBatchRunner
 {
+    /// <summary>Recognizes a page batch through a reusable provider contract.</summary>
+    public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
+        PdfOcrOptions options, IPdfOcrProvider provider,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        return RunReport(pages, options, provider.Recognize, cancellationToken);
+    }
+
     /// <summary>Recognizes a page batch and returns aggregate, data-safe outcomes.</summary>
     public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
         PdfOcrOptions options,
