@@ -44,6 +44,161 @@ public sealed record PdfStructuredExportReport(IReadOnlyList<PdfStructuredExport
         });
 }
 
+/// <summary>One PDF supplied for isolated structured export.</summary>
+public sealed record PdfStructuredExportBatchItem
+{
+    /// <summary>Creates a validated batch input with an isolated source copy.</summary>
+    public PdfStructuredExportBatchItem(string sourceName, ReadOnlyMemory<byte> source,
+        IEnumerable<int>? pageIndices = null)
+    {
+        if (string.IsNullOrWhiteSpace(sourceName))
+            throw new ArgumentException("A source name is required.", nameof(sourceName));
+        SourceName = sourceName;
+        Source = source.ToArray();
+        PageIndices = pageIndices is null
+            ? null : Array.AsReadOnly(pageIndices.ToArray());
+    }
+
+    /// <summary>Gets the source file name.</summary>
+    public string SourceName { get; }
+    /// <summary>Gets an isolated copy of the source PDF.</summary>
+    public ReadOnlyMemory<byte> Source { get; }
+    /// <summary>Gets the optional zero-based page selection.</summary>
+    public IReadOnlyList<int>? PageIndices { get; }
+}
+
+/// <summary>The isolated outcome of exporting one PDF.</summary>
+public sealed record PdfStructuredExportBatchResult(
+    PdfStructuredExportBatchItem Input, ReadOnlyMemory<byte>? Data,
+    string? Error, bool WasCanceled)
+{
+    /// <summary>Gets whether export completed.</summary>
+    public bool Succeeded => Data.HasValue && Error is null && !WasCanceled;
+}
+
+/// <summary>A data-safe aggregate report for a structured export batch.</summary>
+public sealed record PdfStructuredExportBatchReport
+{
+    /// <summary>Creates a report from an isolated batch result prefix.</summary>
+    public PdfStructuredExportBatchReport(int totalDocumentCount,
+        IEnumerable<PdfStructuredExportBatchResult> results)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(totalDocumentCount);
+        ArgumentNullException.ThrowIfNull(results);
+        PdfStructuredExportBatchResult[] values = results.ToArray();
+        if (values.Length > totalDocumentCount)
+            throw new ArgumentException(
+                "Export batch results cannot exceed the supplied document count.", nameof(results));
+        TotalDocumentCount = totalDocumentCount;
+        Results = Array.AsReadOnly(values);
+    }
+
+    /// <summary>Gets the number of supplied documents.</summary>
+    public int TotalDocumentCount { get; }
+    /// <summary>Gets completed, failed, or canceled document results.</summary>
+    public IReadOnlyList<PdfStructuredExportBatchResult> Results { get; }
+    /// <summary>Gets the number of successful documents.</summary>
+    public int SucceededCount => Results.Count(result => result.Succeeded);
+    /// <summary>Gets the number of failed documents.</summary>
+    public int FailedCount => Results.Count(result => result.Error is not null);
+    /// <summary>Gets the number of canceled documents.</summary>
+    public int CanceledCount => Results.Count(result => result.WasCanceled);
+    /// <summary>Gets documents not reached after cancellation.</summary>
+    public int UnprocessedCount => TotalDocumentCount - Results.Count;
+
+    /// <summary>Exports outcomes without source or generated document data.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        TotalDocumentCount,
+        SucceededCount,
+        FailedCount,
+        CanceledCount,
+        UnprocessedCount,
+        Results = Results.Select(result => new
+        {
+            result.Input.SourceName,
+            result.Succeeded,
+            result.WasCanceled,
+            result.Error,
+            OutputByteCount = result.Data?.Length
+        })
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
+}
+
+/// <summary>Runs isolated structured exports with failure containment and cancellation.</summary>
+public static class PdfStructuredExportBatchRunner
+{
+    /// <summary>Exports a document batch and returns aggregate, data-safe outcomes.</summary>
+    public static PdfStructuredExportBatchReport RunReport(
+        IEnumerable<PdfStructuredExportBatchItem> items, PdfStructuredExportFormat format,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        PdfStructuredExportBatchItem[] supplied = items.ToArray();
+        return new PdfStructuredExportBatchReport(supplied.Length,
+            Run(supplied, format, cancellationToken));
+    }
+
+    /// <summary>Exports each document independently.</summary>
+    public static IReadOnlyList<PdfStructuredExportBatchResult> Run(
+        IEnumerable<PdfStructuredExportBatchItem> items, PdfStructuredExportFormat format,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
+        var results = new List<PdfStructuredExportBatchResult>();
+        foreach (PdfStructuredExportBatchItem suppliedItem in items)
+        {
+            if (cancellationToken.IsCancellationRequested) break;
+            var item = new PdfStructuredExportBatchItem(suppliedItem.SourceName,
+                suppliedItem.Source, suppliedItem.PageIndices);
+            try
+            {
+                PdfDocument document = PdfDocument.Open(item.Source);
+                byte[] data = Export(document, format, item.PageIndices, cancellationToken);
+                results.Add(new PdfStructuredExportBatchResult(item, data, null, false));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                results.Add(new PdfStructuredExportBatchResult(item, null, null, true));
+                break;
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            {
+                results.Add(new PdfStructuredExportBatchResult(
+                    item, null, exception.Message, false));
+            }
+        }
+        return Array.AsReadOnly(results.ToArray());
+    }
+
+    private static byte[] Export(PdfDocument document, PdfStructuredExportFormat format,
+        IEnumerable<int>? pageIndices, CancellationToken cancellationToken) => format switch
+    {
+        PdfStructuredExportFormat.PlainText => Encoding.UTF8.GetBytes(
+            PdfStructuredExport.ToPlainText(document, pageIndices, cancellationToken)),
+        PdfStructuredExportFormat.Html => Encoding.UTF8.GetBytes(
+            PdfStructuredExport.ToHtml(document, pageIndices, cancellationToken)),
+        PdfStructuredExportFormat.Markdown => Encoding.UTF8.GetBytes(
+            PdfStructuredExport.ToMarkdown(document, pageIndices, cancellationToken)),
+        PdfStructuredExportFormat.Json => Encoding.UTF8.GetBytes(
+            PdfStructuredExport.ToJson(document, pageIndices, cancellationToken)),
+        PdfStructuredExportFormat.WordDocument =>
+            PdfStructuredExport.ToDocx(document, pageIndices, cancellationToken),
+        PdfStructuredExportFormat.Spreadsheet =>
+            PdfStructuredExport.ToXlsx(document, pageIndices, cancellationToken),
+        PdfStructuredExportFormat.Presentation =>
+            PdfStructuredExport.ToPptx(document, pageIndices, cancellationToken),
+        _ => throw new ArgumentOutOfRangeException(nameof(format))
+    };
+}
+
 /// <summary>Exports engine-owned page extraction to editable text and web formats.</summary>
 public static class PdfStructuredExport
 {

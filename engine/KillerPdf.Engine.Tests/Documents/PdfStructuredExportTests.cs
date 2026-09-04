@@ -144,7 +144,56 @@ public sealed class PdfStructuredExportTests
         Assert.False(json.RootElement.GetProperty("isLossless").GetBoolean());
     }
 
+    [Fact]
+    public void BatchExportIsolatesFailuresAndProducesADataSafeReport()
+    {
+        byte[] valid = DocumentBytes("BT /F1 12 Tf 10 30 Td (first) Tj ET");
+        var items = new[]
+        {
+            new PdfStructuredExportBatchItem("first.pdf", valid),
+            new PdfStructuredExportBatchItem("broken.pdf", "not a PDF"u8.ToArray()),
+            new PdfStructuredExportBatchItem("last.pdf",
+                DocumentBytes("BT /F1 12 Tf 10 30 Td (last) Tj ET"))
+        };
+
+        PdfStructuredExportBatchReport report =
+            PdfStructuredExportBatchRunner.RunReport(items, PdfStructuredExportFormat.PlainText);
+
+        Assert.Equal((3, 2, 1, 0, 0), (report.TotalDocumentCount, report.SucceededCount,
+            report.FailedCount, report.CanceledCount, report.UnprocessedCount));
+        Assert.Equal("first", Encoding.UTF8.GetString(
+            Assert.IsType<ReadOnlyMemory<byte>>(report.Results[0].Data).Span));
+        Assert.True(report.Results[1].Error?.Length > 0);
+        Assert.Equal("last", Encoding.UTF8.GetString(
+            Assert.IsType<ReadOnlyMemory<byte>>(report.Results[2].Data).Span));
+
+        string jsonText = report.ToJson();
+        using JsonDocument json = JsonDocument.Parse(jsonText);
+        Assert.Equal("first.pdf", json.RootElement.GetProperty("results")[0]
+            .GetProperty("sourceName").GetString());
+        Assert.DoesNotContain("not a PDF", jsonText, StringComparison.Ordinal);
+        Assert.DoesNotContain("first\"", jsonText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BatchExportStopsAfterCanceledDocument()
+    {
+        byte[] valid = DocumentBytes("BT /F1 12 Tf 10 30 Td (text) Tj ET");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        PdfStructuredExportBatchReport report = PdfStructuredExportBatchRunner.RunReport(
+            [new PdfStructuredExportBatchItem("first.pdf", valid)],
+            PdfStructuredExportFormat.Json, cancellation.Token);
+
+        Assert.Equal(1, report.UnprocessedCount);
+        Assert.Empty(report.Results);
+    }
+
     private static PdfDocument Document(string content)
+        => PdfDocument.Open(DocumentBytes(content));
+
+    private static byte[] DocumentBytes(string content)
     {
         string stream = $"<< /Length {Encoding.Latin1.GetByteCount(content)} >>\nstream\n{content}\nendstream";
         string[] objects = ["<< /Type /Catalog /Pages 2 0 R >>",
@@ -162,6 +211,6 @@ public sealed class PdfStructuredExportTests
         pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
         foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
         pdf.Append($"trailer\n<< /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
-        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+        return Encoding.Latin1.GetBytes(pdf.ToString());
     }
 }
