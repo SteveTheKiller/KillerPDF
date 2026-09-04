@@ -8,6 +8,9 @@ internal static class PdfPreflightDocumentChecks
 {
     private static readonly PdfName MediaBoxName = Name("MediaBox");
     private static readonly PdfName CropBoxName = Name("CropBox");
+    private static readonly PdfName BleedBoxName = Name("BleedBox");
+    private static readonly PdfName TrimBoxName = Name("TrimBox");
+    private static readonly PdfName ArtBoxName = Name("ArtBox");
     private static readonly PdfName OutputIntentsName = Name("OutputIntents");
     private static readonly PdfName ResourcesName = Name("Resources");
     private static readonly PdfName FontName = Name("Font");
@@ -39,6 +42,19 @@ internal static class PdfPreflightDocumentChecks
                     findings.Add(Error("PageBoxes.CropOutsideMediaBox",
                         "The crop box extends outside the media box.", page.Index,
                         page.Reference.ObjectNumber));
+                CheckContained(BleedBoxName, "Bleed");
+                CheckContained(TrimBoxName, "Trim");
+                CheckContained(ArtBoxName, "Art");
+
+                void CheckContained(PdfName name, string label)
+                {
+                    PdfBox? box = Box(document, page, name, required: false);
+                    if (box is null || box.Left >= media.Left && box.Bottom >= media.Bottom
+                        && box.Right <= media.Right && box.Top <= media.Top) return;
+                    findings.Add(Error($"PageBoxes.{label}OutsideMediaBox",
+                        $"The {label.ToLowerInvariant()} box extends outside the media box.",
+                        page.Index, page.Reference.ObjectNumber));
+                }
             }
             catch (Exception error) when (IsDocumentFailure(error))
             {
@@ -438,7 +454,8 @@ internal static class PdfPreflightDocumentChecks
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,
         PdfName name, bool required)
     {
-        if (!page.InheritedValues.TryGetValue(name, out PdfObject? value))
+        if (!page.Dictionary.TryGetValue(name, out PdfObject? value)
+            && !page.InheritedValues.TryGetValue(name, out value))
         {
             if (required) throw new InvalidOperationException("A page has no media box.");
             return null;

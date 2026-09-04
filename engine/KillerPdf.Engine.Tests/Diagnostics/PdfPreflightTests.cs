@@ -3,8 +3,11 @@ using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Diagnostics;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Tests.Fonts;
+using KillerPdf.Engine.Writing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Diagnostics;
@@ -109,6 +112,34 @@ public sealed class PdfPreflightTests
         Assert.DoesNotContain(complete.Findings,
             finding => finding.Code.StartsWith("PageBoxes.", StringComparison.Ordinal)
                 || finding.Code.StartsWith("OutputIntent.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PageBoxCheckReportsExplicitProductionBoxesOutsideMediaBox()
+    {
+        PdfDocument original = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 300).Build());
+        (int ObjectNumber, PdfDictionary Dictionary) page = original.CrossReferences.Values
+            .Select(entry => (entry.ObjectNumber, Object: original.Resolve(entry.ObjectNumber)))
+            .Where(item => item.Object is PdfDictionary dictionary
+                && dictionary.TryGetValue(new PdfName("Type"u8), out PdfObject? type)
+                && type is PdfName name && name.ValueAsLatin1() == "Page")
+            .Select(item => (item.ObjectNumber, (PdfDictionary)item.Object)).Single();
+        PdfDictionary changedPage = new(page.Dictionary.Append(new(
+            new PdfName("TrimBox"u8), new PdfArray([
+                new PdfInteger(-5), new PdfInteger(0),
+                new PdfInteger(200), new PdfInteger(300)]))));
+        byte[] source = new PdfIncrementalUpdateBuilder(original)
+            .ReplaceObject(page.ObjectNumber, changedPage).Build();
+        var profile = new PdfPreflightProfile("Page boxes", [PdfPreflightCheck.PageBoxes]);
+
+        PdfPreflightFinding finding = Assert.Single(
+            PdfPreflightRunner.Run(source, profile).Findings);
+
+        Assert.Equal("PageBoxes.TrimOutsideMediaBox", finding.Code);
+        Assert.Equal(PdfDiagnosticSeverity.Error, finding.Severity);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.Equal(page.ObjectNumber, finding.ObjectNumber);
     }
 
     [Fact]
