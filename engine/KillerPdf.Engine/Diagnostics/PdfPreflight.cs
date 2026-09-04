@@ -16,6 +16,8 @@ public enum PdfPreflightCheck
     TaggedStructure,
     /// <summary>Checks interactive form fields for user-facing descriptions.</summary>
     FormAccessibility,
+    /// <summary>Checks link annotations for user-facing descriptions.</summary>
+    LinkAccessibility,
     /// <summary>Checks effective media and crop boxes on every page.</summary>
     PageBoxes,
     /// <summary>Checks for a usable document output intent and ICC profile.</summary>
@@ -216,7 +218,8 @@ public static class PdfPreflightRunner
             ? PdfDocument.Open(source) : PdfDocument.Open(source, password);
         if (profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage)
             || profile.Checks.Contains(PdfPreflightCheck.TaggedStructure)
-            || profile.Checks.Contains(PdfPreflightCheck.FormAccessibility))
+            || profile.Checks.Contains(PdfPreflightCheck.FormAccessibility)
+            || profile.Checks.Contains(PdfPreflightCheck.LinkAccessibility))
         {
             foreach (PdfAccessibilityFinding finding in
                 PdfAccessibilityInspector.Inspect(checkedDocument).Findings)
@@ -229,6 +232,9 @@ public static class PdfPreflightRunner
                         profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage),
                     PdfAccessibilityFindingCode.MissingFormFieldDescription =>
                         profile.Checks.Contains(PdfPreflightCheck.FormAccessibility),
+                    PdfAccessibilityFindingCode.MissingLinkDescription =>
+                        profile.Checks.Contains(PdfPreflightCheck.LinkAccessibility)
+                        || profile.Checks.Contains(PdfPreflightCheck.TaggedStructure),
                     _ => profile.Checks.Contains(PdfPreflightCheck.TaggedStructure)
                 };
                 if (selected)

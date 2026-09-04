@@ -170,6 +170,28 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void LinkAccessibilityCanRunWithoutTaggedStructureFindings()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddUriLink(0, 10, 10, 100, 20, "https://example.test/missing")
+            .AddUriLink(0, 10, 40, 100, 20, "https://example.test/described",
+                contents: "Documentation").Build();
+        var profile = new PdfPreflightProfile("Accessible links",
+            [PdfPreflightCheck.LinkAccessibility]);
+
+        PdfPreflightFinding finding = Assert.Single(
+            PdfPreflightRunner.Run(source, profile).Findings);
+
+        Assert.Equal("Accessibility.MissingLinkDescription", finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+        Assert.DoesNotContain("MissingStructureTree", finding.Code,
+            StringComparison.Ordinal);
+        Assert.Contains("link annotation", finding.Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void GeneralProfileReportsStructuralDamageWithoutThrowing()
     {
         PdfPreflightReport report = PdfPreflightRunner.Run(
