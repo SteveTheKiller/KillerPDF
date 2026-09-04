@@ -98,6 +98,35 @@ public sealed class PdfCollectionReaderTests
     }
 
     [Fact]
+    public void TextReportIncludesPresentationSchemaAndSortRules()
+    {
+        PdfDocument document = WithCollection(new PdfDictionary([
+            new(Name("View"), Name("T")),
+            new(Name("D"), Text("cover.pdf")),
+            new(Name("Schema"), new PdfDictionary([
+                new(Name("Name"), new PdfDictionary([
+                    new(Name("N"), Text("File name")),
+                    new(Name("Subtype"), Name("F")),
+                    new(Name("O"), new PdfInteger(1))
+                ]))
+            ])),
+            new(Name("Sort"), new PdfDictionary([
+                new(Name("S"), Name("Name")), new(Name("A"), new PdfBoolean(false))
+            ]))
+        ]));
+
+        string report = PdfCollectionReader.ToText(document);
+
+        Assert.Contains("PDF portfolio: Tile", report, StringComparison.Ordinal);
+        Assert.Contains("Initial document: cover.pdf", report, StringComparison.Ordinal);
+        Assert.Contains("Name: File name, type F, visible, read-only, order 1", report,
+            StringComparison.Ordinal);
+        Assert.Contains("Name: descending", report, StringComparison.Ordinal);
+        Assert.Equal("PDF portfolio: none", PdfCollectionReader.ToText(PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build())));
+    }
+
+    [Fact]
     public void ReadPreservesUnknownViewAndRejectsMismatchedSortDirections()
     {
         PdfCollectionInfo info = Assert.IsType<PdfCollectionInfo>(

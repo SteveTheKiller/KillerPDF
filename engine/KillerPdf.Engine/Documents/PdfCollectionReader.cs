@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Objects;
@@ -8,6 +9,44 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Reads portfolio collection settings without interpreting presentation data.</summary>
 public static class PdfCollectionReader
 {
+    /// <summary>Formats portfolio presentation metadata for review.</summary>
+    public static string ToText(PdfDocument document)
+    {
+        PdfCollectionInfo? collection = Read(document);
+        if (collection is null) return "PDF portfolio: none";
+        var text = new StringBuilder();
+        text.Append("PDF portfolio: ").Append(collection.View);
+        if (collection.View == PdfCollectionView.Unknown && collection.RawViewName is not null)
+            text.Append(" (").Append(collection.RawViewName).Append(')');
+        text.AppendLine();
+        text.Append("Initial document: ").AppendLine(collection.InitialDocument ?? "none");
+        text.AppendLine($"Fields: {collection.Fields.Count.ToString(CultureInfo.InvariantCulture)}");
+        foreach (PdfCollectionFieldInfo field in collection.Fields)
+        {
+            text.Append("  ").Append(field.Key).Append(": ").Append(field.DisplayName)
+                .Append(", type ").Append(field.Subtype ?? "unspecified")
+                .Append(", ").Append(field.IsVisible ? "visible" : "hidden")
+                .Append(", ").Append(field.IsEditable ? "editable" : "read-only");
+            if (field.Order.HasValue)
+                text.Append(", order ").Append(field.Order.Value.ToString(CultureInfo.InvariantCulture));
+            text.AppendLine();
+        }
+        text.AppendLine($"Sort rules: {collection.Sort.Count.ToString(CultureInfo.InvariantCulture)}");
+        foreach (PdfCollectionSortInfo sort in collection.Sort)
+            text.Append("  ").Append(sort.Key).Append(": ")
+                .AppendLine(sort.Ascending ? "ascending" : "descending");
+        text.AppendLine($"Folders: {collection.Folders.Count.ToString(CultureInfo.InvariantCulture)}");
+        foreach (PdfCollectionFolderInfo folder in collection.Folders)
+        {
+            text.Append(' ', (folder.Depth + 1) * 2).Append(folder.Name)
+                .Append(" (ID ").Append(folder.Id.ToString(CultureInfo.InvariantCulture))
+                .Append(", object ").Append(folder.ObjectNumber.ToString(CultureInfo.InvariantCulture)).AppendLine(")");
+            if (!string.IsNullOrWhiteSpace(folder.Description))
+                text.Append(' ', (folder.Depth + 2) * 2).Append("Description: ").AppendLine(folder.Description);
+        }
+        return text.ToString().TrimEnd();
+    }
+
     /// <summary>Exports portfolio metadata without embedded file payloads.</summary>
     public static string ToJson(PdfDocument document, bool indented = false)
     {

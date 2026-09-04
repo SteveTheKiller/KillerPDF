@@ -67,6 +67,29 @@ public sealed class PdfAttachmentReaderTests
     }
 
     [Fact]
+    public void TextReportIncludesReviewDetailsWithoutPayloadData()
+    {
+        byte[] payload = "private attachment payload"u8.ToArray();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("evidence.txt", payload, "text/plain", "Case evidence")
+            .AddFileAttachmentAnnotation(0, 20, 30, 24, "evidence.txt",
+                "Open the evidence", PdfFileAttachmentIcon.PushPin)
+            .Build());
+
+        string report = PdfAttachmentReader.ToText(document);
+
+        Assert.Contains("Attachments: 1", report, StringComparison.Ordinal);
+        Assert.Contains("\"evidence.txt\": 26 bytes, text/plain", report, StringComparison.Ordinal);
+        Assert.Contains("Description: \"Case evidence\"", report, StringComparison.Ordinal);
+        Assert.Contains("Safety: no findings", report, StringComparison.Ordinal);
+        Assert.Contains("Page 1, annotation 1", report, StringComparison.Ordinal);
+        Assert.Contains("icon \"PushPin\"", report, StringComparison.Ordinal);
+        Assert.Contains("Description: \"Open the evidence\"", report, StringComparison.Ordinal);
+        Assert.DoesNotContain("private attachment payload", report, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReadDetectsEncryptedPdfAndZipFamilyPayloads()
     {
         byte[] protectedPdf = new PdfDocumentBuilder()

@@ -12,6 +12,37 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Reads document-level embedded files without opening or executing them.</summary>
 public static class PdfAttachmentReader
 {
+    /// <summary>Formats attachment metadata and page placements without payload data.</summary>
+    public static string ToText(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        IReadOnlyList<PdfAttachmentInfo> attachments = Read(document);
+        int pageCount = PdfPageTree.Read(document).Pages.Count;
+        PdfAttachmentAnnotationInfo[] annotations = [.. Enumerable.Range(0, pageCount)
+            .SelectMany(pageIndex => ReadPageAnnotations(document, pageIndex))];
+        var text = new StringBuilder();
+        text.AppendLine($"Attachments: {attachments.Count.ToString(CultureInfo.InvariantCulture)}");
+        foreach (PdfAttachmentInfo attachment in attachments)
+            AppendAttachment(text, attachment, "  ");
+        text.AppendLine($"Page placements: {annotations.Length.ToString(CultureInfo.InvariantCulture)}");
+        foreach (PdfAttachmentAnnotationInfo annotation in annotations)
+        {
+            text.Append("  Page ").Append((annotation.PageIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(", annotation ").Append((annotation.AnnotationIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(": ").Append(Quoted(annotation.Attachment.FileName))
+                .Append(" at ").Append(Format(annotation.Left)).Append(", ").Append(Format(annotation.Bottom))
+                .Append(" to ").Append(Format(annotation.Right)).Append(", ").Append(Format(annotation.Top));
+            if (!string.IsNullOrWhiteSpace(annotation.Icon))
+                text.Append(", icon ").Append(Quoted(annotation.Icon));
+            if (annotation.ObjectNumber.HasValue)
+                text.Append(", object ").Append(annotation.ObjectNumber.Value.ToString(CultureInfo.InvariantCulture));
+            text.AppendLine();
+            if (!string.IsNullOrWhiteSpace(annotation.Contents))
+                text.Append("    Description: ").AppendLine(Quoted(annotation.Contents));
+        }
+        return text.ToString().TrimEnd();
+    }
+
     /// <summary>Exports attachment metadata and page placements without payload data.</summary>
     public static string ToJson(PdfDocument document, bool indented = false)
     {
@@ -63,6 +94,50 @@ public static class PdfAttachmentReader
             WriteIndented = indented
         });
     }
+
+    private static void AppendAttachment(
+        StringBuilder text, PdfAttachmentInfo attachment, string indent)
+    {
+        text.Append(indent).Append(Quoted(attachment.FileName)).Append(": ")
+            .Append(attachment.Data.Length.ToString(CultureInfo.InvariantCulture)).Append(" bytes, ")
+            .Append(attachment.MimeType).Append(", relationship ").Append(attachment.Relationship);
+        if (attachment.FileSpecificationObjectNumber.HasValue)
+            text.Append(", file object ").Append(attachment.FileSpecificationObjectNumber.Value.ToString(CultureInfo.InvariantCulture));
+        if (attachment.EmbeddedFileObjectNumber.HasValue)
+            text.Append(", stream object ").Append(attachment.EmbeddedFileObjectNumber.Value.ToString(CultureInfo.InvariantCulture));
+        text.AppendLine();
+        if (!string.IsNullOrWhiteSpace(attachment.Description))
+            text.Append(indent).Append("  Description: ").AppendLine(Quoted(attachment.Description));
+        if (attachment.CreationDate.HasValue)
+            text.Append(indent).Append("  Created: ").AppendLine(attachment.CreationDate.Value.ToString("O", CultureInfo.InvariantCulture));
+        if (attachment.ModificationDate.HasValue)
+            text.Append(indent).Append("  Modified: ").AppendLine(attachment.ModificationDate.Value.ToString("O", CultureInfo.InvariantCulture));
+        if (attachment.DeclaredSize.HasValue)
+            text.Append(indent).Append("  Declared size: ")
+                .Append(attachment.DeclaredSize.Value.ToString(CultureInfo.InvariantCulture))
+                .Append(" bytes (").Append(attachment.SizeMatches == true ? "matches" : "does not match").AppendLine(")");
+        if (attachment.ChecksumMatches.HasValue)
+            text.Append(indent).Append("  Checksum: ")
+                .AppendLine(attachment.ChecksumMatches == true ? "matches" : "does not match");
+        foreach (PdfCollectionItemValue value in attachment.CollectionValues)
+        {
+            string displayed = value.Text ?? value.Number?.ToString("G17", CultureInfo.InvariantCulture) ?? string.Empty;
+            text.Append(indent).Append("  Collection ").Append(value.Key).Append(": ")
+                .AppendLine(Quoted((value.Prefix ?? string.Empty) + displayed));
+        }
+        var findings = new List<string>();
+        if (attachment.HasUnsafeFileName) findings.Add("unsafe filename");
+        if (attachment.IsPotentiallyExecutable) findings.Add("executable extension");
+        if (attachment.HasExecutableContent) findings.Add("executable content");
+        if (attachment.HasEncryptedContent) findings.Add("encrypted content");
+        text.Append(indent).Append("  Safety: ")
+            .AppendLine(findings.Count == 0 ? "no findings" : string.Join(", ", findings));
+    }
+
+    private static string Format(double value) => value.ToString("G17", CultureInfo.InvariantCulture);
+
+    private static string Quoted(string value) =>
+        $"\"{value.Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal)}\"";
 
     /// <summary>Reads attachment metadata and immutable payloads from the embedded-files name tree.</summary>
     public static IReadOnlyList<PdfAttachmentInfo> Read(PdfDocument document)
