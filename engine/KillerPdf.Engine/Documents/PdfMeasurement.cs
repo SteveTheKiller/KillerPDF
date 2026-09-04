@@ -385,6 +385,8 @@ public sealed record PdfMeasurementResult
     public required string Kind { get; init; }
     /// <summary>Gets the optional label.</summary>
     public string? Label { get; init; }
+    /// <summary>Gets the optional measurement comment.</summary>
+    public string? Comment { get; init; }
     /// <summary>Gets the calibrated result.</summary>
     public double Value { get; init; }
     /// <summary>Gets the display unit.</summary>
@@ -408,12 +410,13 @@ public static class PdfMeasurementReport
     public static string ToCsv(IEnumerable<PdfMeasurementResult> results)
     {
         var output = new StringBuilder(
-            "Document,Page,Kind,Label,Value,Unit,Profile,UnitsPerPoint,Geometry\r\n");
+            "Document,Page,Kind,Label,Comment,Value,Unit,Profile,UnitsPerPoint,Geometry\r\n");
         foreach (PdfMeasurementResult result in Checked(results))
         {
             output.Append(Csv(result.Document ?? string.Empty)).Append(',')
                 .Append(result.PageIndex + 1).Append(',').Append(Csv(result.Kind)).Append(',')
                 .Append(Csv(result.Label ?? string.Empty)).Append(',')
+                .Append(Csv(result.Comment ?? string.Empty)).Append(',')
                 .Append(result.Value.ToString("R", CultureInfo.InvariantCulture)).Append(',')
                 .Append(Csv(result.Unit)).Append(',').Append(Csv(result.Profile)).Append(',')
                 .Append(result.UnitsPerPoint?.ToString("R", CultureInfo.InvariantCulture))

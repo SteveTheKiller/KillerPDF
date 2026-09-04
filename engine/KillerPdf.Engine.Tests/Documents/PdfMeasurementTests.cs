@@ -56,6 +56,7 @@ public sealed class PdfMeasurementTests
             PageIndex = 1,
             Kind = "Distance",
             Label = "Wall, north",
+            Comment = "Verify, onsite",
             Value = 12.5,
             Unit = "ft",
             Profile = "Floor plan",
@@ -68,7 +69,8 @@ public sealed class PdfMeasurementTests
 
         Assert.Contains("\"PageIndex\": 1", json, StringComparison.Ordinal);
         Assert.Contains("\"Document\": \"site,plan.pdf\"", json, StringComparison.Ordinal);
-        Assert.Contains("\"site,plan.pdf\",2,\"Distance\",\"Wall, north\",12.5,\"ft\",\"Floor plan\",0.5,\"1 2;3 4\"", csv,
+        Assert.Contains("\"Comment\": \"Verify, onsite\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"site,plan.pdf\",2,\"Distance\",\"Wall, north\",\"Verify, onsite\",12.5,\"ft\",\"Floor plan\",0.5,\"1 2;3 4\"", csv,
             StringComparison.Ordinal);
     }
 
