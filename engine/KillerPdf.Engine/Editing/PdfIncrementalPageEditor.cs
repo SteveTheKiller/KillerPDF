@@ -191,6 +191,8 @@ public sealed class PdfIncrementalPageEditor
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, PendingTextFieldBehavior> _textFieldBehaviorChanges =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PendingTextFieldAppearance> _textFieldAppearanceChanges =
+        new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _fieldNameChanges =
         new(StringComparer.Ordinal);
     private readonly Dictionary<(int ObjectNumber, int Generation), PendingWidgetRectangle>
@@ -267,7 +269,7 @@ public sealed class PdfIncrementalPageEditor
         _choiceFieldValues.Remove(fieldName);
         _resetFieldValues.Remove(fieldName);
         _textFieldValues[fieldName] = new PendingTextFieldValue(
-            value, embeddedFont, fontSize, false, null);
+            value, embeddedFont, fontSize, false, null, null);
         _catalogPresentationChanged = true;
         return this;
     }
@@ -327,6 +329,7 @@ public sealed class PdfIncrementalPageEditor
         _radioButtonValues.Remove(fieldName);
         _textFieldValues.Remove(fieldName);
         _choiceFieldValues.Remove(fieldName);
+        _textFieldAppearanceChanges.Remove(fieldName);
         _resetFieldValues[fieldName] = embeddedFont;
         _catalogPresentationChanged = true;
         return this;
@@ -343,6 +346,23 @@ public sealed class PdfIncrementalPageEditor
         if (metadata?.MappingName is not null && string.IsNullOrWhiteSpace(metadata.MappingName))
             throw new ArgumentException("A field mapping name cannot be empty.", nameof(metadata));
         _fieldMetadataChanges[fieldName] = metadata;
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>Changes an existing text field's visual style without changing its value.</summary>
+    public PdfIncrementalPageEditor SetTextFieldAppearance(
+        string fieldName, PdfFormFieldAppearanceStyle appearanceStyle,
+        TrueTypeFont? embeddedFont = null, double? fontSize = null)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("The form field name cannot be empty.", nameof(fieldName));
+        ArgumentNullException.ThrowIfNull(appearanceStyle);
+        if (fontSize.HasValue && (!double.IsFinite(fontSize.Value) || fontSize.Value <= 0))
+            throw new ArgumentOutOfRangeException(nameof(fontSize));
+        _resetFieldValues.Remove(fieldName);
+        _textFieldAppearanceChanges[fieldName] = new PendingTextFieldAppearance(
+            appearanceStyle, embeddedFont, fontSize);
         _catalogPresentationChanged = true;
         return this;
     }
@@ -479,6 +499,7 @@ public sealed class PdfIncrementalPageEditor
         _fieldMetadataChanges.Remove(fieldName);
         _fieldFlagChanges.Remove(fieldName);
         _textFieldBehaviorChanges.Remove(fieldName);
+        _textFieldAppearanceChanges.Remove(fieldName);
         _fieldNameChanges.Remove(fieldName);
         _fieldDefaultChanges.Remove(fieldName);
         _removedFormFields.Add(fieldName);
@@ -1986,6 +2007,7 @@ public sealed class PdfIncrementalPageEditor
                 || _resetFieldValues.Count != 0 || _fieldMetadataChanges.Count != 0
                 || _fieldFlagChanges.Count != 0
                 || _textFieldBehaviorChanges.Count != 0
+                || _textFieldAppearanceChanges.Count != 0
                 || _fieldNameChanges.Count != 0
                 || _fieldDefaultChanges.Count != 0);
         bool deferFormFieldRemovals = _removedFormFields.Count != 0
@@ -2029,6 +2051,8 @@ public sealed class PdfIncrementalPageEditor
                 formUpdate._fieldFlagChanges[entry.Key] = entry.Value;
             foreach (var entry in _textFieldBehaviorChanges)
                 formUpdate._textFieldBehaviorChanges[entry.Key] = entry.Value;
+            foreach (var entry in _textFieldAppearanceChanges)
+                formUpdate._textFieldAppearanceChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldNameChanges)
                 formUpdate._fieldNameChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldDefaultChanges)
@@ -2048,6 +2072,7 @@ public sealed class PdfIncrementalPageEditor
             && _resetFieldValues.Count == 0 && _fieldMetadataChanges.Count == 0
             && _fieldFlagChanges.Count == 0
             && _textFieldBehaviorChanges.Count == 0
+            && _textFieldAppearanceChanges.Count == 0
             && _fieldNameChanges.Count == 0
             && _fieldDefaultChanges.Count == 0) return;
         if (!_tree.Catalog.TryGetValue(AcroFormName, out PdfObject? formValue))
@@ -2059,6 +2084,7 @@ public sealed class PdfIncrementalPageEditor
         var metadataMatched = new HashSet<string>(StringComparer.Ordinal);
         var flagsMatched = new HashSet<string>(StringComparer.Ordinal);
         var behaviorMatched = new HashSet<string>(StringComparer.Ordinal);
+        var appearanceMatched = new HashSet<string>(StringComparer.Ordinal);
         var namesMatched = new HashSet<string>(StringComparer.Ordinal);
         var defaultMatched = new HashSet<string>(StringComparer.Ordinal);
         var resultingNames = new HashSet<string>(StringComparer.Ordinal);
@@ -2095,6 +2121,10 @@ public sealed class PdfIncrementalPageEditor
                     $"The AcroForm has no field named '{requested}'.");
         foreach (string requested in _textFieldBehaviorChanges.Keys)
             if (!behaviorMatched.Contains(requested))
+                throw new InvalidOperationException(
+                    $"The AcroForm has no text field named '{requested}'.");
+        foreach (string requested in _textFieldAppearanceChanges.Keys)
+            if (!appearanceMatched.Contains(requested))
                 throw new InvalidOperationException(
                     $"The AcroForm has no text field named '{requested}'.");
         foreach (string requested in _fieldNameChanges.Keys)
@@ -2235,6 +2265,10 @@ public sealed class PdfIncrementalPageEditor
                 else replacements[MappingName] = TextString(metadata.MappingName);
                 editedField = ReplaceMany(editedField, replacements, removals);
             }
+            PendingTextFieldAppearance? appearanceChange = null;
+            bool hasAppearanceChange = hasPartialName && qualifiedName is not null
+                && _textFieldAppearanceChanges.TryGetValue(
+                    qualifiedName, out appearanceChange);
             if (hasPartialName && qualifiedName is not null
                 && _resetFieldValues.TryGetValue(
                     qualifiedName, out TrueTypeFont? resetFont))
@@ -2272,15 +2306,45 @@ public sealed class PdfIncrementalPageEditor
                     update, reference, editedField, qualifiedName, radioValue);
             }
             else if (hasPartialName && qualifiedName is not null
-                && _textFieldValues.TryGetValue(
-                    qualifiedName, out PendingTextFieldValue? textValue))
+                && (_textFieldValues.TryGetValue(
+                        qualifiedName, out PendingTextFieldValue? textValue)
+                    || hasAppearanceChange))
             {
-                if (!matched.Add(qualifiedName))
-                    throw new InvalidOperationException(
-                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
                 if (fieldType is null || !fieldType.Equals(TextFieldName))
                     throw new InvalidOperationException(
                         $"The AcroForm field '{qualifiedName}' is not a text field.");
+                if (textValue is not null && !matched.Add(qualifiedName))
+                    throw new InvalidOperationException(
+                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                if (hasAppearanceChange && !appearanceMatched.Add(qualifiedName))
+                    throw new InvalidOperationException(
+                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                if (textValue is null)
+                {
+                    PdfObject? currentValue = editedField.TryGetValue(
+                        FieldValueName, out PdfObject? fieldValue)
+                        ? ResolveCatalogValue(_document, fieldValue,
+                            $"The text field '{qualifiedName}' /V value")
+                        : null;
+                    string currentText = currentValue switch
+                    {
+                        null => string.Empty,
+                        PdfString currentString => PdfUnicodeEncoding.DecodeTextString(
+                            currentString.Bytes.Span,
+                            $"The text field '{qualifiedName}' /V value"),
+                        _ => throw new InvalidOperationException(
+                            $"The text field '{qualifiedName}' /V value is not a string.")
+                    };
+                    textValue = new PendingTextFieldValue(
+                        currentText, null, null, false, null, null);
+                }
+                if (hasAppearanceChange)
+                    textValue = textValue with
+                    {
+                        EmbeddedFont = appearanceChange!.EmbeddedFont,
+                        FontSize = appearanceChange.FontSize,
+                        AppearanceStyle = appearanceChange.AppearanceStyle
+                    };
                 UpdateTextField(
                     update, reference, editedField, form, qualifiedName, textValue);
             }
@@ -2298,7 +2362,7 @@ public sealed class PdfIncrementalPageEditor
                     update, reference, editedField, form, qualifiedName, choiceValue);
             }
             else if (hasMetadataChange || hasDefaultChange || hasFlagChange
-                     || hasBehaviorChange || hasNameChange)
+                     || hasBehaviorChange || hasNameChange || hasAppearanceChange)
                 update.ReplaceObject(reference.ObjectNumber, editedField);
             if (!field.TryGetValue(KidsName, out PdfObject? kidsValue)) return;
             PdfArray kids = ResolveArray(
@@ -3171,7 +3235,7 @@ public sealed class PdfIncrementalPageEditor
                     $"The text field '{fieldName}' /DV value is not a string.")
             };
             UpdateTextField(update, fieldReference, field, form, fieldName,
-                new PendingTextFieldValue(text, embeddedFont, null, false, null));
+                new PendingTextFieldValue(text, embeddedFont, null, false, null, null));
             return;
         }
         if (fieldType.Equals(ButtonFieldName))
@@ -3471,7 +3535,9 @@ public sealed class PdfIncrementalPageEditor
         (double existingFontSize, PdfRgbColor textColor) = TextDefaultAppearance(field, form, fieldName);
         double fontSize = pending.FontSize ?? existingFontSize;
         PdfString? overriddenAppearance = pending.FontSize.HasValue
-            ? OverrideDefaultAppearance(field, form, fieldName, fontSize)
+            || pending.AppearanceStyle is not null
+            ? OverrideDefaultAppearance(field, form, fieldName,
+                pending.FontSize, pending.AppearanceStyle?.TextColor)
             : null;
         var widgets = new List<(PdfIndirectReference Reference, PdfDictionary Dictionary)>();
         Collect(fieldReference, field, 0);
@@ -3484,6 +3550,8 @@ public sealed class PdfIncrementalPageEditor
             (double width, double height) = WidgetSize(widget, fieldName);
             PdfFormFieldAppearanceStyle style = ExistingAppearanceStyle(
                 widget, textColor, fieldName);
+            if (pending.AppearanceStyle is not null)
+                style = pending.AppearanceStyle;
             if (pending.HasBackgroundColor)
                 style = style with { BackgroundColor = pending.BackgroundColor };
             byte[] authored = new PdfDocumentBuilder()
@@ -3720,7 +3788,8 @@ public sealed class PdfIncrementalPageEditor
         value is PdfIndirectReference reference ? document.Resolve(reference) : value;
 
     private PdfString OverrideDefaultAppearance(
-        PdfDictionary field, PdfDictionary form, string fieldName, double fontSize)
+        PdfDictionary field, PdfDictionary form, string fieldName,
+        double? fontSize, PdfRgbColor? textColor)
     {
         PdfObject value = field.TryGetValue(DefaultAppearanceName, out PdfObject? fieldValue)
             ? fieldValue
@@ -3738,7 +3807,27 @@ public sealed class PdfIncrementalPageEditor
         if (tf < 2)
             throw new InvalidOperationException(
                 $"The text field '{fieldName}' /DA value has no valid font selection.");
-        tokens[tf - 1] = fontSize.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+        if (fontSize.HasValue)
+            tokens[tf - 1] = fontSize.Value.ToString(
+                "R", System.Globalization.CultureInfo.InvariantCulture);
+        if (textColor is not null)
+        {
+            int rg = Array.LastIndexOf(tokens, "rg");
+            string red = textColor.Value.Red.ToString(
+                "R", System.Globalization.CultureInfo.InvariantCulture);
+            string green = textColor.Value.Green.ToString(
+                "R", System.Globalization.CultureInfo.InvariantCulture);
+            string blue = textColor.Value.Blue.ToString(
+                "R", System.Globalization.CultureInfo.InvariantCulture);
+            if (rg >= 3)
+            {
+                tokens[rg - 3] = red;
+                tokens[rg - 2] = green;
+                tokens[rg - 1] = blue;
+            }
+            else
+                tokens = [.. tokens, red, green, blue, "rg"];
+        }
         return new PdfString(Encoding.Latin1.GetBytes(string.Join(' ', tokens)),
             PdfStringForm.Literal);
     }
@@ -18180,9 +18269,13 @@ public sealed class PdfIncrementalPageEditor
         string? Information);
     private sealed record PendingTextFieldValue(
         string Value, TrueTypeFont? EmbeddedFont, double? FontSize,
-        bool HasBackgroundColor, PdfRgbColor? BackgroundColor);
+        bool HasBackgroundColor, PdfRgbColor? BackgroundColor,
+        PdfFormFieldAppearanceStyle? AppearanceStyle);
     private sealed record PendingTextFieldBehavior(
         bool Multiline, bool DoNotScroll, PdfTextFieldAlignment Alignment);
+    private sealed record PendingTextFieldAppearance(
+        PdfFormFieldAppearanceStyle AppearanceStyle,
+        TrueTypeFont? EmbeddedFont, double? FontSize);
     private sealed record PendingChoiceFieldValue(
         IReadOnlyList<string> Values, TrueTypeFont? EmbeddedFont,
         bool AllowEmptySingle);

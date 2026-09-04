@@ -13587,6 +13587,45 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void SetTextFieldAppearance_ChangesStyleWithoutChangingValue()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "name", 10, 10, 100, 20, "Steve")
+            .AddCheckBox(0, "approved", 10, 40, 20, 20)
+            .Build();
+        var style = new PdfFormFieldAppearanceStyle
+        {
+            BackgroundColor = new PdfRgbColor(0.9, 0.8, 0.7),
+            BorderColor = new PdfRgbColor(0.1, 0.2, 0.3),
+            TextColor = new PdfRgbColor(0.3, 0.2, 0.1),
+            BorderWidth = 2,
+            BorderStyle = PdfFormFieldBorderStyle.Dashed,
+            DashPattern = [3, 2]
+        };
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetTextFieldAppearance("name", style, fontSize: 14)
+                .Build());
+        PdfFormWidgetInfo name = PdfFormWidgetReader.ReadPage(updated, 0)
+            .Single(widget => widget.FieldName == "name");
+
+        Assert.Equal("Steve", name.Value);
+        Assert.Equal(style.BackgroundColor, name.BackgroundColor);
+        Assert.Equal(style.BorderColor, name.BorderColor);
+        Assert.Contains("14 Tf", name.DefaultAppearance);
+        Assert.Contains("0.3 0.2 0.1 rg", name.DefaultAppearance);
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldAppearance(" ", style));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldAppearance("name", style, fontSize: 0));
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldAppearance("approved", style).Build());
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldAppearance("missing", style).Build());
+    }
+
+    [Fact]
     public void RenameFormField_RenamesTerminalAndParentFieldsWithoutChangingValues()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()
