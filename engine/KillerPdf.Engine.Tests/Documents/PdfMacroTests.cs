@@ -6,6 +6,31 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfMacroTests
 {
     [Fact]
+    public void MacroRoundTripsDuplicatesAndReordersWithoutSharingSettings()
+    {
+        var macro = new PdfMacro("Archive", [
+            new(PdfMacroOperation.Ocr,
+                new Dictionary<string, string> { ["language"] = "en-US" }),
+            new(PdfMacroOperation.Validate),
+            new(PdfMacroOperation.Save)]);
+
+        PdfMacro restored = PdfMacro.FromJson(macro.ToJson());
+        PdfMacro duplicate = restored.Duplicate("Archive copy").MoveStep(2, 0);
+
+        Assert.Equal("Archive", restored.Name);
+        Assert.Equal("en-US", restored.Steps[0].Settings!["language"]);
+        Assert.Equal("Archive copy", duplicate.Name);
+        Assert.Equal([
+            PdfMacroOperation.Save,
+            PdfMacroOperation.Ocr,
+            PdfMacroOperation.Validate
+        ], duplicate.Steps.Select(step => step.Operation));
+        Assert.Throws<NotSupportedException>(() => PdfMacro.FromJson(
+            macro.ToJson().Replace("\"version\":1", "\"version\":2",
+                StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public void RunnerPreservesStepOrderAndIsolatesFailedInputs()
     {
         var macro = new PdfMacro("Prepare", [

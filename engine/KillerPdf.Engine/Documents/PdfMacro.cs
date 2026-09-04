@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>A reusable ordered list of supported PDF operations.</summary>
@@ -20,6 +23,69 @@ public sealed record PdfMacro
     public string Name { get; }
     /// <summary>Gets the ordered operation steps.</summary>
     public IReadOnlyList<PdfMacroStep> Steps { get; }
+
+    /// <summary>Returns an independently named copy of this macro.</summary>
+    public PdfMacro Duplicate(string name) => new(name, Steps.Select(Copy));
+
+    /// <summary>Returns a copy with one step moved to a new position.</summary>
+    public PdfMacro MoveStep(int fromIndex, int toIndex)
+    {
+        if ((uint)fromIndex >= (uint)Steps.Count)
+            throw new ArgumentOutOfRangeException(nameof(fromIndex));
+        if ((uint)toIndex >= (uint)Steps.Count)
+            throw new ArgumentOutOfRangeException(nameof(toIndex));
+        PdfMacroStep[] reordered = Steps.Select(Copy).ToArray();
+        PdfMacroStep moved = reordered[fromIndex];
+        if (fromIndex < toIndex)
+            Array.Copy(reordered, fromIndex + 1, reordered, fromIndex, toIndex - fromIndex);
+        else if (fromIndex > toIndex)
+            Array.Copy(reordered, toIndex, reordered, toIndex + 1, fromIndex - toIndex);
+        reordered[toIndex] = moved;
+        return new PdfMacro(Name, reordered);
+    }
+
+    /// <summary>Serializes the macro without executable code or external actions.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new PdfMacroFile(1, Name, Steps.Select(step => new PdfMacroStepFile(
+            step.Operation, step.Settings is null ? null
+                : new Dictionary<string, string>(step.Settings, StringComparer.Ordinal))).ToArray()),
+        JsonOptions(indented));
+
+    /// <summary>Reads and validates a serialized macro.</summary>
+    public static PdfMacro FromJson(string json)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
+        PdfMacroFile file = JsonSerializer.Deserialize<PdfMacroFile>(json, JsonOptions(false))
+            ?? throw new JsonException("The macro file is empty.");
+        if (file.Version != 1)
+            throw new NotSupportedException(
+                $"Macro file version {file.Version} is not supported.");
+        return new PdfMacro(file.Name, (file.Steps
+            ?? throw new JsonException("The macro file has no steps."))
+            .Select(step => new PdfMacroStep(step.Operation,
+                step.Settings is null ? null
+                    : new Dictionary<string, string>(step.Settings, StringComparer.Ordinal))));
+    }
+
+    private static PdfMacroStep Copy(PdfMacroStep step) => new(step.Operation,
+        step.Settings is null ? null
+            : new Dictionary<string, string>(step.Settings, StringComparer.Ordinal));
+
+    private static JsonSerializerOptions JsonOptions(bool indented)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = indented
+        };
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return options;
+    }
+
+    private sealed record PdfMacroFile(int Version, string Name, PdfMacroStepFile[]? Steps);
+    private sealed record PdfMacroStepFile(
+        PdfMacroOperation Operation, Dictionary<string, string>? Settings);
 }
 
 /// <summary>One configured operation in a PDF macro.</summary>

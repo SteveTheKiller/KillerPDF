@@ -26,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added CSV and JSON record import with reusable data-merge mapping profiles (#352).
 - Added review persistence, batch isolation, and configurable preprocessing and output modes to OCR workflows (#345).
 - Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).
+- Added safe macro saving, importing, duplication, and step reordering (#343).
 - Added region validation and affected-content planning for partial rasterization (#369).
 - Added privacy-safe JSON reports for redaction reviews and verification (#341).
 - Preserved reviewed field descriptions during automatic form authoring (#342).
