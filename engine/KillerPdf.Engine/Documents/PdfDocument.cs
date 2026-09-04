@@ -5,6 +5,7 @@ using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Syntax;
 using KillerPdf.Engine.Security;
+using System.Security.Cryptography.X509Certificates;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -43,7 +44,7 @@ public sealed class PdfDocument
     /// <summary>Gets the newest revision trailer dictionary.</summary>
     public PdfDictionary Trailer => CrossReferences.LatestTrailer;
     internal ReadOnlyMemory<byte> Source => _source;
-    /// <summary>Gets whether the document declares a standard security handler.</summary>
+    /// <summary>Gets whether the document declares an encryption security handler.</summary>
     public bool IsEncrypted => CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out _);
     /// <summary>Gets whether encrypted objects are available in decrypted form.</summary>
     public bool IsDecrypted => !IsEncrypted || _security is not null;
@@ -98,6 +99,25 @@ public sealed class PdfDocument
             permanentIdentifier = identifier.Bytes;
         document._security = PdfStandardSecurityHandler.Create(
             encryption, password, permanentIdentifier);
+        document._objects.Clear();
+        document._objectStreams.Clear();
+        return document;
+    }
+
+    /// <summary>Opens and authenticates a certificate-recipient encrypted PDF.</summary>
+    public static PdfDocument Open(ReadOnlyMemory<byte> source, X509Certificate2 recipient)
+    {
+        ArgumentNullException.ThrowIfNull(recipient);
+        PdfDocument document = Open(source);
+        if (!document.CrossReferences.TryGetTrailerValue(
+                new PdfName("Encrypt"u8), out PdfObject? encryptionValue))
+            return document;
+        PdfIndirectReference encryptionReference = encryptionValue as PdfIndirectReference
+            ?? throw new InvalidOperationException("The trailer /Encrypt value is not indirect.");
+        (PdfDictionary encryption, int encryptionObjectNumber) =
+            document.ResolveEncryptionDictionary(encryptionReference);
+        document._encryptionObjectNumber = encryptionObjectNumber;
+        document._security = PdfStandardSecurityHandler.CreateCertificate(encryption, recipient);
         document._objects.Clear();
         document._objectStreams.Clear();
         return document;

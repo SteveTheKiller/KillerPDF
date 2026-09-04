@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using KillerPdf.Engine.Objects;
+using System.Security.Cryptography.X509Certificates;
 
 namespace KillerPdf.Engine.Security;
 
@@ -106,6 +107,89 @@ internal sealed class PdfStandardSecurityHandler
             fileKey, stringMethod, streamMethod, embeddedFileMethod, encryptMetadata,
             declaredPermissions, revision, authenticationRole,
             ReadCryptFilters(encryption, "AESV3"));
+    }
+
+    internal static PdfStandardSecurityHandler CreateCertificate(
+        PdfDictionary encryption, X509Certificate2 recipient)
+    {
+        ArgumentNullException.ThrowIfNull(encryption);
+        ArgumentNullException.ThrowIfNull(recipient);
+        RequireName(encryption, "Filter", "Adobe.PubSec");
+        RequireName(encryption, "SubFilter", "adbe.pkcs7.s5");
+        if (RequireInteger(encryption, "V") != 5
+            || RequireInteger(encryption, "Length") != 256)
+            throw new NotSupportedException(
+                "Certificate security requires V=5 AES-256 encryption.");
+        if (!encryption.TryGetValue(Name("Recipients"), out PdfObject? recipientsValue)
+            || recipientsValue is not PdfArray recipients || recipients.Count == 0
+            || recipients.Any(value => value is not PdfString))
+            throw new InvalidOperationException(
+                "The certificate encryption /Recipients value is invalid.");
+        ReadOnlyMemory<byte>[] blocks = [.. recipients.Cast<PdfString>()
+            .Select(value => value.Bytes)];
+        bool encryptMetadata = ReadEncryptMetadata(encryption);
+        PdfCertificateRecipientMaterial material =
+            PdfCertificateRecipientEncryption.Open(blocks, recipient, encryptMetadata);
+        CryptMethod stringMethod = ReadModernCryptFilter(encryption, "StrF", "AESV3");
+        CryptMethod streamMethod = ReadModernCryptFilter(encryption, "StmF", "AESV3");
+        CryptMethod embeddedFileMethod = encryption.ContainsKey(Name("EFF"))
+            ? ReadModernCryptFilter(encryption, "EFF", "AESV3") : streamMethod;
+        return new PdfStandardSecurityHandler(material.FileKey.ToArray(), stringMethod,
+            streamMethod, embeddedFileMethod, encryptMetadata,
+            material.PermissionFlags, 4, PdfPasswordAuthenticationRole.None,
+            ReadCryptFilters(encryption, "AESV3"));
+    }
+
+    internal static (PdfStandardSecurityHandler Handler, PdfDictionary Dictionary)
+        CreateCertificate(PdfCertificateEncryptionOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(options.Recipients);
+        if (options.AllowHighQualityPrinting && !options.AllowLowQualityPrinting)
+            throw new ArgumentException(
+                "High-quality printing cannot be allowed when printing is disabled.",
+                nameof(options));
+        int permissions = -4;
+        SetPermission(3, options.AllowLowQualityPrinting);
+        SetPermission(4, options.AllowDocumentModification);
+        SetPermission(5, options.AllowContentCopying);
+        SetPermission(6, options.AllowAnnotationModification);
+        SetPermission(9, options.AllowFormFilling);
+        SetPermission(10, options.AllowAccessibilityExtraction);
+        SetPermission(11, options.AllowDocumentAssembly);
+        SetPermission(12, options.AllowHighQualityPrinting);
+        PdfCertificateRecipientMaterial material =
+            PdfCertificateRecipientEncryption.Create(
+                options.Recipients, permissions, options.EncryptMetadata);
+        PdfName filter = Name("DefaultCryptFilter");
+        PdfArray recipients = new(material.RecipientBlocks.Select(block =>
+            (PdfObject)new PdfString(block.Span, PdfStringForm.Hexadecimal)));
+        var dictionary = new PdfDictionary([
+            Pair("Filter", Name("Adobe.PubSec")),
+            Pair("SubFilter", Name("adbe.pkcs7.s5")),
+            Pair("V", new PdfInteger(5)), Pair("Length", new PdfInteger(256)),
+            Pair("Recipients", recipients),
+            Pair("EncryptMetadata", new PdfBoolean(options.EncryptMetadata)),
+            Pair("CF", new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(filter,
+                new PdfDictionary([Pair("AuthEvent", Name("DocOpen")),
+                    Pair("CFM", Name("AESV3")), Pair("Length", new PdfInteger(32)),
+                    Pair("Recipients", recipients)]))])),
+            Pair("StmF", filter), Pair("StrF", filter), Pair("EFF", filter)
+        ]);
+        return (new PdfStandardSecurityHandler(material.FileKey.ToArray(),
+            CryptMethod.Aes256, CryptMethod.Aes256, CryptMethod.Aes256,
+            options.EncryptMetadata, permissions, 4,
+            PdfPasswordAuthenticationRole.None,
+            new Dictionary<string, CryptMethod> { ["DefaultCryptFilter"] = CryptMethod.Aes256 }),
+            dictionary);
+
+        static KeyValuePair<PdfName, PdfObject> Pair(string key, PdfObject value) =>
+            new(Name(key), value);
+        void SetPermission(int bit, bool allowed)
+        {
+            int mask = 1 << (bit - 1);
+            permissions = allowed ? permissions | mask : permissions & ~mask;
+        }
     }
 
     internal static (PdfStandardSecurityHandler Handler, PdfDictionary Dictionary)

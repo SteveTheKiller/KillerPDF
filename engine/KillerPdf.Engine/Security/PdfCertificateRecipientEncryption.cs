@@ -31,7 +31,8 @@ public static class PdfCertificateRecipientEncryption
 
     /// <summary>Creates CMS recipient blocks and their shared AES-256 PDF file key.</summary>
     public static PdfCertificateRecipientMaterial Create(
-        IEnumerable<X509Certificate2> recipients, int permissionFlags)
+        IEnumerable<X509Certificate2> recipients, int permissionFlags,
+        bool encryptMetadata = true)
     {
         ArgumentNullException.ThrowIfNull(recipients);
         X509Certificate2[] certificates = recipients.ToArray();
@@ -60,14 +61,15 @@ public static class PdfCertificateRecipientEncryption
                 SubjectIdentifierType.IssuerAndSerialNumber, certificate));
             blocks.Add(envelope.Encode());
         }
-        return new PdfCertificateRecipientMaterial(DeriveFileKey(seed, blocks),
+        return new PdfCertificateRecipientMaterial(
+            DeriveFileKey(seed, blocks, encryptMetadata),
             Array.AsReadOnly(blocks.ToArray()), permissionFlags);
     }
 
     /// <summary>Recovers the shared file key and permissions for one authorized recipient.</summary>
     public static PdfCertificateRecipientMaterial Open(
         IEnumerable<ReadOnlyMemory<byte>> recipientBlocks,
-        X509Certificate2 recipient)
+        X509Certificate2 recipient, bool encryptMetadata = true)
     {
         ArgumentNullException.ThrowIfNull(recipientBlocks);
         ArgumentNullException.ThrowIfNull(recipient);
@@ -108,17 +110,20 @@ public static class PdfCertificateRecipientEncryption
                 "The PDF recipient payload must contain a 20-byte seed and permission flags.");
         int permissions = BinaryPrimitives.ReadInt32LittleEndian(payload.AsSpan(20));
         byte[] seed = payload.AsSpan(0, 20).ToArray();
-        return new PdfCertificateRecipientMaterial(DeriveFileKey(seed, blocks),
+        return new PdfCertificateRecipientMaterial(
+            DeriveFileKey(seed, blocks, encryptMetadata),
             Array.AsReadOnly(blocks), permissions);
     }
 
     private static byte[] DeriveFileKey(byte[] seed,
-        IEnumerable<ReadOnlyMemory<byte>> recipientBlocks)
+        IEnumerable<ReadOnlyMemory<byte>> recipientBlocks, bool encryptMetadata)
     {
         using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         hash.AppendData(seed);
         foreach (ReadOnlyMemory<byte> block in recipientBlocks)
             hash.AppendData(block.Span);
+        if (!encryptMetadata)
+            hash.AppendData([0xFF, 0xFF, 0xFF, 0xFF]);
         return hash.GetHashAndReset();
     }
 }

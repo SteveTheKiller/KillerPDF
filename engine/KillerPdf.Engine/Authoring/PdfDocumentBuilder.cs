@@ -34,6 +34,7 @@ public sealed partial class PdfDocumentBuilder
     private PdfA4Flavor _pdfA4Flavor;
     private bool _pdfUa2Conformance;
     private PdfPasswordEncryptionOptions? _encryption;
+    private PdfCertificateEncryptionOptions? _certificateEncryption;
     private PdfPageLayout? _pageLayout;
     private PdfPageMode? _pageMode;
     private PdfViewerPreferences? _viewerPreferences;
@@ -73,7 +74,20 @@ public sealed partial class PdfDocumentBuilder
     /// <summary>Protects the authored document with Standard Security password encryption.</summary>
     public PdfDocumentBuilder SetPasswordEncryption(PdfPasswordEncryptionOptions options)
     {
+        if (_certificateEncryption is not null)
+            throw new InvalidOperationException(
+                "Password and certificate encryption cannot both be configured.");
         _encryption = options ?? throw new ArgumentNullException(nameof(options));
+        return this;
+    }
+
+    /// <summary>Protects the authored document for certificate recipients.</summary>
+    public PdfDocumentBuilder SetCertificateEncryption(PdfCertificateEncryptionOptions options)
+    {
+        if (_encryption is not null)
+            throw new InvalidOperationException(
+                "Password and certificate encryption cannot both be configured.");
+        _certificateEncryption = options ?? throw new ArgumentNullException(nameof(options));
         return this;
     }
 
@@ -1487,7 +1501,7 @@ public sealed partial class PdfDocumentBuilder
                 "Attachments page mode requires PDF 1.6 or later.");
         if (_viewerPreferences is not null)
             RequireVersion(_viewerPreferences.MinimumVersion(), "viewer preferences");
-        if (pdfA4 && _encryption is not null)
+        if (pdfA4 && (_encryption is not null || _certificateEncryption is not null))
             throw new InvalidOperationException("PDF/A documents cannot be encrypted.");
         var forms = new List<PdfFormXObject>();
         var patterns = new List<PdfTilingPattern>();
@@ -1544,6 +1558,8 @@ public sealed partial class PdfDocumentBuilder
             RequireVersion(PdfVersion.Pdf20, "associated files");
         if (_encryption is not null)
             RequireVersion(PdfVersion.Pdf20, "revision-6 AES-256 encryption");
+        if (_certificateEncryption is not null)
+            RequireVersion(PdfVersion.Pdf20, "AES-256 certificate encryption");
         if (_textFields.Count > 0 || _checkBoxes.Count > 0 || _radioGroups.Count > 0
             || _choiceFields.Count > 0 || _pushButtons.Count > 0
             || _signatureFields.Count > 0)
@@ -1627,6 +1643,10 @@ public sealed partial class PdfDocumentBuilder
                 "PDF/UA-2 authoring requires document metadata with a title and language.");
         if (_pdfUa2Conformance && _encryption is not null
             && !_encryption.AllowAccessibilityExtraction)
+            throw new InvalidOperationException(
+                "PDF/UA-2 encryption must permit accessibility extraction.");
+        if (_pdfUa2Conformance && _certificateEncryption is not null
+            && !_certificateEncryption.AllowAccessibilityExtraction)
             throw new InvalidOperationException(
                 "PDF/UA-2 encryption must permit accessibility extraction.");
         if (_pdfUa2Conformance && _pages.Any(page =>
@@ -2969,6 +2989,14 @@ public sealed partial class PdfDocumentBuilder
         {
             (security, PdfDictionary encryptionDictionary) =
                 PdfStandardSecurityHandler.CreateRevision6(_encryption);
+            encryptionNumber = checked(objects.Max(item => item.ObjectNumber) + 1);
+            objects.Add(new PdfIndirectObject(
+                encryptionNumber.Value, 0, encryptionDictionary, 0));
+        }
+        else if (_certificateEncryption is not null)
+        {
+            (security, PdfDictionary encryptionDictionary) =
+                PdfStandardSecurityHandler.CreateCertificate(_certificateEncryption);
             encryptionNumber = checked(objects.Max(item => item.ObjectNumber) + 1);
             objects.Add(new PdfIndirectObject(
                 encryptionNumber.Value, 0, encryptionDictionary, 0));
