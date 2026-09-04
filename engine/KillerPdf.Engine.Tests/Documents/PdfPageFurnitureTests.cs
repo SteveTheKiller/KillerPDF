@@ -43,6 +43,25 @@ public sealed class PdfPageFurnitureTests
     }
 
     [Fact]
+    public void FormatterContextsUseSavedLogicalPageLabels()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().AddBlankPage().AddBlankPage()
+            .AddPageLabelRange(0, PdfPageLabelStyle.LowerRoman)
+            .AddPageLabelRange(2, PdfPageLabelStyle.Decimal, "A-", 7)
+            .Build());
+
+        IReadOnlyList<PdfPageFurnitureContext> contexts =
+            PdfPageFurnitureFormatter.CreateContexts(document,
+                new DateOnly(2027, 3, 14), "report.pdf", "Report", "Ada");
+
+        Assert.Equal(["i", "ii", "A-7"], contexts.Select(context => context.PageLabel));
+        Assert.Equal(["i / 3", "ii / 3", "A-7 / 3"], contexts.Select(context =>
+            PdfPageFurnitureFormatter.Format("{label} / {pages}", context)));
+        Assert.All(contexts, context => Assert.Equal("report.pdf", context.FileName));
+    }
+
+    [Fact]
     public void BatesPlanContinuesAcrossDocumentsAndPreservesOrder()
     {
         IReadOnlyList<PdfBatesNumber> result = PdfBatesNumbering.Plan([2, 0, 2],

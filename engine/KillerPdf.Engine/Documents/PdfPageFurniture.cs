@@ -33,6 +33,30 @@ public sealed record PdfPageFurnitureContext
 /// <summary>Formats header and footer templates with bounded, explicit tokens.</summary>
 public static class PdfPageFurnitureFormatter
 {
+    /// <summary>Creates one formatting context per page using the document's logical labels.</summary>
+    public static IReadOnlyList<PdfPageFurnitureContext> CreateContexts(
+        PdfDocument document, DateOnly date, string? fileName = null,
+        string? title = null, string? author = null,
+        IReadOnlyDictionary<string, string?>? customTokens = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        IReadOnlyList<string> labels = PdfPageLabelReader.Read(document);
+        IReadOnlyDictionary<string, string?> tokens = customTokens
+            ?? new Dictionary<string, string?>();
+        return Array.AsReadOnly(labels.Select((label, index) =>
+            new PdfPageFurnitureContext
+            {
+                PageNumber = index + 1,
+                TotalPages = labels.Count,
+                PageLabel = label,
+                FileName = fileName,
+                Title = title,
+                Author = author,
+                Date = date,
+                CustomTokens = tokens
+            }).ToArray());
+    }
+
     /// <summary>Expands page, pages, label, filename, title, author, date, and custom tokens.</summary>
     public static string Format(string template, PdfPageFurnitureContext context)
     {
