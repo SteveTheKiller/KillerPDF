@@ -7,6 +7,31 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfImpositionPlannerTests
 {
     [Fact]
+    public void PresetRoundTripsAndDrivesPlanningAndPlacement()
+    {
+        var preset = new PdfImpositionPreset("Two-up letter", 2, 1, 792, 612,
+            margin: 18, gutter: 12, duplex: true, includeCropMarks: true,
+            includeRegistrationMarks: true);
+
+        PdfImpositionPreset restored = PdfImpositionPreset.FromJson(preset.ToJson());
+        IReadOnlyList<PdfImposedSheetSide> sides = restored.Plan(3);
+        IReadOnlyList<PdfImposedPlacement> placements = restored.Place(sides[0],
+            [new PdfContentBounds(0, 0, 300, 500), new PdfContentBounds(0, 0, 500, 300),
+                new PdfContentBounds(0, 0, 300, 500)]);
+
+        Assert.Equal(preset, restored);
+        Assert.Equal(2, sides.Count);
+        Assert.Equal(PdfImposedSheetFace.Back, sides[1].Face);
+        Assert.Equal(2, placements.Count);
+        Assert.True(restored.IncludeCropMarks);
+        Assert.True(restored.IncludeRegistrationMarks);
+        Assert.DoesNotContain("source", preset.ToJson(), StringComparison.OrdinalIgnoreCase);
+        Assert.Throws<NotSupportedException>(() => PdfImpositionPreset.FromJson(
+            preset.ToJson().Replace("\"version\":1", "\"version\":2",
+                StringComparison.Ordinal)));
+    }
+
+    [Fact]
     public void BookletUsesCorrectFrontAndBackPageOrder()
     {
         IReadOnlyList<PdfImposedSheetSide> sides = PdfImpositionPlanner.PlanBooklet(8);
