@@ -125,7 +125,10 @@ public static class PdfImpositionPlanner
 
         PdfImposedSheetSide Side(int sheet, PdfImposedSheetFace face, int left, int right) =>
             new(sheet, face, Array.AsReadOnly<int?>(
-                [left < pageCount ? left : null, right < pageCount ? right : null]));
+                [left < pageCount ? left : null, right < pageCount ? right : null]))
+            {
+                CreepDepth = sheet
+            };
     }
 
     /// <summary>Plans bounded saddle-stitched signatures without mixing pages between signatures.</summary>
@@ -242,6 +245,32 @@ public static class PdfImpositionPlanner
         return Array.AsReadOnly(placements.ToArray());
     }
 
+    /// <summary>Offsets placements away from the binding fold for accumulated sheet creep.</summary>
+    public static IReadOnlyList<PdfImposedPlacement> ApplyCreep(
+        PdfImposedSheetSide side, IReadOnlyList<PdfImposedPlacement> placements,
+        int columns, double creepPerSheet)
+    {
+        ArgumentNullException.ThrowIfNull(side);
+        ArgumentNullException.ThrowIfNull(placements);
+        if (columns <= 1) throw new ArgumentOutOfRangeException(nameof(columns));
+        if (!double.IsFinite(creepPerSheet) || creepPerSheet < 0)
+            throw new ArgumentOutOfRangeException(nameof(creepPerSheet));
+        double offset = checked(side.CreepDepth) * creepPerSheet;
+        if (offset == 0) return Array.AsReadOnly(placements.ToArray());
+        double centerColumn = (columns - 1) / 2d;
+        return Array.AsReadOnly(placements.Select(placement =>
+        {
+            int column = placement.SlotIndex % columns;
+            double shift = Math.Sign(column - centerColumn) * offset;
+            PdfContentBounds bounds = placement.SheetBounds;
+            return placement with
+            {
+                SheetBounds = new PdfContentBounds(bounds.Left + shift, bounds.Bottom,
+                    bounds.Right + shift, bounds.Top)
+            };
+        }).ToArray());
+    }
+
     /// <summary>Plans crop marks outside one imposed page placement.</summary>
     public static IReadOnlyList<PdfImpositionMark> PlanCropMarks(
         PdfImposedPlacement placement, double length = 12, double offset = 3)
@@ -342,7 +371,11 @@ public static class PdfImpositionPlanner
 
 /// <summary>One printable side of an imposed sheet.</summary>
 public sealed record PdfImposedSheetSide(int SheetIndex, PdfImposedSheetFace Face,
-    IReadOnlyList<int?> SourcePageIndices);
+    IReadOnlyList<int?> SourcePageIndices)
+{
+    /// <summary>Gets the number of nested sheets inside the outer signature sheet.</summary>
+    public int CreepDepth { get; init; }
+}
 
 /// <summary>One source-page region assigned to a poster sheet.</summary>
 public sealed record PdfPosterTile(int TileIndex, int Row, int Column, PdfContentBounds SourceBounds);

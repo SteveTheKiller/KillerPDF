@@ -9,7 +9,8 @@ public sealed record PdfImpositionPreset
     public PdfImpositionPreset(string name, int columns, int rows,
         double sheetWidth, double sheetHeight, double margin = 0, double gutter = 0,
         bool duplex = false, bool rotateToFit = true,
-        bool includeCropMarks = false, bool includeRegistrationMarks = false)
+        bool includeCropMarks = false, bool includeRegistrationMarks = false,
+        double creepPerSheet = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preset name is required.", nameof(name));
@@ -23,6 +24,8 @@ public sealed record PdfImpositionPreset
             throw new ArgumentOutOfRangeException(nameof(margin));
         if (!double.IsFinite(gutter) || gutter < 0)
             throw new ArgumentOutOfRangeException(nameof(gutter));
+        if (!double.IsFinite(creepPerSheet) || creepPerSheet < 0)
+            throw new ArgumentOutOfRangeException(nameof(creepPerSheet));
         double usableWidth = sheetWidth - margin * 2 - gutter * (columns - 1);
         double usableHeight = sheetHeight - margin * 2 - gutter * (rows - 1);
         if (usableWidth <= 0 || usableHeight <= 0)
@@ -38,6 +41,7 @@ public sealed record PdfImpositionPreset
         RotateToFit = rotateToFit;
         IncludeCropMarks = includeCropMarks;
         IncludeRegistrationMarks = includeRegistrationMarks;
+        CreepPerSheet = creepPerSheet;
     }
 
     /// <summary>Gets the preset name.</summary>
@@ -62,6 +66,8 @@ public sealed record PdfImpositionPreset
     public bool IncludeCropMarks { get; }
     /// <summary>Gets whether registration marks are requested.</summary>
     public bool IncludeRegistrationMarks { get; }
+    /// <summary>Gets the outward content offset added for each inner sheet.</summary>
+    public double CreepPerSheet { get; }
 
     /// <summary>Plans sequential source pages using this preset's grid and duplex setting.</summary>
     public IReadOnlyList<PdfImposedSheetSide> Plan(int pageCount) =>
@@ -69,14 +75,19 @@ public sealed record PdfImpositionPreset
 
     /// <summary>Fits a planned side onto this preset's sheet.</summary>
     public IReadOnlyList<PdfImposedPlacement> Place(PdfImposedSheetSide side,
-        IReadOnlyList<PdfContentBounds> sourcePageBounds) =>
-        PdfImpositionPlanner.PlaceOnSheet(side, Columns, Rows, SheetWidth, SheetHeight,
-            sourcePageBounds, Margin, Gutter, RotateToFit);
+        IReadOnlyList<PdfContentBounds> sourcePageBounds)
+    {
+        IReadOnlyList<PdfImposedPlacement> placements =
+            PdfImpositionPlanner.PlaceOnSheet(side, Columns, Rows, SheetWidth, SheetHeight,
+                sourcePageBounds, Margin, Gutter, RotateToFit);
+        return CreepPerSheet == 0 ? placements
+            : PdfImpositionPlanner.ApplyCreep(side, placements, Columns, CreepPerSheet);
+    }
 
     /// <summary>Serializes the preset without source document data.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PresetFile(1, Name, Columns, Rows, SheetWidth, SheetHeight, Margin, Gutter,
-            Duplex, RotateToFit, IncludeCropMarks, IncludeRegistrationMarks),
+            Duplex, RotateToFit, IncludeCropMarks, IncludeRegistrationMarks, CreepPerSheet),
         new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -96,11 +107,11 @@ public sealed record PdfImpositionPreset
         return new PdfImpositionPreset(file.Name, file.Columns, file.Rows,
             file.SheetWidth, file.SheetHeight, file.Margin, file.Gutter,
             file.Duplex, file.RotateToFit, file.IncludeCropMarks,
-            file.IncludeRegistrationMarks);
+            file.IncludeRegistrationMarks, file.CreepPerSheet);
     }
 
     private sealed record PresetFile(int Version, string Name, int Columns, int Rows,
         double SheetWidth, double SheetHeight, double Margin, double Gutter,
         bool Duplex, bool RotateToFit, bool IncludeCropMarks,
-        bool IncludeRegistrationMarks);
+        bool IncludeRegistrationMarks, double CreepPerSheet);
 }

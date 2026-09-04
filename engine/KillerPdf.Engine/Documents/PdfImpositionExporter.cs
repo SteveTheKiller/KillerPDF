@@ -13,7 +13,8 @@ public static class PdfImpositionExporter
     public static byte[] Build(
         PdfDocument source, IReadOnlyList<PdfImposedSheetSide> sides,
         int columns, int rows, double sheetWidth, double sheetHeight,
-        double margin = 0, double gutter = 0, bool rotateToFit = true)
+        double margin = 0, double gutter = 0, bool rotateToFit = true,
+        double creepPerSheet = 0)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(sides);
@@ -38,6 +39,9 @@ public static class PdfImpositionExporter
             IReadOnlyList<PdfImposedPlacement> placements =
                 PdfImpositionPlanner.PlaceOnSheet(sides[outputPage], columns, rows,
                     sheetWidth, sheetHeight, sourceBounds, margin, gutter, rotateToFit);
+            if (creepPerSheet != 0)
+                placements = PdfImpositionPlanner.ApplyCreep(
+                    sides[outputPage], placements, columns, creepPerSheet);
             foreach (PdfImposedPlacement placement in placements)
             {
                 PdfContentBounds sourceBox = sourceBounds[placement.SourcePageIndex];

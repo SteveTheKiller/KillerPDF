@@ -11,7 +11,7 @@ public sealed class PdfImpositionPlannerTests
     {
         var preset = new PdfImpositionPreset("Two-up letter", 2, 1, 792, 612,
             margin: 18, gutter: 12, duplex: true, includeCropMarks: true,
-            includeRegistrationMarks: true);
+            includeRegistrationMarks: true, creepPerSheet: 0.5);
 
         PdfImpositionPreset restored = PdfImpositionPreset.FromJson(preset.ToJson());
         IReadOnlyList<PdfImposedSheetSide> sides = restored.Plan(3);
@@ -25,6 +25,7 @@ public sealed class PdfImpositionPlannerTests
         Assert.Equal(2, placements.Count);
         Assert.True(restored.IncludeCropMarks);
         Assert.True(restored.IncludeRegistrationMarks);
+        Assert.Equal(0.5, restored.CreepPerSheet);
         Assert.DoesNotContain("source", preset.ToJson(), StringComparison.OrdinalIgnoreCase);
         Assert.Throws<NotSupportedException>(() => PdfImpositionPreset.FromJson(
             preset.ToJson().Replace("\"version\":1", "\"version\":2",
@@ -110,6 +111,8 @@ public sealed class PdfImpositionPlannerTests
         AssertSide(sides[3], 1, PdfImposedSheetFace.Back, 3, 4);
         AssertSide(sides[4], 2, PdfImposedSheetFace.Front, null, 8);
         AssertSide(sides[5], 2, PdfImposedSheetFace.Back, 9, null);
+        Assert.Equal(1, sides[2].CreepDepth);
+        Assert.Equal(0, sides[4].CreepDepth);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfImpositionPlanner.PlanBookletSignatures(10, 6));
     }
@@ -167,6 +170,29 @@ public sealed class PdfImpositionPlannerTests
         Assert.Equal(new PdfImpositionMark(120, 182, 120, 192), marks[7]);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfImpositionPlanner.PlanCropMarks(placement, offset: -1));
+    }
+
+    [Fact]
+    public void CreepMovesInnerSheetPlacementsAwayFromTheFold()
+    {
+        var side = new PdfImposedSheetSide(2, PdfImposedSheetFace.Back,
+            Array.AsReadOnly<int?>([0, 1])) { CreepDepth = 2 };
+        IReadOnlyList<PdfImposedPlacement> placements =
+            PdfImpositionPlanner.PlaceOnSheet(side, 2, 1, 220, 100,
+            [
+                new PdfContentBounds(0, 0, 100, 80),
+                new PdfContentBounds(0, 0, 100, 80)
+            ], margin: 10);
+
+        IReadOnlyList<PdfImposedPlacement> crept =
+            PdfImpositionPlanner.ApplyCreep(side, placements, 2, 0.75);
+
+        Assert.Equal(placements[0].SheetBounds.Left - 1.5,
+            crept[0].SheetBounds.Left, 10);
+        Assert.Equal(placements[1].SheetBounds.Left + 1.5,
+            crept[1].SheetBounds.Left, 10);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.ApplyCreep(side, placements, 2, -0.1));
     }
 
     [Fact]
