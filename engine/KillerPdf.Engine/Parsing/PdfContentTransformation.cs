@@ -361,46 +361,16 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(pathIndexes);
         PdfContentInstruction[] source = instructions.ToArray();
-        var ranges = new List<(int Start, int End)>();
-        int start = -1;
-        bool clipping = false;
-        for (int index = 0; index < source.Length; index++)
-        {
-            string operation = source[index].Operator;
-            if (operation is "m" or "l" or "c" or "v" or "y" or "h" or "re")
-            {
-                if (start < 0) start = index;
-                continue;
-            }
-            if (operation is "W" or "W*")
-            {
-                if (start < 0)
-                    throw new FormatException(
-                        "A content stream clips without constructing a path.");
-                clipping = true;
-                continue;
-            }
-            if (operation is not ("S" or "s" or "f" or "F" or "f*"
-                    or "B" or "B*" or "b" or "b*" or "n"))
-                continue;
-            if (start < 0)
-                throw new FormatException(
-                    "A content stream paints or ends a path that was not constructed.");
-            if (clipping)
-                throw new NotSupportedException(
-                    "Painted path removal does not support clipping paths.");
-            ranges.Add((start, index));
-            start = -1;
-            clipping = false;
-        }
-        if (start >= 0)
-            throw new FormatException("A content stream contains an unfinished path.");
+        IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
 
         int[] requested = pathIndexes.ToArray();
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
             throw new ArgumentException(
                 "Selected painted-path indexes must be valid and unique.", nameof(pathIndexes));
+        if (requested.Any(index => ranges[index].Clipping))
+            throw new NotSupportedException(
+                "Painted path removal does not support clipping paths.");
         Dictionary<int, int> removed = requested.Select(index => ranges[index])
             .ToDictionary(range => range.Start, range => range.End);
         var result = new List<PdfContentInstruction>(source.Length);
@@ -416,6 +386,61 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Replaces selected complete painted paths with validated path instructions.</summary>
+    public static IReadOnlyList<PdfContentInstruction> ReplacePaintedPaths(
+        IEnumerable<PdfContentInstruction> instructions,
+        IReadOnlyDictionary<int, IReadOnlyList<PdfContentInstruction>> replacements)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(replacements);
+        PdfContentInstruction[] source = instructions.ToArray();
+        IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
+        if (replacements.Keys.Any(index => index < 0 || index >= ranges.Count))
+            throw new ArgumentException(
+                "Replacement painted-path indexes must be valid.", nameof(replacements));
+        if (replacements.Keys.Any(index => ranges[index].Clipping))
+            throw new NotSupportedException(
+                "Painted path replacement does not support clipping paths.");
+
+        var validated = new Dictionary<int,
+            (int End, IReadOnlyList<PdfContentInstruction> Instructions)>();
+        foreach ((int pathIndex, IReadOnlyList<PdfContentInstruction> replacement) in replacements)
+        {
+            ArgumentNullException.ThrowIfNull(replacement);
+            IReadOnlyList<(int Start, int End, bool Clipping)> replacementRanges;
+            try
+            {
+                replacementRanges = PaintedPathRanges(replacement);
+            }
+            catch (FormatException error)
+            {
+                throw new ArgumentException(
+                    "Each replacement must contain exactly one complete non-clipping painted path.",
+                    nameof(replacements), error);
+            }
+            if (replacementRanges is not [{ Start: 0, Clipping: false } replacementRange]
+                || replacementRange.End != replacement.Count - 1)
+                throw new ArgumentException(
+                    "Each replacement must contain exactly one complete non-clipping painted path.",
+                    nameof(replacements));
+            validated.Add(ranges[pathIndex].Start, (ranges[pathIndex].End, replacement));
+        }
+
+        var result = new List<PdfContentInstruction>(source.Length);
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (!validated.TryGetValue(index,
+                out (int End, IReadOnlyList<PdfContentInstruction> Instructions) replacement))
+            {
+                result.Add(source[index]);
+                continue;
+            }
+            result.AddRange(replacement.Instructions);
+            index = replacement.End;
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
     /// <summary>Transforms selected complete painted paths without changing clipping state.</summary>
     public static IReadOnlyList<PdfContentInstruction> TransformPaintedPaths(
         IEnumerable<PdfContentInstruction> instructions,
@@ -425,38 +450,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(pathIndexes);
         PdfContentInstruction[] source = instructions.ToArray();
-        var ranges = new List<(int Start, int End, bool Clipping)>();
-        int start = -1;
-        bool clipping = false;
-        for (int index = 0; index < source.Length; index++)
-        {
-            string operation = source[index].Operator;
-            if (operation is "m" or "l" or "c" or "v" or "y" or "h" or "re")
-            {
-                if (start < 0) start = index;
-                continue;
-            }
-            if (operation is "W" or "W*")
-            {
-                if (start < 0)
-                    throw new FormatException(
-                        "A content stream clips without constructing a path.");
-                clipping = true;
-                continue;
-            }
-            if (operation is not ("S" or "s" or "f" or "F" or "f*"
-                    or "B" or "B*" or "b" or "b*" or "n"))
-                continue;
-            if (start < 0)
-                throw new FormatException(
-                    "A content stream paints or ends a path that was not constructed.");
-            ranges.Add((start, index, clipping));
-            start = -1;
-            clipping = false;
-        }
-        if (start >= 0)
-            throw new FormatException("A content stream contains an unfinished path.");
-
+        IReadOnlyList<(int Start, int End, bool Clipping)> ranges = PaintedPathRanges(source);
         int[] requested = pathIndexes.ToArray();
         if (requested.Any(index => index < 0 || index >= ranges.Count)
             || requested.Distinct().Count() != requested.Length)
@@ -487,6 +481,43 @@ public static class PdfContentTransformation
             index = end;
         }
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    private static IReadOnlyList<(int Start, int End, bool Clipping)> PaintedPathRanges(
+        IReadOnlyList<PdfContentInstruction> source)
+    {
+        var ranges = new List<(int Start, int End, bool Clipping)>();
+        int start = -1;
+        bool clipping = false;
+        for (int index = 0; index < source.Count; index++)
+        {
+            string operation = source[index].Operator;
+            if (operation is "m" or "l" or "c" or "v" or "y" or "h" or "re")
+            {
+                if (start < 0) start = index;
+                continue;
+            }
+            if (operation is "W" or "W*")
+            {
+                if (start < 0)
+                    throw new FormatException(
+                        "A content stream clips without constructing a path.");
+                clipping = true;
+                continue;
+            }
+            if (operation is not ("S" or "s" or "f" or "F" or "f*"
+                    or "B" or "B*" or "b" or "b*" or "n"))
+                continue;
+            if (start < 0)
+                throw new FormatException(
+                    "A content stream paints or ends a path that was not constructed.");
+            ranges.Add((start, index, clipping));
+            start = -1;
+            clipping = false;
+        }
+        if (start >= 0)
+            throw new FormatException("A content stream contains an unfinished path.");
+        return Array.AsReadOnly(ranges.ToArray());
     }
 
     private static void ValidateContainedScopes(

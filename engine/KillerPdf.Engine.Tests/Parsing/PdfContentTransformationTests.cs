@@ -120,6 +120,41 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void ReplacePaintedPathsChangesOnlySelectedCompleteArtwork()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "1 0 0 rg 0 0 10 10 re f 7 FutureOp 20 20 m 30 30 l S"u8.ToArray());
+        IReadOnlyList<PdfContentInstruction> replacement = PdfContentStreamReader.Read(
+            "40 40 m 50 50 l 60 40 l h f*"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.ReplacePaintedPaths(source,
+                new Dictionary<int, IReadOnlyList<PdfContentInstruction>>
+                {
+                    [1] = replacement
+                });
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal(["rg", "re", "f", "FutureOp", "m", "l", "l", "h", "f*"],
+            reopened.Select(instruction => instruction.Operator));
+        Assert.Equal(40, Assert.IsType<PdfInteger>(reopened[4].Operands[0]).Value);
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.ReplacePaintedPaths(source,
+                new Dictionary<int, IReadOnlyList<PdfContentInstruction>> { [2] = replacement }));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.ReplacePaintedPaths(source,
+                new Dictionary<int, IReadOnlyList<PdfContentInstruction>>
+                {
+                    [0] = PdfContentStreamReader.Read("0 0 m 1 1 l"u8.ToArray())
+                }));
+        Assert.Throws<NotSupportedException>(() =>
+            PdfContentTransformation.ReplacePaintedPaths(
+                PdfContentStreamReader.Read("0 0 10 10 re W n"u8.ToArray()),
+                new Dictionary<int, IReadOnlyList<PdfContentInstruction>> { [0] = replacement }));
+    }
+
+    [Fact]
     public void RewriteRemovesAndReplacesSelectedInstructions()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
