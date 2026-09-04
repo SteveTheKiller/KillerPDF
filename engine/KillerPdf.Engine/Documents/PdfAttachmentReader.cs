@@ -200,6 +200,19 @@ public static class PdfAttachmentReader
         return candidate;
     }
 
+    /// <summary>Extracts an attachment inside the selected directory without overwriting by default.</summary>
+    public static string Extract(
+        PdfAttachmentInfo attachment, string directory, bool overwrite = false)
+    {
+        ArgumentNullException.ThrowIfNull(attachment);
+        string path = GetSafeExtractionPath(directory, attachment.FileName);
+        using var destination = new FileStream(path,
+            overwrite ? FileMode.Create : FileMode.CreateNew,
+            FileAccess.Write, FileShare.None);
+        destination.Write(attachment.Data.Span);
+        return path;
+    }
+
     private static bool IsSafeFileName(string? fileName) =>
         !string.IsNullOrWhiteSpace(fileName)
         && !Path.IsPathRooted(fileName)

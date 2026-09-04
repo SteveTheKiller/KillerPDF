@@ -63,6 +63,36 @@ public sealed class PdfAttachmentReaderTests
     }
 
     [Fact]
+    public void ExtractWritesPayloadAndRequiresExplicitOverwrite()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"killerpdf-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+                .AddAttachment("evidence.txt", "first"u8.ToArray()).Build());
+            PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(document));
+
+            string path = PdfAttachmentReader.Extract(attachment, directory);
+
+            Assert.Equal(Path.Combine(directory, "evidence.txt"), path);
+            Assert.Equal("first"u8.ToArray(), File.ReadAllBytes(path));
+            Assert.Throws<IOException>(() =>
+                PdfAttachmentReader.Extract(attachment, directory));
+
+            PdfDocument replacement = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+                .AddAttachment("evidence.txt", "second"u8.ToArray()).Build());
+            PdfAttachmentReader.Extract(
+                Assert.Single(PdfAttachmentReader.Read(replacement)), directory, overwrite: true);
+            Assert.Equal("second"u8.ToArray(), File.ReadAllBytes(path));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ReadPageAnnotationsReturnsPlacementIconDescriptionAndAttachment()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
