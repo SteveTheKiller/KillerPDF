@@ -56,6 +56,19 @@ public static class PdfLayerMacro
             pageIndex.ToString(CultureInfo.InvariantCulture));
     }
 
+    /// <summary>Creates a step that assigns a top-level instruction range to a layer.</summary>
+    public static PdfMacroStep InstructionRangeStep(string layerName,
+        int pageIndex, int instructionIndex, int instructionCount)
+    {
+        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (instructionIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(instructionIndex));
+        if (instructionCount <= 0)
+            throw new ArgumentOutOfRangeException(nameof(instructionCount));
+        return EditStep("instructionRange", layerName, JsonSerializer.Serialize(
+            new InstructionRangeSettings(pageIndex, instructionIndex, instructionCount)));
+    }
+
     /// <summary>Creates a step that changes or clears default layer configuration metadata.</summary>
     public static PdfMacroStep ConfigurationMetadataStep(string? name, string? creator) =>
         new(PdfMacroOperation.EditLayers,
@@ -265,6 +278,8 @@ public static class PdfLayerMacro
                 CultureInfo.InvariantCulture, out int pageIndex) && pageIndex >= 0 =>
                 PdfOptionalContentEditor.SetPageContentGroup(
                     document, pageIndex, objectNumber),
+            "instructionRange" when !string.IsNullOrWhiteSpace(value) =>
+                ApplyInstructionRange(document, objectNumber, value, step),
             _ => throw new ArgumentException("The layer edit action is invalid.", nameof(step))
         };
     }
@@ -272,6 +287,30 @@ public static class PdfLayerMacro
     private sealed record CreateSettings(bool InitiallyVisible, bool Locked,
         bool? PrintVisible, bool? ExportVisible);
     private sealed record ConfigurationMetadataSettings(string? Name, string? Creator);
+    private sealed record InstructionRangeSettings(
+        int PageIndex, int InstructionIndex, int InstructionCount);
+
+    private static byte[] ApplyInstructionRange(
+        PdfDocument document, int objectNumber, string json, PdfMacroStep step)
+    {
+        InstructionRangeSettings settings;
+        try
+        {
+            settings = JsonSerializer.Deserialize<InstructionRangeSettings>(json)
+                ?? throw new JsonException();
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException(
+                "The layer instruction range is invalid.", nameof(step), exception);
+        }
+        if (settings.PageIndex < 0 || settings.InstructionIndex < 0
+            || settings.InstructionCount <= 0)
+            throw new ArgumentException("The layer instruction range is invalid.", nameof(step));
+        return PdfOptionalContentEditor.SetPageInstructionRangeGroup(
+            document, settings.PageIndex, settings.InstructionIndex,
+            settings.InstructionCount, objectNumber);
+    }
 
     private static PdfMacroStep EditStep(string action, string layerName, string? value)
     {

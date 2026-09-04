@@ -98,6 +98,37 @@ public sealed class PdfLayerMacroTests
     }
 
     [Fact]
+    public void MacroAssignsInstructionRangeToNamedLayer()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 70).ShowLatin1Text("Keep").EndText()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 40).ShowLatin1Text("Drop").EndText())
+            .Build());
+        ReadOnlyMemory<byte> source = PdfOptionalContentEditor.AddGroup(
+            original, "Hidden", initiallyVisible: false);
+        IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions =
+            new PdfPageContentReader(PdfDocument.Open(source)).ReadInstructions(0);
+        int start = instructions.Select((instruction, index) => (instruction, index))
+            .Where(item => item.instruction.Operator == "BT").Skip(1).Single().index;
+        int end = instructions.Select((instruction, index) => (instruction, index))
+            .First(item => item.index > start && item.instruction.Operator == "ET").index;
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Range", [
+            PdfLayerMacro.InstructionRangeStep("Hidden", 0, start, end - start + 1)
+        ]).ToJson());
+
+        source = PdfLayerMacro.Execute(Assert.Single(macro.Steps), source);
+        PdfDocument flattened = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(PdfDocument.Open(source)));
+
+        Assert.Equal("Keep", new PdfPageContentReader(flattened).Read(0).Text);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfLayerMacro.InstructionRangeStep("Hidden", 0, 0, 0));
+    }
+
+    [Fact]
     public void MacroSetsAndClearsIndependentPrintAndExportVisibility()
     {
         var layer = new PdfOptionalContentGroup("Artwork");
