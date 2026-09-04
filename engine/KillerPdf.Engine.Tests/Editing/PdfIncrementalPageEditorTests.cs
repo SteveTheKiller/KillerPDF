@@ -13905,6 +13905,54 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void SetFormCalculationOrder_WritesNamedFieldReferencesAndClearsOrder()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.first", 10, 10, 100, 20)
+            .AddTextField(0, "customer.last", 10, 40, 100, 20)
+            .Build();
+
+        PdfDocument ordered = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetFormCalculationOrder(["customer.last", "customer.first"])
+                .Build());
+        PdfDictionary catalog = ResolveDictionary(
+            ordered, ordered.Trailer[Name("Root")]);
+        PdfDictionary form = DictionaryValue(ordered, catalog[Name("AcroForm")]);
+        PdfArray order = Assert.IsType<PdfArray>(form[Name("CO")]);
+        Assert.Equal(["last", "first"], order.Select(item =>
+        {
+            PdfDictionary field = ResolveDictionary(ordered, item);
+            return DecodeUnicode(Assert.IsType<PdfString>(field[Name("T")]));
+        }));
+
+        PdfDocument cleared = PdfDocument.Open(
+            new PdfIncrementalPageEditor(ordered)
+                .SetFormCalculationOrder([])
+                .Build());
+        PdfDictionary clearedCatalog = ResolveDictionary(
+            cleared, cleared.Trailer[Name("Root")]);
+        Assert.False(DictionaryValue(
+            cleared, clearedCatalog[Name("AcroForm")]).ContainsKey(Name("CO")));
+    }
+
+    [Fact]
+    public void SetFormCalculationOrder_RejectsDuplicateAndMissingNames()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "first", 10, 10, 100, 20)
+            .Build();
+
+        Assert.Throws<ArgumentException>(() =>
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetFormCalculationOrder(["first", "first"]));
+        Assert.Throws<InvalidOperationException>(() =>
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetFormCalculationOrder(["missing"])
+                .Build());
+    }
+
+    [Fact]
     public void RemoveFormField_PrunesTaggedFormStructureAndParentTree()
     {
         byte[] source = new PdfDocumentBuilder()

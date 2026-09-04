@@ -197,6 +197,7 @@ public sealed class PdfIncrementalPageEditor
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _fieldNameChanges =
         new(StringComparer.Ordinal);
+    private string[]? _formCalculationOrder;
     private readonly Dictionary<(int ObjectNumber, int Generation), PendingWidgetRectangle>
         _widgetRectangleChanges = [];
     private readonly Dictionary<(int ObjectNumber, int Generation), PdfFormFieldVisibility>
@@ -424,6 +425,23 @@ public sealed class PdfIncrementalPageEditor
                 "The new partial field name cannot contain a hierarchy separator.",
                 nameof(newPartialName));
         _fieldNameChanges[fieldName] = newPartialName;
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>Sets the order in which existing form fields are recalculated.</summary>
+    public PdfIncrementalPageEditor SetFormCalculationOrder(
+        IEnumerable<string> fieldNames)
+    {
+        ArgumentNullException.ThrowIfNull(fieldNames);
+        string[] names = [.. fieldNames];
+        if (names.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException(
+                "Calculation-order field names cannot be empty.", nameof(fieldNames));
+        if (names.Distinct(StringComparer.Ordinal).Count() != names.Length)
+            throw new ArgumentException(
+                "Calculation-order field names must be unique.", nameof(fieldNames));
+        _formCalculationOrder = names;
         _catalogPresentationChanged = true;
         return this;
     }
@@ -2031,7 +2049,8 @@ public sealed class PdfIncrementalPageEditor
                 || _choiceFieldBehaviorChanges.Count != 0
                 || _textFieldAppearanceChanges.Count != 0
                 || _fieldNameChanges.Count != 0
-                || _fieldDefaultChanges.Count != 0);
+                || _fieldDefaultChanges.Count != 0
+                || _formCalculationOrder is not null);
         bool deferFormFieldRemovals = _removedFormFields.Count != 0
             && mergesFormFields;
         if (_clearMetadata) update.SetDocumentInformation(null);
@@ -2081,6 +2100,7 @@ public sealed class PdfIncrementalPageEditor
                 formUpdate._fieldNameChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldDefaultChanges)
                 formUpdate._fieldDefaultChanges[entry.Key] = entry.Value;
+            formUpdate._formCalculationOrder = _formCalculationOrder;
             foreach (string fieldName in _removedFormFields)
                 formUpdate._removedFormFields.Add(fieldName);
             formUpdate._catalogPresentationChanged = true;
@@ -2099,11 +2119,15 @@ public sealed class PdfIncrementalPageEditor
             && _choiceFieldBehaviorChanges.Count == 0
             && _textFieldAppearanceChanges.Count == 0
             && _fieldNameChanges.Count == 0
-            && _fieldDefaultChanges.Count == 0) return;
+            && _fieldDefaultChanges.Count == 0
+            && _formCalculationOrder is null) return;
         if (!_tree.Catalog.TryGetValue(AcroFormName, out PdfObject? formValue))
             throw new InvalidOperationException("The document has no AcroForm fields.");
-        PdfDictionary form = ResolveDictionary(
+        var (formObject, formReference) = ResolveOutlineWithIdentity(
             _document, formValue, "The catalog /AcroForm value");
+        PdfDictionary form = formObject as PdfDictionary
+            ?? throw new InvalidOperationException(
+                "The catalog /AcroForm value is not a dictionary.");
         PdfArray fields = FormFields(_document, form);
         var matched = new HashSet<string>(StringComparer.Ordinal);
         var metadataMatched = new HashSet<string>(StringComparer.Ordinal);
@@ -2114,9 +2138,29 @@ public sealed class PdfIncrementalPageEditor
         var namesMatched = new HashSet<string>(StringComparer.Ordinal);
         var defaultMatched = new HashSet<string>(StringComparer.Ordinal);
         var resultingNames = new HashSet<string>(StringComparer.Ordinal);
+        var fieldReferences = new Dictionary<string, PdfIndirectReference>(
+            StringComparer.Ordinal);
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         foreach (PdfObject field in fields)
             Visit(field, null, null, null, 0);
+        if (_formCalculationOrder is not null)
+        {
+            PdfObject[] order = [.. _formCalculationOrder.Select(name =>
+                fieldReferences.TryGetValue(name, out PdfIndirectReference? reference)
+                    ? reference
+                    : throw new InvalidOperationException(
+                        $"The AcroForm has no field named '{name}'."))];
+            PdfDictionary updatedForm = order.Length == 0
+                ? ReplaceMany(form, [], [CalculationOrderName])
+                : ReplaceMany(form, new Dictionary<PdfName, PdfObject>
+                {
+                    [CalculationOrderName] = new PdfArray(order)
+                });
+            if (formReference is PdfIndirectReference reference)
+                update.ReplaceObject(reference.ObjectNumber, updatedForm);
+            else
+                _replacementAcroForm = updatedForm;
+        }
         foreach (string requested in _checkBoxValues.Keys)
             if (!matched.Contains(requested))
                 throw new InvalidOperationException(
@@ -2200,6 +2244,10 @@ public sealed class PdfIncrementalPageEditor
                     partialName.Bytes.Span, "An AcroForm field /T value");
                 qualifiedName = originalParentName is null
                     ? part : $"{originalParentName}.{part}";
+                if (_formCalculationOrder is not null
+                    && !fieldReferences.TryAdd(qualifiedName, reference))
+                    throw new InvalidOperationException(
+                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
                 string resultingPart = part;
                 if (_fieldNameChanges.TryGetValue(qualifiedName, out string? replacementName))
                 {
