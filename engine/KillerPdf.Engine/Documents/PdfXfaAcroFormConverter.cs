@@ -2,13 +2,15 @@ using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
-/// <summary>Converts positioned static XFA text controls into editable AcroForm fields.</summary>
+/// <summary>Converts positioned static XFA controls into editable AcroForm fields.</summary>
 public static class PdfXfaAcroFormConverter
 {
     private static readonly HashSet<string> TextControls = new(StringComparer.OrdinalIgnoreCase)
     {
         "dateTimeEdit", "defaultUi", "numericEdit", "passwordEdit", "textEdit"
     };
+    private static readonly HashSet<string> ConvertibleControls = new(
+        TextControls.Concat(["checkButton", "signature"]), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Preserves source pages, removes XFA, and authors editable text widgets.</summary>
     public static byte[] Convert(PdfDocument document)
@@ -25,7 +27,7 @@ public static class PdfXfaAcroFormConverter
         Dictionary<string, PdfXfaTemplateField> fields = template.Fields.ToDictionary(
             field => field.Path, StringComparer.Ordinal);
         PdfXfaTemplateField? unsupported = fields.Values.FirstOrDefault(field =>
-            field.ControlType is null || !TextControls.Contains(field.ControlType));
+            field.ControlType is null || !ConvertibleControls.Contains(field.ControlType));
         if (unsupported is not null)
             throw new NotSupportedException(
                 $"XFA control '{unsupported.ControlType ?? "unknown"}' cannot be converted to a text field.");
@@ -52,8 +54,20 @@ public static class PdfXfaAcroFormConverter
             if (bottom < 0 || placement.X + placement.Width > page.Width)
                 throw new InvalidOperationException(
                     $"XFA field '{placement.FieldPath}' lies outside its page.");
-            editor.AddTextField(placement.PageIndex, placement.FieldPath,
-                placement.X, bottom, placement.Width, placement.Height, value ?? string.Empty);
+            if (TextControls.Contains(field.ControlType!))
+                editor.AddTextField(placement.PageIndex, placement.FieldPath,
+                    placement.X, bottom, placement.Width, placement.Height, value ?? string.Empty);
+            else if (field.ControlType!.Equals("checkButton", StringComparison.OrdinalIgnoreCase))
+                editor.AddCheckBox(placement.PageIndex, placement.FieldPath,
+                    placement.X, bottom, placement.Width, placement.Height, Checked(value));
+            else
+            {
+                if (!string.IsNullOrEmpty(value))
+                    throw new NotSupportedException(
+                        $"Signed XFA field '{placement.FieldPath}' cannot be converted safely.");
+                editor.AddSignatureField(placement.PageIndex, placement.FieldPath,
+                    placement.X, bottom, placement.Width, placement.Height);
+            }
         }
         return editor.Build();
     }
@@ -65,4 +79,12 @@ public static class PdfXfaAcroFormConverter
         return binding.StartsWith(record, StringComparison.Ordinal)
             ? binding[record.Length..] : binding;
     }
+
+    private static bool Checked(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        null or "" or "0" or "false" or "off" or "no" => false,
+        "1" or "true" or "on" or "yes" => true,
+        _ => throw new InvalidOperationException(
+            "An XFA check-button value is not a recognized boolean state.")
+    };
 }

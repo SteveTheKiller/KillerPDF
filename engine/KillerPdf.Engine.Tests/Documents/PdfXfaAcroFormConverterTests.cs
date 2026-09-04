@@ -25,6 +25,22 @@ public sealed class PdfXfaAcroFormConverterTests
         Assert.Equal(80, widget.Top);
     }
 
+    [Fact]
+    public void ConvertPreservesCheckButtonAndSignatureFieldSemantics()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="form" layout="position"><field name="approved" x="10pt" y="10pt" w="12pt" h="12pt"><ui><checkButton/></ui></field><field name="signature" x="30pt" y="10pt" w="50pt" h="12pt"><ui><signature/></ui></field></subform></template>""",
+            """<datasets><data><form><approved>true</approved><signature/></form></data></datasets>""");
+
+        PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(source));
+        Dictionary<string, PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(converted, 0)
+            .ToDictionary(widget => widget.FieldName, StringComparer.Ordinal);
+
+        Assert.Equal(PdfFormFieldKind.Button, widgets["form.approved"].FieldKind);
+        Assert.Equal("/Yes", widgets["form.approved"].Value);
+        Assert.Equal(PdfFormFieldKind.Signature, widgets["form.signature"].FieldKind);
+    }
+
     private static PdfDocument Document(string template, string datasets)
     {
         string[] objects =
