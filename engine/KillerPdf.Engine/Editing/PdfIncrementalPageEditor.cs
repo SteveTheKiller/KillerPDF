@@ -1672,6 +1672,24 @@ public sealed class PdfIncrementalPageEditor
         int pageIndex, PdfDocument source, int sourcePageIndex,
         double a, double b, double c, double d, double e, double f,
         PdfPageBox sourceBox = PdfPageBox.Crop)
+        => AppendImportedPageContent(pageIndex, source, sourcePageIndex,
+            a, b, c, d, e, f, sourceBox, null);
+
+    /// <summary>
+    /// Appends a rectangular source-page region as a clipped Form XObject transformed into
+    /// destination coordinates. Page annotations are not copied.
+    /// </summary>
+    public PdfIncrementalPageEditor AppendImportedPageContent(
+        int pageIndex, PdfDocument source, int sourcePageIndex,
+        double a, double b, double c, double d, double e, double f,
+        PdfContentBounds sourceBounds)
+        => AppendImportedPageContent(pageIndex, source, sourcePageIndex,
+            a, b, c, d, e, f, PdfPageBox.Crop, sourceBounds);
+
+    private PdfIncrementalPageEditor AppendImportedPageContent(
+        int pageIndex, PdfDocument source, int sourcePageIndex,
+        double a, double b, double c, double d, double e, double f,
+        PdfPageBox sourceBox, PdfContentBounds? sourceBounds)
     {
         ValidateIndex(pageIndex, nameof(pageIndex));
         ArgumentNullException.ThrowIfNull(source);
@@ -1681,6 +1699,11 @@ public sealed class PdfIncrementalPageEditor
                     "An imported-page transformation must contain only finite values.");
         if (!Enum.IsDefined(sourceBox))
             throw new ArgumentOutOfRangeException(nameof(sourceBox));
+        if (sourceBounds is { } bounds
+            && (!double.IsFinite(bounds.Left) || !double.IsFinite(bounds.Bottom)
+                || !double.IsFinite(bounds.Right) || !double.IsFinite(bounds.Top)
+                || bounds.Right <= bounds.Left || bounds.Top <= bounds.Bottom))
+            throw new ArgumentOutOfRangeException(nameof(sourceBounds));
         EnforceSourceCopyPermission(source);
         PdfPageTree sourceTree = PdfPageTree.Read(source);
         if (sourcePageIndex < 0 || sourcePageIndex >= sourceTree.Pages.Count)
@@ -1693,7 +1716,8 @@ public sealed class PdfIncrementalPageEditor
             throw new InvalidOperationException(
                 "Imported content can only be appended to an existing destination page.");
         page.TypedOverlays.Add(new TypedOverlay(
-            source, sourcePageIndex, false, null, sourceBox, a, b, c, d, e, f));
+            source, sourcePageIndex, false, null, sourceBox, sourceBounds,
+            a, b, c, d, e, f));
         _pagePresentationChanged = true;
         return this;
     }
@@ -1730,7 +1754,7 @@ public sealed class PdfIncrementalPageEditor
             throw new InvalidOperationException(
                 "Typed content can only be appended to an existing destination page.");
         page.TypedOverlays.Add(new TypedOverlay(
-            BuildTypedPage(width, height, content), 0, artifact, marker, PdfPageBox.Crop,
+            BuildTypedPage(width, height, content), 0, artifact, marker, PdfPageBox.Crop, null,
             1, 0, 0, 1, 0, 0));
         _pagePresentationChanged = true;
         return this;
@@ -4471,7 +4495,10 @@ public sealed class PdfIncrementalPageEditor
                 ("Type", Name("XObject")),
                 ("Subtype", Name("Form")),
                 ("FormType", new PdfInteger(1)),
-                ("BBox", OverlayBox(overlayPage, pendingOverlay.SourceBox)),
+                ("BBox", pendingOverlay.SourceBounds is { } bounds
+                    ? new PdfArray([Number(bounds.Left), Number(bounds.Bottom),
+                        Number(bounds.Right), Number(bounds.Top)])
+                    : OverlayBox(overlayPage, pendingOverlay.SourceBox)),
                 ("Resources", overlayResources)),
                 overlayContent);
             var importer = new PdfObjectGraphImporter(overlay, update, []);
@@ -18464,7 +18491,8 @@ public sealed class PdfIncrementalPageEditor
 
     private sealed record TypedOverlay(
         PdfDocument Document, int PageIndex, bool Artifact, string? Marker,
-        PdfPageBox SourceBox, double A, double B, double C, double D, double E, double F);
+        PdfPageBox SourceBox, PdfContentBounds? SourceBounds,
+        double A, double B, double C, double D, double E, double F);
     private enum PageContentUpdate { None, Append, ArtifactAppend, Replace }
 
     private static PdfName PageTabOrderName(PdfPageTabOrder tabOrder) => tabOrder switch

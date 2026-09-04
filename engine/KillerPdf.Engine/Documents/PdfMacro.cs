@@ -267,7 +267,9 @@ public enum PdfMacroOperation
     /// <summary>Arrange source pages into simplex cut stacks.</summary>
     ImposeCutStack,
     /// <summary>Arrange a caller-defined page sequence with explicit blanks.</summary>
-    ImposeManualSequence
+    ImposeManualSequence,
+    /// <summary>Tile one source page across overlapping poster sheets.</summary>
+    ImposePoster
 }
 
 /// <summary>One contextual macro operation result and its values for later steps.</summary>

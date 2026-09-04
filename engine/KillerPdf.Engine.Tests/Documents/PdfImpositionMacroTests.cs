@@ -1,3 +1,4 @@
+using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
@@ -159,5 +160,38 @@ public sealed class PdfImpositionMacroTests
             new PdfContentStreamBuilder().BeginText()
                 .SetFont(PdfStandardFont.Helvetica, 10).MoveText(20, 150)
                 .ShowLatin1Text(value).EndText();
+    }
+
+    [Fact]
+    public void PosterStepRoundTripsAndExportsClippedOverlappingTiles()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(500, 700, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+                .MoveText(50, 600).ShowLatin1Text("TopLeft")
+                .MoveText(400, 0).ShowLatin1Text("TopRight")
+                .MoveText(-400, -500).ShowLatin1Text("BottomLeft")
+                .MoveText(400, 0).ShowLatin1Text("BottomRight").EndText())
+            .Build();
+        var preset = new PdfImpositionPreset(
+            "Poster", 1, 1, 320, 420, margin: 10);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Poster",
+            [PdfImpositionMacro.PosterStep(preset, 0, overlap: 20)]).ToJson());
+
+        PdfMacroStep step = Assert.Single(macro.Steps);
+        ReadOnlyMemory<byte> output = PdfImpositionMacro.Execute(step, source);
+        PdfDocument imposed = PdfDocument.Open(output);
+        string syntax = Encoding.ASCII.GetString(output.Span);
+
+        Assert.Equal(PdfMacroOperation.ImposePoster, step.Operation);
+        Assert.Equal(4, PdfPageBoxInformation.Read(imposed).Count);
+        Assert.Contains("/BBox [0 300 300 700]", syntax);
+        Assert.Contains("/BBox [280 300 500 700]", syntax);
+        Assert.Contains("/BBox [0 0 300 320]", syntax);
+        Assert.Contains("/BBox [280 0 500 320]", syntax);
+        Assert.Throws<ArgumentException>(() => PdfImpositionMacro.PosterStep(
+            new PdfImpositionPreset("Duplex", 1, 1, 320, 420, duplex: true), 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionMacro.PosterStep(preset, 0, overlap: 300));
     }
 }

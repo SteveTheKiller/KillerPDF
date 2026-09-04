@@ -10,6 +10,7 @@ public static class PdfImpositionMacro
     private const string SourcePageKey = "sourcePage";
     private const string CopyCountKey = "copyCount";
     private const string PageSequenceKey = "pageSequence";
+    private const string OverlapKey = "overlap";
 
     /// <summary>Creates an N-up imposition step from a reusable preset.</summary>
     public static PdfMacroStep NUpStep(PdfImpositionPreset preset)
@@ -83,6 +84,24 @@ public static class PdfImpositionMacro
             });
     }
 
+    /// <summary>Creates an overlapping poster-tiling step from a simplex preset.</summary>
+    public static PdfMacroStep PosterStep(
+        PdfImpositionPreset preset, int sourcePageIndex, double overlap = 0)
+    {
+        ValidatePoster(preset, overlap);
+        if (sourcePageIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
+        return new PdfMacroStep(PdfMacroOperation.ImposePoster,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [PresetKey] = preset.ToJson(),
+                [SourcePageKey] = sourcePageIndex.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture),
+                [OverlapKey] = overlap.ToString("R",
+                    System.Globalization.CultureInfo.InvariantCulture)
+            });
+    }
+
     /// <summary>Executes one N-up imposition macro step without external actions.</summary>
     public static ReadOnlyMemory<byte> Execute(PdfMacroStep step,
         ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default)
@@ -92,7 +111,8 @@ public static class PdfImpositionMacro
                 or PdfMacroOperation.ImposeBooklet
                 or PdfMacroOperation.ImposeStepAndRepeat
                 or PdfMacroOperation.ImposeCutStack
-                or PdfMacroOperation.ImposeManualSequence))
+                or PdfMacroOperation.ImposeManualSequence
+                or PdfMacroOperation.ImposePoster))
             throw new ArgumentException(
                 "The macro step is not an imposition operation.", nameof(step));
         if (source.IsEmpty) throw new ArgumentException("The PDF source is empty.", nameof(source));
@@ -101,6 +121,7 @@ public static class PdfImpositionMacro
             PdfMacroOperation.ImposeBooklet => 2,
             PdfMacroOperation.ImposeStepAndRepeat => 3,
             PdfMacroOperation.ImposeManualSequence => 2,
+            PdfMacroOperation.ImposePoster => 3,
             _ => 1
         };
         if (step.Settings is null || step.Settings.Count != expectedSettingCount
@@ -121,6 +142,19 @@ public static class PdfImpositionMacro
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument document = PdfDocument.Open(source);
         int pageCount = PdfPageTree.Read(document).Pages.Count;
+        if (step.Operation == PdfMacroOperation.ImposePoster)
+        {
+            int sourcePageIndex = SettingInteger(step, SourcePageKey,
+                "The poster source page is invalid.");
+            double overlap = SettingDouble(step, OverlapKey,
+                "The poster overlap is invalid.");
+            ValidatePoster(preset, overlap);
+            cancellationToken.ThrowIfCancellationRequested();
+            return PdfImpositionExporter.BuildPoster(document, sourcePageIndex,
+                preset.SheetWidth, preset.SheetHeight, preset.Margin, overlap,
+                preset.IncludeCropMarks, preset.IncludeRegistrationMarks,
+                preset.IncludeColorBars, preset.IncludePageInformation, preset.SourceBox);
+        }
         IReadOnlyList<PdfImposedSheetSide> sides;
         if (step.Operation == PdfMacroOperation.ImposeBooklet)
         {
@@ -186,6 +220,16 @@ public static class PdfImpositionMacro
         return result;
     }
 
+    private static double SettingDouble(
+        PdfMacroStep step, string key, string errorMessage)
+    {
+        if (!step.Settings!.TryGetValue(key, out string? value)
+            || !double.TryParse(value, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out double result))
+            throw new ArgumentException(errorMessage, nameof(step));
+        return result;
+    }
+
     private static void ValidateBooklet(
         PdfImpositionPreset preset, int signaturePageCount)
     {
@@ -222,5 +266,18 @@ public static class PdfImpositionMacro
             throw new ArgumentException(
                 "The manual page sequence is invalid.", nameof(step), error);
         }
+    }
+
+    private static void ValidatePoster(PdfImpositionPreset preset, double overlap)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        if (preset.Duplex || preset.Columns != 1 || preset.Rows != 1)
+            throw new ArgumentException(
+                "A poster preset must use a one-slot simplex sheet.", nameof(preset));
+        double tileWidth = preset.SheetWidth - preset.Margin * 2;
+        double tileHeight = preset.SheetHeight - preset.Margin * 2;
+        if (!double.IsFinite(overlap) || overlap < 0
+            || overlap >= tileWidth || overlap >= tileHeight)
+            throw new ArgumentOutOfRangeException(nameof(overlap));
     }
 }

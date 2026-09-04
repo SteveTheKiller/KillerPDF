@@ -7,6 +7,63 @@ namespace KillerPdf.Engine.Documents;
 public static class PdfImpositionExporter
 {
     /// <summary>
+    /// Writes overlapping regions of one source page as simplex poster sheets at full size.
+    /// Source annotations are not copied.
+    /// </summary>
+    public static byte[] BuildPoster(
+        PdfDocument source, int sourcePageIndex,
+        double sheetWidth, double sheetHeight, double margin = 0, double overlap = 0,
+        bool includeCropMarks = false, bool includeRegistrationMarks = false,
+        bool includeColorBars = false, bool includePageInformation = false,
+        PdfImpositionSourceBox sourceBox = PdfImpositionSourceBox.Crop)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!double.IsFinite(sheetWidth) || sheetWidth <= 0)
+            throw new ArgumentOutOfRangeException(nameof(sheetWidth));
+        if (!double.IsFinite(sheetHeight) || sheetHeight <= 0)
+            throw new ArgumentOutOfRangeException(nameof(sheetHeight));
+        if (!double.IsFinite(margin) || margin < 0
+            || margin * 2 >= sheetWidth || margin * 2 >= sheetHeight)
+            throw new ArgumentOutOfRangeException(nameof(margin));
+        if (!Enum.IsDefined(sourceBox))
+            throw new ArgumentOutOfRangeException(nameof(sourceBox));
+        IReadOnlyList<PdfPageBoxInformation> pages = PdfPageBoxInformation.Read(source);
+        if (sourcePageIndex < 0 || sourcePageIndex >= pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
+        PdfPageBoxBounds selected = sourceBox switch
+        {
+            PdfImpositionSourceBox.Crop => pages[sourcePageIndex].CropBox,
+            PdfImpositionSourceBox.Bleed => pages[sourcePageIndex].BleedBox,
+            PdfImpositionSourceBox.Trim => pages[sourcePageIndex].TrimBox,
+            PdfImpositionSourceBox.Art => pages[sourcePageIndex].ArtBox,
+            _ => throw new ArgumentOutOfRangeException(nameof(sourceBox))
+        };
+        double tileWidth = sheetWidth - margin * 2;
+        double tileHeight = sheetHeight - margin * 2;
+        IReadOnlyList<PdfPosterTile> tiles = PdfImpositionPlanner.PlanPosterTiles(
+            selected.Right - selected.Left, selected.Top - selected.Bottom,
+            tileWidth, tileHeight, overlap);
+        var builder = new PdfDocumentBuilder().SetViewerPreferences(
+            new PdfViewerPreferences { Duplex = PdfDuplexMode.Simplex });
+        foreach (PdfPosterTile _ in tiles) builder.AddBlankPage(sheetWidth, sheetHeight);
+        var editor = new PdfIncrementalPageEditor(PdfDocument.Open(builder.Build()));
+        for (int outputPage = 0; outputPage < tiles.Count; outputPage++)
+        {
+            PdfPosterTile tile = tiles[outputPage];
+            PdfContentBounds relative = tile.SourceBounds;
+            var absolute = new PdfContentBounds(
+                relative.Left + selected.Left, relative.Bottom + selected.Bottom,
+                relative.Right + selected.Left, relative.Top + selected.Bottom);
+            editor.AppendImportedPageContent(outputPage, source, sourcePageIndex,
+                1, 0, 0, 1, margin - absolute.Left, margin - absolute.Bottom, absolute);
+            AppendPosterMarks(editor, outputPage, tile, sheetWidth, sheetHeight,
+                margin, includeCropMarks, includeRegistrationMarks,
+                includeColorBars, includePageInformation);
+        }
+        return editor.Build();
+    }
+
+    /// <summary>
     /// Writes one output page per planned sheet side, preserving source page content and resources.
     /// Source annotations are not copied.
     /// </summary>
@@ -171,5 +228,62 @@ public static class PdfImpositionExporter
             }
         }
         return editor.Build();
+    }
+
+    private static void AppendPosterMarks(
+        PdfIncrementalPageEditor editor, int outputPage, PdfPosterTile tile,
+        double sheetWidth, double sheetHeight, double margin,
+        bool includeCropMarks, bool includeRegistrationMarks,
+        bool includeColorBars, bool includePageInformation)
+    {
+        if (!includeCropMarks && !includeRegistrationMarks
+            && !includeColorBars && !includePageInformation)
+            return;
+        var marks = new PdfContentStreamBuilder().SetStrokeGray(0).SetLineWidth(0.25);
+        if (includeCropMarks)
+        {
+            var placement = new PdfImposedPlacement(0, 0,
+                new PdfContentBounds(margin, margin,
+                    margin + tile.SourceBounds.Right - tile.SourceBounds.Left,
+                    margin + tile.SourceBounds.Top - tile.SourceBounds.Bottom), 1, 0);
+            foreach (PdfImpositionMark mark in PdfImpositionPlanner.PlanCropMarks(placement))
+                marks.MoveTo(mark.StartX, mark.StartY)
+                    .LineTo(mark.EndX, mark.EndY).Stroke();
+        }
+        if (includeRegistrationMarks)
+            foreach (PdfImpositionRegistrationMark mark
+                in PdfImpositionPlanner.PlanRegistrationMarks(sheetWidth, sheetHeight))
+            {
+                double half = mark.CrosshairLength / 2;
+                marks.MoveTo(mark.CenterX - half, mark.CenterY)
+                    .LineTo(mark.CenterX + half, mark.CenterY).Stroke()
+                    .MoveTo(mark.CenterX, mark.CenterY - half)
+                    .LineTo(mark.CenterX, mark.CenterY + half).Stroke()
+                    .Circle(mark.CenterX, mark.CenterY, mark.Radius).Stroke();
+            }
+        if (includeColorBars)
+        {
+            const double size = 6;
+            double x = Math.Max(2, margin);
+            foreach ((double C, double M, double Y, double K) color in new[]
+            {
+                (1d, 0d, 0d, 0d), (0d, 1d, 0d, 0d),
+                (0d, 0d, 1d, 0d), (0d, 0d, 0d, 1d)
+            })
+            {
+                marks.SetFillCmyk(color.C, color.M, color.Y, color.K)
+                    .Rectangle(x, 2, size, size).Fill();
+                x += size;
+            }
+            marks.SetStrokeGray(0);
+        }
+        if (includePageInformation)
+            marks.SetFillGray(0).BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 6)
+                .MoveText(Math.Max(2, margin), sheetHeight - 8)
+                .ShowLatin1Text(
+                    $"Tile {tile.TileIndex + 1} row {tile.Row + 1} column {tile.Column + 1}")
+                .EndText();
+        editor.AppendPageArtifact(outputPage, sheetWidth, sheetHeight, marks);
     }
 }
