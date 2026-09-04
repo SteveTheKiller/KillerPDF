@@ -80,4 +80,30 @@ public sealed class PdfAttachmentReaderTests
         Assert.Equal(modified, attachment.ModificationDate);
         Assert.Equal("old.txt", Assert.Single(PdfAttachmentReader.Read(original)).FileName);
     }
+
+    [Fact]
+    public void ReplaceAttachmentUpdatesPayloadAndPreservesMetadata()
+    {
+        byte[] originalPayload = "old evidence"u8.ToArray();
+        byte[] replacementPayload = "new evidence"u8.ToArray();
+        var created = new DateTimeOffset(2026, 8, 1, 8, 0, 0, TimeSpan.Zero);
+        var modified = new DateTimeOffset(2026, 9, 3, 9, 0, 0, TimeSpan.Zero);
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("evidence.txt", originalPayload, "text/plain", "Evidence",
+                PdfAssociatedFileRelationship.Source, created, created).Build());
+
+        PdfDocument replaced = PdfDocument.Open(new PdfIncrementalPageEditor(original)
+            .ReplaceAttachment("EVIDENCE.TXT", replacementPayload, modified).Build());
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(replaced));
+
+        Assert.Equal("evidence.txt", attachment.FileName);
+        Assert.Equal(replacementPayload, attachment.Data.ToArray());
+        Assert.Equal("text/plain", attachment.MimeType);
+        Assert.Equal("Evidence", attachment.Description);
+        Assert.Equal(PdfAssociatedFileRelationship.Source, attachment.Relationship);
+        Assert.Equal(created, attachment.CreationDate);
+        Assert.Equal(modified, attachment.ModificationDate);
+        Assert.Equal(originalPayload,
+            Assert.Single(PdfAttachmentReader.Read(original)).Data.ToArray());
+    }
 }
