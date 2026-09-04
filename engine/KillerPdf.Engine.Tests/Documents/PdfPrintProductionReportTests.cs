@@ -34,6 +34,15 @@ public sealed class PdfPrintProductionReportTests
         Assert.Equal(4, profile.GetProperty("componentCount").GetInt32());
         Assert.Equal(132, profile.GetProperty("byteCount").GetInt32());
         Assert.False(profile.TryGetProperty("data", out _));
+        string text = report.ToText();
+        Assert.Contains("Print production: pages 1, colorants 1, output intents 1", text,
+            StringComparison.Ordinal);
+        Assert.Contains("MediaBox: 0, 0 to 612, 792 pt (612 x 792, effective)", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Spot colorant Killer Orange: pages 1", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Output intent FOGRA39: GTS_PDFA1, CMYK, 4 components, 132 profile bytes",
+            text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -62,6 +71,13 @@ public sealed class PdfPrintProductionReportTests
             .GetProperty("name").GetString());
         Assert.Equal("Black", json.RootElement.GetProperty("pages")[0]
             .GetProperty("plateNames")[0].GetString());
+        string text = preview.ToText();
+        Assert.Contains("Separation preview: plates 2, pages 2", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Process plate Black: pages 1", text, StringComparison.Ordinal);
+        Assert.Contains("Spot plate Killer Orange: pages 2", text, StringComparison.Ordinal);
+        Assert.Contains("Page 1: Black", text, StringComparison.Ordinal);
+        Assert.Contains("Page 2: Killer Orange", text, StringComparison.Ordinal);
         Assert.Throws<ArgumentException>(() =>
             PdfSeparationPreview.Create(document, ["Killer Orange", "Killer Orange"]));
         Assert.Throws<ArgumentException>(() =>
@@ -73,6 +89,7 @@ public sealed class PdfPrintProductionReportTests
         Assert.Empty(selected.Plates[0].PageIndexes);
         Assert.Equal([1], selected.Plates[1].PageIndexes);
         Assert.Equal(["Killer Orange"], selected.Pages[0].PlateNames);
+        Assert.Contains("Process plate Black: pages", selected.ToText(), StringComparison.Ordinal);
         Assert.Throws<ArgumentException>(() =>
             PdfSeparationPreview.Create(document, ["Black"], []));
         Assert.Throws<ArgumentException>(() =>

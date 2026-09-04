@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
@@ -15,6 +17,29 @@ public sealed record PdfSeparationPreview(
     IReadOnlyList<PdfSeparationPreviewPlate> Plates,
     IReadOnlyList<PdfSeparationPreviewPage> Pages)
 {
+    /// <summary>Exports a readable summary of selected plates and page presence.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Separation preview: plates ").Append(Plates.Count)
+            .Append(", pages ").AppendLine(Pages.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfSeparationPreviewPlate plate in Plates)
+        {
+            output.Append("  ").Append(plate.IsProcess ? "Process" : "Spot")
+                .Append(" plate ").Append(plate.Name).Append(": pages ")
+                .AppendLine(PageList(plate.PageIndexes));
+        }
+        foreach (PdfSeparationPreviewPage page in Pages)
+        {
+            output.Append("  Page ")
+                .Append((page.PageIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(": ")
+                .AppendLine(page.PlateNames.Count == 0
+                    ? "no selected plates" : string.Join(", ", page.PlateNames));
+        }
+        return output.ToString().TrimEnd();
+    }
+
     /// <summary>Exports the selected plates and per-page presence without document content.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
     {
@@ -26,6 +51,9 @@ public sealed record PdfSeparationPreview(
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
     });
+
+    private static string PageList(IEnumerable<int> pageIndexes) => string.Join(", ",
+        pageIndexes.Select(index => (index + 1).ToString(CultureInfo.InvariantCulture)));
 
     /// <summary>Creates a preview selection from the document's declared process and spot plates.</summary>
     public static PdfSeparationPreview Create(
