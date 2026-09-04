@@ -36,6 +36,32 @@ public sealed class PdfPrintProductionReportTests
         Assert.False(profile.TryGetProperty("data", out _));
     }
 
+    [Fact]
+    public void SeparationPreviewSelectsKnownPlatesPerPage()
+    {
+        var orange = new PdfSpotColor("Killer Orange", new PdfCmykColor(0, 0.72, 1, 0));
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .SetFillCmyk(0.1, 0.2, 0.3, 0.4).Rectangle(10, 10, 20, 20).Fill())
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .SetFillSpotColor(orange, 0.8).Rectangle(20, 20, 20, 20).Fill())
+            .Build());
+
+        PdfSeparationPreview preview = PdfSeparationPreview.Create(
+            document, ["Black", "Killer Orange"]);
+
+        Assert.Equal(["Black", "Killer Orange"],
+            preview.Plates.Select(plate => plate.Name));
+        Assert.True(preview.Plates[0].IsProcess);
+        Assert.False(preview.Plates[1].IsProcess);
+        Assert.Equal(["Black"], preview.Pages[0].PlateNames);
+        Assert.Equal(["Killer Orange"], preview.Pages[1].PlateNames);
+        Assert.Throws<ArgumentException>(() =>
+            PdfSeparationPreview.Create(document, ["Killer Orange", "Killer Orange"]));
+        Assert.Throws<ArgumentException>(() =>
+            PdfSeparationPreview.Create(document, ["Missing plate"]));
+    }
+
     private static byte[] Profile(string colorSpace)
     {
         byte[] result = new byte[132];
