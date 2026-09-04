@@ -385,68 +385,200 @@ public static class PdfFontResourceReader
                 BinaryPrimitives.ReadInt16BigEndian(box[6..]) * scale);
         }
 
-        internal PdfGlyphOutline? Outline(ushort glyph)
+        internal PdfGlyphOutline? Outline(ushort glyph) => Outline(glyph, [], 0);
+
+        private PdfGlyphOutline? Outline(ushort glyph, HashSet<ushort> active, int depth)
         {
-            if (!TryGlyphRange(glyph, out ReadOnlySpan<byte> data) || data.Length == 0)
-                return null;
-            int contourCount = BinaryPrimitives.ReadInt16BigEndian(data);
-            if (contourCount < 0) return null;
-            if (contourCount == 0) return new PdfGlyphOutline([]);
-            if (contourCount > 4_096 || data.Length < 10 + contourCount * 2 + 2)
-                throw new FormatException("A TrueType simple glyph is invalid.");
-            int position = 10;
-            var endPoints = new ushort[contourCount];
-            for (int contour = 0; contour < contourCount; contour++)
+            if (depth > 32 || !active.Add(glyph))
+                throw new FormatException("A compound TrueType glyph is cyclic or too deeply nested.");
+            try
             {
-                endPoints[contour] = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
-                if (contour > 0 && endPoints[contour] <= endPoints[contour - 1])
-                    throw new FormatException("TrueType contour endpoints are invalid.");
+                if (!TryGlyphRange(glyph, out ReadOnlySpan<byte> data) || data.Length == 0)
+                    return null;
+                int contourCount = BinaryPrimitives.ReadInt16BigEndian(data);
+                if (contourCount < 0) return CompoundOutline(data, active, depth);
+                if (contourCount == 0) return new PdfGlyphOutline([]);
+                if (contourCount > 4_096 || data.Length < 10 + contourCount * 2 + 2)
+                    throw new FormatException("A TrueType simple glyph is invalid.");
+                int position = 10;
+                var endPoints = new ushort[contourCount];
+                for (int contour = 0; contour < contourCount; contour++)
+                {
+                    endPoints[contour] = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
+                    if (contour > 0 && endPoints[contour] <= endPoints[contour - 1])
+                        throw new FormatException("TrueType contour endpoints are invalid.");
+                    position += 2;
+                }
+                int pointCount = endPoints[^1] + 1;
+                if (pointCount > 1_000_000 || position + 2 > data.Length)
+                    throw new FormatException("A TrueType glyph point count is invalid.");
+                int instructionLength = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
                 position += 2;
-            }
-            int pointCount = endPoints[^1] + 1;
-            if (pointCount > 1_000_000 || position + 2 > data.Length)
-                throw new FormatException("A TrueType glyph point count is invalid.");
-            int instructionLength = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
-            position += 2;
-            if (instructionLength > data.Length - position)
-                throw new FormatException("TrueType glyph instructions are truncated.");
-            position += instructionLength;
-            var flags = new byte[pointCount];
-            for (int point = 0; point < pointCount;)
-            {
-                if (position >= data.Length)
-                    throw new FormatException("TrueType glyph flags are truncated.");
-                byte flag = data[position++];
-                int repeat = 1;
-                if ((flag & 0x08) != 0)
+                if (instructionLength > data.Length - position)
+                    throw new FormatException("TrueType glyph instructions are truncated.");
+                position += instructionLength;
+                var flags = new byte[pointCount];
+                for (int point = 0; point < pointCount;)
                 {
                     if (position >= data.Length)
-                        throw new FormatException("A TrueType glyph flag repeat is truncated.");
-                    repeat += data[position++];
+                        throw new FormatException("TrueType glyph flags are truncated.");
+                    byte flag = data[position++];
+                    int repeat = 1;
+                    if ((flag & 0x08) != 0)
+                    {
+                        if (position >= data.Length)
+                            throw new FormatException("A TrueType glyph flag repeat is truncated.");
+                        repeat += data[position++];
+                    }
+                    if (repeat > pointCount - point)
+                        throw new FormatException("A TrueType glyph flag repeat is invalid.");
+                    Array.Fill(flags, flag, point, repeat);
+                    point += repeat;
                 }
-                if (repeat > pointCount - point)
-                    throw new FormatException("A TrueType glyph flag repeat is invalid.");
-                Array.Fill(flags, flag, point, repeat);
-                point += repeat;
+                var x = new int[pointCount];
+                var y = new int[pointCount];
+                ReadCoordinates(data, ref position, x, flags, shortMask: 0x02, sameMask: 0x10);
+                ReadCoordinates(data, ref position, y, flags, shortMask: 0x04, sameMask: 0x20);
+                double scale = 1000d / _font.UnitsPerEm;
+                var contours = new PdfGlyphContour[contourCount];
+                int start = 0;
+                for (int contour = 0; contour < contourCount; contour++)
+                {
+                    int end = endPoints[contour];
+                    var points = new PdfGlyphPoint[end - start + 1];
+                    for (int point = start; point <= end; point++)
+                        points[point - start] = new PdfGlyphPoint(
+                            x[point] * scale, y[point] * scale, (flags[point] & 1) != 0);
+                    contours[contour] = new PdfGlyphContour(Array.AsReadOnly(points));
+                    start = end + 1;
+                }
+                return new PdfGlyphOutline(Array.AsReadOnly(contours));
             }
-            var x = new int[pointCount];
-            var y = new int[pointCount];
-            ReadCoordinates(data, ref position, x, flags, shortMask: 0x02, sameMask: 0x10);
-            ReadCoordinates(data, ref position, y, flags, shortMask: 0x04, sameMask: 0x20);
-            double scale = 1000d / _font.UnitsPerEm;
-            var contours = new PdfGlyphContour[contourCount];
-            int start = 0;
-            for (int contour = 0; contour < contourCount; contour++)
+            finally
             {
-                int end = endPoints[contour];
-                var points = new PdfGlyphPoint[end - start + 1];
-                for (int point = start; point <= end; point++)
-                    points[point - start] = new PdfGlyphPoint(
-                        x[point] * scale, y[point] * scale, (flags[point] & 1) != 0);
-                contours[contour] = new PdfGlyphContour(Array.AsReadOnly(points));
-                start = end + 1;
+                active.Remove(glyph);
             }
-            return new PdfGlyphOutline(Array.AsReadOnly(contours));
+        }
+
+        private PdfGlyphOutline CompoundOutline(
+            ReadOnlySpan<byte> data, HashSet<ushort> active, int depth)
+        {
+            const ushort ArgumentsAreWords = 0x0001;
+            const ushort ArgumentsAreCoordinates = 0x0002;
+            const ushort HasScale = 0x0008;
+            const ushort MoreComponents = 0x0020;
+            const ushort HasXYScale = 0x0040;
+            const ushort HasMatrix = 0x0080;
+            const ushort HasInstructions = 0x0100;
+            const ushort ScaledOffset = 0x0800;
+            int position = 10;
+            int componentCount = 0;
+            ushort flags;
+            var contours = new List<PdfGlyphContour>();
+            do
+            {
+                if (++componentCount > 4_096 || position + 4 > data.Length)
+                    throw new FormatException("A compound TrueType glyph is invalid.");
+                flags = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
+                ushort componentGlyph = BinaryPrimitives.ReadUInt16BigEndian(data[(position + 2)..]);
+                position += 4;
+                int firstArgument, secondArgument;
+                if ((flags & ArgumentsAreWords) != 0)
+                {
+                    if (position + 4 > data.Length)
+                        throw new FormatException("Compound TrueType glyph arguments are truncated.");
+                    if ((flags & ArgumentsAreCoordinates) != 0)
+                    {
+                        firstArgument = BinaryPrimitives.ReadInt16BigEndian(data[position..]);
+                        secondArgument = BinaryPrimitives.ReadInt16BigEndian(data[(position + 2)..]);
+                    }
+                    else
+                    {
+                        firstArgument = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
+                        secondArgument = BinaryPrimitives.ReadUInt16BigEndian(data[(position + 2)..]);
+                    }
+                    position += 4;
+                }
+                else
+                {
+                    if (position + 2 > data.Length)
+                        throw new FormatException("Compound TrueType glyph arguments are truncated.");
+                    if ((flags & ArgumentsAreCoordinates) != 0)
+                    {
+                        firstArgument = (sbyte)data[position];
+                        secondArgument = (sbyte)data[position + 1];
+                    }
+                    else
+                    {
+                        firstArgument = data[position];
+                        secondArgument = data[position + 1];
+                    }
+                    position += 2;
+                }
+                double a = 1, b = 0, c = 0, d = 1;
+                if ((flags & HasScale) != 0)
+                    a = d = ReadF2Dot14(data, ref position);
+                else if ((flags & HasXYScale) != 0)
+                {
+                    a = ReadF2Dot14(data, ref position);
+                    d = ReadF2Dot14(data, ref position);
+                }
+                else if ((flags & HasMatrix) != 0)
+                {
+                    a = ReadF2Dot14(data, ref position);
+                    b = ReadF2Dot14(data, ref position);
+                    c = ReadF2Dot14(data, ref position);
+                    d = ReadF2Dot14(data, ref position);
+                }
+                PdfGlyphOutline component = Outline(componentGlyph, active, depth + 1)
+                    ?? new PdfGlyphOutline([]);
+                double offsetX, offsetY;
+                double unitScale = 1000d / _font.UnitsPerEm;
+                if ((flags & ArgumentsAreCoordinates) != 0)
+                {
+                    offsetX = firstArgument * unitScale;
+                    offsetY = secondArgument * unitScale;
+                    if ((flags & ScaledOffset) != 0)
+                        (offsetX, offsetY) = (a * offsetX + c * offsetY,
+                            b * offsetX + d * offsetY);
+                }
+                else
+                {
+                    PdfGlyphPoint[] parentPoints = [.. contours.SelectMany(item => item.Points)];
+                    PdfGlyphPoint[] componentPoints = [.. component.Contours.SelectMany(item => item.Points)];
+                    if (firstArgument >= parentPoints.Length || secondArgument >= componentPoints.Length)
+                        throw new FormatException("Compound TrueType glyph point matching is invalid.");
+                    PdfGlyphPoint parent = parentPoints[firstArgument];
+                    PdfGlyphPoint child = componentPoints[secondArgument];
+                    offsetX = parent.X - (a * child.X + c * child.Y);
+                    offsetY = parent.Y - (b * child.X + d * child.Y);
+                }
+                foreach (PdfGlyphContour contour in component.Contours)
+                    contours.Add(new PdfGlyphContour(Array.AsReadOnly([
+                        .. contour.Points.Select(point => new PdfGlyphPoint(
+                            a * point.X + c * point.Y + offsetX,
+                            b * point.X + d * point.Y + offsetY, point.OnCurve))])));
+            }
+            while ((flags & MoreComponents) != 0);
+            if ((flags & HasInstructions) != 0)
+            {
+                if (position + 2 > data.Length)
+                    throw new FormatException("Compound TrueType glyph instructions are truncated.");
+                int length = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
+                position += 2;
+                if (length > data.Length - position)
+                    throw new FormatException("Compound TrueType glyph instructions are truncated.");
+            }
+            return new PdfGlyphOutline(contours.AsReadOnly());
+        }
+
+        private static double ReadF2Dot14(ReadOnlySpan<byte> data, ref int position)
+        {
+            if (position + 2 > data.Length)
+                throw new FormatException("A compound TrueType glyph transform is truncated.");
+            double value = BinaryPrimitives.ReadInt16BigEndian(data[position..]) / 16384d;
+            position += 2;
+            return value;
         }
 
         private static void ReadCoordinates(ReadOnlySpan<byte> data, ref int position,

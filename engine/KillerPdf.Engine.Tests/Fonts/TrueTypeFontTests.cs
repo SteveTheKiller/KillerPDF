@@ -193,14 +193,43 @@ public sealed class TrueTypeFontTests
             new PdfGlyphPoint(500, 1000, true)], contour.Points);
     }
 
+    [Fact]
+    public void Read_ExposesTranslatedCompoundGlyphContours()
+    {
+        TrueTypeFont embedded = TrueTypeFont.Load(
+            BuildTestFont(format12: false, includeOutlines: true, includeCompound: true));
+        var content = new PdfContentStreamBuilder().BeginText()
+            .SetFont(embedded, 12).ShowUnicodeText("A").EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, content).Build());
+        PdfDictionary catalog = ResolveDictionary(document,
+            document.Trailer[new PdfName("Root"u8)]);
+        PdfDictionary pages = ResolveDictionary(document, catalog[new PdfName("Pages"u8)]);
+        PdfDictionary page = ResolveDictionary(document,
+            Assert.IsType<PdfArray>(pages[new PdfName("Kids"u8)])[0]);
+        PdfDictionary resources = ResolveDictionary(document, page[new PdfName("Resources"u8)]);
+        PdfDictionary fonts = ResolveDictionary(document, resources[new PdfName("Font"u8)]);
+        PdfDictionary dictionary = ResolveDictionary(document, Assert.Single(fonts).Value);
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+
+        PdfGlyphOutline? outline = font.GetGlyphOutline(1);
+        Assert.NotNull(outline);
+        PdfGlyphContour contour = Assert.Single(outline.Contours);
+        Assert.Equal([
+            new PdfGlyphPoint(100, 0, true),
+            new PdfGlyphPoint(1100, 0, true),
+            new PdfGlyphPoint(600, 1000, true)], contour.Points);
+    }
+
     private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
         Assert.IsType<PdfDictionary>(value is PdfIndirectReference reference
             ? document.Resolve(reference) : value);
 
     internal static byte[] BuildTestFont(
         bool format12, ushort embeddingFlags = 0, bool includeOutlines = false,
-        bool cffOutlines = false, byte[]? cmap = null)
+        bool cffOutlines = false, byte[]? cmap = null, bool includeCompound = false)
     {
+        int glyphCount = includeCompound ? 3 : 2;
         var tables = new Dictionary<string, byte[]>
         {
             ["cmap"] = cmap ?? (format12 ? Cmap12() : Cmap4()),
@@ -216,14 +245,15 @@ public sealed class TrueTypeFontTests
             {
                 S16(bytes, 4, 800);
                 S16(bytes, 6, -200);
-                U16(bytes, 34, 2);
+                U16(bytes, 34, glyphCount);
             }),
-            ["hmtx"] = Bytes(8, bytes =>
+            ["hmtx"] = Bytes(glyphCount * 4, bytes =>
             {
                 U16(bytes, 0, 500);
                 U16(bytes, 4, 600);
+                if (includeCompound) U16(bytes, 8, 600);
             }),
-            ["maxp"] = Bytes(6, bytes => U16(bytes, 4, 2)),
+            ["maxp"] = Bytes(6, bytes => U16(bytes, 4, glyphCount)),
             ["name"] = NameTable()
         };
         if (cffOutlines)
@@ -232,24 +262,36 @@ public sealed class TrueTypeFontTests
             tables["OS/2"] = Bytes(10, bytes => U16(bytes, 8, embeddingFlags));
         if (includeOutlines)
         {
-            tables["glyf"] = Bytes(24, bytes =>
+            int simpleOffset = includeCompound ? 20 : 0;
+            tables["glyf"] = Bytes(simpleOffset + 24, bytes =>
             {
-                S16(bytes, 0, 1);
-                S16(bytes, 6, 1000);
-                S16(bytes, 8, 1000);
-                U16(bytes, 10, 2);
-                bytes[14] = 0x31;
-                bytes[15] = 0x21;
-                bytes[16] = 0x01;
-                S16(bytes, 17, 1000);
-                S16(bytes, 19, -500);
-                S16(bytes, 21, 1000);
+                if (includeCompound)
+                {
+                    S16(bytes, 0, -1);
+                    S16(bytes, 2, 100);
+                    S16(bytes, 6, 1100);
+                    S16(bytes, 8, 1000);
+                    U16(bytes, 10, 0x0003);
+                    U16(bytes, 12, 2);
+                    S16(bytes, 14, 100);
+                }
+                S16(bytes, simpleOffset, 1);
+                S16(bytes, simpleOffset + 6, 1000);
+                S16(bytes, simpleOffset + 8, 1000);
+                U16(bytes, simpleOffset + 10, 2);
+                bytes[simpleOffset + 14] = 0x31;
+                bytes[simpleOffset + 15] = 0x21;
+                bytes[simpleOffset + 16] = 0x01;
+                S16(bytes, simpleOffset + 17, 1000);
+                S16(bytes, simpleOffset + 19, -500);
+                S16(bytes, simpleOffset + 21, 1000);
             });
-            tables["loca"] = Bytes(12, bytes =>
+            tables["loca"] = Bytes((glyphCount + 1) * 4, bytes =>
             {
                 U32(bytes, 0, 0);
                 U32(bytes, 4, 0);
-                U32(bytes, 8, 24);
+                U32(bytes, 8, includeCompound ? 20 : 24);
+                if (includeCompound) U32(bytes, 12, 44);
             });
             S16(tables["head"], 50, 1);
         }
