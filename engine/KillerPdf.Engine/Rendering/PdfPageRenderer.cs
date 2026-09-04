@@ -80,6 +80,7 @@ public sealed class PdfPageRenderer
             var stack = new Stack<GraphicsState>();
             var path = new List<List<Point>>();
             List<Point>? subpath = null;
+            var textClipPaths = new List<List<Point>>();
             bool? pendingClipEvenOdd = null;
             Matrix textMatrix = Matrix.Identity, textLineMatrix = Matrix.Identity;
             PdfDictionary? textFont = null;
@@ -232,8 +233,17 @@ public sealed class PdfPageRenderer
                     break;
                 case "BT":
                     textMatrix = textLineMatrix = Matrix.Identity;
+                    textClipPaths.Clear();
                     break;
                 case "ET":
+                    if (textClipPaths.Count > 0)
+                    {
+                        Point[][] polygons = [.. textClipPaths.Select(item => item.ToArray())];
+                        ClipRegion[] clips = [.. state.Clips,
+                            new ClipRegion(polygons, false)];
+                        state = state with { Clips = Array.AsReadOnly(clips) };
+                        textClipPaths.Clear();
+                    }
                     break;
                 case "Tf" when values.Count == 2 && values[0] is PdfName fontName:
                     textFont = ResolveFont(resources, fontName);
@@ -365,10 +375,13 @@ public sealed class PdfPageRenderer
                     ? Resolve(fontResourcesValue) as PdfDictionary
                         ?? throw new FormatException("Type 3 font resources are not a dictionary.")
                     : resources;
+                bool paintsType3 = textRenderingMode is >= 0 and <= 2;
+                if (textRenderingMode is < 0 or > 3)
+                    diagnostics.Add("Text rendering is not implemented.");
                 foreach (byte code in text.Bytes.Span)
                 {
                     string glyphName = encoding[code];
-                    if (textRenderingMode != 3 && glyphName.Length > 0
+                    if (paintsType3 && glyphName.Length > 0
                         && charProcs.TryGetValue(Name(glyphName), out PdfObject? glyphValue)
                         && Resolve(glyphValue) is PdfStream glyph)
                     {
@@ -399,7 +412,7 @@ public sealed class PdfPageRenderer
                 try
                 {
                     extractionFont ??= PdfFontResourceReader.Read(_document, textFont!);
-                    if (extractionFont.IsVertical || textRenderingMode is < 0 or > 3)
+                    if (extractionFont.IsVertical || textRenderingMode is < 0 or > 7)
                     {
                         diagnostics.Add("Text rendering is not implemented.");
                         return;
@@ -410,20 +423,24 @@ public sealed class PdfPageRenderer
                     foreach (PdfDecodedCharacter character in extractionFont.Decode(text.Bytes))
                     {
                         PdfGlyphOutline? outline = extractionFont.GetGlyphOutline(character.Code);
-                        if (textRenderingMode != 3 && outline is not null)
+                        int paintMode = textRenderingMode % 4;
+                        bool clipsText = textRenderingMode >= 4;
+                        if ((paintMode != 3 || clipsText) && outline is not null)
                         {
                             IReadOnlyList<List<Point>> glyphPaths =
                                 FlattenGlyphOutline(outline, glyphTransform);
-                            if (textRenderingMode is 0 or 2)
+                            if (paintMode is 0 or 2)
                                 FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
                                     glyphPaths, state.Fill, state.FillAlpha, false,
                                     state.BlendMode, state.Clips);
-                            if (textRenderingMode is 1 or 2)
+                            if (paintMode is 1 or 2)
                                 StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                                     glyphPaths, state.Stroke, state.StrokeAlpha, state.LineWidth,
                                     state.BlendMode, state.Clips);
+                            if (clipsText)
+                                textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
                         }
-                        else if (textRenderingMode != 3)
+                        else if (paintMode != 3 || clipsText)
                             diagnostics.Add("A text glyph outline is not implemented.");
                         double spacing = characterSpacing
                             + (character.Code == 32 && character.ByteLength == 1 ? wordSpacing : 0);
