@@ -46,6 +46,9 @@ public sealed class PdfFormRecognitionTests
             new PdfContentBounds(10, 10, 10, 20), PdfRecognizedFieldKind.Text, 1, "bad"));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldProposal("bad", 0,
             new PdfContentBounds(0, 0, 10, 20), PdfRecognizedFieldKind.Text, 1.01, "bad"));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal("bad", 0,
+            new PdfContentBounds(0, 0, 10, 20), PdfRecognizedFieldKind.Text, 1, "bad",
+            suggestedChecked: true));
     }
 
     [Fact]
@@ -76,6 +79,29 @@ public sealed class PdfFormRecognitionTests
         Assert.Equal("Check value", widgets.Single(widget => widget.FieldName == "check").Tooltip);
         Assert.Equal("Approval signature",
             widgets.Single(widget => widget.FieldName == "signature").Tooltip);
+    }
+
+    [Fact]
+    public void ReviewedTextAndCheckboxValuesPersist()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new("name", 0, new PdfContentBounds(10, 10, 150, 30),
+                PdfRecognizedFieldKind.Text, 1, "name", suggestedValue: "Alice"),
+            new("approved", 0, new PdfContentBounds(10, 50, 30, 70),
+                PdfRecognizedFieldKind.CheckBox, 1, "approved",
+                suggestedValue: "Approved", suggestedChecked: true)])
+            .Accept("name")
+            .Accept("approved");
+
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(review.ApplyAccepted(document)), 0);
+
+        Assert.Equal("Alice", widgets.Single(widget => widget.FieldName == "name").Value);
+        PdfFormWidgetInfo approved = widgets.Single(widget => widget.FieldName == "approved");
+        Assert.Equal("/Approved", approved.Value);
+        Assert.Equal("/Approved", approved.OnValue);
     }
 
     [Fact]

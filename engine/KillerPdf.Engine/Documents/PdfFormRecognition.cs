@@ -46,7 +46,7 @@ public sealed record PdfFormFieldProposal
         PdfFormProposalStatus status = PdfFormProposalStatus.Proposed,
         string? suggestedTooltip = null, IEnumerable<string>? suggestedOptions = null,
         string? suggestedValue = null, bool suggestedReadOnly = false,
-        bool suggestedRequired = false)
+        bool suggestedRequired = false, bool suggestedChecked = false)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -67,6 +67,9 @@ public sealed record PdfFormFieldProposal
             && kind is PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.ListBox
             && !options.Contains(suggestedValue, StringComparer.Ordinal))
             throw new ArgumentException("The suggested value must match a suggested choice.", nameof(suggestedValue));
+        if (suggestedChecked && kind != PdfRecognizedFieldKind.CheckBox)
+            throw new ArgumentException(
+                "A checked state can be suggested only for a checkbox.", nameof(suggestedChecked));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
         Id = id;
         PageIndex = pageIndex;
@@ -79,6 +82,7 @@ public sealed record PdfFormFieldProposal
         SuggestedValue = suggestedValue;
         SuggestedReadOnly = suggestedReadOnly;
         SuggestedRequired = suggestedRequired;
+        SuggestedChecked = suggestedChecked;
         Status = status;
     }
 
@@ -98,22 +102,25 @@ public sealed record PdfFormFieldProposal
     public string? SuggestedTooltip { get; }
     /// <summary>Gets the proposed choices for a choice field.</summary>
     public IReadOnlyList<string> SuggestedOptions { get; }
-    /// <summary>Gets the proposed selected value for a choice field or export value for a radio option.</summary>
+    /// <summary>Gets the proposed text, selected choice, or button export value.</summary>
     public string? SuggestedValue { get; }
     /// <summary>Gets whether the proposed field should be read-only.</summary>
     public bool SuggestedReadOnly { get; }
     /// <summary>Gets whether the proposed field should require a value.</summary>
     public bool SuggestedRequired { get; }
+    /// <summary>Gets whether a proposed checkbox should initially be checked.</summary>
+    public bool SuggestedChecked { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
     internal PdfFormFieldProposal Review(PdfFormProposalStatus status, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
-        bool? readOnly = null, bool? required = null) =>
+        bool? readOnly = null, bool? required = null, bool? isChecked = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
-            readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired);
+            readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
+            isChecked ?? SuggestedChecked);
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
@@ -145,10 +152,10 @@ public sealed class PdfFormRecognitionReview
     public PdfFormRecognitionReview Accept(string id, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
-        bool? readOnly = null, bool? required = null) =>
+        bool? readOnly = null, bool? required = null, bool? isChecked = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
-            readOnly, required));
+            readOnly, required, isChecked));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -192,6 +199,7 @@ public sealed class PdfFormRecognitionReview
                 case PdfRecognizedFieldKind.Text:
                     editor.AddTextField(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        value: proposal.SuggestedValue ?? string.Empty,
                         options: new PdfTextFieldOptions
                         {
                             ReadOnly = proposal.SuggestedReadOnly,
@@ -202,6 +210,8 @@ public sealed class PdfFormRecognitionReview
                 case PdfRecognizedFieldKind.CheckBox:
                     editor.AddCheckBox(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        isChecked: proposal.SuggestedChecked,
+                        exportValue: proposal.SuggestedValue ?? "Yes",
                         fieldMetadata: metadata, options: fieldOptions);
                     break;
                 case PdfRecognizedFieldKind.DropDown:
