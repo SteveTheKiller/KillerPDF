@@ -702,19 +702,24 @@ public sealed class PdfPageRenderer
         SoftMask? softMask;
         double[] decode;
         int[]? colorKeyMask = null;
+        PdfStream? explicitMask = null;
         if (stream.Dictionary.TryGetValue(Name("Mask"), out PdfObject? colorKeyValue))
         {
-            if (Resolve(colorKeyValue) is not PdfArray colorKey
-                || colorKey.Count != components * 2 || imageMask)
+            PdfObject resolvedMask = Resolve(colorKeyValue);
+            if (resolvedMask is PdfStream maskStream && !imageMask)
+                explicitMask = maskStream;
+            else if (resolvedMask is PdfArray colorKey
+                && colorKey.Count == components * 2 && !imageMask)
+                colorKeyMask = colorKey.Select(item => Resolve(item) is PdfInteger integer
+                        && integer.Value >= 0 && integer.Value <= (1 << bits) - 1
+                        ? (int)integer.Value
+                        : throw new FormatException("An image color-key mask range is invalid."))
+                    .ToArray();
+            else
             {
                 diagnostic = "Masked-image rendering is not implemented.";
                 return false;
             }
-            colorKeyMask = colorKey.Select(item => Resolve(item) is PdfInteger integer
-                    && integer.Value >= 0 && integer.Value <= (1 << bits) - 1
-                    ? (int)integer.Value
-                    : throw new FormatException("An image color-key mask range is invalid."))
-                .ToArray();
         }
         try
         {
@@ -722,6 +727,8 @@ public sealed class PdfPageRenderer
             samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
             if (samples.Length != expected) throw new FormatException("Image sample data has an invalid length.");
             softMask = ReadSoftMask(stream.Dictionary);
+            if (softMask is null && explicitMask is not null)
+                softMask = ReadExplicitImageMask(explicitMask);
             decode = ReadImageDecode(stream.Dictionary, colorSpace, imageMask);
         }
         catch (PdfFilterException)
@@ -731,7 +738,9 @@ public sealed class PdfPageRenderer
         }
         catch (NotSupportedException)
         {
-            diagnostic = "The image soft mask is not implemented.";
+            diagnostic = explicitMask is null
+                ? "The image soft mask is not implemented."
+                : "Masked-image rendering is not implemented.";
             return false;
         }
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
@@ -1547,6 +1556,32 @@ public sealed class PdfPageRenderer
                 double decoded = decodeStart + sample / (double)maximum
                     * (decodeEnd - decodeStart);
                 samples[y * width + x] = (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
+            }
+        return new SoftMask(samples, width, height);
+    }
+
+    private SoftMask ReadExplicitImageMask(PdfStream stream)
+    {
+        if (NameValue(stream.Dictionary, "Subtype") != "Image"
+            || !stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
+            || Resolve(maskValue) is not PdfBoolean { Value: true }
+            || stream.Dictionary.ContainsKey(Name("Mask"))
+            || stream.Dictionary.ContainsKey(Name("SMask")))
+            throw new NotSupportedException();
+        int width = PositiveInteger(stream.Dictionary, "Width");
+        int height = PositiveInteger(stream.Dictionary, "Height");
+        int rowBytes = checked((width + 7) / 8);
+        int expected = checked(rowBytes * height);
+        byte[] packed = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
+        if (packed.Length != expected)
+            throw new FormatException("Image mask sample data has an invalid length.");
+        bool paintsOne = StencilPaintsOne(stream.Dictionary);
+        var samples = new byte[checked(width * height)];
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                bool one = ReadPackedSample(packed, y * rowBytes * 8 + x, 1) != 0;
+                samples[y * width + x] = one == paintsOne ? byte.MaxValue : byte.MinValue;
             }
         return new SoftMask(samples, width, height);
     }

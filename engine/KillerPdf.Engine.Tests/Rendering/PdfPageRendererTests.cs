@@ -242,6 +242,28 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesExplicitImageMaskStreams()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(2, 1, new byte[]
+                {
+                    255, 0, 0,
+                    0, 255, 0
+                }), 0, 0, 2, 1))
+            .Build());
+        PdfDocument document = AddExplicitImageMask(source, [0b0100_0000]);
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(2, 1, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 0, 0));
+        Assert.Equal([255, 255, 255, 0], Pixel(page, 1, 0));
+        Assert.DoesNotContain("Masked-image rendering is not implemented.", page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_ResolvesIndexedImageColorSpaces()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -949,6 +971,31 @@ public sealed class PdfPageRendererTests
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(maskReference.ObjectNumber, new PdfStream(dictionary, encodedData))
             .Build());
+    }
+
+    private static PdfDocument AddExplicitImageMask(PdfDocument source, byte[] samples)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference imageReference = Assert.IsType<PdfIndirectReference>(
+            xObjects[Name("Im1")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference maskReference = update.AddObject(new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Type"), Name("XObject")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Subtype"), Name("Image")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Width"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Height"), new PdfInteger(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ImageMask"), new PdfBoolean(true))
+        ]), samples));
+        var dictionary = new PdfDictionary(image.Dictionary.Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("Mask"), maskReference)));
+        return PdfDocument.Open(update.ReplaceObject(imageReference.ObjectNumber,
+            new PdfStream(dictionary, image.EncodedData.Span)).Build());
     }
 
     private static PdfDocument AddPageColorSpaceResource(
