@@ -16,6 +16,7 @@ public static class PdfStreamDecoder
     private static readonly PdfName BitsPerComponentName = new("BitsPerComponent"u8);
     private static readonly PdfName ColumnsName = new("Columns"u8);
     private static readonly PdfName ColorTransformName = new("ColorTransform"u8);
+    private static readonly PdfName HeightName = new("Height"u8);
 
     /// <summary>Decodes a stream whose filter metadata contains no indirect references.</summary>
     public static byte[] Decode(PdfStream stream, int maximumDecodedBytes = DefaultMaximumDecodedBytes)
@@ -69,6 +70,8 @@ public static class PdfStreamDecoder
                     current, parameters[i], resolve, filterLimit),
                 "DCTDecode" or "DCT" => PdfJpegDecoder.Decode(current, filterLimit,
                     GetDctColorTransform(parameters[i], resolve)),
+                "CCITTFaxDecode" or "CCF" => PdfCcittFaxDecoder.Decode(current,
+                    GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit),
                 "Crypt" => current,
                 _ => throw new PdfFilterException($"The PDF stream filter /{filter} is not supported yet.")
             };
@@ -294,6 +297,35 @@ public static class PdfStreamDecoder
         int value = GetOptionalInteger(dictionary, ColorTransformName, -1, resolve);
         return value is 0 or 1 ? value
             : throw new PdfFilterException("DCTDecode ColorTransform must be 0 or 1.");
+    }
+
+    private static PdfCcittFaxOptions GetCcittOptions(
+        PdfDictionary stream, PdfDictionary? parameters,
+        Func<PdfIndirectReference, PdfObject>? resolve)
+    {
+        int columns = parameters is null ? 1728
+            : GetPositiveInteger(parameters, ColumnsName, 1728, resolve);
+        int rows = parameters is not null && parameters.ContainsKey(new PdfName("Rows"u8))
+            ? GetPositiveInteger(parameters, new PdfName("Rows"u8), 1, resolve)
+            : GetPositiveInteger(stream, HeightName, 1, resolve);
+        return new PdfCcittFaxOptions(
+            GetOptionalInteger(parameters, new PdfName("K"u8), 0, resolve),
+            columns, rows,
+            GetOptionalBoolean(parameters, new PdfName("EndOfLine"u8), false, resolve),
+            GetOptionalBoolean(parameters, new PdfName("EncodedByteAlign"u8), false, resolve),
+            GetOptionalBoolean(parameters, new PdfName("BlackIs1"u8), false, resolve));
+    }
+
+    private static bool GetOptionalBoolean(
+        PdfDictionary? dictionary, PdfName name, bool defaultValue,
+        Func<PdfIndirectReference, PdfObject>? resolve)
+    {
+        if (dictionary is null || !dictionary.TryGetValue(name, out PdfObject value))
+            return defaultValue;
+        value = Resolve(value, resolve, $"Decode parameter /{name.ValueAsLatin1()}");
+        return value is PdfBoolean boolean ? boolean.Value
+            : throw new PdfFilterException(
+                $"Decode parameter /{name.ValueAsLatin1()} must be a boolean.");
     }
 
     private static void AddBounded(ICollection<byte> output, byte value, int maximumDecodedBytes)

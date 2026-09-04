@@ -345,6 +345,52 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_ReconstructsOneDimensionalCcittScanLines()
+    {
+        PdfStream stream = Stream([0x89, 0xC0],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(Pair("Columns", new PdfInteger(8)))));
+
+        Assert.Equal(new byte[] { 0b1110_0011 }, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_HonorsCcittEndOfLineAlignmentAndBlackPolarity()
+    {
+        PdfStream stream = Stream([0x00, 0x10, 0x89, 0xC0],
+            Pair("Filter", Name("CCF")),
+            Pair("DecodeParms", Dictionary(
+                Pair("Columns", new PdfInteger(8)),
+                Pair("EndOfLine", new PdfBoolean(true)),
+                Pair("EncodedByteAlign", new PdfBoolean(true)),
+                Pair("BlackIs1", new PdfBoolean(true)))));
+
+        Assert.Equal(new byte[] { 0b0001_1100 }, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_ExpandsCcittMakeupRuns()
+    {
+        PdfStream stream = Stream([0x4D, 0x9A, 0x80],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(Pair("Columns", new PdfInteger(1728)))));
+
+        Assert.Equal(Enumerable.Repeat((byte)255, 216), PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_RejectsUnsupportedOrUnboundedCcittData()
+    {
+        PdfStream unsupported = Stream([], Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(Pair("K", new PdfInteger(-1)))));
+        PdfStream bounded = Stream([0x89, 0xC0], Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(Pair("Columns", new PdfInteger(8)))));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(unsupported));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(bounded, 0));
+    }
+
+    [Fact]
     public void Decode_RejectsMalformedJpegData()
     {
         PdfStream stream = Stream([0xFF, 0xD8, 0xFF, 0xD9],

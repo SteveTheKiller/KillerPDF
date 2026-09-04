@@ -128,6 +128,30 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_DecodesCcittFaxImageXObjects()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(8, 1, new byte[8]), 0, 0, 8, 1))
+            .Build());
+        PdfDocument filtered = AddImageDictionaryEntry(source, "Filter",
+            Name("CCITTFaxDecode"), [0x89, 0xC0]);
+        PdfDocument bitDepth = AddImageDictionaryEntry(filtered, "BitsPerComponent",
+            new PdfInteger(1));
+        PdfDocument document = AddImageDictionaryEntry(bitDepth, "DecodeParms",
+            new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(
+                Name("Columns"), new PdfInteger(8))]));
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 0));
+        Assert.Equal([0, 0, 0, 255], Pixel(page, 3, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 6, 0));
+        Assert.DoesNotContain("The image compression filter is not implemented.", page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AppliesImageDecodeArrays()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -358,7 +382,7 @@ public sealed class PdfPageRendererTests
         Assert.IsType<PdfDictionary>(document.Resolve(Assert.IsType<PdfIndirectReference>(value)));
 
     private static PdfDocument AddImageDictionaryEntry(
-        PdfDocument source, string name, PdfObject value)
+        PdfDocument source, string name, PdfObject value, byte[]? encodedData = null)
     {
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
         PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
@@ -374,7 +398,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(entryName, value)));
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(reference.ObjectNumber,
-                new PdfStream(dictionary, image.EncodedData.Span)).Build());
+                new PdfStream(dictionary, encodedData ?? image.EncodedData.ToArray())).Build());
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
