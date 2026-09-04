@@ -379,6 +379,33 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void WholePageContentCanBeAssignedToARegisteredLayer()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 50).ShowLatin1Text("Visible").EndText())
+            .Build());
+        PdfDocument layered = PdfDocument.Open(
+            PdfOptionalContentEditor.AddGroup(original, "Review"));
+        int objectNumber = Assert.Single(PdfOptionalContentReader.Read(layered).Groups)
+            .ObjectNumber;
+
+        PdfDocument assigned = PdfDocument.Open(
+            PdfOptionalContentEditor.SetPageContentGroup(layered, 0, objectNumber));
+        IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions =
+            new PdfPageContentReader(assigned).ReadInstructions(0);
+
+        Assert.Equal("Visible", new PdfPageContentReader(assigned).Read(0).Text);
+        Assert.Equal("BDC", instructions[0].Operator);
+        Assert.Equal("OC", Assert.IsType<PdfName>(instructions[0].Operands[0])
+            .ValueAsLatin1());
+        Assert.Equal("EMC", instructions[^1].Operator);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfOptionalContentEditor.RemoveUnusedGroup(assigned, objectNumber));
+    }
+
+    [Fact]
     public void AnnotationCanBeAssignedToLayerAndCleared()
     {
         var review = new PdfOptionalContentGroup("Review");

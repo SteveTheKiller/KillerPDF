@@ -1,5 +1,7 @@
+using System.Text;
 using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 
@@ -22,6 +24,9 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName TypeKey = new("Type"u8);
     private static readonly PdfName AnnotationsKey = new("Annots"u8);
     private static readonly PdfName OptionalContentKey = new("OC"u8);
+    private static readonly PdfName ContentsKey = new("Contents"u8);
+    private static readonly PdfName ResourcesKey = new("Resources"u8);
+    private static readonly PdfName PropertiesKey = new("Properties"u8);
 
     /// <summary>Assigns a page annotation to a registered layer, or clears its layer.</summary>
     public static byte[] SetAnnotationGroup(
@@ -73,6 +78,80 @@ public static class PdfOptionalContentEditor
                 }
             }
             return null;
+        }
+    }
+
+    /// <summary>Assigns all content on one page to a registered layer.</summary>
+    public static byte[] SetPageContentGroup(
+        PdfDocument document, int pageIndex, int groupObjectNumber)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (groupObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(groupObjectNumber));
+        PdfOptionalContentGroupInfo group = FindGroup(
+            PdfOptionalContentReader.Read(document), groupObjectNumber);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (pageIndex < 0 || pageIndex >= tree.Pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        PdfPageTreeEntry page = tree.Pages[pageIndex];
+        PdfDictionary resources = page.InheritedValues.TryGetValue(
+                ResourcesKey, out PdfObject? resourcesValue)
+            ? ResolveDictionaryWithReference(document, resourcesValue,
+                "The page resources").Dictionary
+            : new PdfDictionary([]);
+        var resourceEntries = resources.ToDictionary(item => item.Key, item => item.Value);
+        Dictionary<PdfName, PdfObject> properties = resourceEntries.TryGetValue(
+                PropertiesKey, out PdfObject? propertiesValue)
+            ? ResolveDictionaryWithReference(document, propertiesValue,
+                "The page optional-content resources").Dictionary
+                .ToDictionary(item => item.Key, item => item.Value)
+            : [];
+        int suffix = 1;
+        PdfName resourceName;
+        do resourceName = new PdfName(Encoding.ASCII.GetBytes($"KPL{suffix++}"));
+        while (properties.ContainsKey(resourceName));
+        properties[resourceName] = new PdfIndirectReference(
+            group.ObjectNumber, group.Generation);
+        resourceEntries[PropertiesKey] = new PdfDictionary(properties);
+
+        byte[] content = page.Dictionary.TryGetValue(ContentsKey, out PdfObject? contents)
+            ? ReadContent(contents) : [];
+        using var wrapped = new MemoryStream();
+        wrapped.Write("/OC /"u8);
+        wrapped.Write(resourceName.Bytes.Span);
+        wrapped.Write(" BDC\n"u8);
+        wrapped.Write(content);
+        if (content.Length > 0 && content[^1] is not ((byte)'\n') and not ((byte)'\r'))
+            wrapped.WriteByte((byte)'\n');
+        wrapped.Write("EMC\n"u8);
+
+        var update = new PdfIncrementalUpdateBuilder(document);
+        PdfIndirectReference contentReference = update.AddObject(
+            new PdfStream(new PdfDictionary([]), wrapped.ToArray()));
+        var pageEntries = page.Dictionary.ToDictionary(item => item.Key, item => item.Value);
+        pageEntries[ResourcesKey] = new PdfDictionary(resourceEntries);
+        pageEntries[ContentsKey] = contentReference;
+        return update.ReplaceObject(page.Reference.ObjectNumber,
+            new PdfDictionary(pageEntries)).Build();
+
+        byte[] ReadContent(PdfObject value)
+        {
+            PdfObject resolved = value is PdfIndirectReference reference
+                ? document.Resolve(reference) : value;
+            IEnumerable<PdfObject> values = resolved is PdfArray array ? array : [resolved];
+            using var output = new MemoryStream();
+            foreach (PdfObject item in values)
+            {
+                PdfObject current = item is PdfIndirectReference itemReference
+                    ? document.Resolve(itemReference) : item;
+                PdfStream stream = current as PdfStream
+                    ?? throw new InvalidOperationException(
+                        "A page content item is not a stream.");
+                output.Write(PdfStreamDecoder.Decode(
+                    stream, document.Resolve, 64 * 1024 * 1024));
+                output.WriteByte((byte)'\n');
+            }
+            return output.ToArray();
         }
     }
 
