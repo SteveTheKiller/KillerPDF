@@ -247,4 +247,32 @@ public static class PdfContentTransformation
         }
         return Array.AsReadOnly(result);
     }
+
+    /// <summary>Changes existing text font resource selections in a selected instruction range.</summary>
+    public static IReadOnlyList<PdfContentInstruction> SubstituteFontRange(
+        IEnumerable<PdfContentInstruction> instructions,
+        int startIndex, int count, PdfName fontResource)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(fontResource);
+        if (fontResource.Bytes.IsEmpty)
+            throw new ArgumentException("A font resource name is required.", nameof(fontResource));
+        PdfContentInstruction[] source = instructions.ToArray();
+        if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
+            throw new ArgumentOutOfRangeException(nameof(startIndex),
+                "The substituted text instruction range is outside the stream.");
+
+        var result = source.ToArray();
+        for (int index = startIndex; index < startIndex + count; index++)
+        {
+            PdfContentInstruction instruction = result[index];
+            if (instruction.Operator != "Tf") continue;
+            if (instruction.Operands.Count != 2 || instruction.Operands[0] is not PdfName
+                || instruction.Operands[1] is not PdfInteger and not PdfReal)
+                throw new FormatException("A text font instruction has invalid operands.");
+            result[index] = new PdfContentInstruction("Tf", instruction.Offset,
+                [fontResource, instruction.Operands[1]]);
+        }
+        return Array.AsReadOnly(result);
+    }
 }
