@@ -226,6 +226,12 @@ public enum PdfMacroOperation
     NumberPages,
     /// <summary>Generate documents from a reusable data mapping.</summary>
     DataMerge,
+    /// <summary>Inspect bookmark, link, and action navigation.</summary>
+    AuditNavigation,
+    /// <summary>Generate reviewed bookmarks from detected headings.</summary>
+    GenerateBookmarks,
+    /// <summary>Generate clickable table-of-contents pages.</summary>
+    GenerateTableOfContents,
     /// <summary>Flatten editable content.</summary>
     Flatten,
     /// <summary>Validate the document.</summary>
