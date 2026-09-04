@@ -247,6 +247,15 @@ public static class PdfStructuredExport
                 findings.Add(new PdfStructuredExportFinding("VectorContentNotExported",
                     page.Index, page.Content.Paths.Count,
                     "Vector paths are not represented by this structured export."));
+            if (format != PdfStructuredExportFormat.Json)
+            {
+                int directionalTextCount = page.Content.Lines.Count(line =>
+                    line.WritingDirection != PdfWritingDirection.LeftToRight);
+                if (directionalTextCount > 0)
+                    findings.Add(new PdfStructuredExportFinding(
+                        "TextDirectionNotPreserved", page.Index, directionalTextCount,
+                        "Non-horizontal or reversed text direction is not preserved by this export."));
+            }
             if (page.Content.Images.Count > 0)
             {
                 string message = format switch

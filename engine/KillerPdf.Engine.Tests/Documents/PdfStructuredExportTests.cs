@@ -196,6 +196,23 @@ public sealed class PdfStructuredExportTests
     }
 
     [Fact]
+    public void ReportsTextDirectionLossExceptForStructuredJson()
+    {
+        PdfDocument document = Document(
+            "BT /F1 12 Tf 0 1 -1 0 30 20 Tm (Vertical) Tj ET");
+
+        PdfStructuredExportFinding finding = Assert.Single(
+            PdfStructuredExport.InspectLosses(
+                document, PdfStructuredExportFormat.Html).Findings);
+
+        Assert.Equal("TextDirectionNotPreserved", finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.Equal(1, finding.Count);
+        Assert.True(PdfStructuredExport.InspectLosses(
+            document, PdfStructuredExportFormat.Json).IsLossless);
+    }
+
+    [Fact]
     public void BatchExportIsolatesFailuresAndProducesADataSafeReport()
     {
         byte[] valid = DocumentBytes("BT /F1 12 Tf 10 30 Td (first) Tj ET");
