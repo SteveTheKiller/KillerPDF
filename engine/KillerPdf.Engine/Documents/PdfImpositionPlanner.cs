@@ -130,11 +130,55 @@ public static class PdfImpositionPlanner
         }
         return Array.AsReadOnly(result.ToArray());
     }
+
+    /// <summary>Plans overlapping poster tiles in top-to-bottom, left-to-right print order.</summary>
+    public static IReadOnlyList<PdfPosterTile> PlanPosterTiles(
+        double sourceWidth, double sourceHeight,
+        double tileWidth, double tileHeight, double overlap = 0)
+    {
+        ValidateDimension(sourceWidth, nameof(sourceWidth));
+        ValidateDimension(sourceHeight, nameof(sourceHeight));
+        ValidateDimension(tileWidth, nameof(tileWidth));
+        ValidateDimension(tileHeight, nameof(tileHeight));
+        if (!double.IsFinite(overlap) || overlap < 0
+            || overlap >= tileWidth || overlap >= tileHeight)
+            throw new ArgumentOutOfRangeException(nameof(overlap));
+        double horizontalStep = tileWidth - overlap;
+        double verticalStep = tileHeight - overlap;
+        int columns = TileCount(sourceWidth, tileWidth, horizontalStep);
+        int rows = TileCount(sourceHeight, tileHeight, verticalStep);
+        var result = new List<PdfPosterTile>(checked(columns * rows));
+        for (int row = 0; row < rows; row++)
+        {
+            double top = sourceHeight - row * verticalStep;
+            double bottom = Math.Max(0, top - tileHeight);
+            for (int column = 0; column < columns; column++)
+            {
+                double left = column * horizontalStep;
+                double right = Math.Min(sourceWidth, left + tileWidth);
+                result.Add(new PdfPosterTile(result.Count, row, column,
+                    new PdfContentBounds(left, bottom, right, top)));
+            }
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
+    private static int TileCount(double source, double tile, double step) =>
+        source <= tile ? 1 : checked((int)Math.Ceiling((source - tile) / step) + 1);
+
+    private static void ValidateDimension(double value, string parameterName)
+    {
+        if (!double.IsFinite(value) || value <= 0)
+            throw new ArgumentOutOfRangeException(parameterName);
+    }
 }
 
 /// <summary>One printable side of an imposed sheet.</summary>
 public sealed record PdfImposedSheetSide(int SheetIndex, PdfImposedSheetFace Face,
     IReadOnlyList<int?> SourcePageIndices);
+
+/// <summary>One source-page region assigned to a poster sheet.</summary>
+public sealed record PdfPosterTile(int TileIndex, int Row, int Column, PdfContentBounds SourceBounds);
 
 /// <summary>The printable face of a physical sheet.</summary>
 public enum PdfImposedSheetFace

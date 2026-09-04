@@ -73,6 +73,22 @@ public sealed class PdfImpositionPlannerTests
             PdfImpositionPlanner.PlanBookletSignatures(10, 6));
     }
 
+    [Fact]
+    public void PosterTilesCoverTheSourceWithRequestedOverlap()
+    {
+        IReadOnlyList<PdfPosterTile> tiles = PdfImpositionPlanner.PlanPosterTiles(
+            sourceWidth: 500, sourceHeight: 700,
+            tileWidth: 300, tileHeight: 400, overlap: 20);
+
+        Assert.Equal(4, tiles.Count);
+        Assert.Equal(new PdfContentBounds(0, 300, 300, 700), tiles[0].SourceBounds);
+        Assert.Equal(new PdfContentBounds(280, 300, 500, 700), tiles[1].SourceBounds);
+        Assert.Equal(new PdfContentBounds(0, 0, 300, 320), tiles[2].SourceBounds);
+        Assert.Equal(new PdfContentBounds(280, 0, 500, 320), tiles[3].SourceBounds);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.PlanPosterTiles(500, 700, 300, 400, 300));
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {
