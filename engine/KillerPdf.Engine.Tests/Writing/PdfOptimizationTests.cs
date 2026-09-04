@@ -330,9 +330,34 @@ public sealed class PdfOptimizationTests
         Assert.DoesNotContain("/Unused", Encoding.Latin1.GetString(result.Data.Span));
     }
 
-    private static PdfDocument DocumentWithUnusedFontResource()
+    [Fact]
+    public void PlanConsolidatesUsedAliasesForTheSameResource()
     {
-        const string content = "BT /F1 12 Tf (Keep) Tj ET";
+        PdfDocument document = DocumentWithUnusedFontResource(
+            "BT /F1 12 Tf (One) Tj /Unused 12 Tf (Two) Tj ET");
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                PruneUnusedPageResources = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument output = PdfDocument.Open(result.Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnusedPageResources, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnusedPageResources,
+            result.VerifiedRemovals);
+        Assert.Equal("OneTwo", new PdfPageContentReader(output).Read(0).Text);
+        Assert.All(new PdfPageContentReader(output).ReadInstructions(0)
+            .Where(instruction => instruction.Operator == "Tf"), instruction =>
+                Assert.Equal(new PdfName("F1"u8), instruction.Operands[0]));
+    }
+
+    private static PdfDocument DocumentWithUnusedFontResource(
+        string content = "BT /F1 12 Tf (Keep) Tj ET")
+    {
         string[] objects =
         [
             "<< /Type /Catalog /Pages 2 0 R >>",

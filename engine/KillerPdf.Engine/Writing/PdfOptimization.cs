@@ -29,7 +29,7 @@ public enum PdfOptimizationChangeKind
     RemovePageThumbnails,
     /// <summary>Preserve initially visible optional content and remove hidden layer content.</summary>
     FlattenOptionalContent,
-    /// <summary>Remove unreferenced page font and XObject resources.</summary>
+    /// <summary>Remove unreferenced and duplicate page font and XObject resources.</summary>
     PruneUnusedPageResources,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
@@ -58,7 +58,7 @@ public sealed record PdfOptimizationOptions
     public bool RemovePageThumbnails { get; init; }
     /// <summary>Gets whether initially visible optional content is flattened and hidden content removed.</summary>
     public bool FlattenOptionalContent { get; init; }
-    /// <summary>Gets whether unreferenced page font and XObject resources are removed.</summary>
+    /// <summary>Gets whether unreferenced and duplicate page font and XObject resources are removed.</summary>
     public bool PruneUnusedPageResources { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
@@ -249,7 +249,9 @@ public sealed class PdfOptimizationPlan
                 var content = new PdfPageContentReader(formSanitized);
                 foreach (int pageIndex in _resourcePages)
                     editor.SetPageContentAndPruneResources(
-                        pageIndex, content.ReadInstructions(pageIndex));
+                        pageIndex, PdfOptimizer.ConsolidateResourceAliases(
+                            formSanitized, pageIndex,
+                            content.ReadInstructions(pageIndex)));
             }
             if (removesAttachments)
                 foreach (string name in _attachmentNames) editor.RemoveAttachment(name);
@@ -368,15 +370,70 @@ public static class PdfOptimizer
             HashSet<PdfName> xObjects = [.. instructions
                 .Where(item => item.Operator == "Do" && item.Operands.Count > 0)
                 .Select(item => item.Operands[0]).OfType<PdfName>()];
-            if (HasUnused("Font", fonts) || HasUnused("XObject", xObjects))
+            if (NeedsCleanup("Font", fonts) || NeedsCleanup("XObject", xObjects))
                 result.Add(page.Index);
 
-            bool HasUnused(string category, HashSet<PdfName> used) =>
+            bool NeedsCleanup(string category, HashSet<PdfName> used) =>
                 resources.TryGetValue(Name(category), out PdfObject? categoryValue)
                 && Resolve(document, categoryValue) is PdfDictionary dictionary
-                && dictionary.Keys.Any(key => !used.Contains(key));
+                && (dictionary.Keys.Any(key => !used.Contains(key))
+                    || DuplicateAliases(dictionary).Count > 0);
         }
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    internal static IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction>
+        ConsolidateResourceAliases(PdfDocument document, int pageIndex,
+            IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions)
+    {
+        PdfPageTreeEntry page = PdfPageTree.Read(document).Pages[pageIndex];
+        if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? value)
+            || Resolve(document, value) is not PdfDictionary resources)
+            return instructions;
+        Dictionary<PdfName, PdfName> fonts = Aliases("Font");
+        Dictionary<PdfName, PdfName> xObjects = Aliases("XObject");
+        return Array.AsReadOnly(instructions.Select(instruction =>
+        {
+            Dictionary<PdfName, PdfName>? aliases = instruction.Operator switch
+            {
+                "Tf" => fonts,
+                "Do" => xObjects,
+                _ => null
+            };
+            if (aliases is null || instruction.Operands.Count == 0
+                || instruction.Operands[0] is not PdfName name
+                || !aliases.TryGetValue(name, out PdfName? canonical))
+                return instruction;
+            PdfObject[] operands = instruction.Operands.ToArray();
+            operands[0] = canonical;
+            return new KillerPdf.Engine.Parsing.PdfContentInstruction(
+                instruction.Operator, instruction.Offset, operands,
+                instruction.InlineImageData);
+        }).ToArray());
+
+        Dictionary<PdfName, PdfName> Aliases(string category)
+        {
+            if (!resources.TryGetValue(Name(category), out PdfObject? categoryValue)
+                || Resolve(document, categoryValue) is not PdfDictionary dictionary)
+                return [];
+            return DuplicateAliases(dictionary);
+        }
+    }
+
+    private static Dictionary<PdfName, PdfName> DuplicateAliases(PdfDictionary dictionary)
+    {
+        var canonical = new Dictionary<(int ObjectNumber, int Generation), PdfName>();
+        var aliases = new Dictionary<PdfName, PdfName>();
+        foreach ((PdfName name, PdfObject value) in dictionary)
+        {
+            if (value is not PdfIndirectReference reference) continue;
+            var identity = (reference.ObjectNumber, reference.Generation);
+            if (canonical.TryGetValue(identity, out PdfName? first))
+                aliases[name] = first;
+            else
+                canonical[identity] = name;
+        }
+        return aliases;
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
