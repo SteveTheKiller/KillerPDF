@@ -13094,6 +13094,33 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void SetFormWidgetVisibility_ComposesWithRectangleChanges()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "answer", 20, 30, 160, 24, "Original")
+            .Build();
+        PdfDocument original = PdfDocument.Open(source);
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(original, 0));
+
+        PdfDocument updated = PdfDocument.Open(new PdfIncrementalPageEditor(original)
+            .SetFormWidgetRectangle(widget.ObjectNumber, widget.Generation,
+                72, 500, 232, 524)
+            .SetFormWidgetVisibility(widget.ObjectNumber, widget.Generation,
+                PdfFormFieldVisibility.HiddenButPrintable)
+            .Build());
+        PdfFormWidgetInfo changed = Assert.Single(PdfFormWidgetReader.ReadPage(updated, 0));
+
+        Assert.Equal("Original", changed.Value);
+        Assert.Equal(72, changed.Left);
+        Assert.Equal(36, changed.AnnotationFlags);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfIncrementalPageEditor(original)
+            .SetFormWidgetVisibility(widget.ObjectNumber, widget.Generation,
+                (PdfFormFieldVisibility)99));
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(original)
+            .SetFormWidgetVisibility(9999, 0, PdfFormFieldVisibility.Hidden).Build());
+    }
+
+    [Fact]
     public void SetTextFieldValue_PreservesCombBehaviorAndComposesWithReordering()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage().AddBlankPage()

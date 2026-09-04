@@ -92,6 +92,7 @@ public sealed class PdfIncrementalPageEditor
     private static readonly PdfName FieldFlagsName = Name("Ff");
     private static readonly PdfName TextFieldName = Name("Tx");
     private static readonly PdfName RectangleName = Name("Rect");
+    private static readonly PdfName AnnotationFlagsName = Name("F");
     private static readonly PdfName AppearanceCharacteristicsName = Name("MK");
     private static readonly PdfName BorderStyleName = Name("BS");
     private static readonly PdfName MaximumLengthName = Name("MaxLen");
@@ -188,6 +189,8 @@ public sealed class PdfIncrementalPageEditor
         new(StringComparer.Ordinal);
     private readonly Dictionary<(int ObjectNumber, int Generation), PendingWidgetRectangle>
         _widgetRectangleChanges = [];
+    private readonly Dictionary<(int ObjectNumber, int Generation), PdfFormFieldVisibility>
+        _widgetVisibilityChanges = [];
     private readonly Dictionary<string, PendingFieldDefaultValue> _fieldDefaultChanges =
         new(StringComparer.Ordinal);
     private readonly HashSet<string> _removedFormFields = new(StringComparer.Ordinal);
@@ -436,6 +439,19 @@ public sealed class PdfIncrementalPageEditor
         if (!_tree.Catalog.ContainsKey(AcroFormName))
             throw new InvalidOperationException("The document has no AcroForm dictionary.");
         _removeXfa = true;
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>Changes the screen and print visibility of one indirect AcroForm widget.</summary>
+    public PdfIncrementalPageEditor SetFormWidgetVisibility(
+        int objectNumber, int generation, PdfFormFieldVisibility visibility)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(objectNumber);
+        ArgumentOutOfRangeException.ThrowIfNegative(generation);
+        if (!Enum.IsDefined(visibility))
+            throw new ArgumentOutOfRangeException(nameof(visibility));
+        _widgetVisibilityChanges[(objectNumber, generation)] = visibility;
         _catalogPresentationChanged = true;
         return this;
     }
@@ -2145,14 +2161,15 @@ public sealed class PdfIncrementalPageEditor
 
     private void ApplyFormWidgetRectangleChanges(PdfIncrementalUpdateBuilder update)
     {
-        if (_widgetRectangleChanges.Count == 0) return;
+        if (_widgetRectangleChanges.Count == 0 && _widgetVisibilityChanges.Count == 0) return;
         var reachable = new HashSet<(int ObjectNumber, int Generation)>();
         for (int pageIndex = 0; pageIndex < _tree.Pages.Count; pageIndex++)
             foreach (PdfFormWidgetInfo widget in PdfFormWidgetReader.ReadPage(_document, pageIndex))
                 if (widget.ObjectNumber > 0)
                     reachable.Add((widget.ObjectNumber, widget.Generation));
 
-        foreach ((var identity, PendingWidgetRectangle rectangle) in _widgetRectangleChanges)
+        foreach (var identity in _widgetRectangleChanges.Keys
+                     .Concat(_widgetVisibilityChanges.Keys).Distinct())
         {
             if (!reachable.Contains(identity))
                 throw new InvalidOperationException(
@@ -2160,16 +2177,29 @@ public sealed class PdfIncrementalPageEditor
             var reference = new PdfIndirectReference(identity.ObjectNumber, identity.Generation);
             PdfDictionary widget = ResolveDictionary(
                 _document, reference, "The form widget");
-            PdfDictionary replacement = ReplaceMany(widget,
-                new Dictionary<PdfName, PdfObject>
-                {
-                    [RectangleName] = new PdfArray([
+            var replacements = new Dictionary<PdfName, PdfObject>();
+            if (_widgetRectangleChanges.TryGetValue(identity,
+                    out PendingWidgetRectangle? rectangle))
+                replacements[RectangleName] = new PdfArray([
                         Number(rectangle.Left), Number(rectangle.Bottom),
-                        Number(rectangle.Right), Number(rectangle.Top)])
-                });
+                        Number(rectangle.Right), Number(rectangle.Top)]);
+            if (_widgetVisibilityChanges.TryGetValue(identity,
+                    out PdfFormFieldVisibility visibility))
+                replacements[AnnotationFlagsName] = new PdfInteger(
+                    FormWidgetFlags(visibility));
+            PdfDictionary replacement = ReplaceMany(widget, replacements);
             update.ReplaceObject(identity.ObjectNumber, replacement);
         }
     }
+
+    private static int FormWidgetFlags(PdfFormFieldVisibility visibility) => visibility switch
+    {
+        PdfFormFieldVisibility.Visible => 4,
+        PdfFormFieldVisibility.Hidden => 2,
+        PdfFormFieldVisibility.VisibleButDoesNotPrint => 0,
+        PdfFormFieldVisibility.HiddenButPrintable => 36,
+        _ => throw new ArgumentOutOfRangeException(nameof(visibility))
+    };
 
     private void PreparePendingAuthoredForms(
         PdfIncrementalUpdateBuilder update,
