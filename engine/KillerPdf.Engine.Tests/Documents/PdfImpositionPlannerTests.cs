@@ -89,6 +89,27 @@ public sealed class PdfImpositionPlannerTests
             PdfImpositionPlanner.PlanPosterTiles(500, 700, 300, 400, 300));
     }
 
+    [Fact]
+    public void SheetPlacementFitsMixedPagesIntoMarginsAndGutters()
+    {
+        var side = new PdfImposedSheetSide(0, PdfImposedSheetFace.Front,
+            Array.AsReadOnly<int?>([0, 1]));
+        PdfContentBounds[] pages = [
+            new(0, 0, 50, 100),
+            new(0, 0, 100, 50)];
+
+        IReadOnlyList<PdfImposedPlacement> placements = PdfImpositionPlanner.PlaceOnSheet(
+            side, columns: 2, rows: 1, sheetWidth: 220, sheetHeight: 100,
+            pages, margin: 10, gutter: 20);
+
+        Assert.Equal(2, placements.Count);
+        Assert.All(placements, placement => Assert.Equal(0.9, placement.Scale, 10));
+        Assert.Equal(90, placements[0].Rotation);
+        Assert.Equal(0, placements[1].Rotation);
+        Assert.Equal(new PdfContentBounds(10, 27.5, 100, 72.5), placements[0].SheetBounds);
+        Assert.Equal(new PdfContentBounds(120, 27.5, 210, 72.5), placements[1].SheetBounds);
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {

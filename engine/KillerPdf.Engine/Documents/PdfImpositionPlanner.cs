@@ -163,6 +163,60 @@ public static class PdfImpositionPlanner
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Fits one imposed side into a sheet grid with margins and gutters.</summary>
+    public static IReadOnlyList<PdfImposedPlacement> PlaceOnSheet(
+        PdfImposedSheetSide side, int columns, int rows,
+        double sheetWidth, double sheetHeight,
+        IReadOnlyList<PdfContentBounds> sourcePageBounds,
+        double margin = 0, double gutter = 0, bool rotateToFit = true)
+    {
+        ArgumentNullException.ThrowIfNull(side);
+        ArgumentNullException.ThrowIfNull(sourcePageBounds);
+        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
+        if (rows <= 0) throw new ArgumentOutOfRangeException(nameof(rows));
+        ValidateDimension(sheetWidth, nameof(sheetWidth));
+        ValidateDimension(sheetHeight, nameof(sheetHeight));
+        if (!double.IsFinite(margin) || margin < 0)
+            throw new ArgumentOutOfRangeException(nameof(margin));
+        if (!double.IsFinite(gutter) || gutter < 0)
+            throw new ArgumentOutOfRangeException(nameof(gutter));
+        int slotCount = checked(columns * rows);
+        if (side.SourcePageIndices.Count != slotCount)
+            throw new ArgumentException("The sheet side must contain one source entry per grid slot.", nameof(side));
+        double cellWidth = (sheetWidth - margin * 2 - gutter * (columns - 1)) / columns;
+        double cellHeight = (sheetHeight - margin * 2 - gutter * (rows - 1)) / rows;
+        if (cellWidth <= 0 || cellHeight <= 0)
+            throw new ArgumentException("Margins and gutters leave no printable grid area.");
+        var placements = new List<PdfImposedPlacement>();
+        for (int slot = 0; slot < slotCount; slot++)
+        {
+            int? sourcePageIndex = side.SourcePageIndices[slot];
+            if (!sourcePageIndex.HasValue) continue;
+            if (sourcePageIndex.Value < 0 || sourcePageIndex.Value >= sourcePageBounds.Count)
+                throw new ArgumentOutOfRangeException(nameof(sourcePageBounds),
+                    "An imposed source page is outside the supplied page bounds.");
+            PdfContentBounds source = sourcePageBounds[sourcePageIndex.Value];
+            if (source.Width <= 0 || source.Height <= 0)
+                throw new ArgumentException("Source page bounds must have positive dimensions.", nameof(sourcePageBounds));
+            double normalScale = Math.Min(cellWidth / source.Width, cellHeight / source.Height);
+            double rotatedScale = Math.Min(cellWidth / source.Height, cellHeight / source.Width);
+            bool rotated = rotateToFit && rotatedScale > normalScale;
+            double scale = rotated ? rotatedScale : normalScale;
+            double placedWidth = (rotated ? source.Height : source.Width) * scale;
+            double placedHeight = (rotated ? source.Width : source.Height) * scale;
+            int row = slot / columns;
+            int column = slot % columns;
+            double cellLeft = margin + column * (cellWidth + gutter);
+            double cellBottom = sheetHeight - margin - (row + 1) * cellHeight - row * gutter;
+            double left = cellLeft + (cellWidth - placedWidth) / 2;
+            double bottom = cellBottom + (cellHeight - placedHeight) / 2;
+            placements.Add(new PdfImposedPlacement(slot, sourcePageIndex.Value,
+                new PdfContentBounds(left, bottom, left + placedWidth, bottom + placedHeight),
+                scale, rotated ? 90 : 0));
+        }
+        return Array.AsReadOnly(placements.ToArray());
+    }
+
     private static int TileCount(double source, double tile, double step) =>
         source <= tile ? 1 : checked((int)Math.Ceiling((source - tile) / step) + 1);
 
@@ -179,6 +233,10 @@ public sealed record PdfImposedSheetSide(int SheetIndex, PdfImposedSheetFace Fac
 
 /// <summary>One source-page region assigned to a poster sheet.</summary>
 public sealed record PdfPosterTile(int TileIndex, int Row, int Column, PdfContentBounds SourceBounds);
+
+/// <summary>One fitted source page in sheet coordinates.</summary>
+public sealed record PdfImposedPlacement(int SlotIndex, int SourcePageIndex,
+    PdfContentBounds SheetBounds, double Scale, int Rotation);
 
 /// <summary>The printable face of a physical sheet.</summary>
 public enum PdfImposedSheetFace
