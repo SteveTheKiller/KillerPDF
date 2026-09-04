@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
@@ -72,6 +74,24 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
     public int ObjectCountDifference => OutputObjectCount - OriginalObjectCount;
     /// <summary>Gets sanitization changes whose absence was verified after saving.</summary>
     public IReadOnlyList<PdfOptimizationChangeKind> VerifiedRemovals { get; init; } = [];
+
+    /// <summary>Serializes measured results without embedding the output PDF bytes.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        OriginalSize,
+        OutputSize,
+        SizeDifference,
+        OriginalObjectCount,
+        OutputObjectCount,
+        ObjectCountDifference,
+        Changes,
+        VerifiedRemovals
+    }, new JsonSerializerOptions
+    {
+        WriteIndented = indented,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+    });
 }
 
 /// <summary>An immutable preview of a deterministic full-document optimization.</summary>

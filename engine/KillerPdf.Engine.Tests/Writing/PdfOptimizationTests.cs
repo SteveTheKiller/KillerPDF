@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
@@ -40,6 +41,14 @@ public sealed class PdfOptimizationTests
         Assert.True(result.OutputObjectCount > 0);
         Assert.Equal(result.OutputObjectCount - result.OriginalObjectCount,
             result.ObjectCountDifference);
+        using JsonDocument report = JsonDocument.Parse(result.ToJson());
+        Assert.Equal(result.OriginalSize,
+            report.RootElement.GetProperty("originalSize").GetInt32());
+        Assert.Equal(result.OutputObjectCount,
+            report.RootElement.GetProperty("outputObjectCount").GetInt32());
+        Assert.Contains("removeMetadata", report.RootElement.GetProperty("verifiedRemovals")
+            .EnumerateArray().Select(item => item.GetString()));
+        Assert.False(report.RootElement.TryGetProperty("data", out _));
     }
 
     [Fact]
