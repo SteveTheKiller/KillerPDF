@@ -2,6 +2,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using System.Text;
 using System.Text.Json;
 using Xunit;
 
@@ -491,6 +492,30 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void MembershipPoliciesAndExpressionsFlattenToTheirSelectedResult()
+    {
+        PdfDocument policy = MembershipDocument("/OCGs [5 0 R 6 0 R] /P /AllOn");
+        PdfDocument expression = MembershipDocument("/VE [/Or 5 0 R 6 0 R]");
+        int[] allVisible = PdfOptionalContentReader.Read(policy).Groups
+            .Select(group => group.ObjectNumber).ToArray();
+
+        PdfDocument hidden = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(policy));
+        PdfDocument visibleByPolicy = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(policy, allVisible));
+        PdfDocument visibleByExpression = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(expression));
+
+        Assert.Empty(new PdfPageContentReader(hidden).Read(0).Paths);
+        Assert.Empty(PdfLinkReader.ReadPage(hidden, 0));
+        Assert.Single(new PdfPageContentReader(visibleByPolicy).Read(0).Paths);
+        Assert.Single(PdfLinkReader.ReadPage(visibleByPolicy, 0));
+        Assert.Single(new PdfPageContentReader(visibleByExpression).Read(0).Paths);
+        Assert.Single(PdfLinkReader.ReadPage(visibleByExpression, 0));
+        Assert.Empty(PdfOptionalContentReader.Read(visibleByExpression).Groups);
+    }
+
+    [Fact]
     public void PageContentAndAnnotationsCanBeMergedIntoAnotherLayer()
     {
         var sourceLayer = new PdfOptionalContentGroup("Source");
@@ -570,5 +595,33 @@ public sealed class PdfOptionalContentReaderTests
         Assert.False(Assert.IsType<PdfDictionary>(original.Resolve(
             new PdfIndirectReference(annotationObjectNumber, 0)))
             .ContainsKey(new PdfName("OC"u8)));
+    }
+
+    private static PdfDocument MembershipDocument(string membershipEntries)
+    {
+        const string content = "/OC /LayerSet BDC 0 0 10 10 re f EMC";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R 6 0 R] /D << /BaseState /OFF /ON [5 0 R] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 100 100] >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Properties << /LayerSet 7 0 R >> >> /Contents 4 0 R /Annots [8 0 R] >>",
+            $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream",
+            "<< /Type /OCG /Name (Visible) >>",
+            "<< /Type /OCG /Name (Hidden) >>",
+            $"<< /Type /OCMD {membershipEntries} >>",
+            "<< /Type /Annot /Subtype /Link /Rect [10 10 30 20] /A << /S /URI /URI (https://example.com) >> /OC 7 0 R >>"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
     }
 }

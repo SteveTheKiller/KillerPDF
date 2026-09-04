@@ -241,8 +241,8 @@ public static class PdfOptionalContentEditor
 
     /// <summary>
     /// Flattens page-level optional content using the default state or an explicit visible set.
-    /// Optional-content membership dictionaries, nested form content, annotations, and tagged
-    /// documents are rejected until their semantics can be preserved completely.
+    /// Nested form content and tagged documents are rejected until their semantics can be
+    /// preserved completely.
     /// </summary>
     public static byte[] FlattenPageContent(
         PdfDocument document, IReadOnlyCollection<int>? visibleGroupObjectNumbers = null)
@@ -279,15 +279,14 @@ public static class PdfOptionalContentEditor
             {
                 if (instruction.Operator == "DP" && IsOptionalContent(instruction))
                 {
-                    ResolveGroup(page, instruction.Operands[1]);
+                    ResolveVisibility(page, instruction.Operands[1]);
                     pageChanged = true;
                     continue;
                 }
                 if (instruction.Operator == "BDC" && IsOptionalContent(instruction))
                 {
-                    int groupObjectNumber = ResolveGroup(page, instruction.Operands[1]);
                     stack.Push((currentVisible, true));
-                    currentVisible &= visible.Contains(groupObjectNumber);
+                    currentVisible &= ResolveVisibility(page, instruction.Operands[1]);
                     pageChanged = true;
                     continue;
                 }
@@ -329,7 +328,7 @@ public static class PdfOptionalContentEditor
             && instruction.Operands[0] is PdfName tag
             && tag.ValueAsLatin1() == "OC";
 
-        int ResolveGroup(PdfPageTreeEntry page, PdfObject operand)
+        bool ResolveVisibility(PdfPageTreeEntry page, PdfObject operand)
         {
             PdfObject value = operand;
             if (value is PdfName propertyName)
@@ -355,13 +354,80 @@ public static class PdfOptionalContentEditor
             string type = dictionary.TryGetValue(TypeKey, out PdfObject? typeValue)
                 && ResolveObject(typeValue) is PdfName typeName
                     ? typeName.ValueAsLatin1() : string.Empty;
-            if (type == "OCMD")
-                throw new NotSupportedException(
-                    "Optional-content membership expressions cannot be flattened safely.");
+            if (type == "OCMD") return EvaluateMembership(dictionary);
             if (type != "OCG" || !registered.Contains(reference.ObjectNumber))
                 throw new InvalidOperationException(
                     "An optional-content property does not reference a registered group.");
-            return reference.ObjectNumber;
+            return visible.Contains(reference.ObjectNumber);
+        }
+
+        bool EvaluateMembership(PdfDictionary membership)
+        {
+            if (membership.TryGetValue(new PdfName("VE"u8), out PdfObject? expression))
+                return EvaluateExpression(expression, 0);
+            if (!membership.TryGetValue(new PdfName("OCGs"u8), out PdfObject? groupsValue))
+                throw new InvalidOperationException(
+                    "An optional-content membership dictionary has no /OCGs or /VE value.");
+            PdfObject groups = ResolveObject(groupsValue);
+            bool[] states = groups is PdfArray array
+                ? [.. array.Select(EvaluateGroup)]
+                : [EvaluateGroup(groupsValue)];
+            if (states.Length == 0)
+                throw new InvalidOperationException(
+                    "An optional-content membership dictionary has an empty /OCGs array.");
+            string policy = membership.TryGetValue(new PdfName("P"u8), out PdfObject? policyValue)
+                && ResolveObject(policyValue) is PdfName policyName
+                    ? policyName.ValueAsLatin1() : "AnyOn";
+            return policy switch
+            {
+                "AllOn" => states.All(state => state),
+                "AnyOn" => states.Any(state => state),
+                "AnyOff" => states.Any(state => !state),
+                "AllOff" => states.All(state => !state),
+                _ => throw new InvalidOperationException(
+                    $"Optional-content membership policy /{policy} is not defined.")
+            };
+        }
+
+        bool EvaluateExpression(PdfObject value, int depth)
+        {
+            if (depth > 32)
+                throw new NotSupportedException(
+                    "An optional-content visibility expression is too deeply nested.");
+            PdfArray expression = ResolveObject(value) as PdfArray
+                ?? throw new InvalidOperationException(
+                    "An optional-content visibility expression is not an array.");
+            if (expression.Count < 2 || ResolveObject(expression[0]) is not PdfName operation)
+                throw new InvalidOperationException(
+                    "An optional-content visibility expression has no operator and operands.");
+            bool[] operands = [.. expression.Skip(1).Select(item =>
+                ResolveObject(item) is PdfArray
+                    ? EvaluateExpression(item, depth + 1) : EvaluateGroup(item))];
+            return operation.ValueAsLatin1() switch
+            {
+                "And" => operands.All(state => state),
+                "Or" => operands.Any(state => state),
+                "Not" when operands.Length == 1 => !operands[0],
+                _ => throw new InvalidOperationException(
+                    "An optional-content visibility expression has an invalid operator or operand count.")
+            };
+        }
+
+        bool EvaluateGroup(PdfObject value)
+        {
+            if (value is not PdfIndirectReference reference)
+                throw new NotSupportedException(
+                    "A direct optional-content group cannot be flattened safely.");
+            PdfDictionary group = ResolveObject(reference) as PdfDictionary
+                ?? throw new InvalidOperationException(
+                    "An optional-content group is not a dictionary.");
+            if (!group.TryGetValue(TypeKey, out PdfObject? typeValue)
+                || ResolveObject(typeValue) is not PdfName type
+                || type.ValueAsLatin1() != "OCG"
+                || !registered.Contains(reference.ObjectNumber))
+                throw new InvalidOperationException(
+                    "An optional-content membership operand is not a registered group.");
+            return visible.Contains(reference.ObjectNumber);
         }
 
         PdfObject ResolveObject(PdfObject value)
@@ -451,23 +517,11 @@ public static class PdfOptionalContentEditor
                         retained.Add(item);
                         continue;
                     }
-                    if (optionalContent is not PdfIndirectReference groupReference)
+                    if (optionalContent is not PdfIndirectReference)
                         throw new NotSupportedException(
                             "Direct annotation optional-content properties cannot be flattened safely.");
-                    PdfDictionary groupDictionary = ResolveInput(groupReference) as PdfDictionary
-                        ?? throw new InvalidOperationException(
-                            "An annotation optional-content property is not a dictionary.");
-                    string type = groupDictionary.TryGetValue(TypeKey, out PdfObject? typeValue)
-                        && ResolveInput(typeValue) is PdfName typeName
-                            ? typeName.ValueAsLatin1() : string.Empty;
-                    if (type == "OCMD")
-                        throw new NotSupportedException(
-                            "Annotation optional-content membership expressions cannot be flattened safely.");
-                    if (type != "OCG" || !registered.Contains(groupReference.ObjectNumber))
-                        throw new InvalidOperationException(
-                            "An annotation does not reference a registered optional-content group.");
                     annotationChanges = true;
-                    if (!visible.Contains(groupReference.ObjectNumber))
+                    if (!ResolveVisibility(page, optionalContent))
                     {
                         pageChanged = true;
                         continue;
