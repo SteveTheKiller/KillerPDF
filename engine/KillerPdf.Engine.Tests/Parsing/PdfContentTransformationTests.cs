@@ -67,4 +67,25 @@ public sealed class PdfContentTransformationTests
             PdfContentTransformation.TransformRange(source, 3, 2,
                 PdfContentTransformMatrix.Translation(0, 0)));
     }
+
+    [Fact]
+    public void ClipRangeChangesOnlySelectedInstructionsAndRoundTrips()
+    {
+        IReadOnlyList<PdfContentInstruction> source =
+            PdfContentStreamReader.Read("1 A 2 B 3 C"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result = PdfContentTransformation.ClipRange(
+            source, 1, 1, new PdfContentClipRectangle(10, 20, 30, 40), evenOdd: true);
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal(["A", "q", "re", "W*", "n", "B", "Q", "C"],
+            reopened.Select(instruction => instruction.Operator));
+        Assert.Equal([10d, 20d, 30d, 40d],
+            reopened[2].Operands.Cast<PdfReal>().Select(item => item.Value));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfContentTransformation.ClipRange(
+            source, 3, 1, new PdfContentClipRectangle(0, 0, 1, 1)));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfContentClipRectangle(0, 0, 0, 1));
+    }
 }
