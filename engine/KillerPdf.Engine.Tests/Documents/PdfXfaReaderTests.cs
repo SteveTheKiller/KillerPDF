@@ -93,6 +93,55 @@ public sealed class PdfXfaReaderTests
             source with { IsPacketArray = false }, new PdfFormDataSet()));
     }
 
+    [Fact]
+    public void ReadsTemplateFieldHierarchyBindingsAndSafeBehaviorFlags()
+    {
+        const string template = """
+            <template xmlns="http://www.xfa.org/schema/xfa-template/3.3/">
+              <subform name="invoice">
+                <field name="total">
+                  <ui><numericEdit/></ui>
+                  <bind ref="$record.invoice.total"/>
+                  <calculate><script contentType="application/x-formcalc">1 + 1</script></calculate>
+                  <validate><script contentType="application/x-javascript">unsafe()</script></validate>
+                  <format><picture>num{z,zz9.99}</picture></format>
+                </field>
+                <subform name="customer"><field name="name"><ui><textEdit/></ui></field></subform>
+              </subform>
+            </template>
+            """;
+        PdfXfaInfo source = Assert.IsType<PdfXfaInfo>(PdfXfaReader.Read(
+            Document(template, "<datasets><data/></datasets>")));
+
+        PdfXfaTemplateInfo inspected = PdfXfaTemplate.Read(source);
+
+        Assert.Equal(2, inspected.Fields.Count);
+        PdfXfaTemplateField total = inspected.Fields[0];
+        Assert.Equal("invoice.total", total.Path);
+        Assert.Equal("$record.invoice.total", total.Binding);
+        Assert.Equal("numericEdit", total.ControlType);
+        Assert.True(total.HasCalculation);
+        Assert.True(total.HasValidation);
+        Assert.True(total.HasFormatting);
+        Assert.Equal("invoice.customer.name", inspected.Fields[1].Path);
+        Assert.Equal("textEdit", inspected.Fields[1].ControlType);
+        Assert.Equal(2, inspected.ScriptCount);
+        Assert.True(source.ContainsScript);
+    }
+
+    [Fact]
+    public void TemplateInspectionRejectsMissingAndMalformedTemplates()
+    {
+        Assert.Throws<InvalidOperationException>(() => PdfXfaTemplate.Read(new PdfXfaInfo
+        {
+            Packets = [new PdfXfaPacket("datasets", "<datasets/>"u8.ToArray())]
+        }));
+        Assert.Throws<InvalidOperationException>(() => PdfXfaTemplate.Read(new PdfXfaInfo
+        {
+            Packets = [new PdfXfaPacket("template", "<template><field/></template>"u8.ToArray())]
+        }));
+    }
+
     private static PdfDocument Document(string template, string datasets)
     {
         string[] objects =
