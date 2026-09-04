@@ -155,6 +155,26 @@ public sealed class PdfLayerMacroTests
     }
 
     [Fact]
+    public void MacroSetsDefaultConfigurationBaseState()
+    {
+        ReadOnlyMemory<byte> source = new PdfDocumentBuilder().AddPage(200, 200,
+            new PdfContentStreamBuilder().BeginOptionalContent(
+                new PdfOptionalContentGroup("Artwork"))
+                .Rectangle(0, 0, 10, 10).Fill().EndMarkedContent()).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Base state", [
+            PdfLayerMacro.BaseStateStep(PdfOptionalContentBaseState.Off)
+        ]).ToJson());
+
+        source = PdfLayerMacro.Execute(Assert.Single(macro.Steps), source);
+
+        Assert.Equal(PdfOptionalContentBaseState.Off,
+            PdfOptionalContentReader.Read(PdfDocument.Open(source))
+                .Configurations.Single().BaseState);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfLayerMacro.BaseStateStep((PdfOptionalContentBaseState)99));
+    }
+
+    [Fact]
     public void MacroReordersEveryLayerByStableName()
     {
         ReadOnlyMemory<byte> source = new PdfDocumentBuilder().AddPage(200, 200,

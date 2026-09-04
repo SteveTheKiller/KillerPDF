@@ -57,6 +57,19 @@ public static class PdfLayerMacro
                     new ConfigurationMetadataSettings(name, creator))
             });
 
+    /// <summary>Creates a step that changes the default layer base state.</summary>
+    public static PdfMacroStep BaseStateStep(PdfOptionalContentBaseState baseState)
+    {
+        if (!Enum.IsDefined(baseState))
+            throw new ArgumentOutOfRangeException(nameof(baseState));
+        return new PdfMacroStep(PdfMacroOperation.EditLayers,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["action"] = "baseState",
+                ["value"] = baseState.ToString()
+            });
+    }
+
     /// <summary>Creates a step that replaces the flat display order using stable layer names.</summary>
     public static PdfMacroStep DisplayOrderStep(IEnumerable<string> layerNames)
     {
@@ -149,6 +162,14 @@ public static class PdfLayerMacro
                 throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
             return PdfOptionalContentEditor.SetDefaultConfigurationMetadata(
                 document, settings.Name, settings.Creator);
+        }
+        if (action == "baseState"
+            && Enum.TryParse(value, false, out PdfOptionalContentBaseState baseState)
+            && Enum.IsDefined(baseState))
+        {
+            if (step.Settings.ContainsKey("layer"))
+                throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
+            return PdfOptionalContentEditor.SetDefaultBaseState(document, baseState);
         }
         if (action == "displayOrder" && !string.IsNullOrWhiteSpace(value))
         {
