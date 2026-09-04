@@ -469,10 +469,11 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfRgbColor? strokeColor = null, PdfRgbColor? fillColor = null,
         double lineWidth = 1, double opacity = 1, string? contents = null,
         PdfAnnotationMetadata? annotationMetadata = null,
-        IReadOnlyList<double>? dashPattern = null)
+        IReadOnlyList<double>? dashPattern = null,
+        string? name = null, string? inReplyTo = null)
         => AddShape(PendingShapeType.Square, pageIndex, x, y, width, height,
             strokeColor, fillColor, lineWidth, opacity, contents, annotationMetadata,
-            dashPattern);
+            dashPattern, name, inReplyTo);
 
     /// <summary>Adds an ellipse annotation with optional fill and dashed border.</summary>
     public PdfIncrementalAnnotationEditor AddEllipse(
@@ -480,10 +481,11 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfRgbColor? strokeColor = null, PdfRgbColor? fillColor = null,
         double lineWidth = 1, double opacity = 1, string? contents = null,
         PdfAnnotationMetadata? annotationMetadata = null,
-        IReadOnlyList<double>? dashPattern = null)
+        IReadOnlyList<double>? dashPattern = null,
+        string? name = null, string? inReplyTo = null)
         => AddShape(PendingShapeType.Circle, pageIndex, x, y, width, height,
             strokeColor, fillColor, lineWidth, opacity, contents, annotationMetadata,
-            dashPattern);
+            dashPattern, name, inReplyTo);
 
     /// <summary>Adds a polyline annotation with optional endpoint symbols and intent.</summary>
     public PdfIncrementalAnnotationEditor AddPolyline(
@@ -872,15 +874,17 @@ public sealed class PdfIncrementalAnnotationEditor
         PendingShapeType type, int pageIndex, double x, double y, double width, double height,
         PdfRgbColor? strokeColor, PdfRgbColor? fillColor,
         double lineWidth, double opacity, string? contents,
-        PdfAnnotationMetadata? metadata, IReadOnlyList<double>? dashPattern)
+        PdfAnnotationMetadata? metadata, IReadOnlyList<double>? dashPattern,
+        string? name = null, string? inReplyTo = null)
     {
         ValidatePage(pageIndex);
         ValidateRectangle(x, y, width, height);
         ValidateStroke(lineWidth, opacity);
+        ValidatePendingAnnotationIdentity(name, inReplyTo);
         double[]? dash = ValidateDashPattern(dashPattern);
         _annotations.Add(new PendingShape(type, pageIndex, x, y, width, height,
             strokeColor ?? new PdfRgbColor(0, 0, 0), fillColor, lineWidth,
-            opacity, contents, metadata, dash));
+            opacity, contents, metadata, dash, name, inReplyTo));
         return this;
     }
 
@@ -982,6 +986,7 @@ public sealed class PdfIncrementalAnnotationEditor
     {
         PendingTextNote note => note.Name,
         PendingTextMarkup markup => markup.Name,
+        PendingShape shape => shape.Name,
         _ => null
     };
 
@@ -1077,7 +1082,8 @@ public sealed class PdfIncrementalAnnotationEditor
                 case PendingShape shape:
                     update.SetObject(item.AnnotationReference,
                         WithStructureParent(ShapeDictionary(shape, page.Reference,
-                            item.AnnotationReference, item.AppearanceReference!), item,
+                            item.AnnotationReference, item.AppearanceReference!,
+                            annotationNames), item,
                             structureParentKeys));
                     update.SetObject(item.AppearanceReference!, ShapeAppearance(shape));
                     break;
@@ -3164,7 +3170,8 @@ public sealed class PdfIncrementalAnnotationEditor
 
     private static PdfDictionary ShapeDictionary(
         PendingShape shape, PdfIndirectReference page, PdfIndirectReference annotation,
-        PdfIndirectReference appearance)
+        PdfIndirectReference appearance,
+        IReadOnlyDictionary<string, PdfIndirectReference> annotationNames)
     {
         string subtype = shape.Type.ToString();
         var entries = CommonEntries(subtype, shape.X, shape.Y, shape.Width, shape.Height,
@@ -3172,6 +3179,16 @@ public sealed class PdfIncrementalAnnotationEditor
             shape.Contents, shape.Metadata);
         entries.Add(("BS", BorderStyle(shape.LineWidth, shape.DashPattern)));
         if (shape.FillColor.HasValue) entries.Add(("IC", ColorArray(shape.FillColor.Value)));
+        if (shape.Name is not null)
+        {
+            entries.RemoveAll(entry => entry.Name == "NM");
+            entries.Add(("NM", UnicodeString(shape.Name)));
+        }
+        if (shape.InReplyTo is not null)
+        {
+            entries.Add(("IRT", annotationNames[shape.InReplyTo]));
+            entries.Add(("RT", Name("R")));
+        }
         return Dictionary([.. entries]);
     }
 
@@ -4014,7 +4031,8 @@ public sealed class PdfIncrementalAnnotationEditor
         PendingShapeType Type, int PageIndex, double X, double Y, double Width, double Height,
         PdfRgbColor StrokeColor, PdfRgbColor? FillColor, double LineWidth, double Opacity,
         string? Contents, PdfAnnotationMetadata? Metadata,
-        IReadOnlyList<double>? DashPattern) : PendingAnnotation(PageIndex);
+        IReadOnlyList<double>? DashPattern, string? Name,
+        string? InReplyTo) : PendingAnnotation(PageIndex);
     private sealed record PendingVertex(
         int PageIndex, IReadOnlyList<PdfPoint> Vertices, bool Closed,
         PdfRgbColor Color, PdfRgbColor? FillColor, double LineWidth,

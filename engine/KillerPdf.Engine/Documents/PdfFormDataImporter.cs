@@ -154,6 +154,16 @@ public static class PdfFormDataImporter
                 editor.AddSquiggly(annotation.PageIndex, x, y, width, height,
                     annotation.Contents, color, annotation.Opacity ?? 1,
                     metadata, annotation.Name, annotation.ReplyToName);
+            else if (subtype == "square")
+                editor.AddRectangle(annotation.PageIndex, x, y, width, height,
+                    color, lineWidth: 1, opacity: annotation.Opacity ?? 1,
+                    contents: annotation.Contents, annotationMetadata: metadata,
+                    name: annotation.Name, inReplyTo: annotation.ReplyToName);
+            else if (subtype == "circle")
+                editor.AddEllipse(annotation.PageIndex, x, y, width, height,
+                    color, lineWidth: 1, opacity: annotation.Opacity ?? 1,
+                    contents: annotation.Contents, annotationMetadata: metadata,
+                    name: annotation.Name, inReplyTo: annotation.ReplyToName);
             else if (subtype == "text")
                 editor.AddTextNote(annotation.PageIndex, x, y,
                     annotation.Contents ?? string.Empty, color,
