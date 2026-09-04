@@ -60,7 +60,8 @@ public sealed class PdfFormRecognitionTests
                 PdfRecognizedFieldKind.Signature, 1, "signature")]);
         Assert.Throws<InvalidOperationException>(() => pending.ApplyAccepted(document));
 
-        PdfFormRecognitionReview reviewed = pending.Accept("text", tooltip: "Text value")
+        PdfFormRecognitionReview reviewed = pending.Accept("text", tooltip: "Text value",
+                readOnly: true, required: true)
             .Accept("check", tooltip: "Check value")
             .Accept("signature", tooltip: "Approval signature");
         PdfDocument reopened = PdfDocument.Open(reviewed.ApplyAccepted(document));
@@ -71,6 +72,7 @@ public sealed class PdfFormRecognitionTests
         Assert.Contains(widgets, widget => widget.FieldName == "check" && widget.FieldKind == PdfFormFieldKind.Button);
         Assert.Contains(widgets, widget => widget.FieldName == "signature" && widget.FieldKind == PdfFormFieldKind.Signature);
         Assert.Equal("Text value", widgets.Single(widget => widget.FieldName == "text").Tooltip);
+        Assert.Equal(3, widgets.Single(widget => widget.FieldName == "text").Flags & 3);
         Assert.Equal("Check value", widgets.Single(widget => widget.FieldName == "check").Tooltip);
         Assert.Equal("Approval signature",
             widgets.Single(widget => widget.FieldName == "signature").Tooltip);

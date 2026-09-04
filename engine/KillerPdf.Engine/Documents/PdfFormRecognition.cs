@@ -45,7 +45,8 @@ public sealed record PdfFormFieldProposal
         PdfRecognizedFieldKind kind, double confidence, string suggestedName,
         PdfFormProposalStatus status = PdfFormProposalStatus.Proposed,
         string? suggestedTooltip = null, IEnumerable<string>? suggestedOptions = null,
-        string? suggestedValue = null)
+        string? suggestedValue = null, bool suggestedReadOnly = false,
+        bool suggestedRequired = false)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -76,6 +77,8 @@ public sealed record PdfFormFieldProposal
         SuggestedTooltip = suggestedTooltip;
         SuggestedOptions = Array.AsReadOnly(options);
         SuggestedValue = suggestedValue;
+        SuggestedReadOnly = suggestedReadOnly;
+        SuggestedRequired = suggestedRequired;
         Status = status;
     }
 
@@ -97,14 +100,20 @@ public sealed record PdfFormFieldProposal
     public IReadOnlyList<string> SuggestedOptions { get; }
     /// <summary>Gets the proposed selected value for a choice field or export value for a radio option.</summary>
     public string? SuggestedValue { get; }
+    /// <summary>Gets whether the proposed field should be read-only.</summary>
+    public bool SuggestedReadOnly { get; }
+    /// <summary>Gets whether the proposed field should require a value.</summary>
+    public bool SuggestedRequired { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
     internal PdfFormFieldProposal Review(PdfFormProposalStatus status, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
-        string? tooltip = null, IEnumerable<string>? options = null, string? value = null) =>
+        string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
+        bool? readOnly = null, bool? required = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
-            status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue);
+            status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
+            readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired);
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
@@ -135,9 +144,11 @@ public sealed class PdfFormRecognitionReview
     /// <summary>Returns a new review with a proposal accepted and optionally adjusted.</summary>
     public PdfFormRecognitionReview Accept(string id, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
-        string? tooltip = null, IEnumerable<string>? options = null, string? value = null) =>
+        string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
+        bool? readOnly = null, bool? required = null) =>
         Change(id, item => item.Review(
-            PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value));
+            PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
+            readOnly, required));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -171,17 +182,27 @@ public sealed class PdfFormRecognitionReview
             PdfContentBounds bounds = proposal.Bounds;
             PdfFormFieldMetadata? metadata = proposal.SuggestedTooltip is null ? null
                 : new PdfFormFieldMetadata { Tooltip = proposal.SuggestedTooltip };
+            var fieldOptions = new PdfFormFieldOptions
+            {
+                ReadOnly = proposal.SuggestedReadOnly,
+                Required = proposal.SuggestedRequired
+            };
             switch (proposal.Kind)
             {
                 case PdfRecognizedFieldKind.Text:
                     editor.AddTextField(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        options: new PdfTextFieldOptions
+                        {
+                            ReadOnly = proposal.SuggestedReadOnly,
+                            Required = proposal.SuggestedRequired
+                        },
                         fieldMetadata: metadata);
                     break;
                 case PdfRecognizedFieldKind.CheckBox:
                     editor.AddCheckBox(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
-                        fieldMetadata: metadata);
+                        fieldMetadata: metadata, options: fieldOptions);
                     break;
                 case PdfRecognizedFieldKind.DropDown:
                 case PdfRecognizedFieldKind.EditableComboBox:
@@ -189,29 +210,38 @@ public sealed class PdfFormRecognitionReview
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         proposal.SuggestedOptions, proposal.SuggestedValue,
                         editable: proposal.Kind == PdfRecognizedFieldKind.EditableComboBox,
-                        fieldMetadata: metadata);
+                        fieldMetadata: metadata, fieldOptions: fieldOptions);
                     break;
                 case PdfRecognizedFieldKind.ListBox:
                     editor.AddListBox(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         proposal.SuggestedOptions, proposal.SuggestedValue,
-                        fieldMetadata: metadata);
+                        fieldMetadata: metadata, fieldOptions: fieldOptions);
                     break;
                 case PdfRecognizedFieldKind.Signature:
                     editor.AddSignatureField(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
-                        fieldMetadata: metadata);
+                        fieldMetadata: metadata, fieldOptions: fieldOptions);
                     break;
             }
         }
         foreach (PdfFormFieldProposal[] group in radioGroups)
         {
+            if (group.Any(proposal => proposal.SuggestedReadOnly != group[0].SuggestedReadOnly
+                || proposal.SuggestedRequired != group[0].SuggestedRequired))
+                throw new NotSupportedException(
+                    $"Radio group '{group[0].SuggestedName}' has inconsistent field requirements.");
             PdfFormFieldMetadata? metadata = group[0].SuggestedTooltip is null ? null
                 : new PdfFormFieldMetadata { Tooltip = group[0].SuggestedTooltip };
             editor.AddRadioGroup(group[0].SuggestedName, group.Select(proposal =>
                 new PdfRadioButtonOption(proposal.PageIndex, proposal.Bounds.Left,
                     proposal.Bounds.Bottom, proposal.Bounds.Width, proposal.Bounds.Height,
-                    proposal.SuggestedValue!)), fieldMetadata: metadata);
+                    proposal.SuggestedValue!)), fieldMetadata: metadata,
+                fieldOptions: new PdfFormFieldOptions
+                {
+                    ReadOnly = group[0].SuggestedReadOnly,
+                    Required = group[0].SuggestedRequired
+                });
         }
         return editor.Build();
     }
