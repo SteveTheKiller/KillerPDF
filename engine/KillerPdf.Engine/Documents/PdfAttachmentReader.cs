@@ -79,7 +79,8 @@ public static class PdfAttachmentReader
                 FileSpecificationObjectNumber = specificationReference?.ObjectNumber,
                 EmbeddedFileObjectNumber = streamReference?.ObjectNumber,
                 HasUnsafeFileName = !IsSafeFileName(fileName),
-                IsPotentiallyExecutable = IsPotentiallyExecutable(fileName)
+                IsPotentiallyExecutable = IsPotentiallyExecutable(fileName),
+                HasExecutableContent = HasExecutableContent(data)
             });
         }
         return Array.AsReadOnly(result.ToArray());
@@ -109,6 +110,13 @@ public static class PdfAttachmentReader
     private static bool IsPotentiallyExecutable(string fileName) =>
         new[] { ".exe", ".com", ".bat", ".cmd", ".ps1", ".msi", ".scr", ".js", ".vbs", ".lnk" }
             .Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase);
+
+    private static bool HasExecutableContent(ReadOnlySpan<byte> data) =>
+        data.StartsWith("MZ"u8)
+        || data.StartsWith(new byte[] { 0x7f, (byte)'E', (byte)'L', (byte)'F' })
+        || data.StartsWith(new byte[] { 0xfe, 0xed, 0xfa, 0xce })
+        || data.StartsWith(new byte[] { 0xfe, 0xed, 0xfa, 0xcf })
+        || data.StartsWith(new byte[] { 0xca, 0xfe, 0xba, 0xbe });
 
     private static T Value<T>(PdfDocument document, PdfDictionary dictionary, string key, string error)
         where T : PdfObject => dictionary.TryGetValue(Name(key), out PdfObject? value)
@@ -241,4 +249,6 @@ public sealed record PdfAttachmentInfo
     public bool HasUnsafeFileName { get; init; }
     /// <summary>Gets whether the extension commonly identifies executable content.</summary>
     public bool IsPotentiallyExecutable { get; init; }
+    /// <summary>Gets whether the payload begins with a recognized executable-file signature.</summary>
+    public bool HasExecutableContent { get; init; }
 }

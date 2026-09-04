@@ -37,6 +37,7 @@ public sealed class PdfAttachmentReaderTests
         Assert.NotNull(attachment.EmbeddedFileObjectNumber);
         Assert.False(attachment.HasUnsafeFileName);
         Assert.False(attachment.IsPotentiallyExecutable);
+        Assert.False(attachment.HasExecutableContent);
     }
 
     [Fact]
@@ -50,5 +51,11 @@ public sealed class PdfAttachmentReaderTests
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
             .AddAttachment("setup.exe", new byte[] { 1, 2, 3 }).Build());
         Assert.True(Assert.Single(PdfAttachmentReader.Read(document)).IsPotentiallyExecutable);
+
+        PdfDocument disguised = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("notes.txt", new byte[] { (byte)'M', (byte)'Z', 0, 0 }).Build());
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(disguised));
+        Assert.False(attachment.IsPotentiallyExecutable);
+        Assert.True(attachment.HasExecutableContent);
     }
 }
