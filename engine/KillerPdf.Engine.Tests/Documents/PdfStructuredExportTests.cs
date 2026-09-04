@@ -176,6 +176,26 @@ public sealed class PdfStructuredExportTests
     }
 
     [Fact]
+    public void ReportsLinksOnlyWhenTheTargetOmitsThem()
+    {
+        PdfDocument document = PdfDocument.Open(new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .AddBlankPage(300, 400)
+            .AddUriLink(0, 10, 20, 80, 15, "https://example.test")
+            .Build());
+
+        PdfStructuredExportFinding finding = Assert.Single(
+            PdfStructuredExport.InspectLosses(
+                document, PdfStructuredExportFormat.WordDocument).Findings);
+
+        Assert.Equal("LinkContentNotExported", finding.Code);
+        Assert.Equal(1, finding.Count);
+        Assert.True(PdfStructuredExport.InspectLosses(
+            document, PdfStructuredExportFormat.Html).IsLossless);
+        Assert.True(PdfStructuredExport.InspectLosses(
+            document, PdfStructuredExportFormat.Json).IsLossless);
+    }
+
+    [Fact]
     public void BatchExportIsolatesFailuresAndProducesADataSafeReport()
     {
         byte[] valid = DocumentBytes("BT /F1 12 Tf 10 30 Td (first) Tj ET");

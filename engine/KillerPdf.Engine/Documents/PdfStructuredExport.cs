@@ -270,6 +270,14 @@ public static class PdfStructuredExport
                 findings.Add(new PdfStructuredExportFinding("ImageContentNotExported",
                     page.Index, page.Content.Images.Count, message));
             }
+            if (format is not (PdfStructuredExportFormat.Html or PdfStructuredExportFormat.Json))
+            {
+                int linkCount = PdfLinkReader.ReadPage(document, page.Index).Count;
+                if (linkCount > 0)
+                    findings.Add(new PdfStructuredExportFinding("LinkContentNotExported",
+                        page.Index, linkCount,
+                        "Links are not represented by this structured export."));
+            }
         }
         return new PdfStructuredExportReport(Array.AsReadOnly(findings.ToArray()));
     }
