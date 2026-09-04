@@ -58,6 +58,29 @@ public sealed class PdfPageFurnitureMacroTests
     }
 
     [Fact]
+    public void NumberingStepExpandsSavedDocumentMetadata()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddBlankPage(300, 400)
+            .SetMetadata(new PdfDocumentMetadata
+            {
+                Title = "Quarterly report",
+                Author = "Ada"
+            }).Build();
+        PdfMacroStep step = PdfPageFurnitureMacro.NumberPagesStep(
+            new PdfPageNumberMacroOptions
+            {
+                Template = "{title} | {author}",
+                Date = new DateOnly(2026, 9, 4)
+            });
+
+        PdfDocument output = PdfDocument.Open(PdfPageFurnitureMacro.Execute(step, source));
+
+        Assert.Equal("Quarterly report | Ada",
+            Assert.Single(PdfPageFurnitureReport.Inspect(output)).Text);
+    }
+
+    [Fact]
     public void BatesStepContinuesAcrossOrderedMixedSizeDocuments()
     {
         byte[] first = new PdfDocumentBuilder()

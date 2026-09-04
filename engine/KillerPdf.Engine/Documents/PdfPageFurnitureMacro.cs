@@ -186,8 +186,10 @@ public static class PdfPageFurnitureMacro
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument document = PdfDocument.Open(source);
         IReadOnlyList<PdfPageBoxInformation> boxes = PdfPageBoxInformation.Read(document);
+        PdfDocumentInformation information = PdfDocumentInformation.Read(document);
         IReadOnlyList<PdfPageFurnitureContext> contexts =
-            PdfPageFurnitureFormatter.CreateContexts(document, options.Date, options.FileName);
+            PdfPageFurnitureFormatter.CreateContexts(document, options.Date, options.FileName,
+                information.Title, information.Author);
         int[] pages = options.PageIndices?.ToArray() ?? [.. Enumerable.Range(0, boxes.Count)];
         if (pages.Any(page => page >= boxes.Count))
             throw new ArgumentOutOfRangeException(nameof(step),
