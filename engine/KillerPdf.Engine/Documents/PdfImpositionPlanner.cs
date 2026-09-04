@@ -102,6 +102,34 @@ public static class PdfImpositionPlanner
             new(sheet, face, Array.AsReadOnly<int?>(
                 [left < pageCount ? left : null, right < pageCount ? right : null]));
     }
+
+    /// <summary>Plans bounded saddle-stitched signatures without mixing pages between signatures.</summary>
+    public static IReadOnlyList<PdfImposedSheetSide> PlanBookletSignatures(
+        int pageCount, int maximumPagesPerSignature)
+    {
+        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        if (maximumPagesPerSignature <= 0 || maximumPagesPerSignature % 4 != 0)
+            throw new ArgumentOutOfRangeException(nameof(maximumPagesPerSignature),
+                "A booklet signature size must be a positive multiple of four pages.");
+        var result = new List<PdfImposedSheetSide>();
+        int sourceOffset = 0;
+        int sheetOffset = 0;
+        while (sourceOffset < pageCount)
+        {
+            int signaturePages = Math.Min(maximumPagesPerSignature, pageCount - sourceOffset);
+            IReadOnlyList<PdfImposedSheetSide> signature = PlanBooklet(signaturePages);
+            foreach (PdfImposedSheetSide side in signature)
+                result.Add(side with
+                {
+                    SheetIndex = side.SheetIndex + sheetOffset,
+                    SourcePageIndices = Array.AsReadOnly(side.SourcePageIndices
+                        .Select(page => page.HasValue ? page + sourceOffset : null).ToArray())
+                });
+            sourceOffset += signaturePages;
+            sheetOffset += signature.Count / 2;
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
 }
 
 /// <summary>One printable side of an imposed sheet.</summary>

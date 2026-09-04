@@ -58,6 +58,21 @@ public sealed class PdfImpositionPlannerTests
         Assert.Equal(new int?[] { 4, null, null, null }, nup[1].SourcePageIndices);
     }
 
+    [Fact]
+    public void BookletSignaturesKeepBoundedPageGroupsSeparate()
+    {
+        IReadOnlyList<PdfImposedSheetSide> sides =
+            PdfImpositionPlanner.PlanBookletSignatures(10, 8);
+
+        Assert.Equal(6, sides.Count);
+        AssertSide(sides[0], 0, PdfImposedSheetFace.Front, 7, 0);
+        AssertSide(sides[3], 1, PdfImposedSheetFace.Back, 3, 4);
+        AssertSide(sides[4], 2, PdfImposedSheetFace.Front, null, 8);
+        AssertSide(sides[5], 2, PdfImposedSheetFace.Back, 9, null);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.PlanBookletSignatures(10, 6));
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {
