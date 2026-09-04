@@ -307,6 +307,34 @@ public static class PdfPageFurnitureReport
         });
     }
 
+    /// <summary>Exports recognized furniture as a readable page-by-page report.</summary>
+    public static string ToText(PdfDocument document)
+    {
+        IReadOnlyList<PdfPageFurnitureReportEntry> entries = Inspect(document);
+        var output = new StringBuilder()
+            .Append("Page furniture: ")
+            .AppendLine(entries.Count.ToString(CultureInfo.InvariantCulture));
+        if (entries.Count == 0) return output.AppendLine("No entries.").ToString();
+        foreach (PdfPageFurnitureReportEntry entry in entries)
+        {
+            output.Append("Page ").Append(entry.PageIndex + 1)
+                .Append(" | ").Append(JsonSerializer.Serialize(entry.Text))
+                .Append(" | X ").Append(entry.X.ToString("0.###", CultureInfo.InvariantCulture))
+                .Append(" | Baseline ").Append(entry.Baseline.ToString("0.###", CultureInfo.InvariantCulture))
+                .Append(" | ").Append(entry.FontSize.ToString("0.###", CultureInfo.InvariantCulture))
+                .Append(" pt | ").Append(entry.Font)
+                .Append(" | Opacity ").Append(entry.Opacity.ToString("0.###", CultureInfo.InvariantCulture))
+                .Append(" | Rotation ").Append(entry.RotationDegrees.ToString("0.###", CultureInfo.InvariantCulture));
+            if (entry.Color is PdfRgbColor color)
+                output.Append(" | RGB ")
+                    .Append(color.Red.ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                    .Append(color.Green.ToString("0.###", CultureInfo.InvariantCulture)).Append(',')
+                    .Append(color.Blue.ToString("0.###", CultureInfo.InvariantCulture));
+            output.AppendLine();
+        }
+        return output.ToString();
+    }
+
     internal static string CreateMarker(PdfPageFurnitureMark mark) => "KPF1:" +
         Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new MarkerData
         {

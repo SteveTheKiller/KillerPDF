@@ -204,6 +204,15 @@ public sealed class PdfPageFurnitureTests
             .GetProperty("text").GetString());
         Assert.Equal(0, json.RootElement.GetProperty("entries")[0]
             .GetProperty("pageIndex").GetInt32());
+        string text = PdfPageFurnitureReport.ToText(reopened);
+        Assert.Contains("Page furniture: 1", text, StringComparison.Ordinal);
+        Assert.Contains("Page 1 | \"CASE-000042\"", text, StringComparison.Ordinal);
+        Assert.Contains("X 21 | Baseline 31 | 11 pt", text, StringComparison.Ordinal);
+        Assert.Contains("CourierBoldOblique", text, StringComparison.Ordinal);
+        Assert.Contains("Opacity 0.65 | Rotation 12", text, StringComparison.Ordinal);
+        Assert.Contains("RGB 0.2,0.3,0.4", text, StringComparison.Ordinal);
+        Assert.Contains("No entries.", PdfPageFurnitureReport.ToText(document),
+            StringComparison.Ordinal);
     }
 
     [Fact]
