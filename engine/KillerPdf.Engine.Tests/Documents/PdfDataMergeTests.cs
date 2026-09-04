@@ -157,6 +157,32 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void MappingProfilesFormatNumbersAndDatesWithSavedCultures()
+    {
+        var profile = new PdfDataMergeProfile("Invoices", [
+            new PdfDataMergeFieldMapping("Total", "invoice.total", ValueKind:
+                PdfDataMergeValueKind.Number, Format: "N2", CultureName: "de-DE"),
+            new PdfDataMergeFieldMapping("Due", "invoice.due", ValueKind:
+                PdfDataMergeValueKind.Date, Format: "yyyy-MM-dd", CultureName: "en-US")],
+            "invoice.pdf");
+
+        PdfDataMergeProfile restored = PdfDataMergeProfile.FromJson(profile.ToJson());
+        PdfDataMergeMappedRecord mapped = restored.Map(new Dictionary<string, string?>
+        {
+            ["Total"] = "1234,5",
+            ["Due"] = "3/14/2027"
+        });
+
+        Assert.Equal(["1.234,50", "2027-03-14"],
+            mapped.FormData.Fields.Select(field => field.Values.Single()));
+        Assert.Throws<FormatException>(() => restored.Map(new Dictionary<string, string?>
+        {
+            ["Total"] = "not a number",
+            ["Due"] = "3/14/2027"
+        }));
+    }
+
+    [Fact]
     public void FormBatchGeneratesNamedPdfsAndIsolatesBadRecords()
     {
         PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()

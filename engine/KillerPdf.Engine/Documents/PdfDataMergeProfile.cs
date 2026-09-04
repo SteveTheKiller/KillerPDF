@@ -1,11 +1,14 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Maps one imported record field to one PDF form field.</summary>
 public sealed record PdfDataMergeFieldMapping(
-    string SourceField, string TargetField, string? DefaultValue = null);
+    string SourceField, string TargetField, string? DefaultValue = null,
+    PdfDataMergeValueKind ValueKind = PdfDataMergeValueKind.Text,
+    string? Format = null, string? CultureName = null);
 
 /// <summary>A reusable data-merge mapping that contains no source records.</summary>
 public sealed class PdfDataMergeProfile
@@ -25,6 +28,14 @@ public sealed class PdfDataMergeProfile
         if (selected.Any(mapping => string.IsNullOrWhiteSpace(mapping.SourceField)
             || string.IsNullOrWhiteSpace(mapping.TargetField)))
             throw new ArgumentException("Data-merge field names cannot be empty.", nameof(mappings));
+        if (selected.Any(mapping => !Enum.IsDefined(mapping.ValueKind)))
+            throw new ArgumentException("A data-merge value kind is invalid.", nameof(mappings));
+        if (selected.Any(mapping => mapping.ValueKind == PdfDataMergeValueKind.Text
+            && mapping.Format is not null))
+            throw new ArgumentException("Text mappings cannot have a format string.", nameof(mappings));
+        foreach (PdfDataMergeFieldMapping mapping in selected)
+            if (mapping.CultureName is not null)
+                _ = CultureInfo.GetCultureInfo(mapping.CultureName);
         if (selected.Select(mapping => mapping.TargetField)
             .Distinct(StringComparer.OrdinalIgnoreCase).Count() != selected.Length)
             throw new ArgumentException("Data-merge target fields must be unique.", nameof(mappings));
@@ -60,7 +71,11 @@ public sealed class PdfDataMergeProfile
                 ? supplied
                 : mapping.DefaultValue ?? PdfDataMerge.Expand(
                     "{{" + mapping.SourceField + "}}", record, MissingValueBehavior);
-            fields.Add(new PdfFormDataField { Name = mapping.TargetField, Values = [value] });
+            fields.Add(new PdfFormDataField
+            {
+                Name = mapping.TargetField,
+                Values = [FormatValue(mapping, value)]
+            });
         }
         string outputFileName = PdfDataMerge.Expand(
             OutputFileNameTemplate, record, MissingValueBehavior);
@@ -68,6 +83,27 @@ public sealed class PdfDataMergeProfile
             throw new InvalidOperationException("The mapped output filename contains invalid characters.");
         return new PdfDataMergeMappedRecord(
             new PdfFormDataSet { Fields = Array.AsReadOnly(fields.ToArray()) }, outputFileName);
+    }
+
+    private static string FormatValue(PdfDataMergeFieldMapping mapping, string value)
+    {
+        CultureInfo culture = mapping.CultureName is null
+            ? CultureInfo.InvariantCulture : CultureInfo.GetCultureInfo(mapping.CultureName);
+        return mapping.ValueKind switch
+        {
+            PdfDataMergeValueKind.Text => value,
+            PdfDataMergeValueKind.Number => decimal.TryParse(value, NumberStyles.Number, culture,
+                out decimal number)
+                ? number.ToString(mapping.Format, culture)
+                : throw new FormatException(
+                    $"Field '{mapping.SourceField}' is not a valid number."),
+            PdfDataMergeValueKind.Date => DateTimeOffset.TryParse(value, culture,
+                DateTimeStyles.AllowWhiteSpaces, out DateTimeOffset date)
+                ? date.ToString(mapping.Format, culture)
+                : throw new FormatException(
+                    $"Field '{mapping.SourceField}' is not a valid date."),
+            _ => throw new ArgumentOutOfRangeException(nameof(mapping))
+        };
     }
 
     /// <summary>Serializes the reusable mapping without source record values.</summary>
@@ -107,3 +143,14 @@ public sealed class PdfDataMergeProfile
 
 /// <summary>One mapped form-data record and its generated output filename.</summary>
 public sealed record PdfDataMergeMappedRecord(PdfFormDataSet FormData, string OutputFileName);
+
+/// <summary>The value conversion applied by a reusable field mapping.</summary>
+public enum PdfDataMergeValueKind
+{
+    /// <summary>Preserve the source text.</summary>
+    Text,
+    /// <summary>Parse and format a decimal number.</summary>
+    Number,
+    /// <summary>Parse and format a date with an optional time and offset.</summary>
+    Date
+}
