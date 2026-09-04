@@ -9,6 +9,8 @@ namespace KillerPdf.Engine.Writing;
 /// <summary>One material change proposed by a document optimization plan.</summary>
 public enum PdfOptimizationChangeKind
 {
+    /// <summary>Apply previewed nonvisual structural repairs.</summary>
+    RepairHarmlessArtifacts,
     /// <summary>Replace incremental history with one complete revision.</summary>
     ConsolidateRevisions,
     /// <summary>Remove document information and XMP metadata.</summary>
@@ -46,6 +48,8 @@ public enum PdfOptimizationChangeKind
 /// <summary>Explicit lossless optimization and sanitization choices.</summary>
 public sealed record PdfOptimizationOptions
 {
+    /// <summary>Gets whether previewed nonvisual structural repairs are applied.</summary>
+    public bool RepairHarmlessArtifacts { get; init; }
     /// <summary>Gets whether descriptive document information and XMP are removed.</summary>
     public bool RemoveMetadata { get; init; }
     /// <summary>Gets whether every embedded file is removed.</summary>
@@ -94,6 +98,8 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
     public int ObjectCountDifference => OutputObjectCount - OriginalObjectCount;
     /// <summary>Gets sanitization changes whose absence was verified after saving.</summary>
     public IReadOnlyList<PdfOptimizationChangeKind> VerifiedRemovals { get; init; } = [];
+    /// <summary>Gets the structural repairs applied before optimization.</summary>
+    public IReadOnlyList<PdfSaveRepairChange> Repairs { get; init; } = [];
 
     /// <summary>Serializes measured results without embedding the output PDF bytes.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
@@ -105,7 +111,8 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
         OutputObjectCount,
         ObjectCountDifference,
         Changes,
-        VerifiedRemovals
+        VerifiedRemovals,
+        Repairs
     }, new JsonSerializerOptions
     {
         WriteIndented = indented,
@@ -122,16 +129,19 @@ public sealed class PdfOptimizationPlan
     private readonly string[] _attachmentNames;
     private readonly string[] _formFieldNames;
     private readonly int[] _resourcePages;
+    private readonly PdfSaveRepairChange[] _repairs;
 
     internal PdfOptimizationPlan(PdfDocument document, PdfOptimizationOptions options,
         IEnumerable<PdfOptimizationChangeKind> changes, IEnumerable<string> attachmentNames,
-        IEnumerable<string> formFieldNames, IEnumerable<int> resourcePages)
+        IEnumerable<string> formFieldNames, IEnumerable<int> resourcePages,
+        IEnumerable<PdfSaveRepairChange> repairs)
     {
         _document = document;
         _options = options;
         _attachmentNames = attachmentNames.ToArray();
         _formFieldNames = formFieldNames.ToArray();
         _resourcePages = resourcePages.ToArray();
+        _repairs = repairs.ToArray();
         Changes = Array.AsReadOnly(changes.ToArray());
     }
 
@@ -144,7 +154,9 @@ public sealed class PdfOptimizationPlan
     public PdfOptimizationResult Apply()
     {
         int pageCount = PdfPageTree.Read(_document).Pages.Count;
-        PdfDocument source = ApplySelectiveSanitization();
+        PdfDocument source = _repairs.Length == 0 ? _document
+            : PdfDocument.Open(PdfSaveSanitizer.ApplyPlan(_document, _repairs));
+        source = ApplySelectiveSanitization(source);
         if (Changes.Contains(PdfOptimizationChangeKind.RemoveDocumentJavaScript))
             source = PdfOptimizer.RemoveJavaScriptActions(source);
         byte[] output = PdfDocumentWriter.Write(source, new PdfDocumentWriteOptions
@@ -168,6 +180,7 @@ public sealed class PdfOptimizationPlan
         return new PdfOptimizationResult(output, OriginalSize, output.Length, Changes)
         {
             VerifiedRemovals = verified,
+            Repairs = Array.AsReadOnly(_repairs),
             OriginalObjectCount = ActiveObjectCount(_document),
             OutputObjectCount = ActiveObjectCount(reopened)
         };
@@ -240,7 +253,7 @@ public sealed class PdfOptimizationPlan
         return value;
     }
 
-    private PdfDocument ApplySelectiveSanitization()
+    private PdfDocument ApplySelectiveSanitization(PdfDocument document)
     {
         bool removesAttachments = Changes.Contains(PdfOptimizationChangeKind.RemoveAttachments);
         bool removesOpenAction = Changes.Contains(PdfOptimizationChangeKind.RemoveOpenAction);
@@ -260,10 +273,10 @@ public sealed class PdfOptimizationPlan
             && !removesFormFields && !removesXfaData && !removesComments && !removesDocumentJavaScript
             && !removesPageThumbnails && !flattensOptionalContent
             && !prunesUnusedResources)
-            return _document;
+            return document;
         PdfDocument formSanitized = flattensOptionalContent
-            ? PdfDocument.Open(PdfOptionalContentEditor.FlattenPageContent(_document))
-            : _document;
+            ? PdfDocument.Open(PdfOptionalContentEditor.FlattenPageContent(document))
+            : document;
         if (_attachmentNames.Length > 0 || removesOpenAction || removesBookmarks || removesFormFields
             || removesXfaData
             || removesDocumentJavaScript || removesPageThumbnails || prunesUnusedResources)
@@ -332,6 +345,10 @@ public static class PdfOptimizer
         ArgumentNullException.ThrowIfNull(document);
         options ??= new PdfOptimizationOptions();
         var changes = new List<PdfOptimizationChangeKind> { PdfOptimizationChangeKind.ConsolidateRevisions };
+        PdfSaveRepairChange[] repairs = options.RepairHarmlessArtifacts
+            ? [.. PdfSaveSanitizer.CreateRepairPlan(document).Changes] : [];
+        if (repairs.Length > 0)
+            changes.Add(PdfOptimizationChangeKind.RepairHarmlessArtifacts);
         PdfPageTree tree = PdfPageTree.Read(document);
         string[] attachmentNames = options.RemoveAttachments
             ? [.. PdfAttachmentReader.Read(document).Select(attachment => attachment.FileName)] : [];
@@ -385,7 +402,7 @@ public static class PdfOptimizer
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,
-            formFieldNames, resourcePages);
+            formFieldNames, resourcePages, repairs);
     }
 
     internal static IReadOnlyList<int> UnusedResourcePages(PdfDocument document)

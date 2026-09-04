@@ -12,6 +12,36 @@ namespace KillerPdf.Engine.Tests.Writing;
 public sealed class PdfOptimizationTests
 {
     [Fact]
+    public void PlanAppliesAndReportsPreviewedHarmlessRepairs()
+    {
+        const string source = "%PDF-1.7\n"
+            + "1 0 obj << /Type /Catalog /Pages 2 0 R /Outlines << >> >> endobj\n"
+            + "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"
+            + "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >> endobj\n"
+            + "xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n"
+            + "0000000073 00000 n \n0000000130 00000 n \n"
+            + "trailer << /Size 4 /Root 1 0 R >>\nstartxref\n201\n%%EOF\n";
+        PdfDocument damaged = PdfDocument.Open(Encoding.ASCII.GetBytes(source));
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(damaged,
+            new PdfOptimizationOptions
+            {
+                RepairHarmlessArtifacts = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument output = PdfDocument.Open(result.Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.RepairHarmlessArtifacts, plan.Changes);
+        PdfSaveRepairChange repair = Assert.Single(result.Repairs);
+        Assert.Equal(PdfSaveRepairKind.RemoveDanglingOutlines, repair.Kind);
+        Assert.DoesNotContain("/Outlines", Encoding.Latin1.GetString(result.Data.Span));
+        Assert.Contains("repairHarmlessArtifacts", result.ToJson());
+        Assert.Contains("removeDanglingOutlines", result.ToJson());
+    }
+
+    [Fact]
     public void PlanReportsChoicesAndConsolidatesRevisionHistory()
     {
         byte[] original = new PdfDocumentBuilder().SetMetadata(new PdfDocumentMetadata
