@@ -78,15 +78,41 @@ public sealed class PdfTextFieldPresetCollection
     public IReadOnlyList<PdfTextFieldPreset> Presets { get; }
 
     /// <summary>Returns a copy with one preset renamed.</summary>
-    public PdfTextFieldPresetCollection Rename(string name, string replacement) =>
-        new(_presets.Select(preset => string.Equals(preset.Name, name,
-            StringComparison.OrdinalIgnoreCase)
-            ? new PdfTextFieldPreset(replacement, preset.Width, preset.Height,
-                preset.FontSize, preset.AppearanceStyle) : preset));
+    public PdfTextFieldPresetCollection Rename(string name, string replacement)
+    {
+        int index = Find(name);
+        PdfTextFieldPreset[] changed = (PdfTextFieldPreset[])_presets.Clone();
+        PdfTextFieldPreset preset = changed[index];
+        changed[index] = new PdfTextFieldPreset(replacement, preset.Width, preset.Height,
+            preset.FontSize, preset.AppearanceStyle);
+        return new PdfTextFieldPresetCollection(changed);
+    }
+
+    /// <summary>Returns a copy with a preset added at the end.</summary>
+    public PdfTextFieldPresetCollection Add(PdfTextFieldPreset preset)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        return new PdfTextFieldPresetCollection([.. _presets, preset]);
+    }
+
+    /// <summary>Returns a copy with a named preset replaced in place.</summary>
+    public PdfTextFieldPresetCollection Replace(
+        string name, PdfTextFieldPreset replacement)
+    {
+        ArgumentNullException.ThrowIfNull(replacement);
+        int index = Find(name);
+        PdfTextFieldPreset[] changed = (PdfTextFieldPreset[])_presets.Clone();
+        changed[index] = replacement;
+        return new PdfTextFieldPresetCollection(changed);
+    }
 
     /// <summary>Returns a copy without the named preset.</summary>
-    public PdfTextFieldPresetCollection Remove(string name) => new(_presets.Where(preset =>
-        !string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase)));
+    public PdfTextFieldPresetCollection Remove(string name)
+    {
+        int index = Find(name);
+        return new PdfTextFieldPresetCollection(_presets.Where(
+            (_, presetIndex) => presetIndex != index));
+    }
 
     /// <summary>Returns a copy with one preset moved to a new menu position.</summary>
     public PdfTextFieldPresetCollection Move(int fromIndex, int toIndex)
@@ -120,6 +146,16 @@ public sealed class PdfTextFieldPresetCollection
                 $"Text-field preset version {file.Version} is not supported.");
         return new PdfTextFieldPresetCollection(file.Presets
             ?? throw new JsonException("The text-field preset file has no presets."));
+    }
+
+    private int Find(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("A text-field preset name is required.", nameof(name));
+        int index = Array.FindIndex(_presets, preset => string.Equals(
+            preset.Name, name, StringComparison.OrdinalIgnoreCase));
+        return index >= 0 ? index : throw new KeyNotFoundException(
+            $"Text-field preset '{name}' was not found.");
     }
 
     private static JsonSerializerOptions Options(bool indented)

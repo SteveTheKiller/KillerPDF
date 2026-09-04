@@ -43,4 +43,21 @@ public sealed class PdfTextFieldPresetTests
             new PdfTextFieldPreset("Name", 100, 20, 10),
             new PdfTextFieldPreset("name", 120, 20, 10)]));
     }
+
+    [Fact]
+    public void PresetsCanBeAddedAndReplacedWithoutChangingMenuOrder()
+    {
+        var collection = new PdfTextFieldPresetCollection([
+            new PdfTextFieldPreset("Compact", 120, 20, 10)]);
+
+        PdfTextFieldPresetCollection edited = collection
+            .Add(new PdfTextFieldPreset("Wide", 240, 24, 12))
+            .Replace("compact", new PdfTextFieldPreset("Compact", 140, 22, 11));
+
+        Assert.Equal(["Compact", "Wide"], edited.Presets.Select(preset => preset.Name));
+        Assert.Equal(140, edited.Presets[0].Width);
+        Assert.Equal(120, collection.Presets[0].Width);
+        Assert.Throws<KeyNotFoundException>(() => collection.Remove("Missing"));
+        Assert.Throws<KeyNotFoundException>(() => collection.Rename("Missing", "Other"));
+    }
 }

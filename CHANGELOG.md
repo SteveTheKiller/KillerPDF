@@ -27,7 +27,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added searchable text-layer writing, review persistence, confidence-based acceptance, accuracy summaries, batch isolation, and configurable OCR processing (#345).
 - Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).
 - Added safe macro saving, importing, duplication, and step insertion, replacement, removal, and reordering (#343).
-- Added locally saved fillable text-field presets with reusable dimensions and visual styles (#340).
+- Added locally saved, editable fillable text-field presets with reusable dimensions and visual styles (#340).
 - Added region validation and affected-content planning for partial rasterization (#369).
 - Added privacy-safe JSON reports for redaction reviews and verification (#341).
 - Added reviewed field descriptions, choice fields, and radio groups to automatic form authoring (#342).
