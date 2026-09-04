@@ -69,6 +69,30 @@ public sealed class PdfXfaReaderTests
         }));
     }
 
+    [Fact]
+    public void ReplacesDatasetsWithoutChangingOtherPacketsOrScriptWarning()
+    {
+        PdfXfaInfo source = Assert.IsType<PdfXfaInfo>(PdfXfaReader.Read(Document(
+            "<template><script>preserved()</script></template>",
+            "<datasets><data><old>value</old></data></datasets>")));
+        byte[] originalTemplate = source.Packets[0].Data.ToArray();
+
+        PdfXfaInfo replaced = PdfXfaDatasets.Replace(source, new PdfFormDataSet
+        {
+            Fields = [new PdfFormDataField { Name = "form.name", Values = ["Zoë"] }]
+        });
+
+        Assert.True(replaced.ContainsScript);
+        Assert.Equal(source.Packets.Select(packet => packet.Name),
+            replaced.Packets.Select(packet => packet.Name));
+        Assert.Equal(originalTemplate, replaced.Packets[0].Data.ToArray());
+        Assert.Equal(["Zoë"], PdfXfaDatasets.Read(replaced).Fields[0].Values);
+        Assert.Contains("<old>value</old>",
+            Encoding.UTF8.GetString(source.Packets[1].Data.Span), StringComparison.Ordinal);
+        Assert.Throws<NotSupportedException>(() => PdfXfaDatasets.Replace(
+            source with { IsPacketArray = false }, new PdfFormDataSet()));
+    }
+
     private static PdfDocument Document(string template, string datasets)
     {
         string[] objects =

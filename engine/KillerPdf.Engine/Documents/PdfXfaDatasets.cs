@@ -110,6 +110,38 @@ public static class PdfXfaDatasets
         return output.ToArray();
     }
 
+    /// <summary>
+    /// Replaces the datasets packet in an XFA packet array while preserving every other packet.
+    /// </summary>
+    public static PdfXfaInfo Replace(PdfXfaInfo info, PdfFormDataSet data)
+    {
+        ArgumentNullException.ThrowIfNull(info);
+        ArgumentNullException.ThrowIfNull(data);
+        if (!info.IsPacketArray)
+            throw new NotSupportedException(
+                "Replacing datasets inside a combined XDP stream is not supported.");
+        int index = -1;
+        for (int packetIndex = 0; packetIndex < info.Packets.Count; packetIndex++)
+        {
+            if (!string.Equals(info.Packets[packetIndex].Name, "datasets",
+                    StringComparison.OrdinalIgnoreCase)) continue;
+            if (index >= 0)
+                throw new InvalidOperationException(
+                    "The XFA packet array contains more than one datasets packet.");
+            index = packetIndex;
+        }
+        if (index < 0)
+            throw new InvalidOperationException("The XFA data has no datasets packet.");
+        PdfXfaPacket[] packets = info.Packets.ToArray();
+        packets[index] = new PdfXfaPacket(packets[index].Name, Write(data));
+        return new PdfXfaInfo
+        {
+            IsPacketArray = true,
+            Packets = Array.AsReadOnly(packets),
+            ContainsScript = info.ContainsScript
+        };
+    }
+
     private static void AddChildren(XElement parent, DatasetNode node)
     {
         foreach ((string name, DatasetNode child) in node.Children)

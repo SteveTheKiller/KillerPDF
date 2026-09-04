@@ -26,7 +26,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added deterministic N-up, poster, step-and-repeat, manual-sequence, and bounded booklet planning with fitted grids, duplex sides, blank slots, crop, registration, and fold marks (#349).
 - Added CSV, JSON, and selected-sheet XLSX data import, reusable mappings and defaults, placeholder expansion, collision-safe form generation, cancellation, and isolated batch reports (#352).
 - Added typed PDF macro saving, editing, and execution with ordered supported operations, source preservation, cancellation, and data-safe JSON batch reports (#343).
-- Added safe FDF, XFDF, and XFA dataset interchange with selective fields, Unicode, hierarchical names, multi-select values, safe local source resolution, and non-executing script inspection (#329, #330).
+- Added safe FDF, XFDF, and XFA dataset reading, writing, and packet replacement with selective fields, Unicode, hierarchical names, multi-select values, safe local source resolution, preserved XFA packets, and non-executing script inspection (#329, #330).
 - Added deterministic styled header and footer placement, PDF writing, content collision checks, and continuous Bates planning and writing across ordered document batches (#344).
 - Added plain-text, semantic HTML, structured JSON, Markdown, editable Word, and spreadsheet export with reports for content that cannot be fully represented (#346).
 - Added unified bookmark and link auditing and editing with source identities, stable findings, JSON reports, safe-link removal, retargeting, and bookmark renaming and styling (#351).
