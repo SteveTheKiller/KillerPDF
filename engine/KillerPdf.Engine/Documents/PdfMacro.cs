@@ -246,6 +246,8 @@ public enum PdfMacroOperation
     FlattenLayers,
     /// <summary>Edit PDF layer definitions and state.</summary>
     EditLayers,
+    /// <summary>Edit PDF portfolio presentation and folder metadata.</summary>
+    EditPortfolio,
     /// <summary>Validate the document.</summary>
     Validate,
     /// <summary>Export document content.</summary>
