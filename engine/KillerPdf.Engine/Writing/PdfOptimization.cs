@@ -29,6 +29,8 @@ public enum PdfOptimizationChangeKind
     RemovePageThumbnails,
     /// <summary>Preserve initially visible optional content and remove hidden layer content.</summary>
     FlattenOptionalContent,
+    /// <summary>Remove unreferenced page font and XObject resources.</summary>
+    PruneUnusedPageResources,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -56,6 +58,8 @@ public sealed record PdfOptimizationOptions
     public bool RemovePageThumbnails { get; init; }
     /// <summary>Gets whether initially visible optional content is flattened and hidden content removed.</summary>
     public bool FlattenOptionalContent { get; init; }
+    /// <summary>Gets whether unreferenced page font and XObject resources are removed.</summary>
+    public bool PruneUnusedPageResources { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -105,15 +109,17 @@ public sealed class PdfOptimizationPlan
     private readonly PdfOptimizationOptions _options;
     private readonly string[] _attachmentNames;
     private readonly string[] _formFieldNames;
+    private readonly int[] _resourcePages;
 
     internal PdfOptimizationPlan(PdfDocument document, PdfOptimizationOptions options,
         IEnumerable<PdfOptimizationChangeKind> changes, IEnumerable<string> attachmentNames,
-        IEnumerable<string> formFieldNames)
+        IEnumerable<string> formFieldNames, IEnumerable<int> resourcePages)
     {
         _document = document;
         _options = options;
         _attachmentNames = attachmentNames.ToArray();
         _formFieldNames = formFieldNames.ToArray();
+        _resourcePages = resourcePages.ToArray();
         Changes = Array.AsReadOnly(changes.ToArray());
     }
 
@@ -185,6 +191,8 @@ public sealed class PdfOptimizationPlan
             tree.Pages.All(page => !page.Dictionary.ContainsKey(new PdfName("Thumb"u8))));
         Verify(PdfOptimizationChangeKind.FlattenOptionalContent,
             PdfOptionalContentReader.Read(document).Groups.Count == 0);
+        Verify(PdfOptimizationChangeKind.PruneUnusedPageResources,
+            PdfOptimizer.UnusedResourcePages(document).Count == 0);
         return Array.AsReadOnly(verified.ToArray());
 
         void Verify(PdfOptimizationChangeKind kind, bool absent)
@@ -222,17 +230,27 @@ public sealed class PdfOptimizationPlan
             PdfOptimizationChangeKind.RemovePageThumbnails);
         bool flattensOptionalContent = Changes.Contains(
             PdfOptimizationChangeKind.FlattenOptionalContent);
+        bool prunesUnusedResources = Changes.Contains(
+            PdfOptimizationChangeKind.PruneUnusedPageResources);
         if (!removesAttachments && !removesOpenAction && !removesBookmarks
             && !removesFormFields && !removesComments && !removesDocumentJavaScript
-            && !removesPageThumbnails && !flattensOptionalContent)
+            && !removesPageThumbnails && !flattensOptionalContent
+            && !prunesUnusedResources)
             return _document;
         PdfDocument formSanitized = flattensOptionalContent
             ? PdfDocument.Open(PdfOptionalContentEditor.FlattenPageContent(_document))
             : _document;
         if (_attachmentNames.Length > 0 || removesOpenAction || removesBookmarks || removesFormFields
-            || removesDocumentJavaScript || removesPageThumbnails)
+            || removesDocumentJavaScript || removesPageThumbnails || prunesUnusedResources)
         {
             var editor = new PdfIncrementalPageEditor(formSanitized);
+            if (prunesUnusedResources)
+            {
+                var content = new PdfPageContentReader(formSanitized);
+                foreach (int pageIndex in _resourcePages)
+                    editor.SetPageContentAndPruneResources(
+                        pageIndex, content.ReadInstructions(pageIndex));
+            }
             if (removesAttachments)
                 foreach (string name in _attachmentNames) editor.RemoveAttachment(name);
             if (removesOpenAction) editor.ClearOpenAction();
@@ -322,10 +340,43 @@ public static class PdfOptimizer
         if (options.FlattenOptionalContent
             && PdfOptionalContentReader.Read(document).Groups.Count > 0)
             changes.Add(PdfOptimizationChangeKind.FlattenOptionalContent);
+        int[] resourcePages = options.PruneUnusedPageResources
+            ? [.. UnusedResourcePages(document)] : [];
+        if (resourcePages.Length > 0)
+            changes.Add(PdfOptimizationChangeKind.PruneUnusedPageResources);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,
-            formFieldNames);
+            formFieldNames, resourcePages);
+    }
+
+    internal static IReadOnlyList<int> UnusedResourcePages(PdfDocument document)
+    {
+        PdfPageTree tree = PdfPageTree.Read(document);
+        var reader = new PdfPageContentReader(document);
+        var result = new List<int>();
+        foreach (PdfPageTreeEntry page in tree.Pages)
+        {
+            if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? value)
+                || Resolve(document, value) is not PdfDictionary resources)
+                continue;
+            IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions =
+                reader.ReadInstructions(page.Index);
+            HashSet<PdfName> fonts = [.. instructions
+                .Where(item => item.Operator == "Tf" && item.Operands.Count > 0)
+                .Select(item => item.Operands[0]).OfType<PdfName>()];
+            HashSet<PdfName> xObjects = [.. instructions
+                .Where(item => item.Operator == "Do" && item.Operands.Count > 0)
+                .Select(item => item.Operands[0]).OfType<PdfName>()];
+            if (HasUnused("Font", fonts) || HasUnused("XObject", xObjects))
+                result.Add(page.Index);
+
+            bool HasUnused(string category, HashSet<PdfName> used) =>
+                resources.TryGetValue(Name(category), out PdfObject? categoryValue)
+                && Resolve(document, categoryValue) is PdfDictionary dictionary
+                && dictionary.Keys.Any(key => !used.Contains(key));
+        }
+        return Array.AsReadOnly(result.ToArray());
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
