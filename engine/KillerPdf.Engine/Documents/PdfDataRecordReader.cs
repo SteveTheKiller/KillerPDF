@@ -5,10 +5,85 @@ using System.Xml.Linq;
 
 namespace KillerPdf.Engine.Documents;
 
+/// <summary>A value type inferred from imported merge records.</summary>
+public enum PdfDataRecordFieldKind
+{
+    /// <summary>No record contains a value.</summary>
+    Empty,
+    /// <summary>Every populated value is Boolean.</summary>
+    Boolean,
+    /// <summary>Every populated value is numeric.</summary>
+    Number,
+    /// <summary>Every populated value is a date or date and time.</summary>
+    Date,
+    /// <summary>Every populated value is general text.</summary>
+    Text,
+    /// <summary>Populated values contain more than one inferred type.</summary>
+    Mixed
+}
+
+/// <summary>Describes one imported merge field without retaining its values.</summary>
+public sealed record PdfDataRecordField(
+    string Name, PdfDataRecordFieldKind Kind, int NonEmptyValueCount,
+    bool HasMissingValues);
+
 /// <summary>Reads tabular records for data-driven PDF generation.</summary>
 public static class PdfDataRecordReader
 {
     private const long MaximumWorkbookPartBytes = 64 * 1024 * 1024;
+
+    /// <summary>Inspects imported headers and value types without retaining field values.</summary>
+    public static IReadOnlyList<PdfDataRecordField> Inspect(
+        IEnumerable<IReadOnlyDictionary<string, string?>> records)
+    {
+        ArgumentNullException.ThrowIfNull(records);
+        IReadOnlyDictionary<string, string?>[] selected = [.. records];
+        if (selected.Length > 1_000_000)
+            throw new ArgumentException(
+                "Merge data contains too many records.", nameof(records));
+        var names = new List<string>();
+        var known = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (IReadOnlyDictionary<string, string?> record in selected)
+        {
+            if (record is null)
+                throw new ArgumentException(
+                    "Merge data contains a null record.", nameof(records));
+            foreach (string name in record.Keys)
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                    throw new ArgumentException(
+                        "Merge field names cannot be empty.", nameof(records));
+                if (known.Add(name)) names.Add(name);
+            }
+        }
+        var result = new PdfDataRecordField[names.Count];
+        for (int fieldIndex = 0; fieldIndex < names.Count; fieldIndex++)
+        {
+            string name = names[fieldIndex];
+            var kinds = new HashSet<PdfDataRecordFieldKind>();
+            int populated = 0;
+            bool missing = false;
+            foreach (IReadOnlyDictionary<string, string?> record in selected)
+            {
+                if (!record.TryGetValue(name, out string? value)
+                    || string.IsNullOrWhiteSpace(value))
+                {
+                    missing = true;
+                    continue;
+                }
+                populated++;
+                kinds.Add(Infer(value));
+            }
+            PdfDataRecordFieldKind kind = kinds.Count switch
+            {
+                0 => PdfDataRecordFieldKind.Empty,
+                1 => kinds.Single(),
+                _ => PdfDataRecordFieldKind.Mixed
+            };
+            result[fieldIndex] = new PdfDataRecordField(name, kind, populated, missing);
+        }
+        return Array.AsReadOnly(result);
+    }
 
     /// <summary>Reads records from CSV text whose first row contains field names.</summary>
     public static IReadOnlyList<IReadOnlyDictionary<string, string?>> FromCsv(
@@ -242,6 +317,17 @@ public static class PdfDataRecordReader
         _ => throw new FormatException(
             "Merge JSON values must be strings, numbers, booleans, or null.")
     };
+
+    private static PdfDataRecordFieldKind Infer(string value)
+    {
+        if (bool.TryParse(value, out _)) return PdfDataRecordFieldKind.Boolean;
+        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out _))
+            return PdfDataRecordFieldKind.Number;
+        if (DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.AssumeUniversal, out _))
+            return PdfDataRecordFieldKind.Date;
+        return PdfDataRecordFieldKind.Text;
+    }
 
     private static List<string[]> ParseCsv(string csv)
     {

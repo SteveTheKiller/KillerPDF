@@ -77,6 +77,32 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void ImportedFieldsAreInspectedWithoutRetainingValues()
+    {
+        IReadOnlyList<IReadOnlyDictionary<string, string?>> records =
+            PdfDataRecordReader.FromJson(
+                """
+                [{"Name":"Ada","Count":3,"Enabled":true,"Due":"2026-09-10","Mixed":"1"},
+                 {"Name":"Grace","Count":4.5,"Enabled":false,"Due":null,"Mixed":"text"}]
+                """);
+
+        IReadOnlyList<PdfDataRecordField> fields = PdfDataRecordReader.Inspect(records);
+
+        Assert.Collection(fields,
+            field => Assert.Equal(new PdfDataRecordField(
+                "Name", PdfDataRecordFieldKind.Text, 2, false), field),
+            field => Assert.Equal(new PdfDataRecordField(
+                "Count", PdfDataRecordFieldKind.Number, 2, false), field),
+            field => Assert.Equal(new PdfDataRecordField(
+                "Enabled", PdfDataRecordFieldKind.Boolean, 2, false), field),
+            field => Assert.Equal(new PdfDataRecordField(
+                "Due", PdfDataRecordFieldKind.Date, 1, true), field),
+            field => Assert.Equal(new PdfDataRecordField(
+                "Mixed", PdfDataRecordFieldKind.Mixed, 2, false), field));
+        Assert.DoesNotContain("Ada", JsonSerializer.Serialize(fields), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FdfAndXfdfFieldsImportAsSingleSafeRecords()
     {
         var data = new PdfFormDataSet
