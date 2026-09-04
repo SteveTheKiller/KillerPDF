@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
@@ -149,5 +150,26 @@ public sealed class PdfDataMergeTests
         Assert.Single(results);
         Assert.Equal("customer-Ada.pdf", results[0].OutputFileName);
         Assert.Equal(string.Empty, Assert.Single(PdfFormWidgetReader.ReadPage(template, 0)).Value);
+    }
+
+    [Fact]
+    public void BatchReportsSummarizeOutcomesWithoutPdfData()
+    {
+        PdfDataMergeDocumentResult[] results =
+        [
+            new(0, "customer-1.pdf", "PDF payload"u8.ToArray(), null),
+            new(1, "customer-2.pdf", null, "Missing customer name")
+        ];
+
+        PdfDataMergeBatchReport report = PdfDataMergeBatchReport.Create(results);
+        string json = report.ToJson();
+        using JsonDocument parsed = JsonDocument.Parse(json);
+
+        Assert.Equal(2, report.TotalRecords);
+        Assert.Equal(1, report.SucceededRecords);
+        Assert.Equal(1, report.FailedRecords);
+        Assert.Equal("customer-2.pdf", report.Results[1].OutputFileName);
+        Assert.DoesNotContain("PDF payload", json, StringComparison.Ordinal);
+        Assert.Equal(1, parsed.RootElement.GetProperty("failedRecords").GetInt32());
     }
 }

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -128,3 +129,35 @@ public sealed record PdfDataMergeDocumentResult(int RecordIndex, string? OutputF
     /// <summary>Gets whether PDF generation succeeded.</summary>
     public bool Succeeded => Data.HasValue && Error is null;
 }
+
+/// <summary>A data-free summary of one form-generation batch.</summary>
+public sealed record PdfDataMergeBatchReport(
+    int TotalRecords, int SucceededRecords, int FailedRecords,
+    IReadOnlyList<PdfDataMergeBatchReportItem> Results)
+{
+    /// <summary>Creates a report without retaining generated PDF bytes.</summary>
+    public static PdfDataMergeBatchReport Create(
+        IEnumerable<PdfDataMergeDocumentResult> results)
+    {
+        ArgumentNullException.ThrowIfNull(results);
+        PdfDataMergeBatchReportItem[] items = [.. results.Select(result =>
+            new PdfDataMergeBatchReportItem(result.RecordIndex, result.OutputFileName,
+                result.Succeeded, result.Error))];
+        int succeeded = items.Count(item => item.Succeeded);
+        return new PdfDataMergeBatchReport(items.Length, succeeded,
+            items.Length - succeeded, Array.AsReadOnly(items));
+    }
+
+    /// <summary>Exports the batch summary as machine-readable JSON.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new { Version = 1, TotalRecords, SucceededRecords, FailedRecords, Results },
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        });
+}
+
+/// <summary>One data-free result in a form-generation batch report.</summary>
+public sealed record PdfDataMergeBatchReportItem(
+    int RecordIndex, string? OutputFileName, bool Succeeded, string? Error);
