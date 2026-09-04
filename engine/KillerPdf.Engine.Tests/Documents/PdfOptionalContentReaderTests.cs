@@ -406,6 +406,39 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void PageLayersFlattenToTheSelectedVisibleResult()
+    {
+        var visibleLayer = new PdfOptionalContentGroup("Visible");
+        var hiddenLayer = new PdfOptionalContentGroup("Hidden", initiallyVisible: false);
+        PdfContentStreamBuilder content = new PdfContentStreamBuilder()
+            .BeginOptionalContent(visibleLayer)
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 70).ShowLatin1Text("Keep").EndText()
+            .EndMarkedContent()
+            .BeginOptionalContent(hiddenLayer)
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 40).ShowLatin1Text("Drop").EndText()
+            .EndMarkedContent();
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, content).Build());
+        PdfOptionalContentInfo before = PdfOptionalContentReader.Read(original);
+        int hiddenObjectNumber = before.Groups.Single(group => group.Name == "Hidden")
+            .ObjectNumber;
+
+        PdfDocument defaultResult = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(original));
+        PdfDocument explicitResult = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(
+                original, [hiddenObjectNumber]));
+
+        Assert.Equal("Keep", new PdfPageContentReader(defaultResult).Read(0).Text);
+        Assert.Equal("Drop", new PdfPageContentReader(explicitResult).Read(0).Text);
+        Assert.Empty(PdfOptionalContentReader.Read(defaultResult).Groups);
+        Assert.DoesNotContain(new PdfPageContentReader(defaultResult).ReadInstructions(0),
+            instruction => instruction.Operator is "BDC" or "EMC");
+    }
+
+    [Fact]
     public void AnnotationCanBeAssignedToLayerAndCleared()
     {
         var review = new PdfOptionalContentGroup("Review");
@@ -427,6 +460,8 @@ public sealed class PdfOptionalContentReaderTests
         PdfIndirectReference layer = Assert.IsType<PdfIndirectReference>(
             annotation[new PdfName("OC"u8)]);
         Assert.Equal(groupObjectNumber, layer.ObjectNumber);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfOptionalContentEditor.FlattenPageContent(assigned));
 
         PdfDocument cleared = PdfDocument.Open(PdfOptionalContentEditor.SetAnnotationGroup(
             assigned, annotationObjectNumber, null));

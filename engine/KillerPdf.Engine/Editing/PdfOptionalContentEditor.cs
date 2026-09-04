@@ -1,8 +1,8 @@
 using System.Text;
-using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Writing;
 
 namespace KillerPdf.Engine.Editing;
@@ -152,6 +152,143 @@ public static class PdfOptionalContentEditor
                 output.WriteByte((byte)'\n');
             }
             return output.ToArray();
+        }
+    }
+
+    /// <summary>
+    /// Flattens page-level optional content using the default state or an explicit visible set.
+    /// Optional-content membership dictionaries, nested form content, annotations, and tagged
+    /// documents are rejected until their semantics can be preserved completely.
+    /// </summary>
+    public static byte[] FlattenPageContent(
+        PdfDocument document, IReadOnlyCollection<int>? visibleGroupObjectNumbers = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
+        if (info.Groups.Count == 0)
+            throw new InvalidOperationException("The document has no optional content to flatten.");
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (tree.Catalog.ContainsKey(new PdfName("StructTreeRoot"u8)))
+            throw new NotSupportedException(
+                "Flattening tagged PDF content is not supported because hidden structure elements must be repaired with their content.");
+        var registered = info.Groups.Select(group => group.ObjectNumber).ToHashSet();
+        HashSet<int> visible = visibleGroupObjectNumbers is null
+            ? info.Groups.Where(group => group.IsInitiallyVisible)
+                .Select(group => group.ObjectNumber).ToHashSet()
+            : visibleGroupObjectNumbers.ToHashSet();
+        if (!visible.IsSubsetOf(registered))
+            throw new ArgumentOutOfRangeException(nameof(visibleGroupObjectNumbers),
+                "The visible set contains an unregistered optional-content group.");
+
+        var editor = new PdfIncrementalPageEditor(document);
+        bool changed = false;
+        var reader = new PdfPageContentReader(document);
+        foreach (PdfPageTreeEntry page in tree.Pages)
+        {
+            IReadOnlyList<PdfContentInstruction> source = reader.ReadInstructions(page.Index);
+            var output = new List<PdfContentInstruction>(source.Count);
+            var stack = new Stack<(bool ParentVisible, bool Optional)>();
+            bool currentVisible = true;
+            bool pageChanged = false;
+            foreach (PdfContentInstruction instruction in source)
+            {
+                if (instruction.Operator == "DP" && IsOptionalContent(instruction))
+                {
+                    ResolveGroup(page, instruction.Operands[1]);
+                    pageChanged = true;
+                    continue;
+                }
+                if (instruction.Operator == "BDC" && IsOptionalContent(instruction))
+                {
+                    int groupObjectNumber = ResolveGroup(page, instruction.Operands[1]);
+                    stack.Push((currentVisible, true));
+                    currentVisible &= visible.Contains(groupObjectNumber);
+                    pageChanged = true;
+                    continue;
+                }
+                if (instruction.Operator is "BMC" or "BDC")
+                {
+                    if (currentVisible) output.Add(instruction);
+                    stack.Push((currentVisible, false));
+                    continue;
+                }
+                if (instruction.Operator == "EMC")
+                {
+                    if (stack.Count == 0)
+                        throw new InvalidOperationException(
+                            $"Page {page.Index + 1} has an unmatched marked-content terminator.");
+                    (bool parentVisible, bool optional) = stack.Pop();
+                    if (!optional && parentVisible) output.Add(instruction);
+                    currentVisible = parentVisible;
+                    continue;
+                }
+                if (currentVisible) output.Add(instruction);
+            }
+            if (stack.Count != 0)
+                throw new InvalidOperationException(
+                    $"Page {page.Index + 1} has an unterminated marked-content sequence.");
+            if (!pageChanged) continue;
+            editor.SetPageContentAndPruneResources(page.Index, output);
+            changed = true;
+        }
+
+        PdfDocument flattened = changed ? PdfDocument.Open(editor.Build()) : document;
+        foreach (PdfOptionalContentGroupInfo group in info.Groups)
+            flattened = PdfDocument.Open(
+                RemoveUnusedGroup(flattened, group.ObjectNumber));
+        return flattened.Source.ToArray();
+
+        static bool IsOptionalContent(PdfContentInstruction instruction) =>
+            instruction.Operands.Count == 2
+            && instruction.Operands[0] is PdfName tag
+            && tag.ValueAsLatin1() == "OC";
+
+        int ResolveGroup(PdfPageTreeEntry page, PdfObject operand)
+        {
+            PdfObject value = operand;
+            if (value is PdfName propertyName)
+            {
+                if (!page.InheritedValues.TryGetValue(ResourcesKey,
+                        out PdfObject? resourcesValue))
+                    throw new InvalidOperationException(
+                        $"Page {page.Index + 1} has no resources for optional content.");
+                PdfDictionary resources = ResolveObject(resourcesValue) as PdfDictionary
+                    ?? throw new InvalidOperationException("Page resources are not a dictionary.");
+                if (!resources.TryGetValue(PropertiesKey, out PdfObject? propertiesValue)
+                    || ResolveObject(propertiesValue) is not PdfDictionary properties
+                    || !properties.TryGetValue(propertyName, out value))
+                    throw new InvalidOperationException(
+                        $"Page {page.Index + 1} has no /{propertyName.ValueAsLatin1()} property resource.");
+            }
+            if (value is not PdfIndirectReference reference)
+                throw new NotSupportedException(
+                    "Direct optional-content properties cannot be flattened safely.");
+            PdfDictionary dictionary = ResolveObject(reference) as PdfDictionary
+                ?? throw new InvalidOperationException(
+                    "An optional-content property is not a dictionary.");
+            string type = dictionary.TryGetValue(TypeKey, out PdfObject? typeValue)
+                && ResolveObject(typeValue) is PdfName typeName
+                    ? typeName.ValueAsLatin1() : string.Empty;
+            if (type == "OCMD")
+                throw new NotSupportedException(
+                    "Optional-content membership expressions cannot be flattened safely.");
+            if (type != "OCG" || !registered.Contains(reference.ObjectNumber))
+                throw new InvalidOperationException(
+                    "An optional-content property does not reference a registered group.");
+            return reference.ObjectNumber;
+        }
+
+        PdfObject ResolveObject(PdfObject value)
+        {
+            var visited = new HashSet<(int, int)>();
+            for (int depth = 0; value is PdfIndirectReference reference; depth++)
+            {
+                if (depth >= 32 || !visited.Add((reference.ObjectNumber, reference.Generation)))
+                    throw new InvalidOperationException(
+                        "An optional-content value has an invalid reference chain.");
+                value = document.Resolve(reference);
+            }
+            return value;
         }
     }
 
@@ -322,22 +459,12 @@ public static class PdfOptionalContentEditor
 
         var propertyObjects = new HashSet<int>();
         CollectPropertyObjects(propertiesValue, 0);
-        foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
-        {
-            if (entry.Type is not (PdfCrossReferenceEntryType.InUse
-                    or PdfCrossReferenceEntryType.Compressed)
-                || entry.ObjectNumber == objectNumber
-                || propertyObjects.Contains(entry.ObjectNumber))
-                continue;
-            PdfObject value = document.Resolve(entry.ObjectNumber);
-            if (entry.ObjectNumber == tree.CatalogReference.ObjectNumber
-                && value is PdfDictionary catalog)
-                value = new PdfDictionary(catalog.Where(item =>
-                    !item.Key.Equals(OptionalContentPropertiesKey)));
-            if (ContainsTarget(value, 0))
-                throw new InvalidOperationException(
-                    $"Layer {objectNumber} is still referenced outside its configurations.");
-        }
+        var catalogWithoutProperties = new PdfDictionary(tree.Catalog.Where(item =>
+            !item.Key.Equals(OptionalContentPropertiesKey)));
+        var visitedActiveObjects = new HashSet<(int, int)>();
+        if (ContainsTarget(catalogWithoutProperties, 0))
+            throw new InvalidOperationException(
+                $"Layer {objectNumber} is still referenced outside its configurations.");
 
         var update = new PdfIncrementalUpdateBuilder(document);
         if (info.Groups.Count == 1)
@@ -385,7 +512,13 @@ public static class PdfOptionalContentEditor
             if (depth >= 128)
                 throw new InvalidOperationException("A document object is too deeply nested.");
             if (value is PdfIndirectReference reference)
-                return SameReference(reference, target);
+            {
+                if (SameReference(reference, target)) return true;
+                if (!visitedActiveObjects.Add(
+                        (reference.ObjectNumber, reference.Generation)))
+                    return false;
+                return ContainsTarget(document.Resolve(reference), depth + 1);
+            }
             if (value is PdfStream stream)
                 return ContainsTarget(stream.Dictionary, depth + 1);
             if (value is PdfDictionary dictionary)

@@ -17015,12 +17015,17 @@ public sealed class PdfIncrementalPageEditor
 
         var usedFonts = new HashSet<PdfName>();
         var usedXObjects = new HashSet<PdfName>();
+        var usedProperties = new HashSet<PdfName>();
         foreach (PdfContentInstruction instruction in instructions)
         {
             if (instruction.Operator == "Tf" && instruction.Operands.FirstOrDefault() is PdfName font)
                 usedFonts.Add(font);
             else if (instruction.Operator == "Do" && instruction.Operands.FirstOrDefault() is PdfName xObject)
                 usedXObjects.Add(xObject);
+            else if (instruction.Operator is "BDC" or "DP"
+                     && instruction.Operands.Count >= 2
+                     && instruction.Operands[1] is PdfName property)
+                usedProperties.Add(property);
         }
 
         PdfObject? resourcesValue = page.Entry.InheritedValues.GetValueOrDefault(Name("Resources"));
@@ -17031,6 +17036,7 @@ public sealed class PdfIncrementalPageEditor
         var entries = resources.ToDictionary(item => item.Key, item => item.Value);
         PruneCategory("Font", usedFonts);
         PruneCategory("XObject", usedXObjects);
+        PruneCategory("Properties", usedProperties);
         return new PdfDictionary(entries);
 
         void PruneCategory(string category, IReadOnlySet<PdfName> used)
