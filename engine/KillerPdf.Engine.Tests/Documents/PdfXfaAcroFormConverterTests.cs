@@ -100,6 +100,36 @@ public sealed class PdfXfaAcroFormConverterTests
     }
 
     [Fact]
+    public void ConvertPreservesEmbeddedJpegImageInFlattenedOutput()
+    {
+        string encoded = Convert.ToBase64String(MinimalJpeg(2, 1, 3));
+        PdfDocument source = Document(
+            $"""<template><subform name="form" layout="position"><field name="photo" x="10pt" y="20pt" w="70pt" h="15pt"><value><image contentType="image/jpeg">{encoded}</image></value><ui><imageEdit/></ui></field></subform></template>""",
+            """<datasets><data><form><photo/></form></data></datasets>""");
+
+        PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(
+            source, PdfXfaConversionMode.Flattened));
+
+        Assert.Null(PdfXfaReader.Read(converted));
+        PdfExtractedImage image = Assert.Single(new PdfPageContentReader(converted).Read(0).Images);
+        Assert.Equal(10, image.BoundingBox.Left);
+        Assert.Equal(65, image.BoundingBox.Bottom);
+        Assert.Equal(80, image.BoundingBox.Right);
+        Assert.Equal(80, image.BoundingBox.Top);
+    }
+
+    [Fact]
+    public void ConvertRequiresFlattenedOutputForImageFields()
+    {
+        string encoded = Convert.ToBase64String(MinimalJpeg(1, 1, 3));
+        PdfDocument source = Document(
+            $"""<template><subform name="form" layout="position"><field name="photo" x="0pt" y="0pt" w="10pt" h="10pt"><value><image contentType="image/jpeg">{encoded}</image></value><ui><imageEdit/></ui></field></subform></template>""",
+            """<datasets><data><form><photo/></form></data></datasets>""");
+
+        Assert.Throws<NotSupportedException>(() => PdfXfaAcroFormConverter.Convert(source));
+    }
+
+    [Fact]
     public void ConvertPaginatesRepeatedDynamicValuesAsEditableFields()
     {
         PdfDocument source = Document(
@@ -144,5 +174,25 @@ public sealed class PdfXfaAcroFormConverterTests
         foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
         pdf.Append($"trailer << /Size {objects.Count + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
         return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+    }
+
+    private static byte[] MinimalJpeg(int width, int height, int components)
+    {
+        int frameLength = 8 + components * 3;
+        var bytes = new List<byte>
+        {
+            0xFF, 0xD8, 0xFF, 0xC0, (byte)(frameLength >> 8), (byte)frameLength,
+            0x08, (byte)(height >> 8), (byte)height,
+            (byte)(width >> 8), (byte)width, (byte)components
+        };
+        for (int component = 0; component < components; component++)
+            bytes.AddRange([(byte)(component + 1), 0x11, 0]);
+        int scanLength = 6 + components * 2;
+        bytes.AddRange([0xFF, 0xDA, (byte)(scanLength >> 8), (byte)scanLength,
+            (byte)components]);
+        for (int component = 0; component < components; component++)
+            bytes.AddRange([(byte)(component + 1), 0]);
+        bytes.AddRange([0, 63, 0, 0, 0xFF, 0xD9]);
+        return [.. bytes];
     }
 }

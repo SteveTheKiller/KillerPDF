@@ -11,7 +11,8 @@ public static class PdfXfaAcroFormConverter
         "dateTimeEdit", "defaultUi", "numericEdit", "passwordEdit", "textEdit"
     };
     private static readonly HashSet<string> ConvertibleControls = new(
-        TextControls.Concat(["checkButton", "choiceList", "signature"]), StringComparer.OrdinalIgnoreCase);
+        TextControls.Concat(["checkButton", "choiceList", "imageEdit", "signature"]),
+        StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Preserves source pages, removes XFA, and authors editable text widgets.</summary>
     public static byte[] Convert(PdfDocument document) =>
@@ -33,7 +34,18 @@ public static class PdfXfaAcroFormConverter
             field.ControlType is null || !ConvertibleControls.Contains(field.ControlType));
         if (unsupported is not null)
             throw new NotSupportedException(
-                $"XFA control '{unsupported.ControlType ?? "unknown"}' cannot be converted to a text field.");
+                $"XFA control '{unsupported.ControlType ?? "unknown"}' cannot be converted.");
+        bool hasImages = fields.Values.Any(field =>
+            field.ControlType!.Equals("imageEdit", StringComparison.OrdinalIgnoreCase));
+        if (hasImages && mode != PdfXfaConversionMode.Flattened)
+            throw new NotSupportedException(
+                "XFA image fields can be preserved only in flattened output.");
+        if (hasImages && info.FormType == PdfXfaFormType.Dynamic)
+            throw new NotSupportedException(
+                "Dynamic XFA image-field conversion is not supported.");
+        Dictionary<string, PdfXfaImageValue> images = hasImages
+            ? PdfXfaImages.Read(info).ToDictionary(image => image.FieldPath, StringComparer.Ordinal)
+            : [];
         PdfFormDataSet data = PdfXfaDatasets.Read(info);
         Dictionary<string, string> values = data.Fields.ToDictionary(
             field => field.Name,
@@ -81,10 +93,34 @@ public static class PdfXfaAcroFormConverter
             if (bottom < 0 || placement.X + placement.Width > page.Width)
                 throw new InvalidOperationException(
                     $"XFA field '{placement.FieldPath}' lies outside its page.");
+            if (field.ControlType!.Equals("imageEdit", StringComparison.OrdinalIgnoreCase))
+            {
+                AddImage(editor, field, images, placement.PageIndex, page.Width, page.Height,
+                    placement.X, bottom, placement.Width, placement.Height);
+                continue;
+            }
             AddField(editor, field, placement.FieldPath, placement.PageIndex,
                 placement.X, bottom, placement.Width, placement.Height, value);
         }
         return Finish(editor, mode);
+    }
+
+    private static void AddImage(PdfIncrementalPageEditor editor, PdfXfaTemplateField field,
+        IReadOnlyDictionary<string, PdfXfaImageValue> images, int pageIndex,
+        double pageWidth, double pageHeight, double x, double bottom, double width, double height)
+    {
+        if (!images.TryGetValue(field.Path, out PdfXfaImageValue? image) || image.Data.IsEmpty)
+            throw new NotSupportedException(
+                $"XFA image field '{field.Path}' has no embedded image value.");
+        if (image.IsExternal)
+            throw new NotSupportedException(
+                $"XFA image field '{field.Path}' requires an external resource.");
+        if (!string.Equals(image.ContentType, "image/jpeg", StringComparison.OrdinalIgnoreCase))
+            throw new NotSupportedException(
+                $"XFA image field '{field.Path}' does not contain a supported JPEG image.");
+        var content = new PdfContentStreamBuilder()
+            .DrawImage(PdfImage.FromJpeg(image.Data), x, bottom, width, height);
+        editor.AppendPageContent(pageIndex, pageWidth, pageHeight, content);
     }
 
     private static byte[] Finish(PdfIncrementalPageEditor editor, PdfXfaConversionMode mode)
