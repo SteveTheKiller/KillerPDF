@@ -2032,6 +2032,37 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void Build_WritesEditableCalibratedLineMeasurement()
+    {
+        var profile = new PdfMeasurementProfile("Site plan", 0.125, "ft", 3);
+        PdfDocument reopened = PdfDocument.Open(
+            new PdfIncrementalAnnotationEditor(PdfDocument.Open(
+                new PdfDocumentBuilder().AddBlankPage().Build()))
+                .AddLine(0, new PdfPoint(20, 30), new PdfPoint(120, 30),
+                    contents: "12.500 ft", measurement: profile)
+                .Build());
+
+        PdfDictionary annotation = ResolveDictionary(reopened,
+            Assert.IsType<PdfArray>(Pages(reopened)[0].Page[Name("Annots")])[0]);
+        Assert.Equal("LineDimension", Assert.IsType<PdfName>(
+            annotation[Name("IT")]).ValueAsLatin1());
+        PdfDictionary measure = Assert.IsType<PdfDictionary>(annotation[Name("Measure")]);
+        Assert.Equal("RL", Assert.IsType<PdfName>(measure[Name("Subtype")]).ValueAsLatin1());
+        PdfDictionary distance = Assert.IsType<PdfDictionary>(
+            Assert.IsType<PdfArray>(measure[Name("D")])[0]);
+        Assert.Equal(0.125, Assert.IsType<PdfReal>(distance[Name("C")]).Value);
+        Assert.Equal(1000, Assert.IsType<PdfInteger>(distance[Name("D")]).Value);
+        ReadOnlySpan<byte> units = Assert.IsType<PdfString>(distance[Name("U")]).Bytes.Span;
+        Assert.Equal("ft", Encoding.BigEndianUnicode.GetString(units[2..]));
+        _ = new PdfIncrementalPageEditor(reopened);
+
+        var editor = new PdfIncrementalAnnotationEditor(reopened);
+        Assert.Throws<ArgumentException>(() => editor.AddLine(
+            0, new PdfPoint(0, 0), new PdfPoint(10, 10),
+            intent: PdfLineAnnotationIntent.Arrow, measurement: profile));
+    }
+
+    [Fact]
     public void Build_WritesAlignedDashedCalloutFreeTextWithExpandedBounds()
     {
         TrueTypeFont font = TrueTypeFont.Load(

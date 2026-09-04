@@ -392,7 +392,8 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfLineEndingStyle startEnding = PdfLineEndingStyle.None,
         PdfLineEndingStyle endEnding = PdfLineEndingStyle.None,
         PdfRgbColor? interiorColor = null,
-        PdfLineAnnotationIntent? intent = null)
+        PdfLineAnnotationIntent? intent = null,
+        PdfMeasurementProfile? measurement = null)
     {
         ValidatePage(pageIndex);
         ValidateStroke(lineWidth, opacity);
@@ -403,11 +404,18 @@ public sealed class PdfIncrementalAnnotationEditor
             throw new ArgumentOutOfRangeException(nameof(endEnding));
         if (intent is not null && !Enum.IsDefined(intent.Value))
             throw new ArgumentOutOfRangeException(nameof(intent));
+        if (measurement is not null)
+        {
+            if (intent is not null && intent != PdfLineAnnotationIntent.Dimension)
+                throw new ArgumentException(
+                    "A measurement profile requires dimension intent.", nameof(intent));
+            intent = PdfLineAnnotationIntent.Dimension;
+        }
         if (start == end) throw new ArgumentException("A line must have two distinct endpoints.", nameof(end));
         _annotations.Add(new PendingLine(
             pageIndex, start, end, color ?? new PdfRgbColor(0, 0, 0),
             lineWidth, opacity, contents, annotationMetadata, dash,
-            startEnding, endEnding, interiorColor, intent));
+            startEnding, endEnding, interiorColor, intent, measurement));
         return this;
     }
 
@@ -2902,7 +2910,30 @@ public sealed class PdfIncrementalAnnotationEditor
             entries.Add(("IC", ColorArray(line.InteriorColor.Value)));
         if (line.Intent.HasValue)
             entries.Add(("IT", Name(PdfAnnotationIntentNames.Name(line.Intent.Value))));
+        if (line.Measurement is not null)
+            entries.Add(("Measure", MeasurementDictionary(line.Measurement)));
         return Dictionary([.. entries]);
+    }
+
+    private static PdfDictionary MeasurementDictionary(PdfMeasurementProfile profile)
+    {
+        long denominator = 1;
+        for (int index = 0; index < profile.Precision; index++) denominator *= 10;
+        PdfDictionary format = Dictionary(
+            ("Type", Name("NumberFormat")),
+            ("U", UnicodeString(profile.UnitSymbol)),
+            ("C", Number(profile.UnitsPerPoint)),
+            ("F", Name("D")),
+            ("D", new PdfInteger(denominator)),
+            ("FD", new PdfBoolean(true)));
+        PdfArray formats = new([format]);
+        return Dictionary(
+            ("Type", Name("Measure")),
+            ("Subtype", Name("RL")),
+            ("R", UnicodeString($"1 pt = {Format(profile.UnitsPerPoint)} {profile.UnitSymbol}")),
+            ("X", formats),
+            ("Y", formats),
+            ("D", formats));
     }
 
     private static PdfStream LineAppearance(PendingLine line)
@@ -3768,7 +3799,8 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfAnnotationMetadata? Metadata,
         IReadOnlyList<double>? DashPattern,
         PdfLineEndingStyle StartEnding, PdfLineEndingStyle EndEnding,
-        PdfRgbColor? InteriorColor, PdfLineAnnotationIntent? Intent)
+        PdfRgbColor? InteriorColor, PdfLineAnnotationIntent? Intent,
+        PdfMeasurementProfile? Measurement)
         : PendingAnnotation(PageIndex);
     private sealed record PendingShape(
         PendingShapeType Type, int PageIndex, double X, double Y, double Width, double Height,
