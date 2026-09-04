@@ -411,6 +411,26 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsRadialShadings()
+    {
+        var shading = new PdfRadialGradient(5, 5, 0, 5, 5, 5,
+        [
+            new PdfGradientStop(0, new PdfRgbColor(0, 0, 0)),
+            new PdfGradientStop(1, new PdfRgbColor(1, 1, 1))
+        ]);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().PaintShading(shading)).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([36, 36, 36, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([180, 180, 180, 255], Pixel(rendered, 8, 5));
+        Assert.DoesNotContain("The shading type or function is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();

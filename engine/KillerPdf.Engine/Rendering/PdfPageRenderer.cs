@@ -246,7 +246,7 @@ public sealed class PdfPageRenderer
                         diagnostics.Add(inlineDiagnostic ?? "Inline-image rendering is not implemented.");
                     break;
                 case "sh" when values.Count == 1 && values[0] is PdfName shadingName:
-                    if (!TryRenderAxialShading(resources, shadingName, state, pixels,
+                    if (!TryRenderShading(resources, shadingName, state, pixels,
                         options.Width, options.Height, scaleX, scaleY, out string? shadingDiagnostic))
                         diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
                     break;
@@ -810,7 +810,7 @@ public sealed class PdfPageRenderer
         };
     }
 
-    private bool TryRenderAxialShading(PdfDictionary resources, PdfName resourceName,
+    private bool TryRenderShading(PdfDictionary resources, PdfName resourceName,
         GraphicsState state, byte[] target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, out string? diagnostic)
     {
@@ -829,8 +829,12 @@ public sealed class PdfPageRenderer
                 _ => throw new FormatException("An axial shading dictionary is invalid.")
             };
             if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
-                || Resolve(typeValue) is not PdfInteger { Value: 2 })
+                || Resolve(typeValue) is not PdfInteger shadingType)
                 throw new NotSupportedException();
+            if (shadingType.Value == 3)
+                return RenderRadialShading(shading, resources, state, target,
+                    targetWidth, targetHeight, scaleX, scaleY);
+            if (shadingType.Value != 2) throw new NotSupportedException();
             if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
                 throw new FormatException("An axial shading color space is missing.");
             ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
@@ -865,20 +869,7 @@ public sealed class PdfPageRenderer
                 extendStart = Resolve(extend[0]) is PdfBoolean { Value: true };
                 extendEnd = Resolve(extend[1]) is PdfBoolean { Value: true };
             }
-            Point[]? bounds = null;
-            if (shading.TryGetValue(Name("BBox"), out PdfObject? boundsValue))
-            {
-                PdfArray box = ResolveArray(boundsValue, 4, "Axial shading bounding box");
-                double left = Number(Resolve(box[0])), bottom = Number(Resolve(box[1]));
-                double right = Number(Resolve(box[2])), top = Number(Resolve(box[3]));
-                if (right <= left || top <= bottom)
-                    throw new FormatException("An axial shading bounding box is invalid.");
-                bounds =
-                [
-                    state.Transform.Apply(left, bottom), state.Transform.Apply(right, bottom),
-                    state.Transform.Apply(right, top), state.Transform.Apply(left, top)
-                ];
-            }
+            Point[]? bounds = ReadShadingBounds(shading, state, "Axial");
             if (!state.Transform.TryInverse(out Matrix inverse)) return true;
             for (int y = 0; y < targetHeight; y++)
                 for (int x = 0; x < targetWidth; x++)
@@ -902,6 +893,131 @@ public sealed class PdfPageRenderer
             diagnostic = "The shading type or function is not implemented.";
             return false;
         }
+    }
+
+    private bool RenderRadialShading(PdfDictionary shading, PdfDictionary resources,
+        GraphicsState state, byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY)
+    {
+        if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
+            throw new FormatException("A radial shading color space is missing.");
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
+        if (colorSpace.Palette is not null) throw new NotSupportedException();
+        if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
+            throw new FormatException("A radial shading coordinate array is missing.");
+        PdfArray coordinates = ResolveArray(coordinatesValue, 6,
+            "Radial shading coordinate array");
+        double x0 = Number(Resolve(coordinates[0]));
+        double y0 = Number(Resolve(coordinates[1]));
+        double r0 = Number(Resolve(coordinates[2]));
+        double x1 = Number(Resolve(coordinates[3]));
+        double y1 = Number(Resolve(coordinates[4]));
+        double r1 = Number(Resolve(coordinates[5]));
+        if (new[] { x0, y0, r0, x1, y1, r1 }.Any(value => !double.IsFinite(value))
+            || r0 < 0 || r1 < 0 || x0 == x1 && y0 == y1 && r0 == r1)
+            throw new FormatException("A radial shading geometry is invalid.");
+        if (!shading.TryGetValue(Name("Function"), out PdfObject? functionValue))
+            throw new FormatException("A radial shading function is missing.");
+        Func<double, Color> function = ReadColorFunction(
+            functionValue, colorSpace, "radial shading function");
+        double[] domain = shading.TryGetValue(Name("Domain"), out PdfObject? domainValue)
+            ? ResolveArray(domainValue, 2, "Radial shading domain")
+                .Select(item => Number(Resolve(item))).ToArray()
+            : [0, 1];
+        if (domain.Any(value => !double.IsFinite(value)) || domain[0] >= domain[1])
+            throw new FormatException("A radial shading domain is invalid.");
+        bool extendStart = false, extendEnd = false;
+        if (shading.TryGetValue(Name("Extend"), out PdfObject? extendValue))
+        {
+            PdfArray extend = ResolveArray(extendValue, 2, "Radial shading extension array");
+            extendStart = Resolve(extend[0]) is PdfBoolean { Value: true };
+            extendEnd = Resolve(extend[1]) is PdfBoolean { Value: true };
+        }
+        Point[]? bounds = ReadShadingBounds(shading, state, "Radial");
+        if (!state.Transform.TryInverse(out Matrix inverse)) return true;
+        double centerX = x1 - x0, centerY = y1 - y0, radius = r1 - r0;
+        for (int y = 0; y < targetHeight; y++)
+            for (int x = 0; x < targetWidth; x++)
+            {
+                double pageX = (x + 0.5) / scaleX;
+                double pageY = (targetHeight - y - 0.5) / scaleY;
+                if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
+                Point point = inverse.Apply(pageX, pageY);
+                double relativeX = x0 - point.X, relativeY = y0 - point.Y;
+                double a = centerX * centerX + centerY * centerY - radius * radius;
+                double b = 2 * (relativeX * centerX + relativeY * centerY - r0 * radius);
+                double c = relativeX * relativeX + relativeY * relativeY - r0 * r0;
+                if (!TryRadialParameter(a, b, c, r0, radius,
+                    extendStart, extendEnd, out double unit)) continue;
+                unit = Math.Clamp(unit, 0, 1);
+                double input = domain[0] + unit * (domain[1] - domain[0]);
+                SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha);
+            }
+        return true;
+    }
+
+    private static bool TryRadialParameter(double a, double b, double c,
+        double startRadius, double radiusChange, bool extendStart, bool extendEnd,
+        out double parameter)
+    {
+        Span<double> roots = stackalloc double[2];
+        int count;
+        if (Math.Abs(a) < 1e-12)
+        {
+            if (Math.Abs(b) < 1e-12)
+            {
+                parameter = 0;
+                return false;
+            }
+            roots[0] = -c / b;
+            count = 1;
+        }
+        else
+        {
+            double discriminant = b * b - 4 * a * c;
+            if (discriminant < 0)
+            {
+                parameter = 0;
+                return false;
+            }
+            double squareRoot = Math.Sqrt(discriminant);
+            roots[0] = (-b - squareRoot) / (2 * a);
+            roots[1] = (-b + squareRoot) / (2 * a);
+            count = 2;
+        }
+        parameter = double.NaN;
+        for (int index = 0; index < count; index++)
+        {
+            double candidate = roots[index];
+            if (startRadius + candidate * radiusChange < 0) continue;
+            bool paintable = candidate is >= 0 and <= 1
+                || candidate < 0 && extendStart || candidate > 1 && extendEnd;
+            if (!paintable) continue;
+            if (double.IsNaN(parameter)
+                || candidate is >= 0 and <= 1 && parameter is not (>= 0 and <= 1)
+                || Math.Abs(candidate - 0.5) < Math.Abs(parameter - 0.5))
+                parameter = candidate;
+        }
+        return !double.IsNaN(parameter);
+    }
+
+    private Point[]? ReadShadingBounds(
+        PdfDictionary shading, GraphicsState state, string description)
+    {
+        if (!shading.TryGetValue(Name("BBox"), out PdfObject? boundsValue)) return null;
+        PdfArray box = ResolveArray(boundsValue, 4, $"{description} shading bounding box");
+        double left = Number(Resolve(box[0])), bottom = Number(Resolve(box[1]));
+        double right = Number(Resolve(box[2])), top = Number(Resolve(box[3]));
+        if (!double.IsFinite(left) || !double.IsFinite(bottom)
+            || !double.IsFinite(right) || !double.IsFinite(top)
+            || right <= left || top <= bottom)
+            throw new FormatException($"A {description.ToLowerInvariant()} shading bounding box is invalid.");
+        return
+        [
+            state.Transform.Apply(left, bottom), state.Transform.Apply(right, bottom),
+            state.Transform.Apply(right, top), state.Transform.Apply(left, top)
+        ];
     }
 
     private double[] ReadFunctionArray(PdfDictionary dictionary, string key, int count,
