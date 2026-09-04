@@ -26,6 +26,37 @@ public sealed class PdfOcrReviewTests
     }
 
     [Fact]
+    public void MacroStepCreatesValidatedProviderOptions()
+    {
+        var step = new PdfMacroStep(PdfMacroOperation.Ocr,
+            new Dictionary<string, string>
+            {
+                ["languages"] = "en-US, de-DE",
+                ["outputMode"] = "exact-image",
+                ["deskew"] = "false",
+                ["removeNoise"] = "true",
+                ["detectPageSegments"] = "false"
+            });
+
+        PdfOcrOptions options = PdfOcrOptions.FromMacroStep(step);
+
+        Assert.Equal(["en-US", "de-DE"], options.Languages);
+        Assert.Equal(PdfOcrOutputMode.ExactImage, options.OutputMode);
+        Assert.False(options.Deskew);
+        Assert.True(options.CorrectOrientation);
+        Assert.True(options.RemoveNoise);
+        Assert.False(options.DetectPageSegments);
+        Assert.Throws<ArgumentException>(() => PdfOcrOptions.FromMacroStep(
+            new PdfMacroStep(PdfMacroOperation.Save)));
+        Assert.Throws<ArgumentException>(() => PdfOcrOptions.FromMacroStep(
+            new PdfMacroStep(PdfMacroOperation.Ocr,
+                new Dictionary<string, string> { ["deskew"] = "sometimes" })));
+        Assert.Throws<ArgumentException>(() => PdfOcrOptions.FromMacroStep(
+            new PdfMacroStep(PdfMacroOperation.Ocr,
+                new Dictionary<string, string> { ["providerScript"] = "run" })));
+    }
+
+    [Fact]
     public void BatchRunnerSuppliesTheSameValidatedOptionsToEveryPage()
     {
         var options = new PdfOcrOptions(["en-US", "es"],

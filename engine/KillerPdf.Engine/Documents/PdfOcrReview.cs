@@ -21,6 +21,11 @@ public enum PdfOcrOutputMode
 /// <summary>Validated recognition and preprocessing settings supplied to an OCR provider.</summary>
 public sealed record PdfOcrOptions
 {
+    private static readonly HashSet<string> MacroSettingNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "languages", "outputMode", "deskew", "correctOrientation",
+        "removeBackground", "removeNoise", "detectPageSegments"
+    };
     private readonly string[] _languages;
 
     /// <summary>Creates OCR settings for one or more recognition languages.</summary>
@@ -52,6 +57,48 @@ public sealed record PdfOcrOptions
         RemoveBackground = removeBackground;
         RemoveNoise = removeNoise;
         DetectPageSegments = detectPageSegments;
+    }
+
+    /// <summary>Reads validated OCR provider options from an OCR macro step.</summary>
+    public static PdfOcrOptions FromMacroStep(PdfMacroStep step)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        if (step.Operation != PdfMacroOperation.Ocr)
+            throw new ArgumentException("The macro step is not an OCR operation.", nameof(step));
+        IReadOnlyDictionary<string, string> settings = step.Settings
+            ?? new Dictionary<string, string>();
+        string? unknown = settings.Keys.FirstOrDefault(key => !MacroSettingNames.Contains(key));
+        if (unknown is not null)
+            throw new ArgumentException($"Unknown OCR macro setting '{unknown}'.", nameof(step));
+        string languages = Value("languages", "en-US");
+        string mode = Value("outputMode", "searchable-image");
+        PdfOcrOutputMode outputMode = mode.ToLowerInvariant() switch
+        {
+            "searchable-image" or "searchableimage" => PdfOcrOutputMode.SearchableImage,
+            "exact-image" or "exactimage" => PdfOcrOutputMode.ExactImage,
+            "editable" => PdfOcrOutputMode.Editable,
+            _ => throw new ArgumentException(
+                "OCR outputMode must be searchable-image, exact-image, or editable.", nameof(step))
+        };
+        return new PdfOcrOptions(
+            languages.Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            outputMode,
+            Boolean("deskew", true),
+            Boolean("correctOrientation", true),
+            Boolean("removeBackground", false),
+            Boolean("removeNoise", false),
+            Boolean("detectPageSegments", true));
+
+        string Value(string name, string fallback) =>
+            settings.TryGetValue(name, out string? value) ? value : fallback;
+
+        bool Boolean(string name, bool fallback)
+        {
+            if (!settings.TryGetValue(name, out string? value)) return fallback;
+            if (bool.TryParse(value, out bool parsed)) return parsed;
+            throw new ArgumentException(
+                $"OCR macro setting '{name}' must be true or false.", nameof(step));
+        }
     }
 
     /// <summary>Gets recognition languages in provider priority order.</summary>
