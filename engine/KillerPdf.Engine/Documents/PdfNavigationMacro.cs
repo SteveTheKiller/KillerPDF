@@ -35,6 +35,8 @@ public static class PdfNavigationMacro
         };
         if (options.TitlePattern is not null)
             settings["titlePattern"] = options.TitlePattern;
+        if (options.PageRegions is not null)
+            settings["pageRegions"] = JsonSerializer.Serialize(options.PageRegions);
         return new PdfMacroStep(PdfMacroOperation.GenerateBookmarks,
             settings);
     }
@@ -171,8 +173,25 @@ public static class PdfNavigationMacro
             MaximumDepth = PositiveInteger(step, "maximumDepth", 256),
             TitlePattern = step.Settings.TryGetValue("titlePattern", out string? pattern)
                 ? pattern
-                : null
+                : null,
+            PageRegions = PageRegions(step)
         };
+    }
+
+    private static IReadOnlyDictionary<int, PdfContentBounds>? PageRegions(PdfMacroStep step)
+    {
+        if (!step.Settings!.TryGetValue("pageRegions", out string? json))
+            return null;
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<int, PdfContentBounds>>(json)
+                ?? throw new JsonException();
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException(
+                "The heading page regions are invalid.", nameof(step), exception);
+        }
     }
 
     private static int PositiveInteger(PdfMacroStep step, string key, int maximum)

@@ -82,6 +82,33 @@ public sealed class PdfNavigationMacroTests
     }
 
     [Fact]
+    public void HeadingMacroRoundTripsAndAppliesPageRegions()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.HelveticaBold, 18)
+                .MoveText(30, 350).ShowLatin1Text("Chapter")
+                .EndText().BeginText().SetFont(PdfStandardFont.HelveticaBold, 18)
+                .MoveText(200, 200).ShowLatin1Text("Sidebar").EndText())
+            .Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Region",
+        [
+            PdfNavigationMacro.HeadingBookmarksStep(new PdfBookmarkDetectionOptions
+            {
+                PageRegions = new Dictionary<int, PdfContentBounds>
+                {
+                    [0] = new(0, 300, 160, 400)
+                }
+            })
+        ]).ToJson());
+
+        PdfDocument output = PdfDocument.Open(PdfNavigationMacro.Execute(
+            Assert.Single(macro.Steps), source));
+
+        Assert.Equal("Chapter", Assert.Single(PdfBookmarkReader.Read(output)).Title);
+    }
+
+    [Fact]
     public void MacroRoundTripRemovesOnlyUnsafeUriLinks()
     {
         byte[] source = DocumentWithUnsafeAndUnresolvedLinks();
