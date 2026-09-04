@@ -5,6 +5,8 @@ public sealed record PdfFormDataSet
 {
     /// <summary>Gets the optional source PDF reference.</summary>
     public string? SourcePdfPath { get; init; }
+    /// <summary>Gets the optional embedded source PDF bytes.</summary>
+    public ReadOnlyMemory<byte>? EmbeddedSourcePdf { get; init; }
     /// <summary>Gets the ordered form field values.</summary>
     public IReadOnlyList<PdfFormDataField> Fields { get; init; } = [];
     /// <summary>Gets the ordered annotations carried by the interchange file.</summary>

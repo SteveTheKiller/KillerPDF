@@ -1,4 +1,5 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -6,6 +7,35 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfFdfFormDataTests
 {
+    [Fact]
+    public void RoundTripsAnEmbeddedSourcePdfThroughAFileSpecification()
+    {
+        byte[] pdf = new PdfDocumentBuilder().AddBlankPage().Build();
+        var source = new PdfFormDataSet
+        {
+            SourcePdfPath = "forms/source.pdf",
+            EmbeddedSourcePdf = pdf,
+            Fields = [new PdfFormDataField { Name = "name", Values = ["Alice"] }]
+        };
+
+        PdfFormDataSet result = PdfFdfFormData.Read(PdfFdfFormData.Write(source));
+
+        Assert.Equal("forms/source.pdf", result.SourcePdfPath);
+        Assert.Equal(pdf, result.EmbeddedSourcePdf!.Value.ToArray());
+        Assert.Single(result.Fields);
+        Assert.Single(PdfPageBoxInformation.Read(
+            PdfDocument.Open(result.EmbeddedSourcePdf.Value)));
+    }
+
+    [Fact]
+    public void WriteRejectsInvalidEmbeddedSourceData()
+    {
+        Assert.Throws<ArgumentException>(() => PdfFdfFormData.Write(new PdfFormDataSet
+        {
+            EmbeddedSourcePdf = "not a pdf"u8.ToArray()
+        }));
+    }
+
     [Fact]
     public void WriteAndReadRoundTripUnicodeEmptyAndMultipleValues()
     {

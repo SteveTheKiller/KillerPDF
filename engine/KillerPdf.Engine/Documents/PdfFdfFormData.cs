@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.CrossReference;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Writing;
@@ -53,10 +54,44 @@ public static class PdfFdfFormData
                 ?? throw new InvalidOperationException("The FDF /Annots value is not an array.");
             foreach (PdfObject annotation in array) annotations.Add(ReadAnnotation(annotation));
         }
+        string? sourcePdfPath = null;
+        ReadOnlyMemory<byte>? embeddedSourcePdf = null;
+        if (fdf.TryGetValue(Name("F"), out PdfObject? fileValue))
+        {
+            PdfObject file = Resolve(fileValue);
+            if (file is PdfString or PdfName)
+                sourcePdfPath = Text(file, "The FDF /F value");
+            else if (file is PdfDictionary specification)
+            {
+                sourcePdfPath = specification.TryGetValue(Name("UF"), out PdfObject? unicodeName)
+                    ? Text(Resolve(unicodeName), "The FDF source /UF value")
+                    : specification.TryGetValue(Name("F"), out PdfObject? nameValue)
+                        ? Text(Resolve(nameValue), "The FDF source /F value") : null;
+                if (specification.TryGetValue(Name("EF"), out PdfObject? embeddedValue))
+                {
+                    PdfDictionary embedded = Resolve(embeddedValue) as PdfDictionary
+                        ?? throw new InvalidOperationException(
+                            "The FDF source /EF value is not a dictionary.");
+                    PdfObject? streamValue = embedded.TryGetValue(Name("UF"), out PdfObject? uf)
+                        ? uf : embedded.TryGetValue(Name("F"), out PdfObject? ordinary) ? ordinary : null;
+                    if (streamValue is null || Resolve(streamValue) is not PdfStream stream)
+                        throw new InvalidOperationException(
+                            "The FDF source /EF dictionary has no embedded file stream.");
+                    byte[] decoded = PdfStreamDecoder.Decode(stream, reference => Resolve(reference),
+                        256 * 1024 * 1024);
+                    if (!decoded.AsSpan().StartsWith("%PDF-"u8))
+                        throw new InvalidOperationException(
+                            "The FDF embedded source is not a PDF document.");
+                    embeddedSourcePdf = decoded;
+                }
+            }
+            else throw new InvalidOperationException(
+                "The FDF /F value is not a string, name, or file specification.");
+        }
         return new PdfFormDataSet
         {
-            SourcePdfPath = fdf.TryGetValue(Name("F"), out PdfObject? fileValue)
-                ? Text(Resolve(fileValue), "The FDF /F value") : null,
+            SourcePdfPath = sourcePdfPath,
+            EmbeddedSourcePdf = embeddedSourcePdf,
             Fields = Array.AsReadOnly(fields.ToArray()),
             Annotations = Array.AsReadOnly(annotations.ToArray()),
             ContainsJavaScript = ContainsScript(root, new HashSet<(int, int)>(), 0)
@@ -208,7 +243,20 @@ public static class PdfFdfFormData
         {
             new(Name("Fields"), new PdfArray(fields))
         };
-        if (data.SourcePdfPath is not null) fdfEntries.Add(new(Name("F"), String(data.SourcePdfPath)));
+        PdfIndirectReference? sourceSpecification = null;
+        PdfIndirectReference? embeddedSource = null;
+        if (data.EmbeddedSourcePdf is ReadOnlyMemory<byte> sourceBytes)
+        {
+            if (sourceBytes.IsEmpty || sourceBytes.Length > 256 * 1024 * 1024
+                || !sourceBytes.Span.StartsWith("%PDF-"u8))
+                throw new ArgumentException(
+                    "An embedded FDF source must be a PDF no larger than 256 MB.", nameof(data));
+            sourceSpecification = new PdfIndirectReference(2, 0);
+            embeddedSource = new PdfIndirectReference(3, 0);
+            fdfEntries.Add(new(Name("F"), sourceSpecification));
+        }
+        else if (data.SourcePdfPath is not null)
+            fdfEntries.Add(new(Name("F"), String(data.SourcePdfPath)));
         if (data.Annotations.Count > 0)
             fdfEntries.Add(new(Name("Annots"), new PdfArray(
                 data.Annotations.Select(annotation => (PdfObject)Annotation(annotation)))));
@@ -217,13 +265,34 @@ public static class PdfFdfFormData
             new(Name("FDF"), new PdfDictionary(fdfEntries))]);
         using var output = new MemoryStream();
         output.Write("%FDF-1.2\n%\xE2\xE3\xCF\xD3\n"u8);
-        long objectOffset = output.Position;
-        PdfObjectWriter.Write(output, new PdfIndirectObject(1, 0, root, (int)objectOffset));
+        var offsets = new List<long>();
+        offsets.Add(output.Position);
+        PdfObjectWriter.Write(output, new PdfIndirectObject(1, 0, root, (int)offsets[0]));
+        if (sourceSpecification is not null && embeddedSource is not null)
+        {
+            string name = data.SourcePdfPath ?? "source.pdf";
+            offsets.Add(output.Position);
+            PdfObjectWriter.Write(output, new PdfIndirectObject(2, 0, new PdfDictionary([
+                new(Name("Type"), Name("Filespec")),
+                new(Name("F"), String(name)),
+                new(Name("UF"), String(name)),
+                new(Name("EF"), new PdfDictionary([
+                    new(Name("F"), embeddedSource), new(Name("UF"), embeddedSource)]))
+            ]), (int)offsets[1]));
+            offsets.Add(output.Position);
+            ReadOnlyMemory<byte> bytes = data.EmbeddedSourcePdf!.Value;
+            PdfObjectWriter.Write(output, new PdfIndirectObject(3, 0, new PdfStream(
+                new PdfDictionary([new(Name("Type"), Name("EmbeddedFile"))]), bytes.Span),
+                (int)offsets[2]));
+        }
         long xrefOffset = output.Position;
-        WriteAscii(output, $"xref\n0 2\n0000000000 65535 f \n{objectOffset:0000000000} 00000 n \n");
+        WriteAscii(output, $"xref\n0 {offsets.Count + 1}\n0000000000 65535 f \n");
+        foreach (long offset in offsets)
+            WriteAscii(output, $"{offset:0000000000} 00000 n \n");
         output.Write("trailer\n"u8);
         PdfObjectWriter.Write(output, new PdfDictionary([
-            new(Name("Root"), new PdfIndirectReference(1, 0)), new(Name("Size"), new PdfInteger(2))]));
+            new(Name("Root"), new PdfIndirectReference(1, 0)),
+            new(Name("Size"), new PdfInteger(offsets.Count + 1))]));
         WriteAscii(output, $"\nstartxref\n{xrefOffset.ToString(CultureInfo.InvariantCulture)}\n%%EOF\n");
         return output.ToArray();
     }
