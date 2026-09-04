@@ -34,7 +34,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added automatic-field proposals and reviewed field values, descriptions, requirements, text layout, choice fields, selected radio groups, multi-widget alignment and distribution, non-executing action inspection, and vector form flattening behind an explicit accept or reject boundary (#342).
 - Added common sensitive-data searches including payment card checksums, bulk review selection, reason codes, overlay text, privacy-safe reports, and isolated batch verification of image-only rebuilding with active-object scans for recoverable text (#341).
 - Added locally saved and editable fillable text-field presets with reusable dimensions and visual styles (#340).
-- Added unified threaded comment inspection and JSON review reports for notes, highlights, drawings, replies, and other annotations (#288).
+- Added unified threaded comment inspection, editing, removal, and JSON review reports for notes, highlights, drawings, replies, and other annotations (#288).
 - Added source-preserving partial rasterization with region validation, affected-content planning, exact raster sizing, and selected-zone replacement (#369).
 - Added unified print-production reports with complete page boxes, process and spot separations, and validated output-intent ICC profile details (#264).
 - Added per-image CCITT Group 4, adaptive predictor, or plain Flate selection for smaller lossless raster pages, plus strict full-page JPEG passthrough detection (#366).

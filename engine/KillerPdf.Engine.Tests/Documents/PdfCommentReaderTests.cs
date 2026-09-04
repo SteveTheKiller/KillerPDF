@@ -89,4 +89,26 @@ public sealed class PdfCommentReaderTests
             .GetProperty("replies")[0].GetProperty("comment")
             .GetProperty("contents").GetString());
     }
+
+    [Fact]
+    public void CommentEditorUpdatesAndRemovesReaderSelections()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()))
+            .AddHighlight(0, 10, 10, 40, 12, "Review this")
+            .Build());
+        PdfCommentInfo selected = Assert.Single(PdfCommentReader.Read(original));
+
+        PdfDocument edited = PdfDocument.Open(
+            PdfCommentEditor.SetContents(original, selected, "Translation updated"));
+        PdfCommentInfo updated = Assert.Single(PdfCommentReader.Read(edited));
+
+        Assert.Equal("Translation updated", updated.Contents);
+        Assert.Equal(selected.ObjectNumber, updated.ObjectNumber);
+        Assert.Equal(selected.Bounds, updated.Bounds);
+        PdfDocument removed = PdfDocument.Open(PdfCommentEditor.Remove(edited, updated));
+        Assert.Empty(PdfCommentReader.Read(removed));
+        Assert.Throws<ArgumentException>(() =>
+            PdfCommentEditor.SetContents(removed, updated, "Stale edit"));
+    }
 }
