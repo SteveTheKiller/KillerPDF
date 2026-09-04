@@ -49,6 +49,29 @@ public sealed class PdfMacroTests
     }
 
     [Fact]
+    public void MacroStepsCanBeInsertedReplacedAndRemoved()
+    {
+        var macro = new PdfMacro("Prepare", [
+            new(PdfMacroOperation.Ocr), new(PdfMacroOperation.Save)]);
+
+        PdfMacro edited = macro
+            .InsertStep(1, new PdfMacroStep(PdfMacroOperation.Optimize))
+            .ReplaceStep(0, new PdfMacroStep(PdfMacroOperation.Validate))
+            .RemoveStep(2);
+
+        Assert.Equal([
+            PdfMacroOperation.Validate,
+            PdfMacroOperation.Optimize
+        ], edited.Steps.Select(step => step.Operation));
+        Assert.Equal([
+            PdfMacroOperation.Ocr,
+            PdfMacroOperation.Save
+        ], macro.Steps.Select(step => step.Operation));
+        Assert.Throws<InvalidOperationException>(() =>
+            new PdfMacro("Single", [new(PdfMacroOperation.Save)]).RemoveStep(0));
+    }
+
+    [Fact]
     public void RunnerStopsCleanlyWhenCanceled()
     {
         var cancellation = new CancellationTokenSource();

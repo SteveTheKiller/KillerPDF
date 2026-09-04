@@ -44,6 +44,39 @@ public sealed record PdfMacro
         return new PdfMacro(Name, reordered);
     }
 
+    /// <summary>Returns a copy with a step inserted at the requested position.</summary>
+    public PdfMacro InsertStep(int index, PdfMacroStep step)
+    {
+        if ((uint)index > (uint)Steps.Count)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentNullException.ThrowIfNull(step);
+        var changed = Steps.Select(Copy).ToList();
+        changed.Insert(index, Copy(step));
+        return new PdfMacro(Name, changed);
+    }
+
+    /// <summary>Returns a copy with one step replaced.</summary>
+    public PdfMacro ReplaceStep(int index, PdfMacroStep step)
+    {
+        if ((uint)index >= (uint)Steps.Count)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentNullException.ThrowIfNull(step);
+        PdfMacroStep[] changed = Steps.Select(Copy).ToArray();
+        changed[index] = Copy(step);
+        return new PdfMacro(Name, changed);
+    }
+
+    /// <summary>Returns a copy with one step removed.</summary>
+    public PdfMacro RemoveStep(int index)
+    {
+        if ((uint)index >= (uint)Steps.Count)
+            throw new ArgumentOutOfRangeException(nameof(index));
+        if (Steps.Count == 1)
+            throw new InvalidOperationException("A macro requires at least one step.");
+        return new PdfMacro(Name, Steps.Where((_, itemIndex) => itemIndex != index)
+            .Select(Copy));
+    }
+
     /// <summary>Serializes the macro without executable code or external actions.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PdfMacroFile(1, Name, Steps.Select(step => new PdfMacroStepFile(
