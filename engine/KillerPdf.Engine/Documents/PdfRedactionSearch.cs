@@ -58,6 +58,18 @@ public sealed record PdfRedactionMatch(string Id, int PageIndex, string Text,
     string? ReasonCode = null, string? OverlayText = null,
     PdfRedactionTargetKind TargetKind = PdfRedactionTargetKind.Text);
 
+/// <summary>One named document prepared for isolated redaction search.</summary>
+public sealed record PdfRedactionSearchBatchInput(
+    string Name, IReadOnlyList<PdfPageContent> Pages, PdfRedactionSearchOptions Options);
+
+/// <summary>The review or isolated failure produced for one batch document.</summary>
+public sealed record PdfRedactionSearchBatchResult(
+    int Index, string Name, PdfRedactionReview? Review, string? Error)
+{
+    /// <summary>Gets whether the document produced a review successfully.</summary>
+    public bool Succeeded => Review is not null && Error is null;
+}
+
 /// <summary>An immutable preview whose matches must be explicitly excluded when retained.</summary>
 public sealed class PdfRedactionReview
 {
@@ -165,6 +177,39 @@ public static class PdfRedactionSearch
     private const string PaymentCardNumberPattern = @"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)";
     private const string InternationalBankAccountNumberPattern =
         @"(?<![A-Z0-9])(?:[A-Z]{2}\d{2}[A-Z0-9]{11,30}|[A-Z]{2}\d{2}(?: [A-Z0-9]{4}){2,7}(?: [A-Z0-9]{1,4})?)(?![A-Z0-9])";
+
+    /// <summary>Searches ordered documents while isolating document-specific failures.</summary>
+    public static IReadOnlyList<PdfRedactionSearchBatchResult> FindBatch(
+        IEnumerable<PdfRedactionSearchBatchInput> inputs,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        var results = new List<PdfRedactionSearchBatchResult>();
+        foreach ((PdfRedactionSearchBatchInput input, int index) in inputs.Select(
+                     (item, index) => (item ?? throw new ArgumentException(
+                         "A redaction search batch input is null.", nameof(inputs)), index)))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(input.Name))
+                    throw new ArgumentException(
+                        "A redaction search batch input name is required.");
+                ArgumentNullException.ThrowIfNull(input.Pages);
+                ArgumentNullException.ThrowIfNull(input.Options);
+                results.Add(new PdfRedactionSearchBatchResult(index, input.Name,
+                    Find(input.Pages, input.Options, cancellationToken), null));
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception error) when (error is ArgumentException or FormatException
+                or InvalidOperationException or NotSupportedException or OverflowException)
+            {
+                results.Add(new PdfRedactionSearchBatchResult(
+                    index, input.Name, null, error.Message));
+            }
+        }
+        return Array.AsReadOnly(results.ToArray());
+    }
 
     /// <summary>Builds a reviewable match list from extracted pages.</summary>
     public static PdfRedactionReview Find(IEnumerable<PdfPageContent> pages,

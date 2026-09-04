@@ -101,6 +101,32 @@ public sealed class PdfRedactionSearchTests
     }
 
     [Fact]
+    public void BatchSearchPreservesOrderAndIsolatesInvalidDocuments()
+    {
+        var options = new PdfRedactionSearchOptions
+        {
+            Kind = PdfRedactionSearchKind.ExactText,
+            Query = "secret"
+        };
+
+        IReadOnlyList<PdfRedactionSearchBatchResult> results =
+            PdfRedactionSearch.FindBatch([
+                new PdfRedactionSearchBatchInput("first.pdf", [Read("secret")], options),
+                new PdfRedactionSearchBatchInput("broken.pdf", [Read("secret")],
+                    options with { Timeout = TimeSpan.Zero }),
+                new PdfRedactionSearchBatchInput("last.pdf", [Read("public")], options)
+            ]);
+
+        Assert.Equal([0, 1, 2], results.Select(result => result.Index));
+        Assert.True(results[0].Succeeded);
+        Assert.Single(results[0].Review!.Matches);
+        Assert.False(results[1].Succeeded);
+        Assert.NotNull(results[1].Error);
+        Assert.True(results[2].Succeeded);
+        Assert.Empty(results[2].Review!.Matches);
+    }
+
+    [Fact]
     public void ReviewReportTracksSelectionsWithoutLeakingMatchedTextByDefault()
     {
         PdfRedactionReview review = PdfRedactionSearch.Find([Read("secret account")],
