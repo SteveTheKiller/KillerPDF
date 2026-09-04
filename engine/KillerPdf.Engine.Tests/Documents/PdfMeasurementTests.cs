@@ -59,4 +59,21 @@ public sealed class PdfMeasurementTests
         Assert.Contains("2,\"Distance\",\"Wall, north\",12.5,\"ft\",\"Floor plan\"", csv,
             StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void MeasurementProfilesRoundTripWithoutMeasurementResults()
+    {
+        var profile = new PdfMeasurementProfile("Site plan", 0.125, "ft", 3);
+
+        string json = profile.ToJson();
+        PdfMeasurementProfile restored = PdfMeasurementProfile.FromJson(json);
+
+        Assert.Equal(profile.Name, restored.Name);
+        Assert.Equal(profile.UnitsPerPoint, restored.UnitsPerPoint);
+        Assert.Equal(profile.UnitSymbol, restored.UnitSymbol);
+        Assert.Equal(profile.Precision, restored.Precision);
+        Assert.DoesNotContain("PageIndex", json, StringComparison.Ordinal);
+        Assert.Throws<NotSupportedException>(() => PdfMeasurementProfile.FromJson(
+            "{\"version\":2,\"name\":\"Future\",\"unitsPerPoint\":1,\"unitSymbol\":\"m\",\"precision\":2}"));
+    }
 }

@@ -18,7 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added accessibility checks for missing form field descriptions (#335).
 - Added certificate identity and algorithm details to signature verification (#336).
 - Added attachment metadata and integrity checks to the 1.9 engine (#347).
-- Added calibrated coordinates, directional deltas, and point snapping to measurement tools (#348).
+- Added saved calibration profiles, coordinates, directional deltas, and snapping to measurement tools (#348).
 - Added step-and-repeat, manual sequences, and bounded booklet signatures to imposition planning (#349).
 - Added independent print and export visibility metadata and preflight reporting for PDF layers (#350, #334).
 - Added source identities, stable findings, and repair guidance to navigation audits (#351).

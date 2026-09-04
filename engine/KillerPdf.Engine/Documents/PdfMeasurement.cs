@@ -29,6 +29,29 @@ public sealed record PdfMeasurementProfile
     public string UnitSymbol { get; }
     /// <summary>Gets the display precision.</summary>
     public int Precision { get; }
+    /// <summary>Serializes the named calibration without document measurements.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new MeasurementProfileFile(1, Name, UnitsPerPoint, UnitSymbol, Precision),
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        });
+
+    /// <summary>Reads a saved named calibration.</summary>
+    public static PdfMeasurementProfile FromJson(string json)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(json);
+        MeasurementProfileFile file = JsonSerializer.Deserialize<MeasurementProfileFile>(json,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            ?? throw new JsonException("The measurement profile is empty.");
+        if (file.Version != 1)
+            throw new NotSupportedException(
+                $"Measurement profile version {file.Version} is not supported.");
+        return new PdfMeasurementProfile(
+            file.Name, file.UnitsPerPoint, file.UnitSymbol, file.Precision);
+    }
+
     /// <summary>Creates a calibration from a known real distance and its PDF-space endpoints.</summary>
     public static PdfMeasurementProfile Calibrate(string name, PdfMeasurementPoint start,
         PdfMeasurementPoint end, double knownDistance, string unitSymbol, int precision = 2)
@@ -39,6 +62,9 @@ public sealed record PdfMeasurementProfile
         if (points == 0) throw new ArgumentException("Calibration points must be distinct.", nameof(end));
         return new PdfMeasurementProfile(name, knownDistance / points, unitSymbol, precision);
     }
+
+    private sealed record MeasurementProfileFile(
+        int Version, string Name, double UnitsPerPoint, string UnitSymbol, int Precision);
 }
 
 /// <summary>A point in PDF user space.</summary>
