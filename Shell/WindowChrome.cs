@@ -178,6 +178,10 @@ namespace KillerPDF
             try
             {
                 var pt  = PointFromScreen(new Point(screenX, screenY));
+                // WM_NCHITTEST fires on every mouse move, so only walk the tree inside the bar.
+                var bar = TitleBarBorder.TransformToAncestor(this)
+                                        .TransformBounds(new Rect(TitleBarBorder.RenderSize));
+                if (!bar.Contains(pt)) return false;
                 var res = VisualTreeHelper.HitTest(this, pt);
                 DependencyObject? hit = res?.VisualHit;
                 bool inTitleBar = false;
