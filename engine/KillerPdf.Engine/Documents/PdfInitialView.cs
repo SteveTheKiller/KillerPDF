@@ -1,5 +1,6 @@
 using System.Text;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Documents;
@@ -19,6 +20,33 @@ public sealed record PdfInitialView
     public PdfDestination? Destination { get; init; }
     /// <summary>Gets the named opening destination, if one is used.</summary>
     public string? NamedDestination { get; init; }
+
+    /// <summary>Applies the complete initial-view selection in one incremental revision.</summary>
+    public byte[] Apply(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (ViewerPreferences is null)
+            throw new InvalidOperationException("Viewer preferences are required.");
+        if (NamedDestination is not null
+            && (PageIndex is not null || Destination is not null))
+            throw new InvalidOperationException(
+                "A named opening destination cannot be combined with a page destination.");
+        if ((PageIndex is null) != (Destination is null))
+            throw new InvalidOperationException(
+                "An opening page and destination must be supplied together.");
+
+        var editor = new PdfIncrementalPageEditor(document);
+        if (PageLayout is PdfPageLayout layout) editor.SetPageLayout(layout);
+        else editor.ClearPageLayout();
+        if (PageMode is PdfPageMode mode) editor.SetPageMode(mode);
+        else editor.ClearPageMode();
+        editor.SetViewerPreferences(ViewerPreferences);
+        if (NamedDestination is not null) editor.SetNamedOpenAction(NamedDestination);
+        else if (PageIndex is int pageIndex)
+            editor.SetOpenAction(pageIndex, Destination!);
+        else editor.ClearOpenAction();
+        return editor.Build();
+    }
 
     internal static PdfInitialView Read(PdfDocument document, PdfPageTree tree)
     {

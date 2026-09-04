@@ -78,4 +78,59 @@ public sealed class PdfDocumentInformationTests
         Assert.Null(info.InitialView.PageMode);
         Assert.Null(info.InitialView.PageIndex);
     }
+
+    [Fact]
+    public void InitialView_AppliesCompleteSavedSelection()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetPageLayout(PdfPageLayout.OneColumn)
+            .SetPageMode(PdfPageMode.UseNone)
+            .SetViewerPreferences(new PdfViewerPreferences())
+            .AddBlankPage().AddBlankPage()
+            .SetOpenAction(0, PdfDestination.FitPage())
+            .Build());
+        var selection = new PdfInitialView
+        {
+            PageLayout = PdfPageLayout.TwoPageRight,
+            PageMode = PdfPageMode.UseThumbs,
+            ViewerPreferences = new PdfViewerPreferences
+            {
+                HideToolbar = true,
+                CenterWindow = true,
+                DisplayDocumentTitle = true
+            },
+            PageIndex = 1,
+            Destination = PdfDestination.At(12, 34, 1.5)
+        };
+
+        PdfInitialView saved = PdfDocumentInformation.Read(
+            PdfDocument.Open(selection.Apply(source))).InitialView;
+
+        Assert.Equal(selection.PageLayout, saved.PageLayout);
+        Assert.Equal(selection.PageMode, saved.PageMode);
+        Assert.True(saved.ViewerPreferences.HideToolbar);
+        Assert.True(saved.ViewerPreferences.CenterWindow);
+        Assert.True(saved.ViewerPreferences.DisplayDocumentTitle);
+        Assert.Equal(1, saved.PageIndex);
+        Assert.Equal(PdfDestinationKind.Xyz, saved.Destination?.Kind);
+        Assert.Equal([12d, 34d, 1.5d], saved.Destination?.Values);
+    }
+
+    [Fact]
+    public void InitialView_RejectsAmbiguousOpeningDestinations()
+    {
+        PdfDocument source = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+
+        Assert.Throws<InvalidOperationException>(() => new PdfInitialView
+        {
+            NamedDestination = "start",
+            PageIndex = 0,
+            Destination = PdfDestination.FitPage()
+        }.Apply(source));
+        Assert.Throws<InvalidOperationException>(() => new PdfInitialView
+        {
+            PageIndex = 0
+        }.Apply(source));
+    }
 }
