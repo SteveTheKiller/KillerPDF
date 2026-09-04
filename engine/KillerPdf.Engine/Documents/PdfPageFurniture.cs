@@ -156,7 +156,8 @@ public static class PdfPageFurniturePlacementPlanner
 
 /// <summary>One text mark to write into a page header or footer.</summary>
 public sealed record PdfPageFurnitureMark(
-    int PageIndex, string Text, double X, double Baseline, double FontSize = 10);
+    int PageIndex, string Text, double X, double Baseline, double FontSize = 10,
+    PdfRgbColor? Color = null, double Opacity = 1, double RotationDegrees = 0);
 
 /// <summary>Writes reviewed page-furniture marks as decorative page artifacts.</summary>
 public static class PdfPageFurnitureWriter
@@ -180,11 +181,26 @@ public static class PdfPageFurnitureWriter
             if (!double.IsFinite(mark.X) || !double.IsFinite(mark.Baseline)
                 || !double.IsFinite(mark.FontSize) || mark.FontSize <= 0)
                 throw new ArgumentOutOfRangeException(nameof(marks));
+            if (!double.IsFinite(mark.Opacity) || mark.Opacity is < 0 or > 1)
+                throw new ArgumentOutOfRangeException(nameof(marks));
+            if (!double.IsFinite(mark.RotationDegrees))
+                throw new ArgumentOutOfRangeException(nameof(marks));
             PdfPageBoxBounds media = pages[mark.PageIndex].MediaBox;
-            var content = new PdfContentStreamBuilder().BeginText()
+            var content = new PdfContentStreamBuilder().SaveState();
+            if (mark.Color is PdfRgbColor color)
+                content.SetFillRgb(color.Red, color.Green, color.Blue);
+            if (mark.Opacity != 1) content.SetOpacity(mark.Opacity);
+            if (mark.RotationDegrees != 0)
+            {
+                double radians = mark.RotationDegrees * Math.PI / 180;
+                content.Transform(Math.Cos(radians), Math.Sin(radians),
+                    -Math.Sin(radians), Math.Cos(radians), mark.X, mark.Baseline);
+            }
+            content.BeginText()
                 .SetFont(PdfStandardFont.Helvetica, mark.FontSize)
-                .MoveText(mark.X, mark.Baseline)
-                .ShowLatin1Text(mark.Text).EndText();
+                .MoveText(mark.RotationDegrees == 0 ? mark.X : 0,
+                    mark.RotationDegrees == 0 ? mark.Baseline : 0)
+                .ShowLatin1Text(mark.Text).EndText().RestoreState();
             editor.AppendPageArtifact(mark.PageIndex, media.Width, media.Height, content);
         }
         return editor.Build();

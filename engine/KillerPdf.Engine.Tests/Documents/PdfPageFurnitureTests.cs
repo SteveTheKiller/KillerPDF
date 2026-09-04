@@ -110,4 +110,21 @@ public sealed class PdfPageFurnitureTests
         Assert.Equal("CASE-000001", new PdfPageContentReader(reopened).Read(0).Text);
         Assert.Equal("CASE-000002", new PdfPageContentReader(reopened).Read(1).Text);
     }
+
+    [Fact]
+    public void WriterAppliesReviewedColorOpacityAndRotation()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 400).Build());
+
+        PdfDocument reopened = PdfDocument.Open(PdfPageFurnitureWriter.Apply(document, [
+            new PdfPageFurnitureMark(0, "DRAFT", 20, 30, 12,
+                new PdfRgbColor(0.8, 0.1, 0.2), 0.4, 90)]));
+        PdfPageContent content = new PdfPageContentReader(reopened).Read(0);
+
+        Assert.Equal("DRAFT", content.Text);
+        Assert.Contains(content.Instructions, instruction => instruction.Operator == "cm");
+        Assert.Contains(content.Instructions, instruction => instruction.Operator == "gs");
+        Assert.Contains(content.Instructions, instruction => instruction.Operator == "rg");
+    }
 }
