@@ -109,6 +109,21 @@ public sealed class PdfOcrReviewTests
     }
 
     [Fact]
+    public void TextExportPreservesEmptySourcePages()
+    {
+        var review = new PdfOcrReview([
+            Word("first", 0, 0, "First", 1),
+            Word("last", 2, 0, "Last", 1)]);
+
+        string text = review.ExportText(4);
+
+        Assert.Equal(string.Join(Environment.NewLine, ["First", "", "Last", ""]), text);
+        Assert.Equal(string.Join(Environment.NewLine, ["First", "", "Last"]),
+            review.ExportText());
+        Assert.Throws<ArgumentOutOfRangeException>(() => review.ExportText(2));
+    }
+
+    [Fact]
     public void LowConfidenceListUsesInclusiveThresholdAndPendingState()
     {
         var review = new PdfOcrReview([

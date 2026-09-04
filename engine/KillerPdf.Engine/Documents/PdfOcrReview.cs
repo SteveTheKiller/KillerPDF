@@ -363,10 +363,21 @@ public sealed class PdfOcrReview
             : word));
     }
 
-    /// <summary>Exports reviewed text with one line per page.</summary>
-    public string ExportText() => string.Join(Environment.NewLine, _words
-        .GroupBy(word => word.PageIndex)
-        .Select(page => string.Join(' ', page.Select(word => word.Text))));
+    /// <summary>Exports reviewed text with one line per recognized page.</summary>
+    public string ExportText() => ExportText(
+        _words.Length == 0 ? 0 : _words.Max(word => word.PageIndex) + 1);
+
+    /// <summary>Exports reviewed text with one line for every source page, including empty pages.</summary>
+    public string ExportText(int pageCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(pageCount);
+        if (_words.Any(word => word.PageIndex >= pageCount))
+            throw new ArgumentOutOfRangeException(nameof(pageCount),
+                "The page count does not include every recognized word.");
+        ILookup<int, PdfOcrWord> pages = _words.ToLookup(word => word.PageIndex);
+        return string.Join(Environment.NewLine, Enumerable.Range(0, pageCount)
+            .Select(pageIndex => string.Join(' ', pages[pageIndex].Select(word => word.Text))));
+    }
 
     /// <summary>Exports a stable CSV review report.</summary>
     public string ExportReport()
