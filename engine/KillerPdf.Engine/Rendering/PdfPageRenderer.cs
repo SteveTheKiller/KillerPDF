@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Filters;
+using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 
@@ -80,6 +81,11 @@ public sealed class PdfPageRenderer
             var path = new List<List<Point>>();
             List<Point>? subpath = null;
             bool? pendingClipEvenOdd = null;
+            Matrix textMatrix = Matrix.Identity, textLineMatrix = Matrix.Identity;
+            PdfDictionary? textFont = null;
+            double textSize = 0, characterSpacing = 0, wordSpacing = 0;
+            double horizontalScale = 1, textLeading = 0, textRise = 0;
+            int textRenderingMode = 0;
             foreach (PdfContentInstruction instruction in instructions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -223,10 +229,69 @@ public sealed class PdfPageRenderer
                     path.Clear();
                     subpath = null;
                     break;
-                case "BT" or "ET" or "Tf" or "Tm" or "Td" or "TD" or "T*"
-                    or "Tc" or "Tw" or "Tz" or "TL" or "Tr" or "Ts" or "Tj" or "TJ"
-                    or "'" or "\"":
-                    diagnostics.Add("Text rendering is not implemented.");
+                case "BT":
+                    textMatrix = textLineMatrix = Matrix.Identity;
+                    break;
+                case "ET":
+                    break;
+                case "Tf" when values.Count == 2 && values[0] is PdfName fontName:
+                    textFont = ResolveFont(resources, fontName);
+                    textSize = Number(values[1]);
+                    break;
+                case "Tm" when values.Count == 6:
+                    textMatrix = textLineMatrix = Matrix.From(values);
+                    break;
+                case "Td" or "TD" when values.Count == 2:
+                    double textX = Number(values[0]), textY = Number(values[1]);
+                    if (instruction.Operator == "TD") textLeading = -textY;
+                    textLineMatrix = new Matrix(1, 0, 0, 1, textX, textY)
+                        .Then(textLineMatrix);
+                    textMatrix = textLineMatrix;
+                    break;
+                case "T*":
+                    textLineMatrix = new Matrix(1, 0, 0, 1, 0, -textLeading)
+                        .Then(textLineMatrix);
+                    textMatrix = textLineMatrix;
+                    break;
+                case "Tc" when values.Count == 1:
+                    characterSpacing = Number(values[0]);
+                    break;
+                case "Tw" when values.Count == 1:
+                    wordSpacing = Number(values[0]);
+                    break;
+                case "Tz" when values.Count == 1:
+                    horizontalScale = Number(values[0]) / 100;
+                    break;
+                case "TL" when values.Count == 1:
+                    textLeading = Number(values[0]);
+                    break;
+                case "Tr" when values.Count == 1:
+                    textRenderingMode = (int)Number(values[0]);
+                    break;
+                case "Ts" when values.Count == 1:
+                    textRise = Number(values[0]);
+                    break;
+                case "Tj" when values.Count == 1 && values[0] is PdfString text:
+                    ShowText(text);
+                    break;
+                case "TJ" when values.Count == 1 && values[0] is PdfArray positionedText:
+                    foreach (PdfObject item in positionedText)
+                    {
+                        PdfObject part = Resolve(item);
+                        if (part is PdfString segment) ShowText(segment);
+                        else if (part is PdfInteger or PdfReal)
+                            AdvanceText(-Number(part) / 1000 * textSize * horizontalScale);
+                    }
+                    break;
+                case "'" when values.Count == 1 && values[0] is PdfString nextLineText:
+                    MoveToNextLine();
+                    ShowText(nextLineText);
+                    break;
+                case "\"" when values.Count == 3 && values[2] is PdfString spacedText:
+                    wordSpacing = Number(values[0]);
+                    characterSpacing = Number(values[1]);
+                    MoveToNextLine();
+                    ShowText(spacedText);
                     break;
                 case "Do" when values.Count == 1 && values[0] is PdfName xObjectName:
                     if (!TryGetXObject(resources, xObjectName, out PdfStream? xObject)
@@ -258,6 +323,68 @@ public sealed class PdfPageRenderer
                         options.Width, options.Height, scaleX, scaleY, out string? shadingDiagnostic))
                         diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
                     break;
+                }
+            }
+
+            void MoveToNextLine()
+            {
+                textLineMatrix = new Matrix(1, 0, 0, 1, 0, -textLeading)
+                    .Then(textLineMatrix);
+                textMatrix = textLineMatrix;
+            }
+
+            void AdvanceText(double distance) => AdvanceTextVector(distance, 0);
+
+            void AdvanceTextVector(double x, double y) =>
+                textMatrix = new Matrix(1, 0, 0, 1, x, y).Then(textMatrix);
+
+            void ShowText(PdfString text)
+            {
+                if (textFont is null || textSize <= 0
+                    || NameValue(textFont, "Subtype") != "Type3")
+                {
+                    diagnostics.Add("Text rendering is not implemented.");
+                    return;
+                }
+                string[] encoding = ReadType3Encoding(textFont);
+                PdfDictionary charProcs = textFont.TryGetValue(Name("CharProcs"),
+                    out PdfObject? charProcsValue) && Resolve(charProcsValue) is PdfDictionary procs
+                    ? procs : throw new FormatException("A Type 3 font has no CharProcs dictionary.");
+                Matrix fontMatrix = textFont.TryGetValue(Name("FontMatrix"),
+                    out PdfObject? fontMatrixValue)
+                    ? Matrix.From(ResolveArray(fontMatrixValue, 6, "Type 3 font matrix"))
+                    : new Matrix(0.001, 0, 0, 0.001, 0, 0);
+                PdfDictionary fontResources = textFont.TryGetValue(Name("Resources"),
+                    out PdfObject? fontResourcesValue)
+                    ? Resolve(fontResourcesValue) as PdfDictionary
+                        ?? throw new FormatException("Type 3 font resources are not a dictionary.")
+                    : resources;
+                foreach (byte code in text.Bytes.Span)
+                {
+                    string glyphName = encoding[code];
+                    if (textRenderingMode != 3 && glyphName.Length > 0
+                        && charProcs.TryGetValue(Name(glyphName), out PdfObject? glyphValue)
+                        && Resolve(glyphValue) is PdfStream glyph)
+                    {
+                        Matrix textScale = new(textSize * horizontalScale, 0, 0,
+                            textSize, 0, textRise);
+                        GraphicsState glyphState = state with
+                        {
+                            Transform = fontMatrix.Then(textScale).Then(textMatrix)
+                                .Then(state.Transform)
+                        };
+                        byte[] bytes = PdfStreamDecoder.Decode(glyph, _document.Resolve,
+                            PdfContentStreamReader.MaximumSourceBytes);
+                        Process(PdfContentStreamReader.Read(bytes,
+                            cancellationToken: cancellationToken), fontResources,
+                            glyphState, depth + 1);
+                    }
+                    double width = Type3Width(textFont, code);
+                    Point widthOrigin = fontMatrix.Apply(0, 0);
+                    Point widthEnd = fontMatrix.Apply(width, 0);
+                    double spacing = characterSpacing + (code == 32 ? wordSpacing : 0);
+                    AdvanceTextVector(((widthEnd.X - widthOrigin.X) * textSize + spacing)
+                        * horizontalScale, (widthEnd.Y - widthOrigin.Y) * textSize);
                 }
             }
         }
@@ -389,6 +516,55 @@ public sealed class PdfPageRenderer
             ? Resolve(value) as PdfDictionary
                 ?? throw new FormatException("Page resources are not a dictionary.")
             : new PdfDictionary([]);
+    }
+
+    private PdfDictionary? ResolveFont(PdfDictionary resources, PdfName resourceName) =>
+        resources.TryGetValue(Name("Font"), out PdfObject? fontsValue)
+        && Resolve(fontsValue) is PdfDictionary fonts
+        && fonts.TryGetValue(resourceName, out PdfObject? fontValue)
+        ? Resolve(fontValue) as PdfDictionary : null;
+
+    private string[] ReadType3Encoding(PdfDictionary font)
+    {
+        PdfObject? value = font.TryGetValue(Name("Encoding"), out PdfObject? encodingValue)
+            ? Resolve(encodingValue) : null;
+        string baseEncoding = value is PdfName encodingName
+            ? encodingName.ValueAsLatin1()
+            : value is PdfDictionary dictionary
+                && dictionary.TryGetValue(Name("BaseEncoding"), out PdfObject? baseValue)
+                && Resolve(baseValue) is PdfName baseName
+                ? baseName.ValueAsLatin1() : "StandardEncoding";
+        string[] names = PdfFontTables.EncodingNames(baseEncoding)
+            ?? Enumerable.Repeat(string.Empty, 256).ToArray();
+        if (value is PdfDictionary differencesDictionary
+            && differencesDictionary.TryGetValue(Name("Differences"),
+                out PdfObject? differencesValue)
+            && Resolve(differencesValue) is PdfArray differences)
+        {
+            int code = -1;
+            foreach (PdfObject item in differences)
+            {
+                PdfObject resolved = Resolve(item);
+                if (resolved is PdfInteger number)
+                    code = checked((int)number.Value);
+                else if (resolved is PdfName name && code is >= 0 and < 256)
+                    names[code++] = name.ValueAsLatin1();
+                else throw new FormatException("A Type 3 font encoding is invalid.");
+            }
+        }
+        return names;
+    }
+
+    private double Type3Width(PdfDictionary font, byte code)
+    {
+        int first = font.TryGetValue(Name("FirstChar"), out PdfObject? firstValue)
+            && Resolve(firstValue) is PdfInteger firstInteger
+            ? checked((int)firstInteger.Value) : 0;
+        if (font.TryGetValue(Name("Widths"), out PdfObject? widthsValue)
+            && Resolve(widthsValue) is PdfArray widths
+            && code - first is int index && index >= 0 && index < widths.Count)
+            return Number(Resolve(widths[index]));
+        return 0;
     }
 
     private bool TryGetXObject(PdfDictionary resources, PdfName resourceName,

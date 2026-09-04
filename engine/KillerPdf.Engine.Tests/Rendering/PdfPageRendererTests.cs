@@ -488,6 +488,29 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ExecutesType3GlyphProgramsAndAdvancesText()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0)
+            .BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 10)
+            .SetTextMatrix(1, 0, 0, 1, 0, 0)
+            .ShowLatin1Text("AA")
+            .EndText();
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(20, 10, content).Build());
+        PdfDocument document = AddType3TriangleFont(source);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 15, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 1));
+        Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
@@ -841,6 +864,39 @@ public sealed class PdfPageRendererTests
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace)));
         return PdfDocument.Open(update.ReplaceObject(imageReference.ObjectNumber,
             new PdfStream(dictionary, imageSamples)).Build());
+    }
+
+    private static PdfDocument AddType3TriangleFont(PdfDocument source)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary fonts = Assert.IsType<PdfDictionary>(resources[Name("Font")]);
+        KeyValuePair<PdfName, PdfObject> fontEntry = Assert.Single(fonts);
+        PdfIndirectReference fontReference = Assert.IsType<PdfIndirectReference>(fontEntry.Value);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference glyphReference = update.AddObject(new PdfStream(
+            new PdfDictionary([]), "0 0 m 1000 0 l 500 1000 l h f"u8));
+        var font = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Type"), Name("Font")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Subtype"), Name("Type3")),
+            new KeyValuePair<PdfName, PdfObject>(Name("FontBBox"), Reals(0, 0, 1000, 1000)),
+            new KeyValuePair<PdfName, PdfObject>(Name("FontMatrix"),
+                Reals(0.001, 0, 0, 0.001, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("CharProcs"),
+                new PdfDictionary([
+                    new KeyValuePair<PdfName, PdfObject>(Name("A"), glyphReference)])),
+            new KeyValuePair<PdfName, PdfObject>(Name("Encoding"),
+                new PdfDictionary([
+                    new KeyValuePair<PdfName, PdfObject>(Name("Differences"),
+                        new PdfArray(new PdfObject[] { new PdfInteger(65), Name("A") }))])),
+            new KeyValuePair<PdfName, PdfObject>(Name("FirstChar"), new PdfInteger(65)),
+            new KeyValuePair<PdfName, PdfObject>(Name("LastChar"), new PdfInteger(65)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Widths"), Reals(1000)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Resources"), new PdfDictionary([]))]);
+        return PdfDocument.Open(update.ReplaceObject(fontReference.ObjectNumber, font).Build());
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
