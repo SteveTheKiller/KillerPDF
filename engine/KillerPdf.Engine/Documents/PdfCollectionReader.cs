@@ -68,9 +68,9 @@ public static class PdfCollectionReader
                 if (!identifiers.Add(id))
                     throw new InvalidOperationException($"A collection folder reuses ID {id}.");
                 folderReferences.Add(id, (identity.ObjectNumber, identity.Generation));
-                if (root && (folder.ContainsKey(Name("Parent")) || folder.ContainsKey(Name("Next"))))
+                if (root && folder.ContainsKey(Name("Parent")))
                     throw new InvalidOperationException(
-                        "The root collection folder contains a parent or next entry.");
+                        "A root collection folder contains a parent entry.");
                 if (!root)
                 {
                     PdfIndirectReference parentReference = folder.TryGetValue(Name("Parent"), out PdfObject? parent)
@@ -93,7 +93,7 @@ public static class PdfCollectionReader
                     ReadChain(Reference(document, child,
                         "A collection folder /Child value is not an indirect reference."), id,
                         depth + 1, false);
-                if (root || !folder.TryGetValue(Name("Next"), out PdfObject? next)) return;
+                if (!folder.TryGetValue(Name("Next"), out PdfObject? next)) return;
                 reference = Reference(document, next,
                     "A collection folder /Next value is not an indirect reference.");
             }
@@ -291,6 +291,11 @@ public sealed record PdfCollectionInfo
 public sealed record PdfCollectionFolderInfo(
     long Id, int ObjectNumber, string Name, string? Description,
     string? CreationDate, string? ModificationDate, long? ParentId, int Depth);
+
+/// <summary>Defines one folder when authoring a PDF portfolio hierarchy.</summary>
+public sealed record PdfCollectionFolder(
+    long Id, string Name, long? ParentId = null, string? Description = null,
+    string? CreationDate = null, string? ModificationDate = null);
 
 /// <summary>One standard or custom portfolio field.</summary>
 public sealed record PdfCollectionFieldInfo

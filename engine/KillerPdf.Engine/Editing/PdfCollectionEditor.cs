@@ -180,6 +180,101 @@ public static class PdfCollectionEditor
         }
     }
 
+    /// <summary>Replaces the portfolio folder hierarchy in the supplied display order.</summary>
+    public static byte[] SetFolders(PdfDocument document,
+        IEnumerable<PdfCollectionFolder> folders)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(folders);
+        PdfCollectionFolder[] selected = folders.ToArray();
+        if (selected.Any(folder => folder is null || folder.Id < 0
+            || string.IsNullOrWhiteSpace(folder.Name)
+            || (folder.Description is not null && string.IsNullOrWhiteSpace(folder.Description))
+            || (folder.CreationDate is not null && string.IsNullOrWhiteSpace(folder.CreationDate))
+            || (folder.ModificationDate is not null && string.IsNullOrWhiteSpace(folder.ModificationDate))))
+            throw new ArgumentException(
+                "Portfolio folders require a nonnegative ID, a name, and nonempty optional metadata.",
+                nameof(folders));
+        if (selected.Select(folder => folder.Id).Distinct().Count() != selected.Length)
+            throw new ArgumentException("Portfolio folder IDs must be unique.", nameof(folders));
+
+        var byId = new Dictionary<long, PdfCollectionFolder>();
+        var depths = new Dictionary<long, int>();
+        foreach (PdfCollectionFolder folder in selected)
+        {
+            int depth = 0;
+            if (folder.ParentId.HasValue)
+            {
+                if (!byId.ContainsKey(folder.ParentId.Value))
+                    throw new ArgumentException(
+                        "A portfolio folder parent must appear before its children.", nameof(folders));
+                depth = checked(depths[folder.ParentId.Value] + 1);
+                if (depth > 64)
+                    throw new ArgumentException(
+                        "A portfolio folder hierarchy cannot exceed 64 levels.", nameof(folders));
+            }
+            byId.Add(folder.Id, folder);
+            depths.Add(folder.Id, depth);
+        }
+
+        PdfPageTree tree = PdfPageTree.Read(document);
+        PdfObject? current = tree.Catalog.GetValueOrDefault(CollectionName);
+        PdfIndirectReference? collectionReference = current as PdfIndirectReference;
+        PdfDictionary collection = current is null ? new PdfDictionary([])
+            : Resolve(document, current) as PdfDictionary
+                ?? throw new InvalidOperationException(
+                    "The catalog /Collection value is not a dictionary.");
+        var entries = collection.ToDictionary(entry => entry.Key, entry => entry.Value);
+        entries[Name("Type")] = Name("Collection");
+
+        var builder = new PdfIncrementalUpdateBuilder(document);
+        if (selected.Length == 0) entries.Remove(Name("Folders"));
+        else
+        {
+            Dictionary<long, PdfIndirectReference> references = selected.ToDictionary(
+                folder => folder.Id, _ => builder.ReserveObject());
+            Dictionary<long, PdfCollectionFolder[]> siblings = selected
+                .GroupBy(folder => folder.ParentId ?? -1)
+                .ToDictionary(group => group.Key, group => group.ToArray());
+            foreach (PdfCollectionFolder folder in selected)
+            {
+                var folderEntries = new List<KeyValuePair<PdfName, PdfObject>>
+                {
+                    new(Name("Type"), Name("Folder")),
+                    new(Name("ID"), new PdfInteger(folder.Id)),
+                    new(Name("Name"), Text(folder.Name))
+                };
+                if (folder.Description is not null)
+                    folderEntries.Add(new(Name("Desc"), Text(folder.Description)));
+                if (folder.CreationDate is not null)
+                    folderEntries.Add(new(Name("CreationDate"), Text(folder.CreationDate)));
+                if (folder.ModificationDate is not null)
+                    folderEntries.Add(new(Name("ModDate"), Text(folder.ModificationDate)));
+                if (folder.ParentId.HasValue)
+                    folderEntries.Add(new(Name("Parent"), references[folder.ParentId.Value]));
+                PdfCollectionFolder[] peers = siblings[folder.ParentId ?? -1];
+                int index = Array.IndexOf(peers, folder);
+                if (index + 1 < peers.Length)
+                    folderEntries.Add(new(Name("Next"), references[peers[index + 1].Id]));
+                if (siblings.TryGetValue(folder.Id, out PdfCollectionFolder[]? children))
+                    folderEntries.Add(new(Name("Child"), references[children[0].Id]));
+                builder.SetObject(references[folder.Id], new PdfDictionary(folderEntries));
+            }
+            entries[Name("Folders")] = references[siblings[-1][0].Id];
+        }
+
+        PdfDictionary replacement = new(entries);
+        if (collectionReference is not null)
+            builder.ReplaceObject(collectionReference.ObjectNumber, replacement);
+        else
+        {
+            var catalog = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+            catalog[CollectionName] = replacement;
+            builder.ReplaceObject(tree.CatalogReference.ObjectNumber, new PdfDictionary(catalog));
+        }
+        return builder.Build();
+    }
+
     private static byte[] UpdateCollection(PdfDocument document,
         Action<Dictionary<PdfName, PdfObject>> updateEntries)
     {

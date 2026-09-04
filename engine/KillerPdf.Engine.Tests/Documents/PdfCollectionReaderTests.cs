@@ -234,6 +234,44 @@ public sealed class PdfCollectionReaderTests
         Assert.Equal("Case files", collection.Folders[0].Description);
     }
 
+    [Fact]
+    public void EditorReplacesPortfolioFoldersAndRoundTripsHierarchy()
+    {
+        PdfDocument document = WithCollection(new PdfDictionary([
+            new(Name("View"), Name("T")), new(Name("Unknown"), new PdfInteger(42))
+        ]));
+
+        PdfDocument changed = PdfDocument.Open(PdfCollectionEditor.SetFolders(document, [
+            new PdfCollectionFolder(10, "Evidence", Description: "Case files",
+                CreationDate: "D:20260904120000Z"),
+            new PdfCollectionFolder(20, "Photos", 10),
+            new PdfCollectionFolder(30, "Reports", 10,
+                ModificationDate: "D:20260904130000Z"),
+            new PdfCollectionFolder(40, "Correspondence")
+        ]));
+        PdfCollectionInfo collection = Assert.IsType<PdfCollectionInfo>(
+            PdfCollectionReader.Read(changed));
+
+        Assert.Equal(["Evidence", "Photos", "Reports", "Correspondence"],
+            collection.Folders.Select(folder => folder.Name));
+        Assert.Equal([0, 1, 1, 0], collection.Folders.Select(folder => folder.Depth));
+        Assert.Equal([null, 10L, 10L, null],
+            collection.Folders.Select(folder => folder.ParentId));
+        Assert.Equal("Case files", collection.Folders[0].Description);
+        Assert.Equal("D:20260904120000Z", collection.Folders[0].CreationDate);
+        Assert.Equal("D:20260904130000Z", collection.Folders[2].ModificationDate);
+
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(changed.Resolve(
+            Assert.IsType<PdfIndirectReference>(changed.Trailer[Name("Root")])));
+        PdfDictionary raw = Assert.IsType<PdfDictionary>(catalog[Name("Collection")]);
+        Assert.Equal(42, Assert.IsType<PdfInteger>(raw[Name("Unknown")]).Value);
+
+        Assert.Throws<ArgumentException>(() => PdfCollectionEditor.SetFolders(document, [
+            new PdfCollectionFolder(2, "Child", 1),
+            new PdfCollectionFolder(1, "Parent")
+        ]));
+    }
+
     private static PdfDocument WithCollection(PdfDictionary collection)
     {
         PdfDocument source = PdfDocument.Open(
