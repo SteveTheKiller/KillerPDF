@@ -37,6 +37,14 @@ public sealed class PdfMeasurementTests
             PdfMeasurement.SnapOrthogonal(new(2, 2), new(8, 4)));
         Assert.Equal(new PdfMeasurementPoint(2, 9),
             PdfMeasurement.SnapOrthogonal(new(2, 2), new(4, 9)));
+        PdfMeasurementPoint angled = PdfMeasurement.SnapAngle(
+            new(0, 0), new(6, 5), 45);
+        Assert.Equal(angled.X, angled.Y, 10);
+        Assert.Equal(Math.Sqrt(61),
+            PdfMeasurement.Distance(new PdfMeasurementProfile("Points", 1, "pt"),
+                new(0, 0), angled), 10);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfMeasurement.SnapAngle(new(0, 0), new(1, 1), 0));
     }
 
     [Fact]

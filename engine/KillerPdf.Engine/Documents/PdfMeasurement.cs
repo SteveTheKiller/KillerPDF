@@ -214,6 +214,25 @@ public static class PdfMeasurement
             : new PdfMeasurementPoint(origin.X, point.Y);
     }
 
+    /// <summary>Snaps a point to the nearest angular increment around an origin.</summary>
+    public static PdfMeasurementPoint SnapAngle(
+        PdfMeasurementPoint origin, PdfMeasurementPoint point,
+        double incrementDegrees)
+    {
+        double distance = DistanceInPoints(origin, point);
+        if (distance == 0) return point;
+        if (!double.IsFinite(incrementDegrees)
+            || incrementDegrees <= 0 || incrementDegrees > 360)
+            throw new ArgumentOutOfRangeException(nameof(incrementDegrees));
+        double angle = Math.Atan2(point.Y - origin.Y, point.X - origin.X);
+        double increment = incrementDegrees * Math.PI / 180;
+        double snapped = Math.Round(angle / increment,
+            MidpointRounding.AwayFromZero) * increment;
+        return new PdfMeasurementPoint(
+            origin.X + Math.Cos(snapped) * distance,
+            origin.Y + Math.Sin(snapped) * distance);
+    }
+
     /// <summary>Measures the perimeter of an open or closed sequence of points.</summary>
     public static double Perimeter(PdfMeasurementProfile profile,
         IReadOnlyList<PdfMeasurementPoint> points, bool close = true)
