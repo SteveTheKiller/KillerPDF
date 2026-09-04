@@ -154,6 +154,38 @@ public sealed record PdfOcrAccuracyReport
     /// <summary>Gets whether low-confidence, pending, or empty results need attention.</summary>
     public bool HasWarnings => Pages.Any(page => page.LowConfidenceCount > 0
         || page.PendingCount > 0 || page.EmptyTextCount > 0);
+
+    /// <summary>Exports the accuracy summary as stable JSON without recognized text.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        LowConfidenceThreshold,
+        WordCount,
+        AverageConfidence,
+        HasWarnings,
+        Pages
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
+
+    /// <summary>Exports page-level accuracy and review counts as CSV.</summary>
+    public string ToCsv()
+    {
+        var output = new StringBuilder(
+            "Page,Words,AverageConfidence,LowConfidence,Pending,Corrected,Ignored,Empty\n");
+        foreach (PdfOcrPageAccuracy page in Pages)
+            output.Append(page.PageIndex + 1).Append(',')
+                .Append(page.WordCount).Append(',')
+                .Append(page.AverageConfidence.ToString("0.####", CultureInfo.InvariantCulture))
+                .Append(',').Append(page.LowConfidenceCount)
+                .Append(',').Append(page.PendingCount)
+                .Append(',').Append(page.CorrectedCount)
+                .Append(',').Append(page.IgnoredCount)
+                .Append(',').Append(page.EmptyTextCount).Append('\n');
+        return output.ToString();
+    }
 }
 
 /// <summary>A recognized word with stable page order, geometry, confidence, and review state.</summary>

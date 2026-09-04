@@ -209,6 +209,13 @@ public sealed class PdfOcrReviewTests
         Assert.Equal(1, report.Pages[0].IgnoredCount);
         Assert.Equal(1, report.Pages[1].PendingCount);
         Assert.Equal(1, report.Pages[1].EmptyTextCount);
+        string json = report.ToJson();
+        string csv = report.ToCsv();
+        Assert.Contains("\"lowConfidenceThreshold\":0.5", json, StringComparison.Ordinal);
+        Assert.Contains("Page,Words,AverageConfidence", csv, StringComparison.Ordinal);
+        Assert.Contains("1,2,0.7,1,0,1,1,0", csv, StringComparison.Ordinal);
+        Assert.DoesNotContain("Killer", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("Kiler", csv, StringComparison.Ordinal);
     }
 
     [Fact]
