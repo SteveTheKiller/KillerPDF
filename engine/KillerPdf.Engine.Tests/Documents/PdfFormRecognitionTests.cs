@@ -32,6 +32,33 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void RecognizerAssociatesConservativeNearbyLabels()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .MoveText(10, 52).ShowLatin1Text("Customer name:").EndText()
+            .Rectangle(110, 45, 100, 20).Stroke()
+            .Rectangle(20, 15, 18, 18).Stroke()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .MoveText(44, 20).ShowLatin1Text("Subscribe").EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(240, 100, content).Build());
+
+        PdfFormRecognitionReview review = PdfFormRecognizer.Recognize(document);
+
+        PdfFormFieldProposal text = review.Proposals.Single(proposal =>
+            proposal.Kind == PdfRecognizedFieldKind.Text);
+        PdfFormFieldProposal checkBox = review.Proposals.Single(proposal =>
+            proposal.Kind == PdfRecognizedFieldKind.CheckBox);
+        Assert.Equal("customer_name", text.SuggestedName);
+        Assert.Equal("Customer name", text.SuggestedTooltip);
+        Assert.Equal("subscribe", checkBox.SuggestedName);
+        Assert.Equal("Subscribe", checkBox.SuggestedTooltip);
+        Assert.All(review.Proposals, proposal =>
+            Assert.Equal(PdfFormProposalStatus.Proposed, proposal.Status));
+    }
+
+    [Fact]
     public void ReviewRequiresEveryProposalToBeDecidedBeforeApply()
     {
         var review = new PdfFormRecognitionReview([

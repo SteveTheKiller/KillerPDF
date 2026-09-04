@@ -111,6 +111,8 @@ public sealed record PdfFormRecognitionOptions
     public double MaximumHeight { get; init; } = 60;
     /// <summary>Gets the largest square dimension proposed as a checkbox.</summary>
     public double MaximumCheckBoxDimension { get; init; } = 30;
+    /// <summary>Gets the largest gap between a field and a proposed text label.</summary>
+    public double MaximumLabelDistance { get; init; } = 72;
 }
 
 /// <summary>Finds conservative rectangular field candidates for explicit review.</summary>
@@ -131,6 +133,9 @@ public static class PdfFormRecognizer
             throw new ArgumentOutOfRangeException(nameof(options));
         if (!double.IsFinite(options.MaximumCheckBoxDimension)
             || options.MaximumCheckBoxDimension < options.MinimumDimension)
+            throw new ArgumentOutOfRangeException(nameof(options));
+        if (!double.IsFinite(options.MaximumLabelDistance)
+            || options.MaximumLabelDistance <= 0)
             throw new ArgumentOutOfRangeException(nameof(options));
         var reader = new PdfPageContentReader(document);
         var proposals = new List<PdfFormFieldProposal>();
@@ -161,10 +166,16 @@ public static class PdfFormRecognizer
                     && Math.Abs(bounds.Width - bounds.Height)
                         <= Math.Max(bounds.Width, bounds.Height) * 0.2;
                 sequence++;
+                string? label = FindLabel(content.Lines, bounds, square,
+                    options.MaximumLabelDistance);
+                string suggestedName = label is null
+                    ? $"field_{pageIndex + 1}_{sequence}"
+                    : NormalizeName(label, pageIndex, sequence);
                 proposals.Add(new PdfFormFieldProposal(
                     $"page-{pageIndex + 1}-path-{pathIndex + 1}", pageIndex, bounds,
                     square ? PdfRecognizedFieldKind.CheckBox : PdfRecognizedFieldKind.Text,
-                    square ? 0.9 : 0.7, $"field_{pageIndex + 1}_{sequence}"));
+                    (square ? 0.9 : 0.7) + (label is null ? 0 : 0.05),
+                    suggestedName, suggestedTooltip: label));
             }
         }
         return new PdfFormRecognitionReview(proposals);
@@ -173,6 +184,44 @@ public static class PdfFormRecognizer
     private static bool Intersects(PdfContentBounds left, PdfContentBounds right) =>
         left.Left < right.Right && left.Right > right.Left
         && left.Bottom < right.Top && left.Top > right.Bottom;
+
+    private static string? FindLabel(IReadOnlyList<PdfExtractedLine> lines,
+        PdfContentBounds field, bool square, double maximumDistance)
+    {
+        double centerY = (field.Bottom + field.Top) / 2;
+        return lines.Select(line =>
+            {
+                PdfContentBounds text = line.BoundingBox;
+                double textCenterY = (text.Bottom + text.Top) / 2;
+                double? distance = text.Right <= field.Left
+                    && Math.Abs(textCenterY - centerY) <= Math.Max(field.Height, text.Height) / 2
+                        ? field.Left - text.Right
+                    : square && text.Left >= field.Right
+                        && Math.Abs(textCenterY - centerY) <= Math.Max(field.Height, text.Height) / 2
+                            ? text.Left - field.Right
+                        : text.Bottom >= field.Top
+                            && text.Left < field.Right && text.Right > field.Left
+                                ? text.Bottom - field.Top : null;
+                return (line, distance);
+            })
+            .Where(candidate => candidate.distance is >= 0
+                && candidate.distance <= maximumDistance
+                && !string.IsNullOrWhiteSpace(candidate.line.Text))
+            .OrderBy(candidate => candidate.distance)
+            .ThenBy(candidate => candidate.line.BoundingBox.Left)
+            .Select(candidate => candidate.line.Text.Trim().TrimEnd(':', '*'))
+            .FirstOrDefault(text => text.Length > 0);
+    }
+
+    private static string NormalizeName(string label, int pageIndex, int sequence)
+    {
+        string normalized = string.Join('_', label.ToLowerInvariant()
+            .Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => new string(part.Where(char.IsLetterOrDigit).ToArray()))
+            .Where(part => part.Length > 0));
+        return normalized.Length > 0
+            ? normalized : $"field_{pageIndex + 1}_{sequence}";
+    }
 }
 
 /// <summary>One field proposed by a form-recognition provider.</summary>
