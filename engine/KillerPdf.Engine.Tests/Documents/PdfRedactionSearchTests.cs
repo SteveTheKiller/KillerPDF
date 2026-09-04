@@ -108,6 +108,35 @@ public sealed class PdfRedactionSearchTests
     }
 
     [Fact]
+    public void ReviewCarriesReasonAndOverlayTextIntoPrivacySafeReport()
+    {
+        PdfRedactionReview review = PdfRedactionSearch.Find([Read("secret account")],
+            new PdfRedactionSearchOptions
+            {
+                Kind = PdfRedactionSearchKind.ExactText,
+                Query = "secret",
+                ReasonCode = "Privacy",
+                OverlayText = "REMOVED"
+            });
+
+        PdfRedactionMatch match = Assert.Single(review.Matches);
+        string json = review.ToJson();
+
+        Assert.Equal("Privacy", match.ReasonCode);
+        Assert.Equal("REMOVED", match.OverlayText);
+        Assert.Contains("\"reasonCode\":\"Privacy\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"overlayText\":\"REMOVED\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", json, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => PdfRedactionSearch.Find([Read("secret")],
+            new PdfRedactionSearchOptions
+            {
+                Kind = PdfRedactionSearchKind.ExactText,
+                Query = "secret",
+                ReasonCode = " "
+            }));
+    }
+
+    [Fact]
     public void ReviewCanExcludeAndRestoreAllMatches()
     {
         PdfRedactionReview original = PdfRedactionSearch.Find([Read("secret secret")],

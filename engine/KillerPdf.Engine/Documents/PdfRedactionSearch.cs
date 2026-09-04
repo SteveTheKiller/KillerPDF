@@ -31,11 +31,16 @@ public sealed record PdfRedactionSearchOptions
     public bool MatchCase { get; init; }
     /// <summary>Gets the bounded regular-expression evaluation time.</summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromMilliseconds(250);
+    /// <summary>Gets the optional reason code carried by every proposed match.</summary>
+    public string? ReasonCode { get; init; }
+    /// <summary>Gets the optional replacement text carried by every proposed match.</summary>
+    public string? OverlayText { get; init; }
 }
 
 /// <summary>One text match proposed for redaction.</summary>
 public sealed record PdfRedactionMatch(string Id, int PageIndex, string Text,
-    PdfContentBounds Bounds, int FirstWordIndex, int WordCount);
+    PdfContentBounds Bounds, int FirstWordIndex, int WordCount,
+    string? ReasonCode = null, string? OverlayText = null);
 
 /// <summary>An immutable preview whose matches must be explicitly excluded when retained.</summary>
 public sealed class PdfRedactionReview
@@ -100,6 +105,8 @@ public sealed class PdfRedactionReview
                 match.Bounds,
                 match.FirstWordIndex,
                 match.WordCount,
+                match.ReasonCode,
+                match.OverlayText,
                 Included = !_excluded.Contains(match.Id)
             })
         }, options);
@@ -123,6 +130,10 @@ public static class PdfRedactionSearch
         if (!Enum.IsDefined(options.Kind)) throw new ArgumentOutOfRangeException(nameof(options));
         if (options.Timeout <= TimeSpan.Zero || options.Timeout > TimeSpan.FromSeconds(10))
             throw new ArgumentOutOfRangeException(nameof(options), "The search timeout must be from zero through ten seconds.");
+        if (options.ReasonCode is not null && string.IsNullOrWhiteSpace(options.ReasonCode))
+            throw new ArgumentException("A redaction reason code cannot be blank.", nameof(options));
+        if (options.OverlayText is not null && string.IsNullOrWhiteSpace(options.OverlayText))
+            throw new ArgumentException("Redaction overlay text cannot be blank.", nameof(options));
         string pattern = options.Kind switch
         {
             PdfRedactionSearchKind.ExactText when !string.IsNullOrEmpty(options.Query) => Regex.Escape(options.Query),
@@ -162,7 +173,7 @@ public static class PdfRedactionSearch
                 if (words.Length == 0) continue;
                 results.Add(new PdfRedactionMatch($"{pageIndex}:{match.Index}:{match.Length}", pageIndex,
                     match.Value, PdfContentBounds.Union(words.Select(item => item.span.Word.BoundingBox)),
-                    words[0].index, words.Length));
+                    words[0].index, words.Length, options.ReasonCode, options.OverlayText));
             }
             pageIndex++;
         }
