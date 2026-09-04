@@ -128,6 +128,21 @@ public sealed class PdfImpositionPlannerTests
             PdfImpositionPlanner.PlanCropMarks(placement, offset: -1));
     }
 
+    [Fact]
+    public void RegistrationMarksStayInsideSheetCorners()
+    {
+        IReadOnlyList<PdfImpositionRegistrationMark> marks =
+            PdfImpositionPlanner.PlanRegistrationMarks(
+                sheetWidth: 600, sheetHeight: 800, inset: 20,
+                radius: 4, crosshairLength: 12);
+
+        Assert.Equal(4, marks.Count);
+        Assert.Equal(new PdfImpositionRegistrationMark(20, 20, 4, 12), marks[0]);
+        Assert.Equal(new PdfImpositionRegistrationMark(580, 780, 4, 12), marks[3]);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.PlanRegistrationMarks(30, 40, inset: 15));
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {

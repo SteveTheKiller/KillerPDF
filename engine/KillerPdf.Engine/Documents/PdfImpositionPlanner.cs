@@ -251,6 +251,31 @@ public static class PdfImpositionPlanner
         ]);
     }
 
+    /// <summary>Plans four registration targets inside the corners of a sheet.</summary>
+    public static IReadOnlyList<PdfImpositionRegistrationMark> PlanRegistrationMarks(
+        double sheetWidth, double sheetHeight, double inset = 18,
+        double radius = 5, double crosshairLength = 14)
+    {
+        ValidateDimension(sheetWidth, nameof(sheetWidth));
+        ValidateDimension(sheetHeight, nameof(sheetHeight));
+        ValidateDimension(inset, nameof(inset));
+        ValidateDimension(radius, nameof(radius));
+        ValidateDimension(crosshairLength, nameof(crosshairLength));
+        if (inset >= sheetWidth / 2 || inset >= sheetHeight / 2)
+            throw new ArgumentOutOfRangeException(nameof(inset),
+                "The registration-mark inset must fit inside the sheet.");
+        if (radius > crosshairLength / 2)
+            throw new ArgumentOutOfRangeException(nameof(radius),
+                "The registration circle must fit inside its crosshair.");
+        return Array.AsReadOnly<PdfImpositionRegistrationMark>(
+        [
+            new(inset, inset, radius, crosshairLength),
+            new(sheetWidth - inset, inset, radius, crosshairLength),
+            new(inset, sheetHeight - inset, radius, crosshairLength),
+            new(sheetWidth - inset, sheetHeight - inset, radius, crosshairLength)
+        ]);
+    }
+
     private static int TileCount(double source, double tile, double step) =>
         source <= tile ? 1 : checked((int)Math.Ceiling((source - tile) / step) + 1);
 
@@ -275,6 +300,10 @@ public sealed record PdfImposedPlacement(int SlotIndex, int SourcePageIndex,
 /// <summary>One printable imposition mark in sheet coordinates.</summary>
 public sealed record PdfImpositionMark(
     double StartX, double StartY, double EndX, double EndY);
+
+/// <summary>One circular registration target with a centered crosshair.</summary>
+public sealed record PdfImpositionRegistrationMark(
+    double CenterX, double CenterY, double Radius, double CrosshairLength);
 
 /// <summary>The printable face of a physical sheet.</summary>
 public enum PdfImposedSheetFace
