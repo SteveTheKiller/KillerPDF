@@ -20,6 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Allowed Document Info changes when PDFs contain malformed language metadata (#384).
 - Allowed Transform to rasterize selected pages in tagged PDFs (#383).
 - Restored reliable title-bar dragging and double-clicking from maximized windows (#380).
 - Kept native window resize borders, preserved the visible Continuous position during resizing, and retained the custom caption (#372, #373, thanks @Ryokoxx).

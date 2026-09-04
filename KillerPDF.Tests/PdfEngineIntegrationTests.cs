@@ -1569,6 +1569,33 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void ApplyDocumentMetadata_DropsInvalidExistingLanguageAndWritesOtherChanges()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-metadata-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
+            File.WriteAllBytes(path, source);
+            var metadata = new PdfDocumentMetadata
+            {
+                Title = "Updated title",
+                Language = "en_US"
+            };
+
+            PdfEngineIntegration.ApplyDocumentMetadata(path, metadata);
+
+            PdfDocumentInformation info = PdfDocumentInformation.Read(
+                PdfDocument.Open(File.ReadAllBytes(path)));
+            Assert.Equal("Updated title", info.Title);
+            Assert.Null(info.Language);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ApplyPageRotations_WithNoApplicationRotations_LeavesFileUntouched()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-rotation-{Guid.NewGuid():N}.pdf");

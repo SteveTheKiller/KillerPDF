@@ -758,9 +758,17 @@ internal static class PdfEngineIntegration
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(metadata);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
-        byte[] result = new PdfIncrementalPageEditor(document)
-            .SetMetadata(metadata)
-            .Build();
+        var editor = new PdfIncrementalPageEditor(document);
+        try
+        {
+            editor.SetMetadata(metadata);
+        }
+        catch (ArgumentException exception) when (
+            metadata.Language is not null && exception.ParamName == nameof(metadata))
+        {
+            editor.SetMetadata(metadata with { Language = null });
+        }
+        byte[] result = editor.Build();
         ReplaceWithBuiltResult(path, result);
     }
 
