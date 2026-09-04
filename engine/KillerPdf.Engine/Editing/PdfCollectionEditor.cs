@@ -9,6 +9,8 @@ namespace KillerPdf.Engine.Editing;
 public static class PdfCollectionEditor
 {
     private static readonly PdfName CollectionName = Name("Collection");
+    private static readonly HashSet<string> FieldSubtypes =
+        ["S", "D", "N", "F", "Desc", "ModDate", "CreationDate", "Size"];
 
     /// <summary>Sets the portfolio view and optional initially selected embedded document.</summary>
     public static byte[] SetPresentation(
@@ -64,6 +66,96 @@ public static class PdfCollectionEditor
             .Build();
     }
 
+    /// <summary>Replaces the portfolio field schema and ordered sort rules.</summary>
+    public static byte[] SetSchema(PdfDocument document,
+        IEnumerable<PdfCollectionFieldInfo> fields,
+        IEnumerable<PdfCollectionSortInfo>? sort = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(fields);
+        PdfCollectionFieldInfo[] selectedFields = fields.ToArray();
+        if (selectedFields.Length == 0)
+            throw new ArgumentException(
+                "A portfolio schema requires at least one field.", nameof(fields));
+        if (selectedFields.Any(field => field is null
+            || string.IsNullOrWhiteSpace(field.Key)
+            || string.IsNullOrWhiteSpace(field.DisplayName)
+            || field.Subtype is null || !FieldSubtypes.Contains(field.Subtype)))
+            throw new ArgumentException(
+                "Every portfolio field needs a key, display name, and supported subtype.",
+                nameof(fields));
+        if (selectedFields.Select(field => field.Key).Distinct(StringComparer.Ordinal).Count()
+            != selectedFields.Length)
+            throw new ArgumentException("Portfolio field keys must be unique.", nameof(fields));
+        PdfCollectionSortInfo[] selectedSort = sort?.ToArray() ?? [];
+        HashSet<string> keys = selectedFields.Select(field => field.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        if (selectedSort.Any(rule => rule is null || !keys.Contains(rule.Key))
+            || selectedSort.Select(rule => rule.Key).Distinct(StringComparer.Ordinal).Count()
+                != selectedSort.Length)
+            throw new ArgumentException(
+                "Portfolio sort rules must reference unique schema fields.", nameof(sort));
+
+        var schemaEntries = new List<KeyValuePair<PdfName, PdfObject>>();
+        foreach (PdfCollectionFieldInfo field in selectedFields)
+        {
+            var fieldEntries = new List<KeyValuePair<PdfName, PdfObject>>
+            {
+                new(Name("N"), Text(field.DisplayName)),
+                new(Name("Subtype"), Name(field.Subtype!))
+            };
+            if (field.Order.HasValue)
+                fieldEntries.Add(new(Name("O"), new PdfInteger(field.Order.Value)));
+            if (!field.IsVisible) fieldEntries.Add(new(Name("V"), new PdfBoolean(false)));
+            if (field.IsEditable) fieldEntries.Add(new(Name("E"), new PdfBoolean(true)));
+            schemaEntries.Add(new(Name(field.Key), new PdfDictionary(fieldEntries)));
+        }
+
+        return UpdateCollection(document, entries =>
+        {
+            entries[Name("Type")] = Name("Collection");
+            entries[Name("Schema")] = new PdfDictionary(schemaEntries);
+            if (selectedSort.Length == 0) entries.Remove(Name("Sort"));
+            else
+            {
+                PdfObject sortKeys = selectedSort.Length == 1
+                    ? Name(selectedSort[0].Key)
+                    : new PdfArray(selectedSort.Select(rule => (PdfObject)Name(rule.Key)));
+                PdfObject directions = selectedSort.Length == 1
+                    ? new PdfBoolean(selectedSort[0].Ascending)
+                    : new PdfArray(selectedSort.Select(rule =>
+                        (PdfObject)new PdfBoolean(rule.Ascending)));
+                entries[Name("Sort")] = new PdfDictionary([
+                    new(Name("S"), sortKeys), new(Name("A"), directions)]);
+            }
+        });
+    }
+
+    private static byte[] UpdateCollection(PdfDocument document,
+        Action<Dictionary<PdfName, PdfObject>> updateEntries)
+    {
+        PdfPageTree tree = PdfPageTree.Read(document);
+        PdfObject? current = tree.Catalog.GetValueOrDefault(CollectionName);
+        PdfIndirectReference? reference = current as PdfIndirectReference;
+        PdfDictionary collection = current is null ? new PdfDictionary([])
+            : Resolve(document, current) as PdfDictionary
+                ?? throw new InvalidOperationException(
+                    "The catalog /Collection value is not a dictionary.");
+        var entries = collection.ToDictionary(entry => entry.Key, entry => entry.Value);
+        updateEntries(entries);
+        var replacement = new PdfDictionary(entries);
+        var builder = new PdfIncrementalUpdateBuilder(document);
+        if (reference is not null)
+            builder.ReplaceObject(reference.ObjectNumber, replacement);
+        else
+        {
+            var catalog = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+            catalog[CollectionName] = replacement;
+            builder.ReplaceObject(tree.CatalogReference.ObjectNumber, new PdfDictionary(catalog));
+        }
+        return builder.Build();
+    }
+
     private static PdfObject Resolve(PdfDocument document, PdfObject value)
     {
         var visited = new HashSet<(int, int)>();
@@ -79,5 +171,5 @@ public static class PdfCollectionEditor
     private static PdfString Text(string value) => new(
         [0xFE, 0xFF, .. PdfUnicodeEncoding.EncodeBigEndian(value)],
         PdfStringForm.Hexadecimal);
-    private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+    private static PdfName Name(string value) => new(Encoding.UTF8.GetBytes(value));
 }

@@ -107,6 +107,60 @@ public sealed class PdfCollectionReaderTests
             PdfCollectionEditor.Clear(changed))));
     }
 
+    [Fact]
+    public void EditorReplacesSchemaAndSortWhilePreservingPresentation()
+    {
+        PdfDocument document = WithCollection(new PdfDictionary([
+            new(Name("View"), Name("T")),
+            new(Name("D"), Text("cover.pdf")),
+            new(Name("Unknown"), new PdfInteger(42))
+        ]));
+        PdfCollectionFieldInfo[] fields = [
+            new()
+            {
+                Key = "Name", DisplayName = "File name", Subtype = "F",
+                Order = 1, IsVisible = true
+            },
+            new()
+            {
+                Key = "Department", DisplayName = "Department", Subtype = "S",
+                Order = 2, IsVisible = false, IsEditable = true
+            }];
+
+        PdfDocument changed = PdfDocument.Open(PdfCollectionEditor.SetSchema(
+            document, fields, [
+                new PdfCollectionSortInfo("Department", true),
+                new PdfCollectionSortInfo("Name", false)]));
+        PdfCollectionInfo info = Assert.IsType<PdfCollectionInfo>(
+            PdfCollectionReader.Read(changed));
+
+        Assert.Equal(PdfCollectionView.Tile, info.View);
+        Assert.Equal("cover.pdf", info.InitialDocument);
+        Assert.Equal(fields, info.Fields);
+        Assert.Equal([
+            new PdfCollectionSortInfo("Department", true),
+            new PdfCollectionSortInfo("Name", false)], info.Sort);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(changed.Resolve(
+            Assert.IsType<PdfIndirectReference>(changed.Trailer[Name("Root")])));
+        PdfDictionary collection = Assert.IsType<PdfDictionary>(catalog[Name("Collection")]);
+        Assert.Equal(42, Assert.IsType<PdfInteger>(collection[Name("Unknown")]).Value);
+    }
+
+    [Fact]
+    public void EditorRejectsUnknownFieldTypesAndSortKeys()
+    {
+        PdfDocument document = WithCollection(new PdfDictionary([]));
+        PdfCollectionFieldInfo field = new()
+        {
+            Key = "Name", DisplayName = "Name", Subtype = "F", IsVisible = true
+        };
+
+        Assert.Throws<ArgumentException>(() => PdfCollectionEditor.SetSchema(document,
+            [field with { Subtype = "Unknown" }]));
+        Assert.Throws<ArgumentException>(() => PdfCollectionEditor.SetSchema(document,
+            [field], [new PdfCollectionSortInfo("Missing", true)]));
+    }
+
     private static PdfDocument WithCollection(PdfDictionary collection)
     {
         PdfDocument source = PdfDocument.Open(
