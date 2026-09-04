@@ -261,7 +261,9 @@ public enum PdfMacroOperation
     /// <summary>Arrange source pages as duplex booklet signatures.</summary>
     ImposeBooklet,
     /// <summary>Replace the document's page-label ranges.</summary>
-    SetPageLabels
+    SetPageLabels,
+    /// <summary>Repeat one source page across imposed output sheets.</summary>
+    ImposeStepAndRepeat
 }
 
 /// <summary>One contextual macro operation result and its values for later steps.</summary>

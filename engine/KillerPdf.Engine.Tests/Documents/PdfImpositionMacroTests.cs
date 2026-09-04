@@ -63,4 +63,31 @@ public sealed class PdfImpositionMacroTests
         Assert.Throws<ArgumentException>(() => PdfImpositionMacro.BookletStep(
             new PdfImpositionPreset("Simplex", 2, 1, 792, 612), 8));
     }
+
+    [Fact]
+    public void StepAndRepeatRoundTripsAndExportsRequestedCopies()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .AddBlankPage(300, 200)
+            .Build();
+        var preset = new PdfImpositionPreset(
+            "Labels", 2, 1, 792, 612, duplex: true,
+            includePageInformation: true);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Repeat",
+            [PdfImpositionMacro.StepAndRepeatStep(preset, 1, 5)]).ToJson());
+
+        PdfMacroStep step = Assert.Single(macro.Steps);
+        PdfDocument imposed = PdfDocument.Open(
+            PdfImpositionMacro.Execute(step, source));
+
+        Assert.Equal(PdfMacroOperation.ImposeStepAndRepeat, step.Operation);
+        Assert.Equal(3, PdfPageBoxInformation.Read(imposed).Count);
+        Assert.Equal("Sheet 1 front", new PdfPageContentReader(imposed).Read(0).Text);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionMacro.Execute(
+                PdfImpositionMacro.StepAndRepeatStep(preset, 2, 1), source));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionMacro.StepAndRepeatStep(preset, 0, -1));
+    }
 }
