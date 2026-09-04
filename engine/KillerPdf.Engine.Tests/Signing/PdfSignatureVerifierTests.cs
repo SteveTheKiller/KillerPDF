@@ -4,6 +4,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Signing;
 using KillerPdf.Engine.Tests.Security;
 using KillerPdf.Engine.Writing;
@@ -222,6 +223,52 @@ public sealed class PdfSignatureVerifierTests
         Assert.Contains("Certificate valid until: ", text);
         Assert.Contains("Certificate time validity: Valid", text);
         Assert.Contains("Later changes: No", text);
+    }
+
+    [Fact]
+    public void ValidationDataWriterAppendsDssWithoutChangingSignedBytes()
+    {
+        using RSA key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=KillerPDF LTV Test", key,
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using X509Certificate2 certificate = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        byte[] signed = PdfDetachedSignatureWriter.Sign(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()),
+            content => Sign(content, certificate),
+            new PdfSignatureOptions { FieldName = "Approval", ReservedSignatureSize = 4_096 });
+        PdfDocument document = PdfDocument.Open(signed);
+        PdfSignatureInfo signature = Assert.Single(PdfSignatureReader.Read(document));
+
+        byte[] embedded = PdfPadesValidationDataWriter.Embed(document, signature,
+            new PdfPadesValidationData
+            {
+                Certificates = [certificate.RawData],
+                CertificateRevocationLists = [new byte[] { 0x30, 0x00 }],
+                ValidationTime = new DateTimeOffset(2026, 9, 4, 12, 0, 0, TimeSpan.Zero)
+            });
+        PdfDocument reopened = PdfDocument.Open(embedded);
+        PdfSignatureInfo reopenedSignature = Assert.Single(PdfSignatureReader.Read(reopened));
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(reopened.Resolve(
+            Assert.IsType<PdfIndirectReference>(reopened.Trailer[new PdfName("Root"u8)])));
+        PdfDictionary dss = Assert.IsType<PdfDictionary>(reopened.Resolve(
+            Assert.IsType<PdfIndirectReference>(catalog[new PdfName("DSS"u8)])));
+
+        Assert.True(PdfSignatureVerifier.VerifyIntegrity(reopened, reopenedSignature)
+            .IsCryptographicallyValid);
+        Assert.Equal(signed, embedded.AsSpan(0, signed.Length).ToArray());
+        Assert.Single(Assert.IsType<PdfArray>(dss[new PdfName("Certs"u8)]));
+        Assert.Single(Assert.IsType<PdfArray>(dss[new PdfName("CRLs"u8)]));
+        PdfDictionary vri = Assert.IsType<PdfDictionary>(dss[new PdfName("VRI"u8)]);
+        Assert.Contains(new PdfName(Encoding.ASCII.GetBytes(
+            Convert.ToHexString(SHA1.HashData(signature.Contents.Span)))), vri.Keys);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfPadesValidationDataWriter.Embed(reopened, reopenedSignature,
+                new PdfPadesValidationData
+                {
+                    Certificates = [certificate.RawData],
+                    CertificateRevocationLists = [new byte[] { 0x30, 0x00 }]
+                }));
     }
 
     private static byte[] Sign(ReadOnlyMemory<byte> content, X509Certificate2 certificate)
