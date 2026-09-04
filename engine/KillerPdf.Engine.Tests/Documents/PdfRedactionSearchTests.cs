@@ -165,12 +165,20 @@ public sealed class PdfRedactionSearchTests
 
         PdfRedactionMatch match = Assert.Single(review.Matches);
         string json = review.ToJson();
+        string text = review.ToText();
 
         Assert.Equal("Privacy", match.ReasonCode);
         Assert.Equal("REMOVED", match.OverlayText);
         Assert.Contains("\"reasonCode\":\"Privacy\"", json, StringComparison.Ordinal);
         Assert.Contains("\"overlayText\":\"REMOVED\"", json, StringComparison.Ordinal);
         Assert.DoesNotContain("secret", json, StringComparison.Ordinal);
+        Assert.Contains("[Selected]", text, StringComparison.Ordinal);
+        Assert.Contains("Page 1", text, StringComparison.Ordinal);
+        Assert.Contains("Reason Privacy", text, StringComparison.Ordinal);
+        Assert.Contains("Overlay REMOVED", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+        Assert.Contains("secret", review.ToText(includeMatchedText: true),
+            StringComparison.Ordinal);
         Assert.Throws<ArgumentException>(() => PdfRedactionSearch.Find([Read("secret")],
             new PdfRedactionSearchOptions
             {

@@ -50,6 +50,25 @@ public sealed record PdfRedactionVerificationReport(IReadOnlyList<PdfRedactionVe
         };
         return JsonSerializer.Serialize(new { Version = 1, Succeeded, Findings }, options);
     }
+
+    /// <summary>Exports a readable verification result with page and object locations.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder()
+            .Append("Redaction verification: ")
+            .AppendLine(Succeeded ? "Passed" : "Failed");
+        if (Findings.Count == 0) return output.AppendLine("No findings.").ToString();
+        foreach (PdfRedactionVerificationFinding finding in Findings)
+        {
+            output.Append(finding.Code);
+            if (finding.PageIndex is int pageIndex)
+                output.Append(" | Page ").Append(pageIndex + 1);
+            if (finding.ObjectNumber is int objectNumber)
+                output.Append(" | Object ").Append(objectNumber);
+            output.Append(": ").AppendLine(finding.Message);
+        }
+        return output.ToString();
+    }
 }
 
 /// <summary>One named set of fully sanitized raster pages for isolated batch rebuilding.</summary>

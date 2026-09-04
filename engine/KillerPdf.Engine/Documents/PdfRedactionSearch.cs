@@ -231,6 +231,29 @@ public sealed class PdfRedactionReview
             })
         }, options);
     }
+
+    /// <summary>Exports a readable review without matched text unless explicitly requested.</summary>
+    public string ToText(bool includeMatchedText = false)
+    {
+        var output = new System.Text.StringBuilder()
+            .Append("Redaction candidates: ").AppendLine(_matches.Length.ToString())
+            .Append("Selected: ").AppendLine(Included.Count.ToString());
+        foreach (PdfRedactionMatch match in _matches)
+        {
+            output.Append(_excluded.Contains(match.Id) ? "[Excluded] " : "[Selected] ")
+                .Append(match.Id).Append(" | ").Append(match.TargetKind);
+            if (match.PageIndex >= 0)
+                output.Append(" | Page ").Append(match.PageIndex + 1);
+            if (!string.IsNullOrWhiteSpace(match.ReasonCode))
+                output.Append(" | Reason ").Append(match.ReasonCode);
+            if (!string.IsNullOrWhiteSpace(match.OverlayText))
+                output.Append(" | Overlay ").Append(match.OverlayText);
+            if (includeMatchedText && !string.IsNullOrEmpty(match.Text))
+                output.Append(" | Text ").Append(match.Text);
+            output.AppendLine();
+        }
+        return output.ToString();
+    }
 }
 
 /// <summary>Finds text redaction candidates without modifying the source document.</summary>

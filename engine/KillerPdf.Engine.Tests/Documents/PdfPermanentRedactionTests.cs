@@ -77,6 +77,8 @@ public sealed class PdfPermanentRedactionTests
             output, 1, ["account 12345"]);
 
         Assert.True(report.Succeeded);
+        Assert.Contains("Redaction verification: Passed", report.ToText());
+        Assert.Contains("No findings.", report.ToText());
         PdfPageContent content = new PdfPageContentReader(PdfDocument.Open(output)).Read(0);
         Assert.Empty(content.Text);
         Assert.Single(content.Images);
@@ -117,6 +119,10 @@ public sealed class PdfPermanentRedactionTests
         PdfRedactionVerificationFinding finding = Assert.Single(report.Findings,
             item => item.Code == "ProhibitedObjectText");
         Assert.NotNull(finding.ObjectNumber);
+        string text = report.ToText();
+        Assert.Contains("Redaction verification: Failed", text);
+        Assert.Contains("ProhibitedObjectText", text);
+        Assert.Contains($"Object {finding.ObjectNumber}", text);
     }
 
     [Fact]
