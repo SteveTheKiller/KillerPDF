@@ -116,6 +116,8 @@ public sealed class PdfStructuredExportTests
         using var reader = new StreamReader(slide.Open());
         string xml = reader.ReadToEnd();
         Assert.Contains("<a:t>A &amp; B</a:t>", xml, StringComparison.Ordinal);
+        Assert.Contains("sz=\"1200\"><a:latin typeface=\"Helvetica\"/>", xml,
+            StringComparison.Ordinal);
         Assert.Contains("<a:xfrm>", xml, StringComparison.Ordinal);
     }
 

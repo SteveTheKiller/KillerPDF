@@ -553,10 +553,10 @@ public static class PdfStructuredExport
         int id = 2;
         foreach (PdfExtractedLine line in page.Content.Lines)
             AppendPresentationText(shapes, id++, line.Text, line.BoundingBox,
-                page.Content.Height, layout);
+                page.Content.Height, layout, line.Runs);
         foreach (PdfExtractedImage image in page.Content.Images)
             AppendPresentationText(shapes, id++, "[Image: " + (image.ResourceName ?? "inline") + "]",
-                image.BoundingBox, page.Content.Height, layout);
+                image.BoundingBox, page.Content.Height, layout, null);
         WriteEntry(archive, $"ppt/slides/slide{number}.xml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
             "<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:spTree>" +
@@ -566,7 +566,8 @@ public static class PdfStructuredExport
     }
 
     private static void AppendPresentationText(StringBuilder output, int id, string text,
-        PdfContentBounds bounds, double pageHeight, PresentationPageLayout layout)
+        PdfContentBounds bounds, double pageHeight, PresentationPageLayout layout,
+        IReadOnlyList<PdfExtractedTextRun>? runs)
     {
         long x = layout.OffsetX + (long)Math.Round(bounds.Left * layout.EmuPerPoint);
         long y = layout.OffsetY
@@ -578,9 +579,25 @@ public static class PdfStructuredExport
             .Append("\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"")
             .Append(x).Append("\" y=\"").Append(y).Append("\"/><a:ext cx=\"")
             .Append(width).Append("\" cy=\"").Append(height)
-            .Append("\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap=\"none\"/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\"/><a:t>")
-            .Append(WebUtility.HtmlEncode(text))
-            .Append("</a:t></a:r><a:endParaRPr lang=\"en-US\"/></a:p></p:txBody></p:sp>");
+            .Append("\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap=\"none\"/><a:lstStyle/><a:p>");
+        string runText = runs is null ? string.Empty : string.Concat(runs.Select(run => run.Text));
+        if (runs is null || runs.Count == 0 || runText != text)
+            AppendRun(text, runs?.FirstOrDefault());
+        else
+            foreach (PdfExtractedTextRun run in runs) AppendRun(run.Text, run);
+        output.Append("<a:endParaRPr lang=\"en-US\"/></a:p></p:txBody></p:sp>");
+
+        void AppendRun(string value, PdfExtractedTextRun? run)
+        {
+            string font = string.IsNullOrWhiteSpace(run?.FontName) ? "Arial" : run.FontName;
+            int size = run is null || !double.IsFinite(run.PointSize) || run.PointSize <= 0
+                ? 1200 : Math.Clamp((int)Math.Round(run.PointSize * 100), 100, 400000);
+            output.Append("<a:r><a:rPr lang=\"en-US\" sz=\"").Append(size)
+                .Append("\"><a:latin typeface=\"")
+                .Append(WebUtility.HtmlEncode(font))
+                .Append("\"/></a:rPr><a:t>")
+                .Append(WebUtility.HtmlEncode(value)).Append("</a:t></a:r>");
+        }
     }
 
     private static long Scale(double value, double source, long target) =>
