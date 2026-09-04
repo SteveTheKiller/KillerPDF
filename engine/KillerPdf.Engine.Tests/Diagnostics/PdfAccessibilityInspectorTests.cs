@@ -508,7 +508,8 @@ public sealed class PdfAccessibilityInspectorTests
 
         PdfAccessibilityTableHeaderRepair preview =
             PdfAccessibilityRepair.PreviewTableHeader(
-                document, tableObjectNumber, cellObjectNumber);
+                document, tableObjectNumber, cellObjectNumber,
+                PdfAccessibilityTableHeaderScope.Row);
         PdfAccessibilityRepairResult result =
             PdfAccessibilityRepair.ApplyTableHeader(document, preview);
 
@@ -519,6 +520,12 @@ public sealed class PdfAccessibilityInspectorTests
             result.Document).Resolve(new PdfIndirectReference(cellObjectNumber, 0)));
         Assert.Equal("TH", Assert.IsType<PdfName>(
             repaired[new PdfName("S"u8)]).ValueAsLatin1());
+        PdfDictionary attributes = Assert.IsType<PdfDictionary>(
+            repaired[new PdfName("A"u8)]);
+        Assert.Equal("Table", Assert.IsType<PdfName>(
+            attributes[new PdfName("O"u8)]).ValueAsLatin1());
+        Assert.Equal("Row", Assert.IsType<PdfName>(
+            attributes[new PdfName("Scope"u8)]).ValueAsLatin1());
         Assert.Throws<InvalidOperationException>(() =>
             PdfAccessibilityRepair.ApplyTableHeader(
                 PdfDocument.Open(result.Document), preview));

@@ -26,8 +26,19 @@ public sealed record PdfAccessibilityLinkRepair(
 
 /// <summary>A reviewed role correction for one table data-cell structure element.</summary>
 public sealed record PdfAccessibilityTableHeaderRepair(
-    int TableObjectNumber, int CellObjectNumber,
+    int TableObjectNumber, int CellObjectNumber, PdfAccessibilityTableHeaderScope Scope,
     PdfAccessibilityReport Before, bool WillChange);
+
+/// <summary>The cells described by a reviewed table header.</summary>
+public enum PdfAccessibilityTableHeaderScope
+{
+    /// <summary>The header describes cells in its row.</summary>
+    Row,
+    /// <summary>The header describes cells in its column.</summary>
+    Column,
+    /// <summary>The header describes cells in its row and column.</summary>
+    Both
+}
 
 /// <summary>A reviewed permutation of one structure container's indirect children.</summary>
 public sealed record PdfAccessibilityReadingOrderRepair(
@@ -102,13 +113,16 @@ public static class PdfAccessibilityRepair
 
     /// <summary>Previews promoting a supplied data cell in a reported table to a header cell.</summary>
     public static PdfAccessibilityTableHeaderRepair PreviewTableHeader(
-        PdfDocument document, int tableObjectNumber, int cellObjectNumber)
+        PdfDocument document, int tableObjectNumber, int cellObjectNumber,
+        PdfAccessibilityTableHeaderScope scope = PdfAccessibilityTableHeaderScope.Column)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (tableObjectNumber <= 0)
             throw new ArgumentOutOfRangeException(nameof(tableObjectNumber));
         if (cellObjectNumber <= 0)
             throw new ArgumentOutOfRangeException(nameof(cellObjectNumber));
+        if (!Enum.IsDefined(scope))
+            throw new ArgumentOutOfRangeException(nameof(scope));
         PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
         bool missing = before.Findings.Any(finding =>
             finding.Code == PdfAccessibilityFindingCode.MissingTableHeader
@@ -116,7 +130,7 @@ public static class PdfAccessibilityRepair
         bool dataCell = missing && IsDescendantDataCell(
             document, tableObjectNumber, cellObjectNumber);
         return new PdfAccessibilityTableHeaderRepair(
-            tableObjectNumber, cellObjectNumber, before, dataCell);
+            tableObjectNumber, cellObjectNumber, scope, before, dataCell);
     }
 
     /// <summary>Applies a previewed table-header role and verifies the saved result.</summary>
@@ -139,10 +153,17 @@ public static class PdfAccessibilityRepair
                 "The table cell object is not a dictionary.");
         var entries = cell.ToDictionary(item => item.Key, item => item.Value);
         entries[new PdfName("S"u8)] = new PdfName("TH"u8);
+        entries[new PdfName("A"u8)] = AddTableScope(
+            entries.GetValueOrDefault(new PdfName("A"u8)), repair.Scope);
         byte[] saved = new PdfIncrementalUpdateBuilder(document)
             .ReplaceObject(repair.CellObjectNumber, new PdfDictionary(entries)).Build();
         PdfDocument reopened = PdfDocument.Open(saved);
         PdfAccessibilityReport after = PdfAccessibilityInspector.Inspect(reopened);
+        PdfDictionary repairedCell = reopened.Resolve(new PdfIndirectReference(
+            repair.CellObjectNumber, 0)) as PdfDictionary
+            ?? throw new InvalidOperationException("The saved table header is not a dictionary.");
+        if (!HasTableScope(reopened, repairedCell, repair.Scope))
+            throw new InvalidOperationException("The saved table header has the wrong scope.");
         if (after.Findings.Any(finding =>
                 finding.Code == PdfAccessibilityFindingCode.MissingTableHeader
                 && finding.ObjectNumber == repair.TableObjectNumber))
@@ -324,6 +345,36 @@ public static class PdfAccessibilityRepair
         report.Findings.Any(finding => finding.Code is
             PdfAccessibilityFindingCode.MissingDocumentLanguage
             or PdfAccessibilityFindingCode.InvalidDocumentLanguage);
+
+    private static PdfObject AddTableScope(
+        PdfObject? existing, PdfAccessibilityTableHeaderScope scope)
+    {
+        var attribute = new PdfDictionary([
+            new(new PdfName("O"u8), new PdfName("Table"u8)),
+            new(new PdfName("Scope"u8), new PdfName(Encoding.ASCII.GetBytes(scope.ToString())))
+        ]);
+        return existing switch
+        {
+            null => attribute,
+            PdfArray array => new PdfArray([.. array, attribute]),
+            _ => new PdfArray([existing, attribute])
+        };
+    }
+
+    private static bool HasTableScope(PdfDocument document, PdfDictionary cell,
+        PdfAccessibilityTableHeaderScope scope)
+    {
+        if (!cell.TryGetValue(new PdfName("A"u8), out PdfObject? value)) return false;
+        IEnumerable<PdfObject> attributes = value is PdfArray array ? array : [value];
+        return attributes.Select(item => item is PdfIndirectReference reference
+                ? document.Resolve(reference) : item)
+            .OfType<PdfDictionary>().Any(attribute =>
+                attribute.TryGetValue(new PdfName("O"u8), out PdfObject? owner)
+                && owner is PdfName ownerName && ownerName.ValueAsLatin1() == "Table"
+                && attribute.TryGetValue(new PdfName("Scope"u8), out PdfObject? scopeValue)
+                && scopeValue is PdfName scopeName
+                && scopeName.ValueAsLatin1() == scope.ToString());
+    }
 
     private static PdfString TextString(string value) => new(
         [0xFE, 0xFF, .. Encoding.BigEndianUnicode.GetBytes(value)],
