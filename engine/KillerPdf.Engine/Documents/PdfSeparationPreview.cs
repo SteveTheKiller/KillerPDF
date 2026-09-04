@@ -29,10 +29,19 @@ public sealed record PdfSeparationPreview(
 
     /// <summary>Creates a preview selection from the document's declared process and spot plates.</summary>
     public static PdfSeparationPreview Create(
-        PdfDocument document, IEnumerable<string> plateNames)
+        PdfDocument document, IEnumerable<string> plateNames,
+        IEnumerable<int>? pageIndexes = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(plateNames);
+        int pageCount = PdfPageTree.Read(document).Pages.Count;
+        int[] selectedPages = pageIndexes?.ToArray()
+            ?? Enumerable.Range(0, pageCount).ToArray();
+        if (selectedPages.Length == 0 || selectedPages.Any(index => index < 0 || index >= pageCount)
+            || selectedPages.Distinct().Count() != selectedPages.Length)
+            throw new ArgumentException(
+                "Separation preview page indexes must be in range and unique.",
+                nameof(pageIndexes));
         PdfSeparationColorant[] available =
             [.. PdfSeparationInspection.Inspect(document).Colorants];
         var requested = new HashSet<string>(StringComparer.Ordinal);
@@ -58,9 +67,10 @@ public sealed record PdfSeparationPreview(
         PdfSeparationPreviewPlate[] plates = [.. available
             .Where(colorant => requested.Contains(colorant.Name))
             .Select(colorant => new PdfSeparationPreviewPlate(
-                colorant.Name, colorant.IsProcess, colorant.PageIndexes))];
-        int pageCount = PdfPageTree.Read(document).Pages.Count;
-        PdfSeparationPreviewPage[] pages = [.. Enumerable.Range(0, pageCount)
+                colorant.Name, colorant.IsProcess,
+                Array.AsReadOnly(selectedPages
+                    .Where(colorant.PageIndexes.Contains).ToArray())))];
+        PdfSeparationPreviewPage[] pages = [.. selectedPages
             .Select(pageIndex => new PdfSeparationPreviewPage(pageIndex,
                 Array.AsReadOnly(plates
                     .Where(plate => plate.PageIndexes.Contains(pageIndex))

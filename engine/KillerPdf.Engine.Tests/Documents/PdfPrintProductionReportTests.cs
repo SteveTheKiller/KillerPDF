@@ -66,6 +66,19 @@ public sealed class PdfPrintProductionReportTests
             PdfSeparationPreview.Create(document, ["Killer Orange", "Killer Orange"]));
         Assert.Throws<ArgumentException>(() =>
             PdfSeparationPreview.Create(document, ["Missing plate"]));
+
+        PdfSeparationPreview selected = PdfSeparationPreview.Create(
+            document, ["Black", "Killer Orange"], [1]);
+        Assert.Equal([1], selected.Pages.Select(page => page.PageIndex));
+        Assert.Empty(selected.Plates[0].PageIndexes);
+        Assert.Equal([1], selected.Plates[1].PageIndexes);
+        Assert.Equal(["Killer Orange"], selected.Pages[0].PlateNames);
+        Assert.Throws<ArgumentException>(() =>
+            PdfSeparationPreview.Create(document, ["Black"], []));
+        Assert.Throws<ArgumentException>(() =>
+            PdfSeparationPreview.Create(document, ["Black"], [0, 0]));
+        Assert.Throws<ArgumentException>(() =>
+            PdfSeparationPreview.Create(document, ["Black"], [2]));
     }
 
     private static byte[] Profile(string colorSpace)
