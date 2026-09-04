@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KillerPdf.Engine.Editing;
@@ -83,6 +84,29 @@ public static class PdfNavigationAudit
             WriteIndented = indented,
             Converters = { new JsonStringEnumConverter() }
         });
+
+    /// <summary>Exports a readable navigation audit without executing document actions.</summary>
+    public static string ExportText(PdfDocument document)
+    {
+        IReadOnlyList<PdfNavigationFinding> findings = Inspect(document);
+        var output = new StringBuilder();
+        output.Append("Navigation findings: ").AppendLine(findings.Count.ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
+        foreach (PdfNavigationFinding finding in findings)
+        {
+            output.Append("  ").Append(finding.Code).Append(": ").Append(finding.Kind);
+            if (finding.SourcePageIndex.HasValue)
+                output.Append(", page ").Append((finding.SourcePageIndex.Value + 1).ToString(
+                    System.Globalization.CultureInfo.InvariantCulture));
+            if (finding.SourceObjectNumber.HasValue)
+                output.Append(", object ").Append(finding.SourceObjectNumber.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture));
+            output.Append(", source \"").Append(OneLine(finding.Source)).AppendLine("\"");
+            output.Append("    ").AppendLine(OneLine(finding.Message));
+            output.Append("    Suggested repair: ").AppendLine(finding.SuggestedRepair.ToString());
+        }
+        return output.ToString().TrimEnd();
+    }
 
     /// <summary>Reports bookmarks and links whose local or named targets cannot be resolved.</summary>
     public static IReadOnlyList<PdfNavigationFinding> Inspect(PdfDocument document)
@@ -212,4 +236,8 @@ public static class PdfNavigationAudit
             foreach (PdfBookmarkInfo child in Flatten(item.Children)) yield return child;
         }
     }
+
+    private static string OneLine(string value) =>
+        value.Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal);
 }

@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added advanced bookmark, link, destination, page-label, TOC, audit, repair, and macro workflows (#351).
 - Added complete PDF layer inspection, editing, assignment, flattening, comparison, macros, and reports (#350).
 - Added reusable imposition layouts, production marks, vector export, macros, and previews (#349).
 - Added calibrated measurement profiles, editable annotations, snapping, preflight checks, and reports (#348).

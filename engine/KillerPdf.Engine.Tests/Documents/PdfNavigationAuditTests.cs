@@ -32,6 +32,16 @@ public sealed class PdfNavigationAuditTests
         Assert.Equal("LinkUnsafeUri", report.RootElement[0].GetProperty("Code").GetString());
         Assert.Equal(5, report.RootElement[0].GetProperty("SourceObjectNumber").GetInt32());
         Assert.Equal("Remove", report.RootElement[0].GetProperty("SuggestedRepair").GetString());
+
+        string text = PdfNavigationAudit.ExportText(document);
+        Assert.Contains("Navigation findings: 2", text, StringComparison.Ordinal);
+        Assert.Contains("LinkUnsafeUri: Link, page 1, object 5", text,
+            StringComparison.Ordinal);
+        Assert.Contains("source \"javascript:alert\"", text, StringComparison.Ordinal);
+        Assert.Contains("Suggested repair: Remove", text, StringComparison.Ordinal);
+        Assert.Contains("LinkUnresolvedDestination: Link, page 1, object 6", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Suggested repair: ChooseDestination", text, StringComparison.Ordinal);
     }
 
     [Fact]
