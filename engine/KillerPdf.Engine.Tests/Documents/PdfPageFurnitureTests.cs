@@ -129,6 +129,29 @@ public sealed class PdfPageFurnitureTests
     }
 
     [Fact]
+    public void ReportRecoversOnlyKillerPdfCreatedFurnitureAfterReopen()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 400).Build());
+        var mark = new PdfPageFurnitureMark(0, "CASE-000042", 21, 31, 11,
+            new PdfRgbColor(0.2, 0.3, 0.4), 0.65, 12);
+        PdfDocument reopened = PdfDocument.Open(PdfPageFurnitureWriter.Apply(document, [mark]));
+
+        PdfPageFurnitureReportEntry entry = Assert.Single(
+            PdfPageFurnitureReport.Inspect(reopened));
+
+        Assert.Equal(mark.PageIndex, entry.PageIndex);
+        Assert.Equal(mark.Text, entry.Text);
+        Assert.Equal(mark.X, entry.X);
+        Assert.Equal(mark.Baseline, entry.Baseline);
+        Assert.Equal(mark.FontSize, entry.FontSize);
+        Assert.Equal(mark.Color, entry.Color);
+        Assert.Equal(mark.Opacity, entry.Opacity);
+        Assert.Equal(mark.RotationDegrees, entry.RotationDegrees);
+        Assert.Empty(PdfPageFurnitureReport.Inspect(document));
+    }
+
+    [Fact]
     public void BatesBatchWriterAppliesContinuousNumbersInDocumentOrder()
     {
         PdfDocument first = PdfDocument.Open(new PdfDocumentBuilder()

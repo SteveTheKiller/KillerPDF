@@ -1519,10 +1519,19 @@ public sealed class PdfIncrementalPageEditor
     /// </summary>
     public PdfIncrementalPageEditor AppendPageArtifact(
         int pageIndex, double width, double height, PdfContentStreamBuilder content)
-        => AppendTypedPageContent(pageIndex, width, height, content, artifact: true);
+        => AppendTypedPageContent(pageIndex, width, height, content, artifact: true, null);
+
+    internal PdfIncrementalPageEditor AppendPageArtifact(
+        int pageIndex, double width, double height, PdfContentStreamBuilder content,
+        string marker)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(marker);
+        return AppendTypedPageContent(pageIndex, width, height, content, artifact: true, marker);
+    }
 
     private PdfIncrementalPageEditor AppendTypedPageContent(
-        int pageIndex, double width, double height, PdfContentStreamBuilder content, bool artifact)
+        int pageIndex, double width, double height, PdfContentStreamBuilder content, bool artifact,
+        string? marker = null)
     {
         ValidateIndex(pageIndex, nameof(pageIndex));
         ValidatePositiveFinite(width, nameof(width));
@@ -1535,7 +1544,8 @@ public sealed class PdfIncrementalPageEditor
         if (page.Entry is null)
             throw new InvalidOperationException(
                 "Typed content can only be appended to an existing destination page.");
-        page.TypedOverlays.Add(new TypedOverlay(BuildTypedPage(width, height, content), artifact));
+        page.TypedOverlays.Add(new TypedOverlay(
+            BuildTypedPage(width, height, content), artifact, marker));
         _pagePresentationChanged = true;
         return this;
     }
@@ -4027,7 +4037,17 @@ public sealed class PdfIncrementalPageEditor
             do resourceName = Name($"KPO{suffix++}");
             while (xObjectEntries.ContainsKey(resourceName));
             xObjectEntries.Add(resourceName, formReference);
-            if (pendingOverlay.Artifact) invocation.Write("/Artifact BMC\n"u8);
+            if (pendingOverlay.Marker is not null)
+            {
+                invocation.Write("/Artifact "u8);
+                invocation.Write(PdfObjectWriter.Write(new PdfDictionary([
+                    new KeyValuePair<PdfName, PdfObject>(
+                        Name("KillerPDFPageFurniture"),
+                        new PdfString(Encoding.UTF8.GetBytes(pendingOverlay.Marker),
+                            PdfStringForm.Literal))])));
+                invocation.Write(" BDC\n"u8);
+            }
+            else if (pendingOverlay.Artifact) invocation.Write("/Artifact BMC\n"u8);
             invocation.Write("q /"u8);
             invocation.Write(resourceName.Bytes.Span);
             invocation.Write(" Do Q\n"u8);
@@ -17900,7 +17920,7 @@ public sealed class PdfIncrementalPageEditor
 
     private enum FieldDefaultKind { Remove, Text, CheckBox, Radio, Choice }
 
-    private sealed record TypedOverlay(PdfDocument Document, bool Artifact);
+    private sealed record TypedOverlay(PdfDocument Document, bool Artifact, string? Marker);
     private enum PageContentUpdate { None, Append, ArtifactAppend, Replace }
 
     private static PdfName PageTabOrderName(PdfPageTabOrder tabOrder) => tabOrder switch

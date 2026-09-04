@@ -1,7 +1,9 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -159,6 +161,89 @@ public sealed record PdfPageFurnitureMark(
     int PageIndex, string Text, double X, double Baseline, double FontSize = 10,
     PdfRgbColor? Color = null, double Opacity = 1, double RotationDegrees = 0);
 
+/// <summary>One KillerPDF-created page-furniture mark recovered from a saved document.</summary>
+public sealed record PdfPageFurnitureReportEntry(
+    int PageIndex, string Text, double X, double Baseline, double FontSize,
+    PdfRgbColor? Color, double Opacity, double RotationDegrees);
+
+/// <summary>Inspects versioned metadata attached to KillerPDF-created page furniture.</summary>
+public static class PdfPageFurnitureReport
+{
+    private static readonly PdfName MarkerName = new("KillerPDFPageFurniture"u8);
+
+    /// <summary>Reports recognized furniture without treating ordinary PDF artifacts as owned content.</summary>
+    public static IReadOnlyList<PdfPageFurnitureReportEntry> Inspect(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var result = new List<PdfPageFurnitureReportEntry>();
+        var reader = new PdfPageContentReader(document);
+        for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
+        {
+            foreach (var instruction in reader.ReadInstructions(pageIndex))
+            {
+                if (instruction.Operator != "BDC" || instruction.Operands.Count != 2
+                    || instruction.Operands[0] is not PdfName tag
+                    || tag.ValueAsLatin1() != "Artifact"
+                    || instruction.Operands[1] is not PdfDictionary properties
+                    || !properties.TryGetValue(MarkerName, out PdfObject? value)
+                    || value is not PdfString marker)
+                    continue;
+                string encoded = Encoding.UTF8.GetString(marker.Bytes.Span);
+                if (!encoded.StartsWith("KPF1:", StringComparison.Ordinal)) continue;
+                try
+                {
+                    byte[] json = Convert.FromBase64String(encoded[5..]);
+                    MarkerData? data = JsonSerializer.Deserialize<MarkerData>(json);
+                    if (data is null || string.IsNullOrEmpty(data.Text)) continue;
+                    result.Add(new PdfPageFurnitureReportEntry(pageIndex, data.Text,
+                        data.X, data.Baseline, data.FontSize,
+                        data.Color is null ? null : new PdfRgbColor(
+                            data.Color.Red, data.Color.Green, data.Color.Blue),
+                        data.Opacity, data.RotationDegrees));
+                }
+                catch (JsonException) { }
+                catch (FormatException) { }
+            }
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
+    internal static string CreateMarker(PdfPageFurnitureMark mark) => "KPF1:" +
+        Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new MarkerData
+        {
+            Text = mark.Text,
+            X = mark.X,
+            Baseline = mark.Baseline,
+            FontSize = mark.FontSize,
+            Color = mark.Color is not PdfRgbColor color ? null : new MarkerColor
+            {
+                Red = color.Red,
+                Green = color.Green,
+                Blue = color.Blue
+            },
+            Opacity = mark.Opacity,
+            RotationDegrees = mark.RotationDegrees
+        }));
+
+    private sealed class MarkerData
+    {
+        public string? Text { get; set; }
+        public double X { get; set; }
+        public double Baseline { get; set; }
+        public double FontSize { get; set; }
+        public MarkerColor? Color { get; set; }
+        public double Opacity { get; set; }
+        public double RotationDegrees { get; set; }
+    }
+
+    private sealed class MarkerColor
+    {
+        public double Red { get; set; }
+        public double Green { get; set; }
+        public double Blue { get; set; }
+    }
+}
+
 /// <summary>Writes reviewed page-furniture marks as decorative page artifacts.</summary>
 public static class PdfPageFurnitureWriter
 {
@@ -201,7 +286,8 @@ public static class PdfPageFurnitureWriter
                 .MoveText(mark.RotationDegrees == 0 ? mark.X : 0,
                     mark.RotationDegrees == 0 ? mark.Baseline : 0)
                 .ShowLatin1Text(mark.Text).EndText().RestoreState();
-            editor.AppendPageArtifact(mark.PageIndex, media.Width, media.Height, content);
+            editor.AppendPageArtifact(mark.PageIndex, media.Width, media.Height, content,
+                PdfPageFurnitureReport.CreateMarker(mark));
         }
         return editor.Build();
     }
