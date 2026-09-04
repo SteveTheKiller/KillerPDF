@@ -2534,16 +2534,16 @@
                             <StackPanel Orientation="Horizontal">
                                 <Grid Width="15" Height="13" Margin="0,1,7,0" VerticalAlignment="Center">
                                     <Border Width="6" Height="11" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                            BorderBrush="{DynamicResource SelectionFg}" BorderThickness="1" CornerRadius="1">
-                                        <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource SelectionFg}"/>
+                                            BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
+                                        <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
                                     </Border>
                                     <Border Width="6" Height="11" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            BorderBrush="{DynamicResource SelectionFg}" BorderThickness="1" CornerRadius="1">
-                                        <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource SelectionFg}"/>
+                                            BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
+                                        <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
                                     </Border>
                                 </Grid>
                                 <TextBlock Text="{DynamicResource Str_Compare_Bar}" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource SelectionFg}" VerticalAlignment="Center"/>
+                                           Foreground="{DynamicResource OnPrimaryBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
                         <Border Grid.Column="1" Padding="6,2,4,2">
