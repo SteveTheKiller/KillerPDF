@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
 
@@ -214,4 +216,36 @@ public sealed class PdfAccessibilityReport
     /// <summary>Gets whether the implemented accessibility checks passed.</summary>
     public bool PassesImplementedChecks =>
         !Findings.Any(finding => finding.Severity == PdfDiagnosticSeverity.Error);
+
+    /// <summary>Formats a readable report with page and object locations.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder()
+            .Append("Accessibility result: ")
+            .AppendLine(PassesImplementedChecks ? "Passed" : "Failed");
+        if (Findings.Count == 0) return output.AppendLine("No findings.").ToString();
+        foreach (PdfAccessibilityFinding finding in Findings)
+        {
+            output.Append('[').Append(finding.Severity).Append("] ")
+                .Append(finding.Code);
+            if (finding.PageIndex is int pageIndex)
+                output.Append(" | Page ").Append(pageIndex + 1);
+            if (finding.ObjectNumber is int objectNumber)
+                output.Append(" | Object ").Append(objectNumber);
+            output.Append(": ").AppendLine(finding.Message);
+        }
+        return output.ToString();
+    }
+
+    /// <summary>Serializes the report with stable camel-case names and string enums.</summary>
+    public string ToJson(bool indented = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        return JsonSerializer.Serialize(new { PassesImplementedChecks, Findings }, options);
+    }
 }

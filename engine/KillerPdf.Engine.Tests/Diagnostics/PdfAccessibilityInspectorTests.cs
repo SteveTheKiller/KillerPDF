@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Diagnostics;
@@ -20,6 +21,11 @@ public sealed class PdfAccessibilityInspectorTests
             PdfAccessibilityFindingCode.MissingStructureTree,
             PdfAccessibilityFindingCode.DocumentNotMarked
         ], report.Findings.Select(finding => finding.Code));
+        using JsonDocument json = JsonDocument.Parse(report.ToJson());
+        Assert.False(json.RootElement.GetProperty("passesImplementedChecks").GetBoolean());
+        Assert.Equal("missingDocumentLanguage",
+            json.RootElement.GetProperty("findings")[0].GetProperty("code").GetString());
+        Assert.Contains("[Error] MissingDocumentLanguage", report.ToText());
     }
 
     [Fact]
