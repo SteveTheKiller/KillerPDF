@@ -11,6 +11,23 @@ public sealed record PdfCertificateChainElement(
 /// <summary>Cryptographic verification outcome for one structurally inspected signature.</summary>
 public sealed record PdfSignatureVerificationResult
 {
+    /// <summary>Gets the overall validation status across integrity, trust, time, and revocation.</summary>
+    public PdfSignatureValidationStatus ValidationStatus
+    {
+        get
+        {
+            if (!IsStructurallyValid || !IsCryptographicallyValid
+                || CertificateTrustStatus == PdfCertificateTrustStatus.Untrusted
+                || IsCertificateTimeValid == false
+                || RevocationStatus == PdfCertificateRevocationStatus.Revoked)
+                return PdfSignatureValidationStatus.Invalid;
+            return CertificateTrustStatus == PdfCertificateTrustStatus.Trusted
+                && IsCertificateTimeValid == true
+                && RevocationStatus == PdfCertificateRevocationStatus.Good
+                    ? PdfSignatureValidationStatus.Valid
+                    : PdfSignatureValidationStatus.Incomplete;
+        }
+    }
     /// <summary>Gets whether the signature dictionary and byte ranges are structurally valid.</summary>
     public bool IsStructurallyValid { get; init; }
     /// <summary>Gets whether the cryptographic signature matches the signed bytes.</summary>
@@ -55,6 +72,17 @@ public sealed record PdfSignatureVerificationResult
     public DateTimeOffset? CertificateNotAfter { get; init; }
     /// <summary>Gets the verification failure message, if any.</summary>
     public string? Error { get; init; }
+}
+
+/// <summary>Overall signature validation status across independent evidence categories.</summary>
+public enum PdfSignatureValidationStatus
+{
+    /// <summary>One or more required validation categories failed.</summary>
+    Invalid,
+    /// <summary>Available evidence passes, but at least one required category was not conclusive.</summary>
+    Incomplete,
+    /// <summary>Integrity, identity trust, certificate time, and revocation all passed.</summary>
+    Valid
 }
 
 /// <summary>Trust result for the signing certificate identity.</summary>

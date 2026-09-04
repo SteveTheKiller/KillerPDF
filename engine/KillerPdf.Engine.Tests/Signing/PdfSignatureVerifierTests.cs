@@ -182,6 +182,7 @@ public sealed class PdfSignatureVerifierTests
         Assert.True(result.IsCryptographicallyValid);
         Assert.True(result.IsCertificateTrusted);
         Assert.Equal(PdfCertificateTrustStatus.Trusted, result.CertificateTrustStatus);
+        Assert.Equal(PdfSignatureValidationStatus.Incomplete, result.ValidationStatus);
         Assert.True(result.IsCertificateTimeValid);
         Assert.Equal(PdfCertificateRevocationStatus.NotChecked, result.RevocationStatus);
         Assert.Equal(X509RevocationMode.NoCheck, result.RequestedRevocationMode);
@@ -240,8 +241,10 @@ public sealed class PdfSignatureVerifierTests
         string text = report.ToText();
         Assert.Contains("Approval", text);
         Assert.Contains("Cryptographic integrity: Valid", text);
+        Assert.Contains("Overall validation: Incomplete", text);
         Assert.Contains("Certificate trust: Trusted", text);
         Assert.Contains("Revocation: NotChecked", text);
+        Assert.Contains("\"validationStatus\":1", json, StringComparison.Ordinal);
         Assert.Contains("Requested revocation mode: NoCheck", text);
         Assert.Contains("Requested verification time: ", text);
         Assert.Contains("Network certificate retrieval: Disabled", text);

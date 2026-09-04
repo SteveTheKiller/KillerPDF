@@ -27,6 +27,8 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                 .AppendLine(entry.Signature.IsDocumentTimestamp ? "Yes" : "No")
                 .Append("  Cryptographic integrity: ")
                 .AppendLine(entry.Verification.IsCryptographicallyValid ? "Valid" : "Invalid")
+                .Append("  Overall validation: ")
+                .AppendLine(entry.Verification.ValidationStatus.ToString())
                 .Append("  Certificate trust: ")
                 .AppendLine(entry.Verification.CertificateTrustStatus.ToString())
                 .Append("  Revocation: ")
