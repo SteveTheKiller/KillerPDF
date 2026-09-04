@@ -26,9 +26,6 @@ public static class PdfXfaAcroFormConverter
             ?? throw new InvalidOperationException("The document has no XFA form.");
         if (!info.IsPacketArray)
             throw new NotSupportedException("Combined XDP conversion is not supported.");
-        PdfXfaStaticLayoutPlan layout = PdfXfaStaticLayout.Plan(info);
-        if (layout.UnsupportedFlowedFieldPaths.Count != 0)
-            throw new NotSupportedException("Flowed XFA fields require the dynamic layout engine.");
         PdfXfaTemplateInfo template = PdfXfaTemplate.Read(info);
         Dictionary<string, PdfXfaTemplateField> fields = template.Fields.ToDictionary(
             field => field.Path, StringComparer.Ordinal);
@@ -37,12 +34,36 @@ public static class PdfXfaAcroFormConverter
         if (unsupported is not null)
             throw new NotSupportedException(
                 $"XFA control '{unsupported.ControlType ?? "unknown"}' cannot be converted to a text field.");
-        Dictionary<string, string> values = PdfXfaDatasets.Read(info).Fields.ToDictionary(
+        PdfFormDataSet data = PdfXfaDatasets.Read(info);
+        Dictionary<string, string> values = data.Fields.ToDictionary(
             field => field.Name,
             field => field.Values.Count == 0 ? string.Empty : field.Values[0],
             StringComparer.Ordinal);
 
         var editor = new PdfIncrementalPageEditor(document).RemoveXfa();
+        if (info.FormType == PdfXfaFormType.Dynamic)
+        {
+            PdfPageContent firstPage = new PdfPageContentReader(document).Read(0);
+            PdfXfaFlowLayoutPlan flow = PdfXfaFlowLayout.Plan(
+                info, data, firstPage.Width, firstPage.Height, 0);
+            while (editor.PageCount < flow.PageCount)
+                editor.AddBlankPage(firstPage.Width, firstPage.Height);
+            PdfDocument expanded = PdfDocument.Open(editor.Build());
+            editor = new PdfIncrementalPageEditor(expanded);
+            foreach (PdfXfaFlowFieldPlacement placement in flow.Placements)
+            {
+                PdfXfaTemplateField field = fields[placement.FieldPath];
+                string name = placement.FieldPath + "[" + placement.OccurrenceIndex + "]";
+                AddField(editor, field, name, placement.PageIndex, placement.X,
+                    firstPage.Height - placement.Y - placement.Height,
+                    placement.Width, placement.Height, placement.Value);
+            }
+            return Finish(editor, mode);
+        }
+
+        PdfXfaStaticLayoutPlan layout = PdfXfaStaticLayout.Plan(info);
+        if (layout.UnsupportedFlowedFieldPaths.Count != 0)
+            throw new NotSupportedException("Flowed XFA fields require a dynamic form declaration.");
         var pageSizes = new Dictionary<int, PdfPageContent>();
         foreach (PdfXfaFieldPlacement placement in layout.Placements)
         {
@@ -60,34 +81,42 @@ public static class PdfXfaAcroFormConverter
             if (bottom < 0 || placement.X + placement.Width > page.Width)
                 throw new InvalidOperationException(
                     $"XFA field '{placement.FieldPath}' lies outside its page.");
-            if (TextControls.Contains(field.ControlType!))
-                editor.AddTextField(placement.PageIndex, placement.FieldPath,
-                    placement.X, bottom, placement.Width, placement.Height, value ?? string.Empty);
-            else if (field.ControlType!.Equals("checkButton", StringComparison.OrdinalIgnoreCase))
-                editor.AddCheckBox(placement.PageIndex, placement.FieldPath,
-                    placement.X, bottom, placement.Width, placement.Height, Checked(value));
-            else if (field.ControlType.Equals("choiceList", StringComparison.OrdinalIgnoreCase))
-            {
-                if (field.ChoiceOptions.Count == 0)
-                    throw new NotSupportedException(
-                        $"XFA choice field '{placement.FieldPath}' has no options.");
-                editor.AddComboBoxOptions(placement.PageIndex, placement.FieldPath,
-                    placement.X, bottom, placement.Width, placement.Height,
-                    field.ChoiceOptions.Select(option => new PdfChoiceOption(
-                        option.ExportValue, option.DisplayValue)), value);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(value))
-                    throw new NotSupportedException(
-                        $"Signed XFA field '{placement.FieldPath}' cannot be converted safely.");
-                editor.AddSignatureField(placement.PageIndex, placement.FieldPath,
-                    placement.X, bottom, placement.Width, placement.Height);
-            }
+            AddField(editor, field, placement.FieldPath, placement.PageIndex,
+                placement.X, bottom, placement.Width, placement.Height, value);
         }
+        return Finish(editor, mode);
+    }
+
+    private static byte[] Finish(PdfIncrementalPageEditor editor, PdfXfaConversionMode mode)
+    {
         byte[] converted = editor.Build();
         return mode == PdfXfaConversionMode.Flattened
             ? PdfFormFlattener.Flatten(PdfDocument.Open(converted)) : converted;
+    }
+
+    private static void AddField(PdfIncrementalPageEditor editor,
+        PdfXfaTemplateField field, string name, int pageIndex,
+        double x, double bottom, double width, double height, string? value)
+    {
+        if (TextControls.Contains(field.ControlType!))
+            editor.AddTextField(pageIndex, name, x, bottom, width, height, value ?? string.Empty);
+        else if (field.ControlType!.Equals("checkButton", StringComparison.OrdinalIgnoreCase))
+            editor.AddCheckBox(pageIndex, name, x, bottom, width, height, Checked(value));
+        else if (field.ControlType.Equals("choiceList", StringComparison.OrdinalIgnoreCase))
+        {
+            if (field.ChoiceOptions.Count == 0)
+                throw new NotSupportedException($"XFA choice field '{field.Path}' has no options.");
+            editor.AddComboBoxOptions(pageIndex, name, x, bottom, width, height,
+                field.ChoiceOptions.Select(option => new PdfChoiceOption(
+                    option.ExportValue, option.DisplayValue)), value);
+        }
+        else
+        {
+            if (!string.IsNullOrEmpty(value))
+                throw new NotSupportedException(
+                    $"Signed XFA field '{field.Path}' cannot be converted safely.");
+            editor.AddSignatureField(pageIndex, name, x, bottom, width, height);
+        }
     }
 
     private static string? BindingName(string? binding)
