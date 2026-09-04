@@ -83,4 +83,29 @@ public sealed class PdfAccessibilityInspectorTests
 
         Assert.Empty(PdfAccessibilityInspector.Inspect(document).Findings);
     }
+
+    [Fact]
+    public void InspectReportsFormFieldsWithoutDescriptions()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 10, 10, 100, 20).Build());
+
+        PdfAccessibilityFinding finding = Assert.Single(
+            PdfAccessibilityInspector.Inspect(document).Findings,
+            item => item.Code == PdfAccessibilityFindingCode.MissingFormFieldDescription);
+
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+    }
+
+    [Fact]
+    public void InspectAcceptsFormFieldDescriptions()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 10, 10, 100, 20,
+                fieldMetadata: new PdfFormFieldMetadata { Tooltip = "Customer name" }).Build());
+
+        Assert.DoesNotContain(PdfAccessibilityInspector.Inspect(document).Findings,
+            item => item.Code == PdfAccessibilityFindingCode.MissingFormFieldDescription);
+    }
 }

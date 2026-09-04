@@ -39,6 +39,8 @@ public sealed record PdfFormWidgetInfo
     public required int Generation { get; init; }
     /// <summary>Gets the fully qualified field name.</summary>
     public required string FieldName { get; init; }
+    /// <summary>Gets the effective user-facing field description.</summary>
+    public string Tooltip { get; init; } = string.Empty;
     /// <summary>Gets the effective field type.</summary>
     public required PdfFormFieldKind FieldKind { get; init; }
     /// <summary>Gets the effective field flags.</summary>

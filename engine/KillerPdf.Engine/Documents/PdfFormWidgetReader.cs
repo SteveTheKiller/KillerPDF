@@ -14,6 +14,7 @@ public static class PdfFormWidgetReader
     private static readonly PdfName ParentName = Name("Parent");
     private static readonly PdfName FieldTypeName = Name("FT");
     private static readonly PdfName PartialName = Name("T");
+    private static readonly PdfName TooltipName = Name("TU");
     private static readonly PdfName ValueName = Name("V");
     private static readonly PdfName DefaultAppearanceName = Name("DA");
     private static readonly PdfName FlagsName = Name("Ff");
@@ -61,6 +62,7 @@ public static class PdfFormWidgetReader
 
             PdfName? fieldType = null;
             string value = string.Empty;
+            string tooltip = string.Empty;
             IReadOnlyList<string> values = [];
             string defaultAppearance = string.Empty;
             long flags = 0;
@@ -83,6 +85,13 @@ public static class PdfFormWidgetReader
                     string decoded = PdfUnicodeEncoding.DecodeTextString(
                         partial.Bytes.Span, "An AcroForm /T value");
                     if (decoded.Length > 0) nameParts.Add(decoded);
+                }
+                if (tooltip.Length == 0 && node.TryGetValue(TooltipName, out PdfObject? tooltipValue))
+                {
+                    PdfString text = Resolve(document, tooltipValue, "An AcroForm /TU value") as PdfString
+                        ?? throw new InvalidOperationException("An AcroForm /TU value is not a string.");
+                    tooltip = PdfUnicodeEncoding.DecodeTextString(
+                        text.Bytes.Span, "An AcroForm /TU value");
                 }
                 if (values.Count == 0 && node.TryGetValue(ValueName, out PdfObject? currentValue))
                 {
@@ -128,6 +137,7 @@ public static class PdfFormWidgetReader
                 ObjectNumber = objectNumber,
                 Generation = generation,
                 FieldName = string.Join('.', nameParts),
+                Tooltip = tooltip,
                 FieldKind = FieldKind(fieldType),
                 Flags = flags,
                 Value = value,

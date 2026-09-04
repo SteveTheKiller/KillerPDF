@@ -33,6 +33,12 @@ public static class PdfAccessibilityInspector
             || Resolve(document, markedValue) is not PdfBoolean { Value: true })
             findings.Add(Finding(PdfAccessibilityFindingCode.DocumentNotMarked,
                 "The document catalog does not declare marked content."));
+        foreach (PdfPageTreeEntry page in pageTree.Pages)
+            foreach (PdfFormWidgetInfo widget in PdfFormWidgetReader.ReadPage(document, page.Index))
+                if (string.IsNullOrWhiteSpace(widget.Tooltip))
+                    findings.Add(Finding(PdfAccessibilityFindingCode.MissingFormFieldDescription,
+                        $"Form field {widget.FieldName} has no user-facing description.",
+                        page.Index, widget.ObjectNumber == 0 ? null : widget.ObjectNumber));
         return new PdfAccessibilityReport(findings);
 
         void InspectStructureTree(PdfObject rootValue)
@@ -130,7 +136,9 @@ public enum PdfAccessibilityFindingCode
     /// <summary>The structure tree cannot be inspected safely.</summary>
     InvalidStructureTree,
     /// <summary>A figure structure element has no alternate description.</summary>
-    MissingFigureAlternateDescription
+    MissingFigureAlternateDescription,
+    /// <summary>An interactive form field has no user-facing description.</summary>
+    MissingFormFieldDescription
 }
 
 /// <summary>One accessibility finding with a stable code and severity.</summary>
