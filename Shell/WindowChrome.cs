@@ -488,7 +488,8 @@ namespace KillerPDF
         private void UpdateWindowChrome()
         {
             bool max     = WindowState == WindowState.Maximized || _fullScreen;
-            bool squared = max || IsSnapped() || ThemeManager.Current == Theme.SE98;
+            // Only Windows 11 rounds the HWND; on Windows 10 rounded content would show a notch.
+            bool squared = max || IsSnapped() || ThemeManager.Current == Theme.SE98 || !OsRoundsCorners();
             _chromeSquared = squared;
 
             // The chrome treatment depends ONLY on the maximized/snapped state, not on the live size
@@ -556,12 +557,27 @@ namespace KillerPDF
                 var hwnd = new WindowInteropHelper(this).Handle;
                 if (hwnd == IntPtr.Zero) return;
                 int pref = rounded ? DWMWCP_ROUND : DWMWCP_DONOTROUND;
-                _ = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref pref, sizeof(int));
+                int hr = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref pref, sizeof(int));
+                _osRoundsCorners = hr == 0;
             }
-            catch { /* pre-Win11 DWM: attribute unsupported, square corners */ }
+            catch { _osRoundsCorners = false; }   // pre-Win11 DWM: attribute unsupported, square corners
+        }
+
+        // Probed once; Windows 10 rejects the corner attribute.
+        private bool? _osRoundsCorners;
+        private bool OsRoundsCorners()
+        {
+            if (_osRoundsCorners is bool known) return known;
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero) return true;            // no HWND yet; decide on the first real pass
+            int pref = DWMWCP_DEFAULT;
+            try { _osRoundsCorners = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref pref, sizeof(int)) == 0; }
+            catch { _osRoundsCorners = false; }
+            return _osRoundsCorners.Value;
         }
 
         private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        private const int DWMWCP_DEFAULT    = 0;
         private const int DWMWCP_DONOTROUND = 1;
         private const int DWMWCP_ROUND      = 2;
 
