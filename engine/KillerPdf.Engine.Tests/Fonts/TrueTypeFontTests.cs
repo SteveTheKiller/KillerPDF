@@ -1,6 +1,9 @@
 using System.Buffers.Binary;
 using System.Text;
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Objects;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Fonts;
@@ -162,6 +165,38 @@ public sealed class TrueTypeFontTests
         Assert.Equal(600, reopened.GetPdfAdvanceWidth(1));
     }
 
+    [Fact]
+    public void Read_ExposesSimpleQuadraticGlyphContours()
+    {
+        TrueTypeFont embedded = TrueTypeFont.Load(
+            BuildTestFont(format12: false, includeOutlines: true));
+        var content = new PdfContentStreamBuilder().BeginText()
+            .SetFont(embedded, 12).ShowUnicodeText("A").EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, content).Build());
+        PdfDictionary catalog = ResolveDictionary(document,
+            document.Trailer[new PdfName("Root"u8)]);
+        PdfDictionary pages = ResolveDictionary(document, catalog[new PdfName("Pages"u8)]);
+        PdfDictionary page = ResolveDictionary(document,
+            Assert.IsType<PdfArray>(pages[new PdfName("Kids"u8)])[0]);
+        PdfDictionary resources = ResolveDictionary(document, page[new PdfName("Resources"u8)]);
+        PdfDictionary fonts = ResolveDictionary(document, resources[new PdfName("Font"u8)]);
+        PdfDictionary dictionary = ResolveDictionary(document, Assert.Single(fonts).Value);
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+
+        PdfGlyphOutline? outline = font.GetGlyphOutline(1);
+        Assert.NotNull(outline);
+        PdfGlyphContour contour = Assert.Single(outline.Contours);
+        Assert.Equal([
+            new PdfGlyphPoint(0, 0, true),
+            new PdfGlyphPoint(1000, 0, true),
+            new PdfGlyphPoint(500, 1000, true)], contour.Points);
+    }
+
+    private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
+        Assert.IsType<PdfDictionary>(value is PdfIndirectReference reference
+            ? document.Resolve(reference) : value);
+
     internal static byte[] BuildTestFont(
         bool format12, ushort embeddingFlags = 0, bool includeOutlines = false,
         bool cffOutlines = false, byte[]? cmap = null)
@@ -197,12 +232,24 @@ public sealed class TrueTypeFontTests
             tables["OS/2"] = Bytes(10, bytes => U16(bytes, 8, embeddingFlags));
         if (includeOutlines)
         {
-            tables["glyf"] = Bytes(12, bytes => U16(bytes, 10, 0));
+            tables["glyf"] = Bytes(24, bytes =>
+            {
+                S16(bytes, 0, 1);
+                S16(bytes, 6, 1000);
+                S16(bytes, 8, 1000);
+                U16(bytes, 10, 2);
+                bytes[14] = 0x31;
+                bytes[15] = 0x21;
+                bytes[16] = 0x01;
+                S16(bytes, 17, 1000);
+                S16(bytes, 19, -500);
+                S16(bytes, 21, 1000);
+            });
             tables["loca"] = Bytes(12, bytes =>
             {
                 U32(bytes, 0, 0);
                 U32(bytes, 4, 0);
-                U32(bytes, 8, 12);
+                U32(bytes, 8, 24);
             });
             S16(tables["head"], 50, 1);
         }

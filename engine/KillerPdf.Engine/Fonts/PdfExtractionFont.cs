@@ -36,6 +36,7 @@ public sealed class PdfExtractionFont
 
     internal Func<uint, uint>? CidSelector { get; init; }
     internal Func<uint, PdfGlyphBounds?>? BoundsReader { get; init; }
+    internal Func<uint, PdfGlyphOutline?>? OutlineReader { get; init; }
     internal Func<uint, string?>? UnicodeFallback { get; init; }
     internal Func<ReadOnlyMemory<byte>, IReadOnlyList<PdfDecodedCharacter>>? CharacterDecoder { get; init; }
     internal Func<uint, PdfVerticalGlyphMetrics>? VerticalMetricsReader { get; init; }
@@ -51,12 +52,24 @@ public sealed class PdfExtractionFont
     /// <summary>Returns the embedded outline bounds when available.</summary>
     public PdfGlyphBounds? GetGlyphBounds(uint code) => BoundsReader?.Invoke(code);
 
+    /// <summary>Returns an embedded TrueType glyph outline when available.</summary>
+    public PdfGlyphOutline? GetGlyphOutline(uint code) => OutlineReader?.Invoke(code);
+
     /// <summary>Returns a resolved width, or the font's configured missing width.</summary>
     public double GetWidth(uint code) => _widths.GetValueOrDefault(CidSelector?.Invoke(code) ?? code, _defaultWidth);
 }
 
 /// <summary>A glyph outline box in thousandths of text space.</summary>
 public readonly record struct PdfGlyphBounds(double Left, double Bottom, double Right, double Top);
+
+/// <summary>A glyph outline containing ordered quadratic contours in thousandths of text space.</summary>
+public sealed record PdfGlyphOutline(IReadOnlyList<PdfGlyphContour> Contours);
+
+/// <summary>A closed TrueType contour containing on-curve and quadratic control points.</summary>
+public sealed record PdfGlyphContour(IReadOnlyList<PdfGlyphPoint> Points);
+
+/// <summary>A point in a quadratic TrueType glyph contour.</summary>
+public readonly record struct PdfGlyphPoint(double X, double Y, bool OnCurve);
 
 /// <summary>Vertical writing advance and origin offsets in thousandths of text space.</summary>
 public readonly record struct PdfVerticalGlyphMetrics(double Advance, double OriginX, double OriginY);

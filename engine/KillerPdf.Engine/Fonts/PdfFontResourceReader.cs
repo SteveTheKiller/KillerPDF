@@ -180,7 +180,8 @@ public static class PdfFontResourceReader
                         ?? (!composite && code < glyphNames.Length ? type1?.GetBounds(glyphNames[code]) : null)
                         ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(metricsName, glyphNames[code]) : null);
                     return box is { } b && b.Right > b.Left && b.Top > b.Bottom ? box : null;
-                }
+                },
+                OutlineReader = code => outlines?.Outline(Glyph(code))
             };
         }
 
@@ -382,6 +383,120 @@ public static class PdfFontResourceReader
                 BinaryPrimitives.ReadInt16BigEndian(box[2..]) * scale,
                 BinaryPrimitives.ReadInt16BigEndian(box[4..]) * scale,
                 BinaryPrimitives.ReadInt16BigEndian(box[6..]) * scale);
+        }
+
+        internal PdfGlyphOutline? Outline(ushort glyph)
+        {
+            if (!TryGlyphRange(glyph, out ReadOnlySpan<byte> data) || data.Length == 0)
+                return null;
+            int contourCount = BinaryPrimitives.ReadInt16BigEndian(data);
+            if (contourCount < 0) return null;
+            if (contourCount == 0) return new PdfGlyphOutline([]);
+            if (contourCount > 4_096 || data.Length < 10 + contourCount * 2 + 2)
+                throw new FormatException("A TrueType simple glyph is invalid.");
+            int position = 10;
+            var endPoints = new ushort[contourCount];
+            for (int contour = 0; contour < contourCount; contour++)
+            {
+                endPoints[contour] = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
+                if (contour > 0 && endPoints[contour] <= endPoints[contour - 1])
+                    throw new FormatException("TrueType contour endpoints are invalid.");
+                position += 2;
+            }
+            int pointCount = endPoints[^1] + 1;
+            if (pointCount > 1_000_000 || position + 2 > data.Length)
+                throw new FormatException("A TrueType glyph point count is invalid.");
+            int instructionLength = BinaryPrimitives.ReadUInt16BigEndian(data[position..]);
+            position += 2;
+            if (instructionLength > data.Length - position)
+                throw new FormatException("TrueType glyph instructions are truncated.");
+            position += instructionLength;
+            var flags = new byte[pointCount];
+            for (int point = 0; point < pointCount;)
+            {
+                if (position >= data.Length)
+                    throw new FormatException("TrueType glyph flags are truncated.");
+                byte flag = data[position++];
+                int repeat = 1;
+                if ((flag & 0x08) != 0)
+                {
+                    if (position >= data.Length)
+                        throw new FormatException("A TrueType glyph flag repeat is truncated.");
+                    repeat += data[position++];
+                }
+                if (repeat > pointCount - point)
+                    throw new FormatException("A TrueType glyph flag repeat is invalid.");
+                Array.Fill(flags, flag, point, repeat);
+                point += repeat;
+            }
+            var x = new int[pointCount];
+            var y = new int[pointCount];
+            ReadCoordinates(data, ref position, x, flags, shortMask: 0x02, sameMask: 0x10);
+            ReadCoordinates(data, ref position, y, flags, shortMask: 0x04, sameMask: 0x20);
+            double scale = 1000d / _font.UnitsPerEm;
+            var contours = new PdfGlyphContour[contourCount];
+            int start = 0;
+            for (int contour = 0; contour < contourCount; contour++)
+            {
+                int end = endPoints[contour];
+                var points = new PdfGlyphPoint[end - start + 1];
+                for (int point = start; point <= end; point++)
+                    points[point - start] = new PdfGlyphPoint(
+                        x[point] * scale, y[point] * scale, (flags[point] & 1) != 0);
+                contours[contour] = new PdfGlyphContour(Array.AsReadOnly(points));
+                start = end + 1;
+            }
+            return new PdfGlyphOutline(Array.AsReadOnly(contours));
+        }
+
+        private static void ReadCoordinates(ReadOnlySpan<byte> data, ref int position,
+            int[] coordinates, byte[] pointFlags, byte shortMask, byte sameMask)
+        {
+            int current = 0;
+            for (int point = 0; point < coordinates.Length; point++)
+            {
+                byte flag = pointFlags[point];
+                int delta;
+                if ((flag & shortMask) != 0)
+                {
+                    if (position >= data.Length)
+                        throw new FormatException("TrueType glyph coordinates are truncated.");
+                    int magnitude = data[position++];
+                    delta = (flag & sameMask) != 0 ? magnitude : -magnitude;
+                }
+                else if ((flag & sameMask) != 0) delta = 0;
+                else
+                {
+                    if (position + 2 > data.Length)
+                        throw new FormatException("TrueType glyph coordinates are truncated.");
+                    delta = BinaryPrimitives.ReadInt16BigEndian(data[position..]);
+                    position += 2;
+                }
+                current = checked(current + delta);
+                coordinates[point] = current;
+            }
+        }
+
+        private bool TryGlyphRange(ushort glyph, out ReadOnlySpan<byte> glyphData)
+        {
+            glyphData = default;
+            int stride = _longLocations ? 4 : 2;
+            if (_loca == 0 || _glyf == 0 || glyph >= _font.GlyphCount
+                || (glyph + 2) * stride > _locaLength) return false;
+            ReadOnlySpan<byte> data = _font.FontData.Span;
+            int address = _loca + glyph * stride;
+            long start = _longLocations ? BinaryPrimitives.ReadUInt32BigEndian(data[address..])
+                : BinaryPrimitives.ReadUInt16BigEndian(data[address..]) * 2L;
+            long end = _longLocations ? BinaryPrimitives.ReadUInt32BigEndian(data[(address + stride)..])
+                : BinaryPrimitives.ReadUInt16BigEndian(data[(address + stride)..]) * 2L;
+            if (start == end)
+            {
+                glyphData = [];
+                return true;
+            }
+            if (start < 0 || end < start + 10 || end > _glyfLength) return false;
+            glyphData = data.Slice(_glyf + (int)start, (int)(end - start));
+            return true;
         }
     }
 }
