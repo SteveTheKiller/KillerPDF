@@ -171,6 +171,40 @@ public sealed class PdfRedactionSearchTests
         Assert.Equal(2, excluded.Matches.Count);
     }
 
+    [Fact]
+    public void ManualRegionsUseTheSameReviewAndPrivacySafeReport()
+    {
+        PdfRedactionReview review = PdfRedactionReview.FromRegions([
+            new PdfRedactionRegion(2, new PdfContentBounds(10, 20, 110, 70),
+                "Private image", "REMOVED")
+        ]);
+
+        PdfRedactionMatch region = Assert.Single(review.Included);
+        string json = review.ToJson();
+
+        Assert.Equal("region:0", region.Id);
+        Assert.Equal(PdfRedactionTargetKind.PageRegion, region.TargetKind);
+        Assert.Equal(2, region.PageIndex);
+        Assert.Equal(100, region.Bounds.Width);
+        Assert.Equal(0, region.WordCount);
+        Assert.DoesNotContain("\"text\":\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"targetKind\":1", json, StringComparison.Ordinal);
+        Assert.Empty(review.Exclude(region.Id).Included);
+    }
+
+    [Theory]
+    [InlineData(-1, 0, 0, 10, 10)]
+    [InlineData(0, 10, 0, 10, 10)]
+    [InlineData(0, 0, 10, 10, 10)]
+    [InlineData(0, 0, 0, double.PositiveInfinity, 10)]
+    public void ManualRegionsRejectInvalidPagesAndGeometry(
+        int pageIndex, double left, double bottom, double right, double top)
+    {
+        Assert.ThrowsAny<ArgumentException>(() => PdfRedactionReview.FromRegions([
+            new PdfRedactionRegion(pageIndex, new PdfContentBounds(left, bottom, right, top))
+        ]));
+    }
+
     private static PdfPageContent Read(string text)
     {
         string content = $"BT /F1 12 Tf 20 100 Td ({text}) Tj ET";

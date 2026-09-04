@@ -39,10 +39,24 @@ public sealed record PdfRedactionSearchOptions
     public string? OverlayText { get; init; }
 }
 
+/// <summary>The kind of page content selected for later permanent removal.</summary>
+public enum PdfRedactionTargetKind
+{
+    /// <summary>Text found by a search expression.</summary>
+    Text,
+    /// <summary>A caller-selected rectangular page region.</summary>
+    PageRegion
+}
+
+/// <summary>A rectangular page region proposed for redaction.</summary>
+public sealed record PdfRedactionRegion(int PageIndex, PdfContentBounds Bounds,
+    string? ReasonCode = null, string? OverlayText = null);
+
 /// <summary>One text match proposed for redaction.</summary>
 public sealed record PdfRedactionMatch(string Id, int PageIndex, string Text,
     PdfContentBounds Bounds, int FirstWordIndex, int WordCount,
-    string? ReasonCode = null, string? OverlayText = null);
+    string? ReasonCode = null, string? OverlayText = null,
+    PdfRedactionTargetKind TargetKind = PdfRedactionTargetKind.Text);
 
 /// <summary>An immutable preview whose matches must be explicitly excluded when retained.</summary>
 public sealed class PdfRedactionReview
@@ -86,6 +100,32 @@ public sealed class PdfRedactionReview
     /// <summary>Returns a new review with every match included.</summary>
     public PdfRedactionReview IncludeAll() => new(_matches);
 
+    /// <summary>Builds a review from caller-selected rectangular page regions.</summary>
+    public static PdfRedactionReview FromRegions(IEnumerable<PdfRedactionRegion> regions)
+    {
+        ArgumentNullException.ThrowIfNull(regions);
+        PdfRedactionRegion[] values = regions.Select(region => region
+            ?? throw new ArgumentException("A redaction region cannot be null.", nameof(regions))).ToArray();
+        var matches = new PdfRedactionMatch[values.Length];
+        for (int index = 0; index < values.Length; index++)
+        {
+            PdfRedactionRegion region = values[index];
+            if (region.PageIndex < 0)
+                throw new ArgumentOutOfRangeException(nameof(regions), "A redaction page index cannot be negative.");
+            PdfContentBounds bounds = region.Bounds;
+            if (!double.IsFinite(bounds.Left) || !double.IsFinite(bounds.Bottom)
+                || !double.IsFinite(bounds.Right) || !double.IsFinite(bounds.Top)
+                || bounds.Right <= bounds.Left || bounds.Top <= bounds.Bottom)
+                throw new ArgumentException("A redaction region must have finite positive dimensions.", nameof(regions));
+            PdfRedactionSearch.ValidatePresentation(
+                region.ReasonCode, region.OverlayText, nameof(regions));
+            matches[index] = new PdfRedactionMatch($"region:{index}", region.PageIndex, string.Empty,
+                bounds, -1, 0, region.ReasonCode, region.OverlayText,
+                PdfRedactionTargetKind.PageRegion);
+        }
+        return new PdfRedactionReview(matches);
+    }
+
     /// <summary>Exports a stable review report without matched text unless explicitly requested.</summary>
     public string ToJson(bool includeMatchedText = false, bool indented = false)
     {
@@ -109,6 +149,7 @@ public sealed class PdfRedactionReview
                 match.WordCount,
                 match.ReasonCode,
                 match.OverlayText,
+                match.TargetKind,
                 Included = !_excluded.Contains(match.Id)
             })
         }, options);
@@ -134,10 +175,7 @@ public static class PdfRedactionSearch
         if (!Enum.IsDefined(options.Kind)) throw new ArgumentOutOfRangeException(nameof(options));
         if (options.Timeout <= TimeSpan.Zero || options.Timeout > TimeSpan.FromSeconds(10))
             throw new ArgumentOutOfRangeException(nameof(options), "The search timeout must be from zero through ten seconds.");
-        if (options.ReasonCode is not null && string.IsNullOrWhiteSpace(options.ReasonCode))
-            throw new ArgumentException("A redaction reason code cannot be blank.", nameof(options));
-        if (options.OverlayText is not null && string.IsNullOrWhiteSpace(options.OverlayText))
-            throw new ArgumentException("Redaction overlay text cannot be blank.", nameof(options));
+        ValidatePresentation(options.ReasonCode, options.OverlayText, nameof(options));
         string pattern = options.Kind switch
         {
             PdfRedactionSearchKind.ExactText when !string.IsNullOrEmpty(options.Query) => Regex.Escape(options.Query),
@@ -186,6 +224,14 @@ public static class PdfRedactionSearch
             pageIndex++;
         }
         return new PdfRedactionReview(results);
+    }
+
+    internal static void ValidatePresentation(string? reasonCode, string? overlayText, string parameterName)
+    {
+        if (reasonCode is not null && string.IsNullOrWhiteSpace(reasonCode))
+            throw new ArgumentException("A redaction reason code cannot be blank.", parameterName);
+        if (overlayText is not null && string.IsNullOrWhiteSpace(overlayText))
+            throw new ArgumentException("Redaction overlay text cannot be blank.", parameterName);
     }
 
     private static bool HasValidPaymentCardChecksum(string value)
