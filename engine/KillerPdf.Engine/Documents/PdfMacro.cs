@@ -256,6 +256,10 @@ public enum PdfMacroOperation
     Save
 }
 
+/// <summary>One contextual macro operation result and its values for later steps.</summary>
+public sealed record PdfMacroOperationResult(ReadOnlyMemory<byte> Data,
+    IReadOnlyDictionary<string, string>? Values = null);
+
 /// <summary>Runs typed PDF macros with per-file isolation and cancellation.</summary>
 public static class PdfMacroRunner
 {
@@ -345,6 +349,105 @@ public static class PdfMacroRunner
             index++;
         }
         return Array.AsReadOnly(results.ToArray());
+    }
+
+    /// <summary>
+    /// Runs a macro with caller-supplied prompt values and values produced by earlier steps.
+    /// A setting whose complete value is ${name} consumes the corresponding contextual value.
+    /// </summary>
+    public static IReadOnlyList<PdfMacroFileResult> RunContextual(
+        PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
+        IReadOnlyDictionary<string, string>? initialValues,
+        Func<PdfMacroStep, ReadOnlyMemory<byte>, IReadOnlyDictionary<string, string>,
+            CancellationToken, PdfMacroOperationResult> operation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(macro);
+        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(operation);
+        Dictionary<string, string> seed = CheckedValues(initialValues);
+        var results = new List<PdfMacroFileResult>();
+        int index = 0;
+        foreach (ReadOnlyMemory<byte> source in inputs)
+        {
+            if (cancellationToken.IsCancellationRequested) break;
+            try
+            {
+                ReadOnlyMemory<byte> current = source.ToArray();
+                var values = new Dictionary<string, string>(seed, StringComparer.Ordinal);
+                foreach (PdfMacroStep step in macro.Steps)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    PdfMacroStep resolved = ResolveSettings(step, values);
+                    PdfMacroOperationResult result = operation(resolved, current,
+                        new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(values),
+                        cancellationToken)
+                        ?? throw new InvalidOperationException(
+                            "The macro operation returned no result.");
+                    current = result.Data.ToArray();
+                    foreach ((string name, string value) in CheckedValues(result.Values))
+                        values[name] = value;
+                }
+                results.Add(new PdfMacroFileResult(index, current.ToArray(), null, false));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                results.Add(new PdfMacroFileResult(index, null, null, true));
+                break;
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            {
+                results.Add(new PdfMacroFileResult(index, null, exception.Message, false));
+            }
+            index++;
+        }
+        return Array.AsReadOnly(results.ToArray());
+    }
+
+    private static PdfMacroStep ResolveSettings(PdfMacroStep step,
+        IReadOnlyDictionary<string, string> values)
+    {
+        if (step.Settings is null) return step;
+        var settings = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach ((string name, string value) in step.Settings)
+        {
+            if (value.StartsWith("${", StringComparison.Ordinal) && value.EndsWith('}'))
+            {
+                string key = value[2..^1];
+                if (key.Length == 0 || !values.TryGetValue(key, out string? resolved))
+                    throw new KeyNotFoundException(
+                        $"Macro value '{key}' is not available for setting '{name}'.");
+                settings[name] = resolved;
+            }
+            else
+            {
+                settings[name] = value;
+            }
+        }
+        return step with { Settings = settings };
+    }
+
+    private static Dictionary<string, string> CheckedValues(
+        IReadOnlyDictionary<string, string>? supplied)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach ((string name, string value) in supplied
+            ?? new Dictionary<string, string>())
+        {
+            if (string.IsNullOrWhiteSpace(name) || name.Length > 128
+                || name.Any(character => !char.IsAsciiLetterOrDigit(character)
+                    && character is not ('_' or '-' or '.')))
+                throw new ArgumentException(
+                    "Macro value names may contain only letters, numbers, underscores, hyphens, and periods.",
+                    nameof(supplied));
+            if (value is null || value.Length > 1_000_000)
+                throw new ArgumentException(
+                    "Macro values cannot be null or exceed 1,000,000 characters.",
+                    nameof(supplied));
+            result.Add(name, value);
+        }
+        return result;
     }
 }
 

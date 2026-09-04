@@ -196,4 +196,49 @@ public sealed class PdfMacroTests
         Assert.Throws<ArgumentException>(() => PdfMacroRunner.ResumeReport(
             macro, inputs, new PdfMacroRunReport(2, []), (_, input, _) => input));
     }
+
+    [Fact]
+    public void ContextualRunnerConsumesPromptAndEarlierStepValuesPerFile()
+    {
+        var macro = new PdfMacro("Context", [
+            new(PdfMacroOperation.Ocr,
+                new Dictionary<string, string> { ["language"] = "${language}" }),
+            new(PdfMacroOperation.Rename,
+                new Dictionary<string, string> { ["name"] = "${outputName}" })]);
+
+        IReadOnlyList<PdfMacroFileResult> results = PdfMacroRunner.RunContextual(
+            macro, [new byte[] { 1 }, new byte[] { 2 }],
+            new Dictionary<string, string> { ["language"] = "en-US" },
+            (step, input, values, _) => step.Operation switch
+            {
+                PdfMacroOperation.Ocr => new PdfMacroOperationResult(
+                    input.ToArray().Append((byte)step.Settings!["language"].Length).ToArray(),
+                    new Dictionary<string, string>
+                    {
+                        ["outputName"] = $"file-{input.Span[0]}.pdf"
+                    }),
+                PdfMacroOperation.Rename => new PdfMacroOperationResult(
+                    input.ToArray().Append((byte)step.Settings!["name"].Length).ToArray()),
+                _ => throw new InvalidOperationException()
+            });
+
+        Assert.Equal(new byte[] { 1, 5, 10 }, results[0].Data!.Value.ToArray());
+        Assert.Equal(new byte[] { 2, 5, 10 }, results[1].Data!.Value.ToArray());
+    }
+
+    [Fact]
+    public void ContextualRunnerIsolatesMissingValuesWithoutChangingSources()
+    {
+        var macro = new PdfMacro("Missing", [new(PdfMacroOperation.Rename,
+            new Dictionary<string, string> { ["name"] = "${missing}" })]);
+        byte[] source = [7];
+
+        PdfMacroFileResult result = Assert.Single(PdfMacroRunner.RunContextual(
+            macro, [source], null,
+            (_, input, _, _) => new PdfMacroOperationResult(input)));
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("not available", result.Error, StringComparison.Ordinal);
+        Assert.Equal(new byte[] { 7 }, source);
+    }
 }
