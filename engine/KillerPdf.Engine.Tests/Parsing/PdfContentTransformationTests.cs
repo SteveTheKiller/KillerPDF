@@ -32,6 +32,28 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void RemovePaintedPathsPreservesOtherArtworkAndRejectsClipping()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "1 0 0 rg 0 0 10 10 re f 0 0 1 RG 20 20 m 30 30 l S 7 FutureOp"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.RemovePaintedPaths(source, [0]);
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal(["rg", "RG", "m", "l", "S", "FutureOp"],
+            reopened.Select(instruction => instruction.Operator));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.RemovePaintedPaths(source, [2]));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.RemovePaintedPaths(source, [1, 1]));
+        Assert.Throws<NotSupportedException>(() =>
+            PdfContentTransformation.RemovePaintedPaths(
+                PdfContentStreamReader.Read("0 0 10 10 re W n"u8.ToArray()), [0]));
+    }
+
+    [Fact]
     public void RewriteRemovesAndReplacesSelectedInstructions()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(

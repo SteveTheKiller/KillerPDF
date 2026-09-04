@@ -230,6 +230,69 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Removes selected complete painted paths without changing clipping state.</summary>
+    public static IReadOnlyList<PdfContentInstruction> RemovePaintedPaths(
+        IEnumerable<PdfContentInstruction> instructions,
+        IEnumerable<int> pathIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(pathIndexes);
+        PdfContentInstruction[] source = instructions.ToArray();
+        var ranges = new List<(int Start, int End)>();
+        int start = -1;
+        bool clipping = false;
+        for (int index = 0; index < source.Length; index++)
+        {
+            string operation = source[index].Operator;
+            if (operation is "m" or "l" or "c" or "v" or "y" or "h" or "re")
+            {
+                if (start < 0) start = index;
+                continue;
+            }
+            if (operation is "W" or "W*")
+            {
+                if (start < 0)
+                    throw new FormatException(
+                        "A content stream clips without constructing a path.");
+                clipping = true;
+                continue;
+            }
+            if (operation is not ("S" or "s" or "f" or "F" or "f*"
+                    or "B" or "B*" or "b" or "b*" or "n"))
+                continue;
+            if (start < 0)
+                throw new FormatException(
+                    "A content stream paints or ends a path that was not constructed.");
+            if (clipping)
+                throw new NotSupportedException(
+                    "Painted path removal does not support clipping paths.");
+            ranges.Add((start, index));
+            start = -1;
+            clipping = false;
+        }
+        if (start >= 0)
+            throw new FormatException("A content stream contains an unfinished path.");
+
+        int[] requested = pathIndexes.ToArray();
+        if (requested.Any(index => index < 0 || index >= ranges.Count)
+            || requested.Distinct().Count() != requested.Length)
+            throw new ArgumentException(
+                "Selected painted-path indexes must be valid and unique.", nameof(pathIndexes));
+        Dictionary<int, int> removed = requested.Select(index => ranges[index])
+            .ToDictionary(range => range.Start, range => range.End);
+        var result = new List<PdfContentInstruction>(source.Length);
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (removed.TryGetValue(index, out int end))
+            {
+                index = end;
+                continue;
+            }
+            result.Add(source[index]);
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
     private static void ValidateContainedScopes(
         IReadOnlyList<PdfContentInstruction> source, int start, int end)
     {
