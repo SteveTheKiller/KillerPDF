@@ -432,6 +432,31 @@ public sealed record PdfDataMergeBatchReport(
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
         });
+
+    /// <summary>Exports a readable batch summary without record values or PDF data.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Data merge records: ").Append(TotalRecords)
+            .Append(", succeeded ").Append(SucceededRecords)
+            .Append(", skipped ").Append(SkippedRecords)
+            .Append(", failed ").AppendLine(FailedRecords.ToString());
+        foreach (PdfDataMergeBatchReportItem result in Results)
+        {
+            output.Append("  Record ").Append(result.RecordIndex + 1).Append(": ")
+                .Append(result.Succeeded ? "succeeded" : result.Skipped ? "skipped" : "failed");
+            if (!string.IsNullOrWhiteSpace(result.OutputFileName))
+                output.Append(", output \"").Append(OneLine(result.OutputFileName)).Append('"');
+            output.AppendLine();
+            if (!string.IsNullOrWhiteSpace(result.Error))
+                output.Append("    Error: ").AppendLine(OneLine(result.Error));
+        }
+        return output.ToString().TrimEnd();
+    }
+
+    private static string OneLine(string value) =>
+        value.Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal);
 }
 
 /// <summary>One data-free result in a form-generation batch report.</summary>

@@ -497,6 +497,7 @@ public sealed class PdfDataMergeTests
         ];
 
         PdfDataMergeBatchReport report = PdfDataMergeBatchReport.Create(results);
+        string text = report.ToText();
         string json = report.ToJson();
         using JsonDocument parsed = JsonDocument.Parse(json);
 
@@ -505,6 +506,14 @@ public sealed class PdfDataMergeTests
         Assert.Equal(1, report.FailedRecords);
         Assert.Equal("customer-2.pdf", report.Results[1].OutputFileName);
         Assert.DoesNotContain("PDF payload", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("PDF payload", text, StringComparison.Ordinal);
+        Assert.Contains("Data merge records: 2, succeeded 1, skipped 0, failed 1", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Record 1: succeeded, output \"customer-1.pdf\"", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Record 2: failed, output \"customer-2.pdf\"", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Error: Missing customer name", text, StringComparison.Ordinal);
         Assert.Equal(1, parsed.RootElement.GetProperty("failedRecords").GetInt32());
     }
 
@@ -535,6 +544,7 @@ public sealed class PdfDataMergeTests
         Assert.Equal(1, report.SkippedRecords);
         Assert.Equal(0, report.FailedRecords);
         Assert.Contains("\"skipped\":true", report.ToJson());
+        Assert.Contains("Record 2: skipped", report.ToText(), StringComparison.Ordinal);
     }
 
     [Fact]
