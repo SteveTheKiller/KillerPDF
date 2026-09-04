@@ -161,6 +161,38 @@ public sealed class PdfCollectionReaderTests
             [field], [new PdfCollectionSortInfo("Missing", true)]));
     }
 
+    [Fact]
+    public void EditorReplacesAttachmentCollectionValuesWithoutChangingPayload()
+    {
+        PdfDocument attached = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("evidence.txt", "payload"u8.ToArray()).Build());
+        PdfDocument portfolio = PdfDocument.Open(PdfCollectionEditor.SetSchema(attached, [
+            new PdfCollectionFieldInfo
+            {
+                Key = "Department", DisplayName = "Department", Subtype = "S",
+                IsVisible = true
+            },
+            new PdfCollectionFieldInfo
+            {
+                Key = "Score", DisplayName = "Score", Subtype = "N", IsVisible = true
+            }]));
+
+        PdfDocument changed = PdfDocument.Open(PdfCollectionEditor.SetItemValues(
+            portfolio, "evidence.txt", [
+                new PdfCollectionItemValue("Department", "Legal", null, "Team: "),
+                new PdfCollectionItemValue("Score", null, 4.5, null)]));
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(changed));
+
+        Assert.Equal("payload"u8.ToArray(), attachment.Data.ToArray());
+        Assert.Equal([
+            new PdfCollectionItemValue("Department", "Legal", null, "Team: "),
+            new PdfCollectionItemValue("Score", null, 4.5, null)
+        ], attachment.CollectionValues);
+        Assert.Throws<ArgumentException>(() => PdfCollectionEditor.SetItemValues(
+            portfolio, "evidence.txt", [
+                new PdfCollectionItemValue("Missing", "value", null, null)]));
+    }
+
     private static PdfDocument WithCollection(PdfDictionary collection)
     {
         PdfDocument source = PdfDocument.Open(

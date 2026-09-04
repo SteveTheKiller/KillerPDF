@@ -131,6 +131,55 @@ public static class PdfCollectionEditor
         });
     }
 
+    /// <summary>Replaces one attachment's values for the declared portfolio schema.</summary>
+    public static byte[] SetItemValues(PdfDocument document, string fileName,
+        IEnumerable<PdfCollectionItemValue> values)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        ArgumentNullException.ThrowIfNull(values);
+        PdfCollectionInfo collection = PdfCollectionReader.Read(document)
+            ?? throw new InvalidOperationException("The document has no portfolio collection.");
+        HashSet<string> schemaKeys = collection.Fields.Select(field => field.Key)
+            .ToHashSet(StringComparer.Ordinal);
+        PdfCollectionItemValue[] selected = values.ToArray();
+        if (selected.Any(value => value is null || string.IsNullOrWhiteSpace(value.Key)
+            || !schemaKeys.Contains(value.Key)
+            || (value.Text is null) == (value.Number is null)
+            || (value.Number.HasValue && !double.IsFinite(value.Number.Value))
+            || (value.Prefix is not null && string.IsNullOrWhiteSpace(value.Prefix))))
+            throw new ArgumentException(
+                "Portfolio values must reference schema fields and contain one text or finite numeric value.",
+                nameof(values));
+        if (selected.Select(value => value.Key).Distinct(StringComparer.Ordinal).Count()
+            != selected.Length)
+            throw new ArgumentException("Portfolio value keys must be unique.", nameof(values));
+        PdfAttachmentInfo attachment = PdfAttachmentReader.Read(document).SingleOrDefault(item =>
+            string.Equals(item.FileName, fileName, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ArgumentException(
+                $"The document has no attachment named '{fileName}'.", nameof(fileName));
+        int objectNumber = attachment.FileSpecificationObjectNumber
+            ?? throw new NotSupportedException(
+                "Portfolio values require an indirect attachment file specification.");
+        PdfDictionary specification = document.Resolve(objectNumber) as PdfDictionary
+            ?? throw new InvalidOperationException("The attachment file specification is not a dictionary.");
+        var entries = specification.ToDictionary(entry => entry.Key, entry => entry.Value);
+        if (selected.Length == 0) entries.Remove(Name("CI"));
+        else entries[Name("CI")] = new PdfDictionary(selected.OrderBy(value => value.Key,
+            StringComparer.Ordinal).Select(value => new KeyValuePair<PdfName, PdfObject>(
+                Name(value.Key), ItemValue(value))));
+        return new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(objectNumber, new PdfDictionary(entries)).Build();
+
+        static PdfObject ItemValue(PdfCollectionItemValue value)
+        {
+            PdfObject data = value.Text is not null ? Text(value.Text)
+                : new PdfReal(value.Number!.Value);
+            return value.Prefix is null ? data : new PdfDictionary([
+                new(Name("D"), data), new(Name("P"), Text(value.Prefix))]);
+        }
+    }
+
     private static byte[] UpdateCollection(PdfDocument document,
         Action<Dictionary<PdfName, PdfObject>> updateEntries)
     {
