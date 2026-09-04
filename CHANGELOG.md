@@ -20,7 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added attachment inspection, executable-content and integrity checks, and portfolio metadata (#347).
 - Added saved calibration profiles, document, page, and region assignments, coordinates, directional deltas, and snapping to measurement tools (#348).
 - Added step-and-repeat, poster tiling, manual sequences, bounded booklet signatures, and fitted sheet grids to imposition planning (#349).
-- Added layer display order, independent print and export visibility, and readable preflight reports (#350, #334).
+- Added layer renaming, display order, independent print and export visibility, and readable preflight reports (#350, #334).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
 - Added source identities, JSON reports, stable findings, and repair guidance to navigation audits (#351).
 - Added CSV and JSON record import, reusable mapping profiles, and isolated form generation (#352).

@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -45,5 +46,29 @@ public sealed class PdfOptionalContentReaderTests
 
         Assert.Empty(result.Groups);
         Assert.Empty(result.Configurations);
+    }
+
+    [Fact]
+    public void RenameGroupPreservesLayerStateAndOriginalDocument()
+    {
+        var layer = new PdfOptionalContentGroup("Original", initiallyVisible: false,
+            visibleWhenPrinting: true, visibleWhenExporting: false);
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(layer).Rectangle(0, 0, 10, 10).Fill().EndMarkedContent())
+            .Build());
+        PdfOptionalContentGroupInfo originalGroup = Assert.Single(
+            PdfOptionalContentReader.Read(original).Groups);
+
+        PdfDocument renamed = PdfDocument.Open(PdfOptionalContentEditor.RenameGroup(
+            original, originalGroup.ObjectNumber, "Résumé"));
+        PdfOptionalContentGroupInfo renamedGroup = Assert.Single(
+            PdfOptionalContentReader.Read(renamed).Groups);
+
+        Assert.Equal("Résumé", renamedGroup.Name);
+        Assert.False(renamedGroup.IsInitiallyVisible);
+        Assert.True(renamedGroup.IsVisibleWhenPrinting);
+        Assert.False(renamedGroup.IsVisibleWhenExporting);
+        Assert.Equal("Original", Assert.Single(PdfOptionalContentReader.Read(original).Groups).Name);
     }
 }
