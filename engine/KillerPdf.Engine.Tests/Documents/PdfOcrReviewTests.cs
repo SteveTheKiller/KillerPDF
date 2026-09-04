@@ -6,6 +6,43 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfOcrReviewTests
 {
     [Fact]
+    public void OptionsPreserveLanguagePriorityPreprocessingAndOutputMode()
+    {
+        var options = new PdfOcrOptions(["en-US", "de-DE", "EN-us"],
+            PdfOcrOutputMode.ExactImage, removeBackground: true, removeNoise: true);
+
+        Assert.Equal(["en-US", "de-DE"], options.Languages);
+        Assert.Equal(PdfOcrOutputMode.ExactImage, options.OutputMode);
+        Assert.True(options.Deskew);
+        Assert.True(options.CorrectOrientation);
+        Assert.True(options.RemoveBackground);
+        Assert.True(options.RemoveNoise);
+        Assert.True(options.DetectPageSegments);
+        Assert.Throws<ArgumentException>(() => new PdfOcrOptions([]));
+        Assert.Throws<ArgumentException>(() => new PdfOcrOptions(["../../model"]));
+    }
+
+    [Fact]
+    public void BatchRunnerSuppliesTheSameValidatedOptionsToEveryPage()
+    {
+        var options = new PdfOcrOptions(["en-US", "es"],
+            PdfOcrOutputMode.Editable, deskew: false);
+        PdfOcrBatchPage[] pages = [
+            new("first.pdf", 0, new byte[] { 1 }),
+            new("second.pdf", 1, new byte[] { 2 })];
+
+        IReadOnlyList<PdfOcrBatchResult> results = PdfOcrBatchRunner.Run(
+            pages, options, (page, supplied, _) =>
+            {
+                Assert.Same(options, supplied);
+                return new PdfOcrReview([
+                    Word(page.SourceName, page.PageIndex, 0, "ok", 1)]);
+            });
+
+        Assert.All(results, result => Assert.True(result.Succeeded));
+    }
+
+    [Fact]
     public void ReviewCorrectsIgnoresAndReplacesWithoutChangingOriginal()
     {
         var original = new PdfOcrReview([

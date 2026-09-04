@@ -4,6 +4,69 @@ using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
 
+/// <summary>The PDF output produced from reviewed OCR results.</summary>
+public enum PdfOcrOutputMode
+{
+    /// <summary>Preserve the source image and add searchable text.</summary>
+    SearchableImage,
+    /// <summary>Preserve the exact source image and place hidden text over it.</summary>
+    ExactImage,
+    /// <summary>Create editable page content from recognition results.</summary>
+    Editable
+}
+
+/// <summary>Validated recognition and preprocessing settings supplied to an OCR provider.</summary>
+public sealed record PdfOcrOptions
+{
+    private readonly string[] _languages;
+
+    /// <summary>Creates OCR settings for one or more recognition languages.</summary>
+    public PdfOcrOptions(IEnumerable<string> languages,
+        PdfOcrOutputMode outputMode = PdfOcrOutputMode.SearchableImage,
+        bool deskew = true, bool correctOrientation = true,
+        bool removeBackground = false, bool removeNoise = false,
+        bool detectPageSegments = true)
+    {
+        ArgumentNullException.ThrowIfNull(languages);
+        _languages = languages.Select(language => language?.Trim())
+            .Where(language => !string.IsNullOrEmpty(language))
+            .Cast<string>().Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        if (_languages.Length == 0)
+            throw new ArgumentException(
+                "At least one OCR recognition language is required.", nameof(languages));
+        if (_languages.Any(language => language.Length > 35
+            || language.Any(character => !char.IsAsciiLetterOrDigit(character)
+                && character is not ('-' or '_'))))
+            throw new ArgumentException(
+                "OCR language names may contain only letters, numbers, hyphens, and underscores.",
+                nameof(languages));
+        if (!Enum.IsDefined(outputMode))
+            throw new ArgumentOutOfRangeException(nameof(outputMode));
+        Languages = Array.AsReadOnly(_languages);
+        OutputMode = outputMode;
+        Deskew = deskew;
+        CorrectOrientation = correctOrientation;
+        RemoveBackground = removeBackground;
+        RemoveNoise = removeNoise;
+        DetectPageSegments = detectPageSegments;
+    }
+
+    /// <summary>Gets recognition languages in provider priority order.</summary>
+    public IReadOnlyList<string> Languages { get; }
+    /// <summary>Gets the requested PDF output mode.</summary>
+    public PdfOcrOutputMode OutputMode { get; }
+    /// <summary>Gets whether tilted page images should be straightened.</summary>
+    public bool Deskew { get; }
+    /// <summary>Gets whether page orientation should be detected and corrected.</summary>
+    public bool CorrectOrientation { get; }
+    /// <summary>Gets whether background shading should be removed.</summary>
+    public bool RemoveBackground { get; }
+    /// <summary>Gets whether image noise should be removed.</summary>
+    public bool RemoveNoise { get; }
+    /// <summary>Gets whether the provider should detect columns and other page segments.</summary>
+    public bool DetectPageSegments { get; }
+}
+
 /// <summary>The review state of one recognized word.</summary>
 public enum PdfOcrWordStatus
 {
@@ -200,6 +263,17 @@ public sealed record PdfOcrBatchResult(PdfOcrBatchPage Input, PdfOcrReview? Revi
 /// <summary>Runs OCR page recognition with source preservation, failure isolation, and cancellation.</summary>
 public static class PdfOcrBatchRunner
 {
+    /// <summary>Recognizes each page independently with shared provider options.</summary>
+    public static IReadOnlyList<PdfOcrBatchResult> Run(IEnumerable<PdfOcrBatchPage> pages,
+        PdfOcrOptions options,
+        Func<PdfOcrBatchPage, PdfOcrOptions, CancellationToken, PdfOcrReview> recognize,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(recognize);
+        return Run(pages, (page, token) => recognize(page, options, token), cancellationToken);
+    }
+
     /// <summary>Recognizes each page independently.</summary>
     public static IReadOnlyList<PdfOcrBatchResult> Run(IEnumerable<PdfOcrBatchPage> pages,
         Func<PdfOcrBatchPage, CancellationToken, PdfOcrReview> recognize,
