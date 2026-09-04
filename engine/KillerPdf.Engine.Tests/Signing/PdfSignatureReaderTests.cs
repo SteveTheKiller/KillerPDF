@@ -525,7 +525,7 @@ public sealed class PdfSignatureReaderTests
         Assert.True(result.IsDocumentTimestamp);
         Assert.Equal("ETSI.RFC3161", result.SubFilter);
         Assert.Contains("Document timestamp: Yes", report.ToText());
-        Assert.Contains("RFC 3161 document timestamp cryptographic verification is not supported",
+        Assert.Contains("RFC 3161 document timestamp token is invalid",
             Assert.Single(report.Entries).Verification.Error, StringComparison.Ordinal);
         Assert.Contains("\"isDocumentTimestamp\":true", report.ToJson());
     }

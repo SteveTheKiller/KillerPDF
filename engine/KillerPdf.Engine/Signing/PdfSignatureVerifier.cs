@@ -46,16 +46,6 @@ public static class PdfSignatureVerifier
                 CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
                 Error = "The signature does not contain a valid byte range and CMS value."
             };
-        if (signature.IsDocumentTimestamp)
-            return new PdfSignatureVerificationResult
-            {
-                IsStructurallyValid = true,
-                CertificateTrustWasChecked = checkCertificateTrust,
-                RequestedRevocationMode = trustOptions?.RevocationMode,
-                RequestedVerificationTime = trustOptions?.VerificationTime,
-                CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
-                Error = "RFC 3161 document timestamp cryptographic verification is not supported."
-            };
         X509Certificate2? signer = null;
         string? digestAlgorithm = null;
         string? signatureAlgorithm = null;
@@ -63,11 +53,27 @@ public static class PdfSignatureVerifier
         try
         {
             byte[] content = PdfSignatureReader.GetSignedContent(document, signature);
-            var cms = new SignedCms(new ContentInfo(content), detached: true);
-            cms.Decode(signature.Cms.Span);
-            cms.CheckSignature(verifySignatureOnly: true);
+            SignedCms cms;
+            if (signature.IsDocumentTimestamp)
+            {
+                if (!Rfc3161TimestampToken.TryDecode(
+                        signature.Cms, out Rfc3161TimestampToken? token, out int consumed)
+                    || token is null || consumed != signature.Cms.Length)
+                    throw new CryptographicException(
+                        "The RFC 3161 document timestamp token is invalid.");
+                if (!token.VerifySignatureForData(content, out signer, extraCandidates: null))
+                    throw new CryptographicException(
+                        "The RFC 3161 document timestamp does not match the signed PDF bytes.");
+                cms = token.AsSignedCms();
+            }
+            else
+            {
+                cms = new SignedCms(new ContentInfo(content), detached: true);
+                cms.Decode(signature.Cms.Span);
+                cms.CheckSignature(verifySignatureOnly: true);
+            }
             SignerInfo? signerInfo = cms.SignerInfos.Count > 0 ? cms.SignerInfos[0] : null;
-            signer = signerInfo?.Certificate;
+            signer ??= signerInfo?.Certificate;
             digestAlgorithm = signerInfo?.DigestAlgorithm.Value;
             signatureAlgorithm = signerInfo?.SignatureAlgorithm.Value;
             signaturePolicies = signerInfo is null ? [] : SignaturePolicies(signerInfo);
