@@ -36,7 +36,7 @@ public sealed class PdfXfaFormatterTests
         PdfXfaInfo info = Info("""
             <template>
               <field name="missing"><format><picture>num{9}</picture></format></field>
-              <field name="date"><format><picture>date{YYYY-MM-DD}</picture></format></field>
+              <field name="text"><format><picture>text{AAAA}</picture></format></field>
               <field name="bad"><format><picture>num{9.99}</picture></format></field>
             </template>
             """);
@@ -44,7 +44,7 @@ public sealed class PdfXfaFormatterTests
         {
             Fields =
             [
-                new PdfFormDataField { Name = "date", Values = ["2026-09-04"] },
+                new PdfFormDataField { Name = "text", Values = ["hello"] },
                 new PdfFormDataField { Name = "bad", Values = ["not-a-number"] }
             ]
         };
@@ -55,6 +55,31 @@ public sealed class PdfXfaFormatterTests
         Assert.Equal(PdfXfaFormatStatus.UnsupportedPicture, results[1].Status);
         Assert.Equal(PdfXfaFormatStatus.InvalidValue, results[2].Status);
         Assert.All(results, result => Assert.Null(result.Value));
+    }
+
+    [Fact]
+    public void FormatAppliesBoundedDateAndTimePictures()
+    {
+        PdfXfaInfo info = Info("""
+            <template>
+              <field name="created"><format><picture>date{MMMM D, YYYY}</picture></format></field>
+              <field name="opened"><format><picture>time{hh:MM:SS A}</picture></format></field>
+            </template>
+            """);
+        var data = new PdfFormDataSet
+        {
+            Fields =
+            [
+                new PdfFormDataField { Name = "created", Values = ["2026-09-04"] },
+                new PdfFormDataField { Name = "opened", Values = ["13:05:09"] }
+            ]
+        };
+
+        IReadOnlyList<PdfXfaFormatResult> results = PdfXfaFormatter.Format(info, data);
+
+        Assert.Equal("September 4, 2026", results[0].Value);
+        Assert.Equal("01:05:09 PM", results[1].Value);
+        Assert.All(results, result => Assert.Equal(PdfXfaFormatStatus.Formatted, result.Status));
     }
 
     private static PdfXfaInfo Info(string template) => new()

@@ -42,11 +42,19 @@ public static class PdfXfaFormatter
             return Result(format, PdfXfaFormatStatus.MissingPicture, null,
                 "The format has no picture clause.");
         string picture = format.Picture.Trim();
-        if (!picture.StartsWith("num{", StringComparison.OrdinalIgnoreCase)
-            || picture[^1] != '}')
-            return Result(format, PdfXfaFormatStatus.UnsupportedPicture, null,
-                "Only numeric XFA picture clauses are supported.");
-        string mask = picture[4..^1];
+        if (picture.StartsWith("num{", StringComparison.OrdinalIgnoreCase) && picture[^1] == '}')
+            return FormatNumber(format, source, picture[4..^1]);
+        if (picture.StartsWith("date{", StringComparison.OrdinalIgnoreCase) && picture[^1] == '}')
+            return FormatDate(format, source, picture[5..^1]);
+        if (picture.StartsWith("time{", StringComparison.OrdinalIgnoreCase) && picture[^1] == '}')
+            return FormatTime(format, source, picture[5..^1]);
+        return Result(format, PdfXfaFormatStatus.UnsupportedPicture, null,
+            "The XFA picture category is not supported.");
+    }
+
+    private static PdfXfaFormatResult FormatNumber(
+        PdfXfaTemplateBehavior format, string source, string mask)
+    {
         int decimalIndex = mask.LastIndexOf('.');
         string integerMask = decimalIndex < 0 ? mask : mask[..decimalIndex];
         string fractionMask = decimalIndex < 0 ? string.Empty : mask[(decimalIndex + 1)..];
@@ -68,6 +76,71 @@ public static class PdfXfaFormatter
                 : "." + new string('0', requiredDecimals) + new string('#', optionalDecimals));
         return Result(format, PdfXfaFormatStatus.Formatted,
             number.ToString(numericFormat, CultureInfo.InvariantCulture), null);
+    }
+
+    private static PdfXfaFormatResult FormatDate(
+        PdfXfaTemplateBehavior format, string source, string mask)
+    {
+        if (!TryPicture(mask, date: true, out string? dotNet))
+            return Result(format, PdfXfaFormatStatus.UnsupportedPicture, null,
+                "The date picture uses unsupported symbols.");
+        if (!DateTime.TryParse(source, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces | DateTimeStyles.RoundtripKind, out DateTime value))
+            return Result(format, PdfXfaFormatStatus.InvalidValue, null,
+                "The field value is not an invariant date.");
+        return Result(format, PdfXfaFormatStatus.Formatted,
+            value.ToString(dotNet, CultureInfo.InvariantCulture), null);
+    }
+
+    private static PdfXfaFormatResult FormatTime(
+        PdfXfaTemplateBehavior format, string source, string mask)
+    {
+        if (!TryPicture(mask, date: false, out string? dotNet))
+            return Result(format, PdfXfaFormatStatus.UnsupportedPicture, null,
+                "The time picture uses unsupported symbols.");
+        if (!TimeOnly.TryParse(source, CultureInfo.InvariantCulture,
+                DateTimeStyles.AllowWhiteSpaces, out TimeOnly value))
+            return Result(format, PdfXfaFormatStatus.InvalidValue, null,
+                "The field value is not an invariant time.");
+        return Result(format, PdfXfaFormatStatus.Formatted,
+            value.ToString(dotNet, CultureInfo.InvariantCulture), null);
+    }
+
+    private static bool TryPicture(string mask, bool date, out string result)
+    {
+        if (mask.Length is 0 or > 128)
+        {
+            result = string.Empty;
+            return false;
+        }
+        var output = new System.Text.StringBuilder(mask.Length);
+        for (int index = 0; index < mask.Length;)
+        {
+            string remaining = mask[index..];
+            (string Token, string Replacement)[] tokens = date
+                ? [("YYYY", "yyyy"), ("MMMM", "MMMM"), ("MMM", "MMM"),
+                    ("YY", "yy"), ("MM", "MM"), ("DD", "dd"),
+                    ("M", "M"), ("D", "d")]
+                : [("HH", "HH"), ("hh", "hh"), ("MM", "mm"),
+                    ("SS", "ss"), ("A", "tt")];
+            var match = tokens.FirstOrDefault(token =>
+                remaining.StartsWith(token.Token, StringComparison.Ordinal));
+            if (match.Token is not null)
+            {
+                output.Append(match.Replacement);
+                index += match.Token.Length;
+                continue;
+            }
+            char character = mask[index++];
+            if (character is not ('-' or '/' or '.' or ':' or ',' or ' '))
+            {
+                result = string.Empty;
+                return false;
+            }
+            output.Append(character);
+        }
+        result = output.ToString();
+        return true;
     }
 
     private static PdfXfaFormatResult Result(PdfXfaTemplateBehavior behavior,
