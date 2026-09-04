@@ -62,8 +62,6 @@ internal static class PdfCcittFaxDecoder
     internal static byte[] Decode(
         ReadOnlySpan<byte> encoded, PdfCcittFaxOptions options, int maximumDecodedBytes)
     {
-        if (options.K != 0)
-            throw new PdfFilterException("Only one-dimensional CCITT Group 3 data is implemented.");
         if (options.Columns <= 0 || options.Rows <= 0)
             throw new PdfFilterException("CCITT dimensions must be positive.");
         int stride;
@@ -84,23 +82,112 @@ internal static class PdfCcittFaxDecoder
         var output = new byte[length];
         if (white != 0) Array.Fill(output, white);
         var bits = new BitReader(encoded);
+        IReadOnlyList<int> reference = [options.Columns];
         for (int row = 0; row < options.Rows; row++)
         {
-            if (options.EndOfLine) bits.ReadEndOfLine();
             if (options.EncodedByteAlign) bits.Align();
-            int column = 0;
-            bool black = false;
-            while (column < options.Columns)
-            {
-                int run = ReadRun(ref bits, black ? Black : White,
-                    options.Columns - column);
-                if (black) PaintBlack(output, row * stride, column, run, options.BlackIs1);
-                column += run;
-                black = !black;
-            }
+            if (options.EndOfLine) bits.ReadEndOfLine();
+            bool oneDimensional = options.K == 0 || options.K > 0 && bits.Read() != 0;
+            reference = oneDimensional
+                ? DecodeOneDimensional(ref bits, output, row * stride, options)
+                : DecodeTwoDimensional(ref bits, output, row * stride, options, reference);
         }
         return output;
     }
+
+    private static IReadOnlyList<int> DecodeOneDimensional(
+        ref BitReader bits, Span<byte> output, int rowOffset, PdfCcittFaxOptions options)
+    {
+        var changes = new List<int>();
+        int column = 0;
+        bool black = false;
+        while (column < options.Columns)
+        {
+            int run = ReadRun(ref bits, black ? Black : White,
+                options.Columns - column);
+            if (black) PaintBlack(output, rowOffset, column, run, options.BlackIs1);
+            column += run;
+            changes.Add(column);
+            black = !black;
+        }
+        return changes;
+    }
+
+    private static IReadOnlyList<int> DecodeTwoDimensional(
+        ref BitReader bits, Span<byte> output, int rowOffset, PdfCcittFaxOptions options,
+        IReadOnlyList<int> reference)
+    {
+        var changes = new List<int>();
+        int a0 = 0;
+        bool black = false;
+        while (a0 < options.Columns)
+        {
+            TwoDimensionalMode mode = ReadTwoDimensionalMode(ref bits);
+            (int b1, int b2) = ReferenceChanges(reference, a0, black, options.Columns);
+            if (mode.Kind == TwoDimensionalModeKind.Pass)
+            {
+                if (black) PaintBlack(output, rowOffset, a0, b2 - a0, options.BlackIs1);
+                a0 = b2;
+                continue;
+            }
+            if (mode.Kind == TwoDimensionalModeKind.Horizontal)
+            {
+                int first = ReadRun(ref bits, black ? Black : White, options.Columns - a0);
+                int a1 = a0 + first;
+                int second = ReadRun(ref bits, black ? White : Black, options.Columns - a1);
+                int a2 = a1 + second;
+                if (black) PaintBlack(output, rowOffset, a0, first, options.BlackIs1);
+                else PaintBlack(output, rowOffset, a1, second, options.BlackIs1);
+                changes.Add(a1);
+                changes.Add(a2);
+                a0 = a2;
+                continue;
+            }
+
+            int vertical = b1 + mode.Delta;
+            if (vertical < a0 || vertical > options.Columns)
+                throw new PdfFilterException("A CCITT vertical mode exceeds its scan line.");
+            if (black) PaintBlack(output, rowOffset, a0, vertical - a0, options.BlackIs1);
+            changes.Add(vertical);
+            a0 = vertical;
+            black = !black;
+        }
+        if (changes.Count == 0 || changes[^1] != options.Columns)
+            changes.Add(options.Columns);
+        return changes;
+    }
+
+    private static (int B1, int B2) ReferenceChanges(
+        IReadOnlyList<int> reference, int a0, bool black, int columns)
+    {
+        int parity = black ? 1 : 0;
+        for (int index = 0; index < reference.Count; index++)
+            if (reference[index] > a0 && index % 2 == parity)
+                return (reference[index], index + 1 < reference.Count
+                    ? reference[index + 1] : columns);
+        return (columns, columns);
+    }
+
+    private static TwoDimensionalMode ReadTwoDimensionalMode(ref BitReader bits)
+    {
+        if (bits.Read() != 0) return new(TwoDimensionalModeKind.Vertical, 0);
+        if (bits.Read() != 0)
+            return new(TwoDimensionalModeKind.Vertical, bits.Read() == 0 ? -1 : 1);
+        if (bits.Read() != 0) return new(TwoDimensionalModeKind.Horizontal, 0);
+        if (bits.Read() != 0) return new(TwoDimensionalModeKind.Pass, 0);
+        if (bits.Read() != 0)
+            return new(TwoDimensionalModeKind.Vertical, bits.Read() == 0 ? -2 : 2);
+        if (bits.Read() != 0)
+            return new(TwoDimensionalModeKind.Vertical, bits.Read() == 0 ? -3 : 3);
+        if (bits.Read() != 0)
+            throw new PdfFilterException("CCITT extension modes are not supported.");
+        throw new PdfFilterException("CCITT data contains an invalid two-dimensional mode.");
+    }
+
+    private enum TwoDimensionalModeKind { Pass, Horizontal, Vertical }
+
+    private readonly record struct TwoDimensionalMode(
+        TwoDimensionalModeKind Kind, int Delta);
 
     private static int ReadRun(ref BitReader bits, CodeTable table, int maximum)
     {

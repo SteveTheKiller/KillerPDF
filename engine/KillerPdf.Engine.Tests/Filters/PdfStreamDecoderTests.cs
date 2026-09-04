@@ -357,7 +357,7 @@ public sealed class PdfStreamDecoderTests
     [Fact]
     public void Decode_HonorsCcittEndOfLineAlignmentAndBlackPolarity()
     {
-        PdfStream stream = Stream([0x00, 0x10, 0x89, 0xC0],
+        PdfStream stream = Stream([0x00, 0x18, 0x9C],
             Pair("Filter", Name("CCF")),
             Pair("DecodeParms", Dictionary(
                 Pair("Columns", new PdfInteger(8)),
@@ -379,14 +379,67 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
-    public void Decode_RejectsUnsupportedOrUnboundedCcittData()
+    public void Decode_ReconstructsGroup4HorizontalAndVerticalModes()
     {
-        PdfStream unsupported = Stream([], Pair("Filter", Name("CCITTFaxDecode")),
+        PdfStream stream = Stream([0x98, 0xA0],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("K", new PdfInteger(-1)),
+                Pair("Columns", new PdfInteger(8)),
+                Pair("Rows", new PdfInteger(2)))));
+
+        Assert.Equal(new byte[] { 0xFF, 0b1110_0011 }, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_ReconstructsGroup4PassModes()
+    {
+        PdfStream stream = Stream([0x31, 0x46],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("K", new PdfInteger(-1)),
+                Pair("Columns", new PdfInteger(8)),
+                Pair("Rows", new PdfInteger(2)))));
+
+        Assert.Equal(new byte[] { 0b1110_0011, 0xFF }, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_ReconstructsGroup4VerticalOffsets()
+    {
+        PdfStream stream = Stream([0x31, 0x5B, 0x80],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("K", new PdfInteger(-1)),
+                Pair("Columns", new PdfInteger(8)),
+                Pair("Rows", new PdfInteger(2)))));
+
+        Assert.Equal(new byte[] { 0b1110_0011, 0b1111_0001 },
+            PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_ReconstructsMixedGroup3Rows()
+    {
+        PdfStream stream = Stream([0x00, 0x1C, 0x4E],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("K", new PdfInteger(1)),
+                Pair("Columns", new PdfInteger(8)),
+                Pair("EndOfLine", new PdfBoolean(true)))));
+
+        Assert.Equal(new byte[] { 0b1110_0011 }, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_RejectsMalformedOrUnboundedCcittData()
+    {
+        PdfStream malformed = Stream([0x00], Pair("Filter", Name("CCITTFaxDecode")),
             Pair("DecodeParms", Dictionary(Pair("K", new PdfInteger(-1)))));
         PdfStream bounded = Stream([0x89, 0xC0], Pair("Filter", Name("CCITTFaxDecode")),
             Pair("DecodeParms", Dictionary(Pair("Columns", new PdfInteger(8)))));
 
-        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(unsupported));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(malformed));
         Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(bounded, 0));
     }
 
