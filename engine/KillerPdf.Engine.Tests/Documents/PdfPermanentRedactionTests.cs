@@ -3,6 +3,7 @@ using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
+using System.Text;
 using System.Text.Json;
 using Xunit;
 
@@ -123,6 +124,27 @@ public sealed class PdfPermanentRedactionTests
         Assert.Contains("Redaction verification: Failed", text);
         Assert.Contains("ProhibitedObjectText", text);
         Assert.Contains($"Object {finding.ObjectNumber}", text);
+    }
+
+    [Fact]
+    public void VerifierFindsUtf16AndHexadecimalTextInHiddenStreams()
+    {
+        byte[] clean = PdfPermanentRedaction.RebuildFromSanitizedPages([
+            new PdfSanitizedRasterPage(100, 100,
+                PdfImage.FromRgb(1, 1, new byte[] { 0, 0, 0 }))]);
+        PdfDocument document = PdfDocument.Open(clean);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        byte[] utf16 = Encoding.BigEndianUnicode.GetBytes("secret");
+        update.AddObject(new PdfStream(new PdfDictionary([]),
+            [.. "prefix "u8, .. utf16, .. " suffix"u8]));
+        update.AddObject(new PdfStream(new PdfDictionary([]),
+            "value <FEFF007300650063007200650074>"u8));
+
+        PdfRedactionVerificationReport report = PdfPermanentRedaction.VerifySanitizedOutput(
+            update.Build(), 1, ["secret"]);
+
+        Assert.Equal(2, report.Findings.Count(item =>
+            item.Code == "ProhibitedObjectText"));
     }
 
     [Fact]

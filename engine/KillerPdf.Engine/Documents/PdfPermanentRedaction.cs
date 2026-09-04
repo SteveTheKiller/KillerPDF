@@ -400,8 +400,12 @@ public static class PdfPermanentRedaction
                     case PdfStream stream:
                         Inspect(stream.Dictionary, objectNumber, depth + 1);
                         if (!IsImage(stream.Dictionary))
-                            Check(DecodeText(PdfStreamDecoder.Decode(
-                                stream, document.Resolve, 64 * 1024 * 1024)));
+                        {
+                            byte[] decoded = PdfStreamDecoder.Decode(
+                                stream, document.Resolve, 64 * 1024 * 1024);
+                            Check(DecodeText(decoded));
+                            CheckEncodedText(decoded);
+                        }
                         break;
                     case PdfDictionary dictionary:
                         foreach (PdfObject item in dictionary.Values)
@@ -418,6 +422,25 @@ public static class PdfPermanentRedaction
                             findings.Add(new("ProhibitedObjectText",
                                 $"Object {objectNumber} still exposes prohibited text '{blocked}'.",
                                 ObjectNumber: objectNumber));
+                }
+
+                void CheckEncodedText(ReadOnlySpan<byte> candidate)
+                {
+                    foreach (string blocked in prohibited)
+                    {
+                        byte[] bigEndian = Encoding.BigEndianUnicode.GetBytes(blocked);
+                        byte[] littleEndian = Encoding.Unicode.GetBytes(blocked);
+                        string hex = Convert.ToHexString(
+                            [0xFE, 0xFF, .. bigEndian]);
+                        bool found = candidate.IndexOf(bigEndian) >= 0
+                            || candidate.IndexOf(littleEndian) >= 0
+                            || DecodeText(candidate).Contains(hex,
+                                StringComparison.OrdinalIgnoreCase);
+                        if (found && reported.Add((objectNumber, blocked)))
+                            findings.Add(new("ProhibitedObjectText",
+                                $"Object {objectNumber} still exposes prohibited text '{blocked}'.",
+                                ObjectNumber: objectNumber));
+                    }
                 }
             }
         }
