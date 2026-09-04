@@ -1429,6 +1429,42 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void Build_RetargetsExistingLinksWithoutChangingTheirGeometry()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().AddBlankPage()
+            .AddNamedDestination("chapter", 1)
+            .AddUriLink(0, 20, 30, 80, 16, "https://old.example")
+            .AddPageLink(0, 20, 60, 80, 16, 0)
+            .AddNamedDestinationLink(0, 20, 90, 80, 16, "chapter")
+            .Build());
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalAnnotationEditor(source)
+                .SetLinkDestinationAt(0, 0, 1, PdfDestination.FitWidth(700))
+                .SetLinkNamedDestinationAt(0, 1, "chapter")
+                .SetLinkUriAt(0, 2, "https://killerpdf.net")
+                .Build());
+
+        PdfArray annotations = Assert.IsType<PdfArray>(
+            Pages(updated)[0].Page[Name("Annots")]);
+        PdfDictionary pageLink = ResolveDictionary(updated, annotations[0]);
+        PdfDictionary namedLink = ResolveDictionary(updated, annotations[1]);
+        PdfDictionary uriLink = ResolveDictionary(updated, annotations[2]);
+        PdfArray destination = Assert.IsType<PdfArray>(pageLink[Name("Dest")]);
+        PdfDictionary action = Assert.IsType<PdfDictionary>(uriLink[Name("A")]);
+
+        Assert.Equal("FitH", Assert.IsType<PdfName>(destination[1]).ValueAsLatin1());
+        Assert.IsType<PdfString>(namedLink[Name("Dest")]);
+        Assert.Equal("URI", Assert.IsType<PdfName>(action[Name("S")]).ValueAsLatin1());
+        Assert.False(pageLink.ContainsKey(Name("A")));
+        Assert.False(namedLink.ContainsKey(Name("A")));
+        Assert.False(uriLink.ContainsKey(Name("Dest")));
+        Assert.Equal(20, Assert.IsType<PdfInteger>(
+            Assert.IsType<PdfArray>(pageLink[Name("Rect")])[0]).Value);
+    }
+
+    [Fact]
     public void Build_AppendsTaggedFileAttachmentUsingExistingFileSpecification()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

@@ -169,6 +169,46 @@ public sealed class PdfIncrementalAnnotationEditor
         return this;
     }
 
+    /// <summary>Changes a link annotation to open an absolute URI.</summary>
+    public PdfIncrementalAnnotationEditor SetLinkUriAt(
+        int pageIndex, int annotationIndex, string uri)
+    {
+        PendingRemoval target = FindIndexedUpdateTarget(pageIndex, annotationIndex);
+        EnsureLinkAnnotation(target);
+        AddLinkTargetUpdate(target, PendingLinkTarget.Uri,
+            PdfLinkAnnotationFactory.ValidateUri(uri), null, nameof(annotationIndex));
+        return this;
+    }
+
+    /// <summary>Changes a link annotation to target a page in this document.</summary>
+    public PdfIncrementalAnnotationEditor SetLinkDestinationAt(
+        int pageIndex, int annotationIndex, int destinationPageIndex,
+        PdfDestination? destination = null)
+    {
+        ValidatePage(destinationPageIndex);
+        PendingRemoval target = FindIndexedUpdateTarget(pageIndex, annotationIndex);
+        EnsureLinkAnnotation(target);
+        AddLinkTargetUpdate(target, PendingLinkTarget.Page, null,
+            (destinationPageIndex, destination ?? PdfDestination.FitPage()),
+            nameof(annotationIndex));
+        return this;
+    }
+
+    /// <summary>Changes a link annotation to target an existing named destination.</summary>
+    public PdfIncrementalAnnotationEditor SetLinkNamedDestinationAt(
+        int pageIndex, int annotationIndex, string destinationName)
+    {
+        if (string.IsNullOrWhiteSpace(destinationName)
+            || !HasNamedDestination(destinationName))
+            throw new ArgumentException(
+                "The named destination has not been defined.", nameof(destinationName));
+        PendingRemoval target = FindIndexedUpdateTarget(pageIndex, annotationIndex);
+        EnsureLinkAnnotation(target);
+        AddLinkTargetUpdate(target, PendingLinkTarget.Named,
+            destinationName, null, nameof(annotationIndex));
+        return this;
+    }
+
     /// <summary>Adds a text note with optional popup, reply, and workflow state.</summary>
     public PdfIncrementalAnnotationEditor AddTextNote(
         int pageIndex, double x, double y, string contents,
@@ -1694,6 +1734,16 @@ public sealed class PdfIncrementalAnnotationEditor
                 "A popup annotation must be updated through its parent annotation.");
     }
 
+    private void EnsureLinkAnnotation(PendingRemoval target)
+    {
+        if (!target.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtypeValue)
+            || ResolveValue(subtypeValue,
+                $"Annotation '{target.Name}' subtype") is not PdfName subtype
+            || subtype.ValueAsLatin1() != "Link")
+            throw new InvalidOperationException(
+                $"Annotation '{target.Name}' is not a link annotation.");
+    }
+
     private void AddContentsUpdate(
         PendingRemoval target, string? contents, string parameterName)
     {
@@ -1717,6 +1767,21 @@ public sealed class PdfIncrementalAnnotationEditor
                 parameterName);
         _updates.Add(new PendingAnnotationUpdate(target.PageIndex, target.Name,
             target.Reference, target.Dictionary, false, null, true, metadata, false));
+    }
+
+    private void AddLinkTargetUpdate(
+        PendingRemoval target, PendingLinkTarget linkTarget, string? linkName,
+        (int PageIndex, PdfDestination Destination)? pageTarget,
+        string parameterName)
+    {
+        if (_updates.Any(value => SameIdentity(value.Reference, target.Reference)
+                && value.UpdateLinkTarget))
+            throw new ArgumentException(
+                $"Annotation '{target.Name}' already has a pending link-target update.",
+                parameterName);
+        _updates.Add(new PendingAnnotationUpdate(target.PageIndex, target.Name,
+            target.Reference, target.Dictionary, false, null, false, null, false,
+            true, linkTarget, linkName, pageTarget));
     }
 
     private void EnsureNotPendingUpdate(PendingRemoval target)
@@ -1765,6 +1830,27 @@ public sealed class PdfIncrementalAnnotationEditor
                     entries[Name("BS")] = Dictionary(("W", new PdfInteger(0)));
                     entries[Name("Border")] = new PdfArray([
                         new PdfInteger(0), new PdfInteger(0), new PdfInteger(0)]);
+                }
+                if (change.UpdateLinkTarget)
+                {
+                    entries.Remove(Name("A"));
+                    entries.Remove(Name("Dest"));
+                    switch (change.LinkTarget)
+                    {
+                        case PendingLinkTarget.Uri:
+                            entries[Name("A")] = PdfLinkAnnotationFactory.UriAction(
+                                change.LinkName!);
+                            break;
+                        case PendingLinkTarget.Page:
+                            entries[Name("Dest")] = change.PageTarget!.Value.Destination.ToArray(
+                                _pages[change.PageTarget.Value.PageIndex].Reference);
+                            break;
+                        case PendingLinkTarget.Named:
+                            entries[Name("Dest")] = UnicodeString(change.LinkName!);
+                            break;
+                        default:
+                            throw new InvalidOperationException("Unknown link target.");
+                    }
                 }
             }
             update.ReplaceObject(first.Reference.ObjectNumber,
@@ -3741,7 +3827,9 @@ public sealed class PdfIncrementalAnnotationEditor
         int PageIndex, string Name, PdfIndirectReference Reference,
         PdfDictionary Dictionary, bool UpdateContents, string? Contents,
         bool UpdateMetadata, PdfAnnotationMetadata? Metadata,
-        bool StripLinkAppearance);
+        bool StripLinkAppearance, bool UpdateLinkTarget = false,
+        PendingLinkTarget? LinkTarget = null, string? LinkName = null,
+        (int PageIndex, PdfDestination Destination)? PageTarget = null);
     private sealed record EditorFontBinding(
         PdfName Resource, PdfIndirectReference Type0Reference, EmbeddedFontUsage Usage);
     private sealed record ResolvedValue(
