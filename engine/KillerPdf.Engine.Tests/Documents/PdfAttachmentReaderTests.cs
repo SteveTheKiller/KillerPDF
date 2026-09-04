@@ -126,4 +126,26 @@ public sealed class PdfAttachmentReaderTests
         Assert.Equal(created, attachment.CreationDate);
         Assert.Equal(created, attachment.ModificationDate);
     }
+
+    [Fact]
+    public void SetAttachmentClassificationPreservesPayloadDescriptionAndDates()
+    {
+        byte[] payload = "evidence"u8.ToArray();
+        var created = new DateTimeOffset(2026, 8, 1, 8, 0, 0, TimeSpan.Zero);
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("evidence.bin", payload, "application/octet-stream", "Evidence",
+                PdfAssociatedFileRelationship.Unspecified, created, created).Build());
+
+        PdfDocument changed = PdfDocument.Open(new PdfIncrementalPageEditor(original)
+            .SetAttachmentClassification("EVIDENCE.BIN", "application/pdf",
+                PdfAssociatedFileRelationship.Source).Build());
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(changed));
+
+        Assert.Equal("application/pdf", attachment.MimeType);
+        Assert.Equal(PdfAssociatedFileRelationship.Source, attachment.Relationship);
+        Assert.Equal(payload, attachment.Data.ToArray());
+        Assert.Equal("Evidence", attachment.Description);
+        Assert.Equal(created, attachment.CreationDate);
+        Assert.Equal(created, attachment.ModificationDate);
+    }
 }
