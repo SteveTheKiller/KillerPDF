@@ -8,7 +8,7 @@
         mc:Ignorable="d"
         Title="KillerPDF" Height="700" Width="1000" MinHeight="480" MinWidth="620"
         WindowStartupLocation="CenterScreen"
-        WindowStyle="None"
+        WindowStyle="SingleBorderWindow"
         ResizeMode="CanResize"
         Background="{DynamicResource SurfaceBrush}"
         FontFamily="{DynamicResource UiFont}"
@@ -17,19 +17,7 @@
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
 
-    <!-- Hardware-accelerated custom chrome. Dropping AllowsTransparency lets WPF composite the
-         whole window on the GPU again (the film grain + drop shadows were being software-rendered
-         every frame, which made dragging/animation jumpy). WindowChrome gives native drag, snap,
-         resize and the OS drop shadow; the title bar (row 0) becomes the caption and the
-         min/max/close buttons opt back into hit-testing with IsHitTestVisibleInChrome. -->
-    <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="{DynamicResource TitleBarHeight}"
-                      ResizeBorderThickness="12"
-                      CornerRadius="0"
-                      GlassFrameThickness="0"
-                      NonClientFrameEdges="None"
-                      UseAeroCaptionButtons="False"/>
-    </WindowChrome.WindowChrome>
+    <!-- Real OS frame with the caption stripped in Shell/WindowChrome.cs; row 0 is the caption. -->
 
     <Window.Resources>
         <ResourceDictionary>
@@ -1327,8 +1315,7 @@
         </Grid.RowDefinitions>
 
         <!-- Title bar -->
-        <!-- WindowChrome.CaptionHeight makes this row the draggable caption (native drag + double-click
-             maximize), so the explicit MouseLeftButtonDown drag handler is no longer wired. -->
+        <!-- Native caption via WM_NCHITTEST, so no drag handler is wired. -->
         <Border Grid.Row="0" x:Name="TitleBarBorder" Height="{DynamicResource TitleBarHeight}"
                 Background="{DynamicResource TitleBarBrush}" BorderThickness="0"
                 CornerRadius="{DynamicResource TitleBarCornerRadius}">
@@ -1344,7 +1331,6 @@
                      drive the app-wide size (AppScale.cs); that opts it out of the native
                      caption, so drag / double-click-maximize come back via LogoBar handlers. -->
                 <Border x:Name="LogoBar" Grid.Column="0" Background="Transparent"
-                        WindowChrome.IsHitTestVisibleInChrome="True"
                         ToolTip="{DynamicResource Str_TT_AppSize}"
                         MouseWheel="LogoBar_MouseWheel"
                         MouseLeftButtonDown="LogoBar_MouseLeftButtonDown">
@@ -1377,8 +1363,7 @@
                            Foreground="{DynamicResource FilenameBrush}" FontFamily="Consolas" FontSize="11"/>
                 <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="{DynamicResource CaptionButtonsMargin}">
                     <Button Click="MinimizeBtn_Click" Style="{StaticResource ChromeButton}"
-                            Foreground="{DynamicResource CaptionGlyphBrush}"
-                            WindowChrome.IsHitTestVisibleInChrome="True">
+                            Foreground="{DynamicResource CaptionGlyphBrush}">
                         <Grid Height="{DynamicResource CaptionButtonHeight}">
                             <TextBlock Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="10"
                                        HorizontalAlignment="Center" VerticalAlignment="Center"
@@ -1391,8 +1376,7 @@
                         </Grid>
                     </Button>
                     <Button Click="MaximizeBtn_Click" Style="{StaticResource ChromeButton}"
-                            Foreground="{DynamicResource CaptionGlyphBrush}"
-                            WindowChrome.IsHitTestVisibleInChrome="True">
+                            Foreground="{DynamicResource CaptionGlyphBrush}">
                         <Grid>
                             <TextBlock Text="&#xE922;" FontFamily="Segoe MDL2 Assets" FontSize="10"
                                        FontWeight="{DynamicResource CaptionGlyphWeight}"
@@ -1405,8 +1389,7 @@
                             </Grid>
                         </Grid>
                     </Button>
-                    <Button Click="CloseBtn_Click" Style="{StaticResource ChromeCloseButton}"
-                            WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Click="CloseBtn_Click" Style="{StaticResource ChromeCloseButton}"/>
                 </StackPanel>
             </Grid>
             </Grid>
@@ -1415,8 +1398,7 @@
         <!-- Toolbar -->
         <!-- Keep the toolbar explicitly in the client hit-test area. This is also a safety net for
              compact titlebar themes: native caption pixels must never swallow toolbar input. -->
-        <Border Grid.Row="1" x:Name="ToolbarRowBorder" Background="{DynamicResource BackgroundBrush}"
-                WindowChrome.IsHitTestVisibleInChrome="True">
+        <Border Grid.Row="1" x:Name="ToolbarRowBorder" Background="{DynamicResource BackgroundBrush}">
             <Grid>
             <Border IsHitTestVisible="False" Opacity="{DynamicResource GrainOpacity}" Background="{StaticResource GrainBrushShared}"/>
             <!-- Background=Transparent is load-bearing: without it the grid's empty stretches have no
@@ -2675,7 +2657,6 @@
                 <!-- Portable install action sits immediately left of the document controls. -->
                 <Grid x:Name="PortableBadge" Grid.Column="1" Panel.ZIndex="3"
                       HorizontalAlignment="Right" VerticalAlignment="Center"
-                      WindowChrome.IsHitTestVisibleInChrome="True"
                       Margin="6,0,8,0" Visibility="Collapsed">
                     <Button x:Name="InstallBtn" Content="{DynamicResource Str_Portable}"
                             Click="Install_Click" Style="{StaticResource OutlineButton}"
@@ -2691,8 +2672,7 @@
                     </Button>
                 </Grid>
                 <Grid x:Name="FooterDocumentControls" Grid.Column="2"
-                      HorizontalAlignment="Right" Margin="{DynamicResource FooterCellMargin}"
-                      WindowChrome.IsHitTestVisibleInChrome="True">
+                      HorizontalAlignment="Right" Margin="{DynamicResource FooterCellMargin}">
                     <Border IsHitTestVisible="False" BorderBrush="{DynamicResource FooterBevelDarkBrush}"
                             BorderThickness="{DynamicResource FooterCellLightThickness}" Panel.ZIndex="2"/>
                     <Border IsHitTestVisible="False" BorderBrush="{DynamicResource FooterBevelLightBrush}"

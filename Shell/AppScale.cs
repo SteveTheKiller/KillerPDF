@@ -38,9 +38,8 @@ namespace KillerPDF
             e.Handled = true;
         }
 
-        // The logo is marked IsHitTestVisibleInChrome (MainWindow.xaml) so the scroll wheel
-        // reaches it for the zoom above - but that also takes it out of WindowChrome's native
-        // caption, so window drag and double-click-maximize are restored here by hand.
+        // The logo is a client hit (for the wheel above), not caption, so drag and
+        // double-click-maximize are restored here by hand.
         private void LogoBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ClickCount == 2)
