@@ -16,7 +16,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added direct instruction replacement, isolated affine transformations, rectangular clipping, and structural comparison of page instructions and effective resources without relying on object numbers (#332).
 - Added localized round-trip failures with stable codes and numeric details in all 15 supported languages (#227).
 - Added explicit artifact overlays for temporary rasterization of tagged PDFs, preserving existing structure and ordinary content-editing guards (#356).
-- Added inspectable repair and lossless optimization plans with selective metadata, form, comment, attachment, bookmark, open-action, and document JavaScript sanitization, measured output sizes, and post-save removal verification (#333).
+- Added inspectable repair and lossless optimization plans with selective metadata, form, comment, attachment, thumbnail, bookmark, open-action, and document JavaScript sanitization, measured output sizes, and post-save removal verification (#333).
 - Added reusable preflight profiles for structural, metadata, language, tagged-document, form, page-box, output-intent, image-resolution, font, transparency, color-use, and layer checks with stable JSON and readable reports (#334).
 - Added accessibility findings for language, structure trees, marked content, table headers, and missing figure, form-field, and link descriptions (#335).
 - Added consolidated signature inspection with configurable trust, certificate identity, SHA-256 fingerprints, algorithms, purpose, location, contact, signing time, byte ranges, permissions, and later-revision analysis (#336).

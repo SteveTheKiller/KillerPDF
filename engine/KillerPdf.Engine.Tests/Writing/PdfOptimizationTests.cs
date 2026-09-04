@@ -182,4 +182,30 @@ public sealed class PdfOptimizationTests
         Assert.DoesNotContain(sanitizedCatalog.Keys,
             key => key.ValueAsLatin1() == "Names");
     }
+
+    [Fact]
+    public void SelectiveSanitizationRemovesEmbeddedPageThumbnails()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().AddBlankPage().Build());
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalPageEditor(source)
+            .SetPageThumbnail(0, PdfImage.FromRgb(
+                1, 1, new byte[] { 20, 40, 60 }))
+            .Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                RemovePageThumbnails = true,
+                PackObjects = false,
+                CompressStructure = false
+        });
+        PdfOptimizationResult result = plan.Apply();
+
+        Assert.Contains(PdfOptimizationChangeKind.RemovePageThumbnails, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.RemovePageThumbnails,
+            result.VerifiedRemovals);
+        Assert.DoesNotContain("/Thumb",
+            System.Text.Encoding.Latin1.GetString(result.Data.Span));
+    }
 }

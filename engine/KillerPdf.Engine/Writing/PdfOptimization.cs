@@ -23,6 +23,8 @@ public enum PdfOptimizationChangeKind
     RemoveComments,
     /// <summary>Remove the document-level JavaScript name tree.</summary>
     RemoveDocumentJavaScript,
+    /// <summary>Remove embedded page thumbnail images.</summary>
+    RemovePageThumbnails,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -46,6 +48,8 @@ public sealed record PdfOptimizationOptions
     public bool RemoveComments { get; init; }
     /// <summary>Gets whether the document-level JavaScript name tree is removed.</summary>
     public bool RemoveDocumentJavaScript { get; init; }
+    /// <summary>Gets whether embedded page thumbnail images are removed.</summary>
+    public bool RemovePageThumbnails { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -138,6 +142,8 @@ public sealed class PdfOptimizationPlan
             && Resolve(document, namesValue) is PdfDictionary names
             && names.ContainsKey(new PdfName("JavaScript"u8));
         Verify(PdfOptimizationChangeKind.RemoveDocumentJavaScript, !hasJavaScript);
+        Verify(PdfOptimizationChangeKind.RemovePageThumbnails,
+            tree.Pages.All(page => !page.Dictionary.ContainsKey(new PdfName("Thumb"u8))));
         return Array.AsReadOnly(verified.ToArray());
 
         void Verify(PdfOptimizationChangeKind kind, bool absent)
@@ -171,12 +177,15 @@ public sealed class PdfOptimizationPlan
         bool removesComments = Changes.Contains(PdfOptimizationChangeKind.RemoveComments);
         bool removesDocumentJavaScript = Changes.Contains(
             PdfOptimizationChangeKind.RemoveDocumentJavaScript);
+        bool removesPageThumbnails = Changes.Contains(
+            PdfOptimizationChangeKind.RemovePageThumbnails);
         if (!removesAttachments && !removesOpenAction && !removesBookmarks
-            && !removesFormFields && !removesComments && !removesDocumentJavaScript)
+            && !removesFormFields && !removesComments && !removesDocumentJavaScript
+            && !removesPageThumbnails)
             return _document;
         PdfDocument formSanitized = _document;
         if (removesAttachments || removesOpenAction || removesBookmarks || removesFormFields
-            || removesDocumentJavaScript)
+            || removesDocumentJavaScript || removesPageThumbnails)
         {
             var editor = new PdfIncrementalPageEditor(_document);
             if (removesAttachments)
@@ -186,6 +195,9 @@ public sealed class PdfOptimizationPlan
             if (removesFormFields)
                 foreach (string name in _formFieldNames) editor.RemoveFormField(name);
             if (removesDocumentJavaScript) editor.ClearDocumentJavaScript();
+            if (removesPageThumbnails)
+                for (int pageIndex = 0; pageIndex < PdfPageTree.Read(_document).Pages.Count; pageIndex++)
+                    editor.ClearPageThumbnail(pageIndex);
             formSanitized = PdfDocument.Open(editor.Build());
         }
         if (!removesComments) return formSanitized;
@@ -243,6 +255,9 @@ public static class PdfOptimizer
             && Resolve(document, namesValue) is PdfDictionary names
             && names.ContainsKey(JavaScriptName))
             changes.Add(PdfOptimizationChangeKind.RemoveDocumentJavaScript);
+        if (options.RemovePageThumbnails
+            && tree.Pages.Any(page => page.Dictionary.ContainsKey(Name("Thumb"))))
+            changes.Add(PdfOptimizationChangeKind.RemovePageThumbnails);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,
