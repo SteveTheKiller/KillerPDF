@@ -529,6 +529,45 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void Build_PrunesResourcesUnusedByRewrittenPageContent()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 12)
+            .ShowLatin1Text("Remove")
+            .SetFont(PdfStandardFont.Courier, 12)
+            .ShowLatin1Text("Keep")
+            .EndText();
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(200, 300, content).Build());
+        IReadOnlyList<PdfContentInstruction> instructions =
+            new PdfPageContentReader(source).ReadInstructions(0);
+        PdfName keptFont = Assert.IsType<PdfName>(instructions
+            .Where(item => item.Operator == "Tf").Last().Operands[0]);
+        int keptFontIndex = instructions.ToList().FindIndex(item =>
+            item.Operator == "Tf" && Equals(item.Operands[0], keptFont));
+        IReadOnlyList<PdfContentInstruction> rewritten =
+        [
+            instructions[0],
+            .. instructions.Skip(keptFontIndex)
+        ];
+
+        PdfDocument result = PdfDocument.Open(new PdfIncrementalPageEditor(source)
+            .SetPageContentAndPruneResources(0, rewritten)
+            .Build());
+        PdfDictionary page = FlatPages(result).Pages[0];
+        PdfDictionary resources = ResolveDictionary(result, page[Name("Resources")]);
+        PdfDictionary fonts = ResolveDictionary(result, resources[Name("Font")]);
+
+        Assert.Equal(keptFont, Assert.Single(fonts).Key);
+        Assert.Equal("Keep", Assert.Single(
+            new PdfPageContentReader(result).Read(0).TextRuns).Text);
+        Assert.Throws<NotSupportedException>(() => new PdfIncrementalPageEditor(source)
+            .SetPageContentAndPruneResources(0,
+                [new PdfContentInstruction("FutureOp", 0, [])]));
+    }
+
+    [Fact]
     public void Build_RejectsContentUpdatesInExistingTaggedDocument()
     {
         PdfDocument tagged = PdfDocument.Open(new PdfDocumentBuilder()

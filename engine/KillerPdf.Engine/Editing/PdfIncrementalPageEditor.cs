@@ -128,6 +128,15 @@ public sealed class PdfIncrementalPageEditor
     [
         Name("Resources"), MediaBoxName, Name("CropBox"), RotateName
     ];
+    private static readonly HashSet<string> StandardContentOperators = new(StringComparer.Ordinal)
+    {
+        "b", "b*", "B", "B*", "BDC", "BI", "BMC", "BT", "BX", "c", "cm", "CS", "cs",
+        "d", "d0", "d1", "Do", "DP", "EI", "EMC", "ET", "EX", "f", "F", "f*", "G", "g",
+        "gs", "h", "i", "ID", "j", "J", "K", "k", "l", "m", "M", "MP", "n", "q", "Q",
+        "re", "RG", "rg", "ri", "s", "S", "SC", "SCN", "sc", "scn", "sh", "T*", "Tc",
+        "Td", "TD", "Tf", "Tj", "TJ", "TL", "Tm", "Tr", "Ts", "Tw", "Tz", "v", "w",
+        "W", "W*", "y", "'", "\""
+    };
 
     private readonly PdfDocument _document;
     private List<AppearanceFontResource>? _reusableAppearanceFonts;
@@ -1436,6 +1445,7 @@ public sealed class PdfIncrementalPageEditor
         PageState page = _pages[pageIndex];
         page.Content = content.ToArray();
         page.ContentUpdate = PageContentUpdate.Replace;
+        page.ReplacementResources = null;
         _pagePresentationChanged = true;
         return this;
     }
@@ -1444,6 +1454,23 @@ public sealed class PdfIncrementalPageEditor
     public PdfIncrementalPageEditor SetPageContent(
         int pageIndex, IEnumerable<PdfContentInstruction> instructions) =>
         SetPageContent(pageIndex, PdfContentStreamWriter.Write(instructions));
+
+    /// <summary>
+    /// Replaces a page's content and removes font and XObject resources that the rewritten
+    /// standard instruction sequence no longer references.
+    /// </summary>
+    public PdfIncrementalPageEditor SetPageContentAndPruneResources(
+        int pageIndex, IEnumerable<PdfContentInstruction> instructions)
+    {
+        ValidateIndex(pageIndex, nameof(pageIndex));
+        ArgumentNullException.ThrowIfNull(instructions);
+        PdfContentInstruction[] rewritten = instructions.ToArray();
+        PageState page = _pages[pageIndex];
+        PdfDictionary resources = PrunePageResources(page, rewritten);
+        SetPageContent(pageIndex, rewritten);
+        page.ReplacementResources = resources;
+        return this;
+    }
 
     /// <summary>Appends a raw PDF content stream after a page's existing content.</summary>
     public PdfIncrementalPageEditor AppendPageContent(
@@ -3857,6 +3884,7 @@ public sealed class PdfIncrementalPageEditor
                      || page.RemoveThumbnail
                      || page.ReplaceAnnotations
                      || page.ContentUpdate != PageContentUpdate.None
+                     || page.ReplacementResources is not null
                      || page.TypedOverlays.Count > 0))
         {
             PdfPageTreeEntry entry = state.Entry
@@ -3882,6 +3910,8 @@ public sealed class PdfIncrementalPageEditor
                 replacements[ThumbnailName] = AddImage(update, state.Thumbnail, images);
             if (state.ReplaceAnnotations && state.Annotations is not null)
                 replacements[AnnotsName] = state.Annotations;
+            if (state.ReplacementResources is not null)
+                replacements[Name("Resources")] = state.ReplacementResources;
             var removals = new List<PdfName>();
             foreach (PdfName name in state.RemovedPageBoxes) removals.Add(name);
             if (state.RemoveUserUnit) removals.Add(UserUnitName);
@@ -16868,6 +16898,53 @@ public sealed class PdfIncrementalPageEditor
             ReplaceMany(_tree.Catalog, replacements, removals));
     }
 
+    private PdfDictionary PrunePageResources(
+        PageState page, IReadOnlyList<PdfContentInstruction> instructions)
+    {
+        if (page.Entry is null)
+            throw new NotSupportedException(
+                "Resource pruning currently requires an existing page from the edited document.");
+        PdfContentInstruction? unsupported = instructions.FirstOrDefault(instruction =>
+            !StandardContentOperators.Contains(instruction.Operator));
+        if (unsupported is not null)
+            throw new NotSupportedException(
+                $"Resource pruning cannot prove that operator '{unsupported.Operator}' has no resource references.");
+
+        var usedFonts = new HashSet<PdfName>();
+        var usedXObjects = new HashSet<PdfName>();
+        foreach (PdfContentInstruction instruction in instructions)
+        {
+            if (instruction.Operator == "Tf" && instruction.Operands.FirstOrDefault() is PdfName font)
+                usedFonts.Add(font);
+            else if (instruction.Operator == "Do" && instruction.Operands.FirstOrDefault() is PdfName xObject)
+                usedXObjects.Add(xObject);
+        }
+
+        PdfObject? resourcesValue = page.Entry.InheritedValues.GetValueOrDefault(Name("Resources"));
+        if (resourcesValue is null) return new PdfDictionary([]);
+        PdfDictionary resources = ResolveCatalogValue(
+            _document, resourcesValue, "A page /Resources value") as PdfDictionary
+            ?? throw new InvalidOperationException("A page /Resources value is not a dictionary.");
+        var entries = resources.ToDictionary(item => item.Key, item => item.Value);
+        PruneCategory("Font", usedFonts);
+        PruneCategory("XObject", usedXObjects);
+        return new PdfDictionary(entries);
+
+        void PruneCategory(string category, IReadOnlySet<PdfName> used)
+        {
+            PdfName categoryName = Name(category);
+            if (!entries.TryGetValue(categoryName, out PdfObject? value)) return;
+            PdfDictionary dictionary = ResolveCatalogValue(
+                _document, value, $"A page /Resources /{category} value") as PdfDictionary
+                ?? throw new InvalidOperationException(
+                    $"A page /Resources /{category} value is not a dictionary.");
+            KeyValuePair<PdfName, PdfObject>[] retained =
+                [.. dictionary.Where(item => used.Contains(item.Key))];
+            if (retained.Length == 0) entries.Remove(categoryName);
+            else entries[categoryName] = new PdfDictionary(retained);
+        }
+    }
+
     private bool RemoveDocumentJavaScript(
         Dictionary<PdfName, PdfObject> catalogReplacements)
     {
@@ -17755,6 +17832,7 @@ public sealed class PdfIncrementalPageEditor
         internal bool RemoveThumbnail { get; set; }
         internal byte[]? Content { get; set; }
         internal PageContentUpdate ContentUpdate { get; set; }
+        internal PdfDictionary? ReplacementResources { get; set; }
         internal List<TypedOverlay> TypedOverlays { get; } = [];
         internal bool ReplaceAnnotations { get; set; }
         internal PdfArray? Annotations { get; set; }

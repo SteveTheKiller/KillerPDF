@@ -13,7 +13,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, identified image placements, paths, shadings, and clipped bounds, including nested forms, inline images, vertical text, and ActualText replacements (#331).
 - Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
 - Added typed reading of saved initial-view layouts, panels, viewer chrome preferences, opening pages, zoom, and fit modes (#338).
-- Added direct instruction replacement, isolated affine transformations, rectangular clipping, device-color recoloring, and structural comparison of page instructions and effective resources without relying on object numbers (#332).
+- Added direct instruction replacement, isolated affine transformations, rectangular clipping, device-color recoloring, safe unused font and XObject pruning, and structural comparison of page instructions and effective resources without relying on object numbers (#332).
 - Added localized round-trip failures with stable codes and numeric details in all 15 supported languages (#227).
 - Added explicit artifact overlays for temporary rasterization of tagged PDFs, preserving existing structure and ordinary content-editing guards (#356).
 - Added inspectable repair and lossless optimization plans with selective metadata, form, comment, attachment, thumbnail, bookmark, open-action, and document JavaScript sanitization, measured output sizes, and post-save removal verification (#333).
