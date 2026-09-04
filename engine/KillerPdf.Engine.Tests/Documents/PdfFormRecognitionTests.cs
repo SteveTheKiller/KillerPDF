@@ -14,13 +14,14 @@ public sealed class PdfFormRecognitionTests
 
         PdfFormRecognitionReview decided = review
             .Accept("name", "customer.name", PdfRecognizedFieldKind.Text,
-                new PdfContentBounds(10, 20, 210, 44))
+                new PdfContentBounds(10, 20, 210, 44), "Customer name")
             .Reject("signature");
 
         Assert.False(review.IsReadyToApply);
         Assert.True(decided.IsReadyToApply);
         PdfFormFieldProposal accepted = Assert.Single(decided.Accepted);
         Assert.Equal("customer.name", accepted.SuggestedName);
+        Assert.Equal("Customer name", accepted.SuggestedTooltip);
         Assert.Equal(200, accepted.Bounds.Width);
         Assert.All(review.Proposals, item => Assert.Equal(PdfFormProposalStatus.Proposed, item.Status));
     }
@@ -59,7 +60,9 @@ public sealed class PdfFormRecognitionTests
                 PdfRecognizedFieldKind.Signature, 1, "signature")]);
         Assert.Throws<InvalidOperationException>(() => pending.ApplyAccepted(document));
 
-        PdfFormRecognitionReview reviewed = pending.Accept("text").Accept("check").Accept("signature");
+        PdfFormRecognitionReview reviewed = pending.Accept("text", tooltip: "Text value")
+            .Accept("check", tooltip: "Check value")
+            .Accept("signature", tooltip: "Approval signature");
         PdfDocument reopened = PdfDocument.Open(reviewed.ApplyAccepted(document));
         IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(reopened, 0);
 
@@ -67,6 +70,10 @@ public sealed class PdfFormRecognitionTests
         Assert.Contains(widgets, widget => widget.FieldName == "text" && widget.FieldKind == PdfFormFieldKind.Text);
         Assert.Contains(widgets, widget => widget.FieldName == "check" && widget.FieldKind == PdfFormFieldKind.Button);
         Assert.Contains(widgets, widget => widget.FieldName == "signature" && widget.FieldKind == PdfFormFieldKind.Signature);
+        Assert.Equal("Text value", widgets.Single(widget => widget.FieldName == "text").Tooltip);
+        Assert.Equal("Check value", widgets.Single(widget => widget.FieldName == "check").Tooltip);
+        Assert.Equal("Approval signature",
+            widgets.Single(widget => widget.FieldName == "signature").Tooltip);
     }
 
     [Fact]

@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Authoring;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -42,7 +43,8 @@ public sealed record PdfFormFieldProposal
     /// <summary>Creates a validated field proposal.</summary>
     public PdfFormFieldProposal(string id, int pageIndex, PdfContentBounds bounds,
         PdfRecognizedFieldKind kind, double confidence, string suggestedName,
-        PdfFormProposalStatus status = PdfFormProposalStatus.Proposed)
+        PdfFormProposalStatus status = PdfFormProposalStatus.Proposed,
+        string? suggestedTooltip = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -50,6 +52,8 @@ public sealed record PdfFormFieldProposal
         if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         if (!double.IsFinite(confidence) || confidence is < 0 or > 1) throw new ArgumentOutOfRangeException(nameof(confidence));
         if (string.IsNullOrWhiteSpace(suggestedName)) throw new ArgumentException("A suggested field name is required.", nameof(suggestedName));
+        if (suggestedTooltip is not null && string.IsNullOrWhiteSpace(suggestedTooltip))
+            throw new ArgumentException("A suggested tooltip cannot be empty.", nameof(suggestedTooltip));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
         Id = id;
         PageIndex = pageIndex;
@@ -57,6 +61,7 @@ public sealed record PdfFormFieldProposal
         Kind = kind;
         Confidence = confidence;
         SuggestedName = suggestedName;
+        SuggestedTooltip = suggestedTooltip;
         Status = status;
     }
 
@@ -72,12 +77,16 @@ public sealed record PdfFormFieldProposal
     public double Confidence { get; }
     /// <summary>Gets the proposed field name.</summary>
     public string SuggestedName { get; }
+    /// <summary>Gets the proposed user-facing field description.</summary>
+    public string? SuggestedTooltip { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
     internal PdfFormFieldProposal Review(PdfFormProposalStatus status, string? name = null,
-        PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null) =>
-        new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName, status);
+        PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
+        string? tooltip = null) =>
+        new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
+            status, tooltip ?? SuggestedTooltip);
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
@@ -107,8 +116,10 @@ public sealed class PdfFormRecognitionReview
 
     /// <summary>Returns a new review with a proposal accepted and optionally adjusted.</summary>
     public PdfFormRecognitionReview Accept(string id, string? name = null,
-        PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null) =>
-        Change(id, item => item.Review(PdfFormProposalStatus.Accepted, name, kind, bounds));
+        PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
+        string? tooltip = null) =>
+        Change(id, item => item.Review(
+            PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -133,19 +144,24 @@ public sealed class PdfFormRecognitionReview
         foreach (PdfFormFieldProposal proposal in Accepted)
         {
             PdfContentBounds bounds = proposal.Bounds;
+            PdfFormFieldMetadata? metadata = proposal.SuggestedTooltip is null ? null
+                : new PdfFormFieldMetadata { Tooltip = proposal.SuggestedTooltip };
             switch (proposal.Kind)
             {
                 case PdfRecognizedFieldKind.Text:
                     editor.AddTextField(proposal.PageIndex, proposal.SuggestedName,
-                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        fieldMetadata: metadata);
                     break;
                 case PdfRecognizedFieldKind.CheckBox:
                     editor.AddCheckBox(proposal.PageIndex, proposal.SuggestedName,
-                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        fieldMetadata: metadata);
                     break;
                 case PdfRecognizedFieldKind.Signature:
                     editor.AddSignatureField(proposal.PageIndex, proposal.SuggestedName,
-                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height);
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        fieldMetadata: metadata);
                     break;
             }
         }
