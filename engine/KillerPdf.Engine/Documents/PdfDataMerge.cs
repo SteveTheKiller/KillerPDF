@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -128,6 +129,31 @@ public static class PdfDataMerge
             return new PdfDataMergePreview(null, [], exception.Message);
         }
     }
+
+    /// <summary>Combines successful generated records in batch order and skips failed records.</summary>
+    public static PdfDataMergeCombinedResult CombineSuccessful(
+        IEnumerable<PdfDataMergeDocumentResult> results)
+    {
+        ArgumentNullException.ThrowIfNull(results);
+        PdfDataMergeDocumentResult[] successful = [.. results
+            .Where(result => result.Succeeded)
+            .OrderBy(result => result.RecordIndex)];
+        if (successful.Length == 0)
+            throw new InvalidOperationException("The merge batch has no successful PDFs to combine.");
+        PdfDocument first = PdfDocument.Open(successful[0].Data!.Value);
+        byte[] document;
+        if (successful.Length == 1)
+            document = successful[0].Data!.Value.ToArray();
+        else
+        {
+            var editor = new PdfIncrementalPageEditor(first);
+            foreach (PdfDataMergeDocumentResult result in successful.Skip(1))
+                editor.AddImportedDocument(PdfDocument.Open(result.Data!.Value));
+            document = editor.Build();
+        }
+        return new PdfDataMergeCombinedResult(document,
+            Array.AsReadOnly(successful.Select(result => result.RecordIndex).ToArray()));
+    }
 }
 
 /// <summary>How missing data values are handled during template expansion.</summary>
@@ -155,6 +181,10 @@ public sealed record PdfDataMergeDocumentResult(int RecordIndex, string? OutputF
     /// <summary>Gets whether PDF generation succeeded.</summary>
     public bool Succeeded => Data.HasValue && Error is null;
 }
+
+/// <summary>A combined PDF and the successful source records included in it.</summary>
+public sealed record PdfDataMergeCombinedResult(
+    byte[] Document, IReadOnlyList<int> IncludedRecordIndices);
 
 /// <summary>A data-free preview of one mapped record.</summary>
 public sealed record PdfDataMergePreview(string? OutputFileName,

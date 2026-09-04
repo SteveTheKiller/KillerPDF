@@ -322,6 +322,29 @@ public sealed class PdfDataMergeTests
         Assert.Equal(1, parsed.RootElement.GetProperty("failedRecords").GetInt32());
     }
 
+    [Fact]
+    public void CombinedOutputIncludesSuccessfulRecordsInOrderAndSkipsFailures()
+    {
+        static byte[] Document(string text) => new PdfDocumentBuilder()
+            .AddPage(200, 200, new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 12).MoveText(20, 100)
+                .ShowLatin1Text(text).EndText()).Build();
+        PdfDataMergeDocumentResult[] results =
+        [
+            new(2, "third.pdf", Document("Third"), null),
+            new(1, "bad.pdf", null, "Bad record"),
+            new(0, "first.pdf", Document("First"), null)
+        ];
+
+        PdfDataMergeCombinedResult combined = PdfDataMerge.CombineSuccessful(results);
+        string text = PdfStructuredExport.ToPlainText(PdfDocument.Open(combined.Document));
+
+        Assert.Equal([0, 2], combined.IncludedRecordIndices);
+        Assert.Equal("First\fThird", text);
+        Assert.Throws<InvalidOperationException>(() => PdfDataMerge.CombineSuccessful(
+            [new PdfDataMergeDocumentResult(0, null, null, "Bad record")]));
+    }
+
     private static byte[] SharedStringWorkbook()
     {
         using var output = new MemoryStream();
