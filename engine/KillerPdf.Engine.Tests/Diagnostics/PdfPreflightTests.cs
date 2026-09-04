@@ -156,6 +156,26 @@ public sealed class PdfPreflightTests
         Assert.All(report.Findings, finding => Assert.Equal(0, finding.PageIndex));
     }
 
+    [Fact]
+    public void OptionalContentCheckReportsEffectiveLayerStateAndObject()
+    {
+        var layer = new PdfOptionalContentGroup("Measurements", initiallyVisible: false,
+            visibleWhenPrinting: true, visibleWhenExporting: false);
+        byte[] source = new PdfDocumentBuilder().AddPage(100, 100,
+            new PdfContentStreamBuilder().BeginOptionalContent(layer)
+                .Rectangle(10, 10, 20, 20).Stroke().EndMarkedContent()).Build();
+        var profile = new PdfPreflightProfile("Layers", [PdfPreflightCheck.OptionalContent]);
+
+        PdfPreflightFinding finding = Assert.Single(PdfPreflightRunner.Run(source, profile).Findings);
+
+        Assert.Equal("OptionalContent.LayerState", finding.Code);
+        Assert.Equal(PdfDiagnosticSeverity.Information, finding.Severity);
+        Assert.Contains("visible=False", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("print=on", finding.Message, StringComparison.Ordinal);
+        Assert.Contains("export=off", finding.Message, StringComparison.Ordinal);
+        Assert.NotNull(finding.ObjectNumber);
+    }
+
     private static byte[] Profile()
     {
         byte[] result = new byte[132];

@@ -382,6 +382,30 @@ internal static class PdfPreflightDocumentChecks
                 && Resolve(document, value) is PdfBoolean { Value: true };
     }
 
+    internal static IReadOnlyList<PdfPreflightFinding> CheckOptionalContent(PdfDocument document)
+    {
+        try
+        {
+            PdfOptionalContentInfo layers = PdfOptionalContentReader.Read(document);
+            return Array.AsReadOnly(layers.Groups.Select(layer => Information(
+                "OptionalContent.LayerState",
+                $"Layer {layer.Name}: visible={layer.IsInitiallyVisible}, locked={layer.IsLocked}, "
+                    + $"print={State(layer.IsVisibleWhenPrinting)}, export={State(layer.IsVisibleWhenExporting)}.",
+                objectNumber: layer.ObjectNumber)).ToArray());
+        }
+        catch (Exception error) when (IsDocumentFailure(error))
+        {
+            return [Error("OptionalContent.Invalid", error.Message)];
+        }
+
+        static string State(bool? value) => value switch
+        {
+            true => "on",
+            false => "off",
+            null => "default"
+        };
+    }
+
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,
         PdfName name, bool required)
     {

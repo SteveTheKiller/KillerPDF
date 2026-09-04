@@ -20,7 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added attachment metadata and integrity checks to the 1.9 engine (#347).
 - Added calibrated coordinates, directional deltas, and point snapping to measurement tools (#348).
 - Added step-and-repeat and manual page sequences to imposition planning (#349).
-- Added independent print and export visibility metadata for PDF layers (#350).
+- Added independent print and export visibility metadata and preflight reporting for PDF layers (#350, #334).
 - Added source object identities to broken-link and bookmark audit findings (#351).
 - Added CSV and JSON record import for data-driven PDF generation (#352).
 - Added region validation and affected-content planning for partial rasterization (#369).

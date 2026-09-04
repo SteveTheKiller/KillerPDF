@@ -24,7 +24,9 @@ public enum PdfPreflightCheck
     /// <summary>Checks for transparency, soft masks, and non-normal blend modes.</summary>
     Transparency,
     /// <summary>Checks device color, ICC profiles, spot colors, and overprint settings.</summary>
-    ColorUsage
+    ColorUsage,
+    /// <summary>Checks PDF layer structure and reports effective layer state.</summary>
+    OptionalContent
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
@@ -61,7 +63,8 @@ public sealed record PdfPreflightProfile
         PdfPreflightCheck.ImageResolution,
         PdfPreflightCheck.FontEmbedding,
         PdfPreflightCheck.Transparency,
-        PdfPreflightCheck.ColorUsage
+        PdfPreflightCheck.ColorUsage,
+        PdfPreflightCheck.OptionalContent
     ]);
 
     /// <summary>Gets the profile name.</summary>
@@ -192,6 +195,8 @@ public static class PdfPreflightRunner
             findings.AddRange(PdfPreflightDocumentChecks.CheckTransparency(checkedDocument));
         if (profile.Checks.Contains(PdfPreflightCheck.ColorUsage))
             findings.AddRange(PdfPreflightDocumentChecks.CheckColorUsage(checkedDocument));
+        if (profile.Checks.Contains(PdfPreflightCheck.OptionalContent))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckOptionalContent(checkedDocument));
         return new PdfPreflightReport(profile.Name, findings);
     }
 }
