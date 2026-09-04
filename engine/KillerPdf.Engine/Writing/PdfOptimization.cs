@@ -425,7 +425,7 @@ public static class PdfOptimizer
                 resources.TryGetValue(Name(category), out PdfObject? categoryValue)
                 && Resolve(document, categoryValue) is PdfDictionary dictionary
                 && (dictionary.Keys.Any(key => !used.Contains(key))
-                    || DuplicateAliases(dictionary).Count > 0);
+                    || DuplicateAliases(document, dictionary).Count > 0);
         }
         return Array.AsReadOnly(result.ToArray());
     }
@@ -475,7 +475,7 @@ public static class PdfOptimizer
             if (!resources.TryGetValue(Name(category), out PdfObject? categoryValue)
                 || Resolve(document, categoryValue) is not PdfDictionary dictionary)
                 return [];
-            return DuplicateAliases(dictionary);
+            return DuplicateAliases(document, dictionary);
         }
     }
 
@@ -486,14 +486,15 @@ public static class PdfOptimizer
                 && item.Operands.Count > operandIndex)
             .Select(item => item.Operands[operandIndex]).OfType<PdfName>()];
 
-    private static Dictionary<PdfName, PdfName> DuplicateAliases(PdfDictionary dictionary)
+    private static Dictionary<PdfName, PdfName> DuplicateAliases(
+        PdfDocument document, PdfDictionary dictionary)
     {
-        var canonical = new Dictionary<(int ObjectNumber, int Generation), PdfName>();
+        var canonical = new Dictionary<string, PdfName>(StringComparer.Ordinal);
         var aliases = new Dictionary<PdfName, PdfName>();
         foreach ((PdfName name, PdfObject value) in dictionary)
         {
-            if (value is not PdfIndirectReference reference) continue;
-            var identity = (reference.ObjectNumber, reference.Generation);
+            string identity = Convert.ToHexString(PdfObjectWriter.Write(
+                Resolve(document, value)));
             if (canonical.TryGetValue(identity, out PdfName? first))
                 aliases[name] = first;
             else

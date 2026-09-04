@@ -356,6 +356,32 @@ public sealed class PdfOptimizationTests
     }
 
     [Fact]
+    public void PlanConsolidatesEquivalentResourcesStoredAsSeparateObjects()
+    {
+        PdfDocument document = DocumentWithUnusedFontResource(
+            "BT /F1 12 Tf (One) Tj /Unused 12 Tf (Two) Tj ET",
+            distinctDuplicate: true);
+
+        PdfOptimizationResult result = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                PruneUnusedPageResources = true,
+                PruneUnreachableObjects = true,
+                PackObjects = false,
+                CompressStructure = false
+            }).Apply();
+        PdfDocument output = PdfDocument.Open(result.Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnusedPageResources,
+            result.VerifiedRemovals);
+        Assert.Equal("OneTwo", new PdfPageContentReader(output).Read(0).Text);
+        Assert.All(new PdfPageContentReader(output).ReadInstructions(0)
+            .Where(instruction => instruction.Operator == "Tf"), instruction =>
+                Assert.Equal(new PdfName("F1"u8), instruction.Operands[0]));
+        Assert.Equal(-1, result.ObjectCountDifference);
+    }
+
+    [Fact]
     public void PlanPrunesAndConsolidatesPageColorSpaces()
     {
         PdfDocument document = DocumentWithColorSpaceResources();
@@ -479,15 +505,18 @@ public sealed class PdfOptimizationTests
     }
 
     private static PdfDocument DocumentWithUnusedFontResource(
-        string content = "BT /F1 12 Tf (Keep) Tj ET")
+        string content = "BT /F1 12 Tf (Keep) Tj ET", bool distinctDuplicate = false)
     {
         string[] objects =
         [
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 100 100] >>",
-            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R /Unused 5 0 R >> >> /Contents 4 0 R >>",
+            $"<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R /Unused {(distinctDuplicate ? 6 : 5)} 0 R >> >> /Contents 4 0 R >>",
             $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            .. distinctDuplicate
+                ? ["<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+                : Array.Empty<string>()
         ];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
