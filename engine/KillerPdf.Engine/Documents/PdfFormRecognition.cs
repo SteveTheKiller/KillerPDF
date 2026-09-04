@@ -245,7 +245,8 @@ public sealed record PdfFormFieldProposal
         PdfFormFieldVisibility suggestedVisibility = PdfFormFieldVisibility.Visible,
         PdfRecognizedPushButtonAction? suggestedPushButtonAction = null,
         string? suggestedMappingName = null,
-        string? suggestedDefaultValue = null)
+        string? suggestedDefaultValue = null,
+        bool? suggestedDefaultChecked = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -289,6 +290,12 @@ public sealed record PdfFormFieldProposal
             throw new ArgumentException(
                 "A selected state can be suggested only for a checkbox or radio option.",
                 nameof(suggestedChecked));
+        if (suggestedDefaultChecked.HasValue
+            && kind is not (PdfRecognizedFieldKind.CheckBox
+                or PdfRecognizedFieldKind.RadioButton))
+            throw new ArgumentException(
+                "A default selected state can be suggested only for a checkbox or radio option.",
+                nameof(suggestedDefaultChecked));
         if (suggestedMultiline && kind != PdfRecognizedFieldKind.Text)
             throw new ArgumentException(
                 "Multiline behavior can be suggested only for a text field.",
@@ -357,6 +364,7 @@ public sealed record PdfFormFieldProposal
         SuggestedPushButtonAction = suggestedPushButtonAction;
         SuggestedMappingName = suggestedMappingName;
         SuggestedDefaultValue = suggestedDefaultValue;
+        SuggestedDefaultChecked = suggestedDefaultChecked;
         Status = status;
     }
 
@@ -412,6 +420,8 @@ public sealed record PdfFormFieldProposal
     public string? SuggestedMappingName { get; }
     /// <summary>Gets the value restored when the proposed field is reset.</summary>
     public string? SuggestedDefaultValue { get; }
+    /// <summary>Gets whether reset selects the proposed checkbox or radio option.</summary>
+    public bool? SuggestedDefaultChecked { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
@@ -426,7 +436,8 @@ public sealed record PdfFormFieldProposal
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
         PdfRecognizedPushButtonAction? pushButtonAction = null,
-        string? mappingName = null, string? defaultValue = null) =>
+        string? mappingName = null, string? defaultValue = null,
+        bool? defaultChecked = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
@@ -438,7 +449,8 @@ public sealed record PdfFormFieldProposal
             noExport ?? SuggestedNoExport, visibility ?? SuggestedVisibility,
             pushButtonAction ?? SuggestedPushButtonAction,
             mappingName ?? SuggestedMappingName,
-            defaultValue ?? SuggestedDefaultValue);
+            defaultValue ?? SuggestedDefaultValue,
+            defaultChecked ?? SuggestedDefaultChecked);
 
     internal PdfFormFieldProposal Duplicate(string id, int pageIndex,
         PdfContentBounds bounds, string suggestedName) =>
@@ -448,7 +460,8 @@ public sealed record PdfFormFieldProposal
             SuggestedDoNotScroll, SuggestedPassword, SuggestedDoNotSpellCheck,
             SuggestedComb, SuggestedMaximumLength, SuggestedAlignment, SuggestedFontSize,
             SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility,
-            SuggestedPushButtonAction, SuggestedMappingName, SuggestedDefaultValue);
+            SuggestedPushButtonAction, SuggestedMappingName, SuggestedDefaultValue,
+            SuggestedDefaultChecked);
 
     private static PdfFormFieldAppearanceStyle ValidateAppearance(
         PdfFormFieldAppearanceStyle? style)
@@ -524,13 +537,14 @@ public sealed class PdfFormRecognitionReview
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
         PdfRecognizedPushButtonAction? pushButtonAction = null,
-        string? mappingName = null, string? defaultValue = null) =>
+        string? mappingName = null, string? defaultValue = null,
+        bool? defaultChecked = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
             readOnly, required, isChecked, multiline, doNotScroll,
             password, doNotSpellCheck, comb, maximumLength, alignment,
             fontSize, appearanceStyle, noExport, visibility, pushButtonAction,
-            mappingName, defaultValue));
+            mappingName, defaultValue, defaultChecked));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -576,7 +590,8 @@ public sealed class PdfFormRecognitionReview
         PdfFormFieldProposal[]? invalidRadioGroup = radioGroups.FirstOrDefault(group =>
             group.Length < 2 || group.Select(item => item.SuggestedValue)
                 .Distinct(StringComparer.Ordinal).Count() != group.Length
-            || group.Count(item => item.SuggestedChecked) > 1);
+            || group.Count(item => item.SuggestedChecked) > 1
+            || group.Count(item => item.SuggestedDefaultChecked == true) > 1);
         if (invalidRadioGroup is not null)
             throw new NotSupportedException(
                 $"Radio group '{invalidRadioGroup[0].SuggestedName}' requires at least two unique options and no more than one selection.");
@@ -629,6 +644,7 @@ public sealed class PdfFormRecognitionReview
                         isChecked: proposal.SuggestedChecked,
                         exportValue: proposal.SuggestedValue ?? "Yes",
                         fieldMetadata: metadata, options: fieldOptions,
+                        defaultChecked: proposal.SuggestedDefaultChecked,
                         appearanceStyle: proposal.SuggestedAppearanceStyle);
                     break;
                 case PdfRecognizedFieldKind.DropDown:
@@ -696,6 +712,8 @@ public sealed class PdfFormRecognitionReview
                     proposal.SuggestedValue!)),
                 selectedValue: group.SingleOrDefault(proposal => proposal.SuggestedChecked)
                     ?.SuggestedValue,
+                defaultSelectedValue: group.SingleOrDefault(
+                    proposal => proposal.SuggestedDefaultChecked == true)?.SuggestedValue,
                 fieldMetadata: metadata,
                 fieldOptions: new PdfFormFieldOptions
                 {

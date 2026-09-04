@@ -221,7 +221,8 @@ public sealed class PdfFormRecognitionTests
                 PdfRecognizedFieldKind.Text, 1, "name", suggestedValue: "Alice"),
             new("approved", 0, new PdfContentBounds(10, 50, 30, 70),
                 PdfRecognizedFieldKind.CheckBox, 1, "approved",
-                suggestedValue: "Approved", suggestedChecked: true)])
+                suggestedValue: "Approved", suggestedChecked: true,
+                suggestedDefaultChecked: false)])
             .Accept("name")
             .Accept("approved");
 
@@ -232,6 +233,7 @@ public sealed class PdfFormRecognitionTests
         PdfFormWidgetInfo approved = widgets.Single(widget => widget.FieldName == "approved");
         Assert.Equal("/Approved", approved.Value);
         Assert.Equal("/Approved", approved.OnValue);
+        Assert.Equal("/Off", approved.DefaultValue);
     }
 
     [Fact]
@@ -348,6 +350,9 @@ public sealed class PdfFormRecognitionTests
         Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
             "comb", 0, new PdfContentBounds(10, 10, 150, 40),
             PdfRecognizedFieldKind.Text, 1, "comb", suggestedComb: true));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
+            "text", 0, new PdfContentBounds(10, 10, 150, 40),
+            PdfRecognizedFieldKind.Text, 1, "text", suggestedDefaultChecked: true));
     }
 
     [Fact]
@@ -383,7 +388,8 @@ public sealed class PdfFormRecognitionTests
                 PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Basic",
                 suggestedChecked: true),
             new("pro", 0, new PdfContentBounds(10, 40, 30, 60),
-                PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Pro")])
+                PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Pro",
+                suggestedDefaultChecked: true)])
             .Accept("basic", tooltip: "Plan")
             .Accept("pro");
 
@@ -398,6 +404,7 @@ public sealed class PdfFormRecognitionTests
         });
         Assert.Equal(["/Basic", "/Pro"], widgets.Select(widget => widget.OnValue).Order());
         Assert.All(widgets, widget => Assert.Equal("/Basic", widget.Value));
+        Assert.All(widgets, widget => Assert.Equal("/Pro", widget.DefaultValue));
     }
 
     [Fact]
