@@ -154,6 +154,8 @@ public static class PdfRedactionSearch
                 cancellationToken.ThrowIfCancellationRequested();
                 if (options.Kind == PdfRedactionSearchKind.PaymentCardNumber
                     && !HasValidPaymentCardChecksum(match.Value)) continue;
+                if (options.Kind == PdfRedactionSearchKind.SocialSecurityNumber
+                    && !HasValidSocialSecurityNumber(match.Value)) continue;
                 var words = spans.Select((span, index) => (span, index))
                     .Where(item => item.span.End > match.Index && item.span.Start < match.Index + match.Length)
                     .ToArray();
@@ -186,5 +188,15 @@ public static class PdfRedactionSearch
             doubleDigit = !doubleDigit;
         }
         return sum % 10 == 0;
+    }
+
+    private static bool HasValidSocialSecurityNumber(string value)
+    {
+        string digits = new(value.Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length != 9) return false;
+        int area = int.Parse(digits.AsSpan(0, 3), System.Globalization.CultureInfo.InvariantCulture);
+        int group = int.Parse(digits.AsSpan(3, 2), System.Globalization.CultureInfo.InvariantCulture);
+        int serial = int.Parse(digits.AsSpan(5, 4), System.Globalization.CultureInfo.InvariantCulture);
+        return area is > 0 and < 900 and not 666 && group > 0 && serial > 0;
     }
 }

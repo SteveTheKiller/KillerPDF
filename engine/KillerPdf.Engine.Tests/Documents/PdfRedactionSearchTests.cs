@@ -44,7 +44,8 @@ public sealed class PdfRedactionSearchTests
     [Fact]
     public void FindsSocialSecurityNumbersWithoutMatchingLongerDigitRuns()
     {
-        PdfPageContent page = Read("SSN 123-45-6789 but not 0123-45-67890");
+        PdfPageContent page = Read(
+            "SSN 123-45-6789 but not 0123-45-67890, 000-12-3456, 666-12-3456, 900-12-3456, 123-00-3456, or 123-45-0000");
 
         PdfRedactionMatch match = Assert.Single(PdfRedactionSearch.Find([page],
             new PdfRedactionSearchOptions
