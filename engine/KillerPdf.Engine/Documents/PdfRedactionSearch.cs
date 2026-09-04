@@ -13,7 +13,9 @@ public enum PdfRedactionSearchKind
     /// <summary>A common email-address pattern.</summary>
     EmailAddress,
     /// <summary>A common North American phone-number pattern.</summary>
-    PhoneNumber
+    PhoneNumber,
+    /// <summary>A U.S. Social Security number written with standard separators.</summary>
+    SocialSecurityNumber
 }
 
 /// <summary>Options for locating reviewable redaction candidates.</summary>
@@ -107,6 +109,7 @@ public static class PdfRedactionSearch
 {
     private const string EmailPattern = @"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b";
     private const string PhonePattern = @"(?<!\d)(?:\+?1[ .-]?)?(?:\(\d{3}\)|\d{3})[ .-]?\d{3}[ .-]?\d{4}(?!\d)";
+    private const string SocialSecurityNumberPattern = @"(?<!\d)\d{3}[ -]\d{2}[ -]\d{4}(?!\d)";
 
     /// <summary>Builds a reviewable match list from extracted pages.</summary>
     public static PdfRedactionReview Find(IEnumerable<PdfPageContent> pages,
@@ -123,6 +126,7 @@ public static class PdfRedactionSearch
             PdfRedactionSearchKind.RegularExpression when !string.IsNullOrEmpty(options.Query) => options.Query,
             PdfRedactionSearchKind.EmailAddress => EmailPattern,
             PdfRedactionSearchKind.PhoneNumber => PhonePattern,
+            PdfRedactionSearchKind.SocialSecurityNumber => SocialSecurityNumberPattern,
             _ => throw new ArgumentException("Search text is required.", nameof(options))
         };
         RegexOptions flags = RegexOptions.CultureInvariant;
