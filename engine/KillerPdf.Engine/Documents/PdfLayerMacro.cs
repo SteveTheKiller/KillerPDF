@@ -6,6 +6,17 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Creates and executes typed PDF layer macro steps.</summary>
 public static class PdfLayerMacro
 {
+    /// <summary>Creates a step that registers a new layer.</summary>
+    public static PdfMacroStep CreateStep(string layerName,
+        bool initiallyVisible = true, bool locked = false,
+        bool? printVisible = null, bool? exportVisible = null) =>
+        EditStep("create", layerName, JsonSerializer.Serialize(
+            new CreateSettings(initiallyVisible, locked, printVisible, exportVisible)));
+
+    /// <summary>Creates a step that duplicates one layer under a new name.</summary>
+    public static PdfMacroStep DuplicateStep(string layerName, string newName) =>
+        EditStep("duplicate", layerName, newName);
+
     /// <summary>Creates a step that renames one layer selected by its current name.</summary>
     public static PdfMacroStep RenameStep(string layerName, string newName) =>
         EditStep("rename", layerName, newName);
@@ -81,11 +92,30 @@ public static class PdfLayerMacro
             || !step.Settings.TryGetValue("layer", out string? layerName)
             || step.Settings.Keys.Any(key => key is not ("action" or "layer" or "value")))
             throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
-        int objectNumber = GroupNumber(document, layerName);
         step.Settings.TryGetValue("value", out string? value);
         cancellationToken.ThrowIfCancellationRequested();
+        if (action == "create" && !string.IsNullOrWhiteSpace(value))
+        {
+            CreateSettings settings;
+            try
+            {
+                settings = JsonSerializer.Deserialize<CreateSettings>(value)
+                    ?? throw new JsonException();
+            }
+            catch (JsonException exception)
+            {
+                throw new ArgumentException(
+                    "The layer creation settings are invalid.", nameof(step), exception);
+            }
+            return PdfOptionalContentEditor.AddGroup(document, layerName,
+                settings.InitiallyVisible, settings.Locked,
+                settings.PrintVisible, settings.ExportVisible);
+        }
+        int objectNumber = GroupNumber(document, layerName);
         return action switch
         {
+            "duplicate" when !string.IsNullOrWhiteSpace(value) =>
+                PdfOptionalContentEditor.DuplicateGroup(document, objectNumber, value),
             "rename" when !string.IsNullOrWhiteSpace(value) =>
                 PdfOptionalContentEditor.RenameGroup(document, objectNumber, value),
             "visibility" when bool.TryParse(value, out bool visible) =>
@@ -108,6 +138,9 @@ public static class PdfLayerMacro
             _ => throw new ArgumentException("The layer edit action is invalid.", nameof(step))
         };
     }
+
+    private sealed record CreateSettings(bool InitiallyVisible, bool Locked,
+        bool? PrintVisible, bool? ExportVisible);
 
     private static PdfMacroStep EditStep(string action, string layerName, string? value)
     {

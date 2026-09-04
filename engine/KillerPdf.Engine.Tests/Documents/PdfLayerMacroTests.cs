@@ -102,4 +102,29 @@ public sealed class PdfLayerMacroTests
         Assert.Null(cleared.IsVisibleWhenPrinting);
         Assert.Null(cleared.IsVisibleWhenExporting);
     }
+
+    [Fact]
+    public void MacroCreatesAndDuplicatesLayersWithSavedState()
+    {
+        ReadOnlyMemory<byte> source = new PdfDocumentBuilder().AddBlankPage().Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Create layers", [
+            PdfLayerMacro.CreateStep("Review", initiallyVisible: false,
+                locked: true, printVisible: false, exportVisible: true),
+            PdfLayerMacro.DuplicateStep("Review", "Review copy")
+        ]).ToJson());
+
+        foreach (PdfMacroStep step in macro.Steps)
+            source = PdfLayerMacro.Execute(step, source);
+        PdfOptionalContentGroupInfo[] groups = [..
+            PdfOptionalContentReader.Read(PdfDocument.Open(source)).Groups];
+
+        Assert.Equal(["Review", "Review copy"], groups.Select(group => group.Name));
+        Assert.All(groups, group =>
+        {
+            Assert.False(group.IsInitiallyVisible);
+            Assert.True(group.IsLocked);
+            Assert.False(group.IsVisibleWhenPrinting);
+            Assert.True(group.IsVisibleWhenExporting);
+        });
+    }
 }
