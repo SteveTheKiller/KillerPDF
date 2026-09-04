@@ -73,6 +73,8 @@ public static class PdfXfaAcroFormConverter
             return Finish(editor, mode);
         }
 
+        ApplyBehaviors(info, template, data, values);
+
         PdfXfaStaticLayoutPlan layout = PdfXfaStaticLayout.Plan(info);
         if (layout.UnsupportedFlowedFieldPaths.Count != 0)
             throw new NotSupportedException("Flowed XFA fields require a dynamic form declaration.");
@@ -103,6 +105,33 @@ public static class PdfXfaAcroFormConverter
                 placement.X, bottom, placement.Width, placement.Height, value);
         }
         return Finish(editor, mode);
+    }
+
+    private static void ApplyBehaviors(PdfXfaInfo info, PdfXfaTemplateInfo template,
+        PdfFormDataSet data, IDictionary<string, string> values)
+    {
+        if (template.Behaviors.Any(behavior =>
+                behavior.Kind == PdfXfaTemplateBehaviorKind.Calculate))
+        {
+            foreach (PdfXfaCalculationResult calculation in
+                     PdfXfaCalculationEngine.Evaluate(info, data).Where(result =>
+                         result.Status == PdfXfaCalculationStatus.Evaluated))
+                values[calculation.FieldPath] = calculation.Value!.Value.ToString(
+                    System.Globalization.CultureInfo.InvariantCulture);
+        }
+        if (!template.Behaviors.Any(behavior =>
+                behavior.Kind == PdfXfaTemplateBehaviorKind.Format)) return;
+        var effectiveData = new PdfFormDataSet
+        {
+            Fields = Array.AsReadOnly(values.Select(value => new PdfFormDataField
+            {
+                Name = value.Key,
+                Values = [value.Value]
+            }).ToArray())
+        };
+        foreach (PdfXfaFormatResult format in PdfXfaFormatter.Format(info, effectiveData)
+                     .Where(result => result.Status == PdfXfaFormatStatus.Formatted))
+            values[format.FieldPath] = format.Value!;
     }
 
     private static void AddImage(PdfIncrementalPageEditor editor, PdfXfaTemplateField field,

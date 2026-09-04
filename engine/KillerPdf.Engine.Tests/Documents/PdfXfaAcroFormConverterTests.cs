@@ -84,6 +84,19 @@ public sealed class PdfXfaAcroFormConverterTests
     }
 
     [Fact]
+    public void ConvertAppliesSafeCalculationsAndFormattingToVisibleValues()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="form" layout="position"><field name="total" x="10pt" y="20pt" w="70pt" h="15pt"><calculate><script contentType="application/x-formcalc">$record.invoice.quantity * $record.invoice.price</script></calculate><format><picture>num{z,zz9.99}</picture></format><ui><numericEdit/></ui></field></subform></template>""",
+            """<datasets><data><invoice><quantity>3</quantity><price>12.5</price></invoice><form><total>0</total></form></data></datasets>""");
+
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(PdfXfaAcroFormConverter.Convert(source)), 0));
+
+        Assert.Equal("37.50", widget.Value);
+    }
+
+    [Fact]
     public void ConvertCanFlattenGeneratedAppearancesIntoStandardPageContent()
     {
         PdfDocument source = Document(
