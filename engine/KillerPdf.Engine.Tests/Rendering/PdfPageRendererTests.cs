@@ -1,7 +1,9 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Writing;
 using System.Text;
 using Xunit;
 
@@ -103,6 +105,36 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 255, 128], Pixel(page, 3, 6));
         Assert.Equal([255, 255, 255, 0], Pixel(page, 7, 6));
         Assert.DoesNotContain("The image soft mask is not implemented.", page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_AppliesImageDecodeArrays()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(1, 1, new byte[] { 10, 20, 30 }), 2, 3, 6, 2))
+            .Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference imageReference = Assert.IsType<PdfIndirectReference>(xObjects[Name("Im1")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
+        var decode = new PdfArray(Enumerable.Range(0, 3).SelectMany(_ =>
+            new PdfObject[] { new PdfInteger(1), new PdfInteger(0) }));
+        var dictionary = new PdfDictionary(image.Dictionary.Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"), decode)));
+        var update = new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(imageReference.ObjectNumber,
+                new PdfStream(dictionary, image.EncodedData.Span));
+        PdfDocument document = PdfDocument.Open(update.Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([225, 235, 245, 255], Pixel(rendered, 3, 6));
     }
 
     [Fact]
@@ -270,4 +302,9 @@ public sealed class PdfPageRendererTests
 
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
+
+    private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
+        Assert.IsType<PdfDictionary>(document.Resolve(Assert.IsType<PdfIndirectReference>(value)));
+
+    private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
 }

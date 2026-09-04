@@ -419,12 +419,14 @@ public sealed class PdfPageRenderer
         }
         byte[] samples;
         SoftMask? softMask;
+        double[] decode;
         try
         {
             int expected = checked(((width * components * bits + 7) / 8) * height);
             samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
             if (samples.Length != expected) throw new FormatException("Image sample data has an invalid length.");
             softMask = ReadSoftMask(stream.Dictionary);
+            decode = ReadImageDecode(stream.Dictionary, components, imageMask);
         }
         catch (PdfFilterException)
         {
@@ -438,7 +440,7 @@ public sealed class PdfPageRenderer
         }
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
             transform, samples, width, height, components, bits, clips,
-            imageMask, StencilPaintsOne(stream.Dictionary), softMask,
+            imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
             stencilColor, stencilAlpha);
         return true;
     }
@@ -477,11 +479,20 @@ public sealed class PdfPageRenderer
         return Number(Resolve(decode[0])) > Number(Resolve(decode[1]));
     }
 
+    private double[] ReadImageDecode(PdfDictionary dictionary, int components, bool imageMask)
+    {
+        if (imageMask) return [];
+        if (!dictionary.TryGetValue(Name("Decode"), out PdfObject? value))
+            return Enumerable.Repeat(new[] { 0d, 1d }, components).SelectMany(pair => pair).ToArray();
+        PdfArray array = ResolveArray(value, components * 2, "Image decode array");
+        return array.Select(item => Number(Resolve(item))).ToArray();
+    }
+
     private static void PaintImage(byte[] target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, Matrix transform, byte[] samples,
         int sourceWidth, int sourceHeight, int components, int bits,
         IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
-        SoftMask? softMask, Color stencilColor, double stencilAlpha)
+        SoftMask? softMask, double[] decode, Color stencilColor, double stencilAlpha)
     {
         Point[] corners =
         [
@@ -515,22 +526,27 @@ public sealed class PdfPageRenderer
                     color = stencilColor;
                     alpha = stencilAlpha;
                 }
-                else if (bits == 1)
-                {
-                    int bit = sx * components;
-                    bool white = (samples[sy * rowBytes + bit / 8] & (0x80 >> (bit & 7))) != 0;
-                    color = white ? Color.White : Color.Black;
-                }
                 else
                 {
-                    int offset = sy * rowBytes + sx * components;
+                    double first = SampleValue(0);
                     color = components switch
                     {
-                        1 => new Color(samples[offset], samples[offset], samples[offset]),
-                        3 => new Color(samples[offset], samples[offset + 1], samples[offset + 2]),
-                        _ => Color.Cmyk(samples[offset] / 255d, samples[offset + 1] / 255d,
-                            samples[offset + 2] / 255d, samples[offset + 3] / 255d)
+                        1 => Color.Gray(first),
+                        3 => Color.Rgb(first, SampleValue(1), SampleValue(2)),
+                        _ => Color.Cmyk(first, SampleValue(1), SampleValue(2), SampleValue(3))
                     };
+
+                    double SampleValue(int component)
+                    {
+                        int bitOffset = sx * components + component;
+                        int sample = bits == 8
+                            ? samples[sy * rowBytes + bitOffset]
+                            : (samples[sy * rowBytes + bitOffset / 8]
+                                >> (7 - bitOffset % 8)) & 1;
+                        double normalized = sample / (double)((1 << bits) - 1);
+                        return Math.Clamp(decode[component * 2] + normalized
+                            * (decode[component * 2 + 1] - decode[component * 2]), 0, 1);
+                    }
                 }
                 if (softMask is not null)
                 {
