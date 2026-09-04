@@ -287,7 +287,7 @@ public static class PdfAccessibilityRepair
         return new PdfAccessibilityRepairResult(saved, before, after);
     }
 
-    /// <summary>Previews adding a supplied primary language when the document has none.</summary>
+    /// <summary>Previews adding or replacing a supplied primary document language.</summary>
     public static PdfAccessibilityLanguageRepair PreviewDocumentLanguage(
         PdfDocument document, string language)
     {
@@ -295,34 +295,35 @@ public static class PdfAccessibilityRepair
         ArgumentException.ThrowIfNullOrWhiteSpace(language);
         _ = new PdfIncrementalPageEditor(document).SetDocumentLanguage(language);
         PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
-        bool missing = before.Findings.Any(finding =>
-            finding.Code == PdfAccessibilityFindingCode.MissingDocumentLanguage);
-        return new PdfAccessibilityLanguageRepair(language, before, missing);
+        return new PdfAccessibilityLanguageRepair(
+            language, before, HasRepairableLanguageFinding(before));
     }
 
-    /// <summary>Applies a previewed missing-language correction and verifies the saved result.</summary>
+    /// <summary>Applies a previewed language correction and verifies the saved result.</summary>
     public static PdfAccessibilityRepairResult ApplyDocumentLanguage(
         PdfDocument document, PdfAccessibilityLanguageRepair repair)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(repair);
         PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
-        bool missing = before.Findings.Any(finding =>
-            finding.Code == PdfAccessibilityFindingCode.MissingDocumentLanguage);
-        if (!repair.WillChange || !missing)
+        if (!repair.WillChange || !HasRepairableLanguageFinding(before))
             throw new InvalidOperationException(
-                "The document does not have the previewed missing-language finding.");
+                "The document does not have the previewed language finding.");
         byte[] saved = new PdfIncrementalPageEditor(document)
             .SetDocumentLanguage(repair.Language)
             .Build();
         PdfAccessibilityReport after = PdfAccessibilityInspector.Inspect(
             PdfDocument.Open(saved));
-        if (after.Findings.Any(finding =>
-                finding.Code == PdfAccessibilityFindingCode.MissingDocumentLanguage))
+        if (HasRepairableLanguageFinding(after))
             throw new InvalidOperationException(
-                "The saved document still has no primary language.");
+                "The saved document still has no valid primary language.");
         return new PdfAccessibilityRepairResult(saved, before, after);
     }
+
+    private static bool HasRepairableLanguageFinding(PdfAccessibilityReport report) =>
+        report.Findings.Any(finding => finding.Code is
+            PdfAccessibilityFindingCode.MissingDocumentLanguage
+            or PdfAccessibilityFindingCode.InvalidDocumentLanguage);
 
     private static PdfString TextString(string value) => new(
         [0xFE, 0xFF, .. Encoding.BigEndianUnicode.GetBytes(value)],

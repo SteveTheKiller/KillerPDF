@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
 
@@ -19,11 +20,21 @@ public static class PdfAccessibilityInspector
         PdfDictionary catalog = pageTree.Catalog;
         var findings = new List<PdfAccessibilityFinding>();
         if (!catalog.TryGetValue(Name("Lang"), out PdfObject? languageValue)
-            || Resolve(document, languageValue) is not PdfString language
-            || string.IsNullOrWhiteSpace(PdfUnicodeEncoding.DecodeTextString(
-                language.Bytes.Span, "The document language")))
+            || Resolve(document, languageValue) is not PdfString language)
             findings.Add(Finding(PdfAccessibilityFindingCode.MissingDocumentLanguage,
                 "The document catalog has no primary language."));
+        else
+        {
+            string languageTag = PdfUnicodeEncoding.DecodeTextString(
+                language.Bytes.Span, "The document language");
+            if (string.IsNullOrWhiteSpace(languageTag))
+                findings.Add(Finding(PdfAccessibilityFindingCode.MissingDocumentLanguage,
+                    "The document catalog has no primary language."));
+            else if (!PdfLanguageTag.IsValid(languageTag))
+                findings.Add(Finding(PdfAccessibilityFindingCode.InvalidDocumentLanguage,
+                    "The document catalog language is not a valid BCP 47 language tag.",
+                    objectNumber: pageTree.CatalogReference.ObjectNumber));
+        }
         if (!catalog.TryGetValue(Name("StructTreeRoot"), out PdfObject? structureRootValue))
             findings.Add(Finding(PdfAccessibilityFindingCode.MissingStructureTree,
                 "The document catalog has no structure tree."));
@@ -184,6 +195,8 @@ public enum PdfAccessibilityFindingCode
 {
     /// <summary>The catalog has no primary natural language.</summary>
     MissingDocumentLanguage,
+    /// <summary>The catalog language is not a valid BCP 47 language tag.</summary>
+    InvalidDocumentLanguage,
     /// <summary>The catalog has no tagged structure tree.</summary>
     MissingStructureTree,
     /// <summary>The catalog does not declare marked content.</summary>

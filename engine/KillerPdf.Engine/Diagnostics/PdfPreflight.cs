@@ -225,6 +225,8 @@ public static class PdfPreflightRunner
                 {
                     PdfAccessibilityFindingCode.MissingDocumentLanguage =>
                         profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage),
+                    PdfAccessibilityFindingCode.InvalidDocumentLanguage =>
+                        profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage),
                     PdfAccessibilityFindingCode.MissingFormFieldDescription =>
                         profile.Checks.Contains(PdfPreflightCheck.FormAccessibility),
                     _ => profile.Checks.Contains(PdfPreflightCheck.TaggedStructure)

@@ -2,6 +2,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Writing;
 using System.Text.Json;
 using Xunit;
 
@@ -106,6 +107,44 @@ public sealed class PdfAccessibilityInspectorTests
             finding.Code == PdfAccessibilityFindingCode.MissingDocumentLanguage);
         Assert.True(result.Document.Span[..source.Length].SequenceEqual(source));
         Assert.False(PdfAccessibilityRepair.PreviewDocumentLanguage(reopened, "fr-FR").WillChange);
+    }
+
+    [Fact]
+    public void ReportsAndRepairsMalformedDocumentLanguage()
+    {
+        PdfDocument valid = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Language = "en-US" })
+            .AddBlankPage()
+            .Build());
+        PdfIndirectReference catalogReference = Assert.IsType<PdfIndirectReference>(
+            valid.Trailer[new PdfName("Root"u8)]);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(valid.Resolve(catalogReference));
+        var entries = catalog.ToDictionary(item => item.Key, item => item.Value);
+        entries[new PdfName("Lang"u8)] = new PdfString(
+            "en_US"u8.ToArray(), PdfStringForm.Literal);
+        byte[] malformedBytes = new PdfIncrementalUpdateBuilder(valid)
+            .ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(entries)).Build();
+        PdfDocument malformed = PdfDocument.Open(malformedBytes);
+
+        PdfAccessibilityFinding finding = Assert.Single(
+            PdfAccessibilityInspector.Inspect(malformed).Findings,
+            item => item.Code == PdfAccessibilityFindingCode.InvalidDocumentLanguage);
+        PdfPreflightFinding preflight = Assert.Single(PdfPreflightRunner.Run(
+            malformedBytes,
+            new PdfPreflightProfile("Language", [PdfPreflightCheck.DocumentLanguage])).Findings);
+        PdfAccessibilityLanguageRepair preview =
+            PdfAccessibilityRepair.PreviewDocumentLanguage(malformed, "en-US");
+        PdfAccessibilityRepairResult result =
+            PdfAccessibilityRepair.ApplyDocumentLanguage(malformed, preview);
+
+        Assert.Equal(catalogReference.ObjectNumber, finding.ObjectNumber);
+        Assert.Equal("Accessibility.InvalidDocumentLanguage", preflight.Code);
+        Assert.True(preview.WillChange);
+        Assert.Equal("en-US", PdfDocumentInformation.Read(
+            PdfDocument.Open(result.Document)).Language);
+        Assert.DoesNotContain(result.After.Findings, item => item.Code is
+            PdfAccessibilityFindingCode.MissingDocumentLanguage
+            or PdfAccessibilityFindingCode.InvalidDocumentLanguage);
     }
 
     [Fact]
