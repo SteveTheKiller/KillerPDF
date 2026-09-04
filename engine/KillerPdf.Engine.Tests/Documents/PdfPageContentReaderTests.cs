@@ -101,6 +101,35 @@ public sealed class PdfPageContentReaderTests
     }
 
     [Fact]
+    public void ExposesNestedMarkedContentPropertiesAndInstructionRanges()
+    {
+        PdfPageContent page = Read("/Document << /MCID 4 >> BDC "
+            + "/OC /LayerOne BDC BT /F1 10 Tf (A) Tj ET EMC EMC /Artifact BMC EMC",
+            extraResources: "/Properties << /LayerOne << /Type /OCG >> >>");
+
+        Assert.Collection(page.MarkedContent,
+            outer =>
+            {
+                Assert.Equal("Document", outer.Tag);
+                Assert.Equal(0, outer.Depth);
+                Assert.Equal(4, outer.MarkedContentId);
+                Assert.True(outer.StartInstructionIndex < outer.EndInstructionIndex);
+            },
+            optional =>
+            {
+                Assert.Equal("OC", optional.Tag);
+                Assert.Equal("LayerOne", optional.PropertyName);
+                Assert.Equal(1, optional.Depth);
+                Assert.True(optional.IsOptionalContent);
+            },
+            artifact =>
+            {
+                Assert.True(artifact.IsArtifact);
+                Assert.Equal(0, artifact.Depth);
+            });
+    }
+
+    [Fact]
     public void OuterActualTextPreservesGeometryWhenInnerReplacementIsEmpty()
     {
         var page = Read("/Span << /ActualText (outer) >> BDC /Span << /ActualText () >> BDC BT /F1 12 Tf (A) Tj ET EMC EMC");

@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
@@ -103,6 +104,22 @@ public sealed record PdfExtractedShading(
     int ShadingType,
     PdfContentBounds BoundingBox);
 
+/// <summary>One balanced marked-content sequence in interpreted instruction order.</summary>
+public sealed record PdfExtractedMarkedContent(
+    string Tag,
+    int StartInstructionIndex,
+    int EndInstructionIndex,
+    int Depth,
+    string? PropertyName,
+    int? MarkedContentId,
+    string? ActualText)
+{
+    /// <summary>Gets whether the sequence is explicitly marked as an artifact.</summary>
+    public bool IsArtifact => Tag == "Artifact";
+    /// <summary>Gets whether the sequence selects optional content.</summary>
+    public bool IsOptionalContent => Tag == "OC";
+}
+
 /// <summary>A contiguous sequence of extracted characters sharing font and writing direction.</summary>
 public sealed class PdfExtractedTextRun
 {
@@ -170,6 +187,7 @@ public sealed class PdfPageContent
         Instructions = Array.AsReadOnly(instructions.ToArray());
         Paths = Array.AsReadOnly(paths.ToArray());
         Shadings = Array.AsReadOnly(shadings.ToArray());
+        MarkedContent = ReadMarkedContent(Instructions);
         Diagnostics = Array.AsReadOnly((diagnostics ?? []).ToArray());
         Words = GroupWords(Letters);
         TextRuns = GroupTextRuns(Letters);
@@ -196,6 +214,8 @@ public sealed class PdfPageContent
     public IReadOnlyList<PdfExtractedPath> Paths { get; }
     /// <summary>Gets shading paint operations in interpreted painting order.</summary>
     public IReadOnlyList<PdfExtractedShading> Shadings { get; }
+    /// <summary>Gets balanced marked-content and optional-content sequences.</summary>
+    public IReadOnlyList<PdfExtractedMarkedContent> MarkedContent { get; }
     /// <summary>Gets compatibility recoveries encountered while extracting this page.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
     /// <summary>Gets words separated by spaces in content order.</summary>
@@ -204,6 +224,49 @@ public sealed class PdfPageContent
     public IEnumerable<PdfExtractedWord> GetWords() => Words;
     /// <summary>Enumerates image placements.</summary>
     public IEnumerable<PdfExtractedImage> GetImages() => Images;
+
+    private static IReadOnlyList<PdfExtractedMarkedContent> ReadMarkedContent(
+        IReadOnlyList<PdfContentInstruction> instructions)
+    {
+        var stack = new Stack<(string Tag, int Start, int Depth, string? Property,
+            int? Mcid, string? ActualText)>();
+        var result = new List<PdfExtractedMarkedContent>();
+        for (int index = 0; index < instructions.Count; index++)
+        {
+            PdfContentInstruction instruction = instructions[index];
+            if (instruction.Operator is "BMC" or "BDC")
+            {
+                if (instruction.Operands.Count < 1 || instruction.Operands[0] is not PdfName tag)
+                    throw new FormatException("A marked-content sequence has no valid tag.");
+                string? propertyName = instruction.Operator == "BDC"
+                    && instruction.Operands.Count == 2 && instruction.Operands[1] is PdfName property
+                    ? property.ValueAsLatin1() : null;
+                PdfDictionary? properties = instruction.Operator == "BDC"
+                    && instruction.Operands.Count == 2
+                    ? instruction.Operands[1] as PdfDictionary : null;
+                int? mcid = properties is not null
+                    && properties.TryGetValue(new PdfName("MCID"u8), out PdfObject? id)
+                    && id is PdfInteger integer && integer.Value is >= 0 and <= int.MaxValue
+                    ? (int)integer.Value : null;
+                string? actualText = properties is not null
+                    && properties.TryGetValue(new PdfName("ActualText"u8), out PdfObject? replacement)
+                    && replacement is PdfString text
+                    ? PdfUnicodeEncoding.DecodeTextString(text.Bytes.Span,
+                        "A marked-content /ActualText value") : null;
+                stack.Push((tag.ValueAsLatin1(), index, stack.Count, propertyName, mcid, actualText));
+            }
+            else if (instruction.Operator == "EMC")
+            {
+                if (!stack.TryPop(out var opening))
+                    throw new FormatException("A marked-content sequence has an unmatched EMC operator.");
+                result.Add(new PdfExtractedMarkedContent(opening.Tag, opening.Start, index,
+                    opening.Depth, opening.Property, opening.Mcid, opening.ActualText));
+            }
+        }
+        if (stack.Count > 0)
+            throw new FormatException("A marked-content sequence is not closed.");
+        return Array.AsReadOnly(result.OrderBy(item => item.StartInstructionIndex).ToArray());
+    }
 
     private static List<PdfExtractedTextRun> GroupTextRuns(IReadOnlyList<PdfExtractedLetter> letters)
     {
