@@ -184,6 +184,43 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void FormRecordPreviewReportsMappedTypesAndBlockedFieldsWithoutValues()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 20, 20, 140, 24)
+            .AddCheckBox(0, "customer.active", 20, 60, 20, 20).Build());
+        var validProfile = new PdfDataMergeProfile("Customers", [
+            new PdfDataMergeFieldMapping("Name", "customer.name"),
+            new PdfDataMergeFieldMapping("Active", "customer.active")],
+            "customer-{{Number}}.pdf");
+        var record = new Dictionary<string, string?>
+        {
+            ["Name"] = "Ada",
+            ["Active"] = "true",
+            ["Number"] = "1"
+        };
+
+        PdfDataMergePreview valid = PdfDataMerge.PreviewFormRecord(
+            template, record, validProfile);
+
+        Assert.True(valid.CanGenerate);
+        Assert.Equal("customer-1.pdf", valid.OutputFileName);
+        Assert.Equal([PdfFormFieldKind.Text, PdfFormFieldKind.Button],
+            valid.Fields.Select(field => field.FieldKind));
+        Assert.DoesNotContain("Ada", JsonSerializer.Serialize(valid), StringComparison.Ordinal);
+
+        var blockedProfile = new PdfDataMergeProfile("Customers",
+            [new PdfDataMergeFieldMapping("Name", "missing.field")],
+            "customer-{{Number}}.pdf");
+        PdfDataMergePreview blocked = PdfDataMerge.PreviewFormRecord(
+            template, record, blockedProfile);
+
+        Assert.False(blocked.CanGenerate);
+        Assert.Equal(PdfFormDataMatchStatus.Unmatched, Assert.Single(blocked.Fields).Status);
+        Assert.Contains("missing.field", blocked.Error, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FormBatchCancellationStopsBeforeAnotherRecord()
     {
         PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()

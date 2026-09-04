@@ -102,6 +102,32 @@ public static class PdfDataMerge
         }
         return Array.AsReadOnly(results.ToArray());
     }
+
+    /// <summary>Previews one mapped record without changing the template or retaining its values.</summary>
+    public static PdfDataMergePreview PreviewFormRecord(PdfDocument template,
+        IReadOnlyDictionary<string, string?> record, PdfDataMergeProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(record);
+        ArgumentNullException.ThrowIfNull(profile);
+        try
+        {
+            PdfDataMergeMappedRecord mapped = profile.Map(record);
+            IReadOnlyList<PdfFormDataMatch> matches =
+                PdfFormDataImporter.Preview(template, mapped.FormData);
+            PdfFormDataMatch[] blocked = [.. matches.Where(match =>
+                match.Status != PdfFormDataMatchStatus.Matched)];
+            string? error = blocked.Length == 0 ? null
+                : "The record cannot be applied to: "
+                    + string.Join(", ", blocked.Select(match => match.FieldName)) + ".";
+            return new PdfDataMergePreview(mapped.OutputFileName, matches, error);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            and not StackOverflowException and not AccessViolationException)
+        {
+            return new PdfDataMergePreview(null, [], exception.Message);
+        }
+    }
 }
 
 /// <summary>How missing data values are handled during template expansion.</summary>
@@ -128,6 +154,15 @@ public sealed record PdfDataMergeDocumentResult(int RecordIndex, string? OutputF
 {
     /// <summary>Gets whether PDF generation succeeded.</summary>
     public bool Succeeded => Data.HasValue && Error is null;
+}
+
+/// <summary>A data-free preview of one mapped record.</summary>
+public sealed record PdfDataMergePreview(string? OutputFileName,
+    IReadOnlyList<PdfFormDataMatch> Fields, string? Error)
+{
+    /// <summary>Gets whether the record can be generated.</summary>
+    public bool CanGenerate => Error is null
+        && Fields.All(match => match.Status == PdfFormDataMatchStatus.Matched);
 }
 
 /// <summary>A data-free summary of one form-generation batch.</summary>
