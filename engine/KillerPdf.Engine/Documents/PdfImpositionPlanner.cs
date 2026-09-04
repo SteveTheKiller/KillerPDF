@@ -276,6 +276,35 @@ public static class PdfImpositionPlanner
         ]);
     }
 
+    /// <summary>Plans fold marks extending outside the sheet edges.</summary>
+    public static IReadOnlyList<PdfImpositionMark> PlanFoldMarks(
+        double sheetWidth, double sheetHeight,
+        IReadOnlyList<double> verticalFolds, IReadOnlyList<double> horizontalFolds,
+        double length = 12)
+    {
+        ValidateDimension(sheetWidth, nameof(sheetWidth));
+        ValidateDimension(sheetHeight, nameof(sheetHeight));
+        ValidateDimension(length, nameof(length));
+        ArgumentNullException.ThrowIfNull(verticalFolds);
+        ArgumentNullException.ThrowIfNull(horizontalFolds);
+        if (verticalFolds.Any(value => !double.IsFinite(value) || value <= 0 || value >= sheetWidth))
+            throw new ArgumentOutOfRangeException(nameof(verticalFolds));
+        if (horizontalFolds.Any(value => !double.IsFinite(value) || value <= 0 || value >= sheetHeight))
+            throw new ArgumentOutOfRangeException(nameof(horizontalFolds));
+        var marks = new List<PdfImpositionMark>();
+        foreach (double x in verticalFolds)
+        {
+            marks.Add(new(x, -length, x, 0));
+            marks.Add(new(x, sheetHeight, x, sheetHeight + length));
+        }
+        foreach (double y in horizontalFolds)
+        {
+            marks.Add(new(-length, y, 0, y));
+            marks.Add(new(sheetWidth, y, sheetWidth + length, y));
+        }
+        return Array.AsReadOnly(marks.ToArray());
+    }
+
     private static int TileCount(double source, double tile, double step) =>
         source <= tile ? 1 : checked((int)Math.Ceiling((source - tile) / step) + 1);
 

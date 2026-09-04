@@ -143,6 +143,21 @@ public sealed class PdfImpositionPlannerTests
             PdfImpositionPlanner.PlanRegistrationMarks(30, 40, inset: 15));
     }
 
+    [Fact]
+    public void FoldMarksStayOutsideTheSheetEdges()
+    {
+        IReadOnlyList<PdfImpositionMark> marks = PdfImpositionPlanner.PlanFoldMarks(
+            600, 800, [300], [200, 400], 10);
+
+        Assert.Equal(6, marks.Count);
+        Assert.Equal(new PdfImpositionMark(300, -10, 300, 0), marks[0]);
+        Assert.Equal(new PdfImpositionMark(300, 800, 300, 810), marks[1]);
+        Assert.Equal(new PdfImpositionMark(-10, 200, 0, 200), marks[2]);
+        Assert.Equal(new PdfImpositionMark(600, 400, 610, 400), marks[5]);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.PlanFoldMarks(600, 800, [600], []));
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {
