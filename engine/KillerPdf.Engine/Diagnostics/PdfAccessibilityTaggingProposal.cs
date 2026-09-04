@@ -9,6 +9,8 @@ public enum PdfAccessibilityProposedRole
     Heading,
     /// <summary>An ordinary text line.</summary>
     Paragraph,
+    /// <summary>A text line with a common bullet or numbered-list prefix.</summary>
+    ListItem,
     /// <summary>An image placement that requires alternate text.</summary>
     Figure
 }
@@ -51,10 +53,12 @@ public static class PdfAccessibilityTaggingProposal
                     double size = line.Runs.Max(run => run.PointSize);
                     bool heading = median > 0 && size >= median * 1.3
                         && line.Text.Trim().Length <= 120;
+                    string text = line.Text.Trim();
                     return (line.BoundingBox, Text: (string?)line.Text.Trim(),
                         Role: heading ? PdfAccessibilityProposedRole.Heading
+                            : LooksLikeListItem(text) ? PdfAccessibilityProposedRole.ListItem
                             : PdfAccessibilityProposedRole.Paragraph,
-                        Confidence: heading ? 0.75 : 0.65);
+                        Confidence: heading ? 0.75 : LooksLikeListItem(text) ? 0.7 : 0.65);
                 })
                 .Concat(page.Images.Select(image => (image.BoundingBox, Text: (string?)null,
                     Role: PdfAccessibilityProposedRole.Figure, Confidence: 0.5)))
@@ -67,5 +71,15 @@ public static class PdfAccessibilityTaggingProposal
                     region.Text, region.Confidence, RequiresReview: true));
         }
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    private static bool LooksLikeListItem(string text)
+    {
+        if (text.StartsWith("- ", StringComparison.Ordinal)
+            || text.StartsWith("* ", StringComparison.Ordinal)) return true;
+        int index = 0;
+        while (index < text.Length && char.IsAsciiDigit(text[index])) index++;
+        return index > 0 && index + 1 < text.Length
+            && text[index] is '.' or ')' && text[index + 1] == ' ';
     }
 }
