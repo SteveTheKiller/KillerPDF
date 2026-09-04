@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 using Xunit;
@@ -79,6 +80,31 @@ public sealed class PdfCollectionReaderTests
             ]))
         ]));
         Assert.Throws<InvalidOperationException>(() => PdfCollectionReader.Read(malformed));
+    }
+
+    [Fact]
+    public void EditorChangesAndClearsPresentationWithoutReplacingSchema()
+    {
+        PdfDocument document = WithCollection(new PdfDictionary([
+            new(Name("View"), Name("T")),
+            new(Name("Schema"), new PdfDictionary([
+                new(Name("Name"), new PdfDictionary([
+                    new(Name("N"), Text("File name")),
+                    new(Name("Subtype"), Name("F"))
+                ]))
+            ]))
+        ]));
+
+        PdfDocument changed = PdfDocument.Open(PdfCollectionEditor.SetPresentation(
+            document, PdfCollectionView.Hidden, "cover.pdf"));
+        PdfCollectionInfo info = Assert.IsType<PdfCollectionInfo>(
+            PdfCollectionReader.Read(changed));
+
+        Assert.Equal(PdfCollectionView.Hidden, info.View);
+        Assert.Equal("cover.pdf", info.InitialDocument);
+        Assert.Single(info.Fields);
+        Assert.Null(PdfCollectionReader.Read(PdfDocument.Open(
+            PdfCollectionEditor.Clear(changed))));
     }
 
     private static PdfDocument WithCollection(PdfDictionary collection)
