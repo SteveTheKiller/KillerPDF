@@ -406,6 +406,43 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void TopLevelInstructionRangeCanBeAssignedAndFlattened()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 70).ShowLatin1Text("First").EndText()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 40).ShowLatin1Text("Second").EndText())
+            .Build());
+        PdfDocument layered = PdfDocument.Open(PdfOptionalContentEditor.AddGroup(
+            original, "Hidden", initiallyVisible: false));
+        int objectNumber = Assert.Single(PdfOptionalContentReader.Read(layered).Groups)
+            .ObjectNumber;
+        IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions =
+            new PdfPageContentReader(layered).ReadInstructions(0);
+        int secondTextStart = instructions.Select((instruction, index) =>
+                (instruction, index))
+            .Where(item => item.instruction.Operator == "BT")
+            .Skip(1).Single().index;
+        int secondTextEnd = instructions.Select((instruction, index) =>
+                (instruction, index))
+            .First(item => item.index > secondTextStart
+                && item.instruction.Operator == "ET").index;
+
+        PdfDocument assigned = PdfDocument.Open(
+            PdfOptionalContentEditor.SetPageInstructionRangeGroup(layered, 0,
+                secondTextStart, secondTextEnd - secondTextStart + 1, objectNumber));
+        PdfDocument flattened = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(assigned));
+
+        Assert.Equal("First", new PdfPageContentReader(flattened).Read(0).Text);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOptionalContentEditor.SetPageInstructionRangeGroup(
+                layered, 0, secondTextStart, 0, objectNumber));
+    }
+
+    [Fact]
     public void PageLayersFlattenToTheSelectedVisibleResult()
     {
         var visibleLayer = new PdfOptionalContentGroup("Visible");

@@ -156,6 +156,90 @@ public static class PdfOptionalContentEditor
     }
 
     /// <summary>
+    /// Assigns a complete top-level page instruction range to a registered layer.
+    /// The range cannot split an existing marked-content sequence.
+    /// </summary>
+    public static byte[] SetPageInstructionRangeGroup(
+        PdfDocument document, int pageIndex, int instructionIndex,
+        int instructionCount, int groupObjectNumber)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (groupObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(groupObjectNumber));
+        PdfOptionalContentGroupInfo group = FindGroup(
+            PdfOptionalContentReader.Read(document), groupObjectNumber);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (pageIndex < 0 || pageIndex >= tree.Pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        IReadOnlyList<PdfContentInstruction> instructions =
+            new PdfPageContentReader(document).ReadInstructions(pageIndex);
+        if (instructionIndex < 0 || instructionIndex > instructions.Count)
+            throw new ArgumentOutOfRangeException(nameof(instructionIndex));
+        if (instructionCount <= 0
+            || instructionCount > instructions.Count - instructionIndex)
+            throw new ArgumentOutOfRangeException(nameof(instructionCount));
+        int selectionEnd = instructionIndex + instructionCount;
+        int depth = 0;
+        for (int index = 0; index <= instructions.Count; index++)
+        {
+            if ((index == instructionIndex || index == selectionEnd) && depth != 0)
+                throw new ArgumentException(
+                    "A layer assignment range cannot split a marked-content sequence.",
+                    nameof(instructionIndex));
+            if (index == instructions.Count) break;
+            depth += instructions[index].Operator switch
+            {
+                "BMC" or "BDC" => 1,
+                "EMC" => -1,
+                _ => 0
+            };
+            if (depth < 0)
+                throw new InvalidOperationException(
+                    "The page has an unmatched marked-content terminator.");
+        }
+        if (depth != 0)
+            throw new InvalidOperationException(
+                "The page has an unterminated marked-content sequence.");
+
+        PdfPageTreeEntry page = tree.Pages[pageIndex];
+        PdfDictionary resources = page.InheritedValues.TryGetValue(
+                ResourcesKey, out PdfObject? resourcesValue)
+            ? ResolveDictionaryWithReference(document, resourcesValue,
+                "The page resources").Dictionary
+            : new PdfDictionary([]);
+        var resourceEntries = resources.ToDictionary(item => item.Key, item => item.Value);
+        Dictionary<PdfName, PdfObject> properties = resourceEntries.TryGetValue(
+                PropertiesKey, out PdfObject? propertiesValue)
+            ? ResolveDictionaryWithReference(document, propertiesValue,
+                "The page optional-content resources").Dictionary
+                .ToDictionary(item => item.Key, item => item.Value)
+            : [];
+        int suffix = 1;
+        PdfName resourceName;
+        do resourceName = new PdfName(Encoding.ASCII.GetBytes($"KPL{suffix++}"));
+        while (properties.ContainsKey(resourceName));
+        properties[resourceName] = new PdfIndirectReference(
+            group.ObjectNumber, group.Generation);
+        resourceEntries[PropertiesKey] = new PdfDictionary(properties);
+
+        var rewritten = new List<PdfContentInstruction>(instructions.Count + 2);
+        rewritten.AddRange(instructions.Take(instructionIndex));
+        rewritten.Add(new PdfContentInstruction("BDC", 0,
+            [new PdfName("OC"u8), resourceName]));
+        rewritten.AddRange(instructions.Skip(instructionIndex).Take(instructionCount));
+        rewritten.Add(new PdfContentInstruction("EMC", 0, []));
+        rewritten.AddRange(instructions.Skip(selectionEnd));
+        var update = new PdfIncrementalUpdateBuilder(document);
+        PdfIndirectReference contentReference = update.AddObject(new PdfStream(
+            new PdfDictionary([]), PdfContentStreamWriter.Write(rewritten)));
+        var pageEntries = page.Dictionary.ToDictionary(item => item.Key, item => item.Value);
+        pageEntries[ResourcesKey] = new PdfDictionary(resourceEntries);
+        pageEntries[ContentsKey] = contentReference;
+        return update.ReplaceObject(page.Reference.ObjectNumber,
+            new PdfDictionary(pageEntries)).Build();
+    }
+
+    /// <summary>
     /// Flattens page-level optional content using the default state or an explicit visible set.
     /// Optional-content membership dictionaries, nested form content, annotations, and tagged
     /// documents are rejected until their semantics can be preserved completely.
