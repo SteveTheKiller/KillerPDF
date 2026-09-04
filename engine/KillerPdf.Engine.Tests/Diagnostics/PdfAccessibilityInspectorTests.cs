@@ -124,4 +124,51 @@ public sealed class PdfAccessibilityInspectorTests
         Assert.Equal(0, finding.PageIndex);
         Assert.NotNull(finding.ObjectNumber);
     }
+
+    [Fact]
+    public void InspectReportsTableDataWithoutHeaders()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.TableDataCell, 0)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .ShowLatin1Text("Value").EndText().EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Table", Language = "en-US" })
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureContainer(PdfStructureType.Table, 1)
+            .AddStructureContainer(PdfStructureType.TableRow, 2)
+            .AddStructureElement(PdfStructureType.TableDataCell, 0, 0, 3)
+            .Build());
+
+        PdfAccessibilityFinding finding = Assert.Single(
+            PdfAccessibilityInspector.Inspect(document).Findings);
+
+        Assert.Equal(PdfAccessibilityFindingCode.MissingTableHeader, finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+    }
+
+    [Fact]
+    public void InspectAcceptsTableWithHeaderAndDataCells()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.TableHeaderCell, 0)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .ShowLatin1Text("Name").EndText().EndMarkedContent()
+            .BeginMarkedContent(PdfStructureType.TableDataCell, 1)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .ShowLatin1Text("Value").EndText().EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Table", Language = "en-US" })
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureContainer(PdfStructureType.Table, 1)
+            .AddStructureContainer(PdfStructureType.TableRow, 2)
+            .AddStructureElement(PdfStructureType.TableHeaderCell, 0, 0, 3)
+            .AddStructureElement(PdfStructureType.TableDataCell, 0, 1, 3)
+            .Build());
+
+        Assert.Empty(PdfAccessibilityInspector.Inspect(document).Findings);
+    }
 }

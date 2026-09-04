@@ -87,8 +87,54 @@ public static class PdfAccessibilityInspector
                         PdfAccessibilityFindingCode.MissingFigureAlternateDescription,
                         "A figure structure element has no alternate description.",
                         PageIndex(element), reference?.ObjectNumber));
+                if (IsName(element, "Type", "StructElem") && IsName(element, "S", "Table"))
+                {
+                    (bool hasHeader, bool hasData, int? pageIndex) = TableSummary(element, depth + 1);
+                    if (hasData && !hasHeader)
+                        findings.Add(Finding(PdfAccessibilityFindingCode.MissingTableHeader,
+                            "A table contains data cells but no header cells.",
+                            pageIndex, reference?.ObjectNumber));
+                }
                 if (element.TryGetValue(Name("K"), out PdfObject? children))
                     Visit(children, depth + 1);
+            }
+
+            (bool HasHeader, bool HasData, int? PageIndex) TableSummary(
+                PdfDictionary table, int depth)
+            {
+                var tableVisited = new HashSet<(int, int)>();
+                bool hasHeader = false;
+                bool hasData = false;
+                int? pageIndex = PageIndex(table);
+                if (table.TryGetValue(Name("K"), out PdfObject? children))
+                    Scan(children, depth);
+                return (hasHeader, hasData, pageIndex);
+
+                void Scan(PdfObject value, int childDepth)
+                {
+                    if (childDepth >= 256)
+                        throw new InvalidOperationException(
+                            "The structure tree exceeds the supported nesting depth.");
+                    if (value is PdfIndirectReference childReference
+                        && !tableVisited.Add((childReference.ObjectNumber,
+                            childReference.Generation))) return;
+                    value = Resolve(document, value);
+                    if (value is PdfArray array)
+                    {
+                        foreach (PdfObject item in array) Scan(item, childDepth + 1);
+                        return;
+                    }
+                    if (value is not PdfDictionary child) return;
+                    if (IsName(child, "Type", "StructElem"))
+                    {
+                        if (IsName(child, "S", "Table")) return;
+                        hasHeader |= IsName(child, "S", "TH");
+                        hasData |= IsName(child, "S", "TD");
+                        pageIndex ??= PageIndex(child);
+                    }
+                    if (child.TryGetValue(Name("K"), out PdfObject? descendants))
+                        Scan(descendants, childDepth + 1);
+                }
             }
 
             int? PageIndex(PdfDictionary element)
@@ -147,7 +193,9 @@ public enum PdfAccessibilityFindingCode
     /// <summary>An interactive form field has no user-facing description.</summary>
     MissingFormFieldDescription,
     /// <summary>A link annotation has no user-facing description.</summary>
-    MissingLinkDescription
+    MissingLinkDescription,
+    /// <summary>A tagged table has data cells but no header cells.</summary>
+    MissingTableHeader
 }
 
 /// <summary>One accessibility finding with a stable code and severity.</summary>
