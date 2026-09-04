@@ -457,6 +457,37 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesMultidimensionalDeviceNTintTransforms()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(2, 1, new byte[] { 0, 0 }), 2, 3, 6, 2))
+            .Build());
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Size"),
+                new PdfArray(new PdfObject[] { new PdfInteger(2), new PdfInteger(2) })),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8))]),
+            new byte[]
+            {
+                255, 255, 255, 255, 0, 0,
+                0, 255, 0, 0, 0, 0
+            });
+        PdfDocument document = AddDeviceNColorSpace(source, function,
+            new byte[] { 255, 0, 0, 255 });
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255, 0, 255, 0, 255],
+            Pixel(rendered, 3, 6).Concat(Pixel(rendered, 7, 6)).ToArray());
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
@@ -781,6 +812,35 @@ public sealed class PdfPageRendererTests
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace)));
         return PdfDocument.Open(update.ReplaceObject(imageReference.ObjectNumber,
             new PdfStream(dictionary, image.EncodedData.Span)).Build());
+    }
+
+    private static PdfDocument AddDeviceNColorSpace(
+        PdfDocument source, PdfStream function, byte[] imageSamples)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference imageReference = Assert.IsType<PdfIndirectReference>(
+            xObjects[Name("Im1")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference functionReference = update.AddObject(function);
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("DeviceN"),
+            new PdfArray(new PdfObject[] { Name("SpotRed"), Name("SpotGreen") }),
+            Name("DeviceRGB"), functionReference
+        });
+        var dictionary = new PdfDictionary(image.Dictionary
+            .Where(entry => !entry.Key.Equals(Name("ColorSpace"))
+                && !entry.Key.Equals(Name("Filter"))
+                && !entry.Key.Equals(Name("DecodeParms")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace)));
+        return PdfDocument.Open(update.ReplaceObject(imageReference.ObjectNumber,
+            new PdfStream(dictionary, imageSamples)).Build());
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));

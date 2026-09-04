@@ -609,6 +609,20 @@ public sealed class PdfPageRenderer
             return new ImageColorSpace(1, null,
                 (tint, _, _, _) => tintTransform(tint));
         }
+        if (kind.ValueAsLatin1() == "DeviceN")
+        {
+            if (array.Count is not (4 or 5) || Resolve(array[1]) is not PdfArray names
+                || names.Count is < 1 or > 32
+                || names.Any(item => Resolve(item) is not PdfName))
+                throw new FormatException("A DeviceN image color space is invalid.");
+            if (names.Count > 8) throw new NotSupportedException();
+            ImageColorSpace alternate = ReadColorSpace(array[2], resources, depth + 1);
+            if (alternate.Palette is not null)
+                throw new FormatException("A DeviceN image alternate color space is invalid.");
+            Func<double[], Color> tintTransform = ReadMultidimensionalSampledFunction(
+                array[3], names.Count, alternate, "DeviceN tint transform");
+            return new ImageColorSpace(names.Count, null, MultiConverter: tintTransform);
+        }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
@@ -846,6 +860,111 @@ public sealed class PdfPageRenderer
                 colorSpace.Components > 1 ? Component(1) : 0,
                 colorSpace.Components > 2 ? Component(2) : 0,
                 colorSpace.Components > 3 ? Component(3) : 0);
+        };
+    }
+
+    private Func<double[], Color> ReadMultidimensionalSampledFunction(PdfObject value,
+        int inputCount, ImageColorSpace colorSpace, string description)
+    {
+        PdfObject resolved = Resolve(value);
+        if (resolved is not PdfStream stream)
+            throw new NotSupportedException();
+        PdfDictionary dictionary = stream.Dictionary;
+        if (!dictionary.TryGetValue(Name("FunctionType"), out PdfObject? typeValue)
+            || Resolve(typeValue) is not PdfInteger { Value: 0 })
+            throw new NotSupportedException();
+        double[] domain = ReadFunctionArray(dictionary, "Domain", inputCount * 2,
+            required: true, defaultValues: []);
+        if (domain.Any(component => !double.IsFinite(component))
+            || Enumerable.Range(0, inputCount).Any(index =>
+                domain[index * 2] >= domain[index * 2 + 1]))
+            throw new FormatException($"A {description} domain is invalid.");
+        if (!dictionary.TryGetValue(Name("Size"), out PdfObject? sizeValue)
+            || Resolve(sizeValue) is not PdfArray sizeArray || sizeArray.Count != inputCount)
+            throw new FormatException($"A {description} size array is invalid.");
+        int[] sizes = sizeArray.Select(item => Resolve(item) is PdfInteger size
+                && size.Value is >= 1 and <= 1_000_000 ? (int)size.Value
+                : throw new FormatException($"A {description} size is invalid."))
+            .ToArray();
+        long points = 1;
+        foreach (int size in sizes)
+        {
+            points = checked(points * size);
+            if (points > 1_000_000) throw new FormatException(
+                $"A {description} sample table exceeds the supported bound.");
+        }
+        if (!dictionary.TryGetValue(Name("BitsPerSample"), out PdfObject? bitsValue)
+            || Resolve(bitsValue) is not PdfInteger bitsInteger
+            || bitsInteger.Value is not (1 or 2 or 4 or 8 or 12 or 16))
+            throw new NotSupportedException();
+        int bits = (int)bitsInteger.Value;
+        if (dictionary.TryGetValue(Name("Order"), out PdfObject? orderValue)
+            && Resolve(orderValue) is not PdfInteger { Value: 1 })
+            throw new NotSupportedException();
+        double[] range = ReadFunctionArray(dictionary, "Range",
+            colorSpace.Components * 2, required: true, defaultValues: []);
+        if (range.Any(component => !double.IsFinite(component))
+            || Enumerable.Range(0, colorSpace.Components).Any(index =>
+                range[index * 2] > range[index * 2 + 1]))
+            throw new FormatException($"A {description} range is invalid.");
+        double[] encode = dictionary.TryGetValue(Name("Encode"), out _)
+            ? ReadFunctionArray(dictionary, "Encode", inputCount * 2,
+                required: true, defaultValues: [])
+            : sizes.SelectMany(size => new[] { 0d, size - 1d }).ToArray();
+        double[] decode = dictionary.TryGetValue(Name("Decode"), out _)
+            ? ReadFunctionArray(dictionary, "Decode", colorSpace.Components * 2,
+                required: true, defaultValues: []) : range;
+        if (encode.Any(component => !double.IsFinite(component))
+            || decode.Any(component => !double.IsFinite(component)))
+            throw new FormatException($"A {description} mapping array is invalid.");
+        int sampleCount = checked((int)points * colorSpace.Components);
+        int expectedBytes = checked((sampleCount * bits + 7) / 8);
+        byte[] samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expectedBytes);
+        if (samples.Length != expectedBytes)
+            throw new FormatException($"A {description} stream is truncated.");
+        uint maximum = (1u << bits) - 1;
+        int cornerCount = 1 << inputCount;
+        return inputs =>
+        {
+            Span<int> lower = stackalloc int[inputCount];
+            Span<int> upper = stackalloc int[inputCount];
+            Span<double> fractions = stackalloc double[inputCount];
+            for (int input = 0; input < inputCount; input++)
+            {
+                double normalized = (Math.Clamp(inputs[input], domain[input * 2],
+                    domain[input * 2 + 1]) - domain[input * 2])
+                    / (domain[input * 2 + 1] - domain[input * 2]);
+                double mapped = Math.Clamp(encode[input * 2] + normalized
+                    * (encode[input * 2 + 1] - encode[input * 2]), 0, sizes[input] - 1);
+                lower[input] = (int)Math.Floor(mapped);
+                upper[input] = Math.Min(lower[input] + 1, sizes[input] - 1);
+                fractions[input] = mapped - lower[input];
+            }
+            Span<double> outputs = stackalloc double[colorSpace.Components];
+            for (int corner = 0; corner < cornerCount; corner++)
+            {
+                double weight = 1;
+                int point = 0, stride = 1;
+                for (int input = 0; input < inputCount; input++)
+                {
+                    bool high = (corner & (1 << input)) != 0;
+                    point += (high ? upper[input] : lower[input]) * stride;
+                    stride *= sizes[input];
+                    weight *= high ? fractions[input] : 1 - fractions[input];
+                }
+                if (weight == 0) continue;
+                for (int output = 0; output < colorSpace.Components; output++)
+                    outputs[output] += weight * ReadPackedSample(samples,
+                        (point * colorSpace.Components + output) * bits, bits) / maximum;
+            }
+            for (int output = 0; output < outputs.Length; output++)
+            {
+                double decoded = decode[output * 2] + outputs[output]
+                    * (decode[output * 2 + 1] - decode[output * 2]);
+                outputs[output] = Math.Clamp(decoded,
+                    range[output * 2], range[output * 2 + 1]);
+            }
+            return colorSpace.Convert(outputs);
         };
     }
 
@@ -1192,6 +1311,7 @@ public sealed class PdfPageRenderer
         int bottom = Math.Clamp(targetHeight - (int)Math.Floor(corners.Min(p => p.Y) * scaleY), 0, targetHeight);
         if (!transform.TryInverse(out Matrix inverse)) return;
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
+        var componentValues = new double[components];
         for (int y = top; y < bottom; y++)
             for (int x = left; x < right; x++)
             {
@@ -1215,12 +1335,9 @@ public sealed class PdfPageRenderer
                 }
                 else
                 {
-                    double first = SampleValue(0);
                     color = colorSpace.Palette is not null
                         ? colorSpace.Palette[Math.Min(RawSample(0), colorSpace.Palette.Length - 1)]
-                        : colorSpace.Convert(first, components > 1 ? SampleValue(1) : 0,
-                            components > 2 ? SampleValue(2) : 0,
-                            components > 3 ? SampleValue(3) : 0);
+                        : ConvertSamples();
                     if (colorKeyMask is not null)
                     {
                         bool matches = true;
@@ -1248,6 +1365,13 @@ public sealed class PdfPageRenderer
                             ? samples[sy * rowBytes + bitOffset]
                             : (samples[sy * rowBytes + bitOffset / 8]
                                 >> (7 - bitOffset % 8)) & 1;
+                    }
+
+                    Color ConvertSamples()
+                    {
+                        for (int component = 0; component < components; component++)
+                            componentValues[component] = SampleValue(component);
+                        return colorSpace.Convert(componentValues);
                     }
                 }
                 if (softMask is not null)
@@ -1613,7 +1737,7 @@ public sealed class PdfPageRenderer
     private sealed record SoftMask(byte[] Samples, int Width, int Height, bool Inverted);
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
         Func<double, double, double, double, Color>? Converter = null,
-        double[]? DefaultDecode = null)
+        double[]? DefaultDecode = null, Func<double[], Color>? MultiConverter = null)
     {
         internal Color Convert(double first, double second, double third, double fourth) =>
             Converter?.Invoke(first, second, third, fourth) ?? Components switch
@@ -1622,6 +1746,14 @@ public sealed class PdfPageRenderer
                 3 => Color.Rgb(first, second, third),
                 _ => Color.Cmyk(first, second, third, fourth)
             };
+        internal Color Convert(ReadOnlySpan<double> values)
+        {
+            if (MultiConverter is not null) throw new NotSupportedException();
+            return Convert(values[0], values.Length > 1 ? values[1] : 0,
+                values.Length > 2 ? values[2] : 0, values.Length > 3 ? values[3] : 0);
+        }
+        internal Color Convert(double[] values) => MultiConverter is not null
+            ? MultiConverter(values) : Convert((ReadOnlySpan<double>)values);
         internal double DefaultValue(int component, double normalized) => DefaultDecode is null
             ? normalized : DefaultDecode[component * 2] + normalized
                 * (DefaultDecode[component * 2 + 1] - DefaultDecode[component * 2]);
