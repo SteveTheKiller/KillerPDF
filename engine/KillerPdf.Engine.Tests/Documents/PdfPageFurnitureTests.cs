@@ -67,4 +67,32 @@ public sealed class PdfPageFurnitureTests
         Assert.Throws<OverflowException>(() => PdfBatesNumbering.Plan([2],
             new PdfBatesNumberingOptions { StartNumber = long.MaxValue }));
     }
+
+    [Fact]
+    public void PlacementPlannerAlignsHeadersAndReportsContentCollisions()
+    {
+        var existing = new PdfContentBounds(430, 740, 570, 780);
+
+        PdfPageFurniturePlacement placement = PdfPageFurniturePlacementPlanner.Plan(
+            612, 792, 120, 20, 36, 18, PdfPageFurnitureEdge.Header,
+            PdfPageFurnitureAlignment.Right, [existing]);
+
+        Assert.Equal(new PdfContentBounds(456, 754, 576, 774), placement.Bounds);
+        Assert.True(placement.HasCollision);
+        Assert.Equal(existing, Assert.Single(placement.Collisions));
+    }
+
+    [Fact]
+    public void PlacementPlannerHandlesFootersAndRejectsOversizedFurniture()
+    {
+        PdfPageFurniturePlacement placement = PdfPageFurniturePlacementPlanner.Plan(
+            300, 400, 100, 12, 20, 24, PdfPageFurnitureEdge.Footer,
+            PdfPageFurnitureAlignment.Center);
+
+        Assert.Equal(new PdfContentBounds(100, 24, 200, 36), placement.Bounds);
+        Assert.False(placement.HasCollision);
+        Assert.Throws<ArgumentException>(() => PdfPageFurniturePlacementPlanner.Plan(
+            100, 100, 90, 10, 6, 5, PdfPageFurnitureEdge.Header,
+            PdfPageFurnitureAlignment.Left));
+    }
 }

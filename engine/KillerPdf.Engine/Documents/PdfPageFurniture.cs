@@ -80,6 +80,78 @@ public static class PdfPageFurnitureFormatter
     }
 }
 
+/// <summary>The vertical edge used for repeated page furniture.</summary>
+public enum PdfPageFurnitureEdge
+{
+    /// <summary>The top edge of the page.</summary>
+    Header,
+    /// <summary>The bottom edge of the page.</summary>
+    Footer
+}
+
+/// <summary>The horizontal alignment used for repeated page furniture.</summary>
+public enum PdfPageFurnitureAlignment
+{
+    /// <summary>Align to the left margin.</summary>
+    Left,
+    /// <summary>Center between the page edges.</summary>
+    Center,
+    /// <summary>Align to the right margin.</summary>
+    Right
+}
+
+/// <summary>A planned page-furniture placement and its content collisions.</summary>
+public sealed record PdfPageFurniturePlacement(
+    PdfContentBounds Bounds, IReadOnlyList<PdfContentBounds> Collisions)
+{
+    /// <summary>Gets whether the planned placement overlaps existing content.</summary>
+    public bool HasCollision => Collisions.Count > 0;
+}
+
+/// <summary>Plans header and footer placement before any page is changed.</summary>
+public static class PdfPageFurniturePlacementPlanner
+{
+    /// <summary>Places measured furniture inside the selected page edge and reports overlaps.</summary>
+    public static PdfPageFurniturePlacement Plan(double pageWidth, double pageHeight,
+        double contentWidth, double contentHeight, double horizontalMargin,
+        double verticalMargin, PdfPageFurnitureEdge edge,
+        PdfPageFurnitureAlignment alignment, IEnumerable<PdfContentBounds>? pageContent = null)
+    {
+        if (!double.IsFinite(pageWidth) || pageWidth <= 0
+            || !double.IsFinite(pageHeight) || pageHeight <= 0)
+            throw new ArgumentOutOfRangeException(nameof(pageWidth),
+                "Page dimensions must be finite and positive.");
+        if (!double.IsFinite(contentWidth) || contentWidth <= 0
+            || !double.IsFinite(contentHeight) || contentHeight <= 0)
+            throw new ArgumentOutOfRangeException(nameof(contentWidth),
+                "Furniture dimensions must be finite and positive.");
+        if (!double.IsFinite(horizontalMargin) || horizontalMargin < 0
+            || !double.IsFinite(verticalMargin) || verticalMargin < 0)
+            throw new ArgumentOutOfRangeException(nameof(horizontalMargin),
+                "Furniture margins must be finite and nonnegative.");
+        if (!Enum.IsDefined(edge)) throw new ArgumentOutOfRangeException(nameof(edge));
+        if (!Enum.IsDefined(alignment)) throw new ArgumentOutOfRangeException(nameof(alignment));
+        if (contentWidth + horizontalMargin * 2 > pageWidth
+            || contentHeight + verticalMargin > pageHeight)
+            throw new ArgumentException("The furniture does not fit within the requested page margins.");
+
+        double left = alignment switch
+        {
+            PdfPageFurnitureAlignment.Left => horizontalMargin,
+            PdfPageFurnitureAlignment.Center => (pageWidth - contentWidth) / 2,
+            PdfPageFurnitureAlignment.Right => pageWidth - horizontalMargin - contentWidth,
+            _ => throw new ArgumentOutOfRangeException(nameof(alignment))
+        };
+        double bottom = edge == PdfPageFurnitureEdge.Header
+            ? pageHeight - verticalMargin - contentHeight : verticalMargin;
+        var bounds = new PdfContentBounds(left, bottom, left + contentWidth, bottom + contentHeight);
+        PdfContentBounds[] collisions = [.. (pageContent ?? [])
+            .Where(candidate => candidate.Right > bounds.Left && candidate.Left < bounds.Right
+                && candidate.Top > bounds.Bottom && candidate.Bottom < bounds.Top)];
+        return new PdfPageFurniturePlacement(bounds, Array.AsReadOnly(collisions));
+    }
+}
+
 /// <summary>Settings for continuous Bates numbering across an ordered document batch.</summary>
 public sealed record PdfBatesNumberingOptions
 {
