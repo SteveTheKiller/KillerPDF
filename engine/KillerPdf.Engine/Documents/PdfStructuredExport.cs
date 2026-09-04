@@ -11,6 +11,8 @@ public enum PdfStructuredExportFormat
     PlainText,
     /// <summary>Standalone HTML.</summary>
     Html,
+    /// <summary>Editable Markdown.</summary>
+    Markdown,
     /// <summary>Structured JSON.</summary>
     Json
 }
@@ -59,6 +61,8 @@ public static class PdfStructuredExport
                         "Images are omitted from plain-text export.",
                     PdfStructuredExportFormat.Html =>
                         "HTML export contains image placeholders without image data.",
+                    PdfStructuredExportFormat.Markdown =>
+                        "Markdown export contains image placeholders without image data.",
                     PdfStructuredExportFormat.Json =>
                         "JSON export contains image placement without image data.",
                     _ => throw new ArgumentOutOfRangeException(nameof(format))
@@ -93,6 +97,26 @@ public static class PdfStructuredExport
             output.Append("</section>");
         }
         return output.Append("</body></html>").ToString();
+    }
+
+    /// <summary>Exports selected pages as editable Markdown with page headings.</summary>
+    public static string ToMarkdown(PdfDocument document, IEnumerable<int>? pageIndices = null,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
+        var output = new StringBuilder();
+        foreach (Page page in pages)
+        {
+            if (output.Length > 0) output.AppendLine().AppendLine();
+            output.Append("# Page ").Append(page.Index + 1);
+            foreach (PdfExtractedLine line in page.Content.Lines)
+                output.AppendLine().AppendLine().Append(EscapeMarkdown(line.Text));
+            foreach (PdfExtractedImage image in page.Content.Images)
+                output.AppendLine().AppendLine().Append("![Image: ")
+                    .Append(EscapeMarkdown(image.ResourceName ?? "inline"))
+                    .Append("]()");
+        }
+        return output.ToString();
     }
 
     /// <summary>Exports selected pages, lines, runs, images, geometry, and diagnostics as JSON.</summary>
@@ -143,6 +167,20 @@ public static class PdfStructuredExport
             cancellationToken.ThrowIfCancellationRequested();
             return new Page(index, reader.Read(index, cancellationToken));
         }).ToArray());
+    }
+
+    private static string EscapeMarkdown(string value)
+    {
+        var output = new StringBuilder(value.Length);
+        foreach (char character in value)
+        {
+            if (character is '\\' or '`' or '*' or '_' or '{' or '}' or '[' or ']'
+                or '<' or '>' or '(' or ')' or '#' or '+' or '-' or '.' or '!'
+                or '|')
+                output.Append('\\');
+            output.Append(character);
+        }
+        return output.ToString();
     }
 
     private sealed record Page(int Index, PdfPageContent Content);

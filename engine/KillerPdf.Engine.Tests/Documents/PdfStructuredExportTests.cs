@@ -8,19 +8,30 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfStructuredExportTests
 {
     [Fact]
-    public void ExportsTextHtmlAndStructuredJsonFromTheSamePageModel()
+    public void ExportsTextHtmlMarkdownAndStructuredJsonFromTheSamePageModel()
     {
         PdfDocument document = Document("BT /F1 12 Tf 10 30 Td (A & B) Tj ET");
 
         Assert.Equal("A & B", PdfStructuredExport.ToPlainText(document));
         string html = PdfStructuredExport.ToHtml(document);
         Assert.Contains("<p>A &amp; B</p>", html);
+        Assert.Equal("# Page 1\r\n\r\nA & B", PdfStructuredExport.ToMarkdown(document));
         using JsonDocument json = JsonDocument.Parse(PdfStructuredExport.ToJson(document));
         JsonElement page = json.RootElement[0];
         Assert.Equal(1, page.GetProperty("page").GetInt32());
         Assert.Equal("A & B", page.GetProperty("lines")[0].GetProperty("text").GetString());
         Assert.Equal("Helvetica", page.GetProperty("lines")[0].GetProperty("runs")[0]
             .GetProperty("font").GetString());
+    }
+
+    [Fact]
+    public void MarkdownEscapesFormattingCharactersFromSourceText()
+    {
+        PdfDocument document = Document("BT /F1 12 Tf 10 30 Td ([draft] *copy*) Tj ET");
+
+        string markdown = PdfStructuredExport.ToMarkdown(document);
+
+        Assert.Contains("\\[draft\\] \\*copy\\*", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
