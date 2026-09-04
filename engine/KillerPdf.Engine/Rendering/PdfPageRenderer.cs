@@ -61,7 +61,8 @@ public sealed class PdfPageRenderer
             270 => new Matrix(0, 1, -1, 0, page.Height, 0),
             _ => Matrix.Identity
         };
-        var state = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black, 1, []);
+        var state = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
+            1, 1, 1, []);
         var stack = new Stack<GraphicsState>();
         var path = new List<List<Point>>();
         List<Point>? subpath = null;
@@ -120,6 +121,13 @@ public sealed class PdfPageRenderer
                 case "w" when values.Count == 1:
                     state = state with { LineWidth = Math.Max(0, Number(values[0])) };
                     break;
+                case "gs" when values.Count == 1 && values[0] is PdfName stateName:
+                    if (TryGetGraphicsState(pageIndex, stateName, out double fillAlpha,
+                        out double strokeAlpha, out bool unsupportedBlend))
+                        state = state with { FillAlpha = fillAlpha, StrokeAlpha = strokeAlpha };
+                    if (unsupportedBlend)
+                        diagnostics.Add("Transparency blend-mode rendering is not implemented.");
+                    break;
                 case "m" when values.Count == 2:
                     subpath = [state.Transform.Apply(Number(values[0]), Number(values[1]))];
                     path.Add(subpath);
@@ -165,7 +173,8 @@ public sealed class PdfPageRenderer
                     break;
                 case "f" or "F" or "f*" when path.Count > 0:
                     FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Fill, instruction.Operator == "f*", state.Clips);
+                        path, state.Fill, state.FillAlpha,
+                        instruction.Operator == "f*", state.Clips);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
@@ -173,7 +182,7 @@ public sealed class PdfPageRenderer
                 case "S" or "s" when path.Count > 0:
                     if (instruction.Operator == "s" && subpath is { Count: > 1 }) subpath.Add(subpath[0]);
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Stroke, state.LineWidth, state.Clips);
+                        path, state.Stroke, state.StrokeAlpha, state.LineWidth, state.Clips);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
@@ -182,9 +191,10 @@ public sealed class PdfPageRenderer
                     if (instruction.Operator[0] == 'b' && subpath is { Count: > 1 })
                         subpath.Add(subpath[0]);
                     FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Fill, instruction.Operator.EndsWith('*'), state.Clips);
+                        path, state.Fill, state.FillAlpha,
+                        instruction.Operator.EndsWith('*'), state.Clips);
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Stroke, state.LineWidth, state.Clips);
+                        path, state.Stroke, state.StrokeAlpha, state.LineWidth, state.Clips);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
@@ -330,8 +340,44 @@ public sealed class PdfPageRenderer
                             samples[offset + 2] / 255d, samples[offset + 3] / 255d)
                     };
                 }
-                SetPixel(target, targetWidth, x, y, color);
+                SetPixel(target, targetWidth, x, y, color, 1);
             }
+    }
+
+    private bool TryGetGraphicsState(int pageIndex, PdfName resourceName,
+        out double fillAlpha, out double strokeAlpha, out bool unsupportedBlend)
+    {
+        fillAlpha = strokeAlpha = 1;
+        unsupportedBlend = false;
+        PdfPageTreeEntry page = _tree.Pages[pageIndex];
+        if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
+            || Resolve(resourcesValue) is not PdfDictionary resources
+            || !resources.TryGetValue(Name("ExtGState"), out PdfObject? statesValue)
+            || Resolve(statesValue) is not PdfDictionary states
+            || !states.TryGetValue(resourceName, out PdfObject? stateValue)
+            || Resolve(stateValue) is not PdfDictionary dictionary)
+            return false;
+        fillAlpha = Alpha(dictionary, "ca");
+        strokeAlpha = Alpha(dictionary, "CA");
+        if (dictionary.TryGetValue(Name("BM"), out PdfObject? blendValue))
+        {
+            PdfObject blend = Resolve(blendValue);
+            unsupportedBlend = blend switch
+            {
+                PdfName name => name.ValueAsLatin1() != "Normal",
+                PdfArray array => !array.Any(item => Resolve(item) is PdfName name
+                    && name.ValueAsLatin1() == "Normal"),
+                _ => true
+            };
+        }
+        return true;
+
+        double Alpha(PdfDictionary source, string key)
+        {
+            if (!source.TryGetValue(Name(key), out PdfObject? value)) return 1;
+            double alpha = Number(Resolve(value));
+            return double.IsFinite(alpha) ? Math.Clamp(alpha, 0, 1) : 1;
+        }
     }
 
     private int PositiveInteger(PdfDictionary dictionary, string key)
@@ -364,7 +410,7 @@ public sealed class PdfPageRenderer
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
 
     private static void FillPaths(byte[] pixels, int width, int height, double scaleX,
-        double scaleY, IReadOnlyList<List<Point>> paths, Color color, bool evenOdd,
+        double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha, bool evenOdd,
         IReadOnlyList<ClipRegion> clips)
     {
         var scaled = paths.Where(item => item.Count > 2).Select(item => item.Select(point =>
@@ -377,16 +423,19 @@ public sealed class PdfPageRenderer
                 double sampleX = x + 0.5;
                 if (Contains(scaled, evenOdd, sampleX, sampleY)
                     && InsideClips(clips, sampleX / scaleX, (height - sampleY) / scaleY))
-                    SetPixel(pixels, width, x, y, color);
+                    SetPixel(pixels, width, x, y, color, alpha);
             }
         }
     }
 
     private static void StrokePaths(byte[] pixels, int width, int height, double scaleX,
-        double scaleY, IReadOnlyList<List<Point>> paths, Color color, double lineWidth,
+        double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha,
+        double lineWidth,
         IReadOnlyList<ClipRegion> clips)
     {
         int radius = Math.Max(0, (int)Math.Ceiling(lineWidth * Math.Max(scaleX, scaleY) / 2));
+        var coverage = new bool[checked(width * height)];
+        int left = width, right = 0, top = height, bottom = 0;
         foreach (List<Point> path in paths)
             for (int i = 1; i < path.Count; i++)
             {
@@ -402,9 +451,19 @@ public sealed class PdfPageRenderer
                             if (xx >= 0 && xx < width && yy >= 0 && yy < height)
                                 if (InsideClips(clips, (xx + 0.5) / scaleX,
                                     (height - yy - 0.5) / scaleY))
-                                    SetPixel(pixels, width, xx, yy, color);
+                                {
+                                    coverage[yy * width + xx] = true;
+                                    left = Math.Min(left, xx);
+                                    right = Math.Max(right, xx + 1);
+                                    top = Math.Min(top, yy);
+                                    bottom = Math.Max(bottom, yy + 1);
+                                }
                 }
             }
+        for (int y = top; y < bottom; y++)
+            for (int x = left; x < right; x++)
+                if (coverage[y * width + x])
+                    SetPixel(pixels, width, x, y, color, alpha);
     }
 
     private static void AddCubic(List<Point> path, Point start, Point control1,
@@ -420,13 +479,21 @@ public sealed class PdfPageRenderer
         }
     }
 
-    private static void SetPixel(byte[] pixels, int width, int x, int y, Color color)
+    private static void SetPixel(byte[] pixels, int width, int x, int y,
+        Color color, double opacity)
     {
         int offset = (y * width + x) * 4;
-        pixels[offset] = color.Blue;
-        pixels[offset + 1] = color.Green;
-        pixels[offset + 2] = color.Red;
-        pixels[offset + 3] = 255;
+        double sourceAlpha = Math.Clamp(opacity, 0, 1);
+        double targetAlpha = pixels[offset + 3] / 255d;
+        double outputAlpha = sourceAlpha + targetAlpha * (1 - sourceAlpha);
+        if (outputAlpha <= 0) return;
+        pixels[offset] = Blend(color.Blue, pixels[offset]);
+        pixels[offset + 1] = Blend(color.Green, pixels[offset + 1]);
+        pixels[offset + 2] = Blend(color.Red, pixels[offset + 2]);
+        pixels[offset + 3] = (byte)Math.Round(outputAlpha * 255);
+
+        byte Blend(byte source, byte target) => (byte)Math.Round(
+            (source * sourceAlpha + target * targetAlpha * (1 - sourceAlpha)) / outputAlpha);
     }
 
     private static GraphicsState ApplyPendingClip(GraphicsState state,
@@ -473,7 +540,8 @@ public sealed class PdfPageRenderer
     };
 
     private readonly record struct GraphicsState(
-        Matrix Transform, Color Fill, Color Stroke, double LineWidth,
+        Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
+        double LineWidth,
         IReadOnlyList<ClipRegion> Clips);
     private sealed record ClipRegion(IReadOnlyList<Point[]> Polygons, bool EvenOdd)
     {

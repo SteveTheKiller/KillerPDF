@@ -167,6 +167,27 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 0, 0, 255], Pixel(page, 12, 5));
     }
 
+    [Fact]
+    public void Render_CompositesGraphicsStateOpacityOverTheBackground()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetOpacity(0.5)
+            .SetFillRgb(1, 0, 0)
+            .Rectangle(0, 0, 10, 10)
+            .Fill();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage opaque = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        PdfRenderedPage transparent = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([128, 128, 255, 255], Pixel(opaque, 5, 5));
+        Assert.Equal([0, 0, 255, 128], Pixel(transparent, 5, 5));
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }
