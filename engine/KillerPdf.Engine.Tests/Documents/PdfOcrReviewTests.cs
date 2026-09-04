@@ -74,6 +74,25 @@ public sealed class PdfOcrReviewTests
     }
 
     [Fact]
+    public void ConfidentWordsCanBeAcceptedInOneReviewStep()
+    {
+        var original = new PdfOcrReview([
+            Word("low", 0, 0, "Kiler", 0.49),
+            Word("threshold", 0, 1, "PDF", 0.9),
+            Word("high", 0, 2, "Engine", 0.99)]);
+
+        PdfOcrReview reviewed = original.AcceptConfidentWords(0.9);
+
+        Assert.Equal(PdfOcrWordStatus.Pending, reviewed.Words[0].Status);
+        Assert.Equal(PdfOcrWordStatus.Ignored, reviewed.Words[1].Status);
+        Assert.Equal(PdfOcrWordStatus.Ignored, reviewed.Words[2].Status);
+        Assert.All(original.Words,
+            word => Assert.Equal(PdfOcrWordStatus.Pending, word.Status));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            original.AcceptConfidentWords(-0.1));
+    }
+
+    [Fact]
     public void ReportEscapesTextAndUsesStableInvariantConfidence()
     {
         var review = new PdfOcrReview([Word("a", 0, 0, "Hello, \"world\"", 0.125)]);

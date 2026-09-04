@@ -261,6 +261,17 @@ public sealed class PdfOcrReview
     public PdfOcrReview Ignore(string id) =>
         Change(id, word => word.WithText(word.Text, PdfOcrWordStatus.Ignored));
 
+    /// <summary>Accepts every pending word at or above a confidence threshold.</summary>
+    public PdfOcrReview AcceptConfidentWords(double threshold)
+    {
+        if (!double.IsFinite(threshold) || threshold is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(threshold));
+        return new PdfOcrReview(_words.Select(word =>
+            word.Status == PdfOcrWordStatus.Pending && word.Confidence >= threshold
+                ? word.WithText(word.Text, PdfOcrWordStatus.Ignored)
+                : word));
+    }
+
     /// <summary>Returns a new review with every exact text match corrected.</summary>
     public PdfOcrReview ReplaceAll(string text, string replacement,
         StringComparison comparison = StringComparison.Ordinal)
