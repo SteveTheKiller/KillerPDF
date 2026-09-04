@@ -23,6 +23,36 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void RepairsMissingLanguageAfterExplicitPreviewWithoutReplacingMetadata()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata
+            {
+                Title = "Preserved title",
+                Author = "Preserved author"
+            })
+            .AddBlankPage()
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+
+        PdfAccessibilityLanguageRepair preview =
+            PdfAccessibilityRepair.PreviewDocumentLanguage(document, "en-US");
+        PdfAccessibilityRepairResult result =
+            PdfAccessibilityRepair.ApplyDocumentLanguage(document, preview);
+        PdfDocument reopened = PdfDocument.Open(result.Document);
+        PdfDocumentInformation information = PdfDocumentInformation.Read(reopened);
+
+        Assert.True(preview.WillChange);
+        Assert.Equal("en-US", information.Language);
+        Assert.Equal("Preserved title", information.Title);
+        Assert.Equal("Preserved author", information.Author);
+        Assert.DoesNotContain(result.After.Findings, finding =>
+            finding.Code == PdfAccessibilityFindingCode.MissingDocumentLanguage);
+        Assert.True(result.Document.Span[..source.Length].SequenceEqual(source));
+        Assert.False(PdfAccessibilityRepair.PreviewDocumentLanguage(reopened, "fr-FR").WillChange);
+    }
+
+    [Fact]
     public void InspectAcceptsPdfUaDocumentLevelDeclarations()
     {
         var content = new PdfContentStreamBuilder()

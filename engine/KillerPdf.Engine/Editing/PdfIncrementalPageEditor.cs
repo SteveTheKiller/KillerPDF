@@ -172,6 +172,7 @@ public sealed class PdfIncrementalPageEditor
     private PendingOutputIntent? _outputIntent;
     private bool _clearOutputIntents;
     private PdfDocumentMetadata? _metadata;
+    private string? _documentLanguage;
     private bool _clearMetadata;
     private readonly Dictionary<string, bool> _checkBoxValues =
         new(StringComparer.Ordinal);
@@ -823,6 +824,7 @@ public sealed class PdfIncrementalPageEditor
                 "The document language is not a valid BCP 47 language tag.",
                 nameof(metadata));
         _metadata = metadata;
+        _documentLanguage = null;
         _clearMetadata = false;
         _catalogPresentationChanged = true;
         RequireVersion(new PdfVersion(1, 4));
@@ -837,6 +839,7 @@ public sealed class PdfIncrementalPageEditor
             throw new InvalidOperationException(
                 "PDF/A-4 and PDF/UA-2 documents must retain their conformance metadata.");
         _metadata = null;
+        _documentLanguage = null;
         _clearMetadata = true;
         _catalogPresentationChanged = true;
         return this;
@@ -1137,6 +1140,19 @@ public sealed class PdfIncrementalPageEditor
                 nameof(fileName));
         _removedAttachments.Add(fileName);
         _catalogPresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>Sets only the catalog's primary language without replacing other metadata.</summary>
+    public PdfIncrementalPageEditor SetDocumentLanguage(string language)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(language);
+        if (!PdfLanguageTag.IsValid(language))
+            throw new ArgumentException(
+                "The document language is not a valid BCP 47 language tag.", nameof(language));
+        _documentLanguage = language;
+        _catalogPresentationChanged = true;
+        RequireVersion(new PdfVersion(1, 4));
         return this;
     }
 
@@ -4131,6 +4147,8 @@ public sealed class PdfIncrementalPageEditor
         bool removePageLabels = AddPageLabels(importedGroups, catalogReplacements);
         AddCatalogPresentationChanges(catalogReplacements, references);
         AddMetadata(update, catalogReplacements);
+        if (_documentLanguage is not null)
+            catalogReplacements[LanguageName] = TextString(_documentLanguage);
         AddOutputIntent(update, catalogReplacements);
         if (_replacementAcroForm is not null)
             catalogReplacements[AcroFormName] = _replacementAcroForm;
@@ -4146,13 +4164,14 @@ public sealed class PdfIncrementalPageEditor
         if (_clearMetadata)
         {
             catalogRemovals.Add(MetadataName);
-            catalogRemovals.Add(LanguageName);
+            if (_documentLanguage is null) catalogRemovals.Add(LanguageName);
         }
         if (_removeCatalogAssociatedFiles)
             catalogRemovals.Add(AssociatedFilesName);
         if (_clearOutlines && _bookmarks.Count == 0)
             catalogRemovals.Add(OutlinesName);
-        if (_metadata is not null && _metadata.Language is null)
+        if (_metadata is not null && _metadata.Language is null
+            && _documentLanguage is null)
             catalogRemovals.Add(LanguageName);
         if (_removeAcroForm)
         {
@@ -16847,6 +16866,8 @@ public sealed class PdfIncrementalPageEditor
         }
         AddCatalogPresentationChanges(replacements);
         AddMetadata(update, replacements);
+        if (_documentLanguage is not null)
+            replacements[LanguageName] = TextString(_documentLanguage);
         AddOutputIntent(update, replacements);
         AddPendingAttachments(update, replacements);
         if (_replacementAcroForm is not null)
@@ -16870,7 +16891,8 @@ public sealed class PdfIncrementalPageEditor
         }
         var removals = new List<PdfName>();
         if (removeNames) removals.Add(NamesName);
-        if (_metadata is not null && _metadata.Language is null)
+        if (_metadata is not null && _metadata.Language is null
+            && _documentLanguage is null)
             removals.Add(LanguageName);
         if (_clearOpenAction) removals.Add(OpenActionName);
         if (_clearPageLayout) removals.Add(PageLayoutName);
@@ -16880,7 +16902,7 @@ public sealed class PdfIncrementalPageEditor
         if (_clearMetadata)
         {
             removals.Add(MetadataName);
-            removals.Add(LanguageName);
+            if (_documentLanguage is null) removals.Add(LanguageName);
         }
         if (_removeCatalogAssociatedFiles)
             removals.Add(AssociatedFilesName);
