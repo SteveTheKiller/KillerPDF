@@ -53,6 +53,8 @@ public sealed record PdfFormWidgetInfo
     public IReadOnlyList<string> Values { get; init; } = [];
     /// <summary>Gets the effective default appearance string.</summary>
     public required string DefaultAppearance { get; init; }
+    /// <summary>Gets the effective horizontal text or choice alignment.</summary>
+    public PdfTextFieldAlignment Alignment { get; init; }
     /// <summary>Gets the widget background color, or null when none is defined.</summary>
     public PdfRgbColor? BackgroundColor { get; init; }
     /// <summary>Gets the widget border color, or null when none is defined.</summary>

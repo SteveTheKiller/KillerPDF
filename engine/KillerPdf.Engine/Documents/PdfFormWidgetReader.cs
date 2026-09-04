@@ -18,6 +18,7 @@ public static class PdfFormWidgetReader
     private static readonly PdfName MappingName = Name("TM");
     private static readonly PdfName ValueName = Name("V");
     private static readonly PdfName DefaultAppearanceName = Name("DA");
+    private static readonly PdfName AlignmentName = Name("Q");
     private static readonly PdfName FlagsName = Name("Ff");
     private static readonly PdfName MaximumLengthName = Name("MaxLen");
     private static readonly PdfName OptionsName = Name("Opt");
@@ -67,6 +68,8 @@ public static class PdfFormWidgetReader
             string mappingName = string.Empty;
             IReadOnlyList<string> values = [];
             string defaultAppearance = string.Empty;
+            PdfTextFieldAlignment alignment = PdfTextFieldAlignment.Left;
+            bool hasAlignment = false;
             long flags = 0;
             int maximumLength = 0;
             List<PdfFormChoiceInfo> options = [];
@@ -119,6 +122,14 @@ public static class PdfFormWidgetReader
                     defaultAppearance = PdfUnicodeEncoding.DecodeTextString(
                         appearance.Bytes.Span, "An AcroForm /DA value");
                 }
+                if (!hasAlignment && node.TryGetValue(AlignmentName, out PdfObject? alignmentValue))
+                {
+                    long rawAlignment = Integer(document, alignmentValue, "An AcroForm /Q value");
+                    if (rawAlignment is < 0 or > 2)
+                        throw new InvalidOperationException("An AcroForm /Q value is out of range.");
+                    alignment = (PdfTextFieldAlignment)rawAlignment;
+                    hasAlignment = true;
+                }
                 if (flags == 0 && node.TryGetValue(FlagsName, out PdfObject? flagsValue))
                     flags = Integer(document, flagsValue, "An AcroForm /Ff value");
                 if (maximumLength == 0
@@ -156,6 +167,7 @@ public static class PdfFormWidgetReader
                 Value = value,
                 Values = values,
                 DefaultAppearance = defaultAppearance,
+                Alignment = alignment,
                 BackgroundColor = WidgetColor(
                     document, widget, BackgroundColorName, "background"),
                 BorderColor = WidgetColor(

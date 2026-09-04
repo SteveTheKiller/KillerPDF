@@ -47,7 +47,8 @@ public sealed record PdfFormFieldProposal
         string? suggestedTooltip = null, IEnumerable<string>? suggestedOptions = null,
         string? suggestedValue = null, bool suggestedReadOnly = false,
         bool suggestedRequired = false, bool suggestedChecked = false,
-        bool suggestedMultiline = false)
+        bool suggestedMultiline = false, bool suggestedDoNotScroll = false,
+        PdfTextFieldAlignment suggestedAlignment = PdfTextFieldAlignment.Left)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -77,6 +78,18 @@ public sealed record PdfFormFieldProposal
             throw new ArgumentException(
                 "Multiline behavior can be suggested only for a text field.",
                 nameof(suggestedMultiline));
+        if (suggestedDoNotScroll && kind != PdfRecognizedFieldKind.Text)
+            throw new ArgumentException(
+                "No-scroll behavior can be suggested only for a text field.",
+                nameof(suggestedDoNotScroll));
+        if (!Enum.IsDefined(suggestedAlignment))
+            throw new ArgumentOutOfRangeException(nameof(suggestedAlignment));
+        if (suggestedAlignment != PdfTextFieldAlignment.Left
+            && kind is not (PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.DropDown
+                or PdfRecognizedFieldKind.EditableComboBox or PdfRecognizedFieldKind.ListBox))
+            throw new ArgumentException(
+                "Alignment can be suggested only for a text or choice field.",
+                nameof(suggestedAlignment));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
         Id = id;
         PageIndex = pageIndex;
@@ -91,6 +104,8 @@ public sealed record PdfFormFieldProposal
         SuggestedRequired = suggestedRequired;
         SuggestedChecked = suggestedChecked;
         SuggestedMultiline = suggestedMultiline;
+        SuggestedDoNotScroll = suggestedDoNotScroll;
+        SuggestedAlignment = suggestedAlignment;
         Status = status;
     }
 
@@ -120,6 +135,10 @@ public sealed record PdfFormFieldProposal
     public bool SuggestedChecked { get; }
     /// <summary>Gets whether a proposed text field should accept multiple lines.</summary>
     public bool SuggestedMultiline { get; }
+    /// <summary>Gets whether a proposed text field should disable viewer scrolling.</summary>
+    public bool SuggestedDoNotScroll { get; }
+    /// <summary>Gets the proposed horizontal text or choice alignment.</summary>
+    public PdfTextFieldAlignment SuggestedAlignment { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
@@ -127,11 +146,13 @@ public sealed record PdfFormFieldProposal
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
-        bool? multiline = null) =>
+        bool? multiline = null, bool? doNotScroll = null,
+        PdfTextFieldAlignment? alignment = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
-            isChecked ?? SuggestedChecked, multiline ?? SuggestedMultiline);
+            isChecked ?? SuggestedChecked, multiline ?? SuggestedMultiline,
+            doNotScroll ?? SuggestedDoNotScroll, alignment ?? SuggestedAlignment);
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
@@ -164,10 +185,11 @@ public sealed class PdfFormRecognitionReview
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
-        bool? multiline = null) =>
+        bool? multiline = null, bool? doNotScroll = null,
+        PdfTextFieldAlignment? alignment = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
-            readOnly, required, isChecked, multiline));
+            readOnly, required, isChecked, multiline, doNotScroll, alignment));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -217,7 +239,9 @@ public sealed class PdfFormRecognitionReview
                         {
                             ReadOnly = proposal.SuggestedReadOnly,
                             Required = proposal.SuggestedRequired,
-                            Multiline = proposal.SuggestedMultiline
+                            Multiline = proposal.SuggestedMultiline,
+                            DoNotScroll = proposal.SuggestedDoNotScroll,
+                            Alignment = proposal.SuggestedAlignment
                         },
                         fieldMetadata: metadata);
                     break;
@@ -234,13 +258,21 @@ public sealed class PdfFormRecognitionReview
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         proposal.SuggestedOptions, proposal.SuggestedValue,
                         editable: proposal.Kind == PdfRecognizedFieldKind.EditableComboBox,
-                        fieldMetadata: metadata, fieldOptions: fieldOptions);
+                        fieldMetadata: metadata, fieldOptions: fieldOptions,
+                        choiceOptions: new PdfChoiceFieldOptions
+                        {
+                            Alignment = proposal.SuggestedAlignment
+                        });
                     break;
                 case PdfRecognizedFieldKind.ListBox:
                     editor.AddListBox(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         proposal.SuggestedOptions, proposal.SuggestedValue,
-                        fieldMetadata: metadata, fieldOptions: fieldOptions);
+                        fieldMetadata: metadata, fieldOptions: fieldOptions,
+                        choiceOptions: new PdfChoiceFieldOptions
+                        {
+                            Alignment = proposal.SuggestedAlignment
+                        });
                     break;
                 case PdfRecognizedFieldKind.Signature:
                     editor.AddSignatureField(proposal.PageIndex, proposal.SuggestedName,

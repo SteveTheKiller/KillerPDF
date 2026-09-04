@@ -49,6 +49,12 @@ public sealed class PdfFormRecognitionTests
         Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal("bad", 0,
             new PdfContentBounds(0, 0, 10, 20), PdfRecognizedFieldKind.Text, 1, "bad",
             suggestedChecked: true));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal("bad", 0,
+            new PdfContentBounds(0, 0, 10, 20), PdfRecognizedFieldKind.CheckBox, 1, "bad",
+            suggestedDoNotScroll: true));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal("bad", 0,
+            new PdfContentBounds(0, 0, 10, 20), PdfRecognizedFieldKind.Signature, 1, "bad",
+            suggestedAlignment: PdfTextFieldAlignment.Center));
     }
 
     [Fact]
@@ -103,6 +109,33 @@ public sealed class PdfFormRecognitionTests
         PdfFormWidgetInfo approved = widgets.Single(widget => widget.FieldName == "approved");
         Assert.Equal("/Approved", approved.Value);
         Assert.Equal("/Approved", approved.OnValue);
+    }
+
+    [Fact]
+    public void ReviewedTextAndChoiceLayoutBehaviorsPersist()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new("notes", 0, new PdfContentBounds(10, 10, 150, 50),
+                PdfRecognizedFieldKind.Text, 1, "notes", suggestedMultiline: true,
+                suggestedDoNotScroll: true,
+                suggestedAlignment: PdfTextFieldAlignment.Right),
+            new("country", 0, new PdfContentBounds(10, 70, 150, 90),
+                PdfRecognizedFieldKind.DropDown, 1, "country",
+                suggestedOptions: ["US", "CA"],
+                suggestedAlignment: PdfTextFieldAlignment.Center)])
+            .Accept("notes")
+            .Accept("country");
+
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(review.ApplyAccepted(document)), 0);
+
+        PdfFormWidgetInfo notes = widgets.Single(widget => widget.FieldName == "notes");
+        Assert.Equal(PdfTextFieldAlignment.Right, notes.Alignment);
+        Assert.NotEqual(0, notes.Flags & (1L << 23));
+        Assert.Equal(PdfTextFieldAlignment.Center,
+            widgets.Single(widget => widget.FieldName == "country").Alignment);
     }
 
     [Fact]
