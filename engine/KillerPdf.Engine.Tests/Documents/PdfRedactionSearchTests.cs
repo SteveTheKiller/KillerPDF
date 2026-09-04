@@ -279,6 +279,25 @@ public sealed class PdfRedactionSearchTests
         Assert.Empty(review.Exclude(match.Id).Included);
     }
 
+    [Fact]
+    public void DocumentAttachmentsUseTheSameReviewWorkflowWithoutExposingPayloads()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("private.txt", "secret payload"u8.ToArray())
+            .AddAttachment("keep.txt", "public payload"u8.ToArray()).Build());
+
+        PdfRedactionReview review = PdfRedactionReview.FromAttachments(document,
+            reasonCode: "Private data");
+
+        Assert.Equal(2, review.Matches.Count);
+        Assert.All(review.Matches, match =>
+            Assert.Equal(PdfRedactionTargetKind.Attachment, match.TargetKind));
+        Assert.Equal(-1, review.Matches[0].PageIndex);
+        Assert.DoesNotContain("secret payload", review.ToJson(), StringComparison.Ordinal);
+        Assert.Equal("Private data", review.Matches[0].ReasonCode);
+    }
+
     private static PdfPageContent Read(string text)
     {
         string content = $"BT /F1 12 Tf 20 100 Td ({text}) Tj ET";

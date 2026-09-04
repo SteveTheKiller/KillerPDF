@@ -85,6 +85,25 @@ public sealed record PdfCommentRedactionResult(
     });
 }
 
+/// <summary>The verified result of permanently removing reviewed attachments.</summary>
+public sealed record PdfAttachmentRedactionResult(
+    ReadOnlyMemory<byte> Document, IReadOnlyList<string> RemovedIds,
+    IReadOnlyList<string> RemainingAttachmentNames)
+{
+    /// <summary>Exports a data-safe result without document bytes or attachment payloads.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        RemovedCount = RemovedIds.Count,
+        RemovedIds,
+        RemainingAttachmentNames
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
+}
+
 /// <summary>Creates and verifies PDFs that contain only sanitized page images.</summary>
 public static class PdfPermanentRedaction
 {
@@ -112,6 +131,63 @@ public static class PdfPermanentRedaction
         (Name("Thumb"), "PageThumbnail", "The output page contains a thumbnail."),
         (Name("AF"), "PageAssociatedFiles", "The output page contains associated files.")
     ];
+
+    /// <summary>Permanently removes selected reviewed attachments and verifies the result.</summary>
+    public static PdfAttachmentRedactionResult ApplyReviewedAttachments(
+        PdfDocument document, PdfRedactionReview review,
+        bool allowSignatureInvalidation = false)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(review);
+        PdfRedactionMatch[] selected = review.Included.ToArray();
+        if (selected.Any(match => match.TargetKind != PdfRedactionTargetKind.Attachment))
+            throw new ArgumentException(
+                "Reviewed attachment removal accepts only attachment targets.", nameof(review));
+        PdfAttachmentInfo[] current = PdfAttachmentReader.Read(document).ToArray();
+        var targets = new List<(PdfRedactionMatch Match, PdfAttachmentInfo Attachment)>();
+        foreach (PdfRedactionMatch match in selected)
+        {
+            if (!TryAttachmentIndex(match.Id, out int index)
+                || index >= current.Length
+                || !string.Equals(current[index].FileName, match.Text, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"The document no longer contains reviewed attachment '{match.Id}'.");
+            targets.Add((match, current[index]));
+        }
+        if (targets.Count == 0)
+            return new PdfAttachmentRedactionResult(document.Source, [],
+                Array.AsReadOnly(current.Select(item => item.FileName).ToArray()));
+
+        var editor = new PdfIncrementalPageEditor(document);
+        foreach (var target in targets)
+            editor.RemoveAttachment(target.Attachment.FileName);
+        byte[] output = PdfDocumentWriter.Write(PdfDocument.Open(editor.Build()),
+            new PdfDocumentWriteOptions
+            {
+                PruneUnreachableObjects = true,
+                AllowSignatureInvalidation = allowSignatureInvalidation
+            });
+        PdfDocument reopened = PdfDocument.Open(output);
+        string[] remaining = [.. PdfAttachmentReader.Read(reopened)
+            .Select(item => item.FileName)];
+        string[] expected = [.. current.Select(item => item.FileName)
+            .Except(targets.Select(item => item.Attachment.FileName), StringComparer.Ordinal)];
+        if (!remaining.SequenceEqual(expected, StringComparer.Ordinal)
+            || reopened.CrossReferences.Sections.Count != 1)
+            throw new InvalidOperationException(
+                "The saved document did not preserve the reviewed attachment-removal result.");
+        return new PdfAttachmentRedactionResult(output,
+            Array.AsReadOnly(selected.Select(match => match.Id).ToArray()),
+            Array.AsReadOnly(remaining));
+
+        static bool TryAttachmentIndex(string id, out int index)
+        {
+            index = -1;
+            return id.StartsWith("attachment:", StringComparison.Ordinal)
+                && int.TryParse(id.AsSpan("attachment:".Length), out index)
+                && index >= 0;
+        }
+    }
 
     /// <summary>Permanently removes selected reviewed comments and verifies the rewritten result.</summary>
     public static PdfCommentRedactionResult ApplyReviewedComments(

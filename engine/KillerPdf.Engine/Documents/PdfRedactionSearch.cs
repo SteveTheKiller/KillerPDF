@@ -49,7 +49,9 @@ public enum PdfRedactionTargetKind
     /// <summary>An extracted image placement.</summary>
     Image,
     /// <summary>A review annotation containing comment text.</summary>
-    Comment
+    Comment,
+    /// <summary>A document-level embedded file.</summary>
+    Attachment
 }
 
 /// <summary>A rectangular page region proposed for redaction.</summary>
@@ -184,6 +186,20 @@ public sealed class PdfRedactionReview
                 comment.PageIndex, comment.Contents, bounds, -1, 0,
                 reasonCode, overlayText, PdfRedactionTargetKind.Comment));
         }
+        return new PdfRedactionReview(matches);
+    }
+
+    /// <summary>Builds a review from every document-level embedded file.</summary>
+    public static PdfRedactionReview FromAttachments(
+        PdfDocument document, string? reasonCode = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        PdfRedactionSearch.ValidatePresentation(reasonCode, null, nameof(document));
+        PdfRedactionMatch[] matches = [.. PdfAttachmentReader.Read(document)
+            .Select((attachment, index) => new PdfRedactionMatch(
+                $"attachment:{index}", -1, attachment.FileName,
+                new PdfContentBounds(0, 0, 0, 0), -1, 0,
+                reasonCode, null, PdfRedactionTargetKind.Attachment))];
         return new PdfRedactionReview(matches);
     }
 

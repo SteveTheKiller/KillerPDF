@@ -11,6 +11,34 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfPermanentRedactionTests
 {
     [Fact]
+    public void ReviewedAttachmentsArePermanentlyRemovedAndVerified()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("remove.txt", "private"u8.ToArray())
+            .AddAttachment("keep.txt", "public"u8.ToArray()).Build());
+        PdfRedactionReview all = PdfRedactionReview.FromAttachments(document);
+        PdfRedactionReview review = all.Exclude(Assert.Single(all.Matches,
+            match => match.Text == "keep.txt").Id);
+
+        PdfAttachmentRedactionResult result =
+            PdfPermanentRedaction.ApplyReviewedAttachments(document, review);
+
+        Assert.Equal([Assert.Single(all.Matches,
+            match => match.Text == "remove.txt").Id], result.RemovedIds);
+        Assert.Equal(["keep.txt"], result.RemainingAttachmentNames);
+        Assert.Equal(["keep.txt"], PdfAttachmentReader.Read(
+            PdfDocument.Open(result.Document)).Select(item => item.FileName));
+        Assert.DoesNotContain("private",
+            System.Text.Encoding.Latin1.GetString(result.Document.Span));
+        Assert.Contains("\"removedCount\":1", result.ToJson());
+        Assert.Throws<ArgumentException>(() =>
+            PdfPermanentRedaction.ApplyReviewedAttachments(document,
+                PdfRedactionReview.FromRegions([
+                    new PdfRedactionRegion(0, new PdfContentBounds(0, 0, 10, 10))])));
+    }
+
+    [Fact]
     public void ReviewedCommentsArePermanentlyRemovedAndVerified()
     {
         PdfDocument source = PdfDocument.Open(
