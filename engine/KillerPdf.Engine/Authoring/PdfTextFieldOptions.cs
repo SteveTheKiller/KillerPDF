@@ -9,6 +9,8 @@ public sealed record PdfTextFieldOptions
     public bool Required { get; init; }
     /// <summary>Gets whether the field is omitted from form submission.</summary>
     public bool NoExport { get; init; }
+    /// <summary>Gets where the field widget is visible.</summary>
+    public PdfFormFieldVisibility Visibility { get; init; }
     /// <summary>Gets whether the field accepts multiple lines.</summary>
     public bool Multiline { get; init; }
     /// <summary>Gets whether entered text is visually obscured.</summary>

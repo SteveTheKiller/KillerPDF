@@ -3135,7 +3135,7 @@ public sealed partial class PdfDocumentBuilder
                     Number(field.X), Number(field.Y),
                     Number(field.X + field.Width), Number(field.Y + field.Height)])),
                 ("P", new PdfIndirectReference(pageNumber, 0)),
-                ("F", new PdfInteger(4)),
+                ("F", new PdfInteger(FormWidgetFlags(field.Options.Visibility))),
                 ("DA", defaultAppearance),
                 ("MK", FormFieldAppearanceCharacteristics(field.AppearanceStyle)),
                 ("BS", FormFieldBorderDictionary(field.AppearanceStyle)),
@@ -3207,7 +3207,7 @@ public sealed partial class PdfDocumentBuilder
                     Number(field.X), Number(field.Y),
                     Number(field.X + field.Width), Number(field.Y + field.Height)])),
                 ("P", new PdfIndirectReference(pages[field.PageIndex].PageNumber, 0)),
-                ("F", new PdfInteger(4)),
+                ("F", new PdfInteger(FormWidgetFlags(field.Options.Visibility))),
                 ("MK", CheckBoxAppearanceCharacteristics(field)),
                 ("BS", FormFieldBorderDictionary(field.AppearanceStyle)),
                 ("AP", Dictionary(("N", new PdfDictionary([
@@ -3375,7 +3375,7 @@ public sealed partial class PdfDocumentBuilder
                         Number(option.X), Number(option.Y),
                         Number(option.X + option.Width), Number(option.Y + option.Height)])),
                     ("P", new PdfIndirectReference(pages[option.PageIndex].PageNumber, 0)),
-                    ("F", new PdfInteger(4)),
+                    ("F", new PdfInteger(FormWidgetFlags(group.FieldOptions.Visibility))),
                     ("AS", appearanceState),
                     ("MK", FormFieldAppearanceCharacteristics(style)),
                     ("BS", FormFieldBorderDictionary(style)),
@@ -3493,7 +3493,7 @@ public sealed partial class PdfDocumentBuilder
                     Number(field.X), Number(field.Y),
                     Number(field.X + field.Width), Number(field.Y + field.Height)])),
                 ("P", new PdfIndirectReference(pages[field.PageIndex].PageNumber, 0)),
-                ("F", new PdfInteger(4)),
+                ("F", new PdfInteger(FormWidgetFlags(field.FieldOptions.Visibility))),
                 ("DA", Latin1String(
                     $"{NameToken(fontResource)} {FormatNumber(field.FontSize)} Tf " +
                     $"{ColorOperands(field.ChoiceOptions.AppearanceStyle!.TextColor)} rg")),
@@ -3812,7 +3812,7 @@ public sealed partial class PdfDocumentBuilder
                 Number(field.X), Number(field.Y),
                 Number(field.X + field.Width), Number(field.Y + field.Height)])),
             ("P", new PdfIndirectReference(pages[field.PageIndex].PageNumber, 0)),
-            ("F", new PdfInteger(4)),
+            ("F", new PdfInteger(FormWidgetFlags(field.FieldOptions.Visibility))),
             ("AS", Name("Normal")),
             ("H", Name(PushButtonHighlightName(field.HighlightMode))),
             ("DA", Latin1String(
@@ -4264,7 +4264,7 @@ public sealed partial class PdfDocumentBuilder
                 Number(field.X), Number(field.Y),
                 Number(field.X + field.Width), Number(field.Y + field.Height)])),
             ("P", new PdfIndirectReference(pages[field.PageIndex].PageNumber, 0)),
-            ("F", new PdfInteger(4)),
+            ("F", new PdfInteger(FormWidgetFlags(field.FieldOptions.Visibility))),
             ("AP", Dictionary(("N", new PdfIndirectReference(allocatedField.AppearanceNumber, 0))))
         };
         int flags = FormFieldFlags(field.FieldOptions);
@@ -5606,6 +5606,15 @@ public sealed partial class PdfDocumentBuilder
         if (options.NoExport) flags |= 1 << 2;
         return flags;
     }
+
+    private static int FormWidgetFlags(PdfFormFieldVisibility visibility) => visibility switch
+    {
+        PdfFormFieldVisibility.Visible => 4,
+        PdfFormFieldVisibility.Hidden => 2,
+        PdfFormFieldVisibility.VisibleButDoesNotPrint => 0,
+        PdfFormFieldVisibility.HiddenButPrintable => 36,
+        _ => throw new ArgumentOutOfRangeException(nameof(visibility))
+    };
 
     private static void ValidateFormFontText(TrueTypeFont font, string value, string parameterName)
     {

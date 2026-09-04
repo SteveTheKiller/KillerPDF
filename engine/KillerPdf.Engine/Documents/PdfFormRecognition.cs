@@ -50,7 +50,9 @@ public sealed record PdfFormFieldProposal
         bool suggestedMultiline = false, bool suggestedDoNotScroll = false,
         PdfTextFieldAlignment suggestedAlignment = PdfTextFieldAlignment.Left,
         double suggestedFontSize = 12,
-        PdfFormFieldAppearanceStyle? suggestedAppearanceStyle = null)
+        PdfFormFieldAppearanceStyle? suggestedAppearanceStyle = null,
+        bool suggestedNoExport = false,
+        PdfFormFieldVisibility suggestedVisibility = PdfFormFieldVisibility.Visible)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -89,6 +91,8 @@ public sealed record PdfFormFieldProposal
         if (!double.IsFinite(suggestedFontSize) || suggestedFontSize <= 0)
             throw new ArgumentOutOfRangeException(nameof(suggestedFontSize));
         suggestedAppearanceStyle = ValidateAppearance(suggestedAppearanceStyle);
+        if (!Enum.IsDefined(suggestedVisibility))
+            throw new ArgumentOutOfRangeException(nameof(suggestedVisibility));
         if (suggestedAlignment != PdfTextFieldAlignment.Left
             && kind is not (PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.DropDown
                 or PdfRecognizedFieldKind.EditableComboBox or PdfRecognizedFieldKind.ListBox))
@@ -113,6 +117,8 @@ public sealed record PdfFormFieldProposal
         SuggestedAlignment = suggestedAlignment;
         SuggestedFontSize = suggestedFontSize;
         SuggestedAppearanceStyle = suggestedAppearanceStyle;
+        SuggestedNoExport = suggestedNoExport;
+        SuggestedVisibility = suggestedVisibility;
         Status = status;
     }
 
@@ -150,6 +156,10 @@ public sealed record PdfFormFieldProposal
     public double SuggestedFontSize { get; }
     /// <summary>Gets the proposed widget colors and border geometry.</summary>
     public PdfFormFieldAppearanceStyle SuggestedAppearanceStyle { get; }
+    /// <summary>Gets whether the proposed field is omitted from form submission.</summary>
+    public bool SuggestedNoExport { get; }
+    /// <summary>Gets the proposed screen and print visibility.</summary>
+    public PdfFormFieldVisibility SuggestedVisibility { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
@@ -159,13 +169,15 @@ public sealed record PdfFormFieldProposal
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
         bool? multiline = null, bool? doNotScroll = null,
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
-        PdfFormFieldAppearanceStyle? appearanceStyle = null) =>
+        PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
+        PdfFormFieldVisibility? visibility = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
             isChecked ?? SuggestedChecked, multiline ?? SuggestedMultiline,
             doNotScroll ?? SuggestedDoNotScroll, alignment ?? SuggestedAlignment,
-            fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle);
+            fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle,
+            noExport ?? SuggestedNoExport, visibility ?? SuggestedVisibility);
 
     internal PdfFormFieldProposal Duplicate(string id, int pageIndex,
         PdfContentBounds bounds, string suggestedName) =>
@@ -173,7 +185,7 @@ public sealed record PdfFormFieldProposal
             PdfFormProposalStatus.Proposed, SuggestedTooltip, SuggestedOptions, SuggestedValue,
             SuggestedReadOnly, SuggestedRequired, SuggestedChecked, SuggestedMultiline,
             SuggestedDoNotScroll, SuggestedAlignment, SuggestedFontSize,
-            SuggestedAppearanceStyle);
+            SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility);
 
     private static PdfFormFieldAppearanceStyle ValidateAppearance(
         PdfFormFieldAppearanceStyle? style)
@@ -228,11 +240,12 @@ public sealed class PdfFormRecognitionReview
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
         bool? multiline = null, bool? doNotScroll = null,
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
-        PdfFormFieldAppearanceStyle? appearanceStyle = null) =>
+        PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
+        PdfFormFieldVisibility? visibility = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
             readOnly, required, isChecked, multiline, doNotScroll, alignment,
-            fontSize, appearanceStyle));
+            fontSize, appearanceStyle, noExport, visibility));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -291,7 +304,9 @@ public sealed class PdfFormRecognitionReview
             var fieldOptions = new PdfFormFieldOptions
             {
                 ReadOnly = proposal.SuggestedReadOnly,
-                Required = proposal.SuggestedRequired
+                Required = proposal.SuggestedRequired,
+                NoExport = proposal.SuggestedNoExport,
+                Visibility = proposal.SuggestedVisibility
             };
             switch (proposal.Kind)
             {
@@ -303,6 +318,8 @@ public sealed class PdfFormRecognitionReview
                         {
                             ReadOnly = proposal.SuggestedReadOnly,
                             Required = proposal.SuggestedRequired,
+                            NoExport = proposal.SuggestedNoExport,
+                            Visibility = proposal.SuggestedVisibility,
                             Multiline = proposal.SuggestedMultiline,
                             DoNotScroll = proposal.SuggestedDoNotScroll,
                             Alignment = proposal.SuggestedAlignment
@@ -358,6 +375,8 @@ public sealed class PdfFormRecognitionReview
         {
             if (group.Any(proposal => proposal.SuggestedReadOnly != group[0].SuggestedReadOnly
                 || proposal.SuggestedRequired != group[0].SuggestedRequired
+                || proposal.SuggestedNoExport != group[0].SuggestedNoExport
+                || proposal.SuggestedVisibility != group[0].SuggestedVisibility
                 || proposal.SuggestedAppearanceStyle != group[0].SuggestedAppearanceStyle))
                 throw new NotSupportedException(
                     $"Radio group '{group[0].SuggestedName}' has inconsistent field requirements.");
@@ -373,7 +392,9 @@ public sealed class PdfFormRecognitionReview
                 fieldOptions: new PdfFormFieldOptions
                 {
                     ReadOnly = group[0].SuggestedReadOnly,
-                    Required = group[0].SuggestedRequired
+                    Required = group[0].SuggestedRequired,
+                    NoExport = group[0].SuggestedNoExport,
+                    Visibility = group[0].SuggestedVisibility
                 },
                 radioOptions: new PdfRadioGroupOptions
                 {

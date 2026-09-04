@@ -193,7 +193,8 @@ public sealed class PdfFormRecognitionTests
         var review = new PdfFormRecognitionReview([
             new PdfFormFieldProposal("name", 0, new PdfContentBounds(10, 10, 150, 40),
                 PdfRecognizedFieldKind.Text, 1, "name")])
-            .Accept("name", fontSize: 9, appearanceStyle: style);
+            .Accept("name", fontSize: 9, appearanceStyle: style, noExport: true,
+                visibility: PdfFormFieldVisibility.HiddenButPrintable);
 
         PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
             PdfDocument.Open(review.ApplyAccepted(document)), 0));
@@ -202,6 +203,8 @@ public sealed class PdfFormRecognitionTests
         Assert.Contains("0.4 0.5 0.6 rg", widget.DefaultAppearance, StringComparison.Ordinal);
         Assert.Equal(style.BackgroundColor, widget.BackgroundColor);
         Assert.Equal(style.BorderColor, widget.BorderColor);
+        Assert.NotEqual(0, widget.Flags & (1L << 2));
+        Assert.Equal(36, widget.AnnotationFlags);
     }
 
     [Fact]

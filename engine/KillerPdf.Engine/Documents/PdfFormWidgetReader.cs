@@ -20,6 +20,7 @@ public static class PdfFormWidgetReader
     private static readonly PdfName DefaultAppearanceName = Name("DA");
     private static readonly PdfName AlignmentName = Name("Q");
     private static readonly PdfName FlagsName = Name("Ff");
+    private static readonly PdfName AnnotationFlagsName = Name("F");
     private static readonly PdfName MaximumLengthName = Name("MaxLen");
     private static readonly PdfName OptionsName = Name("Opt");
     private static readonly PdfName AppearanceName = Name("AP");
@@ -164,6 +165,9 @@ public static class PdfFormWidgetReader
                 MappingName = mappingName,
                 FieldKind = FieldKind(fieldType),
                 Flags = flags,
+                AnnotationFlags = widget.TryGetValue(AnnotationFlagsName,
+                    out PdfObject? annotationFlagsValue)
+                    ? Integer(document, annotationFlagsValue, "A widget /F value") : 0,
                 Value = value,
                 Values = values,
                 DefaultAppearance = defaultAppearance,

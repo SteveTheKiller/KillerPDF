@@ -47,6 +47,8 @@ public sealed record PdfFormWidgetInfo
     public required PdfFormFieldKind FieldKind { get; init; }
     /// <summary>Gets the effective field flags.</summary>
     public required long Flags { get; init; }
+    /// <summary>Gets the widget annotation flags controlling screen and print visibility.</summary>
+    public long AnnotationFlags { get; init; }
     /// <summary>Gets the effective current value.</summary>
     public required string Value { get; init; }
     /// <summary>Gets every effective current value for a multi-select choice field.</summary>
