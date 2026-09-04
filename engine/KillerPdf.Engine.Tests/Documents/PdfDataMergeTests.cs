@@ -72,4 +72,29 @@ public sealed class PdfDataMergeTests
         Assert.Throws<FormatException>(() =>
             PdfDataRecordReader.FromJson("[{\"Nested\":{}}]"));
     }
+
+    [Fact]
+    public void MappingProfilesRoundTripWithoutSourceValuesAndMapRecords()
+    {
+        var profile = new PdfDataMergeProfile("Invoices", [
+            new PdfDataMergeFieldMapping("Customer", "invoice.customer"),
+            new PdfDataMergeFieldMapping("Total", "invoice.total")],
+            "invoice-{{Number}}.pdf");
+        string json = profile.ToJson();
+        PdfDataMergeProfile restored = PdfDataMergeProfile.FromJson(json);
+
+        PdfDataMergeMappedRecord mapped = restored.Map(new Dictionary<string, string?>
+        {
+            ["Customer"] = "Ada",
+            ["Total"] = "$42.00",
+            ["Number"] = "1001"
+        });
+
+        Assert.DoesNotContain("Ada", json, StringComparison.Ordinal);
+        Assert.Equal("invoice-1001.pdf", mapped.OutputFileName);
+        Assert.Equal(["Ada", "$42.00"],
+            mapped.FormData.Fields.Select(field => field.Values.Single()));
+        Assert.Equal(["invoice.customer", "invoice.total"],
+            mapped.FormData.Fields.Select(field => field.Name));
+    }
 }
