@@ -292,6 +292,112 @@ public static class PdfOptionalContentEditor
         }
     }
 
+    /// <summary>
+    /// Reassigns supported page property resources and annotations from one layer to another,
+    /// then unregisters the source layer. Unsupported active references stop the operation.
+    /// </summary>
+    public static byte[] MergeGroups(
+        PdfDocument document, int sourceObjectNumber, int targetObjectNumber)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (sourceObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(sourceObjectNumber));
+        if (targetObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(targetObjectNumber));
+        if (sourceObjectNumber == targetObjectNumber)
+            throw new ArgumentException("A layer cannot be merged into itself.",
+                nameof(targetObjectNumber));
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
+        PdfOptionalContentGroupInfo source = FindGroup(info, sourceObjectNumber);
+        PdfOptionalContentGroupInfo target = FindGroup(info, targetObjectNumber);
+        var sourceReference = new PdfIndirectReference(
+            source.ObjectNumber, source.Generation);
+        var targetReference = new PdfIndirectReference(
+            target.ObjectNumber, target.Generation);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        var replacedAnnotations = new HashSet<int>();
+        bool changed = false;
+
+        foreach (PdfPageTreeEntry page in tree.Pages)
+        {
+            if (page.InheritedValues.TryGetValue(ResourcesKey,
+                    out PdfObject? resourcesValue))
+            {
+                PdfDictionary resources = ResolveDictionaryWithReference(
+                    document, resourcesValue, "The page resources").Dictionary;
+                var resourceEntries = resources.ToDictionary(
+                    item => item.Key, item => item.Value);
+                if (resourceEntries.TryGetValue(PropertiesKey,
+                        out PdfObject? propertiesValue))
+                {
+                    PdfDictionary properties = ResolveDictionaryWithReference(
+                        document, propertiesValue,
+                        "The page optional-content resources").Dictionary;
+                    var propertyEntries = properties.ToDictionary(
+                        item => item.Key, item => item.Value);
+                    bool resourceChanged = false;
+                    foreach (PdfName name in propertyEntries.Keys.ToArray())
+                    {
+                        if (propertyEntries[name] is PdfIndirectReference reference
+                            && SameReference(reference, sourceReference))
+                        {
+                            propertyEntries[name] = targetReference;
+                            resourceChanged = true;
+                        }
+                    }
+                    if (resourceChanged)
+                    {
+                        resourceEntries[PropertiesKey] = new PdfDictionary(propertyEntries);
+                        var pageEntries = page.Dictionary.ToDictionary(
+                            item => item.Key, item => item.Value);
+                        pageEntries[ResourcesKey] = new PdfDictionary(resourceEntries);
+                        update.ReplaceObject(page.Reference.ObjectNumber,
+                            new PdfDictionary(pageEntries));
+                        changed = true;
+                    }
+                }
+            }
+
+            if (!page.Dictionary.TryGetValue(AnnotationsKey,
+                    out PdfObject? annotationsValue))
+                continue;
+            PdfObject resolvedAnnotations = annotationsValue is PdfIndirectReference arrayReference
+                ? document.Resolve(arrayReference) : annotationsValue;
+            PdfArray annotations = resolvedAnnotations as PdfArray
+                ?? throw new InvalidOperationException(
+                    "A page annotation list is not an array.");
+            foreach (PdfObject annotationValue in annotations)
+            {
+                if (annotationValue is not PdfIndirectReference annotationReference)
+                    throw new NotSupportedException(
+                        "Direct page annotations cannot be merged between layers safely.");
+                if (!replacedAnnotations.Add(annotationReference.ObjectNumber)) continue;
+                PdfDictionary annotation = document.Resolve(annotationReference) as PdfDictionary
+                    ?? throw new InvalidOperationException(
+                        "A page annotation is not a dictionary.");
+                if (!annotation.TryGetValue(OptionalContentKey, out PdfObject? layerValue)
+                    || layerValue is not PdfIndirectReference layerReference
+                    || !SameReference(layerReference, sourceReference))
+                    continue;
+                var annotationEntries = annotation.ToDictionary(
+                    item => item.Key, item => item.Value);
+                annotationEntries[OptionalContentKey] = targetReference;
+                update.ReplaceObject(annotationReference.ObjectNumber,
+                    new PdfDictionary(annotationEntries));
+                changed = true;
+            }
+        }
+
+        PdfDocument reassigned = changed ? PdfDocument.Open(update.Build()) : document;
+        return RemoveUnusedGroup(reassigned, sourceObjectNumber);
+
+        static bool SameReference(
+            PdfIndirectReference left, PdfIndirectReference right) =>
+            left.ObjectNumber == right.ObjectNumber
+            && left.Generation == right.Generation;
+    }
+
     /// <summary>Creates and registers a layer in the default configuration.</summary>
     public static byte[] AddGroup(PdfDocument document, string name,
         bool initiallyVisible = true, bool locked = false,

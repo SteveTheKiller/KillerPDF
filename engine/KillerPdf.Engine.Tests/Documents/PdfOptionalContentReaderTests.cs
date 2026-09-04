@@ -439,6 +439,46 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void PageContentAndAnnotationsCanBeMergedIntoAnotherLayer()
+    {
+        var sourceLayer = new PdfOptionalContentGroup("Source");
+        var targetLayer = new PdfOptionalContentGroup("Target");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(sourceLayer)
+                    .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                    .MoveText(10, 50).ShowLatin1Text("Content").EndText()
+                .EndMarkedContent()
+                .BeginOptionalContent(targetLayer).Rectangle(0, 0, 5, 5).Fill()
+                .EndMarkedContent())
+            .AddUriLink(0, 10, 10, 20, 10, "https://example.com")
+            .Build());
+        PdfOptionalContentInfo before = PdfOptionalContentReader.Read(original);
+        int sourceObjectNumber = before.Groups.Single(group => group.Name == "Source")
+            .ObjectNumber;
+        int targetObjectNumber = before.Groups.Single(group => group.Name == "Target")
+            .ObjectNumber;
+        int annotationObjectNumber = Assert.Single(PdfLinkReader.ReadPage(original, 0))
+            .ObjectNumber!.Value;
+        PdfDocument assigned = PdfDocument.Open(PdfOptionalContentEditor.SetAnnotationGroup(
+            original, annotationObjectNumber, sourceObjectNumber));
+
+        PdfDocument merged = PdfDocument.Open(PdfOptionalContentEditor.MergeGroups(
+            assigned, sourceObjectNumber, targetObjectNumber));
+        PdfOptionalContentGroupInfo remaining = Assert.Single(
+            PdfOptionalContentReader.Read(merged).Groups);
+        PdfDictionary annotation = Assert.IsType<PdfDictionary>(merged.Resolve(
+            new PdfIndirectReference(annotationObjectNumber, 0)));
+
+        Assert.Equal("Target", remaining.Name);
+        Assert.Equal("Content", new PdfPageContentReader(merged).Read(0).Text);
+        Assert.Equal(targetObjectNumber, Assert.IsType<PdfIndirectReference>(
+            annotation[new PdfName("OC"u8)]).ObjectNumber);
+        Assert.Throws<ArgumentException>(() => PdfOptionalContentEditor.MergeGroups(
+            original, sourceObjectNumber, sourceObjectNumber));
+    }
+
+    [Fact]
     public void AnnotationCanBeAssignedToLayerAndCleared()
     {
         var review = new PdfOptionalContentGroup("Review");
