@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
@@ -43,6 +45,19 @@ public static class PdfFormDataImporter
             });
         }
         return Array.AsReadOnly(matches.ToArray());
+    }
+
+    /// <summary>Creates a concise, value-free report for a planned form-data import.</summary>
+    public static PdfFormDataImportReport CreateReport(PdfDocument document, PdfFormDataSet data)
+    {
+        IReadOnlyList<PdfFormDataMatch> matches = Preview(document, data);
+        return new PdfFormDataImportReport(
+            matches.Count,
+            matches.Count(match => match.Status == PdfFormDataMatchStatus.Matched),
+            matches.Count(match => match.Status != PdfFormDataMatchStatus.Matched),
+            matches.Count(match => match.IsRequired),
+            matches.Count(match => match.IsNoExport),
+            matches);
     }
 
     /// <summary>Applies matched values in one byte-preserving incremental revision.</summary>
@@ -122,4 +137,23 @@ public sealed record PdfFormDataMatch
     public bool IsRequired { get; init; }
     /// <summary>Gets whether the destination field is excluded from export.</summary>
     public bool IsNoExport { get; init; }
+}
+
+/// <summary>A value-free summary of a planned FDF or XFDF import.</summary>
+public sealed record PdfFormDataImportReport(
+    int TotalFieldCount,
+    int ApplicableFieldCount,
+    int BlockedFieldCount,
+    int RequiredFieldCount,
+    int NoExportFieldCount,
+    IReadOnlyList<PdfFormDataMatch> Fields)
+{
+    /// <summary>Serializes the report without exposing imported field values.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(this,
+        new JsonSerializerOptions
+        {
+            WriteIndented = indented,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        });
 }

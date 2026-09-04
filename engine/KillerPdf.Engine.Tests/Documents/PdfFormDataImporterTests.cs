@@ -28,6 +28,36 @@ public sealed class PdfFormDataImporterTests
     }
 
     [Fact]
+    public void CreateReportSummarizesStatusesAndOmitsImportedValues()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "required", 10, 10, 100, 20, options:
+                new PdfTextFieldOptions { Required = true })
+            .AddTextField(0, "excluded", 10, 40, 100, 20, options:
+                new PdfTextFieldOptions { NoExport = true, ReadOnly = true })
+            .Build());
+        var data = new PdfFormDataSet { Fields =
+        [
+            new PdfFormDataField { Name = "required", Values = ["private value"] },
+            new PdfFormDataField { Name = "excluded", Values = ["blocked value"] },
+            new PdfFormDataField { Name = "missing", Values = ["unknown value"] }
+        ] };
+
+        PdfFormDataImportReport report = PdfFormDataImporter.CreateReport(document, data);
+        string json = report.ToJson();
+
+        Assert.Equal(3, report.TotalFieldCount);
+        Assert.Equal(1, report.ApplicableFieldCount);
+        Assert.Equal(2, report.BlockedFieldCount);
+        Assert.Equal(1, report.RequiredFieldCount);
+        Assert.Equal(1, report.NoExportFieldCount);
+        Assert.Contains("\"status\":\"readOnly\"", json);
+        Assert.DoesNotContain("private value", json);
+        Assert.DoesNotContain("blocked value", json);
+        Assert.DoesNotContain("unknown value", json);
+    }
+
+    [Fact]
     public void ApplyUpdatesTextChoiceCheckBoxAndRadioValues()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
