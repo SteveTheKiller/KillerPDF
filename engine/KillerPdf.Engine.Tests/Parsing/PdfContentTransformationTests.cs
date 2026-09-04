@@ -32,6 +32,28 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void TransformTextObjectsSelectsCompleteObjectsByIndex()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "BT /F1 10 Tf (first) Tj ET 7 FutureOp BT /F2 12 Tf (second) Tj ET"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.TransformTextObjects(source, [1],
+                PdfContentTransformMatrix.Translation(12, 34));
+
+        Assert.Equal(["BT", "Tf", "Tj", "ET", "FutureOp", "q", "cm",
+            "BT", "Tf", "Tj", "ET", "Q"], result.Select(item => item.Operator));
+        Assert.Equal([12d, 34d], result[6].Operands.Skip(4)
+            .Cast<PdfReal>().Select(value => value.Value));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.TransformTextObjects(source, [2],
+                PdfContentTransformMatrix.Scale(2, 2)));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.TransformTextObjects(source, [0, 0],
+                PdfContentTransformMatrix.Scale(2, 2)));
+    }
+
+    [Fact]
     public void SetTextObjectRenderingModeChangesOnlySelectedCompleteObjects()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(

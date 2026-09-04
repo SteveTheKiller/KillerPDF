@@ -211,6 +211,50 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Transforms selected complete text objects without changing other content.</summary>
+    public static IReadOnlyList<PdfContentInstruction> TransformTextObjects(
+        IEnumerable<PdfContentInstruction> instructions,
+        IEnumerable<int> textObjectIndexes, PdfContentTransformMatrix matrix)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(textObjectIndexes);
+        PdfContentInstruction[] source = instructions.ToArray();
+        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
+        int[] requested = textObjectIndexes.ToArray();
+        if (requested.Any(index => index < 0 || index >= ranges.Count)
+            || requested.Distinct().Count() != requested.Length)
+            throw new ArgumentException(
+                "Selected text-object indexes must be valid and unique.",
+                nameof(textObjectIndexes));
+        foreach (int requestedIndex in requested)
+        {
+            (int start, int end) = ranges[requestedIndex];
+            ValidateContainedScopes(source, start + 1, end);
+        }
+        Dictionary<int, int> selected = requested.Select(index => ranges[index])
+            .ToDictionary(range => range.Start, range => range.End);
+        var result = new List<PdfContentInstruction>(source.Length + selected.Count * 3);
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (!selected.TryGetValue(index, out int end))
+            {
+                result.Add(source[index]);
+                continue;
+            }
+            result.Add(new PdfContentInstruction("q", 0, []));
+            result.Add(new PdfContentInstruction("cm", 0,
+            [
+                new PdfReal(matrix.A), new PdfReal(matrix.B),
+                new PdfReal(matrix.C), new PdfReal(matrix.D),
+                new PdfReal(matrix.E), new PdfReal(matrix.F)
+            ]));
+            result.AddRange(source[index..(end + 1)]);
+            result.Add(new PdfContentInstruction("Q", 0, []));
+            index = end;
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
     /// <summary>Sets the rendering mode inside selected complete text objects.</summary>
     public static IReadOnlyList<PdfContentInstruction> SetTextObjectRenderingMode(
         IEnumerable<PdfContentInstruction> instructions,
