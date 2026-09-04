@@ -471,21 +471,30 @@ public static class PdfDocumentWriter
     }
 
     internal static int CountUnreachableObjects(PdfDocument document)
+        => UnreachableObjectNumbers(document).Count;
+
+    internal static IReadOnlyList<int> UnreachableObjectNumbers(PdfDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (!document.CrossReferences.TryGetTrailerValue(RootName, out PdfObject root))
             throw new InvalidOperationException("A full rewrite requires a trailer /Root reference.");
         List<WritableObject> objects = ReadCurrentObjects(document);
-        int originalCount = objects.Count;
+        int[] originalNumbers = [.. objects.Select(item => item.ObjectNumber)];
         PruneUnreachableObjects(document, root, objects, new PdfDocumentWriteOptions());
-        return originalCount - objects.Count;
+        HashSet<int> retained = [.. objects.Select(item => item.ObjectNumber)];
+        return Array.AsReadOnly(originalNumbers.Where(number => !retained.Contains(number))
+            .OrderBy(number => number).ToArray());
     }
 
     internal static int CountCompressibleStreams(PdfDocument document)
+        => CompressibleStreamObjectNumbers(document).Count;
+
+    internal static IReadOnlyList<int> CompressibleStreamObjectNumbers(PdfDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        return ReadCurrentObjects(document).Count(item =>
-            TryCompressStream(item.Value, out _));
+        return Array.AsReadOnly(ReadCurrentObjects(document)
+            .Where(item => TryCompressStream(item.Value, out _))
+            .Select(item => item.ObjectNumber).OrderBy(number => number).ToArray());
     }
 
     internal static int CountDuplicatePageResourceObjects(PdfDocument document)

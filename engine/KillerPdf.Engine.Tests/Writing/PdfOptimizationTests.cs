@@ -544,6 +544,11 @@ public sealed class PdfOptimizationTests
         PdfOptimizationResult result = plan.Apply();
 
         Assert.Contains(PdfOptimizationChangeKind.PruneUnreachableObjects, plan.Changes);
+        Assert.Single(plan.UnreachableObjectNumbers);
+        Assert.Contains($"Unreachable objects removed: {plan.UnreachableObjectNumbers[0]}",
+            plan.ToText(), StringComparison.Ordinal);
+        Assert.Contains($"\"unreachableObjectNumbers\":[{plan.UnreachableObjectNumbers[0]}]",
+            plan.ToJson(), StringComparison.Ordinal);
         Assert.Contains(PdfOptimizationChangeKind.PruneUnreachableObjects,
             result.VerifiedRemovals);
         Assert.Equal(-1, result.ObjectCountDifference);
@@ -569,6 +574,11 @@ public sealed class PdfOptimizationTests
         PdfDocument output = PdfDocument.Open(result.Data);
 
         Assert.Contains(PdfOptimizationChangeKind.CompressUnfilteredStreams, plan.Changes);
+        Assert.Single(plan.CompressedStreamObjectNumbers);
+        Assert.Contains($"Streams compressed: {plan.CompressedStreamObjectNumbers[0]}",
+            plan.ToText(), StringComparison.Ordinal);
+        Assert.Contains($"\"compressedStreamObjectNumbers\":[{plan.CompressedStreamObjectNumbers[0]}]",
+            plan.ToJson(), StringComparison.Ordinal);
         Assert.Contains(PdfOptimizationChangeKind.CompressUnfilteredStreams,
             result.VerifiedRemovals);
         Assert.Equal(text, new PdfPageContentReader(output).Read(0).Text);

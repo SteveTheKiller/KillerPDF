@@ -157,6 +157,8 @@ public sealed class PdfOptimizationPlan
     private readonly string[] _formFieldNames;
     private readonly int[] _resourcePages;
     private readonly int[] _thumbnailPages;
+    private readonly int[] _unreachableObjectNumbers;
+    private readonly int[] _compressedStreamObjectNumbers;
     private readonly string[] _optionalContentGroupNames;
     private readonly string[] _hiddenOptionalContentGroupNames;
     private readonly PdfSaveRepairChange[] _repairs;
@@ -167,7 +169,9 @@ public sealed class PdfOptimizationPlan
         IEnumerable<string> formFieldNames, IEnumerable<int> resourcePages,
         IEnumerable<int> thumbnailPages, IEnumerable<string> optionalContentGroupNames,
         IEnumerable<string> hiddenOptionalContentGroupNames,
-        IEnumerable<PdfSaveRepairChange> repairs, int commentCount)
+        IEnumerable<PdfSaveRepairChange> repairs, int commentCount,
+        IEnumerable<int> unreachableObjectNumbers,
+        IEnumerable<int> compressedStreamObjectNumbers)
     {
         _document = document;
         _options = options;
@@ -175,6 +179,8 @@ public sealed class PdfOptimizationPlan
         _formFieldNames = formFieldNames.ToArray();
         _resourcePages = resourcePages.ToArray();
         _thumbnailPages = thumbnailPages.ToArray();
+        _unreachableObjectNumbers = unreachableObjectNumbers.ToArray();
+        _compressedStreamObjectNumbers = compressedStreamObjectNumbers.ToArray();
         _optionalContentGroupNames = optionalContentGroupNames.ToArray();
         _hiddenOptionalContentGroupNames = hiddenOptionalContentGroupNames.ToArray();
         _repairs = repairs.ToArray();
@@ -196,6 +202,12 @@ public sealed class PdfOptimizationPlan
     public IReadOnlyList<int> ResourcePageIndexes => Array.AsReadOnly(_resourcePages);
     /// <summary>Gets zero-based pages whose embedded thumbnails will be removed.</summary>
     public IReadOnlyList<int> ThumbnailPageIndexes => Array.AsReadOnly(_thumbnailPages);
+    /// <summary>Gets object numbers that the full rewrite will remove as unreachable.</summary>
+    public IReadOnlyList<int> UnreachableObjectNumbers =>
+        Array.AsReadOnly(_unreachableObjectNumbers);
+    /// <summary>Gets object numbers whose unfiltered streams will receive smaller Flate encodings.</summary>
+    public IReadOnlyList<int> CompressedStreamObjectNumbers =>
+        Array.AsReadOnly(_compressedStreamObjectNumbers);
     /// <summary>Gets layer names whose optional-content wrappers will be flattened.</summary>
     public IReadOnlyList<string> OptionalContentGroupNames =>
         Array.AsReadOnly(_optionalContentGroupNames);
@@ -215,6 +227,8 @@ public sealed class PdfOptimizationPlan
         CommentCount,
         ResourcePageIndexes,
         ThumbnailPageIndexes,
+        UnreachableObjectNumbers,
+        CompressedStreamObjectNumbers,
         OptionalContentGroupNames,
         HiddenOptionalContentGroupNames,
         Repairs
@@ -240,6 +254,10 @@ public sealed class PdfOptimizationPlan
         output.Append("Comments removed: ").AppendLine(_commentCount.ToString(CultureInfo.InvariantCulture));
         output.Append("Resource pages: ").AppendLine(Pages(_resourcePages));
         output.Append("Thumbnail pages: ").AppendLine(Pages(_thumbnailPages));
+        output.Append("Unreachable objects removed: ")
+            .AppendLine(Numbers(_unreachableObjectNumbers));
+        output.Append("Streams compressed: ")
+            .AppendLine(Numbers(_compressedStreamObjectNumbers));
         output.Append("Flattened layers: ").AppendLine(_optionalContentGroupNames.Length == 0
             ? "none" : string.Join(", ", _optionalContentGroupNames));
         output.Append("Hidden layers removed: ").AppendLine(_hiddenOptionalContentGroupNames.Length == 0
@@ -252,6 +270,13 @@ public sealed class PdfOptimizationPlan
         string[] pages = [.. indexes.Select(index =>
             (index + 1).ToString(CultureInfo.InvariantCulture))];
         return pages.Length == 0 ? "none" : string.Join(", ", pages);
+    }
+
+    private static string Numbers(IEnumerable<int> numbers)
+    {
+        string[] values = [.. numbers.Select(number =>
+            number.ToString(CultureInfo.InvariantCulture))];
+        return values.Length == 0 ? "none" : string.Join(", ", values);
     }
 
     /// <summary>Applies the previewed plan and verifies that the result reopens with the same page count.</summary>
@@ -506,11 +531,13 @@ public static class PdfOptimizer
         if (resourcePages.Length > 0 || options.PruneUnusedPageResources
             && PdfDocumentWriter.CountDuplicatePageResourceObjects(document) > 0)
             changes.Add(PdfOptimizationChangeKind.PruneUnusedPageResources);
-        if (options.PruneUnreachableObjects
-            && PdfDocumentWriter.CountUnreachableObjects(document) > 0)
+        int[] unreachableObjectNumbers = options.PruneUnreachableObjects
+            ? [.. PdfDocumentWriter.UnreachableObjectNumbers(document)] : [];
+        if (unreachableObjectNumbers.Length > 0)
             changes.Add(PdfOptimizationChangeKind.PruneUnreachableObjects);
-        if (options.CompressUnfilteredStreams
-            && PdfDocumentWriter.CountCompressibleStreams(document) > 0)
+        int[] compressedStreamObjectNumbers = options.CompressUnfilteredStreams
+            ? [.. PdfDocumentWriter.CompressibleStreamObjectNumbers(document)] : [];
+        if (compressedStreamObjectNumbers.Length > 0)
             changes.Add(PdfOptimizationChangeKind.CompressUnfilteredStreams);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
@@ -519,7 +546,8 @@ public static class PdfOptimizer
             optionalContentGroups.Select(group => group.Name),
             optionalContentGroups.Where(group => !group.IsInitiallyVisible)
                 .Select(group => group.Name),
-            repairs, comments.Length);
+            repairs, comments.Length, unreachableObjectNumbers,
+            compressedStreamObjectNumbers);
     }
 
     internal static IReadOnlyList<int> UnusedResourcePages(PdfDocument document)
