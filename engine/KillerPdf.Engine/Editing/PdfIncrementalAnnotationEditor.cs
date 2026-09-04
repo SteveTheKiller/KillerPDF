@@ -477,6 +477,48 @@ public sealed class PdfIncrementalAnnotationEditor
             intent: PdfVertexAnnotationIntent.Dimension);
     }
 
+    /// <summary>Adds an editable closed-path perimeter measurement with a calculated label.</summary>
+    public PdfIncrementalAnnotationEditor AddPerimeterMeasurement(
+        int pageIndex, IReadOnlyList<PdfPoint> vertices, PdfMeasurementProfile measurement,
+        PdfRgbColor? color = null, double lineWidth = 1, double opacity = 1,
+        string? contents = null, PdfAnnotationMetadata? annotationMetadata = null,
+        IReadOnlyList<double>? dashPattern = null)
+    {
+        ArgumentNullException.ThrowIfNull(vertices);
+        ArgumentNullException.ThrowIfNull(measurement);
+        PdfMeasurementPoint[] points = [.. vertices.Select(point =>
+            new PdfMeasurementPoint(point.X, point.Y))];
+        double perimeter = PdfMeasurement.Perimeter(measurement, points);
+        string label = contents ?? perimeter.ToString(
+            $"F{measurement.Precision}", CultureInfo.InvariantCulture)
+            + " " + measurement.UnitSymbol;
+        PdfPoint[] closed = vertices.Count > 0 && vertices[0] != vertices[^1]
+            ? [.. vertices, vertices[0]] : [.. vertices];
+        return AddPolyline(pageIndex, closed, color, lineWidth, opacity, label,
+            dashPattern: dashPattern, annotationMetadata: annotationMetadata,
+            intent: PdfVertexAnnotationIntent.Dimension, measurement: measurement);
+    }
+
+    /// <summary>Adds an editable polygon area measurement with a calculated label.</summary>
+    public PdfIncrementalAnnotationEditor AddAreaMeasurement(
+        int pageIndex, IReadOnlyList<PdfPoint> vertices, PdfMeasurementProfile measurement,
+        PdfRgbColor? strokeColor = null, PdfRgbColor? fillColor = null,
+        double lineWidth = 1, double opacity = 1, string? contents = null,
+        PdfAnnotationMetadata? annotationMetadata = null,
+        IReadOnlyList<double>? dashPattern = null)
+    {
+        ArgumentNullException.ThrowIfNull(vertices);
+        ArgumentNullException.ThrowIfNull(measurement);
+        double area = PdfMeasurement.Area(measurement, [.. vertices.Select(point =>
+            new PdfMeasurementPoint(point.X, point.Y))]);
+        string label = contents ?? area.ToString(
+            $"F{measurement.Precision}", CultureInfo.InvariantCulture)
+            + " " + measurement.UnitSymbol + "^2";
+        return AddPolygon(pageIndex, vertices, strokeColor, fillColor, lineWidth,
+            opacity, label, dashPattern, annotationMetadata,
+            PdfVertexAnnotationIntent.Dimension, measurement);
+    }
+
     /// <summary>Adds a polygon annotation with optional fill, dash style, and intent.</summary>
     public PdfIncrementalAnnotationEditor AddPolygon(
         int pageIndex, IReadOnlyList<PdfPoint> vertices,

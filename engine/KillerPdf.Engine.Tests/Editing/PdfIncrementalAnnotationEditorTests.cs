@@ -2117,6 +2117,30 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void Build_WritesCalculatedPerimeterAndAreaMeasurements()
+    {
+        var profile = new PdfMeasurementProfile("Plan", 0.5, "m", 2);
+        PdfPoint[] triangle = [new(10, 10), new(13, 10), new(13, 14)];
+        PdfDocument reopened = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(200, 200).Build()))
+            .AddPerimeterMeasurement(0, triangle, profile)
+            .AddAreaMeasurement(0, triangle, profile)
+            .Build());
+        PdfArray annotations = Assert.IsType<PdfArray>(
+            Pages(reopened)[0].Page[Name("Annots")]);
+        PdfDictionary perimeter = ResolveDictionary(reopened, annotations[0]);
+        PdfDictionary area = ResolveDictionary(reopened, annotations[1]);
+
+        Assert.Equal(8, Assert.IsType<PdfArray>(perimeter[Name("Vertices")]).Count);
+        Assert.Equal("6.00 m", Encoding.BigEndianUnicode.GetString(
+            Assert.IsType<PdfString>(perimeter[Name("Contents")]).Bytes.Span[2..]));
+        Assert.Equal("1.50 m^2", Encoding.BigEndianUnicode.GetString(
+            Assert.IsType<PdfString>(area[Name("Contents")]).Bytes.Span[2..]));
+        Assert.True(Assert.IsType<PdfDictionary>(area[Name("Measure")])
+            .ContainsKey(Name("A")));
+    }
+
+    [Fact]
     public void Build_WritesAlignedDashedCalloutFreeTextWithExpandedBounds()
     {
         TrueTypeFont font = TrueTypeFont.Load(
