@@ -15,14 +15,33 @@ namespace KillerPDF.Controls
         // ── Opening and closing ──────────────────────────────────────────────────────────────
         internal void OpenInNewTabExt(string path) => OpenInNewTab(path);
         internal DocumentSession? ActiveSessionExt => _active;
-        internal IReadOnlyList<(string Path, string Title)> OpenPdfTabsExt()
+        internal readonly record struct ComparisonDocument(
+            string WorkingPath, string OriginalPath, string Title);
+
+        internal ComparisonDocument? ActiveComparisonDocumentExt()
+        {
+            if (_active != null) CaptureSessionState(_active);
+            return ComparisonDocumentFromSession(_active);
+        }
+
+        internal IReadOnlyList<ComparisonDocument> OpenPdfTabsExt()
         {
             if (_active != null) CaptureSessionState(_active);
             return [.. _sessions
-                .Select(session => session.CurrentFile ?? session.OriginalFile ?? session.DeferredPath)
-                .Where(path => !string.IsNullOrWhiteSpace(path) && System.IO.File.Exists(path))
-                .Select(path => (Path: path!, Title: System.IO.Path.GetFileName(path!)))
-                .DistinctBy(item => item.Path, StringComparer.OrdinalIgnoreCase)];
+                .Select(ComparisonDocumentFromSession)
+                .Where(item => item.HasValue)
+                .Select(item => item!.Value)
+                .DistinctBy(item => item.OriginalPath, StringComparer.OrdinalIgnoreCase)];
+        }
+
+        private static ComparisonDocument? ComparisonDocumentFromSession(DocumentSession? session)
+        {
+            string? working = session?.CurrentFile ?? session?.DeferredPath ?? session?.OriginalFile;
+            string? original = session?.OriginalFile ?? session?.DeferredPath ?? working;
+            if (string.IsNullOrWhiteSpace(working) || string.IsNullOrWhiteSpace(original)
+                || !System.IO.File.Exists(working))
+                return null;
+            return new ComparisonDocument(working, original, System.IO.Path.GetFileName(original));
         }
         internal void CloseTabExt(DocumentSession? s) => CloseTab(s);
         internal void CloseAllTabsExt() => CloseAllTabs();

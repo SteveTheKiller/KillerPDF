@@ -37,8 +37,8 @@ public partial class MainWindow
             return;
         }
 
-        string? source = ActiveViewer.CurrentFilePathExt;
-        if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
+        PdfViewer.ComparisonDocument? source = ActiveViewer.ActiveComparisonDocumentExt();
+        if (source is null)
         {
             SetStatus(Loc("Str_Compare_OpenOriginal"));
             return;
@@ -50,7 +50,7 @@ public partial class MainWindow
         ShowComparisonMenu(sender as FrameworkElement ?? ComparePdfBtn, source);
     }
 
-    private void ShowComparisonMenu(FrameworkElement anchor, string source)
+    private void ShowComparisonMenu(FrameworkElement anchor, PdfViewer.ComparisonDocument source)
     {
         var menu = MakeThemedMenu();
         menu.PlacementTarget = anchor;
@@ -68,8 +68,8 @@ public partial class MainWindow
             Header = Loc("Str_TT_ComparePDFs"),
             Icon = BuildComparisonMenuIcon()
         };
-        string? source = ActiveViewer.CurrentFilePathExt;
-        if (string.IsNullOrWhiteSpace(source) || !File.Exists(source))
+        PdfViewer.ComparisonDocument? source = ActiveViewer.ActiveComparisonDocumentExt();
+        if (source is null)
             root.IsEnabled = false;
         else
             PopulateComparisonChoices(root.Items, source);
@@ -108,13 +108,13 @@ public partial class MainWindow
         return icon;
     }
 
-    private void PopulateComparisonChoices(ItemCollection items, string source)
+    private void PopulateComparisonChoices(ItemCollection items, PdfViewer.ComparisonDocument source)
     {
         var openTabs = Viewer.OpenPdfTabsExt()
             .Concat(ViewerB.OpenPdfTabsExt())
-            .Where(item => !string.Equals(Path.GetFullPath(item.Path), Path.GetFullPath(source),
+            .Where(item => !string.Equals(Path.GetFullPath(item.OriginalPath), Path.GetFullPath(source.OriginalPath),
                 StringComparison.OrdinalIgnoreCase))
-            .DistinctBy(item => item.Path, StringComparer.OrdinalIgnoreCase)
+            .DistinctBy(item => item.OriginalPath, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         items.Add(new MenuItem { Header = Loc("Str_Compare_OpenTabs"), IsEnabled = false });
@@ -123,11 +123,10 @@ public partial class MainWindow
         else
             foreach (var tab in openTabs)
             {
-                string path = tab.Path;
                 // Doubled for the same reason as the tab overflow menu: a lone underscore
                 // in a string MenuItem header is an access-key marker (PdfViewer.TabStrip.cs).
                 var item = new MenuItem { Header = tab.Title.Replace("_", "__") };
-                item.Click += (_, _) => BeginComparison(source, path);
+                item.Click += (_, _) => BeginComparison(source, tab);
                 items.Add(item);
             }
 
@@ -137,7 +136,7 @@ public partial class MainWindow
         items.Add(browse);
     }
 
-    private void BrowseForComparison(string source)
+    private void BrowseForComparison(PdfViewer.ComparisonDocument source)
     {
 
         var dialog = new Controls.FileDialog(Controls.FileDialogMode.Open)
@@ -146,17 +145,19 @@ public partial class MainWindow
             Title = Loc("Str_Compare_SelectTitle")
         };
         if (dialog.ShowDialog(this) != true) return;
-        if (string.Equals(Path.GetFullPath(source), Path.GetFullPath(dialog.FileName),
+        if (string.Equals(Path.GetFullPath(source.OriginalPath), Path.GetFullPath(dialog.FileName),
             StringComparison.OrdinalIgnoreCase))
         {
             SetStatus(Loc("Str_Compare_ChooseDifferent"));
             return;
         }
 
-        BeginComparison(source, dialog.FileName);
+        string path = dialog.FileName;
+        BeginComparison(source, new PdfViewer.ComparisonDocument(path, path, Path.GetFileName(path)));
     }
 
-    private void BeginComparison(string source, string comparison)
+    private void BeginComparison(PdfViewer.ComparisonDocument source,
+        PdfViewer.ComparisonDocument comparison)
     {
         _comparisonWasSplit = _isSplit;
         _comparisonPreviousFocusedViewer = ActiveViewer;
@@ -170,15 +171,15 @@ public partial class MainWindow
             _comparisonPreviousRightView = ViewerB.CaptureComparisonViewStateExt();
         }
         _comparisonActive = false;
-        _comparisonLeftPath = source;
-        _comparisonRightPath = comparison;
+        _comparisonLeftPath = source.WorkingPath;
+        _comparisonRightPath = comparison.WorkingPath;
 
         if (!_isSplit) OpenSplit();
         FocusPane(Viewer);
-        if (!string.Equals(Viewer.CurrentFilePathExt, source, StringComparison.OrdinalIgnoreCase))
-            Viewer.OpenInNewTabExt(source);
+        if (!string.Equals(Viewer.CurrentFilePathExt, source.WorkingPath, StringComparison.OrdinalIgnoreCase))
+            Viewer.OpenInNewTabExt(source.OriginalPath);
         FocusPane(ViewerB);
-        ViewerB.OpenInNewTabExt(comparison);
+        ViewerB.OpenInNewTabExt(comparison.OriginalPath);
         if (ViewerB.PageCountExt == 0)
         {
             FocusPane(Viewer);
@@ -191,7 +192,7 @@ public partial class MainWindow
         _comparisonReport = null;
         ComparePdfBtn.Tag = "on";
         ComparePdfBtn.ToolTip = Loc("Str_TT_ExitComparison");
-        ComparisonFilesText.Text = $"{Path.GetFileName(source)}  ↔  {Path.GetFileName(comparison)}";
+        ComparisonFilesText.Text = $"{source.Title}  ↔  {comparison.Title}";
         ComparisonResultText.Text = Loc("Str_Compare_Comparing");
         ComparisonBar.Visibility = Visibility.Visible;
         BalanceComparisonPanes();
