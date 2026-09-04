@@ -17383,6 +17383,7 @@ public sealed class PdfIncrementalPageEditor
         var usedColorSpaces = new HashSet<PdfName>();
         var usedGraphicsStates = new HashSet<PdfName>();
         var usedShadings = new HashSet<PdfName>();
+        var usedPatterns = new HashSet<PdfName>();
         var usedProperties = new HashSet<PdfName>();
         foreach (PdfContentInstruction instruction in instructions)
         {
@@ -17399,6 +17400,9 @@ public sealed class PdfIncrementalPageEditor
             else if (instruction.Operator == "sh"
                      && instruction.Operands.FirstOrDefault() is PdfName shading)
                 usedShadings.Add(shading);
+            else if (instruction.Operator is "SCN" or "scn"
+                     && instruction.Operands.LastOrDefault() is PdfName pattern)
+                usedPatterns.Add(pattern);
             else if (instruction.Operator is "BDC" or "DP"
                      && instruction.Operands.Count >= 2
                      && instruction.Operands[1] is PdfName property)
@@ -17416,6 +17420,7 @@ public sealed class PdfIncrementalPageEditor
         PruneCategory("ColorSpace", usedColorSpaces);
         PruneCategory("ExtGState", usedGraphicsStates);
         PruneCategory("Shading", usedShadings);
+        PruneCategory("Pattern", usedPatterns);
         PruneCategory("Properties", usedProperties);
         return new PdfDictionary(entries);
 

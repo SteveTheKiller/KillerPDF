@@ -401,6 +401,8 @@ public sealed class PdfOptimizationTests
             Assert.Single(instructions, item => item.Operator == "sh").Operands[0]);
         Assert.Equal(new PdfName("Prop1"u8),
             Assert.Single(instructions, item => item.Operator == "BDC").Operands[1]);
+        Assert.Equal(new PdfName("Pattern1"u8),
+            Assert.Single(instructions, item => item.Operator == "scn").Operands[^1]);
         Assert.DoesNotContain("/Unused", Encoding.Latin1.GetString(result.Data.Span));
     }
 
@@ -529,19 +531,21 @@ public sealed class PdfOptimizationTests
 
     private static PdfDocument DocumentWithExtendedResources()
     {
-        const string content = "/GS2 gs /Shade2 sh /Span /Prop2 BDC EMC";
+        const string content = "/GS2 gs /Shade2 sh /Pattern cs /Pattern2 scn /Span /Prop2 BDC EMC";
         string[] objects =
         [
             "<< /Type /Catalog /Pages 2 0 R >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 100 100] >>",
-            "<< /Type /Page /Parent 2 0 R /Resources << /ExtGState << /GS1 5 0 R /GS2 5 0 R /UnusedGS 6 0 R >> /Shading << /Shade1 7 0 R /Shade2 7 0 R /UnusedShade 8 0 R >> /Properties << /Prop1 9 0 R /Prop2 9 0 R /UnusedProp 10 0 R >> >> /Contents 4 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /ColorSpace << /Pattern /Pattern >> /ExtGState << /GS1 5 0 R /GS2 5 0 R /UnusedGS 6 0 R >> /Shading << /Shade1 7 0 R /Shade2 7 0 R /UnusedShade 8 0 R >> /Properties << /Prop1 9 0 R /Prop2 9 0 R /UnusedProp 10 0 R >> /Pattern << /Pattern1 11 0 R /Pattern2 11 0 R /UnusedPattern 12 0 R >> >> /Contents 4 0 R >>",
             $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream",
             "<< /Type /ExtGState /CA 1 >>",
             "<< /Type /ExtGState /CA 0.5 >>",
             "<< /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> >>",
             "<< /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 0 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> >>",
             "<< /ActualText (kept) >>",
-            "<< /ActualText (unused) >>"
+            "<< /ActualText (unused) >>",
+            "<< /Type /Pattern /PatternType 2 /Shading 7 0 R >>",
+            "<< /Type /Pattern /PatternType 2 /Shading 8 0 R >>"
         ];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();

@@ -406,6 +406,10 @@ public static class PdfOptimizer
                 .Select(item => item.Operands[0]).OfType<PdfName>()];
             HashSet<PdfName> graphicsStates = UsedNames(instructions, "gs", 0);
             HashSet<PdfName> shadings = UsedNames(instructions, "sh", 0);
+            HashSet<PdfName> patterns = [.. instructions
+                .Where(item => item.Operator is "SCN" or "scn"
+                    && item.Operands.LastOrDefault() is PdfName)
+                .Select(item => item.Operands[^1]).OfType<PdfName>()];
             HashSet<PdfName> properties = [.. instructions
                 .Where(item => item.Operator is "BDC" or "DP" && item.Operands.Count > 1)
                 .Select(item => item.Operands[1]).OfType<PdfName>()];
@@ -413,6 +417,7 @@ public static class PdfOptimizer
                 || NeedsCleanup("ColorSpace", colorSpaces)
                 || NeedsCleanup("ExtGState", graphicsStates)
                 || NeedsCleanup("Shading", shadings)
+                || NeedsCleanup("Pattern", patterns)
                 || NeedsCleanup("Properties", properties))
                 result.Add(page.Index);
 
@@ -438,6 +443,7 @@ public static class PdfOptimizer
         Dictionary<PdfName, PdfName> colorSpaces = Aliases("ColorSpace");
         Dictionary<PdfName, PdfName> graphicsStates = Aliases("ExtGState");
         Dictionary<PdfName, PdfName> shadings = Aliases("Shading");
+        Dictionary<PdfName, PdfName> patterns = Aliases("Pattern");
         Dictionary<PdfName, PdfName> properties = Aliases("Properties");
         return Array.AsReadOnly(instructions.Select(instruction =>
         {
@@ -448,10 +454,12 @@ public static class PdfOptimizer
                 "CS" or "cs" => (colorSpaces, 0),
                 "gs" => (graphicsStates, 0),
                 "sh" => (shadings, 0),
+                "SCN" or "scn" => (patterns, instruction.Operands.Count - 1),
                 "BDC" or "DP" => (properties, 1),
                 _ => (null, 0)
             };
-            if (aliases is null || instruction.Operands.Count <= operandIndex
+            if (aliases is null || operandIndex < 0
+                || instruction.Operands.Count <= operandIndex
                 || instruction.Operands[operandIndex] is not PdfName name
                 || !aliases.TryGetValue(name, out PdfName? canonical))
                 return instruction;
