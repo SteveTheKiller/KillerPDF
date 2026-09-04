@@ -1,3 +1,5 @@
+using System.Security.Cryptography.X509Certificates;
+
 namespace KillerPdf.Engine.Signing;
 
 /// <summary>Cryptographic verification outcome for one structurally inspected signature.</summary>
@@ -17,6 +19,10 @@ public sealed record PdfSignatureVerificationResult
     public bool? IsCertificateTimeValid { get; init; }
     /// <summary>Gets the independently evaluated certificate revocation outcome.</summary>
     public PdfCertificateRevocationStatus RevocationStatus { get; init; }
+    /// <summary>Gets the revocation mode requested for this trust evaluation.</summary>
+    public X509RevocationMode? RequestedRevocationMode { get; init; }
+    /// <summary>Gets the certificate verification time requested for this trust evaluation.</summary>
+    public DateTime? RequestedVerificationTime { get; init; }
     /// <summary>Gets certificate-chain status details supplied by the platform.</summary>
     public IReadOnlyList<string> CertificateChainErrors { get; init; } = [];
     /// <summary>Gets the CMS digest algorithm object identifier.</summary>

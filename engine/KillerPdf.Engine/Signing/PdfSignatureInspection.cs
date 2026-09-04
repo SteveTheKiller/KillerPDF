@@ -32,6 +32,12 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                 .Append("  PAdES evidence: ").AppendLine(entry.PadesProfile.ToString())
                 .Append("  Covers whole document: ")
                 .AppendLine(entry.Signature.CoversWholeDocument ? "Yes" : "No");
+            if (entry.Verification.RequestedRevocationMode is { } revocationMode)
+                output.Append("  Requested revocation mode: ")
+                    .AppendLine(revocationMode.ToString());
+            if (entry.Verification.RequestedVerificationTime is DateTime verificationTime)
+                output.Append("  Requested verification time: ")
+                    .AppendLine(verificationTime.ToString("O"));
             Add("  Signer subject: ", entry.Verification.SignerSubject);
             Add("  Signer issuer: ", entry.Verification.SignerIssuer);
             Add("  Certificate SHA-256: ", entry.Verification.SignerCertificateSha256);

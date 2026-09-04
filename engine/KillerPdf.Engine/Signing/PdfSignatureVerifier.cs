@@ -40,6 +40,8 @@ public static class PdfSignatureVerifier
             {
                 IsStructurallyValid = false,
                 CertificateTrustWasChecked = checkCertificateTrust,
+                RequestedRevocationMode = trustOptions?.RevocationMode,
+                RequestedVerificationTime = trustOptions?.VerificationTime,
                 Error = "The signature does not contain a valid byte range and CMS value."
             };
         X509Certificate2? signer = null;
@@ -101,6 +103,8 @@ public static class PdfSignatureVerifier
                     CertificateTrustStatus = PdfCertificateTrustStatus.Trusted,
                     IsCertificateTimeValid = true,
                     RevocationStatus = revocation,
+                    RequestedRevocationMode = policy.RevocationMode,
+                    RequestedVerificationTime = policy.VerificationTime,
                     DigestAlgorithmOid = digestAlgorithm,
                     SignatureAlgorithmOid = signatureAlgorithm,
                     SignerSubject = signer.Subject,
@@ -134,6 +138,8 @@ public static class PdfSignatureVerifier
             {
                 IsStructurallyValid = true,
                 CertificateTrustWasChecked = checkCertificateTrust,
+                RequestedRevocationMode = trustOptions?.RevocationMode,
+                RequestedVerificationTime = trustOptions?.VerificationTime,
                 Error = exception.Message
             };
         }
@@ -149,6 +155,8 @@ public static class PdfSignatureVerifier
                 CertificateTrustStatus = trustStatus,
                 IsCertificateTimeValid = timeValid,
                 RevocationStatus = revocationStatus,
+                RequestedRevocationMode = trustOptions?.RevocationMode,
+                RequestedVerificationTime = trustOptions?.VerificationTime,
                 CertificateChainErrors = chainErrors,
                 DigestAlgorithmOid = digestAlgorithm,
                 SignatureAlgorithmOid = signatureAlgorithm,

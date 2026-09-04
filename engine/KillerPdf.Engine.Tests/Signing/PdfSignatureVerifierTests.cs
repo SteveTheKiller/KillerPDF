@@ -143,12 +143,14 @@ public sealed class PdfSignatureVerifierTests
             content => Sign(content, certificate),
             new PdfSignatureOptions { ReservedSignatureSize = 4_096 });
         PdfDocument document = PdfDocument.Open(signed);
+        DateTime verificationTime = DateTime.Now.AddMinutes(-5);
 
         PdfSignatureVerificationResult result = PdfSignatureVerifier.VerifyTrust(document,
             Assert.Single(PdfSignatureReader.Read(document)), new PdfSignatureTrustOptions
             {
                 CustomTrustRoots = [certificate],
-                RevocationMode = X509RevocationMode.NoCheck
+                RevocationMode = X509RevocationMode.NoCheck,
+                VerificationTime = verificationTime
             });
 
         Assert.True(result.IsCryptographicallyValid);
@@ -156,6 +158,8 @@ public sealed class PdfSignatureVerifierTests
         Assert.Equal(PdfCertificateTrustStatus.Trusted, result.CertificateTrustStatus);
         Assert.True(result.IsCertificateTimeValid);
         Assert.Equal(PdfCertificateRevocationStatus.NotChecked, result.RevocationStatus);
+        Assert.Equal(X509RevocationMode.NoCheck, result.RequestedRevocationMode);
+        Assert.Equal(verificationTime, result.RequestedVerificationTime);
         Assert.Empty(result.CertificateChainErrors);
     }
 
@@ -202,6 +206,8 @@ public sealed class PdfSignatureVerifierTests
         Assert.Contains("Cryptographic integrity: Valid", text);
         Assert.Contains("Certificate trust: Trusted", text);
         Assert.Contains("Revocation: NotChecked", text);
+        Assert.Contains("Requested revocation mode: NoCheck", text);
+        Assert.Contains("Requested verification time: ", text);
         Assert.Contains("PAdES evidence: BaselineB", text);
         Assert.Contains($"Signer subject: {certificate.Subject}", text);
         Assert.Contains($"Signer issuer: {certificate.Issuer}", text);
