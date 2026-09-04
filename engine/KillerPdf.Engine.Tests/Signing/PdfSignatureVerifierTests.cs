@@ -203,6 +203,14 @@ public sealed class PdfSignatureVerifierTests
         Assert.Contains("Certificate trust: Trusted", text);
         Assert.Contains("Revocation: NotChecked", text);
         Assert.Contains("PAdES evidence: BaselineB", text);
+        Assert.Contains($"Signer subject: {certificate.Subject}", text);
+        Assert.Contains($"Signer issuer: {certificate.Issuer}", text);
+        Assert.Contains("Certificate SHA-256: ", text);
+        Assert.Contains("Digest algorithm: 2.16.840.1.101.3.4.2.1", text);
+        Assert.Contains("Signature algorithm: ", text);
+        Assert.Contains("Certificate valid from: ", text);
+        Assert.Contains("Certificate valid until: ", text);
+        Assert.Contains("Certificate time validity: Valid", text);
         Assert.Contains("Later changes: No", text);
     }
 

@@ -32,6 +32,22 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                 .Append("  PAdES evidence: ").AppendLine(entry.PadesProfile.ToString())
                 .Append("  Covers whole document: ")
                 .AppendLine(entry.Signature.CoversWholeDocument ? "Yes" : "No");
+            Add("  Signer subject: ", entry.Verification.SignerSubject);
+            Add("  Signer issuer: ", entry.Verification.SignerIssuer);
+            Add("  Certificate SHA-256: ", entry.Verification.SignerCertificateSha256);
+            Add("  Digest algorithm: ", entry.Verification.DigestAlgorithmOid);
+            Add("  Signature algorithm: ", entry.Verification.SignatureAlgorithmOid);
+            if (entry.Verification.CertificateNotBefore is DateTimeOffset notBefore)
+                output.Append("  Certificate valid from: ")
+                    .AppendLine(notBefore.ToString("O"));
+            if (entry.Verification.CertificateNotAfter is DateTimeOffset notAfter)
+                output.Append("  Certificate valid until: ")
+                    .AppendLine(notAfter.ToString("O"));
+            if (entry.Verification.IsCertificateTimeValid is bool timeValid)
+                output.Append("  Certificate time validity: ")
+                    .AppendLine(timeValid ? "Valid" : "Invalid");
+            foreach (string error in entry.Verification.CertificateChainErrors)
+                output.Append("  Certificate chain: ").AppendLine(error);
             if (entry.Revision is not null)
                 output.Append("  Later changes: ")
                     .AppendLine(entry.Revision.HasLaterChanges ? "Yes" : "No");
@@ -40,6 +56,12 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                     .AppendLine(entry.Verification.Error);
         }
         return output.ToString();
+
+        void Add(string label, string? value)
+        {
+            if (!string.IsNullOrWhiteSpace(value))
+                output.Append(label).AppendLine(value);
+        }
     }
 
     /// <summary>Exports inspection details without embedding CMS or signed document bytes.</summary>
