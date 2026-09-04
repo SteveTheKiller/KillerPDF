@@ -1,4 +1,5 @@
 using System.Net;
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 
@@ -14,7 +15,9 @@ public enum PdfStructuredExportFormat
     /// <summary>Editable Markdown.</summary>
     Markdown,
     /// <summary>Structured JSON.</summary>
-    Json
+    Json,
+    /// <summary>Editable Word document.</summary>
+    WordDocument
 }
 
 /// <summary>One type of source content that an export does not fully represent.</summary>
@@ -65,6 +68,8 @@ public static class PdfStructuredExport
                         "Markdown export contains image placeholders without image data.",
                     PdfStructuredExportFormat.Json =>
                         "JSON export contains image placement without image data.",
+                    PdfStructuredExportFormat.WordDocument =>
+                        "Word export contains image placeholders without image data.",
                     _ => throw new ArgumentOutOfRangeException(nameof(format))
                 };
                 findings.Add(new PdfStructuredExportFinding("ImageContentNotExported",
@@ -150,6 +155,55 @@ public static class PdfStructuredExport
             diagnostics = page.Content.Diagnostics
         });
         return JsonSerializer.Serialize(pages, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    /// <summary>Exports selected pages as an editable Office Open XML Word document.</summary>
+    public static byte[] ToDocx(PdfDocument document, IEnumerable<int>? pageIndices = null,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteEntry(archive, "[Content_Types].xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+                "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+                "<Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>" +
+                "</Types>");
+            WriteEntry(archive, "_rels/.rels",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/>" +
+                "</Relationships>");
+
+            var body = new StringBuilder();
+            for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++)
+            {
+                if (pageIndex > 0) body.Append("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
+                foreach (PdfExtractedLine line in pages[pageIndex].Content.Lines)
+                    body.Append("<w:p><w:r><w:t xml:space=\"preserve\">")
+                        .Append(WebUtility.HtmlEncode(line.Text)).Append("</w:t></w:r></w:p>");
+                foreach (PdfExtractedImage image in pages[pageIndex].Content.Images)
+                    body.Append("<w:p><w:r><w:t>[Image: ")
+                        .Append(WebUtility.HtmlEncode(image.ResourceName ?? "inline"))
+                        .Append("]</w:t></w:r></w:p>");
+            }
+            WriteEntry(archive, "word/document.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">" +
+                "<w:body>" + body + "<w:sectPr/></w:body></w:document>");
+        }
+        return output.ToArray();
+    }
+
+    private static void WriteEntry(ZipArchive archive, string name, string content)
+    {
+        ZipArchiveEntry entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+        using Stream stream = entry.Open();
+        using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+        writer.Write(content);
     }
 
     private static IReadOnlyList<Page> Read(PdfDocument document, IEnumerable<int>? pageIndices,

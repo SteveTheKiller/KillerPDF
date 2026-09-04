@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Documents;
@@ -35,11 +36,29 @@ public sealed class PdfStructuredExportTests
     }
 
     [Fact]
+    public void ExportsEditableWordDocumentWithEscapedText()
+    {
+        PdfDocument document = Document("BT /F1 12 Tf 10 30 Td (A & B) Tj ET");
+
+        byte[] docx = PdfStructuredExport.ToDocx(document);
+
+        using var archive = new ZipArchive(new MemoryStream(docx), ZipArchiveMode.Read);
+        Assert.NotNull(archive.GetEntry("[Content_Types].xml"));
+        ZipArchiveEntry documentEntry = Assert.IsType<ZipArchiveEntry>(
+            archive.GetEntry("word/document.xml"));
+        using var reader = new StreamReader(documentEntry.Open());
+        string xml = reader.ReadToEnd();
+        Assert.Contains("<w:t xml:space=\"preserve\">A &amp; B</w:t>", xml,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RejectsDuplicateAndOutOfRangePageSelections()
     {
         PdfDocument document = Document("BT /F1 12 Tf (A) Tj ET");
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToJson(document, [0, 0]));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToHtml(document, [1]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToDocx(document, [1]));
     }
 
     [Fact]
