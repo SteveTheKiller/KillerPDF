@@ -7,6 +7,37 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfFormDataImporterTests
 {
     [Fact]
+    public void ExportPreservesPortableValuesAndOmitsNoExportFields()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "person.name", 10, 10, 100, 20, "Ada", options:
+                new PdfTextFieldOptions(),
+                fieldMetadata: new PdfFormFieldMetadata { MappingName = "contact_name" },
+                defaultValue: "Unknown")
+            .AddMultiSelectListBox(0, "regions", 10, 40, 100, 40,
+                ["US", "CA"], ["US", "CA"], choiceOptions:
+                new PdfChoiceFieldOptions { DefaultSelectedExportValues = ["CA"] })
+            .AddTextField(0, "private", 10, 90, 100, 20, "secret", options:
+                new PdfTextFieldOptions { NoExport = true })
+            .Build());
+
+        PdfFormDataSet exported = PdfFormDataExporter.Export(document, "forms/source.pdf");
+
+        Assert.Equal("forms/source.pdf", exported.SourcePdfPath);
+        Assert.Equal(["person.name", "regions"], exported.Fields.Select(field => field.Name));
+        Assert.Equal("contact_name", exported.Fields[0].MappingName);
+        Assert.Equal(["Ada"], exported.Fields[0].Values);
+        Assert.Equal(["Unknown"], exported.Fields[0].DefaultValues);
+        Assert.Equal(["US", "CA"], exported.Fields[1].Values);
+        Assert.Equal(["CA"], exported.Fields[1].DefaultValues);
+
+        PdfFormDataSet complete = PdfFormDataExporter.Export(document,
+            includeNoExportFields: true);
+        Assert.Contains(complete.Fields, field => field.Name == "private"
+            && field.Values.SequenceEqual(["secret"]));
+    }
+
+    [Fact]
     public void PreviewReportsMatchedReadOnlyAndUnmatchedFields()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
