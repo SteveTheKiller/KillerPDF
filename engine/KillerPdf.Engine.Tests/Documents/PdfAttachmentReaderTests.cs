@@ -4,6 +4,7 @@ using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Security;
 using KillerPdf.Engine.Writing;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -43,6 +44,26 @@ public sealed class PdfAttachmentReaderTests
         Assert.False(attachment.IsPotentiallyExecutable);
         Assert.False(attachment.HasExecutableContent);
         Assert.False(attachment.HasEncryptedContent);
+    }
+
+    [Fact]
+    public void JsonReportIncludesMetadataWithoutPayloadData()
+    {
+        byte[] payload = "private attachment payload"u8.ToArray();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("evidence.txt", payload, "text/plain", "Case evidence")
+            .Build());
+
+        string report = PdfAttachmentReader.ToJson(document);
+        using JsonDocument json = JsonDocument.Parse(report);
+
+        Assert.Equal(1, json.RootElement.GetProperty("version").GetInt32());
+        JsonElement attachment = json.RootElement.GetProperty("attachments")[0];
+        Assert.Equal("evidence.txt", attachment.GetProperty("fileName").GetString());
+        Assert.Equal(payload.Length, attachment.GetProperty("byteCount").GetInt32());
+        Assert.DoesNotContain("private attachment payload", report, StringComparison.Ordinal);
+        Assert.False(attachment.TryGetProperty("data", out _));
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
@@ -11,6 +12,58 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Reads document-level embedded files without opening or executing them.</summary>
 public static class PdfAttachmentReader
 {
+    /// <summary>Exports attachment metadata and page placements without payload data.</summary>
+    public static string ToJson(PdfDocument document, bool indented = false)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        IReadOnlyList<PdfAttachmentInfo> attachments = Read(document);
+        int pageCount = PdfPageTree.Read(document).Pages.Count;
+        PdfAttachmentAnnotationInfo[] annotations = [.. Enumerable.Range(0, pageCount)
+            .SelectMany(pageIndex => ReadPageAnnotations(document, pageIndex))];
+        object Describe(PdfAttachmentInfo attachment) => new
+        {
+            attachment.FileName,
+            attachment.Description,
+            attachment.MimeType,
+            attachment.Relationship,
+            ByteCount = attachment.Data.Length,
+            attachment.DeclaredSize,
+            attachment.SizeMatches,
+            attachment.CreationDate,
+            attachment.ModificationDate,
+            attachment.ChecksumMatches,
+            attachment.CollectionValues,
+            attachment.FileSpecificationObjectNumber,
+            attachment.EmbeddedFileObjectNumber,
+            attachment.HasUnsafeFileName,
+            attachment.IsPotentiallyExecutable,
+            attachment.HasExecutableContent,
+            attachment.HasEncryptedContent
+        };
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            Attachments = attachments.Select(Describe),
+            PageAnnotations = annotations.Select(annotation => new
+            {
+                annotation.PageIndex,
+                annotation.AnnotationIndex,
+                annotation.ObjectNumber,
+                annotation.Left,
+                annotation.Bottom,
+                annotation.Right,
+                annotation.Top,
+                annotation.Icon,
+                annotation.Contents,
+                Attachment = Describe(annotation.Attachment)
+            })
+        }, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        });
+    }
+
     /// <summary>Reads attachment metadata and immutable payloads from the embedded-files name tree.</summary>
     public static IReadOnlyList<PdfAttachmentInfo> Read(PdfDocument document)
     {
