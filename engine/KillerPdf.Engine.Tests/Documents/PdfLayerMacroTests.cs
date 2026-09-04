@@ -127,4 +127,30 @@ public sealed class PdfLayerMacroTests
             Assert.True(group.IsVisibleWhenExporting);
         });
     }
+
+    [Fact]
+    public void MacroSetsAndClearsDefaultConfigurationMetadata()
+    {
+        ReadOnlyMemory<byte> source = new PdfDocumentBuilder().AddPage(200, 200,
+            new PdfContentStreamBuilder().BeginOptionalContent(
+                new PdfOptionalContentGroup("Artwork"))
+                .Rectangle(0, 0, 10, 10).Fill().EndMarkedContent()).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Configuration", [
+            PdfLayerMacro.ConfigurationMetadataStep("Press", "KillerPDF")
+        ]).ToJson());
+
+        source = PdfLayerMacro.Execute(Assert.Single(macro.Steps), source);
+        PdfOptionalContentConfigurationInfo changed = Assert.Single(
+            PdfOptionalContentReader.Read(PdfDocument.Open(source)).Configurations);
+
+        Assert.Equal("Press", changed.Name);
+        Assert.Equal("KillerPDF", changed.Creator);
+
+        source = PdfLayerMacro.Execute(
+            PdfLayerMacro.ConfigurationMetadataStep(null, null), source);
+        PdfOptionalContentConfigurationInfo cleared = Assert.Single(
+            PdfOptionalContentReader.Read(PdfDocument.Open(source)).Configurations);
+        Assert.Null(cleared.Name);
+        Assert.Null(cleared.Creator);
+    }
 }

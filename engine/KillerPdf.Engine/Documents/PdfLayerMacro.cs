@@ -47,6 +47,16 @@ public static class PdfLayerMacro
     public static PdfMacroStep RemoveUnusedStep(string layerName) =>
         EditStep("removeUnused", layerName, null);
 
+    /// <summary>Creates a step that changes or clears default layer configuration metadata.</summary>
+    public static PdfMacroStep ConfigurationMetadataStep(string? name, string? creator) =>
+        new(PdfMacroOperation.EditLayers,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["action"] = "configurationMetadata",
+                ["value"] = JsonSerializer.Serialize(
+                    new ConfigurationMetadataSettings(name, creator))
+            });
+
     /// <summary>Creates a layer-flattening step using default visibility.</summary>
     public static PdfMacroStep FlattenStep() => new(PdfMacroOperation.FlattenLayers);
 
@@ -89,11 +99,30 @@ public static class PdfLayerMacro
     {
         if (step.Settings is null
             || !step.Settings.TryGetValue("action", out string? action)
-            || !step.Settings.TryGetValue("layer", out string? layerName)
             || step.Settings.Keys.Any(key => key is not ("action" or "layer" or "value")))
             throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
         step.Settings.TryGetValue("value", out string? value);
         cancellationToken.ThrowIfCancellationRequested();
+        if (action == "configurationMetadata" && !string.IsNullOrWhiteSpace(value))
+        {
+            ConfigurationMetadataSettings settings;
+            try
+            {
+                settings = JsonSerializer.Deserialize<ConfigurationMetadataSettings>(value)
+                    ?? throw new JsonException();
+            }
+            catch (JsonException exception)
+            {
+                throw new ArgumentException(
+                    "The layer configuration metadata is invalid.", nameof(step), exception);
+            }
+            if (step.Settings.ContainsKey("layer"))
+                throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
+            return PdfOptionalContentEditor.SetDefaultConfigurationMetadata(
+                document, settings.Name, settings.Creator);
+        }
+        if (!step.Settings.TryGetValue("layer", out string? layerName))
+            throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
         if (action == "create" && !string.IsNullOrWhiteSpace(value))
         {
             CreateSettings settings;
@@ -141,6 +170,7 @@ public static class PdfLayerMacro
 
     private sealed record CreateSettings(bool InitiallyVisible, bool Locked,
         bool? PrintVisible, bool? ExportVisible);
+    private sealed record ConfigurationMetadataSettings(string? Name, string? Creator);
 
     private static PdfMacroStep EditStep(string action, string layerName, string? value)
     {
