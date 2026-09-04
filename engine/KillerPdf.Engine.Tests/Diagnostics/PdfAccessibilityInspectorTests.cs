@@ -81,6 +81,37 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void ReadingOrderReportsStructureSequenceRolesAndMarkedContent()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.Heading1, 0)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 14)
+            .ShowLatin1Text("Heading").EndText().EndMarkedContent()
+            .BeginMarkedContent(PdfStructureType.Paragraph, 1)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .ShowLatin1Text("Paragraph").EndText().EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Order", Language = "en-US" })
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Heading1, 0, 0, 1,
+                actualText: "Reviewed heading")
+            .AddStructureElement(PdfStructureType.Paragraph, 0, 1, 1)
+            .Build());
+
+        PdfAccessibilityReadingOrderReport report =
+            PdfAccessibilityReadingOrder.Read(document);
+
+        Assert.Equal(["H1", "P"], report.Items.Select(item => item.Role));
+        Assert.Equal([0, 1], report.Items.Select(item => item.MarkedContentId));
+        Assert.All(report.Items, item => Assert.Equal(0, item.PageIndex));
+        Assert.All(report.Items, item => Assert.NotNull(item.StructureObjectNumber));
+        Assert.Equal("Reviewed heading", report.Items[0].ActualText);
+        Assert.Contains("\"markedContentId\":0", report.ToJson());
+        Assert.Contains("1. H1 | Page 1 | MCID 0", report.ToText());
+    }
+
+    [Fact]
     public void InspectReportsFigureWithoutAlternateDescription()
     {
         var content = new PdfContentStreamBuilder()
