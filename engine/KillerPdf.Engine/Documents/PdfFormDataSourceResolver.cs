@@ -1,6 +1,6 @@
 namespace KillerPdf.Engine.Documents;
 
-/// <summary>Resolves local FDF and XFDF source references without opening the target PDF.</summary>
+/// <summary>Resolves and opens local FDF and XFDF source references.</summary>
 public static class PdfFormDataSourceResolver
 {
     /// <summary>Resolves an absolute or interchange-file-relative source PDF path.</summary>
@@ -23,5 +23,27 @@ public static class PdfFormDataSourceResolver
             ?? throw new ArgumentException("The interchange file has no parent directory.",
                 nameof(interchangeFilePath));
         return Path.GetFullPath(reference, directory);
+    }
+
+    /// <summary>Opens an embedded, referenced, or caller-selected source PDF.</summary>
+    public static PdfDocument Open(PdfFormDataSet data, string interchangeFilePath,
+        string? password = null, string? replacementSourcePdfPath = null)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentException.ThrowIfNullOrWhiteSpace(interchangeFilePath);
+        ReadOnlyMemory<byte> source;
+        if (data.EmbeddedSourcePdf is ReadOnlyMemory<byte> embedded)
+            source = embedded;
+        else
+        {
+            string? path = string.IsNullOrWhiteSpace(replacementSourcePdfPath)
+                ? Resolve(data, interchangeFilePath)
+                : Path.GetFullPath(replacementSourcePdfPath);
+            if (path is null)
+                throw new FileNotFoundException(
+                    "The FDF or XFDF data does not identify a source PDF.");
+            source = File.ReadAllBytes(path);
+        }
+        return password is null ? PdfDocument.Open(source) : PdfDocument.Open(source, password);
     }
 }

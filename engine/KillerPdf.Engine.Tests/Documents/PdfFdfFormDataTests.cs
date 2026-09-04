@@ -172,6 +172,34 @@ public sealed class PdfFdfFormDataTests
         Assert.Null(PdfFormDataSourceResolver.Resolve(new PdfFormDataSet(), interchange));
     }
 
+    [Fact]
+    public void OpensEmbeddedAndCallerSelectedSourcePdfs()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
+        string selectedPath = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllBytes(selectedPath, source);
+            PdfDocument embedded = PdfFormDataSourceResolver.Open(new PdfFormDataSet
+            {
+                EmbeddedSourcePdf = source,
+                SourcePdfPath = "missing.pdf"
+            }, Path.Combine(Path.GetTempPath(), "values.fdf"));
+            PdfDocument selected = PdfFormDataSourceResolver.Open(new PdfFormDataSet(),
+                Path.Combine(Path.GetTempPath(), "values.xfdf"),
+                replacementSourcePdfPath: selectedPath);
+
+            Assert.Equal(1, PdfDocumentInformation.Read(embedded).PageCount);
+            Assert.Equal(1, PdfDocumentInformation.Read(selected).PageCount);
+            Assert.Throws<FileNotFoundException>(() => PdfFormDataSourceResolver.Open(
+                new PdfFormDataSet(), Path.Combine(Path.GetTempPath(), "values.fdf")));
+        }
+        finally
+        {
+            File.Delete(selectedPath);
+        }
+    }
+
 
     private static PdfFormDataSet SelectionSource(string subtype) => new()
     {
