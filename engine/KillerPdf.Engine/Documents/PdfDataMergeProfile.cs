@@ -8,7 +8,8 @@ namespace KillerPdf.Engine.Documents;
 public sealed record PdfDataMergeFieldMapping(
     string SourceField, string TargetField, string? DefaultValue = null,
     PdfDataMergeValueKind ValueKind = PdfDataMergeValueKind.Text,
-    string? Format = null, string? CultureName = null);
+    string? Format = null, string? CultureName = null,
+    string? IncludeWhenField = null, string? IncludeWhenValue = null);
 
 /// <summary>A reusable data-merge mapping that contains no source records.</summary>
 public sealed class PdfDataMergeProfile
@@ -33,6 +34,10 @@ public sealed class PdfDataMergeProfile
         if (selected.Any(mapping => mapping.ValueKind == PdfDataMergeValueKind.Text
             && mapping.Format is not null))
             throw new ArgumentException("Text mappings cannot have a format string.", nameof(mappings));
+        if (selected.Any(mapping => string.IsNullOrWhiteSpace(mapping.IncludeWhenField)
+                != string.IsNullOrWhiteSpace(mapping.IncludeWhenValue)))
+            throw new ArgumentException(
+                "Conditional mappings require both a field and a value.", nameof(mappings));
         foreach (PdfDataMergeFieldMapping mapping in selected)
             if (mapping.CultureName is not null)
                 _ = CultureInfo.GetCultureInfo(mapping.CultureName);
@@ -66,6 +71,11 @@ public sealed class PdfDataMergeProfile
         var fields = new List<PdfFormDataField>(Mappings.Count);
         foreach (PdfDataMergeFieldMapping mapping in Mappings)
         {
+            if (mapping.IncludeWhenField is not null
+                && (!record.TryGetValue(mapping.IncludeWhenField, out string? conditionValue)
+                    || !string.Equals(conditionValue, mapping.IncludeWhenValue,
+                        StringComparison.Ordinal)))
+                continue;
             string value = record.TryGetValue(mapping.SourceField, out string? supplied)
                 && supplied is not null
                 ? supplied

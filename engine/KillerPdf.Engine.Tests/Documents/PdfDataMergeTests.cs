@@ -183,6 +183,36 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void MappingProfilesConditionallyIncludeFieldsWithoutSavingRecordValues()
+    {
+        var profile = new PdfDataMergeProfile("Invitations", [
+            new PdfDataMergeFieldMapping("Guest", "guest.name"),
+            new PdfDataMergeFieldMapping("Meal", "guest.meal",
+                IncludeWhenField: "Attending", IncludeWhenValue: "yes")],
+            "invitation.pdf");
+        PdfDataMergeProfile restored = PdfDataMergeProfile.FromJson(profile.ToJson());
+
+        PdfDataMergeMappedRecord attending = restored.Map(
+            new Dictionary<string, string?>
+            {
+                ["Guest"] = "Ada", ["Meal"] = "Vegetarian", ["Attending"] = "yes"
+            });
+        PdfDataMergeMappedRecord absent = restored.Map(
+            new Dictionary<string, string?>
+            {
+                ["Guest"] = "Grace", ["Meal"] = "Standard", ["Attending"] = "no"
+            });
+
+        Assert.Equal(["guest.name", "guest.meal"],
+            attending.FormData.Fields.Select(field => field.Name));
+        Assert.Equal(["guest.name"], absent.FormData.Fields.Select(field => field.Name));
+        Assert.DoesNotContain("Vegetarian", profile.ToJson(), StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => new PdfDataMergeProfile("Invalid", [
+            new PdfDataMergeFieldMapping("Meal", "guest.meal",
+                IncludeWhenField: "Attending")], "invalid.pdf"));
+    }
+
+    [Fact]
     public void FormBatchGeneratesNamedPdfsAndIsolatesBadRecords()
     {
         PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
