@@ -1,5 +1,7 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Diagnostics;
@@ -363,12 +365,8 @@ internal static class PdfPreflightDocumentChecks
                         findings.Add(Information("ColorUsage.SpotColor",
                             "The document declares a spot color space.", pageIndex,
                             reference?.ObjectNumber));
-                    if (family.ValueAsLatin1() == "ICCBased"
-                        && (array.Count < 2 || Resolve(document, array[1]) is not PdfStream profile
-                            || !profile.Dictionary.ContainsKey(Name("N"))))
-                        findings.Add(Error("ColorUsage.InvalidIccProfile",
-                            "An ICCBased color space has no usable profile.", pageIndex,
-                            reference?.ObjectNumber));
+                    if (family.ValueAsLatin1() == "ICCBased")
+                        ValidateIccProfile(array, pageIndex, reference?.ObjectNumber);
                 }
             }
             if (resources.TryGetValue(ExtGStateName, out PdfObject? statesValue))
@@ -408,6 +406,30 @@ internal static class PdfPreflightDocumentChecks
         bool IsTrue(PdfDictionary dictionary, string key) =>
             dictionary.TryGetValue(Name(key), out PdfObject? value)
                 && Resolve(document, value) is PdfBoolean { Value: true };
+
+        void ValidateIccProfile(PdfArray colorSpace, int pageIndex, int? objectNumber)
+        {
+            int? profileObjectNumber = colorSpace.Count > 1
+                ? (colorSpace[1] as PdfIndirectReference)?.ObjectNumber : null;
+            try
+            {
+                if (colorSpace.Count < 2
+                    || Resolve(document, colorSpace[1]) is not PdfStream stream
+                    || !stream.Dictionary.TryGetValue(Name("N"), out PdfObject? countValue)
+                    || Resolve(document, countValue) is not PdfInteger count)
+                    throw new FormatException("An ICCBased color space has no usable profile.");
+                PdfIccProfile profile = PdfIccProfile.Load(PdfStreamDecoder.Decode(
+                    stream, document.Resolve, 64 * 1024 * 1024));
+                if (count.Value != profile.ComponentCount)
+                    throw new FormatException(
+                        "An ICCBased color space component count does not match its profile.");
+            }
+            catch (Exception error) when (IsDocumentFailure(error))
+            {
+                findings.Add(Error("ColorUsage.InvalidIccProfile", error.Message,
+                    pageIndex, objectNumber ?? profileObjectNumber));
+            }
+        }
     }
 
     internal static IReadOnlyList<PdfPreflightFinding> CheckOptionalContent(PdfDocument document)

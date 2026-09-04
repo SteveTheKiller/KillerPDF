@@ -341,6 +341,42 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void ColorUsageValidatesEmbeddedIccProfileBytes()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillIccColor(PdfIccProfile.Load(Profile()), 0.1, 0.2, 0.3)
+            .Rectangle(10, 10, 50, 50).Fill();
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, content).Build());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(original.Resolve(
+            Assert.IsType<PdfIndirectReference>(original.Trailer[new PdfName("Root"u8)])));
+        PdfDictionary pages = Assert.IsType<PdfDictionary>(original.Resolve(
+            Assert.IsType<PdfIndirectReference>(catalog[new PdfName("Pages"u8)])));
+        PdfArray kids = Assert.IsType<PdfArray>(pages[new PdfName("Kids"u8)]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(original.Resolve(
+            Assert.IsType<PdfIndirectReference>(Assert.Single(kids))));
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(
+            page[new PdfName("Resources"u8)]);
+        PdfDictionary spaces = Assert.IsType<PdfDictionary>(
+            resources[new PdfName("ColorSpace"u8)]);
+        PdfArray colorSpace = Assert.IsType<PdfArray>(Assert.Single(spaces).Value);
+        PdfIndirectReference profileReference = Assert.IsType<PdfIndirectReference>(colorSpace[1]);
+        PdfStream profile = Assert.IsType<PdfStream>(original.Resolve(profileReference));
+        var invalidProfile = new PdfStream(profile.Dictionary, new byte[132]);
+        byte[] source = new PdfIncrementalUpdateBuilder(original)
+            .ReplaceObject(profileReference.ObjectNumber, invalidProfile).Build();
+        var preflight = new PdfPreflightProfile("Color usage",
+            [PdfPreflightCheck.ColorUsage]);
+
+        PdfPreflightFinding finding = Assert.Single(
+            PdfPreflightRunner.Run(source, preflight).Findings);
+
+        Assert.Equal("ColorUsage.InvalidIccProfile", finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+    }
+
+    [Fact]
     public void OptionalContentCheckReportsEffectiveLayerStateAndObject()
     {
         var layer = new PdfOptionalContentGroup("Measurements", initiallyVisible: false,
