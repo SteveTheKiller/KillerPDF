@@ -15,7 +15,9 @@ public enum PdfRedactionSearchKind
     /// <summary>A common North American phone-number pattern.</summary>
     PhoneNumber,
     /// <summary>A U.S. Social Security number written with standard separators.</summary>
-    SocialSecurityNumber
+    SocialSecurityNumber,
+    /// <summary>A payment card account number with a valid checksum.</summary>
+    PaymentCardNumber
 }
 
 /// <summary>Options for locating reviewable redaction candidates.</summary>
@@ -110,6 +112,7 @@ public static class PdfRedactionSearch
     private const string EmailPattern = @"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b";
     private const string PhonePattern = @"(?<!\d)(?:\+?1[ .-]?)?(?:\(\d{3}\)|\d{3})[ .-]?\d{3}[ .-]?\d{4}(?!\d)";
     private const string SocialSecurityNumberPattern = @"(?<!\d)\d{3}[ -]\d{2}[ -]\d{4}(?!\d)";
+    private const string PaymentCardNumberPattern = @"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)";
 
     /// <summary>Builds a reviewable match list from extracted pages.</summary>
     public static PdfRedactionReview Find(IEnumerable<PdfPageContent> pages,
@@ -127,6 +130,7 @@ public static class PdfRedactionSearch
             PdfRedactionSearchKind.EmailAddress => EmailPattern,
             PdfRedactionSearchKind.PhoneNumber => PhonePattern,
             PdfRedactionSearchKind.SocialSecurityNumber => SocialSecurityNumberPattern,
+            PdfRedactionSearchKind.PaymentCardNumber => PaymentCardNumberPattern,
             _ => throw new ArgumentException("Search text is required.", nameof(options))
         };
         RegexOptions flags = RegexOptions.CultureInvariant;
@@ -148,6 +152,8 @@ public static class PdfRedactionSearch
             foreach (Match match in expression.Matches(text))
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (options.Kind == PdfRedactionSearchKind.PaymentCardNumber
+                    && !HasValidPaymentCardChecksum(match.Value)) continue;
                 var words = spans.Select((span, index) => (span, index))
                     .Where(item => item.span.End > match.Index && item.span.Start < match.Index + match.Length)
                     .ToArray();
@@ -159,5 +165,26 @@ public static class PdfRedactionSearch
             pageIndex++;
         }
         return new PdfRedactionReview(results);
+    }
+
+    private static bool HasValidPaymentCardChecksum(string value)
+    {
+        int digitCount = value.Count(char.IsAsciiDigit);
+        if (digitCount is < 13 or > 19) return false;
+        int sum = 0;
+        bool doubleDigit = false;
+        for (int index = value.Length - 1; index >= 0; index--)
+        {
+            if (!char.IsAsciiDigit(value[index])) continue;
+            int digit = value[index] - '0';
+            if (doubleDigit)
+            {
+                digit *= 2;
+                if (digit > 9) digit -= 9;
+            }
+            sum += digit;
+            doubleDigit = !doubleDigit;
+        }
+        return sum % 10 == 0;
     }
 }

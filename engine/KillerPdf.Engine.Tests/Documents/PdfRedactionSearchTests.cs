@@ -56,6 +56,22 @@ public sealed class PdfRedactionSearchTests
     }
 
     [Fact]
+    public void FindsOnlyPaymentCardNumbersWithValidChecksums()
+    {
+        PdfPageContent page = Read(
+            "Cards 4111 1111 1111 1111 and 4111 1111 1111 1112");
+
+        PdfRedactionMatch match = Assert.Single(PdfRedactionSearch.Find([page],
+            new PdfRedactionSearchOptions
+            {
+                Kind = PdfRedactionSearchKind.PaymentCardNumber
+            }).Matches);
+
+        Assert.Equal("4111 1111 1111 1111", match.Text);
+        Assert.Equal(4, match.WordCount);
+    }
+
+    [Fact]
     public void ValidatesTimeoutAndHonorsCancellation()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfRedactionSearch.Find([], new PdfRedactionSearchOptions
