@@ -152,6 +152,31 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("The image soft mask is not implemented.", page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(2, new byte[] { 0x30 })]
+    [InlineData(4, new byte[] { 0x0F })]
+    [InlineData(16, new byte[] { 0x00, 0x00, 0xFF, 0xFF })]
+    public void Render_CompositesPackedImageSoftMasks(int bits, byte[] samples)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgba(2, 1, new byte[]
+                {
+                    255, 0, 0, 255,
+                    0, 255, 0, 255
+                }), 0, 0, 2, 1))
+            .Build());
+        PdfDocument document = ReplaceImageSoftMask(source, bits, Compress(samples));
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(2, 1, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 0], Pixel(page, 0, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(page, 1, 0));
+        Assert.DoesNotContain("The image soft mask is not implemented.", page.Diagnostics);
+    }
+
     [Fact]
     public void Render_DecodesCcittFaxImageXObjects()
     {
@@ -901,6 +926,29 @@ public sealed class PdfPageRendererTests
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(reference.ObjectNumber,
                 new PdfStream(dictionary, encodedData ?? image.EncodedData.ToArray())).Build());
+    }
+
+    private static PdfDocument ReplaceImageSoftMask(
+        PdfDocument source, int bits, byte[] encodedData)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(
+            Assert.IsType<PdfIndirectReference>(xObjects[Name("Im1")])));
+        PdfIndirectReference maskReference = Assert.IsType<PdfIndirectReference>(
+            image.Dictionary[Name("SMask")]);
+        PdfStream mask = Assert.IsType<PdfStream>(source.Resolve(maskReference));
+        var dictionary = new PdfDictionary(mask.Dictionary
+            .Where(entry => !entry.Key.Equals(Name("BitsPerComponent")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(
+                Name("BitsPerComponent"), new PdfInteger(bits))));
+        return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(maskReference.ObjectNumber, new PdfStream(dictionary, encodedData))
+            .Build());
     }
 
     private static PdfDocument AddPageColorSpaceResource(

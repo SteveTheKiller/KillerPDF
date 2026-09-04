@@ -1518,23 +1518,37 @@ public sealed class PdfPageRenderer
         if (resolved is not PdfStream stream
             || NameValue(stream.Dictionary, "Subtype") != "Image"
             || NameValue(stream.Dictionary, "ColorSpace") != "DeviceGray"
-            || PositiveInteger(stream.Dictionary, "BitsPerComponent") != 8
             || stream.Dictionary.ContainsKey(Name("Mask"))
             || stream.Dictionary.ContainsKey(Name("SMask")))
             throw new NotSupportedException();
+        int bits = PositiveInteger(stream.Dictionary, "BitsPerComponent");
+        if (bits is not (1 or 2 or 4 or 8 or 16)) throw new NotSupportedException();
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
-        int expected = checked(width * height);
-        byte[] samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
-        if (samples.Length != expected)
+        int rowBytes = checked((width * bits + 7) / 8);
+        int expected = checked(rowBytes * height);
+        byte[] packed = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
+        if (packed.Length != expected)
             throw new FormatException("Image soft-mask sample data has an invalid length.");
-        bool inverted = false;
+        double decodeStart = 0, decodeEnd = 1;
         if (stream.Dictionary.TryGetValue(Name("Decode"), out PdfObject? decodeValue))
         {
             PdfArray decode = ResolveArray(decodeValue, 2, "Image soft-mask decode array");
-            inverted = Number(Resolve(decode[0])) > Number(Resolve(decode[1]));
+            decodeStart = Number(Resolve(decode[0]));
+            decodeEnd = Number(Resolve(decode[1]));
         }
-        return new SoftMask(samples, width, height, inverted);
+        uint maximum = (1u << bits) - 1;
+        var samples = new byte[checked(width * height)];
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                uint sample = ReadPackedSample(packed,
+                    checked(y * rowBytes * 8 + x * bits), bits);
+                double decoded = decodeStart + sample / (double)maximum
+                    * (decodeEnd - decodeStart);
+                samples[y * width + x] = (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
+            }
+        return new SoftMask(samples, width, height);
     }
 
     private bool StencilPaintsOne(PdfDictionary dictionary)
@@ -1642,7 +1656,7 @@ public sealed class PdfPageRenderer
                     int maskY = Math.Min((int)((long)sy * softMask.Height / sourceHeight),
                         softMask.Height - 1);
                     byte maskSample = softMask.Samples[maskY * softMask.Width + maskX];
-                    alpha *= (softMask.Inverted ? 255 - maskSample : maskSample) / 255d;
+                    alpha *= maskSample / 255d;
                 }
                 SetPixel(target, targetWidth, x, y, color, alpha, blendMode);
             }
@@ -2100,7 +2114,7 @@ public sealed class PdfPageRenderer
         internal bool Contains(double x, double y)
             => PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
     }
-    private sealed record SoftMask(byte[] Samples, int Width, int Height, bool Inverted);
+    private sealed record SoftMask(byte[] Samples, int Width, int Height);
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
         Func<double, double, double, double, Color>? Converter = null,
         double[]? DefaultDecode = null, Func<double[], Color>? MultiConverter = null)
