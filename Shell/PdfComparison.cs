@@ -124,7 +124,9 @@ public partial class MainWindow
             foreach (var tab in openTabs)
             {
                 string path = tab.Path;
-                var item = new MenuItem { Header = tab.Title };
+                // Doubled for the same reason as the tab overflow menu: a lone underscore
+                // in a string MenuItem header is an access-key marker (PdfViewer.TabStrip.cs).
+                var item = new MenuItem { Header = tab.Title.Replace("_", "__") };
                 item.Click += (_, _) => BeginComparison(source, path);
                 items.Add(item);
             }
