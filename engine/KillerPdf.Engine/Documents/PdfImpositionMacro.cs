@@ -49,6 +49,7 @@ public static class PdfImpositionMacro
         cancellationToken.ThrowIfCancellationRequested();
         return PdfImpositionExporter.Build(document, sides,
             preset.Columns, preset.Rows, preset.SheetWidth, preset.SheetHeight,
-            preset.Margin, preset.Gutter, preset.RotateToFit, preset.CreepPerSheet);
+            preset.Margin, preset.Gutter, preset.RotateToFit, preset.CreepPerSheet,
+            preset.IncludeCropMarks, preset.IncludeRegistrationMarks);
     }
 }

@@ -258,6 +258,24 @@ public sealed class PdfImpositionPlannerTests
                 .ShowLatin1Text(value).EndText();
     }
 
+    [Fact]
+    public void ExporterDrawsRequestedCropAndRegistrationMarks()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(100, 100).Build());
+        IReadOnlyList<PdfImposedSheetSide> sides =
+            [new(0, PdfImposedSheetFace.Front, Array.AsReadOnly<int?>([0]))];
+
+        PdfDocument output = PdfDocument.Open(PdfImpositionExporter.Build(
+            source, sides, 1, 1, 160, 160, margin: 20,
+            includeCropMarks: true, includeRegistrationMarks: true));
+        PdfPageContent content = new PdfPageContentReader(output).Read(0);
+
+        Assert.True(content.Paths.Count >= 20);
+        Assert.Contains(content.Paths, path => path.BoundingBox.Left == 5
+            && path.BoundingBox.Right == 17);
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {

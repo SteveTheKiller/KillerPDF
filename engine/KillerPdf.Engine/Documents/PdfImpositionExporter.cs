@@ -14,7 +14,8 @@ public static class PdfImpositionExporter
         PdfDocument source, IReadOnlyList<PdfImposedSheetSide> sides,
         int columns, int rows, double sheetWidth, double sheetHeight,
         double margin = 0, double gutter = 0, bool rotateToFit = true,
-        double creepPerSheet = 0)
+        double creepPerSheet = 0, bool includeCropMarks = false,
+        bool includeRegistrationMarks = false)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(sides);
@@ -63,6 +64,28 @@ public static class PdfImpositionExporter
                         target.Left + sourceBox.Top * scale,
                         target.Bottom - sourceBox.Left * scale);
                 }
+            }
+            if (includeCropMarks || includeRegistrationMarks)
+            {
+                var marks = new PdfContentStreamBuilder().SetStrokeGray(0).SetLineWidth(0.25);
+                if (includeCropMarks)
+                    foreach (PdfImposedPlacement placement in placements)
+                        foreach (PdfImpositionMark mark
+                            in PdfImpositionPlanner.PlanCropMarks(placement))
+                            marks.MoveTo(mark.StartX, mark.StartY)
+                                .LineTo(mark.EndX, mark.EndY).Stroke();
+                if (includeRegistrationMarks)
+                    foreach (PdfImpositionRegistrationMark mark
+                        in PdfImpositionPlanner.PlanRegistrationMarks(sheetWidth, sheetHeight))
+                    {
+                        double half = mark.CrosshairLength / 2;
+                        marks.MoveTo(mark.CenterX - half, mark.CenterY)
+                            .LineTo(mark.CenterX + half, mark.CenterY).Stroke()
+                            .MoveTo(mark.CenterX, mark.CenterY - half)
+                            .LineTo(mark.CenterX, mark.CenterY + half).Stroke()
+                            .Circle(mark.CenterX, mark.CenterY, mark.Radius).Stroke();
+                    }
+                editor.AppendPageArtifact(outputPage, sheetWidth, sheetHeight, marks);
             }
         }
         return editor.Build();
