@@ -161,6 +161,43 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void ReordersReviewedStructureChildrenAndVerifiesSavedOrder()
+    {
+        PdfContentStreamBuilder content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.Heading1, 0)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 14)
+            .ShowLatin1Text("Heading").EndText().EndMarkedContent()
+            .BeginMarkedContent(PdfStructureType.Paragraph, 1)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+            .ShowLatin1Text("Paragraph").EndText().EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Heading1, 0, 0, 1)
+            .AddStructureElement(PdfStructureType.Paragraph, 0, 1, 1)
+            .Build());
+        int[] children = [.. PdfAccessibilityReadingOrder.Read(document).Items
+            .Select(item => item.StructureObjectNumber!.Value)];
+        int parent = document.CrossReferences.Values
+            .Where(entry => entry.Type == KillerPdf.Engine.CrossReference.PdfCrossReferenceEntryType.InUse)
+            .Select(entry => (entry.ObjectNumber, Value: document.Resolve(entry.ObjectNumber)))
+            .Where(item => item.Value is PdfDictionary dictionary
+                && dictionary.TryGetValue(new PdfName("S"u8), out PdfObject? role)
+                && role is PdfName name && name.ValueAsLatin1() == "Document")
+            .Select(item => item.ObjectNumber).Single();
+
+        PdfAccessibilityReadingOrderRepair repair =
+            PdfAccessibilityRepair.PreviewReadingOrder(document, parent, children.Reverse());
+        PdfAccessibilityRepairResult result =
+            PdfAccessibilityRepair.ApplyReadingOrder(document, repair);
+
+        Assert.True(repair.WillChange);
+        Assert.Equal(children.Reverse(), PdfAccessibilityReadingOrder
+            .Read(PdfDocument.Open(result.Document)).Items
+            .Select(item => item.StructureObjectNumber!.Value));
+    }
+
+    [Fact]
     public void InspectReportsFigureWithoutAlternateDescription()
     {
         var content = new PdfContentStreamBuilder()

@@ -29,6 +29,14 @@ public sealed record PdfAccessibilityTableHeaderRepair(
     int TableObjectNumber, int CellObjectNumber,
     PdfAccessibilityReport Before, bool WillChange);
 
+/// <summary>A reviewed permutation of one structure container's indirect children.</summary>
+public sealed record PdfAccessibilityReadingOrderRepair(
+    int ParentObjectNumber,
+    IReadOnlyList<int> OriginalChildObjectNumbers,
+    IReadOnlyList<int> OrderedChildObjectNumbers,
+    PdfAccessibilityReport Before,
+    bool WillChange);
+
 /// <summary>The saved document and accessibility reports surrounding one repair.</summary>
 public sealed record PdfAccessibilityRepairResult(
     ReadOnlyMemory<byte> Document,
@@ -38,6 +46,60 @@ public sealed record PdfAccessibilityRepairResult(
 /// <summary>Previews and applies accessibility corrections that require no semantic inference.</summary>
 public static class PdfAccessibilityRepair
 {
+    /// <summary>Previews an exact reading-order permutation for one structure container.</summary>
+    public static PdfAccessibilityReadingOrderRepair PreviewReadingOrder(
+        PdfDocument document, int parentObjectNumber,
+        IEnumerable<int> orderedChildObjectNumbers)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(orderedChildObjectNumbers);
+        if (parentObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(parentObjectNumber));
+        int[] original = StructureChildObjects(document, parentObjectNumber);
+        int[] ordered = orderedChildObjectNumbers.ToArray();
+        if (ordered.Any(number => number <= 0)
+            || ordered.Distinct().Count() != ordered.Length
+            || !ordered.Order().SequenceEqual(original.Order()))
+            throw new ArgumentException(
+                "The requested reading order must contain every existing child exactly once.",
+                nameof(orderedChildObjectNumbers));
+        return new PdfAccessibilityReadingOrderRepair(
+            parentObjectNumber, Array.AsReadOnly(original), Array.AsReadOnly(ordered),
+            PdfAccessibilityInspector.Inspect(document),
+            !ordered.SequenceEqual(original));
+    }
+
+    /// <summary>Applies a previewed reading order and verifies the saved child sequence.</summary>
+    public static PdfAccessibilityRepairResult ApplyReadingOrder(
+        PdfDocument document, PdfAccessibilityReadingOrderRepair repair)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(repair);
+        PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
+        int[] current = StructureChildObjects(document, repair.ParentObjectNumber);
+        if (!repair.WillChange
+            || !current.SequenceEqual(repair.OriginalChildObjectNumbers)
+            || !repair.OrderedChildObjectNumbers.Order().SequenceEqual(current.Order()))
+            throw new InvalidOperationException(
+                "The document does not have the previewed structure-child order.");
+        PdfDictionary parent = document.Resolve(new PdfIndirectReference(
+            repair.ParentObjectNumber, 0)) as PdfDictionary
+            ?? throw new InvalidOperationException(
+                "The structure parent object is not a dictionary.");
+        var entries = parent.ToDictionary(item => item.Key, item => item.Value);
+        entries[new PdfName("K"u8)] = new PdfArray(repair.OrderedChildObjectNumbers
+            .Select(number => (PdfObject)new PdfIndirectReference(number, 0)));
+        byte[] saved = new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(repair.ParentObjectNumber, new PdfDictionary(entries)).Build();
+        PdfDocument reopened = PdfDocument.Open(saved);
+        if (!StructureChildObjects(reopened, repair.ParentObjectNumber)
+                .SequenceEqual(repair.OrderedChildObjectNumbers))
+            throw new InvalidOperationException(
+                "The saved structure container has the wrong reading order.");
+        return new PdfAccessibilityRepairResult(
+            saved, before, PdfAccessibilityInspector.Inspect(reopened));
+    }
+
     /// <summary>Previews promoting a supplied data cell in a reported table to a header cell.</summary>
     public static PdfAccessibilityTableHeaderRepair PreviewTableHeader(
         PdfDocument document, int tableObjectNumber, int cellObjectNumber)
@@ -265,6 +327,23 @@ public static class PdfAccessibilityRepair
     private static PdfString TextString(string value) => new(
         [0xFE, 0xFF, .. Encoding.BigEndianUnicode.GetBytes(value)],
         PdfStringForm.Hexadecimal);
+
+    private static int[] StructureChildObjects(
+        PdfDocument document, int parentObjectNumber)
+    {
+        PdfDictionary parent = document.Resolve(new PdfIndirectReference(
+            parentObjectNumber, 0)) as PdfDictionary
+            ?? throw new InvalidOperationException(
+                "The structure parent object is not a dictionary.");
+        if (!parent.TryGetValue(new PdfName("K"u8), out PdfObject? children)
+            || children is not PdfArray array || array.Count == 0)
+            throw new InvalidOperationException(
+                "The structure parent has no reorderable child array.");
+        return [.. array.Select(child => child is PdfIndirectReference reference
+            && reference.Generation == 0 ? reference.ObjectNumber
+            : throw new InvalidOperationException(
+                "Reading-order repair requires indirect generation-zero children."))];
+    }
 
     private static bool IsDescendantDataCell(
         PdfDocument document, int tableObjectNumber, int cellObjectNumber)
