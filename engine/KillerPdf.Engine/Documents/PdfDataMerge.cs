@@ -63,11 +63,21 @@ public static class PdfDataMerge
     /// <summary>Maps records into an AcroForm template and isolates each generated PDF.</summary>
     public static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatch(
         PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
-        PdfDataMergeProfile profile, CancellationToken cancellationToken = default)
+        PdfDataMergeProfile profile, CancellationToken cancellationToken = default) =>
+        RunFormBatch(template, records, profile,
+            PdfDataMergeOutputMode.Editable, cancellationToken);
+
+    /// <summary>Maps records into editable or flattened AcroForm output.</summary>
+    public static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatch(
+        PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
+        PdfDataMergeProfile profile, PdfDataMergeOutputMode outputMode,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(records);
         ArgumentNullException.ThrowIfNull(profile);
+        if (!Enum.IsDefined(outputMode))
+            throw new ArgumentOutOfRangeException(nameof(outputMode));
         var results = new List<PdfDataMergeDocumentResult>();
         var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int index = 0;
@@ -95,6 +105,8 @@ public static class PdfDataMerge
                 if (mapped.TextReplacements.Count > 0)
                     data = ApplyTextReplacements(PdfDocument.Open(data),
                         mapped.TextReplacements, cancellationToken);
+                if (outputMode == PdfDataMergeOutputMode.Flattened)
+                    data = PdfFormFlattener.Flatten(PdfDocument.Open(data));
                 usedFileNames.Add(outputFileName);
                 results.Add(new PdfDataMergeDocumentResult(
                     index, outputFileName, data, null));
@@ -236,6 +248,15 @@ public enum PdfMissingMergeValueBehavior
     Empty,
     /// <summary>Retain the original placeholder.</summary>
     KeepPlaceholder
+}
+
+/// <summary>Controls whether generated form fields remain editable.</summary>
+public enum PdfDataMergeOutputMode
+{
+    /// <summary>Keep generated form fields editable.</summary>
+    Editable,
+    /// <summary>Paint widget appearances into vector page content and remove the fields.</summary>
+    Flattened
 }
 
 /// <summary>The isolated outcome of processing one merge record.</summary>

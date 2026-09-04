@@ -284,6 +284,27 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void FormBatchCanProduceFlattenedVectorOutput()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 20, 20, 140, 24).Build());
+        var profile = new PdfDataMergeProfile("Customers",
+            [new PdfDataMergeFieldMapping("Name", "customer.name")],
+            "customer.pdf");
+
+        PdfDataMergeDocumentResult result = Assert.Single(PdfDataMerge.RunFormBatch(
+            template, [new Dictionary<string, string?> { ["Name"] = "Ada" }],
+            profile, PdfDataMergeOutputMode.Flattened));
+        PdfDocument output = PdfDocument.Open(result.Data!.Value);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(PdfFormWidgetReader.ReadPage(output, 0));
+        Assert.Contains("Ada", PdfStructuredExport.ToPlainText(output));
+        Assert.Equal(string.Empty,
+            Assert.Single(PdfFormWidgetReader.ReadPage(template, 0)).Value);
+    }
+
+    [Fact]
     public void FormBatchReplacesLatin1PageTextPlaceholdersAndReportsMissingTargets()
     {
         PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder()
