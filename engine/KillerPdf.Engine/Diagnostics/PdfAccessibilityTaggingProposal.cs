@@ -17,6 +17,8 @@ public enum PdfAccessibilityProposedRole
     Link,
     /// <summary>An image placement that requires alternate text.</summary>
     Figure,
+    /// <summary>A repeated header or footer that is likely pagination furniture.</summary>
+    Artifact,
     /// <summary>An interactive form field that requires a semantic label.</summary>
     FormField
 }
@@ -43,10 +45,21 @@ public static class PdfAccessibilityTaggingProposal
             throw new InvalidOperationException(
                 "Authenticate the document before proposing accessibility tags.");
         var reader = new PdfPageContentReader(document);
+        PdfPageContent[] pages = [.. Enumerable.Range(0, reader.PageCount)
+            .Select(pageIndex => reader.Read(pageIndex))];
+        HashSet<string> repeatedArtifacts = [.. pages
+            .SelectMany((page, pageIndex) => page.Lines
+                .Where(line => IsHeaderOrFooter(line.BoundingBox, page.Height))
+                .Select(line => (PageIndex: pageIndex,
+                    Key: ArtifactKey(line.Text, line.BoundingBox, page.Height))))
+            .Where(item => item.Key is not null)
+            .GroupBy(item => item.Key!, StringComparer.Ordinal)
+            .Where(group => group.Select(item => item.PageIndex).Distinct().Count() > 1)
+            .Select(group => group.Key)];
         var result = new List<PdfAccessibilityTaggingProposalItem>();
         for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
         {
-            PdfPageContent page = reader.Read(pageIndex);
+            PdfPageContent page = pages[pageIndex];
             double[] sizes = [.. page.Lines.SelectMany(line => line.Runs)
                 .Select(run => run.PointSize).Where(size => size > 0).Order()];
             double median = sizes.Length == 0 ? 0
@@ -60,11 +73,15 @@ public static class PdfAccessibilityTaggingProposal
                     bool heading = median > 0 && size >= median * 1.3
                         && line.Text.Trim().Length <= 120;
                     string text = line.Text.Trim();
+                    bool artifact = repeatedArtifacts.Contains(
+                        ArtifactKey(text, line.BoundingBox, page.Height) ?? string.Empty);
                     return (line.BoundingBox, Text: (string?)line.Text.Trim(),
-                        Role: heading ? PdfAccessibilityProposedRole.Heading
+                        Role: artifact ? PdfAccessibilityProposedRole.Artifact
+                            : heading ? PdfAccessibilityProposedRole.Heading
                             : LooksLikeListItem(text) ? PdfAccessibilityProposedRole.ListItem
                             : PdfAccessibilityProposedRole.Paragraph,
-                        Confidence: heading ? 0.75 : LooksLikeListItem(text) ? 0.7 : 0.65);
+                        Confidence: artifact ? 0.8
+                            : heading ? 0.75 : LooksLikeListItem(text) ? 0.7 : 0.65);
                 })
                 .Concat(PdfLinkReader.ReadPage(document, pageIndex).Select(link =>
                     (BoundingBox: new PdfContentBounds(link.Left, link.Bottom, link.Right, link.Top),
@@ -112,5 +129,17 @@ public static class PdfAccessibilityTaggingProposal
         while (index < text.Length && char.IsAsciiDigit(text[index])) index++;
         return index > 0 && index + 1 < text.Length
             && text[index] is '.' or ')' && text[index + 1] == ' ';
+    }
+
+    private static bool IsHeaderOrFooter(PdfContentBounds bounds, double pageHeight) =>
+        bounds.Top >= pageHeight * 0.9 || bounds.Bottom <= pageHeight * 0.1;
+
+    private static string? ArtifactKey(
+        string text, PdfContentBounds bounds, double pageHeight)
+    {
+        string normalized = string.Join(' ', text.Split(
+            (char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (normalized.Length == 0 || !IsHeaderOrFooter(bounds, pageHeight)) return null;
+        return (bounds.Top >= pageHeight * 0.9 ? "H:" : "F:") + normalized;
     }
 }

@@ -60,6 +60,34 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void TaggingProposalIdentifiesRepeatedHeadersAndFootersAsArtifacts()
+    {
+        var builder = new PdfDocumentBuilder();
+        for (int page = 0; page < 2; page++)
+            builder.AddPage(300, 400, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+                .MoveText(20, 380).ShowLatin1Text("Quarterly report").EndText()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+                .MoveText(20, 200).ShowLatin1Text($"Body {page + 1}").EndText()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+                .MoveText(20, 20).ShowLatin1Text("Confidential").EndText());
+
+        IReadOnlyList<PdfAccessibilityTaggingProposalItem> proposals =
+            PdfAccessibilityTaggingProposal.Inspect(PdfDocument.Open(builder.Build()));
+
+        Assert.Equal(4, proposals.Count(item =>
+            item.Role == PdfAccessibilityProposedRole.Artifact));
+        Assert.Equal(2, proposals.Count(item =>
+            item.Role == PdfAccessibilityProposedRole.Paragraph));
+        Assert.All(proposals.Where(item =>
+            item.Role == PdfAccessibilityProposedRole.Artifact), item =>
+        {
+            Assert.Equal(0.8, item.Confidence);
+            Assert.True(item.RequiresReview);
+        });
+    }
+
+    [Fact]
     public void InspectReportsMissingDocumentLevelAccessibilityRequirements()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
