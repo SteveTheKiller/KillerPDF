@@ -464,10 +464,18 @@ public sealed record PdfBatesNumberingOptions
     public string Prefix { get; init; } = string.Empty;
     /// <summary>Gets the text after the numeric value.</summary>
     public string Suffix { get; init; } = string.Empty;
+    /// <summary>Gets the suffix inserted before the extension of named batch outputs.</summary>
+    public string OutputNameSuffix { get; init; } = "_bates";
 }
 
 /// <summary>One deterministic Bates value assigned to a page.</summary>
 public sealed record PdfBatesNumber(int DocumentIndex, int PageIndex, long Number, string Text);
+
+/// <summary>One named document in an ordered Bates-numbering batch.</summary>
+public sealed record PdfBatesBatchInput(string Name, PdfDocument Document);
+
+/// <summary>One named result from an ordered Bates-numbering batch.</summary>
+public sealed record PdfBatesBatchResult(string InputName, string OutputName, byte[] Data);
 
 /// <summary>Plans continuous Bates numbering in document and page order.</summary>
 public static class PdfBatesNumbering
@@ -538,5 +546,37 @@ public static class PdfBatesNumbering
                 : PdfPageFurnitureWriter.Apply(sources[documentIndex], marks));
         }
         return Array.AsReadOnly(outputs.ToArray());
+    }
+
+    /// <summary>Applies continuous Bates values and assigns deterministic output names.</summary>
+    public static IReadOnlyList<PdfBatesBatchResult> ApplyNamedBatch(
+        IEnumerable<PdfBatesBatchInput> inputs,
+        PdfBatesNumberingOptions options,
+        Func<PdfBatesNumber, PdfPageFurnitureMark> createMark)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(options);
+        PdfBatesBatchInput[] values = inputs.Select(input => input
+            ?? throw new ArgumentException("A Bates batch input cannot be null.", nameof(inputs))).ToArray();
+        if (string.IsNullOrWhiteSpace(options.OutputNameSuffix)
+            || options.OutputNameSuffix.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            throw new ArgumentException("The Bates output-name suffix is invalid.", nameof(options));
+        string[] outputNames = values.Select(input => OutputName(input.Name, options.OutputNameSuffix)).ToArray();
+        if (outputNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != outputNames.Length)
+            throw new ArgumentException("Bates batch output names must be unique.", nameof(inputs));
+        IReadOnlyList<byte[]> data = ApplyBatch(values.Select(input => input.Document), options, createMark);
+        return Array.AsReadOnly(values.Select((input, index) =>
+            new PdfBatesBatchResult(input.Name, outputNames[index], data[index])).ToArray());
+    }
+
+    private static string OutputName(string inputName, string suffix)
+    {
+        if (string.IsNullOrWhiteSpace(inputName) || Path.GetFileName(inputName) != inputName
+            || inputName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            throw new ArgumentException("A Bates batch input name must be a plain file name.", nameof(inputName));
+        string extension = Path.GetExtension(inputName);
+        string stem = Path.GetFileNameWithoutExtension(inputName);
+        if (stem.Length == 0) throw new ArgumentException("A Bates batch input name requires a base name.", nameof(inputName));
+        return stem + suffix + (extension.Length == 0 ? ".pdf" : extension);
     }
 }

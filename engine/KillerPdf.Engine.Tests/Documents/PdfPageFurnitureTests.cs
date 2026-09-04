@@ -257,4 +257,26 @@ public sealed class PdfPageFurnitureTests
             [first], new PdfBatesNumberingOptions(),
             number => new PdfPageFurnitureMark(number.PageIndex + 1, number.Text, 20, 20)));
     }
+
+    [Fact]
+    public void NamedBatesBatchReturnsDeterministicCollisionSafeOutputNames()
+    {
+        PdfDocument first = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfDocument second = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+
+        IReadOnlyList<PdfBatesBatchResult> output = PdfBatesNumbering.ApplyNamedBatch([
+            new PdfBatesBatchInput("first.pdf", first),
+            new PdfBatesBatchInput("second", second)
+        ], new PdfBatesNumberingOptions { OutputNameSuffix = "_numbered" },
+            number => new PdfPageFurnitureMark(number.PageIndex, number.Text, 20, 20));
+
+        Assert.Equal(["first_numbered.pdf", "second_numbered.pdf"],
+            output.Select(result => result.OutputName));
+        Assert.All(output, result => Assert.NotEmpty(result.Data));
+        Assert.Throws<ArgumentException>(() => PdfBatesNumbering.ApplyNamedBatch([
+            new PdfBatesBatchInput("same.pdf", first),
+            new PdfBatesBatchInput("SAME.PDF", second)
+        ], new PdfBatesNumberingOptions(),
+            number => new PdfPageFurnitureMark(number.PageIndex, number.Text, 20, 20)));
+    }
 }
