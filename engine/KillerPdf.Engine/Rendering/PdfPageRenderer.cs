@@ -1778,6 +1778,42 @@ public sealed class PdfPageRenderer
             IReadOnlyList<PdfGlyphPoint> points = contour.Points;
             if (points.Count == 0) continue;
             PdfGlyphPoint first = points[0], last = points[^1];
+            if (points.Any(point => point.IsCubicControl))
+            {
+                if (!first.OnCurve) continue;
+                var cubicPath = new List<Point> { transform.Apply(first.X, first.Y) };
+                bool valid = true;
+                for (int cubicIndex = 1; cubicIndex < points.Count;)
+                {
+                    PdfGlyphPoint point = points[cubicIndex];
+                    if (point.OnCurve)
+                    {
+                        cubicPath.Add(transform.Apply(point.X, point.Y));
+                        cubicIndex++;
+                    }
+                    else if (point.IsCubicControl && cubicIndex + 2 < points.Count
+                        && points[cubicIndex + 1].IsCubicControl
+                        && points[cubicIndex + 2].OnCurve)
+                    {
+                        AddCubic(cubicPath, cubicPath[^1],
+                            transform.Apply(point.X, point.Y),
+                            transform.Apply(points[cubicIndex + 1].X,
+                                points[cubicIndex + 1].Y),
+                            transform.Apply(points[cubicIndex + 2].X,
+                                points[cubicIndex + 2].Y));
+                        cubicIndex += 3;
+                    }
+                    else
+                    {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (!valid) continue;
+                if (cubicPath[^1] != cubicPath[0]) cubicPath.Add(cubicPath[0]);
+                paths.Add(cubicPath);
+                continue;
+            }
             PdfGlyphPoint start;
             int index, consumed;
             if (first.OnCurve)

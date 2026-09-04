@@ -159,6 +159,22 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void EmbeddedCffGlyphOutlineUsesSimpleFontEncoding()
+    {
+        byte[] program = [.. PdfCffGlyphReaderTests.Numbers(10, 20), 21,
+            .. PdfCffGlyphReaderTests.Numbers(100, 0, 0, 200, -100, 0), 5, 14];
+        byte[] bytes = PdfCffGlyphReaderTests.Build(program);
+        var fontFile = new PdfStream(D(("Subtype", N("Type1C"))), bytes);
+        var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("KillerTest")),
+            ("FontDescriptor", D(("FontFile3", fontFile)))));
+
+        PdfGlyphContour contour = Assert.Single(Assert.IsType<PdfGlyphOutline>(
+            font.GetGlyphOutline(65)).Contours);
+        Assert.Equal(new PdfGlyphPoint(10, 20, true), contour.Points[0]);
+        Assert.Equal(new PdfGlyphPoint(10, 220, true), contour.Points[^1]);
+    }
+
+    [Fact]
     public void VerticalCidMetricsUseW2AndDw2()
     {
         var descendant = D(("DW", new PdfInteger(600)), ("DW2", new PdfArray([new PdfInteger(900), new PdfInteger(-1100)])),

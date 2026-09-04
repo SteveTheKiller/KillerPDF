@@ -15,6 +15,7 @@ public sealed class PdfCffGlyphReader
     private readonly string[] _strings;
     private readonly bool _cid;
     private readonly Dictionary<int, PdfGlyphBounds?> _cache = [];
+    private readonly Dictionary<int, PdfGlyphOutline?> _outlineCache = [];
     private readonly Dictionary<string, int> _names = new(StringComparer.Ordinal);
     private readonly Dictionary<uint, int> _cids = [];
 
@@ -45,6 +46,24 @@ public sealed class PdfCffGlyphReader
         catch (Exception e) when (e is FormatException or NotSupportedException or OverflowException or ArgumentException)
         { result = null; }
         _cache[glyph] = result;
+        return result;
+    }
+
+    /// <summary>Gets outline contours in thousandths of text space, or null for empty or unsupported outlines.</summary>
+    public PdfGlyphOutline? GetOutline(int glyph)
+    {
+        if (glyph < 0 || glyph >= _glyphs.Length) return null;
+        if (_outlineCache.TryGetValue(glyph, out var cached)) return cached;
+        PdfGlyphOutline? result;
+        try
+        {
+            result = new Interpreter(_global, _local[_fd[glyph]], _matrices[_fd[glyph]])
+                .ReadOutline(_glyphs[glyph]);
+        }
+        catch (Exception e) when (e is FormatException or NotSupportedException
+            or OverflowException or ArgumentException)
+        { result = null; }
+        _outlineCache[glyph] = result;
         return result;
     }
 
@@ -264,6 +283,8 @@ public sealed class PdfCffGlyphReader
     {
         private readonly List<double> _stack = [];
         private readonly double[] _transient = new double[32];
+        private readonly List<PdfGlyphContour> _contours = [];
+        private List<PdfGlyphPoint>? _contour;
         private double _x, _y, _left = double.PositiveInfinity, _bottom = double.PositiveInfinity,
             _right = double.NegativeInfinity, _top = double.NegativeInfinity;
         private int _steps, _hints;
@@ -272,6 +293,12 @@ public sealed class PdfCffGlyphReader
         {
             if (!Run(program, 0)) throw Bad();
             return double.IsFinite(_left) ? new(_left, _bottom, _right, _top) : null;
+        }
+        internal PdfGlyphOutline? ReadOutline(ReadOnlyMemory<byte> program)
+        {
+            if (!Run(program, 0)) throw Bad();
+            FinishContour();
+            return _contours.Count == 0 ? null : new PdfGlyphOutline(_contours.AsReadOnly());
         }
         private bool Run(ReadOnlyMemory<byte> program, int depth)
         {
@@ -300,6 +327,7 @@ public sealed class PdfCffGlyphReader
                         int move = op == 21 ? 2 : 1;
                         if (!_width && _stack.Count == move + 1) _stack.RemoveAt(0);
                         _width = true; Require(move);
+                        FinishContour();
                         _x += op == 4 ? 0 : _stack[0]; _y += op == 22 ? 0 : _stack[^1];
                         Finite(_x); Finite(_y); _stack.Clear(); break;
                     case 5:
@@ -424,12 +452,24 @@ public sealed class PdfCffGlyphReader
             Finite(tx);Finite(ty);return(tx,ty);
         }
         private void Point((double X,double Y) p) { _left=Math.Min(_left,p.X);_right=Math.Max(_right,p.X);_bottom=Math.Min(_bottom,p.Y);_top=Math.Max(_top,p.Y); }
-        private void Line(double dx,double dy) { Point(Transform(_x,_y));_x+=dx;_y+=dy;Point(Transform(_x,_y)); }
+        private void Line(double dx,double dy)
+        {
+            EnsureContour();
+            Point(Transform(_x,_y));
+            _x += dx; _y += dy;
+            var end = Transform(_x, _y);
+            Point(end);
+            _contour?.Add(new PdfGlyphPoint(end.X, end.Y, true));
+        }
         private void CurveAt(int i) => Curve(_stack[i],_stack[i+1],_stack[i+2],_stack[i+3],_stack[i+4],_stack[i+5]);
         private void Curve(double dx1,double dy1,double dx2,double dy2,double dx3,double dy3)
         {
+            EnsureContour();
             var p0=Transform(_x,_y);_x+=dx1;_y+=dy1;var (X, Y) = Transform(_x,_y);
             _x+=dx2;_y+=dy2;var p2=Transform(_x,_y);_x+=dx3;_y+=dy3;var p3=Transform(_x,_y);
+            _contour?.Add(new PdfGlyphPoint(X, Y, false, true));
+            _contour?.Add(new PdfGlyphPoint(p2.X, p2.Y, false, true));
+            _contour?.Add(new PdfGlyphPoint(p3.X, p3.Y, true));
             Point(p0);Point(p3);Extrema(p0.X,X,p2.X,p3.X);Extrema(p0.Y,Y,p2.Y,p3.Y);
             void Extrema(double v0,double v1,double v2,double v3)
             {
@@ -443,6 +483,18 @@ public sealed class PdfCffGlyphReader
                 Point((u*u*u*p0.X+3*u*u*t*X+3*u*t*t*p2.X+t*t*t*p3.X,
                     u*u*u*p0.Y+3*u*u*t*Y+3*u*t*t*p2.Y+t*t*t*p3.Y));
             }
+        }
+        private void EnsureContour()
+        {
+            if (_contour is not null) return;
+            var start = Transform(_x, _y);
+            _contour = [new PdfGlyphPoint(start.X, start.Y, true)];
+        }
+        private void FinishContour()
+        {
+            if (_contour is { Count: > 1 })
+                _contours.Add(new PdfGlyphContour(_contour.AsReadOnly()));
+            _contour = null;
         }
     }
 }

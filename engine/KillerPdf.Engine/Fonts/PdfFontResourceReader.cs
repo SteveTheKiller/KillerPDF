@@ -138,6 +138,17 @@ public static class PdfFontResourceReader
             string? Fallback(uint code) => !composite ? simpleText.GetValueOrDefault(code)
                 : PdfPredefinedCMaps.Unicode(registry + "-" + ordering, vertical, cidSelector?.Invoke(code) ?? code)
                     ?? (embedded is null ? null : reverse.Value.GetValueOrDefault(Glyph(code)));
+            int CffGlyph(uint code)
+            {
+                if (cff is null) return -1;
+                if (embedded is not null)
+                {
+                    ushort glyph = Glyph(code);
+                    return glyph == 0 ? -1 : glyph;
+                }
+                return composite ? cff.FindCid(cidSelector?.Invoke(code) ?? code)
+                    : code < glyphNames.Length ? cff.FindGlyph(glyphNames[code]) : -1;
+            }
             var verticalMetrics = new Dictionary<uint, PdfVerticalGlyphMetrics>();
             ReadVerticalWidths(Get(metrics, "W2") as PdfArray, verticalMetrics);
             var defaultVertical = Get(metrics, "DW2") as PdfArray;
@@ -175,13 +186,13 @@ public static class PdfFontResourceReader
                 {
                     ushort glyph = Glyph(code);
                     var box = (glyph == 0 ? null : outlines?.Bounds(glyph))
-                        ?? cff?.GetBounds(composite ? cff.FindCid(cidSelector?.Invoke(code) ?? code)
-                            : code < glyphNames.Length ? cff.FindGlyph(glyphNames[code]) : -1)
+                        ?? cff?.GetBounds(CffGlyph(code))
                         ?? (!composite && code < glyphNames.Length ? type1?.GetBounds(glyphNames[code]) : null)
                         ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(metricsName, glyphNames[code]) : null);
                     return box is { } b && b.Right > b.Left && b.Top > b.Bottom ? box : null;
                 },
                 OutlineReader = code => outlines?.Outline(Glyph(code))
+                    ?? cff?.GetOutline(CffGlyph(code))
             };
         }
 

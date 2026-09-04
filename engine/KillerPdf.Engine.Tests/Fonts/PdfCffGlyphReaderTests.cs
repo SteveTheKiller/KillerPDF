@@ -14,7 +14,15 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(1, font.FindGlyph("A"));
         Assert.Equal(-1, font.FindGlyph("missing"));
         Assert.Equal(new PdfGlyphBounds(10, 20, 110, 220), font.GetBounds(1));
+        PdfGlyphContour contour = Assert.Single(Assert.IsType<PdfGlyphOutline>(
+            font.GetOutline(1)).Contours);
+        Assert.Equal([
+            new PdfGlyphPoint(10, 20, true),
+            new PdfGlyphPoint(110, 20, true),
+            new PdfGlyphPoint(110, 220, true),
+            new PdfGlyphPoint(10, 220, true)], contour.Points);
         Assert.Null(font.GetBounds(0));
+        Assert.Null(font.GetOutline(0));
         Assert.Null(font.GetBounds(2));
     }
 
@@ -24,6 +32,13 @@ public sealed class PdfCffGlyphReaderTests
         byte[] program = [.. Numbers(0, 0), 21, .. Numbers(0, 100, 100, 0, 0, -100), 8, 14];
         var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(Build(program)));
         Assert.Equal(new PdfGlyphBounds(0, 0, 100, 75), font.GetBounds(1));
+        PdfGlyphContour contour = Assert.Single(Assert.IsType<PdfGlyphOutline>(
+            font.GetOutline(1)).Contours);
+        Assert.Equal([
+            new PdfGlyphPoint(0, 0, true),
+            new PdfGlyphPoint(0, 100, false, true),
+            new PdfGlyphPoint(100, 100, false, true),
+            new PdfGlyphPoint(100, 0, true)], contour.Points);
     }
 
     [Fact]
@@ -98,7 +113,7 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(new PdfGlyphBounds(0, 0, 250, 30), font.GetBounds(1));
     }
 
-    private static byte[] Build(byte[] program, byte[]? subr = null)
+    internal static byte[] Build(byte[] program, byte[]? subr = null)
     {
         byte[] name = Index("Example"u8.ToArray());
         byte[] charstrings = Index([14], program);
@@ -111,7 +126,7 @@ public sealed class PdfCffGlyphReaderTests
             .. charstrings, 141, 19, .. (subr is null ? [0, 0] : Index(subr))];
     }
     private static byte[] Offset(int value) => [29, (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
-    private static byte[] Numbers(params int[] values) => [.. values.SelectMany(value => value is >= -107 and <= 107
+    internal static byte[] Numbers(params int[] values) => [.. values.SelectMany(value => value is >= -107 and <= 107
         ? new byte[] { (byte)(value + 139) } : [28, (byte)(value >> 8), (byte)value])];
     private static byte[] Index(params byte[][] values)
     {

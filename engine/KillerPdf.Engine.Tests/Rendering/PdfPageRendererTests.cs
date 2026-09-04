@@ -539,6 +539,28 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_FillsEmbeddedCffCubicGlyphContours()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0)
+            .BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 10)
+            .SetTextMatrix(1, 0, 0, 1, 0, 0)
+            .ShowLatin1Text("A")
+            .EndText();
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+        PdfDocument document = AddCffCurveFont(source);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 1));
+        Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
@@ -924,6 +946,37 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("LastChar"), new PdfInteger(65)),
             new KeyValuePair<PdfName, PdfObject>(Name("Widths"), Reals(1000)),
             new KeyValuePair<PdfName, PdfObject>(Name("Resources"), new PdfDictionary([]))]);
+        return PdfDocument.Open(update.ReplaceObject(fontReference.ObjectNumber, font).Build());
+    }
+
+    private static PdfDocument AddCffCurveFont(PdfDocument source)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary fonts = Assert.IsType<PdfDictionary>(resources[Name("Font")]);
+        PdfIndirectReference fontReference = Assert.IsType<PdfIndirectReference>(
+            Assert.Single(fonts).Value);
+        byte[] program = [.. PdfCffGlyphReaderTests.Numbers(0, 0), 21,
+            .. PdfCffGlyphReaderTests.Numbers(0, 1000, 1000, 0, 0, -1000), 8, 14];
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference fileReference = update.AddObject(new PdfStream(
+            new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(
+                Name("Subtype"), Name("Type1C"))]), PdfCffGlyphReaderTests.Build(program)));
+        var descriptor = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Type"), Name("FontDescriptor")),
+            new KeyValuePair<PdfName, PdfObject>(Name("FontName"), Name("KillerCff")),
+            new KeyValuePair<PdfName, PdfObject>(Name("FontFile3"), fileReference)]);
+        var font = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Type"), Name("Font")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Subtype"), Name("Type1")),
+            new KeyValuePair<PdfName, PdfObject>(Name("BaseFont"), Name("KillerCff")),
+            new KeyValuePair<PdfName, PdfObject>(Name("FirstChar"), new PdfInteger(65)),
+            new KeyValuePair<PdfName, PdfObject>(Name("LastChar"), new PdfInteger(65)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Widths"), Reals(1000)),
+            new KeyValuePair<PdfName, PdfObject>(Name("FontDescriptor"), descriptor)]);
         return PdfDocument.Open(update.ReplaceObject(fontReference.ObjectNumber, font).Build());
     }
 
