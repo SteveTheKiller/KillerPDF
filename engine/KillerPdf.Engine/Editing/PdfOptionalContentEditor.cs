@@ -17,6 +17,120 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName LockedKey = new("Locked"u8);
     private static readonly PdfName OrderKey = new("Order"u8);
     private static readonly PdfName CreatorKey = new("Creator"u8);
+    private static readonly PdfName GroupsKey = new("OCGs"u8);
+    private static readonly PdfName TypeKey = new("Type"u8);
+
+    /// <summary>Creates and registers a layer in the default configuration.</summary>
+    public static byte[] AddGroup(PdfDocument document, string name,
+        bool initiallyVisible = true, bool locked = false,
+        bool? printVisible = null, bool? exportVisible = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("A layer name is required.", nameof(name));
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
+        if (info.Groups.Any(group => string.Equals(group.Name, name, StringComparison.Ordinal)))
+            throw new ArgumentException("Layer names must be unique.", nameof(name));
+
+        PdfPageTree tree = PdfPageTree.Read(document);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        var groupEntries = new Dictionary<PdfName, PdfObject>
+        {
+            [TypeKey] = new PdfName("OCG"u8),
+            [NameKey] = UnicodeString(name)
+        };
+        var usageEntries = new Dictionary<PdfName, PdfObject>();
+        AddUsage("Print", "PrintState", printVisible);
+        AddUsage("Export", "ExportState", exportVisible);
+        if (usageEntries.Count != 0)
+            groupEntries[UsageKey] = new PdfDictionary(usageEntries);
+        PdfIndirectReference groupReference = update.AddObject(new PdfDictionary(groupEntries));
+
+        if (!tree.Catalog.TryGetValue(OptionalContentPropertiesKey, out PdfObject? propertiesValue))
+        {
+            var configurationEntries = new Dictionary<PdfName, PdfObject>
+            {
+                [BaseStateKey] = new PdfName("ON"u8),
+                [OrderKey] = new PdfArray([groupReference])
+            };
+            if (!initiallyVisible)
+                configurationEntries[OffKey] = new PdfArray([groupReference]);
+            if (locked)
+                configurationEntries[LockedKey] = new PdfArray([groupReference]);
+            var properties = new PdfDictionary(new Dictionary<PdfName, PdfObject>
+            {
+                [GroupsKey] = new PdfArray([groupReference]),
+                [DefaultConfigurationKey] = new PdfDictionary(configurationEntries)
+            });
+            var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+            catalogEntries[OptionalContentPropertiesKey] = properties;
+            return update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                new PdfDictionary(catalogEntries)).Build();
+        }
+
+        (PdfDictionary existingProperties, PdfIndirectReference? propertiesReference) =
+            ResolveDictionaryWithReference(document, propertiesValue,
+                "The optional-content properties");
+        if (!existingProperties.TryGetValue(DefaultConfigurationKey,
+                out PdfObject? configurationValue))
+            throw new InvalidOperationException(
+                "The document has no default optional-content configuration.");
+        (PdfDictionary configuration, PdfIndirectReference? configurationReference) =
+            ResolveDictionaryWithReference(document, configurationValue,
+                "The default optional-content configuration");
+        var configurationEntriesExisting = configuration.ToDictionary(
+            entry => entry.Key, entry => entry.Value);
+        PdfOptionalContentConfigurationInfo defaultInfo = info.Configurations.Single(
+            candidate => candidate.IsDefault);
+        AddState(configurationEntriesExisting,
+            initiallyVisible == (defaultInfo.BaseState != PdfOptionalContentBaseState.Off)
+                ? null : initiallyVisible ? OnKey : OffKey);
+        AddState(configurationEntriesExisting, locked ? LockedKey : null);
+        PdfObject[] order = ResolvedArray(document,
+            configurationEntriesExisting.GetValueOrDefault(OrderKey), "display order");
+        configurationEntriesExisting[OrderKey] = new PdfArray([.. order, groupReference]);
+        var replacementConfiguration = new PdfDictionary(configurationEntriesExisting);
+        if (configurationReference is not null)
+            update.ReplaceObject(configurationReference.ObjectNumber, replacementConfiguration);
+
+        var propertiesEntries = existingProperties.ToDictionary(
+            entry => entry.Key, entry => entry.Value);
+        PdfObject[] groups = ResolvedArray(document,
+            propertiesEntries.GetValueOrDefault(GroupsKey), "group list");
+        propertiesEntries[GroupsKey] = new PdfArray([.. groups, groupReference]);
+        if (configurationReference is null)
+            propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
+        var replacementProperties = new PdfDictionary(propertiesEntries);
+        if (propertiesReference is not null)
+            update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
+        else
+        {
+            var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+            catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+            update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                new PdfDictionary(catalogEntries));
+        }
+        return update.Build();
+
+        void AddUsage(string category, string state, bool? visible)
+        {
+            if (!visible.HasValue) return;
+            usageEntries[new PdfName(System.Text.Encoding.ASCII.GetBytes(category))] =
+                new PdfDictionary(new Dictionary<PdfName, PdfObject>
+                {
+                    [new PdfName(System.Text.Encoding.ASCII.GetBytes(state))] =
+                        new PdfName(visible.Value ? "ON"u8 : "OFF"u8)
+                });
+        }
+
+        void AddState(Dictionary<PdfName, PdfObject> entries, PdfName? key)
+        {
+            if (key is null) return;
+            PdfObject[] values = ResolvedArray(document, entries.GetValueOrDefault(key),
+                "configuration state");
+            entries[key] = new PdfArray([.. values, groupReference]);
+        }
+    }
 
     /// <summary>Renames one registered layer by its source object number.</summary>
     public static byte[] RenameGroup(PdfDocument document, int objectNumber, string name)
@@ -451,6 +565,16 @@ public static class PdfOptionalContentEditor
         return [.. array.Where(item => item is not PdfIndirectReference candidate
             || candidate.ObjectNumber != excluded.ObjectNumber
             || candidate.Generation != excluded.Generation)];
+    }
+
+    private static PdfObject[] ResolvedArray(
+        PdfDocument document, PdfObject? value, string description)
+    {
+        if (value is null) return [];
+        PdfObject resolved = value is PdfIndirectReference reference
+            ? document.Resolve(reference) : value;
+        return resolved is PdfArray array ? [.. array] : throw new InvalidOperationException(
+            $"The optional-content {description} is not an array.");
     }
 
     private static void SetArray(Dictionary<PdfName, PdfObject> entries,

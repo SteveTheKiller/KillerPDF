@@ -248,4 +248,49 @@ public sealed class PdfOptionalContentReaderTests
         Assert.Equal(PdfOptionalContentBaseState.On,
             PdfOptionalContentReader.Read(original).Configurations[0].BaseState);
     }
+
+    [Fact]
+    public void GroupCanBeCreatedInDocumentWithoutLayers()
+    {
+        PdfDocument original = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(100, 100).Build());
+
+        PdfDocument changed = PdfDocument.Open(PdfOptionalContentEditor.AddGroup(
+            original, "Review", initiallyVisible: false, locked: true,
+            printVisible: true, exportVisible: false));
+        PdfOptionalContentGroupInfo group = Assert.Single(
+            PdfOptionalContentReader.Read(changed).Groups);
+
+        Assert.Equal("Review", group.Name);
+        Assert.False(group.IsInitiallyVisible);
+        Assert.True(group.IsLocked);
+        Assert.True(group.IsVisibleWhenPrinting);
+        Assert.False(group.IsVisibleWhenExporting);
+        Assert.Empty(PdfOptionalContentReader.Read(original).Groups);
+    }
+
+    [Fact]
+    public void GroupCanBeAppendedWithoutChangingExistingConfigurationMetadata()
+    {
+        var artwork = new PdfOptionalContentGroup("Artwork");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(artwork).Rectangle(0, 0, 10, 10).Fill()
+                .EndMarkedContent()).Build());
+        PdfDocument named = PdfDocument.Open(
+            PdfOptionalContentEditor.SetDefaultConfigurationMetadata(
+                original, "Press review", "KillerPDF"));
+
+        PdfDocument changed = PdfDocument.Open(
+            PdfOptionalContentEditor.AddGroup(named, "Notes"));
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(changed);
+
+        Assert.Equal(["Artwork", "Notes"], info.Groups.Select(group => group.Name));
+        Assert.Equal("Press review", info.Configurations.Single().Name);
+        Assert.Equal("KillerPDF", info.Configurations.Single().Creator);
+        Assert.Equal(info.Groups.Select(group => group.ObjectNumber),
+            info.Configurations.Single().DisplayOrderGroupObjectNumbers);
+        Assert.Throws<ArgumentException>(() =>
+            PdfOptionalContentEditor.AddGroup(changed, "Notes"));
+    }
 }
