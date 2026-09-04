@@ -171,6 +171,27 @@ public sealed class PdfXfaReaderTests
         Assert.Equal("invoice.customer.name", inspected.Fields[1].Path);
         Assert.Equal("textEdit", inspected.Fields[1].ControlType);
         Assert.Equal(2, inspected.ScriptCount);
+        Assert.Collection(inspected.Behaviors,
+            behavior =>
+            {
+                Assert.Equal("invoice.total", behavior.FieldPath);
+                Assert.Equal(PdfXfaTemplateBehaviorKind.Calculate, behavior.Kind);
+                Assert.Equal("application/x-formcalc", behavior.ScriptContentType);
+                Assert.Equal("1 + 1", behavior.Script);
+                Assert.Null(behavior.Picture);
+            },
+            behavior =>
+            {
+                Assert.Equal(PdfXfaTemplateBehaviorKind.Validate, behavior.Kind);
+                Assert.Equal("application/x-javascript", behavior.ScriptContentType);
+                Assert.Equal("unsafe()", behavior.Script);
+            },
+            behavior =>
+            {
+                Assert.Equal(PdfXfaTemplateBehaviorKind.Format, behavior.Kind);
+                Assert.Equal("num{z,zz9.99}", behavior.Picture);
+                Assert.Null(behavior.Script);
+            });
         Assert.True(source.ContainsScript);
     }
 
