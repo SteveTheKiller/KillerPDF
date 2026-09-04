@@ -13518,6 +13518,35 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void SetFormFieldFlags_PreservesTypeFlagsAndComposesWithValues()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "name", 10, 10, 100, 20, "Old")
+            .AddRadioGroup("plan", [
+                new PdfRadioButtonOption(0, 10, 40, 20, 20, "Free"),
+                new PdfRadioButtonOption(0, 40, 40, 20, 20, "Pro")], "Free")
+            .Build();
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetTextFieldValue("name", "New")
+                .SetFormFieldFlags("name", readOnly: true, required: false, noExport: true)
+                .SetFormFieldFlags("plan", readOnly: false, required: true, noExport: false)
+                .Build());
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(updated, 0);
+
+        PdfFormWidgetInfo name = widgets.Single(widget => widget.FieldName == "name");
+        Assert.Equal("New", name.Value);
+        Assert.Equal(5, name.Flags & 7);
+        PdfFormWidgetInfo plan = widgets.First(widget => widget.FieldName == "plan");
+        Assert.Equal((1L << 15) | 2, plan.Flags);
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(updated)
+            .SetFormFieldFlags(" ", false, false, false));
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetFormFieldFlags("missing", false, false, false).Build());
+    }
+
+    [Fact]
     public void SetFieldDefaultValues_ChangeDefaultsWithoutChangingCurrentValues()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()
