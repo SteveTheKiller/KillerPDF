@@ -108,7 +108,7 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 
 - PDF syntax, objects, streams, classic cross-reference tables, cross-reference streams, object streams, trailers, and incremental revisions
 - Page text, word and glyph geometry, font information, and image placements, including nested forms and inline images
-- Bounded BGRA32 rendering with crop and rotation geometry for complete device-color paths and decoded image XObjects
+- Bounded BGRA32 rendering with crop, rotation, nested clipping, complete device-color paths, and decoded image XObjects
 - Direct engine-rendered OCR with bounded preprocessing, layout analysis, versioned recognition models, CPU glyph inference, and PDF-coordinate results
 - Deterministic full rewrites and byte-preserving incremental updates
 - PDF 2.0 document authoring with pages, content streams, graphics state, fonts, images, color spaces, shadings, patterns, transparency, and resources

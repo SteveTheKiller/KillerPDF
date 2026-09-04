@@ -117,6 +117,22 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 255, 255, 255], Pixel(page, 7, 7));
     }
 
+    [Fact]
+    public void Render_IntersectsNestedGraphicsStateClippingPaths()
+    {
+        byte[] content = "2 2 6 6 re W n q 4 0 4 10 re W* n 1 0 0 rg 0 0 10 10 re f Q 0 0 1 rg 0 0 2 2 re f"u8.ToArray();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 5, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 3, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 8, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 8));
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }

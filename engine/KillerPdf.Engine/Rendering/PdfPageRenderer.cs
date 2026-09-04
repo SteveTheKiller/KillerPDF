@@ -61,10 +61,11 @@ public sealed class PdfPageRenderer
             270 => new Matrix(0, 1, -1, 0, page.Height, 0),
             _ => Matrix.Identity
         };
-        var state = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black, 1);
+        var state = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black, 1, []);
         var stack = new Stack<GraphicsState>();
         var path = new List<List<Point>>();
         List<Point>? subpath = null;
+        bool? pendingClipEvenOdd = null;
         var diagnostics = new HashSet<string>();
         foreach (PdfContentInstruction instruction in _content.ReadInstructions(
             pageIndex, cancellationToken))
@@ -145,6 +146,12 @@ public sealed class PdfPageRenderer
                 case "h" when subpath is { Count: > 1 }:
                     subpath.Add(subpath[0]);
                     break;
+                case "W":
+                    pendingClipEvenOdd = false;
+                    break;
+                case "W*":
+                    pendingClipEvenOdd = true;
+                    break;
                 case "re" when values.Count == 4:
                     double x = Number(values[0]), y = Number(values[1]);
                     double w = Number(values[2]), h = Number(values[3]);
@@ -158,14 +165,16 @@ public sealed class PdfPageRenderer
                     break;
                 case "f" or "F" or "f*" when path.Count > 0:
                     FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Fill, instruction.Operator == "f*");
+                        path, state.Fill, instruction.Operator == "f*", state.Clips);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
                     break;
                 case "S" or "s" when path.Count > 0:
                     if (instruction.Operator == "s" && subpath is { Count: > 1 }) subpath.Add(subpath[0]);
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Stroke, state.LineWidth);
+                        path, state.Stroke, state.LineWidth, state.Clips);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
                     break;
@@ -173,13 +182,15 @@ public sealed class PdfPageRenderer
                     if (instruction.Operator[0] == 'b' && subpath is { Count: > 1 })
                         subpath.Add(subpath[0]);
                     FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Fill, instruction.Operator.EndsWith('*'));
+                        path, state.Fill, instruction.Operator.EndsWith('*'), state.Clips);
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Stroke, state.LineWidth);
+                        path, state.Stroke, state.LineWidth, state.Clips);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
                     break;
                 case "n":
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
                     break;
@@ -189,7 +200,7 @@ public sealed class PdfPageRenderer
                     diagnostics.Add("Text rendering is not implemented.");
                     break;
                 case "Do" when values.Count == 1 && values[0] is PdfName imageName:
-                    if (!TryRenderImage(pageIndex, imageName, state.Transform, pixels,
+                    if (!TryRenderImage(pageIndex, imageName, state.Transform, state.Clips, pixels,
                         options.Width, options.Height, scaleX, scaleY, out string? imageDiagnostic))
                         diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
                     break;
@@ -206,6 +217,7 @@ public sealed class PdfPageRenderer
     }
 
     private bool TryRenderImage(int pageIndex, PdfName resourceName, Matrix transform,
+        IReadOnlyList<ClipRegion> clips,
         byte[] target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic)
     {
@@ -257,13 +269,14 @@ public sealed class PdfPageRenderer
             return false;
         }
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
-            transform, samples, width, height, components, bits);
+            transform, samples, width, height, components, bits, clips);
         return true;
     }
 
     private static void PaintImage(byte[] target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, Matrix transform, byte[] samples,
-        int sourceWidth, int sourceHeight, int components, int bits)
+        int sourceWidth, int sourceHeight, int components, int bits,
+        IReadOnlyList<ClipRegion> clips)
     {
         Point[] corners =
         [
@@ -282,6 +295,8 @@ public sealed class PdfPageRenderer
                 Point unit = inverse.Apply((x + 0.5) / scaleX,
                     (targetHeight - y - 0.5) / scaleY);
                 if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
+                if (!InsideClips(clips, (x + 0.5) / scaleX,
+                    (targetHeight - y - 0.5) / scaleY)) continue;
                 int sx = Math.Clamp((int)(unit.X * sourceWidth), 0, sourceWidth - 1);
                 int sy = Math.Clamp((int)((1 - unit.Y) * sourceHeight), 0, sourceHeight - 1);
                 sy = Math.Min(sy, sourceHeight - 1);
@@ -337,7 +352,8 @@ public sealed class PdfPageRenderer
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
 
     private static void FillPaths(byte[] pixels, int width, int height, double scaleX,
-        double scaleY, IReadOnlyList<List<Point>> paths, Color color, bool evenOdd)
+        double scaleY, IReadOnlyList<List<Point>> paths, Color color, bool evenOdd,
+        IReadOnlyList<ClipRegion> clips)
     {
         var scaled = paths.Where(item => item.Count > 2).Select(item => item.Select(point =>
             new Point(point.X * scaleX, height - point.Y * scaleY)).ToArray()).ToArray();
@@ -355,13 +371,16 @@ public sealed class PdfPageRenderer
                                 * (sampleY - polygon[i].Y) / (polygon[j].Y - polygon[i].Y)
                                 + polygon[i].X)
                             crossings++;
-                if ((evenOdd ? crossings % 2 : crossings) != 0) SetPixel(pixels, width, x, y, color);
+                if ((evenOdd ? crossings % 2 : crossings) != 0
+                    && InsideClips(clips, sampleX / scaleX, (height - sampleY) / scaleY))
+                    SetPixel(pixels, width, x, y, color);
             }
         }
     }
 
     private static void StrokePaths(byte[] pixels, int width, int height, double scaleX,
-        double scaleY, IReadOnlyList<List<Point>> paths, Color color, double lineWidth)
+        double scaleY, IReadOnlyList<List<Point>> paths, Color color, double lineWidth,
+        IReadOnlyList<ClipRegion> clips)
     {
         int radius = Math.Max(0, (int)Math.Ceiling(lineWidth * Math.Max(scaleX, scaleY) / 2));
         foreach (List<Point> path in paths)
@@ -377,7 +396,9 @@ public sealed class PdfPageRenderer
                     for (int yy = cy - radius; yy <= cy + radius; yy++)
                         for (int xx = cx - radius; xx <= cx + radius; xx++)
                             if (xx >= 0 && xx < width && yy >= 0 && yy < height)
-                                SetPixel(pixels, width, xx, yy, color);
+                                if (InsideClips(clips, (xx + 0.5) / scaleX,
+                                    (height - yy - 0.5) / scaleY))
+                                    SetPixel(pixels, width, xx, yy, color);
                 }
             }
     }
@@ -404,6 +425,21 @@ public sealed class PdfPageRenderer
         pixels[offset + 3] = 255;
     }
 
+    private static GraphicsState ApplyPendingClip(GraphicsState state,
+        IReadOnlyList<List<Point>> path, ref bool? pendingClipEvenOdd)
+    {
+        if (!pendingClipEvenOdd.HasValue) return state;
+        Point[][] polygons = [.. path.Where(item => item.Count > 1)
+            .Select(item => item.ToArray())];
+        ClipRegion[] clips = [.. state.Clips,
+            new ClipRegion(polygons, pendingClipEvenOdd.Value)];
+        pendingClipEvenOdd = null;
+        return state with { Clips = Array.AsReadOnly(clips) };
+    }
+
+    private static bool InsideClips(IReadOnlyList<ClipRegion> clips, double x, double y) =>
+        clips.All(clip => clip.Contains(x, y));
+
     private static double Number(PdfObject value) => value switch
     {
         PdfInteger integer => integer.Value,
@@ -412,7 +448,30 @@ public sealed class PdfPageRenderer
     };
 
     private readonly record struct GraphicsState(
-        Matrix Transform, Color Fill, Color Stroke, double LineWidth);
+        Matrix Transform, Color Fill, Color Stroke, double LineWidth,
+        IReadOnlyList<ClipRegion> Clips);
+    private sealed record ClipRegion(IReadOnlyList<Point[]> Polygons, bool EvenOdd)
+    {
+        internal bool Contains(double x, double y)
+        {
+            int winding = 0;
+            int crossings = 0;
+            foreach (Point[] polygon in Polygons)
+                for (int current = 0, previous = polygon.Length - 1;
+                    current < polygon.Length; previous = current++)
+                {
+                    Point from = polygon[previous], to = polygon[current];
+                    if ((from.Y > y) != (to.Y > y)
+                        && x < (to.X - from.X) * (y - from.Y) / (to.Y - from.Y) + from.X)
+                        crossings++;
+                    double side = (to.X - from.X) * (y - from.Y)
+                        - (x - from.X) * (to.Y - from.Y);
+                    if (from.Y <= y && to.Y > y && side > 0) winding++;
+                    else if (from.Y > y && to.Y <= y && side < 0) winding--;
+                }
+            return EvenOdd ? crossings % 2 != 0 : winding != 0;
+        }
+    }
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
