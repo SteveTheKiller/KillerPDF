@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Authoring;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -168,6 +169,14 @@ public sealed class PdfPageFurnitureTests
         Assert.Equal(mark.Opacity, entry.Opacity);
         Assert.Equal(mark.RotationDegrees, entry.RotationDegrees);
         Assert.Empty(PdfPageFurnitureReport.Inspect(document));
+        using JsonDocument json = JsonDocument.Parse(
+            PdfPageFurnitureReport.ToJson(reopened));
+        Assert.Equal(1, json.RootElement.GetProperty("version").GetInt32());
+        Assert.Equal(1, json.RootElement.GetProperty("count").GetInt32());
+        Assert.Equal("CASE-000042", json.RootElement.GetProperty("entries")[0]
+            .GetProperty("text").GetString());
+        Assert.Equal(0, json.RootElement.GetProperty("entries")[0]
+            .GetProperty("pageIndex").GetInt32());
     }
 
     [Fact]

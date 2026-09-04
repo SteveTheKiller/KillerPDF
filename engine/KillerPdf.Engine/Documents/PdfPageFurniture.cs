@@ -233,6 +233,22 @@ public static class PdfPageFurnitureReport
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Exports recognized furniture as stable JSON for review and automation.</summary>
+    public static string ToJson(PdfDocument document, bool indented = false)
+    {
+        IReadOnlyList<PdfPageFurnitureReportEntry> entries = Inspect(document);
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            Count = entries.Count,
+            Entries = entries
+        }, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        });
+    }
+
     internal static string CreateMarker(PdfPageFurnitureMark mark) => "KPF1:" +
         Convert.ToBase64String(JsonSerializer.SerializeToUtf8Bytes(new MarkerData
         {
