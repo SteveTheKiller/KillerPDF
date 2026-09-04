@@ -42,6 +42,7 @@ public static class PdfDocumentWriter
     private static readonly PdfName IndexName = new("Index"u8);
     private static readonly PdfName DecodeParmsName = new("DecodeParms"u8);
     private static readonly PdfName DlName = new("DL"u8);
+    private static readonly PdfName ExternalFileName = new("F"u8);
     private static readonly PdfName DocChecksumName = new("DocChecksum"u8);
     private static readonly HashSet<PdfName> StructuralTrailerNames =
     [
@@ -136,6 +137,8 @@ public static class PdfDocumentWriter
                 "Structural-stream compression requires the cross-reference-stream format.");
 
         List<WritableObject> objects = ReadCurrentObjects(document);
+        if (options.CompressUnfilteredStreams)
+            CompressUnfilteredStreams(objects);
         if (options.RemoveEncryption
             && document.CrossReferences.TryGetTrailerValue(EncryptName, out PdfObject encryptionValue))
         {
@@ -474,6 +477,39 @@ public static class PdfDocumentWriter
         int originalCount = objects.Count;
         PruneUnreachableObjects(document, root, objects, new PdfDocumentWriteOptions());
         return originalCount - objects.Count;
+    }
+
+    internal static int CountCompressibleStreams(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return ReadCurrentObjects(document).Count(item =>
+            TryCompressStream(item.Value, out _));
+    }
+
+    private static void CompressUnfilteredStreams(List<WritableObject> objects)
+    {
+        for (int index = 0; index < objects.Count; index++)
+            if (TryCompressStream(objects[index].Value, out PdfStream compressed))
+                objects[index] = objects[index] with { Value = compressed };
+    }
+
+    private static bool TryCompressStream(PdfObject value, out PdfStream compressed)
+    {
+        compressed = null!;
+        if (value is not PdfStream stream
+            || stream.EncodedData.Length == 0
+            || stream.Dictionary.ContainsKey(FilterName)
+            || stream.Dictionary.ContainsKey(DecodeParmsName)
+            || stream.Dictionary.ContainsKey(ExternalFileName))
+            return false;
+        byte[] data = Compress(stream.EncodedData.Span);
+        if (data.Length >= stream.EncodedData.Length) return false;
+        var entries = stream.Dictionary
+            .Where(entry => !entry.Key.Equals(LengthName)).ToList();
+        entries.Add(new(FilterName, FlateDecodeName));
+        entries.Add(new(LengthName, new PdfInteger(data.Length)));
+        compressed = new PdfStream(new PdfDictionary(entries), data);
+        return true;
     }
 
     private static void PruneUnreachableObjects(

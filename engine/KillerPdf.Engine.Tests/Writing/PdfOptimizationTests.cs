@@ -382,6 +382,31 @@ public sealed class PdfOptimizationTests
     }
 
     [Fact]
+    public void PlanCompressesSmallerUnfilteredStreamsAndPreservesPageText()
+    {
+        string text = string.Join(' ', Enumerable.Repeat("Compressible text", 80));
+        PdfDocument document = DocumentWithUnusedFontResource(
+            $"BT /F1 12 Tf ({text}) Tj ET");
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                CompressUnfilteredStreams = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument output = PdfDocument.Open(result.Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.CompressUnfilteredStreams, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.CompressUnfilteredStreams,
+            result.VerifiedRemovals);
+        Assert.Equal(text, new PdfPageContentReader(output).Read(0).Text);
+        Assert.Contains("/Filter /FlateDecode",
+            Encoding.Latin1.GetString(result.Data.Span));
+    }
+
+    [Fact]
     public void PlanRemovesAndVerifiesXfaWithoutRemovingAcroFormFields()
     {
         PdfDocument document = DocumentWithXfaAndTextField();

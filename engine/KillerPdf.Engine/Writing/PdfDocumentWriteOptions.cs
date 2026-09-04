@@ -54,4 +54,7 @@ public sealed class PdfDocumentWriteOptions
 
     /// <summary>Omits active objects that are unreachable from the output trailer.</summary>
     public bool PruneUnreachableObjects { get; init; }
+
+    /// <summary>Flate-compresses unfiltered embedded streams when doing so reduces their size.</summary>
+    public bool CompressUnfilteredStreams { get; init; }
 }
