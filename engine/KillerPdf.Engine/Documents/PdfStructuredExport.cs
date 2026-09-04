@@ -19,7 +19,9 @@ public enum PdfStructuredExportFormat
     /// <summary>Editable Word document.</summary>
     WordDocument,
     /// <summary>Editable Excel workbook.</summary>
-    Spreadsheet
+    Spreadsheet,
+    /// <summary>Editable PowerPoint presentation.</summary>
+    Presentation
 }
 
 /// <summary>One type of source content that an export does not fully represent.</summary>
@@ -74,6 +76,8 @@ public static class PdfStructuredExport
                         "Word export contains image placeholders without image data.",
                     PdfStructuredExportFormat.Spreadsheet =>
                         "Spreadsheet export omits image data.",
+                    PdfStructuredExportFormat.Presentation =>
+                        "Presentation export contains image placeholders without image data.",
                     _ => throw new ArgumentOutOfRangeException(nameof(format))
                 };
                 findings.Add(new PdfStructuredExportFinding("ImageContentNotExported",
@@ -248,6 +252,119 @@ public static class PdfStructuredExport
                 rows + "</sheetData></worksheet>");
         }
         return output.ToArray();
+    }
+
+    /// <summary>Exports selected pages as editable Office Open XML presentation slides.</summary>
+    public static byte[] ToPptx(PdfDocument document, IEnumerable<int>? pageIndices = null,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
+        const long slideWidth = 9_144_000;
+        double aspect = pages.Count == 0 || pages[0].Content.Width <= 0
+            ? 0.75 : pages[0].Content.Height / pages[0].Content.Width;
+        long slideHeight = Math.Max(1, (long)Math.Round(slideWidth * aspect));
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            var overrides = new StringBuilder();
+            var slideIds = new StringBuilder();
+            var relationships = new StringBuilder();
+            for (int index = 0; index < pages.Count; index++)
+            {
+                int number = index + 1;
+                overrides.Append("<Override PartName=\"/ppt/slides/slide").Append(number)
+                    .Append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slide+xml\"/>");
+                slideIds.Append("<p:sldId id=\"").Append(255 + number)
+                    .Append("\" r:id=\"rId").Append(number + 1).Append("\"/>");
+                relationships.Append("<Relationship Id=\"rId").Append(number + 1)
+                    .Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide\" Target=\"slides/slide")
+                    .Append(number).Append(".xml\"/>");
+                WritePresentationSlide(archive, pages[index], number, slideWidth, slideHeight);
+            }
+            WriteEntry(archive, "[Content_Types].xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+                "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+                "<Override PartName=\"/ppt/presentation.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml\"/>" +
+                "<Override PartName=\"/ppt/slideMasters/slideMaster1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slideMaster+xml\"/>" +
+                "<Override PartName=\"/ppt/slideLayouts/slideLayout1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.presentationml.slideLayout+xml\"/>" +
+                "<Override PartName=\"/ppt/theme/theme1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.theme+xml\"/>" +
+                overrides + "</Types>");
+            WriteEntry(archive, "_rels/.rels", PackageRelationship("ppt/presentation.xml"));
+            WriteEntry(archive, "ppt/presentation.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<p:presentation xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\">" +
+                "<p:sldMasterIdLst><p:sldMasterId id=\"2147483648\" r:id=\"rId1\"/></p:sldMasterIdLst><p:sldIdLst>" +
+                slideIds + "</p:sldIdLst><p:sldSz cx=\"" + slideWidth + "\" cy=\"" + slideHeight +
+                "\" type=\"custom\"/><p:notesSz cx=\"6858000\" cy=\"9144000\"/></p:presentation>");
+            WriteEntry(archive, "ppt/_rels/presentation.xml.rels",
+                Relationships("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster\" Target=\"slideMasters/slideMaster1.xml\"/>" + relationships));
+            WritePresentationFoundation(archive);
+        }
+        return output.ToArray();
+    }
+
+    private static void WritePresentationSlide(ZipArchive archive, Page page, int number,
+        long slideWidth, long slideHeight)
+    {
+        var shapes = new StringBuilder();
+        int id = 2;
+        foreach (PdfExtractedLine line in page.Content.Lines)
+            AppendPresentationText(shapes, id++, line.Text, line.BoundingBox,
+                page.Content.Width, page.Content.Height, slideWidth, slideHeight);
+        foreach (PdfExtractedImage image in page.Content.Images)
+            AppendPresentationText(shapes, id++, "[Image: " + (image.ResourceName ?? "inline") + "]",
+                image.BoundingBox, page.Content.Width, page.Content.Height, slideWidth, slideHeight);
+        WriteEntry(archive, $"ppt/slides/slide{number}.xml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+            "<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:spTree>" +
+            GroupShape + shapes + "</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>");
+        WriteEntry(archive, $"ppt/slides/_rels/slide{number}.xml.rels",
+            Relationships("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout\" Target=\"../slideLayouts/slideLayout1.xml\"/>"));
+    }
+
+    private static void AppendPresentationText(StringBuilder output, int id, string text,
+        PdfContentBounds bounds, double pageWidth, double pageHeight,
+        long slideWidth, long slideHeight)
+    {
+        long x = Scale(bounds.Left, pageWidth, slideWidth);
+        long y = Scale(pageHeight - bounds.Top, pageHeight, slideHeight);
+        long width = Math.Max(1, Scale(bounds.Width, pageWidth, slideWidth));
+        long height = Math.Max(1, Scale(bounds.Height, pageHeight, slideHeight));
+        output.Append("<p:sp><p:nvSpPr><p:cNvPr id=\"").Append(id)
+            .Append("\" name=\"PDF text ").Append(id - 1)
+            .Append("\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"")
+            .Append(x).Append("\" y=\"").Append(y).Append("\"/><a:ext cx=\"")
+            .Append(width).Append("\" cy=\"").Append(height)
+            .Append("\"/></a:xfrm><a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom><a:noFill/><a:ln><a:noFill/></a:ln></p:spPr><p:txBody><a:bodyPr wrap=\"none\"/><a:lstStyle/><a:p><a:r><a:rPr lang=\"en-US\"/><a:t>")
+            .Append(WebUtility.HtmlEncode(text))
+            .Append("</a:t></a:r><a:endParaRPr lang=\"en-US\"/></a:p></p:txBody></p:sp>");
+    }
+
+    private static long Scale(double value, double source, long target) =>
+        source <= 0 ? 0 : (long)Math.Round(value / source * target);
+
+    private const string GroupShape = "<p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/><a:chOff x=\"0\" y=\"0\"/><a:chExt cx=\"0\" cy=\"0\"/></a:xfrm></p:grpSpPr>";
+
+    private static string PackageRelationship(string target) => Relationships(
+        "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"" + target + "\"/>");
+
+    private static string Relationships(string values) =>
+        "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" + values + "</Relationships>";
+
+    private static void WritePresentationFoundation(ZipArchive archive)
+    {
+        WriteEntry(archive, "ppt/slideMasters/slideMaster1.xml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><p:sldMaster xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:spTree>" + GroupShape + "</p:spTree></p:cSld><p:clrMap accent1=\"accent1\" accent2=\"accent2\" accent3=\"accent3\" accent4=\"accent4\" accent5=\"accent5\" accent6=\"accent6\" bg1=\"lt1\" bg2=\"lt2\" folHlink=\"folHlink\" hlink=\"hlink\" tx1=\"dk1\" tx2=\"dk2\"/><p:sldLayoutIdLst><p:sldLayoutId id=\"1\" r:id=\"rId1\"/></p:sldLayoutIdLst><p:txStyles><p:titleStyle/><p:bodyStyle/><p:otherStyle/></p:txStyles></p:sldMaster>");
+        WriteEntry(archive, "ppt/slideMasters/_rels/slideMaster1.xml.rels",
+            Relationships("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout\" Target=\"../slideLayouts/slideLayout1.xml\"/><Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"../theme/theme1.xml\"/>"));
+        WriteEntry(archive, "ppt/slideLayouts/slideLayout1.xml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><p:sldLayout xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\" type=\"blank\"><p:cSld name=\"Blank\"><p:spTree>" + GroupShape + "</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>");
+        WriteEntry(archive, "ppt/slideLayouts/_rels/slideLayout1.xml.rels",
+            Relationships("<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideMaster\" Target=\"../slideMasters/slideMaster1.xml\"/>"));
+        WriteEntry(archive, "ppt/theme/theme1.xml",
+            "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><a:theme xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" name=\"KillerPDF\"><a:themeElements><a:clrScheme name=\"KillerPDF\"><a:dk1><a:srgbClr val=\"000000\"/></a:dk1><a:lt1><a:srgbClr val=\"FFFFFF\"/></a:lt1><a:dk2><a:srgbClr val=\"1F1F1F\"/></a:dk2><a:lt2><a:srgbClr val=\"F2F2F2\"/></a:lt2><a:accent1><a:srgbClr val=\"4472C4\"/></a:accent1><a:accent2><a:srgbClr val=\"ED7D31\"/></a:accent2><a:accent3><a:srgbClr val=\"A5A5A5\"/></a:accent3><a:accent4><a:srgbClr val=\"FFC000\"/></a:accent4><a:accent5><a:srgbClr val=\"5B9BD5\"/></a:accent5><a:accent6><a:srgbClr val=\"70AD47\"/></a:accent6><a:hlink><a:srgbClr val=\"0563C1\"/></a:hlink><a:folHlink><a:srgbClr val=\"954F72\"/></a:folHlink></a:clrScheme><a:fontScheme name=\"KillerPDF\"><a:majorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:majorFont><a:minorFont><a:latin typeface=\"Arial\"/><a:ea typeface=\"\"/><a:cs typeface=\"\"/></a:minorFont></a:fontScheme><a:fmtScheme name=\"KillerPDF\"><a:fillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:fillStyleLst><a:lnStyleLst><a:ln w=\"9525\"><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val=\"phClr\"/></a:solidFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements></a:theme>");
     }
 
     private static void AppendSpreadsheetRow(StringBuilder output, int row,

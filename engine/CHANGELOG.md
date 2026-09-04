@@ -28,7 +28,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added typed PDF macro saving, editing, and execution with ordered supported operations, source preservation, cancellation, deterministic resume, and data-safe JSON batch reports (#343).
 - Added safe FDF, XFDF, and XFA dataset reading, writing, and packet replacement with selective fields, Unicode, hierarchical names, multi-select values, safe local source resolution, preserved XFA packets, and non-executing script inspection (#329, #330).
 - Added deterministic styled header and footer placement, PDF writing, content collision checks, continuous Bates numbering across ordered document batches, and saved furniture reporting, removal, and replacement (#344).
-- Added plain-text, semantic HTML, structured JSON, Markdown, editable Word, and spreadsheet export with reports for content that cannot be fully represented (#346).
+- Added plain-text, semantic HTML, structured JSON, Markdown, editable Word, spreadsheet, and presentation export with reports for content that cannot be fully represented (#346).
 - Added unified bookmark and link auditing and editing with source identities, stable findings, JSON reports, safe-link removal, retargeting, and bookmark renaming and styling (#351).
 - Added searchable OCR text-layer writing, review persistence, confidence-based acceptance, accuracy summaries, configurable processing, macro settings, and isolated page batches (#345).
 - Added automatic-field proposals and reviewed field values, descriptions, requirements, multiline text, choice fields, and radio groups behind an explicit accept or reject boundary (#342).

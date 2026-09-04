@@ -72,6 +72,24 @@ public sealed class PdfStructuredExportTests
     }
 
     [Fact]
+    public void ExportsEditablePresentationWithOneSlidePerSelectedPage()
+    {
+        PdfDocument document = Document("BT /F1 12 Tf 10 30 Td (A & B) Tj ET");
+
+        byte[] pptx = PdfStructuredExport.ToPptx(document);
+
+        using var archive = new ZipArchive(new MemoryStream(pptx), ZipArchiveMode.Read);
+        Assert.NotNull(archive.GetEntry("ppt/presentation.xml"));
+        Assert.NotNull(archive.GetEntry("ppt/slideMasters/slideMaster1.xml"));
+        ZipArchiveEntry slide = Assert.IsType<ZipArchiveEntry>(
+            archive.GetEntry("ppt/slides/slide1.xml"));
+        using var reader = new StreamReader(slide.Open());
+        string xml = reader.ReadToEnd();
+        Assert.Contains("<a:t>A &amp; B</a:t>", xml, StringComparison.Ordinal);
+        Assert.Contains("<a:xfrm>", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RejectsDuplicateAndOutOfRangePageSelections()
     {
         PdfDocument document = Document("BT /F1 12 Tf (A) Tj ET");
@@ -79,6 +97,7 @@ public sealed class PdfStructuredExportTests
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToHtml(document, [1]));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToDocx(document, [1]));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToXlsx(document, [1]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToPptx(document, [1]));
     }
 
     [Fact]
