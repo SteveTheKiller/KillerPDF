@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -158,6 +160,46 @@ public sealed record PdfImpositionPreset
         });
     }
 
+    /// <summary>Formats a readable preview of sequential sheet sides and placements.</summary>
+    public string PreviewText(IReadOnlyList<PdfContentBounds> sourcePageBounds)
+    {
+        ArgumentNullException.ThrowIfNull(sourcePageBounds);
+        IReadOnlyList<PdfImposedSheetSide> sides = Plan(sourcePageBounds.Count);
+        var output = new StringBuilder();
+        output.Append("Imposition preset: ").AppendLine(Name);
+        output.Append("Sheet: ").Append(Format(SheetWidth)).Append(" x ")
+            .Append(Format(SheetHeight)).AppendLine(" PDF points");
+        output.Append("Source pages: ")
+            .AppendLine(sourcePageBounds.Count.ToString(CultureInfo.InvariantCulture));
+        output.Append("Sheet sides: ").AppendLine(sides.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfImposedSheetSide side in sides)
+        {
+            output.Append("  Sheet ").Append((side.SheetIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(' ').Append(side.Face).Append(", creep depth ")
+                .AppendLine(side.CreepDepth.ToString(CultureInfo.InvariantCulture));
+            for (int slotIndex = 0; slotIndex < side.SourcePageIndices.Count; slotIndex++)
+            {
+                int? sourcePage = side.SourcePageIndices[slotIndex];
+                output.Append("    Slot ").Append((slotIndex + 1).ToString(CultureInfo.InvariantCulture))
+                    .Append(": ").AppendLine(sourcePage.HasValue
+                        ? $"source page {(sourcePage.Value + 1).ToString(CultureInfo.InvariantCulture)}"
+                        : "blank");
+            }
+            foreach (PdfImposedPlacement placement in Place(side, sourcePageBounds))
+            {
+                output.Append("      Placement ")
+                    .Append((placement.SlotIndex + 1).ToString(CultureInfo.InvariantCulture))
+                    .Append(": ").Append(Format(placement.SheetBounds.Left)).Append(", ")
+                    .Append(Format(placement.SheetBounds.Bottom)).Append(" to ")
+                    .Append(Format(placement.SheetBounds.Right)).Append(", ")
+                    .Append(Format(placement.SheetBounds.Top)).Append(", scale ")
+                    .Append(Format(placement.Scale)).Append(", rotation ")
+                    .Append(placement.Rotation.ToString(CultureInfo.InvariantCulture)).AppendLine(" degrees");
+            }
+        }
+        return output.ToString().TrimEnd();
+    }
+
     /// <summary>Serializes the preset without source document data.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PresetFile(1, Name, Columns, Rows, SheetWidth, SheetHeight, Margin, Gutter,
@@ -197,4 +239,6 @@ public sealed record PdfImpositionPreset
         bool IncludeRegistrationMarks, double CreepPerSheet,
         bool IncludeFoldMarks, bool IncludeColorBars, bool IncludePageInformation,
         PdfImpositionSourceBox PageBox, PdfImpositionBindingEdge BindingEdge);
+
+    private static string Format(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 }

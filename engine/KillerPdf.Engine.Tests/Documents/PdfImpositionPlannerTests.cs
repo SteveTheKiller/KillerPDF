@@ -55,6 +55,17 @@ public sealed class PdfImpositionPlannerTests
         Assert.Equal(2, sides[0].GetProperty("placements").GetArrayLength());
         Assert.Equal(1, sides[1].GetProperty("placements").GetArrayLength());
         Assert.Equal(JsonValueKind.Null, sides[1].GetProperty("slots")[1].ValueKind);
+
+        string text = preset.PreviewText([
+            new PdfContentBounds(0, 0, 100, 200),
+            new PdfContentBounds(0, 0, 200, 100),
+            new PdfContentBounds(0, 0, 100, 200)]);
+        Assert.Contains("Imposition preset: Duplex", text, StringComparison.Ordinal);
+        Assert.Contains("Sheet: 420 x 200 PDF points", text, StringComparison.Ordinal);
+        Assert.Contains("Sheet 1 Front", text, StringComparison.Ordinal);
+        Assert.Contains("Sheet 1 Back", text, StringComparison.Ordinal);
+        Assert.Contains("Slot 2: blank", text, StringComparison.Ordinal);
+        Assert.Contains("Placement 1:", text, StringComparison.Ordinal);
     }
 
     [Fact]
