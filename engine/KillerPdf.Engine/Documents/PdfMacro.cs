@@ -232,6 +232,8 @@ public enum PdfMacroOperation
     AuditAttachments,
     /// <summary>Remove document-level and page-placed attachments.</summary>
     RemoveAttachments,
+    /// <summary>Arrange source pages on output sheets using an N-up preset.</summary>
+    ImposeNUp,
     /// <summary>Generate reviewed bookmarks from detected headings.</summary>
     GenerateBookmarks,
     /// <summary>Generate clickable table-of-contents pages.</summary>
