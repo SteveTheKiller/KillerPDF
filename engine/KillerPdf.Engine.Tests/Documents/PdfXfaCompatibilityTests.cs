@@ -25,6 +25,11 @@ public sealed class PdfXfaCompatibilityTests
         Assert.Equal(["dynamic-layout", "unsupported-control", "unsafe-script-language"],
             report.Findings.Select(finding => finding.Code));
         Assert.All(report.Findings.Skip(1), finding => Assert.Equal("custom", finding.FieldPath));
+        Assert.Contains("XFA compatibility: unsupported content found", report.ToText(),
+            StringComparison.Ordinal);
+        Assert.Contains("unsupported-control at custom", report.ToText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("app.openDoc", report.ToText(), StringComparison.Ordinal);
+        Assert.Contains("\"version\":1", report.ToJson(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -45,6 +50,7 @@ public sealed class PdfXfaCompatibilityTests
 
         Assert.True(report.IsSupported);
         Assert.Empty(report.Findings);
+        Assert.Equal("XFA compatibility: supported\r\nFindings: 0", report.ToText());
     }
 
     [Fact]

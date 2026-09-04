@@ -1,3 +1,5 @@
+using System.Text;
+using System.Text.Json;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -80,7 +82,38 @@ public static class PdfXfaCompatibility
 
 /// <summary>A non-mutating XFA compatibility summary.</summary>
 public sealed record PdfXfaCompatibilityReport(
-    bool IsSupported, IReadOnlyList<PdfXfaCompatibilityFinding> Findings);
+    bool IsSupported, IReadOnlyList<PdfXfaCompatibilityFinding> Findings)
+{
+    /// <summary>Exports compatibility findings as stable machine-readable JSON.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        IsSupported,
+        Findings
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
+
+    /// <summary>Formats XFA compatibility findings without exposing packet contents.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("XFA compatibility: ").AppendLine(IsSupported ? "supported" : "unsupported content found");
+        output.Append("Findings: ").AppendLine(Findings.Count.ToString(
+            System.Globalization.CultureInfo.InvariantCulture));
+        foreach (PdfXfaCompatibilityFinding finding in Findings)
+        {
+            output.Append("  ").Append(finding.Code);
+            if (!string.IsNullOrWhiteSpace(finding.FieldPath))
+                output.Append(" at ").Append(finding.FieldPath);
+            output.AppendLine();
+            output.Append("    ").AppendLine(finding.Message);
+        }
+        return output.ToString().TrimEnd();
+    }
+}
 
 /// <summary>One unsupported or unsafe XFA construct.</summary>
 public sealed record PdfXfaCompatibilityFinding(
