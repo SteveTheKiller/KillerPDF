@@ -120,8 +120,20 @@ public static class PdfFdfFormData
                 ? Text(Resolve(nameValue), "An FDF /T value")
                 : throw new InvalidOperationException("An FDF field has no /T value.");
             string full = parent is null ? local : parent + "." + local;
-            if (field.TryGetValue(Name("V"), out PdfObject? fieldValue))
-                output.Add(new PdfFormDataField { Name = full, Values = Values(Resolve(fieldValue)) });
+            string? mappingName = field.TryGetValue(Name("TM"), out PdfObject? mappingValue)
+                ? Text(Resolve(mappingValue), "An FDF /TM value") : null;
+            IReadOnlyList<string> values = field.TryGetValue(Name("V"), out PdfObject? fieldValue)
+                ? Values(Resolve(fieldValue)) : [];
+            IReadOnlyList<string> defaults = field.TryGetValue(Name("DV"), out PdfObject? defaultValue)
+                ? Values(Resolve(defaultValue)) : [];
+            if (fieldValue is not null || defaultValue is not null || mappingName is not null)
+                output.Add(new PdfFormDataField
+                {
+                    Name = full,
+                    MappingName = mappingName,
+                    Values = values,
+                    DefaultValues = defaults
+                });
             if (field.TryGetValue(Name("Kids"), out PdfObject? kidsValue))
             {
                 PdfArray kids = Resolve(kidsValue) as PdfArray
@@ -242,10 +254,17 @@ public static class PdfFdfFormData
         {
             if (string.IsNullOrWhiteSpace(field.Name) || !names.Add(field.Name))
                 throw new ArgumentException("FDF field names must be nonempty and unique.", nameof(data));
-            PdfObject value = field.Values.Count == 1 ? String(field.Values[0])
-                : new PdfArray(field.Values.Select(item => (PdfObject)String(item)));
-            fields.Add(new PdfDictionary([
-                new(Name("T"), String(field.Name)), new(Name("V"), value)]));
+            var entries = new List<KeyValuePair<PdfName, PdfObject>>
+            {
+                new(Name("T"), String(field.Name))
+            };
+            if (field.MappingName is not null)
+                entries.Add(new(Name("TM"), String(field.MappingName)));
+            if (field.Values.Count > 0)
+                entries.Add(new(Name("V"), FieldValue(field.Values)));
+            if (field.DefaultValues.Count > 0)
+                entries.Add(new(Name("DV"), FieldValue(field.DefaultValues)));
+            fields.Add(new PdfDictionary(entries));
         }
         var fdfEntries = new List<KeyValuePair<PdfName, PdfObject>>
         {
@@ -303,6 +322,10 @@ public static class PdfFdfFormData
             new(Name("Size"), new PdfInteger(offsets.Count + 1))]));
         WriteAscii(output, $"\nstartxref\n{xrefOffset.ToString(CultureInfo.InvariantCulture)}\n%%EOF\n");
         return output.ToArray();
+
+        static PdfObject FieldValue(IReadOnlyList<string> values) => values.Count == 1
+            ? String(values[0])
+            : new PdfArray(values.Select(item => (PdfObject)String(item)));
     }
 
     private static PdfDictionary Annotation(PdfFormDataAnnotation annotation)

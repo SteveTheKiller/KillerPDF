@@ -44,7 +44,11 @@ public sealed class PdfFdfFormDataTests
             SourcePdfPath = "forms/Résumé.pdf",
             Fields =
             [
-                new PdfFormDataField { Name = "person.name", Values = ["Zoë"] },
+                new PdfFormDataField
+                {
+                    Name = "person.name", MappingName = "customer_name",
+                    Values = ["Zoë"], DefaultValues = ["Unknown"]
+                },
                 new PdfFormDataField { Name = "notes", Values = [""] },
                 new PdfFormDataField { Name = "colors", Values = ["red", "blue"] }
             ]
@@ -56,6 +60,8 @@ public sealed class PdfFdfFormDataTests
         Assert.Equal(source.Fields.Select(field => field.Name), result.Fields.Select(field => field.Name));
         Assert.Equal(source.Fields.Select(field => field.Values.ToArray()),
             result.Fields.Select(field => field.Values.ToArray()));
+        Assert.Equal("customer_name", result.Fields[0].MappingName);
+        Assert.Equal(["Unknown"], result.Fields[0].DefaultValues);
         Assert.False(result.ContainsJavaScript);
     }
 

@@ -89,6 +89,10 @@ public sealed record PdfFormDataField
 {
     /// <summary>Gets the fully qualified field name.</summary>
     public required string Name { get; init; }
+    /// <summary>Gets the optional mapping name used when exporting the field.</summary>
+    public string? MappingName { get; init; }
     /// <summary>Gets the field values in source order.</summary>
     public IReadOnlyList<string> Values { get; init; } = [];
+    /// <summary>Gets default field values in source order.</summary>
+    public IReadOnlyList<string> DefaultValues { get; init; } = [];
 }
