@@ -17,7 +17,9 @@ public enum PdfStructuredExportFormat
     /// <summary>Structured JSON.</summary>
     Json,
     /// <summary>Editable Word document.</summary>
-    WordDocument
+    WordDocument,
+    /// <summary>Editable Excel workbook.</summary>
+    Spreadsheet
 }
 
 /// <summary>One type of source content that an export does not fully represent.</summary>
@@ -70,6 +72,8 @@ public static class PdfStructuredExport
                         "JSON export contains image placement without image data.",
                     PdfStructuredExportFormat.WordDocument =>
                         "Word export contains image placeholders without image data.",
+                    PdfStructuredExportFormat.Spreadsheet =>
+                        "Spreadsheet export omits image data.",
                     _ => throw new ArgumentOutOfRangeException(nameof(format))
                 };
                 findings.Add(new PdfStructuredExportFinding("ImageContentNotExported",
@@ -197,6 +201,63 @@ public static class PdfStructuredExport
         }
         return output.ToArray();
     }
+
+    /// <summary>Exports selected pages as an editable Office Open XML spreadsheet.</summary>
+    public static byte[] ToXlsx(PdfDocument document, IEnumerable<int>? pageIndices = null,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteEntry(archive, "[Content_Types].xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+                "<Default Extension=\"xml\" ContentType=\"application/xml\"/>" +
+                "<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>" +
+                "<Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/>" +
+                "</Types>");
+            WriteEntry(archive, "_rels/.rels",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/>" +
+                "</Relationships>");
+            WriteEntry(archive, "xl/workbook.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+                "<sheets><sheet name=\"PDF export\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+            WriteEntry(archive, "xl/_rels/workbook.xml.rels",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/>" +
+                "</Relationships>");
+
+            var rows = new StringBuilder();
+            AppendSpreadsheetRow(rows, 1, "Page", "Line", "Text");
+            int row = 2;
+            foreach (Page page in pages)
+            {
+                for (int line = 0; line < page.Content.Lines.Count; line++)
+                    AppendSpreadsheetRow(rows, row++, (page.Index + 1).ToString(),
+                        (line + 1).ToString(), page.Content.Lines[line].Text);
+            }
+            WriteEntry(archive, "xl/worksheets/sheet1.xml",
+                "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
+                "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>" +
+                rows + "</sheetData></worksheet>");
+        }
+        return output.ToArray();
+    }
+
+    private static void AppendSpreadsheetRow(StringBuilder output, int row,
+        string page, string line, string text) => output.Append("<row r=\"").Append(row)
+        .Append("\"><c r=\"A").Append(row).Append("\" t=\"inlineStr\"><is><t>")
+        .Append(WebUtility.HtmlEncode(page)).Append("</t></is></c><c r=\"B").Append(row)
+        .Append("\" t=\"inlineStr\"><is><t>").Append(WebUtility.HtmlEncode(line))
+        .Append("</t></is></c><c r=\"C").Append(row)
+        .Append("\" t=\"inlineStr\"><is><t xml:space=\"preserve\">")
+        .Append(WebUtility.HtmlEncode(text)).Append("</t></is></c></row>");
 
     private static void WriteEntry(ZipArchive archive, string name, string content)
     {

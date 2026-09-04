@@ -53,12 +53,32 @@ public sealed class PdfStructuredExportTests
     }
 
     [Fact]
+    public void ExportsEditableSpreadsheetWithPageLineAndEscapedText()
+    {
+        PdfDocument document = Document("BT /F1 12 Tf 10 30 Td (A & B) Tj ET");
+
+        byte[] xlsx = PdfStructuredExport.ToXlsx(document);
+
+        using var archive = new ZipArchive(new MemoryStream(xlsx), ZipArchiveMode.Read);
+        Assert.NotNull(archive.GetEntry("xl/workbook.xml"));
+        ZipArchiveEntry sheetEntry = Assert.IsType<ZipArchiveEntry>(
+            archive.GetEntry("xl/worksheets/sheet1.xml"));
+        using var reader = new StreamReader(sheetEntry.Open());
+        string xml = reader.ReadToEnd();
+        Assert.Contains("<t>Page</t>", xml, StringComparison.Ordinal);
+        Assert.Contains("<t>1</t>", xml, StringComparison.Ordinal);
+        Assert.Contains("<t xml:space=\"preserve\">A &amp; B</t>", xml,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RejectsDuplicateAndOutOfRangePageSelections()
     {
         PdfDocument document = Document("BT /F1 12 Tf (A) Tj ET");
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToJson(document, [0, 0]));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToHtml(document, [1]));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToDocx(document, [1]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToXlsx(document, [1]));
     }
 
     [Fact]
