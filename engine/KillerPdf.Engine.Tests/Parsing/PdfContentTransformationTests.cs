@@ -54,6 +54,26 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void TransformPaintedPathsWrapsOnlySelectedArtwork()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "0 0 10 10 re f 20 20 m 30 30 l S"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.TransformPaintedPaths(source, [1],
+                PdfContentTransformMatrix.Translation(12, 34));
+
+        Assert.Equal(["re", "f", "q", "cm", "m", "l", "S", "Q"],
+            result.Select(instruction => instruction.Operator));
+        Assert.Equal([12d, 34d], result[3].Operands.Skip(4)
+            .Cast<PdfReal>().Select(value => value.Value));
+        Assert.Throws<NotSupportedException>(() =>
+            PdfContentTransformation.TransformPaintedPaths(
+                PdfContentStreamReader.Read("0 0 10 10 re W n"u8.ToArray()),
+                [0], PdfContentTransformMatrix.Scale(2, 2)));
+    }
+
+    [Fact]
     public void RewriteRemovesAndReplacesSelectedInstructions()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
