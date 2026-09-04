@@ -47,7 +47,7 @@ public partial class MainWindow
         // Keep the overflow entry visible while its comparison choices are open.
         // Otherwise the parent click handler closes the anchor and dismisses both menus.
         if (ReferenceEquals(sender, MiCompare)) e.Handled = true;
-        ShowComparisonMenu(sender as FrameworkElement ?? ComparePdfBtn, source);
+        ShowComparisonMenu(sender as FrameworkElement ?? ComparePdfBtn, source.Value);
     }
 
     private void ShowComparisonMenu(FrameworkElement anchor, PdfViewer.ComparisonDocument source)
@@ -72,7 +72,7 @@ public partial class MainWindow
         if (source is null)
             root.IsEnabled = false;
         else
-            PopulateComparisonChoices(root.Items, source);
+            PopulateComparisonChoices(root.Items, source.Value);
         return root;
     }
 
