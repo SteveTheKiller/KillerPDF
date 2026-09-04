@@ -456,6 +456,27 @@ public sealed class PdfIncrementalAnnotationEditor
             opacity, contents, startEnding, endEnding, dashPattern,
             interiorColor, annotationMetadata, intent, measurement);
 
+    /// <summary>Adds an editable three-point angle measurement with a calculated label.</summary>
+    public PdfIncrementalAnnotationEditor AddAngleMeasurement(
+        int pageIndex, PdfPoint first, PdfPoint vertex, PdfPoint second,
+        PdfRgbColor? color = null, double lineWidth = 1, double opacity = 1,
+        int precision = 1, string? contents = null,
+        PdfAnnotationMetadata? annotationMetadata = null,
+        IReadOnlyList<double>? dashPattern = null)
+    {
+        if (precision is < 0 or > 10)
+            throw new ArgumentOutOfRangeException(nameof(precision));
+        double angle = PdfMeasurement.Angle(
+            new PdfMeasurementPoint(first.X, first.Y),
+            new PdfMeasurementPoint(vertex.X, vertex.Y),
+            new PdfMeasurementPoint(second.X, second.Y));
+        string label = contents ?? angle.ToString($"F{precision}", CultureInfo.InvariantCulture) + " deg";
+        return AddPolyline(pageIndex, [first, vertex, second], color,
+            lineWidth, opacity, label, dashPattern: dashPattern,
+            annotationMetadata: annotationMetadata,
+            intent: PdfVertexAnnotationIntent.Dimension);
+    }
+
     /// <summary>Adds a polygon annotation with optional fill, dash style, and intent.</summary>
     public PdfIncrementalAnnotationEditor AddPolygon(
         int pageIndex, IReadOnlyList<PdfPoint> vertices,

@@ -2089,6 +2089,34 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void Build_WritesEditableAngleMeasurementWithCalculatedLabel()
+    {
+        PdfDocument reopened = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(200, 200).Build()))
+            .AddAngleMeasurement(0, new PdfPoint(50, 100), new PdfPoint(50, 50),
+                new PdfPoint(100, 50), precision: 2)
+            .Build());
+
+        PdfDictionary annotation = ResolveDictionary(reopened,
+            Assert.IsType<PdfArray>(Pages(reopened)[0].Page[Name("Annots")])[0]);
+        Assert.Equal("PolyLine", Assert.IsType<PdfName>(
+            annotation[Name("Subtype")]).ValueAsLatin1());
+        Assert.Equal("PolyLineDimension", Assert.IsType<PdfName>(
+            annotation[Name("IT")]).ValueAsLatin1());
+        Assert.Equal(6, Assert.IsType<PdfArray>(annotation[Name("Vertices")]).Count);
+        ReadOnlySpan<byte> contents = Assert.IsType<PdfString>(
+            annotation[Name("Contents")]).Bytes.Span;
+        Assert.Equal("90.00 deg", Encoding.BigEndianUnicode.GetString(contents[2..]));
+        Assert.False(annotation.ContainsKey(Name("Measure")));
+
+        var editor = new PdfIncrementalAnnotationEditor(reopened);
+        Assert.Throws<ArgumentException>(() => editor.AddAngleMeasurement(0,
+            new PdfPoint(0, 0), new PdfPoint(0, 0), new PdfPoint(1, 0)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => editor.AddAngleMeasurement(0,
+            new PdfPoint(0, 1), new PdfPoint(0, 0), new PdfPoint(1, 0), precision: 11));
+    }
+
+    [Fact]
     public void Build_WritesAlignedDashedCalloutFreeTextWithExpandedBounds()
     {
         TrueTypeFont font = TrueTypeFont.Load(
