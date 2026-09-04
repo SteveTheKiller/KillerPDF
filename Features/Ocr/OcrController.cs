@@ -3,8 +3,6 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
-using Docnet.Core;
-using Docnet.Core.Models;
 using Microsoft.Win32;
 using KillerPDF.Services;
 
@@ -52,7 +50,7 @@ namespace KillerPDF.Features
             {
                 List<OcrResult> results = await Task.Run(() =>
                 {
-                    using var docReader = DocLib.Instance.GetDocReader(file, new PageDimensions(OcrRenderMax, OcrRenderMax));
+                    using var renderSession = PdfPageRenderSession.Open(file, OcrRenderMax, OcrRenderMax);
                     using var ocr = new OcrService(language: lang);   // engine is not thread-safe: one per operation
                     var recognized = new List<OcrResult>(pages.Length);
                     for (int i = 0; i < pages.Length; i++)
@@ -61,10 +59,10 @@ namespace KillerPDF.Features
                         int progress = i;
                         _host.Window.Dispatcher.Invoke(() => _host.SetBusyMessage(
                             $"{_host.Loc("Str_Busy_Ocr")} {progress + 1}/{pages.Length}"));
-                        using var pageReader = docReader.GetPageReader(pages[i]);
-                        int w = pageReader.GetPageWidth();
-                        int h = pageReader.GetPageHeight();
-                        byte[] bgra = pageReader.GetImage();
+                        PdfRenderedPage page = renderSession.RenderBasePage(pages[i]);
+                        int w = page.Width;
+                        int h = page.Height;
+                        byte[] bgra = page.Pixels;
                         int rot = rotations[i];
                         if (rot != 0) (bgra, w, h) = BitmapHelpers.RotateBitmap(bgra, w, h, rot);
                         recognized.Add(!formAware
@@ -128,11 +126,11 @@ namespace KillerPDF.Features
             {
                 OcrResult result = await Task.Run(() =>
                 {
-                    using var docReader = DocLib.Instance.GetDocReader(file, new PageDimensions(OcrRenderMax, OcrRenderMax));
-                    using var pageReader = docReader.GetPageReader(pageIdx);
-                    int w = pageReader.GetPageWidth();
-                    int h = pageReader.GetPageHeight();
-                    byte[] bgra = pageReader.GetImage();
+                    using var renderSession = PdfPageRenderSession.Open(file, OcrRenderMax, OcrRenderMax);
+                    PdfRenderedPage page = renderSession.RenderBasePage(pageIdx);
+                    int w = page.Width;
+                    int h = page.Height;
+                    byte[] bgra = page.Pixels;
                     if (rot != 0) (bgra, w, h) = BitmapHelpers.RotateBitmap(bgra, w, h, rot);
 
                     double sx = (double)w / renderW, sy = (double)h / renderH;
@@ -254,7 +252,7 @@ namespace KillerPDF.Features
             Action<int, int> report, string language, bool formAware,
             CancellationToken ct)
         {
-            using var docReader = DocLib.Instance.GetDocReader(src, new PageDimensions(OcrRenderMax, OcrRenderMax));
+            using var renderSession = PdfPageRenderSession.Open(src, OcrRenderMax, OcrRenderMax);
             using var ocr = new OcrService(language: language);   // one engine reused across the whole document (single-threaded here)
             int pages = PdfEngineIntegration.ReadPageInformation(src).Count;
             IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
@@ -272,10 +270,10 @@ namespace KillerPDF.Features
                 if (ct.IsCancellationRequested) return (i, 0);
                 report(i, pages);
 
-                using var pr = docReader.GetPageReader(i);
-                int w = pr.GetPageWidth();
-                int h = pr.GetPageHeight();
-                byte[] bgra = pr.GetImage();
+                PdfRenderedPage page = renderSession.RenderBasePage(i);
+                int w = page.Width;
+                int h = page.Height;
+                byte[] bgra = page.Pixels;
                 if (bgra is null || bgra.Length == 0 || w <= 0 || h <= 0)
                 {
                     layers.Add(new PdfEngineIntegration.SearchablePage(
@@ -362,7 +360,7 @@ namespace KillerPDF.Features
         {
             string nl = Environment.NewLine;
             var sb = new StringBuilder();
-            using var docReader = DocLib.Instance.GetDocReader(src, new PageDimensions(OcrRenderMax, OcrRenderMax));
+            using var renderSession = PdfPageRenderSession.Open(src, OcrRenderMax, OcrRenderMax);
             using var ocr = new OcrService(language: language);
             IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
                 formAware ? ReadAllFormHints(src, pageCount) :
@@ -378,10 +376,10 @@ namespace KillerPDF.Features
                 if (ct.IsCancellationRequested) return 0;
                 report(i, pageCount);
 
-                using var pr = docReader.GetPageReader(i);
-                int w = pr.GetPageWidth();
-                int h = pr.GetPageHeight();
-                byte[] bgra = pr.GetImage();
+                PdfRenderedPage page = renderSession.RenderBasePage(i);
+                int w = page.Width;
+                int h = page.Height;
+                byte[] bgra = page.Pixels;
                 string text = (bgra is null || bgra.Length == 0 || w <= 0 || h <= 0)
                     ? string.Empty
                     : (formAware
