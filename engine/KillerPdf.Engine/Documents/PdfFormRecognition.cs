@@ -103,6 +103,32 @@ public enum PdfFormProposalStatus
     Rejected
 }
 
+/// <summary>An edge or center used to align reviewed form proposals.</summary>
+public enum PdfFormProposalAlignment
+{
+    /// <summary>Align left edges.</summary>
+    Left,
+    /// <summary>Align horizontal centers.</summary>
+    HorizontalCenter,
+    /// <summary>Align right edges.</summary>
+    Right,
+    /// <summary>Align bottom edges.</summary>
+    Bottom,
+    /// <summary>Align vertical centers.</summary>
+    VerticalCenter,
+    /// <summary>Align top edges.</summary>
+    Top
+}
+
+/// <summary>A direction used to distribute reviewed form proposals evenly.</summary>
+public enum PdfFormProposalDistribution
+{
+    /// <summary>Distribute equal horizontal gaps.</summary>
+    Horizontal,
+    /// <summary>Distribute equal vertical gaps.</summary>
+    Vertical
+}
+
 /// <summary>Conservative geometry limits for digital-page field recognition.</summary>
 public sealed record PdfFormRecognitionOptions
 {
@@ -633,6 +659,82 @@ public sealed class PdfFormRecognitionReview
     public PdfFormRecognitionReview RejectMany(IEnumerable<string> ids) =>
         ChangeMany(ids, item => item.Review(PdfFormProposalStatus.Rejected));
 
+    /// <summary>Returns a new review with selected proposals aligned on one page.</summary>
+    public PdfFormRecognitionReview Align(
+        IEnumerable<string> ids, PdfFormProposalAlignment alignment)
+    {
+        if (!Enum.IsDefined(alignment))
+            throw new ArgumentOutOfRangeException(nameof(alignment));
+        PdfFormFieldProposal[] selected = SelectForLayout(ids, 2);
+        double left = selected.Min(item => item.Bounds.Left);
+        double right = selected.Max(item => item.Bounds.Right);
+        double bottom = selected.Min(item => item.Bounds.Bottom);
+        double top = selected.Max(item => item.Bounds.Top);
+        double horizontalCenter = (left + right) / 2;
+        double verticalCenter = (bottom + top) / 2;
+        var replacements = selected.ToDictionary(item => item.Id, item =>
+        {
+            PdfContentBounds bounds = item.Bounds;
+            double newLeft = alignment switch
+            {
+                PdfFormProposalAlignment.Left => left,
+                PdfFormProposalAlignment.HorizontalCenter =>
+                    horizontalCenter - bounds.Width / 2,
+                PdfFormProposalAlignment.Right => right - bounds.Width,
+                _ => bounds.Left
+            };
+            double newBottom = alignment switch
+            {
+                PdfFormProposalAlignment.Bottom => bottom,
+                PdfFormProposalAlignment.VerticalCenter =>
+                    verticalCenter - bounds.Height / 2,
+                PdfFormProposalAlignment.Top => top - bounds.Height,
+                _ => bounds.Bottom
+            };
+            return new PdfContentBounds(newLeft, newBottom,
+                newLeft + bounds.Width, newBottom + bounds.Height);
+        }, StringComparer.Ordinal);
+        return ReplaceBounds(replacements);
+    }
+
+    /// <summary>Returns a new review with equal gaps between selected proposals on one page.</summary>
+    public PdfFormRecognitionReview Distribute(
+        IEnumerable<string> ids, PdfFormProposalDistribution distribution)
+    {
+        if (!Enum.IsDefined(distribution))
+            throw new ArgumentOutOfRangeException(nameof(distribution));
+        PdfFormFieldProposal[] selected = SelectForLayout(ids, 3);
+        PdfFormFieldProposal[] ordered = distribution == PdfFormProposalDistribution.Horizontal
+            ? [.. selected.OrderBy(item => item.Bounds.Left).ThenBy(item => item.Id)]
+            : [.. selected.OrderBy(item => item.Bounds.Bottom).ThenBy(item => item.Id)];
+        double start = distribution == PdfFormProposalDistribution.Horizontal
+            ? ordered[0].Bounds.Left : ordered[0].Bounds.Bottom;
+        double end = distribution == PdfFormProposalDistribution.Horizontal
+            ? ordered[^1].Bounds.Right : ordered[^1].Bounds.Top;
+        double occupied = ordered.Sum(item =>
+            distribution == PdfFormProposalDistribution.Horizontal
+                ? item.Bounds.Width : item.Bounds.Height);
+        double gap = (end - start - occupied) / (ordered.Length - 1);
+        if (gap < 0)
+            throw new InvalidOperationException(
+                "The selected form proposals overlap the available distribution span.");
+        var replacements = new Dictionary<string, PdfContentBounds>(StringComparer.Ordinal);
+        double cursor = start;
+        foreach (PdfFormFieldProposal item in ordered)
+        {
+            PdfContentBounds bounds = item.Bounds;
+            double newLeft = distribution == PdfFormProposalDistribution.Horizontal
+                ? cursor : bounds.Left;
+            double newBottom = distribution == PdfFormProposalDistribution.Vertical
+                ? cursor : bounds.Bottom;
+            replacements[item.Id] = new PdfContentBounds(newLeft, newBottom,
+                newLeft + bounds.Width, newBottom + bounds.Height);
+            cursor += (distribution == PdfFormProposalDistribution.Horizontal
+                ? bounds.Width : bounds.Height) + gap;
+        }
+        return ReplaceBounds(replacements);
+    }
+
     /// <summary>Returns a new review with an editable copy awaiting its own decision.</summary>
     public PdfFormRecognitionReview Duplicate(string sourceId, string newId,
         string suggestedName, PdfContentBounds bounds, int? pageIndex = null)
@@ -900,6 +1002,30 @@ public sealed class PdfFormRecognitionReview
         changed[index] = change(changed[index]);
         return new PdfFormRecognitionReview(changed);
     }
+
+    private PdfFormFieldProposal[] SelectForLayout(
+        IEnumerable<string> ids, int minimumCount)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        string[] selectedIds = ids.ToArray();
+        if (selectedIds.Length < minimumCount)
+            throw new ArgumentException(
+                $"At least {minimumCount} form proposals must be selected.", nameof(ids));
+        if (selectedIds.Any(string.IsNullOrWhiteSpace)
+            || selectedIds.Distinct(StringComparer.Ordinal).Count() != selectedIds.Length)
+            throw new ArgumentException(
+                "Selected form proposal IDs must be nonempty and unique.", nameof(ids));
+        PdfFormFieldProposal[] selected = [.. selectedIds.Select(Find)];
+        if (selected.Select(item => item.PageIndex).Distinct().Count() != 1)
+            throw new ArgumentException(
+                "Form proposals can be aligned or distributed only on the same page.", nameof(ids));
+        return selected;
+    }
+
+    private PdfFormRecognitionReview ReplaceBounds(
+        IReadOnlyDictionary<string, PdfContentBounds> replacements) =>
+        new(_proposals.Select(item => replacements.TryGetValue(item.Id, out PdfContentBounds bounds)
+            ? item.Review(item.Status, bounds: bounds) : item));
 
     private PdfFormRecognitionReview ChangeMany(IEnumerable<string> ids,
         Func<PdfFormFieldProposal, PdfFormFieldProposal> change)

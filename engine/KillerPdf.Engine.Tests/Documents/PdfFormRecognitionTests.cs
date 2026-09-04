@@ -93,6 +93,49 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewAlignsAndDistributesSelectedProposalsImmutably()
+    {
+        var original = new PdfFormRecognitionReview([
+            new("left", 0, new PdfContentBounds(10, 10, 30, 30),
+                PdfRecognizedFieldKind.Text, 1, "left"),
+            new("middle", 0, new PdfContentBounds(50, 20, 80, 50),
+                PdfRecognizedFieldKind.Text, 1, "middle"),
+            new("right", 0, new PdfContentBounds(110, 15, 150, 40),
+                PdfRecognizedFieldKind.Text, 1, "right")]);
+
+        PdfFormRecognitionReview aligned = original.Align(
+            ["left", "middle", "right"], PdfFormProposalAlignment.Top);
+        Assert.Equal([30d, 20d, 25d], aligned.Proposals
+            .OrderBy(item => item.Bounds.Left).Select(item => item.Bounds.Bottom));
+        Assert.Equal(10, original.Proposals.Single(item => item.Id == "left").Bounds.Bottom);
+
+        PdfFormRecognitionReview distributed = aligned.Distribute(
+            ["left", "middle", "right"], PdfFormProposalDistribution.Horizontal);
+        Assert.Equal([10d, 55d, 110d], distributed.Proposals
+            .OrderBy(item => item.Bounds.Left).Select(item => item.Bounds.Left));
+        Assert.All(distributed.Proposals, item =>
+            Assert.Equal(PdfFormProposalStatus.Proposed, item.Status));
+    }
+
+    [Fact]
+    public void ReviewLayoutRejectsInvalidSelections()
+    {
+        var review = new PdfFormRecognitionReview([
+            Proposal("first", 0, 1), Proposal("second", 1, 1),
+            new("third", 0, new PdfContentBounds(10, 0, 110, 20),
+                PdfRecognizedFieldKind.Text, 1, "third"),
+            new("fourth", 0, new PdfContentBounds(20, 0, 120, 20),
+                PdfRecognizedFieldKind.Text, 1, "fourth")]);
+
+        Assert.Throws<ArgumentException>(() => review.Align(
+            ["first", "second"], PdfFormProposalAlignment.Left));
+        Assert.Throws<ArgumentException>(() => review.Distribute(
+            ["first", "third"], PdfFormProposalDistribution.Horizontal));
+        Assert.Throws<InvalidOperationException>(() => review.Distribute(
+            ["first", "third", "fourth"], PdfFormProposalDistribution.Horizontal));
+    }
+
+    [Fact]
     public void ReviewDuplicatesProposalsAndAppliesBulkDecisionsImmutably()
     {
         var style = new PdfFormFieldAppearanceStyle
