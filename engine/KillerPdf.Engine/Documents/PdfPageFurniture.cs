@@ -241,12 +241,13 @@ public static class PdfPageFurniturePlacementPlanner
 /// <summary>One text mark to write into a page header or footer.</summary>
 public sealed record PdfPageFurnitureMark(
     int PageIndex, string Text, double X, double Baseline, double FontSize = 10,
-    PdfRgbColor? Color = null, double Opacity = 1, double RotationDegrees = 0);
+    PdfRgbColor? Color = null, double Opacity = 1, double RotationDegrees = 0,
+    PdfStandardFont Font = PdfStandardFont.Helvetica);
 
 /// <summary>One KillerPDF-created page-furniture mark recovered from a saved document.</summary>
 public sealed record PdfPageFurnitureReportEntry(
     int PageIndex, string Text, double X, double Baseline, double FontSize,
-    PdfRgbColor? Color, double Opacity, double RotationDegrees);
+    PdfRgbColor? Color, double Opacity, double RotationDegrees, PdfStandardFont Font);
 
 /// <summary>Inspects versioned metadata attached to KillerPDF-created page furniture.</summary>
 public static class PdfPageFurnitureReport
@@ -281,7 +282,7 @@ public static class PdfPageFurnitureReport
                         data.X, data.Baseline, data.FontSize,
                         data.Color is null ? null : new PdfRgbColor(
                             data.Color.Red, data.Color.Green, data.Color.Blue),
-                        data.Opacity, data.RotationDegrees));
+                        data.Opacity, data.RotationDegrees, data.Font));
                 }
                 catch (JsonException) { }
                 catch (FormatException) { }
@@ -320,7 +321,8 @@ public static class PdfPageFurnitureReport
                 Blue = color.Blue
             },
             Opacity = mark.Opacity,
-            RotationDegrees = mark.RotationDegrees
+            RotationDegrees = mark.RotationDegrees,
+            Font = mark.Font
         }));
 
     internal static bool IsMarker(PdfContentInstruction instruction) =>
@@ -342,6 +344,7 @@ public static class PdfPageFurnitureReport
         public MarkerColor? Color { get; set; }
         public double Opacity { get; set; }
         public double RotationDegrees { get; set; }
+        public PdfStandardFont Font { get; set; }
     }
 
     private sealed class MarkerColor
@@ -378,6 +381,8 @@ public static class PdfPageFurnitureWriter
                 throw new ArgumentOutOfRangeException(nameof(marks));
             if (!double.IsFinite(mark.RotationDegrees))
                 throw new ArgumentOutOfRangeException(nameof(marks));
+            if (!Enum.IsDefined(mark.Font))
+                throw new ArgumentOutOfRangeException(nameof(marks));
             PdfPageBoxBounds media = pages[mark.PageIndex].MediaBox;
             var content = new PdfContentStreamBuilder().SaveState();
             if (mark.Color is PdfRgbColor color)
@@ -390,7 +395,7 @@ public static class PdfPageFurnitureWriter
                     -Math.Sin(radians), Math.Cos(radians), mark.X, mark.Baseline);
             }
             content.BeginText()
-                .SetFont(PdfStandardFont.Helvetica, mark.FontSize)
+                .SetFont(mark.Font, mark.FontSize)
                 .MoveText(mark.RotationDegrees == 0 ? mark.X : 0,
                     mark.RotationDegrees == 0 ? mark.Baseline : 0)
                 .ShowLatin1Text(mark.Text).EndText().RestoreState();

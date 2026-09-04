@@ -21,6 +21,7 @@ public sealed class PdfPageFurnitureMacroTests
                 Alignment = PdfPageFurnitureAlignment.Right,
                 NumberFormat = PdfPageNumberFormat.UpperRoman,
                 FontSize = 12,
+                Font = PdfStandardFont.HelveticaBoldOblique,
                 HorizontalMargin = 20,
                 VerticalMargin = 16
             })]).ToJson());
@@ -32,6 +33,7 @@ public sealed class PdfPageFurnitureMacroTests
         Assert.Equal(1, mark.PageIndex);
         Assert.Equal("Page II of 2", mark.Text);
         Assert.Equal(12, mark.FontSize);
+        Assert.Equal(PdfStandardFont.HelveticaBoldOblique, mark.Font);
         Assert.True(mark.X > 300);
         Assert.True(mark.Baseline > 270);
     }
@@ -122,6 +124,7 @@ public sealed class PdfPageFurnitureMacroTests
                 DigitCount = 4,
                 Prefix = "CASE-",
                 Alignment = PdfPageFurnitureAlignment.Left,
+                Font = PdfStandardFont.CourierBold,
                 HorizontalMargin = 12
             })]).ToJson());
 
@@ -132,6 +135,7 @@ public sealed class PdfPageFurnitureMacroTests
 
         Assert.Equal(["CASE-0098", "CASE-0099", "CASE-0100"], text);
         Assert.All(output.Select(bytes => PdfDocument.Open(bytes)), document =>
-            Assert.NotEmpty(PdfPageFurnitureReport.Inspect(document)));
+            Assert.All(PdfPageFurnitureReport.Inspect(document), mark =>
+                Assert.Equal(PdfStandardFont.CourierBold, mark.Font)));
     }
 }

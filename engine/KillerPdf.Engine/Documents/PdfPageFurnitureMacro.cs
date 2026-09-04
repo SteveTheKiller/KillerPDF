@@ -26,6 +26,8 @@ public sealed record PdfPageNumberMacroOptions
     public IReadOnlyList<int>? PageIndices { get; init; }
     /// <summary>Gets the font size in PDF points.</summary>
     public double FontSize { get; init; } = 10;
+    /// <summary>Gets the built-in PDF font.</summary>
+    public PdfStandardFont Font { get; init; } = PdfStandardFont.Helvetica;
     /// <summary>Gets the horizontal page margin in PDF points.</summary>
     public double HorizontalMargin { get; init; } = 18;
     /// <summary>Gets the vertical page margin in PDF points.</summary>
@@ -57,6 +59,8 @@ public sealed record PdfBatesMacroOptions
     public PdfPageFurnitureAlignment Alignment { get; init; } = PdfPageFurnitureAlignment.Right;
     /// <summary>Gets the font size in PDF points.</summary>
     public double FontSize { get; init; } = 10;
+    /// <summary>Gets the built-in PDF font.</summary>
+    public PdfStandardFont Font { get; init; } = PdfStandardFont.Helvetica;
     /// <summary>Gets the horizontal page margin in PDF points.</summary>
     public double HorizontalMargin { get; init; } = 18;
     /// <summary>Gets the vertical page margin in PDF points.</summary>
@@ -153,7 +157,7 @@ public static class PdfPageFurnitureMacro
                     number.PageIndex, number.Text, options.Edge, options.Alignment,
                     options.FontSize, options.HorizontalMargin, options.VerticalMargin,
                     options.Color, options.Opacity, options.RotationDegrees,
-                    options.AllowCollisions))];
+                    options.AllowCollisions, options.Font))];
             output.Add(marks.Length == 0 ? inputs[documentIndex].ToArray()
                 : PdfPageFurnitureWriter.Apply(document, marks));
         }
@@ -213,7 +217,8 @@ public static class PdfPageFurnitureMacro
             marks.Add(PlaceMark(boxes, content, pageIndex, text,
                 options.Edge, options.Alignment, options.FontSize,
                 options.HorizontalMargin, options.VerticalMargin, options.Color,
-                options.Opacity, options.RotationDegrees, options.AllowCollisions));
+                options.Opacity, options.RotationDegrees, options.AllowCollisions,
+                options.Font));
         }
         return PdfPageFurnitureWriter.Apply(document, marks);
     }
@@ -228,7 +233,7 @@ public static class PdfPageFurnitureMacro
             throw new ArgumentException(
                 "Page-numbering custom token names must be nonempty.", nameof(options));
         if (!Enum.IsDefined(options.Edge) || !Enum.IsDefined(options.Alignment)
-            || !Enum.IsDefined(options.NumberFormat))
+            || !Enum.IsDefined(options.NumberFormat) || !Enum.IsDefined(options.Font))
             throw new ArgumentOutOfRangeException(nameof(options));
         if (!double.IsFinite(options.FontSize) || options.FontSize <= 0
             || !double.IsFinite(options.HorizontalMargin) || options.HorizontalMargin < 0
@@ -256,6 +261,7 @@ public static class PdfPageFurnitureMacro
             Suffix = options.Suffix
         });
         if (!Enum.IsDefined(options.Edge) || !Enum.IsDefined(options.Alignment)
+            || !Enum.IsDefined(options.Font)
             || !double.IsFinite(options.FontSize) || options.FontSize <= 0
             || !double.IsFinite(options.HorizontalMargin) || options.HorizontalMargin < 0
             || !double.IsFinite(options.VerticalMargin) || options.VerticalMargin < 0
@@ -269,7 +275,8 @@ public static class PdfPageFurnitureMacro
         int pageIndex, string text, PdfPageFurnitureEdge edge,
         PdfPageFurnitureAlignment alignment, double fontSize,
         double horizontalMargin, double verticalMargin, PdfRgbColor? color,
-        double opacity, double rotationDegrees, bool allowCollisions)
+        double opacity, double rotationDegrees, bool allowCollisions,
+        PdfStandardFont font)
     {
         PdfPageBoxBounds crop = boxes[pageIndex].CropBox;
         PdfPageContent pageContent = content.Read(pageIndex);
@@ -289,7 +296,7 @@ public static class PdfPageFurnitureMacro
         return new PdfPageFurnitureMark(pageIndex, text,
             crop.Left + placement.Bounds.Left,
             crop.Bottom + placement.Bounds.Bottom + fontSize * 0.8,
-            fontSize, color, opacity, rotationDegrees);
+            fontSize, color, opacity, rotationDegrees, font);
     }
 
     private static JsonSerializerOptions JsonOptions() => new()

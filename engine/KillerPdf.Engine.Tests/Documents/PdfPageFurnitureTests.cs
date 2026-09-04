@@ -154,20 +154,23 @@ public sealed class PdfPageFurnitureTests
     }
 
     [Fact]
-    public void WriterAppliesReviewedColorOpacityAndRotation()
+    public void WriterAppliesReviewedFontColorOpacityAndRotation()
     {
         PdfDocument document = PdfDocument.Open(
             new PdfDocumentBuilder().AddBlankPage(300, 400).Build());
 
         PdfDocument reopened = PdfDocument.Open(PdfPageFurnitureWriter.Apply(document, [
             new PdfPageFurnitureMark(0, "DRAFT", 20, 30, 12,
-                new PdfRgbColor(0.8, 0.1, 0.2), 0.4, 90)]));
+                new PdfRgbColor(0.8, 0.1, 0.2), 0.4, 90,
+                PdfStandardFont.TimesBold)]));
         PdfPageContent content = new PdfPageContentReader(reopened).Read(0);
 
         Assert.Equal("DRAFT", content.Text);
         Assert.Contains(content.Instructions, instruction => instruction.Operator == "cm");
         Assert.Contains(content.Instructions, instruction => instruction.Operator == "gs");
         Assert.Contains(content.Instructions, instruction => instruction.Operator == "rg");
+        Assert.Equal(PdfStandardFont.TimesBold,
+            Assert.Single(PdfPageFurnitureReport.Inspect(reopened)).Font);
     }
 
     [Fact]
@@ -176,7 +179,8 @@ public sealed class PdfPageFurnitureTests
         PdfDocument document = PdfDocument.Open(
             new PdfDocumentBuilder().AddBlankPage(300, 400).Build());
         var mark = new PdfPageFurnitureMark(0, "CASE-000042", 21, 31, 11,
-            new PdfRgbColor(0.2, 0.3, 0.4), 0.65, 12);
+            new PdfRgbColor(0.2, 0.3, 0.4), 0.65, 12,
+            PdfStandardFont.CourierBoldOblique);
         PdfDocument reopened = PdfDocument.Open(PdfPageFurnitureWriter.Apply(document, [mark]));
 
         PdfPageFurnitureReportEntry entry = Assert.Single(
@@ -190,6 +194,7 @@ public sealed class PdfPageFurnitureTests
         Assert.Equal(mark.Color, entry.Color);
         Assert.Equal(mark.Opacity, entry.Opacity);
         Assert.Equal(mark.RotationDegrees, entry.RotationDegrees);
+        Assert.Equal(mark.Font, entry.Font);
         Assert.Empty(PdfPageFurnitureReport.Inspect(document));
         using JsonDocument json = JsonDocument.Parse(
             PdfPageFurnitureReport.ToJson(reopened));
