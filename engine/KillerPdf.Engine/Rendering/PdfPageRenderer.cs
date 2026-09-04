@@ -63,7 +63,7 @@ public sealed class PdfPageRenderer
             _ => Matrix.Identity
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
-            1, 1, 1, RendererBlendMode.Normal, []);
+            1, 1, 1, RendererBlendMode.Normal, [], false, null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         PdfDictionary pageResources = PageResources(pageIndex);
@@ -106,20 +106,41 @@ public sealed class PdfPageRenderer
                     state = state with { Transform = Matrix.From(values).Then(state.Transform) };
                     break;
                 case "g" when values.Count == 1:
-                    state = state with { Fill = Color.Gray(Number(values[0])) };
+                    state = state with
+                    {
+                        Fill = Color.Gray(Number(values[0])),
+                        FillPatternSpace = false,
+                        FillPattern = null
+                    };
                     break;
                 case "rg" when values.Count == 3:
                     state = state with
                     {
-                        Fill = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2]))
+                        Fill = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2])),
+                        FillPatternSpace = false,
+                        FillPattern = null
                     };
                     break;
                 case "k" when values.Count == 4:
                     state = state with
                     {
                         Fill = Color.Cmyk(Number(values[0]), Number(values[1]),
-                            Number(values[2]), Number(values[3]))
+                            Number(values[2]), Number(values[3])),
+                        FillPatternSpace = false,
+                        FillPattern = null
                     };
+                    break;
+                case "cs" when values.Count == 1 && values[0] is PdfName fillSpace
+                    && fillSpace.ValueAsLatin1() == "Pattern":
+                    state = state with { FillPatternSpace = true, FillPattern = null };
+                    break;
+                case "scn" when state.FillPatternSpace && values.Count > 0
+                    && values[^1] is PdfName fillPatternName:
+                    if (TryGetColoredTilingPattern(resources, fillPatternName,
+                        out PdfStream? fillPattern))
+                        state = state with { FillPattern = fillPattern };
+                    else
+                        diagnostics.Add("Tiling-pattern rendering is not implemented.");
                     break;
                 case "G" when values.Count == 1:
                     state = state with { Stroke = Color.Gray(Number(values[0])) };
@@ -197,9 +218,7 @@ public sealed class PdfPageRenderer
                     path.Add(subpath);
                     break;
                 case "f" or "F" or "f*" when path.Count > 0:
-                    FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Fill, state.FillAlpha,
-                        instruction.Operator == "f*", state.BlendMode, state.Clips);
+                    PaintFill(path, instruction.Operator == "f*");
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
@@ -216,9 +235,7 @@ public sealed class PdfPageRenderer
                 case "B" or "B*" or "b" or "b*" when path.Count > 0:
                     if (instruction.Operator[0] == 'b' && subpath is { Count: > 1 })
                         subpath.Add(subpath[0]);
-                    FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Fill, state.FillAlpha,
-                        instruction.Operator.EndsWith('*'), state.BlendMode, state.Clips);
+                    PaintFill(path, instruction.Operator.EndsWith('*'));
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                         path, state.Stroke, state.StrokeAlpha, state.LineWidth,
                         state.BlendMode, state.Clips);
@@ -340,6 +357,96 @@ public sealed class PdfPageRenderer
                         diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
                     break;
                 }
+            }
+
+            void PaintFill(IReadOnlyList<List<Point>> fillPath, bool evenOdd)
+            {
+                if (state.FillPattern is null)
+                {
+                    FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                        fillPath, state.Fill, state.FillAlpha, evenOdd,
+                        state.BlendMode, state.Clips);
+                    return;
+                }
+                RenderColoredTilingPattern(state.FillPattern, fillPath, evenOdd,
+                    resources, state, depth);
+            }
+
+            void RenderColoredTilingPattern(PdfStream pattern,
+                IReadOnlyList<List<Point>> fillPath, bool evenOdd,
+                PdfDictionary parentResources, GraphicsState parentState, int patternDepth)
+            {
+                PdfArray box = pattern.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boxValue)
+                    ? ResolveArray(boxValue, 4, "Tiling pattern bounding box")
+                    : throw new FormatException("A tiling pattern has no bounding box.");
+                double left = Number(Resolve(box[0])), bottom = Number(Resolve(box[1]));
+                double right = Number(Resolve(box[2])), top = Number(Resolve(box[3]));
+                double xStep = PatternStep(pattern.Dictionary, "XStep");
+                double yStep = PatternStep(pattern.Dictionary, "YStep");
+                Matrix patternMatrix = pattern.Dictionary.TryGetValue(Name("Matrix"),
+                    out PdfObject? matrixValue)
+                    ? Matrix.From(ResolveArray(matrixValue, 6, "Tiling pattern matrix"))
+                    : Matrix.Identity;
+                Matrix patternToPage = patternMatrix.Then(parentState.Transform);
+                if (!patternToPage.TryInverse(out Matrix pageToPattern)) return;
+                Point[] patternBounds = fillPath.SelectMany(points => points)
+                    .Select(point => pageToPattern.Apply(point.X, point.Y)).ToArray();
+                if (patternBounds.Length == 0) return;
+                double stepX = Math.Abs(xStep), stepY = Math.Abs(yStep);
+                int firstX = checked((int)Math.Floor(
+                    (patternBounds.Min(point => point.X) - right) / stepX));
+                int lastX = checked((int)Math.Ceiling(
+                    (patternBounds.Max(point => point.X) - left) / stepX));
+                int firstY = checked((int)Math.Floor(
+                    (patternBounds.Min(point => point.Y) - top) / stepY));
+                int lastY = checked((int)Math.Ceiling(
+                    (patternBounds.Max(point => point.Y) - bottom) / stepY));
+                long cellCount = checked((long)(lastX - firstX + 1)
+                    * (lastY - firstY + 1));
+                if (cellCount > 100_000)
+                    throw new FormatException("A tiling pattern requires too many cells.");
+                PdfDictionary patternResources = pattern.Dictionary.TryGetValue(Name("Resources"),
+                    out PdfObject? resourcesValue)
+                    ? Resolve(resourcesValue) as PdfDictionary
+                        ?? throw new FormatException("Tiling pattern resources are not a dictionary.")
+                    : parentResources;
+                byte[] content = PdfStreamDecoder.Decode(pattern, _document.Resolve,
+                    PdfContentStreamReader.MaximumSourceBytes);
+                PdfContentInstruction[] patternInstructions = [.. PdfContentStreamReader.Read(
+                    content, cancellationToken: cancellationToken)];
+                var fillClip = new ClipRegion(
+                    [.. fillPath.Select(points => points.ToArray())], evenOdd);
+                for (int cellY = firstY; cellY <= lastY; cellY++)
+                    for (int cellX = firstX; cellX <= lastX; cellX++)
+                    {
+                        Matrix cell = new Matrix(1, 0, 0, 1,
+                            cellX * stepX, cellY * stepY).Then(patternToPage);
+                        Point[] cellBox =
+                        [
+                            cell.Apply(left, bottom), cell.Apply(right, bottom),
+                            cell.Apply(right, top), cell.Apply(left, top),
+                            cell.Apply(left, bottom)
+                        ];
+                        ClipRegion[] clips = [.. parentState.Clips, fillClip,
+                            new ClipRegion([cellBox], false)];
+                        Process(patternInstructions, patternResources, parentState with
+                        {
+                            Transform = cell,
+                            Clips = Array.AsReadOnly(clips),
+                            FillPatternSpace = false,
+                            FillPattern = null
+                        }, patternDepth + 1);
+                    }
+            }
+
+            double PatternStep(PdfDictionary dictionary, string key)
+            {
+                if (!dictionary.TryGetValue(Name(key), out PdfObject? value))
+                    throw new FormatException($"A tiling pattern has no /{key} value.");
+                double step = Number(Resolve(value));
+                if (!double.IsFinite(step) || step == 0)
+                    throw new FormatException($"A tiling pattern has an invalid /{key} value.");
+                return step;
             }
 
             void MoveToNextLine()
@@ -662,6 +769,21 @@ public sealed class PdfPageRenderer
             && xObjects.TryGetValue(resourceName, out PdfObject? value)
             && Resolve(value) is PdfStream stream ? stream : null;
         return xObject is not null;
+    }
+
+    private bool TryGetColoredTilingPattern(PdfDictionary resources, PdfName resourceName,
+        out PdfStream? pattern)
+    {
+        pattern = resources.TryGetValue(Name("Pattern"), out PdfObject? patternsValue)
+            && Resolve(patternsValue) is PdfDictionary patterns
+            && patterns.TryGetValue(resourceName, out PdfObject? value)
+            && Resolve(value) is PdfStream stream
+            && stream.Dictionary.TryGetValue(Name("PatternType"), out PdfObject? typeValue)
+            && Resolve(typeValue) is PdfInteger { Value: 1 }
+            && stream.Dictionary.TryGetValue(Name("PaintType"), out PdfObject? paintValue)
+            && Resolve(paintValue) is PdfInteger { Value: 1 }
+            ? stream : null;
+        return pattern is not null;
     }
 
     private bool TryRenderImage(PdfStream stream, PdfDictionary resources, Matrix transform,
@@ -2136,7 +2258,7 @@ public sealed class PdfPageRenderer
     private readonly record struct GraphicsState(
         Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
         double LineWidth, RendererBlendMode BlendMode,
-        IReadOnlyList<ClipRegion> Clips);
+        IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace, PdfStream? FillPattern);
     private enum RendererBlendMode
     {
         Normal, Compatible, Multiply, Screen, Overlay, Darken, Lighten, ColorDodge,
