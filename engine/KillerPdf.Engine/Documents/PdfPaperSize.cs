@@ -1,5 +1,23 @@
 namespace KillerPdf.Engine.Documents;
 
+/// <summary>Page orientation derived from physical page dimensions.</summary>
+public enum PdfPaperOrientation
+{
+    /// <summary>The page is taller than it is wide.</summary>
+    Portrait,
+    /// <summary>The page is wider than it is tall.</summary>
+    Landscape,
+    /// <summary>The page has equal width and height.</summary>
+    Square
+}
+
+/// <summary>Display-ready physical dimensions and common paper identity.</summary>
+public sealed record PdfPaperSizeDescription(
+    double WidthPoints, double HeightPoints,
+    double WidthInches, double HeightInches,
+    double WidthMillimeters, double HeightMillimeters,
+    PdfPaperOrientation Orientation, string? CommonName);
+
 /// <summary>Identifies common paper sizes from page dimensions measured in PDF points.</summary>
 public static class PdfPaperSize
 {
@@ -38,6 +56,21 @@ public static class PdfPaperSize
             if (portrait || landscape) return name;
         }
         return null;
+    }
+
+    /// <summary>Returns physical dimensions, orientation, and a common paper name.</summary>
+    public static PdfPaperSizeDescription Describe(
+        double width, double height, double tolerance = 1)
+    {
+        string? name = Identify(width, height, tolerance);
+        return new PdfPaperSizeDescription(
+            width, height,
+            width / 72d, height / 72d,
+            width * 25.4d / 72d, height * 25.4d / 72d,
+            width == height ? PdfPaperOrientation.Square
+                : width > height ? PdfPaperOrientation.Landscape
+                : PdfPaperOrientation.Portrait,
+            name);
     }
 
     private static bool Near(double value, double expected, double tolerance) =>
