@@ -50,16 +50,84 @@ public static class PdfXfaFormCalc
             Enter();
             try
             {
-                double value = Term();
-                while (true)
-                {
-                    WhiteSpace();
-                    if (Take('+')) value = Checked(value + Term());
-                    else if (Take('-')) value = Checked(value - Term());
-                    else return value;
-                }
+                double value = LogicalOr();
+                return value;
             }
             finally { _depth--; }
+        }
+
+        private double LogicalOr()
+        {
+            double value = LogicalAnd();
+            while (true)
+            {
+                WhiteSpace();
+                if (Take('|') || TakeKeyword("or"))
+                {
+                    double right = LogicalAnd();
+                    value = Truth(value) || Truth(right) ? 1 : 0;
+                }
+                else return value;
+            }
+        }
+
+        private double LogicalAnd()
+        {
+            double value = Equality();
+            while (true)
+            {
+                WhiteSpace();
+                if (Take('&') || TakeKeyword("and"))
+                {
+                    double right = Equality();
+                    value = Truth(value) && Truth(right) ? 1 : 0;
+                }
+                else return value;
+            }
+        }
+
+        private double Equality()
+        {
+            double value = Relational();
+            while (true)
+            {
+                WhiteSpace();
+                if (Take("==") || TakeKeyword("eq"))
+                    value = value == Relational() ? 1 : 0;
+                else if (Take("<>") || TakeKeyword("ne"))
+                    value = value != Relational() ? 1 : 0;
+                else return value;
+            }
+        }
+
+        private double Relational()
+        {
+            double value = Additive();
+            while (true)
+            {
+                WhiteSpace();
+                if (Take("<=") || TakeKeyword("le"))
+                    value = value <= Additive() ? 1 : 0;
+                else if (Take(">=") || TakeKeyword("ge"))
+                    value = value >= Additive() ? 1 : 0;
+                else if ((!Peek("<>") && Take('<')) || TakeKeyword("lt"))
+                    value = value < Additive() ? 1 : 0;
+                else if (Take('>') || TakeKeyword("gt"))
+                    value = value > Additive() ? 1 : 0;
+                else return value;
+            }
+        }
+
+        private double Additive()
+        {
+            double value = Term();
+            while (true)
+            {
+                WhiteSpace();
+                if (Take('+')) value = Checked(value + Term());
+                else if (Take('-')) value = Checked(value - Term());
+                else return value;
+            }
         }
 
         private double Term()
@@ -82,6 +150,7 @@ public static class PdfXfaFormCalc
         private double Unary()
         {
             WhiteSpace();
+            if (TakeKeyword("not")) return Truth(Unary()) ? 0 : 1;
             if (Take('+')) return Unary();
             if (Take('-')) return Checked(-Unary());
             return Primary();
@@ -169,6 +238,25 @@ public static class PdfXfaFormCalc
 
         private static double Checked(double value) => double.IsFinite(value)
             ? value : throw new InvalidOperationException("The FormCalc result is not finite.");
+        private static bool Truth(double value) => value != 0;
+        private bool Peek(string value) =>
+            _source.AsSpan(_index).StartsWith(value, StringComparison.Ordinal);
+        private bool Take(string value)
+        {
+            if (!Peek(value)) return false;
+            _index += value.Length;
+            return true;
+        }
+        private bool TakeKeyword(string value)
+        {
+            if (!_source.AsSpan(_index).StartsWith(value, StringComparison.OrdinalIgnoreCase))
+                return false;
+            int end = _index + value.Length;
+            if (end < _source.Length && (char.IsAsciiLetterOrDigit(_source[end])
+                || _source[end] is '_' or '$' or '.')) return false;
+            _index = end;
+            return true;
+        }
         private bool Take(char value)
         {
             if (_index >= _source.Length || _source[_index] != value) return false;

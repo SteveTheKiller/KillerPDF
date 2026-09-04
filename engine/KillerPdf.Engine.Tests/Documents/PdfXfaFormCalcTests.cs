@@ -34,12 +34,25 @@ public sealed class PdfXfaFormCalcTests
     }
 
     [Fact]
+    public void EvaluateSupportsDocumentedComparisonAndLogicalOperators()
+    {
+        Assert.Equal(1, PdfXfaFormCalc.Evaluate("2 < 3 and 4 ge 4"), 10);
+        Assert.Equal(1, PdfXfaFormCalc.Evaluate("2 == 3 or 5 ne 4"), 10);
+        Assert.Equal(1, PdfXfaFormCalc.Evaluate("5 <> 4"), 10);
+        Assert.Equal(0, PdfXfaFormCalc.Evaluate("not (3 <= 3)"), 10);
+        Assert.Equal(1, PdfXfaFormCalc.Evaluate("1 + 2 * 3 eq 7 & 0 | 1"), 10);
+        Assert.Equal(8, PdfXfaFormCalc.Evaluate("order + 1",
+            new Dictionary<string, double> { ["order"] = 7 }), 10);
+    }
+
+    [Fact]
     public void EvaluateFailsClosedForUnsafeUnsupportedOrUnboundedInput()
     {
         Assert.Throws<KeyNotFoundException>(() => PdfXfaFormCalc.Evaluate("missing + 1"));
         Assert.Throws<FormatException>(() => PdfXfaFormCalc.Evaluate("app.openDoc('x')"));
         Assert.Throws<FormatException>(() => PdfXfaFormCalc.Evaluate("Sum()"));
         Assert.Throws<FormatException>(() => PdfXfaFormCalc.Evaluate("Round(1, 16)"));
+        Assert.Throws<FormatException>(() => PdfXfaFormCalc.Evaluate("1 = 1"));
         Assert.Throws<FormatException>(() => PdfXfaFormCalc.Evaluate("1 / 0"));
         Assert.Throws<ArgumentException>(() => PdfXfaFormCalc.Evaluate(new string('1', 4097)));
         Assert.Throws<ArgumentException>(() => PdfXfaFormCalc.Evaluate("x",
