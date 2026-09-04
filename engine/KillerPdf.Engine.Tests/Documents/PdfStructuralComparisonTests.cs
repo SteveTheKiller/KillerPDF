@@ -48,6 +48,23 @@ public sealed class PdfStructuralComparisonTests
             change.PageIndex == 0 && change.Kind == PdfStructuralChangeKind.Resources);
     }
 
+    [Fact]
+    public void CompareReportsInstructionChangesWithoutVisibleContentChanges()
+    {
+        PdfDocument original = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(100, 100).Build());
+        PdfDocument changed = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder().SaveState().RestoreState())
+            .Build());
+
+        PdfStructuralComparison comparison = PdfStructuralComparison.Compare(original, changed);
+
+        PdfStructuralChange change = Assert.Single(comparison.Changes);
+        Assert.Equal(PdfStructuralChangeKind.Instructions, change.Kind);
+        Assert.Equal(0, change.OriginalCount);
+        Assert.Equal(2, change.ChangedCount);
+    }
+
     private static PdfDocument Document(string text, bool includePath, int pages,
         PdfStandardFont font = PdfStandardFont.Helvetica)
     {

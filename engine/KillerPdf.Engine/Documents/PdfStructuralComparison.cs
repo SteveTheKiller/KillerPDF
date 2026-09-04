@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Writing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -21,7 +22,9 @@ public enum PdfStructuralChangeKind
     /// <summary>Shading placements changed.</summary>
     Shadings,
     /// <summary>The effective page resource graph changed.</summary>
-    Resources
+    Resources,
+    /// <summary>The decoded page-content instruction sequence changed.</summary>
+    Instructions
 }
 
 /// <summary>One page-level structural difference between two documents.</summary>
@@ -71,6 +74,9 @@ public sealed class PdfStructuralComparison
                 left.Paths.Select(PathSignature), right.Paths.Select(PathSignature));
             AddDifference(changes, pageIndex, PdfStructuralChangeKind.Shadings,
                 left.Shadings, right.Shadings);
+            AddDifference(changes, pageIndex, PdfStructuralChangeKind.Instructions,
+                left.Instructions.Select(InstructionSignature),
+                right.Instructions.Select(InstructionSignature));
             AddResourceDifference(changes, pageIndex,
                 original, beforeTree.Pages[pageIndex], changed, afterTree.Pages[pageIndex],
                 cancellationToken);
@@ -95,6 +101,20 @@ public sealed class PdfStructuralComparison
         path.PaintOperator, path.IsClippingPath, path.BoundingBox,
         string.Join(';', path.Segments.Select(segment =>
             $"{segment.Operator}:{string.Join(',', segment.Points)}")));
+
+    private static string InstructionSignature(
+        KillerPdf.Engine.Parsing.PdfContentInstruction instruction)
+    {
+        using var output = new MemoryStream();
+        foreach (PdfObject operand in instruction.Operands)
+        {
+            PdfObjectWriter.Write(output, operand);
+            output.WriteByte(0);
+        }
+        return instruction.Operator + ":" + Convert.ToHexString(output.ToArray()) + ":"
+            + (instruction.InlineImageData.HasValue
+                ? Convert.ToHexString(instruction.InlineImageData.Value.Span) : string.Empty);
+    }
 
     private static void AddResourceDifference(
         List<PdfStructuralChange> changes, int pageIndex,

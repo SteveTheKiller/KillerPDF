@@ -13,7 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added safe XFA packet inspection and dataset interchange without executing form scripts (#330).
 - Added safe local source resolution and selective field interchange for FDF and XFDF files (#329).
 - Added shading resources and clipped bounds to page-content extraction (#331).
-- Added isolated transformations, rectangular clipping, and resource-aware structural comparison for page content (#332).
+- Added isolated transformations, rectangular clipping, and resource-aware instruction comparison for page content (#332).
 - Expanded selective sanitization to remove forms, comments, and document JavaScript (#333).
 - Added accessibility and preflight checks for missing form field and link descriptions (#334, #335).
 - Added certificate identity, SHA-256 fingerprints, and algorithm details to signature verification (#336).
