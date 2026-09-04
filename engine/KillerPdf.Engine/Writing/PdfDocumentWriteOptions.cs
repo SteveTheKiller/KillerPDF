@@ -57,4 +57,7 @@ public sealed class PdfDocumentWriteOptions
 
     /// <summary>Flate-compresses unfiltered embedded streams when doing so reduces their size.</summary>
     public bool CompressUnfilteredStreams { get; init; }
+
+    /// <summary>Shares equivalent indirect resources referenced by separate page dictionaries.</summary>
+    public bool DeduplicatePageResources { get; init; }
 }

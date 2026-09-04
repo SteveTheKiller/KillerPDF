@@ -445,6 +445,29 @@ public sealed class PdfOptimizationTests
     }
 
     [Fact]
+    public void PlanSharesEquivalentResourcesAcrossPages()
+    {
+        PdfDocument document = DocumentWithDuplicateFontsAcrossPages();
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                PruneUnusedPageResources = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument output = PdfDocument.Open(result.Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnusedPageResources, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnusedPageResources,
+            result.VerifiedRemovals);
+        Assert.Equal("One", new PdfPageContentReader(output).Read(0).Text);
+        Assert.Equal("Two", new PdfPageContentReader(output).Read(1).Text);
+        Assert.Equal(-1, result.ObjectCountDifference);
+    }
+
+    [Fact]
     public void PlanPrunesAndConsolidatesPageColorSpaces()
     {
         PdfDocument document = DocumentWithColorSpaceResources();
@@ -580,6 +603,35 @@ public sealed class PdfOptimizationTests
             .. distinctDuplicate
                 ? ["<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
                 : Array.Empty<string>()
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+    }
+
+    private static PdfDocument DocumentWithDuplicateFontsAcrossPages()
+    {
+        const string firstContent = "BT /F1 12 Tf (One) Tj ET";
+        const string secondContent = "BT /F1 12 Tf (Two) Tj ET";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 /MediaBox [0 0 100 100] >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 6 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 8 0 R >> >> /Contents 7 0 R >>",
+            $"<< /Length {Encoding.ASCII.GetByteCount(firstContent)} >>\nstream\n{firstContent}\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            $"<< /Length {Encoding.ASCII.GetByteCount(secondContent)} >>\nstream\n{secondContent}\nendstream",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
         ];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();

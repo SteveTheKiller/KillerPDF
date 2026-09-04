@@ -217,6 +217,7 @@ public sealed class PdfOptimizationPlan
             CompressStructuralStreams = _options.CompressStructure,
             PruneUnreachableObjects = _options.PruneUnreachableObjects,
             CompressUnfilteredStreams = _options.CompressUnfilteredStreams,
+            DeduplicatePageResources = _options.PruneUnusedPageResources,
             AllowSignatureInvalidation = _options.AllowSignatureInvalidation
         });
         PdfDocument reopened = PdfDocument.Open(output);
@@ -272,7 +273,8 @@ public sealed class PdfOptimizationPlan
         Verify(PdfOptimizationChangeKind.FlattenOptionalContent,
             PdfOptionalContentReader.Read(document).Groups.Count == 0);
         Verify(PdfOptimizationChangeKind.PruneUnusedPageResources,
-            PdfOptimizer.UnusedResourcePages(document).Count == 0);
+            PdfOptimizer.UnusedResourcePages(document).Count == 0
+            && PdfDocumentWriter.CountDuplicatePageResourceObjects(document) == 0);
         Verify(PdfOptimizationChangeKind.PruneUnreachableObjects,
             PdfDocumentWriter.CountUnreachableObjects(document) == 0);
         Verify(PdfOptimizationChangeKind.CompressUnfilteredStreams,
@@ -316,7 +318,8 @@ public sealed class PdfOptimizationPlan
         bool flattensOptionalContent = Changes.Contains(
             PdfOptimizationChangeKind.FlattenOptionalContent);
         bool prunesUnusedResources = Changes.Contains(
-            PdfOptimizationChangeKind.PruneUnusedPageResources);
+            PdfOptimizationChangeKind.PruneUnusedPageResources)
+            && _resourcePages.Length > 0;
         if (!removesAttachments && !removesOpenAction && !removesBookmarks
             && !removesFormFields && !removesXfaData && !removesComments && !removesDocumentJavaScript
             && !removesPageThumbnails && !flattensOptionalContent
@@ -444,7 +447,8 @@ public static class PdfOptimizer
             changes.Add(PdfOptimizationChangeKind.FlattenOptionalContent);
         int[] resourcePages = options.PruneUnusedPageResources
             ? [.. UnusedResourcePages(document)] : [];
-        if (resourcePages.Length > 0)
+        if (resourcePages.Length > 0 || options.PruneUnusedPageResources
+            && PdfDocumentWriter.CountDuplicatePageResourceObjects(document) > 0)
             changes.Add(PdfOptimizationChangeKind.PruneUnusedPageResources);
         if (options.PruneUnreachableObjects
             && PdfDocumentWriter.CountUnreachableObjects(document) > 0)

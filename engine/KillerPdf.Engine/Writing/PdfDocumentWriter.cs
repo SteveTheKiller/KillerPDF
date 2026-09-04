@@ -137,6 +137,8 @@ public static class PdfDocumentWriter
                 "Structural-stream compression requires the cross-reference-stream format.");
 
         List<WritableObject> objects = ReadCurrentObjects(document);
+        if (options.DeduplicatePageResources)
+            DeduplicatePageResources(document, objects);
         if (options.CompressUnfilteredStreams)
             CompressUnfilteredStreams(objects);
         if (options.RemoveEncryption
@@ -484,6 +486,101 @@ public static class PdfDocumentWriter
         ArgumentNullException.ThrowIfNull(document);
         return ReadCurrentObjects(document).Count(item =>
             TryCompressStream(item.Value, out _));
+    }
+
+    internal static int CountDuplicatePageResourceObjects(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        List<WritableObject> objects = ReadCurrentObjects(document);
+        int originalCount = objects.Count;
+        DeduplicatePageResources(document, objects);
+        return originalCount - objects.Count;
+    }
+
+    private static void DeduplicatePageResources(
+        PdfDocument document, List<WritableObject> objects)
+    {
+        string[] categories =
+        [
+            "Font", "XObject", "ColorSpace", "ExtGState", "Shading", "Pattern", "Properties"
+        ];
+        var canonical = new Dictionary<string, (int ObjectNumber, int Generation)>(
+            StringComparer.Ordinal);
+        var replacements = new Dictionary<(int ObjectNumber, int Generation),
+            (int ObjectNumber, int Generation)>();
+        foreach (PdfPageTreeEntry page in PdfPageTree.Read(document).Pages)
+        {
+            if (!page.InheritedValues.TryGetValue(new PdfName("Resources"u8),
+                    out PdfObject? resourcesValue)
+                || ResolveValue(document, resourcesValue,
+                    "A page /Resources value") is not PdfDictionary resources)
+                continue;
+            foreach (string category in categories)
+            {
+                PdfName categoryName = new(Encoding.ASCII.GetBytes(category));
+                if (!resources.TryGetValue(categoryName, out PdfObject? categoryValue)
+                    || ResolveValue(document, categoryValue,
+                        $"A page /Resources /{category} value") is not PdfDictionary entries)
+                    continue;
+                foreach (PdfObject value in entries.Values)
+                {
+                    if (value is not PdfIndirectReference reference) continue;
+                    var identity = (reference.ObjectNumber, reference.Generation);
+                    if (replacements.ContainsKey(identity)) continue;
+                    string key = category + ":" + Convert.ToHexString(
+                        PdfObjectWriter.Write(document.Resolve(reference)));
+                    if (canonical.TryGetValue(key, out var retained)
+                        && retained != identity)
+                        replacements[identity] = retained;
+                    else
+                        canonical[key] = identity;
+                }
+            }
+        }
+        foreach (var identity in replacements.Keys.Where(identity =>
+                     document.CrossReferences.MergedTrailer.Any(entry =>
+                         ReferencesObject(entry.Value, identity))).ToArray())
+            replacements.Remove(identity);
+        if (replacements.Count == 0) return;
+        for (int index = 0; index < objects.Count; index++)
+            objects[index] = objects[index] with
+            {
+                Value = RewriteReferences(objects[index].Value, replacements)
+            };
+        objects.RemoveAll(item => replacements.ContainsKey(
+            (item.ObjectNumber, item.Generation)));
+    }
+
+    private static PdfObject RewriteReferences(PdfObject value,
+        IReadOnlyDictionary<(int ObjectNumber, int Generation),
+            (int ObjectNumber, int Generation)> replacements)
+    {
+        if (value is PdfIndirectReference reference
+            && replacements.TryGetValue((reference.ObjectNumber, reference.Generation),
+                out var replacement))
+            return new PdfIndirectReference(replacement.ObjectNumber, replacement.Generation);
+        if (value is PdfArray array)
+        {
+            PdfObject[] items = array.Select(item => RewriteReferences(item, replacements)).ToArray();
+            return items.Where((item, index) => !ReferenceEquals(item, array[index])).Any()
+                ? new PdfArray(items) : array;
+        }
+        PdfDictionary? dictionary = value switch
+        {
+            PdfDictionary directDictionary => directDictionary,
+            PdfStream stream => stream.Dictionary,
+            _ => null
+        };
+        if (dictionary is null) return value;
+        KeyValuePair<PdfName, PdfObject>[] entries = [.. dictionary.Select(entry =>
+            new KeyValuePair<PdfName, PdfObject>(entry.Key,
+                RewriteReferences(entry.Value, replacements)))];
+        if (!entries.Where((entry, index) =>
+                !ReferenceEquals(entry.Value, dictionary.ElementAt(index).Value)).Any())
+            return value;
+        var rewritten = new PdfDictionary(entries);
+        return value is PdfStream streamValue
+            ? new PdfStream(rewritten, streamValue.EncodedData.Span) : rewritten;
     }
 
     private static void CompressUnfilteredStreams(List<WritableObject> objects)

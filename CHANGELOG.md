@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added reviewable PDF repair, optimization, sanitization, and duplicate resource cleanup (#333).
 - Added DPI, color mode, threshold, and JPEG compression controls to GUI and command-line PDF flattening (#366).
 
 ### Changed
