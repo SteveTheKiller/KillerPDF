@@ -253,6 +253,62 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Replaces selected complete text objects with validated text objects.</summary>
+    public static IReadOnlyList<PdfContentInstruction> ReplaceTextObjects(
+        IEnumerable<PdfContentInstruction> instructions,
+        IReadOnlyDictionary<int, IReadOnlyList<PdfContentInstruction>> replacements)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(replacements);
+        PdfContentInstruction[] source = instructions.ToArray();
+        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
+        if (replacements.Keys.Any(index => index < 0 || index >= ranges.Count))
+            throw new ArgumentException(
+                "Replacement text-object indexes must be valid.", nameof(replacements));
+
+        var validated = new Dictionary<int,
+            (int End, IReadOnlyList<PdfContentInstruction> Instructions)>();
+        foreach ((int textObjectIndex,
+                     IReadOnlyList<PdfContentInstruction> replacement) in replacements)
+        {
+            ArgumentNullException.ThrowIfNull(replacement);
+            IReadOnlyList<(int Start, int End)> replacementRanges;
+            try
+            {
+                replacementRanges = TextObjectRanges(replacement);
+            }
+            catch (FormatException error)
+            {
+                throw new ArgumentException(
+                    "Each replacement must contain exactly one complete text object.",
+                    nameof(replacements), error);
+            }
+            if (replacementRanges is not [{ Start: 0 } replacementRange]
+                || replacementRange.End != replacement.Count - 1)
+                throw new ArgumentException(
+                    "Each replacement must contain exactly one complete text object.",
+                    nameof(replacements));
+            ValidateContainedScopes(replacement, 1, replacementRange.End);
+            (int start, int end) = ranges[textObjectIndex];
+            ValidateContainedScopes(source, start + 1, end);
+            validated.Add(start, (end, replacement));
+        }
+
+        var result = new List<PdfContentInstruction>(source.Length);
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (!validated.TryGetValue(index,
+                out (int End, IReadOnlyList<PdfContentInstruction> Instructions) replacement))
+            {
+                result.Add(source[index]);
+                continue;
+            }
+            result.AddRange(replacement.Instructions);
+            index = replacement.End;
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
     /// <summary>Transforms selected complete text objects without changing other content.</summary>
     public static IReadOnlyList<PdfContentInstruction> TransformTextObjects(
         IEnumerable<PdfContentInstruction> instructions,

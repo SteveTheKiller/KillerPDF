@@ -32,6 +32,33 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void ReplaceTextObjectsChangesOnlySelectedCompleteText()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "BT /F1 10 Tf (first) Tj ET 7 FutureOp BT /F2 12 Tf (second) Tj ET"u8.ToArray());
+        IReadOnlyList<PdfContentInstruction> replacement = PdfContentStreamReader.Read(
+            "BT /F3 14 Tf 10 20 Td (replacement) Tj ET"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.ReplaceTextObjects(source,
+                new Dictionary<int, IReadOnlyList<PdfContentInstruction>> { [1] = replacement });
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal(["BT", "Tf", "Tj", "ET", "FutureOp", "BT", "Tf", "Td", "Tj", "ET"],
+            reopened.Select(instruction => instruction.Operator));
+        Assert.Equal("replacement", System.Text.Encoding.Latin1.GetString(
+            Assert.IsType<PdfString>(reopened[8].Operands[0]).Bytes.Span));
+        Assert.Throws<ArgumentException>(() => PdfContentTransformation.ReplaceTextObjects(
+            source, new Dictionary<int, IReadOnlyList<PdfContentInstruction>> { [2] = replacement }));
+        Assert.Throws<ArgumentException>(() => PdfContentTransformation.ReplaceTextObjects(
+            source, new Dictionary<int, IReadOnlyList<PdfContentInstruction>>
+            {
+                [0] = PdfContentStreamReader.Read("/F1 10 Tf (not an object) Tj"u8.ToArray())
+            }));
+    }
+
+    [Fact]
     public void TransformTextObjectsSelectsCompleteObjectsByIndex()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
