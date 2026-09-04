@@ -21,7 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added calibrated coordinates, directional deltas, and point snapping to measurement tools (#348).
 - Added step-and-repeat and manual page sequences to imposition planning (#349).
 - Added independent print and export visibility metadata and preflight reporting for PDF layers (#350, #334).
-- Added source object identities to broken-link and bookmark audit findings (#351).
+- Added source identities, stable findings, and repair guidance to navigation audits (#351).
 - Added CSV and JSON record import for data-driven PDF generation (#352).
 - Added region validation and affected-content planning for partial rasterization (#369).
 - Added privacy-safe JSON reports for redaction reviews and verification (#341).

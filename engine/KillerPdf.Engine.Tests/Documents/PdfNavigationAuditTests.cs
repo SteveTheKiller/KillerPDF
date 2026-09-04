@@ -19,6 +19,13 @@ public sealed class PdfNavigationAuditTests
         Assert.Contains(findings, finding => finding.Message.Contains("URI scheme"));
         Assert.Contains(findings, finding => finding.Message.Contains("local page"));
         Assert.Equal([5, 6], findings.Select(finding => finding.SourceObjectNumber));
+        Assert.Equal(PdfNavigationRepairKind.Remove,
+            findings.Single(finding => finding.Code == PdfNavigationFindingCode.LinkUnsafeUri)
+                .SuggestedRepair);
+        Assert.Equal(PdfNavigationRepairKind.ChooseDestination,
+            findings.Single(finding =>
+                finding.Code == PdfNavigationFindingCode.LinkUnresolvedDestination)
+                .SuggestedRepair);
     }
 
     private static PdfDocument Document(string annots, params string[] extras)
