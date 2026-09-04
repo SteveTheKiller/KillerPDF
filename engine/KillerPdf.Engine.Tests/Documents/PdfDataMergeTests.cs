@@ -109,7 +109,8 @@ public sealed class PdfDataMergeTests
             "customer-{{Number}}.pdf");
         IReadOnlyDictionary<string, string?>[] records = [
             new Dictionary<string, string?> { ["Name"] = "Ada", ["Number"] = "1" },
-            new Dictionary<string, string?> { ["Number"] = "2" }];
+            new Dictionary<string, string?> { ["Number"] = "2" },
+            new Dictionary<string, string?> { ["Name"] = "Grace", ["Number"] = "1" }];
 
         IReadOnlyList<PdfDataMergeDocumentResult> results =
             PdfDataMerge.RunFormBatch(template, records, profile);
@@ -120,6 +121,8 @@ public sealed class PdfDataMergeTests
         Assert.Equal("Ada", Assert.Single(PdfFormWidgetReader.ReadPage(generated, 0)).Value);
         Assert.False(results[1].Succeeded);
         Assert.Contains("Name", results[1].Error, StringComparison.Ordinal);
+        Assert.False(results[2].Succeeded);
+        Assert.Contains("already used", results[2].Error, StringComparison.Ordinal);
         Assert.Equal(string.Empty, Assert.Single(PdfFormWidgetReader.ReadPage(template, 0)).Value);
     }
 }

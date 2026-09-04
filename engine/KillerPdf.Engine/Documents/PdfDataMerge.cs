@@ -66,6 +66,7 @@ public static class PdfDataMerge
         ArgumentNullException.ThrowIfNull(records);
         ArgumentNullException.ThrowIfNull(profile);
         var results = new List<PdfDataMergeDocumentResult>();
+        var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int index = 0;
         foreach (IReadOnlyDictionary<string, string?> record in records)
         {
@@ -74,6 +75,9 @@ public static class PdfDataMerge
             {
                 PdfDataMergeMappedRecord mapped = profile.Map(record);
                 outputFileName = mapped.OutputFileName;
+                if (usedFileNames.Contains(outputFileName))
+                    throw new InvalidOperationException(
+                        $"The output filename '{outputFileName}' is already used by this batch.");
                 IReadOnlyList<PdfFormDataMatch> preview =
                     PdfFormDataImporter.Preview(template, mapped.FormData);
                 PdfFormDataMatch[] blocked = [.. preview.Where(match =>
@@ -82,6 +86,7 @@ public static class PdfDataMerge
                     throw new InvalidOperationException("The record cannot be applied to: "
                         + string.Join(", ", blocked.Select(match => match.FieldName)) + ".");
                 byte[] data = PdfFormDataImporter.Apply(template, mapped.FormData);
+                usedFileNames.Add(outputFileName);
                 results.Add(new PdfDataMergeDocumentResult(
                     index, outputFileName, data, null));
             }
