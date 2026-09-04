@@ -109,6 +109,7 @@ public sealed class PdfIncrementalPageEditor
     private static readonly PdfName PageLabelsName = Name("PageLabels");
     private static readonly PdfName OutlinesName = Name("Outlines");
     private static readonly PdfName EmbeddedFilesName = Name("EmbeddedFiles");
+    private static readonly PdfName JavaScriptName = Name("JavaScript");
     private static readonly PdfName AssociatedFilesName = Name("AF");
     private static readonly PdfName PageModeName = Name("PageMode");
     private static readonly PdfName PageLayoutName = Name("PageLayout");
@@ -156,6 +157,7 @@ public sealed class PdfIncrementalPageEditor
     private readonly HashSet<string> _removedAttachments =
         new(StringComparer.OrdinalIgnoreCase);
     private bool _removeCatalogAssociatedFiles;
+    private bool _clearDocumentJavaScript;
     private readonly List<PendingBookmark> _bookmarks = [];
     private bool _clearOutlines;
     private PendingOutputIntent? _outputIntent;
@@ -1125,6 +1127,14 @@ public sealed class PdfIncrementalPageEditor
                 $"The document has no attachment named '{fileName}'.",
                 nameof(fileName));
         _removedAttachments.Add(fileName);
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>Removes the document-level JavaScript name tree.</summary>
+    public PdfIncrementalPageEditor ClearDocumentJavaScript()
+    {
+        _clearDocumentJavaScript = true;
         _catalogPresentationChanged = true;
         return this;
     }
@@ -4042,9 +4052,11 @@ public sealed class PdfIncrementalPageEditor
         AddImportedEmbeddedFiles(importedGroups, importers, catalogReplacements);
         AddImportedNameTreeCategories(importedGroups, importers, catalogReplacements);
         AddPendingAttachments(update, catalogReplacements);
-        PreserveIndirectCatalogDictionary(
-            update, NamesName, catalogReplacements,
-            "The destination catalog /Names value");
+        bool removeNames = RemoveDocumentJavaScript(catalogReplacements);
+        if (!removeNames)
+            PreserveIndirectCatalogDictionary(
+                update, NamesName, catalogReplacements,
+                "The destination catalog /Names value");
         AddImportedLegacyDestinations(
             importedGroups, importers, catalogReplacements, references);
         AddImportedOutlines(
@@ -4057,6 +4069,7 @@ public sealed class PdfIncrementalPageEditor
             catalogReplacements[AcroFormName] = _replacementAcroForm;
         ApplyRequiredVersionUpgrade(catalogReplacements, importedGroups);
         var catalogRemovals = new List<PdfName>();
+        if (removeNames) catalogRemovals.Add(NamesName);
         if (removePageLabels) catalogRemovals.Add(PageLabelsName);
         if (_clearOpenAction) catalogRemovals.Add(OpenActionName);
         if (_clearPageLayout) catalogRemovals.Add(PageLayoutName);
@@ -16772,9 +16785,11 @@ public sealed class PdfIncrementalPageEditor
         if (_replacementAcroForm is not null)
             replacements[AcroFormName] = _replacementAcroForm;
         AddPendingLegacyDestinationReplacements(replacements);
-        PreserveIndirectCatalogDictionary(
-            update, NamesName, replacements,
-            "The destination catalog /Names value");
+        bool removeNames = RemoveDocumentJavaScript(replacements);
+        if (!removeNames)
+            PreserveIndirectCatalogDictionary(
+                update, NamesName, replacements,
+                "The destination catalog /Names value");
         if (_minimumFeatureVersion.HasValue)
         {
             PdfVersion effective = EffectiveVersion(_document, _tree.Catalog);
@@ -16787,6 +16802,7 @@ public sealed class PdfIncrementalPageEditor
             }
         }
         var removals = new List<PdfName>();
+        if (removeNames) removals.Add(NamesName);
         if (_metadata is not null && _metadata.Language is null)
             removals.Add(LanguageName);
         if (_clearOpenAction) removals.Add(OpenActionName);
@@ -16813,6 +16829,22 @@ public sealed class PdfIncrementalPageEditor
         if (replacements.Count == 0 && removals.Count == 0) return;
         update.ReplaceObject(_tree.CatalogReference.ObjectNumber,
             ReplaceMany(_tree.Catalog, replacements, removals));
+    }
+
+    private bool RemoveDocumentJavaScript(
+        Dictionary<PdfName, PdfObject> catalogReplacements)
+    {
+        if (!_clearDocumentJavaScript) return false;
+        PdfDictionary names = CurrentNamesDictionary(catalogReplacements);
+        KeyValuePair<PdfName, PdfObject>[] remaining =
+            [.. names.Where(entry => !entry.Key.Equals(JavaScriptName))];
+        if (remaining.Length == 0)
+        {
+            catalogReplacements.Remove(NamesName);
+            return true;
+        }
+        catalogReplacements[NamesName] = new PdfDictionary(remaining);
+        return false;
     }
 
     private void AddCatalogPresentationChanges(

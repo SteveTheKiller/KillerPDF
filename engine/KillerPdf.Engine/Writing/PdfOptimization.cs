@@ -21,6 +21,8 @@ public enum PdfOptimizationChangeKind
     RemoveFormFields,
     /// <summary>Remove every annotation that contains review text.</summary>
     RemoveComments,
+    /// <summary>Remove the document-level JavaScript name tree.</summary>
+    RemoveDocumentJavaScript,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -42,6 +44,8 @@ public sealed record PdfOptimizationOptions
     public bool RemoveFormFields { get; init; }
     /// <summary>Gets whether annotations containing review text are removed.</summary>
     public bool RemoveComments { get; init; }
+    /// <summary>Gets whether the document-level JavaScript name tree is removed.</summary>
+    public bool RemoveDocumentJavaScript { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -112,11 +116,14 @@ public sealed class PdfOptimizationPlan
         bool removesBookmarks = Changes.Contains(PdfOptimizationChangeKind.RemoveBookmarks);
         bool removesFormFields = Changes.Contains(PdfOptimizationChangeKind.RemoveFormFields);
         bool removesComments = Changes.Contains(PdfOptimizationChangeKind.RemoveComments);
+        bool removesDocumentJavaScript = Changes.Contains(
+            PdfOptimizationChangeKind.RemoveDocumentJavaScript);
         if (!removesAttachments && !removesOpenAction && !removesBookmarks
-            && !removesFormFields && !removesComments)
+            && !removesFormFields && !removesComments && !removesDocumentJavaScript)
             return _document;
         PdfDocument formSanitized = _document;
-        if (removesAttachments || removesOpenAction || removesBookmarks || removesFormFields)
+        if (removesAttachments || removesOpenAction || removesBookmarks || removesFormFields
+            || removesDocumentJavaScript)
         {
             var editor = new PdfIncrementalPageEditor(_document);
             if (removesAttachments)
@@ -125,6 +132,7 @@ public sealed class PdfOptimizationPlan
             if (removesBookmarks) editor.ClearBookmarks();
             if (removesFormFields)
                 foreach (string name in _formFieldNames) editor.RemoveFormField(name);
+            if (removesDocumentJavaScript) editor.ClearDocumentJavaScript();
             formSanitized = PdfDocument.Open(editor.Build());
         }
         if (!removesComments) return formSanitized;
@@ -145,6 +153,8 @@ public static class PdfOptimizer
     private static readonly PdfName MetadataName = Name("Metadata");
     private static readonly PdfName OpenActionName = Name("OpenAction");
     private static readonly PdfName OutlinesName = Name("Outlines");
+    private static readonly PdfName NamesName = Name("Names");
+    private static readonly PdfName JavaScriptName = Name("JavaScript");
 
     /// <summary>Creates an explainable plan without changing the document.</summary>
     public static PdfOptimizationPlan CreatePlan(PdfDocument document,
@@ -175,6 +185,11 @@ public static class PdfOptimizer
             changes.Add(PdfOptimizationChangeKind.RemoveFormFields);
         if (comments.Length > 0)
             changes.Add(PdfOptimizationChangeKind.RemoveComments);
+        if (options.RemoveDocumentJavaScript
+            && tree.Catalog.TryGetValue(NamesName, out PdfObject? namesValue)
+            && Resolve(document, namesValue) is PdfDictionary names
+            && names.ContainsKey(JavaScriptName))
+            changes.Add(PdfOptimizationChangeKind.RemoveDocumentJavaScript);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,
@@ -182,4 +197,16 @@ public static class PdfOptimizer
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
+
+    private static PdfObject Resolve(PdfDocument document, PdfObject value)
+    {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        while (value is PdfIndirectReference reference)
+        {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)))
+                throw new InvalidOperationException("An indirect object chain contains a cycle.");
+            value = document.Resolve(reference);
+        }
+        return value;
+    }
 }

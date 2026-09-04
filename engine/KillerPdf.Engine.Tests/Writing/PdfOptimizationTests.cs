@@ -137,4 +137,44 @@ public sealed class PdfOptimizationTests
         Assert.Empty(PdfFormWidgetReader.ReadPage(sanitized, 0));
         Assert.Empty(PdfCommentReader.Read(sanitized));
     }
+
+    [Fact]
+    public void SelectiveSanitizationRemovesDocumentJavaScriptNameTree()
+    {
+        PdfDocument original = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfIndirectReference catalogReference = Assert.IsType<PdfIndirectReference>(
+            original.Trailer[new PdfName("Root"u8)]);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(
+            original.Resolve(catalogReference));
+        var scriptAction = new PdfDictionary([
+            new(new PdfName("S"u8), new PdfName("JavaScript"u8)),
+            new(new PdfName("JS"u8), new PdfString("app.alert('private')"u8.ToArray(),
+                PdfStringForm.Literal))
+        ]);
+        var scripts = new PdfDictionary([
+            new(new PdfName("Names"u8), new PdfArray([
+                new PdfString("startup"u8.ToArray(), PdfStringForm.Literal), scriptAction]))
+        ]);
+        var names = new PdfDictionary([
+            new(new PdfName("JavaScript"u8), scripts)
+        ]);
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(original)
+            .ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(catalog.Append(
+                new KeyValuePair<PdfName, PdfObject>(new PdfName("Names"u8), names)))).Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document, new PdfOptimizationOptions
+        {
+            RemoveDocumentJavaScript = true,
+            PackObjects = false,
+            CompressStructure = false
+        });
+        PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
+        PdfDictionary sanitizedCatalog = Assert.IsType<PdfDictionary>(sanitized.Resolve(
+            Assert.IsType<PdfIndirectReference>(sanitized.Trailer[new PdfName("Root"u8)])));
+
+        Assert.Contains(PdfOptimizationChangeKind.RemoveDocumentJavaScript, plan.Changes);
+        Assert.DoesNotContain(sanitizedCatalog.Keys,
+            key => key.ValueAsLatin1() == "Names");
+    }
 }

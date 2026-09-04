@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added safe local source PDF resolution for FDF and XFDF files (#329).
 - Added shading resources and clipped bounds to page-content extraction (#331).
 - Added isolated transformations, rectangular clipping, and resource-aware structural comparison for page content (#332).
-- Expanded selective sanitization to remove forms and comments (#333).
+- Expanded selective sanitization to remove forms, comments, and document JavaScript (#333).
 - Added accessibility checks for missing form field descriptions (#335).
 - Added certificate identity and algorithm details to signature verification (#336).
 - Added attachment renaming and replacement, executable-content and integrity checks, and portfolio metadata (#347).
