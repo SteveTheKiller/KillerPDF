@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text;
 using KillerPdf.Engine.Documents;
 
 namespace KillerPdf.Engine.Diagnostics;
@@ -126,6 +127,26 @@ public sealed class PdfPreflightReport
     public IReadOnlyList<PdfPreflightFinding> Findings { get; }
     /// <summary>Gets whether every selected implemented check passed.</summary>
     public bool Passed => !Findings.Any(finding => finding.Severity == PdfDiagnosticSeverity.Error);
+
+    /// <summary>Formats a readable report with page and object locations.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder()
+            .Append("Preflight profile: ").AppendLine(ProfileName)
+            .Append("Result: ").AppendLine(Passed ? "Passed" : "Failed");
+        if (Findings.Count == 0) return output.AppendLine("No findings.").ToString();
+        foreach (PdfPreflightFinding finding in Findings)
+        {
+            output.Append('[').Append(finding.Severity).Append("] ")
+                .Append(finding.Code);
+            if (finding.PageIndex is int pageIndex)
+                output.Append(" | Page ").Append(pageIndex + 1);
+            if (finding.ObjectNumber is int objectNumber)
+                output.Append(" | Object ").Append(objectNumber);
+            output.Append(": ").AppendLine(finding.Message);
+        }
+        return output.ToString();
+    }
 
     /// <summary>Serializes the report with stable camel-case names.</summary>
     public string ToJson(bool indented = false)

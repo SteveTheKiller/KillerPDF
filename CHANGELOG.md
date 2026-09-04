@@ -20,7 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added attachment inspection, integrity checks, and portfolio collection metadata to the 1.9 engine (#347).
 - Added saved calibration profiles, coordinates, directional deltas, and snapping to measurement tools (#348).
 - Added step-and-repeat, manual sequences, and bounded booklet signatures to imposition planning (#349).
-- Added independent print and export visibility metadata and preflight reporting for PDF layers (#350, #334).
+- Added independent print and export visibility metadata for PDF layers and readable preflight reports (#350, #334).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
 - Added source identities, stable findings, and repair guidance to navigation audits (#351).
 - Added CSV and JSON record import with reusable data-merge mapping profiles (#352).

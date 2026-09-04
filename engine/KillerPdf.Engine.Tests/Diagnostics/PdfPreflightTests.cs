@@ -58,6 +58,22 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void TextReportIncludesProfileResultSeverityAndSourceLocation()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(10, 10, 20, 20).Fill();
+        var profile = new PdfPreflightProfile("Color review",
+            [PdfPreflightCheck.ColorUsage]);
+
+        string report = PdfPreflightRunner.Run(new PdfDocumentBuilder()
+            .AddPage(100, 100, content).Build(), profile).ToText();
+
+        Assert.Contains("Preflight profile: Color review", report);
+        Assert.Contains("Result: Passed", report);
+        Assert.Contains("[Warning] ColorUsage.DeviceRgb | Page 1:", report);
+    }
+
+    [Fact]
     public void PrintProductionChecksPageBoxesAndOutputIntent()
     {
         byte[] withoutIntent = new PdfDocumentBuilder().AddBlankPage(200, 300).Build();
