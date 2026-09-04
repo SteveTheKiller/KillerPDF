@@ -463,6 +463,71 @@ internal static class PdfPreflightDocumentChecks
         }
     }
 
+    internal static IReadOnlyList<PdfPreflightFinding> CheckAttachmentSafety(PdfDocument document)
+    {
+        var findings = new List<PdfPreflightFinding>();
+        var seenFileSpecifications = new HashSet<int>();
+        try
+        {
+            foreach (PdfAttachmentInfo attachment in PdfAttachmentReader.Read(document))
+            {
+                if (attachment.FileSpecificationObjectNumber is int objectNumber)
+                    seenFileSpecifications.Add(objectNumber);
+                AddFindings(attachment, null);
+            }
+        }
+        catch (Exception error) when (IsDocumentFailure(error))
+        {
+            findings.Add(Error("Attachment.Invalid", error.Message));
+        }
+
+        PdfPageTree tree = PdfPageTree.Read(document);
+        foreach (PdfPageTreeEntry page in tree.Pages)
+        {
+            try
+            {
+                foreach (PdfAttachmentAnnotationInfo annotation in
+                    PdfAttachmentReader.ReadPageAnnotations(document, page.Index))
+                {
+                    int? objectNumber = annotation.Attachment.FileSpecificationObjectNumber;
+                    if (objectNumber.HasValue && !seenFileSpecifications.Add(objectNumber.Value))
+                        continue;
+                    AddFindings(annotation.Attachment, page.Index);
+                }
+            }
+            catch (Exception error) when (IsDocumentFailure(error))
+            {
+                findings.Add(Error("Attachment.Invalid", error.Message, page.Index));
+            }
+        }
+        return Array.AsReadOnly(findings.ToArray());
+
+        void AddFindings(PdfAttachmentInfo attachment, int? pageIndex)
+        {
+            int? objectNumber = attachment.FileSpecificationObjectNumber;
+            if (attachment.HasUnsafeFileName)
+                findings.Add(Error("Attachment.UnsafeFileName",
+                    $"Attachment '{attachment.FileName}' has an unsafe file name.",
+                    pageIndex, objectNumber));
+            if (attachment.IsPotentiallyExecutable)
+                findings.Add(Warning("Attachment.ExecutableFileName",
+                    $"Attachment '{attachment.FileName}' uses an executable file extension.",
+                    pageIndex, objectNumber));
+            if (attachment.HasExecutableContent)
+                findings.Add(Error("Attachment.ExecutableContent",
+                    $"Attachment '{attachment.FileName}' contains a recognized executable signature.",
+                    pageIndex, objectNumber));
+            if (attachment.SizeMatches == false)
+                findings.Add(Error("Attachment.SizeMismatch",
+                    $"Attachment '{attachment.FileName}' does not match its declared size.",
+                    pageIndex, objectNumber));
+            if (attachment.ChecksumMatches == false)
+                findings.Add(Error("Attachment.ChecksumMismatch",
+                    $"Attachment '{attachment.FileName}' does not match its declared checksum.",
+                    pageIndex, objectNumber));
+        }
+    }
+
     internal static IReadOnlyList<PdfPreflightFinding> CheckMeasurementAnnotations(
         PdfDocument document)
     {

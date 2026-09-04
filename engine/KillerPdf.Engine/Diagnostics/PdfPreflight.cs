@@ -35,7 +35,9 @@ public enum PdfPreflightCheck
     /// <summary>Checks descriptive document metadata for completeness and validity.</summary>
     DocumentMetadata,
     /// <summary>Checks measurement annotation calibration dictionaries.</summary>
-    MeasurementAnnotations
+    MeasurementAnnotations,
+    /// <summary>Checks embedded files for unsafe names, executable content, and integrity failures.</summary>
+    AttachmentSafety
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
@@ -67,6 +69,11 @@ public sealed record PdfPreflightProfile
     /// <summary>Gets a structural validation profile suitable for ordinary PDFs.</summary>
     public static PdfPreflightProfile General { get; } =
         new("General PDF", [PdfPreflightCheck.StructuralIntegrity]);
+
+    /// <summary>Gets a profile for embedded-file safety and integrity checks.</summary>
+    public static PdfPreflightProfile Attachments { get; } =
+        new("Attachment safety", [PdfPreflightCheck.StructuralIntegrity,
+            PdfPreflightCheck.AttachmentSafety]);
 
     /// <summary>Gets the current print-production profile.</summary>
     public static PdfPreflightProfile PrintProduction { get; } = new("Print production", [
@@ -250,6 +257,8 @@ public static class PdfPreflightRunner
             findings.AddRange(PdfPreflightDocumentChecks.CheckDocumentMetadata(checkedDocument));
         if (profile.Checks.Contains(PdfPreflightCheck.MeasurementAnnotations))
             findings.AddRange(PdfPreflightDocumentChecks.CheckMeasurementAnnotations(checkedDocument));
+        if (profile.Checks.Contains(PdfPreflightCheck.AttachmentSafety))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckAttachmentSafety(checkedDocument));
         return new PdfPreflightReport(profile.Name, findings);
     }
 }

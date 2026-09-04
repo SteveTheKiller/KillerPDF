@@ -336,6 +336,29 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void AttachmentSafetyReportsExecutableNamesAndPayloadSignaturesOnce()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("installer.exe", "plain text"u8.ToArray())
+            .AddAttachment("notes.txt", new byte[] { (byte)'M', (byte)'Z', 0, 0 })
+            .AddFileAttachmentAnnotation(0, 20, 20, 24, "notes.txt")
+            .Build();
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(
+            source, PdfPreflightProfile.Attachments);
+
+        Assert.Equal([
+            "Attachment.ExecutableFileName",
+            "Attachment.ExecutableContent"
+        ], report.Findings.Select(finding => finding.Code));
+        Assert.Equal(PdfDiagnosticSeverity.Warning, report.Findings[0].Severity);
+        Assert.Equal(PdfDiagnosticSeverity.Error, report.Findings[1].Severity);
+        Assert.False(report.Passed);
+        Assert.All(report.Findings, finding => Assert.NotNull(finding.ObjectNumber));
+    }
+
+    [Fact]
     public void MeasurementCheckReportsValidCalibrationScaleAndLocation()
     {
         var measurement = new PdfMeasurementProfile("Site plan", 0.125, "ft", 3);
