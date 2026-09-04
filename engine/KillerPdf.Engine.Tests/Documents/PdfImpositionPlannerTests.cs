@@ -11,7 +11,8 @@ public sealed class PdfImpositionPlannerTests
     {
         var preset = new PdfImpositionPreset("Two-up letter", 2, 1, 792, 612,
             margin: 18, gutter: 12, duplex: true, includeCropMarks: true,
-            includeRegistrationMarks: true, creepPerSheet: 0.5);
+            includeRegistrationMarks: true, creepPerSheet: 0.5,
+            sourceBox: PdfImpositionSourceBox.Bleed);
 
         PdfImpositionPreset restored = PdfImpositionPreset.FromJson(preset.ToJson());
         IReadOnlyList<PdfImposedSheetSide> sides = restored.Plan(3);
@@ -26,6 +27,7 @@ public sealed class PdfImpositionPlannerTests
         Assert.True(restored.IncludeCropMarks);
         Assert.True(restored.IncludeRegistrationMarks);
         Assert.Equal(0.5, restored.CreepPerSheet);
+        Assert.Equal(PdfImpositionSourceBox.Bleed, restored.SourceBox);
         Assert.DoesNotContain("source", preset.ToJson(), StringComparison.OrdinalIgnoreCase);
         Assert.Throws<NotSupportedException>(() => PdfImpositionPreset.FromJson(
             preset.ToJson().Replace("\"version\":1", "\"version\":2",
@@ -294,6 +296,33 @@ public sealed class PdfImpositionPlannerTests
         Assert.Contains(content.Paths, path => path.BoundingBox.Left == 130
             && path.BoundingBox.Bottom == 0 && path.BoundingBox.Top == 6);
         Assert.True(content.Paths.Count(path => path.PaintOperator == "f") >= 4);
+    }
+
+    [Fact]
+    public void ExporterFitsAndClipsTheSelectedSourcePageBox()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(200, 200, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+                .MoveText(20, 100).ShowLatin1Text("Edge").EndText())
+            .SetPageBox(0, PdfPageBox.Crop, 20, 20, 160, 160)
+            .SetPageBox(0, PdfPageBox.Bleed, 10, 10, 180, 180)
+            .Build());
+        IReadOnlyList<PdfImposedSheetSide> sides =
+            [new(0, PdfImposedSheetFace.Front, Array.AsReadOnly<int?>([0]))];
+
+        PdfDocument output = PdfDocument.Open(PdfImpositionExporter.Build(
+            source, sides, 1, 1, 180, 180,
+            sourceBox: PdfImpositionSourceBox.Bleed));
+        PdfDocument cropOutput = PdfDocument.Open(PdfImpositionExporter.Build(
+            source, sides, 1, 1, 180, 180));
+        PdfExtractedTextRun bleedText = Assert.Single(
+            new PdfPageContentReader(output).Read(0).TextRuns);
+        PdfExtractedTextRun cropText = Assert.Single(
+            new PdfPageContentReader(cropOutput).Read(0).TextRuns);
+
+        Assert.Equal("Edge", bleedText.Text);
+        Assert.True(bleedText.BoundingBox.Left > cropText.BoundingBox.Left + 9);
     }
 
     private static void AssertSide(PdfImposedSheetSide side, int sheet,

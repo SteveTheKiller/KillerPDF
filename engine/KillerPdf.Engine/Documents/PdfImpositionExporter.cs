@@ -16,19 +16,39 @@ public static class PdfImpositionExporter
         double margin = 0, double gutter = 0, bool rotateToFit = true,
         double creepPerSheet = 0, bool includeCropMarks = false,
         bool includeRegistrationMarks = false, bool includeFoldMarks = false,
-        bool includeColorBars = false, bool includePageInformation = false)
+        bool includeColorBars = false, bool includePageInformation = false,
+        PdfImpositionSourceBox sourceBox = PdfImpositionSourceBox.Crop)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(sides);
         if (sides.Count == 0)
             throw new ArgumentException(
                 "At least one imposed sheet side is required.", nameof(sides));
+        if (!Enum.IsDefined(sourceBox))
+            throw new ArgumentOutOfRangeException(nameof(sourceBox));
 
         IReadOnlyList<PdfPageBoxInformation> pageBoxes =
             PdfPageBoxInformation.Read(source);
         PdfContentBounds[] sourceBounds = [.. pageBoxes.Select(page =>
-            new PdfContentBounds(page.CropBox.Left, page.CropBox.Bottom,
-                page.CropBox.Right, page.CropBox.Top))];
+        {
+            PdfPageBoxBounds box = sourceBox switch
+            {
+                PdfImpositionSourceBox.Crop => page.CropBox,
+                PdfImpositionSourceBox.Bleed => page.BleedBox,
+                PdfImpositionSourceBox.Trim => page.TrimBox,
+                PdfImpositionSourceBox.Art => page.ArtBox,
+                _ => throw new ArgumentOutOfRangeException(nameof(sourceBox))
+            };
+            return new PdfContentBounds(box.Left, box.Bottom, box.Right, box.Top);
+        })];
+        PdfPageBox importedBox = sourceBox switch
+        {
+            PdfImpositionSourceBox.Crop => PdfPageBox.Crop,
+            PdfImpositionSourceBox.Bleed => PdfPageBox.Bleed,
+            PdfImpositionSourceBox.Trim => PdfPageBox.Trim,
+            PdfImpositionSourceBox.Art => PdfPageBox.Art,
+            _ => throw new ArgumentOutOfRangeException(nameof(sourceBox))
+        };
 
         var builder = new PdfDocumentBuilder();
         foreach (PdfImposedSheetSide _ in sides)
@@ -46,7 +66,7 @@ public static class PdfImpositionExporter
                     sides[outputPage], placements, columns, creepPerSheet);
             foreach (PdfImposedPlacement placement in placements)
             {
-                PdfContentBounds sourceBox = sourceBounds[placement.SourcePageIndex];
+                PdfContentBounds sourcePageBounds = sourceBounds[placement.SourcePageIndex];
                 PdfContentBounds target = placement.SheetBounds;
                 double scale = placement.Scale;
                 if (placement.Rotation == 0)
@@ -54,16 +74,16 @@ public static class PdfImpositionExporter
                     editor.AppendImportedPageContent(outputPage, source,
                         placement.SourcePageIndex,
                         scale, 0, 0, scale,
-                        target.Left - sourceBox.Left * scale,
-                        target.Bottom - sourceBox.Bottom * scale);
+                        target.Left - sourcePageBounds.Left * scale,
+                        target.Bottom - sourcePageBounds.Bottom * scale, importedBox);
                 }
                 else
                 {
                     editor.AppendImportedPageContent(outputPage, source,
                         placement.SourcePageIndex,
                         0, scale, -scale, 0,
-                        target.Left + sourceBox.Top * scale,
-                        target.Bottom - sourceBox.Left * scale);
+                        target.Left + sourcePageBounds.Top * scale,
+                        target.Bottom - sourcePageBounds.Left * scale, importedBox);
                 }
             }
             if (includeCropMarks || includeRegistrationMarks || includeFoldMarks

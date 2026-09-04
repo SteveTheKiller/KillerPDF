@@ -1,6 +1,20 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
+
+/// <summary>The source-page boundary fitted into an imposed sheet slot.</summary>
+public enum PdfImpositionSourceBox
+{
+    /// <summary>Use the visible crop boundary.</summary>
+    Crop,
+    /// <summary>Use the bleed boundary.</summary>
+    Bleed,
+    /// <summary>Use the finished trim boundary.</summary>
+    Trim,
+    /// <summary>Use the meaningful-art boundary.</summary>
+    Art
+}
 
 /// <summary>Reusable sheet and grid settings for an N-up imposition job.</summary>
 public sealed record PdfImpositionPreset
@@ -11,7 +25,8 @@ public sealed record PdfImpositionPreset
         bool duplex = false, bool rotateToFit = true,
         bool includeCropMarks = false, bool includeRegistrationMarks = false,
         double creepPerSheet = 0, bool includeFoldMarks = false,
-        bool includeColorBars = false, bool includePageInformation = false)
+        bool includeColorBars = false, bool includePageInformation = false,
+        PdfImpositionSourceBox sourceBox = PdfImpositionSourceBox.Crop)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preset name is required.", nameof(name));
@@ -27,6 +42,8 @@ public sealed record PdfImpositionPreset
             throw new ArgumentOutOfRangeException(nameof(gutter));
         if (!double.IsFinite(creepPerSheet) || creepPerSheet < 0)
             throw new ArgumentOutOfRangeException(nameof(creepPerSheet));
+        if (!Enum.IsDefined(sourceBox))
+            throw new ArgumentOutOfRangeException(nameof(sourceBox));
         double usableWidth = sheetWidth - margin * 2 - gutter * (columns - 1);
         double usableHeight = sheetHeight - margin * 2 - gutter * (rows - 1);
         if (usableWidth <= 0 || usableHeight <= 0)
@@ -46,6 +63,7 @@ public sealed record PdfImpositionPreset
         IncludeFoldMarks = includeFoldMarks;
         IncludeColorBars = includeColorBars;
         IncludePageInformation = includePageInformation;
+        SourceBox = sourceBox;
     }
 
     /// <summary>Gets the preset name.</summary>
@@ -78,6 +96,8 @@ public sealed record PdfImpositionPreset
     public bool IncludeColorBars { get; }
     /// <summary>Gets whether sheet and side information is requested.</summary>
     public bool IncludePageInformation { get; }
+    /// <summary>Gets the source-page boundary fitted into each sheet slot.</summary>
+    public PdfImpositionSourceBox SourceBox { get; }
 
     /// <summary>Plans sequential source pages using this preset's grid and duplex setting.</summary>
     public IReadOnlyList<PdfImposedSheetSide> Plan(int pageCount) =>
@@ -98,11 +118,12 @@ public sealed record PdfImpositionPreset
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PresetFile(1, Name, Columns, Rows, SheetWidth, SheetHeight, Margin, Gutter,
             Duplex, RotateToFit, IncludeCropMarks, IncludeRegistrationMarks, CreepPerSheet,
-            IncludeFoldMarks, IncludeColorBars, IncludePageInformation),
+            IncludeFoldMarks, IncludeColorBars, IncludePageInformation, SourceBox),
         new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
+            WriteIndented = indented,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
         });
 
     /// <summary>Reads and validates a saved preset.</summary>
@@ -110,7 +131,11 @@ public sealed record PdfImpositionPreset
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         PresetFile file = JsonSerializer.Deserialize<PresetFile>(json,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+            })
             ?? throw new JsonException("The imposition preset is empty.");
         if (file.Version != 1)
             throw new NotSupportedException(
@@ -119,12 +144,13 @@ public sealed record PdfImpositionPreset
             file.SheetWidth, file.SheetHeight, file.Margin, file.Gutter,
             file.Duplex, file.RotateToFit, file.IncludeCropMarks,
             file.IncludeRegistrationMarks, file.CreepPerSheet, file.IncludeFoldMarks,
-            file.IncludeColorBars, file.IncludePageInformation);
+            file.IncludeColorBars, file.IncludePageInformation, file.PageBox);
     }
 
     private sealed record PresetFile(int Version, string Name, int Columns, int Rows,
         double SheetWidth, double SheetHeight, double Margin, double Gutter,
         bool Duplex, bool RotateToFit, bool IncludeCropMarks,
         bool IncludeRegistrationMarks, double CreepPerSheet,
-        bool IncludeFoldMarks, bool IncludeColorBars, bool IncludePageInformation);
+        bool IncludeFoldMarks, bool IncludeColorBars, bool IncludePageInformation,
+        PdfImpositionSourceBox PageBox);
 }
