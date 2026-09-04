@@ -45,7 +45,9 @@ public enum PdfRedactionTargetKind
     /// <summary>Text found by a search expression.</summary>
     Text,
     /// <summary>A caller-selected rectangular page region.</summary>
-    PageRegion
+    PageRegion,
+    /// <summary>An extracted image placement.</summary>
+    Image
 }
 
 /// <summary>A rectangular page region proposed for redaction.</summary>
@@ -134,6 +136,28 @@ public sealed class PdfRedactionReview
             matches[index] = new PdfRedactionMatch($"region:{index}", region.PageIndex, string.Empty,
                 bounds, -1, 0, region.ReasonCode, region.OverlayText,
                 PdfRedactionTargetKind.PageRegion);
+        }
+        return new PdfRedactionReview(matches);
+    }
+
+    /// <summary>Builds a review from every extracted image placement on selected pages.</summary>
+    public static PdfRedactionReview FromImages(
+        IEnumerable<PdfPageContent> pages,
+        string? reasonCode = null, string? overlayText = null)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        PdfRedactionSearch.ValidatePresentation(reasonCode, overlayText, nameof(pages));
+        var matches = new List<PdfRedactionMatch>();
+        foreach ((PdfPageContent page, int pageIndex) in pages.Select(
+                     (page, index) => (page ?? throw new ArgumentException(
+                         "A redaction page cannot be null.", nameof(pages)), index)))
+        {
+            foreach ((PdfExtractedImage image, int imageIndex) in page.Images.Select(
+                         (image, index) => (image, index)))
+                matches.Add(new PdfRedactionMatch(
+                    $"image:{pageIndex}:{imageIndex}", pageIndex, string.Empty,
+                    image.BoundingBox, -1, 0, reasonCode, overlayText,
+                    PdfRedactionTargetKind.Image));
         }
         return new PdfRedactionReview(matches);
     }

@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -229,6 +230,30 @@ public sealed class PdfRedactionSearchTests
         Assert.ThrowsAny<ArgumentException>(() => PdfRedactionReview.FromRegions([
             new PdfRedactionRegion(pageIndex, new PdfContentBounds(left, bottom, right, top))
         ]));
+    }
+
+    [Fact]
+    public void ExtractedImagesUseTheSameReviewWorkflow()
+    {
+        PdfImage image = PdfImage.FromRgb(1, 1, new byte[] { 255, 0, 0 });
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .DrawImage(image, 20, 30, 40, 50))
+            .Build());
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+
+        PdfRedactionReview review = PdfRedactionReview.FromImages(
+            [page], "Private image", "REMOVED");
+        PdfRedactionMatch match = Assert.Single(review.Included);
+
+        Assert.Equal("image:0:0", match.Id);
+        Assert.Equal(PdfRedactionTargetKind.Image, match.TargetKind);
+        Assert.Equal(new PdfContentBounds(20, 30, 60, 80), match.Bounds);
+        Assert.Equal("Private image", match.ReasonCode);
+        Assert.Equal("REMOVED", match.OverlayText);
+        Assert.Empty(review.Exclude(match.Id).Included);
+        Assert.Throws<ArgumentException>(() =>
+            PdfRedactionReview.FromImages([page], reasonCode: " "));
     }
 
     private static PdfPageContent Read(string text)
