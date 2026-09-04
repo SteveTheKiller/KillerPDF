@@ -1408,15 +1408,14 @@ namespace KillerPDF
             {
                 try
                 {
-                    using var docReader = DocLib.Instance.GetDocReader(renderPath, new PageDimensions(previewBox, previewBox));
+                    using var renderSession = PdfPageRenderSession.Open(renderPath, previewBox, previewBox);
                     for (int i = 0; i < pageCount; i++)
                     {
                         if (preview.Canceled) return;
-                        using var pr = docReader.GetPageReader(i);
-                        int w = pr.GetPageWidth();
-                        int h = pr.GetPageHeight();
-                        byte[] raw = PdfiumInterop.RenderPageWithAnnotations(renderPath, i, w, h)
-                            ?? pr.GetImage();
+                        PdfRenderedPage page = renderSession.RenderPage(i);
+                        int w = page.Width;
+                        int h = page.Height;
+                        byte[] raw = page.Pixels;
                         byte[] png = BitmapHelpers.RenderToPng(raw, w, h);   // #141
                         BitmapSource src;
                         using (var ms = new MemoryStream(png))

@@ -37,6 +37,8 @@ internal sealed class PdfPageRenderSession : IDisposable
             path, new PageDimensions(scale)));
     }
 
+    internal int PageCount => _reader.GetPageCount();
+
     internal PdfRenderedPage RenderBasePage(int pageIndex)
     {
         using var page = _reader.GetPageReader(pageIndex);
@@ -44,16 +46,23 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground = false,
-        bool includeFormFields = true)
+        bool includeFormFields = true, bool removeTransparencyOnFallback = false)
     {
         using var page = _reader.GetPageReader(pageIndex);
         int width = page.GetPageWidth();
         int height = page.GetPageHeight();
         byte[] pixels = PdfiumInterop.RenderPageWithAnnotations(
             _path, pageIndex, width, height, transparentBackground, includeFormFields)
-            ?? page.GetImage();
+            ?? (removeTransparencyOnFallback
+                ? page.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover())
+                : page.GetImage());
         return new PdfRenderedPage(width, height, pixels);
     }
+
+    internal static byte[]? RenderExactPage(string path, int pageIndex, int width, int height,
+        bool transparentBackground = false, bool includeFormFields = true) =>
+        PdfiumInterop.RenderPageWithAnnotations(
+            path, pageIndex, width, height, transparentBackground, includeFormFields);
 
     public void Dispose() => _reader.Dispose();
 }

@@ -484,8 +484,8 @@ namespace KillerPDF.Features
             options.TryGetValue("--password", out var password);
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
 
-            using var dr = DocLib.Instance.GetDocReader(renderPath, new PageDimensions(dpi / 72.0));
-            int pageCount = dr.GetPageCount();
+            using var renderSession = PdfPageRenderSession.Open(renderPath, dpi / 72.0);
+            int pageCount = renderSession.PageCount;
 
             List<int> selected;
             if (options.TryGetValue("--pages", out var rangeSpec))
@@ -503,17 +503,10 @@ namespace KillerPDF.Features
             int digits = Math.Max(3, pageCount.ToString().Length);
             foreach (var idx in selected)
             {
-                byte[] raw; int w, h;
-                using (var pr = dr.GetPageReader(idx))
-                {
-                    w = pr.GetPageWidth();
-                    h = pr.GetPageHeight();
-                    raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(
-                        renderPath, idx, w, h, transparent)
-                        ?? (transparent
-                            ? pr.GetImage()
-                            : pr.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover()));
-                }
+                PdfRenderedPage rendered = renderSession.RenderPage(idx, transparent,
+                    removeTransparencyOnFallback: !transparent);
+                byte[] raw = rendered.Pixels;
+                int w = rendered.Width, h = rendered.Height;
                 int rot = rotations != null && idx < rotations.Length ? rotations[idx] : 0;
                 if (rot != 0) (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
                 var bytes = fmt == "png" ? BitmapHelpers.RenderToPng(raw, w, h, dpi) : BitmapHelpers.EncodeJpeg(raw, w, h, dpi);
@@ -570,8 +563,8 @@ namespace KillerPDF.Features
 
             var (renderPath, rotations, dims) = CliPrepareRenderSource(inPath, password, con);
 
-            using var dr = DocLib.Instance.GetDocReader(renderPath, new PageDimensions(dpi / 72.0));
-            int pageCount = dr.GetPageCount();
+            using var renderSession = PdfPageRenderSession.Open(renderPath, dpi / 72.0);
+            int pageCount = renderSession.PageCount;
             PdfDocument renderDocument = PdfDocument.Open(File.ReadAllBytes(renderPath));
             IReadOnlyList<bool> bitonalHints =
                 PdfPageRasterInformation.ReadBitonalImagePageHints(renderDocument);
@@ -581,17 +574,13 @@ namespace KillerPDF.Features
             var pages = new List<PdfEngineIntegration.RasterPage>(pageCount);
             for (int i = 0; i < pageCount; i++)
             {
-                byte[] raw; int w, h;
-                using (var pr = dr.GetPageReader(i))
-                {
-                    // Composite over white (#148): keeps the /SMask alpha channel out
-                    // of the rebuilt page images entirely.
-                    // #141: WithAnnotations, or the rebuild drops the file's own markup.
-                    w = pr.GetPageWidth();
-                    h = pr.GetPageHeight();
-                    raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(renderPath, i, w, h)
-                        ?? pr.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover());
-                }
+                // Composite over white (#148): keeps the /SMask alpha channel out
+                // of the rebuilt page images entirely.
+                // #141: WithAnnotations, or the rebuild drops the file's own markup.
+                PdfRenderedPage rendered = renderSession.RenderPage(
+                    i, removeTransparencyOnFallback: true);
+                byte[] raw = rendered.Pixels;
+                int w = rendered.Width, h = rendered.Height;
                 int rot = rotations != null && i < rotations.Length ? rotations[i] : 0;
                 if (rot != 0) (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
                 double wPt, hPt;
@@ -705,9 +694,9 @@ namespace KillerPDF.Features
             // Rasterize the selected pages at 300 dpi, rotation-corrected.
             var bitmaps = new List<(BitmapSource Bs, int W, int H)>();
             List<int> selected;
-            using (var dr = DocLib.Instance.GetDocReader(renderPath, new PageDimensions(300.0 / 72.0)))
+            using (var renderSession = PdfPageRenderSession.Open(renderPath, 300.0 / 72.0))
             {
-                int pageCount = dr.GetPageCount();
+                int pageCount = renderSession.PageCount;
                 if (options.TryGetValue("--pages", out var rangeSpec))
                 {
                     var parsed = CliParsePageRange(rangeSpec, pageCount, out string err);
@@ -720,14 +709,9 @@ namespace KillerPDF.Features
                 }
                 foreach (var idx in selected)
                 {
-                    byte[] raw; int w, h;
-                    using (var pr = dr.GetPageReader(idx))
-                    {
-                        w = pr.GetPageWidth();
-                        h = pr.GetPageHeight();
-                        raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(renderPath, idx, w, h)
-                            ?? pr.GetImage();   // #141
-                    }
+                    PdfRenderedPage rendered = renderSession.RenderPage(idx);
+                    byte[] raw = rendered.Pixels;
+                    int w = rendered.Width, h = rendered.Height;
                     int rot = rotations != null && idx < rotations.Length ? rotations[idx] : 0;
                     if (rot != 0) (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
                     var bs = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, raw, w * 4);

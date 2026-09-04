@@ -155,8 +155,8 @@ namespace KillerPDF.Services
             {
                 const int RenderPx = 2048;
 
-                using var docReader = DocLib.Instance.GetDocReader(path, new PageDimensions(RenderPx, RenderPx));
-                int pageCount = docReader.GetPageCount();
+                using var renderSession = PdfPageRenderSession.Open(path, RenderPx, RenderPx);
+                int pageCount = renderSession.PageCount;
                 if (pageCount <= 0) return null;
 
                 var pages = new List<PdfEngineIntegration.RasterPage>(pageCount);
@@ -177,13 +177,12 @@ namespace KillerPDF.Services
 
                 for (int i = 0; i < pageCount; i++)
                 {
-                    using var pr = docReader.GetPageReader(i);
-                    int bw = pr.GetPageWidth();
-                    int bh = pr.GetPageHeight();
+                    PdfRenderedPage rendered = renderSession.RenderPage(i);
+                    int bw = rendered.Width;
+                    int bh = rendered.Height;
                     if (bw <= 0 || bh <= 0) continue;
 
-                    var raw = PdfiumInterop.RenderPageWithAnnotations(path, i, bw, bh)
-                        ?? pr.GetImage();   // #141
+                    byte[] raw = rendered.Pixels;
                     if (raw is null || raw.Length == 0) continue;
 
                     // Build the page at correct aspect ratio scaled to A4-ish width.

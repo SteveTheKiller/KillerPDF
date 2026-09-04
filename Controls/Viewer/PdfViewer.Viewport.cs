@@ -535,7 +535,7 @@ namespace KillerPDF.Controls
             var session = _active;
             await System.Threading.Tasks.Task.Run(() =>
             {
-                Docnet.Core.Readers.IDocReader? docReader = null;
+                PdfPageRenderSession? renderSession = null;
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                 try
                 {
@@ -557,13 +557,11 @@ namespace KillerPDF.Controls
                             continue;
                         }
 
-                        docReader ??= DocLib.Instance.GetDocReader(currentFile, new PageDimensions(renderW, renderW * 2));
-                        using var pr = docReader.GetPageReader(i);
-                        int w = pr.GetPageWidth();
-                        int h = pr.GetPageHeight();
-                        var raw = PdfiumInterop.RenderPageWithAnnotations(currentFile, i, w, h,
-                                includeFormFields: false)   // live overlays show the values; baking them too ghosts the text
-                            ?? pr.GetImage();   // #141: draw the file's own markup without Docnet form fill
+                        renderSession ??= PdfPageRenderSession.Open(currentFile, renderW, renderW * 2);
+                        PdfRenderedPage rendered = renderSession.RenderPage(i, includeFormFields: false);
+                        int w = rendered.Width;
+                        int h = rendered.Height;
+                        byte[] raw = rendered.Pixels;
                         if (w <= 0 || h <= 0 || raw is null) continue;
                         // #135: display-only dark mode, pictures excluded. Invert BEFORE the
                         // pixel-buffer rotation (the ops commute for the full page) so the image
@@ -593,7 +591,7 @@ namespace KillerPDF.Controls
                     }
                 }
                 catch { /* render canceled or doc closed */ }
-                finally { docReader?.Dispose(); contentDoc?.Dispose(); }
+                finally { renderSession?.Dispose(); contentDoc?.Dispose(); }
             }, cts.Token);
         }
 
@@ -784,19 +782,17 @@ namespace KillerPDF.Controls
             var rotations = new Dictionary<int, int>(_pageRotations);
             _ = System.Threading.Tasks.Task.Run(() =>
             {
-                Docnet.Core.Readers.IDocReader? docReader = null;
+                PdfPageRenderSession? renderSession = null;
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                 try
                 {
                     foreach (int p in work)
                     {
                         if (cts.IsCancellationRequested) return;
-                        docReader ??= DocLib.Instance.GetDocReader(currentFile, new PageDimensions(hiW, hiW * 2));
-                        using var pr = docReader.GetPageReader(p);
-                        int w = pr.GetPageWidth(), h = pr.GetPageHeight();
-                        var raw = PdfiumInterop.RenderPageWithAnnotations(currentFile, p, w, h,
-                                includeFormFields: false)   // live overlays show the values; baking them too ghosts the text
-                            ?? pr.GetImage();   // #141: draw the file's own markup without Docnet form fill
+                        renderSession ??= PdfPageRenderSession.Open(currentFile, hiW, hiW * 2);
+                        PdfRenderedPage rendered = renderSession.RenderPage(p, includeFormFields: false);
+                        int w = rendered.Width, h = rendered.Height;
+                        byte[] raw = rendered.Pixels;
                         if (w <= 0 || h <= 0 || raw is null) continue;
                         int rot = rotations.TryGetValue(p, out int rr) ? rr : 0;
                         // #135: dark mode with pictures excluded; invert before the rotation so
@@ -819,7 +815,7 @@ namespace KillerPDF.Controls
                     }
                 }
                 catch { /* canceled or doc closed */ }
-                finally { docReader?.Dispose(); contentDoc?.Dispose(); }
+                finally { renderSession?.Dispose(); contentDoc?.Dispose(); }
             }, cts.Token);
         }
 
@@ -874,13 +870,11 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    using var docReader = DocLib.Instance.GetDocReader(_currentFile, new PageDimensions(scaledMax, scaledMax));
-                    using var pageReader = docReader.GetPageReader(pageIndex);
-                    width  = pageReader.GetPageWidth();
-                    height = pageReader.GetPageHeight();
-                    var rawBytes = PdfiumInterop.RenderPageWithAnnotations(_currentFile, pageIndex, width, height,
-                            includeFormFields: false)   // live overlays show the values; baking them too ghosts the text
-                        ?? pageReader.GetImage();   // #141
+                    using var renderSession = PdfPageRenderSession.Open(_currentFile, scaledMax, scaledMax);
+                    PdfRenderedPage rendered = renderSession.RenderPage(pageIndex, includeFormFields: false);
+                    width = rendered.Width;
+                    height = rendered.Height;
+                    byte[] rawBytes = rendered.Pixels;
                     // Bail on an unusable render BEFORE touching the buffer. This check used to sit
                     // after the rotate; moving the invert ahead of the rotate (#135) meant the
                     // buffer was read while still only maybe-non-null, so validate first instead.
@@ -1153,7 +1147,7 @@ namespace KillerPDF.Controls
                 int tileBucket = -secondaryMax;
                 await System.Threading.Tasks.Task.Run(() =>
                 {
-                    Docnet.Core.Readers.IDocReader? docReader = null;
+                    PdfPageRenderSession? renderSession = null;
                     ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                     try
                     {
@@ -1186,13 +1180,11 @@ namespace KillerPDF.Controls
                             // tile, which read as "the grid's last column never refreshed".
                             try
                             {
-                                docReader ??= DocLib.Instance.GetDocReader(currentFile, new PageDimensions(secondaryMax, secondaryMax));
-                                using var pageReader = docReader.GetPageReader(i);
-                                int w = pageReader.GetPageWidth();
-                                int h = pageReader.GetPageHeight();
-                                var rawBytes = PdfiumInterop.RenderPageWithAnnotations(currentFile, i, w, h,
-                                        includeFormFields: false)   // live overlays show the values; baking them too ghosts the text
-                                    ?? pageReader.GetImage();   // #141
+                                renderSession ??= PdfPageRenderSession.Open(currentFile, secondaryMax, secondaryMax);
+                                PdfRenderedPage rendered = renderSession.RenderPage(i, includeFormFields: false);
+                                int w = rendered.Width;
+                                int h = rendered.Height;
+                                byte[] rawBytes = rendered.Pixels;
                                 if (w <= 0 || h <= 0 || rawBytes is null) continue;
                                 // #135: dark mode with pictures excluded; invert before the rotation
                                 // so the carve-out rects stay in unrotated page space.
@@ -1221,7 +1213,7 @@ namespace KillerPDF.Controls
                             catch { continue; }   // skip this page, keep streaming the rest
                         }
                     }
-                    finally { docReader?.Dispose(); contentDoc?.Dispose(); }
+                    finally { renderSession?.Dispose(); contentDoc?.Dispose(); }
                 }, cts.Token);
             }
             catch (OperationCanceledException) { return; }   // superseded - the newer render owns the tiles now

@@ -256,14 +256,13 @@ namespace KillerPDF
             try
             {
                 string srcPath = sourceOverride ?? _currentFile;
-                using var docReader = DocLib.Instance.GetDocReader(srcPath, new PageDimensions(maxPx, maxPx));
-                using var pr = docReader.GetPageReader(pageIdx);
-                int w = pr.GetPageWidth();
-                int h = pr.GetPageHeight();
+                using var renderSession = PdfPageRenderSession.Open(srcPath, maxPx, maxPx);
+                PdfRenderedPage page = renderSession.RenderPage(pageIdx);
+                int w = page.Width;
+                int h = page.Height;
                 // #141: WithAnnotations - Transform rasterizes the page and REPLACES it, so
                 // without this the file's own markup would be dropped by transforming a page.
-                byte[] bgra = PdfiumInterop.RenderPageWithAnnotations(srcPath, pageIdx, w, h)
-                    ?? pr.GetImage();
+                byte[] bgra = page.Pixels;
                 if (_pageRotations.TryGetValue(pageIdx, out int prot) && prot != 0)
                     (bgra, w, h) = BitmapHelpers.RotateBitmap(bgra, w, h, prot);
                 if (bgra == null || bgra.Length == 0 || w <= 0 || h <= 0) return null;

@@ -272,17 +272,16 @@ namespace KillerPDF
             {
                 try
                 {
-                    using var docReader = DocLib.Instance.GetDocReader(filePath, new PageDimensions(128, 256));
+                    using var renderSession = PdfPageRenderSession.Open(filePath, 128, 256);
                     for (int i = 0; i < pageCount; i++)
                     {
                         if (ct.IsCancellationRequested) return;
                         try
                         {
-                            using var pr  = docReader.GetPageReader(i);
-                            int tw  = pr.GetPageWidth();
-                            int th  = pr.GetPageHeight();
-                            var raw = Services.PdfiumInterop.RenderPageWithAnnotations(filePath, i, tw, th)
-                                ?? pr.GetImage();   // #141
+                            PdfRenderedPage page = renderSession.RenderPage(i);
+                            int tw = page.Width;
+                            int th = page.Height;
+                            byte[] raw = page.Pixels;
                             if (tw <= 0 || th <= 0 || raw == null || raw.Length < tw * th * 4)
                                 continue;
                             rotSnap.TryGetValue(i, out int rot);

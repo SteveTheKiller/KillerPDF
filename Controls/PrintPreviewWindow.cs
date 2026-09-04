@@ -1300,16 +1300,15 @@ namespace KillerPDF
                 int total = indices.Count;
                 await Task.Run(() =>
                 {
-                    using var dr = DocLib.Instance.GetDocReader(_renderPath, new PageDimensions(300.0 / 72.0));
+                    using var renderSession = PdfPageRenderSession.Open(_renderPath, 300.0 / 72.0);
                     int done = 0;
                     foreach (int idx in indices)
                     {
                         done++;
                         if (idx < 0 || idx >= _pages.Length) continue;
-                        using var pr = dr.GetPageReader(idx);
-                        int w = pr.GetPageWidth(), h = pr.GetPageHeight();
-                        var pixels = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(_renderPath, idx, w, h)
-                            ?? pr.GetImage();
+                        PdfRenderedPage page = renderSession.RenderPage(idx);
+                        int w = page.Width, h = page.Height;
+                        byte[] pixels = page.Pixels;
                         var bs = BitmapSource.Create(w, h, 96, 96, PixelFormats.Bgra32, null, pixels, w * 4);   // #141
                         bs.Freeze();
                         hiPages[idx] = bs; hiW[idx] = w; hiH[idx] = h;

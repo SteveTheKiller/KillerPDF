@@ -474,10 +474,10 @@ public partial class MainWindow
         (int lw, int lh) = ComparisonRenderSize(leftInfo[pageIndex]);
         (int rw, int rh) = ComparisonRenderSize(rightInfo[pageIndex]);
         bool pageDimensionsMatch = lw == rw && lh == rh;
-        byte[] left = PdfiumInterop.RenderPageWithAnnotations(leftPath, pageIndex, lw, lh)
+        byte[] left = PdfPageRenderSession.RenderExactPage(leftPath, pageIndex, lw, lh)
             ?? throw new InvalidOperationException("The original page could not be rendered.");
         if (token.IsCancellationRequested) return CanceledComparison();
-        byte[] right = PdfiumInterop.RenderPageWithAnnotations(rightPath, pageIndex, lw, lh)
+        byte[] right = PdfPageRenderSession.RenderExactPage(rightPath, pageIndex, lw, lh)
             ?? throw new InvalidOperationException("The comparison page could not be rendered.");
         return (PdfPageDifference.Compare(left, lw, lh, right, lw, lh), lw, lh,
             true, true, pageDimensionsMatch);

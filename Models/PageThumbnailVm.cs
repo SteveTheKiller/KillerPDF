@@ -5,8 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 using System.Windows.Media.Imaging;
-using Docnet.Core;
-using Docnet.Core.Models;
+using KillerPDF.Services;
 
 namespace KillerPDF
 {
@@ -84,12 +83,11 @@ namespace KillerPDF
                 // stays crisp when the sidebar is dragged wider (thumbnails scale to the sidebar width).
                 // 288px covers the ~240px the page can show at the widest sidebar; raise for sharper,
                 // lower to save memory (each loaded thumbnail is kept in RAM).
-                using var docReader = DocLib.Instance.GetDocReader(filePath, new PageDimensions(288, 576));
-                using var pr = docReader.GetPageReader(pageIndex);
-                int tw  = pr.GetPageWidth();
-                int th  = pr.GetPageHeight();
-                var raw = KillerPDF.Services.PdfiumInterop.RenderPageWithAnnotations(filePath, pageIndex, tw, th)
-                    ?? pr.GetImage();   // #141
+                using var renderSession = PdfPageRenderSession.Open(filePath, 288, 576);
+                PdfRenderedPage page = renderSession.RenderPage(pageIndex);
+                int tw = page.Width;
+                int th = page.Height;
+                byte[] raw = page.Pixels;
                 if (tw <= 0 || th <= 0 || raw == null || raw.Length < tw * th * 4)
                     return null;
                 // Apply in-memory rotation (temp file stores /Rotate=0; _pageRotations holds true angle)

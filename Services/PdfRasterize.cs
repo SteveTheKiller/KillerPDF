@@ -78,8 +78,7 @@ namespace KillerPDF.Services
             var docGate  = new object();
             int done     = 0;
             var po = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount) };
-            using var flattenReader = DocLib.Instance.GetDocReader(
-                sourcePath, new PageDimensions(options.Dpi / 72.0));
+            using var renderSession = PdfPageRenderSession.Open(sourcePath, options.Dpi / 72.0);
             Parallel.For(0, pageCount, po, i =>
             {
                 if (ct.IsCancellationRequested) return;   // cooperative: skip remaining pages' work
@@ -96,16 +95,16 @@ namespace KillerPDF.Services
                 byte[] bgra; int rw, rh;
                 lock (docGate)
                 {
-                    using var pr = flattenReader.GetPageReader(i);
                     // Composite over white (#148, Ryokoxx): PDFium leaves unpainted
                     // background as BGRA 0,0,0,0, which used to embed a full-page
                     // /SMask alpha channel in the flattened output.
                     // #141: WithAnnotations, or flattening an annotated PDF silently dropped the
                     // markup the file carried - this path builds a NEW document from the pixels.
-                    rw   = pr.GetPageWidth();
-                    rh   = pr.GetPageHeight();
-                    bgra = PdfiumInterop.RenderPageWithAnnotations(sourcePath, i, rw, rh)
-                        ?? pr.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover());
+                    PdfRenderedPage rendered = renderSession.RenderPage(
+                        i, removeTransparencyOnFallback: true);
+                    rw = rendered.Width;
+                    rh = rendered.Height;
+                    bgra = rendered.Pixels;
                 }
                 PageQualityConverter.ApplyColorModeToBgra(
                     bgra, options.ColorMode, options.BlackWhiteThreshold);
@@ -148,23 +147,23 @@ namespace KillerPDF.Services
             Action<int, int> progress, CancellationToken ct)
         {
             int written = 0;
-            using var dr = DocLib.Instance.GetDocReader(sourcePath, new PageDimensions(dpi / 72.0));
+            using var renderSession = PdfPageRenderSession.Open(sourcePath, dpi / 72.0);
             int done = 0;
             foreach (var idx in pages)
             {
                 if (ct.IsCancellationRequested) return written;
                 byte[] raw; int w, h;
-                using (var pr = dr.GetPageReader(idx))
                 {
                     // Composite over white (#148, Ryokoxx): bare GetImage leaves the
                     // unpainted background at BGRA 0,0,0,0 - JPEG export dropped the
                     // alpha and produced black pages, PNG came out transparent.
                     // #141: WithAnnotations - an exported image should show the markup the file
                     // carries, the same as the page does on screen.
-                    w   = pr.GetPageWidth();
-                    h   = pr.GetPageHeight();
-                    raw = PdfiumInterop.RenderPageWithAnnotations(sourcePath, idx, w, h)
-                        ?? pr.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover());
+                    PdfRenderedPage rendered = renderSession.RenderPage(
+                        idx, removeTransparencyOnFallback: true);
+                    w = rendered.Width;
+                    h = rendered.Height;
+                    raw = rendered.Pixels;
                 }
                 int rot = idx < rotSnapshot.Length ? rotSnapshot[idx] : 0;
                 if (rot != 0) (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
