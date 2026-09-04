@@ -34,10 +34,25 @@ public sealed class PdfStructuralComparisonTests
             first, second, new CancellationToken(canceled: true)));
     }
 
-    private static PdfDocument Document(string text, bool includePath, int pages)
+    [Fact]
+    public void CompareReportsChangedEffectiveResourcesWithoutUsingObjectNumbers()
+    {
+        PdfDocument original = Document("Same", includePath: false, pages: 1,
+            PdfStandardFont.Helvetica);
+        PdfDocument changed = Document("Same", includePath: false, pages: 1,
+            PdfStandardFont.Courier);
+
+        PdfStructuralComparison comparison = PdfStructuralComparison.Compare(original, changed);
+
+        Assert.Contains(comparison.Changes, change =>
+            change.PageIndex == 0 && change.Kind == PdfStructuralChangeKind.Resources);
+    }
+
+    private static PdfDocument Document(string text, bool includePath, int pages,
+        PdfStandardFont font = PdfStandardFont.Helvetica)
     {
         var content = new PdfContentStreamBuilder()
-            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .BeginText().SetFont(font, 12)
             .MoveText(10, 20).ShowLatin1Text(text).EndText();
         if (includePath) content.Rectangle(5, 5, 20, 10).Stroke();
         var builder = new PdfDocumentBuilder().AddPage(100, 100, content);
