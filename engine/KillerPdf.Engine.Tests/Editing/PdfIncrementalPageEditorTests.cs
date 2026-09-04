@@ -13094,6 +13094,29 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void ExistingTaggedDocument_AllowsIntentionalUntaggedPageReplacement()
+    {
+        PdfDocument target = PdfDocument.Open(BuildTaggedDocument());
+        int removedPageNumber = FlatPages(target).References[0].ObjectNumber;
+        PdfDocument raster = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(320, 480).Build());
+
+        PdfDocument result = PdfDocument.Open(new PdfIncrementalPageEditor(target)
+            .RemovePage(0)
+            .InsertImportedPage(0, raster, 0)
+            .AllowUntaggedPageImports()
+            .Build());
+
+        PdfDictionary catalog = ResolveDictionary(result, result.Trailer[Name("Root")]);
+        PdfDictionary root = ResolveDictionary(result, catalog[Name("StructTreeRoot")]);
+        (_, _, PdfDictionary[] pages) = FlatPages(result);
+        Assert.Equal(2, pages.Length);
+        Assert.False(pages[0].ContainsKey(Name("StructParents")));
+        Assert.True(pages[1].ContainsKey(Name("StructParents")));
+        AssertStructureTreeDoesNotReferencePage(result, root, removedPageNumber);
+    }
+
+    [Fact]
     public void SetFormWidgetVisibility_ComposesWithRectangleChanges()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()

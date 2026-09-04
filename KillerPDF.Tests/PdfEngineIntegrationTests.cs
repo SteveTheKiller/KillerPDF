@@ -1008,6 +1008,50 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void ReplacePagesAndCompact_ReplacesSelectedTaggedPageWithRasterPage()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-transform-{Guid.NewGuid():N}.pdf");
+        string replacement = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-transform-page-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder()
+                .SetMetadata(new PdfDocumentMetadata
+                    { Title = "Tagged transform", Language = "en-US" })
+                .EnablePdfUa2Conformance()
+                .AddPage(200, 300, new PdfContentStreamBuilder()
+                    .BeginMarkedContent(PdfStructureType.Figure, 0)
+                    .Rectangle(10, 10, 20, 20).Fill().EndMarkedContent())
+                .AddPage(210, 310, new PdfContentStreamBuilder()
+                    .BeginMarkedContent(PdfStructureType.Figure, 0)
+                    .Rectangle(20, 20, 20, 20).Fill().EndMarkedContent())
+                .AddStructureContainer(PdfStructureType.Document)
+                .AddStructureElement(PdfStructureType.Figure, 0, 0, 1,
+                    alternateDescription: "First square")
+                .AddStructureElement(PdfStructureType.Figure, 1, 0, 1,
+                    alternateDescription: "Second square")
+                .Build();
+            File.WriteAllBytes(path, source);
+            File.WriteAllBytes(replacement,
+                new PdfDocumentBuilder().AddBlankPage(320, 480).Build());
+
+            PdfEngineIntegration.ReplacePagesAndCompact(path,
+                new Dictionary<int, string> { [0] = replacement });
+
+            PdfDocument result = PdfDocument.Open(File.ReadAllBytes(path));
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(result.Resolve(
+                Assert.IsType<PdfIndirectReference>(result.Trailer[new PdfName("Root"u8)])));
+            Assert.True(catalog.ContainsKey(new PdfName("StructTreeRoot"u8)));
+            Assert.Equal([320d, 210d], Enumerable.Range(0, 2)
+                .Select(index => PageMediaBox(result, index)[2]));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(replacement)) File.Delete(replacement);
+        }
+    }
+
+    [Fact]
     public void ReplaceAllPagesAndCompact_DoesNotRetainAnyOriginalPageImages()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-all-pages-{Guid.NewGuid():N}.pdf");

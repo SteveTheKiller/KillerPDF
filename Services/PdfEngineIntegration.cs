@@ -972,7 +972,8 @@ internal static class PdfEngineIntegration
         => ReplacePages(path, new Dictionary<int, string> { [pageIndex] = replacementPath });
 
     /// <summary>Replaces selected pages with the first pages of authored PDFs in one revision.</summary>
-    internal static void ReplacePages(string path, IReadOnlyDictionary<int, string> replacements)
+    internal static void ReplacePages(string path, IReadOnlyDictionary<int, string> replacements,
+        bool allowUntaggedImports = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         ArgumentNullException.ThrowIfNull(replacements);
@@ -990,6 +991,8 @@ internal static class PdfEngineIntegration
         {
             PdfDocument target = PdfDocument.Open(File.ReadAllBytes(path));
             var editor = new PdfIncrementalPageEditor(target);
+            if (allowUntaggedImports)
+                editor.AllowUntaggedPageImports();
             if (clearBookmarks)
                 editor.ClearBookmarks();
             foreach (var pair in replacements.OrderBy(pair => pair.Key))
@@ -1012,7 +1015,7 @@ internal static class PdfEngineIntegration
     internal static void ReplacePagesAndCompact(
         string path, IReadOnlyDictionary<int, string> replacements)
     {
-        ReplacePages(path, replacements);
+        ReplacePages(path, replacements, allowUntaggedImports: true);
         try
         {
             RebuildDocument(path, path);

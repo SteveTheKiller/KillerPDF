@@ -20,6 +20,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Allowed Transform to rasterize selected pages in tagged PDFs (#383).
 - Restored reliable title-bar dragging and double-clicking from maximized windows (#380).
 - Kept native window resize borders, preserved the visible Continuous position during resizing, and retained the custom caption (#372, #373, thanks @Ryokoxx).
 - Kept comparison labels readable, preserved underscores in file names, and separated display, save, and working-copy paths (#370, #371, #376, thanks @Ryokoxx).
@@ -46,6 +47,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Allowed Transform to rasterize selected pages in tagged PDFs (#383).
 - Restored reliable title-bar dragging and double-clicking from maximized windows (#380).
 - Kept native window resize borders, preserved the visible Continuous position during resizing, and retained the custom caption (#372, #373, thanks @Ryokoxx).
 - Kept comparison labels readable, preserved underscores in file names, and separated display, save, and working-copy paths (#370, #371, #376, thanks @Ryokoxx).
