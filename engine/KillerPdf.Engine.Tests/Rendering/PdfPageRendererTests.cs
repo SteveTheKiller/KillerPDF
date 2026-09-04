@@ -85,6 +85,27 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_CompositesImageSoftMasks()
+    {
+        PdfImage image = PdfImage.FromRgba(2, 1, new byte[]
+        {
+            255, 0, 0, 128,
+            0, 255, 0, 0
+        });
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(image, 2, 3, 6, 2))
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 128], Pixel(page, 3, 6));
+        Assert.Equal([255, 255, 255, 0], Pixel(page, 7, 6));
+        Assert.DoesNotContain("The image soft mask is not implemented.", page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();

@@ -100,7 +100,7 @@ Output lands in `bin/Release/net10.0-windows/publish/`. Normal publishing produc
 
 KillerPDF 1.9 requires the .NET 10 SDK. Both the reusable engine and the Windows application target .NET 10, with the application using `net10.0-windows`.
 
-The desktop document pipeline uses The KillerPDF.Engine for document parsing, text extraction, writing, editing, repair, forms, annotations, signatures, and preservation-sensitive page operations. PDFium remains the rendering backend.
+The desktop document pipeline uses The KillerPDF.Engine for document parsing, text extraction, writing, editing, repair, forms, annotations, signatures, preservation-sensitive page operations, OCR foundations, and CPU rendering of paths, images, forms, and transparency. PDFium remains the production rendering backend while engine rendering reaches parity.
 
 ## Translations
 
