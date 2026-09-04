@@ -188,6 +188,13 @@ public sealed class PdfSignatureVerifierTests
         Assert.Equal(verificationTime, result.RequestedVerificationTime);
         Assert.True(result.CertificateDownloadsDisabled);
         Assert.Empty(result.CertificateChainErrors);
+        PdfCertificateChainElement chainCertificate = Assert.Single(result.CertificateChain);
+        Assert.Equal(certificate.Subject, chainCertificate.Subject);
+        Assert.Equal(certificate.Issuer, chainCertificate.Issuer);
+        Assert.Equal(certificate.SerialNumber, chainCertificate.SerialNumber);
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(certificate.RawData)),
+            chainCertificate.Sha256Fingerprint);
+        Assert.Empty(chainCertificate.StatusMessages);
     }
 
     [Fact]
@@ -227,6 +234,7 @@ public sealed class PdfSignatureVerifierTests
         Assert.Equal(PdfPadesProfile.BaselineB, entry.PadesProfile);
         Assert.Contains("\"fieldName\":\"Approval\"", json);
         Assert.Contains("\"padesProfile\":1", json);
+        Assert.Contains("\"certificateChain\":[{", json);
         Assert.DoesNotContain("contents", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("cms", json, StringComparison.OrdinalIgnoreCase);
         string text = report.ToText();
@@ -246,6 +254,8 @@ public sealed class PdfSignatureVerifierTests
         Assert.Contains("Certificate valid from: ", text);
         Assert.Contains("Certificate valid until: ", text);
         Assert.Contains("Certificate time validity: Valid", text);
+        Assert.Contains($"Chain certificate 1: {certificate.Subject}", text);
+        Assert.Contains("    SHA-256: ", text);
         Assert.Contains("Later changes: No", text);
     }
 

@@ -2,6 +2,12 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace KillerPdf.Engine.Signing;
 
+/// <summary>One certificate in the evaluated signing chain.</summary>
+public sealed record PdfCertificateChainElement(
+    string Subject, string Issuer, string SerialNumber, string Sha256Fingerprint,
+    DateTimeOffset NotBefore, DateTimeOffset NotAfter,
+    IReadOnlyList<string> StatusMessages);
+
 /// <summary>Cryptographic verification outcome for one structurally inspected signature.</summary>
 public sealed record PdfSignatureVerificationResult
 {
@@ -27,6 +33,8 @@ public sealed record PdfSignatureVerificationResult
     public bool? CertificateDownloadsDisabled { get; init; }
     /// <summary>Gets certificate-chain status details supplied by the platform.</summary>
     public IReadOnlyList<string> CertificateChainErrors { get; init; } = [];
+    /// <summary>Gets certificates in evaluated leaf-to-root chain order.</summary>
+    public IReadOnlyList<PdfCertificateChainElement> CertificateChain { get; init; } = [];
     /// <summary>Gets the CMS digest algorithm object identifier.</summary>
     public string? DigestAlgorithmOid { get; init; }
     /// <summary>Gets the CMS signature algorithm object identifier.</summary>

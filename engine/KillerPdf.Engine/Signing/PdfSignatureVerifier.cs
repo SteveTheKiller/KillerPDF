@@ -112,11 +112,13 @@ public static class PdfSignatureVerifier
                             : PdfCertificateRevocationStatus.Good;
                 string[] errors = chain.ChainStatus.Select(status => status.StatusInformation.Trim())
                     .Where(message => message.Length > 0).ToArray();
+                PdfCertificateChainElement[] chainElements = [.. chain.ChainElements
+                    .Select(element => ChainElement(element))];
                 if (!trusted)
                     return TrustFailure(errors.FirstOrDefault() ?? "The signing certificate is not trusted.",
                         revocation == PdfCertificateRevocationStatus.Indeterminate
                             ? PdfCertificateTrustStatus.Indeterminate : PdfCertificateTrustStatus.Untrusted,
-                        timeValid, revocation, errors);
+                        timeValid, revocation, errors, chainElements);
                 return new PdfSignatureVerificationResult
                 {
                     IsStructurallyValid = true,
@@ -128,6 +130,7 @@ public static class PdfSignatureVerifier
                     RequestedRevocationMode = policy.RevocationMode,
                     RequestedVerificationTime = policy.VerificationTime,
                     CertificateDownloadsDisabled = policy.DisableCertificateDownloads,
+                    CertificateChain = Array.AsReadOnly(chainElements),
                     DigestAlgorithmOid = digestAlgorithm,
                     SignatureAlgorithmOid = signatureAlgorithm,
                     SignaturePolicyOids = signaturePolicies,
@@ -172,7 +175,8 @@ public static class PdfSignatureVerifier
 
         PdfSignatureVerificationResult TrustFailure(string error,
             PdfCertificateTrustStatus trustStatus, bool? timeValid,
-            PdfCertificateRevocationStatus revocationStatus, IReadOnlyList<string> chainErrors) =>
+            PdfCertificateRevocationStatus revocationStatus, IReadOnlyList<string> chainErrors,
+            IReadOnlyList<PdfCertificateChainElement>? certificateChain = null) =>
             new()
             {
                 IsStructurallyValid = true,
@@ -185,6 +189,7 @@ public static class PdfSignatureVerifier
                 RequestedVerificationTime = trustOptions?.VerificationTime,
                 CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
                 CertificateChainErrors = chainErrors,
+                CertificateChain = certificateChain ?? [],
                 DigestAlgorithmOid = digestAlgorithm,
                 SignatureAlgorithmOid = signatureAlgorithm,
                 SignaturePolicyOids = signaturePolicies,
@@ -200,6 +205,17 @@ public static class PdfSignatureVerifier
 
     private static string? CertificateFingerprint(X509Certificate2? certificate) =>
         certificate is null ? null : Convert.ToHexString(SHA256.HashData(certificate.RawData));
+
+    private static PdfCertificateChainElement ChainElement(X509ChainElement element)
+    {
+        X509Certificate2 certificate = element.Certificate;
+        string[] status = [.. element.ChainElementStatus
+            .Select(item => item.StatusInformation.Trim())
+            .Where(message => message.Length > 0)];
+        return new PdfCertificateChainElement(certificate.Subject, certificate.Issuer,
+            certificate.SerialNumber, CertificateFingerprint(certificate)!,
+            certificate.NotBefore, certificate.NotAfter, Array.AsReadOnly(status));
+    }
 
     private static IReadOnlyList<string> SignaturePolicies(SignerInfo signer)
     {

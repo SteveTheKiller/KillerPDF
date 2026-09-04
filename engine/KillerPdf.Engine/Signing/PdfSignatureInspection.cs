@@ -61,6 +61,17 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                     .AppendLine(timeValid ? "Valid" : "Invalid");
             foreach (string error in entry.Verification.CertificateChainErrors)
                 output.Append("  Certificate chain: ").AppendLine(error);
+            foreach ((PdfCertificateChainElement certificate, int index) in
+                entry.Verification.CertificateChain.Select((certificate, index) =>
+                    (certificate, index)))
+            {
+                output.Append("  Chain certificate ").Append(index + 1).Append(": ")
+                    .AppendLine(certificate.Subject)
+                    .Append("    Issuer: ").AppendLine(certificate.Issuer)
+                    .Append("    SHA-256: ").AppendLine(certificate.Sha256Fingerprint);
+                foreach (string status in certificate.StatusMessages)
+                    output.Append("    Status: ").AppendLine(status);
+            }
             if (entry.Revision is not null)
                 output.Append("  Later changes: ")
                     .AppendLine(entry.Revision.HasLaterChanges ? "Yes" : "No");
