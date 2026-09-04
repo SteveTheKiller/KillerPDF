@@ -12,7 +12,7 @@ public static class PdfFormDataImporter
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(data);
-        Dictionary<string, PdfFormWidgetInfo> widgets = Widgets(document);
+        Dictionary<string, IReadOnlyList<PdfFormWidgetInfo>> widgets = Widgets(document);
         var names = new HashSet<string>(StringComparer.Ordinal);
         var matches = new List<PdfFormDataMatch>();
         foreach (PdfFormDataField field in data.Fields)
@@ -24,16 +24,20 @@ public static class PdfFormDataImporter
             PdfFormDataMatchStatus status;
             PdfFormFieldKind kind = PdfFormFieldKind.Unknown;
             long flags = 0;
-            if (!widgets.TryGetValue(field.Name, out PdfFormWidgetInfo? widget))
+            if (!widgets.TryGetValue(field.Name, out IReadOnlyList<PdfFormWidgetInfo>? fieldWidgets))
                 status = PdfFormDataMatchStatus.Unmatched;
             else
             {
+                PdfFormWidgetInfo widget = fieldWidgets[0];
                 kind = widget.FieldKind;
                 flags = widget.Flags;
                 status = (flags & 1) != 0 ? PdfFormDataMatchStatus.ReadOnly
                     : kind == PdfFormFieldKind.Signature || kind == PdfFormFieldKind.Unknown
                         || (kind == PdfFormFieldKind.Button && (flags & (1L << 16)) != 0)
-                        ? PdfFormDataMatchStatus.Incompatible : PdfFormDataMatchStatus.Matched;
+                        ? PdfFormDataMatchStatus.Incompatible
+                        : ValuesAreValid(field, fieldWidgets)
+                            ? PdfFormDataMatchStatus.Matched
+                            : PdfFormDataMatchStatus.InvalidValue;
             }
             matches.Add(new PdfFormDataMatch
             {
@@ -64,14 +68,14 @@ public static class PdfFormDataImporter
     public static byte[] Apply(PdfDocument document, PdfFormDataSet data)
     {
         IReadOnlyList<PdfFormDataMatch> preview = Preview(document, data);
-        Dictionary<string, PdfFormWidgetInfo> widgets = Widgets(document);
+        Dictionary<string, IReadOnlyList<PdfFormWidgetInfo>> widgets = Widgets(document);
         var editor = new PdfIncrementalPageEditor(document);
         bool changed = false;
         for (int index = 0; index < data.Fields.Count; index++)
         {
             if (preview[index].Status != PdfFormDataMatchStatus.Matched) continue;
             PdfFormDataField field = data.Fields[index];
-            PdfFormWidgetInfo widget = widgets[field.Name];
+            PdfFormWidgetInfo widget = widgets[field.Name][0];
             string first = field.Values.FirstOrDefault() ?? string.Empty;
             switch (widget.FieldKind)
             {
@@ -100,14 +104,53 @@ public static class PdfFormDataImporter
         return editor.Build();
     }
 
-    private static Dictionary<string, PdfFormWidgetInfo> Widgets(PdfDocument document)
+    private static bool ValuesAreValid(PdfFormDataField field,
+        IReadOnlyList<PdfFormWidgetInfo> widgets)
+    {
+        PdfFormWidgetInfo widget = widgets[0];
+        string first = field.Values.FirstOrDefault() ?? string.Empty;
+        if (widget.FieldKind == PdfFormFieldKind.Text)
+            return field.Values.Count <= 1
+                && (widget.MaximumLength == 0 || first.Length <= widget.MaximumLength);
+        if (widget.FieldKind == PdfFormFieldKind.Choice)
+        {
+            bool combo = (widget.Flags & (1L << 17)) != 0;
+            bool editable = (widget.Flags & (1L << 18)) != 0;
+            bool multiSelect = (widget.Flags & (1L << 21)) != 0;
+            if (combo && multiSelect) return false;
+            if (!multiSelect && field.Values.Count != 1) return false;
+            var exportValues = new HashSet<string>(
+                widget.Options.Select(option => option.ExportValue), StringComparer.Ordinal);
+            return field.Values.All(value => exportValues.Contains(value) || combo && editable);
+        }
+        if (widget.FieldKind != PdfFormFieldKind.Button || field.Values.Count > 1)
+            return false;
+        string normalized = first.TrimStart('/');
+        if ((widget.Flags & (1L << 15)) != 0)
+            return normalized.Length == 0 || normalized == "Off"
+                || widgets.Any(item => string.Equals(item.OnValue.TrimStart('/'), normalized,
+                    StringComparison.Ordinal));
+        return normalized.Length == 0 || normalized == "Off" || normalized == "0"
+            || normalized.Equals("false", StringComparison.OrdinalIgnoreCase)
+            || normalized == "1" || normalized.Equals("true", StringComparison.OrdinalIgnoreCase)
+            || widgets.Any(item => string.Equals(item.OnValue.TrimStart('/'), normalized,
+                StringComparison.Ordinal));
+    }
+
+    private static Dictionary<string, IReadOnlyList<PdfFormWidgetInfo>> Widgets(PdfDocument document)
     {
         int pageCount = PdfDocumentInformation.Read(document).PageCount;
-        var result = new Dictionary<string, PdfFormWidgetInfo>(StringComparer.Ordinal);
+        var collected = new Dictionary<string, List<PdfFormWidgetInfo>>(StringComparer.Ordinal);
         for (int page = 0; page < pageCount; page++)
             foreach (PdfFormWidgetInfo widget in PdfFormWidgetReader.ReadPage(document, page))
-                result.TryAdd(widget.FieldName, widget);
-        return result;
+            {
+                if (!collected.TryGetValue(widget.FieldName, out List<PdfFormWidgetInfo>? matches))
+                    collected.Add(widget.FieldName, matches = []);
+                matches.Add(widget);
+            }
+        return collected.ToDictionary(item => item.Key,
+            item => (IReadOnlyList<PdfFormWidgetInfo>)item.Value.AsReadOnly(),
+            StringComparer.Ordinal);
     }
 }
 
@@ -121,7 +164,9 @@ public enum PdfFormDataMatchStatus
     /// <summary>The destination field is read-only.</summary>
     ReadOnly,
     /// <summary>The destination field type cannot accept imported values.</summary>
-    Incompatible
+    Incompatible,
+    /// <summary>The supplied value cannot be applied to the destination field.</summary>
+    InvalidValue
 }
 
 /// <summary>Describes one previewed form-data match.</summary>

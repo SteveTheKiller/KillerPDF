@@ -85,4 +85,57 @@ public sealed class PdfFormDataImporterTests
         Assert.Equal("/Accepted", widgets["approved"].Value);
         Assert.Equal("/Low", widgets["priority"].Value);
     }
+
+    [Fact]
+    public void PreviewRejectsValuesThatGenerationCannotApply()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "code", 10, 10, 100, 20,
+                options: new PdfTextFieldOptions { MaximumLength = 3 })
+            .AddComboBox(0, "region", 10, 40, 100, 20, ["US", "CA"])
+            .AddCheckBox(0, "approved", 10, 70, 20, 20, false, "Accepted")
+            .AddRadioGroup("priority", [
+                new PdfRadioButtonOption(0, 10, 100, 20, 20, "High"),
+                new PdfRadioButtonOption(0, 40, 100, 20, 20, "Low")])
+            .Build());
+        var data = new PdfFormDataSet { Fields =
+        [
+            new PdfFormDataField { Name = "code", Values = ["LONG"] },
+            new PdfFormDataField { Name = "region", Values = ["EU"] },
+            new PdfFormDataField { Name = "approved", Values = ["maybe"] },
+            new PdfFormDataField { Name = "priority", Values = ["Medium"] }
+        ] };
+
+        IReadOnlyList<PdfFormDataMatch> result = PdfFormDataImporter.Preview(document, data);
+
+        Assert.All(result, match =>
+            Assert.Equal(PdfFormDataMatchStatus.InvalidValue, match.Status));
+        Assert.Throws<InvalidOperationException>(() => PdfFormDataImporter.Apply(document, data));
+    }
+
+    [Fact]
+    public void PreviewAcceptsEveryRadioOptionAndExplicitCheckboxFalseValues()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddCheckBox(0, "approved", 10, 70, 20, 20, true, "Accepted")
+            .AddRadioGroup("priority", [
+                new PdfRadioButtonOption(0, 10, 100, 20, 20, "High"),
+                new PdfRadioButtonOption(0, 40, 100, 20, 20, "Low")])
+            .Build());
+        var data = new PdfFormDataSet { Fields =
+        [
+            new PdfFormDataField { Name = "approved", Values = ["false"] },
+            new PdfFormDataField { Name = "priority", Values = ["Low"] }
+        ] };
+
+        IReadOnlyList<PdfFormDataMatch> preview = PdfFormDataImporter.Preview(document, data);
+        PdfDocument reopened = PdfDocument.Open(PdfFormDataImporter.Apply(document, data));
+        Dictionary<string, PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(reopened, 0)
+            .GroupBy(widget => widget.FieldName)
+            .ToDictionary(group => group.Key, group => group.First());
+
+        Assert.All(preview, match => Assert.Equal(PdfFormDataMatchStatus.Matched, match.Status));
+        Assert.Equal("/Off", widgets["approved"].Value);
+        Assert.Equal("/Low", widgets["priority"].Value);
+    }
 }
