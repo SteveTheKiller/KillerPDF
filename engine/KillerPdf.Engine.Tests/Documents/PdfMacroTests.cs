@@ -73,6 +73,8 @@ public sealed class PdfMacroTests
         Assert.Equal(new byte[] { 1, 0, 1 }, results[0].Data!.Value.ToArray());
         Assert.False(results[1].Succeeded);
         Assert.Equal("Bad input", results[1].Error);
+        Assert.Equal(0, results[1].FailedStepIndex);
+        Assert.Equal(PdfMacroOperation.Ocr, results[1].FailedOperation);
         Assert.Equal(new byte[] { 3, 0, 1 }, results[2].Data!.Value.ToArray());
     }
 
@@ -111,6 +113,26 @@ public sealed class PdfMacroTests
             .GetProperty("error").GetString());
         Assert.DoesNotContain("QUJD", json, StringComparison.Ordinal);
         Assert.DoesNotContain("data", json, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void RunReportExportsTheFailedStepWithoutDocumentData()
+    {
+        var macro = new PdfMacro("Prepare", [
+            new(PdfMacroOperation.Ocr), new(PdfMacroOperation.Validate)]);
+
+        PdfMacroRunReport report = PdfMacroRunner.RunReport(macro,
+            [new ReadOnlyMemory<byte>(new byte[] { 7 })],
+            (step, input, _) => step.Operation == PdfMacroOperation.Validate
+                ? throw new InvalidOperationException("Validation failed") : input);
+        PdfMacroFileResult result = Assert.Single(report.Results);
+        string json = report.ToJson();
+
+        Assert.Equal(1, result.FailedStepIndex);
+        Assert.Equal(PdfMacroOperation.Validate, result.FailedOperation);
+        Assert.Contains("\"failedStepIndex\":1", json);
+        Assert.Contains("\"failedOperation\":19", json);
+        Assert.DoesNotContain("Bw==", json, StringComparison.Ordinal);
     }
 
     [Fact]

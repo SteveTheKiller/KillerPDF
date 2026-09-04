@@ -328,12 +328,17 @@ public static class PdfMacroRunner
         foreach (ReadOnlyMemory<byte> source in inputs)
         {
             if (cancellationToken.IsCancellationRequested) break;
+            int? failedStepIndex = null;
+            PdfMacroOperation? failedOperation = null;
             try
             {
                 ReadOnlyMemory<byte> current = source.ToArray();
-                foreach (PdfMacroStep step in macro.Steps)
+                foreach ((PdfMacroStep step, int stepIndex) in macro.Steps.Select(
+                             (step, stepIndex) => (step, stepIndex)))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    failedStepIndex = stepIndex;
+                    failedOperation = step.Operation;
                     current = operation(step, current, cancellationToken);
                 }
                 results.Add(new PdfMacroFileResult(index, current.ToArray(), null, false));
@@ -346,7 +351,11 @@ public static class PdfMacroRunner
             catch (Exception exception) when (exception is not OutOfMemoryException
                 and not StackOverflowException and not AccessViolationException)
             {
-                results.Add(new PdfMacroFileResult(index, null, exception.Message, false));
+                results.Add(new PdfMacroFileResult(index, null, exception.Message, false)
+                {
+                    FailedStepIndex = failedStepIndex,
+                    FailedOperation = failedOperation
+                });
             }
             index++;
         }
@@ -373,13 +382,18 @@ public static class PdfMacroRunner
         foreach (ReadOnlyMemory<byte> source in inputs)
         {
             if (cancellationToken.IsCancellationRequested) break;
+            int? failedStepIndex = null;
+            PdfMacroOperation? failedOperation = null;
             try
             {
                 ReadOnlyMemory<byte> current = source.ToArray();
                 var values = new Dictionary<string, string>(seed, StringComparer.Ordinal);
-                foreach (PdfMacroStep step in macro.Steps)
+                foreach ((PdfMacroStep step, int stepIndex) in macro.Steps.Select(
+                             (step, stepIndex) => (step, stepIndex)))
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    failedStepIndex = stepIndex;
+                    failedOperation = step.Operation;
                     PdfMacroStep resolved = ResolveSettings(step, values);
                     PdfMacroOperationResult result = operation(resolved, current,
                         new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(values),
@@ -400,7 +414,11 @@ public static class PdfMacroRunner
             catch (Exception exception) when (exception is not OutOfMemoryException
                 and not StackOverflowException and not AccessViolationException)
             {
-                results.Add(new PdfMacroFileResult(index, null, exception.Message, false));
+                results.Add(new PdfMacroFileResult(index, null, exception.Message, false)
+                {
+                    FailedStepIndex = failedStepIndex,
+                    FailedOperation = failedOperation
+                });
             }
             index++;
         }
@@ -502,7 +520,9 @@ public sealed record PdfMacroRunReport
                 result.InputIndex,
                 result.Succeeded,
                 result.Error,
-                result.WasCanceled
+                result.WasCanceled,
+                result.FailedStepIndex,
+                result.FailedOperation
             })
         }, options);
     }
@@ -512,6 +532,10 @@ public sealed record PdfMacroRunReport
 public sealed record PdfMacroFileResult(int InputIndex, ReadOnlyMemory<byte>? Data,
     string? Error, bool WasCanceled)
 {
+    /// <summary>Gets the zero-based step that failed, when execution reached a step.</summary>
+    public int? FailedStepIndex { get; init; }
+    /// <summary>Gets the operation that failed, when execution reached a step.</summary>
+    public PdfMacroOperation? FailedOperation { get; init; }
     /// <summary>Gets whether every step completed.</summary>
     public bool Succeeded => Data.HasValue && Error is null && !WasCanceled;
 }
