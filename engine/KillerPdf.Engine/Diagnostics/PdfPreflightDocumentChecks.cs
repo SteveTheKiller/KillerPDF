@@ -89,7 +89,9 @@ internal static class PdfPreflightDocumentChecks
                         "An output intent has no usable destination ICC profile.",
                         objectNumber: reference?.ObjectNumber));
             }
-            return Array.AsReadOnly(findings.ToArray());
+            if (findings.Count > 0) return Array.AsReadOnly(findings.ToArray());
+            _ = PdfOutputIntentInspection.Inspect(document);
+            return [];
         }
         catch (Exception error) when (IsDocumentFailure(error))
         {

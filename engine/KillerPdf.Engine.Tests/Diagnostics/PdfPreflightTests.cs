@@ -2,6 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Fonts;
@@ -112,6 +113,31 @@ public sealed class PdfPreflightTests
         Assert.DoesNotContain(complete.Findings,
             finding => finding.Code.StartsWith("PageBoxes.", StringComparison.Ordinal)
                 || finding.Code.StartsWith("OutputIntent.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void OutputIntentCheckRejectsMalformedIccProfileBytes()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetOutputIntent(PdfIccProfile.Load(Profile()), "Test RGB")
+            .AddBlankPage().Build());
+        int profileObject = original.CrossReferences.Values
+            .Where(entry => entry.Type == PdfCrossReferenceEntryType.InUse)
+            .Select(entry => (entry.ObjectNumber, Object: original.Resolve(entry.ObjectNumber)))
+            .Where(item => item.Object is PdfStream stream
+                && stream.Dictionary.ContainsKey(new PdfName("N"u8)))
+            .Select(item => item.ObjectNumber).Single();
+        byte[] malformed = new PdfIncrementalUpdateBuilder(original).ReplaceObject(
+            profileObject,
+            new PdfStream(new PdfDictionary([
+                new(new PdfName("N"u8), new PdfInteger(3))]), "not an ICC profile"u8)).Build();
+        var profile = new PdfPreflightProfile("Output intent", [PdfPreflightCheck.OutputIntent]);
+
+        PdfPreflightFinding finding = Assert.Single(
+            PdfPreflightRunner.Run(malformed, profile).Findings);
+
+        Assert.Equal("OutputIntent.Invalid", finding.Code);
+        Assert.Equal(PdfDiagnosticSeverity.Error, finding.Severity);
     }
 
     [Fact]
