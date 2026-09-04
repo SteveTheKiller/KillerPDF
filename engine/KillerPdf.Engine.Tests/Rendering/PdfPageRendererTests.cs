@@ -47,6 +47,21 @@ public sealed class PdfPageRendererTests
         Assert.Throws<ArgumentException>(() => new PdfRenderOptions(20_000, 20_000));
     }
 
+    [Fact]
+    public void Render_FillsGeneralPathAndStrokesCurve()
+    {
+        byte[] content = "0 1 0 rg 1 1 m 8 1 l 4 8 l h f 0 0 1 RG 1 w 1 9 m 3 5 7 5 9 9 c S"u8.ToArray();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 255, 0, 255], Pixel(page, 4, 7));
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 1, 1));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 0, 9));
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }

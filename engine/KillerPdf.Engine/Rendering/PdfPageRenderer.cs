@@ -44,9 +44,10 @@ public sealed class PdfPageRenderer
         PdfPageInformation page = _pages[pageIndex];
         double scaleX = options.Width / page.Width;
         double scaleY = options.Height / page.Height;
-        var state = new GraphicsState(Matrix.Identity, Color.Black);
+        var state = new GraphicsState(Matrix.Identity, Color.Black, Color.Black, 1);
         var stack = new Stack<GraphicsState>();
-        Rect? rectangle = null;
+        var path = new List<List<Point>>();
+        List<Point>? subpath = null;
         var diagnostics = new HashSet<string>();
         foreach (PdfContentInstruction instruction in _content.ReadInstructions(
             pageIndex, cancellationToken))
@@ -60,7 +61,8 @@ public sealed class PdfPageRenderer
                     break;
                 case "Q":
                     state = stack.Count == 0 ? state : stack.Pop();
-                    rectangle = null;
+                    path.Clear();
+                    subpath = null;
                     break;
                 case "cm" when values.Count == 6:
                     state = state with { Transform = Matrix.From(values).Then(state.Transform) };
@@ -81,17 +83,68 @@ public sealed class PdfPageRenderer
                             Number(values[2]), Number(values[3]))
                     };
                     break;
-                case "re" when values.Count == 4:
-                    rectangle = TransformRectangle(state.Transform, Number(values[0]),
-                        Number(values[1]), Number(values[2]), Number(values[3]));
+                case "G" when values.Count == 1:
+                    state = state with { Stroke = Color.Gray(Number(values[0])) };
                     break;
-                case "f" or "F" or "f*" when rectangle.HasValue:
-                    Fill(pixels, options.Width, options.Height, scaleX, scaleY,
-                        rectangle.Value, state.Fill);
-                    rectangle = null;
+                case "RG" when values.Count == 3:
+                    state = state with
+                    {
+                        Stroke = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2]))
+                    };
+                    break;
+                case "K" when values.Count == 4:
+                    state = state with
+                    {
+                        Stroke = Color.Cmyk(Number(values[0]), Number(values[1]),
+                            Number(values[2]), Number(values[3]))
+                    };
+                    break;
+                case "w" when values.Count == 1:
+                    state = state with { LineWidth = Math.Max(0, Number(values[0])) };
+                    break;
+                case "m" when values.Count == 2:
+                    subpath = [state.Transform.Apply(Number(values[0]), Number(values[1]))];
+                    path.Add(subpath);
+                    break;
+                case "l" when values.Count == 2 && subpath is not null:
+                    subpath.Add(state.Transform.Apply(Number(values[0]), Number(values[1])));
+                    break;
+                case "c" when values.Count == 6 && subpath is { Count: > 0 }:
+                    AddCubic(subpath, subpath[^1],
+                        state.Transform.Apply(Number(values[0]), Number(values[1])),
+                        state.Transform.Apply(Number(values[2]), Number(values[3])),
+                        state.Transform.Apply(Number(values[4]), Number(values[5])));
+                    break;
+                case "h" when subpath is { Count: > 1 }:
+                    subpath.Add(subpath[0]);
+                    break;
+                case "re" when values.Count == 4:
+                    double x = Number(values[0]), y = Number(values[1]);
+                    double w = Number(values[2]), h = Number(values[3]);
+                    subpath =
+                    [
+                        state.Transform.Apply(x, y), state.Transform.Apply(x + w, y),
+                        state.Transform.Apply(x + w, y + h), state.Transform.Apply(x, y + h),
+                        state.Transform.Apply(x, y)
+                    ];
+                    path.Add(subpath);
+                    break;
+                case "f" or "F" or "f*" when path.Count > 0:
+                    FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                        path, state.Fill, instruction.Operator == "f*");
+                    path.Clear();
+                    subpath = null;
+                    break;
+                case "S" or "s" when path.Count > 0:
+                    if (instruction.Operator == "s" && subpath is { Count: > 1 }) subpath.Add(subpath[0]);
+                    StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                        path, state.Stroke, state.LineWidth);
+                    path.Clear();
+                    subpath = null;
                     break;
                 case "n":
-                    rectangle = null;
+                    path.Clear();
+                    subpath = null;
                     break;
                 case "BT" or "ET" or "Tf" or "Tm" or "Td" or "TD" or "T*"
                     or "Tc" or "Tw" or "Tz" or "TL" or "Tr" or "Ts" or "Tj" or "TJ"
@@ -110,36 +163,72 @@ public sealed class PdfPageRenderer
         return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
     }
 
-    private static void Fill(byte[] pixels, int width, int height, double scaleX,
-        double scaleY, Rect rectangle, Color color)
+    private static void FillPaths(byte[] pixels, int width, int height, double scaleX,
+        double scaleY, IReadOnlyList<List<Point>> paths, Color color, bool evenOdd)
     {
-        int left = Math.Clamp((int)Math.Floor(rectangle.Left * scaleX), 0, width);
-        int right = Math.Clamp((int)Math.Ceiling(rectangle.Right * scaleX), 0, width);
-        int top = Math.Clamp(height - (int)Math.Ceiling(rectangle.Top * scaleY), 0, height);
-        int bottom = Math.Clamp(height - (int)Math.Floor(rectangle.Bottom * scaleY), 0, height);
-        for (int y = top; y < bottom; y++)
+        var scaled = paths.Where(item => item.Count > 2).Select(item => item.Select(point =>
+            new Point(point.X * scaleX, height - point.Y * scaleY)).ToArray()).ToArray();
+        for (int y = 0; y < height; y++)
         {
-            int offset = (y * width + left) * 4;
-            for (int x = left; x < right; x++, offset += 4)
+            double sampleY = y + 0.5;
+            for (int x = 0; x < width; x++)
             {
-                pixels[offset] = color.Blue;
-                pixels[offset + 1] = color.Green;
-                pixels[offset + 2] = color.Red;
-                pixels[offset + 3] = 255;
+                double sampleX = x + 0.5;
+                int crossings = 0;
+                foreach (Point[] polygon in scaled)
+                    for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
+                        if ((polygon[i].Y > sampleY) != (polygon[j].Y > sampleY)
+                            && sampleX < (polygon[j].X - polygon[i].X)
+                                * (sampleY - polygon[i].Y) / (polygon[j].Y - polygon[i].Y)
+                                + polygon[i].X)
+                            crossings++;
+                if ((evenOdd ? crossings % 2 : crossings) != 0) SetPixel(pixels, width, x, y, color);
             }
         }
     }
 
-    private static Rect TransformRectangle(Matrix matrix, double x, double y,
-        double width, double height)
+    private static void StrokePaths(byte[] pixels, int width, int height, double scaleX,
+        double scaleY, IReadOnlyList<List<Point>> paths, Color color, double lineWidth)
     {
-        Point[] points =
-        [
-            matrix.Apply(x, y), matrix.Apply(x + width, y),
-            matrix.Apply(x, y + height), matrix.Apply(x + width, y + height)
-        ];
-        return new Rect(points.Min(point => point.X), points.Min(point => point.Y),
-            points.Max(point => point.X), points.Max(point => point.Y));
+        int radius = Math.Max(0, (int)Math.Ceiling(lineWidth * Math.Max(scaleX, scaleY) / 2));
+        foreach (List<Point> path in paths)
+            for (int i = 1; i < path.Count; i++)
+            {
+                Point from = new(path[i - 1].X * scaleX, height - path[i - 1].Y * scaleY);
+                Point to = new(path[i].X * scaleX, height - path[i].Y * scaleY);
+                int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(to.X - from.X), Math.Abs(to.Y - from.Y))));
+                for (int step = 0; step <= steps; step++)
+                {
+                    int cx = (int)Math.Round(from.X + (to.X - from.X) * step / steps);
+                    int cy = (int)Math.Round(from.Y + (to.Y - from.Y) * step / steps);
+                    for (int yy = cy - radius; yy <= cy + radius; yy++)
+                        for (int xx = cx - radius; xx <= cx + radius; xx++)
+                            if (xx >= 0 && xx < width && yy >= 0 && yy < height)
+                                SetPixel(pixels, width, xx, yy, color);
+                }
+            }
+    }
+
+    private static void AddCubic(List<Point> path, Point start, Point control1,
+        Point control2, Point end)
+    {
+        for (int step = 1; step <= 16; step++)
+        {
+            double t = step / 16d, u = 1 - t;
+            path.Add(new Point(u * u * u * start.X + 3 * u * u * t * control1.X
+                + 3 * u * t * t * control2.X + t * t * t * end.X,
+                u * u * u * start.Y + 3 * u * u * t * control1.Y
+                + 3 * u * t * t * control2.Y + t * t * t * end.Y));
+        }
+    }
+
+    private static void SetPixel(byte[] pixels, int width, int x, int y, Color color)
+    {
+        int offset = (y * width + x) * 4;
+        pixels[offset] = color.Blue;
+        pixels[offset + 1] = color.Green;
+        pixels[offset + 2] = color.Red;
+        pixels[offset + 3] = 255;
     }
 
     private static double Number(PdfObject value) => value switch
@@ -149,9 +238,9 @@ public sealed class PdfPageRenderer
         _ => throw new FormatException("A rendering operand is not numeric.")
     };
 
-    private readonly record struct GraphicsState(Matrix Transform, Color Fill);
+    private readonly record struct GraphicsState(
+        Matrix Transform, Color Fill, Color Stroke, double LineWidth);
     private readonly record struct Point(double X, double Y);
-    private readonly record struct Rect(double Left, double Bottom, double Right, double Top);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
         internal static Matrix Identity => new(1, 0, 0, 1, 0, 0);
