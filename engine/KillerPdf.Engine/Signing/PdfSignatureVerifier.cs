@@ -42,16 +42,21 @@ public static class PdfSignatureVerifier
                 CertificateTrustWasChecked = checkCertificateTrust,
                 Error = "The signature does not contain a valid byte range and CMS value."
             };
+        X509Certificate2? signer = null;
+        string? digestAlgorithm = null;
+        string? signatureAlgorithm = null;
         try
         {
             byte[] content = PdfSignatureReader.GetSignedContent(document, signature);
             var cms = new SignedCms(new ContentInfo(content), detached: true);
             cms.Decode(signature.Cms.Span);
             cms.CheckSignature(verifySignatureOnly: true);
+            SignerInfo? signerInfo = cms.SignerInfos.Count > 0 ? cms.SignerInfos[0] : null;
+            signer = signerInfo?.Certificate;
+            digestAlgorithm = signerInfo?.DigestAlgorithm.Value;
+            signatureAlgorithm = signerInfo?.SignatureAlgorithm.Value;
             if (checkCertificateTrust)
             {
-                X509Certificate2? signer = cms.SignerInfos.Count > 0
-                    ? cms.SignerInfos[0].Certificate : null;
                 if (signer is null)
                     return TrustFailure("The CMS signature does not contain a signing certificate.",
                         PdfCertificateTrustStatus.Indeterminate, null,
@@ -95,7 +100,14 @@ public static class PdfSignatureVerifier
                     CertificateTrustWasChecked = true,
                     CertificateTrustStatus = PdfCertificateTrustStatus.Trusted,
                     IsCertificateTimeValid = true,
-                    RevocationStatus = revocation
+                    RevocationStatus = revocation,
+                    DigestAlgorithmOid = digestAlgorithm,
+                    SignatureAlgorithmOid = signatureAlgorithm,
+                    SignerSubject = signer.Subject,
+                    SignerIssuer = signer.Issuer,
+                    SignerSerialNumber = signer.SerialNumber,
+                    CertificateNotBefore = signer.NotBefore,
+                    CertificateNotAfter = signer.NotAfter
                 };
             }
             return new PdfSignatureVerificationResult
@@ -104,7 +116,14 @@ public static class PdfSignatureVerifier
                 IsCryptographicallyValid = true,
                 CertificateTrustWasChecked = checkCertificateTrust,
                 CertificateTrustStatus = PdfCertificateTrustStatus.NotChecked,
-                RevocationStatus = PdfCertificateRevocationStatus.NotChecked
+                RevocationStatus = PdfCertificateRevocationStatus.NotChecked,
+                DigestAlgorithmOid = digestAlgorithm,
+                SignatureAlgorithmOid = signatureAlgorithm,
+                SignerSubject = signer?.Subject,
+                SignerIssuer = signer?.Issuer,
+                SignerSerialNumber = signer?.SerialNumber,
+                CertificateNotBefore = signer?.NotBefore,
+                CertificateNotAfter = signer?.NotAfter
             };
         }
         catch (CryptographicException exception)
@@ -129,6 +148,13 @@ public static class PdfSignatureVerifier
                 IsCertificateTimeValid = timeValid,
                 RevocationStatus = revocationStatus,
                 CertificateChainErrors = chainErrors,
+                DigestAlgorithmOid = digestAlgorithm,
+                SignatureAlgorithmOid = signatureAlgorithm,
+                SignerSubject = signer?.Subject,
+                SignerIssuer = signer?.Issuer,
+                SignerSerialNumber = signer?.SerialNumber,
+                CertificateNotBefore = signer?.NotBefore,
+                CertificateNotAfter = signer?.NotAfter,
                 Error = error
             };
     }

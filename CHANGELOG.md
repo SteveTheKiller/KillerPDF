@@ -15,6 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added isolated transformations for selected page-content instruction ranges (#332).
 - Expanded selective sanitization to remove form fields and widgets (#333).
 - Added accessibility checks for missing form field descriptions (#335).
+- Added certificate identity and algorithm details to signature verification (#336).
 - Added attachment metadata and integrity checks to the 1.9 engine (#347).
 - Added calibrated coordinates, directional deltas, and point snapping to measurement tools (#348).
 - Added step-and-repeat and manual page sequences to imposition planning (#349).

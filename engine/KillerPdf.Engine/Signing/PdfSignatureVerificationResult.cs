@@ -19,6 +19,20 @@ public sealed record PdfSignatureVerificationResult
     public PdfCertificateRevocationStatus RevocationStatus { get; init; }
     /// <summary>Gets certificate-chain status details supplied by the platform.</summary>
     public IReadOnlyList<string> CertificateChainErrors { get; init; } = [];
+    /// <summary>Gets the CMS digest algorithm object identifier.</summary>
+    public string? DigestAlgorithmOid { get; init; }
+    /// <summary>Gets the CMS signature algorithm object identifier.</summary>
+    public string? SignatureAlgorithmOid { get; init; }
+    /// <summary>Gets the signing certificate subject.</summary>
+    public string? SignerSubject { get; init; }
+    /// <summary>Gets the signing certificate issuer.</summary>
+    public string? SignerIssuer { get; init; }
+    /// <summary>Gets the signing certificate serial number.</summary>
+    public string? SignerSerialNumber { get; init; }
+    /// <summary>Gets the beginning of the signing certificate validity period.</summary>
+    public DateTimeOffset? CertificateNotBefore { get; init; }
+    /// <summary>Gets the end of the signing certificate validity period.</summary>
+    public DateTimeOffset? CertificateNotAfter { get; init; }
     /// <summary>Gets the verification failure message, if any.</summary>
     public string? Error { get; init; }
 }

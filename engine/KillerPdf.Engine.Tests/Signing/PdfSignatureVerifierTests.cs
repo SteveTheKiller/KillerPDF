@@ -76,6 +76,13 @@ public sealed class PdfSignatureVerifierTests
         Assert.True(valid.IsCryptographicallyValid);
         Assert.False(valid.CertificateTrustWasChecked);
         Assert.False(valid.IsCertificateTrusted);
+        Assert.Equal("2.16.840.1.101.3.4.2.1", valid.DigestAlgorithmOid);
+        Assert.NotNull(valid.SignatureAlgorithmOid);
+        Assert.Equal(certificate.Subject, valid.SignerSubject);
+        Assert.Equal(certificate.Issuer, valid.SignerIssuer);
+        Assert.Equal(certificate.SerialNumber, valid.SignerSerialNumber);
+        Assert.Equal(certificate.NotBefore, valid.CertificateNotBefore);
+        Assert.Equal(certificate.NotAfter, valid.CertificateNotAfter);
         Assert.Null(valid.Error);
 
         byte[] marker = Encoding.ASCII.GetBytes("/MediaBox [0 0 612 792]");
