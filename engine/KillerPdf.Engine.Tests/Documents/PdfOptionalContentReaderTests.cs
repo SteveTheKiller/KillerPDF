@@ -97,4 +97,31 @@ public sealed class PdfOptionalContentReaderTests
         Assert.Null(clearedGroup.IsVisibleWhenPrinting);
         Assert.False(clearedGroup.IsVisibleWhenExporting);
     }
+
+    [Fact]
+    public void InitialVisibilityCanBeChangedWithoutChangingUsageState()
+    {
+        var layer = new PdfOptionalContentGroup("Artwork", initiallyVisible: false,
+            visibleWhenPrinting: true, visibleWhenExporting: false);
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(layer).Rectangle(0, 0, 10, 10).Fill().EndMarkedContent())
+            .Build());
+        int objectNumber = Assert.Single(PdfOptionalContentReader.Read(original).Groups).ObjectNumber;
+
+        PdfDocument visible = PdfDocument.Open(
+            PdfOptionalContentEditor.SetInitialVisibility(original, objectNumber, true));
+        PdfOptionalContentGroupInfo visibleGroup = Assert.Single(
+            PdfOptionalContentReader.Read(visible).Groups);
+        Assert.True(visibleGroup.IsInitiallyVisible);
+        Assert.True(visibleGroup.IsVisibleWhenPrinting);
+        Assert.False(visibleGroup.IsVisibleWhenExporting);
+
+        PdfDocument hidden = PdfDocument.Open(
+            PdfOptionalContentEditor.SetInitialVisibility(visible, objectNumber, false));
+        Assert.False(Assert.Single(PdfOptionalContentReader.Read(hidden).Groups)
+            .IsInitiallyVisible);
+        Assert.False(Assert.Single(PdfOptionalContentReader.Read(original).Groups)
+            .IsInitiallyVisible);
+    }
 }
