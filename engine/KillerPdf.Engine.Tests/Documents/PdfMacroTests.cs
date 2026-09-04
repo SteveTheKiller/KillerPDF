@@ -122,4 +122,28 @@ public sealed class PdfMacroTests
         Assert.Single(results);
         Assert.True(results[0].Succeeded);
     }
+
+    [Fact]
+    public void ResumePreservesCompletedResultsAndRetriesCanceledInput()
+    {
+        var macro = new PdfMacro("Resume", [new(PdfMacroOperation.Optimize)]);
+        ReadOnlyMemory<byte>[] inputs = [new byte[] { 1 }, new byte[] { 2 }, new byte[] { 3 }];
+        var previous = new PdfMacroRunReport(3,
+        [
+            new PdfMacroFileResult(0, new byte[] { 1, 9 }, null, false),
+            new PdfMacroFileResult(1, null, null, true)
+        ]);
+
+        PdfMacroRunReport resumed = PdfMacroRunner.ResumeReport(
+            macro, inputs, previous,
+            (_, input, _) => input.ToArray().Append((byte)9).ToArray());
+
+        Assert.Equal(3, resumed.SucceededCount);
+        Assert.Equal([0, 1, 2], resumed.Results.Select(result => result.InputIndex));
+        Assert.Equal(new byte[] { 1, 9 }, resumed.Results[0].Data!.Value.ToArray());
+        Assert.Equal(new byte[] { 2, 9 }, resumed.Results[1].Data!.Value.ToArray());
+        Assert.Equal(new byte[] { 3, 9 }, resumed.Results[2].Data!.Value.ToArray());
+        Assert.Throws<ArgumentException>(() => PdfMacroRunner.ResumeReport(
+            macro, inputs, new PdfMacroRunReport(2, []), (_, input, _) => input));
+    }
 }

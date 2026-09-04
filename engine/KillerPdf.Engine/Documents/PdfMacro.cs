@@ -169,6 +169,43 @@ public static class PdfMacroRunner
             Run(macro, supplied, operation, cancellationToken));
     }
 
+    /// <summary>
+    /// Resumes an interrupted report, preserving completed outcomes and retrying a canceled file.
+    /// </summary>
+    public static PdfMacroRunReport ResumeReport(
+        PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
+        PdfMacroRunReport previous,
+        Func<PdfMacroStep, ReadOnlyMemory<byte>, CancellationToken, ReadOnlyMemory<byte>> operation,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(previous);
+        ReadOnlyMemory<byte>[] supplied = inputs.ToArray();
+        if (previous.TotalInputCount != supplied.Length)
+            throw new ArgumentException(
+                "The previous macro report does not match the supplied input count.", nameof(previous));
+        for (int index = 0; index < previous.Results.Count; index++)
+            if (previous.Results[index].InputIndex != index
+                || (previous.Results[index].WasCanceled && index != previous.Results.Count - 1))
+                throw new ArgumentException(
+                    "The previous macro report is not a contiguous resumable prefix.", nameof(previous));
+
+        int startIndex = previous.Results.Count;
+        var combined = previous.Results.ToList();
+        if (combined.LastOrDefault()?.WasCanceled == true)
+        {
+            startIndex--;
+            combined.RemoveAt(combined.Count - 1);
+        }
+        IReadOnlyList<PdfMacroFileResult> resumed = Run(
+            macro, supplied.Skip(startIndex), operation, cancellationToken);
+        combined.AddRange(resumed.Select(result => result with
+        {
+            InputIndex = result.InputIndex + startIndex
+        }));
+        return new PdfMacroRunReport(supplied.Length, combined);
+    }
+
     /// <summary>Runs a macro against every input while preserving each source buffer.</summary>
     public static IReadOnlyList<PdfMacroFileResult> Run(
         PdfMacro macro, IEnumerable<ReadOnlyMemory<byte>> inputs,
