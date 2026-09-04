@@ -25,7 +25,8 @@ public sealed class PdfDataMergeProfile
     public PdfDataMergeProfile(string name, IEnumerable<PdfDataMergeFieldMapping> mappings,
         string outputFileNameTemplate,
         PdfMissingMergeValueBehavior missingValueBehavior = PdfMissingMergeValueBehavior.Error,
-        IEnumerable<PdfDataMergeImageMapping>? imageMappings = null)
+        IEnumerable<PdfDataMergeImageMapping>? imageMappings = null,
+        string? includeWhenField = null, string? includeWhenValue = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A data-merge profile name is required.", nameof(name));
@@ -75,11 +76,17 @@ public sealed class PdfDataMergeProfile
                 nameof(outputFileNameTemplate));
         if (!Enum.IsDefined(missingValueBehavior))
             throw new ArgumentOutOfRangeException(nameof(missingValueBehavior));
+        if (string.IsNullOrWhiteSpace(includeWhenField)
+            != string.IsNullOrWhiteSpace(includeWhenValue))
+            throw new ArgumentException(
+                "Record inclusion requires both a field and a value.", nameof(includeWhenField));
         Name = name;
         Mappings = Array.AsReadOnly(selected);
         ImageMappings = Array.AsReadOnly(selectedImages);
         OutputFileNameTemplate = outputFileNameTemplate;
         MissingValueBehavior = missingValueBehavior;
+        IncludeWhenField = includeWhenField;
+        IncludeWhenValue = includeWhenValue;
     }
 
     /// <summary>Gets the profile name.</summary>
@@ -92,6 +99,19 @@ public sealed class PdfDataMergeProfile
     public string OutputFileNameTemplate { get; }
     /// <summary>Gets the missing-value policy.</summary>
     public PdfMissingMergeValueBehavior MissingValueBehavior { get; }
+    /// <summary>Gets the optional record field controlling batch inclusion.</summary>
+    public string? IncludeWhenField { get; }
+    /// <summary>Gets the exact field value required for batch inclusion.</summary>
+    public string? IncludeWhenValue { get; }
+
+    /// <summary>Returns whether a record is included by this profile.</summary>
+    public bool Includes(IReadOnlyDictionary<string, string?> record)
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        return IncludeWhenField is null
+            || record.TryGetValue(IncludeWhenField, out string? value)
+                && string.Equals(value, IncludeWhenValue, StringComparison.Ordinal);
+    }
 
     /// <summary>Maps one record into form data and an output filename.</summary>
     public PdfDataMergeMappedRecord Map(IReadOnlyDictionary<string, string?> record)
@@ -172,7 +192,7 @@ public sealed class PdfDataMergeProfile
     /// <summary>Serializes the reusable mapping without source record values.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new ProfileFile(1, Name, Mappings.ToArray(), OutputFileNameTemplate, MissingValueBehavior,
-            ImageMappings.ToArray()),
+            ImageMappings.ToArray(), IncludeWhenField, IncludeWhenValue),
         Options(indented));
 
     /// <summary>Reads a reusable mapping profile.</summary>
@@ -185,7 +205,8 @@ public sealed class PdfDataMergeProfile
             throw new NotSupportedException(
                 $"Data-merge profile version {file.Version} is not supported.");
         return new PdfDataMergeProfile(file.Name, file.Mappings,
-            file.OutputFileNameTemplate, file.MissingValueBehavior, file.ImageMappings);
+            file.OutputFileNameTemplate, file.MissingValueBehavior, file.ImageMappings,
+            file.IncludeWhenField, file.IncludeWhenValue);
     }
 
     /// <summary>Creates a macro step containing only this reusable profile configuration.</summary>
@@ -223,7 +244,8 @@ public sealed class PdfDataMergeProfile
     private sealed record ProfileFile(int Version, string Name,
         PdfDataMergeFieldMapping[] Mappings, string OutputFileNameTemplate,
         PdfMissingMergeValueBehavior MissingValueBehavior,
-        PdfDataMergeImageMapping[]? ImageMappings);
+        PdfDataMergeImageMapping[]? ImageMappings,
+        string? IncludeWhenField, string? IncludeWhenValue);
 }
 
 /// <summary>One mapped form-data record and its generated output filename.</summary>

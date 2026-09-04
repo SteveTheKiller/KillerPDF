@@ -509,6 +509,35 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void ProfileConditionSkipsRecordsWithoutReportingFailures()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "name", 10, 10, 100, 20).Build());
+        var profile = PdfDataMergeProfile.FromJson(new PdfDataMergeProfile(
+            "Active customers",
+            [new PdfDataMergeFieldMapping("Name", "name")],
+            "{{Name}}.pdf", includeWhenField: "Active", includeWhenValue: "yes")
+            .ToJson());
+        IReadOnlyDictionary<string, string?>[] records =
+        [
+            new Dictionary<string, string?> { ["Name"] = "Ada", ["Active"] = "yes" },
+            new Dictionary<string, string?> { ["Name"] = "Grace", ["Active"] = "no" }
+        ];
+
+        IReadOnlyList<PdfDataMergeDocumentResult> results =
+            PdfDataMerge.RunFormBatch(template, records, profile);
+        PdfDataMergeBatchReport report = PdfDataMergeBatchReport.Create(results);
+
+        Assert.True(results[0].Succeeded);
+        Assert.True(results[1].Skipped);
+        Assert.Null(results[1].Error);
+        Assert.Equal(1, report.SucceededRecords);
+        Assert.Equal(1, report.SkippedRecords);
+        Assert.Equal(0, report.FailedRecords);
+        Assert.Contains("\"skipped\":true", report.ToJson());
+    }
+
+    [Fact]
     public void CombinedOutputIncludesSuccessfulRecordsInOrderAndSkipsFailures()
     {
         static byte[] Document(string text) => new PdfDocumentBuilder()

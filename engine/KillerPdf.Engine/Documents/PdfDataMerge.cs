@@ -103,6 +103,15 @@ public static class PdfDataMerge
         foreach (IReadOnlyDictionary<string, string?> record in records)
         {
             if (cancellationToken.IsCancellationRequested) break;
+            if (!profile.Includes(record))
+            {
+                results.Add(new PdfDataMergeDocumentResult(index, null, null, null)
+                {
+                    Skipped = true
+                });
+                index++;
+                continue;
+            }
             string? outputFileName = null;
             try
             {
@@ -355,8 +364,10 @@ public sealed record PdfDataMergeResult(int RecordIndex, ReadOnlyMemory<byte>? D
 public sealed record PdfDataMergeDocumentResult(int RecordIndex, string? OutputFileName,
     ReadOnlyMemory<byte>? Data, string? Error)
 {
+    /// <summary>Gets whether the reusable profile excluded this record.</summary>
+    public bool Skipped { get; init; }
     /// <summary>Gets whether PDF generation succeeded.</summary>
-    public bool Succeeded => Data.HasValue && Error is null;
+    public bool Succeeded => !Skipped && Data.HasValue && Error is null;
 }
 
 /// <summary>A combined PDF and the successful source records included in it.</summary>
@@ -394,6 +405,8 @@ public sealed record PdfDataMergeBatchReport(
     int TotalRecords, int SucceededRecords, int FailedRecords,
     IReadOnlyList<PdfDataMergeBatchReportItem> Results)
 {
+    /// <summary>Gets the count of records excluded by the reusable profile.</summary>
+    public int SkippedRecords { get; init; }
     /// <summary>Creates a report without retaining generated PDF bytes.</summary>
     public static PdfDataMergeBatchReport Create(
         IEnumerable<PdfDataMergeDocumentResult> results)
@@ -401,15 +414,19 @@ public sealed record PdfDataMergeBatchReport(
         ArgumentNullException.ThrowIfNull(results);
         PdfDataMergeBatchReportItem[] items = [.. results.Select(result =>
             new PdfDataMergeBatchReportItem(result.RecordIndex, result.OutputFileName,
-                result.Succeeded, result.Error))];
+                result.Succeeded, result.Error) { Skipped = result.Skipped })];
         int succeeded = items.Count(item => item.Succeeded);
+        int skipped = items.Count(item => item.Skipped);
         return new PdfDataMergeBatchReport(items.Length, succeeded,
-            items.Length - succeeded, Array.AsReadOnly(items));
+            items.Length - succeeded - skipped, Array.AsReadOnly(items))
+        {
+            SkippedRecords = skipped
+        };
     }
 
     /// <summary>Exports the batch summary as machine-readable JSON.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new { Version = 1, TotalRecords, SucceededRecords, FailedRecords, Results },
+        new { Version = 1, TotalRecords, SucceededRecords, SkippedRecords, FailedRecords, Results },
         new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -419,4 +436,8 @@ public sealed record PdfDataMergeBatchReport(
 
 /// <summary>One data-free result in a form-generation batch report.</summary>
 public sealed record PdfDataMergeBatchReportItem(
-    int RecordIndex, string? OutputFileName, bool Succeeded, string? Error);
+    int RecordIndex, string? OutputFileName, bool Succeeded, string? Error)
+{
+    /// <summary>Gets whether the reusable profile excluded this record.</summary>
+    public bool Skipped { get; init; }
+}
