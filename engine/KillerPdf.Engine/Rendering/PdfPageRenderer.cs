@@ -118,6 +118,16 @@ public sealed class PdfPageRenderer
                         state.Transform.Apply(Number(values[2]), Number(values[3])),
                         state.Transform.Apply(Number(values[4]), Number(values[5])));
                     break;
+                case "v" when values.Count == 4 && subpath is { Count: > 0 }:
+                    AddCubic(subpath, subpath[^1], subpath[^1],
+                        state.Transform.Apply(Number(values[0]), Number(values[1])),
+                        state.Transform.Apply(Number(values[2]), Number(values[3])));
+                    break;
+                case "y" when values.Count == 4 && subpath is { Count: > 0 }:
+                    Point end = state.Transform.Apply(Number(values[2]), Number(values[3]));
+                    AddCubic(subpath, subpath[^1],
+                        state.Transform.Apply(Number(values[0]), Number(values[1])), end, end);
+                    break;
                 case "h" when subpath is { Count: > 1 }:
                     subpath.Add(subpath[0]);
                     break;
@@ -140,6 +150,16 @@ public sealed class PdfPageRenderer
                     break;
                 case "S" or "s" when path.Count > 0:
                     if (instruction.Operator == "s" && subpath is { Count: > 1 }) subpath.Add(subpath[0]);
+                    StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                        path, state.Stroke, state.LineWidth);
+                    path.Clear();
+                    subpath = null;
+                    break;
+                case "B" or "B*" or "b" or "b*" when path.Count > 0:
+                    if (instruction.Operator[0] == 'b' && subpath is { Count: > 1 })
+                        subpath.Add(subpath[0]);
+                    FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                        path, state.Fill, instruction.Operator.EndsWith('*'));
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                         path, state.Stroke, state.LineWidth);
                     path.Clear();

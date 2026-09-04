@@ -82,6 +82,22 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Image rendering is not implemented.", page.Diagnostics);
     }
 
+    [Fact]
+    public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
+    {
+        byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 4, 6));
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 2, 7));
+        Assert.NotEqual([255, 255, 255, 255], Pixel(page, 3, 3));
+        Assert.NotEqual([255, 255, 255, 255], Pixel(page, 7, 3));
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }
