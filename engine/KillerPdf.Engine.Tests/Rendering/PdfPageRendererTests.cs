@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Rendering;
 using Xunit;
 
@@ -96,6 +97,24 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 0, 0, 255], Pixel(page, 2, 7));
         Assert.NotEqual([255, 255, 255, 255], Pixel(page, 3, 3));
         Assert.NotEqual([255, 255, 255, 255], Pixel(page, 7, 3));
+    }
+
+    [Fact]
+    public void Render_UsesCropOriginAndClockwisePageRotation()
+    {
+        byte[] content = "1 0 0 rg 10 5 5 5 re f"u8.ToArray();
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(20, 15, content).Build());
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalPageEditor(source)
+            .SetCropBox(0, 10, 5, 10, 10)
+            .SetRotation(0, 90)
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 2, 2));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 7, 7));
     }
 
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>

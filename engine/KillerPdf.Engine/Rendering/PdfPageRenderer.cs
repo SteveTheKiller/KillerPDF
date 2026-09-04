@@ -11,6 +11,7 @@ public sealed class PdfPageRenderer
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
+    private readonly IReadOnlyList<PdfPageBoxInformation> _boxes;
     private readonly PdfPageTree _tree;
 
     /// <summary>Creates a renderer for an immutable document.</summary>
@@ -22,6 +23,7 @@ public sealed class PdfPageRenderer
         _content = new PdfPageContentReader(document);
         _tree = PdfPageTree.Read(document);
         _pages = PdfPageInformation.Read(document);
+        _boxes = PdfPageBoxInformation.Read(document);
     }
 
     /// <summary>Renders the currently supported page operators into BGRA32 pixels.</summary>
@@ -45,9 +47,21 @@ public sealed class PdfPageRenderer
         }
 
         PdfPageInformation page = _pages[pageIndex];
-        double scaleX = options.Width / page.Width;
-        double scaleY = options.Height / page.Height;
-        var state = new GraphicsState(Matrix.Identity, Color.Black, Color.Black, 1);
+        PdfPageBoxBounds crop = _boxes[pageIndex].CropBox;
+        bool quarterTurn = page.Rotation is 90 or 270;
+        double displayWidth = quarterTurn ? page.Height : page.Width;
+        double displayHeight = quarterTurn ? page.Width : page.Height;
+        double scaleX = options.Width / displayWidth;
+        double scaleY = options.Height / displayHeight;
+        Matrix normalize = new(1, 0, 0, 1, -crop.Left, -crop.Bottom);
+        Matrix rotate = page.Rotation switch
+        {
+            90 => new Matrix(0, -1, 1, 0, 0, page.Width),
+            180 => new Matrix(-1, 0, 0, -1, page.Width, page.Height),
+            270 => new Matrix(0, 1, -1, 0, page.Height, 0),
+            _ => Matrix.Identity
+        };
+        var state = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black, 1);
         var stack = new Stack<GraphicsState>();
         var path = new List<List<Point>>();
         List<Point>? subpath = null;

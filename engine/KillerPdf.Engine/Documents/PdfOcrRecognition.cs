@@ -233,11 +233,7 @@ public sealed class PdfOcrPageRecognizer
         {
             PdfOcrRecognizedWord word = recognized[sequence];
             PdfOcrImageRegion bounds = word.Bounds;
-            var pdfBounds = new PdfContentBounds(
-                bounds.Left * page.Width / rendered.Width,
-                (rendered.Height - bounds.Bottom) * page.Height / rendered.Height,
-                bounds.Right * page.Width / rendered.Width,
-                (rendered.Height - bounds.Top) * page.Height / rendered.Height);
+            PdfContentBounds pdfBounds = MapBounds(bounds, rendered.Width, rendered.Height, page);
             words[sequence] = new PdfOcrWord($"page-{pageIndex}-word-{sequence}",
                 pageIndex, sequence, word.Text, word.Text, pdfBounds, word.Confidence, language);
         }
@@ -245,5 +241,32 @@ public sealed class PdfOcrPageRecognizer
             .Distinct(StringComparer.Ordinal)];
         return new PdfOcrPageRecognition(new PdfOcrReview(words),
             Array.AsReadOnly(diagnostics), rendered.Width, rendered.Height);
+    }
+
+    private static PdfContentBounds MapBounds(PdfOcrImageRegion bounds,
+        int pixelWidth, int pixelHeight, PdfPageInformation page)
+    {
+        bool quarterTurn = page.Rotation is 90 or 270;
+        double displayWidth = quarterTurn ? page.Height : page.Width;
+        double displayHeight = quarterTurn ? page.Width : page.Height;
+        double left = bounds.Left * displayWidth / pixelWidth;
+        double right = bounds.Right * displayWidth / pixelWidth;
+        double bottom = (pixelHeight - bounds.Bottom) * displayHeight / pixelHeight;
+        double top = (pixelHeight - bounds.Top) * displayHeight / pixelHeight;
+        (double X, double Y)[] points =
+        [
+            Unrotate(left, bottom), Unrotate(right, bottom),
+            Unrotate(left, top), Unrotate(right, top)
+        ];
+        return new PdfContentBounds(points.Min(point => point.X), points.Min(point => point.Y),
+            points.Max(point => point.X), points.Max(point => point.Y));
+
+        (double X, double Y) Unrotate(double x, double y) => page.Rotation switch
+        {
+            90 => (page.Width - y, x),
+            180 => (page.Width - x, page.Height - y),
+            270 => (y, page.Height - x),
+            _ => (x, y)
+        };
     }
 }
