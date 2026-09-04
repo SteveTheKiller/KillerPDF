@@ -73,4 +73,47 @@ public sealed class PdfXfdfFormDataTests
 
         Assert.Equal(["second", "first"], selected.Fields.Select(field => field.Name));
     }
+
+    [Fact]
+    public void WriteAndReadRoundTripAnnotationsAndReplies()
+    {
+        var source = new PdfFormDataSet
+        {
+            Annotations =
+            [
+                new PdfFormDataAnnotation
+                {
+                    Subtype = "highlight", PageIndex = 2, Rectangle = [10.5, 20, 30.25, 40],
+                    Name = "review-1", Contents = "Replace this translation", Author = "Reviewer",
+                    Subject = "Terminology", Color = "#FFD319", Opacity = 0.65,
+                    CreationDate = "D:20260904120000Z", ModifiedDate = "D:20260904123000Z"
+                },
+                new PdfFormDataAnnotation
+                {
+                    Subtype = "text", PageIndex = 2, Rectangle = [30, 40, 50, 60],
+                    Name = "reply-1", Contents = "Updated", ReplyToName = "review-1"
+                }
+            ]
+        };
+
+        PdfFormDataSet result = PdfXfdfFormData.Read(PdfXfdfFormData.Write(source));
+
+        Assert.Equal(source.Annotations.Count, result.Annotations.Count);
+        for (int index = 0; index < source.Annotations.Count; index++)
+        {
+            Assert.Equal(source.Annotations[index] with { Rectangle = [] },
+                result.Annotations[index] with { Rectangle = [] });
+            Assert.Equal(source.Annotations[index].Rectangle, result.Annotations[index].Rectangle);
+        }
+    }
+
+    [Fact]
+    public void ReadRejectsInvalidAnnotationGeometryAndOpacity()
+    {
+        Assert.Throws<InvalidOperationException>(() => PdfXfdfFormData.Read(Encoding.UTF8.GetBytes("""
+            <xfdf xmlns="http://ns.adobe.com/xfdf/"><annots>
+              <text page="0" rect="10,20,5,30" opacity="2" />
+            </annots></xfdf>
+            """)));
+    }
 }

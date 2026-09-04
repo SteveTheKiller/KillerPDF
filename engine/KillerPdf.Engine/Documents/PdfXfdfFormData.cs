@@ -1,4 +1,5 @@
 using System.Text;
+using System.Globalization;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -31,6 +32,11 @@ public static class PdfXfdfFormData
         if (fieldRoot is not null)
             foreach (XElement field in fieldRoot.Elements().Where(element => element.Name.LocalName == "field"))
                 ReadField(field, null, fields, 0);
+        var annotations = new List<PdfFormDataAnnotation>();
+        XElement? annotationRoot = root.Elements().FirstOrDefault(element => element.Name.LocalName == "annots");
+        if (annotationRoot is not null)
+            foreach (XElement annotation in annotationRoot.Elements())
+                annotations.Add(ReadAnnotation(annotation));
         string? sourcePath = root.Elements().FirstOrDefault(element => element.Name.LocalName == "f")
             ?.Attribute("href")?.Value;
         bool containsJavaScript = root.Descendants().Any(element =>
@@ -39,6 +45,7 @@ public static class PdfXfdfFormData
         {
             SourcePdfPath = sourcePath,
             Fields = Array.AsReadOnly(fields.ToArray()),
+            Annotations = Array.AsReadOnly(annotations.ToArray()),
             ContainsJavaScript = containsJavaScript
         };
     }
@@ -75,6 +82,13 @@ public static class PdfXfdfFormData
         if (data.SourcePdfPath is not null)
             root.Add(new XElement(xfdf + "f", new XAttribute("href", data.SourcePdfPath)));
         root.Add(fields);
+        if (data.Annotations.Count > 0)
+        {
+            var annotations = new XElement(xfdf + "annots");
+            foreach (PdfFormDataAnnotation annotation in data.Annotations)
+                annotations.Add(WriteAnnotation(xfdf, annotation));
+            root.Add(annotations);
+        }
         var document = new XDocument(new XDeclaration("1.0", "UTF-8", null), root);
         using var output = new MemoryStream();
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings
@@ -85,6 +99,80 @@ public static class PdfXfdfFormData
             OmitXmlDeclaration = false
         })) document.Save(writer);
         return output.ToArray();
+    }
+
+    private static PdfFormDataAnnotation ReadAnnotation(XElement element)
+    {
+        int page = IntegerAttribute(element, "page");
+        if (page < 0) throw new InvalidOperationException("An XFDF annotation page cannot be negative.");
+        double[] rectangle = RequiredAttribute(element, "rect").Split(',')
+            .Select(value => ParseFiniteDouble(value, "rectangle")).ToArray();
+        if (rectangle.Length != 4 || rectangle[2] < rectangle[0] || rectangle[3] < rectangle[1])
+            throw new InvalidOperationException("An XFDF annotation rectangle is invalid.");
+        double? opacity = OptionalDoubleAttribute(element, "opacity");
+        if (opacity is < 0 or > 1)
+            throw new InvalidOperationException("An XFDF annotation opacity must be between zero and one.");
+        string? contents = element.Elements().FirstOrDefault(child => child.Name.LocalName == "contents")?.Value;
+        return new PdfFormDataAnnotation
+        {
+            Subtype = element.Name.LocalName,
+            PageIndex = page,
+            Rectangle = Array.AsReadOnly(rectangle),
+            Name = Attribute(element, "name"),
+            Contents = contents,
+            Author = Attribute(element, "title"),
+            Subject = Attribute(element, "subject"),
+            Color = Attribute(element, "color"),
+            Opacity = opacity,
+            CreationDate = Attribute(element, "creationdate"),
+            ModifiedDate = Attribute(element, "date"),
+            ReplyToName = Attribute(element, "inreplyto")
+        };
+    }
+
+    private static XElement WriteAnnotation(XNamespace xfdf, PdfFormDataAnnotation annotation)
+    {
+        if (string.IsNullOrWhiteSpace(annotation.Subtype))
+            throw new ArgumentException("An XFDF annotation subtype cannot be empty.", nameof(annotation));
+        if (annotation.PageIndex < 0 || annotation.Rectangle.Count != 4
+            || annotation.Rectangle.Any(value => !double.IsFinite(value))
+            || annotation.Rectangle[2] < annotation.Rectangle[0]
+            || annotation.Rectangle[3] < annotation.Rectangle[1])
+            throw new ArgumentException("An XFDF annotation has invalid page or rectangle data.", nameof(annotation));
+        if (annotation.Opacity is < 0 or > 1 || annotation.Opacity is double.NaN)
+            throw new ArgumentException("An XFDF annotation opacity must be between zero and one.", nameof(annotation));
+        var element = new XElement(xfdf + annotation.Subtype,
+            new XAttribute("page", annotation.PageIndex),
+            new XAttribute("rect", string.Join(",", annotation.Rectangle.Select(FormatDouble))));
+        AddAttribute(element, "name", annotation.Name);
+        AddAttribute(element, "title", annotation.Author);
+        AddAttribute(element, "subject", annotation.Subject);
+        AddAttribute(element, "color", annotation.Color);
+        if (annotation.Opacity is double opacity)
+            element.Add(new XAttribute("opacity", FormatDouble(opacity)));
+        AddAttribute(element, "creationdate", annotation.CreationDate);
+        AddAttribute(element, "date", annotation.ModifiedDate);
+        AddAttribute(element, "inreplyto", annotation.ReplyToName);
+        if (annotation.Contents is not null)
+            element.Add(new XElement(xfdf + "contents", annotation.Contents));
+        return element;
+    }
+
+    private static string RequiredAttribute(XElement element, string name) =>
+        Attribute(element, name) ?? throw new InvalidOperationException($"An XFDF annotation has no {name} attribute.");
+    private static string? Attribute(XElement element, string name) => element.Attribute(name)?.Value;
+    private static int IntegerAttribute(XElement element, string name) =>
+        int.TryParse(RequiredAttribute(element, name), NumberStyles.None, CultureInfo.InvariantCulture, out int value)
+            ? value : throw new InvalidOperationException($"An XFDF annotation {name} is not an integer.");
+    private static double? OptionalDoubleAttribute(XElement element, string name) =>
+        Attribute(element, name) is string value ? ParseFiniteDouble(value, name) : null;
+    private static double ParseFiniteDouble(string value, string name) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) && double.IsFinite(result)
+            ? result : throw new InvalidOperationException($"An XFDF annotation {name} is not a finite number.");
+    private static string FormatDouble(double value) => value.ToString("R", CultureInfo.InvariantCulture);
+    private static void AddAttribute(XElement element, string name, string? value)
+    {
+        if (value is not null) element.Add(new XAttribute(name, value));
     }
 
     private static void ReadField(XElement element, string? parent,

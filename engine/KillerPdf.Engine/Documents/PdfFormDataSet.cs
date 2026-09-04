@@ -7,6 +7,8 @@ public sealed record PdfFormDataSet
     public string? SourcePdfPath { get; init; }
     /// <summary>Gets the ordered form field values.</summary>
     public IReadOnlyList<PdfFormDataField> Fields { get; init; } = [];
+    /// <summary>Gets the ordered annotations carried by the interchange file.</summary>
+    public IReadOnlyList<PdfFormDataAnnotation> Annotations { get; init; } = [];
     /// <summary>Gets whether the source contains document JavaScript that was not executed.</summary>
     public bool ContainsJavaScript { get; init; }
 
@@ -28,6 +30,35 @@ public sealed record PdfFormDataSet
                     $"The form data has no field named '{name}'."));
         return this with { Fields = Array.AsReadOnly(selected.ToArray()) };
     }
+}
+
+/// <summary>One portable annotation carried by FDF-compatible interchange.</summary>
+public sealed record PdfFormDataAnnotation
+{
+    /// <summary>Gets the XFDF annotation element name.</summary>
+    public required string Subtype { get; init; }
+    /// <summary>Gets the zero-based page index.</summary>
+    public required int PageIndex { get; init; }
+    /// <summary>Gets the annotation rectangle as left, bottom, right, and top coordinates.</summary>
+    public required IReadOnlyList<double> Rectangle { get; init; }
+    /// <summary>Gets the optional stable annotation identifier.</summary>
+    public string? Name { get; init; }
+    /// <summary>Gets the optional review text.</summary>
+    public string? Contents { get; init; }
+    /// <summary>Gets the optional author.</summary>
+    public string? Author { get; init; }
+    /// <summary>Gets the optional subject.</summary>
+    public string? Subject { get; init; }
+    /// <summary>Gets the optional RGB color as a hexadecimal value.</summary>
+    public string? Color { get; init; }
+    /// <summary>Gets the optional opacity from zero through one.</summary>
+    public double? Opacity { get; init; }
+    /// <summary>Gets the optional creation date in its source representation.</summary>
+    public string? CreationDate { get; init; }
+    /// <summary>Gets the optional modification date in its source representation.</summary>
+    public string? ModifiedDate { get; init; }
+    /// <summary>Gets the optional identifier of the annotation this annotation replies to.</summary>
+    public string? ReplyToName { get; init; }
 }
 
 /// <summary>One named field and its scalar or multi-select values.</summary>
