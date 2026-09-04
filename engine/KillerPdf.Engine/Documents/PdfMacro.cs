@@ -236,6 +236,32 @@ public sealed record PdfMacroRunReport
     public int CanceledCount => Results.Count(result => result.WasCanceled);
     /// <summary>Gets the number of inputs not started after cancellation.</summary>
     public int UnprocessedCount => TotalInputCount - Results.Count;
+
+    /// <summary>Exports stable batch outcomes without embedding document data.</summary>
+    public string ToJson(bool indented = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            TotalInputCount,
+            SucceededCount,
+            FailedCount,
+            CanceledCount,
+            UnprocessedCount,
+            Results = Results.Select(result => new
+            {
+                result.InputIndex,
+                result.Succeeded,
+                result.Error,
+                result.WasCanceled
+            })
+        }, options);
+    }
 }
 
 /// <summary>The isolated result for one macro input.</summary>

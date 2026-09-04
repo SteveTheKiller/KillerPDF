@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Documents;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -63,6 +64,26 @@ public sealed class PdfMacroTests
         Assert.Equal(1, report.FailedCount);
         Assert.Equal(0, report.CanceledCount);
         Assert.Equal(0, report.UnprocessedCount);
+    }
+
+    [Fact]
+    public void RunReportExportsOutcomesWithoutDocumentData()
+    {
+        var report = new PdfMacroRunReport(3, [
+            new PdfMacroFileResult(0, new byte[] { 65, 66, 67 }, null, false),
+            new PdfMacroFileResult(1, null, "Invalid PDF", false)]);
+
+        string json = report.ToJson();
+        using JsonDocument parsed = JsonDocument.Parse(json);
+
+        Assert.Equal(3, parsed.RootElement.GetProperty("totalInputCount").GetInt32());
+        Assert.Equal(1, parsed.RootElement.GetProperty("succeededCount").GetInt32());
+        Assert.Equal(1, parsed.RootElement.GetProperty("failedCount").GetInt32());
+        Assert.Equal(1, parsed.RootElement.GetProperty("unprocessedCount").GetInt32());
+        Assert.Equal("Invalid PDF", parsed.RootElement.GetProperty("results")[1]
+            .GetProperty("error").GetString());
+        Assert.DoesNotContain("QUJD", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("data", json, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
