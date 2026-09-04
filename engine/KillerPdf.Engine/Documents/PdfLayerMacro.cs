@@ -69,6 +69,16 @@ public static class PdfLayerMacro
             new InstructionRangeSettings(pageIndex, instructionIndex, instructionCount)));
     }
 
+    /// <summary>Creates a step that assigns a page annotation to a layer.</summary>
+    public static PdfMacroStep AnnotationStep(
+        string layerName, int annotationObjectNumber)
+    {
+        if (annotationObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(annotationObjectNumber));
+        return EditStep("annotation", layerName,
+            annotationObjectNumber.ToString(CultureInfo.InvariantCulture));
+    }
+
     /// <summary>Creates a step that changes or clears default layer configuration metadata.</summary>
     public static PdfMacroStep ConfigurationMetadataStep(string? name, string? creator) =>
         new(PdfMacroOperation.EditLayers,
@@ -280,6 +290,11 @@ public static class PdfLayerMacro
                     document, pageIndex, objectNumber),
             "instructionRange" when !string.IsNullOrWhiteSpace(value) =>
                 ApplyInstructionRange(document, objectNumber, value, step),
+            "annotation" when int.TryParse(value, NumberStyles.None,
+                CultureInfo.InvariantCulture, out int annotationObjectNumber)
+                && annotationObjectNumber > 0 =>
+                PdfOptionalContentEditor.SetAnnotationGroup(
+                    document, annotationObjectNumber, objectNumber),
             _ => throw new ArgumentException("The layer edit action is invalid.", nameof(step))
         };
     }

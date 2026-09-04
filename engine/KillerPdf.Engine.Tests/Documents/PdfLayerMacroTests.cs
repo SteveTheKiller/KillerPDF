@@ -129,6 +129,30 @@ public sealed class PdfLayerMacroTests
     }
 
     [Fact]
+    public void MacroAssignsAnnotationToNamedLayer()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(100, 100)
+            .AddUriLink(0, 10, 10, 20, 10, "https://example.com")
+            .Build());
+        int annotationObjectNumber = Assert.Single(
+            PdfLinkReader.ReadPage(original, 0)).ObjectNumber!.Value;
+        ReadOnlyMemory<byte> source = PdfOptionalContentEditor.AddGroup(
+            original, "Hidden", initiallyVisible: false);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Annotation", [
+            PdfLayerMacro.AnnotationStep("Hidden", annotationObjectNumber)
+        ]).ToJson());
+
+        source = PdfLayerMacro.Execute(Assert.Single(macro.Steps), source);
+        PdfDocument flattened = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(PdfDocument.Open(source)));
+
+        Assert.Empty(PdfLinkReader.ReadPage(flattened, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfLayerMacro.AnnotationStep("Hidden", 0));
+    }
+
+    [Fact]
     public void MacroSetsAndClearsIndependentPrintAndExportVisibility()
     {
         var layer = new PdfOptionalContentGroup("Artwork");
