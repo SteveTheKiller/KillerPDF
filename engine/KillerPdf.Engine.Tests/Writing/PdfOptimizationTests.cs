@@ -79,4 +79,22 @@ public sealed class PdfOptimizationTests
         Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "OpenAction");
         Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "Outlines");
     }
+
+    [Fact]
+    public void SelectiveSanitizationRemovesFormFieldsAndWidgets()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "private.name", 20, 20, 120, 24, "Secret").Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document, new PdfOptimizationOptions
+        {
+            RemoveFormFields = true,
+            PackObjects = false,
+            CompressStructure = false
+        });
+        PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.RemoveFormFields, plan.Changes);
+        Assert.Empty(PdfFormWidgetReader.ReadPage(sanitized, 0));
+    }
 }

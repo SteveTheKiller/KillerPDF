@@ -17,6 +17,8 @@ public enum PdfOptimizationChangeKind
     RemoveOpenAction,
     /// <summary>Remove the document outline.</summary>
     RemoveBookmarks,
+    /// <summary>Remove every interactive form field and widget.</summary>
+    RemoveFormFields,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -34,6 +36,8 @@ public sealed record PdfOptimizationOptions
     public bool RemoveOpenAction { get; init; }
     /// <summary>Gets whether every bookmark is removed.</summary>
     public bool RemoveBookmarks { get; init; }
+    /// <summary>Gets whether every interactive form field and widget is removed.</summary>
+    public bool RemoveFormFields { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -56,13 +60,16 @@ public sealed class PdfOptimizationPlan
     private readonly PdfDocument _document;
     private readonly PdfOptimizationOptions _options;
     private readonly string[] _attachmentNames;
+    private readonly string[] _formFieldNames;
 
     internal PdfOptimizationPlan(PdfDocument document, PdfOptimizationOptions options,
-        IEnumerable<PdfOptimizationChangeKind> changes, IEnumerable<string> attachmentNames)
+        IEnumerable<PdfOptimizationChangeKind> changes, IEnumerable<string> attachmentNames,
+        IEnumerable<string> formFieldNames)
     {
         _document = document;
         _options = options;
         _attachmentNames = attachmentNames.ToArray();
+        _formFieldNames = formFieldNames.ToArray();
         Changes = Array.AsReadOnly(changes.ToArray());
     }
 
@@ -99,13 +106,16 @@ public sealed class PdfOptimizationPlan
         bool removesAttachments = Changes.Contains(PdfOptimizationChangeKind.RemoveAttachments);
         bool removesOpenAction = Changes.Contains(PdfOptimizationChangeKind.RemoveOpenAction);
         bool removesBookmarks = Changes.Contains(PdfOptimizationChangeKind.RemoveBookmarks);
-        if (!removesAttachments && !removesOpenAction && !removesBookmarks)
+        bool removesFormFields = Changes.Contains(PdfOptimizationChangeKind.RemoveFormFields);
+        if (!removesAttachments && !removesOpenAction && !removesBookmarks && !removesFormFields)
             return _document;
         var editor = new PdfIncrementalPageEditor(_document);
         if (removesAttachments)
             foreach (string name in _attachmentNames) editor.RemoveAttachment(name);
         if (removesOpenAction) editor.ClearOpenAction();
         if (removesBookmarks) editor.ClearBookmarks();
+        if (removesFormFields)
+            foreach (string name in _formFieldNames) editor.RemoveFormField(name);
         return PdfDocument.Open(editor.Build());
     }
 }
@@ -128,6 +138,9 @@ public static class PdfOptimizer
         PdfPageTree tree = PdfPageTree.Read(document);
         string[] attachmentNames = options.RemoveAttachments
             ? [.. PdfAttachmentReader.Read(document).Select(attachment => attachment.FileName)] : [];
+        string[] formFieldNames = options.RemoveFormFields
+            ? [.. tree.Pages.SelectMany((_, pageIndex) => PdfFormWidgetReader.ReadPage(document, pageIndex))
+                .Select(widget => widget.FieldName).Distinct(StringComparer.Ordinal)] : [];
         if (options.RemoveMetadata && (document.Trailer.ContainsKey(InformationName)
             || tree.Catalog.ContainsKey(MetadataName)))
             changes.Add(PdfOptimizationChangeKind.RemoveMetadata);
@@ -137,9 +150,11 @@ public static class PdfOptimizer
             changes.Add(PdfOptimizationChangeKind.RemoveOpenAction);
         if (options.RemoveBookmarks && tree.Catalog.ContainsKey(OutlinesName))
             changes.Add(PdfOptimizationChangeKind.RemoveBookmarks);
+        if (formFieldNames.Length > 0)
+            changes.Add(PdfOptimizationChangeKind.RemoveFormFields);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
-        return new PdfOptimizationPlan(document, options, changes, attachmentNames);
+        return new PdfOptimizationPlan(document, options, changes, attachmentNames, formFieldNames);
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));

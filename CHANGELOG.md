@@ -13,6 +13,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added safe XFA packet inspection without executing form scripts (#330).
 - Added shading resources and clipped bounds to page-content extraction (#331).
 - Added isolated transformations for selected page-content instruction ranges (#332).
+- Expanded selective sanitization to remove form fields and widgets (#333).
 - Added attachment metadata and integrity checks to the 1.9 engine (#347).
 - Added calibrated coordinates, directional deltas, and point snapping to measurement tools (#348).
 - Added step-and-repeat and manual page sequences to imposition planning (#349).
