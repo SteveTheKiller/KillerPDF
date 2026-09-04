@@ -23,6 +23,8 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
         {
             output.AppendLine(entry.Signature.FieldName)
                 .Append("  Signed: ").AppendLine(entry.Signature.IsSigned ? "Yes" : "No")
+                .Append("  Document timestamp: ")
+                .AppendLine(entry.Signature.IsDocumentTimestamp ? "Yes" : "No")
                 .Append("  Cryptographic integrity: ")
                 .AppendLine(entry.Verification.IsCryptographicallyValid ? "Valid" : "Invalid")
                 .Append("  Certificate trust: ")
@@ -91,6 +93,7 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                 entry.Signature.FieldName,
                 entry.Signature.IsSigned,
                 entry.Signature.IsCertificationSignature,
+                entry.Signature.IsDocumentTimestamp,
                 entry.Signature.CertificationPermission,
                 entry.Signature.FieldLockAction,
                 entry.Signature.FieldLockPermission,

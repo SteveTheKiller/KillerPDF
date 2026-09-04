@@ -11,6 +11,8 @@ public sealed record PdfSignatureInfo
     public bool IsSigned { get; init; }
     /// <summary>Gets whether the signature is registered as the document certification signature.</summary>
     public bool IsCertificationSignature { get; init; }
+    /// <summary>Gets whether the value is an RFC 3161 document timestamp dictionary.</summary>
+    public bool IsDocumentTimestamp { get; init; }
     /// <summary>Gets the certification change level when applicable.</summary>
     public PdfSignatureCertificationPermission? CertificationPermission { get; init; }
     /// <summary>Gets the field-lock selection action.</summary>

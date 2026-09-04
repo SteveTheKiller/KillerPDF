@@ -485,6 +485,52 @@ public sealed class PdfSignatureReaderTests
     }
 
     [Fact]
+    public void Read_IdentifiesDocumentTimestampDictionaries()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddSignatureField(0, "timestamp", 20, 20, 160, 40)
+            .Build();
+        PdfDocument signed = PdfDocument.Open(PdfDetachedSignatureWriter.Sign(
+            PdfDocument.Open(source), _ => [1], new PdfSignatureOptions
+            {
+                FieldName = "timestamp",
+                ReservedSignatureSize = 8
+            }));
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(signed.Resolve(
+            Assert.IsType<PdfIndirectReference>(signed.Trailer[Name("Root")])));
+        PdfObject formValue = catalog[Name("AcroForm")];
+        PdfDictionary form = formValue is PdfIndirectReference formReference
+            ? Assert.IsType<PdfDictionary>(signed.Resolve(formReference))
+            : Assert.IsType<PdfDictionary>(formValue);
+        PdfDictionary field = Assert.IsType<PdfDictionary>(signed.Resolve(
+            Assert.IsType<PdfIndirectReference>(
+                Assert.Single(Assert.IsType<PdfArray>(form[Name("Fields")])))));
+        PdfIndirectReference signatureReference = Assert.IsType<PdfIndirectReference>(
+            field[Name("V")]);
+        PdfDictionary signature = Assert.IsType<PdfDictionary>(
+            signed.Resolve(signatureReference));
+        PdfDictionary timestamp = new(signature.Select(entry =>
+            entry.Key.Equals(Name("Type"))
+                ? new KeyValuePair<PdfName, PdfObject>(entry.Key, Name("DocTimeStamp"))
+                : entry.Key.Equals(Name("SubFilter"))
+                    ? new KeyValuePair<PdfName, PdfObject>(entry.Key, Name("ETSI.RFC3161"))
+                    : entry));
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(signed)
+            .ReplaceObject(signatureReference.ObjectNumber, timestamp).Build());
+
+        PdfSignatureInfo result = Assert.Single(PdfSignatureReader.Read(document));
+        PdfSignatureInspectionReport report = PdfSignatureInspection.Inspect(document);
+
+        Assert.True(result.IsDocumentTimestamp);
+        Assert.Equal("ETSI.RFC3161", result.SubFilter);
+        Assert.Contains("Document timestamp: Yes", report.ToText());
+        Assert.Contains("RFC 3161 document timestamp cryptographic verification is not supported",
+            Assert.Single(report.Entries).Verification.Error, StringComparison.Ordinal);
+        Assert.Contains("\"isDocumentTimestamp\":true", report.ToJson());
+    }
+
+    [Fact]
     public void Read_RejectsCertificationTargetWithoutSignatureDictionaryType()
     {
         byte[] source = new PdfDocumentBuilder()

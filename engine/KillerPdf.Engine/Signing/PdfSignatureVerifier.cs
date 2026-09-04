@@ -46,6 +46,16 @@ public static class PdfSignatureVerifier
                 CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
                 Error = "The signature does not contain a valid byte range and CMS value."
             };
+        if (signature.IsDocumentTimestamp)
+            return new PdfSignatureVerificationResult
+            {
+                IsStructurallyValid = true,
+                CertificateTrustWasChecked = checkCertificateTrust,
+                RequestedRevocationMode = trustOptions?.RevocationMode,
+                RequestedVerificationTime = trustOptions?.VerificationTime,
+                CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
+                Error = "RFC 3161 document timestamp cryptographic verification is not supported."
+            };
         X509Certificate2? signer = null;
         string? digestAlgorithm = null;
         string? signatureAlgorithm = null;

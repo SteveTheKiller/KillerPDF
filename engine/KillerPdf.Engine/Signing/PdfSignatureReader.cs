@@ -152,7 +152,9 @@ public static class PdfSignatureReader
             ?? throw new InvalidOperationException(
                 $"The signature field '{fieldName}' /V value is not a dictionary.");
         ValidateSignatureDictionaryType(
-            document, signature, $"The signature field '{fieldName}' /V dictionary");
+            document, signature, $"The signature field '{fieldName}' /V dictionary",
+            allowDocumentTimestamp: true);
+        bool isDocumentTimestamp = OptionalName(document, signature, "Type") == "DocTimeStamp";
         string? filter = OptionalName(document, signature, "Filter");
         string? subFilter = OptionalName(document, signature, "SubFilter");
         long[]? range = null;
@@ -185,6 +187,7 @@ public static class PdfSignatureReader
         {
             FieldName = fieldName,
             IsSigned = true,
+            IsDocumentTimestamp = isDocumentTimestamp,
             IsCertificationSignature = signatureReference is not null
                 && certificationObject is not null
                 && signatureReference.ObjectNumber == certificationObject.ObjectNumber
@@ -374,11 +377,14 @@ public static class PdfSignatureReader
     }
 
     private static void ValidateSignatureDictionaryType(
-        PdfDocument document, PdfDictionary signature, string description)
+        PdfDocument document, PdfDictionary signature, string description,
+        bool allowDocumentTimestamp = false)
     {
         if (!signature.TryGetValue(Name("Type"), out PdfObject? signatureTypeValue)
             || Resolve(document, signatureTypeValue) is not PdfName signatureType
-            || signatureType.ValueAsLatin1() != "Sig")
+            || (signatureType.ValueAsLatin1() != "Sig"
+                && (!allowDocumentTimestamp
+                    || signatureType.ValueAsLatin1() != "DocTimeStamp")))
             throw new InvalidOperationException(
                 $"{description} does not declare /Type /Sig.");
     }
