@@ -202,6 +202,82 @@ public static class PdfOptionalContentEditor
         return update.Build();
     }
 
+    /// <summary>Replaces the default configuration's nested layer display order.</summary>
+    public static byte[] SetDisplayOrderTree(
+        PdfDocument document, IReadOnlyList<PdfOptionalContentOrderItem> items)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(items);
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
+        Dictionary<int, PdfIndirectReference> references = info.Groups.ToDictionary(
+            group => group.ObjectNumber,
+            group => new PdfIndirectReference(group.ObjectNumber, group.Generation));
+        var used = new HashSet<int>();
+        PdfObject[] order = [.. items.Select(item => Build(item, 0))];
+        if (!used.SetEquals(references.Keys))
+            throw new ArgumentException(
+                "The display order must contain every registered layer exactly once.",
+                nameof(items));
+
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (!tree.Catalog.TryGetValue(OptionalContentPropertiesKey, out PdfObject? propertiesValue))
+            throw new InvalidOperationException("The document has no optional-content properties.");
+        (PdfDictionary properties, PdfIndirectReference? propertiesReference) =
+            ResolveDictionaryWithReference(document, propertiesValue,
+                "The optional-content properties");
+        if (!properties.TryGetValue(DefaultConfigurationKey, out PdfObject? configurationValue))
+            throw new InvalidOperationException(
+                "The document has no default optional-content configuration.");
+        (PdfDictionary configuration, PdfIndirectReference? configurationReference) =
+            ResolveDictionaryWithReference(document, configurationValue,
+                "The default optional-content configuration");
+        var configurationEntries = configuration.ToDictionary(
+            entry => entry.Key, entry => entry.Value);
+        configurationEntries[OrderKey] = new PdfArray(order);
+        var replacementConfiguration = new PdfDictionary(configurationEntries);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        if (configurationReference is not null)
+            update.ReplaceObject(configurationReference.ObjectNumber, replacementConfiguration);
+        else
+        {
+            var propertiesEntries = properties.ToDictionary(entry => entry.Key, entry => entry.Value);
+            propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
+            var replacementProperties = new PdfDictionary(propertiesEntries);
+            if (propertiesReference is not null)
+                update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
+            else
+            {
+                var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+                catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+                update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                    new PdfDictionary(catalogEntries));
+            }
+        }
+        return update.Build();
+
+        PdfObject Build(PdfOptionalContentOrderItem item, int depth)
+        {
+            ArgumentNullException.ThrowIfNull(item);
+            if (depth > 64)
+                throw new ArgumentException(
+                    "The display order is too deeply nested.", nameof(items));
+            if (item.GroupObjectNumber is int objectNumber)
+            {
+                if (item.Label is not null || item.Children.Count != 0
+                    || !references.TryGetValue(objectNumber, out PdfIndirectReference? reference)
+                    || !used.Add(objectNumber))
+                    throw new ArgumentException(
+                        "A layer entry must reference one unique registered layer.", nameof(items));
+                return reference;
+            }
+            if (string.IsNullOrWhiteSpace(item.Label) || item.Children.Count == 0)
+                throw new ArgumentException(
+                    "A layer folder requires a name and at least one child.", nameof(items));
+            return new PdfArray([UnicodeString(item.Label),
+                .. item.Children.Select(child => Build(child, depth + 1))]);
+        }
+    }
+
     /// <summary>Sets or clears the default layer configuration name and creator.</summary>
     public static byte[] SetDefaultConfigurationMetadata(
         PdfDocument document, string? name, string? creator)
@@ -400,4 +476,33 @@ public static class PdfOptionalContentEditor
         text.CopyTo(bytes, 2);
         return new PdfString(bytes, PdfStringForm.Hexadecimal);
     }
+}
+
+/// <summary>One layer or named folder in an optional-content display-order tree.</summary>
+public sealed record PdfOptionalContentOrderItem
+{
+    private PdfOptionalContentOrderItem(
+        int? groupObjectNumber, string? label,
+        IReadOnlyList<PdfOptionalContentOrderItem> children)
+    {
+        GroupObjectNumber = groupObjectNumber;
+        Label = label;
+        Children = children;
+    }
+
+    /// <summary>Gets the source object number for a layer entry.</summary>
+    public int? GroupObjectNumber { get; }
+    /// <summary>Gets the name for a folder entry.</summary>
+    public string? Label { get; }
+    /// <summary>Gets the folder's child entries.</summary>
+    public IReadOnlyList<PdfOptionalContentOrderItem> Children { get; }
+
+    /// <summary>Creates a layer entry.</summary>
+    public static PdfOptionalContentOrderItem Layer(int objectNumber) =>
+        new(objectNumber, null, []);
+
+    /// <summary>Creates a named folder entry.</summary>
+    public static PdfOptionalContentOrderItem Folder(
+        string label, params PdfOptionalContentOrderItem[] children) =>
+        new(null, label, Array.AsReadOnly(children.ToArray()));
 }

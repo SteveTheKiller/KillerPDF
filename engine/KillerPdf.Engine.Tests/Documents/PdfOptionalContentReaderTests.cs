@@ -169,6 +169,31 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void DisplayOrderCanBeSavedAsNestedNamedFolders()
+    {
+        var first = new PdfOptionalContentGroup("First");
+        var second = new PdfOptionalContentGroup("Second");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(first).Rectangle(0, 0, 10, 10).Fill().EndMarkedContent()
+                .BeginOptionalContent(second).Rectangle(20, 0, 10, 10).Fill().EndMarkedContent())
+            .Build());
+        int[] groups = [.. PdfOptionalContentReader.Read(original).Groups
+            .Select(group => group.ObjectNumber)];
+
+        PdfDocument grouped = PdfDocument.Open(PdfOptionalContentEditor.SetDisplayOrderTree(
+            original,
+            [PdfOptionalContentOrderItem.Folder("Press layers",
+                PdfOptionalContentOrderItem.Layer(groups[1]),
+                PdfOptionalContentOrderItem.Layer(groups[0]))]));
+
+        Assert.Equal(groups.Reverse(), PdfOptionalContentReader.Read(grouped)
+            .Configurations.Single().DisplayOrderGroupObjectNumbers);
+        Assert.Throws<ArgumentException>(() => PdfOptionalContentEditor.SetDisplayOrderTree(
+            original, [PdfOptionalContentOrderItem.Layer(groups[0])]));
+    }
+
+    [Fact]
     public void DefaultConfigurationMetadataCanBeSetAndCleared()
     {
         var layer = new PdfOptionalContentGroup("Artwork");
