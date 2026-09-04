@@ -1528,6 +1528,39 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void SetFileAttachmentIconAt_ChangesOnlyFileAttachmentIcons()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("evidence.txt", "proof"u8.ToArray(), "text/plain")
+            .AddFileAttachmentAnnotation(0, 20, 30, 24, "evidence.txt",
+                icon: PdfFileAttachmentIcon.Paperclip)
+            .AddUriLink(0, 60, 30, 40, 20, "https://example.test")
+            .Build());
+        int attachmentIndex = Assert.Single(
+            PdfAttachmentReader.ReadPageAnnotations(source, 0)).AnnotationIndex;
+        int linkIndex = attachmentIndex == 0 ? 1 : 0;
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalAnnotationEditor(source)
+                .SetFileAttachmentIconAt(0, attachmentIndex, PdfFileAttachmentIcon.Tag)
+                .Build());
+        PdfAttachmentAnnotationInfo attachment = Assert.Single(
+            PdfAttachmentReader.ReadPageAnnotations(updated, 0));
+        PdfDictionary annotation = ResolveDictionary(updated,
+            Assert.IsType<PdfArray>(Pages(updated)[0].Page[Name("Annots")])[attachmentIndex]);
+
+        Assert.Equal("Tag", attachment.Icon);
+        Assert.False(annotation.ContainsKey(Name("AP")));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfIncrementalAnnotationEditor(updated)
+                .SetFileAttachmentIconAt(0, attachmentIndex, (PdfFileAttachmentIcon)99));
+        Assert.Throws<InvalidOperationException>(() =>
+            new PdfIncrementalAnnotationEditor(updated)
+                .SetFileAttachmentIconAt(0, linkIndex, PdfFileAttachmentIcon.Graph));
+    }
+
+    [Fact]
     public void Build_WritesLifecycleMetadataForEveryVisualAnnotationFamily()
     {
         TrueTypeFont font = TrueTypeFont.Load(
