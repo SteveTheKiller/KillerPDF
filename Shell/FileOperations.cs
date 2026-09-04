@@ -1081,6 +1081,10 @@ namespace KillerPDF
                           { Filter = Loc("Str_Filter_Pdf") + "|*.pdf", Title = Loc("Str_Dlg_SaveFlattened"),
                             CheckFileExists = false, CheckPathExists = true, RequireFilterExtension = true };
             if (dlg.ShowDialog(this) != true) return;
+            var optionsDialog = new FlattenOptionsDialog(this);
+            optionsDialog.ShowDialog();
+            if (!optionsDialog.Confirmed) return;
+            PdfRasterize.FlattenOptions flattenOptions = optionsDialog.Options;
             Border? overlay = null;
             bool operationStarted = false;
             try
@@ -1133,6 +1137,7 @@ namespace KillerPDF
                 // Rasterize on a background thread - keeps the UI responsive. The core lives in
                 // Services/PdfRasterize.cs; progress marshals back to the overlay here.
                 await Task.Run(() => PdfRasterize.FlattenToPdf(sourcePath, pageCount, pageDims, outputPath,
+                    flattenOptions,
                     (n, total) => Dispatcher.BeginInvoke(new Action(() => UpdateFlattenProgress(overlay, n, total))),
                     ct));
 
