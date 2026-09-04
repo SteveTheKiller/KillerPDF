@@ -179,6 +179,12 @@ public sealed class PdfFormDataImporterTests
                 },
                 new PdfFormDataAnnotation
                 {
+                    Subtype = "underline", PageIndex = 0,
+                    Rectangle = [10, 50, 80, 65], Name = "review-2",
+                    Contents = "Check this", ReplyToName = "review-1"
+                },
+                new PdfFormDataAnnotation
+                {
                     Subtype = "text", PageIndex = 0,
                     Rectangle = [90, 20, 114, 44], Name = "reply-1",
                     Contents = "Updated", ReplyToName = "review-1"
@@ -189,12 +195,14 @@ public sealed class PdfFormDataImporterTests
         PdfDocument reopened = PdfDocument.Open(PdfFormDataImporter.Apply(document, data));
         IReadOnlyList<PdfCommentInfo> comments = PdfCommentReader.Read(reopened);
 
-        Assert.Equal(2, comments.Count);
+        Assert.Equal(3, comments.Count);
         Assert.Equal("review-1", comments[0].Name);
         Assert.Equal("Reviewer", comments[0].Author);
         Assert.Equal("Translation", comments[0].Subject);
-        Assert.Equal("reply-1", comments[1].Name);
+        Assert.Equal("review-2", comments[1].Name);
         Assert.Equal(comments[0].ObjectNumber, comments[1].ReplyToObjectNumber);
+        Assert.Equal("reply-1", comments[2].Name);
+        Assert.Equal(comments[0].ObjectNumber, comments[2].ReplyToObjectNumber);
         Assert.Throws<NotSupportedException>(() => PdfFormDataImporter.Apply(document,
             new PdfFormDataSet { Annotations = [data.Annotations[0] with { Subtype = "stamp" }] }));
     }

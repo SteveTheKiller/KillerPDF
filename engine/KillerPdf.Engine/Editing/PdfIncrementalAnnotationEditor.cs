@@ -315,55 +315,61 @@ public sealed class PdfIncrementalAnnotationEditor
     public PdfIncrementalAnnotationEditor AddUnderline(
         int pageIndex, double x, double y, double width, double height,
         string? contents = null, PdfRgbColor? color = null, double opacity = 1,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.Underline, pageIndex, x, y, width, height,
             contents, color ?? new PdfRgbColor(0, 0.35, 0.9), opacity,
-            annotationMetadata);
+            annotationMetadata, name, inReplyTo);
 
     /// <summary>Adds an underline over one or more text quadrilaterals.</summary>
     public PdfIncrementalAnnotationEditor AddUnderline(
         int pageIndex, IReadOnlyList<PdfTextQuad> quads,
         string? contents = null, PdfRgbColor? color = null, double opacity = 1,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.Underline, pageIndex, quads,
             contents, color ?? new PdfRgbColor(0, 0.35, 0.9), opacity,
-            annotationMetadata);
+            annotationMetadata, name, inReplyTo);
 
     /// <summary>Adds a strikeout over a rectangular text region.</summary>
     public PdfIncrementalAnnotationEditor AddStrikeOut(
         int pageIndex, double x, double y, double width, double height,
         string? contents = null, PdfRgbColor? color = null, double opacity = 1,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.StrikeOut, pageIndex, x, y, width, height,
             contents, color ?? new PdfRgbColor(0.9, 0.1, 0.1), opacity,
-            annotationMetadata);
+            annotationMetadata, name, inReplyTo);
 
     /// <summary>Adds a strikeout over one or more text quadrilaterals.</summary>
     public PdfIncrementalAnnotationEditor AddStrikeOut(
         int pageIndex, IReadOnlyList<PdfTextQuad> quads,
         string? contents = null, PdfRgbColor? color = null, double opacity = 1,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.StrikeOut, pageIndex, quads,
             contents, color ?? new PdfRgbColor(0.9, 0.1, 0.1), opacity,
-            annotationMetadata);
+            annotationMetadata, name, inReplyTo);
 
     /// <summary>Adds a squiggly underline over a rectangular text region.</summary>
     public PdfIncrementalAnnotationEditor AddSquiggly(
         int pageIndex, double x, double y, double width, double height,
         string? contents = null, PdfRgbColor? color = null, double opacity = 1,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.Squiggly, pageIndex, x, y, width, height,
             contents, color ?? new PdfRgbColor(0.9, 0.1, 0.1), opacity,
-            annotationMetadata);
+            annotationMetadata, name, inReplyTo);
 
     /// <summary>Adds a squiggly underline over one or more text quadrilaterals.</summary>
     public PdfIncrementalAnnotationEditor AddSquiggly(
         int pageIndex, IReadOnlyList<PdfTextQuad> quads,
         string? contents = null, PdfRgbColor? color = null, double opacity = 1,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.Squiggly, pageIndex, quads,
             contents, color ?? new PdfRgbColor(0.9, 0.1, 0.1), opacity,
-            annotationMetadata);
+            annotationMetadata, name, inReplyTo);
 
     /// <summary>Adds a free-text annotation with an embedded font and optional callout.</summary>
     public PdfIncrementalAnnotationEditor AddFreeText(

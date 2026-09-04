@@ -142,6 +142,18 @@ public static class PdfFormDataImporter
                 editor.AddHighlight(annotation.PageIndex, x, y, width, height,
                     annotation.Contents, color, annotation.Opacity ?? 0.35,
                     metadata, annotation.Name, annotation.ReplyToName);
+            else if (subtype == "underline")
+                editor.AddUnderline(annotation.PageIndex, x, y, width, height,
+                    annotation.Contents, color, annotation.Opacity ?? 1,
+                    metadata, annotation.Name, annotation.ReplyToName);
+            else if (subtype is "strikeout" or "strike-out")
+                editor.AddStrikeOut(annotation.PageIndex, x, y, width, height,
+                    annotation.Contents, color, annotation.Opacity ?? 1,
+                    metadata, annotation.Name, annotation.ReplyToName);
+            else if (subtype == "squiggly")
+                editor.AddSquiggly(annotation.PageIndex, x, y, width, height,
+                    annotation.Contents, color, annotation.Opacity ?? 1,
+                    metadata, annotation.Name, annotation.ReplyToName);
             else if (subtype == "text")
                 editor.AddTextNote(annotation.PageIndex, x, y,
                     annotation.Contents ?? string.Empty, color,
