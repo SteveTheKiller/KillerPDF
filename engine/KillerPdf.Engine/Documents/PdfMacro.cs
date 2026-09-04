@@ -242,6 +242,8 @@ public enum PdfMacroOperation
     Flatten,
     /// <summary>Flatten PDF layers to an explicitly selected visible result.</summary>
     FlattenLayers,
+    /// <summary>Edit PDF layer definitions and state.</summary>
+    EditLayers,
     /// <summary>Validate the document.</summary>
     Validate,
     /// <summary>Export document content.</summary>

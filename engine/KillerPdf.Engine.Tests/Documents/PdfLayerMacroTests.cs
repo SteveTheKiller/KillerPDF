@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -28,5 +29,48 @@ public sealed class PdfLayerMacroTests
         Assert.Empty(PdfOptionalContentReader.Read(output).Groups);
         Assert.Throws<ArgumentException>(() => PdfLayerMacro.Execute(
             PdfLayerMacro.FlattenStep(["Missing"]), source));
+    }
+
+    [Fact]
+    public void MacroEditsLayerNamesVisibilityLocksAndMergesByStableName()
+    {
+        var artwork = new PdfOptionalContentGroup("Artwork");
+        var notes = new PdfOptionalContentGroup("Notes", initiallyVisible: false);
+        ReadOnlyMemory<byte> source = new PdfDocumentBuilder().AddPage(200, 200,
+            new PdfContentStreamBuilder()
+                .BeginOptionalContent(artwork).Rectangle(0, 0, 10, 10).Fill()
+                    .EndMarkedContent()
+                .BeginOptionalContent(notes).Rectangle(20, 0, 10, 10).Fill()
+                    .EndMarkedContent()).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Edit layers",
+        [
+            PdfLayerMacro.RenameStep("Artwork", "Print"),
+            PdfLayerMacro.VisibilityStep("Notes", true),
+            PdfLayerMacro.LockStep("Notes", true),
+            PdfLayerMacro.MergeStep("Print", "Notes")
+        ]).ToJson());
+
+        foreach (PdfMacroStep step in macro.Steps)
+            source = PdfLayerMacro.Execute(step, source);
+        PdfOptionalContentGroupInfo remaining = Assert.Single(
+            PdfOptionalContentReader.Read(PdfDocument.Open(source)).Groups);
+
+        Assert.Equal("Notes", remaining.Name);
+        Assert.True(remaining.IsInitiallyVisible);
+        Assert.True(remaining.IsLocked);
+    }
+
+    [Fact]
+    public void MacroRemovesOnlyAnUnusedNamedLayer()
+    {
+        PdfDocument blank = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+        ReadOnlyMemory<byte> layered = PdfOptionalContentEditor.AddGroup(blank, "Temporary");
+
+        ReadOnlyMemory<byte> output = PdfLayerMacro.Execute(
+            PdfLayerMacro.RemoveUnusedStep("Temporary"), layered);
+
+        Assert.Empty(PdfOptionalContentReader.Read(PdfDocument.Open(output)).Groups);
+        Assert.Throws<ArgumentException>(() => PdfLayerMacro.Execute(
+            PdfLayerMacro.RenameStep("Missing", "Other"), output));
     }
 }
