@@ -110,6 +110,24 @@ public sealed class PdfImpositionPlannerTests
         Assert.Equal(new PdfContentBounds(120, 27.5, 210, 72.5), placements[1].SheetBounds);
     }
 
+    [Fact]
+    public void CropMarksStayOutsideThePlacedPage()
+    {
+        var placement = new PdfImposedPlacement(0, 0,
+            new PdfContentBounds(20, 30, 120, 180), 1, 0);
+
+        IReadOnlyList<PdfImpositionMark> marks =
+            PdfImpositionPlanner.PlanCropMarks(placement, length: 10, offset: 2);
+
+        Assert.Equal(8, marks.Count);
+        Assert.Equal(new PdfImpositionMark(8, 30, 18, 30), marks[0]);
+        Assert.Equal(new PdfImpositionMark(20, 18, 20, 28), marks[1]);
+        Assert.Equal(new PdfImpositionMark(122, 180, 132, 180), marks[6]);
+        Assert.Equal(new PdfImpositionMark(120, 182, 120, 192), marks[7]);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.PlanCropMarks(placement, offset: -1));
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {

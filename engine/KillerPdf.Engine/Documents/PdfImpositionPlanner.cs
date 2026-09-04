@@ -217,6 +217,40 @@ public static class PdfImpositionPlanner
         return Array.AsReadOnly(placements.ToArray());
     }
 
+    /// <summary>Plans crop marks outside one imposed page placement.</summary>
+    public static IReadOnlyList<PdfImpositionMark> PlanCropMarks(
+        PdfImposedPlacement placement, double length = 12, double offset = 3)
+    {
+        ArgumentNullException.ThrowIfNull(placement);
+        ValidateDimension(length, nameof(length));
+        if (!double.IsFinite(offset) || offset < 0)
+            throw new ArgumentOutOfRangeException(nameof(offset));
+        PdfContentBounds box = placement.SheetBounds;
+        if (box.Width <= 0 || box.Height <= 0)
+            throw new ArgumentException(
+                "The imposed placement must have positive dimensions.", nameof(placement));
+
+        double leftInner = box.Left - offset;
+        double leftOuter = leftInner - length;
+        double rightInner = box.Right + offset;
+        double rightOuter = rightInner + length;
+        double bottomInner = box.Bottom - offset;
+        double bottomOuter = bottomInner - length;
+        double topInner = box.Top + offset;
+        double topOuter = topInner + length;
+        return Array.AsReadOnly<PdfImpositionMark>(
+        [
+            new(leftOuter, box.Bottom, leftInner, box.Bottom),
+            new(box.Left, bottomOuter, box.Left, bottomInner),
+            new(rightInner, box.Bottom, rightOuter, box.Bottom),
+            new(box.Right, bottomOuter, box.Right, bottomInner),
+            new(leftOuter, box.Top, leftInner, box.Top),
+            new(box.Left, topInner, box.Left, topOuter),
+            new(rightInner, box.Top, rightOuter, box.Top),
+            new(box.Right, topInner, box.Right, topOuter)
+        ]);
+    }
+
     private static int TileCount(double source, double tile, double step) =>
         source <= tile ? 1 : checked((int)Math.Ceiling((source - tile) / step) + 1);
 
@@ -237,6 +271,10 @@ public sealed record PdfPosterTile(int TileIndex, int Row, int Column, PdfConten
 /// <summary>One fitted source page in sheet coordinates.</summary>
 public sealed record PdfImposedPlacement(int SlotIndex, int SourcePageIndex,
     PdfContentBounds SheetBounds, double Scale, int Rotation);
+
+/// <summary>One printable imposition mark in sheet coordinates.</summary>
+public sealed record PdfImpositionMark(
+    double StartX, double StartY, double EndX, double EndY);
 
 /// <summary>The printable face of a physical sheet.</summary>
 public enum PdfImposedSheetFace

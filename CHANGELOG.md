@@ -19,7 +19,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added certificate identity and algorithm details to signature verification (#336).
 - Added attachment renaming and replacement, executable-content and integrity checks, and portfolio metadata (#347).
 - Added saved calibration profiles, document, page, and region assignments, coordinates, directional deltas, and snapping to measurement tools (#348).
-- Added step-and-repeat, poster tiling, manual sequences, bounded booklet signatures, and fitted sheet grids to imposition planning (#349).
+- Added step-and-repeat, poster tiling, manual sequences, bounded booklet signatures, fitted sheet grids, and crop marks to imposition planning (#349).
 - Added layer renaming, locking, editable visibility and display order, plus readable preflight reports (#350, #334).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
 - Added source identities, JSON reports, stable findings, safe-link removal, and link retargeting to navigation audits (#351).
