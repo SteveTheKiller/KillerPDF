@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -87,6 +88,33 @@ public sealed class PdfStructuredExportTests
         string xml = reader.ReadToEnd();
         Assert.Contains("<a:t>A &amp; B</a:t>", xml, StringComparison.Ordinal);
         Assert.Contains("<a:xfrm>", xml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PresentationCentersMixedPageSizesWithoutStretchingGeometry()
+    {
+        PdfDocument document = PdfDocument.Open(new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .AddPage(300, 400, new KillerPdf.Engine.Authoring.PdfContentStreamBuilder()
+                .BeginText().SetFont(KillerPdf.Engine.Authoring.PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 30).ShowLatin1Text("Portrait").EndText())
+            .AddPage(400, 200, new KillerPdf.Engine.Authoring.PdfContentStreamBuilder()
+                .BeginText().SetFont(KillerPdf.Engine.Authoring.PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 30).ShowLatin1Text("Landscape").EndText())
+            .Build());
+
+        using var archive = new ZipArchive(
+            new MemoryStream(PdfStructuredExport.ToPptx(document)), ZipArchiveMode.Read);
+        using var reader = new StreamReader(Assert.IsType<ZipArchiveEntry>(
+            archive.GetEntry("ppt/slides/slide2.xml")).Open());
+        string xml = reader.ReadToEnd();
+
+        Assert.Contains("<a:t>Landscape</a:t>", xml, StringComparison.Ordinal);
+        XNamespace drawing = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        XElement offset = XDocument.Parse(xml).Descendants(drawing + "off").Last();
+        long x = long.Parse(Assert.IsType<XAttribute>(offset.Attribute("x")).Value);
+        long y = long.Parse(Assert.IsType<XAttribute>(offset.Attribute("y")).Value);
+        Assert.InRange(x, 220_000, 260_000);
+        Assert.True(y > 3_800_000);
     }
 
     [Fact]

@@ -309,13 +309,15 @@ public static class PdfStructuredExport
         long slideWidth, long slideHeight)
     {
         var shapes = new StringBuilder();
+        PresentationPageLayout layout = FitPresentationPage(
+            page.Content.Width, page.Content.Height, slideWidth, slideHeight);
         int id = 2;
         foreach (PdfExtractedLine line in page.Content.Lines)
             AppendPresentationText(shapes, id++, line.Text, line.BoundingBox,
-                page.Content.Width, page.Content.Height, slideWidth, slideHeight);
+                page.Content.Height, layout);
         foreach (PdfExtractedImage image in page.Content.Images)
             AppendPresentationText(shapes, id++, "[Image: " + (image.ResourceName ?? "inline") + "]",
-                image.BoundingBox, page.Content.Width, page.Content.Height, slideWidth, slideHeight);
+                image.BoundingBox, page.Content.Height, layout);
         WriteEntry(archive, $"ppt/slides/slide{number}.xml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
             "<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:spTree>" +
@@ -325,13 +327,13 @@ public static class PdfStructuredExport
     }
 
     private static void AppendPresentationText(StringBuilder output, int id, string text,
-        PdfContentBounds bounds, double pageWidth, double pageHeight,
-        long slideWidth, long slideHeight)
+        PdfContentBounds bounds, double pageHeight, PresentationPageLayout layout)
     {
-        long x = Scale(bounds.Left, pageWidth, slideWidth);
-        long y = Scale(pageHeight - bounds.Top, pageHeight, slideHeight);
-        long width = Math.Max(1, Scale(bounds.Width, pageWidth, slideWidth));
-        long height = Math.Max(1, Scale(bounds.Height, pageHeight, slideHeight));
+        long x = layout.OffsetX + (long)Math.Round(bounds.Left * layout.EmuPerPoint);
+        long y = layout.OffsetY
+            + (long)Math.Round((pageHeight - bounds.Top) * layout.EmuPerPoint);
+        long width = Math.Max(1, (long)Math.Round(bounds.Width * layout.EmuPerPoint));
+        long height = Math.Max(1, (long)Math.Round(bounds.Height * layout.EmuPerPoint));
         output.Append("<p:sp><p:nvSpPr><p:cNvPr id=\"").Append(id)
             .Append("\" name=\"PDF text ").Append(id - 1)
             .Append("\"/><p:cNvSpPr txBox=\"1\"/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x=\"")
@@ -344,6 +346,18 @@ public static class PdfStructuredExport
 
     private static long Scale(double value, double source, long target) =>
         source <= 0 ? 0 : (long)Math.Round(value / source * target);
+
+    private static PresentationPageLayout FitPresentationPage(
+        double pageWidth, double pageHeight, long slideWidth, long slideHeight)
+    {
+        if (pageWidth <= 0 || pageHeight <= 0)
+            return new PresentationPageLayout(0, 0, 1);
+        double scale = Math.Min(slideWidth / pageWidth, slideHeight / pageHeight);
+        long width = (long)Math.Round(pageWidth * scale);
+        long height = (long)Math.Round(pageHeight * scale);
+        return new PresentationPageLayout(
+            (slideWidth - width) / 2, (slideHeight - height) / 2, scale);
+    }
 
     private const string GroupShape = "<p:nvGrpSpPr><p:cNvPr id=\"1\" name=\"\"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x=\"0\" y=\"0\"/><a:ext cx=\"0\" cy=\"0\"/><a:chOff x=\"0\" y=\"0\"/><a:chExt cx=\"0\" cy=\"0\"/></a:xfrm></p:grpSpPr>";
 
@@ -416,4 +430,6 @@ public static class PdfStructuredExport
     }
 
     private sealed record Page(int Index, PdfPageContent Content);
+    private sealed record PresentationPageLayout(
+        long OffsetX, long OffsetY, double EmuPerPoint);
 }
