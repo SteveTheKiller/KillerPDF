@@ -256,12 +256,30 @@ public static class PdfStructuredExport
         var output = new StringBuilder("<!doctype html><html><head><meta charset=\"utf-8\"><title>PDF export</title></head><body>");
         foreach (Page page in pages)
         {
-            output.Append("<section data-page=\"").Append(page.Index + 1).Append("\">");
+            output.Append("<section id=\"page-").Append(page.Index + 1)
+                .Append("\" data-page=\"").Append(page.Index + 1).Append("\">");
             foreach (PdfExtractedLine line in page.Content.Lines)
                 output.Append("<p>").Append(WebUtility.HtmlEncode(line.Text)).Append("</p>");
             foreach (PdfExtractedImage image in page.Content.Images)
                 output.Append("<figure data-image=\"").Append(WebUtility.HtmlEncode(image.ResourceName ?? "inline"))
                     .Append("\"></figure>");
+            IReadOnlyList<PdfLinkInfo> links = PdfLinkReader.ReadPage(document, page.Index);
+            if (links.Count > 0)
+            {
+                output.Append("<nav aria-label=\"Page links\"><ul>");
+                foreach (PdfLinkInfo link in links)
+                {
+                    string target = link.Uri ?? (link.DestinationPageIndex.HasValue
+                        ? $"#page-{link.DestinationPageIndex.Value + 1}"
+                        : $"#{Uri.EscapeDataString(link.NamedDestination!)}");
+                    string label = link.Description ?? link.Uri ?? (link.DestinationPageIndex.HasValue
+                        ? $"Page {link.DestinationPageIndex.Value + 1}"
+                        : link.NamedDestination!);
+                    output.Append("<li><a href=\"").Append(WebUtility.HtmlEncode(target))
+                        .Append("\">").Append(WebUtility.HtmlEncode(label)).Append("</a></li>");
+                }
+                output.Append("</ul></nav>");
+            }
             output.Append("</section>");
         }
         return output.Append("</body></html>").ToString();
@@ -314,6 +332,24 @@ public static class PdfStructuredExport
                 resource = image.ResourceName,
                 inline = image.IsInline,
                 bounds = image.BoundingBox
+            }),
+            links = PdfLinkReader.ReadPage(document, page.Index).Select(link => new
+            {
+                annotationIndex = link.AnnotationIndex,
+                objectNumber = link.ObjectNumber,
+                generation = link.Generation,
+                bounds = new
+                {
+                    left = link.Left,
+                    bottom = link.Bottom,
+                    right = link.Right,
+                    top = link.Top
+                },
+                destinationPage = link.DestinationPageIndex.HasValue
+                    ? link.DestinationPageIndex.Value + 1 : (int?)null,
+                namedDestination = link.NamedDestination,
+                uri = link.Uri,
+                description = link.Description
             }),
             diagnostics = page.Content.Diagnostics
         });

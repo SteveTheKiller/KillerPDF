@@ -37,6 +37,32 @@ public sealed class PdfStructuredExportTests
     }
 
     [Fact]
+    public void HtmlAndJsonPreserveUriAndLocalPageLinks()
+    {
+        PdfDocument document = PdfDocument.Open(new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .AddPage(300, 400, ReadOnlyMemory<byte>.Empty)
+            .AddPage(300, 400, ReadOnlyMemory<byte>.Empty)
+            .AddUriLink(0, 10, 20, 80, 15, "https://example.test/a?x=1&y=2",
+                contents: "Help & support")
+            .AddPageLink(0, 10, 50, 80, 15, 1, contents: "Next page")
+            .Build());
+
+        string html = PdfStructuredExport.ToHtml(document);
+        Assert.Contains("<section id=\"page-1\" data-page=\"1\">", html,
+            StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.test/a?x=1&amp;y=2\">Help &amp; support</a>",
+            html, StringComparison.Ordinal);
+        Assert.Contains("href=\"#page-2\">Next page</a>", html, StringComparison.Ordinal);
+
+        using JsonDocument json = JsonDocument.Parse(PdfStructuredExport.ToJson(document));
+        JsonElement links = json.RootElement[0].GetProperty("links");
+        Assert.Equal("https://example.test/a?x=1&y=2", links[0].GetProperty("uri").GetString());
+        Assert.Equal("Help & support", links[0].GetProperty("description").GetString());
+        Assert.Equal(2, links[1].GetProperty("destinationPage").GetInt32());
+        Assert.Equal(10, links[1].GetProperty("bounds").GetProperty("left").GetDouble());
+    }
+
+    [Fact]
     public void ExportsEditableWordDocumentWithEscapedText()
     {
         PdfDocument document = Document("BT /F1 12 Tf 10 30 Td (A & B) Tj ET");
