@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -254,6 +255,28 @@ public sealed class PdfRedactionSearchTests
         Assert.Empty(review.Exclude(match.Id).Included);
         Assert.Throws<ArgumentException>(() =>
             PdfRedactionReview.FromImages([page], reasonCode: " "));
+    }
+
+    [Fact]
+    public void CommentAnnotationsUseTheSameReviewWorkflow()
+    {
+        PdfDocument source = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 400).Build());
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalAnnotationEditor(source)
+            .AddTextNote(0, 30, 40, "private reviewer note", size: 20)
+            .Build());
+
+        PdfRedactionReview review = PdfRedactionReview.FromComments(
+            document, "Private comment", "REMOVED");
+        PdfRedactionMatch match = Assert.Single(review.Included);
+
+        Assert.Equal("comment:0:0", match.Id);
+        Assert.Equal(PdfRedactionTargetKind.Comment, match.TargetKind);
+        Assert.Equal("private reviewer note", match.Text);
+        Assert.Equal(new PdfContentBounds(30, 40, 50, 60), match.Bounds);
+        Assert.DoesNotContain("private reviewer note", review.ToJson());
+        Assert.Contains("private reviewer note", review.ToJson(includeMatchedText: true));
+        Assert.Empty(review.Exclude(match.Id).Included);
     }
 
     private static PdfPageContent Read(string text)

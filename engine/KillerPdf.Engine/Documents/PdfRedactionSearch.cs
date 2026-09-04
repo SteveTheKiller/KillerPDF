@@ -47,7 +47,9 @@ public enum PdfRedactionTargetKind
     /// <summary>A caller-selected rectangular page region.</summary>
     PageRegion,
     /// <summary>An extracted image placement.</summary>
-    Image
+    Image,
+    /// <summary>A review annotation containing comment text.</summary>
+    Comment
 }
 
 /// <summary>A rectangular page region proposed for redaction.</summary>
@@ -158,6 +160,29 @@ public sealed class PdfRedactionReview
                     $"image:{pageIndex}:{imageIndex}", pageIndex, string.Empty,
                     image.BoundingBox, -1, 0, reasonCode, overlayText,
                     PdfRedactionTargetKind.Image));
+        }
+        return new PdfRedactionReview(matches);
+    }
+
+    /// <summary>Builds a review from every bounded comment annotation in a document.</summary>
+    public static PdfRedactionReview FromComments(
+        PdfDocument document, string? reasonCode = null, string? overlayText = null)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        PdfRedactionSearch.ValidatePresentation(reasonCode, overlayText, nameof(document));
+        var matches = new List<PdfRedactionMatch>();
+        foreach (PdfCommentInfo comment in PdfCommentReader.Read(document))
+        {
+            PdfContentBounds bounds = comment.Bounds
+                ?? throw new NotSupportedException(
+                    $"Comment annotation {comment.AnnotationIndex + 1} on page {comment.PageIndex + 1} has no rectangular bounds.");
+            if (bounds.Width <= 0 || bounds.Height <= 0)
+                throw new NotSupportedException(
+                    $"Comment annotation {comment.AnnotationIndex + 1} on page {comment.PageIndex + 1} has empty bounds.");
+            matches.Add(new PdfRedactionMatch(
+                $"comment:{comment.PageIndex}:{comment.AnnotationIndex}",
+                comment.PageIndex, comment.Contents, bounds, -1, 0,
+                reasonCode, overlayText, PdfRedactionTargetKind.Comment));
         }
         return new PdfRedactionReview(matches);
     }

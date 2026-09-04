@@ -34,7 +34,7 @@ public sealed class PdfCommentReaderTests
                 Assert.Equal("Change this term", comment.Contents);
                 Assert.Equal("Reviewer", comment.Author);
                 Assert.Equal("Translation", comment.Subject);
-                Assert.Equal(new PdfContentBounds(10, 20, 24, 24), comment.Bounds);
+                Assert.Equal(new PdfContentBounds(10, 20, 34, 44), comment.Bounds);
                 Assert.NotNull(comment.ObjectNumber);
             },
             comment =>

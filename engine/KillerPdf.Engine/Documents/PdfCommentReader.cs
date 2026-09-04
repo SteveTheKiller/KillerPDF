@@ -121,7 +121,7 @@ public static class PdfCommentReader
         if (right < left || top < bottom)
             throw new InvalidOperationException(
                 $"Page {pageIndex + 1} annotation {annotationIndex + 1} /Rect is invalid.");
-        return new PdfContentBounds(left, bottom, right - left, top - bottom);
+        return new PdfContentBounds(left, bottom, right, top);
     }
 
     private static int? ReplyTarget(PdfDocument document, PdfDictionary annotation)
