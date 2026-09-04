@@ -24,6 +24,8 @@ public sealed class PdfAccessibilityInspectorTests
                 .DrawImage(image, 20, 200, 40, 40))
             .AddUriLink(0, 20, 150, 80, 20, "https://example.com",
                 contents: "Example link")
+            .AddTextField(0, "account", 20, 100, 100, 20,
+                fieldMetadata: new PdfFormFieldMetadata { Tooltip = "Account number" })
             .Build());
 
         IReadOnlyList<PdfAccessibilityTaggingProposalItem> proposals =
@@ -33,12 +35,14 @@ public sealed class PdfAccessibilityInspectorTests
             PdfAccessibilityProposedRole.Paragraph,
             PdfAccessibilityProposedRole.ListItem,
             PdfAccessibilityProposedRole.Figure,
-            PdfAccessibilityProposedRole.Link], proposals.Select(item => item.Role));
-        Assert.Equal([0, 1, 2, 3, 4], proposals.Select(item => item.Order));
+            PdfAccessibilityProposedRole.Link,
+            PdfAccessibilityProposedRole.FormField], proposals.Select(item => item.Role));
+        Assert.Equal([0, 1, 2, 3, 4, 5], proposals.Select(item => item.Order));
         Assert.Equal("Heading", proposals[0].Text);
         Assert.Equal("1. First item", proposals[2].Text);
         Assert.Null(proposals[3].Text);
         Assert.Equal("Example link", proposals[4].Text);
+        Assert.Equal("Account number", proposals[5].Text);
         Assert.All(proposals, item => Assert.True(item.RequiresReview));
         Assert.All(proposals, item => Assert.InRange(item.Confidence, 0.5, 0.9));
     }

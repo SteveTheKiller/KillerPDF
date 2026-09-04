@@ -14,7 +14,9 @@ public enum PdfAccessibilityProposedRole
     /// <summary>A link annotation that requires a meaningful description.</summary>
     Link,
     /// <summary>An image placement that requires alternate text.</summary>
-    Figure
+    Figure,
+    /// <summary>An interactive form field that requires a semantic label.</summary>
+    FormField
 }
 
 /// <summary>One review-required semantic proposal in inferred visual reading order.</summary>
@@ -67,6 +69,13 @@ public static class PdfAccessibilityTaggingProposal
                         Text: link.Description,
                         Role: PdfAccessibilityProposedRole.Link,
                         Confidence: string.IsNullOrWhiteSpace(link.Description) ? 0.55 : 0.9)))
+                .Concat(PdfFormWidgetReader.ReadPage(document, pageIndex).Select(widget =>
+                    (BoundingBox: new PdfContentBounds(
+                            widget.Left, widget.Bottom, widget.Right, widget.Top),
+                        Text: (string?)(string.IsNullOrWhiteSpace(widget.Tooltip)
+                            ? widget.FieldName : widget.Tooltip),
+                        Role: PdfAccessibilityProposedRole.FormField,
+                        Confidence: string.IsNullOrWhiteSpace(widget.Tooltip) ? 0.55 : 0.9)))
                 .Concat(page.Images.Select(image => (image.BoundingBox, Text: (string?)null,
                     Role: PdfAccessibilityProposedRole.Figure, Confidence: 0.5)))
                 .OrderByDescending(region => region.BoundingBox.Top)
