@@ -33,8 +33,71 @@ public static class PdfCollectionReader
             RawViewName = rawView,
             InitialDocument = OptionalText(document, collection, "D"),
             Fields = ReadFields(document, collection),
-            Sort = ReadSort(document, collection)
+            Sort = ReadSort(document, collection),
+            Folders = ReadFolders(document, collection)
         };
+    }
+
+    private static IReadOnlyList<PdfCollectionFolderInfo> ReadFolders(
+        PdfDocument document, PdfDictionary collection)
+    {
+        if (!collection.TryGetValue(Name("Folders"), out PdfObject? rootValue)) return [];
+        PdfIndirectReference rootReference = Reference(document, rootValue,
+            "The collection /Folders value is not an indirect reference.");
+        var result = new List<PdfCollectionFolderInfo>();
+        var visited = new HashSet<(int, int)>();
+        var identifiers = new HashSet<long>();
+        var folderReferences = new Dictionary<long, (int ObjectNumber, int Generation)>();
+        ReadChain(rootReference, null, 0, true);
+        return Array.AsReadOnly(result.ToArray());
+
+        void ReadChain(PdfIndirectReference reference, long? parentId, int depth, bool root)
+        {
+            if (depth > 64)
+                throw new NotSupportedException("A collection folder hierarchy is too deeply nested.");
+            while (true)
+            {
+                PdfIndirectReference identity = Reference(document, reference,
+                    "A collection folder is not an indirect reference.");
+                if (!visited.Add((identity.ObjectNumber, identity.Generation)))
+                    throw new InvalidOperationException(
+                        "A collection folder hierarchy contains a cycle or reused folder.");
+                PdfDictionary folder = Dictionary(document, identity,
+                    "A collection folder is not a dictionary.");
+                long id = RequiredNonnegativeInteger(document, folder, "ID");
+                if (!identifiers.Add(id))
+                    throw new InvalidOperationException($"A collection folder reuses ID {id}.");
+                folderReferences.Add(id, (identity.ObjectNumber, identity.Generation));
+                if (root && (folder.ContainsKey(Name("Parent")) || folder.ContainsKey(Name("Next"))))
+                    throw new InvalidOperationException(
+                        "The root collection folder contains a parent or next entry.");
+                if (!root)
+                {
+                    PdfIndirectReference parentReference = folder.TryGetValue(Name("Parent"), out PdfObject? parent)
+                        ? Reference(document, parent,
+                            "A collection folder has no indirect parent reference.")
+                        : throw new InvalidOperationException(
+                            "A collection folder has no parent reference.");
+                    var expected = folderReferences[parentId!.Value];
+                    if (parentReference.ObjectNumber != expected.ObjectNumber
+                        || parentReference.Generation != expected.Generation)
+                        throw new InvalidOperationException(
+                            "A collection folder parent reference is not reciprocal.");
+                }
+                result.Add(new PdfCollectionFolderInfo(id, identity.ObjectNumber,
+                    RequiredText(document, folder, "Name", "A collection folder has no /Name string."),
+                    OptionalText(document, folder, "Desc"),
+                    OptionalText(document, folder, "CreationDate"),
+                    OptionalText(document, folder, "ModDate"), parentId, depth));
+                if (folder.TryGetValue(Name("Child"), out PdfObject? child))
+                    ReadChain(Reference(document, child,
+                        "A collection folder /Child value is not an indirect reference."), id,
+                        depth + 1, false);
+                if (root || !folder.TryGetValue(Name("Next"), out PdfObject? next)) return;
+                reference = Reference(document, next,
+                    "A collection folder /Next value is not an indirect reference.");
+            }
+        }
     }
 
     private static IReadOnlyList<PdfCollectionFieldInfo> ReadFields(
@@ -145,6 +208,16 @@ public static class PdfCollectionReader
         return (int)integer.Value;
     }
 
+    private static long RequiredNonnegativeInteger(
+        PdfDocument document, PdfDictionary dictionary, string key)
+    {
+        if (!dictionary.TryGetValue(Name(key), out PdfObject? value)
+            || Resolve(document, value) is not PdfInteger integer || integer.Value < 0)
+            throw new InvalidOperationException(
+                $"A collection folder has no nonnegative /{key} integer.");
+        return integer.Value;
+    }
+
     private static bool? OptionalBoolean(
         PdfDocument document, PdfDictionary dictionary, string key)
     {
@@ -164,6 +237,21 @@ public static class PdfCollectionReader
             value = document.Resolve(reference);
         }
         return value;
+    }
+
+    private static PdfIndirectReference Reference(
+        PdfDocument document, PdfObject value, string error)
+    {
+        var visited = new HashSet<(int, int)>();
+        PdfIndirectReference? identity = null;
+        while (value is PdfIndirectReference reference)
+        {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)))
+                throw new InvalidOperationException("A collection reference contains a cycle.");
+            identity = reference;
+            value = document.Resolve(reference);
+        }
+        return identity ?? throw new InvalidOperationException(error);
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
@@ -195,7 +283,14 @@ public sealed record PdfCollectionInfo
     public required IReadOnlyList<PdfCollectionFieldInfo> Fields { get; init; }
     /// <summary>Gets the collection's ordered sort keys.</summary>
     public required IReadOnlyList<PdfCollectionSortInfo> Sort { get; init; }
+    /// <summary>Gets portfolio folders in hierarchy and sibling order.</summary>
+    public required IReadOnlyList<PdfCollectionFolderInfo> Folders { get; init; }
 }
+
+/// <summary>One folder in a PDF portfolio hierarchy.</summary>
+public sealed record PdfCollectionFolderInfo(
+    long Id, int ObjectNumber, string Name, string? Description,
+    string? CreationDate, string? ModificationDate, long? ParentId, int Depth);
 
 /// <summary>One standard or custom portfolio field.</summary>
 public sealed record PdfCollectionFieldInfo

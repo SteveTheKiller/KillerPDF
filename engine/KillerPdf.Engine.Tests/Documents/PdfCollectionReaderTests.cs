@@ -190,7 +190,48 @@ public sealed class PdfCollectionReaderTests
         ], attachment.CollectionValues);
         Assert.Throws<ArgumentException>(() => PdfCollectionEditor.SetItemValues(
             portfolio, "evidence.txt", [
-                new PdfCollectionItemValue("Missing", "value", null, null)]));
+            new PdfCollectionItemValue("Missing", "value", null, null)]));
+    }
+
+    [Fact]
+    public void ReadReturnsNestedPortfolioFoldersInDisplayOrder()
+    {
+        PdfDocument source = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference root = update.ReserveObject();
+        PdfIndirectReference child = update.ReserveObject();
+        PdfIndirectReference sibling = update.ReserveObject();
+        update.SetObject(root, new PdfDictionary([
+            new(Name("Type"), Name("Folder")), new(Name("ID"), new PdfInteger(1)),
+            new(Name("Name"), Text("Evidence")), new(Name("Desc"), Text("Case files")),
+            new(Name("Child"), child)
+        ]));
+        update.SetObject(child, new PdfDictionary([
+            new(Name("Type"), Name("Folder")), new(Name("ID"), new PdfInteger(2)),
+            new(Name("Name"), Text("Photos")), new(Name("Parent"), root),
+            new(Name("Next"), sibling)
+        ]));
+        update.SetObject(sibling, new PdfDictionary([
+            new(Name("Type"), Name("Folder")), new(Name("ID"), new PdfInteger(3)),
+            new(Name("Name"), Text("Reports")), new(Name("Parent"), root)
+        ]));
+        PdfIndirectReference catalogReference = Assert.IsType<PdfIndirectReference>(
+            source.Trailer[Name("Root")]);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(source.Resolve(catalogReference));
+        update.ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(catalog.Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("Collection"), new PdfDictionary([
+                new(Name("Type"), Name("Collection")), new(Name("Folders"), root)
+            ])))));
+
+        PdfCollectionInfo collection = Assert.IsType<PdfCollectionInfo>(
+            PdfCollectionReader.Read(PdfDocument.Open(update.Build())));
+
+        Assert.Equal(["Evidence", "Photos", "Reports"],
+            collection.Folders.Select(folder => folder.Name));
+        Assert.Equal([0, 1, 1], collection.Folders.Select(folder => folder.Depth));
+        Assert.Equal([null, 1L, 1L], collection.Folders.Select(folder => folder.ParentId));
+        Assert.Equal("Case files", collection.Folders[0].Description);
     }
 
     private static PdfDocument WithCollection(PdfDictionary collection)
