@@ -1,0 +1,47 @@
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Documents;
+using Xunit;
+
+namespace KillerPdf.Engine.Tests.Documents;
+
+public sealed class PdfStructuralComparisonTests
+{
+    [Fact]
+    public void CompareReportsChangedContentCategoriesAndAddedPages()
+    {
+        PdfDocument original = Document("Original", includePath: false, pages: 1);
+        PdfDocument changed = Document("Changed", includePath: true, pages: 2);
+
+        PdfStructuralComparison comparison = PdfStructuralComparison.Compare(original, changed);
+
+        Assert.True(comparison.HasChanges);
+        Assert.Contains(comparison.Changes, change =>
+            change.PageIndex == 0 && change.Kind == PdfStructuralChangeKind.Text);
+        Assert.Contains(comparison.Changes, change =>
+            change.PageIndex == 0 && change.Kind == PdfStructuralChangeKind.Paths);
+        Assert.Contains(comparison.Changes, change =>
+            change.PageIndex == 1 && change.Kind == PdfStructuralChangeKind.PageAdded);
+    }
+
+    [Fact]
+    public void CompareFindsNoChangesForEquivalentDocumentsAndHonorsCancellation()
+    {
+        PdfDocument first = Document("Same", includePath: true, pages: 1);
+        PdfDocument second = Document("Same", includePath: true, pages: 1);
+
+        Assert.False(PdfStructuralComparison.Compare(first, second).HasChanges);
+        Assert.Throws<OperationCanceledException>(() => PdfStructuralComparison.Compare(
+            first, second, new CancellationToken(canceled: true)));
+    }
+
+    private static PdfDocument Document(string text, bool includePath, int pages)
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .MoveText(10, 20).ShowLatin1Text(text).EndText();
+        if (includePath) content.Rectangle(5, 5, 20, 10).Stroke();
+        var builder = new PdfDocumentBuilder().AddPage(100, 100, content);
+        for (int index = 1; index < pages; index++) builder.AddBlankPage(100, 100);
+        return PdfDocument.Open(builder.Build());
+    }
+}
