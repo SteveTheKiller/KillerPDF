@@ -353,6 +353,10 @@ public sealed class PdfFormRecognitionTests
         Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
             "text", 0, new PdfContentBounds(10, 10, 150, 40),
             PdfRecognizedFieldKind.Text, 1, "text", suggestedDefaultChecked: true));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
+            "choice", 0, new PdfContentBounds(10, 10, 150, 40),
+            PdfRecognizedFieldKind.DropDown, 1, "choice",
+            suggestedOptions: ["One", "Two"], suggestedOptionExportValues: ["1"]));
     }
 
     [Fact]
@@ -361,8 +365,9 @@ public sealed class PdfFormRecognitionTests
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
         var review = new PdfFormRecognitionReview([
             new("country", 0, new PdfContentBounds(10, 10, 150, 30),
-                PdfRecognizedFieldKind.DropDown, 1, "country", suggestedOptions: ["US", "CA"],
-                suggestedValue: "CA"),
+                PdfRecognizedFieldKind.DropDown, 1, "country",
+                suggestedOptions: ["United States", "Canada"],
+                suggestedValue: "CA", suggestedOptionExportValues: ["US", "CA"]),
             new("custom", 0, new PdfContentBounds(10, 50, 150, 70),
                 PdfRecognizedFieldKind.EditableComboBox, 1, "custom"),
             new("region", 0, new PdfContentBounds(10, 90, 150, 140),
@@ -376,7 +381,11 @@ public sealed class PdfFormRecognitionTests
 
         Assert.Equal(3, widgets.Count);
         Assert.All(widgets, widget => Assert.Equal(PdfFormFieldKind.Choice, widget.FieldKind));
-        Assert.Equal("Country", widgets.Single(widget => widget.FieldName == "country").Tooltip);
+        PdfFormWidgetInfo country = widgets.Single(widget => widget.FieldName == "country");
+        Assert.Equal("Country", country.Tooltip);
+        Assert.Equal("CA", country.Value);
+        Assert.Equal("Canada",
+            country.Options.Single(option => option.ExportValue == "CA").DisplayValue);
     }
 
     [Fact]
