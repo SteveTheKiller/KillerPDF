@@ -280,35 +280,8 @@ public sealed class PdfIncrementalAnnotationEditor
             throw new ArgumentOutOfRangeException(nameof(state));
         if (!Enum.IsDefined(replyType))
             throw new ArgumentOutOfRangeException(nameof(replyType));
-        Dictionary<string, PdfIndirectReference> existingNames =
-            ExistingAnnotationNames();
-        foreach (PendingRemoval removal in _removals)
-            existingNames.Remove(removal.Name);
-        IEnumerable<string> pendingNames = _annotations.OfType<PendingTextNote>()
-            .Where(note => note.Name is not null).Select(note => note.Name!);
-        if (name is not null)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException(
-                    "Annotation names cannot be empty.", nameof(name));
-            if (existingNames.ContainsKey(name)
-                || pendingNames.Contains(name, StringComparer.Ordinal))
-                throw new ArgumentException(
-                    $"A text-note annotation named '{name}' already exists.",
-                    nameof(name));
-        }
-        if (inReplyTo is not null)
-        {
-            if (string.IsNullOrWhiteSpace(inReplyTo))
-                throw new ArgumentException(
-                    "Reply targets cannot be empty.", nameof(inReplyTo));
-            if (!existingNames.ContainsKey(inReplyTo)
-                && !pendingNames.Contains(inReplyTo, StringComparer.Ordinal))
-                throw new ArgumentException(
-                    $"The reply target '{inReplyTo}' must name an existing or earlier text-note annotation.",
-                    nameof(inReplyTo));
-        }
-        else if (replyType != PdfAnnotationReplyType.Reply)
+        ValidatePendingAnnotationIdentity(name, inReplyTo);
+        if (inReplyTo is null && replyType != PdfAnnotationReplyType.Reply)
             throw new ArgumentException(
                 "A grouped reply requires an annotation target.", nameof(replyType));
         _annotations.Add(new PendingTextNote(
@@ -322,17 +295,21 @@ public sealed class PdfIncrementalAnnotationEditor
     public PdfIncrementalAnnotationEditor AddHighlight(
         int pageIndex, double x, double y, double width, double height,
         string? contents = null, PdfRgbColor? color = null, double opacity = 0.35,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.Highlight, pageIndex, x, y, width, height,
-            contents, color ?? PdfRgbColor.Yellow, opacity, annotationMetadata);
+            contents, color ?? PdfRgbColor.Yellow, opacity, annotationMetadata,
+            name, inReplyTo);
 
     /// <summary>Adds a highlight over one or more text quadrilaterals.</summary>
     public PdfIncrementalAnnotationEditor AddHighlight(
         int pageIndex, IReadOnlyList<PdfTextQuad> quads,
         string? contents = null, PdfRgbColor? color = null, double opacity = 0.35,
-        PdfAnnotationMetadata? annotationMetadata = null)
+        PdfAnnotationMetadata? annotationMetadata = null,
+        string? name = null, string? inReplyTo = null)
         => AddTextMarkup(PdfTextMarkupType.Highlight, pageIndex, quads,
-            contents, color ?? PdfRgbColor.Yellow, opacity, annotationMetadata);
+            contents, color ?? PdfRgbColor.Yellow, opacity, annotationMetadata,
+            name, inReplyTo);
 
     /// <summary>Adds an underline over a rectangular text region.</summary>
     public PdfIncrementalAnnotationEditor AddUnderline(
@@ -949,7 +926,7 @@ public sealed class PdfIncrementalAnnotationEditor
     private PdfIncrementalAnnotationEditor AddTextMarkup(
         PdfTextMarkupType type, int pageIndex, double x, double y, double width, double height,
         string? contents, PdfRgbColor color, double opacity,
-        PdfAnnotationMetadata? metadata)
+        PdfAnnotationMetadata? metadata, string? name = null, string? inReplyTo = null)
     {
         ValidatePage(pageIndex);
         ValidateRectangle(x, y, width, height);
@@ -957,24 +934,50 @@ public sealed class PdfIncrementalAnnotationEditor
             throw new ArgumentOutOfRangeException(nameof(opacity));
         return AddTextMarkup(type, pageIndex,
             [PdfTextQuad.FromRectangle(x, y, width, height)],
-            contents, color, opacity, metadata);
+            contents, color, opacity, metadata, name, inReplyTo);
     }
 
     private PdfIncrementalAnnotationEditor AddTextMarkup(
         PdfTextMarkupType type, int pageIndex,
         IReadOnlyList<PdfTextQuad> quads, string? contents,
-        PdfRgbColor color, double opacity, PdfAnnotationMetadata? metadata)
+        PdfRgbColor color, double opacity, PdfAnnotationMetadata? metadata,
+        string? name = null, string? inReplyTo = null)
     {
         ValidatePage(pageIndex);
         PdfTextQuad[] values = PdfLinkAnnotationFactory.ValidateQuads(quads);
         if (!double.IsFinite(opacity) || opacity is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(opacity));
+        ValidatePendingAnnotationIdentity(name, inReplyTo);
         var (X, Y, Width, Height) = PdfLinkAnnotationFactory.Bounds(values);
         _annotations.Add(new PendingTextMarkup(
             type, pageIndex, X, Y, Width, Height,
-            values, contents, color, opacity, metadata));
+            values, contents, color, opacity, metadata, name, inReplyTo));
         return this;
     }
+
+    private void ValidatePendingAnnotationIdentity(string? name, string? inReplyTo)
+    {
+        Dictionary<string, PdfIndirectReference> existing = ExistingAnnotationNames();
+        foreach (PendingRemoval removal in _removals) existing.Remove(removal.Name);
+        string[] pending = [.. _annotations.Select(PendingName)
+            .Where(value => value is not null).Select(value => value!)];
+        if (name is not null && (string.IsNullOrWhiteSpace(name)
+            || existing.ContainsKey(name) || pending.Contains(name, StringComparer.Ordinal)))
+            throw new ArgumentException(
+                "Annotation names must be nonempty and unique.", nameof(name));
+        if (inReplyTo is not null && (string.IsNullOrWhiteSpace(inReplyTo)
+            || !existing.ContainsKey(inReplyTo)
+                && !pending.Contains(inReplyTo, StringComparer.Ordinal)))
+            throw new ArgumentException(
+                "A reply target must name an existing or earlier annotation.", nameof(inReplyTo));
+    }
+
+    private static string? PendingName(PendingAnnotation annotation) => annotation switch
+    {
+        PendingTextNote note => note.Name,
+        PendingTextMarkup markup => markup.Name,
+        _ => null
+    };
 
     /// <summary>Validates pending annotation edits and appends one incremental revision.</summary>
     public byte[] Build(PdfIncrementalUpdateWriteOptions? options = null)
@@ -1020,8 +1023,8 @@ public sealed class PdfIncrementalAnnotationEditor
         foreach (PendingRemoval removal in _removals)
             annotationNames.Remove(removal.Name);
         foreach (AllocatedAnnotation item in allocated)
-            if (item.Definition is PendingTextNote { Name: not null } named)
-                annotationNames.Add(named.Name, item.AnnotationReference);
+            if (PendingName(item.Definition) is string name)
+                annotationNames.Add(name, item.AnnotationReference);
 
         foreach (AllocatedAnnotation item in allocated)
         {
@@ -1043,7 +1046,8 @@ public sealed class PdfIncrementalAnnotationEditor
                 case PendingTextMarkup markup:
                     update.SetObject(item.AnnotationReference,
                         WithStructureParent(TextMarkupDictionary(markup, page.Reference,
-                            item.AnnotationReference, item.AppearanceReference!), item,
+                            item.AnnotationReference, item.AppearanceReference!,
+                            annotationNames), item,
                             structureParentKeys));
                     update.SetObject(item.AppearanceReference!, TextMarkupAppearance(markup));
                     break;
@@ -2824,7 +2828,8 @@ public sealed class PdfIncrementalAnnotationEditor
 
     private static PdfDictionary TextMarkupDictionary(
         PendingTextMarkup markup, PdfIndirectReference page, PdfIndirectReference annotation,
-        PdfIndirectReference appearance)
+        PdfIndirectReference appearance,
+        IReadOnlyDictionary<string, PdfIndirectReference> annotationNames)
     {
         var entries = new List<(string Name, PdfObject Value)>
         {
@@ -2840,12 +2845,19 @@ public sealed class PdfIncrementalAnnotationEditor
                 }))),
             ("P", page), ("F", new PdfInteger((int)(markup.Metadata?.Flags
                 ?? PdfAnnotationFlags.Print))),
-            ("NM", Latin1String($"KillerPDF-{markup.Type}-{annotation.ObjectNumber}")),
+            ("NM", markup.Name is null
+                ? Latin1String($"KillerPDF-{markup.Type}-{annotation.ObjectNumber}")
+                : UnicodeString(markup.Name)),
             ("C", ColorArray(markup.Color)), ("CA", Number(markup.Opacity)),
             ("AP", Dictionary(("N", appearance)))
         };
         if (!string.IsNullOrEmpty(markup.Contents))
             entries.Add(("Contents", UnicodeString(markup.Contents)));
+        if (markup.InReplyTo is not null)
+        {
+            entries.Add(("IRT", annotationNames[markup.InReplyTo]));
+            entries.Add(("RT", Name("R")));
+        }
         PdfLinkAnnotationFactory.AddMetadata(entries, markup.Metadata);
         return Dictionary([.. entries]);
     }
@@ -3972,7 +3984,8 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfTextMarkupType Type, int PageIndex, double X, double Y, double Width, double Height,
         IReadOnlyList<PdfTextQuad> Quads, string? Contents,
         PdfRgbColor Color, double Opacity,
-        PdfAnnotationMetadata? Metadata) : PendingAnnotation(PageIndex);
+        PdfAnnotationMetadata? Metadata, string? Name,
+        string? InReplyTo) : PendingAnnotation(PageIndex);
     private sealed record PendingFreeText(
         int PageIndex, double X, double Y, double Width, double Height, string Contents,
         TrueTypeFont Font, double FontSize, PdfRgbColor TextColor, PdfRgbColor? FillColor,

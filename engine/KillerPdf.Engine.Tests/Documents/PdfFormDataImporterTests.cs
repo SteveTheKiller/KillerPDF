@@ -158,4 +158,44 @@ public sealed class PdfFormDataImporterTests
         Assert.Equal("/Off", widgets["approved"].Value);
         Assert.Equal("/Low", widgets["priority"].Value);
     }
+
+    [Fact]
+    public void ApplyImportsHighlightAndNoteReplyMetadata()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
+        var data = new PdfFormDataSet
+        {
+            Annotations =
+            [
+                new PdfFormDataAnnotation
+                {
+                    Subtype = "highlight", PageIndex = 0,
+                    Rectangle = [10, 20, 80, 35], Name = "review-1",
+                    Contents = "Replace this", Author = "Reviewer",
+                    Subject = "Translation", Color = "#FFD319", Opacity = 0.65,
+                    CreationDate = "D:20260904120000Z",
+                    ModifiedDate = "D:20260904123000Z"
+                },
+                new PdfFormDataAnnotation
+                {
+                    Subtype = "text", PageIndex = 0,
+                    Rectangle = [90, 20, 114, 44], Name = "reply-1",
+                    Contents = "Updated", ReplyToName = "review-1"
+                }
+            ]
+        };
+
+        PdfDocument reopened = PdfDocument.Open(PdfFormDataImporter.Apply(document, data));
+        IReadOnlyList<PdfCommentInfo> comments = PdfCommentReader.Read(reopened);
+
+        Assert.Equal(2, comments.Count);
+        Assert.Equal("review-1", comments[0].Name);
+        Assert.Equal("Reviewer", comments[0].Author);
+        Assert.Equal("Translation", comments[0].Subject);
+        Assert.Equal("reply-1", comments[1].Name);
+        Assert.Equal(comments[0].ObjectNumber, comments[1].ReplyToObjectNumber);
+        Assert.Throws<NotSupportedException>(() => PdfFormDataImporter.Apply(document,
+            new PdfFormDataSet { Annotations = [data.Annotations[0] with { Subtype = "stamp" }] }));
+    }
 }

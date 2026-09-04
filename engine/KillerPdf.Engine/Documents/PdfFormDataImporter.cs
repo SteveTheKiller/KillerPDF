@@ -1,5 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Globalization;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
@@ -77,7 +79,7 @@ public static class PdfFormDataImporter
         IReadOnlyList<PdfFormDataMatch> preview = Preview(document, data);
         Dictionary<string, IReadOnlyList<PdfFormWidgetInfo>> widgets = Widgets(document);
         var editor = new PdfIncrementalPageEditor(document);
-        bool changed = false;
+        bool fieldsChanged = false;
         for (int index = 0; index < data.Fields.Count; index++)
         {
             if (preview[index].Status != PdfFormDataMatchStatus.Matched) continue;
@@ -105,12 +107,87 @@ public static class PdfFormDataImporter
                 default:
                     continue;
             }
-            changed = true;
+            fieldsChanged = true;
         }
-        if (!changed) throw new InvalidOperationException("The form data has no applicable field values.");
-        byte[] updated = editor.Build();
+        PdfDocument updatedDocument = fieldsChanged
+            ? PdfDocument.Open(editor.Build()) : document;
+        bool annotationsChanged = data.Annotations.Count > 0;
+        if (annotationsChanged)
+            updatedDocument = PdfDocument.Open(ApplyAnnotations(updatedDocument, data.Annotations));
+        if (!fieldsChanged && !annotationsChanged)
+            throw new InvalidOperationException(
+                "The form data has no applicable field values or annotations.");
+        byte[] updated = updatedDocument.Source.ToArray();
         return outputMode == PdfFormDataImportOutputMode.Flattened
-            ? PdfFormFlattener.Flatten(PdfDocument.Open(updated)) : updated;
+            ? PdfFormFlattener.Flatten(updatedDocument) : updated;
+    }
+
+    private static byte[] ApplyAnnotations(PdfDocument document,
+        IReadOnlyList<PdfFormDataAnnotation> annotations)
+    {
+        var editor = new PdfIncrementalAnnotationEditor(document);
+        foreach (PdfFormDataAnnotation annotation in annotations)
+        {
+            if (annotation.Rectangle.Count != 4)
+                throw new ArgumentException(
+                    "Imported annotation rectangles require four coordinates.", nameof(annotations));
+            double x = annotation.Rectangle[0];
+            double y = annotation.Rectangle[1];
+            double width = annotation.Rectangle[2] - x;
+            double height = annotation.Rectangle[3] - y;
+            PdfRgbColor? color = ParseColor(annotation.Color);
+            PdfAnnotationMetadata metadata = Metadata(annotation);
+            string subtype = annotation.Subtype.ToLowerInvariant();
+            if (subtype == "highlight")
+                editor.AddHighlight(annotation.PageIndex, x, y, width, height,
+                    annotation.Contents, color, annotation.Opacity ?? 0.35,
+                    metadata, annotation.Name, annotation.ReplyToName);
+            else if (subtype == "text")
+                editor.AddTextNote(annotation.PageIndex, x, y,
+                    annotation.Contents ?? string.Empty, color,
+                    size: Math.Max(width, height), annotationMetadata: metadata,
+                    name: annotation.Name, inReplyTo: annotation.ReplyToName);
+            else
+                throw new NotSupportedException(
+                    $"Importing {annotation.Subtype} annotations is not supported.");
+        }
+        return editor.Build();
+    }
+
+    private static PdfAnnotationMetadata Metadata(PdfFormDataAnnotation annotation) => new()
+    {
+        Author = annotation.Author,
+        Subject = annotation.Subject,
+        CreationDate = ParseDate(annotation.CreationDate),
+        ModificationDate = ParseDate(annotation.ModifiedDate)
+    };
+
+    private static DateTimeOffset? ParseDate(string? value)
+    {
+        if (value is null) return null;
+        string normalized = value.StartsWith("D:", StringComparison.Ordinal)
+            ? value[2..] : value;
+        if (DateTimeOffset.TryParseExact(normalized,
+                ["yyyyMMddHHmmss'Z'", "yyyy-MM-dd'T'HH:mm:ssK"],
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                out DateTimeOffset parsed))
+            return parsed;
+        throw new ArgumentException($"Annotation date '{value}' is invalid.");
+    }
+
+    private static PdfRgbColor? ParseColor(string? value)
+    {
+        if (value is null) return null;
+        if (value.Length != 7 || value[0] != '#'
+            || !byte.TryParse(value.AsSpan(1, 2), NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture, out byte red)
+            || !byte.TryParse(value.AsSpan(3, 2), NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture, out byte green)
+            || !byte.TryParse(value.AsSpan(5, 2), NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture, out byte blue))
+            throw new ArgumentException($"Annotation color '{value}' is invalid.");
+        return new PdfRgbColor(red / 255d, green / 255d, blue / 255d);
     }
 
     private static bool ValuesAreValid(PdfFormDataField field,
