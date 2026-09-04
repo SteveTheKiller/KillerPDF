@@ -37,4 +37,30 @@ public sealed class PdfImpositionMacroTests
         Assert.Throws<ArgumentException>(() => PdfImpositionMacro.Execute(
             new PdfMacroStep(PdfMacroOperation.Save), source));
     }
+
+    [Fact]
+    public void BookletStepRoundTripsBoundedSignaturesAndExportsDuplexSheets()
+    {
+        var builder = new PdfDocumentBuilder();
+        for (int page = 0; page < 10; page++) builder.AddBlankPage(200, 300);
+        byte[] source = builder.Build();
+        var preset = new PdfImpositionPreset(
+            "Booklet", 2, 1, 792, 612, margin: 18, gutter: 12,
+            duplex: true, includePageInformation: true);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro(
+            "Booklet", [PdfImpositionMacro.BookletStep(preset, 8)]).ToJson());
+
+        PdfMacroStep step = Assert.Single(macro.Steps);
+        PdfDocument imposed = PdfDocument.Open(
+            PdfImpositionMacro.Execute(step, source));
+
+        Assert.Equal(PdfMacroOperation.ImposeBooklet, step.Operation);
+        Assert.Equal(6, PdfPageBoxInformation.Read(imposed).Count);
+        Assert.Equal(PdfDuplexMode.DuplexFlipLongEdge,
+            PdfDocumentInformation.Read(imposed).InitialView.ViewerPreferences.Duplex);
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfImpositionMacro.BookletStep(
+            preset with { }, 6));
+        Assert.Throws<ArgumentException>(() => PdfImpositionMacro.BookletStep(
+            new PdfImpositionPreset("Simplex", 2, 1, 792, 612), 8));
+    }
 }
