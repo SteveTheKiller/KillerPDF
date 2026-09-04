@@ -224,6 +224,8 @@ public enum PdfMacroOperation
     Watermark,
     /// <summary>Add page numbers.</summary>
     NumberPages,
+    /// <summary>Generate documents from a reusable data mapping.</summary>
+    DataMerge,
     /// <summary>Flatten editable content.</summary>
     Flatten,
     /// <summary>Validate the document.</summary>

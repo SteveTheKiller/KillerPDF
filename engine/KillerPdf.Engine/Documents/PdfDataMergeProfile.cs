@@ -134,6 +134,26 @@ public sealed class PdfDataMergeProfile
             file.OutputFileNameTemplate, file.MissingValueBehavior);
     }
 
+    /// <summary>Creates a macro step containing only this reusable profile configuration.</summary>
+    public PdfMacroStep ToMacroStep() => new(PdfMacroOperation.DataMerge,
+        new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["profile"] = ToJson()
+        });
+
+    /// <summary>Reads a reusable profile from a typed data-merge macro step.</summary>
+    public static PdfDataMergeProfile FromMacroStep(PdfMacroStep step)
+    {
+        ArgumentNullException.ThrowIfNull(step);
+        if (step.Operation != PdfMacroOperation.DataMerge)
+            throw new ArgumentException("The macro step is not a data-merge operation.", nameof(step));
+        if (step.Settings is null
+            || !step.Settings.TryGetValue("profile", out string? profile)
+            || string.IsNullOrWhiteSpace(profile))
+            throw new ArgumentException("The data-merge macro step has no profile.", nameof(step));
+        return FromJson(profile);
+    }
+
     private static JsonSerializerOptions Options(bool indented)
     {
         var options = new JsonSerializerOptions

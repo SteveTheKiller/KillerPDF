@@ -160,6 +160,27 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void MappingProfilesRoundTripThroughTypedMacroStepsWithoutRecordData()
+    {
+        var profile = new PdfDataMergeProfile("Invoices",
+            [new PdfDataMergeFieldMapping("Customer", "invoice.customer")],
+            "invoice-{{Number}}.pdf");
+
+        PdfMacroStep step = profile.ToMacroStep();
+        var macro = new PdfMacro("Invoice merge", [step]);
+        PdfMacro restoredMacro = PdfMacro.FromJson(macro.ToJson());
+        PdfDataMergeProfile restored = PdfDataMergeProfile.FromMacroStep(
+            Assert.Single(restoredMacro.Steps));
+
+        Assert.Equal(PdfMacroOperation.DataMerge, step.Operation);
+        Assert.Equal("Invoices", restored.Name);
+        Assert.Equal("invoice.customer", Assert.Single(restored.Mappings).TargetField);
+        Assert.DoesNotContain("Ada", macro.ToJson(), StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() => PdfDataMergeProfile.FromMacroStep(
+            new PdfMacroStep(PdfMacroOperation.Save)));
+    }
+
+    [Fact]
     public void MappingProfilesApplyReusableDefaultsToMissingValues()
     {
         var profile = new PdfDataMergeProfile("Invoices", [
