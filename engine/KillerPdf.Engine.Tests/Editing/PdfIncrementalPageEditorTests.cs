@@ -13094,6 +13094,29 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void Build_SetsExplicitFormWidgetTabSequence()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddTextField(0, "first", 10, 10, 80, 20)
+            .AddTextField(0, "second", 10, 40, 80, 20)
+            .Build());
+        PdfFormWidgetInfo[] widgets = PdfFormWidgetReader.ReadPage(document, 0).ToArray();
+
+        PdfDocument reordered = PdfDocument.Open(new PdfIncrementalPageEditor(document)
+            .SetFormWidgetTabOrder(0,
+                [widgets[1].ObjectNumber, widgets[0].ObjectNumber])
+            .Build());
+
+        Assert.Equal(["second", "first"], PdfFormWidgetReader.ReadPage(reordered, 0)
+            .Select(widget => widget.FieldName));
+        PdfDictionary page = FlatPages(reordered).Pages[0];
+        Assert.Equal("A", Assert.IsType<PdfName>(page[Name("Tabs")]).ValueAsLatin1());
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(document)
+            .SetFormWidgetTabOrder(0, [widgets[0].ObjectNumber]));
+    }
+
+    [Fact]
     public void ExistingTaggedDocument_AllowsIntentionalUntaggedPageReplacement()
     {
         PdfDocument target = PdfDocument.Open(BuildTaggedDocument());

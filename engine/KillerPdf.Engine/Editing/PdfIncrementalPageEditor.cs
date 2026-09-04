@@ -2042,6 +2042,42 @@ public sealed class PdfIncrementalPageEditor
         return this;
     }
 
+    /// <summary>Sets the explicit page tab sequence for every existing form widget.</summary>
+    public PdfIncrementalPageEditor SetFormWidgetTabOrder(
+        int pageIndex, IEnumerable<int> orderedWidgetObjectNumbers)
+    {
+        ValidateIndex(pageIndex, nameof(pageIndex));
+        ArgumentNullException.ThrowIfNull(orderedWidgetObjectNumbers);
+        PageState state = _pages[pageIndex];
+        if (state.Entry is null || state.ImportedDocument is not null)
+            throw new NotSupportedException(
+                "Explicit widget tab order requires an existing destination page.");
+        if (state.ReplaceAnnotations)
+            throw new InvalidOperationException(
+                "Widget tab order must be selected before other annotation-array changes.");
+        PdfFormWidgetInfo[] widgets = PdfFormWidgetReader.ReadPage(_document, pageIndex).ToArray();
+        int[] requested = orderedWidgetObjectNumbers.ToArray();
+        int[] existing = [.. widgets.Select(widget => widget.ObjectNumber)];
+        if (requested.Length == 0 || requested.Distinct().Count() != requested.Length
+            || !requested.Order().SequenceEqual(existing.Order()))
+            throw new ArgumentException(
+                "The tab order must contain every page widget object exactly once.",
+                nameof(orderedWidgetObjectNumbers));
+        if (!state.Entry.Dictionary.TryGetValue(AnnotsName, out PdfObject? annotationsValue)
+            || ResolveCatalogValue(_document, annotationsValue,
+                $"Page {pageIndex + 1} /Annots value") is not PdfArray annotations)
+            throw new InvalidOperationException("The page has no annotation array.");
+        PdfObject[] reordered = annotations.ToArray();
+        int[] slots = [.. widgets.Select(widget => widget.AnnotationIndex).Order()];
+        Dictionary<int, PdfObject> references = widgets.ToDictionary(
+            widget => widget.ObjectNumber, widget => annotations[widget.AnnotationIndex]);
+        for (int index = 0; index < slots.Length; index++)
+            reordered[slots[index]] = references[requested[index]];
+        state.ReplaceAnnotations = true;
+        state.Annotations = new PdfArray(reordered);
+        return SetPageTabOrder(pageIndex, PdfPageTabOrder.AnnotationArray);
+    }
+
     /// <summary>Removes the page's explicit annotation tab order.</summary>
     public PdfIncrementalPageEditor ClearPageTabOrder(int pageIndex)
     {
