@@ -138,6 +138,26 @@ public sealed class PdfOcrReviewTests
             json.Replace("\"Version\":1", "\"Version\":2", StringComparison.Ordinal)));
     }
 
+    [Fact]
+    public void AccuracyReportSummarizesConfidenceAndReviewWarningsByPage()
+    {
+        var review = new PdfOcrReview([
+            Word("a", 0, 0, "Kiler", 0.4), Word("b", 0, 1, "PDF", 1),
+            Word("c", 1, 0, "", 0.8)])
+            .Correct("a", "Killer").Ignore("b");
+
+        PdfOcrAccuracyReport report = review.CreateAccuracyReport(0.5);
+
+        Assert.Equal(3, report.WordCount);
+        Assert.Equal(2.2 / 3, report.AverageConfidence, 10);
+        Assert.True(report.HasWarnings);
+        Assert.Equal(1, report.Pages[0].LowConfidenceCount);
+        Assert.Equal(1, report.Pages[0].CorrectedCount);
+        Assert.Equal(1, report.Pages[0].IgnoredCount);
+        Assert.Equal(1, report.Pages[1].PendingCount);
+        Assert.Equal(1, report.Pages[1].EmptyTextCount);
+    }
+
     private static PdfOcrWord Word(string id, int page, int sequence, string text, double confidence) =>
         new(id, page, sequence, text, text, new PdfContentBounds(0, 0, 10, 10), confidence, "en-US");
 }

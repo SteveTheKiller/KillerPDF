@@ -78,6 +78,34 @@ public enum PdfOcrWordStatus
     Ignored
 }
 
+/// <summary>Recognition quality and review counts for one page.</summary>
+public sealed record PdfOcrPageAccuracy(
+    int PageIndex,
+    int WordCount,
+    double AverageConfidence,
+    int LowConfidenceCount,
+    int PendingCount,
+    int CorrectedCount,
+    int IgnoredCount,
+    int EmptyTextCount);
+
+/// <summary>A confidence and review summary for an OCR result.</summary>
+public sealed record PdfOcrAccuracyReport
+{
+    /// <summary>Gets the low-confidence threshold used by the report.</summary>
+    public double LowConfidenceThreshold { get; init; }
+    /// <summary>Gets page summaries in page order.</summary>
+    public IReadOnlyList<PdfOcrPageAccuracy> Pages { get; init; } = [];
+    /// <summary>Gets the total recognized word count.</summary>
+    public int WordCount => Pages.Sum(page => page.WordCount);
+    /// <summary>Gets the weighted average recognition confidence.</summary>
+    public double AverageConfidence => WordCount == 0 ? 0
+        : Pages.Sum(page => page.AverageConfidence * page.WordCount) / WordCount;
+    /// <summary>Gets whether low-confidence, pending, or empty results need attention.</summary>
+    public bool HasWarnings => Pages.Any(page => page.LowConfidenceCount > 0
+        || page.PendingCount > 0 || page.EmptyTextCount > 0);
+}
+
 /// <summary>A recognized word with stable page order, geometry, confidence, and review state.</summary>
 public sealed record PdfOcrWord
 {
@@ -154,6 +182,25 @@ public sealed class PdfOcrReview
         return Array.AsReadOnly(_words
             .Where(word => word.Status == PdfOcrWordStatus.Pending && word.Confidence <= threshold)
             .ToArray());
+    }
+
+    /// <summary>Builds page and document confidence and review summaries.</summary>
+    public PdfOcrAccuracyReport CreateAccuracyReport(double lowConfidenceThreshold)
+    {
+        if (!double.IsFinite(lowConfidenceThreshold) || lowConfidenceThreshold is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(lowConfidenceThreshold));
+        PdfOcrPageAccuracy[] pages = [.. _words.GroupBy(word => word.PageIndex).Select(group =>
+            new PdfOcrPageAccuracy(group.Key, group.Count(), group.Average(word => word.Confidence),
+                group.Count(word => word.Confidence <= lowConfidenceThreshold),
+                group.Count(word => word.Status == PdfOcrWordStatus.Pending),
+                group.Count(word => word.Status == PdfOcrWordStatus.Corrected),
+                group.Count(word => word.Status == PdfOcrWordStatus.Ignored),
+                group.Count(word => string.IsNullOrWhiteSpace(word.Text))))];
+        return new PdfOcrAccuracyReport
+        {
+            LowConfidenceThreshold = lowConfidenceThreshold,
+            Pages = Array.AsReadOnly(pages)
+        };
     }
 
     /// <summary>Returns a new review with one word corrected.</summary>
