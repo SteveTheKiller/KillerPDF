@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -34,6 +35,26 @@ public sealed class PdfImpositionPlannerTests
         Assert.Throws<NotSupportedException>(() => PdfImpositionPreset.FromJson(
             preset.ToJson().Replace("\"version\":1", "\"version\":2",
                 StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void PresetExportsFrontAndBackPlacementPreview()
+    {
+        var preset = new PdfImpositionPreset("Duplex", 2, 1, 420, 200,
+            margin: 10, gutter: 20, duplex: true);
+
+        using JsonDocument preview = JsonDocument.Parse(preset.PreviewJson([
+            new PdfContentBounds(0, 0, 100, 200),
+            new PdfContentBounds(0, 0, 200, 100),
+            new PdfContentBounds(0, 0, 100, 200)]));
+
+        JsonElement sides = preview.RootElement.GetProperty("sides");
+        Assert.Equal(2, sides.GetArrayLength());
+        Assert.Equal("front", sides[0].GetProperty("face").GetString());
+        Assert.Equal("back", sides[1].GetProperty("face").GetString());
+        Assert.Equal(2, sides[0].GetProperty("placements").GetArrayLength());
+        Assert.Equal(1, sides[1].GetProperty("placements").GetArrayLength());
+        Assert.Equal(JsonValueKind.Null, sides[1].GetProperty("slots")[1].ValueKind);
     }
 
     [Fact]

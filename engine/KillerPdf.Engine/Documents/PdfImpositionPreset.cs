@@ -129,6 +129,35 @@ public sealed record PdfImpositionPreset
             : PdfImpositionPlanner.ApplyCreep(side, placements, Columns, CreepPerSheet);
     }
 
+    /// <summary>Exports a data-only preview of sequential sheet sides and placements.</summary>
+    public string PreviewJson(IReadOnlyList<PdfContentBounds> sourcePageBounds,
+        bool indented = false)
+    {
+        ArgumentNullException.ThrowIfNull(sourcePageBounds);
+        IReadOnlyList<PdfImposedSheetSide> sides = Plan(sourcePageBounds.Count);
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            Preset = Name,
+            SheetWidth,
+            SheetHeight,
+            SourcePageCount = sourcePageBounds.Count,
+            Sides = sides.Select(side => new
+            {
+                side.SheetIndex,
+                side.Face,
+                side.CreepDepth,
+                Slots = side.SourcePageIndices,
+                Placements = Place(side, sourcePageBounds)
+            })
+        }, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        });
+    }
+
     /// <summary>Serializes the preset without source document data.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PresetFile(1, Name, Columns, Rows, SheetWidth, SheetHeight, Margin, Gutter,
