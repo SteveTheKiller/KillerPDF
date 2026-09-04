@@ -202,6 +202,9 @@ public sealed class PdfStructuredExportTests
         using JsonDocument json = JsonDocument.Parse(jsonText);
         Assert.Equal("first.pdf", json.RootElement.GetProperty("results")[0]
             .GetProperty("sourceName").GetString());
+        Assert.Equal("first.txt", report.Results[0].OutputName);
+        Assert.Equal("first.txt", json.RootElement.GetProperty("results")[0]
+            .GetProperty("outputName").GetString());
         Assert.DoesNotContain("not a PDF", jsonText, StringComparison.Ordinal);
         Assert.DoesNotContain("first\"", jsonText, StringComparison.Ordinal);
     }
@@ -219,6 +222,21 @@ public sealed class PdfStructuredExportTests
 
         Assert.Equal(1, report.UnprocessedCount);
         Assert.Empty(report.Results);
+    }
+
+    [Fact]
+    public void BatchExportPlansFormatSpecificNamesAndRejectsCollisions()
+    {
+        Assert.Equal("report.docx", PdfStructuredExportBatchRunner.OutputName(
+            @"C:\input\report.pdf", PdfStructuredExportFormat.WordDocument));
+        Assert.Equal("report.xlsx", PdfStructuredExportBatchRunner.OutputName(
+            "report", PdfStructuredExportFormat.Spreadsheet));
+
+        byte[] valid = DocumentBytes("BT /F1 12 Tf 10 30 Td (text) Tj ET");
+        Assert.Throws<ArgumentException>(() => PdfStructuredExportBatchRunner.Run([
+            new PdfStructuredExportBatchItem("report.pdf", valid),
+            new PdfStructuredExportBatchItem("REPORT.PDF", valid)
+        ], PdfStructuredExportFormat.Html));
     }
 
     private static PdfDocument Document(string content)

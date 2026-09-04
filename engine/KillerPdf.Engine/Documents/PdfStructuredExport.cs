@@ -71,7 +71,7 @@ public sealed record PdfStructuredExportBatchItem
 /// <summary>The isolated outcome of exporting one PDF.</summary>
 public sealed record PdfStructuredExportBatchResult(
     PdfStructuredExportBatchItem Input, ReadOnlyMemory<byte>? Data,
-    string? Error, bool WasCanceled)
+    string? Error, bool WasCanceled, string OutputName)
 {
     /// <summary>Gets whether export completed.</summary>
     public bool Succeeded => Data.HasValue && Error is null && !WasCanceled;
@@ -119,6 +119,7 @@ public sealed record PdfStructuredExportBatchReport
         Results = Results.Select(result => new
         {
             result.Input.SourceName,
+            result.OutputName,
             result.Succeeded,
             result.WasCanceled,
             result.Error,
@@ -152,31 +153,61 @@ public static class PdfStructuredExportBatchRunner
     {
         ArgumentNullException.ThrowIfNull(items);
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
+        PdfStructuredExportBatchItem[] supplied = items.ToArray();
+        string[] outputNames = supplied.Select(item => OutputName(item.SourceName, format)).ToArray();
+        if (outputNames.Distinct(StringComparer.OrdinalIgnoreCase).Count() != outputNames.Length)
+            throw new ArgumentException("Structured export output names must be unique.", nameof(items));
         var results = new List<PdfStructuredExportBatchResult>();
-        foreach (PdfStructuredExportBatchItem suppliedItem in items)
+        for (int itemIndex = 0; itemIndex < supplied.Length; itemIndex++)
         {
             if (cancellationToken.IsCancellationRequested) break;
+            PdfStructuredExportBatchItem suppliedItem = supplied[itemIndex];
             var item = new PdfStructuredExportBatchItem(suppliedItem.SourceName,
                 suppliedItem.Source, suppliedItem.PageIndices);
             try
             {
                 PdfDocument document = PdfDocument.Open(item.Source);
                 byte[] data = Export(document, format, item.PageIndices, cancellationToken);
-                results.Add(new PdfStructuredExportBatchResult(item, data, null, false));
+                results.Add(new PdfStructuredExportBatchResult(
+                    item, data, null, false, outputNames[itemIndex]));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                results.Add(new PdfStructuredExportBatchResult(item, null, null, true));
+                results.Add(new PdfStructuredExportBatchResult(
+                    item, null, null, true, outputNames[itemIndex]));
                 break;
             }
             catch (Exception exception) when (exception is not OutOfMemoryException
                 and not StackOverflowException and not AccessViolationException)
             {
                 results.Add(new PdfStructuredExportBatchResult(
-                    item, null, exception.Message, false));
+                    item, null, exception.Message, false, outputNames[itemIndex]));
             }
         }
         return Array.AsReadOnly(results.ToArray());
+    }
+
+    /// <summary>Returns the deterministic output file name for a source and export format.</summary>
+    public static string OutputName(string sourceName, PdfStructuredExportFormat format)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
+        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
+        string fileName = Path.GetFileName(sourceName);
+        string stem = Path.GetFileNameWithoutExtension(fileName);
+        if (stem.Length == 0) throw new ArgumentException(
+            "A structured export source name requires a base name.", nameof(sourceName));
+        string extension = format switch
+        {
+            PdfStructuredExportFormat.PlainText => ".txt",
+            PdfStructuredExportFormat.Html => ".html",
+            PdfStructuredExportFormat.Markdown => ".md",
+            PdfStructuredExportFormat.Json => ".json",
+            PdfStructuredExportFormat.WordDocument => ".docx",
+            PdfStructuredExportFormat.Spreadsheet => ".xlsx",
+            PdfStructuredExportFormat.Presentation => ".pptx",
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+        return stem + extension;
     }
 
     private static byte[] Export(PdfDocument document, PdfStructuredExportFormat format,
