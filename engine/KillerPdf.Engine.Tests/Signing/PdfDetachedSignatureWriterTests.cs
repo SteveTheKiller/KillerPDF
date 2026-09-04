@@ -782,6 +782,41 @@ public sealed class PdfDetachedSignatureWriterTests
     }
 
     [Fact]
+    public void Sign_FillsSecondExistingFieldWithoutChangingPriorSignedRevision()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddSignatureField(0, "first", 20, 20, 160, 40)
+            .AddSignatureField(0, "second", 20, 80, 160, 40)
+            .Build();
+        byte[] firstSigned = PdfDetachedSignatureWriter.Sign(
+            PdfDocument.Open(source), _ => [1], new PdfSignatureOptions
+            {
+                FieldName = "first",
+                ReservedSignatureSize = 8
+            });
+
+        byte[] secondSigned = PdfDetachedSignatureWriter.Sign(
+            PdfDocument.Open(firstSigned), _ => [2], new PdfSignatureOptions
+            {
+                FieldName = "second",
+                ReservedSignatureSize = 8
+            });
+
+        Assert.True(secondSigned.AsSpan(0, firstSigned.Length).SequenceEqual(firstSigned));
+        PdfSignatureInfo[] signatures = [.. PdfSignatureReader.Read(
+            PdfDocument.Open(secondSigned))];
+        Assert.Equal(2, signatures.Length);
+        Assert.All(signatures, signature => Assert.True(signature.HasValidByteRange));
+        Assert.Equal(firstSigned.Length,
+            signatures.Single(signature => signature.FieldName == "first").ByteRange![2]
+                + signatures.Single(signature => signature.FieldName == "first").ByteRange![3]);
+        Assert.Equal(secondSigned.Length,
+            signatures.Single(signature => signature.FieldName == "second").ByteRange![2]
+                + signatures.Single(signature => signature.FieldName == "second").ByteRange![3]);
+    }
+
+    [Fact]
     public void Sign_RejectsExistingSignedValueWithoutSignatureDictionaryType()
     {
         byte[] source = new PdfDocumentBuilder()
