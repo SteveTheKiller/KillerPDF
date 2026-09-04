@@ -277,6 +277,8 @@ public sealed class PdfSignatureVerifierTests
             Assert.IsType<PdfIndirectReference>(reopened.Trailer[new PdfName("Root"u8)])));
         PdfDictionary dss = Assert.IsType<PdfDictionary>(reopened.Resolve(
             Assert.IsType<PdfIndirectReference>(catalog[new PdfName("DSS"u8)])));
+        PdfPadesValidationEvidence evidence = Assert.IsType<PdfPadesValidationEvidence>(
+            PdfPadesValidationDataReader.Read(reopened, reopenedSignature));
 
         Assert.True(PdfSignatureVerifier.VerifyIntegrity(reopened, reopenedSignature)
             .IsCryptographicallyValid);
@@ -286,6 +288,12 @@ public sealed class PdfSignatureVerifierTests
         PdfDictionary vri = Assert.IsType<PdfDictionary>(dss[new PdfName("VRI"u8)]);
         Assert.Contains(new PdfName(Encoding.ASCII.GetBytes(
             Convert.ToHexString(SHA1.HashData(signature.Contents.Span)))), vri.Keys);
+        Assert.Equal(certificate.RawData, Assert.Single(evidence.Certificates).ToArray());
+        Assert.Empty(evidence.OcspResponses);
+        Assert.Equal(new byte[] { 0x30, 0x00 },
+            Assert.Single(evidence.CertificateRevocationLists).ToArray());
+        Assert.Equal(new DateTimeOffset(2026, 9, 4, 12, 0, 0, TimeSpan.Zero),
+            evidence.ValidationTime);
         Assert.Throws<InvalidOperationException>(() =>
             PdfPadesValidationDataWriter.Embed(reopened, reopenedSignature,
                 new PdfPadesValidationData

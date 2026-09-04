@@ -3,7 +3,9 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 
@@ -20,6 +22,92 @@ public sealed record PdfPadesValidationData
     public IReadOnlyList<ReadOnlyMemory<byte>> CertificateRevocationLists { get; init; } = [];
     /// <summary>Gets the caller-confirmed UTC time at which the evidence was collected.</summary>
     public DateTimeOffset? ValidationTime { get; init; }
+}
+
+/// <summary>Validation evidence embedded for one existing PDF signature.</summary>
+public sealed record PdfPadesValidationEvidence(
+    IReadOnlyList<ReadOnlyMemory<byte>> Certificates,
+    IReadOnlyList<ReadOnlyMemory<byte>> OcspResponses,
+    IReadOnlyList<ReadOnlyMemory<byte>> CertificateRevocationLists,
+    DateTimeOffset? ValidationTime);
+
+/// <summary>Reads signature-specific PAdES validation evidence without network access.</summary>
+public static class PdfPadesValidationDataReader
+{
+    private const int MaximumEvidenceBytes = 32 * 1024 * 1024;
+
+    /// <summary>Returns embedded evidence for the selected signature, or null when none exists.</summary>
+    public static PdfPadesValidationEvidence? Read(
+        PdfDocument document, PdfSignatureInfo signature)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(signature);
+        if (!signature.IsSigned || signature.Contents.IsEmpty
+            || !PdfSignatureReader.Read(document).Any(candidate =>
+                candidate.FieldName == signature.FieldName
+                && candidate.Contents.Span.SequenceEqual(signature.Contents.Span)))
+            throw new ArgumentException(
+                "The selected signature is not present in the document.", nameof(signature));
+
+        PdfDictionary catalog = PdfPageTree.Read(document).Catalog;
+        if (!catalog.TryGetValue(Name("DSS"), out PdfObject? dssValue)) return null;
+        PdfDictionary dss = Resolve(document, dssValue) as PdfDictionary
+            ?? throw new InvalidOperationException("The catalog /DSS value is not a dictionary.");
+        if (!dss.TryGetValue(Name("VRI"), out PdfObject? vriValue)) return null;
+        PdfDictionary vri = Resolve(document, vriValue) as PdfDictionary
+            ?? throw new InvalidOperationException("The DSS /VRI value is not a dictionary.");
+        PdfName key = Name(Convert.ToHexString(SHA1.HashData(signature.Contents.Span)));
+        if (!vri.TryGetValue(key, out PdfObject? evidenceValue)) return null;
+        PdfDictionary evidence = Resolve(document, evidenceValue) as PdfDictionary
+            ?? throw new InvalidOperationException("The signature /VRI value is not a dictionary.");
+
+        return new PdfPadesValidationEvidence(
+            ReadStreams("Cert"), ReadStreams("OCSP"), ReadStreams("CRL"), ReadTime());
+
+        IReadOnlyList<ReadOnlyMemory<byte>> ReadStreams(string name)
+        {
+            if (!evidence.TryGetValue(Name(name), out PdfObject? value)) return [];
+            PdfArray array = Resolve(document, value) as PdfArray
+                ?? throw new InvalidOperationException($"The VRI /{name} value is not an array.");
+            return Array.AsReadOnly(array.Select(item =>
+            {
+                PdfStream stream = Resolve(document, item) as PdfStream
+                    ?? throw new InvalidOperationException(
+                        $"A VRI /{name} entry is not a stream.");
+                return (ReadOnlyMemory<byte>)PdfStreamDecoder.Decode(
+                    stream, document.Resolve, MaximumEvidenceBytes);
+            }).ToArray());
+        }
+
+        DateTimeOffset? ReadTime()
+        {
+            if (!evidence.TryGetValue(Name("TU"), out PdfObject? value)) return null;
+            PdfString text = Resolve(document, value) as PdfString
+                ?? throw new InvalidOperationException("The VRI /TU value is not a string.");
+            string source = PdfUnicodeEncoding.DecodeTextString(
+                text.Bytes.Span, "The VRI validation time");
+            if (!DateTimeOffset.TryParseExact(source, "'D:'yyyyMMddHHmmss'Z'",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
+                    out DateTimeOffset result))
+                throw new InvalidOperationException("The VRI /TU value is not a valid UTC PDF date.");
+            return result;
+        }
+    }
+
+    private static PdfObject Resolve(PdfDocument document, PdfObject value)
+    {
+        var visited = new HashSet<(int, int)>();
+        while (value is PdfIndirectReference reference)
+        {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)))
+                throw new InvalidOperationException("A PAdES validation reference contains a cycle.");
+            value = document.Resolve(reference);
+        }
+        return value;
+    }
+
+    private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
 }
 
 /// <summary>Appends PAdES DSS and VRI evidence without changing signed bytes.</summary>

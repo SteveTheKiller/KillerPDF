@@ -41,7 +41,7 @@ public static class PdfPadesProfileInspector
                 signer.UnsignedAttributes.Cast<CryptographicAttributeObject>()
                     .Any(attribute => attribute.Oid?.Value == SignatureTimestampTokenOid));
             if (!timestamped) return PdfPadesProfile.BaselineB;
-            return HasLongTermValidationEvidence(document)
+            return HasLongTermValidationEvidence(document, signature)
                 ? PdfPadesProfile.BaselineLt : PdfPadesProfile.BaselineT;
         }
         catch (CryptographicException)
@@ -50,27 +50,13 @@ public static class PdfPadesProfileInspector
         }
     }
 
-    private static bool HasLongTermValidationEvidence(PdfDocument document)
+    private static bool HasLongTermValidationEvidence(
+        PdfDocument document, PdfSignatureInfo signature)
     {
-        PdfDictionary catalog = PdfPageTree.Read(document).Catalog;
-        if (!catalog.TryGetValue(Name("DSS"), out PdfObject? dssValue)
-            || Resolve(document, dssValue) is not PdfDictionary dss
-            || !dss.ContainsKey(Name("VRI"))
-            || !dss.ContainsKey(Name("Certs"))) return false;
-        return dss.ContainsKey(Name("OCSPs")) || dss.ContainsKey(Name("CRLs"));
+        PdfPadesValidationEvidence? evidence =
+            PdfPadesValidationDataReader.Read(document, signature);
+        return evidence is not null && evidence.Certificates.Count > 0
+            && (evidence.OcspResponses.Count > 0
+                || evidence.CertificateRevocationLists.Count > 0);
     }
-
-    private static PdfObject Resolve(PdfDocument document, PdfObject value)
-    {
-        var visited = new HashSet<(int, int)>();
-        while (value is PdfIndirectReference reference)
-        {
-            if (!visited.Add((reference.ObjectNumber, reference.Generation)))
-                throw new InvalidOperationException("A PAdES validation reference contains a cycle.");
-            value = document.Resolve(reference);
-        }
-        return value;
-    }
-
-    private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
 }
