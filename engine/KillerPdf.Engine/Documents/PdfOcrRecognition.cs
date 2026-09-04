@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using KillerPdf.Engine.Rendering;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -186,5 +187,63 @@ public static class PdfOcrRecognizer
                 result[y * width + x] = 1 - source[sy * image.Width + sx] / 255f;
             }
         return result;
+    }
+}
+
+/// <summary>An engine-rendered OCR page with reviewable words and pipeline diagnostics.</summary>
+public sealed record PdfOcrPageRecognition(
+    PdfOcrReview Review, IReadOnlyList<string> Diagnostics, int PixelWidth, int PixelHeight);
+
+/// <summary>Renders, prepares, segments, and recognizes PDF pages entirely inside the engine.</summary>
+public sealed class PdfOcrPageRecognizer
+{
+    private readonly PdfOcrRecognitionModel _model;
+    private readonly PdfPageRenderer _renderer;
+    private readonly IReadOnlyList<PdfPageInformation> _pages;
+
+    /// <summary>Creates an engine-owned page recognition pipeline.</summary>
+    public PdfOcrPageRecognizer(PdfDocument document, PdfOcrRecognitionModel model)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        _model = model ?? throw new ArgumentNullException(nameof(model));
+        _renderer = new PdfPageRenderer(document);
+        _pages = PdfPageInformation.Read(document);
+    }
+
+    /// <summary>Recognizes one page directly from its engine-rendered BGRA pixels.</summary>
+    public PdfOcrPageRecognition Recognize(int pageIndex, PdfRenderOptions renderOptions,
+        PdfOcrOptions ocrOptions, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(renderOptions);
+        ArgumentNullException.ThrowIfNull(ocrOptions);
+        if (pageIndex < 0 || pageIndex >= _pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        PdfRenderedPage rendered = _renderer.Render(pageIndex, renderOptions, cancellationToken);
+        PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
+            rendered.Pixels, rendered.Width, rendered.Height, ocrOptions, cancellationToken);
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(prepared, cancellationToken);
+        IReadOnlyList<PdfOcrRecognizedWord> recognized = PdfOcrRecognizer.Recognize(
+            prepared, layout, _model, cancellationToken);
+        PdfPageInformation page = _pages[pageIndex];
+        string? language = ocrOptions.Languages.Count == 1 ? ocrOptions.Languages[0] : null;
+        var words = new PdfOcrWord[recognized.Count];
+        for (int sequence = 0; sequence < recognized.Count; sequence++)
+        {
+            PdfOcrRecognizedWord word = recognized[sequence];
+            PdfOcrImageRegion bounds = word.Bounds;
+            var pdfBounds = new PdfContentBounds(
+                bounds.Left * page.Width / rendered.Width,
+                (rendered.Height - bounds.Bottom) * page.Height / rendered.Height,
+                bounds.Right * page.Width / rendered.Width,
+                (rendered.Height - bounds.Top) * page.Height / rendered.Height);
+            words[sequence] = new PdfOcrWord($"page-{pageIndex}-word-{sequence}",
+                pageIndex, sequence, word.Text, word.Text, pdfBounds, word.Confidence, language);
+        }
+        string[] diagnostics = [.. rendered.Diagnostics.Concat(prepared.Diagnostics)
+            .Distinct(StringComparer.Ordinal)];
+        return new PdfOcrPageRecognition(new PdfOcrReview(words),
+            Array.AsReadOnly(diagnostics), rendered.Width, rendered.Height);
     }
 }

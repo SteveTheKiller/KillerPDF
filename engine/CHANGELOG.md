@@ -11,7 +11,7 @@ The 1.9.0 engine adds page-content extraction and begins engine-owned page rende
 ### Added
 
 - Added bounded BGRA32 page rendering with transformed device-color paths and decoded image XObjects.
-- Added bounded OCR preprocessing, layout analysis, versioned recognition models, and CPU glyph inference.
+- Added direct engine-rendered OCR with bounded preprocessing, layout analysis, versioned recognition models, CPU glyph inference, and PDF-coordinate results.
 - Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, identified image placements, paths, shadings, and clipped bounds, including nested forms, inline images, vertical text, and ActualText replacements (#331).
 - Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
 - Added typed reading of saved initial-view layouts, panels, viewer chrome preferences, opening pages, zoom, fit modes, and common paper sizes (#338).
