@@ -188,6 +188,37 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void DeclaredPdfXChecksUniversalBoundariesBeforeReportingUnsupportedValidation()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "PDF/X sample" })
+            .AddBlankPage()
+            .Build());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(original.Resolve(
+            Assert.IsType<PdfIndirectReference>(original.Trailer[new PdfName("Root"u8)])));
+        PdfIndirectReference metadataReference = Assert.IsType<PdfIndirectReference>(
+            catalog[new PdfName("Metadata"u8)]);
+        PdfStream metadata = Assert.IsType<PdfStream>(original.Resolve(metadataReference));
+        byte[] xmp = Encoding.UTF8.GetBytes(
+            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"><rdf:Description rdf:about=\"\" xmlns:pdfx=\"http://ns.adobe.com/pdfx/1.3/\"><pdfx:GTS_PDFXVersion>PDF/X-4</pdfx:GTS_PDFXVersion></rdf:Description></rdf:RDF></x:xmpmeta>");
+        byte[] source = new PdfIncrementalUpdateBuilder(original)
+            .ReplaceObject(metadataReference.ObjectNumber,
+                new PdfStream(metadata.Dictionary, xmp))
+            .Build();
+        var profile = new PdfPreflightProfile("Declared PDF/X",
+            [PdfPreflightCheck.ConformanceDeclarations]);
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(source, profile);
+
+        Assert.Equal([
+            "Conformance.PdfX.OutputIntent.Missing",
+            "Conformance.PdfXValidationUnavailable"
+        ], report.Findings.Select(finding => finding.Code));
+        Assert.Equal(PdfDiagnosticSeverity.Error, report.Findings[0].Severity);
+        Assert.Equal(PdfDiagnosticSeverity.Unsupported, report.Findings[1].Severity);
+    }
+
+    [Fact]
     public void ImageResolutionUsesTheProfileThresholdAndPageIndex()
     {
         PdfImage image = PdfImage.FromRgb(100, 100, new byte[30_000]);

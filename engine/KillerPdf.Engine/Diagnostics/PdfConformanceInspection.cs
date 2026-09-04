@@ -63,8 +63,18 @@ internal static class PdfConformanceInspection
                             finding.PageIndex, finding.ObjectNumber)));
             }
             if (pdfXVersion is not null)
+            {
+                if (document.Trailer.ContainsKey(Name("Encrypt")))
+                    findings.Add(Error("Conformance.PdfXEncrypted",
+                        "PDF/X does not permit encryption."));
+                findings.AddRange(PdfPreflightDocumentChecks.CheckOutputIntent(document)
+                    .Select(finding => finding with
+                    {
+                        Code = "Conformance.PdfX." + finding.Code
+                    }));
                 findings.Add(Unsupported("Conformance.PdfXValidationUnavailable",
                     $"The document declares {pdfXVersion}; PDF/X validation is not implemented."));
+            }
             return Array.AsReadOnly(findings.ToArray());
         }
         catch (Exception error) when (error is InvalidOperationException or FormatException
