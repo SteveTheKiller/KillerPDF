@@ -44,6 +44,17 @@ public sealed class PdfOptionalContentReaderTests
             json.RootElement.GetProperty("groups")[0].GetProperty("name").GetString());
         Assert.Equal("on", json.RootElement.GetProperty("configurations")[0]
             .GetProperty("baseState").GetString());
+        string text = result.ToText();
+        Assert.Contains("Layers: 2", text, StringComparison.Ordinal);
+        Assert.Contains("Artwork (object ", text, StringComparison.Ordinal);
+        Assert.Contains("visible, unlocked, print hidden, export visible", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Measurements (object ", text, StringComparison.Ordinal);
+        Assert.Contains("hidden, unlocked, print unspecified, export unspecified", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Configurations: 1", text, StringComparison.Ordinal);
+        Assert.Contains(", base state On", text, StringComparison.Ordinal);
+        Assert.Contains("Display order:", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -55,6 +66,7 @@ public sealed class PdfOptionalContentReaderTests
 
         Assert.Empty(result.Groups);
         Assert.Empty(result.Configurations);
+        Assert.Equal("Layers: 0\r\nConfigurations: 0", result.ToText());
     }
 
     [Fact]

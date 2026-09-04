@@ -230,6 +230,37 @@ public sealed record PdfOptionalContentInfo
     /// <summary>Gets the default and alternate optional-content configurations.</summary>
     public IReadOnlyList<PdfOptionalContentConfigurationInfo> Configurations { get; init; } = [];
 
+    /// <summary>Formats layer identities and configuration state for review.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Layers: ").AppendLine(Groups.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        foreach (PdfOptionalContentGroupInfo group in Groups)
+        {
+            output.Append("  ").Append(group.Name).Append(" (object ")
+                .Append(group.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Append(' ').Append(group.Generation.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Append("): ").Append(group.IsInitiallyVisible ? "visible" : "hidden")
+                .Append(", ").Append(group.IsLocked ? "locked" : "unlocked")
+                .Append(", print ").Append(State(group.IsVisibleWhenPrinting))
+                .Append(", export ").AppendLine(State(group.IsVisibleWhenExporting));
+        }
+        output.Append("Configurations: ").AppendLine(Configurations.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        foreach (PdfOptionalContentConfigurationInfo configuration in Configurations)
+        {
+            output.Append("  ").Append(configuration.IsDefault ? "Default" : "Alternate")
+                .Append(": ").Append(configuration.Name ?? "unnamed")
+                .Append(", base state ").Append(configuration.BaseState);
+            if (!string.IsNullOrWhiteSpace(configuration.Creator))
+                output.Append(", creator ").Append(configuration.Creator);
+            output.AppendLine();
+            output.Append("    Visible objects: ").AppendLine(Objects(configuration.VisibleGroupObjectNumbers));
+            output.Append("    Locked objects: ").AppendLine(Objects(configuration.LockedGroupObjectNumbers));
+            output.Append("    Display order: ").AppendLine(Objects(configuration.DisplayOrderGroupObjectNumbers));
+        }
+        return output.ToString().TrimEnd();
+    }
+
     /// <summary>Exports layer identities and effective configuration state as stable JSON.</summary>
     public string ToJson(bool indented = false)
     {
@@ -254,6 +285,20 @@ public sealed record PdfOptionalContentInfo
                 configuration.DisplayOrderGroupObjectNumbers
             })
         }, options);
+    }
+
+    private static string State(bool? value) => value switch
+    {
+        true => "visible",
+        false => "hidden",
+        null => "unspecified"
+    };
+
+    private static string Objects(IEnumerable<int> values)
+    {
+        string result = string.Join(", ", values.Order().Select(value =>
+            value.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        return result.Length == 0 ? "none" : result;
     }
 }
 
