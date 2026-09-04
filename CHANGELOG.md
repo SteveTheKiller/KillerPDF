@@ -17,7 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Expanded selective sanitization to remove forms and comments (#333).
 - Added accessibility checks for missing form field descriptions (#335).
 - Added certificate identity and algorithm details to signature verification (#336).
-- Added attachment inspection, executable-content and integrity checks, and portfolio metadata (#347).
+- Added attachment renaming, executable-content and integrity checks, and portfolio metadata (#347).
 - Added saved calibration profiles, document, page, and region assignments, coordinates, directional deltas, and snapping to measurement tools (#348).
 - Added step-and-repeat, poster tiling, manual sequences, bounded booklet signatures, and fitted sheet grids to imposition planning (#349).
 - Added layer renaming and editable initial, print, and export visibility alongside display order and readable preflight reports (#350, #334).

@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -57,5 +58,26 @@ public sealed class PdfAttachmentReaderTests
         PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(disguised));
         Assert.False(attachment.IsPotentiallyExecutable);
         Assert.True(attachment.HasExecutableContent);
+    }
+
+    [Fact]
+    public void RenameAttachmentPreservesPayloadAndMetadata()
+    {
+        byte[] payload = "evidence"u8.ToArray();
+        var modified = new DateTimeOffset(2026, 9, 3, 8, 0, 0, TimeSpan.Zero);
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("old.txt", payload, "text/plain", "Evidence",
+                PdfAssociatedFileRelationship.Data, modified).Build());
+
+        PdfDocument renamed = PdfDocument.Open(new PdfIncrementalPageEditor(original)
+            .RenameAttachment("old.txt", "new.txt").Build());
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(renamed));
+
+        Assert.Equal("new.txt", attachment.FileName);
+        Assert.Equal(payload, attachment.Data.ToArray());
+        Assert.Equal("text/plain", attachment.MimeType);
+        Assert.Equal("Evidence", attachment.Description);
+        Assert.Equal(modified, attachment.ModificationDate);
+        Assert.Equal("old.txt", Assert.Single(PdfAttachmentReader.Read(original)).FileName);
     }
 }
