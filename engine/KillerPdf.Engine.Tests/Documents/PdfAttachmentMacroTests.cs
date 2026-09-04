@@ -44,4 +44,33 @@ public sealed class PdfAttachmentMacroTests
         Assert.Throws<ArgumentException>(() => PdfAttachmentMacro.Execute(
             new PdfMacroStep(PdfMacroOperation.Save), source));
     }
+
+    [Fact]
+    public void MetadataEditStepsRoundTripWithoutAttachmentPayloads()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("notes.txt", "payload"u8.ToArray(),
+                description: "Old description")
+            .Build();
+        var macro = PdfMacro.FromJson(new PdfMacro("Edit attachments", [
+            PdfAttachmentMacro.RenameStep("notes.txt", "evidence.txt"),
+            PdfAttachmentMacro.DescriptionStep("evidence.txt", "Case notes"),
+            PdfAttachmentMacro.ClassificationStep("evidence.txt", "text/plain",
+                PdfAssociatedFileRelationship.Supplement)
+        ]).ToJson());
+
+        ReadOnlyMemory<byte> output = source;
+        foreach (PdfMacroStep step in macro.Steps)
+            output = PdfAttachmentMacro.Execute(step, output);
+        PdfAttachmentInfo attachment = Assert.Single(
+            PdfAttachmentReader.Read(PdfDocument.Open(output)));
+
+        Assert.Equal("evidence.txt", attachment.FileName);
+        Assert.Equal("Case notes", attachment.Description);
+        Assert.Equal("text/plain", attachment.MimeType);
+        Assert.Equal(PdfAssociatedFileRelationship.Supplement,
+            attachment.Relationship);
+        Assert.Equal("payload"u8.ToArray(), attachment.Data.ToArray());
+        Assert.DoesNotContain("payload", macro.ToJson(), StringComparison.Ordinal);
+    }
 }
