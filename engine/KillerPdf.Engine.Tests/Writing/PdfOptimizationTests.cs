@@ -356,6 +356,32 @@ public sealed class PdfOptimizationTests
     }
 
     [Fact]
+    public void PlanRemovesAndVerifiesUnreachableObjects()
+    {
+        PdfDocument document = DocumentWithUnusedFontResource();
+        var update = new PdfIncrementalUpdateBuilder(document);
+        update.AddObject(new PdfString("unreachable private data"u8.ToArray(),
+            PdfStringForm.Literal));
+        PdfDocument withOrphan = PdfDocument.Open(update.Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(withOrphan,
+            new PdfOptimizationOptions
+            {
+                PruneUnreachableObjects = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+        PdfOptimizationResult result = plan.Apply();
+
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnreachableObjects, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnreachableObjects,
+            result.VerifiedRemovals);
+        Assert.Equal(-1, result.ObjectCountDifference);
+        Assert.DoesNotContain("unreachable private data",
+            Encoding.Latin1.GetString(result.Data.Span));
+    }
+
+    [Fact]
     public void PlanRemovesAndVerifiesXfaWithoutRemovingAcroFormFields()
     {
         PdfDocument document = DocumentWithXfaAndTextField();

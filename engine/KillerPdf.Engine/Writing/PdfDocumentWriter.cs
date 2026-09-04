@@ -148,6 +148,8 @@ public static class PdfDocumentWriter
         ValidateCatalogGraph(root, objects);
         ValidateOutputTrailerGraphs(document, objects, options);
         ValidateWritableObjectGraphs(objects);
+        if (options.PruneUnreachableObjects)
+            PruneUnreachableObjects(document, root, objects, options);
         int maximumObjectNumber = Math.Max(
             Math.Max(
                 objects.Select(item => item.ObjectNumber).DefaultIfEmpty(0).Max(),
@@ -461,6 +463,62 @@ public static class PdfDocumentWriter
             result.Add(new WritableObject(entry.ObjectNumber, generation, value));
         }
         return result;
+    }
+
+    internal static int CountUnreachableObjects(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!document.CrossReferences.TryGetTrailerValue(RootName, out PdfObject root))
+            throw new InvalidOperationException("A full rewrite requires a trailer /Root reference.");
+        List<WritableObject> objects = ReadCurrentObjects(document);
+        int originalCount = objects.Count;
+        PruneUnreachableObjects(document, root, objects, new PdfDocumentWriteOptions());
+        return originalCount - objects.Count;
+    }
+
+    private static void PruneUnreachableObjects(
+        PdfDocument document, PdfObject root, List<WritableObject> objects,
+        PdfDocumentWriteOptions options)
+    {
+        Dictionary<(int ObjectNumber, int Generation), PdfObject> currentObjects =
+            objects.ToDictionary(
+                item => (item.ObjectNumber, item.Generation), item => item.Value);
+        var reachable = new HashSet<(int ObjectNumber, int Generation)>();
+        PdfDictionary trailer = BuildTrailer(document, 1, root, options);
+        Visit(trailer, 0);
+        objects.RemoveAll(item => !reachable.Contains(
+            (item.ObjectNumber, item.Generation)));
+
+        void Visit(PdfObject value, int depth)
+        {
+            if (depth > 256)
+                throw new NotSupportedException(
+                    "The output object graph is too deeply nested to prune safely.");
+            if (value is PdfIndirectReference reference)
+            {
+                var identity = (reference.ObjectNumber, reference.Generation);
+                if (!reachable.Add(identity)) return;
+                if (!currentObjects.TryGetValue(identity, out PdfObject? referenced))
+                    throw new InvalidOperationException(
+                        "The output object graph contains a stale indirect reference.");
+                Visit(referenced, depth + 1);
+                return;
+            }
+            if (value is PdfArray array)
+            {
+                foreach (PdfObject item in array) Visit(item, depth + 1);
+                return;
+            }
+            PdfDictionary? dictionary = value switch
+            {
+                PdfDictionary directDictionary => directDictionary,
+                PdfStream stream => stream.Dictionary,
+                _ => null
+            };
+            if (dictionary is null) return;
+            foreach (KeyValuePair<PdfName, PdfObject> entry in dictionary)
+                Visit(entry.Value, depth + 1);
+        }
     }
 
     private static void RemoveDocumentInformationObject(

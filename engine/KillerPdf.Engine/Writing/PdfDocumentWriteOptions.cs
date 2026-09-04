@@ -51,4 +51,7 @@ public sealed class PdfDocumentWriteOptions
 
     /// <summary>Applies deterministic Flate compression to emitted cross-reference and object streams.</summary>
     public bool CompressStructuralStreams { get; init; }
+
+    /// <summary>Omits active objects that are unreachable from the output trailer.</summary>
+    public bool PruneUnreachableObjects { get; init; }
 }

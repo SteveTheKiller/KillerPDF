@@ -33,6 +33,8 @@ public enum PdfOptimizationChangeKind
     FlattenOptionalContent,
     /// <summary>Remove unreferenced and duplicate page font and XObject resources.</summary>
     PruneUnusedPageResources,
+    /// <summary>Remove active objects that are unreachable from the document trailer.</summary>
+    PruneUnreachableObjects,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -64,6 +66,8 @@ public sealed record PdfOptimizationOptions
     public bool FlattenOptionalContent { get; init; }
     /// <summary>Gets whether unreferenced and duplicate page font and XObject resources are removed.</summary>
     public bool PruneUnusedPageResources { get; init; }
+    /// <summary>Gets whether active objects unreachable from the document trailer are removed.</summary>
+    public bool PruneUnreachableObjects { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -145,6 +149,7 @@ public sealed class PdfOptimizationPlan
                 ? PdfCrossReferenceFormat.Stream : PdfCrossReferenceFormat.Table,
             UseObjectStreams = _options.PackObjects,
             CompressStructuralStreams = _options.CompressStructure,
+            PruneUnreachableObjects = _options.PruneUnreachableObjects,
             AllowSignatureInvalidation = _options.AllowSignatureInvalidation
         });
         PdfDocument reopened = PdfDocument.Open(output);
@@ -199,6 +204,8 @@ public sealed class PdfOptimizationPlan
             PdfOptionalContentReader.Read(document).Groups.Count == 0);
         Verify(PdfOptimizationChangeKind.PruneUnusedPageResources,
             PdfOptimizer.UnusedResourcePages(document).Count == 0);
+        Verify(PdfOptimizationChangeKind.PruneUnreachableObjects,
+            PdfDocumentWriter.CountUnreachableObjects(document) == 0);
         return Array.AsReadOnly(verified.ToArray());
 
         void Verify(PdfOptimizationChangeKind kind, bool absent)
@@ -357,6 +364,9 @@ public static class PdfOptimizer
             ? [.. UnusedResourcePages(document)] : [];
         if (resourcePages.Length > 0)
             changes.Add(PdfOptimizationChangeKind.PruneUnusedPageResources);
+        if (options.PruneUnreachableObjects
+            && PdfDocumentWriter.CountUnreachableObjects(document) > 0)
+            changes.Add(PdfOptimizationChangeKind.PruneUnreachableObjects);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,
