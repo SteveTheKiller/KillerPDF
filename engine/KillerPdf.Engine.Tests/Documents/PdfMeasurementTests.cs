@@ -69,6 +69,20 @@ public sealed class PdfMeasurementTests
     }
 
     [Fact]
+    public void SnapsToFiniteSegmentIntersectionsWithinTolerance()
+    {
+        PdfMeasurementSegment[] segments = [
+            new(new(0, 0), new(10, 10)),
+            new(new(0, 10), new(10, 0)),
+            new(new(20, 0), new(20, 10))];
+
+        Assert.Equal(new PdfMeasurementPoint(5, 5),
+            PdfMeasurement.SnapToIntersections(new(5.5, 4.5), segments, 1));
+        Assert.Equal(new PdfMeasurementPoint(8, 8),
+            PdfMeasurement.SnapToIntersections(new(8, 8), segments, 1));
+    }
+
+    [Fact]
     public void MeasurementProfilesRoundTripWithoutMeasurementResults()
     {
         var profile = new PdfMeasurementProfile("Site plan", 0.125, "ft", 3);

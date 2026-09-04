@@ -70,6 +70,10 @@ public sealed record PdfMeasurementProfile
 /// <summary>A point in PDF user space.</summary>
 public readonly record struct PdfMeasurementPoint(double X, double Y);
 
+/// <summary>A finite line segment in PDF user space.</summary>
+public readonly record struct PdfMeasurementSegment(
+    PdfMeasurementPoint Start, PdfMeasurementPoint End);
+
 /// <summary>Calibrated horizontal and vertical movement.</summary>
 public readonly record struct PdfMeasurementDelta(double Horizontal, double Vertical);
 
@@ -202,6 +206,52 @@ public static class PdfMeasurement
             }
         }
         return result;
+    }
+
+    /// <summary>Snaps a point to the nearest finite segment intersection within a tolerance.</summary>
+    public static PdfMeasurementPoint SnapToIntersections(
+        PdfMeasurementPoint point,
+        IReadOnlyList<PdfMeasurementSegment> segments,
+        double tolerancePoints)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        var intersections = new List<PdfMeasurementPoint>();
+        for (int first = 0; first < segments.Count; first++)
+        {
+            DistanceInPoints(segments[first].Start, segments[first].End);
+            for (int second = first + 1; second < segments.Count; second++)
+                if (TryIntersect(segments[first], segments[second], out PdfMeasurementPoint value))
+                    intersections.Add(value);
+        }
+        return SnapToNearest(point, intersections, tolerancePoints);
+    }
+
+    private static bool TryIntersect(PdfMeasurementSegment first,
+        PdfMeasurementSegment second, out PdfMeasurementPoint intersection)
+    {
+        double firstX = first.End.X - first.Start.X;
+        double firstY = first.End.Y - first.Start.Y;
+        double secondX = second.End.X - second.Start.X;
+        double secondY = second.End.Y - second.Start.Y;
+        double denominator = firstX * secondY - firstY * secondX;
+        if (Math.Abs(denominator) <= 1e-12)
+        {
+            intersection = default;
+            return false;
+        }
+        double offsetX = second.Start.X - first.Start.X;
+        double offsetY = second.Start.Y - first.Start.Y;
+        double firstPosition = (offsetX * secondY - offsetY * secondX) / denominator;
+        double secondPosition = (offsetX * firstY - offsetY * firstX) / denominator;
+        if (firstPosition is < 0 or > 1 || secondPosition is < 0 or > 1)
+        {
+            intersection = default;
+            return false;
+        }
+        intersection = new PdfMeasurementPoint(
+            first.Start.X + firstPosition * firstX,
+            first.Start.Y + firstPosition * firstY);
+        return true;
     }
 
     /// <summary>Locks a point to the nearest horizontal or vertical direction from an origin.</summary>
