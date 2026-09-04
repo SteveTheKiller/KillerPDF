@@ -115,6 +115,28 @@ public sealed class PdfBookmarkReaderTests
         Assert.Equal("Old title", child.Title);
     }
 
+    [Fact]
+    public void AppearanceCanBeChangedAndClearedWithoutChangingDestination()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().AddBookmark("Chapter", 0).Build());
+        PdfBookmarkInfo bookmark = Assert.Single(PdfBookmarkReader.Read(original));
+
+        PdfDocument styled = PdfDocument.Open(PdfBookmarkEditor.SetAppearance(
+            original, bookmark.ObjectNumber,
+            PdfBookmarkStyle.Bold | PdfBookmarkStyle.Italic,
+            new PdfRgbColor(0.25, 0.5, 0.75)));
+        PdfBookmarkInfo changed = Assert.Single(PdfBookmarkReader.Read(styled));
+
+        Assert.Equal(PdfBookmarkStyle.Bold | PdfBookmarkStyle.Italic, changed.Style);
+        Assert.Equal(new PdfRgbColor(0.25, 0.5, 0.75), changed.Color);
+        Assert.Equal(0, changed.DestinationPageIndex);
+        PdfBookmarkInfo cleared = Assert.Single(PdfBookmarkReader.Read(PdfDocument.Open(
+            PdfBookmarkEditor.SetAppearance(styled, bookmark.ObjectNumber))));
+        Assert.Equal(PdfBookmarkStyle.Regular, cleared.Style);
+        Assert.Null(cleared.Color);
+    }
+
     private static byte[] ReplaceAscii(byte[] source, string oldValue, string newValue)
     {
         Assert.Equal(oldValue.Length, newValue.Length);
