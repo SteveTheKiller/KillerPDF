@@ -228,6 +228,10 @@ public enum PdfMacroOperation
     DataMerge,
     /// <summary>Inspect bookmark, link, and action navigation.</summary>
     AuditNavigation,
+    /// <summary>Inspect embedded-file safety and integrity.</summary>
+    AuditAttachments,
+    /// <summary>Remove document-level and page-placed attachments.</summary>
+    RemoveAttachments,
     /// <summary>Generate reviewed bookmarks from detected headings.</summary>
     GenerateBookmarks,
     /// <summary>Generate clickable table-of-contents pages.</summary>
