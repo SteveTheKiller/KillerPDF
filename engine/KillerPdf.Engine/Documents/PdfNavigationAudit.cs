@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>A stable navigation problem category.</summary>
@@ -30,6 +33,14 @@ public sealed record PdfNavigationFinding(PdfNavigationFindingCode Code, string 
 /// <summary>Validates resolved bookmark and link targets without executing document actions.</summary>
 public static class PdfNavigationAudit
 {
+    /// <summary>Exports navigation findings as stable machine-readable JSON.</summary>
+    public static string ExportJson(PdfDocument document, bool indented = true) =>
+        JsonSerializer.Serialize(Inspect(document), new JsonSerializerOptions
+        {
+            WriteIndented = indented,
+            Converters = { new JsonStringEnumConverter() }
+        });
+
     /// <summary>Reports bookmarks and links whose local or named targets cannot be resolved.</summary>
     public static IReadOnlyList<PdfNavigationFinding> Inspect(PdfDocument document)
     {

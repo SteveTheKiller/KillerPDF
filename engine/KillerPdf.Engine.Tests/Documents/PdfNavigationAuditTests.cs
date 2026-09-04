@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -26,6 +27,11 @@ public sealed class PdfNavigationAuditTests
             findings.Single(finding =>
                 finding.Code == PdfNavigationFindingCode.LinkUnresolvedDestination)
                 .SuggestedRepair);
+
+        using JsonDocument report = JsonDocument.Parse(PdfNavigationAudit.ExportJson(document));
+        Assert.Equal("LinkUnsafeUri", report.RootElement[0].GetProperty("Code").GetString());
+        Assert.Equal(5, report.RootElement[0].GetProperty("SourceObjectNumber").GetInt32());
+        Assert.Equal("Remove", report.RootElement[0].GetProperty("SuggestedRepair").GetString());
     }
 
     private static PdfDocument Document(string annots, params string[] extras)
