@@ -229,6 +229,24 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Form-field rendering is not implemented.", shown.Diagnostics);
     }
 
+    [Fact]
+    public void Render_PaintsInlineStencilMasksWithTheCurrentFill()
+    {
+        byte[] prefix = Encoding.ASCII.GetBytes(
+            "0 0 1 rg q 4 0 0 2 2 3 cm BI /W 2 /H 1 /IM true ID ");
+        byte[] suffix = Encoding.ASCII.GetBytes(" EI Q");
+        byte[] content = [.. prefix, 0b0100_0000, .. suffix];
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 2, 6));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 5, 6));
+        Assert.DoesNotContain("Masked-image rendering is not implemented.", page.Diagnostics);
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }

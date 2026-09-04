@@ -226,7 +226,8 @@ public sealed class PdfPageRenderer
                         diagnostics.Add("An XObject resource could not be resolved.");
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
-                        if (!TryRenderImage(xObject, state.Transform, state.Clips, pixels,
+                        if (!TryRenderImage(xObject, state.Transform, state.Clips,
+                            state.Fill, state.FillAlpha, pixels,
                             options.Width, options.Height, scaleX, scaleY,
                             out string? imageDiagnostic))
                             diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
@@ -238,7 +239,8 @@ public sealed class PdfPageRenderer
                     && instruction.InlineImageData.HasValue:
                     var inlineImage = new PdfStream(inlineDictionary,
                         instruction.InlineImageData.Value.Span);
-                    if (!TryRenderImage(inlineImage, state.Transform, state.Clips, pixels,
+                    if (!TryRenderImage(inlineImage, state.Transform, state.Clips,
+                        state.Fill, state.FillAlpha, pixels,
                         options.Width, options.Height, scaleX, scaleY,
                         out string? inlineDiagnostic))
                         diagnostics.Add(inlineDiagnostic ?? "Inline-image rendering is not implemented.");
@@ -387,24 +389,24 @@ public sealed class PdfPageRenderer
     }
 
     private bool TryRenderImage(PdfStream stream, Matrix transform,
-        IReadOnlyList<ClipRegion> clips,
+        IReadOnlyList<ClipRegion> clips, Color stencilColor, double stencilAlpha,
         byte[] target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic)
     {
         diagnostic = null;
         if (stream.Dictionary.ContainsKey(Name("Mask"))
-            || stream.Dictionary.ContainsKey(Name("SMask"))
-            || stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
-                && Resolve(maskValue) is PdfBoolean { Value: true })
+            || stream.Dictionary.ContainsKey(Name("SMask")))
         {
             diagnostic = "Masked-image rendering is not implemented.";
             return false;
         }
+        bool imageMask = stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
+            && Resolve(maskValue) is PdfBoolean { Value: true };
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
-        int bits = PositiveInteger(stream.Dictionary, "BitsPerComponent");
-        string colorSpace = NameValue(stream.Dictionary, "ColorSpace");
-        int components = colorSpace switch
+        int bits = imageMask ? 1 : PositiveInteger(stream.Dictionary, "BitsPerComponent");
+        string colorSpace = imageMask ? string.Empty : NameValue(stream.Dictionary, "ColorSpace");
+        int components = imageMask ? 1 : colorSpace switch
         {
             "DeviceGray" => 1,
             "DeviceRGB" => 3,
@@ -429,14 +431,23 @@ public sealed class PdfPageRenderer
             return false;
         }
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
-            transform, samples, width, height, components, bits, clips);
+            transform, samples, width, height, components, bits, clips,
+            imageMask, StencilPaintsOne(stream.Dictionary), stencilColor, stencilAlpha);
         return true;
+    }
+
+    private bool StencilPaintsOne(PdfDictionary dictionary)
+    {
+        if (!dictionary.TryGetValue(Name("Decode"), out PdfObject? value)) return false;
+        PdfArray decode = ResolveArray(value, 2, "Image-mask decode array");
+        return Number(Resolve(decode[0])) > Number(Resolve(decode[1]));
     }
 
     private static void PaintImage(byte[] target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, Matrix transform, byte[] samples,
         int sourceWidth, int sourceHeight, int components, int bits,
-        IReadOnlyList<ClipRegion> clips)
+        IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
+        Color stencilColor, double stencilAlpha)
     {
         Point[] corners =
         [
@@ -461,7 +472,16 @@ public sealed class PdfPageRenderer
                 int sy = Math.Clamp((int)((1 - unit.Y) * sourceHeight), 0, sourceHeight - 1);
                 sy = Math.Min(sy, sourceHeight - 1);
                 Color color;
-                if (bits == 1)
+                double alpha = 1;
+                if (imageMask)
+                {
+                    int bit = sx;
+                    bool one = (samples[sy * rowBytes + bit / 8] & (0x80 >> (bit & 7))) != 0;
+                    if (one != stencilPaintsOne) continue;
+                    color = stencilColor;
+                    alpha = stencilAlpha;
+                }
+                else if (bits == 1)
                 {
                     int bit = sx * components;
                     bool white = (samples[sy * rowBytes + bit / 8] & (0x80 >> (bit & 7))) != 0;
@@ -478,7 +498,7 @@ public sealed class PdfPageRenderer
                             samples[offset + 2] / 255d, samples[offset + 3] / 255d)
                     };
                 }
-                SetPixel(target, targetWidth, x, y, color, 1);
+                SetPixel(target, targetWidth, x, y, color, alpha);
             }
     }
 
