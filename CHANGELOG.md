@@ -14,7 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added safe local source resolution and selective field interchange for FDF and XFDF files (#329).
 - Added shading resources and clipped bounds to page-content extraction (#331).
 - Added isolated transformations, rectangular clipping, and resource-aware instruction comparison for page content (#332).
-- Expanded selective sanitization to remove forms, comments, and document JavaScript (#333).
+- Expanded selective sanitization with post-save verification for forms, comments, document JavaScript, and other removals (#333).
 - Added accessibility and preflight checks for missing form field and link descriptions (#334, #335).
 - Added certificate identity, SHA-256 fingerprints, and algorithm details to signature verification (#336).
 - Added attachment renaming, descriptions, replacement, executable-content and integrity checks, and portfolio metadata (#347).

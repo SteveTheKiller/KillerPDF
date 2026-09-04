@@ -67,7 +67,8 @@ public sealed class PdfOptimizationTests
             PackObjects = false,
             CompressStructure = false
         });
-        PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument sanitized = PdfDocument.Open(result.Data);
         PdfDictionary catalog = Assert.IsType<PdfDictionary>(sanitized.Resolve(
             Assert.IsType<PdfIndirectReference>(sanitized.Trailer[
                 new PdfName("Root"u8)])));
@@ -75,6 +76,10 @@ public sealed class PdfOptimizationTests
         Assert.Contains(PdfOptimizationChangeKind.RemoveAttachments, plan.Changes);
         Assert.Contains(PdfOptimizationChangeKind.RemoveOpenAction, plan.Changes);
         Assert.Contains(PdfOptimizationChangeKind.RemoveBookmarks, plan.Changes);
+        Assert.Equal([
+            PdfOptimizationChangeKind.RemoveAttachments,
+            PdfOptimizationChangeKind.RemoveOpenAction,
+            PdfOptimizationChangeKind.RemoveBookmarks], result.VerifiedRemovals);
         Assert.Empty(PdfAttachmentReader.Read(sanitized));
         Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "OpenAction");
         Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "Outlines");

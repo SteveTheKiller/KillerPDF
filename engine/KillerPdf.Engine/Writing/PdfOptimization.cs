@@ -60,6 +60,8 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
 {
     /// <summary>Gets the signed output-size difference in bytes.</summary>
     public int SizeDifference => OutputSize - OriginalSize;
+    /// <summary>Gets sanitization changes whose absence was verified after saving.</summary>
+    public IReadOnlyList<PdfOptimizationChangeKind> VerifiedRemovals { get; init; } = [];
 }
 
 /// <summary>An immutable preview of a deterministic full-document optimization.</summary>
@@ -106,7 +108,58 @@ public sealed class PdfOptimizationPlan
             throw new InvalidOperationException("The optimized document did not preserve its page count.");
         if (reopened.CrossReferences.Sections.Count != 1)
             throw new InvalidOperationException("The optimized document still contains revision history.");
-        return new PdfOptimizationResult(output, OriginalSize, output.Length, Changes);
+        IReadOnlyList<PdfOptimizationChangeKind> verified = VerifySanitization(reopened);
+        return new PdfOptimizationResult(output, OriginalSize, output.Length, Changes)
+        {
+            VerifiedRemovals = verified
+        };
+    }
+
+    private IReadOnlyList<PdfOptimizationChangeKind> VerifySanitization(PdfDocument document)
+    {
+        PdfPageTree tree = PdfPageTree.Read(document);
+        var verified = new List<PdfOptimizationChangeKind>();
+        Verify(PdfOptimizationChangeKind.RemoveMetadata,
+            !document.Trailer.ContainsKey(new PdfName("Info"u8))
+            && !tree.Catalog.ContainsKey(new PdfName("Metadata"u8)));
+        Verify(PdfOptimizationChangeKind.RemoveAttachments,
+            PdfAttachmentReader.Read(document).Count == 0);
+        Verify(PdfOptimizationChangeKind.RemoveOpenAction,
+            !tree.Catalog.ContainsKey(new PdfName("OpenAction"u8)));
+        Verify(PdfOptimizationChangeKind.RemoveBookmarks,
+            !tree.Catalog.ContainsKey(new PdfName("Outlines"u8)));
+        Verify(PdfOptimizationChangeKind.RemoveFormFields,
+            tree.Pages.SelectMany((_, pageIndex) =>
+                PdfFormWidgetReader.ReadPage(document, pageIndex)).Any() == false);
+        Verify(PdfOptimizationChangeKind.RemoveComments,
+            PdfCommentReader.Read(document).Count == 0);
+        bool hasJavaScript = tree.Catalog.TryGetValue(new PdfName("Names"u8),
+            out PdfObject? namesValue)
+            && Resolve(document, namesValue) is PdfDictionary names
+            && names.ContainsKey(new PdfName("JavaScript"u8));
+        Verify(PdfOptimizationChangeKind.RemoveDocumentJavaScript, !hasJavaScript);
+        return Array.AsReadOnly(verified.ToArray());
+
+        void Verify(PdfOptimizationChangeKind kind, bool absent)
+        {
+            if (!Changes.Contains(kind)) return;
+            if (!absent)
+                throw new InvalidOperationException(
+                    $"The optimized document still contains content reported as {kind}.");
+            verified.Add(kind);
+        }
+    }
+
+    private static PdfObject Resolve(PdfDocument document, PdfObject value)
+    {
+        var visited = new HashSet<(int, int)>();
+        while (value is PdfIndirectReference reference)
+        {
+            if (!visited.Add((reference.ObjectNumber, reference.Generation)))
+                throw new InvalidOperationException("An indirect object chain contains a cycle.");
+            value = document.Resolve(reference);
+        }
+        return value;
     }
 
     private PdfDocument ApplySelectiveSanitization()
