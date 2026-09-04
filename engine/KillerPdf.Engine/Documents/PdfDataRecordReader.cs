@@ -1,10 +1,15 @@
+using System.Globalization;
+using System.IO.Compression;
 using System.Text.Json;
+using System.Xml.Linq;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Reads tabular records for data-driven PDF generation.</summary>
 public static class PdfDataRecordReader
 {
+    private const long MaximumWorkbookPartBytes = 64 * 1024 * 1024;
+
     /// <summary>Reads records from CSV text whose first row contains field names.</summary>
     public static IReadOnlyList<IReadOnlyDictionary<string, string?>> FromCsv(
         string csv)
@@ -56,6 +61,146 @@ public static class PdfDataRecordReader
             records.Add(record);
         }
         return Array.AsReadOnly(records.ToArray());
+    }
+
+    /// <summary>Reads records from a selected worksheet in an Office Open XML workbook.</summary>
+    public static IReadOnlyList<IReadOnlyDictionary<string, string?>> FromXlsx(
+        ReadOnlyMemory<byte> xlsx, string? sheetName = null)
+    {
+        if (xlsx.Length == 0) throw new FormatException("The XLSX package is empty.");
+        if (xlsx.Length > MaximumWorkbookPartBytes)
+            throw new FormatException("The XLSX package exceeds the supported size limit.");
+        using var archive = new ZipArchive(
+            new MemoryStream(xlsx.ToArray(), writable: false), ZipArchiveMode.Read);
+        if (archive.Entries.Count > 1_000)
+            throw new FormatException("The XLSX package contains too many parts.");
+        long expandedBytes = 0;
+        foreach (ZipArchiveEntry entry in archive.Entries)
+        {
+            if (entry.Length > MaximumWorkbookPartBytes - expandedBytes)
+                throw new FormatException("The XLSX package exceeds the expanded size limit.");
+            expandedBytes += entry.Length;
+        }
+        XNamespace spreadsheet = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        XNamespace relationships = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        XNamespace packageRelationships = "http://schemas.openxmlformats.org/package/2006/relationships";
+        XDocument workbook = ReadXml(archive, "xl/workbook.xml");
+        XElement[] sheets = [.. workbook.Descendants(spreadsheet + "sheet")];
+        XElement sheet = sheetName is null
+            ? sheets.FirstOrDefault() ?? throw new FormatException("The XLSX workbook has no worksheets.")
+            : sheets.FirstOrDefault(item => string.Equals((string?)item.Attribute("name"),
+                sheetName, StringComparison.OrdinalIgnoreCase))
+                ?? throw new KeyNotFoundException($"The XLSX workbook has no sheet named '{sheetName}'.");
+        string relationshipId = (string?)sheet.Attribute(relationships + "id")
+            ?? throw new FormatException("The XLSX worksheet has no relationship.");
+        XDocument workbookRelationships = ReadXml(archive, "xl/_rels/workbook.xml.rels");
+        XElement relationship = workbookRelationships.Descendants(packageRelationships + "Relationship")
+            .SingleOrDefault(item => (string?)item.Attribute("Id") == relationshipId)
+            ?? throw new FormatException("The XLSX worksheet relationship was not found.");
+        string target = (string?)relationship.Attribute("Target")
+            ?? throw new FormatException("The XLSX worksheet relationship has no target.");
+        string worksheetPath = WorkbookTarget(target);
+        string[] sharedStrings = archive.GetEntry("xl/sharedStrings.xml") is null ? []
+            : [.. ReadXml(archive, "xl/sharedStrings.xml")
+                .Descendants(spreadsheet + "si")
+                .Select(item => string.Concat(item.Descendants(spreadsheet + "t")
+                    .Select(text => text.Value)))];
+        XDocument worksheet = ReadXml(archive, worksheetPath);
+        var rows = new List<string[]>();
+        foreach (XElement row in worksheet.Descendants(spreadsheet + "row"))
+        {
+            var values = new SortedDictionary<int, string?>();
+            int implicitColumn = 0;
+            foreach (XElement cell in row.Elements(spreadsheet + "c"))
+            {
+                int column = CellColumn((string?)cell.Attribute("r"), implicitColumn);
+                if (!values.TryAdd(column, CellValue(cell, spreadsheet, sharedStrings)))
+                    throw new FormatException("An XLSX row contains a duplicate cell.");
+                implicitColumn = column + 1;
+            }
+            if (values.Count == 0) continue;
+            string[] output = new string[values.Keys.Max() + 1];
+            foreach ((int column, string? value) in values) output[column] = value ?? string.Empty;
+            rows.Add(output);
+        }
+        if (rows.Count == 0) return [];
+        string[] headers = rows[0];
+        if (headers.Length == 0 || headers.Any(string.IsNullOrWhiteSpace))
+            throw new FormatException("XLSX field names cannot be empty.");
+        if (headers.Distinct(StringComparer.OrdinalIgnoreCase).Count() != headers.Length)
+            throw new FormatException("XLSX field names must be unique.");
+        var records = new List<IReadOnlyDictionary<string, string?>>(rows.Count - 1);
+        foreach (string[] row in rows.Skip(1))
+        {
+            var record = new Dictionary<string, string?>(headers.Length, StringComparer.OrdinalIgnoreCase);
+            for (int index = 0; index < headers.Length; index++)
+                record.Add(headers[index], index < row.Length ? row[index] : null);
+            records.Add(record);
+        }
+        return Array.AsReadOnly(records.ToArray());
+    }
+
+    private static XDocument ReadXml(ZipArchive archive, string path)
+    {
+        ZipArchiveEntry entry = archive.GetEntry(path)
+            ?? throw new FormatException($"The XLSX package is missing '{path}'.");
+        if (entry.Length > MaximumWorkbookPartBytes)
+            throw new FormatException($"The XLSX part '{path}' exceeds the supported size limit.");
+        using Stream stream = entry.Open();
+        try { return XDocument.Load(stream, LoadOptions.None); }
+        catch (Exception error) when (error is System.Xml.XmlException or InvalidOperationException)
+        {
+            throw new FormatException($"The XLSX part '{path}' is malformed.", error);
+        }
+    }
+
+    private static string WorkbookTarget(string target)
+    {
+        string normalized = target.Replace('\\', '/').TrimStart('/');
+        if (normalized.StartsWith("../", StringComparison.Ordinal)
+            || normalized.Contains("/../", StringComparison.Ordinal))
+            throw new FormatException("The XLSX worksheet target is unsafe.");
+        return normalized.StartsWith("xl/", StringComparison.Ordinal)
+            ? normalized : "xl/" + normalized;
+    }
+
+    private static int CellColumn(string? reference, int fallback)
+    {
+        if (reference is null) return fallback;
+        int column = 0;
+        int length = 0;
+        foreach (char character in reference)
+        {
+            if (!char.IsAsciiLetter(character)) break;
+            column = checked(column * 26 + char.ToUpperInvariant(character) - 'A' + 1);
+            length++;
+        }
+        if (length == 0 || column is <= 0 or > 16_384)
+            throw new FormatException("An XLSX cell has an invalid reference.");
+        return column - 1;
+    }
+
+    private static string? CellValue(
+        XElement cell, XNamespace spreadsheet, IReadOnlyList<string> sharedStrings)
+    {
+        string? type = (string?)cell.Attribute("t");
+        if (type == "inlineStr")
+            return string.Concat(cell.Descendants(spreadsheet + "t").Select(text => text.Value));
+        string? value = cell.Element(spreadsheet + "v")?.Value;
+        if (value is null) return null;
+        if (type == "s")
+        {
+            if (!int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out int index)
+                || index < 0 || index >= sharedStrings.Count)
+                throw new FormatException("An XLSX cell has an invalid shared-string index.");
+            return sharedStrings[index];
+        }
+        return type == "b" ? value switch
+        {
+            "0" => "false",
+            "1" => "true",
+            _ => throw new FormatException("An XLSX Boolean cell has an invalid value.")
+        } : value;
     }
 
     private static string? Scalar(JsonElement value) => value.ValueKind switch

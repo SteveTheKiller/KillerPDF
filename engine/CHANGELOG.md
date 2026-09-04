@@ -24,7 +24,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added typed PDF layer inspection and editing for names, configuration metadata, locks, base state, visibility, nested display order, and alternate optional-content configurations (#350).
 - Added calibrated distance, perimeter, area, and angle calculations with saved profiles, scoped assignments, coordinates, deltas, intersection and angle snapping, and source-aware JSON or CSV reports (#348).
 - Added deterministic N-up, poster, step-and-repeat, manual-sequence, and bounded booklet planning with fitted grids, duplex sides, blank slots, crop, registration, and fold marks (#349).
-- Added CSV and JSON data import, reusable mappings and defaults, placeholder expansion, collision-safe form generation, cancellation, and isolated batch reports (#352).
+- Added CSV, JSON, and selected-sheet XLSX data import, reusable mappings and defaults, placeholder expansion, collision-safe form generation, cancellation, and isolated batch reports (#352).
 - Added typed PDF macro saving, editing, and execution with ordered supported operations, source preservation, cancellation, and data-safe JSON batch reports (#343).
 - Added safe FDF, XFDF, and XFA dataset interchange with selective fields, Unicode, hierarchical names, multi-select values, safe local source resolution, and non-executing script inspection (#329, #330).
 - Added deterministic styled header and footer placement, PDF writing, content collision checks, and continuous Bates numbering across ordered document batches (#344).

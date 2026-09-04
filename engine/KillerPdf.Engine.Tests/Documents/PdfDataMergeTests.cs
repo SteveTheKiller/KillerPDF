@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Authoring;
@@ -73,6 +74,41 @@ public sealed class PdfDataMergeTests
         Assert.Null(record["Note"]);
         Assert.Throws<FormatException>(() =>
             PdfDataRecordReader.FromJson("[{\"Nested\":{}}]"));
+    }
+
+    [Fact]
+    public void XlsxRecordsSupportSheetSelectionAndInlineStrings()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 12)
+                .ShowLatin1Text("A & B").EndText()).Build());
+        byte[] xlsx = PdfStructuredExport.ToXlsx(source);
+
+        IReadOnlyList<IReadOnlyDictionary<string, string?>> records =
+            PdfDataRecordReader.FromXlsx(xlsx, "PDF export");
+
+        IReadOnlyDictionary<string, string?> record = Assert.Single(records);
+        Assert.Equal("1", record["Page"]);
+        Assert.Equal("1", record["Line"]);
+        Assert.Equal("A & B", record["Text"]);
+        Assert.Throws<KeyNotFoundException>(() =>
+            PdfDataRecordReader.FromXlsx(xlsx, "Missing"));
+    }
+
+    [Fact]
+    public void XlsxRecordsReadSharedStringsScalarsAndSparseCells()
+    {
+        IReadOnlyList<IReadOnlyDictionary<string, string?>> records =
+            PdfDataRecordReader.FromXlsx(SharedStringWorkbook(), "Records");
+
+        Assert.Equal(2, records.Count);
+        Assert.Equal("Ada", records[0]["Name"]);
+        Assert.Null(records[0]["Company"]);
+        Assert.Equal("true", records[0]["Active"]);
+        Assert.Equal("Grace", records[1]["Name"]);
+        Assert.Equal("42", records[1]["Company"]);
+        Assert.Equal("false", records[1]["Active"]);
     }
 
     [Fact]
@@ -191,5 +227,33 @@ public sealed class PdfDataMergeTests
         Assert.Equal("customer-2.pdf", report.Results[1].OutputFileName);
         Assert.DoesNotContain("PDF payload", json, StringComparison.Ordinal);
         Assert.Equal(1, parsed.RootElement.GetProperty("failedRecords").GetInt32());
+    }
+
+    private static byte[] SharedStringWorkbook()
+    {
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            Write("xl/workbook.xml",
+                "<workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Records\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+            Write("xl/_rels/workbook.xml.rels",
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Target=\"worksheets/sheet1.xml\"/></Relationships>");
+            Write("xl/sharedStrings.xml",
+                "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><si><t>Name</t></si><si><t>Company</t></si><si><t>Active</t></si><si><t>Ada</t></si></sst>");
+            Write("xl/worksheets/sheet1.xml",
+                "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>" +
+                "<row><c r=\"A1\" t=\"s\"><v>0</v></c><c r=\"B1\" t=\"s\"><v>1</v></c><c r=\"C1\" t=\"s\"><v>2</v></c></row>" +
+                "<row><c r=\"A2\" t=\"s\"><v>3</v></c><c r=\"C2\" t=\"b\"><v>1</v></c></row>" +
+                "<row><c r=\"A3\" t=\"inlineStr\"><is><t>Grace</t></is></c><c r=\"B3\"><v>42</v></c><c r=\"C3\" t=\"b\"><v>0</v></c></row>" +
+                "</sheetData></worksheet>");
+
+            void Write(string name, string content)
+            {
+                using Stream stream = archive.CreateEntry(name).Open();
+                using var writer = new StreamWriter(stream, new UTF8Encoding(false));
+                writer.Write(content);
+            }
+        }
+        return output.ToArray();
     }
 }
