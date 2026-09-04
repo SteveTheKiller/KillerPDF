@@ -37,6 +37,28 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void LanguageCorrectionIsPreviewedAppliedAndVerified()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
+        PdfDocument document = PdfDocument.Open(source);
+
+        PdfPreflightCorrectionPlan plan =
+            PdfPreflightCorrectionPlan.SetDocumentLanguage(document, "en-US");
+        byte[] correctedBytes = plan.Apply();
+        PdfDocument corrected = PdfDocument.Open(correctedBytes);
+        PdfPreflightCorrectionPlan unchanged =
+            PdfPreflightCorrectionPlan.SetDocumentLanguage(corrected, "EN-us");
+
+        Assert.Equal(PdfPreflightCorrectionKind.SetDocumentLanguage, plan.Kind);
+        Assert.True(plan.ChangesDocument);
+        Assert.Equal("en-US", PdfDocumentInformation.Read(corrected).Language);
+        Assert.False(unchanged.ChangesDocument);
+        Assert.Equal(correctedBytes, unchanged.Apply());
+        Assert.Throws<ArgumentException>(() =>
+            PdfPreflightCorrectionPlan.SetDocumentLanguage(document, "not_a_language"));
+    }
+
+    [Fact]
     public void TaggedProfileReportsBothRequiredCatalogDeclarations()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
