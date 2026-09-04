@@ -14,6 +14,16 @@ public static class PdfLayerMacro
     public static PdfMacroStep VisibilityStep(string layerName, bool visible) =>
         EditStep("visibility", layerName, visible ? "true" : "false");
 
+    /// <summary>Creates a step that changes or clears one layer's print visibility.</summary>
+    public static PdfMacroStep PrintVisibilityStep(string layerName, bool? visible) =>
+        EditStep("printVisibility", layerName,
+            visible.HasValue ? visible.Value ? "true" : "false" : "clear");
+
+    /// <summary>Creates a step that changes or clears one layer's export visibility.</summary>
+    public static PdfMacroStep ExportVisibilityStep(string layerName, bool? visible) =>
+        EditStep("exportVisibility", layerName,
+            visible.HasValue ? visible.Value ? "true" : "false" : "clear");
+
     /// <summary>Creates a step that changes one layer's lock state.</summary>
     public static PdfMacroStep LockStep(string layerName, bool locked) =>
         EditStep("lock", layerName, locked ? "true" : "false");
@@ -80,6 +90,14 @@ public static class PdfLayerMacro
                 PdfOptionalContentEditor.RenameGroup(document, objectNumber, value),
             "visibility" when bool.TryParse(value, out bool visible) =>
                 PdfOptionalContentEditor.SetInitialVisibility(document, objectNumber, visible),
+            "printVisibility" when value == "clear" =>
+                PdfOptionalContentEditor.SetPrintVisibility(document, objectNumber, null),
+            "printVisibility" when bool.TryParse(value, out bool printVisible) =>
+                PdfOptionalContentEditor.SetPrintVisibility(document, objectNumber, printVisible),
+            "exportVisibility" when value == "clear" =>
+                PdfOptionalContentEditor.SetExportVisibility(document, objectNumber, null),
+            "exportVisibility" when bool.TryParse(value, out bool exportVisible) =>
+                PdfOptionalContentEditor.SetExportVisibility(document, objectNumber, exportVisible),
             "lock" when bool.TryParse(value, out bool locked) =>
                 PdfOptionalContentEditor.SetLocked(document, objectNumber, locked),
             "merge" when !string.IsNullOrWhiteSpace(value) =>

@@ -73,4 +73,33 @@ public sealed class PdfLayerMacroTests
         Assert.Throws<ArgumentException>(() => PdfLayerMacro.Execute(
             PdfLayerMacro.RenameStep("Missing", "Other"), output));
     }
+
+    [Fact]
+    public void MacroSetsAndClearsIndependentPrintAndExportVisibility()
+    {
+        var layer = new PdfOptionalContentGroup("Artwork");
+        ReadOnlyMemory<byte> source = new PdfDocumentBuilder().AddPage(200, 200,
+            new PdfContentStreamBuilder().BeginOptionalContent(layer)
+                .Rectangle(0, 0, 10, 10).Fill().EndMarkedContent()).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Usage", [
+            PdfLayerMacro.PrintVisibilityStep("Artwork", false),
+            PdfLayerMacro.ExportVisibilityStep("Artwork", true)
+        ]).ToJson());
+
+        foreach (PdfMacroStep step in macro.Steps)
+            source = PdfLayerMacro.Execute(step, source);
+        PdfOptionalContentGroupInfo changed = Assert.Single(
+            PdfOptionalContentReader.Read(PdfDocument.Open(source)).Groups);
+        Assert.False(changed.IsVisibleWhenPrinting);
+        Assert.True(changed.IsVisibleWhenExporting);
+
+        source = PdfLayerMacro.Execute(
+            PdfLayerMacro.PrintVisibilityStep("Artwork", null), source);
+        source = PdfLayerMacro.Execute(
+            PdfLayerMacro.ExportVisibilityStep("Artwork", null), source);
+        PdfOptionalContentGroupInfo cleared = Assert.Single(
+            PdfOptionalContentReader.Read(PdfDocument.Open(source)).Groups);
+        Assert.Null(cleared.IsVisibleWhenPrinting);
+        Assert.Null(cleared.IsVisibleWhenExporting);
+    }
 }
