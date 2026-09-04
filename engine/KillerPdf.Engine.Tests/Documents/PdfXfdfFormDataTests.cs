@@ -57,4 +57,20 @@ public sealed class PdfXfdfFormDataTests
         Assert.Throws<InvalidOperationException>(() =>
             PdfXfdfFormData.Read("<xfdf/>"u8.ToArray()));
     }
+
+    [Fact]
+    public void WriteCanExportAnOrderedFieldSelection()
+    {
+        var source = new PdfFormDataSet
+        {
+            Fields = [
+                new PdfFormDataField { Name = "first", Values = ["1"] },
+                new PdfFormDataField { Name = "second", Values = ["2"] }]
+        };
+
+        PdfFormDataSet selected = PdfXfdfFormData.Read(
+            PdfXfdfFormData.Write(source, ["second", "first"]));
+
+        Assert.Equal(["second", "first"], selected.Fields.Select(field => field.Name));
+    }
 }

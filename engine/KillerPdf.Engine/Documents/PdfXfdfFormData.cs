@@ -44,6 +44,13 @@ public static class PdfXfdfFormData
     }
 
     /// <summary>Writes field values and an optional source PDF reference as UTF-8 XFDF.</summary>
+    public static byte[] Write(PdfFormDataSet data, IEnumerable<string> fieldNames)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return Write(data.SelectFields(fieldNames));
+    }
+
+    /// <summary>Writes all field values and an optional source PDF reference as UTF-8 XFDF.</summary>
     public static byte[] Write(PdfFormDataSet data)
     {
         ArgumentNullException.ThrowIfNull(data);

@@ -105,6 +105,13 @@ public static class PdfFdfFormData
     }
 
     /// <summary>Writes field values and an optional source PDF reference as deterministic FDF.</summary>
+    public static byte[] Write(PdfFormDataSet data, IEnumerable<string> fieldNames)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return Write(data.SelectFields(fieldNames));
+    }
+
+    /// <summary>Writes all field values and an optional source PDF reference as deterministic FDF.</summary>
     public static byte[] Write(PdfFormDataSet data)
     {
         ArgumentNullException.ThrowIfNull(data);

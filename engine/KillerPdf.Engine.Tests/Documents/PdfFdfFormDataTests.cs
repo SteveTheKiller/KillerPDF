@@ -41,6 +41,26 @@ public sealed class PdfFdfFormDataTests
     }
 
     [Fact]
+    public void WriteCanExportAnOrderedFieldSelection()
+    {
+        var source = new PdfFormDataSet
+        {
+            SourcePdfPath = "source.pdf",
+            Fields = [
+                new PdfFormDataField { Name = "first", Values = ["1"] },
+                new PdfFormDataField { Name = "second", Values = ["2"] }]
+        };
+
+        PdfFormDataSet selected = PdfFdfFormData.Read(
+            PdfFdfFormData.Write(source, ["second"]));
+
+        Assert.Equal("second", Assert.Single(selected.Fields).Name);
+        Assert.Equal("source.pdf", selected.SourcePdfPath);
+        Assert.Throws<KeyNotFoundException>(() =>
+            PdfFdfFormData.Write(source, ["missing"]));
+    }
+
+    [Fact]
     public void ResolvesLocalSourceReferencesRelativeToTheInterchangeFile()
     {
         var relative = new PdfFormDataSet { SourcePdfPath = "forms/source.pdf" };
