@@ -48,7 +48,9 @@ public sealed record PdfFormFieldProposal
         string? suggestedValue = null, bool suggestedReadOnly = false,
         bool suggestedRequired = false, bool suggestedChecked = false,
         bool suggestedMultiline = false, bool suggestedDoNotScroll = false,
-        PdfTextFieldAlignment suggestedAlignment = PdfTextFieldAlignment.Left)
+        PdfTextFieldAlignment suggestedAlignment = PdfTextFieldAlignment.Left,
+        double suggestedFontSize = 12,
+        PdfFormFieldAppearanceStyle? suggestedAppearanceStyle = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -84,6 +86,9 @@ public sealed record PdfFormFieldProposal
                 nameof(suggestedDoNotScroll));
         if (!Enum.IsDefined(suggestedAlignment))
             throw new ArgumentOutOfRangeException(nameof(suggestedAlignment));
+        if (!double.IsFinite(suggestedFontSize) || suggestedFontSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(suggestedFontSize));
+        suggestedAppearanceStyle = ValidateAppearance(suggestedAppearanceStyle);
         if (suggestedAlignment != PdfTextFieldAlignment.Left
             && kind is not (PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.DropDown
                 or PdfRecognizedFieldKind.EditableComboBox or PdfRecognizedFieldKind.ListBox))
@@ -106,6 +111,8 @@ public sealed record PdfFormFieldProposal
         SuggestedMultiline = suggestedMultiline;
         SuggestedDoNotScroll = suggestedDoNotScroll;
         SuggestedAlignment = suggestedAlignment;
+        SuggestedFontSize = suggestedFontSize;
+        SuggestedAppearanceStyle = suggestedAppearanceStyle;
         Status = status;
     }
 
@@ -139,6 +146,10 @@ public sealed record PdfFormFieldProposal
     public bool SuggestedDoNotScroll { get; }
     /// <summary>Gets the proposed horizontal text or choice alignment.</summary>
     public PdfTextFieldAlignment SuggestedAlignment { get; }
+    /// <summary>Gets the proposed appearance font size in points.</summary>
+    public double SuggestedFontSize { get; }
+    /// <summary>Gets the proposed widget colors and border geometry.</summary>
+    public PdfFormFieldAppearanceStyle SuggestedAppearanceStyle { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
@@ -147,12 +158,34 @@ public sealed record PdfFormFieldProposal
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
         bool? multiline = null, bool? doNotScroll = null,
-        PdfTextFieldAlignment? alignment = null) =>
+        PdfTextFieldAlignment? alignment = null, double? fontSize = null,
+        PdfFormFieldAppearanceStyle? appearanceStyle = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
             isChecked ?? SuggestedChecked, multiline ?? SuggestedMultiline,
-            doNotScroll ?? SuggestedDoNotScroll, alignment ?? SuggestedAlignment);
+            doNotScroll ?? SuggestedDoNotScroll, alignment ?? SuggestedAlignment,
+            fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle);
+
+    private static PdfFormFieldAppearanceStyle ValidateAppearance(
+        PdfFormFieldAppearanceStyle? style)
+    {
+        style ??= new PdfFormFieldAppearanceStyle();
+        if (!double.IsFinite(style.BorderWidth) || style.BorderWidth < 0
+            || !Enum.IsDefined(style.BorderStyle))
+            throw new ArgumentOutOfRangeException(nameof(style));
+        double[]? dash = style.DashPattern?.ToArray();
+        if (style.BorderStyle == PdfFormFieldBorderStyle.Dashed)
+        {
+            dash ??= [3];
+            if (dash.Length == 0 || dash.Any(value => !double.IsFinite(value) || value < 0)
+                || dash.All(value => value == 0))
+                throw new ArgumentException("A dashed field border requires a valid dash pattern.", nameof(style));
+        }
+        else if (dash is not null)
+            throw new ArgumentException("A dash pattern requires a dashed field border.", nameof(style));
+        return style with { DashPattern = dash };
+    }
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
@@ -186,10 +219,12 @@ public sealed class PdfFormRecognitionReview
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
         bool? multiline = null, bool? doNotScroll = null,
-        PdfTextFieldAlignment? alignment = null) =>
+        PdfTextFieldAlignment? alignment = null, double? fontSize = null,
+        PdfFormFieldAppearanceStyle? appearanceStyle = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
-            readOnly, required, isChecked, multiline, doNotScroll, alignment));
+            readOnly, required, isChecked, multiline, doNotScroll, alignment,
+            fontSize, appearanceStyle));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -243,14 +278,17 @@ public sealed class PdfFormRecognitionReview
                             DoNotScroll = proposal.SuggestedDoNotScroll,
                             Alignment = proposal.SuggestedAlignment
                         },
-                        fieldMetadata: metadata);
+                        fontSize: proposal.SuggestedFontSize,
+                        fieldMetadata: metadata,
+                        appearanceStyle: proposal.SuggestedAppearanceStyle);
                     break;
                 case PdfRecognizedFieldKind.CheckBox:
                     editor.AddCheckBox(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         isChecked: proposal.SuggestedChecked,
                         exportValue: proposal.SuggestedValue ?? "Yes",
-                        fieldMetadata: metadata, options: fieldOptions);
+                        fieldMetadata: metadata, options: fieldOptions,
+                        appearanceStyle: proposal.SuggestedAppearanceStyle);
                     break;
                 case PdfRecognizedFieldKind.DropDown:
                 case PdfRecognizedFieldKind.EditableComboBox:
@@ -258,33 +296,40 @@ public sealed class PdfFormRecognitionReview
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         proposal.SuggestedOptions, proposal.SuggestedValue,
                         editable: proposal.Kind == PdfRecognizedFieldKind.EditableComboBox,
+                        fontSize: proposal.SuggestedFontSize,
                         fieldMetadata: metadata, fieldOptions: fieldOptions,
                         choiceOptions: new PdfChoiceFieldOptions
                         {
-                            Alignment = proposal.SuggestedAlignment
+                            Alignment = proposal.SuggestedAlignment,
+                            AppearanceStyle = proposal.SuggestedAppearanceStyle
                         });
                     break;
                 case PdfRecognizedFieldKind.ListBox:
                     editor.AddListBox(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         proposal.SuggestedOptions, proposal.SuggestedValue,
+                        fontSize: proposal.SuggestedFontSize,
                         fieldMetadata: metadata, fieldOptions: fieldOptions,
                         choiceOptions: new PdfChoiceFieldOptions
                         {
-                            Alignment = proposal.SuggestedAlignment
+                            Alignment = proposal.SuggestedAlignment,
+                            AppearanceStyle = proposal.SuggestedAppearanceStyle
                         });
                     break;
                 case PdfRecognizedFieldKind.Signature:
                     editor.AddSignatureField(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
-                        fieldMetadata: metadata, fieldOptions: fieldOptions);
+                        fieldMetadata: metadata, fieldOptions: fieldOptions,
+                        fontSize: proposal.SuggestedFontSize,
+                        appearanceStyle: proposal.SuggestedAppearanceStyle);
                     break;
             }
         }
         foreach (PdfFormFieldProposal[] group in radioGroups)
         {
             if (group.Any(proposal => proposal.SuggestedReadOnly != group[0].SuggestedReadOnly
-                || proposal.SuggestedRequired != group[0].SuggestedRequired))
+                || proposal.SuggestedRequired != group[0].SuggestedRequired
+                || proposal.SuggestedAppearanceStyle != group[0].SuggestedAppearanceStyle))
                 throw new NotSupportedException(
                     $"Radio group '{group[0].SuggestedName}' has inconsistent field requirements.");
             PdfFormFieldMetadata? metadata = group[0].SuggestedTooltip is null ? null
@@ -300,6 +345,10 @@ public sealed class PdfFormRecognitionReview
                 {
                     ReadOnly = group[0].SuggestedReadOnly,
                     Required = group[0].SuggestedRequired
+                },
+                radioOptions: new PdfRadioGroupOptions
+                {
+                    AppearanceStyle = group[0].SuggestedAppearanceStyle
                 });
         }
         return editor.Build();

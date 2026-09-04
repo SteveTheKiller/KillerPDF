@@ -139,6 +139,32 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewedFontSizeAndAppearancePersist()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var style = new PdfFormFieldAppearanceStyle
+        {
+            BackgroundColor = new PdfRgbColor(0.9, 0.8, 0.7),
+            BorderColor = new PdfRgbColor(0.1, 0.2, 0.3),
+            TextColor = new PdfRgbColor(0.4, 0.5, 0.6),
+            BorderWidth = 2
+        };
+        var review = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("name", 0, new PdfContentBounds(10, 10, 150, 40),
+                PdfRecognizedFieldKind.Text, 1, "name")])
+            .Accept("name", fontSize: 9, appearanceStyle: style);
+
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(review.ApplyAccepted(document)), 0));
+
+        Assert.Contains(" 9 Tf ", widget.DefaultAppearance, StringComparison.Ordinal);
+        Assert.Contains("0.4 0.5 0.6 rg", widget.DefaultAppearance, StringComparison.Ordinal);
+        Assert.Equal(style.BackgroundColor, widget.BackgroundColor);
+        Assert.Equal(style.BorderColor, widget.BorderColor);
+    }
+
+    [Fact]
     public void ReviewedChoiceProposalsPersistAsFormFields()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
