@@ -207,6 +207,26 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void ColorUsageAppliesShareableMaximumInkCoverage()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillCmyk(0.8, 0.8, 0.8, 0.8)
+            .Rectangle(10, 10, 50, 50).Fill();
+        var profile = new PdfPreflightProfile("Ink limit",
+            [PdfPreflightCheck.ColorUsage], maximumInkCoveragePercent: 310);
+
+        PdfPreflightProfile restored = PdfPreflightProfile.FromJson(profile.ToJson());
+        PdfPreflightFinding finding = Assert.Single(PdfPreflightRunner.Run(
+            new PdfDocumentBuilder().AddPage(100, 100, content).Build(), restored).Findings);
+
+        Assert.Equal(310, restored.MaximumInkCoveragePercent);
+        Assert.Equal("ColorUsage.InkCoverageAboveMaximum", finding.Code);
+        Assert.Equal(PdfDiagnosticSeverity.Warning, finding.Severity);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.Contains("320% total ink", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FontEmbeddingFindsUnembeddedFontsAndAcceptsEmbeddedFonts()
     {
         var standardContent = new PdfContentStreamBuilder()

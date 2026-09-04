@@ -306,7 +306,8 @@ internal static class PdfPreflightDocumentChecks
         };
     }
 
-    internal static IReadOnlyList<PdfPreflightFinding> CheckColorUsage(PdfDocument document)
+    internal static IReadOnlyList<PdfPreflightFinding> CheckColorUsage(
+        PdfDocument document, double maximumInkCoveragePercent)
     {
         var findings = new List<PdfPreflightFinding>();
         var visitedColorSpaces = new HashSet<(int, int)>();
@@ -319,6 +320,15 @@ internal static class PdfPreflightDocumentChecks
                 instruction.Operator is "rg" or "RG"))
                 findings.Add(Warning("ColorUsage.DeviceRgb",
                     "The page paints with device RGB color.", page.PageIndex));
+            foreach (double coverage in page.Content.Instructions
+                .Where(instruction => instruction.Operator is "k" or "K"
+                    && instruction.Operands.Count == 4)
+                .Select(instruction => instruction.Operands.Sum(operand =>
+                    Number(document, operand)) * 100)
+                .Where(coverage => coverage > maximumInkCoveragePercent))
+                findings.Add(Warning("ColorUsage.InkCoverageAboveMaximum",
+                    $"A process color uses {coverage:0.#}% total ink; the maximum is {maximumInkCoveragePercent:0.#}%.",
+                    page.PageIndex));
         }
         try
         {

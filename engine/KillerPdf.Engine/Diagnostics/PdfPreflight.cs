@@ -41,7 +41,7 @@ public sealed record PdfPreflightProfile
 {
     /// <summary>Creates a validated profile.</summary>
     public PdfPreflightProfile(string name, IEnumerable<PdfPreflightCheck> checks,
-        double minimumImageDpi = 300)
+        double minimumImageDpi = 300, double maximumInkCoveragePercent = 300)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preflight profile name is required.", nameof(name));
@@ -53,9 +53,13 @@ public sealed record PdfPreflightProfile
             throw new ArgumentOutOfRangeException(nameof(checks), "A preflight check is not defined.");
         if (!double.IsFinite(minimumImageDpi) || minimumImageDpi <= 0)
             throw new ArgumentOutOfRangeException(nameof(minimumImageDpi));
+        if (!double.IsFinite(maximumInkCoveragePercent)
+            || maximumInkCoveragePercent <= 0 || maximumInkCoveragePercent > 400)
+            throw new ArgumentOutOfRangeException(nameof(maximumInkCoveragePercent));
         Name = name;
         Checks = Array.AsReadOnly(selected);
         MinimumImageDpi = minimumImageDpi;
+        MaximumInkCoveragePercent = maximumInkCoveragePercent;
     }
 
     /// <summary>Gets a structural validation profile suitable for ordinary PDFs.</summary>
@@ -82,10 +86,13 @@ public sealed record PdfPreflightProfile
     public IReadOnlyList<PdfPreflightCheck> Checks { get; }
     /// <summary>Gets the minimum effective image resolution in dots per inch.</summary>
     public double MinimumImageDpi { get; }
+    /// <summary>Gets the maximum allowed total process-ink coverage percentage.</summary>
+    public double MaximumInkCoveragePercent { get; }
 
     /// <summary>Serializes the profile with stable camel-case names.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new PdfPreflightProfileFile(1, Name, Checks.ToArray(), MinimumImageDpi), JsonOptions(indented));
+        new PdfPreflightProfileFile(1, Name, Checks.ToArray(), MinimumImageDpi,
+            MaximumInkCoveragePercent), JsonOptions(indented));
 
     /// <summary>Reads and validates a serialized profile.</summary>
     public static PdfPreflightProfile FromJson(string json)
@@ -96,7 +103,8 @@ public sealed record PdfPreflightProfile
         if (file.Version != 1)
             throw new NotSupportedException(
                 $"Preflight profile version {file.Version} is not supported.");
-        return new PdfPreflightProfile(file.Name, file.Checks, file.MinimumImageDpi ?? 300);
+        return new PdfPreflightProfile(file.Name, file.Checks, file.MinimumImageDpi ?? 300,
+            file.MaximumInkCoveragePercent ?? 300);
     }
 
     private static JsonSerializerOptions JsonOptions(bool indented)
@@ -112,7 +120,8 @@ public sealed record PdfPreflightProfile
     }
 
     private sealed record PdfPreflightProfileFile(
-        int Version, string Name, PdfPreflightCheck[] Checks, double? MinimumImageDpi);
+        int Version, string Name, PdfPreflightCheck[] Checks, double? MinimumImageDpi,
+        double? MaximumInkCoveragePercent);
 }
 
 /// <summary>One finding produced by a preflight profile.</summary>
@@ -229,7 +238,8 @@ public static class PdfPreflightRunner
         if (profile.Checks.Contains(PdfPreflightCheck.Transparency))
             findings.AddRange(PdfPreflightDocumentChecks.CheckTransparency(checkedDocument));
         if (profile.Checks.Contains(PdfPreflightCheck.ColorUsage))
-            findings.AddRange(PdfPreflightDocumentChecks.CheckColorUsage(checkedDocument));
+            findings.AddRange(PdfPreflightDocumentChecks.CheckColorUsage(
+                checkedDocument, profile.MaximumInkCoveragePercent));
         if (profile.Checks.Contains(PdfPreflightCheck.ConformanceDeclarations))
             findings.AddRange(PdfConformanceInspection.Check(checkedDocument));
         if (profile.Checks.Contains(PdfPreflightCheck.OptionalContent))
