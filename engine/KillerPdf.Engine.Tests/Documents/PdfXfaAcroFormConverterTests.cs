@@ -1,0 +1,52 @@
+using System.Text;
+using KillerPdf.Engine.Documents;
+using Xunit;
+
+namespace KillerPdf.Engine.Tests.Documents;
+
+public sealed class PdfXfaAcroFormConverterTests
+{
+    [Fact]
+    public void ConvertPreservesPageAndCreatesEditableFieldWithDatasetValue()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="form" layout="position"><field name="name" x="10pt" y="20pt" w="70pt" h="15pt"><bind ref="$record.person.name"/><ui><textEdit/></ui></field></subform></template>""",
+            """<datasets><data><person><name>Ada</name></person></data></datasets>""");
+
+        PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(source));
+
+        Assert.Null(PdfXfaReader.Read(converted));
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(converted, 0));
+        Assert.Equal("form.name", widget.FieldName);
+        Assert.Equal("Ada", widget.Value);
+        Assert.Equal(10, widget.Left);
+        Assert.Equal(65, widget.Bottom);
+        Assert.Equal(80, widget.Right);
+        Assert.Equal(80, widget.Top);
+    }
+
+    private static PdfDocument Document(string template, string datasets)
+    {
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 4 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] >>",
+            "<< /Fields [] /XFA [(template) 5 0 R (datasets) 6 0 R] >>",
+            $"<< /Length {Encoding.UTF8.GetByteCount(template)} >>\nstream\n{template}\nendstream",
+            $"<< /Length {Encoding.UTF8.GetByteCount(datasets)} >>\nstream\n{datasets}\nendstream"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+    }
+}

@@ -194,6 +194,7 @@ public sealed class PdfIncrementalPageEditor
     private readonly HashSet<(int ObjectNumber, int Generation)>
         _removedTaggedWidgets = [];
     private bool _removeAcroForm;
+    private bool _removeXfa;
     private PdfObject? _replacementAcroForm;
     private readonly List<PendingAuthoredForm> _authoredForms = [];
     private PdfVersion? _minimumFeatureVersion;
@@ -425,6 +426,16 @@ public sealed class PdfIncrementalPageEditor
         _fieldMetadataChanges.Remove(fieldName);
         _fieldDefaultChanges.Remove(fieldName);
         _removedFormFields.Add(fieldName);
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>Removes the XFA package while preserving ordinary AcroForm fields.</summary>
+    public PdfIncrementalPageEditor RemoveXfa()
+    {
+        if (!_tree.Catalog.ContainsKey(AcroFormName))
+            throw new InvalidOperationException("The document has no AcroForm dictionary.");
+        _removeXfa = true;
         _catalogPresentationChanged = true;
         return this;
     }
@@ -4233,6 +4244,7 @@ public sealed class PdfIncrementalPageEditor
         AddOutputIntent(update, catalogReplacements);
         if (_replacementAcroForm is not null)
             catalogReplacements[AcroFormName] = _replacementAcroForm;
+        if (_removeXfa) RemoveXfa(catalogReplacements);
         ApplyRequiredVersionUpgrade(catalogReplacements, importedGroups);
         var catalogRemovals = new List<PdfName>();
         if (removeNames) catalogRemovals.Add(NamesName);
@@ -4514,13 +4526,15 @@ public sealed class PdfIncrementalPageEditor
         PdfName[] supportedFormKeys =
             [FieldsName, DefaultResourcesName, DefaultAppearanceName, NeedAppearancesName,
                 SignatureFlagsName, CalculationOrderName, QuaddingName];
-        if (formsToMerge.Any(item => item.Form.ContainsKey(XfaName)))
+        if (formsToMerge.Any(item => item.Form.ContainsKey(XfaName)
+            && (!_removeXfa || !ReferenceEquals(item.Document, _document))))
             throw new NotSupportedException(
                 "Merging AcroForms containing XFA packets is not supported because their templates and datasets cannot be combined safely.");
         var extensionEntries = new Dictionary<PdfName, PdfObject>();
         if (targetForm is not null)
             foreach (var entry in targetForm.Where(entry =>
-                         !supportedFormKeys.Contains(entry.Key)))
+                         !supportedFormKeys.Contains(entry.Key)
+                         && (!_removeXfa || !entry.Key.Equals(XfaName))))
             {
                 ValidateFormExtensionValue(
                     _document, entry.Key, entry.Value, "destination");
@@ -5244,6 +5258,17 @@ public sealed class PdfIncrementalPageEditor
                 throw new InvalidOperationException(
                     $"{description} widget has no four-number /Rect array.");
         }
+    }
+
+    private void RemoveXfa(IDictionary<PdfName, PdfObject> replacements)
+    {
+        PdfObject value = replacements.TryGetValue(AcroFormName, out PdfObject? replacement)
+            ? replacement
+            : _tree.Catalog[AcroFormName];
+        PdfDictionary form = value as PdfDictionary
+            ?? ResolveDictionary(_document, value, "The document /AcroForm value");
+        replacements[AcroFormName] = new PdfDictionary(form.Where(entry =>
+            !entry.Key.Equals(XfaName)));
     }
 
     private static void ValidateAcroFormScalars(
@@ -16953,6 +16978,7 @@ public sealed class PdfIncrementalPageEditor
         AddPendingAttachments(update, replacements);
         if (_replacementAcroForm is not null)
             replacements[AcroFormName] = _replacementAcroForm;
+        if (_removeXfa) RemoveXfa(replacements);
         AddPendingLegacyDestinationReplacements(replacements);
         bool removeNames = RemoveDocumentJavaScript(replacements);
         if (!removeNames)
