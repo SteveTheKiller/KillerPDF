@@ -6,6 +6,7 @@ using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Tests.Fonts;
 using KillerPdf.Engine.Writing;
+using System.IO.Compression;
 using System.Text;
 using Xunit;
 
@@ -86,6 +87,28 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 255, 255], Pixel(page, 3, 6));
         Assert.Equal([0, 255, 0, 255], Pixel(page, 7, 6));
         Assert.DoesNotContain("Image rendering is not implemented.", page.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(2, new byte[] { 0x30 })]
+    [InlineData(4, new byte[] { 0x0F })]
+    [InlineData(16, new byte[] { 0x00, 0x00, 0xFF, 0xFF })]
+    public void Render_DecodesPackedImageSampleDepths(int bits, byte[] samples)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(2, 1, new byte[] { 0, 255 }), 0, 0, 2, 1))
+            .Build());
+        PdfDocument document = AddImageDictionaryEntry(source, "BitsPerComponent",
+            new PdfInteger(bits), Compress(samples));
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(2, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 0, 255], Pixel(page, 0, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 0));
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            page.Diagnostics);
     }
 
     [Fact]
@@ -848,6 +871,14 @@ public sealed class PdfPageRendererTests
 
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
+
+    private static byte[] Compress(byte[] source)
+    {
+        using var output = new MemoryStream();
+        using (var zlib = new ZLibStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+            zlib.Write(source);
+        return output.ToArray();
+    }
 
     private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
         Assert.IsType<PdfDictionary>(document.Resolve(Assert.IsType<PdfIndirectReference>(value)));

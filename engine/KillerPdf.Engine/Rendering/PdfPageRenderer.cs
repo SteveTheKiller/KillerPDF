@@ -693,7 +693,7 @@ public sealed class PdfPageRenderer
             return false;
         }
         int components = colorSpace.Components;
-        if (bits is not (1 or 8))
+        if (bits is not (1 or 2 or 4 or 8 or 16))
         {
             diagnostic = "The image color space or sample depth is not implemented.";
             return false;
@@ -1623,11 +1623,9 @@ public sealed class PdfPageRenderer
 
                     int RawSample(int component)
                     {
-                        int bitOffset = sx * components + component;
-                        return bits == 8
-                            ? samples[sy * rowBytes + bitOffset]
-                            : (samples[sy * rowBytes + bitOffset / 8]
-                                >> (7 - bitOffset % 8)) & 1;
+                        int bitOffset = checked(sy * rowBytes * 8
+                            + (sx * components + component) * bits);
+                        return checked((int)ReadPackedSample(samples, bitOffset, bits));
                     }
 
                     Color ConvertSamples()
