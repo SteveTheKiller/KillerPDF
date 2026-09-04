@@ -39,6 +39,8 @@ public sealed class PdfOptimizationTests
         Assert.DoesNotContain("/Outlines", Encoding.Latin1.GetString(result.Data.Span));
         Assert.Contains("repairHarmlessArtifacts", result.ToJson());
         Assert.Contains("removeDanglingOutlines", result.ToJson());
+        Assert.Contains("Repairs: RemoveDanglingOutlines", result.ToText(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -80,6 +82,9 @@ public sealed class PdfOptimizationTests
         Assert.Contains("removeMetadata", report.RootElement.GetProperty("verifiedRemovals")
             .EnumerateArray().Select(item => item.GetString()));
         Assert.False(report.RootElement.TryGetProperty("data", out _));
+        Assert.Contains("PDF optimization:", result.ToText(), StringComparison.Ordinal);
+        Assert.Contains("Verified removals: RemoveMetadata", result.ToText(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -125,6 +130,8 @@ public sealed class PdfOptimizationTests
         using JsonDocument preview = JsonDocument.Parse(plan.ToJson());
         Assert.Equal("private.txt", preview.RootElement.GetProperty("attachmentNames")[0]
             .GetString());
+        Assert.Contains("Attachments removed: private.txt", plan.ToText(),
+            StringComparison.Ordinal);
         Assert.Contains(PdfOptimizationChangeKind.RemoveOpenAction, plan.Changes);
         Assert.Contains(PdfOptimizationChangeKind.RemoveBookmarks, plan.Changes);
         Assert.Equal([

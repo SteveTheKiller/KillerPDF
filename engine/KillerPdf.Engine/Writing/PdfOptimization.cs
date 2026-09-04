@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using KillerPdf.Engine.Documents;
@@ -119,6 +121,31 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     });
+
+    /// <summary>Formats measured optimization results without output PDF data.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("PDF optimization: ").Append(OriginalSize.ToString(CultureInfo.InvariantCulture))
+            .Append(" to ").Append(OutputSize.ToString(CultureInfo.InvariantCulture))
+            .Append(" bytes (").Append(SizeDifference.ToString("+0;-0;0", CultureInfo.InvariantCulture))
+            .AppendLine(")");
+        output.Append("Active objects: ").Append(OriginalObjectCount.ToString(CultureInfo.InvariantCulture))
+            .Append(" to ").Append(OutputObjectCount.ToString(CultureInfo.InvariantCulture))
+            .Append(" (").Append(ObjectCountDifference.ToString("+0;-0;0", CultureInfo.InvariantCulture))
+            .AppendLine(")");
+        AppendList(output, "Changes", Changes);
+        AppendList(output, "Verified removals", VerifiedRemovals);
+        AppendList(output, "Repairs", Repairs.Select(repair => repair.Kind));
+        return output.ToString().TrimEnd();
+    }
+
+    private static void AppendList<T>(StringBuilder output, string label, IEnumerable<T> values)
+    {
+        string[] items = [.. values.Select(value => value?.ToString() ?? string.Empty)];
+        output.Append(label).Append(": ")
+            .AppendLine(items.Length == 0 ? "none" : string.Join(", ", items));
+    }
 }
 
 /// <summary>An immutable preview of a deterministic full-document optimization.</summary>
@@ -197,6 +224,35 @@ public sealed class PdfOptimizationPlan
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     });
+
+    /// <summary>Formats the complete optimization preview without changing the document.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Optimization preview: ").Append(OriginalSize.ToString(CultureInfo.InvariantCulture))
+            .AppendLine(" source bytes");
+        output.Append("Changes: ").AppendLine(Changes.Count == 0
+            ? "none" : string.Join(", ", Changes));
+        output.Append("Attachments removed: ").AppendLine(_attachmentNames.Length == 0
+            ? "none" : string.Join(", ", _attachmentNames));
+        output.Append("Form fields removed: ").AppendLine(_formFieldNames.Length == 0
+            ? "none" : string.Join(", ", _formFieldNames));
+        output.Append("Comments removed: ").AppendLine(_commentCount.ToString(CultureInfo.InvariantCulture));
+        output.Append("Resource pages: ").AppendLine(Pages(_resourcePages));
+        output.Append("Thumbnail pages: ").AppendLine(Pages(_thumbnailPages));
+        output.Append("Flattened layers: ").AppendLine(_optionalContentGroupNames.Length == 0
+            ? "none" : string.Join(", ", _optionalContentGroupNames));
+        output.Append("Hidden layers removed: ").AppendLine(_hiddenOptionalContentGroupNames.Length == 0
+            ? "none" : string.Join(", ", _hiddenOptionalContentGroupNames));
+        return output.ToString().TrimEnd();
+    }
+
+    private static string Pages(IEnumerable<int> indexes)
+    {
+        string[] pages = [.. indexes.Select(index =>
+            (index + 1).ToString(CultureInfo.InvariantCulture))];
+        return pages.Length == 0 ? "none" : string.Join(", ", pages);
+    }
 
     /// <summary>Applies the previewed plan and verifies that the result reopens with the same page count.</summary>
     public PdfOptimizationResult Apply()
