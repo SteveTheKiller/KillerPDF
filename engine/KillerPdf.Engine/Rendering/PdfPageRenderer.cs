@@ -760,10 +760,95 @@ public sealed class PdfPageRenderer
             throw new FormatException($"A {description} type is missing.");
         return type.Value switch
         {
+            0 => ReadSampledFunction(resolved, dictionary, colorSpace, description),
             2 => ReadExponentialFunction(value, colorSpace, description),
             3 => ReadStitchingFunction(dictionary, colorSpace, description),
             _ => throw new NotSupportedException()
         };
+    }
+
+    private Func<double, Color> ReadSampledFunction(PdfObject resolved,
+        PdfDictionary dictionary, ImageColorSpace colorSpace, string description)
+    {
+        if (resolved is not PdfStream stream) throw new FormatException(
+            $"A sampled {description} must be a stream.");
+        double[] domain = ReadFunctionArray(dictionary, "Domain", 2, required: true,
+            defaultValues: []);
+        if (!double.IsFinite(domain[0]) || !double.IsFinite(domain[1])
+            || domain[0] >= domain[1])
+            throw new FormatException($"A sampled {description} domain is invalid.");
+        if (!dictionary.TryGetValue(Name("Size"), out PdfObject? sizeValue)
+            || Resolve(sizeValue) is not PdfArray { Count: 1 } sizeArray
+            || Resolve(sizeArray[0]) is not PdfInteger sizeInteger
+            || sizeInteger.Value is < 1 or > 1_000_000)
+            throw new FormatException($"A sampled {description} size is invalid.");
+        int size = (int)sizeInteger.Value;
+        if (!dictionary.TryGetValue(Name("BitsPerSample"), out PdfObject? bitsValue)
+            || Resolve(bitsValue) is not PdfInteger bitsInteger
+            || bitsInteger.Value is not (1 or 2 or 4 or 8 or 12 or 16))
+            throw new NotSupportedException();
+        int bits = (int)bitsInteger.Value;
+        if (dictionary.TryGetValue(Name("Order"), out PdfObject? orderValue)
+            && Resolve(orderValue) is not PdfInteger { Value: 1 })
+            throw new NotSupportedException();
+        double[] range = ReadFunctionArray(dictionary, "Range",
+            colorSpace.Components * 2, required: true, defaultValues: []);
+        if (range.Any(value => !double.IsFinite(value))
+            || Enumerable.Range(0, colorSpace.Components).Any(index =>
+                range[index * 2] > range[index * 2 + 1]))
+            throw new FormatException($"A sampled {description} range is invalid.");
+        double[] encode = dictionary.TryGetValue(Name("Encode"), out _)
+            ? ReadFunctionArray(dictionary, "Encode", 2, required: true, defaultValues: [])
+            : [0, size - 1];
+        if (encode.Any(value => !double.IsFinite(value)))
+            throw new FormatException($"A sampled {description} encoding array is invalid.");
+        double[] decode = dictionary.TryGetValue(Name("Decode"), out _)
+            ? ReadFunctionArray(dictionary, "Decode", colorSpace.Components * 2,
+                required: true, defaultValues: []) : range;
+        if (decode.Any(value => !double.IsFinite(value)))
+            throw new FormatException($"A sampled {description} decoding array is invalid.");
+        int sampleCount = checked(size * colorSpace.Components);
+        int expectedBytes = checked((sampleCount * bits + 7) / 8);
+        byte[] samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expectedBytes);
+        if (samples.Length != expectedBytes)
+            throw new FormatException($"A sampled {description} stream is truncated.");
+        uint maximum = (1u << bits) - 1;
+        return input =>
+        {
+            double normalized = (Math.Clamp(input, domain[0], domain[1]) - domain[0])
+                / (domain[1] - domain[0]);
+            double encoded = Math.Clamp(encode[0] + normalized * (encode[1] - encode[0]),
+                0, size - 1);
+            int lower = (int)Math.Floor(encoded);
+            int upper = Math.Min(lower + 1, size - 1);
+            double fraction = encoded - lower;
+            double Component(int component)
+            {
+                uint first = ReadPackedSample(samples,
+                    (lower * colorSpace.Components + component) * bits, bits);
+                uint second = ReadPackedSample(samples,
+                    (upper * colorSpace.Components + component) * bits, bits);
+                double value = (first + fraction * (second - (double)first)) / maximum;
+                double decoded = decode[component * 2] + value
+                    * (decode[component * 2 + 1] - decode[component * 2]);
+                return Math.Clamp(decoded, range[component * 2], range[component * 2 + 1]);
+            }
+            return colorSpace.Convert(Component(0),
+                colorSpace.Components > 1 ? Component(1) : 0,
+                colorSpace.Components > 2 ? Component(2) : 0,
+                colorSpace.Components > 3 ? Component(3) : 0);
+        };
+    }
+
+    private static uint ReadPackedSample(byte[] source, int bitOffset, int bits)
+    {
+        uint value = 0;
+        for (int bit = 0; bit < bits; bit++)
+        {
+            int offset = bitOffset + bit;
+            value = (value << 1) | (uint)((source[offset / 8] >> (7 - offset % 8)) & 1);
+        }
+        return value;
     }
 
     private Func<double, Color> ReadStitchingFunction(
