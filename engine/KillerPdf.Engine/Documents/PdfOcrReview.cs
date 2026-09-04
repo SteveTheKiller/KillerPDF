@@ -443,9 +443,86 @@ public sealed record PdfOcrBatchResult(PdfOcrBatchPage Input, PdfOcrReview? Revi
     public bool Succeeded => Review is not null && Error is null && !WasCanceled;
 }
 
+/// <summary>A data-safe aggregate report for an OCR page batch.</summary>
+public sealed record PdfOcrBatchReport
+{
+    /// <summary>Creates a report from an isolated batch result prefix.</summary>
+    public PdfOcrBatchReport(int totalPageCount, IEnumerable<PdfOcrBatchResult> results)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(totalPageCount);
+        ArgumentNullException.ThrowIfNull(results);
+        PdfOcrBatchResult[] values = results.ToArray();
+        if (values.Length > totalPageCount)
+            throw new ArgumentException(
+                "OCR batch results cannot exceed the supplied page count.", nameof(results));
+        TotalPageCount = totalPageCount;
+        Results = Array.AsReadOnly(values);
+    }
+
+    /// <summary>Gets the number of supplied pages.</summary>
+    public int TotalPageCount { get; }
+    /// <summary>Gets completed, failed, or canceled page results.</summary>
+    public IReadOnlyList<PdfOcrBatchResult> Results { get; }
+    /// <summary>Gets the number of successful pages.</summary>
+    public int SucceededCount => Results.Count(result => result.Succeeded);
+    /// <summary>Gets the number of failed pages.</summary>
+    public int FailedCount => Results.Count(result => result.Error is not null);
+    /// <summary>Gets the number of canceled pages.</summary>
+    public int CanceledCount => Results.Count(result => result.WasCanceled);
+    /// <summary>Gets pages not reached after cancellation.</summary>
+    public int UnprocessedCount => TotalPageCount - Results.Count;
+
+    /// <summary>Exports outcomes without page buffers or recognized text.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        TotalPageCount,
+        SucceededCount,
+        FailedCount,
+        CanceledCount,
+        UnprocessedCount,
+        Results = Results.Select(result => new
+        {
+            result.Input.SourceName,
+            result.Input.PageIndex,
+            result.Succeeded,
+            result.WasCanceled,
+            result.Error,
+            WordCount = result.Review?.Words.Count
+        })
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
+}
+
 /// <summary>Runs OCR page recognition with source preservation, failure isolation, and cancellation.</summary>
 public static class PdfOcrBatchRunner
 {
+    /// <summary>Recognizes a page batch and returns aggregate, data-safe outcomes.</summary>
+    public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
+        PdfOcrOptions options,
+        Func<PdfOcrBatchPage, PdfOcrOptions, CancellationToken, PdfOcrReview> recognize,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        PdfOcrBatchPage[] supplied = pages.ToArray();
+        return new PdfOcrBatchReport(supplied.Length,
+            Run(supplied, options, recognize, cancellationToken));
+    }
+
+    /// <summary>Recognizes a page batch and returns aggregate, data-safe outcomes.</summary>
+    public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
+        Func<PdfOcrBatchPage, CancellationToken, PdfOcrReview> recognize,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        PdfOcrBatchPage[] supplied = pages.ToArray();
+        return new PdfOcrBatchReport(supplied.Length,
+            Run(supplied, recognize, cancellationToken));
+    }
+
     /// <summary>Recognizes each page independently with shared provider options.</summary>
     public static IReadOnlyList<PdfOcrBatchResult> Run(IEnumerable<PdfOcrBatchPage> pages,
         PdfOcrOptions options,

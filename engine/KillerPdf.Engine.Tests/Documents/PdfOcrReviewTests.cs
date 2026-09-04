@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Fonts;
@@ -153,6 +154,34 @@ public sealed class PdfOcrReviewTests
         Assert.Equal("Unreadable page", results[1].Error);
         Assert.True(results[2].Succeeded);
         Assert.Equal(1, pages[0].Source.Span[0]);
+    }
+
+    [Fact]
+    public void BatchReportSummarizesPagesWithoutSourceOrRecognizedText()
+    {
+        PdfOcrBatchPage[] pages = [
+            new("first.pdf", 0, new byte[] { 1, 2, 3 }),
+            new("bad.pdf", 2, new byte[] { 4, 5, 6 })];
+
+        PdfOcrBatchReport report = PdfOcrBatchRunner.RunReport(pages, (page, _) =>
+            page.SourceName == "bad.pdf"
+                ? throw new InvalidOperationException("Unreadable page")
+                : new PdfOcrReview([Word("secret-id", 0, 0, "secret text", 1)]));
+        string json = report.ToJson();
+        using JsonDocument parsed = JsonDocument.Parse(json);
+
+        Assert.Equal(2, report.TotalPageCount);
+        Assert.Equal(1, report.SucceededCount);
+        Assert.Equal(1, report.FailedCount);
+        Assert.Equal(0, report.CanceledCount);
+        Assert.Equal(0, report.UnprocessedCount);
+        Assert.Equal("first.pdf", parsed.RootElement.GetProperty("results")[0]
+            .GetProperty("sourceName").GetString());
+        Assert.Equal(1, parsed.RootElement.GetProperty("results")[0]
+            .GetProperty("wordCount").GetInt32());
+        Assert.DoesNotContain("AQID", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret text", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret-id", json, StringComparison.Ordinal);
     }
 
     [Fact]
