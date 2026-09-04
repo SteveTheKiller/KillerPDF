@@ -153,6 +153,34 @@ public sealed class PdfLayerMacroTests
     }
 
     [Fact]
+    public void MacroClearsAnnotationLayerAssignment()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(new PdfOptionalContentGroup("Review"))
+                .Rectangle(0, 0, 10, 10).Fill().EndMarkedContent())
+            .AddUriLink(0, 10, 10, 20, 10, "https://example.com")
+            .Build());
+        PdfOptionalContentGroupInfo group = Assert.Single(
+            PdfOptionalContentReader.Read(original).Groups);
+        int annotationObjectNumber = Assert.Single(
+            PdfLinkReader.ReadPage(original, 0)).ObjectNumber!.Value;
+        ReadOnlyMemory<byte> source = PdfOptionalContentEditor.SetAnnotationGroup(
+            original, annotationObjectNumber, group.ObjectNumber);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Clear annotation", [
+            PdfLayerMacro.ClearAnnotationStep(annotationObjectNumber)
+        ]).ToJson());
+
+        source = PdfLayerMacro.Execute(Assert.Single(macro.Steps), source);
+        PdfDocument flattened = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(PdfDocument.Open(source), []));
+
+        Assert.Single(PdfLinkReader.ReadPage(flattened, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfLayerMacro.ClearAnnotationStep(0));
+    }
+
+    [Fact]
     public void MacroSetsAndClearsIndependentPrintAndExportVisibility()
     {
         var layer = new PdfOptionalContentGroup("Artwork");

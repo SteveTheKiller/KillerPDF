@@ -79,6 +79,19 @@ public static class PdfLayerMacro
             annotationObjectNumber.ToString(CultureInfo.InvariantCulture));
     }
 
+    /// <summary>Creates a step that clears a page annotation's layer assignment.</summary>
+    public static PdfMacroStep ClearAnnotationStep(int annotationObjectNumber)
+    {
+        if (annotationObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(annotationObjectNumber));
+        return new PdfMacroStep(PdfMacroOperation.EditLayers,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["action"] = "clearAnnotation",
+                ["value"] = annotationObjectNumber.ToString(CultureInfo.InvariantCulture)
+            });
+    }
+
     /// <summary>Creates a step that changes or clears default layer configuration metadata.</summary>
     public static PdfMacroStep ConfigurationMetadataStep(string? name, string? creator) =>
         new(PdfMacroOperation.EditLayers,
@@ -240,6 +253,15 @@ public static class PdfLayerMacro
             ValidateOrderTree(items, nameof(step));
             return PdfOptionalContentEditor.SetDisplayOrderTree(document,
                 Array.AsReadOnly(items.Select(item => Convert(document, item)).ToArray()));
+        }
+        if (action == "clearAnnotation" && int.TryParse(value, NumberStyles.None,
+                CultureInfo.InvariantCulture, out int clearAnnotationObjectNumber)
+            && clearAnnotationObjectNumber > 0)
+        {
+            if (step.Settings.ContainsKey("layer"))
+                throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
+            return PdfOptionalContentEditor.SetAnnotationGroup(
+                document, clearAnnotationObjectNumber, null);
         }
         if (!step.Settings.TryGetValue("layer", out string? layerName))
             throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
