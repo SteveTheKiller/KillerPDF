@@ -76,4 +76,22 @@ public sealed class PdfMeasurementTests
         Assert.Throws<NotSupportedException>(() => PdfMeasurementProfile.FromJson(
             "{\"version\":2,\"name\":\"Future\",\"unitsPerPoint\":1,\"unitSymbol\":\"m\",\"precision\":2}"));
     }
+
+    [Fact]
+    public void ProfileMapPrefersRegionThenPageThenDocument()
+    {
+        var document = new PdfMeasurementProfile("Document", 1, "pt");
+        var page = new PdfMeasurementProfile("Page", 0.5, "in");
+        var region = new PdfMeasurementProfile("Detail", 2, "mm");
+        var profiles = new PdfMeasurementProfileMap([
+            new(document),
+            new(page, 1),
+            new(region, 1, new PdfContentBounds(10, 10, 30, 30))]);
+
+        Assert.Same(document, profiles.Resolve(0));
+        Assert.Same(page, profiles.Resolve(1, new PdfMeasurementPoint(5, 5)));
+        Assert.Same(region, profiles.Resolve(1, new PdfMeasurementPoint(20, 20)));
+        Assert.Throws<ArgumentException>(() => new PdfMeasurementProfileMap([
+            new(document), new(page)]));
+    }
 }

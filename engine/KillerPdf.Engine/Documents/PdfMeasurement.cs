@@ -73,6 +73,85 @@ public readonly record struct PdfMeasurementPoint(double X, double Y);
 /// <summary>Calibrated horizontal and vertical movement.</summary>
 public readonly record struct PdfMeasurementDelta(double Horizontal, double Vertical);
 
+/// <summary>Assigns a measurement profile to a document, page, or page region.</summary>
+public sealed record PdfMeasurementProfileAssignment
+{
+    /// <summary>Creates a profile assignment. A null page applies to the document.</summary>
+    public PdfMeasurementProfileAssignment(PdfMeasurementProfile profile,
+        int? pageIndex = null, PdfContentBounds? region = null)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (region is not null && pageIndex is null)
+            throw new ArgumentException("A regional profile requires a page index.", nameof(region));
+        if (region is { } bounds && (bounds.Width <= 0 || bounds.Height <= 0))
+            throw new ArgumentException("A profile region must have positive dimensions.", nameof(region));
+        Profile = profile;
+        PageIndex = pageIndex;
+        Region = region;
+    }
+
+    /// <summary>Gets the assigned profile.</summary>
+    public PdfMeasurementProfile Profile { get; }
+    /// <summary>Gets the assigned page, or null for the whole document.</summary>
+    public int? PageIndex { get; }
+    /// <summary>Gets the assigned page region, or null for the whole page.</summary>
+    public PdfContentBounds? Region { get; }
+}
+
+/// <summary>Resolves document, page, and drawing-region measurement profiles.</summary>
+public sealed class PdfMeasurementProfileMap
+{
+    private readonly PdfMeasurementProfileAssignment[] _assignments;
+
+    /// <summary>Creates a validated profile map.</summary>
+    public PdfMeasurementProfileMap(IEnumerable<PdfMeasurementProfileAssignment> assignments)
+    {
+        ArgumentNullException.ThrowIfNull(assignments);
+        _assignments = assignments.ToArray();
+        if (_assignments.Any(assignment => assignment is null))
+            throw new ArgumentException("A profile assignment cannot be null.", nameof(assignments));
+        if (_assignments.Count(assignment => assignment.PageIndex is null) > 1)
+            throw new ArgumentException("Only one document profile can be assigned.", nameof(assignments));
+        if (_assignments.Where(assignment => assignment.PageIndex is not null
+                && assignment.Region is null)
+            .GroupBy(assignment => assignment.PageIndex).Any(group => group.Count() > 1))
+            throw new ArgumentException("Only one page profile can be assigned to each page.", nameof(assignments));
+        Assignments = Array.AsReadOnly(_assignments);
+    }
+
+    /// <summary>Gets assignments in their supplied order.</summary>
+    public IReadOnlyList<PdfMeasurementProfileAssignment> Assignments { get; }
+
+    /// <summary>Resolves the most specific profile for a page coordinate.</summary>
+    public PdfMeasurementProfile Resolve(int pageIndex, PdfMeasurementPoint? point = null)
+    {
+        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (point is { } coordinate)
+        {
+            PdfMeasurement.DistanceInPoints(coordinate, coordinate);
+            PdfMeasurementProfileAssignment? regional = _assignments
+                .Where(assignment => assignment.PageIndex == pageIndex
+                    && assignment.Region is { } region && Contains(region, coordinate))
+                .OrderBy(assignment => assignment.Region!.Value.Width
+                    * assignment.Region.Value.Height)
+                .FirstOrDefault();
+            if (regional is not null) return regional.Profile;
+        }
+        PdfMeasurementProfileAssignment? page = _assignments.FirstOrDefault(
+            assignment => assignment.PageIndex == pageIndex && assignment.Region is null);
+        if (page is not null) return page.Profile;
+        PdfMeasurementProfileAssignment? document = _assignments.FirstOrDefault(
+            assignment => assignment.PageIndex is null);
+        return document?.Profile ?? throw new KeyNotFoundException(
+            $"No measurement profile applies to page {pageIndex + 1}.");
+    }
+
+    private static bool Contains(PdfContentBounds region, PdfMeasurementPoint point) =>
+        point.X >= region.Left && point.X <= region.Right
+        && point.Y >= region.Bottom && point.Y <= region.Top;
+}
+
 /// <summary>Calibrated geometry calculations for PDF measurement tools.</summary>
 public static class PdfMeasurement
 {

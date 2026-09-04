@@ -18,7 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added accessibility checks for missing form field descriptions (#335).
 - Added certificate identity and algorithm details to signature verification (#336).
 - Added attachment inspection, executable-content and integrity checks, and portfolio metadata (#347).
-- Added saved calibration profiles, coordinates, directional deltas, and snapping to measurement tools (#348).
+- Added saved calibration profiles, document, page, and region assignments, coordinates, directional deltas, and snapping to measurement tools (#348).
 - Added step-and-repeat, poster tiling, manual sequences, and bounded booklet signatures to imposition planning (#349).
 - Added layer display order, independent print and export visibility, and readable preflight reports (#350, #334).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
