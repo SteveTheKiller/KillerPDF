@@ -1,4 +1,7 @@
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Tests.Fonts;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -156,6 +159,25 @@ public sealed class PdfOcrReviewTests
         Assert.Equal(1, report.Pages[0].IgnoredCount);
         Assert.Equal(1, report.Pages[1].PendingCount);
         Assert.Equal(1, report.Pages[1].EmptyTextCount);
+    }
+
+    [Fact]
+    public void ReviewedTextCanBeWrittenAsASearchableInvisibleLayer()
+    {
+        PdfDocument original = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+        var review = new PdfOcrReview([
+            new PdfOcrWord("a", 0, 0, "A", "A",
+                new PdfContentBounds(20, 30, 50, 50), 0.9, "en-US")]);
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+
+        PdfDocument searchable = PdfDocument.Open(review.WriteSearchableText(original, font));
+
+        PdfPageContent extracted = new PdfPageContentReader(searchable).Read(0);
+        Assert.Equal("A", extracted.Text);
+        Assert.Equal(20, extracted.Words[0].BoundingBox.Left, 6);
+        Assert.Empty(new PdfPageContentReader(original).Read(0).Words);
     }
 
     private static PdfOcrWord Word(string id, int page, int sequence, string text, double confidence) =>

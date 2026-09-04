@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Fonts;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -201,6 +204,49 @@ public sealed class PdfOcrReview
             LowConfidenceThreshold = lowConfidenceThreshold,
             Pages = Array.AsReadOnly(pages)
         };
+    }
+
+    /// <summary>Writes reviewed words as invisible searchable text over the source pages.</summary>
+    public byte[] WriteSearchableText(PdfDocument document, TrueTypeFont font)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(font);
+        if (_words.Length == 0) return document.Source.ToArray();
+        IReadOnlyList<PdfPageBoxInformation> pages = PdfPageBoxInformation.Read(document);
+        PdfOcrWord? invalid = _words.FirstOrDefault(word => word.PageIndex >= pages.Count);
+        if (invalid is not null)
+            throw new ArgumentOutOfRangeException(nameof(document),
+                $"OCR word '{invalid.Id}' refers to a page outside the document.");
+        var editor = new PdfIncrementalPageEditor(document);
+        foreach (IGrouping<int, PdfOcrWord> pageWords in _words
+            .Where(word => !string.IsNullOrWhiteSpace(word.Text))
+            .GroupBy(word => word.PageIndex))
+        {
+            PdfPageBoxBounds crop = pages[pageWords.Key].CropBox;
+            var content = new PdfContentStreamBuilder();
+            foreach (PdfOcrWord word in pageWords)
+            {
+                double fontSize = word.BoundingBox.Height;
+                if (!double.IsFinite(fontSize) || fontSize <= 0)
+                    throw new InvalidOperationException(
+                        $"OCR word '{word.Id}' has invalid text-layer geometry.");
+                double naturalWidth = font.MapText(word.Text)
+                    .Sum(mapping => font.GetPdfAdvanceWidth(mapping.Glyph)) / 1000d * fontSize;
+                double horizontalScale = naturalWidth > 0
+                    ? word.BoundingBox.Width / naturalWidth * 100 : 100;
+                if (!double.IsFinite(horizontalScale) || horizontalScale <= 0)
+                    throw new InvalidOperationException(
+                        $"OCR word '{word.Id}' has invalid text-layer geometry.");
+                content.BeginText().SetFont(font, fontSize)
+                    .SetTextRenderingMode(PdfTextRenderingMode.Invisible)
+                    .SetHorizontalTextScale(horizontalScale)
+                    .SetTextMatrix(1, 0, 0, 1,
+                        word.BoundingBox.Left, word.BoundingBox.Bottom)
+                    .ShowUnicodeText(word.Text).EndText();
+            }
+            editor.AppendPageContent(pageWords.Key, crop.Width, crop.Height, content);
+        }
+        return editor.Build();
     }
 
     /// <summary>Returns a new review with one word corrected.</summary>
