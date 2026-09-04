@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -129,6 +130,28 @@ public sealed class PdfFormRecognitionTests
         Assert.Throws<KeyNotFoundException>(() => original.AcceptMany(["missing"]));
         Assert.Throws<ArgumentException>(() => original.Duplicate(
             "name", "unused", "copy", new PdfContentBounds(0, 0, 10, 10)));
+    }
+
+    [Fact]
+    public void ReviewExportsOrderedProposalsAndDecisionsAsJson()
+    {
+        var review = new PdfFormRecognitionReview([
+            Proposal("second", 1, 0.7),
+            Proposal("first", 0, 0.9)
+        ]).Accept("first").Reject("second");
+
+        using JsonDocument json = JsonDocument.Parse(review.ToJson());
+        JsonElement root = json.RootElement;
+
+        Assert.Equal(1, root.GetProperty("version").GetInt32());
+        Assert.True(root.GetProperty("isReadyToApply").GetBoolean());
+        JsonElement proposals = root.GetProperty("proposals");
+        Assert.Equal("first", proposals[0].GetProperty("id").GetString());
+        Assert.Equal((int)PdfFormProposalStatus.Accepted,
+            proposals[0].GetProperty("status").GetInt32());
+        Assert.Equal("second", proposals[1].GetProperty("id").GetString());
+        Assert.Equal((int)PdfFormProposalStatus.Rejected,
+            proposals[1].GetProperty("status").GetInt32());
     }
 
     [Fact]

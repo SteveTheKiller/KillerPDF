@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Authoring;
+using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -465,6 +466,22 @@ public sealed class PdfFormRecognitionReview
     /// <summary>Gets only proposals accepted for later authoring.</summary>
     public IReadOnlyList<PdfFormFieldProposal> Accepted => Array.AsReadOnly(_proposals
         .Where(item => item.Status == PdfFormProposalStatus.Accepted).ToArray());
+
+    /// <summary>Exports ordered proposals and review decisions as stable JSON.</summary>
+    public string ToJson(bool indented = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            IsReadyToApply,
+            Proposals = _proposals
+        }, options);
+    }
 
     /// <summary>Returns a new review with a proposal accepted and optionally adjusted.</summary>
     public PdfFormRecognitionReview Accept(string id, string? name = null,
