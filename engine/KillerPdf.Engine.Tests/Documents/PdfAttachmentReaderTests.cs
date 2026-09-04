@@ -63,6 +63,31 @@ public sealed class PdfAttachmentReaderTests
     }
 
     [Fact]
+    public void ReadPageAnnotationsReturnsPlacementIconDescriptionAndAttachment()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("evidence.txt", "evidence"u8.ToArray(), "text/plain")
+            .AddFileAttachmentAnnotation(0, 20, 30, 24, "evidence.txt",
+                "Open the evidence", PdfFileAttachmentIcon.PushPin)
+            .Build());
+
+        PdfAttachmentAnnotationInfo annotation = Assert.Single(
+            PdfAttachmentReader.ReadPageAnnotations(document, 0));
+
+        Assert.Equal((0, 0), (annotation.PageIndex, annotation.AnnotationIndex));
+        Assert.Equal((20, 30, 44, 54),
+            (annotation.Left, annotation.Bottom, annotation.Right, annotation.Top));
+        Assert.Equal("PushPin", annotation.Icon);
+        Assert.Equal("Open the evidence", annotation.Contents);
+        Assert.Equal("evidence.txt", annotation.Attachment.FileName);
+        Assert.Equal("evidence"u8.ToArray(), annotation.Attachment.Data.ToArray());
+        Assert.NotNull(annotation.ObjectNumber);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfAttachmentReader.ReadPageAnnotations(document, 1));
+    }
+
+    [Fact]
     public void RenameAttachmentPreservesPayloadAndMetadata()
     {
         byte[] payload = "evidence"u8.ToArray();

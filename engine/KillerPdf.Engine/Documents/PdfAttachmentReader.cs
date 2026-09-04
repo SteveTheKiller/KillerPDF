@@ -26,65 +26,126 @@ public static class PdfAttachmentReader
         {
             string treeName = PdfUnicodeEncoding.DecodeTextString(entry.Key.Bytes.Span,
                 "An embedded-file name");
-            PdfIndirectReference? specificationReference = entry.Value as PdfIndirectReference;
-            PdfDictionary specification = Resolve(document, entry.Value) as PdfDictionary
-                ?? throw new InvalidOperationException("An embedded-file name does not reference a file specification.");
-            string fileName = Text(document, specification, "UF")
-                ?? Text(document, specification, "F") ?? treeName;
-            PdfDictionary embedded = Value<PdfDictionary>(document, specification, "EF",
-                "An embedded file specification has no /EF dictionary.");
-            PdfObject streamValue = embedded.TryGetValue(Name("UF"), out PdfObject? unicodeStream)
-                ? unicodeStream : embedded.TryGetValue(Name("F"), out PdfObject? regularStream)
-                    ? regularStream : throw new InvalidOperationException("An embedded file specification has no payload stream.");
-            PdfIndirectReference? streamReference = streamValue as PdfIndirectReference;
-            PdfStream stream = Resolve(document, streamValue) as PdfStream
-                ?? throw new InvalidOperationException("An embedded file payload is not a stream.");
-            string mimeType = stream.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtype)
-                && Resolve(document, subtype) is PdfName mime ? mime.ValueAsLatin1()
-                : "application/octet-stream";
-            string? relationshipName = specification.TryGetValue(Name("AFRelationship"), out PdfObject? relationshipValue)
-                && Resolve(document, relationshipValue) is PdfName relationship ? relationship.ValueAsLatin1() : null;
-            PdfAssociatedFileRelationship relationshipKind = Enum.TryParse(relationshipName,
-                ignoreCase: false, out PdfAssociatedFileRelationship parsedRelationship)
-                ? parsedRelationship : PdfAssociatedFileRelationship.Unspecified;
-            byte[] data = PdfStreamDecoder.Decode(stream, document.Resolve,
-                PdfContentStreamReader.MaximumSourceBytes);
-            PdfDictionary? parameters = stream.Dictionary.TryGetValue(
-                Name("Params"), out PdfObject? parametersValue)
-                ? Resolve(document, parametersValue) as PdfDictionary
-                    ?? throw new InvalidOperationException(
-                        "An embedded file /Params value is not a dictionary.")
-                : null;
-            long? declaredSize = OptionalInteger(document, parameters, "Size");
-            byte[]? declaredChecksum = OptionalBytes(
-                document, parameters, "CheckSum");
-            result.Add(new PdfAttachmentInfo
+            result.Add(ReadFileSpecification(document, entry.Value, treeName));
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
+    /// <summary>Reads file-attachment annotations and their embedded-file metadata on one page.</summary>
+    public static IReadOnlyList<PdfAttachmentAnnotationInfo> ReadPageAnnotations(
+        PdfDocument document, int pageIndex)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (pageIndex < 0 || pageIndex >= tree.Pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        PdfPageTreeEntry page = tree.Pages[pageIndex];
+        if (!page.Dictionary.TryGetValue(Name("Annots"), out PdfObject? annotationsValue)) return [];
+        PdfArray annotations = Resolve(document, annotationsValue) as PdfArray
+            ?? throw new InvalidOperationException("A page /Annots value is not an array.");
+        Dictionary<int, PdfAttachmentInfo> attachments = Read(document)
+            .Where(item => item.FileSpecificationObjectNumber.HasValue)
+            .ToDictionary(item => item.FileSpecificationObjectNumber!.Value);
+        var result = new List<PdfAttachmentAnnotationInfo>();
+        for (int index = 0; index < annotations.Count; index++)
+        {
+            PdfObject annotationValue = annotations[index];
+            PdfDictionary? annotation = Resolve(document, annotationValue) as PdfDictionary;
+            if (annotation is null
+                || !annotation.TryGetValue(Name("Subtype"), out PdfObject? subtypeValue)
+                || Resolve(document, subtypeValue) is not PdfName subtype
+                || subtype.ValueAsLatin1() != "FileAttachment") continue;
+            PdfArray rectangle = Value<PdfArray>(document, annotation, "Rect",
+                "A file-attachment annotation has no /Rect array.");
+            if (rectangle.Count != 4)
+                throw new InvalidOperationException(
+                    "A file-attachment annotation /Rect array must contain four numbers.");
+            PdfObject fileValue = annotation.TryGetValue(Name("FS"), out PdfObject? suppliedFile)
+                ? suppliedFile : throw new InvalidOperationException(
+                    "A file-attachment annotation has no /FS value.");
+            PdfIndirectReference? fileReference = fileValue as PdfIndirectReference;
+            PdfAttachmentInfo attachment = fileReference is not null
+                && attachments.TryGetValue(fileReference.ObjectNumber, out PdfAttachmentInfo? found)
+                    ? found : ReadFileSpecification(document, fileValue, null);
+            double x1 = Number(document, rectangle[0]), y1 = Number(document, rectangle[1]);
+            double x2 = Number(document, rectangle[2]), y2 = Number(document, rectangle[3]);
+            result.Add(new PdfAttachmentAnnotationInfo
             {
-                FileName = fileName,
-                Description = Text(document, specification, "Desc"),
-                MimeType = mimeType,
-                Relationship = relationshipKind,
-                Data = data,
-                DeclaredSize = declaredSize,
-                SizeMatches = declaredSize.HasValue
-                    ? declaredSize.Value == data.LongLength : null,
-                CreationDate = OptionalDate(
-                    document, parameters, "CreationDate"),
-                ModificationDate = OptionalDate(
-                    document, parameters, "ModDate"),
-                DeclaredChecksum = declaredChecksum,
-                ChecksumMatches = declaredChecksum is not null
-                    ? CryptographicOperations.FixedTimeEquals(
-                        declaredChecksum, MD5.HashData(data)) : null,
-                CollectionValues = ReadCollectionValues(document, specification),
-                FileSpecificationObjectNumber = specificationReference?.ObjectNumber,
-                EmbeddedFileObjectNumber = streamReference?.ObjectNumber,
-                HasUnsafeFileName = !IsSafeFileName(fileName),
-                IsPotentiallyExecutable = IsPotentiallyExecutable(fileName),
-                HasExecutableContent = HasExecutableContent(data)
+                PageIndex = pageIndex,
+                AnnotationIndex = index,
+                ObjectNumber = (annotationValue as PdfIndirectReference)?.ObjectNumber,
+                Left = Math.Min(x1, x2), Bottom = Math.Min(y1, y2),
+                Right = Math.Max(x1, x2), Top = Math.Max(y1, y2),
+                Icon = annotation.TryGetValue(Name("Name"), out PdfObject? iconValue)
+                    && Resolve(document, iconValue) is PdfName icon ? icon.ValueAsLatin1() : null,
+                Contents = Text(document, annotation, "Contents"),
+                Attachment = attachment
             });
         }
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    private static PdfAttachmentInfo ReadFileSpecification(
+        PdfDocument document, PdfObject specificationValue, string? fallbackName)
+    {
+        PdfIndirectReference? specificationReference = specificationValue as PdfIndirectReference;
+        PdfDictionary specification = Resolve(document, specificationValue) as PdfDictionary
+            ?? throw new InvalidOperationException(
+                "An embedded file does not reference a file specification.");
+        string fileName = Text(document, specification, "UF")
+            ?? Text(document, specification, "F") ?? fallbackName
+            ?? throw new InvalidOperationException("An embedded file has no file name.");
+        PdfDictionary embedded = Value<PdfDictionary>(document, specification, "EF",
+            "An embedded file specification has no /EF dictionary.");
+        PdfObject streamValue = embedded.TryGetValue(Name("UF"), out PdfObject? unicodeStream)
+            ? unicodeStream : embedded.TryGetValue(Name("F"), out PdfObject? regularStream)
+                ? regularStream : throw new InvalidOperationException(
+                    "An embedded file specification has no payload stream.");
+        PdfIndirectReference? streamReference = streamValue as PdfIndirectReference;
+        PdfStream stream = Resolve(document, streamValue) as PdfStream
+            ?? throw new InvalidOperationException("An embedded file payload is not a stream.");
+        string mimeType = stream.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtype)
+            && Resolve(document, subtype) is PdfName mime ? mime.ValueAsLatin1()
+            : "application/octet-stream";
+        string? relationshipName = specification.TryGetValue(
+            Name("AFRelationship"), out PdfObject? relationshipValue)
+            && Resolve(document, relationshipValue) is PdfName relationship
+                ? relationship.ValueAsLatin1() : null;
+        PdfAssociatedFileRelationship relationshipKind = Enum.TryParse(relationshipName,
+            ignoreCase: false, out PdfAssociatedFileRelationship parsedRelationship)
+            ? parsedRelationship : PdfAssociatedFileRelationship.Unspecified;
+        byte[] data = PdfStreamDecoder.Decode(stream, document.Resolve,
+            PdfContentStreamReader.MaximumSourceBytes);
+        PdfDictionary? parameters = stream.Dictionary.TryGetValue(
+            Name("Params"), out PdfObject? parametersValue)
+            ? Resolve(document, parametersValue) as PdfDictionary
+                ?? throw new InvalidOperationException(
+                    "An embedded file /Params value is not a dictionary.")
+            : null;
+        long? declaredSize = OptionalInteger(document, parameters, "Size");
+        byte[]? declaredChecksum = OptionalBytes(document, parameters, "CheckSum");
+        return new PdfAttachmentInfo
+        {
+            FileName = fileName,
+            Description = Text(document, specification, "Desc"),
+            MimeType = mimeType,
+            Relationship = relationshipKind,
+            Data = data,
+            DeclaredSize = declaredSize,
+            SizeMatches = declaredSize.HasValue ? declaredSize.Value == data.LongLength : null,
+            CreationDate = OptionalDate(document, parameters, "CreationDate"),
+            ModificationDate = OptionalDate(document, parameters, "ModDate"),
+            DeclaredChecksum = declaredChecksum,
+            ChecksumMatches = declaredChecksum is not null
+                ? CryptographicOperations.FixedTimeEquals(
+                    declaredChecksum, MD5.HashData(data)) : null,
+            CollectionValues = ReadCollectionValues(document, specification),
+            FileSpecificationObjectNumber = specificationReference?.ObjectNumber,
+            EmbeddedFileObjectNumber = streamReference?.ObjectNumber,
+            HasUnsafeFileName = !IsSafeFileName(fileName),
+            IsPotentiallyExecutable = IsPotentiallyExecutable(fileName),
+            HasExecutableContent = HasExecutableContent(data)
+        };
     }
 
     private static IReadOnlyList<PdfCollectionItemValue> ReadCollectionValues(
@@ -160,6 +221,15 @@ public static class PdfAttachmentReader
     private static T Value<T>(PdfDocument document, PdfDictionary dictionary, string key, string error)
         where T : PdfObject => dictionary.TryGetValue(Name(key), out PdfObject? value)
             && Resolve(document, value) is T typed ? typed : throw new InvalidOperationException(error);
+
+    private static double Number(PdfDocument document, PdfObject value) =>
+        Resolve(document, value) switch
+        {
+            PdfInteger integer => integer.Value,
+            PdfReal real => real.Value,
+            _ => throw new InvalidOperationException(
+                "A file-attachment annotation rectangle coordinate is not numeric.")
+        };
 
     private static string? Text(PdfDocument document, PdfDictionary dictionary, string key)
     {
@@ -292,6 +362,31 @@ public sealed record PdfAttachmentInfo
     public bool IsPotentiallyExecutable { get; init; }
     /// <summary>Gets whether the payload begins with a recognized executable-file signature.</summary>
     public bool HasExecutableContent { get; init; }
+}
+
+/// <summary>A page placement that exposes a registered embedded file.</summary>
+public sealed record PdfAttachmentAnnotationInfo
+{
+    /// <summary>Gets the zero-based containing page.</summary>
+    public required int PageIndex { get; init; }
+    /// <summary>Gets the annotation's index in the page annotation array.</summary>
+    public required int AnnotationIndex { get; init; }
+    /// <summary>Gets the source annotation object number when indirect.</summary>
+    public int? ObjectNumber { get; init; }
+    /// <summary>Gets the normalized left coordinate.</summary>
+    public required double Left { get; init; }
+    /// <summary>Gets the normalized bottom coordinate.</summary>
+    public required double Bottom { get; init; }
+    /// <summary>Gets the normalized right coordinate.</summary>
+    public required double Right { get; init; }
+    /// <summary>Gets the normalized top coordinate.</summary>
+    public required double Top { get; init; }
+    /// <summary>Gets the optional standard or custom icon name.</summary>
+    public string? Icon { get; init; }
+    /// <summary>Gets the optional user-facing annotation description.</summary>
+    public string? Contents { get; init; }
+    /// <summary>Gets the referenced embedded file and its safety metadata.</summary>
+    public required PdfAttachmentInfo Attachment { get; init; }
 }
 
 /// <summary>One text or numeric value assigned to a portfolio file.</summary>
