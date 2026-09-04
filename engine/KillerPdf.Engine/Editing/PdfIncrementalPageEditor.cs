@@ -4244,7 +4244,7 @@ public sealed class PdfIncrementalPageEditor
         AddOutputIntent(update, catalogReplacements);
         if (_replacementAcroForm is not null)
             catalogReplacements[AcroFormName] = _replacementAcroForm;
-        if (_removeXfa) RemoveXfa(catalogReplacements);
+        if (_removeXfa && _authoredForms.Count == 0) RemoveXfa(catalogReplacements);
         ApplyRequiredVersionUpgrade(catalogReplacements, importedGroups);
         var catalogRemovals = new List<PdfName>();
         if (removeNames) catalogRemovals.Add(NamesName);
@@ -16978,7 +16978,7 @@ public sealed class PdfIncrementalPageEditor
         AddPendingAttachments(update, replacements);
         if (_replacementAcroForm is not null)
             replacements[AcroFormName] = _replacementAcroForm;
-        if (_removeXfa) RemoveXfa(replacements);
+        if (_removeXfa && _authoredForms.Count == 0) RemoveXfa(replacements);
         AddPendingLegacyDestinationReplacements(replacements);
         bool removeNames = RemoveDocumentJavaScript(replacements);
         if (!removeNames)

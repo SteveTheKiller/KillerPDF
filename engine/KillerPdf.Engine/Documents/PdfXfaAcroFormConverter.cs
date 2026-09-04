@@ -14,9 +14,14 @@ public static class PdfXfaAcroFormConverter
         TextControls.Concat(["checkButton", "choiceList", "signature"]), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Preserves source pages, removes XFA, and authors editable text widgets.</summary>
-    public static byte[] Convert(PdfDocument document)
+    public static byte[] Convert(PdfDocument document) =>
+        Convert(document, PdfXfaConversionMode.Editable);
+
+    /// <summary>Converts XFA fields to editable widgets or flattened page content.</summary>
+    public static byte[] Convert(PdfDocument document, PdfXfaConversionMode mode)
     {
         ArgumentNullException.ThrowIfNull(document);
+        if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
         PdfXfaInfo info = PdfXfaReader.Read(document)
             ?? throw new InvalidOperationException("The document has no XFA form.");
         if (!info.IsPacketArray)
@@ -80,7 +85,9 @@ public static class PdfXfaAcroFormConverter
                     placement.X, bottom, placement.Width, placement.Height);
             }
         }
-        return editor.Build();
+        byte[] converted = editor.Build();
+        return mode == PdfXfaConversionMode.Flattened
+            ? PdfFormFlattener.Flatten(PdfDocument.Open(converted)) : converted;
     }
 
     private static string? BindingName(string? binding)
@@ -98,4 +105,13 @@ public static class PdfXfaAcroFormConverter
         _ => throw new InvalidOperationException(
             "An XFA check-button value is not a recognized boolean state.")
     };
+}
+
+/// <summary>The standard-PDF output produced by XFA conversion.</summary>
+public enum PdfXfaConversionMode
+{
+    /// <summary>Keep converted fields editable as AcroForm widgets.</summary>
+    Editable,
+    /// <summary>Paint widget appearances into page content and remove the fields.</summary>
+    Flattened
 }

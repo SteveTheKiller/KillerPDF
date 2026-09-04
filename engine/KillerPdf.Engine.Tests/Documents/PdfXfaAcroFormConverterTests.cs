@@ -57,6 +57,22 @@ public sealed class PdfXfaAcroFormConverterTests
         Assert.Equal(["r", "b"], widget.Options.Select(option => option.ExportValue));
     }
 
+    [Fact]
+    public void ConvertCanFlattenGeneratedAppearancesIntoStandardPageContent()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="form" layout="position"><field name="name" x="10pt" y="20pt" w="70pt" h="15pt"><ui><textEdit/></ui></field></subform></template>""",
+            """<datasets><data><form><name>Ada</name></form></data></datasets>""");
+
+        PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(
+            source, PdfXfaConversionMode.Flattened));
+
+        Assert.Null(PdfXfaReader.Read(converted));
+        Assert.Empty(PdfFormWidgetReader.ReadPage(converted, 0));
+        Assert.Contains("Ada", string.Concat(new PdfPageContentReader(converted).Read(0)
+            .Letters.Select(letter => letter.Value)), StringComparison.Ordinal);
+    }
+
     private static PdfDocument Document(string template, string datasets)
     {
         string[] objects =
