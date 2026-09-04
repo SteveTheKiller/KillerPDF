@@ -15,6 +15,7 @@ public static class PdfStreamDecoder
     private static readonly PdfName ColorsName = new("Colors"u8);
     private static readonly PdfName BitsPerComponentName = new("BitsPerComponent"u8);
     private static readonly PdfName ColumnsName = new("Columns"u8);
+    private static readonly PdfName ColorTransformName = new("ColorTransform"u8);
 
     /// <summary>Decodes a stream whose filter metadata contains no indirect references.</summary>
     public static byte[] Decode(PdfStream stream, int maximumDecodedBytes = DefaultMaximumDecodedBytes)
@@ -66,6 +67,8 @@ public static class PdfStreamDecoder
                 "RunLengthDecode" or "RL" => DecodeRunLength(current, filterLimit),
                 "LZWDecode" or "LZW" => DecodeLzw(
                     current, parameters[i], resolve, filterLimit),
+                "DCTDecode" or "DCT" => PdfJpegDecoder.Decode(current, filterLimit,
+                    GetDctColorTransform(parameters[i], resolve)),
                 "Crypt" => current,
                 _ => throw new PdfFilterException($"The PDF stream filter /{filter} is not supported yet.")
             };
@@ -282,6 +285,15 @@ public static class PdfStreamDecoder
         return value is PdfInteger integer && integer.Value is >= int.MinValue and <= int.MaxValue
             ? (int)integer.Value
             : throw new PdfFilterException($"Decode parameter /{name.ValueAsLatin1()} must be an integer.");
+    }
+
+    private static int? GetDctColorTransform(
+        PdfDictionary? dictionary, Func<PdfIndirectReference, PdfObject>? resolve)
+    {
+        if (dictionary is null || !dictionary.ContainsKey(ColorTransformName)) return null;
+        int value = GetOptionalInteger(dictionary, ColorTransformName, -1, resolve);
+        return value is 0 or 1 ? value
+            : throw new PdfFilterException("DCTDecode ColorTransform must be 0 or 1.");
     }
 
     private static void AddBounded(ICollection<byte> output, byte value, int maximumDecodedBytes)

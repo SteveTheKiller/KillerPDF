@@ -282,11 +282,63 @@ public sealed class PdfStreamDecoderTests
         Assert.Equal(source, PdfStreamDecoder.Decode(stream, 100));
     }
 
-    [Theory]
-    [InlineData("DCTDecode")]
-    public void Decode_ReportsUnsupportedFilters(string filter)
+    [Fact]
+    public void Decode_DecodesBaselineJpegToRgbSamples()
     {
-        PdfStream stream = Stream([], Pair("Filter", Name(filter)));
+        byte[] jpeg = Convert.FromBase64String(
+            "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwyiiivw8/0oP/2Q==");
+        PdfStream stream = Stream(jpeg, Pair("Filter", Name("DCTDecode")));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, 8 * 8 * 3);
+
+        Assert.Equal(8 * 8 * 3, decoded.Length);
+        Assert.All(decoded.Chunk(3), pixel =>
+        {
+            Assert.InRange(pixel[0], 235, 245);
+            Assert.InRange(pixel[1], 15, 25);
+            Assert.InRange(pixel[2], 5, 15);
+        });
+    }
+
+    [Fact]
+    public void Decode_DecodesSubsampledJpegWithPartialEdgeBlocks()
+    {
+        byte[] jpeg = Convert.FromBase64String(
+            "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAQCAwMDAgQDAwMEBAQEBQkGBQUFBQsICAYJDQsNDQ0LDAwOEBQRDg8TDwwMEhgSExUWFxcXDhEZGxkWGhQWFxb/2wBDAQQEBAUFBQoGBgoWDwwPFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhb/wAARCAANABEDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwD5z8KfDb7v+j/pXpfhT4bfd/0f9K9j8KeFNN+Xj/x2vS/CnhPTfl4/8dry8Hm8tD57gnxFre7qz58/4Vt/07/pRX1b/wAIpp3p/wCO0V639ryP2b/iItbuz//Z");
+        PdfStream stream = Stream(jpeg, Pair("Filter", Name("DCTDecode")));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, 17 * 13 * 3);
+
+        Assert.Equal(17 * 13 * 3, decoded.Length);
+        AssertPixelNear(decoded, 17, 0, 0, 0, 1, 0);
+        AssertPixelNear(decoded, 17, 8, 6, 104, 115, 99);
+        AssertPixelNear(decoded, 17, 16, 12, 209, 225, 198);
+    }
+
+    [Fact]
+    public void Decode_RejectsJpegBeyondOutputLimit()
+    {
+        byte[] jpeg = Convert.FromBase64String(
+            "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwyiiivw8/0oP/2Q==");
+        PdfStream stream = Stream(jpeg, Pair("Filter", Name("DCTDecode")));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream, 8 * 8 * 3 - 1));
+    }
+
+    [Fact]
+    public void Decode_RejectsMalformedJpegData()
+    {
+        PdfStream stream = Stream([0xFF, 0xD8, 0xFF, 0xD9],
+            Pair("Filter", Name("DCTDecode")));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_RejectsInvalidJpegColorTransform()
+    {
+        PdfStream stream = Stream([], Pair("Filter", Name("DCTDecode")),
+            Pair("DecodeParms", Dictionary(Pair("ColorTransform", new PdfInteger(2)))));
 
         Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
     }
@@ -297,6 +349,15 @@ public sealed class PdfStreamDecoderTests
         PdfStream stream = Stream("not zlib"u8.ToArray(), Pair("Filter", Name("FlateDecode")));
 
         Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+    }
+
+    private static void AssertPixelNear(
+        byte[] pixels, int width, int x, int y, int red, int green, int blue)
+    {
+        int offset = (y * width + x) * 3;
+        Assert.InRange(pixels[offset], Math.Max(0, red - 25), Math.Min(255, red + 25));
+        Assert.InRange(pixels[offset + 1], Math.Max(0, green - 25), Math.Min(255, green + 25));
+        Assert.InRange(pixels[offset + 2], Math.Max(0, blue - 25), Math.Min(255, blue + 25));
     }
 
     private static byte[] Compress(byte[] source)
