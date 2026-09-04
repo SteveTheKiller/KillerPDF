@@ -1561,6 +1561,42 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void SetFileAttachmentAt_ChangesOnlyTheReferencedEmbeddedFile()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("first.txt", "first payload"u8.ToArray(), "text/plain")
+            .AddAttachment("second.json", "{\"second\":true}"u8.ToArray(), "application/json")
+            .AddFileAttachmentAnnotation(0, 20, 30, 24, "first.txt",
+                "Review this file", PdfFileAttachmentIcon.PushPin)
+            .AddUriLink(0, 60, 30, 40, 20, "https://example.test")
+            .Build());
+        int attachmentIndex = Assert.Single(
+            PdfAttachmentReader.ReadPageAnnotations(source, 0)).AnnotationIndex;
+        int linkIndex = attachmentIndex == 0 ? 1 : 0;
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalAnnotationEditor(source)
+                .SetFileAttachmentAt(0, attachmentIndex, "SECOND.JSON")
+                .Build());
+        PdfAttachmentAnnotationInfo attachment = Assert.Single(
+            PdfAttachmentReader.ReadPageAnnotations(updated, 0));
+
+        Assert.Equal("second.json", attachment.Attachment.FileName);
+        Assert.Equal("application/json", attachment.Attachment.MimeType);
+        Assert.Equal("{\"second\":true}",
+            Encoding.UTF8.GetString(attachment.Attachment.Data.Span));
+        Assert.Equal("Review this file", attachment.Contents);
+        Assert.Equal("PushPin", attachment.Icon);
+        Assert.Throws<ArgumentException>(() =>
+            new PdfIncrementalAnnotationEditor(updated)
+                .SetFileAttachmentAt(0, attachmentIndex, "missing.txt"));
+        Assert.Throws<InvalidOperationException>(() =>
+            new PdfIncrementalAnnotationEditor(updated)
+                .SetFileAttachmentAt(0, linkIndex, "first.txt"));
+    }
+
+    [Fact]
     public void Build_WritesLifecycleMetadataForEveryVisualAnnotationFamily()
     {
         TrueTypeFont font = TrueTypeFont.Load(

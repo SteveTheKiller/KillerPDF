@@ -193,6 +193,32 @@ public sealed class PdfIncrementalAnnotationEditor
         return this;
     }
 
+    /// <summary>Changes the embedded file referenced by a file-attachment annotation.</summary>
+    public PdfIncrementalAnnotationEditor SetFileAttachmentAt(
+        int pageIndex, int annotationIndex, string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentException("A file name is required.", nameof(fileName));
+        PendingRemoval target = FindIndexedUpdateTarget(pageIndex, annotationIndex);
+        if (!target.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtypeValue)
+            || ResolveValue(subtypeValue,
+                $"Annotation '{target.Name}' subtype") is not PdfName subtype
+            || subtype.ValueAsLatin1() != "FileAttachment")
+            throw new InvalidOperationException(
+                $"Annotation '{target.Name}' is not a file-attachment annotation.");
+        if (_updates.Any(value => SameIdentity(value.Reference, target.Reference)
+                && value.UpdateFileAttachment))
+            throw new ArgumentException(
+                $"Annotation '{target.Name}' already has a pending attachment update.",
+                nameof(annotationIndex));
+        PdfIndirectReference fileSpecification =
+            FindEmbeddedFileSpecification(fileName);
+        _updates.Add(new PendingAnnotationUpdate(target.PageIndex, target.Name,
+            target.Reference, target.Dictionary, false, null, false, null, false,
+            UpdateFileAttachment: true, FileSpecification: fileSpecification));
+        return this;
+    }
+
     /// <summary>Changes a link annotation to open an absolute URI.</summary>
     public PdfIncrementalAnnotationEditor SetLinkUriAt(
         int pageIndex, int annotationIndex, string uri)
@@ -1942,6 +1968,8 @@ public sealed class PdfIncrementalAnnotationEditor
                     entries[Name("Name")] = Name(change.FileAttachmentIcon.ToString());
                     entries.Remove(Name("AP"));
                 }
+                if (change.UpdateFileAttachment)
+                    entries[Name("FS")] = change.FileSpecification!;
                 if (change.UpdateLinkTarget)
                 {
                     entries.Remove(Name("A"));
@@ -3982,7 +4010,9 @@ public sealed class PdfIncrementalAnnotationEditor
         PendingLinkTarget? LinkTarget = null, string? LinkName = null,
         (int PageIndex, PdfDestination Destination)? PageTarget = null,
         bool UpdateFileAttachmentIcon = false,
-        PdfFileAttachmentIcon FileAttachmentIcon = PdfFileAttachmentIcon.Paperclip);
+        PdfFileAttachmentIcon FileAttachmentIcon = PdfFileAttachmentIcon.Paperclip,
+        bool UpdateFileAttachment = false,
+        PdfIndirectReference? FileSpecification = null);
     private sealed record EditorFontBinding(
         PdfName Resource, PdfIndirectReference Type0Reference, EmbeddedFontUsage Usage);
     private sealed record ResolvedValue(
