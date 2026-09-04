@@ -52,6 +52,27 @@ public sealed class PdfOutputIntentTests
     }
 
     [Fact]
+    public void OutputIntentInspectionReturnsValidatedColorManagementDetails()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetOutputIntent(PdfIccProfile.Load(BuildProfile("CMYK")), "FOGRA39",
+                "ISO Coated v2", "http://www.color.org", "Press proofing")
+            .AddBlankPage()
+            .Build());
+
+        PdfOutputIntentInformation intent = Assert.Single(
+            PdfOutputIntentInspection.Inspect(document));
+
+        Assert.Equal("GTS_PDFA1", intent.Subtype);
+        Assert.Equal("FOGRA39", intent.OutputConditionIdentifier);
+        Assert.Equal("ISO Coated v2", intent.OutputCondition);
+        Assert.Equal("http://www.color.org", intent.RegistryName);
+        Assert.Equal("Press proofing", intent.Information);
+        Assert.Equal("CMYK", intent.Profile.ColorSpace);
+        Assert.Equal(4, intent.Profile.ComponentCount);
+    }
+
+    [Fact]
     public void IccProfile_RejectsMissingSignatureAndUnsupportedColourSpace()
     {
         byte[] missing = BuildProfile("RGB ");
