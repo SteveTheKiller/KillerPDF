@@ -94,6 +94,37 @@ public sealed class PdfXfaReaderTests
     }
 
     [Fact]
+    public void EditsOneDatasetOccurrenceAndPreservesUnrelatedContent()
+    {
+        const string datasets = """
+            <xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/">
+              <xfa:data><form version="7"><name>Old</name><color>red</color><color>blue</color></form></xfa:data>
+            </xfa:datasets>
+            """;
+        PdfXfaInfo source = Assert.IsType<PdfXfaInfo>(PdfXfaReader.Read(
+            Document("<template><script>preserved()</script></template>", datasets)));
+        byte[] template = source.Packets[0].Data.ToArray();
+
+        PdfXfaInfo changed = PdfXfaDatasets.SetValue(source, "form.color", 1, "grün");
+        PdfFormDataSet values = PdfXfaDatasets.Read(changed);
+        string changedXml = Encoding.UTF8.GetString(changed.Packets[1].Data.Span);
+
+        Assert.Equal(["red", "grün"], values.Fields.Single(field =>
+            field.Name == "form.color").Values);
+        Assert.Contains("version=\"7\"", changedXml, StringComparison.Ordinal);
+        Assert.Contains("<name>Old</name>", changedXml, StringComparison.Ordinal);
+        Assert.Equal(template, changed.Packets[0].Data.ToArray());
+        Assert.True(changed.ContainsScript);
+        Assert.Equal(["red", "blue"], PdfXfaDatasets.Read(source).Fields.Single(field =>
+            field.Name == "form.color").Values);
+        Assert.Throws<KeyNotFoundException>(() =>
+            PdfXfaDatasets.SetValue(source, "form.color", 2, "green"));
+        Assert.Throws<NotSupportedException>(() =>
+            PdfXfaDatasets.SetValue(source with { IsPacketArray = false },
+                "form.color", 0, "green"));
+    }
+
+    [Fact]
     public void ReadsTemplateFieldHierarchyBindingsAndSafeBehaviorFlags()
     {
         const string template = """

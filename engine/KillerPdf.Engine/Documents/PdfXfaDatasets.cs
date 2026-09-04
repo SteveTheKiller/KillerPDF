@@ -142,6 +142,90 @@ public static class PdfXfaDatasets
         };
     }
 
+    /// <summary>
+    /// Replaces one existing dataset value while preserving unrelated XML and XFA packets.
+    /// </summary>
+    public static PdfXfaInfo SetValue(
+        PdfXfaInfo info, string fieldName, int occurrenceIndex, string value)
+    {
+        ArgumentNullException.ThrowIfNull(info);
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("An XFA dataset field name is required.", nameof(fieldName));
+        if (occurrenceIndex < 0)
+            throw new ArgumentOutOfRangeException(nameof(occurrenceIndex));
+        ArgumentNullException.ThrowIfNull(value);
+        if (!info.IsPacketArray)
+            throw new NotSupportedException(
+                "Editing datasets inside a combined XDP stream is not supported.");
+
+        int packetIndex = DatasetPacketIndex(info);
+        XDocument document = LoadDocument(info.Packets[packetIndex]);
+        XElement root = document.Root!;
+        XElement data = root.Elements().First(element =>
+            string.Equals(element.Name.LocalName, "data", StringComparison.OrdinalIgnoreCase));
+        string[] parts = fieldName.Split('.');
+        if (parts.Any(part => part.Length == 0))
+            throw new ArgumentException("The XFA dataset field name is invalid.", nameof(fieldName));
+        IEnumerable<XElement> candidates = [data];
+        foreach (string part in parts)
+            candidates = candidates.SelectMany(parent => parent.Elements().Where(element =>
+                string.Equals(element.Name.LocalName, part, StringComparison.Ordinal)));
+        XElement[] matches = [.. candidates.Where(element => !element.Elements().Any())];
+        if (occurrenceIndex >= matches.Length)
+            throw new KeyNotFoundException(
+                $"XFA dataset field '{fieldName}' occurrence {occurrenceIndex} was not found.");
+        matches[occurrenceIndex].Value = value;
+
+        using var output = new MemoryStream();
+        using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings
+        {
+            Encoding = new UTF8Encoding(false),
+            Indent = false,
+            NewLineChars = "\n",
+            OmitXmlDeclaration = document.Declaration is null
+        })) document.Save(writer);
+        PdfXfaPacket[] packets = info.Packets.ToArray();
+        packets[packetIndex] = new PdfXfaPacket(packets[packetIndex].Name, output.ToArray());
+        return info with { Packets = Array.AsReadOnly(packets) };
+    }
+
+    private static int DatasetPacketIndex(PdfXfaInfo info)
+    {
+        int result = -1;
+        for (int index = 0; index < info.Packets.Count; index++)
+        {
+            if (!string.Equals(info.Packets[index].Name, "datasets",
+                    StringComparison.OrdinalIgnoreCase)) continue;
+            if (result >= 0)
+                throw new InvalidOperationException(
+                    "The XFA packet array contains more than one datasets packet.");
+            result = index;
+        }
+        return result >= 0 ? result : throw new InvalidOperationException(
+            "The XFA data has no datasets packet.");
+    }
+
+    private static XDocument LoadDocument(PdfXfaPacket packet)
+    {
+        using var input = new MemoryStream(packet.Data.ToArray(), writable: false);
+        using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = MaximumCharacters,
+            IgnoreComments = false
+        });
+        XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        XElement root = document.Root
+            ?? throw new InvalidOperationException("The XFA datasets packet has no root element.");
+        if (!string.Equals(root.Name.LocalName, "datasets", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The XFA datasets packet has an unexpected root element.");
+        if (!root.Elements().Any(element => string.Equals(
+                element.Name.LocalName, "data", StringComparison.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("The XFA datasets packet has no data element.");
+        return document;
+    }
+
     private static void AddChildren(XElement parent, DatasetNode node)
     {
         foreach ((string name, DatasetNode child) in node.Children)
