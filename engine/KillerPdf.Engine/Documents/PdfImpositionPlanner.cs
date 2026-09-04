@@ -48,6 +48,31 @@ public static class PdfImpositionPlanner
         }).ToArray());
     }
 
+    /// <summary>Plans simplex sheets whose cut piles stack into source-page order.</summary>
+    public static IReadOnlyList<PdfImposedSheetSide> PlanCutStack(
+        int pageCount, int columns, int rows)
+    {
+        if (pageCount < 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        if (columns <= 0) throw new ArgumentOutOfRangeException(nameof(columns));
+        if (rows <= 0) throw new ArgumentOutOfRangeException(nameof(rows));
+        if (pageCount == 0) return [];
+        int slotsPerSide = checked(columns * rows);
+        int sheetCount = checked((pageCount + slotsPerSide - 1) / slotsPerSide);
+        var result = new List<PdfImposedSheetSide>(sheetCount);
+        for (int sheetIndex = 0; sheetIndex < sheetCount; sheetIndex++)
+        {
+            var slots = new int?[slotsPerSide];
+            for (int slot = 0; slot < slots.Length; slot++)
+            {
+                int sourcePage = checked(slot * sheetCount + sheetIndex);
+                slots[slot] = sourcePage < pageCount ? sourcePage : null;
+            }
+            result.Add(new PdfImposedSheetSide(sheetIndex,
+                PdfImposedSheetFace.Front, Array.AsReadOnly(slots)));
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
     /// <summary>Plans a caller-supplied page sequence with explicit blank slots.</summary>
     public static IReadOnlyList<PdfImposedSheetSide> PlanManual(
         int sourcePageCount, IReadOnlyList<int?> sequence,

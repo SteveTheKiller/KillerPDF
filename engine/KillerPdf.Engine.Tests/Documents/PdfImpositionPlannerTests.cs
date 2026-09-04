@@ -45,6 +45,21 @@ public sealed class PdfImpositionPlannerTests
     }
 
     [Fact]
+    public void CutStackOrdersEachFinishedPileAndKeepsTrailingBlanks()
+    {
+        IReadOnlyList<PdfImposedSheetSide> sides =
+            PdfImpositionPlanner.PlanCutStack(10, columns: 2, rows: 2);
+
+        Assert.Collection(sides,
+            side => AssertSide(side, 0, PdfImposedSheetFace.Front, 0, 3, 6, 9),
+            side => AssertSide(side, 1, PdfImposedSheetFace.Front, 1, 4, 7, null),
+            side => AssertSide(side, 2, PdfImposedSheetFace.Front, 2, 5, 8, null));
+        Assert.Empty(PdfImpositionPlanner.PlanCutStack(0, 2, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionPlanner.PlanCutStack(10, 0, 2));
+    }
+
+    [Fact]
     public void BookletAndNUpInsertExplicitBlankSlots()
     {
         IReadOnlyList<PdfImposedSheetSide> booklet = PdfImpositionPlanner.PlanBooklet(5);
