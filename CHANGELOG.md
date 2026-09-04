@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added editable document exports, OCR integration, page selection, batches, and loss reports (#346).
 - Added reusable data-driven PDF generation, validation, conditional records, macros, and reports (#352).
 - Added advanced bookmark, link, destination, page-label, TOC, audit, repair, and macro workflows (#351).
 - Added complete PDF layer inspection, editing, assignment, flattening, comparison, macros, and reports (#350).

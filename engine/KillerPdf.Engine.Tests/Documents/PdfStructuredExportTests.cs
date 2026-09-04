@@ -228,6 +228,10 @@ public sealed class PdfStructuredExportTests
         Assert.Equal(0, finding.PageIndex);
         Assert.False(report.IsLossless);
         Assert.False(json.RootElement.GetProperty("isLossless").GetBoolean());
+        Assert.Contains("Structured export: known losses", report.ToText(),
+            StringComparison.Ordinal);
+        Assert.Contains("Page 1: VectorContentNotExported (count 1)", report.ToText(),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -308,6 +312,12 @@ public sealed class PdfStructuredExportTests
             .GetProperty("losses")[0].GetProperty("code").GetString());
         Assert.DoesNotContain("not a PDF", jsonText, StringComparison.Ordinal);
         Assert.DoesNotContain("first\"", jsonText, StringComparison.Ordinal);
+        string text = report.ToText();
+        Assert.Contains("Structured exports: 3, succeeded 2, failed 1", text,
+            StringComparison.Ordinal);
+        Assert.Contains("first.pdf: succeeded, output first.txt", text, StringComparison.Ordinal);
+        Assert.Contains("Representation: 1 finding(s)", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("not a PDF", text, StringComparison.Ordinal);
     }
 
     [Fact]

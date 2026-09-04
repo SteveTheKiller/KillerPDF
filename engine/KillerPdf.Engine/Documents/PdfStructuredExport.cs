@@ -36,6 +36,23 @@ public sealed record PdfStructuredExportReport(IReadOnlyList<PdfStructuredExport
     /// <summary>Gets whether the selected pages can be represented without known loss.</summary>
     public bool IsLossless => Findings.Count == 0;
 
+    /// <summary>Exports a readable summary of known representation losses.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Structured export: ").AppendLine(IsLossless ? "lossless" : "known losses");
+        output.Append("Findings: ").AppendLine(Findings.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfStructuredExportFinding finding in Findings)
+        {
+            output.Append("  Page ").Append((finding.PageIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(": ").Append(finding.Code).Append(" (count ")
+                .Append(finding.Count.ToString(CultureInfo.InvariantCulture)).AppendLine(")");
+            output.Append("    ").AppendLine(finding.Message.Replace("\r", " ", StringComparison.Ordinal)
+                .Replace("\n", " ", StringComparison.Ordinal));
+        }
+        return output.ToString().TrimEnd();
+    }
+
     /// <summary>Exports the report as machine-readable JSON.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new { Version = 1, IsLossless, Findings },
@@ -119,6 +136,29 @@ public sealed record PdfStructuredExportBatchReport
     public int CanceledCount => Results.Count(result => result.WasCanceled);
     /// <summary>Gets documents not reached after cancellation.</summary>
     public int UnprocessedCount => TotalDocumentCount - Results.Count;
+
+    /// <summary>Exports readable data-safe batch outcomes.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Structured exports: ").Append(TotalDocumentCount)
+            .Append(", succeeded ").Append(SucceededCount).Append(", failed ").Append(FailedCount)
+            .Append(", canceled ").Append(CanceledCount).Append(", unprocessed ")
+            .AppendLine(UnprocessedCount.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfStructuredExportBatchResult result in Results)
+        {
+            output.Append("  ").Append(result.Input.SourceName).Append(": ")
+                .Append(result.Succeeded ? "succeeded" : result.WasCanceled ? "canceled" : "failed")
+                .Append(", output ").AppendLine(result.OutputName);
+            if (result.Error is not null)
+                output.Append("    Error: ").AppendLine(result.Error.Replace("\r", " ", StringComparison.Ordinal)
+                    .Replace("\n", " ", StringComparison.Ordinal));
+            if (result.LossReport is not null)
+                output.Append("    Representation: ")
+                    .AppendLine(result.LossReport.IsLossless ? "lossless" : $"{result.LossReport.Findings.Count} finding(s)");
+        }
+        return output.ToString().TrimEnd();
+    }
 
     /// <summary>Exports outcomes without source or generated document data.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
