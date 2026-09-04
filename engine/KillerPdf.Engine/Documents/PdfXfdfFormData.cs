@@ -69,6 +69,9 @@ public static class PdfXfdfFormData
     public static byte[] Write(PdfFormDataSet data)
     {
         ArgumentNullException.ThrowIfNull(data);
+        if (data.ContainsSignature || data.ContainsIncrementalDifferences)
+            throw new NotSupportedException(
+                "Signed FDF data and incremental differences cannot be preserved in XFDF.");
         XNamespace xfdf = NamespaceName;
         var fields = new XElement(xfdf + "fields");
         var names = new HashSet<string>(StringComparer.Ordinal);

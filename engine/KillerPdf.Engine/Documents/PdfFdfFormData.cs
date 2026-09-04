@@ -94,7 +94,9 @@ public static class PdfFdfFormData
             EmbeddedSourcePdf = embeddedSourcePdf,
             Fields = Array.AsReadOnly(fields.ToArray()),
             Annotations = Array.AsReadOnly(annotations.ToArray()),
-            ContainsJavaScript = ContainsScript(root, new HashSet<(int, int)>(), 0)
+            ContainsJavaScript = ContainsScript(root, new HashSet<(int, int)>(), 0),
+            ContainsSignature = fdf.ContainsKey(Name("Sig")),
+            ContainsIncrementalDifferences = fdf.ContainsKey(Name("Differences"))
         };
 
         PdfObject Resolve(PdfObject value)
@@ -228,6 +230,12 @@ public static class PdfFdfFormData
     public static byte[] Write(PdfFormDataSet data)
     {
         ArgumentNullException.ThrowIfNull(data);
+        if (data.ContainsSignature)
+            throw new NotSupportedException(
+                "Writing signed FDF data is not supported because the signature cannot be preserved.");
+        if (data.ContainsIncrementalDifferences)
+            throw new NotSupportedException(
+                "Writing FDF incremental differences is not supported because they cannot be preserved.");
         var names = new HashSet<string>(StringComparer.Ordinal);
         var fields = new List<PdfObject>();
         foreach (PdfFormDataField field in data.Fields)

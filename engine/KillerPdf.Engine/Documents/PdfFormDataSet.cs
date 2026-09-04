@@ -13,6 +13,10 @@ public sealed record PdfFormDataSet
     public IReadOnlyList<PdfFormDataAnnotation> Annotations { get; init; } = [];
     /// <summary>Gets whether the source contains document JavaScript that was not executed.</summary>
     public bool ContainsJavaScript { get; init; }
+    /// <summary>Gets whether the source carries an FDF signature dictionary.</summary>
+    public bool ContainsSignature { get; init; }
+    /// <summary>Gets whether the source carries incremental PDF differences.</summary>
+    public bool ContainsIncrementalDifferences { get; init; }
 
     /// <summary>Returns an ordered subset of fields for selective import or export.</summary>
     public PdfFormDataSet SelectFields(IEnumerable<string> fieldNames)

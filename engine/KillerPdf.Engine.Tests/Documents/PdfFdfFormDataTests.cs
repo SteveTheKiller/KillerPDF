@@ -71,6 +71,20 @@ public sealed class PdfFdfFormDataTests
     }
 
     [Fact]
+    public void ReadReportsSignedDataAndIncrementalDifferencesWithoutRewritingThem()
+    {
+        PdfFormDataSet result = PdfFdfFormData.Read(FdfWithEntries(
+            "/Fields [] /Sig << /Type /Sig >> /Differences [<0102>]"));
+
+        Assert.True(result.ContainsSignature);
+        Assert.True(result.ContainsIncrementalDifferences);
+        Assert.Throws<NotSupportedException>(() => PdfFdfFormData.Write(result));
+        Assert.Throws<NotSupportedException>(() => PdfFdfFormData.Write(
+            result with { ContainsSignature = false }));
+        Assert.Throws<NotSupportedException>(() => PdfXfdfFormData.Write(result));
+    }
+
+    [Fact]
     public void WriteCanExportAnOrderedFieldSelection()
     {
         var source = new PdfFormDataSet
@@ -166,4 +180,14 @@ public sealed class PdfFdfFormDataTests
             new PdfFormDataAnnotation { Subtype = subtype, PageIndex = 2, Rectangle = [0, 0, 10, 10] }
         ]
     };
+
+    private static byte[] FdfWithEntries(string entries)
+    {
+        string body = $"1 0 obj\n<< /Type /Catalog /FDF << {entries} >> >>\nendobj\n";
+        int xref = Encoding.ASCII.GetByteCount("%FDF-1.2\n" + body);
+        string source = "%FDF-1.2\n" + body
+            + "xref\n0 2\n0000000000 65535 f \n0000000009 00000 n \n"
+            + $"trailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n{xref}\n%%EOF\n";
+        return Encoding.ASCII.GetBytes(source);
+    }
 }
