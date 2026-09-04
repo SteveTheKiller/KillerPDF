@@ -144,4 +144,27 @@ public sealed class PdfOptionalContentReaderTests
         Assert.False(Assert.Single(PdfOptionalContentReader.Read(unlocked).Groups).IsLocked);
         Assert.False(Assert.Single(PdfOptionalContentReader.Read(original).Groups).IsLocked);
     }
+
+    [Fact]
+    public void DisplayOrderCanBeReplaced()
+    {
+        var first = new PdfOptionalContentGroup("First");
+        var second = new PdfOptionalContentGroup("Second");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(first).Rectangle(0, 0, 10, 10).Fill().EndMarkedContent()
+                .BeginOptionalContent(second).Rectangle(20, 0, 10, 10).Fill().EndMarkedContent())
+            .Build());
+        PdfOptionalContentInfo before = PdfOptionalContentReader.Read(original);
+        int[] reversed = [.. before.Configurations.Single()
+            .DisplayOrderGroupObjectNumbers.Reverse()];
+
+        PdfDocument reordered = PdfDocument.Open(
+            PdfOptionalContentEditor.SetDisplayOrder(original, reversed));
+
+        Assert.Equal(reversed, PdfOptionalContentReader.Read(reordered)
+            .Configurations.Single().DisplayOrderGroupObjectNumbers);
+        Assert.Throws<ArgumentException>(() =>
+            PdfOptionalContentEditor.SetDisplayOrder(original, [reversed[0]]));
+    }
 }

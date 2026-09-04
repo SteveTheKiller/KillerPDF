@@ -14,6 +14,7 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName OnKey = new("ON"u8);
     private static readonly PdfName OffKey = new("OFF"u8);
     private static readonly PdfName LockedKey = new("Locked"u8);
+    private static readonly PdfName OrderKey = new("Order"u8);
 
     /// <summary>Renames one registered layer by its source object number.</summary>
     public static byte[] RenameGroup(PdfDocument document, int objectNumber, string name)
@@ -124,6 +125,59 @@ public static class PdfOptionalContentEditor
             document, configurationEntries.GetValueOrDefault(LockedKey), reference);
         if (locked) values = [.. values, reference];
         SetArray(configurationEntries, LockedKey, values);
+        var replacementConfiguration = new PdfDictionary(configurationEntries);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        if (configurationReference is not null)
+            update.ReplaceObject(configurationReference.ObjectNumber, replacementConfiguration);
+        else
+        {
+            var propertiesEntries = properties.ToDictionary(entry => entry.Key, entry => entry.Value);
+            propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
+            var replacementProperties = new PdfDictionary(propertiesEntries);
+            if (propertiesReference is not null)
+                update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
+            else
+            {
+                var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+                catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+                update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                    new PdfDictionary(catalogEntries));
+            }
+        }
+        return update.Build();
+    }
+
+    /// <summary>Replaces the default configuration's flat layer display order.</summary>
+    public static byte[] SetDisplayOrder(
+        PdfDocument document, IReadOnlyList<int> objectNumbers)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(objectNumbers);
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
+        int[] registered = [.. info.Groups.Select(group => group.ObjectNumber).Order()];
+        int[] requested = [.. objectNumbers.Order()];
+        if (!registered.SequenceEqual(requested))
+            throw new ArgumentException(
+                "The display order must contain every registered layer exactly once.",
+                nameof(objectNumbers));
+        Dictionary<int, PdfIndirectReference> references = info.Groups.ToDictionary(
+            group => group.ObjectNumber,
+            group => new PdfIndirectReference(group.ObjectNumber, group.Generation));
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (!tree.Catalog.TryGetValue(OptionalContentPropertiesKey, out PdfObject? propertiesValue))
+            throw new InvalidOperationException("The document has no optional-content properties.");
+        (PdfDictionary properties, PdfIndirectReference? propertiesReference) =
+            ResolveDictionaryWithReference(document, propertiesValue,
+                "The optional-content properties");
+        if (!properties.TryGetValue(DefaultConfigurationKey, out PdfObject? configurationValue))
+            throw new InvalidOperationException("The document has no default optional-content configuration.");
+        (PdfDictionary configuration, PdfIndirectReference? configurationReference) =
+            ResolveDictionaryWithReference(document, configurationValue,
+                "The default optional-content configuration");
+        var configurationEntries = configuration.ToDictionary(
+            entry => entry.Key, entry => entry.Value);
+        configurationEntries[OrderKey] = new PdfArray(objectNumbers.Select(
+            objectNumber => (PdfObject)references[objectNumber]));
         var replacementConfiguration = new PdfDictionary(configurationEntries);
         var update = new PdfIncrementalUpdateBuilder(document);
         if (configurationReference is not null)
