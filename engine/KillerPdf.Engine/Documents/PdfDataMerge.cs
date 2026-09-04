@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Parsing;
 
@@ -71,7 +72,25 @@ public static class PdfDataMerge
     public static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatch(
         PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
         PdfDataMergeProfile profile, PdfDataMergeOutputMode outputMode,
+        CancellationToken cancellationToken = default) =>
+        RunFormBatchCore(template, records, profile, outputMode, null, cancellationToken);
+
+    /// <summary>Maps records with caller-resolved images into editable or flattened output.</summary>
+    public static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatch(
+        PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
+        PdfDataMergeProfile profile, Func<string, PdfImage> imageResolver,
+        PdfDataMergeOutputMode outputMode = PdfDataMergeOutputMode.Editable,
         CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(imageResolver);
+        return RunFormBatchCore(template, records, profile, outputMode,
+            imageResolver, cancellationToken);
+    }
+
+    private static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatchCore(
+        PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
+        PdfDataMergeProfile profile, PdfDataMergeOutputMode outputMode,
+        Func<string, PdfImage>? imageResolver, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(records);
@@ -105,6 +124,14 @@ public static class PdfDataMerge
                 if (mapped.TextReplacements.Count > 0)
                     data = ApplyTextReplacements(PdfDocument.Open(data),
                         mapped.TextReplacements, cancellationToken);
+                if (mapped.Images.Count > 0)
+                {
+                    if (imageResolver is null)
+                        throw new InvalidOperationException(
+                            "The data-merge profile requires an image resolver.");
+                    data = ApplyImages(PdfDocument.Open(data), mapped.Images,
+                        imageResolver, cancellationToken);
+                }
                 if (outputMode == PdfDataMergeOutputMode.Flattened)
                     data = PdfFormFlattener.Flatten(PdfDocument.Open(data));
                 usedFileNames.Add(outputFileName);
@@ -120,6 +147,43 @@ public static class PdfDataMerge
             index++;
         }
         return Array.AsReadOnly(results.ToArray());
+    }
+
+    private static byte[] ApplyImages(PdfDocument document,
+        IReadOnlyList<PdfDataMergeMappedImage> images, Func<string, PdfImage> imageResolver,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(document);
+        var editor = new PdfIncrementalPageEditor(document);
+        foreach (PdfDataMergeMappedImage mapped in images)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfDataMergeImageMapping placement = mapped.Mapping;
+            if (placement.PageIndex >= pages.Count)
+                throw new InvalidOperationException(
+                    $"Image mapping '{placement.SourceField}' targets a missing page.");
+            PdfPageInformation page = pages[placement.PageIndex];
+            if (placement.X + placement.Width > page.Width
+                || placement.Y + placement.Height > page.Height)
+                throw new InvalidOperationException(
+                    $"Image mapping '{placement.SourceField}' extends outside its page.");
+            PdfImage image;
+            try
+            {
+                image = imageResolver(mapped.SourceValue)
+                    ?? throw new InvalidOperationException("The image resolver returned no image.");
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            {
+                throw new InvalidOperationException(
+                    $"Image mapping '{placement.SourceField}' could not be resolved.", exception);
+            }
+            editor.AppendPageContent(placement.PageIndex, page.Width, page.Height,
+                new PdfContentStreamBuilder().DrawImage(image, placement.X, placement.Y,
+                    placement.Width, placement.Height));
+        }
+        return editor.Build();
     }
 
     private static byte[] ApplyTextReplacements(PdfDocument document,
@@ -170,18 +234,23 @@ public static class PdfDataMerge
                 PdfFormDataImporter.Preview(template, mapped.FormData);
             IReadOnlyList<PdfDataMergeTextMatch> textMatches =
                 PreviewTextReplacements(template, mapped.TextReplacements);
+            IReadOnlyList<PdfDataMergeImageMatch> imageMatches =
+                PreviewImages(template, mapped.Images);
             PdfFormDataMatch[] blocked = [.. matches.Where(match =>
                 match.Status != PdfFormDataMatchStatus.Matched)];
             string[] missingText = [.. textMatches.Where(match => !match.Matched)
                 .Select(match => match.Placeholder)];
             var blockedTargets = blocked.Select(match => match.FieldName)
-                .Concat(missingText).ToArray();
+                .Concat(missingText)
+                .Concat(imageMatches.Where(match => !match.Matched)
+                    .Select(match => match.SourceField)).ToArray();
             string? error = blockedTargets.Length == 0 ? null
                 : "The record cannot be applied to: "
                     + string.Join(", ", blockedTargets) + ".";
             return new PdfDataMergePreview(mapped.OutputFileName, matches, error)
             {
-                TextPlaceholders = textMatches
+                TextPlaceholders = textMatches,
+                Images = imageMatches
             };
         }
         catch (Exception exception) when (exception is not OutOfMemoryException
@@ -189,6 +258,22 @@ public static class PdfDataMerge
         {
             return new PdfDataMergePreview(null, [], exception.Message);
         }
+    }
+
+    private static IReadOnlyList<PdfDataMergeImageMatch> PreviewImages(
+        PdfDocument document, IReadOnlyList<PdfDataMergeMappedImage> images)
+    {
+        IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(document);
+        return Array.AsReadOnly(images.Select(mapped =>
+        {
+            PdfDataMergeImageMapping placement = mapped.Mapping;
+            bool pageExists = placement.PageIndex < pages.Count;
+            bool fits = pageExists
+                && placement.X + placement.Width <= pages[placement.PageIndex].Width
+                && placement.Y + placement.Height <= pages[placement.PageIndex].Height;
+            return new PdfDataMergeImageMatch(placement.SourceField, placement.PageIndex,
+                placement.X, placement.Y, placement.Width, placement.Height, fits);
+        }).ToArray());
     }
 
     private static IReadOnlyList<PdfDataMergeTextMatch> PreviewTextReplacements(
@@ -284,11 +369,18 @@ public sealed record PdfDataMergePreview(string? OutputFileName,
 {
     /// <summary>Gets data-free page-text placeholder matches.</summary>
     public IReadOnlyList<PdfDataMergeTextMatch> TextPlaceholders { get; init; } = [];
+    /// <summary>Gets data-free image placement matches.</summary>
+    public IReadOnlyList<PdfDataMergeImageMatch> Images { get; init; } = [];
     /// <summary>Gets whether the record can be generated.</summary>
     public bool CanGenerate => Error is null
         && Fields.All(match => match.Status == PdfFormDataMatchStatus.Matched)
-        && TextPlaceholders.All(match => match.Matched);
+        && TextPlaceholders.All(match => match.Matched)
+        && Images.All(match => match.Matched);
 }
+
+/// <summary>A data-free image placement match.</summary>
+public sealed record PdfDataMergeImageMatch(string SourceField, int PageIndex,
+    double X, double Y, double Width, double Height, bool Matched);
 
 /// <summary>A data-free page-text placeholder match.</summary>
 public sealed record PdfDataMergeTextMatch(string Placeholder, int OccurrenceCount)

@@ -405,6 +405,63 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void FormBatchPlacesResolvedImagesAndKeepsProfilesDataFree()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 150).Build());
+        var profile = new PdfDataMergeProfile("Badges", [], "badge-{{Number}}.pdf",
+            imageMappings: [new PdfDataMergeImageMapping("Portrait", 0, 20, 30, 40, 50)]);
+        var record = new Dictionary<string, string?>
+        {
+            ["Portrait"] = "portrait-ada",
+            ["Number"] = "1"
+        };
+        string json = profile.ToJson();
+        PdfDataMergeProfile restored = PdfDataMergeProfile.FromJson(json);
+
+        PdfDataMergePreview preview = PdfDataMerge.PreviewFormRecord(template, record, restored);
+        PdfDataMergeDocumentResult result = Assert.Single(PdfDataMerge.RunFormBatch(
+            template, [record], restored, key =>
+            {
+                Assert.Equal("portrait-ada", key);
+                return PdfImage.FromRgb(1, 1, new byte[] { 10, 20, 30 });
+            }));
+        PdfExtractedImage image = Assert.Single(
+            new PdfPageContentReader(PdfDocument.Open(result.Data!.Value)).Read(0).Images);
+
+        Assert.True(preview.CanGenerate);
+        Assert.True(Assert.Single(preview.Images).Matched);
+        Assert.DoesNotContain("portrait-ada", json, StringComparison.Ordinal);
+        Assert.True(result.Succeeded);
+        Assert.Equal(new PdfContentBounds(20, 30, 60, 80), image.BoundingBox);
+        Assert.Empty(new PdfPageContentReader(template).Read(0).Images);
+    }
+
+    [Fact]
+    public void FormBatchIsolatesImageResolutionFailures()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(100, 100).Build());
+        var profile = new PdfDataMergeProfile("Badges", [], "{{Portrait}}.pdf",
+            imageMappings: [new PdfDataMergeImageMapping("Portrait", 0, 10, 10, 20, 20)]);
+        IReadOnlyDictionary<string, string?>[] records =
+        [
+            new Dictionary<string, string?> { ["Portrait"] = "missing" },
+            new Dictionary<string, string?> { ["Portrait"] = "available" }
+        ];
+
+        IReadOnlyList<PdfDataMergeDocumentResult> results = PdfDataMerge.RunFormBatch(
+            template, records, profile, key => key == "available"
+                ? PdfImage.FromRgb(1, 1, new byte[] { 1, 2, 3 })
+                : throw new FileNotFoundException());
+
+        Assert.False(results[0].Succeeded);
+        Assert.Contains("Portrait", results[0].Error, StringComparison.Ordinal);
+        Assert.DoesNotContain("missing", results[0].Error, StringComparison.Ordinal);
+        Assert.True(results[1].Succeeded);
+    }
+
+    [Fact]
     public void BatchReportsSummarizeOutcomesWithoutPdfData()
     {
         PdfDataMergeDocumentResult[] results =

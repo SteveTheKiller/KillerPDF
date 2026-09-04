@@ -12,20 +12,28 @@ public sealed record PdfDataMergeFieldMapping(
     string? IncludeWhenField = null, string? IncludeWhenValue = null,
     PdfDataMergeTargetKind TargetKind = PdfDataMergeTargetKind.FormField);
 
+/// <summary>Maps one imported record field to a fixed image placement.</summary>
+public sealed record PdfDataMergeImageMapping(
+    string SourceField, int PageIndex, double X, double Y, double Width, double Height,
+    string? DefaultValue = null, string? IncludeWhenField = null,
+    string? IncludeWhenValue = null);
+
 /// <summary>A reusable data-merge mapping that contains no source records.</summary>
 public sealed class PdfDataMergeProfile
 {
     /// <summary>Creates a validated reusable mapping profile.</summary>
     public PdfDataMergeProfile(string name, IEnumerable<PdfDataMergeFieldMapping> mappings,
         string outputFileNameTemplate,
-        PdfMissingMergeValueBehavior missingValueBehavior = PdfMissingMergeValueBehavior.Error)
+        PdfMissingMergeValueBehavior missingValueBehavior = PdfMissingMergeValueBehavior.Error,
+        IEnumerable<PdfDataMergeImageMapping>? imageMappings = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A data-merge profile name is required.", nameof(name));
         ArgumentNullException.ThrowIfNull(mappings);
         PdfDataMergeFieldMapping[] selected = mappings.ToArray();
-        if (selected.Length == 0)
-            throw new ArgumentException("A data-merge profile requires at least one field mapping.",
+        PdfDataMergeImageMapping[] selectedImages = imageMappings?.ToArray() ?? [];
+        if (selected.Length == 0 && selectedImages.Length == 0)
+            throw new ArgumentException("A data-merge profile requires at least one mapping.",
                 nameof(mappings));
         if (selected.Any(mapping => string.IsNullOrWhiteSpace(mapping.SourceField)
             || string.IsNullOrWhiteSpace(mapping.TargetField)))
@@ -47,6 +55,21 @@ public sealed class PdfDataMergeProfile
         if (selected.Select(mapping => mapping.TargetField)
             .Distinct(StringComparer.OrdinalIgnoreCase).Count() != selected.Length)
             throw new ArgumentException("Data-merge target fields must be unique.", nameof(mappings));
+        if (selectedImages.Any(mapping => string.IsNullOrWhiteSpace(mapping.SourceField)))
+            throw new ArgumentException("Data-merge image source fields cannot be empty.",
+                nameof(imageMappings));
+        if (selectedImages.Any(mapping => mapping.PageIndex < 0
+            || !double.IsFinite(mapping.X) || mapping.X < 0
+            || !double.IsFinite(mapping.Y) || mapping.Y < 0
+            || !double.IsFinite(mapping.Width) || mapping.Width <= 0
+            || !double.IsFinite(mapping.Height) || mapping.Height <= 0))
+            throw new ArgumentException("Data-merge image placements must have valid geometry.",
+                nameof(imageMappings));
+        if (selectedImages.Any(mapping => string.IsNullOrWhiteSpace(mapping.IncludeWhenField)
+                != string.IsNullOrWhiteSpace(mapping.IncludeWhenValue)))
+            throw new ArgumentException(
+                "Conditional image mappings require both a field and a value.",
+                nameof(imageMappings));
         if (string.IsNullOrWhiteSpace(outputFileNameTemplate))
             throw new ArgumentException("An output filename template is required.",
                 nameof(outputFileNameTemplate));
@@ -54,6 +77,7 @@ public sealed class PdfDataMergeProfile
             throw new ArgumentOutOfRangeException(nameof(missingValueBehavior));
         Name = name;
         Mappings = Array.AsReadOnly(selected);
+        ImageMappings = Array.AsReadOnly(selectedImages);
         OutputFileNameTemplate = outputFileNameTemplate;
         MissingValueBehavior = missingValueBehavior;
     }
@@ -62,6 +86,8 @@ public sealed class PdfDataMergeProfile
     public string Name { get; }
     /// <summary>Gets the field mappings.</summary>
     public IReadOnlyList<PdfDataMergeFieldMapping> Mappings { get; }
+    /// <summary>Gets the fixed image placements populated by record values.</summary>
+    public IReadOnlyList<PdfDataMergeImageMapping> ImageMappings { get; }
     /// <summary>Gets the output filename template.</summary>
     public string OutputFileNameTemplate { get; }
     /// <summary>Gets the missing-value policy.</summary>
@@ -73,6 +99,7 @@ public sealed class PdfDataMergeProfile
         ArgumentNullException.ThrowIfNull(record);
         var fields = new List<PdfFormDataField>(Mappings.Count);
         var text = new Dictionary<string, string>(StringComparer.Ordinal);
+        var images = new List<PdfDataMergeMappedImage>(ImageMappings.Count);
         foreach (PdfDataMergeFieldMapping mapping in Mappings)
         {
             if (mapping.IncludeWhenField is not null
@@ -95,6 +122,20 @@ public sealed class PdfDataMergeProfile
             else
                 text.Add("{{" + mapping.TargetField + "}}", formatted);
         }
+        foreach (PdfDataMergeImageMapping mapping in ImageMappings)
+        {
+            if (mapping.IncludeWhenField is not null
+                && (!record.TryGetValue(mapping.IncludeWhenField, out string? conditionValue)
+                    || !string.Equals(conditionValue, mapping.IncludeWhenValue,
+                        StringComparison.Ordinal)))
+                continue;
+            string value = record.TryGetValue(mapping.SourceField, out string? supplied)
+                && supplied is not null
+                ? supplied
+                : mapping.DefaultValue ?? PdfDataMerge.Expand(
+                    "{{" + mapping.SourceField + "}}", record, MissingValueBehavior);
+            images.Add(new PdfDataMergeMappedImage(mapping, value));
+        }
         string outputFileName = PdfDataMerge.Expand(
             OutputFileNameTemplate, record, MissingValueBehavior);
         if (outputFileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
@@ -102,7 +143,8 @@ public sealed class PdfDataMergeProfile
         return new PdfDataMergeMappedRecord(
             new PdfFormDataSet { Fields = Array.AsReadOnly(fields.ToArray()) }, outputFileName)
         {
-            TextReplacements = text
+            TextReplacements = text,
+            Images = Array.AsReadOnly(images.ToArray())
         };
     }
 
@@ -129,7 +171,8 @@ public sealed class PdfDataMergeProfile
 
     /// <summary>Serializes the reusable mapping without source record values.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new ProfileFile(1, Name, Mappings.ToArray(), OutputFileNameTemplate, MissingValueBehavior),
+        new ProfileFile(1, Name, Mappings.ToArray(), OutputFileNameTemplate, MissingValueBehavior,
+            ImageMappings.ToArray()),
         Options(indented));
 
     /// <summary>Reads a reusable mapping profile.</summary>
@@ -142,7 +185,7 @@ public sealed class PdfDataMergeProfile
             throw new NotSupportedException(
                 $"Data-merge profile version {file.Version} is not supported.");
         return new PdfDataMergeProfile(file.Name, file.Mappings,
-            file.OutputFileNameTemplate, file.MissingValueBehavior);
+            file.OutputFileNameTemplate, file.MissingValueBehavior, file.ImageMappings);
     }
 
     /// <summary>Creates a macro step containing only this reusable profile configuration.</summary>
@@ -179,7 +222,8 @@ public sealed class PdfDataMergeProfile
 
     private sealed record ProfileFile(int Version, string Name,
         PdfDataMergeFieldMapping[] Mappings, string OutputFileNameTemplate,
-        PdfMissingMergeValueBehavior MissingValueBehavior);
+        PdfMissingMergeValueBehavior MissingValueBehavior,
+        PdfDataMergeImageMapping[]? ImageMappings);
 }
 
 /// <summary>One mapped form-data record and its generated output filename.</summary>
@@ -188,7 +232,13 @@ public sealed record PdfDataMergeMappedRecord(PdfFormDataSet FormData, string Ou
     /// <summary>Gets exact Latin-1 page-text placeholders and their replacement values.</summary>
     public IReadOnlyDictionary<string, string> TextReplacements { get; init; } =
         new Dictionary<string, string>();
+    /// <summary>Gets record-specific image references and their saved placements.</summary>
+    public IReadOnlyList<PdfDataMergeMappedImage> Images { get; init; } = [];
 }
+
+/// <summary>One record-specific image reference and its saved placement.</summary>
+public sealed record PdfDataMergeMappedImage(
+    PdfDataMergeImageMapping Mapping, string SourceValue);
 
 /// <summary>The PDF destination receiving a mapped value.</summary>
 public enum PdfDataMergeTargetKind
