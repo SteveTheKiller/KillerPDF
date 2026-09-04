@@ -167,6 +167,14 @@ public sealed record PdfFormFieldProposal
             doNotScroll ?? SuggestedDoNotScroll, alignment ?? SuggestedAlignment,
             fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle);
 
+    internal PdfFormFieldProposal Duplicate(string id, int pageIndex,
+        PdfContentBounds bounds, string suggestedName) =>
+        new(id, pageIndex, bounds, Kind, Confidence, suggestedName,
+            PdfFormProposalStatus.Proposed, SuggestedTooltip, SuggestedOptions, SuggestedValue,
+            SuggestedReadOnly, SuggestedRequired, SuggestedChecked, SuggestedMultiline,
+            SuggestedDoNotScroll, SuggestedAlignment, SuggestedFontSize,
+            SuggestedAppearanceStyle);
+
     private static PdfFormFieldAppearanceStyle ValidateAppearance(
         PdfFormFieldAppearanceStyle? style)
     {
@@ -229,6 +237,27 @@ public sealed class PdfFormRecognitionReview
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
         Change(id, item => item.Review(PdfFormProposalStatus.Rejected));
+
+    /// <summary>Returns a new review with all selected proposals accepted.</summary>
+    public PdfFormRecognitionReview AcceptMany(IEnumerable<string> ids) =>
+        ChangeMany(ids, item => item.Review(PdfFormProposalStatus.Accepted));
+
+    /// <summary>Returns a new review with all selected proposals rejected.</summary>
+    public PdfFormRecognitionReview RejectMany(IEnumerable<string> ids) =>
+        ChangeMany(ids, item => item.Review(PdfFormProposalStatus.Rejected));
+
+    /// <summary>Returns a new review with an editable copy awaiting its own decision.</summary>
+    public PdfFormRecognitionReview Duplicate(string sourceId, string newId,
+        string suggestedName, PdfContentBounds bounds, int? pageIndex = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(newId);
+        if (_proposals.Any(item => string.Equals(item.Id, newId, StringComparison.Ordinal)))
+            throw new ArgumentException($"Form proposal ID '{newId}' is already in use.", nameof(newId));
+        PdfFormFieldProposal source = Find(sourceId);
+        PdfFormFieldProposal duplicate = source.Duplicate(
+            newId, pageIndex ?? source.PageIndex, bounds, suggestedName);
+        return new PdfFormRecognitionReview(_proposals.Append(duplicate));
+    }
 
     /// <summary>Creates accepted basic and choice fields in an existing document.</summary>
     public byte[] ApplyAccepted(PdfDocument document)
@@ -369,11 +398,36 @@ public sealed class PdfFormRecognitionReview
     private PdfFormRecognitionReview Change(string id,
         Func<PdfFormFieldProposal, PdfFormFieldProposal> change)
     {
-        ArgumentNullException.ThrowIfNull(id);
-        int index = Array.FindIndex(_proposals, item => string.Equals(item.Id, id, StringComparison.Ordinal));
-        if (index < 0) throw new KeyNotFoundException($"Form proposal '{id}' was not found.");
+        int index = Array.IndexOf(_proposals, Find(id));
         PdfFormFieldProposal[] changed = (PdfFormFieldProposal[])_proposals.Clone();
         changed[index] = change(changed[index]);
         return new PdfFormRecognitionReview(changed);
+    }
+
+    private PdfFormRecognitionReview ChangeMany(IEnumerable<string> ids,
+        Func<PdfFormFieldProposal, PdfFormFieldProposal> change)
+    {
+        ArgumentNullException.ThrowIfNull(ids);
+        string[] selected = ids.ToArray();
+        if (selected.Length == 0)
+            throw new ArgumentException("At least one form proposal must be selected.", nameof(ids));
+        if (selected.Any(string.IsNullOrWhiteSpace)
+            || selected.Distinct(StringComparer.Ordinal).Count() != selected.Length)
+            throw new ArgumentException("Selected form proposal IDs must be nonempty and unique.", nameof(ids));
+        var selectedIds = new HashSet<string>(selected, StringComparer.Ordinal);
+        string? missing = selected.FirstOrDefault(id => !_proposals.Any(item =>
+            string.Equals(item.Id, id, StringComparison.Ordinal)));
+        if (missing is not null)
+            throw new KeyNotFoundException($"Form proposal '{missing}' was not found.");
+        return new PdfFormRecognitionReview(_proposals.Select(item =>
+            selectedIds.Contains(item.Id) ? change(item) : item));
+    }
+
+    private PdfFormFieldProposal Find(string id)
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return _proposals.FirstOrDefault(item =>
+            string.Equals(item.Id, id, StringComparison.Ordinal))
+            ?? throw new KeyNotFoundException($"Form proposal '{id}' was not found.");
     }
 }

@@ -40,6 +40,46 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewDuplicatesProposalsAndAppliesBulkDecisionsImmutably()
+    {
+        var style = new PdfFormFieldAppearanceStyle
+        {
+            BorderColor = new PdfRgbColor(0.1, 0.2, 0.3),
+            BorderWidth = 2
+        };
+        var original = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("name", 0, new PdfContentBounds(10, 10, 110, 30),
+                PdfRecognizedFieldKind.Text, 0.95, "name", suggestedTooltip: "Name",
+                suggestedValue: "Alice", suggestedRequired: true, suggestedFontSize: 9,
+                suggestedAppearanceStyle: style),
+            Proposal("unused", 0, 0.8)]);
+
+        PdfFormRecognitionReview duplicated = original.Duplicate(
+            "name", "name-copy", "name.copy", new PdfContentBounds(10, 50, 110, 70));
+        PdfFormRecognitionReview decided = duplicated
+            .AcceptMany(["name", "name-copy"])
+            .RejectMany(["unused"]);
+
+        Assert.All(original.Proposals,
+            item => Assert.Equal(PdfFormProposalStatus.Proposed, item.Status));
+        PdfFormFieldProposal copy = duplicated.Proposals.Single(item => item.Id == "name-copy");
+        Assert.Equal(PdfFormProposalStatus.Proposed, copy.Status);
+        Assert.Equal("name.copy", copy.SuggestedName);
+        Assert.Equal("Alice", copy.SuggestedValue);
+        Assert.True(copy.SuggestedRequired);
+        Assert.Equal(9, copy.SuggestedFontSize);
+        Assert.Equal(style, copy.SuggestedAppearanceStyle);
+        Assert.False(duplicated.IsReadyToApply);
+        Assert.True(decided.IsReadyToApply);
+        Assert.Equal(["name-copy", "name"], decided.Accepted.Select(item => item.Id));
+        Assert.Throws<ArgumentException>(() => original.AcceptMany([]));
+        Assert.Throws<ArgumentException>(() => original.RejectMany(["name", "name"]));
+        Assert.Throws<KeyNotFoundException>(() => original.AcceptMany(["missing"]));
+        Assert.Throws<ArgumentException>(() => original.Duplicate(
+            "name", "unused", "copy", new PdfContentBounds(0, 0, 10, 10)));
+    }
+
+    [Fact]
     public void ProposalRejectsInvalidGeometryAndConfidence()
     {
         Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal("bad", 0,
