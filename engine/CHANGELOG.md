@@ -22,7 +22,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added configurable signature trust results with signer certificate identity, SHA-256 fingerprints, algorithms, purpose, location, contact, and time details (#336).
 - Added document attachment inspection and editing with decoded payloads, names, descriptions, classifications, replacements, portfolio metadata, executable-content warnings, integrity checks, and traversal-safe extraction paths (#347).
 - Added typed PDF layer inspection and editing for names, configuration metadata, locks, base state, visibility, display order, and alternate optional-content configurations (#350).
-- Added calibrated distance, perimeter, area, and angle calculations with saved profiles, scoped assignments, coordinates, deltas, intersection and angle snapping, and JSON or CSV reports (#348).
+- Added calibrated distance, perimeter, area, and angle calculations with saved profiles, scoped assignments, coordinates, deltas, intersection and angle snapping, and source-aware JSON or CSV reports (#348).
 - Added deterministic N-up, poster, step-and-repeat, manual-sequence, and bounded booklet planning with fitted grids, duplex sides, blank slots, crop marks, and registration marks (#349).
 - Added CSV and JSON data import, reusable mappings and defaults, placeholder expansion, collision-safe form generation, cancellation, and isolated batch reports (#352).
 - Added typed PDF macro saving, editing, and execution with ordered supported operations, source preservation, cancellation, and data-safe JSON batch reports (#343).

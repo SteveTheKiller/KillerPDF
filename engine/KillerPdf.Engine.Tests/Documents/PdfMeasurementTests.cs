@@ -52,19 +52,23 @@ public sealed class PdfMeasurementTests
     {
         PdfMeasurementResult[] results = [new()
         {
+            Document = "site,plan.pdf",
             PageIndex = 1,
             Kind = "Distance",
             Label = "Wall, north",
             Value = 12.5,
             Unit = "ft",
-            Profile = "Floor plan"
+            Profile = "Floor plan",
+            UnitsPerPoint = 0.5,
+            Points = [new(1, 2), new(3, 4)]
         }];
 
         string json = PdfMeasurementReport.ToJson(results);
         string csv = PdfMeasurementReport.ToCsv(results);
 
         Assert.Contains("\"PageIndex\": 1", json, StringComparison.Ordinal);
-        Assert.Contains("2,\"Distance\",\"Wall, north\",12.5,\"ft\",\"Floor plan\"", csv,
+        Assert.Contains("\"Document\": \"site,plan.pdf\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"site,plan.pdf\",2,\"Distance\",\"Wall, north\",12.5,\"ft\",\"Floor plan\",0.5,\"1 2;3 4\"", csv,
             StringComparison.Ordinal);
     }
 

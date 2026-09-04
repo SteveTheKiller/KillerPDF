@@ -343,6 +343,8 @@ public static class PdfMeasurement
 /// <summary>One exportable PDF measurement result.</summary>
 public sealed record PdfMeasurementResult
 {
+    /// <summary>Gets the optional document identity.</summary>
+    public string? Document { get; init; }
     /// <summary>Gets the zero-based page index.</summary>
     public int PageIndex { get; init; }
     /// <summary>Gets the measurement kind.</summary>
@@ -355,6 +357,10 @@ public sealed record PdfMeasurementResult
     public required string Unit { get; init; }
     /// <summary>Gets the profile used to calculate the result.</summary>
     public required string Profile { get; init; }
+    /// <summary>Gets drawing units represented by one PDF point.</summary>
+    public double? UnitsPerPoint { get; init; }
+    /// <summary>Gets the source geometry in PDF user space.</summary>
+    public IReadOnlyList<PdfMeasurementPoint> Points { get; init; } = [];
 }
 
 /// <summary>Exports stable machine-readable measurement reports.</summary>
@@ -367,13 +373,19 @@ public static class PdfMeasurementReport
     /// <summary>Writes measurement results as RFC 4180-compatible CSV.</summary>
     public static string ToCsv(IEnumerable<PdfMeasurementResult> results)
     {
-        var output = new StringBuilder("Page,Kind,Label,Value,Unit,Profile\r\n");
+        var output = new StringBuilder(
+            "Document,Page,Kind,Label,Value,Unit,Profile,UnitsPerPoint,Geometry\r\n");
         foreach (PdfMeasurementResult result in Checked(results))
         {
-            output.Append(result.PageIndex + 1).Append(',').Append(Csv(result.Kind)).Append(',')
+            output.Append(Csv(result.Document ?? string.Empty)).Append(',')
+                .Append(result.PageIndex + 1).Append(',').Append(Csv(result.Kind)).Append(',')
                 .Append(Csv(result.Label ?? string.Empty)).Append(',')
                 .Append(result.Value.ToString("R", CultureInfo.InvariantCulture)).Append(',')
-                .Append(Csv(result.Unit)).Append(',').Append(Csv(result.Profile)).Append("\r\n");
+                .Append(Csv(result.Unit)).Append(',').Append(Csv(result.Profile)).Append(',')
+                .Append(result.UnitsPerPoint?.ToString("R", CultureInfo.InvariantCulture))
+                .Append(',').Append(Csv(string.Join(";", result.Points.Select(point =>
+                    $"{point.X.ToString("R", CultureInfo.InvariantCulture)} {point.Y.ToString("R", CultureInfo.InvariantCulture)}"))))
+                .Append("\r\n");
         }
         return output.ToString();
     }
@@ -383,6 +395,8 @@ public static class PdfMeasurementReport
         ArgumentNullException.ThrowIfNull(results);
         PdfMeasurementResult[] values = results.ToArray();
         if (values.Any(result => result.PageIndex < 0 || !double.IsFinite(result.Value)
+            || result.UnitsPerPoint is double scale && (!double.IsFinite(scale) || scale <= 0)
+            || result.Points.Any(point => !double.IsFinite(point.X) || !double.IsFinite(point.Y))
             || string.IsNullOrWhiteSpace(result.Kind) || string.IsNullOrWhiteSpace(result.Unit)
             || string.IsNullOrWhiteSpace(result.Profile)))
             throw new ArgumentException("A measurement report contains an invalid result.", nameof(results));
