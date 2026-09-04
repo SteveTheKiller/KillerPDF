@@ -31,6 +31,22 @@ public sealed class PdfStructuredExportTests
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfStructuredExport.ToHtml(document, [1]));
     }
 
+    [Fact]
+    public void ReportsContentThatTargetsCannotFullyRepresent()
+    {
+        PdfDocument document = Document("10 10 20 20 re f");
+
+        PdfStructuredExportReport report = PdfStructuredExport.InspectLosses(
+            document, PdfStructuredExportFormat.Html);
+        using JsonDocument json = JsonDocument.Parse(report.ToJson());
+
+        PdfStructuredExportFinding finding = Assert.Single(report.Findings);
+        Assert.Equal("VectorContentNotExported", finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.False(report.IsLossless);
+        Assert.False(json.RootElement.GetProperty("isLossless").GetBoolean());
+    }
+
     private static PdfDocument Document(string content)
     {
         string stream = $"<< /Length {Encoding.Latin1.GetByteCount(content)} >>\nstream\n{content}\nendstream";

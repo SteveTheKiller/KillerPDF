@@ -4,9 +4,72 @@ using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
 
+/// <summary>A structured export target whose representation limits can be inspected.</summary>
+public enum PdfStructuredExportFormat
+{
+    /// <summary>Plain text.</summary>
+    PlainText,
+    /// <summary>Standalone HTML.</summary>
+    Html,
+    /// <summary>Structured JSON.</summary>
+    Json
+}
+
+/// <summary>One type of source content that an export does not fully represent.</summary>
+public sealed record PdfStructuredExportFinding(
+    string Code, int PageIndex, int Count, string Message);
+
+/// <summary>A report of content that a structured export cannot fully represent.</summary>
+public sealed record PdfStructuredExportReport(IReadOnlyList<PdfStructuredExportFinding> Findings)
+{
+    /// <summary>Gets whether the selected pages can be represented without known loss.</summary>
+    public bool IsLossless => Findings.Count == 0;
+
+    /// <summary>Exports the report as machine-readable JSON.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new { Version = 1, IsLossless, Findings },
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        });
+}
+
 /// <summary>Exports engine-owned page extraction to editable text and web formats.</summary>
 public static class PdfStructuredExport
 {
+    /// <summary>Reports source content that the selected export cannot fully represent.</summary>
+    public static PdfStructuredExportReport InspectLosses(PdfDocument document,
+        PdfStructuredExportFormat format, IEnumerable<int>? pageIndices = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
+        var findings = new List<PdfStructuredExportFinding>();
+        foreach (Page page in Read(document, pageIndices, cancellationToken))
+        {
+            if (page.Content.Paths.Count > 0)
+                findings.Add(new PdfStructuredExportFinding("VectorContentNotExported",
+                    page.Index, page.Content.Paths.Count,
+                    "Vector paths are not represented by this structured export."));
+            if (page.Content.Images.Count > 0)
+            {
+                string message = format switch
+                {
+                    PdfStructuredExportFormat.PlainText =>
+                        "Images are omitted from plain-text export.",
+                    PdfStructuredExportFormat.Html =>
+                        "HTML export contains image placeholders without image data.",
+                    PdfStructuredExportFormat.Json =>
+                        "JSON export contains image placement without image data.",
+                    _ => throw new ArgumentOutOfRangeException(nameof(format))
+                };
+                findings.Add(new PdfStructuredExportFinding("ImageContentNotExported",
+                    page.Index, page.Content.Images.Count, message));
+            }
+        }
+        return new PdfStructuredExportReport(Array.AsReadOnly(findings.ToArray()));
+    }
+
     /// <summary>Exports selected pages as plain text separated by form feeds.</summary>
     public static string ToPlainText(PdfDocument document, IEnumerable<int>? pageIndices = null,
         CancellationToken cancellationToken = default) =>
