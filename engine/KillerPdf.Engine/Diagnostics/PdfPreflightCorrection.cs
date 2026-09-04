@@ -13,7 +13,9 @@ public enum PdfPreflightCorrectionKind
     /// <summary>Remove one explicit invalid print-production page box.</summary>
     ClearProductionPageBox,
     /// <summary>Set one missing descriptive metadata field.</summary>
-    SetDocumentMetadata
+    SetDocumentMetadata,
+    /// <summary>Set a validated output intent when the document has none.</summary>
+    SetOutputIntent
 }
 
 /// <summary>A descriptive metadata field eligible for an unambiguous correction.</summary>
@@ -39,7 +41,8 @@ public sealed class PdfPreflightCorrectionPlan
         bool changesDocument, string? language = null,
         int? pageIndex = null, PdfPageBox? pageBox = null,
         PdfPreflightMetadataField? metadataField = null,
-        string? metadataValue = null)
+        string? metadataValue = null, PdfIccProfile? outputIntentProfile = null,
+        string? outputConditionIdentifier = null)
     {
         _document = document;
         Kind = kind;
@@ -48,6 +51,8 @@ public sealed class PdfPreflightCorrectionPlan
         PageBox = pageBox;
         MetadataField = metadataField;
         MetadataValue = metadataValue;
+        OutputIntentProfile = outputIntentProfile;
+        OutputConditionIdentifier = outputConditionIdentifier;
         ChangesDocument = changesDocument;
     }
 
@@ -63,6 +68,10 @@ public sealed class PdfPreflightCorrectionPlan
     public PdfPreflightMetadataField? MetadataField { get; }
     /// <summary>Gets the caller-confirmed descriptive metadata value.</summary>
     public string? MetadataValue { get; }
+    /// <summary>Gets the validated destination profile for an output-intent correction.</summary>
+    public PdfIccProfile? OutputIntentProfile { get; }
+    /// <summary>Gets the output condition identifier for an output-intent correction.</summary>
+    public string? OutputConditionIdentifier { get; }
     /// <summary>Gets whether applying the plan will change the document.</summary>
     public bool ChangesDocument { get; }
 
@@ -116,6 +125,26 @@ public sealed class PdfPreflightCorrectionPlan
             current is null, metadataField: field, metadataValue: value);
     }
 
+    /// <summary>Previews adding a caller-confirmed output intent when none exists.</summary>
+    public static PdfPreflightCorrectionPlan SetOutputIntent(
+        PdfDocument document, PdfIccProfile profile, string outputConditionIdentifier)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputConditionIdentifier);
+        _ = new PdfIncrementalPageEditor(document)
+            .SetOutputIntent(profile, outputConditionIdentifier);
+        IReadOnlyList<PdfOutputIntentInformation> existing =
+            PdfOutputIntentInspection.Inspect(document);
+        if (existing.Count > 0)
+            throw new InvalidOperationException(
+                "A preflight output-intent correction cannot replace an existing output intent.");
+        return new PdfPreflightCorrectionPlan(document,
+            PdfPreflightCorrectionKind.SetOutputIntent, true,
+            outputIntentProfile: profile,
+            outputConditionIdentifier: outputConditionIdentifier);
+    }
+
     /// <summary>Applies the previewed correction and verifies the saved result.</summary>
     public byte[] Apply()
     {
@@ -125,6 +154,7 @@ public sealed class PdfPreflightCorrectionPlan
             PdfPreflightCorrectionKind.SetDocumentLanguage => ApplyLanguage(),
             PdfPreflightCorrectionKind.ClearProductionPageBox => ApplyPageBox(),
             PdfPreflightCorrectionKind.SetDocumentMetadata => ApplyMetadata(),
+            PdfPreflightCorrectionKind.SetOutputIntent => ApplyOutputIntent(),
             _ => throw new InvalidOperationException("The preflight correction kind is not supported.")
         };
     }
@@ -170,6 +200,29 @@ public sealed class PdfPreflightCorrectionPlan
             throw new InvalidOperationException(
                 "The preflight correction did not preserve the requested metadata value.");
         return output;
+    }
+
+    private byte[] ApplyOutputIntent()
+    {
+        byte[] output = new PdfIncrementalPageEditor(_document)
+            .SetOutputIntent(OutputIntentProfile!, OutputConditionIdentifier!).Build();
+        PdfOutputIntentInformation saved = AssertSingleOutputIntent(output);
+        if (!string.Equals(saved.OutputConditionIdentifier,
+                OutputConditionIdentifier, StringComparison.Ordinal)
+            || !saved.Profile.Data.Span.SequenceEqual(OutputIntentProfile!.Data.Span))
+            throw new InvalidOperationException(
+                "The preflight correction did not preserve the requested output intent.");
+        return output;
+    }
+
+    private static PdfOutputIntentInformation AssertSingleOutputIntent(byte[] output)
+    {
+        IReadOnlyList<PdfOutputIntentInformation> intents =
+            PdfOutputIntentInspection.Inspect(PdfDocument.Open(output));
+        return intents.Count == 1
+            ? intents[0]
+            : throw new InvalidOperationException(
+                "The preflight correction did not save exactly one output intent.");
     }
 
     private static PdfDocumentMetadata Metadata(PdfDocumentInformation information) => new()

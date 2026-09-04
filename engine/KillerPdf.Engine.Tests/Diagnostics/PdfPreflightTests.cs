@@ -216,6 +216,32 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void MissingOutputIntentCorrectionIsPreviewedAppliedAndVerified()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfIccProfile profile = PdfIccProfile.Load(Profile());
+
+        PdfPreflightCorrectionPlan plan = PdfPreflightCorrectionPlan.SetOutputIntent(
+            document, profile, "Test RGB");
+        byte[] correctedBytes = plan.Apply();
+        PdfOutputIntentInformation saved = Assert.Single(
+            PdfOutputIntentInspection.Inspect(PdfDocument.Open(correctedBytes)));
+
+        Assert.Equal(PdfPreflightCorrectionKind.SetOutputIntent, plan.Kind);
+        Assert.True(plan.ChangesDocument);
+        Assert.Equal("Test RGB", plan.OutputConditionIdentifier);
+        Assert.Equal("Test RGB", saved.OutputConditionIdentifier);
+        Assert.Equal(profile.Data.ToArray(), saved.Profile.Data.ToArray());
+        Assert.DoesNotContain(PdfPreflightRunner.Run(correctedBytes,
+                new PdfPreflightProfile("Output intent", [PdfPreflightCheck.OutputIntent])).Findings,
+            finding => finding.Code.StartsWith("OutputIntent.", StringComparison.Ordinal));
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfPreflightCorrectionPlan.SetOutputIntent(
+                PdfDocument.Open(correctedBytes), profile, "Replacement"));
+    }
+
+    [Fact]
     public void OutputIntentCheckRejectsMalformedIccProfileBytes()
     {
         PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
