@@ -259,7 +259,9 @@ public enum PdfMacroOperation
     /// <summary>Remove links whose local or named destination cannot be resolved.</summary>
     RemoveUnresolvedLinks,
     /// <summary>Arrange source pages as duplex booklet signatures.</summary>
-    ImposeBooklet
+    ImposeBooklet,
+    /// <summary>Replace the document's page-label ranges.</summary>
+    SetPageLabels
 }
 
 /// <summary>One contextual macro operation result and its values for later steps.</summary>

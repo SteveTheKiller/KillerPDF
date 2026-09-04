@@ -1,10 +1,15 @@
 using System.Globalization;
+using System.Text.Json;
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Creates and executes typed navigation macro steps.</summary>
 public static class PdfNavigationMacro
 {
+    private const string PageLabelRangesKey = "ranges";
+
     /// <summary>Creates a navigation-audit macro step.</summary>
     public static PdfMacroStep AuditStep() => new(PdfMacroOperation.AuditNavigation);
 
@@ -39,6 +44,20 @@ public static class PdfNavigationMacro
                 ["maximumDepth"] = maximumDepth.ToString(CultureInfo.InvariantCulture)
             });
 
+    /// <summary>Creates a macro step that replaces all page-label ranges.</summary>
+    public static PdfMacroStep PageLabelsStep(
+        IEnumerable<PdfPageLabelMacroRange> ranges)
+    {
+        ArgumentNullException.ThrowIfNull(ranges);
+        PdfPageLabelMacroRange[] values = ranges.ToArray();
+        ValidatePageLabelRanges(values);
+        return new PdfMacroStep(PdfMacroOperation.SetPageLabels,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [PageLabelRangesKey] = JsonSerializer.Serialize(values)
+            });
+    }
+
     /// <summary>Executes one typed navigation macro step without external actions.</summary>
     public static ReadOnlyMemory<byte> Execute(PdfMacroStep step,
         ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default)
@@ -60,9 +79,48 @@ public static class PdfNavigationMacro
                 {
                     MaximumDepth = PositiveInteger(step, "maximumDepth", 256)
                 }).Document,
+            PdfMacroOperation.SetPageLabels => SetPageLabels(document, step),
             _ => throw new ArgumentException(
                 "The macro step is not a navigation operation.", nameof(step))
         };
+    }
+
+    private static byte[] SetPageLabels(PdfDocument document, PdfMacroStep step)
+    {
+        if (step.Settings is null || step.Settings.Count != 1
+            || !step.Settings.TryGetValue(PageLabelRangesKey, out string? json))
+            throw new ArgumentException(
+                "The page-label macro settings are invalid.", nameof(step));
+        PdfPageLabelMacroRange[] ranges;
+        try
+        {
+            ranges = JsonSerializer.Deserialize<PdfPageLabelMacroRange[]>(json)
+                ?? throw new JsonException();
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException(
+                "The page-label macro ranges are invalid.", nameof(step), exception);
+        }
+        ValidatePageLabelRanges(ranges);
+        var editor = new PdfIncrementalPageEditor(document).ClearPageLabels();
+        foreach (PdfPageLabelMacroRange range in ranges)
+            editor.AddPageLabelRange(range.PageIndex, range.Style,
+                range.Prefix, range.StartNumber);
+        return editor.Build();
+    }
+
+    private static void ValidatePageLabelRanges(
+        IReadOnlyList<PdfPageLabelMacroRange> ranges)
+    {
+        if (ranges.Count == 0)
+            throw new ArgumentException("At least one page-label range is required.", nameof(ranges));
+        if (ranges.Any(range => range.PageIndex < 0 || !Enum.IsDefined(range.Style)
+                || range.StartNumber < 1
+                || range.Style == PdfPageLabelStyle.None
+                    && string.IsNullOrEmpty(range.Prefix))
+            || ranges.Select(range => range.PageIndex).Distinct().Count() != ranges.Count)
+            throw new ArgumentException("Page-label macro ranges are invalid.", nameof(ranges));
     }
 
     /// <summary>Returns findings for an audit macro step without changing the document.</summary>
@@ -131,3 +189,7 @@ public static class PdfNavigationMacro
         return parsed;
     }
 }
+
+/// <summary>One data-free page-label range saved in a navigation macro.</summary>
+public sealed record PdfPageLabelMacroRange(
+    int PageIndex, PdfPageLabelStyle Style, string? Prefix = null, int StartNumber = 1);

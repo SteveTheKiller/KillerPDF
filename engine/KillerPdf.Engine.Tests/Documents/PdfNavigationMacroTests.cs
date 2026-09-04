@@ -89,6 +89,32 @@ public sealed class PdfNavigationMacroTests
         Assert.Equal(PdfNavigationFindingCode.LinkUnsafeUri, remaining.Code);
     }
 
+    [Fact]
+    public void MacroRoundTripReplacesPageLabelRanges()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddBlankPage().AddBlankPage().AddBlankPage()
+            .AddPageLabelRange(0, PdfPageLabelStyle.UpperRoman)
+            .Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Page labels",
+        [
+            PdfNavigationMacro.PageLabelsStep([
+                new PdfPageLabelMacroRange(0, PdfPageLabelStyle.LowerRoman, "Intro "),
+                new PdfPageLabelMacroRange(2, PdfPageLabelStyle.Decimal, "A-", 4)
+            ])
+        ]).ToJson());
+
+        PdfDocument output = PdfDocument.Open(PdfNavigationMacro.Execute(
+            Assert.Single(macro.Steps), source));
+
+        Assert.Equal(["Intro i", "Intro ii", "A-4"],
+            PdfPageLabelReader.Read(output));
+        Assert.Throws<ArgumentException>(() => PdfNavigationMacro.PageLabelsStep([
+            new PdfPageLabelMacroRange(0, PdfPageLabelStyle.Decimal),
+            new PdfPageLabelMacroRange(0, PdfPageLabelStyle.UpperRoman)
+        ]));
+    }
+
     private static byte[] DocumentWithUnsafeAndUnresolvedLinks()
     {
         string[] objects =
