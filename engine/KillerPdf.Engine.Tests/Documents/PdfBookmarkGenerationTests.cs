@@ -67,4 +67,39 @@ public sealed class PdfBookmarkGenerationTests
         Assert.Equal(PdfDestinationKind.FitH, bookmark.Destination?.Kind);
         Assert.Equal(620, bookmark.Destination?.Values[0]);
     }
+
+    [Fact]
+    public void DetectionCanFilterByPageRegionAndTitlePattern()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.HelveticaBold, 18)
+                .MoveText(30, 350).ShowLatin1Text("Chapter 1").EndText()
+                .BeginText().SetFont(PdfStandardFont.HelveticaBold, 18)
+                .MoveText(200, 200).ShowLatin1Text("Sidebar").EndText())
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.HelveticaBold, 18)
+                .MoveText(30, 350).ShowLatin1Text("Chapter 2").EndText())
+            .Build());
+
+        IReadOnlyList<PdfBookmarkProposal> proposals =
+            PdfBookmarkGeneration.DetectHeadings(document,
+                new PdfBookmarkDetectionOptions
+                {
+                    TitlePattern = "^Chapter [0-9]+$",
+                    PageRegions = new Dictionary<int, PdfContentBounds>
+                    {
+                        [0] = new(0, 300, 160, 400)
+                    }
+                });
+
+        Assert.Equal("Chapter 1", Assert.Single(proposals).Title);
+        Assert.Throws<ArgumentException>(() => PdfBookmarkGeneration.DetectHeadings(
+            document, new PdfBookmarkDetectionOptions { TitlePattern = "[" }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfBookmarkGeneration.DetectHeadings(
+            document, new PdfBookmarkDetectionOptions
+            {
+                PageRegions = new Dictionary<int, PdfContentBounds> { [2] = new(0, 0, 10, 10) }
+            }));
+    }
 }

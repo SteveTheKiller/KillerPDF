@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
+using System.Text.RegularExpressions;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -14,7 +15,14 @@ public static class PdfBookmarkGeneration
         ArgumentNullException.ThrowIfNull(document);
         options ??= new PdfBookmarkDetectionOptions();
         Validate(options);
+        Regex? titlePattern = options.TitlePattern is null ? null : new Regex(
+            options.TitlePattern, RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(100));
         var reader = new PdfPageContentReader(document);
+        if (options.PageRegions is not null
+            && options.PageRegions.Keys.Any(page => page < 0 || page >= reader.PageCount))
+            throw new ArgumentOutOfRangeException(nameof(options.PageRegions),
+                "A heading region page is outside the document.");
         var candidates = new List<(int Page, PdfExtractedLine Line, double Size)>();
         for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
         {
@@ -25,6 +33,10 @@ public static class PdfBookmarkGeneration
                 double size = line.Runs.Max(run => run.PointSize);
                 if (title.Length is 0 || title.Length > options.MaximumTitleLength
                     || size < options.MinimumPointSize
+                    || titlePattern is not null && !titlePattern.IsMatch(title)
+                    || options.PageRegions is not null
+                        && (!options.PageRegions.TryGetValue(pageIndex, out PdfContentBounds region)
+                            || !Intersects(region, line.BoundingBox))
                     || line.WritingDirection is not (PdfWritingDirection.LeftToRight
                         or PdfWritingDirection.RightToLeft))
                     continue;
@@ -52,6 +64,10 @@ public static class PdfBookmarkGeneration
         }
         return Array.AsReadOnly(proposals.ToArray());
     }
+
+    private static bool Intersects(PdfContentBounds first, PdfContentBounds second) =>
+        first.Left < second.Right && first.Right > second.Left
+        && first.Bottom < second.Top && first.Top > second.Bottom;
 
     /// <summary>Authors accepted proposals after every proposal has been reviewed.</summary>
     public static byte[] Apply(PdfDocument document,
@@ -95,6 +111,20 @@ public static class PdfBookmarkGeneration
             throw new ArgumentOutOfRangeException(nameof(options.MaximumTitleLength));
         if (options.MaximumDepth is < 1 or > 256)
             throw new ArgumentOutOfRangeException(nameof(options.MaximumDepth));
+        if (options.PageRegions?.Values.Any(region => region.Width <= 0 || region.Height <= 0) == true)
+            throw new ArgumentException(
+                "Heading regions must have positive dimensions.", nameof(options.PageRegions));
+        if (options.TitlePattern is not null)
+            try
+            {
+                _ = new Regex(options.TitlePattern, RegexOptions.CultureInvariant,
+                    TimeSpan.FromMilliseconds(100));
+            }
+            catch (ArgumentException error)
+            {
+                throw new ArgumentException(
+                    "The heading title pattern is invalid.", nameof(options.TitlePattern), error);
+            }
     }
 }
 
@@ -107,6 +137,10 @@ public sealed record PdfBookmarkDetectionOptions
     public int MaximumTitleLength { get; init; } = 160;
     /// <summary>Gets the maximum number of font-size hierarchy levels.</summary>
     public int MaximumDepth { get; init; } = 6;
+    /// <summary>Gets an optional regular expression that heading titles must match.</summary>
+    public string? TitlePattern { get; init; }
+    /// <summary>Gets optional page regions that bound heading detection.</summary>
+    public IReadOnlyDictionary<int, PdfContentBounds>? PageRegions { get; init; }
 }
 
 /// <summary>A reviewable heading-derived bookmark.</summary>
