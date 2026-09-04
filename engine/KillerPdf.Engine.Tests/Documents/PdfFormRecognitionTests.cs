@@ -7,6 +7,31 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfFormRecognitionTests
 {
     [Fact]
+    public void RecognizerProposesDigitalRectanglesWithoutChangingTheDocument()
+    {
+        var content = new PdfContentStreamBuilder()
+            .Rectangle(10, 10, 18, 18).Stroke()
+            .Rectangle(40, 10, 140, 20).Stroke()
+            .Rectangle(10, 80, 180, 80).Stroke();
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(240, 200, content).Build();
+        PdfDocument document = PdfDocument.Open(source);
+
+        PdfFormRecognitionReview review = PdfFormRecognizer.Recognize(document);
+
+        Assert.Equal(2, review.Proposals.Count);
+        Assert.Contains(review.Proposals,
+            proposal => proposal.Kind == PdfRecognizedFieldKind.CheckBox);
+        Assert.Contains(review.Proposals,
+            proposal => proposal.Kind == PdfRecognizedFieldKind.Text);
+        Assert.All(review.Proposals, proposal =>
+            Assert.Equal(PdfFormProposalStatus.Proposed, proposal.Status));
+        Assert.All(review.Proposals, proposal => Assert.StartsWith("page-1-path-", proposal.Id));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfFormRecognizer.Recognize(
+            document, new PdfFormRecognitionOptions { MinimumDimension = 0 }));
+    }
+
+    [Fact]
     public void ReviewRequiresEveryProposalToBeDecidedBeforeApply()
     {
         var review = new PdfFormRecognitionReview([

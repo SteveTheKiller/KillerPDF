@@ -102,6 +102,79 @@ public enum PdfFormProposalStatus
     Rejected
 }
 
+/// <summary>Conservative geometry limits for digital-page field recognition.</summary>
+public sealed record PdfFormRecognitionOptions
+{
+    /// <summary>Gets the smallest accepted rectangle dimension in points.</summary>
+    public double MinimumDimension { get; init; } = 8;
+    /// <summary>Gets the largest accepted field height in points.</summary>
+    public double MaximumHeight { get; init; } = 60;
+    /// <summary>Gets the largest square dimension proposed as a checkbox.</summary>
+    public double MaximumCheckBoxDimension { get; init; } = 30;
+}
+
+/// <summary>Finds conservative rectangular field candidates for explicit review.</summary>
+public static class PdfFormRecognizer
+{
+    /// <summary>Returns pending proposals without modifying the source document.</summary>
+    public static PdfFormRecognitionReview Recognize(
+        PdfDocument document, PdfFormRecognitionOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        options ??= new PdfFormRecognitionOptions();
+        if (!double.IsFinite(options.MinimumDimension)
+            || options.MinimumDimension <= 0)
+            throw new ArgumentOutOfRangeException(nameof(options));
+        if (!double.IsFinite(options.MaximumHeight)
+            || options.MaximumHeight < options.MinimumDimension)
+            throw new ArgumentOutOfRangeException(nameof(options));
+        if (!double.IsFinite(options.MaximumCheckBoxDimension)
+            || options.MaximumCheckBoxDimension < options.MinimumDimension)
+            throw new ArgumentOutOfRangeException(nameof(options));
+        var reader = new PdfPageContentReader(document);
+        var proposals = new List<PdfFormFieldProposal>();
+        int pageCount = PdfPageBoxInformation.Read(document).Count;
+        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfPageContent content = reader.Read(pageIndex, cancellationToken);
+            PdfContentBounds[] widgets = [.. PdfFormWidgetReader.ReadPage(document, pageIndex)
+                .Select(widget => new PdfContentBounds(
+                    widget.Left, widget.Bottom, widget.Right, widget.Top))];
+            int sequence = 0;
+            foreach ((PdfExtractedPath path, int pathIndex) in content.Paths
+                         .Select((path, index) => (path, index)))
+            {
+                if (path.IsClippingPath || path.Segments.Count != 1
+                    || path.Segments[0].Operator != "re"
+                    || path.PaintOperator is not ("S" or "s" or "B" or "B*"))
+                    continue;
+                PdfContentBounds bounds = path.BoundingBox;
+                if (bounds.Width < options.MinimumDimension
+                    || bounds.Height < options.MinimumDimension
+                    || bounds.Height > options.MaximumHeight
+                    || widgets.Any(widget => Intersects(widget, bounds)))
+                    continue;
+                bool square = Math.Max(bounds.Width, bounds.Height)
+                    <= options.MaximumCheckBoxDimension
+                    && Math.Abs(bounds.Width - bounds.Height)
+                        <= Math.Max(bounds.Width, bounds.Height) * 0.2;
+                sequence++;
+                proposals.Add(new PdfFormFieldProposal(
+                    $"page-{pageIndex + 1}-path-{pathIndex + 1}", pageIndex, bounds,
+                    square ? PdfRecognizedFieldKind.CheckBox : PdfRecognizedFieldKind.Text,
+                    square ? 0.9 : 0.7, $"field_{pageIndex + 1}_{sequence}"));
+            }
+        }
+        return new PdfFormRecognitionReview(proposals);
+    }
+
+    private static bool Intersects(PdfContentBounds left, PdfContentBounds right) =>
+        left.Left < right.Right && left.Right > right.Left
+        && left.Bottom < right.Top && left.Top > right.Bottom;
+}
+
 /// <summary>One field proposed by a form-recognition provider.</summary>
 public sealed record PdfFormFieldProposal
 {
