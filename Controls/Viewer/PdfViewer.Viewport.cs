@@ -1750,7 +1750,22 @@ namespace KillerPDF.Controls
                     PageImage.ActualHeight > 0 ? PageImage.ActualHeight : 1);
         }
 
-        internal void FitToWidth(bool lite = false)
+        // Where a Continuous fit leaves the scroll position. A user fit (Ctrl+2, Ctrl+3, view-mode
+        // change) seats the current page at the top. A resize keeps what was under the viewport,
+        // during the drag and on the settle re-fit, because navigating on every tick is what made
+        // the document and the thumbnails jump.
+        internal enum FitScroll { PageTop, KeepOffset }
+
+        // Slot tops are unscaled DIPs and scroll targets are top * _zoomLevel, so scaling the
+        // offset by the zoom ratio keeps the same content under the viewport top.
+        private void CarryContinuousOffset(double previousZoom)
+        {
+            double offset = PagePreviewPanel.VerticalOffset;
+            if (offset <= 0) return;
+            PagePreviewPanel.ScrollToVerticalOffset(offset * _zoomLevel / Math.Max(0.01, previousZoom));
+        }
+
+        internal void FitToWidth(bool lite = false, FitScroll scroll = FitScroll.PageTop)
         {
             double viewW = PagePreviewPanel.ActualWidth - 40;
             if (viewW <= 0) return;
@@ -1761,11 +1776,13 @@ namespace KillerPDF.Controls
             if (_viewMode == ViewMode.Continuous)
             {
                 if (_continuousPageW <= 0) return;
+                double previousZoom = _zoomLevel;
                 _fitMode   = FitMode.Width;
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, viewW / _continuousPageW));
                 ApplyZoom(lite);
                 int ci = State.CurrentPage;   // this pane's page, never the shared sidebar's (see ApplyZoom)
-                if (ci >= 0) NavigateContinuousToPage(ci);
+                if (lite || scroll == FitScroll.KeepOffset) CarryContinuousOffset(previousZoom);
+                else if (ci >= 0) NavigateContinuousToPage(ci);
                 if (ci >= 0 && _doc != null)
                     SetStatus(string.Format(Loc("Str_FitWidth"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
                 return;
@@ -1785,7 +1802,7 @@ namespace KillerPDF.Controls
                 SetStatus(string.Format(Loc("Str_FitWidth"), idx + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
         }
 
-        internal void FitToPage(bool lite = false)
+        internal void FitToPage(bool lite = false, FitScroll scroll = FitScroll.PageTop)
         {
             double viewW = PagePreviewPanel.ActualWidth  - 40;
             double viewH = PagePreviewPanel.ActualHeight - 40;
@@ -1802,11 +1819,13 @@ namespace KillerPDF.Controls
                 var (pageWidth, pageHeight) = engineSession.VisualPageSize(ci, _pageRotations);
                 double ratio = Math.Max(0.1, pageHeight / Math.Max(1.0, pageWidth));
                 double dipH  = _continuousPageW * ratio;
+                double previousZoom = _zoomLevel;
                 _fitMode   = FitMode.Page;
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                     Math.Min(viewW / _continuousPageW, viewH / dipH)));
                 ApplyZoom(lite);
-                NavigateContinuousToPage(ci);
+                if (lite || scroll == FitScroll.KeepOffset) CarryContinuousOffset(previousZoom);
+                else NavigateContinuousToPage(ci);
                 SetStatus(string.Format(Loc("Str_FitPage"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
                 return;
             }
@@ -1978,8 +1997,8 @@ namespace KillerPDF.Controls
                 RepositionAnnotationBars();   // settle the bar against the final pane size
                 return;
             }
-            if (_fitMode == FitMode.Width) FitToWidth();
-            else if (_fitMode == FitMode.Page) FitToPage();
+            if (_fitMode == FitMode.Width) FitToWidth(scroll: FitScroll.KeepOffset);
+            else if (_fitMode == FitMode.Page) FitToPage(scroll: FitScroll.KeepOffset);
             RepositionAnnotationBars();   // settle the bar against the final pane size (scrollbar may have toggled)
         }
 
