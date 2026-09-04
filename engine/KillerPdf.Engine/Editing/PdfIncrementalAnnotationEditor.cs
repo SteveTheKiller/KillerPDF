@@ -443,7 +443,9 @@ public sealed class PdfIncrementalAnnotationEditor
         PdfLineEndingStyle endEnding = PdfLineEndingStyle.None,
         PdfRgbColor? interiorColor = null,
         PdfLineAnnotationIntent? intent = null,
-        PdfMeasurementProfile? measurement = null)
+        PdfMeasurementProfile? measurement = null,
+        double leaderLineLength = 0,
+        double leaderLineExtension = 0)
     {
         ValidatePage(pageIndex);
         ValidateStroke(lineWidth, opacity);
@@ -461,11 +463,20 @@ public sealed class PdfIncrementalAnnotationEditor
                     "A measurement profile requires dimension intent.", nameof(intent));
             intent = PdfLineAnnotationIntent.Dimension;
         }
+        if (!double.IsFinite(leaderLineLength))
+            throw new ArgumentOutOfRangeException(nameof(leaderLineLength));
+        if (!double.IsFinite(leaderLineExtension) || leaderLineExtension < 0)
+            throw new ArgumentOutOfRangeException(nameof(leaderLineExtension));
+        if (leaderLineExtension > 0 && leaderLineLength == 0)
+            throw new ArgumentException(
+                "A leader-line extension requires a nonzero leader-line length.",
+                nameof(leaderLineExtension));
         if (start == end) throw new ArgumentException("A line must have two distinct endpoints.", nameof(end));
         _annotations.Add(new PendingLine(
             pageIndex, start, end, color ?? new PdfRgbColor(0, 0, 0),
             lineWidth, opacity, contents, annotationMetadata, dash,
-            startEnding, endEnding, interiorColor, intent, measurement));
+            startEnding, endEnding, interiorColor, intent, measurement,
+            leaderLineLength, leaderLineExtension));
         return this;
     }
 
@@ -3026,7 +3037,7 @@ public sealed class PdfIncrementalAnnotationEditor
         PendingLine line, PdfIndirectReference page, PdfIndirectReference annotation,
         PdfIndirectReference appearance)
     {
-        Bounds bounds = PointBounds([line.Start, line.End],
+        Bounds bounds = PointBounds(LineBoundsPoints(line),
             LineEndingPadding(line.LineWidth, line.StartEnding, line.EndEnding));
         var entries = CommonEntries("Line", bounds.X, bounds.Y, bounds.Width, bounds.Height,
             page, annotation, appearance, line.Color, line.Opacity,
@@ -3043,6 +3054,10 @@ public sealed class PdfIncrementalAnnotationEditor
             entries.Add(("IT", Name(PdfAnnotationIntentNames.Name(line.Intent.Value))));
         if (line.Measurement is not null)
             entries.Add(("Measure", MeasurementDictionary(line.Measurement, false)));
+        if (line.LeaderLineLength != 0)
+            entries.Add(("LL", Number(line.LeaderLineLength)));
+        if (line.LeaderLineExtension != 0)
+            entries.Add(("LLE", Number(line.LeaderLineExtension)));
         return Dictionary([.. entries]);
     }
 
@@ -3081,7 +3096,7 @@ public sealed class PdfIncrementalAnnotationEditor
 
     private static PdfStream LineAppearance(PendingLine line)
     {
-        Bounds bounds = PointBounds([line.Start, line.End],
+        Bounds bounds = PointBounds(LineBoundsPoints(line),
             LineEndingPadding(line.LineWidth, line.StartEnding, line.EndEnding));
         using var output = new MemoryStream();
         WriteAscii(output,
@@ -3097,9 +3112,36 @@ public sealed class PdfIncrementalAnnotationEditor
             line.End.X - bounds.X, line.End.Y - bounds.Y,
             line.Start.X - bounds.X, line.Start.Y - bounds.Y,
             line.EndEnding, line.LineWidth, line.Color, line.InteriorColor);
+        if (line.LeaderLineLength != 0)
+        {
+            PdfPoint[] leaders = LineLeaderPoints(line);
+            WriteAscii(output,
+                $"{Format(leaders[0].X - bounds.X)} {Format(leaders[0].Y - bounds.Y)} m\n" +
+                $"{Format(leaders[1].X - bounds.X)} {Format(leaders[1].Y - bounds.Y)} l\n" +
+                $"{Format(leaders[2].X - bounds.X)} {Format(leaders[2].Y - bounds.Y)} m\n" +
+                $"{Format(leaders[3].X - bounds.X)} {Format(leaders[3].Y - bounds.Y)} l\nS\n");
+        }
         output.Write("Q\n"u8);
         return Appearance(bounds.Width, bounds.Height,
             OpacityResources(line.Opacity), output.ToArray());
+    }
+
+    private static IReadOnlyList<PdfPoint> LineBoundsPoints(PendingLine line) =>
+        line.LeaderLineLength == 0
+            ? [line.Start, line.End]
+            : [line.Start, line.End, .. LineLeaderPoints(line)];
+
+    private static PdfPoint[] LineLeaderPoints(PendingLine line)
+    {
+        double dx = line.End.X - line.Start.X;
+        double dy = line.End.Y - line.Start.Y;
+        double distance = Math.Sqrt(dx * dx + dy * dy);
+        double scale = (line.LeaderLineLength + Math.CopySign(
+            line.LeaderLineExtension, line.LeaderLineLength)) / distance;
+        double offsetX = -dy * scale;
+        double offsetY = dx * scale;
+        return [line.Start, new PdfPoint(line.Start.X + offsetX, line.Start.Y + offsetY),
+            line.End, new PdfPoint(line.End.X + offsetX, line.End.Y + offsetY)];
     }
 
     private static PdfDictionary ShapeDictionary(
@@ -3946,7 +3988,8 @@ public sealed class PdfIncrementalAnnotationEditor
         IReadOnlyList<double>? DashPattern,
         PdfLineEndingStyle StartEnding, PdfLineEndingStyle EndEnding,
         PdfRgbColor? InteriorColor, PdfLineAnnotationIntent? Intent,
-        PdfMeasurementProfile? Measurement)
+        PdfMeasurementProfile? Measurement, double LeaderLineLength,
+        double LeaderLineExtension)
         : PendingAnnotation(PageIndex);
     private sealed record PendingShape(
         PendingShapeType Type, int PageIndex, double X, double Y, double Width, double Height,

@@ -2132,6 +2132,35 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void Build_WritesMeasurementLeaderLinesAndExpandedAppearance()
+    {
+        var profile = new PdfMeasurementProfile("Plan", 0.25, "m", 2);
+        PdfDocument reopened = PdfDocument.Open(
+            new PdfIncrementalAnnotationEditor(PdfDocument.Open(
+                new PdfDocumentBuilder().AddBlankPage().Build()))
+                .AddLine(0, new PdfPoint(20, 30), new PdfPoint(120, 30),
+                    measurement: profile, leaderLineLength: 12,
+                    leaderLineExtension: 3)
+                .Build());
+
+        PdfDictionary annotation = ResolveDictionary(reopened,
+            Assert.IsType<PdfArray>(Pages(reopened)[0].Page[Name("Annots")])[0]);
+        Assert.Equal(12, Assert.IsType<PdfInteger>(annotation[Name("LL")]).Value);
+        Assert.Equal(3, Assert.IsType<PdfInteger>(annotation[Name("LLE")]).Value);
+        PdfArray rectangle = Assert.IsType<PdfArray>(annotation[Name("Rect")]);
+        Assert.True(Assert.IsType<PdfReal>(rectangle[3]).Value > 42);
+        PdfStream appearance = Assert.IsType<PdfStream>(reopened.Resolve(
+            Assert.IsType<PdfIndirectReference>(
+                Assert.IsType<PdfDictionary>(annotation[Name("AP")])[Name("N")])));
+        string appearanceText = Encoding.ASCII.GetString(appearance.EncodedData.Span);
+        Assert.Equal(4, appearanceText.Split(" l\n").Length);
+
+        var editor = new PdfIncrementalAnnotationEditor(reopened);
+        Assert.Throws<ArgumentException>(() => editor.AddLine(0,
+            new PdfPoint(0, 0), new PdfPoint(10, 0), leaderLineExtension: 1));
+    }
+
+    [Fact]
     public void Build_WritesCalibratedPolylineAndPolygonMeasurements()
     {
         var profile = new PdfMeasurementProfile("Plan", 0.5, "m", 2);
