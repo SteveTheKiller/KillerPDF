@@ -92,6 +92,9 @@ public sealed class PdfPartialRasterizationTests
 
         Assert.Throws<ArgumentException>(() => PdfPartialRasterization.Apply(
             document, 0, plan, PdfImage.FromRgb(9, 10, new byte[9 * 10 * 3])));
+        PdfPartialRasterizationPlan forged = plan with { PixelWidth = 9 };
+        Assert.Throws<ArgumentException>(() => PdfPartialRasterization.Apply(
+            document, 0, forged, PdfImage.FromRgb(9, 10, new byte[9 * 10 * 3])));
     }
 
     [Fact]
