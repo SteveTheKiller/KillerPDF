@@ -64,6 +64,12 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
 {
     /// <summary>Gets the signed output-size difference in bytes.</summary>
     public int SizeDifference => OutputSize - OriginalSize;
+    /// <summary>Gets the original count of active cross-reference objects.</summary>
+    public int OriginalObjectCount { get; init; }
+    /// <summary>Gets the output count of active cross-reference objects.</summary>
+    public int OutputObjectCount { get; init; }
+    /// <summary>Gets the signed active-object-count difference.</summary>
+    public int ObjectCountDifference => OutputObjectCount - OriginalObjectCount;
     /// <summary>Gets sanitization changes whose absence was verified after saving.</summary>
     public IReadOnlyList<PdfOptimizationChangeKind> VerifiedRemovals { get; init; } = [];
 }
@@ -115,9 +121,16 @@ public sealed class PdfOptimizationPlan
         IReadOnlyList<PdfOptimizationChangeKind> verified = VerifySanitization(reopened);
         return new PdfOptimizationResult(output, OriginalSize, output.Length, Changes)
         {
-            VerifiedRemovals = verified
+            VerifiedRemovals = verified,
+            OriginalObjectCount = ActiveObjectCount(_document),
+            OutputObjectCount = ActiveObjectCount(reopened)
         };
     }
+
+    private static int ActiveObjectCount(PdfDocument document) =>
+        document.CrossReferences.Values.Count(entry =>
+            entry.Type is CrossReference.PdfCrossReferenceEntryType.InUse
+                or CrossReference.PdfCrossReferenceEntryType.Compressed);
 
     private IReadOnlyList<PdfOptimizationChangeKind> VerifySanitization(PdfDocument document)
     {

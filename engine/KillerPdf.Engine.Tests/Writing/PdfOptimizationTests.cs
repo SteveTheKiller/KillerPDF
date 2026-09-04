@@ -36,6 +36,10 @@ public sealed class PdfOptimizationTests
         Assert.DoesNotContain(reopened.Trailer.Keys, key => key.ValueAsLatin1() == "Info");
         Assert.Equal("Visible text", new PdfPageContentReader(reopened).Read(0).Text);
         Assert.Equal(result.OutputSize - result.OriginalSize, result.SizeDifference);
+        Assert.True(result.OriginalObjectCount > 0);
+        Assert.True(result.OutputObjectCount > 0);
+        Assert.Equal(result.OutputObjectCount - result.OriginalObjectCount,
+            result.ObjectCountDifference);
     }
 
     [Fact]
