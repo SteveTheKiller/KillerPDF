@@ -104,6 +104,8 @@ public sealed class PdfIncrementalPageEditor
     private static readonly PdfName DefaultValueName = Name("DV");
     private static readonly PdfName TooltipName = Name("TU");
     private static readonly PdfName MappingName = Name("TM");
+    private static readonly PdfName ActionName = Name("A");
+    private static readonly PdfName AdditionalActionsName = Name("AA");
     private static readonly PdfName KidsName = Name("Kids");
     private static readonly PdfName NamesName = Name("Names");
     private static readonly PdfName DestsName = Name("Dests");
@@ -197,6 +199,7 @@ public sealed class PdfIncrementalPageEditor
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _fieldNameChanges =
         new(StringComparer.Ordinal);
+    private readonly HashSet<string> _clearedFieldActions = new(StringComparer.Ordinal);
     private string[]? _formCalculationOrder;
     private readonly Dictionary<(int ObjectNumber, int Generation), PendingWidgetRectangle>
         _widgetRectangleChanges = [];
@@ -442,6 +445,17 @@ public sealed class PdfIncrementalPageEditor
             throw new ArgumentException(
                 "Calculation-order field names must be unique.", nameof(fieldNames));
         _formCalculationOrder = names;
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>Removes activation and additional actions from an existing field and its widgets.</summary>
+    public PdfIncrementalPageEditor ClearFormFieldActions(string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException(
+                "The form field name cannot be empty.", nameof(fieldName));
+        _clearedFieldActions.Add(fieldName);
         _catalogPresentationChanged = true;
         return this;
     }
@@ -2049,6 +2063,7 @@ public sealed class PdfIncrementalPageEditor
                 || _choiceFieldBehaviorChanges.Count != 0
                 || _textFieldAppearanceChanges.Count != 0
                 || _fieldNameChanges.Count != 0
+                || _clearedFieldActions.Count != 0
                 || _fieldDefaultChanges.Count != 0
                 || _formCalculationOrder is not null);
         bool deferFormFieldRemovals = _removedFormFields.Count != 0
@@ -2098,6 +2113,8 @@ public sealed class PdfIncrementalPageEditor
                 formUpdate._textFieldAppearanceChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldNameChanges)
                 formUpdate._fieldNameChanges[entry.Key] = entry.Value;
+            foreach (string fieldName in _clearedFieldActions)
+                formUpdate._clearedFieldActions.Add(fieldName);
             foreach (var entry in _fieldDefaultChanges)
                 formUpdate._fieldDefaultChanges[entry.Key] = entry.Value;
             formUpdate._formCalculationOrder = _formCalculationOrder;
@@ -2119,6 +2136,7 @@ public sealed class PdfIncrementalPageEditor
             && _choiceFieldBehaviorChanges.Count == 0
             && _textFieldAppearanceChanges.Count == 0
             && _fieldNameChanges.Count == 0
+            && _clearedFieldActions.Count == 0
             && _fieldDefaultChanges.Count == 0
             && _formCalculationOrder is null) return;
         if (!_tree.Catalog.TryGetValue(AcroFormName, out PdfObject? formValue))
@@ -2136,6 +2154,7 @@ public sealed class PdfIncrementalPageEditor
         var choiceBehaviorMatched = new HashSet<string>(StringComparer.Ordinal);
         var appearanceMatched = new HashSet<string>(StringComparer.Ordinal);
         var namesMatched = new HashSet<string>(StringComparer.Ordinal);
+        var actionsMatched = new HashSet<string>(StringComparer.Ordinal);
         var defaultMatched = new HashSet<string>(StringComparer.Ordinal);
         var resultingNames = new HashSet<string>(StringComparer.Ordinal);
         var fieldReferences = new Dictionary<string, PdfIndirectReference>(
@@ -2205,6 +2224,10 @@ public sealed class PdfIncrementalPageEditor
             if (!namesMatched.Contains(requested))
                 throw new InvalidOperationException(
                     $"The AcroForm has no field named '{requested}'.");
+        foreach (string requested in _clearedFieldActions)
+            if (!actionsMatched.Contains(requested))
+                throw new InvalidOperationException(
+                    $"The AcroForm has no field named '{requested}'.");
         foreach (string requested in _fieldDefaultChanges.Keys)
             if (!defaultMatched.Contains(requested))
                 throw new InvalidOperationException(
@@ -2266,6 +2289,14 @@ public sealed class PdfIncrementalPageEditor
             bool hasMetadataChange = hasPartialName && qualifiedName is not null
                 && _fieldMetadataChanges.TryGetValue(qualifiedName, out metadata);
             PdfDictionary editedField = field;
+            bool clearActions = qualifiedName is not null
+                && _clearedFieldActions.Contains(qualifiedName);
+            if (clearActions)
+            {
+                actionsMatched.Add(qualifiedName!);
+                editedField = ReplaceMany(editedField, [],
+                    [ActionName, AdditionalActionsName]);
+            }
             string? newPartialName = null;
             bool hasNameChange = hasPartialName && qualifiedName is not null
                 && _fieldNameChanges.TryGetValue(qualifiedName, out newPartialName);
@@ -2465,7 +2496,7 @@ public sealed class PdfIncrementalPageEditor
             }
             else if (hasMetadataChange || hasDefaultChange || hasFlagChange
                      || hasBehaviorChange || hasChoiceBehaviorChange
-                     || hasNameChange || hasAppearanceChange)
+                     || hasNameChange || hasAppearanceChange || clearActions)
                 update.ReplaceObject(reference.ObjectNumber, editedField);
             if (!field.TryGetValue(KidsName, out PdfObject? kidsValue)) return;
             PdfArray kids = ResolveArray(

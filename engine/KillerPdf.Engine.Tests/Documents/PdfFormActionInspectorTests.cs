@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -56,6 +57,27 @@ public sealed class PdfFormActionInspectorTests
     public void InspectReturnsEmptyListWithoutAnAcroForm()
     {
         Assert.Empty(PdfFormActionInspector.Inspect(Document("[]")));
+    }
+
+    [Fact]
+    public void ClearFormFieldActionsRemovesFieldAndWidgetActionsWithoutExecutingThem()
+    {
+        PdfDocument source = Document(
+            "[5 0 R]",
+            "<< /FT /Tx /T (customer) /Kids [6 0 R] /AA << /V 7 0 R >> >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [0 0 10 10] /A << /S /SubmitForm /F (https://example.test) >> >>",
+            "<< /S /JavaScript /JS (secret source) >>");
+
+        byte[] updatedBytes = new PdfIncrementalPageEditor(source)
+            .ClearFormFieldActions("customer")
+            .Build();
+        PdfDocument updated = PdfDocument.Open(updatedBytes);
+
+        Assert.Empty(PdfFormActionInspector.Inspect(updated));
+        Assert.Throws<InvalidOperationException>(() =>
+            new PdfIncrementalPageEditor(source)
+                .ClearFormFieldActions("missing")
+                .Build());
     }
 
     private static PdfDocument Document(string fields, params string[] extras)
