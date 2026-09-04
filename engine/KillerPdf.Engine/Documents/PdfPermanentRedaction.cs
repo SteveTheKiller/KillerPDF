@@ -1,5 +1,8 @@
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.CrossReference;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
+using System.Text;
 using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
@@ -26,7 +29,8 @@ public sealed record PdfSanitizedRasterPage
 }
 
 /// <summary>A stable verification failure for a rebuilt redacted document.</summary>
-public sealed record PdfRedactionVerificationFinding(string Code, string Message, int? PageIndex = null);
+public sealed record PdfRedactionVerificationFinding(
+    string Code, string Message, int? PageIndex = null, int? ObjectNumber = null);
 
 /// <summary>The result of verifying a clean-raster redaction output.</summary>
 public sealed record PdfRedactionVerificationReport(IReadOnlyList<PdfRedactionVerificationFinding> Findings)
@@ -151,12 +155,89 @@ public static class PdfPermanentRedaction
                 if (content.Text.Contains(value, StringComparison.OrdinalIgnoreCase))
                     findings.Add(new("ProhibitedText", $"The output still exposes prohibited text '{value}'.", pageIndex));
         }
+        InspectActiveObjects();
         return new PdfRedactionVerificationReport(Array.AsReadOnly(findings.ToArray()));
 
         void CheckCatalog(PdfName key, string code, string message)
         {
             if (tree.Catalog.ContainsKey(key)) findings.Add(new(code, message));
         }
+
+        void InspectActiveObjects()
+        {
+            if (prohibited.Length == 0) return;
+            var objects = new HashSet<int>();
+            var reported = new HashSet<(int ObjectNumber, string Text)>();
+            foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (entry.Type is not (PdfCrossReferenceEntryType.InUse
+                    or PdfCrossReferenceEntryType.Compressed)
+                    || !objects.Add(entry.ObjectNumber)) continue;
+                try { Inspect(document.Resolve(entry.ObjectNumber), entry.ObjectNumber, 0); }
+                catch (Exception error) when (error is ArgumentException or FormatException
+                    or InvalidOperationException or NotSupportedException or OverflowException)
+                {
+                    findings.Add(new("ObjectInspectionFailure",
+                        $"Object {entry.ObjectNumber} could not be inspected: {error.Message}",
+                        ObjectNumber: entry.ObjectNumber));
+                }
+            }
+
+            void Inspect(PdfObject value, int objectNumber, int depth)
+            {
+                if (depth >= 256)
+                    throw new InvalidOperationException(
+                        "A redaction-verification object graph is too deep.");
+                switch (value)
+                {
+                    case PdfString text:
+                        Check(PdfUnicodeEncoding.DecodeTextString(
+                            text.Bytes.Span, $"Object {objectNumber} text"));
+                        break;
+                    case PdfArray array:
+                        foreach (PdfObject item in array)
+                            if (item is not PdfIndirectReference)
+                                Inspect(item, objectNumber, depth + 1);
+                        break;
+                    case PdfStream stream:
+                        Inspect(stream.Dictionary, objectNumber, depth + 1);
+                        if (!IsImage(stream.Dictionary))
+                            Check(DecodeText(PdfStreamDecoder.Decode(
+                                stream, document.Resolve, 64 * 1024 * 1024)));
+                        break;
+                    case PdfDictionary dictionary:
+                        foreach (PdfObject item in dictionary.Values)
+                            if (item is not PdfIndirectReference)
+                                Inspect(item, objectNumber, depth + 1);
+                        break;
+                }
+
+                void Check(string candidate)
+                {
+                    foreach (string blocked in prohibited)
+                        if (candidate.Contains(blocked, StringComparison.OrdinalIgnoreCase)
+                            && reported.Add((objectNumber, blocked)))
+                            findings.Add(new("ProhibitedObjectText",
+                                $"Object {objectNumber} still exposes prohibited text '{blocked}'.",
+                                ObjectNumber: objectNumber));
+                }
+            }
+        }
+    }
+
+    private static bool IsImage(PdfDictionary dictionary) =>
+        dictionary.TryGetValue(Name("Subtype"), out PdfObject? subtype)
+        && subtype is PdfName name && name.ValueAsLatin1() == "Image";
+
+    private static string DecodeText(ReadOnlySpan<byte> value)
+    {
+        if (value.Length >= 2 && value[0] == 0xFE && value[1] == 0xFF)
+            return Encoding.BigEndianUnicode.GetString(value[2..]);
+        if (value.Length >= 2 && value[0] == 0xFF && value[1] == 0xFE)
+            return Encoding.Unicode.GetString(value[2..]);
+        try { return new UTF8Encoding(false, true).GetString(value); }
+        catch (DecoderFallbackException) { return Encoding.Latin1.GetString(value); }
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));

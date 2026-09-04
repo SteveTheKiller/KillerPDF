@@ -1,5 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Writing;
 using System.Text.Json;
 using Xunit;
 
@@ -36,9 +38,28 @@ public sealed class PdfPermanentRedactionTests
         Assert.False(report.Succeeded);
         Assert.Contains(report.Findings, finding => finding.Code == "NonRasterContent");
         Assert.Contains(report.Findings, finding => finding.Code == "ProhibitedText");
+        Assert.Contains(report.Findings, finding => finding.Code == "ProhibitedObjectText");
         using JsonDocument json = JsonDocument.Parse(report.ToJson());
         Assert.False(json.RootElement.GetProperty("succeeded").GetBoolean());
-        Assert.Equal(2, json.RootElement.GetProperty("findings").GetArrayLength());
+        Assert.Equal(report.Findings.Count,
+            json.RootElement.GetProperty("findings").GetArrayLength());
+    }
+
+    [Fact]
+    public void VerifierFindsProhibitedTextInHiddenActiveObjects()
+    {
+        byte[] clean = PdfPermanentRedaction.RebuildFromSanitizedPages([
+            new PdfSanitizedRasterPage(100, 100,
+                PdfImage.FromRgb(1, 1, new byte[] { 0, 0, 0 }))]);
+        var update = new PdfIncrementalUpdateBuilder(PdfDocument.Open(clean));
+        update.AddObject(new PdfString("hidden secret"u8.ToArray(), PdfStringForm.Literal));
+
+        PdfRedactionVerificationReport report = PdfPermanentRedaction.VerifySanitizedOutput(
+            update.Build(), 1, ["secret"]);
+
+        PdfRedactionVerificationFinding finding = Assert.Single(report.Findings,
+            item => item.Code == "ProhibitedObjectText");
+        Assert.NotNull(finding.ObjectNumber);
     }
 
     [Fact]
