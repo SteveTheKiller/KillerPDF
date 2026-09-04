@@ -41,6 +41,12 @@ internal static class PdfJpegDecoder
         private int _height;
         private int _restartInterval;
         private int? _adobeTransform;
+        private bool _progressive;
+        private bool _sawScan;
+        private int _spectralStart;
+        private int _spectralEnd;
+        private int _successiveHigh;
+        private int _successiveLow;
 
         internal byte[] Decode()
         {
@@ -50,12 +56,19 @@ internal static class PdfJpegDecoder
             while (_position < source.Length)
             {
                 byte marker = ReadMarker();
-                if (marker == 0xD9) break;
+                if (marker == 0xD9)
+                    return _progressive && _sawScan ? BuildProgressiveOutput()
+                        : throw Error("The JPEG ended before a decodable scan.");
                 if (marker is 0x01 or >= 0xD0 and <= 0xD7) continue;
                 ReadSegment(marker);
-                if (marker == 0xDA) return DecodeScan();
+                if (marker == 0xDA)
+                {
+                    _sawScan = true;
+                    if (!_progressive) return DecodeScan();
+                    DecodeProgressiveScan();
+                }
             }
-            throw Error("The JPEG has no baseline scan.");
+            throw Error("The JPEG is missing its EOI marker.");
         }
 
         private void ReadSegment(byte marker)
@@ -66,7 +79,8 @@ internal static class PdfJpegDecoder
             int end = _position + length - 2;
             switch (marker)
             {
-                case 0xC0 or 0xC1: ReadFrame(end); break;
+                case 0xC0 or 0xC1: ReadFrame(end, progressive: false); break;
+                case 0xC2: ReadFrame(end, progressive: true); break;
                 case 0xC4: ReadHuffmanTables(end); break;
                 case 0xDB: ReadQuantizationTables(end); break;
                 case 0xDD:
@@ -75,15 +89,17 @@ internal static class PdfJpegDecoder
                     break;
                 case 0xEE: ReadAdobeSegment(end); break;
                 case 0xDA: ReadScanHeader(end); break;
-                case 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7
+                case 0xC3 or 0xC5 or 0xC6 or 0xC7
                     or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF:
                     throw Error("Only baseline sequential JPEG images are implemented.");
             }
             _position = end;
         }
 
-        private void ReadFrame(int end)
+        private void ReadFrame(int end, bool progressive)
         {
+            if (_components.Count != 0) throw Error("Multiple JPEG frames are not supported.");
+            _progressive = progressive;
             if (end - _position < 6 || source[_position++] != 8)
                 throw Error("Only 8-bit baseline JPEG images are implemented.");
             _height = ReadUInt16();
@@ -160,8 +176,9 @@ internal static class PdfJpegDecoder
             if (_components.Count == 0 || _position >= end)
                 throw Error("The JPEG scan precedes its frame.");
             int count = source[_position++];
-            if (count != _components.Count || _position + count * 2 + 3 != end)
-                throw Error("Only interleaved baseline JPEG scans are implemented.");
+            if (count < 1 || count > _components.Count || _position + count * 2 + 3 != end
+                || !_progressive && count != _components.Count)
+                throw Error("The JPEG scan component table is unsupported.");
             _scanComponents.Clear();
             foreach (Component component in _components) component.InScan = false;
             for (int index = 0; index < count; index++)
@@ -176,8 +193,20 @@ internal static class PdfJpegDecoder
                 component.InScan = true;
                 _scanComponents.Add(component);
             }
-            if (source[_position++] != 0 || source[_position++] != 63 || source[_position++] != 0)
-                throw Error("Only baseline sequential JPEG scans are implemented.");
+            _spectralStart = source[_position++];
+            _spectralEnd = source[_position++];
+            byte approximation = source[_position++];
+            _successiveHigh = approximation >> 4;
+            _successiveLow = approximation & 15;
+            if (!_progressive && (_spectralStart != 0 || _spectralEnd != 63
+                || approximation != 0))
+                throw Error("Only sequential JPEG scan parameters are implemented.");
+            if (_progressive && (_spectralStart > _spectralEnd || _spectralEnd > 63
+                || _successiveHigh > 13 || _successiveLow > 13
+                || _successiveHigh != 0 && _successiveHigh != _successiveLow + 1
+                || _spectralStart == 0 && _spectralEnd != 0
+                || _spectralStart > 0 && count != 1))
+                throw Error("The progressive JPEG scan parameters are invalid.");
         }
 
         private byte[] DecodeScan()
@@ -221,7 +250,13 @@ internal static class PdfJpegDecoder
                                     (column * component.HorizontalSampling + horizontal) * 8,
                                     (row * component.VerticalSampling + vertical) * 8);
                 }
-            var output = new byte[(int)outputLength];
+            return BuildOutput(maxHorizontal, maxVertical, (int)outputLength);
+        }
+
+        private byte[] BuildOutput(int maxHorizontal, int maxVertical, int outputLength)
+        {
+            int components = _components.Count;
+            var output = new byte[outputLength];
             int transform = colorTransform ?? _adobeTransform ?? (components == 3 ? 1 : 0);
             if (transform is < 0 or > 2 || components == 3 && transform == 2
                 || components == 4 && transform == 1)
@@ -260,6 +295,230 @@ internal static class PdfJpegDecoder
             return output;
         }
 
+        private void DecodeProgressiveScan()
+        {
+            var geometry = PrepareProgressiveComponents();
+            if (_spectralStart == 0 && _successiveHigh == 0
+                && _scanComponents.Any(component => component.DcTable > 3
+                    || _huffman[0, component.DcTable] is null))
+                throw Error("The progressive JPEG scan references an undefined DC table.");
+            if (_spectralStart > 0 && (_scanComponents[0].AcTable > 3
+                || _huffman[1, _scanComponents[0].AcTable] is null))
+                throw Error("The progressive JPEG scan references an undefined AC table.");
+            foreach (Component component in _scanComponents) component.DcPredictor = 0;
+            var bits = new BitReader(source, _position);
+            int eobRun = 0;
+            int unit = 0;
+
+            if (_scanComponents.Count > 1)
+            {
+                for (int row = 0; row < geometry.McuRows; row++)
+                    for (int column = 0; column < geometry.McuColumns; column++, unit++)
+                    {
+                        RestartIfNeeded(bits, unit, ref eobRun);
+                        foreach (Component component in _scanComponents)
+                            for (int vertical = 0; vertical < component.VerticalSampling; vertical++)
+                                for (int horizontal = 0;
+                                    horizontal < component.HorizontalSampling; horizontal++)
+                                    DecodeProgressiveBlock(bits, component,
+                                        column * component.HorizontalSampling + horizontal,
+                                        row * component.VerticalSampling + vertical, ref eobRun);
+                    }
+            }
+            else
+            {
+                Component component = _scanComponents[0];
+                for (int row = 0; row < component.VisibleBlockRows; row++)
+                    for (int column = 0; column < component.VisibleBlockColumns; column++, unit++)
+                    {
+                        RestartIfNeeded(bits, unit, ref eobRun);
+                        DecodeProgressiveBlock(bits, component, column, row, ref eobRun);
+                    }
+            }
+            _position = bits.Position;
+
+            void RestartIfNeeded(BitReader reader, int index, ref int run)
+            {
+                if (_restartInterval <= 0 || index == 0 || index % _restartInterval != 0) return;
+                reader.ConsumeRestart();
+                foreach (Component component in _scanComponents) component.DcPredictor = 0;
+                run = 0;
+            }
+        }
+
+        private (int MaxHorizontal, int MaxVertical, int McuColumns, int McuRows)
+            PrepareProgressiveComponents()
+        {
+            long outputLength = checked((long)_width * _height * _components.Count);
+            if (outputLength > maximumDecodedBytes || outputLength > int.MaxValue)
+                throw Error("Decoded JPEG data exceeds the configured safety limit.");
+            int maxHorizontal = _components.Max(item => item.HorizontalSampling);
+            int maxVertical = _components.Max(item => item.VerticalSampling);
+            if (_components.Any(component => maxHorizontal % component.HorizontalSampling != 0
+                || maxVertical % component.VerticalSampling != 0))
+                throw Error("The JPEG component sampling factors are incompatible.");
+            int mcuColumns = (_width + maxHorizontal * 8 - 1) / (maxHorizontal * 8);
+            int mcuRows = (_height + maxVertical * 8 - 1) / (maxVertical * 8);
+            foreach (Component component in _components)
+            {
+                if (_quantization[component.QuantizationTable] is null)
+                    throw Error("The JPEG frame references an undefined quantization table.");
+                component.BlockColumns = checked(mcuColumns * component.HorizontalSampling);
+                component.BlockRows = checked(mcuRows * component.VerticalSampling);
+                component.VisibleBlockColumns = checked(
+                    (_width * component.HorizontalSampling + maxHorizontal * 8 - 1)
+                    / (maxHorizontal * 8));
+                component.VisibleBlockRows = checked(
+                    (_height * component.VerticalSampling + maxVertical * 8 - 1)
+                    / (maxVertical * 8));
+                if (component.Coefficients.Length == 0)
+                    component.Coefficients = new int[checked(
+                        component.BlockColumns * component.BlockRows * 64)];
+            }
+            return (maxHorizontal, maxVertical, mcuColumns, mcuRows);
+        }
+
+        private void DecodeProgressiveBlock(
+            BitReader bits, Component component, int blockX, int blockY, ref int eobRun)
+        {
+            int offset = checked((blockY * component.BlockColumns + blockX) * 64);
+            Span<int> coefficients = component.Coefficients.AsSpan(offset, 64);
+            if (_spectralStart == 0)
+            {
+                if (_successiveHigh == 0)
+                {
+                    int category = _huffman[0, component.DcTable]!.Decode(bits);
+                    if (category > 11) throw Error("A progressive JPEG DC coefficient is invalid.");
+                    component.DcPredictor += Receive(bits, category);
+                    coefficients[0] = component.DcPredictor << _successiveLow;
+                    component.HasDc = true;
+                }
+                else if (bits.ReadBits(1) != 0)
+                {
+                    int bit = 1 << _successiveLow;
+                    if ((Math.Abs(coefficients[0]) & bit) == 0)
+                        coefficients[0] += coefficients[0] >= 0 ? bit : -bit;
+                }
+                return;
+            }
+            if (_successiveHigh == 0)
+                DecodeInitialAc(bits, component, coefficients, ref eobRun);
+            else
+                DecodeRefinedAc(bits, component, coefficients, ref eobRun);
+        }
+
+        private void DecodeInitialAc(
+            BitReader bits, Component component, Span<int> coefficients, ref int eobRun)
+        {
+            if (eobRun > 0) { eobRun--; return; }
+            HuffmanTable table = _huffman[1, component.AcTable]!;
+            for (int index = _spectralStart; index <= _spectralEnd;)
+            {
+                int value = table.Decode(bits);
+                int run = value >> 4;
+                int size = value & 15;
+                if (size == 0)
+                {
+                    if (run < 15)
+                    {
+                        eobRun = (1 << run) + bits.ReadBits(run) - 1;
+                        return;
+                    }
+                    index += 16;
+                    continue;
+                }
+                index += run;
+                if (index > _spectralEnd || size > 10)
+                    throw Error("A progressive JPEG AC coefficient is invalid.");
+                coefficients[ZigZag[index++]] = Receive(bits, size) << _successiveLow;
+            }
+        }
+
+        private void DecodeRefinedAc(
+            BitReader bits, Component component, Span<int> coefficients, ref int eobRun)
+        {
+            HuffmanTable table = _huffman[1, component.AcTable]!;
+            int bit = 1 << _successiveLow;
+            int index = _spectralStart;
+            if (eobRun == 0)
+            {
+                while (index <= _spectralEnd)
+                {
+                    int value = table.Decode(bits);
+                    int run = value >> 4;
+                    int size = value & 15;
+                    int newCoefficient = 0;
+                    if (size == 0)
+                    {
+                        if (run < 15)
+                        {
+                            eobRun = (1 << run) + bits.ReadBits(run);
+                            break;
+                        }
+                        run = 16;
+                    }
+                    else
+                    {
+                        if (size != 1)
+                            throw Error("A progressive JPEG AC refinement is invalid.");
+                        newCoefficient = bits.ReadBits(1) == 0 ? -bit : bit;
+                    }
+                    while (index <= _spectralEnd)
+                    {
+                        int position = ZigZag[index];
+                        if (coefficients[position] != 0)
+                            Refine(bits, coefficients, position, bit);
+                        else if (run-- == 0)
+                            break;
+                        index++;
+                    }
+                    if (newCoefficient != 0)
+                    {
+                        if (index > _spectralEnd)
+                            throw Error("A progressive JPEG AC refinement exceeds its band.");
+                        coefficients[ZigZag[index++]] = newCoefficient;
+                    }
+                }
+            }
+            if (eobRun > 0)
+            {
+                while (index <= _spectralEnd)
+                {
+                    int position = ZigZag[index++];
+                    if (coefficients[position] != 0)
+                        Refine(bits, coefficients, position, bit);
+                }
+                eobRun--;
+            }
+        }
+
+        private static void Refine(BitReader bits, Span<int> coefficients, int position, int bit)
+        {
+            if (bits.ReadBits(1) == 0 || (Math.Abs(coefficients[position]) & bit) != 0) return;
+            coefficients[position] += coefficients[position] > 0 ? bit : -bit;
+        }
+
+        private byte[] BuildProgressiveOutput()
+        {
+            var geometry = PrepareProgressiveComponents();
+            if (_components.Any(component => !component.HasDc))
+                throw Error("The progressive JPEG is missing a DC scan.");
+            foreach (Component component in _components)
+            {
+                component.Stride = checked(component.BlockColumns * 8);
+                component.Samples = new byte[checked(component.Stride * component.BlockRows * 8)];
+                for (int row = 0; row < component.VisibleBlockRows; row++)
+                    for (int column = 0; column < component.VisibleBlockColumns; column++)
+                    {
+                        int offset = (row * component.BlockColumns + column) * 64;
+                        WriteBlock(component, column * 8, row * 8,
+                            component.Coefficients.AsSpan(offset, 64));
+                    }
+            }
+            return BuildOutput(geometry.MaxHorizontal, geometry.MaxVertical,
+                checked(_width * _height * _components.Count));
+        }
+
         private void DecodeBlock(BitReader bits, Component component, int left, int top)
         {
             Span<int> coefficients = stackalloc int[64];
@@ -286,6 +545,12 @@ internal static class PdfJpegDecoder
                 if (index >= 64 || size > 10) throw Error("A JPEG AC coefficient is invalid.");
                 coefficients[ZigZag[index++]] = Receive(bits, size);
             }
+            WriteBlock(component, left, top, coefficients);
+        }
+
+        private void WriteBlock(
+            Component component, int left, int top, ReadOnlySpan<int> coefficients)
+        {
             int[] quantization = _quantization[component.QuantizationTable];
             Span<double> horizontal = stackalloc double[64];
             for (int v = 0; v < 8; v++)
@@ -367,7 +632,13 @@ internal static class PdfJpegDecoder
         internal int AcTable { get; set; }
         internal int DcPredictor { get; set; }
         internal int Stride { get; set; }
+        internal int BlockColumns { get; set; }
+        internal int BlockRows { get; set; }
+        internal int VisibleBlockColumns { get; set; }
+        internal int VisibleBlockRows { get; set; }
+        internal int[] Coefficients { get; set; } = [];
         internal byte[] Samples { get; set; } = [];
+        internal bool HasDc { get; set; }
         internal bool InScan { get; set; }
     }
 
@@ -406,6 +677,8 @@ internal static class PdfJpegDecoder
         private int _position = position;
         private int _bits;
         private int _buffer;
+
+        internal int Position => _position;
 
         internal int ReadBits(int count)
         {
