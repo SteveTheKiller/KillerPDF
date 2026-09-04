@@ -77,6 +77,30 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewedChoiceProposalsPersistAsFormFields()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new("country", 0, new PdfContentBounds(10, 10, 150, 30),
+                PdfRecognizedFieldKind.DropDown, 1, "country", suggestedOptions: ["US", "CA"],
+                suggestedValue: "CA"),
+            new("custom", 0, new PdfContentBounds(10, 50, 150, 70),
+                PdfRecognizedFieldKind.EditableComboBox, 1, "custom"),
+            new("region", 0, new PdfContentBounds(10, 90, 150, 140),
+                PdfRecognizedFieldKind.ListBox, 1, "region")])
+            .Accept("country", tooltip: "Country")
+            .Accept("custom", options: ["North", "South"], value: "Custom")
+            .Accept("region", options: ["East", "West"], value: "West");
+
+        PdfDocument reopened = PdfDocument.Open(review.ApplyAccepted(document));
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(reopened, 0);
+
+        Assert.Equal(3, widgets.Count);
+        Assert.All(widgets, widget => Assert.Equal(PdfFormFieldKind.Choice, widget.FieldKind));
+        Assert.Equal("Country", widgets.Single(widget => widget.FieldName == "country").Tooltip);
+    }
+
+    [Fact]
     public void ApplyRejectsAcceptedKindsThatNeedMoreAuthoringChoices()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());

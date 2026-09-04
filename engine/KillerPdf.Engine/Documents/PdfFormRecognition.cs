@@ -44,7 +44,8 @@ public sealed record PdfFormFieldProposal
     public PdfFormFieldProposal(string id, int pageIndex, PdfContentBounds bounds,
         PdfRecognizedFieldKind kind, double confidence, string suggestedName,
         PdfFormProposalStatus status = PdfFormProposalStatus.Proposed,
-        string? suggestedTooltip = null)
+        string? suggestedTooltip = null, IEnumerable<string>? suggestedOptions = null,
+        string? suggestedValue = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -54,6 +55,16 @@ public sealed record PdfFormFieldProposal
         if (string.IsNullOrWhiteSpace(suggestedName)) throw new ArgumentException("A suggested field name is required.", nameof(suggestedName));
         if (suggestedTooltip is not null && string.IsNullOrWhiteSpace(suggestedTooltip))
             throw new ArgumentException("A suggested tooltip cannot be empty.", nameof(suggestedTooltip));
+        string[] options = suggestedOptions?.ToArray() ?? [];
+        if (options.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException("Suggested choices cannot be empty.", nameof(suggestedOptions));
+        if (options.Distinct(StringComparer.Ordinal).Count() != options.Length)
+            throw new ArgumentException("Suggested choices must be unique.", nameof(suggestedOptions));
+        if (suggestedValue is not null && string.IsNullOrWhiteSpace(suggestedValue))
+            throw new ArgumentException("A suggested value cannot be empty.", nameof(suggestedValue));
+        if (suggestedValue is not null && kind != PdfRecognizedFieldKind.EditableComboBox
+            && !options.Contains(suggestedValue, StringComparer.Ordinal))
+            throw new ArgumentException("The suggested value must match a suggested choice.", nameof(suggestedValue));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
         Id = id;
         PageIndex = pageIndex;
@@ -62,6 +73,8 @@ public sealed record PdfFormFieldProposal
         Confidence = confidence;
         SuggestedName = suggestedName;
         SuggestedTooltip = suggestedTooltip;
+        SuggestedOptions = Array.AsReadOnly(options);
+        SuggestedValue = suggestedValue;
         Status = status;
     }
 
@@ -79,14 +92,18 @@ public sealed record PdfFormFieldProposal
     public string SuggestedName { get; }
     /// <summary>Gets the proposed user-facing field description.</summary>
     public string? SuggestedTooltip { get; }
+    /// <summary>Gets the proposed choices for a choice field.</summary>
+    public IReadOnlyList<string> SuggestedOptions { get; }
+    /// <summary>Gets the proposed selected value for a choice field.</summary>
+    public string? SuggestedValue { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
     internal PdfFormFieldProposal Review(PdfFormProposalStatus status, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
-        string? tooltip = null) =>
+        string? tooltip = null, IEnumerable<string>? options = null, string? value = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
-            status, tooltip ?? SuggestedTooltip);
+            status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue);
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
@@ -117,25 +134,22 @@ public sealed class PdfFormRecognitionReview
     /// <summary>Returns a new review with a proposal accepted and optionally adjusted.</summary>
     public PdfFormRecognitionReview Accept(string id, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
-        string? tooltip = null) =>
+        string? tooltip = null, IEnumerable<string>? options = null, string? value = null) =>
         Change(id, item => item.Review(
-            PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip));
+            PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
         Change(id, item => item.Review(PdfFormProposalStatus.Rejected));
 
-    /// <summary>Creates accepted text, checkbox, and signature fields in an existing document.</summary>
+    /// <summary>Creates accepted basic and choice fields in an existing document.</summary>
     public byte[] ApplyAccepted(PdfDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (!IsReadyToApply)
             throw new InvalidOperationException(
                 "Every form proposal must be accepted or rejected before authoring.");
-        PdfFormFieldProposal? unsupported = Accepted.FirstOrDefault(item =>
-            item.Kind is not PdfRecognizedFieldKind.Text
-                and not PdfRecognizedFieldKind.CheckBox
-                and not PdfRecognizedFieldKind.Signature);
+        PdfFormFieldProposal? unsupported = Accepted.FirstOrDefault(item => !CanAuthor(item));
         if (unsupported is not null)
             throw new NotSupportedException(
                 $"Accepted {unsupported.Kind} proposal '{unsupported.Id}' requires additional authoring choices.");
@@ -158,6 +172,20 @@ public sealed class PdfFormRecognitionReview
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
                         fieldMetadata: metadata);
                     break;
+                case PdfRecognizedFieldKind.DropDown:
+                case PdfRecognizedFieldKind.EditableComboBox:
+                    editor.AddComboBox(proposal.PageIndex, proposal.SuggestedName,
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        proposal.SuggestedOptions, proposal.SuggestedValue,
+                        editable: proposal.Kind == PdfRecognizedFieldKind.EditableComboBox,
+                        fieldMetadata: metadata);
+                    break;
+                case PdfRecognizedFieldKind.ListBox:
+                    editor.AddListBox(proposal.PageIndex, proposal.SuggestedName,
+                        bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                        proposal.SuggestedOptions, proposal.SuggestedValue,
+                        fieldMetadata: metadata);
+                    break;
                 case PdfRecognizedFieldKind.Signature:
                     editor.AddSignatureField(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
@@ -169,6 +197,15 @@ public sealed class PdfFormRecognitionReview
     }
 
     private static byte[] CopySource(PdfDocument document) => document.Source.ToArray();
+
+    private static bool CanAuthor(PdfFormFieldProposal proposal) => proposal.Kind switch
+    {
+        PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.CheckBox
+            or PdfRecognizedFieldKind.Signature => true,
+        PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.EditableComboBox
+            or PdfRecognizedFieldKind.ListBox => proposal.SuggestedOptions.Count > 0,
+        _ => false
+    };
 
     private PdfFormRecognitionReview Change(string id,
         Func<PdfFormFieldProposal, PdfFormFieldProposal> change)
