@@ -112,6 +112,49 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_StrokesWithColoredTilingPatterns()
+    {
+        var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 1, 1).Fill());
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 1, new PdfContentStreamBuilder()
+                .SetStrokePattern(pattern).SetLineWidth(1)
+                .MoveTo(0, 0.5).LineTo(4, 0.5).Stroke())
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(4, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 0, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 0));
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 2, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 3, 0));
+        Assert.DoesNotContain("Tiling-pattern rendering is not implemented.", page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_StrokesWithUncoloredTilingPatterns()
+    {
+        var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
+            .Rectangle(0, 0, 1, 1).Fill(),
+            paintType: PdfTilingPatternPaintType.Uncolored);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 1, new PdfContentStreamBuilder()
+                .SetStrokePattern(pattern, new PdfRgbColor(0, 0, 1)).SetLineWidth(1)
+                .MoveTo(0, 0.5).LineTo(4, 0.5).Stroke())
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(4, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 0, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 0));
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 2, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 3, 0));
+        Assert.DoesNotContain("Tiling-pattern rendering is not implemented.", page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_DecodesAndTransformsRgbImageXObject()
     {
         PdfImage image = PdfImage.FromRgb(2, 1, new byte[]

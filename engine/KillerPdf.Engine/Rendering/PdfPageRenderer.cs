@@ -63,7 +63,8 @@ public sealed class PdfPageRenderer
             _ => Matrix.Identity
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
-            1, 1, 1, RendererBlendMode.Normal, [], false, null, null);
+            1, 1, 1, RendererBlendMode.Normal, [],
+            false, null, null, false, null, null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         PdfDictionary pageResources = PageResources(pageIndex);
@@ -174,19 +175,71 @@ public sealed class PdfPageRenderer
                     };
                     break;
                 case "G" when values.Count == 1:
-                    state = state with { Stroke = Color.Gray(Number(values[0])) };
+                    state = state with
+                    {
+                        Stroke = Color.Gray(Number(values[0])),
+                        StrokePatternSpace = false,
+                        StrokePatternBase = null,
+                        StrokePattern = null
+                    };
                     break;
                 case "RG" when values.Count == 3:
                     state = state with
                     {
-                        Stroke = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2]))
+                        Stroke = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2])),
+                        StrokePatternSpace = false,
+                        StrokePatternBase = null,
+                        StrokePattern = null
                     };
                     break;
                 case "K" when values.Count == 4:
                     state = state with
                     {
                         Stroke = Color.Cmyk(Number(values[0]), Number(values[1]),
-                            Number(values[2]), Number(values[3]))
+                            Number(values[2]), Number(values[3])),
+                        StrokePatternSpace = false,
+                        StrokePatternBase = null,
+                        StrokePattern = null
+                    };
+                    break;
+                case "CS" when values.Count == 1 && values[0] is PdfName strokeSpace
+                    && strokeSpace.ValueAsLatin1() == "Pattern":
+                    state = state with
+                    {
+                        StrokePatternSpace = true,
+                        StrokePatternBase = null,
+                        StrokePattern = null
+                    };
+                    break;
+                case "CS" when values.Count == 1 && values[0] is PdfArray strokePatternSpace
+                    && strokePatternSpace.Count == 2
+                    && Resolve(strokePatternSpace[0]) is PdfName strokePatternKind
+                    && strokePatternKind.ValueAsLatin1() == "Pattern":
+                    state = state with
+                    {
+                        StrokePatternSpace = true,
+                        StrokePatternBase = ReadColorSpace(strokePatternSpace[1], resources, 0),
+                        StrokePattern = null
+                    };
+                    break;
+                case "SCN" when state.StrokePatternSpace && values.Count > 0
+                    && values[^1] is PdfName strokePatternName:
+                    if (!TryGetTilingPattern(resources, strokePatternName,
+                        out PdfStream? strokePattern, out int strokePaintType)
+                        || strokePaintType == 1 && values.Count != 1
+                        || strokePaintType == 2 && (state.StrokePatternBase is null
+                            || values.Count != state.StrokePatternBase.Components + 1))
+                    {
+                        diagnostics.Add("Tiling-pattern rendering is not implemented.");
+                        break;
+                    }
+                    Color? strokeBaseColor = strokePaintType == 2
+                        ? state.StrokePatternBase!.Convert(values.Take(values.Count - 1)
+                            .Select(value => Number(Resolve(value))).ToArray())
+                        : null;
+                    state = state with
+                    {
+                        StrokePattern = new TilingPatternPaint(strokePattern!, strokeBaseColor)
                     };
                     break;
                 case "w" when values.Count == 1:
@@ -256,9 +309,7 @@ public sealed class PdfPageRenderer
                     break;
                 case "S" or "s" when path.Count > 0:
                     if (instruction.Operator == "s" && subpath is { Count: > 1 }) subpath.Add(subpath[0]);
-                    StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Stroke, state.StrokeAlpha, state.LineWidth,
-                        state.BlendMode, state.Clips);
+                    PaintStroke(path);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
@@ -267,9 +318,7 @@ public sealed class PdfPageRenderer
                     if (instruction.Operator[0] == 'b' && subpath is { Count: > 1 })
                         subpath.Add(subpath[0]);
                     PaintFill(path, instruction.Operator.EndsWith('*'));
-                    StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        path, state.Stroke, state.StrokeAlpha, state.LineWidth,
-                        state.BlendMode, state.Clips);
+                    PaintStroke(path);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();
                     subpath = null;
@@ -399,12 +448,32 @@ public sealed class PdfPageRenderer
                         state.BlendMode, state.Clips);
                     return;
                 }
-                RenderTilingPattern(state.FillPattern, fillPath, evenOdd,
+                var fillClip = new ClipRegion(
+                    [.. fillPath.Select(points => points.ToArray())], evenOdd);
+                RenderTilingPattern(state.FillPattern, fillPath, fillClip,
+                    resources, state, depth);
+            }
+
+            void PaintStroke(IReadOnlyList<List<Point>> strokePath)
+            {
+                if (state.StrokePattern is null)
+                {
+                    StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                        strokePath, state.Stroke, state.StrokeAlpha, state.LineWidth,
+                        state.BlendMode, state.Clips);
+                    return;
+                }
+                Point[][] segments = [.. strokePath.Select(points => points.ToArray())];
+                double radius = Math.Max(state.LineWidth / 2,
+                    0.5 / Math.Max(scaleX, scaleY));
+                var strokeClip = new ClipRegion([], false,
+                    (x, y) => IsWithinStroke(segments, radius, x, y));
+                RenderTilingPattern(state.StrokePattern, strokePath, strokeClip,
                     resources, state, depth);
             }
 
             void RenderTilingPattern(TilingPatternPaint paint,
-                IReadOnlyList<List<Point>> fillPath, bool evenOdd,
+                IReadOnlyList<List<Point>> paintPath, ClipRegion paintClip,
                 PdfDictionary parentResources, GraphicsState parentState, int patternDepth)
             {
                 PdfStream pattern = paint.Stream;
@@ -421,7 +490,7 @@ public sealed class PdfPageRenderer
                     : Matrix.Identity;
                 Matrix patternToPage = patternMatrix.Then(parentState.Transform);
                 if (!patternToPage.TryInverse(out Matrix pageToPattern)) return;
-                Point[] patternBounds = fillPath.SelectMany(points => points)
+                Point[] patternBounds = paintPath.SelectMany(points => points)
                     .Select(point => pageToPattern.Apply(point.X, point.Y)).ToArray();
                 if (patternBounds.Length == 0) return;
                 double stepX = Math.Abs(xStep), stepY = Math.Abs(yStep);
@@ -446,8 +515,6 @@ public sealed class PdfPageRenderer
                     PdfContentStreamReader.MaximumSourceBytes);
                 PdfContentInstruction[] patternInstructions = [.. PdfContentStreamReader.Read(
                     content, cancellationToken: cancellationToken)];
-                var fillClip = new ClipRegion(
-                    [.. fillPath.Select(points => points.ToArray())], evenOdd);
                 for (int cellY = firstY; cellY <= lastY; cellY++)
                     for (int cellX = firstX; cellX <= lastX; cellX++)
                     {
@@ -459,7 +526,7 @@ public sealed class PdfPageRenderer
                             cell.Apply(right, top), cell.Apply(left, top),
                             cell.Apply(left, bottom)
                         ];
-                        ClipRegion[] clips = [.. parentState.Clips, fillClip,
+                        ClipRegion[] clips = [.. parentState.Clips, paintClip,
                             new ClipRegion([cellBox], false)];
                         GraphicsState cellState = parentState with
                         {
@@ -467,7 +534,10 @@ public sealed class PdfPageRenderer
                             Clips = Array.AsReadOnly(clips),
                             FillPatternSpace = false,
                             FillPatternBase = null,
-                            FillPattern = null
+                            FillPattern = null,
+                            StrokePatternSpace = false,
+                            StrokePatternBase = null,
+                            StrokePattern = null
                         };
                         if (paint.BaseColor.HasValue)
                             cellState = cellState with
@@ -2296,6 +2366,25 @@ public sealed class PdfPageRenderer
         return evenOdd ? crossings % 2 != 0 : winding != 0;
     }
 
+    private static bool IsWithinStroke(
+        IReadOnlyList<Point[]> paths, double radius, double x, double y)
+    {
+        double squaredRadius = radius * radius;
+        foreach (Point[] path in paths)
+            for (int index = 1; index < path.Length; index++)
+            {
+                Point from = path[index - 1], to = path[index];
+                double dx = to.X - from.X, dy = to.Y - from.Y;
+                double lengthSquared = dx * dx + dy * dy;
+                double parameter = lengthSquared == 0 ? 0 : Math.Clamp(
+                    ((x - from.X) * dx + (y - from.Y) * dy) / lengthSquared, 0, 1);
+                double offsetX = x - (from.X + parameter * dx);
+                double offsetY = y - (from.Y + parameter * dy);
+                if (offsetX * offsetX + offsetY * offsetY <= squaredRadius) return true;
+            }
+        return false;
+    }
+
     private static double Number(PdfObject value) => value switch
     {
         PdfInteger integer => integer.Value,
@@ -2307,7 +2396,9 @@ public sealed class PdfPageRenderer
         Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
         double LineWidth, RendererBlendMode BlendMode,
         IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace,
-        ImageColorSpace? FillPatternBase, TilingPatternPaint? FillPattern);
+        ImageColorSpace? FillPatternBase, TilingPatternPaint? FillPattern,
+        bool StrokePatternSpace, ImageColorSpace? StrokePatternBase,
+        TilingPatternPaint? StrokePattern);
     private enum RendererBlendMode
     {
         Normal, Compatible, Multiply, Screen, Overlay, Darken, Lighten, ColorDodge,
@@ -2315,10 +2406,11 @@ public sealed class PdfPageRenderer
         Luminosity
     }
     private readonly record struct ColorVector(double Red, double Green, double Blue);
-    private sealed record ClipRegion(IReadOnlyList<Point[]> Polygons, bool EvenOdd)
+    private sealed record ClipRegion(IReadOnlyList<Point[]> Polygons, bool EvenOdd,
+        Func<double, double, bool>? Predicate = null)
     {
         internal bool Contains(double x, double y)
-            => PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
+            => Predicate?.Invoke(x, y) ?? PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height);
     private sealed record TilingPatternPaint(PdfStream Stream, Color? BaseColor);
