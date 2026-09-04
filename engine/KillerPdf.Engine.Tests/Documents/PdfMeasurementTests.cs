@@ -87,6 +87,24 @@ public sealed class PdfMeasurementTests
     }
 
     [Fact]
+    public void SnapsToNearestPointAlongFiniteSegments()
+    {
+        PdfMeasurementSegment[] segments = [
+            new(new(0, 0), new(10, 0)),
+            new(new(20, 0), new(20, 10)),
+            new(new(30, 30), new(30, 30))];
+
+        Assert.Equal(new PdfMeasurementPoint(6, 0),
+            PdfMeasurement.SnapToSegments(new(6, 1), segments, 2));
+        Assert.Equal(new PdfMeasurementPoint(20, 10),
+            PdfMeasurement.SnapToSegments(new(21, 12), segments, 3));
+        Assert.Equal(new PdfMeasurementPoint(6, 3),
+            PdfMeasurement.SnapToSegments(new(6, 3), segments, 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfMeasurement.SnapToSegments(new(0, 0), segments, -1));
+    }
+
+    [Fact]
     public void MeasurementProfilesRoundTripWithoutMeasurementResults()
     {
         var profile = new PdfMeasurementProfile("Site plan", 0.125, "ft", 3);

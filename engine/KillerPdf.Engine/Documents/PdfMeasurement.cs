@@ -226,6 +226,40 @@ public static class PdfMeasurement
         return SnapToNearest(point, intersections, tolerancePoints);
     }
 
+    /// <summary>Snaps a point to the nearest point on a finite segment within a tolerance.</summary>
+    public static PdfMeasurementPoint SnapToSegments(
+        PdfMeasurementPoint point,
+        IReadOnlyList<PdfMeasurementSegment> segments,
+        double tolerancePoints)
+    {
+        ArgumentNullException.ThrowIfNull(segments);
+        if (!double.IsFinite(tolerancePoints) || tolerancePoints < 0)
+            throw new ArgumentOutOfRangeException(nameof(tolerancePoints));
+        DistanceInPoints(point, point);
+        PdfMeasurementPoint result = point;
+        double nearest = tolerancePoints;
+        foreach (PdfMeasurementSegment segment in segments)
+        {
+            double length = DistanceInPoints(segment.Start, segment.End);
+            if (length == 0) continue;
+            double dx = segment.End.X - segment.Start.X;
+            double dy = segment.End.Y - segment.Start.Y;
+            double position = Math.Clamp(
+                ((point.X - segment.Start.X) * dx + (point.Y - segment.Start.Y) * dy)
+                    / (length * length), 0, 1);
+            var candidate = new PdfMeasurementPoint(
+                segment.Start.X + position * dx,
+                segment.Start.Y + position * dy);
+            double distance = DistanceInPoints(point, candidate);
+            if (distance <= nearest)
+            {
+                nearest = distance;
+                result = candidate;
+            }
+        }
+        return result;
+    }
+
     private static bool TryIntersect(PdfMeasurementSegment first,
         PdfMeasurementSegment second, out PdfMeasurementPoint intersection)
     {
