@@ -29,4 +29,26 @@ public sealed class PdfPartialRasterizationTests
             PdfPartialRasterization.Plan(
                 page, new PdfContentBounds(-1, 0, 10, 10), 144));
     }
+
+    [Fact]
+    public void PlanIncludesOnlyShadingsThatIntersectTheRegion()
+    {
+        var shading = new PdfAxialGradient(0, 0, 100, 0, [
+            new PdfGradientStop(0, new PdfRgbColor(1, 0, 0)),
+            new PdfGradientStop(1, new PdfRgbColor(0, 0, 1))]);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .SaveState().Rectangle(10, 10, 20, 20).Clip().EndPath()
+                .PaintShading(shading).RestoreState())
+            .Build());
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+
+        PdfPartialRasterizationPlan inside = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(15, 15, 25, 25), 144);
+        PdfPartialRasterizationPlan outside = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(50, 50, 60, 60), 144);
+
+        Assert.Single(inside.Shadings);
+        Assert.Empty(outside.Shadings);
+    }
 }

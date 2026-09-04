@@ -17,6 +17,8 @@ public sealed record PdfPartialRasterizationPlan
     public IReadOnlyList<PdfExtractedImage> Images { get; init; } = [];
     /// <summary>Gets vector paths intersecting the selected region.</summary>
     public IReadOnlyList<PdfExtractedPath> Paths { get; init; } = [];
+    /// <summary>Gets shading paints intersecting the selected region.</summary>
+    public IReadOnlyList<PdfExtractedShading> Shadings { get; init; } = [];
 }
 
 /// <summary>Plans region rasterization without changing the source document.</summary>
@@ -50,7 +52,9 @@ public static class PdfPartialRasterization
             Images = Array.AsReadOnly(page.Images
                 .Where(image => Intersects(image.BoundingBox, region)).ToArray()),
             Paths = Array.AsReadOnly(page.Paths
-                .Where(path => Intersects(path.BoundingBox, region)).ToArray())
+                .Where(path => Intersects(path.BoundingBox, region)).ToArray()),
+            Shadings = Array.AsReadOnly(page.Shadings
+                .Where(shading => Intersects(shading.BoundingBox, region)).ToArray())
         };
     }
 
