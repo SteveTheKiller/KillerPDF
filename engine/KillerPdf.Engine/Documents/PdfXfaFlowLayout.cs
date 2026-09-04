@@ -29,6 +29,7 @@ public static class PdfXfaFlowLayout
         var placements = new List<PdfXfaFlowFieldPlacement>();
         int pageIndex = 0;
         double cursor = margin;
+        bool breakAfterPrevious = false;
         foreach (XElement field in document.Descendants().Where(element =>
             element.Name.LocalName.Equals("field", StringComparison.OrdinalIgnoreCase)))
         {
@@ -48,6 +49,12 @@ public static class PdfXfaFlowLayout
             string dataName = BindingName(field) ?? path;
             string[] repeated = values.TryGetValue(dataName, out PdfFormDataField? dataField)
                 && dataField.Values.Count > 0 ? [.. dataField.Values] : [string.Empty];
+            if ((breakAfterPrevious || HasPageBreak(field, "breakBefore")) && cursor > margin)
+            {
+                pageIndex++;
+                cursor = margin;
+            }
+            breakAfterPrevious = false;
             for (int occurrence = 0; occurrence < repeated.Length; occurrence++)
             {
                 if (placements.Count >= MaximumPlacements)
@@ -63,6 +70,7 @@ public static class PdfXfaFlowLayout
                     x, cursor, width, height, repeated[occurrence]));
                 cursor += height;
             }
+            breakAfterPrevious = HasPageBreak(field, "breakAfter");
         }
         return new PdfXfaFlowLayoutPlan(pageIndex + 1,
             Array.AsReadOnly(placements.ToArray()));
@@ -88,6 +96,12 @@ public static class PdfXfaFlowLayout
         && (layout.Equals("tb", StringComparison.OrdinalIgnoreCase)
             || layout.Equals("lr-tb", StringComparison.OrdinalIgnoreCase)
             || layout.Equals("rl-tb", StringComparison.OrdinalIgnoreCase));
+
+    private static bool HasPageBreak(XElement field, string name) =>
+        field.Elements().Any(element => element.Name.LocalName.Equals(
+            name, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(Attribute(element, "targetType"), "pageArea",
+                StringComparison.OrdinalIgnoreCase));
 
     private static string? BindingName(XElement field)
     {

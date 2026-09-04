@@ -34,4 +34,25 @@ public sealed class PdfXfaFlowLayoutTests
             plan.Placements.Select(item => item.Value));
         Assert.Equal([0, 1, 2, 3], plan.Placements.Select(item => item.OccurrenceIndex));
     }
+
+    [Fact]
+    public void PlanHonorsExplicitPageAreaBreaks()
+    {
+        PdfXfaInfo info = new()
+        {
+            Packets = [new PdfXfaPacket("template", System.Text.Encoding.UTF8.GetBytes("""
+                <template><subform name="form" layout="tb">
+                  <field name="first" w="70pt" h="20pt"/>
+                  <field name="second" w="70pt" h="20pt"><breakBefore targetType="pageArea"/></field>
+                </subform></template>
+                """))]
+        };
+
+        PdfXfaFlowLayoutPlan plan = PdfXfaFlowLayout.Plan(
+            info, new PdfFormDataSet(), 100, 100, 10);
+
+        Assert.Equal(2, plan.PageCount);
+        Assert.Equal([0, 1], plan.Placements.Select(item => item.PageIndex));
+        Assert.Equal([10d, 10d], plan.Placements.Select(item => item.Y));
+    }
 }
