@@ -26,6 +26,43 @@ public enum PdfStructuredExportFormat
     Presentation
 }
 
+/// <summary>Validated font replacements for editable structured exports.</summary>
+public sealed class PdfStructuredExportFontSubstitutions
+{
+    private readonly IReadOnlyDictionary<string, string> _replacements;
+
+    /// <summary>Creates a case-insensitive source-to-target font map.</summary>
+    public PdfStructuredExportFontSubstitutions(
+        IReadOnlyDictionary<string, string> replacements, string? fallbackFont = null)
+    {
+        ArgumentNullException.ThrowIfNull(replacements);
+        var copied = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach ((string source, string target) in replacements)
+        {
+            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(target))
+                throw new ArgumentException(
+                    "Font substitution names cannot be empty.", nameof(replacements));
+            copied.Add(source.Trim(), target.Trim());
+        }
+        if (fallbackFont is not null && string.IsNullOrWhiteSpace(fallbackFont))
+            throw new ArgumentException("The fallback font cannot be empty.", nameof(fallbackFont));
+        _replacements = copied;
+        FallbackFont = fallbackFont?.Trim();
+    }
+
+    /// <summary>Gets the optional replacement used when a source font name is unavailable.</summary>
+    public string? FallbackFont { get; }
+
+    internal string Resolve(string? sourceFont, string defaultFont)
+    {
+        if (!string.IsNullOrWhiteSpace(sourceFont)
+            && _replacements.TryGetValue(sourceFont, out string? replacement))
+            return replacement;
+        return string.IsNullOrWhiteSpace(sourceFont)
+            ? FallbackFont ?? defaultFont : sourceFont;
+    }
+}
+
 /// <summary>One type of source content that an export does not fully represent.</summary>
 public sealed record PdfStructuredExportFinding(
     string Code, int PageIndex, int Count, string Message);
@@ -287,7 +324,8 @@ public static class PdfStructuredExport
     /// </summary>
     public static byte[] Export(PdfDocument document, PdfStructuredExportFormat format,
         IEnumerable<int>? pageIndices = null, PdfOcrReview? ocrReview = null,
-        TrueTypeFont? ocrFont = null, CancellationToken cancellationToken = default)
+        TrueTypeFont? ocrFont = null, CancellationToken cancellationToken = default,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
@@ -306,17 +344,17 @@ public static class PdfStructuredExport
             PdfStructuredExportFormat.PlainText => Encoding.UTF8.GetBytes(
                 ToPlainText(document, pageIndices, cancellationToken)),
             PdfStructuredExportFormat.Html => Encoding.UTF8.GetBytes(
-                ToHtml(document, pageIndices, cancellationToken)),
+                ToHtml(document, pageIndices, cancellationToken, fontSubstitutions)),
             PdfStructuredExportFormat.Markdown => Encoding.UTF8.GetBytes(
                 ToMarkdown(document, pageIndices, cancellationToken)),
             PdfStructuredExportFormat.Json => Encoding.UTF8.GetBytes(
                 ToJson(document, pageIndices, cancellationToken)),
             PdfStructuredExportFormat.WordDocument =>
-                ToDocx(document, pageIndices, cancellationToken),
+                ToDocx(document, pageIndices, cancellationToken, fontSubstitutions),
             PdfStructuredExportFormat.Spreadsheet =>
                 ToXlsx(document, pageIndices, cancellationToken),
             PdfStructuredExportFormat.Presentation =>
-                ToPptx(document, pageIndices, cancellationToken),
+                ToPptx(document, pageIndices, cancellationToken, fontSubstitutions),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
@@ -386,7 +424,8 @@ public static class PdfStructuredExport
 
     /// <summary>Exports selected pages as a standalone semantic HTML document.</summary>
     public static string ToHtml(PdfDocument document, IEnumerable<int>? pageIndices = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
     {
         IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
         var output = new StringBuilder("<!doctype html><html><head><meta charset=\"utf-8\"><title>PDF export</title></head><body>");
@@ -395,7 +434,7 @@ public static class PdfStructuredExport
             output.Append("<section id=\"page-").Append(page.Index + 1)
                 .Append("\" data-page=\"").Append(page.Index + 1).Append("\">");
             foreach (PdfExtractedLine line in page.Content.Lines)
-                AppendHtmlLine(output, line);
+                AppendHtmlLine(output, line, fontSubstitutions);
             foreach (PdfExtractedImage image in page.Content.Images)
                 output.Append("<figure data-image=\"").Append(WebUtility.HtmlEncode(image.ResourceName ?? "inline"))
                     .Append("\"></figure>");
@@ -421,7 +460,8 @@ public static class PdfStructuredExport
         return output.Append("</body></html>").ToString();
     }
 
-    private static void AppendHtmlLine(StringBuilder output, PdfExtractedLine line)
+    private static void AppendHtmlLine(StringBuilder output, PdfExtractedLine line,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions)
     {
         output.Append("<p>");
         string runText = string.Concat(line.Runs.Select(run => run.Text));
@@ -430,8 +470,8 @@ public static class PdfStructuredExport
         else
             foreach (PdfExtractedTextRun run in line.Runs)
             {
-                string font = string.IsNullOrWhiteSpace(run.FontName)
-                    ? "sans-serif" : run.FontName;
+                string font = fontSubstitutions?.Resolve(run.FontName, "sans-serif")
+                    ?? (string.IsNullOrWhiteSpace(run.FontName) ? "sans-serif" : run.FontName);
                 double size = double.IsFinite(run.PointSize) && run.PointSize > 0
                     ? run.PointSize : 12;
                 output.Append("<span style=\"font-family:&quot;")
@@ -518,7 +558,8 @@ public static class PdfStructuredExport
 
     /// <summary>Exports selected pages as an editable Office Open XML Word document.</summary>
     public static byte[] ToDocx(PdfDocument document, IEnumerable<int>? pageIndices = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
     {
         IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
         using var output = new MemoryStream();
@@ -546,10 +587,10 @@ public static class PdfStructuredExport
                     body.Append("<w:p>");
                     string runText = string.Concat(line.Runs.Select(run => run.Text));
                     if (line.Runs.Count == 0 || runText != line.Text)
-                        AppendWordRun(body, line.Text, line.Runs.FirstOrDefault());
+                        AppendWordRun(body, line.Text, line.Runs.FirstOrDefault(), fontSubstitutions);
                     else
                         foreach (PdfExtractedTextRun run in line.Runs)
-                            AppendWordRun(body, run.Text, run);
+                            AppendWordRun(body, run.Text, run, fontSubstitutions);
                     body.Append("</w:p>");
                 }
                 foreach (PdfExtractedImage image in pages[pageIndex].Content.Images)
@@ -566,9 +607,11 @@ public static class PdfStructuredExport
     }
 
     private static void AppendWordRun(
-        StringBuilder output, string text, PdfExtractedTextRun? run)
+        StringBuilder output, string text, PdfExtractedTextRun? run,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions)
     {
-        string font = string.IsNullOrWhiteSpace(run?.FontName) ? "Arial" : run.FontName;
+        string font = fontSubstitutions?.Resolve(run?.FontName, "Arial")
+            ?? (string.IsNullOrWhiteSpace(run?.FontName) ? "Arial" : run.FontName);
         int halfPoints = run is null || !double.IsFinite(run.PointSize) || run.PointSize <= 0
             ? 24 : Math.Clamp((int)Math.Round(run.PointSize * 2), 2, 3276);
         string encodedFont = WebUtility.HtmlEncode(font);
@@ -630,7 +673,8 @@ public static class PdfStructuredExport
 
     /// <summary>Exports selected pages as editable Office Open XML presentation slides.</summary>
     public static byte[] ToPptx(PdfDocument document, IEnumerable<int>? pageIndices = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions = null)
     {
         IReadOnlyList<Page> pages = Read(document, pageIndices, cancellationToken);
         const long slideWidth = 9_144_000;
@@ -653,7 +697,8 @@ public static class PdfStructuredExport
                 relationships.Append("<Relationship Id=\"rId").Append(number + 1)
                     .Append("\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide\" Target=\"slides/slide")
                     .Append(number).Append(".xml\"/>");
-                WritePresentationSlide(archive, pages[index], number, slideWidth, slideHeight);
+                WritePresentationSlide(archive, pages[index], number, slideWidth, slideHeight,
+                    fontSubstitutions);
             }
             WriteEntry(archive, "[Content_Types].xml",
                 "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
@@ -680,7 +725,8 @@ public static class PdfStructuredExport
     }
 
     private static void WritePresentationSlide(ZipArchive archive, Page page, int number,
-        long slideWidth, long slideHeight)
+        long slideWidth, long slideHeight,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions)
     {
         var shapes = new StringBuilder();
         PresentationPageLayout layout = FitPresentationPage(
@@ -688,10 +734,10 @@ public static class PdfStructuredExport
         int id = 2;
         foreach (PdfExtractedLine line in page.Content.Lines)
             AppendPresentationText(shapes, id++, line.Text, line.BoundingBox,
-                page.Content.Height, layout, line.Runs);
+                page.Content.Height, layout, line.Runs, fontSubstitutions);
         foreach (PdfExtractedImage image in page.Content.Images)
             AppendPresentationText(shapes, id++, "[Image: " + (image.ResourceName ?? "inline") + "]",
-                image.BoundingBox, page.Content.Height, layout, null);
+                image.BoundingBox, page.Content.Height, layout, null, fontSubstitutions);
         WriteEntry(archive, $"ppt/slides/slide{number}.xml",
             "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>" +
             "<p:sld xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\" xmlns:p=\"http://schemas.openxmlformats.org/presentationml/2006/main\"><p:cSld><p:spTree>" +
@@ -702,7 +748,8 @@ public static class PdfStructuredExport
 
     private static void AppendPresentationText(StringBuilder output, int id, string text,
         PdfContentBounds bounds, double pageHeight, PresentationPageLayout layout,
-        IReadOnlyList<PdfExtractedTextRun>? runs)
+        IReadOnlyList<PdfExtractedTextRun>? runs,
+        PdfStructuredExportFontSubstitutions? fontSubstitutions)
     {
         long x = layout.OffsetX + (long)Math.Round(bounds.Left * layout.EmuPerPoint);
         long y = layout.OffsetY
@@ -724,7 +771,8 @@ public static class PdfStructuredExport
 
         void AppendRun(string value, PdfExtractedTextRun? run)
         {
-            string font = string.IsNullOrWhiteSpace(run?.FontName) ? "Arial" : run.FontName;
+            string font = fontSubstitutions?.Resolve(run?.FontName, "Arial")
+                ?? (string.IsNullOrWhiteSpace(run?.FontName) ? "Arial" : run.FontName);
             int size = run is null || !double.IsFinite(run.PointSize) || run.PointSize <= 0
                 ? 1200 : Math.Clamp((int)Math.Round(run.PointSize * 100), 100, 400000);
             output.Append("<a:r><a:rPr lang=\"en-US\" sz=\"").Append(size)

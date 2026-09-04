@@ -350,6 +350,38 @@ public sealed class PdfStructuredExportTests
         ], PdfStructuredExportFormat.Html));
     }
 
+    [Fact]
+    public void FormattedExportsApplyValidatedFontSubstitutions()
+    {
+        PdfDocument document = Document("BT /F1 12 Tf 10 30 Td (A & B) Tj ET");
+        var substitutions = new PdfStructuredExportFontSubstitutions(
+            new Dictionary<string, string> { ["helvetica"] = "Aptos" });
+
+        string html = PdfStructuredExport.ToHtml(
+            document, fontSubstitutions: substitutions);
+        string wordXml = PackageEntry(PdfStructuredExport.ToDocx(
+            document, fontSubstitutions: substitutions), "word/document.xml");
+        string slideXml = PackageEntry(PdfStructuredExport.Export(document,
+            PdfStructuredExportFormat.Presentation, fontSubstitutions: substitutions),
+            "ppt/slides/slide1.xml");
+
+        Assert.Contains("font-family:&quot;Aptos&quot;", html, StringComparison.Ordinal);
+        Assert.Contains("w:ascii=\"Aptos\" w:hAnsi=\"Aptos\"", wordXml,
+            StringComparison.Ordinal);
+        Assert.Contains("typeface=\"Aptos\"", slideXml, StringComparison.Ordinal);
+        Assert.Throws<ArgumentException>(() =>
+            new PdfStructuredExportFontSubstitutions(
+                new Dictionary<string, string> { ["Helvetica"] = " " }));
+    }
+
+    private static string PackageEntry(byte[] package, string name)
+    {
+        using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
+        using var reader = new StreamReader(Assert.IsType<ZipArchiveEntry>(
+            archive.GetEntry(name)).Open());
+        return reader.ReadToEnd();
+    }
+
     private static PdfDocument Document(string content)
         => PdfDocument.Open(DocumentBytes(content));
 
