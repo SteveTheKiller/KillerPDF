@@ -83,6 +83,7 @@ public sealed class PdfPageRenderer
             bool? pendingClipEvenOdd = null;
             Matrix textMatrix = Matrix.Identity, textLineMatrix = Matrix.Identity;
             PdfDictionary? textFont = null;
+            PdfExtractionFont? extractionFont = null;
             double textSize = 0, characterSpacing = 0, wordSpacing = 0;
             double horizontalScale = 1, textLeading = 0, textRise = 0;
             int textRenderingMode = 0;
@@ -236,6 +237,7 @@ public sealed class PdfPageRenderer
                     break;
                 case "Tf" when values.Count == 2 && values[0] is PdfName fontName:
                     textFont = ResolveFont(resources, fontName);
+                    extractionFont = null;
                     textSize = Number(values[1]);
                     break;
                 case "Tm" when values.Count == 6:
@@ -340,10 +342,14 @@ public sealed class PdfPageRenderer
 
             void ShowText(PdfString text)
             {
-                if (textFont is null || textSize <= 0
-                    || NameValue(textFont, "Subtype") != "Type3")
+                if (textFont is null || textSize <= 0)
                 {
                     diagnostics.Add("Text rendering is not implemented.");
+                    return;
+                }
+                if (NameValue(textFont, "Subtype") != "Type3")
+                {
+                    ShowOutlineText(text);
                     return;
                 }
                 string[] encoding = ReadType3Encoding(textFont);
@@ -385,6 +391,51 @@ public sealed class PdfPageRenderer
                     double spacing = characterSpacing + (code == 32 ? wordSpacing : 0);
                     AdvanceTextVector(((widthEnd.X - widthOrigin.X) * textSize + spacing)
                         * horizontalScale, (widthEnd.Y - widthOrigin.Y) * textSize);
+                }
+            }
+
+            void ShowOutlineText(PdfString text)
+            {
+                try
+                {
+                    extractionFont ??= PdfFontResourceReader.Read(_document, textFont!);
+                    if (extractionFont.IsVertical || textRenderingMode is < 0 or > 3)
+                    {
+                        diagnostics.Add("Text rendering is not implemented.");
+                        return;
+                    }
+                    Matrix textScale = new(textSize * horizontalScale / 1000, 0, 0,
+                        textSize / 1000, 0, textRise);
+                    Matrix glyphTransform = textScale.Then(textMatrix).Then(state.Transform);
+                    foreach (PdfDecodedCharacter character in extractionFont.Decode(text.Bytes))
+                    {
+                        PdfGlyphOutline? outline = extractionFont.GetGlyphOutline(character.Code);
+                        if (textRenderingMode != 3 && outline is not null)
+                        {
+                            IReadOnlyList<List<Point>> glyphPaths =
+                                FlattenGlyphOutline(outline, glyphTransform);
+                            if (textRenderingMode is 0 or 2)
+                                FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                                    glyphPaths, state.Fill, state.FillAlpha, false,
+                                    state.BlendMode, state.Clips);
+                            if (textRenderingMode is 1 or 2)
+                                StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                                    glyphPaths, state.Stroke, state.StrokeAlpha, state.LineWidth,
+                                    state.BlendMode, state.Clips);
+                        }
+                        else if (textRenderingMode != 3)
+                            diagnostics.Add("A text glyph outline is not implemented.");
+                        double spacing = characterSpacing
+                            + (character.Code == 32 && character.ByteLength == 1 ? wordSpacing : 0);
+                        double advance = extractionFont.GetWidth(character.Code) / 1000
+                            * textSize + spacing;
+                        AdvanceText(advance * horizontalScale);
+                        glyphTransform = textScale.Then(textMatrix).Then(state.Transform);
+                    }
+                }
+                catch (NotSupportedException)
+                {
+                    diagnostics.Add("Text rendering is not implemented.");
                 }
             }
         }
@@ -1716,6 +1767,75 @@ public sealed class PdfPageRenderer
                 u * u * u * start.Y + 3 * u * u * t * control1.Y
                 + 3 * u * t * t * control2.Y + t * t * t * end.Y));
         }
+    }
+
+    private static IReadOnlyList<List<Point>> FlattenGlyphOutline(
+        PdfGlyphOutline outline, Matrix transform)
+    {
+        var paths = new List<List<Point>>(outline.Contours.Count);
+        foreach (PdfGlyphContour contour in outline.Contours)
+        {
+            IReadOnlyList<PdfGlyphPoint> points = contour.Points;
+            if (points.Count == 0) continue;
+            PdfGlyphPoint first = points[0], last = points[^1];
+            PdfGlyphPoint start;
+            int index, consumed;
+            if (first.OnCurve)
+            {
+                start = first;
+                index = 1;
+                consumed = 1;
+            }
+            else if (last.OnCurve)
+            {
+                start = last;
+                index = 0;
+                consumed = 1;
+            }
+            else
+            {
+                start = Midpoint(last, first);
+                index = 0;
+                consumed = 0;
+            }
+            var path = new List<Point> { transform.Apply(start.X, start.Y) };
+            PdfGlyphPoint current = start;
+            while (consumed < points.Count)
+            {
+                PdfGlyphPoint point = points[index % points.Count];
+                if (point.OnCurve)
+                {
+                    path.Add(transform.Apply(point.X, point.Y));
+                    current = point;
+                    index++;
+                    consumed++;
+                    continue;
+                }
+                PdfGlyphPoint next = points[(index + 1) % points.Count];
+                PdfGlyphPoint end = next.OnCurve ? next : Midpoint(point, next);
+                for (int step = 1; step <= 12; step++)
+                {
+                    double t = step / 12d, u = 1 - t;
+                    path.Add(transform.Apply(
+                        u * u * current.X + 2 * u * t * point.X + t * t * end.X,
+                        u * u * current.Y + 2 * u * t * point.Y + t * t * end.Y));
+                }
+                current = end;
+                index++;
+                consumed++;
+                if (next.OnCurve)
+                {
+                    index++;
+                    consumed++;
+                }
+            }
+            if (path[^1] != path[0]) path.Add(path[0]);
+            paths.Add(path);
+        }
+        return paths;
+
+        static PdfGlyphPoint Midpoint(PdfGlyphPoint first, PdfGlyphPoint second) =>
+            new((first.X + second.X) / 2, (first.Y + second.Y) / 2, true);
     }
 
     private static void SetPixel(byte[] pixels, int width, int x, int y,

@@ -1,8 +1,10 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Tests.Fonts;
 using KillerPdf.Engine.Writing;
 using System.Text;
 using Xunit;
@@ -508,6 +510,32 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 255, 255], Pixel(rendered, 15, 5));
         Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 1));
         Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_FillsEmbeddedTrueTypeGlyphContours()
+    {
+        TrueTypeFont font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(
+            format12: false, includeOutlines: true));
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0)
+            .BeginText()
+            .SetFont(font, 10)
+            .SetCharacterSpacing(4)
+            .SetTextMatrix(1, 0, 0, 1, 0, 0)
+            .ShowUnicodeText("AA")
+            .EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(20, 10, content).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 15, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 1));
+        Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
+        Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
     }
 
     [Fact]
