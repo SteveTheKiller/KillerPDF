@@ -129,12 +129,17 @@ public sealed class PdfOptimizationPlan
     private readonly string[] _attachmentNames;
     private readonly string[] _formFieldNames;
     private readonly int[] _resourcePages;
+    private readonly int[] _thumbnailPages;
+    private readonly string[] _optionalContentGroupNames;
+    private readonly string[] _hiddenOptionalContentGroupNames;
     private readonly PdfSaveRepairChange[] _repairs;
     private readonly int _commentCount;
 
     internal PdfOptimizationPlan(PdfDocument document, PdfOptimizationOptions options,
         IEnumerable<PdfOptimizationChangeKind> changes, IEnumerable<string> attachmentNames,
         IEnumerable<string> formFieldNames, IEnumerable<int> resourcePages,
+        IEnumerable<int> thumbnailPages, IEnumerable<string> optionalContentGroupNames,
+        IEnumerable<string> hiddenOptionalContentGroupNames,
         IEnumerable<PdfSaveRepairChange> repairs, int commentCount)
     {
         _document = document;
@@ -142,6 +147,9 @@ public sealed class PdfOptimizationPlan
         _attachmentNames = attachmentNames.ToArray();
         _formFieldNames = formFieldNames.ToArray();
         _resourcePages = resourcePages.ToArray();
+        _thumbnailPages = thumbnailPages.ToArray();
+        _optionalContentGroupNames = optionalContentGroupNames.ToArray();
+        _hiddenOptionalContentGroupNames = hiddenOptionalContentGroupNames.ToArray();
         _repairs = repairs.ToArray();
         _commentCount = commentCount;
         Changes = Array.AsReadOnly(changes.ToArray());
@@ -159,6 +167,14 @@ public sealed class PdfOptimizationPlan
     public int CommentCount => _commentCount;
     /// <summary>Gets zero-based pages whose resource dictionaries will be pruned.</summary>
     public IReadOnlyList<int> ResourcePageIndexes => Array.AsReadOnly(_resourcePages);
+    /// <summary>Gets zero-based pages whose embedded thumbnails will be removed.</summary>
+    public IReadOnlyList<int> ThumbnailPageIndexes => Array.AsReadOnly(_thumbnailPages);
+    /// <summary>Gets layer names whose optional-content wrappers will be flattened.</summary>
+    public IReadOnlyList<string> OptionalContentGroupNames =>
+        Array.AsReadOnly(_optionalContentGroupNames);
+    /// <summary>Gets initially hidden layer names whose content will be removed.</summary>
+    public IReadOnlyList<string> HiddenOptionalContentGroupNames =>
+        Array.AsReadOnly(_hiddenOptionalContentGroupNames);
     /// <summary>Gets structural repairs that the plan will apply.</summary>
     public IReadOnlyList<PdfSaveRepairChange> Repairs => Array.AsReadOnly(_repairs);
 
@@ -171,6 +187,9 @@ public sealed class PdfOptimizationPlan
         FormFieldNames,
         CommentCount,
         ResourcePageIndexes,
+        ThumbnailPageIndexes,
+        OptionalContentGroupNames,
+        HiddenOptionalContentGroupNames,
         Repairs
     }, new JsonSerializerOptions
     {
@@ -412,11 +431,16 @@ public static class PdfOptimizer
         if (options.RemoveDocumentJavaScript
             && (hasJavaScriptNameTree || HasJavaScriptActions(document)))
             changes.Add(PdfOptimizationChangeKind.RemoveDocumentJavaScript);
-        if (options.RemovePageThumbnails
-            && tree.Pages.Any(page => page.Dictionary.ContainsKey(Name("Thumb"))))
+        int[] thumbnailPages = options.RemovePageThumbnails
+            ? [.. tree.Pages.Where(page => page.Dictionary.ContainsKey(Name("Thumb")))
+                .Select(page => page.Index)] : [];
+        if (thumbnailPages.Length > 0)
             changes.Add(PdfOptimizationChangeKind.RemovePageThumbnails);
-        if (options.FlattenOptionalContent
-            && PdfOptionalContentReader.Read(document).Groups.Count > 0)
+        PdfOptionalContentGroupInfo[] optionalContentGroups = options.FlattenOptionalContent
+            ? [.. PdfOptionalContentReader.Read(document).Groups
+                .OrderBy(group => group.Name, StringComparer.Ordinal)
+                .ThenBy(group => group.ObjectNumber)] : [];
+        if (optionalContentGroups.Length > 0)
             changes.Add(PdfOptimizationChangeKind.FlattenOptionalContent);
         int[] resourcePages = options.PruneUnusedPageResources
             ? [.. UnusedResourcePages(document)] : [];
@@ -431,7 +455,11 @@ public static class PdfOptimizer
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,
-            formFieldNames, resourcePages, repairs, comments.Length);
+            formFieldNames, resourcePages, thumbnailPages,
+            optionalContentGroups.Select(group => group.Name),
+            optionalContentGroups.Where(group => !group.IsInitiallyVisible)
+                .Select(group => group.Name),
+            repairs, comments.Length);
     }
 
     internal static IReadOnlyList<int> UnusedResourcePages(PdfDocument document)

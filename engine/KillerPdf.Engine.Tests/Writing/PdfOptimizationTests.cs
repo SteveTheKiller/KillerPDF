@@ -310,6 +310,8 @@ public sealed class PdfOptimizationTests
         PdfOptimizationResult result = plan.Apply();
 
         Assert.Contains(PdfOptimizationChangeKind.RemovePageThumbnails, plan.Changes);
+        Assert.Equal([0], plan.ThumbnailPageIndexes);
+        Assert.Contains("\"thumbnailPageIndexes\":[0]", plan.ToJson());
         Assert.Contains(PdfOptimizationChangeKind.RemovePageThumbnails,
             result.VerifiedRemovals);
         Assert.DoesNotContain("/Thumb",
@@ -344,6 +346,9 @@ public sealed class PdfOptimizationTests
         PdfDocument sanitized = PdfDocument.Open(result.Data);
 
         Assert.Contains(PdfOptimizationChangeKind.FlattenOptionalContent, plan.Changes);
+        Assert.Equal(["Hidden", "Visible"], plan.OptionalContentGroupNames);
+        Assert.Equal(["Hidden"], plan.HiddenOptionalContentGroupNames);
+        Assert.Contains("\"hiddenOptionalContentGroupNames\":[\"Hidden\"]", plan.ToJson());
         Assert.Contains(PdfOptimizationChangeKind.FlattenOptionalContent,
             result.VerifiedRemovals);
         Assert.Empty(PdfOptionalContentReader.Read(sanitized).Groups);
