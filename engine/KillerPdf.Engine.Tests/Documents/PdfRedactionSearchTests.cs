@@ -73,6 +73,22 @@ public sealed class PdfRedactionSearchTests
     }
 
     [Fact]
+    public void FindsOnlyInternationalBankAccountNumbersWithValidChecksums()
+    {
+        PdfPageContent page = Read(
+            "IBAN GB82 WEST 1234 5698 7654 32, invalid GB81 WEST 1234 5698 7654 32.");
+
+        PdfRedactionMatch match = Assert.Single(PdfRedactionSearch.Find([page],
+            new PdfRedactionSearchOptions
+            {
+                Kind = PdfRedactionSearchKind.InternationalBankAccountNumber
+            }).Matches);
+
+        Assert.Equal("GB82 WEST 1234 5698 7654 32", match.Text);
+        Assert.Equal(6, match.WordCount);
+    }
+
+    [Fact]
     public void ValidatesTimeoutAndHonorsCancellation()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfRedactionSearch.Find([], new PdfRedactionSearchOptions

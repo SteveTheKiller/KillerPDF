@@ -17,7 +17,9 @@ public enum PdfRedactionSearchKind
     /// <summary>A U.S. Social Security number written with standard separators.</summary>
     SocialSecurityNumber,
     /// <summary>A payment card account number with a valid checksum.</summary>
-    PaymentCardNumber
+    PaymentCardNumber,
+    /// <summary>An international bank account number with a valid checksum.</summary>
+    InternationalBankAccountNumber
 }
 
 /// <summary>Options for locating reviewable redaction candidates.</summary>
@@ -120,6 +122,8 @@ public static class PdfRedactionSearch
     private const string PhonePattern = @"(?<!\d)(?:\+?1[ .-]?)?(?:\(\d{3}\)|\d{3})[ .-]?\d{3}[ .-]?\d{4}(?!\d)";
     private const string SocialSecurityNumberPattern = @"(?<!\d)\d{3}[ -]\d{2}[ -]\d{4}(?!\d)";
     private const string PaymentCardNumberPattern = @"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)";
+    private const string InternationalBankAccountNumberPattern =
+        @"(?<![A-Z0-9])(?:[A-Z]{2}\d{2}[A-Z0-9]{11,30}|[A-Z]{2}\d{2}(?: [A-Z0-9]{4}){2,7}(?: [A-Z0-9]{1,4})?)(?![A-Z0-9])";
 
     /// <summary>Builds a reviewable match list from extracted pages.</summary>
     public static PdfRedactionReview Find(IEnumerable<PdfPageContent> pages,
@@ -142,6 +146,8 @@ public static class PdfRedactionSearch
             PdfRedactionSearchKind.PhoneNumber => PhonePattern,
             PdfRedactionSearchKind.SocialSecurityNumber => SocialSecurityNumberPattern,
             PdfRedactionSearchKind.PaymentCardNumber => PaymentCardNumberPattern,
+            PdfRedactionSearchKind.InternationalBankAccountNumber =>
+                InternationalBankAccountNumberPattern,
             _ => throw new ArgumentException("Search text is required.", nameof(options))
         };
         RegexOptions flags = RegexOptions.CultureInvariant;
@@ -167,6 +173,8 @@ public static class PdfRedactionSearch
                     && !HasValidPaymentCardChecksum(match.Value)) continue;
                 if (options.Kind == PdfRedactionSearchKind.SocialSecurityNumber
                     && !HasValidSocialSecurityNumber(match.Value)) continue;
+                if (options.Kind == PdfRedactionSearchKind.InternationalBankAccountNumber
+                    && !HasValidInternationalBankAccountNumber(match.Value)) continue;
                 var words = spans.Select((span, index) => (span, index))
                     .Where(item => item.span.End > match.Index && item.span.Start < match.Index + match.Length)
                     .ToArray();
@@ -209,5 +217,24 @@ public static class PdfRedactionSearch
         int group = int.Parse(digits.AsSpan(3, 2), System.Globalization.CultureInfo.InvariantCulture);
         int serial = int.Parse(digits.AsSpan(5, 4), System.Globalization.CultureInfo.InvariantCulture);
         return area is > 0 and < 900 and not 666 && group > 0 && serial > 0;
+    }
+
+    private static bool HasValidInternationalBankAccountNumber(string value)
+    {
+        string compact = new(value.Where(character => character != ' ')
+            .Select(char.ToUpperInvariant).ToArray());
+        if (compact.Length is < 15 or > 34
+            || !char.IsAsciiLetter(compact[0]) || !char.IsAsciiLetter(compact[1])
+            || !char.IsAsciiDigit(compact[2]) || !char.IsAsciiDigit(compact[3])
+            || compact.Any(character => !char.IsAsciiLetterOrDigit(character))) return false;
+        int remainder = 0;
+        foreach (char character in compact[4..].Concat(compact[..4]))
+        {
+            if (char.IsAsciiDigit(character))
+                remainder = (remainder * 10 + character - '0') % 97;
+            else
+                remainder = (remainder * 100 + character - 'A' + 10) % 97;
+        }
+        return remainder == 1;
     }
 }
