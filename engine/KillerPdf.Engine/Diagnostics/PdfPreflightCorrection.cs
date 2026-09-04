@@ -11,7 +11,22 @@ public enum PdfPreflightCorrectionKind
     /// <summary>Set the catalog's primary document language.</summary>
     SetDocumentLanguage,
     /// <summary>Remove one explicit invalid print-production page box.</summary>
-    ClearProductionPageBox
+    ClearProductionPageBox,
+    /// <summary>Set one missing descriptive metadata field.</summary>
+    SetDocumentMetadata
+}
+
+/// <summary>A descriptive metadata field eligible for an unambiguous correction.</summary>
+public enum PdfPreflightMetadataField
+{
+    /// <summary>The document title.</summary>
+    Title,
+    /// <summary>The document author.</summary>
+    Author,
+    /// <summary>The document subject.</summary>
+    Subject,
+    /// <summary>The document search keywords.</summary>
+    Keywords
 }
 
 /// <summary>A previewed correction for one unambiguous preflight change.</summary>
@@ -22,13 +37,17 @@ public sealed class PdfPreflightCorrectionPlan
     private PdfPreflightCorrectionPlan(
         PdfDocument document, PdfPreflightCorrectionKind kind,
         bool changesDocument, string? language = null,
-        int? pageIndex = null, PdfPageBox? pageBox = null)
+        int? pageIndex = null, PdfPageBox? pageBox = null,
+        PdfPreflightMetadataField? metadataField = null,
+        string? metadataValue = null)
     {
         _document = document;
         Kind = kind;
         Language = language;
         PageIndex = pageIndex;
         PageBox = pageBox;
+        MetadataField = metadataField;
+        MetadataValue = metadataValue;
         ChangesDocument = changesDocument;
     }
 
@@ -40,6 +59,10 @@ public sealed class PdfPreflightCorrectionPlan
     public int? PageIndex { get; }
     /// <summary>Gets the print-production boundary for a page-box correction.</summary>
     public PdfPageBox? PageBox { get; }
+    /// <summary>Gets the descriptive metadata field for a metadata correction.</summary>
+    public PdfPreflightMetadataField? MetadataField { get; }
+    /// <summary>Gets the caller-confirmed descriptive metadata value.</summary>
+    public string? MetadataValue { get; }
     /// <summary>Gets whether applying the plan will change the document.</summary>
     public bool ChangesDocument { get; }
 
@@ -76,6 +99,23 @@ public sealed class PdfPreflightCorrectionPlan
             changes, pageIndex: pageIndex, pageBox: pageBox);
     }
 
+    /// <summary>Previews setting one caller-confirmed missing metadata field.</summary>
+    public static PdfPreflightCorrectionPlan SetDocumentMetadata(
+        PdfDocument document, PdfPreflightMetadataField field, string value)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!Enum.IsDefined(field)) throw new ArgumentOutOfRangeException(nameof(field));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        PdfDocumentInformation information = PdfDocumentInformation.Read(document);
+        string? current = ReadMetadataValue(information, field);
+        if (current is not null && !string.Equals(current, value, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "A preflight metadata correction cannot overwrite an existing value.");
+        return new PdfPreflightCorrectionPlan(document,
+            PdfPreflightCorrectionKind.SetDocumentMetadata,
+            current is null, metadataField: field, metadataValue: value);
+    }
+
     /// <summary>Applies the previewed correction and verifies the saved result.</summary>
     public byte[] Apply()
     {
@@ -84,6 +124,7 @@ public sealed class PdfPreflightCorrectionPlan
         {
             PdfPreflightCorrectionKind.SetDocumentLanguage => ApplyLanguage(),
             PdfPreflightCorrectionKind.ClearProductionPageBox => ApplyPageBox(),
+            PdfPreflightCorrectionKind.SetDocumentMetadata => ApplyMetadata(),
             _ => throw new InvalidOperationException("The preflight correction kind is not supported.")
         };
     }
@@ -110,6 +151,50 @@ public sealed class PdfPreflightCorrectionPlan
                 "The preflight correction did not remove the requested page boundary.");
         return output;
     }
+
+    private byte[] ApplyMetadata()
+    {
+        PdfDocumentInformation before = PdfDocumentInformation.Read(_document);
+        PdfDocumentMetadata metadata = MetadataField switch
+        {
+            PdfPreflightMetadataField.Title => Metadata(before) with { Title = MetadataValue },
+            PdfPreflightMetadataField.Author => Metadata(before) with { Author = MetadataValue },
+            PdfPreflightMetadataField.Subject => Metadata(before) with { Subject = MetadataValue },
+            PdfPreflightMetadataField.Keywords => Metadata(before) with { Keywords = MetadataValue },
+            _ => throw new InvalidOperationException("The metadata correction field is missing.")
+        };
+        byte[] output = new PdfIncrementalPageEditor(_document).SetMetadata(metadata).Build();
+        PdfDocumentInformation saved = PdfDocumentInformation.Read(PdfDocument.Open(output));
+        if (!string.Equals(ReadMetadataValue(saved, MetadataField.Value),
+                MetadataValue, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "The preflight correction did not preserve the requested metadata value.");
+        return output;
+    }
+
+    private static PdfDocumentMetadata Metadata(PdfDocumentInformation information) => new()
+    {
+        Title = information.Title,
+        Author = information.Author,
+        Subject = information.Subject,
+        Keywords = information.Keywords,
+        Creator = information.Creator,
+        Producer = information.Producer,
+        Language = information.Language,
+        CreationDate = information.CreationDate,
+        ModificationDate = information.ModificationDate,
+        Trapped = information.Trapped
+    };
+
+    private static string? ReadMetadataValue(
+        PdfDocumentInformation information, PdfPreflightMetadataField field) => field switch
+    {
+        PdfPreflightMetadataField.Title => information.Title,
+        PdfPreflightMetadataField.Author => information.Author,
+        PdfPreflightMetadataField.Subject => information.Subject,
+        PdfPreflightMetadataField.Keywords => information.Keywords,
+        _ => throw new ArgumentOutOfRangeException(nameof(field))
+    };
 
     private static PdfName ProductionBoxName(PdfPageBox pageBox) =>
         new(System.Text.Encoding.ASCII.GetBytes(pageBox switch

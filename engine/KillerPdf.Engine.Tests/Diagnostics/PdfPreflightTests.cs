@@ -101,6 +101,41 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void MissingMetadataCorrectionPreservesExistingDocumentInformation()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata
+            {
+                Author = "KillerPDF",
+                Subject = "Press proof",
+                Keywords = "proof, press",
+                Creator = "Source application",
+                Producer = "Source producer"
+            }).AddBlankPage().Build());
+
+        PdfPreflightCorrectionPlan plan =
+            PdfPreflightCorrectionPlan.SetDocumentMetadata(
+                document, PdfPreflightMetadataField.Title, "Production proof");
+        PdfDocument corrected = PdfDocument.Open(plan.Apply());
+        PdfDocumentInformation information = PdfDocumentInformation.Read(corrected);
+
+        Assert.Equal(PdfPreflightCorrectionKind.SetDocumentMetadata, plan.Kind);
+        Assert.Equal(PdfPreflightMetadataField.Title, plan.MetadataField);
+        Assert.True(plan.ChangesDocument);
+        Assert.Equal("Production proof", information.Title);
+        Assert.Equal("KillerPDF", information.Author);
+        Assert.Equal("Press proof", information.Subject);
+        Assert.Equal("proof, press", information.Keywords);
+        Assert.Equal("Source application", information.Creator);
+        Assert.Equal("Source producer", information.Producer);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfPreflightCorrectionPlan.SetDocumentMetadata(
+                corrected, PdfPreflightMetadataField.Title, "Replacement"));
+        Assert.False(PdfPreflightCorrectionPlan.SetDocumentMetadata(
+            corrected, PdfPreflightMetadataField.Title, "Production proof").ChangesDocument);
+    }
+
+    [Fact]
     public void TaggedProfileReportsBothRequiredCatalogDeclarations()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
