@@ -265,7 +265,9 @@ public enum PdfMacroOperation
     /// <summary>Repeat one source page across imposed output sheets.</summary>
     ImposeStepAndRepeat,
     /// <summary>Arrange source pages into simplex cut stacks.</summary>
-    ImposeCutStack
+    ImposeCutStack,
+    /// <summary>Arrange a caller-defined page sequence with explicit blanks.</summary>
+    ImposeManualSequence
 }
 
 /// <summary>One contextual macro operation result and its values for later steps.</summary>

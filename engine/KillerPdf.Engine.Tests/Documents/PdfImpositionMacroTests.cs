@@ -124,4 +124,40 @@ public sealed class PdfImpositionMacroTests
                     ["preset"] = duplexPreset.ToJson()
                 }), source));
     }
+
+    [Fact]
+    public void ManualSequenceStepRoundTripsOrderBlanksAndDuplexSides()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(200, 300, Text("One"))
+            .AddPage(200, 300, Text("Two"))
+            .AddPage(200, 300, Text("Three"))
+            .AddPage(200, 300, Text("Four"))
+            .AddPage(200, 300, Text("Five"))
+            .Build();
+        var preset = new PdfImpositionPreset(
+            "Manual", 3, 1, 792, 612, duplex: true);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Manual",
+            [PdfImpositionMacro.ManualSequenceStep(
+                preset, [4, null, 0, 3, 1])]).ToJson());
+
+        PdfMacroStep step = Assert.Single(macro.Steps);
+        PdfDocument imposed = PdfDocument.Open(
+            PdfImpositionMacro.Execute(step, source));
+        var reader = new PdfPageContentReader(imposed);
+
+        Assert.Equal(PdfMacroOperation.ImposeManualSequence, step.Operation);
+        Assert.Equal(2, PdfPageBoxInformation.Read(imposed).Count);
+        Assert.Equal("Five One", reader.Read(0).Text);
+        Assert.Equal("Four Two", reader.Read(1).Text);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfImpositionMacro.ManualSequenceStep(preset, [0, -1]));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfImpositionMacro.Execute(
+            PdfImpositionMacro.ManualSequenceStep(preset, [5]), source));
+
+        static PdfContentStreamBuilder Text(string value) =>
+            new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 10).MoveText(20, 150)
+                .ShowLatin1Text(value).EndText();
+    }
 }

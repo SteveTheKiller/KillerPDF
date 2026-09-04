@@ -9,6 +9,7 @@ public static class PdfImpositionMacro
     private const string SignaturePagesKey = "signaturePages";
     private const string SourcePageKey = "sourcePage";
     private const string CopyCountKey = "copyCount";
+    private const string PageSequenceKey = "pageSequence";
 
     /// <summary>Creates an N-up imposition step from a reusable preset.</summary>
     public static PdfMacroStep NUpStep(PdfImpositionPreset preset)
@@ -66,6 +67,22 @@ public static class PdfImpositionMacro
             });
     }
 
+    /// <summary>Creates a manual page-sequence imposition step from a reusable preset.</summary>
+    public static PdfMacroStep ManualSequenceStep(
+        PdfImpositionPreset preset, IReadOnlyList<int?> pageSequence)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        ArgumentNullException.ThrowIfNull(pageSequence);
+        if (pageSequence.Any(page => page < 0))
+            throw new ArgumentOutOfRangeException(nameof(pageSequence));
+        return new PdfMacroStep(PdfMacroOperation.ImposeManualSequence,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [PresetKey] = preset.ToJson(),
+                [PageSequenceKey] = JsonSerializer.Serialize(pageSequence)
+            });
+    }
+
     /// <summary>Executes one N-up imposition macro step without external actions.</summary>
     public static ReadOnlyMemory<byte> Execute(PdfMacroStep step,
         ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default)
@@ -74,7 +91,8 @@ public static class PdfImpositionMacro
         if (step.Operation is not (PdfMacroOperation.ImposeNUp
                 or PdfMacroOperation.ImposeBooklet
                 or PdfMacroOperation.ImposeStepAndRepeat
-                or PdfMacroOperation.ImposeCutStack))
+                or PdfMacroOperation.ImposeCutStack
+                or PdfMacroOperation.ImposeManualSequence))
             throw new ArgumentException(
                 "The macro step is not an imposition operation.", nameof(step));
         if (source.IsEmpty) throw new ArgumentException("The PDF source is empty.", nameof(source));
@@ -82,6 +100,7 @@ public static class PdfImpositionMacro
         {
             PdfMacroOperation.ImposeBooklet => 2,
             PdfMacroOperation.ImposeStepAndRepeat => 3,
+            PdfMacroOperation.ImposeManualSequence => 2,
             _ => 1
         };
         if (step.Settings is null || step.Settings.Count != expectedSettingCount
@@ -138,6 +157,12 @@ public static class PdfImpositionMacro
             sides = PdfImpositionPlanner.PlanCutStack(
                 pageCount, preset.Columns, preset.Rows);
         }
+        else if (step.Operation == PdfMacroOperation.ImposeManualSequence)
+        {
+            IReadOnlyList<int?> pageSequence = ReadPageSequence(step);
+            sides = PdfImpositionPlanner.PlanManual(pageCount, pageSequence,
+                checked(preset.Columns * preset.Rows), preset.Duplex);
+        }
         else
         {
             sides = preset.Plan(pageCount);
@@ -180,5 +205,22 @@ public static class PdfImpositionMacro
         if (preset.Duplex)
             throw new ArgumentException(
                 "A cut-stack preset must use simplex output.", nameof(preset));
+    }
+
+    private static IReadOnlyList<int?> ReadPageSequence(PdfMacroStep step)
+    {
+        if (!step.Settings!.TryGetValue(PageSequenceKey, out string? json))
+            throw new ArgumentException(
+                "The manual page sequence is invalid.", nameof(step));
+        try
+        {
+            return JsonSerializer.Deserialize<int?[]>(json)
+                ?? throw new JsonException("The manual page sequence is empty.");
+        }
+        catch (Exception error) when (error is JsonException or NotSupportedException)
+        {
+            throw new ArgumentException(
+                "The manual page sequence is invalid.", nameof(step), error);
+        }
     }
 }
