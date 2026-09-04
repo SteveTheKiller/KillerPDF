@@ -608,6 +608,29 @@ public sealed class PdfPageRendererTests
         Assert.Equal(255, Pixel(rendered, 5, 5)[3]);
     }
 
+    [Theory]
+    [InlineData(PdfBlendMode.Hue, 102)]
+    [InlineData(PdfBlendMode.Saturation, 102)]
+    [InlineData(PdfBlendMode.Color, 102)]
+    [InlineData(PdfBlendMode.Luminosity, 204)]
+    public void Render_CompositesNonseparableBlendModes(
+        PdfBlendMode blendMode, byte expected)
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(0.4, 0.4, 0.4).Rectangle(0, 0, 10, 10).Fill()
+            .SetBlendMode(blendMode)
+            .SetFillRgb(0.8, 0.8, 0.8).Rectangle(0, 0, 10, 10).Fill();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([expected, expected, expected, (byte)255], Pixel(rendered, 5, 5));
+        Assert.DoesNotContain("Transparency blend-mode rendering is not implemented.",
+            rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_ExpandsNestedFormsWithScopedResourcesMatricesAndBounds()
     {

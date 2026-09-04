@@ -1310,9 +1310,7 @@ public sealed class PdfPageRenderer
     }
 
     private static bool TryReadBlendMode(PdfName name, out RendererBlendMode mode) =>
-        Enum.TryParse(name.ValueAsLatin1(), ignoreCase: false, out mode)
-        && mode is not (RendererBlendMode.Hue or RendererBlendMode.Saturation
-            or RendererBlendMode.Color or RendererBlendMode.Luminosity);
+        Enum.TryParse(name.ValueAsLatin1(), ignoreCase: false, out mode);
 
     private int PositiveInteger(PdfDictionary dictionary, string key)
     {
@@ -1428,15 +1426,25 @@ public sealed class PdfPageRenderer
         double targetAlpha = pixels[offset + 3] / 255d;
         double outputAlpha = sourceAlpha + targetAlpha * (1 - sourceAlpha);
         if (outputAlpha <= 0) return;
-        pixels[offset] = Composite(color.Blue, pixels[offset]);
-        pixels[offset + 1] = Composite(color.Green, pixels[offset + 1]);
-        pixels[offset + 2] = Composite(color.Red, pixels[offset + 2]);
+        (double blendRed, double blendGreen, double blendBlue) = blendMode switch
+        {
+            RendererBlendMode.Hue or RendererBlendMode.Saturation
+                or RendererBlendMode.Color or RendererBlendMode.Luminosity =>
+                BlendNonSeparable(pixels[offset + 2] / 255d, pixels[offset + 1] / 255d,
+                    pixels[offset] / 255d, color.Red / 255d, color.Green / 255d,
+                    color.Blue / 255d, blendMode),
+            _ => (BlendChannel(pixels[offset + 2] / 255d, color.Red / 255d, blendMode),
+                BlendChannel(pixels[offset + 1] / 255d, color.Green / 255d, blendMode),
+                BlendChannel(pixels[offset] / 255d, color.Blue / 255d, blendMode))
+        };
+        pixels[offset] = Composite(color.Blue, pixels[offset], blendBlue);
+        pixels[offset + 1] = Composite(color.Green, pixels[offset + 1], blendGreen);
+        pixels[offset + 2] = Composite(color.Red, pixels[offset + 2], blendRed);
         pixels[offset + 3] = (byte)Math.Round(outputAlpha * 255);
 
-        byte Composite(byte sourceByte, byte targetByte)
+        byte Composite(byte sourceByte, byte targetByte, double blended)
         {
             double source = sourceByte / 255d, target = targetByte / 255d;
-            double blended = BlendChannel(target, source, blendMode);
             double value = ((1 - targetAlpha) * sourceAlpha * source
                 + (1 - sourceAlpha) * targetAlpha * target
                 + sourceAlpha * targetAlpha * blended) / outputAlpha;
@@ -1468,6 +1476,80 @@ public sealed class PdfPageRenderer
 
     private static double SoftLightD(double value) => value <= 0.25
         ? ((16 * value - 12) * value + 4) * value : Math.Sqrt(value);
+
+    private static (double Red, double Green, double Blue) BlendNonSeparable(
+        double backdropRed, double backdropGreen, double backdropBlue,
+        double sourceRed, double sourceGreen, double sourceBlue, RendererBlendMode mode)
+    {
+        var backdrop = new ColorVector(backdropRed, backdropGreen, backdropBlue);
+        var source = new ColorVector(sourceRed, sourceGreen, sourceBlue);
+        ColorVector result = mode switch
+        {
+            RendererBlendMode.Hue => SetLum(SetSat(source, Sat(backdrop)), Lum(backdrop)),
+            RendererBlendMode.Saturation => SetLum(SetSat(backdrop, Sat(source)), Lum(backdrop)),
+            RendererBlendMode.Color => SetLum(source, Lum(backdrop)),
+            _ => SetLum(backdrop, Lum(source))
+        };
+        return (result.Red, result.Green, result.Blue);
+
+        static double Lum(ColorVector color) =>
+            0.3 * color.Red + 0.59 * color.Green + 0.11 * color.Blue;
+
+        static double Sat(ColorVector color) =>
+            Math.Max(color.Red, Math.Max(color.Green, color.Blue))
+            - Math.Min(color.Red, Math.Min(color.Green, color.Blue));
+
+        static ColorVector SetLum(ColorVector color, double luminosity)
+        {
+            double difference = luminosity - Lum(color);
+            return ClipColor(new ColorVector(color.Red + difference,
+                color.Green + difference, color.Blue + difference));
+        }
+
+        static ColorVector SetSat(ColorVector color, double saturation)
+        {
+            double red = color.Red, green = color.Green, blue = color.Blue;
+            int minimum = red <= green && red <= blue ? 0 : green <= blue ? 1 : 2;
+            int maximum = red >= green && red >= blue ? 0 : green >= blue ? 1 : 2;
+            double minimumValue = Value(minimum), maximumValue = Value(maximum);
+            if (maximumValue == minimumValue) return new ColorVector(0, 0, 0);
+            int middle = 3 - minimum - maximum;
+            Set(middle, (Value(middle) - minimumValue) * saturation
+                / (maximumValue - minimumValue));
+            Set(maximum, saturation);
+            Set(minimum, 0);
+            return new ColorVector(red, green, blue);
+
+            double Value(int index) => index switch { 0 => red, 1 => green, _ => blue };
+            void Set(int index, double value)
+            {
+                if (index == 0) red = value;
+                else if (index == 1) green = value;
+                else blue = value;
+            }
+        }
+
+        static ColorVector ClipColor(ColorVector color)
+        {
+            double luminosity = Lum(color);
+            double red = color.Red, green = color.Green, blue = color.Blue;
+            double minimum = Math.Min(red, Math.Min(green, blue));
+            double maximum = Math.Max(red, Math.Max(green, blue));
+            if (minimum < 0)
+            {
+                red = luminosity + (red - luminosity) * luminosity / (luminosity - minimum);
+                green = luminosity + (green - luminosity) * luminosity / (luminosity - minimum);
+                blue = luminosity + (blue - luminosity) * luminosity / (luminosity - minimum);
+            }
+            if (maximum > 1)
+            {
+                red = luminosity + (red - luminosity) * (1 - luminosity) / (maximum - luminosity);
+                green = luminosity + (green - luminosity) * (1 - luminosity) / (maximum - luminosity);
+                blue = luminosity + (blue - luminosity) * (1 - luminosity) / (maximum - luminosity);
+            }
+            return new ColorVector(red, green, blue);
+        }
+    }
 
     private static GraphicsState ApplyPendingClip(GraphicsState state,
         IReadOnlyList<List<Point>> path, ref bool? pendingClipEvenOdd)
@@ -1522,6 +1604,7 @@ public sealed class PdfPageRenderer
         ColorBurn, HardLight, SoftLight, Difference, Exclusion, Hue, Saturation, Color,
         Luminosity
     }
+    private readonly record struct ColorVector(double Red, double Green, double Blue);
     private sealed record ClipRegion(IReadOnlyList<Point[]> Polygons, bool EvenOdd)
     {
         internal bool Contains(double x, double y)
