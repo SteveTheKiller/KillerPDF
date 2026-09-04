@@ -605,6 +605,9 @@ public static class PdfOcrBatchRunner
             {
                 PdfOcrReview review = recognize(page, cancellationToken)
                     ?? throw new InvalidOperationException("The OCR provider returned no review result.");
+                if (review.Words.Any(word => word.PageIndex != page.PageIndex))
+                    throw new InvalidOperationException(
+                        "The OCR provider returned words for a different source page.");
                 results.Add(new PdfOcrBatchResult(page, review, null, false));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

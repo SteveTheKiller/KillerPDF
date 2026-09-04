@@ -205,6 +205,24 @@ public sealed class PdfOcrReviewTests
     }
 
     [Fact]
+    public void BatchRunnerRejectsProviderResultsForAnotherPageAndContinues()
+    {
+        PdfOcrBatchPage[] pages = [
+            new("wrong.pdf", 2, new byte[] { 1 }),
+            new("next.pdf", 3, new byte[] { 2 })];
+
+        IReadOnlyList<PdfOcrBatchResult> results = PdfOcrBatchRunner.Run(
+            pages, (page, _) => new PdfOcrReview([
+                Word(page.SourceName, page.Source.Span[0] == 1 ? 1 : page.PageIndex,
+                    0, "text", 1)]));
+
+        Assert.Equal("The OCR provider returned words for a different source page.",
+            results[0].Error);
+        Assert.False(results[0].Succeeded);
+        Assert.True(results[1].Succeeded);
+    }
+
+    [Fact]
     public void BatchReportSummarizesPagesWithoutSourceOrRecognizedText()
     {
         PdfOcrBatchPage[] pages = [
