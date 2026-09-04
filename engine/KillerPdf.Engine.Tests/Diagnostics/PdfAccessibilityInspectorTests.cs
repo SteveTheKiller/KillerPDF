@@ -103,6 +103,38 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void RepairsOneMissingFigureDescriptionAfterExplicitPreview()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.Figure, 0)
+            .Rectangle(10, 10, 20, 20).Fill()
+            .EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Figure", Language = "en-US" })
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureElement(PdfStructureType.Figure, 0, 0, 1)
+            .Build());
+        int objectNumber = Assert.Single(PdfAccessibilityInspector.Inspect(document).Findings)
+            .ObjectNumber!.Value;
+
+        PdfAccessibilityFigureRepair preview =
+            PdfAccessibilityRepair.PreviewFigureAlternateDescription(
+                document, objectNumber, "A filled square");
+        PdfAccessibilityRepairResult result =
+            PdfAccessibilityRepair.ApplyFigureAlternateDescription(document, preview);
+
+        Assert.True(preview.WillChange);
+        Assert.DoesNotContain(result.After.Findings, finding =>
+            finding.Code == PdfAccessibilityFindingCode.MissingFigureAlternateDescription);
+        PdfDocument reopened = PdfDocument.Open(result.Document);
+        Assert.False(PdfAccessibilityRepair.PreviewFigureAlternateDescription(
+            reopened, objectNumber, "Replacement").WillChange);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfAccessibilityRepair.ApplyFigureAlternateDescription(reopened, preview));
+    }
+
+    [Fact]
     public void InspectAcceptsFigureAlternateDescription()
     {
         var content = new PdfContentStreamBuilder()
