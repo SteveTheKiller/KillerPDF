@@ -532,6 +532,37 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(source.Where((_, index) => !removed.Contains(index)).ToArray());
     }
 
+    /// <summary>Clips selected placements of one image or Form XObject resource.</summary>
+    public static IReadOnlyList<PdfContentInstruction> ClipXObjectPlacements(
+        IEnumerable<PdfContentInstruction> instructions,
+        PdfName resourceName, IEnumerable<int> occurrenceIndexes,
+        PdfContentClipRectangle rectangle, bool evenOdd = false)
+    {
+        PdfContentInstruction[] source = ValidateNamedPlacements(
+            instructions, resourceName, occurrenceIndexes, "Do", "XObject",
+            out HashSet<int> selected);
+        var result = new List<PdfContentInstruction>(source.Length + selected.Count * 5);
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (!selected.Contains(index))
+            {
+                result.Add(source[index]);
+                continue;
+            }
+            result.Add(new PdfContentInstruction("q", 0, []));
+            result.Add(new PdfContentInstruction("re", 0,
+            [
+                new PdfReal(rectangle.X), new PdfReal(rectangle.Y),
+                new PdfReal(rectangle.Width), new PdfReal(rectangle.Height)
+            ]));
+            result.Add(new PdfContentInstruction(evenOdd ? "W*" : "W", 0, []));
+            result.Add(new PdfContentInstruction("n", 0, []));
+            result.Add(source[index]);
+            result.Add(new PdfContentInstruction("Q", 0, []));
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
     /// <summary>Transforms selected placements of one shading resource.</summary>
     public static IReadOnlyList<PdfContentInstruction> TransformShadingPlacements(
         IEnumerable<PdfContentInstruction> instructions,

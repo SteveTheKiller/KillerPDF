@@ -189,6 +189,32 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void ClipXObjectPlacementsSelectsOnlyRequestedOccurrences()
+    {
+        var image = new PdfName("Im1"u8);
+        var form = new PdfName("Fm1"u8);
+        PdfContentInstruction[] source =
+        [
+            new("Do", 0, [image]),
+            new("Do", 4, [form]),
+            new("Do", 8, [image])
+        ];
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.ClipXObjectPlacements(source, image, [1],
+                new PdfContentClipRectangle(10, 20, 30, 40), evenOdd: true);
+
+        Assert.Equal(["Do", "Do", "q", "re", "W*", "n", "Do", "Q"],
+            result.Select(instruction => instruction.Operator));
+        Assert.Equal([10d, 20d, 30d, 40d],
+            result[3].Operands.Cast<PdfReal>().Select(value => value.Value));
+        Assert.Equal(8, result[6].Offset);
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.ClipXObjectPlacements(source, image, [2],
+                new PdfContentClipRectangle(0, 0, 1, 1)));
+    }
+
+    [Fact]
     public void TransformAndRemoveShadingPlacementsSelectOccurrencesByResource()
     {
         var first = new PdfName("Shade1"u8);
