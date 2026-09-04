@@ -68,10 +68,7 @@ public sealed class PdfPageRenderer
         PdfDictionary pageResources = PageResources(pageIndex);
         Process(_content.ReadInstructions(pageIndex, cancellationToken),
             pageResources, initialState, 0);
-        if (options.IncludeAnnotations)
-            diagnostics.Add("Annotation rendering is not implemented.");
-        if (options.IncludeFormFields)
-            diagnostics.Add("Form-field rendering is not implemented.");
+        RenderAppearances();
         return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
 
         void Process(IEnumerable<PdfContentInstruction> instructions,
@@ -292,6 +289,81 @@ public sealed class PdfPageRenderer
             {
                 activeForms.Remove(form);
             }
+        }
+
+        void RenderAppearances()
+        {
+            PdfPageTreeEntry pageEntry = _tree.Pages[pageIndex];
+            if (!pageEntry.Dictionary.TryGetValue(Name("Annots"), out PdfObject? annotationsValue)
+                || Resolve(annotationsValue) is not PdfArray annotations)
+                return;
+            foreach (PdfObject annotationValue in annotations)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (Resolve(annotationValue) is not PdfDictionary annotation) continue;
+                bool widget = IsName(annotation, "Subtype", "Widget");
+                if (widget ? !options.IncludeFormFields : !options.IncludeAnnotations) continue;
+                if (!TryGetAppearance(annotation, out PdfStream? appearance)
+                    || appearance is null) continue;
+                if (!annotation.TryGetValue(Name("Rect"), out PdfObject? rectangleValue)) continue;
+                PdfArray rectangle = ResolveArray(rectangleValue, 4, "Annotation rectangle");
+                double rectangleLeft = Number(Resolve(rectangle[0]));
+                double rectangleBottom = Number(Resolve(rectangle[1]));
+                double rectangleRight = Number(Resolve(rectangle[2]));
+                double rectangleTop = Number(Resolve(rectangle[3]));
+                if (!appearance.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boundsValue))
+                    continue;
+                PdfArray bounds = ResolveArray(boundsValue, 4, "Appearance bounding box");
+                double boundsLeft = Number(Resolve(bounds[0]));
+                double boundsBottom = Number(Resolve(bounds[1]));
+                double boundsRight = Number(Resolve(bounds[2]));
+                double boundsTop = Number(Resolve(bounds[3]));
+                Matrix appearanceMatrix = appearance.Dictionary.TryGetValue(
+                    Name("Matrix"), out PdfObject? matrixValue)
+                    ? Matrix.From(ResolveArray(matrixValue, 6, "Appearance matrix"))
+                    : Matrix.Identity;
+                Point[] transformed =
+                [
+                    appearanceMatrix.Apply(boundsLeft, boundsBottom),
+                    appearanceMatrix.Apply(boundsRight, boundsBottom),
+                    appearanceMatrix.Apply(boundsRight, boundsTop),
+                    appearanceMatrix.Apply(boundsLeft, boundsTop)
+                ];
+                double left = transformed.Min(point => point.X);
+                double bottom = transformed.Min(point => point.Y);
+                double width = transformed.Max(point => point.X) - left;
+                double height = transformed.Max(point => point.Y) - bottom;
+                if (width <= 0 || height <= 0) continue;
+                double scaleWidth = (rectangleRight - rectangleLeft) / width;
+                double scaleHeight = (rectangleTop - rectangleBottom) / height;
+                var placement = new Matrix(scaleWidth, 0, 0, scaleHeight,
+                    rectangleLeft - left * scaleWidth,
+                    rectangleBottom - bottom * scaleHeight);
+                RenderForm(appearance, pageResources,
+                    initialState with { Transform = placement.Then(initialState.Transform) }, 0);
+            }
+        }
+
+        bool TryGetAppearance(PdfDictionary annotation, out PdfStream? appearance)
+        {
+            appearance = null;
+            if (!annotation.TryGetValue(Name("AP"), out PdfObject? appearancesValue)
+                || Resolve(appearancesValue) is not PdfDictionary appearances
+                || !appearances.TryGetValue(Name("N"), out PdfObject? normalValue))
+                return false;
+            PdfObject normal = Resolve(normalValue);
+            if (normal is PdfStream stream)
+            {
+                appearance = stream;
+                return true;
+            }
+            if (normal is not PdfDictionary states) return false;
+            if (annotation.TryGetValue(Name("AS"), out PdfObject? stateValue)
+                && Resolve(stateValue) is PdfName stateName
+                && states.TryGetValue(stateName, out PdfObject? selected)
+                && Resolve(selected) is PdfStream selectedStream)
+                appearance = selectedStream;
+            return appearance is not null;
         }
     }
 

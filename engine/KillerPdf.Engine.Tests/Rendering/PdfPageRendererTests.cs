@@ -210,6 +210,25 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Form XObject rendering is not implemented.", page.Diagnostics);
     }
 
+    [Fact]
+    public void Render_SeparatesWidgetAppearanceInclusionFromPageContent()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(20, 20)
+            .AddCheckBox(0, "approved", 5, 5, 10, 10, isChecked: true)
+            .Build());
+        var renderer = new PdfPageRenderer(document);
+
+        PdfRenderedPage hidden = renderer.Render(0,
+            new PdfRenderOptions(20, 20, includeAnnotations: true, includeFormFields: false));
+        PdfRenderedPage shown = renderer.Render(0,
+            new PdfRenderOptions(20, 20, includeAnnotations: false, includeFormFields: true));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(hidden, 5, 14));
+        Assert.NotEqual([255, 255, 255, 255], Pixel(shown, 5, 14));
+        Assert.DoesNotContain("Form-field rendering is not implemented.", shown.Diagnostics);
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }
