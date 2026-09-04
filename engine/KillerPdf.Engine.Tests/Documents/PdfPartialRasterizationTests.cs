@@ -93,4 +93,53 @@ public sealed class PdfPartialRasterizationTests
         Assert.Throws<ArgumentException>(() => PdfPartialRasterization.Apply(
             document, 0, plan, PdfImage.FromRgb(9, 10, new byte[9 * 10 * 3])));
     }
+
+    [Fact]
+    public void ApplyReplacesMultipleRegionsInOneRevision()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .Rectangle(5, 5, 20, 20).Stroke()
+                .Rectangle(60, 60, 20, 20).Stroke())
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan first = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(5, 5, 25, 25), 72);
+        PdfPartialRasterizationPlan second = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(60, 60, 80, 80), 72);
+
+        byte[] changed = PdfPartialRasterization.Apply(document,
+        [
+            new PdfPartialRasterizationReplacement(0, first,
+                PdfImage.FromRgb(20, 20, new byte[20 * 20 * 3])),
+            new PdfPartialRasterizationReplacement(0, second,
+                PdfImage.FromRgb(20, 20, new byte[20 * 20 * 3]))
+        ]);
+        PdfPageContent result = new PdfPageContentReader(PdfDocument.Open(changed)).Read(0);
+
+        Assert.True(changed.AsSpan(0, source.Length).SequenceEqual(source));
+        Assert.Equal([first.Region, second.Region],
+            result.Images.Select(image => image.BoundingBox));
+    }
+
+    [Fact]
+    public void ApplyRejectsOverlappingReplacementRegions()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(100, 100).Build());
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan first = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(5, 5, 25, 25), 72);
+        PdfPartialRasterizationPlan second = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(20, 20, 40, 40), 72);
+
+        Assert.Throws<ArgumentException>(() => PdfPartialRasterization.Apply(document,
+        [
+            new PdfPartialRasterizationReplacement(0, first,
+                PdfImage.FromRgb(20, 20, new byte[20 * 20 * 3])),
+            new PdfPartialRasterizationReplacement(0, second,
+                PdfImage.FromRgb(20, 20, new byte[20 * 20 * 3]))
+        ]));
+    }
 }

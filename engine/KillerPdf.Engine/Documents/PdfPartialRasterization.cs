@@ -26,6 +26,10 @@ public sealed record PdfPartialRasterizationPlan
     public IReadOnlyList<PdfExtractedShading> Shadings { get; init; } = [];
 }
 
+/// <summary>Pairs one page-local rasterization plan with its rendered pixels.</summary>
+public sealed record PdfPartialRasterizationReplacement(
+    int PageIndex, PdfPartialRasterizationPlan Plan, PdfImage Raster);
+
 /// <summary>Plans region rasterization without changing the source document.</summary>
 public static class PdfPartialRasterization
 {
@@ -70,34 +74,78 @@ public static class PdfPartialRasterization
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(raster);
-        PdfPageContent page = new PdfPageContentReader(document).Read(pageIndex);
+        return Apply(document,
+            [new PdfPartialRasterizationReplacement(pageIndex, plan, raster)]);
+    }
+
+    /// <summary>Replaces multiple non-overlapping selected regions in one incremental revision.</summary>
+    public static byte[] Apply(PdfDocument document,
+        IEnumerable<PdfPartialRasterizationReplacement> replacements,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(replacements);
+        PdfPartialRasterizationReplacement[] selected = replacements.ToArray();
+        if (selected.Length == 0)
+            throw new ArgumentException("At least one raster replacement is required.",
+                nameof(replacements));
+        var reader = new PdfPageContentReader(document);
+        var editor = new PdfIncrementalPageEditor(document);
+        foreach (IGrouping<int, PdfPartialRasterizationReplacement> pageGroup
+            in selected.GroupBy(replacement => replacement.PageIndex))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfPageContent page = reader.Read(pageGroup.Key, cancellationToken);
+            PdfPartialRasterizationReplacement[] pageReplacements = pageGroup.ToArray();
+            for (int index = 0; index < pageReplacements.Length; index++)
+            {
+                ValidateReplacement(page, pageReplacements[index]);
+                for (int other = 0; other < index; other++)
+                    if (Intersects(pageReplacements[index].Plan.Region,
+                            pageReplacements[other].Plan.Region))
+                        throw new ArgumentException(
+                            "Raster replacement regions cannot overlap.", nameof(replacements));
+            }
+            var retained = new List<PdfContentInstruction>(
+                page.Instructions.Count + pageReplacements.Length + 6)
+            {
+                new("q", 0, []),
+                Rectangle(0, 0, page.Width, page.Height)
+            };
+            foreach (PdfPartialRasterizationReplacement replacement in pageReplacements)
+                retained.Add(Rectangle(replacement.Plan.Region.Left,
+                    replacement.Plan.Region.Bottom, replacement.Plan.Region.Width,
+                    replacement.Plan.Region.Height));
+            retained.Add(new PdfContentInstruction("W*", 0, []));
+            retained.Add(new PdfContentInstruction("n", 0, []));
+            retained.AddRange(page.Instructions);
+            retained.Add(new PdfContentInstruction("Q", 0, []));
+            editor.SetPageContent(pageGroup.Key, retained);
+            foreach (PdfPartialRasterizationReplacement replacement in pageReplacements)
+                editor.AppendPageContent(pageGroup.Key, page.Width, page.Height,
+                    new PdfContentStreamBuilder().DrawImage(replacement.Raster,
+                        replacement.Plan.Region.Left, replacement.Plan.Region.Bottom,
+                        replacement.Plan.Region.Width, replacement.Plan.Region.Height));
+        }
+        return editor.Build();
+    }
+
+    private static void ValidateReplacement(PdfPageContent page,
+        PdfPartialRasterizationReplacement replacement)
+    {
+        ArgumentNullException.ThrowIfNull(replacement.Plan);
+        ArgumentNullException.ThrowIfNull(replacement.Raster);
+        PdfPartialRasterizationPlan plan = replacement.Plan;
         if (plan.Region.Left < 0 || plan.Region.Bottom < 0
             || plan.Region.Right > page.Width || plan.Region.Top > page.Height
             || plan.Region.Width <= 0 || plan.Region.Height <= 0)
             throw new ArgumentException(
-                "The rasterization plan does not fit the selected page.", nameof(plan));
-        if (raster.Width != plan.PixelWidth || raster.Height != plan.PixelHeight)
+                "The rasterization plan does not fit the selected page.", nameof(replacement));
+        if (replacement.Raster.Width != plan.PixelWidth
+            || replacement.Raster.Height != plan.PixelHeight)
             throw new ArgumentException(
-                "The raster dimensions do not match the rasterization plan.", nameof(raster));
-
-        var retained = new List<PdfContentInstruction>(page.Instructions.Count + 7)
-        {
-            new("q", 0, []),
-            Rectangle(0, 0, page.Width, page.Height),
-            Rectangle(plan.Region.Left, plan.Region.Bottom,
-                plan.Region.Width, plan.Region.Height),
-            new("W*", 0, []),
-            new("n", 0, [])
-        };
-        retained.AddRange(page.Instructions);
-        retained.Add(new PdfContentInstruction("Q", 0, []));
-        var replacement = new PdfContentStreamBuilder()
-            .DrawImage(raster, plan.Region.Left, plan.Region.Bottom,
-                plan.Region.Width, plan.Region.Height);
-        return new PdfIncrementalPageEditor(document)
-            .SetPageContent(pageIndex, retained)
-            .AppendPageContent(pageIndex, page.Width, page.Height, replacement)
-            .Build();
+                "The raster dimensions do not match the rasterization plan.",
+                nameof(replacement));
     }
 
     private static PdfContentInstruction Rectangle(
