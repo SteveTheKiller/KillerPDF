@@ -234,6 +234,8 @@ public enum PdfMacroOperation
     GenerateTableOfContents,
     /// <summary>Flatten editable content.</summary>
     Flatten,
+    /// <summary>Flatten PDF layers to an explicitly selected visible result.</summary>
+    FlattenLayers,
     /// <summary>Validate the document.</summary>
     Validate,
     /// <summary>Export document content.</summary>
