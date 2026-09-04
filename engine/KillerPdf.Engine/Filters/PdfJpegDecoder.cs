@@ -66,7 +66,7 @@ internal static class PdfJpegDecoder
             int end = _position + length - 2;
             switch (marker)
             {
-                case 0xC0: ReadFrame(end); break;
+                case 0xC0 or 0xC1: ReadFrame(end); break;
                 case 0xC4: ReadHuffmanTables(end); break;
                 case 0xDB: ReadQuantizationTables(end); break;
                 case 0xDD:
@@ -75,7 +75,7 @@ internal static class PdfJpegDecoder
                     break;
                 case 0xEE: ReadAdobeSegment(end); break;
                 case 0xDA: ReadScanHeader(end); break;
-                case 0xC1 or 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7
+                case 0xC2 or 0xC3 or 0xC5 or 0xC6 or 0xC7
                     or 0xC9 or 0xCA or 0xCB or 0xCD or 0xCE or 0xCF:
                     throw Error("Only baseline sequential JPEG images are implemented.");
             }
