@@ -55,6 +55,7 @@ namespace KillerPDF.Features
         private static readonly string[] CliValueOptions =
         [
             "--log", "--dpi", "--format", "--pages", "--printer", "--lang", "--password", "--copies",
+            "--color-mode", "--threshold", "--compression", "--jpeg-quality",
         ];
 
         /// <summary>
@@ -159,7 +160,9 @@ namespace KillerPDF.Features
             "  --to-image <in.pdf> <outDir> [--dpi <n>] [--format png|jpg] [--pages <range>] [--transparent]",
             "                                           render pages to images (default 150 dpi, png;",
             "                                           background composites to white unless --transparent, png only)",
-            "  --flatten <in.pdf> <out.pdf> [--dpi <n>] rasterize into an uneditable PDF (default 150 dpi)",
+            "  --flatten <in.pdf> <out.pdf> [--dpi <n>] [--color-mode color|grayscale|black-white]",
+            "                                           [--threshold <0-255>] [--compression lossless|jpeg]",
+            "                                           [--jpeg-quality <1-100>] rasterize into an uneditable PDF",
             "  --print <in.pdf> [--printer <name>] [--pages <range>] [--copies <n>]",
             "                                           print silently (default printer if none named)",
             "  --ocr <in.pdf> <out.pdf> [--lang <code>] add an invisible searchable text layer (default eng;",
@@ -521,7 +524,7 @@ namespace KillerPDF.Features
         }
 
         // ============================================================
-        // --flatten <in.pdf> <out.pdf> [--dpi n]
+        // --flatten <in.pdf> <out.pdf> [output options]
         // ============================================================
         // Same rasterize-and-rebuild the GUI's Save Flattened runs (150 dpi
         // default, engine-authored image pages sized in points), plus the rotation
@@ -530,12 +533,38 @@ namespace KillerPDF.Features
         {
             if (pos.Count != 2)
             {
-                con.WriteLine("Usage: KillerPDF.exe --flatten <in.pdf> <out.pdf> [--dpi <n>]");
+                con.WriteLine("Usage: KillerPDF.exe --flatten <in.pdf> <out.pdf> [--dpi <n>] [--color-mode color|grayscale|black-white] [--threshold <0-255>] [--compression lossless|jpeg] [--jpeg-quality <1-100>]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
             if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
             double dpi = CliParseDpi(options, 150);
+            PageColorMode colorMode = PageColorMode.Color;
+            if (options.TryGetValue("--color-mode", out string? colorRaw))
+            {
+                colorMode = colorRaw.ToLowerInvariant() switch
+                {
+                    "color" => PageColorMode.Color,
+                    "grayscale" or "gray" => PageColorMode.Grayscale,
+                    "black-white" or "blackandwhite" or "bitonal" => PageColorMode.BlackAndWhite,
+                    _ => throw new ArgumentException(
+                        "--color-mode must be color, grayscale, or black-white."),
+                };
+            }
+            int threshold = ParseBoundedIntOption(options, "--threshold", 160, 0, 255);
+            int jpegQuality = ParseBoundedIntOption(options, "--jpeg-quality", 85, 1, 100);
+            bool useJpeg = false;
+            if (options.TryGetValue("--compression", out string? compressionRaw))
+            {
+                useJpeg = compressionRaw.ToLowerInvariant() switch
+                {
+                    "lossless" => false,
+                    "jpeg" => true,
+                    _ => throw new ArgumentException("--compression must be lossless or jpeg."),
+                };
+            }
+            if (colorMode == PageColorMode.BlackAndWhite && useJpeg)
+                throw new ArgumentException("Black-and-white flattening requires lossless compression.");
             options.TryGetValue("--password", out var password);
 
             var (renderPath, rotations, dims) = CliPrepareRenderSource(inPath, password, con);
@@ -578,18 +607,35 @@ namespace KillerPDF.Features
                     hPt = h * 72.0 / dpi;
                 }
 
-                bool bitonal = i < bitonalHints.Count && bitonalHints[i]
+                PageQualityConverter.ApplyColorModeToBgra(raw, colorMode, threshold);
+                bool bitonal = colorMode == PageColorMode.BlackAndWhite
+                    || colorMode == PageColorMode.Color
+                    && i < bitonalHints.Count && bitonalHints[i]
                     && BitonalPageDetector.IsOpaqueGrayscaleBgra(raw, w, h);
-                ReadOnlyMemory<byte> jpeg = !bitonal && i < jpegHints.Count && jpegHints[i]
-                    ? BitmapHelpers.EncodeJpeg(raw, w, h, dpi)
+                bool grayscale = colorMode == PageColorMode.Grayscale;
+                bool encodeJpeg = !bitonal && (useJpeg
+                    || colorMode == PageColorMode.Color
+                    && i < jpegHints.Count && jpegHints[i]);
+                ReadOnlyMemory<byte> jpeg = encodeJpeg
+                    ? BitmapHelpers.EncodeJpeg(raw, w, h, dpi, jpegQuality, grayscale)
                     : default;
                 pages.Add(new PdfEngineIntegration.RasterPage(
-                    w, h, wPt, hPt, raw, jpeg, Bitonal: bitonal));
+                    w, h, wPt, hPt, raw, jpeg,
+                    Bitonal: bitonal, Grayscale: grayscale));
             }
             CliEnsureParentDir(outPath);
             File.WriteAllBytes(outPath, PdfEngineIntegration.CreateRasterDocument(pages));
             con.WriteLine($"Flattened {pageCount} pages at {dpi:0} dpi -> {outPath}");
             return 0;
+        }
+
+        private static int ParseBoundedIntOption(
+            Dictionary<string, string> options, string name, int fallback, int minimum, int maximum)
+        {
+            if (!options.TryGetValue(name, out string? raw)) return fallback;
+            if (!int.TryParse(raw, out int value) || value < minimum || value > maximum)
+                throw new ArgumentException($"{name} must be between {minimum} and {maximum}.");
+            return value;
         }
 
         // ============================================================

@@ -62,6 +62,7 @@
     <Compile Include="..\Services\MeasurementCalculator.cs" Link="Services\MeasurementCalculator.cs" />
     <Compile Include="..\Services\OutputPixelDimensions.cs" Link="Services\OutputPixelDimensions.cs" />
     <Compile Include="..\Services\BitonalPageDetector.cs" Link="Services\BitonalPageDetector.cs" />
+    <Compile Include="..\Services\BitmapHelpers.cs" Link="Services\BitmapHelpers.cs" />
     <Compile Include="..\Services\PdfPageDifference.cs" Link="Services\PdfPageDifference.cs" />
     <Compile Include="..\Services\PageAnnotationInsertion.cs" Link="Services\PageAnnotationInsertion.cs" />
     <Compile Include="..\Services\FormOcrPolicy.cs" Link="Services\FormOcrPolicy.cs" />

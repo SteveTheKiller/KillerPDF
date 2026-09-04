@@ -182,11 +182,25 @@ namespace KillerPDF.Services
         /// CliEncodeJpeg (no JPEG encoder existed before --to-image); homed here beside RenderToPng
         /// in the KillerUI refactor, shared by the CLI and the GUI image export.
         /// </summary>
-        internal static byte[] EncodeJpeg(byte[] bgra, int width, int height, double dpi = 96)
+        internal static byte[] EncodeJpeg(byte[] bgra, int width, int height,
+            double dpi = 96, int quality = 90, bool grayscale = false)
         {
             // #188: dpi lands in the JFIF density header; pixel dimensions are unaffected.
-            var bmp = BitmapSource.Create(width, height, dpi, dpi, PixelFormats.Bgra32, null, bgra, width * 4);
-            var encoder = new JpegBitmapEncoder { QualityLevel = 90 };
+            BitmapSource bmp;
+            if (grayscale)
+            {
+                byte[] gray = new byte[checked(width * height)];
+                for (int pixel = 0; pixel < gray.Length; pixel++)
+                    gray[pixel] = bgra[pixel * 4];
+                bmp = BitmapSource.Create(
+                    width, height, dpi, dpi, PixelFormats.Gray8, null, gray, width);
+            }
+            else
+            {
+                bmp = BitmapSource.Create(
+                    width, height, dpi, dpi, PixelFormats.Bgra32, null, bgra, width * 4);
+            }
+            var encoder = new JpegBitmapEncoder { QualityLevel = quality };
             encoder.Frames.Add(BitmapFrame.Create(bmp));
             using var ms = new MemoryStream();
             encoder.Save(ms);

@@ -8,6 +8,30 @@ namespace KillerPDF.Tests;
 public sealed class TransformQualityTests
 {
     [Fact]
+    public void ApplyColorModeToBgra_ProducesOpaqueGrayAndBitonalSamples()
+    {
+        byte[] grayscale = [10, 20, 30, 255, 200, 150, 100, 255];
+        PageQualityConverter.ApplyColorModeToBgra(
+            grayscale, PageColorMode.Grayscale, 160);
+
+        Assert.Equal(new byte[] { 22, 22, 22, 255, 141, 141, 141, 255 }, grayscale);
+
+        byte[] bitonal = [10, 20, 30, 255, 200, 150, 100, 255];
+        PageQualityConverter.ApplyColorModeToBgra(
+            bitonal, PageColorMode.BlackAndWhite, 100);
+
+        Assert.Equal(new byte[] { 0, 0, 0, 255, 255, 255, 255, 255 }, bitonal);
+    }
+
+    [Fact]
+    public void ApplyColorModeToBgra_RejectsIncompletePixels()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            PageQualityConverter.ApplyColorModeToBgra(
+                new byte[3], PageColorMode.Grayscale, 160));
+    }
+
+    [Fact]
     public void Grayscale_UsesPerceptualLuminanceAndPreservesAlpha()
     {
         BitmapSource source = BitmapSource.Create(1, 1, 96, 96, PixelFormats.Bgra32,

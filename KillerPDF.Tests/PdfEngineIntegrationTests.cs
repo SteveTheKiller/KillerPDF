@@ -718,6 +718,28 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void CreateRasterDocument_EmbedsOneChannelGrayscaleJpeg()
+    {
+        byte[] pixels =
+        [
+            24, 24, 24, 255,
+            208, 208, 208, 255,
+        ];
+        byte[] jpeg = BitmapHelpers.EncodeJpeg(
+            pixels, 2, 1, 150, quality: 80, grayscale: true);
+
+        byte[] result = PdfEngineIntegration.CreateRasterDocument([
+            new PdfEngineIntegration.RasterPage(
+                2, 1, 144, 72, pixels, jpeg, Grayscale: true)]);
+
+        string syntax = System.Text.Encoding.Latin1.GetString(result);
+        Assert.Contains("/Filter /DCTDecode", syntax);
+        Assert.Contains("/ColorSpace /DeviceGray", syntax);
+        Assert.DoesNotContain("/SMask", syntax);
+        Assert.True(result.AsSpan().IndexOf(jpeg) >= 0);
+    }
+
+    [Fact]
     public void CreateRasterDocument_StoresBitonalPagesAsOneBitWithoutAlphaMask()
     {
         byte[] result = PdfEngineIntegration.CreateRasterDocument([

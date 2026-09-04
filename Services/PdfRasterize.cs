@@ -16,6 +16,24 @@ namespace KillerPDF.Services
     // ============================================================
     internal static class PdfRasterize
     {
+        internal sealed record FlattenOptions(
+            double Dpi = 150,
+            PageColorMode ColorMode = PageColorMode.Color,
+            int BlackWhiteThreshold = 160,
+            bool UseJpegCompression = false,
+            int JpegQuality = 85)
+        {
+            internal void Validate()
+            {
+                if (Dpi < 24 || Dpi > 1200)
+                    throw new ArgumentOutOfRangeException(nameof(Dpi), "DPI must be between 24 and 1200.");
+                if (BlackWhiteThreshold < 0 || BlackWhiteThreshold > 255)
+                    throw new ArgumentOutOfRangeException(nameof(BlackWhiteThreshold), "Threshold must be between 0 and 255.");
+                if (JpegQuality < 1 || JpegQuality > 100)
+                    throw new ArgumentOutOfRangeException(nameof(JpegQuality), "JPEG quality must be between 1 and 100.");
+            }
+        }
+
         /// <summary>
         /// Rasterizes every page of <paramref name="sourcePath"/> at 150 DPI and assembles them
         /// into a new PDF at <paramref name="outputPath"/>, each page at its original point size.
@@ -24,7 +42,14 @@ namespace KillerPDF.Services
         internal static void FlattenToPdf(string sourcePath, int pageCount,
             (double widthPt, double heightPt)[] pageDims, string outputPath,
             Action<int, int> progress, CancellationToken ct)
+            => FlattenToPdf(sourcePath, pageCount, pageDims, outputPath,
+                new FlattenOptions(), progress, ct);
+
+        internal static void FlattenToPdf(string sourcePath, int pageCount,
+            (double widthPt, double heightPt)[] pageDims, string outputPath,
+            FlattenOptions options, Action<int, int> progress, CancellationToken ct)
         {
+            options.Validate();
             // Rasterize pages across CPU cores. Docnet/PDFium is not thread-safe, so the
             // PDFium rendering is serialized behind a lock. Pages are authored by the
             // engine afterwards in their original order.
@@ -43,7 +68,8 @@ namespace KillerPDF.Services
             var docGate  = new object();
             int done     = 0;
             var po = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount) };
-            using var flattenReader = DocLib.Instance.GetDocReader(sourcePath, new PageDimensions(150.0 / 72.0));
+            using var flattenReader = DocLib.Instance.GetDocReader(
+                sourcePath, new PageDimensions(options.Dpi / 72.0));
             Parallel.For(0, pageCount, po, i =>
             {
                 if (ct.IsCancellationRequested) return;   // cooperative: skip remaining pages' work
@@ -61,15 +87,25 @@ namespace KillerPDF.Services
                     bgra = PdfiumInterop.RenderPageWithAnnotations(sourcePath, i, rw, rh)
                         ?? pr.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover());
                 }
-                bool bitonal = i < bitonalHints.Count && bitonalHints[i]
+                PageQualityConverter.ApplyColorModeToBgra(
+                    bgra, options.ColorMode, options.BlackWhiteThreshold);
+                bool bitonal = options.ColorMode == PageColorMode.BlackAndWhite
+                    || options.ColorMode == PageColorMode.Color
+                    && i < bitonalHints.Count && bitonalHints[i]
                     && BitonalPageDetector.IsOpaqueGrayscaleBgra(bgra, rw, rh);
-                ReadOnlyMemory<byte> jpeg = !bitonal && i < jpegHints.Count && jpegHints[i]
-                    ? BitmapHelpers.EncodeJpeg(bgra, rw, rh, 150)
+                bool grayscale = options.ColorMode == PageColorMode.Grayscale;
+                bool useJpeg = !bitonal && (options.UseJpegCompression
+                    || options.ColorMode == PageColorMode.Color
+                    && i < jpegHints.Count && jpegHints[i]);
+                ReadOnlyMemory<byte> jpeg = useJpeg
+                    ? BitmapHelpers.EncodeJpeg(bgra, rw, rh, options.Dpi,
+                        options.JpegQuality, grayscale)
                     : default;
                 rasterPages[i] = new PdfEngineIntegration.RasterPage(
                     rw, rh, pageDims[i].widthPt, pageDims[i].heightPt, bgra,
                     JpegData: jpeg,
-                    Bitonal: bitonal);
+                    Bitonal: bitonal,
+                    Grayscale: grayscale);
 
                 int n = System.Threading.Interlocked.Increment(ref done);
                 progress(n, pageCount);
