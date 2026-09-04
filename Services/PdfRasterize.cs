@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading;
 using Docnet.Core;
 using Docnet.Core.Models;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 
 namespace KillerPDF.Services
@@ -64,6 +65,15 @@ namespace KillerPDF.Services
                 PdfPageRasterInformation.ReadBitonalImagePageHints(sourceDocument);
             IReadOnlyList<bool> jpegHints =
                 PdfPageRasterInformation.ReadJpegImagePageHints(sourceDocument);
+            var passthrough = new PdfImage?[pageCount];
+            if (options.ColorMode == PageColorMode.Color && !options.UseJpegCompression)
+                for (int i = 0; i < pageCount; i++)
+                    if (PdfPageRasterInformation.TryReadFullPageJpeg(
+                            sourceDocument, i, out PdfImage? candidate)
+                        && candidate is not null
+                        && OutputPixelDimensions.MatchesDpi(candidate.Width, candidate.Height,
+                            pageDims[i].widthPt, pageDims[i].heightPt, options.Dpi))
+                        passthrough[i] = candidate;
             var rasterPages = new PdfEngineIntegration.RasterPage[pageCount];
             var docGate  = new object();
             int done     = 0;
@@ -73,6 +83,16 @@ namespace KillerPDF.Services
             Parallel.For(0, pageCount, po, i =>
             {
                 if (ct.IsCancellationRequested) return;   // cooperative: skip remaining pages' work
+                if (passthrough[i] is PdfImage original)
+                {
+                    rasterPages[i] = new PdfEngineIntegration.RasterPage(
+                        original.Width, original.Height,
+                        pageDims[i].widthPt, pageDims[i].heightPt,
+                        ReadOnlyMemory<byte>.Empty, original.Data);
+                    int passed = System.Threading.Interlocked.Increment(ref done);
+                    progress(passed, pageCount);
+                    return;
+                }
                 byte[] bgra; int rw, rh;
                 lock (docGate)
                 {

@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Docnet.Core;
 using Docnet.Core.Models;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
 // The scrubs, bitmap helpers, import helpers and PDFium interop all live in Services
@@ -605,6 +606,19 @@ namespace KillerPDF.Features
                 {
                     wPt = w * 72.0 / dpi;
                     hPt = h * 72.0 / dpi;
+                }
+
+                if (colorMode == PageColorMode.Color && !useJpeg
+                    && PdfPageRasterInformation.TryReadFullPageJpeg(
+                        renderDocument, i, out PdfImage? original)
+                    && original is not null
+                    && OutputPixelDimensions.MatchesDpi(
+                        original.Width, original.Height, wPt, hPt, dpi))
+                {
+                    pages.Add(new PdfEngineIntegration.RasterPage(
+                        original.Width, original.Height, wPt, hPt,
+                        ReadOnlyMemory<byte>.Empty, original.Data));
+                    continue;
                 }
 
                 PageQualityConverter.ApplyColorModeToBgra(raw, colorMode, threshold);

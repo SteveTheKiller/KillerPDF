@@ -48,7 +48,11 @@ public static class PdfPageRasterInformation
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         image = null;
         PdfPageTreeEntry page = tree.Pages[pageIndex];
-        if (page.Dictionary.ContainsKey(Name("Annots"))) return false;
+        if (page.Dictionary.ContainsKey(Name("Annots"))
+            || page.InheritedValues.TryGetValue(Name("Rotate"), out PdfObject? rotateValue)
+            && Resolve(document, rotateValue) is PdfInteger rotate
+            && rotate.Value % 360 != 0)
+            return false;
 
         PdfPageContent content;
         try { content = new PdfPageContentReader(document).Read(pageIndex); }

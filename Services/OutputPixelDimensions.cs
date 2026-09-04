@@ -20,4 +20,12 @@ internal static class OutputPixelDimensions
         double scale = Math.Sqrt(outputWidth * outputHeight / (sourceWidth * sourceHeight));
         return "x" + scale.ToString("0.##", System.Globalization.CultureInfo.CurrentCulture);
     }
+
+    internal static bool MatchesDpi(
+        int pixelWidth, int pixelHeight, double widthPoints, double heightPoints, double dpi)
+    {
+        var expected = FromPoints(widthPoints, heightPoints, dpi);
+        return Math.Abs(pixelWidth - expected.Width) <= 1
+            && Math.Abs(pixelHeight - expected.Height) <= 1;
+    }
 }

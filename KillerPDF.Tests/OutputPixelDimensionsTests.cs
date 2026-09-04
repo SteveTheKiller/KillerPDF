@@ -35,4 +35,12 @@ public sealed class OutputPixelDimensionsTests
         Assert.Equal(expected, OutputPixelDimensions.ScaleLabel(
             outputWidth, outputHeight, sourceWidth, sourceHeight));
     }
+
+    [Fact]
+    public void MatchesDpi_AllowsRendererRoundingButRejectsAnotherResolution()
+    {
+        Assert.True(OutputPixelDimensions.MatchesDpi(1275, 1651, 612, 792, 150));
+        Assert.True(OutputPixelDimensions.MatchesDpi(1274, 1650, 612, 792, 150));
+        Assert.False(OutputPixelDimensions.MatchesDpi(2550, 3300, 612, 792, 150));
+    }
 }
