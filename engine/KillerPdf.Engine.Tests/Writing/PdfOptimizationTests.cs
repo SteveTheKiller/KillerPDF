@@ -378,6 +378,33 @@ public sealed class PdfOptimizationTests
     }
 
     [Fact]
+    public void PlanPrunesAndConsolidatesGraphicsShadingAndPropertyResources()
+    {
+        PdfDocument document = DocumentWithExtendedResources();
+
+        PdfOptimizationResult result = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                PruneUnusedPageResources = true,
+                PackObjects = false,
+                CompressStructure = false
+            }).Apply();
+        PdfDocument output = PdfDocument.Open(result.Data);
+        IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions =
+            new PdfPageContentReader(output).ReadInstructions(0);
+
+        Assert.Contains(PdfOptimizationChangeKind.PruneUnusedPageResources,
+            result.VerifiedRemovals);
+        Assert.Equal(new PdfName("GS1"u8),
+            Assert.Single(instructions, item => item.Operator == "gs").Operands[0]);
+        Assert.Equal(new PdfName("Shade1"u8),
+            Assert.Single(instructions, item => item.Operator == "sh").Operands[0]);
+        Assert.Equal(new PdfName("Prop1"u8),
+            Assert.Single(instructions, item => item.Operator == "BDC").Operands[1]);
+        Assert.DoesNotContain("/Unused", Encoding.Latin1.GetString(result.Data.Span));
+    }
+
+    [Fact]
     public void PlanRemovesAndVerifiesUnreachableObjects()
     {
         PdfDocument document = DocumentWithUnusedFontResource();
@@ -485,6 +512,36 @@ public sealed class PdfOptimizationTests
             $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream",
             "/DeviceRGB",
             "/DeviceCMYK"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+    }
+
+    private static PdfDocument DocumentWithExtendedResources()
+    {
+        const string content = "/GS2 gs /Shade2 sh /Span /Prop2 BDC EMC";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 100 100] >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /ExtGState << /GS1 5 0 R /GS2 5 0 R /UnusedGS 6 0 R >> /Shading << /Shade1 7 0 R /Shade2 7 0 R /UnusedShade 8 0 R >> /Properties << /Prop1 9 0 R /Prop2 9 0 R /UnusedProp 10 0 R >> >> /Contents 4 0 R >>",
+            $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream",
+            "<< /Type /ExtGState /CA 1 >>",
+            "<< /Type /ExtGState /CA 0.5 >>",
+            "<< /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 100 0] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> >>",
+            "<< /ShadingType 2 /ColorSpace /DeviceGray /Coords [0 0 0 100] /Function << /FunctionType 2 /Domain [0 1] /C0 [0] /C1 [1] /N 1 >> >>",
+            "<< /ActualText (kept) >>",
+            "<< /ActualText (unused) >>"
         ];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();

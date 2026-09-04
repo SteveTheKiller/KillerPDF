@@ -404,8 +404,16 @@ public static class PdfOptimizer
             HashSet<PdfName> colorSpaces = [.. instructions
                 .Where(item => item.Operator is "CS" or "cs" && item.Operands.Count > 0)
                 .Select(item => item.Operands[0]).OfType<PdfName>()];
+            HashSet<PdfName> graphicsStates = UsedNames(instructions, "gs", 0);
+            HashSet<PdfName> shadings = UsedNames(instructions, "sh", 0);
+            HashSet<PdfName> properties = [.. instructions
+                .Where(item => item.Operator is "BDC" or "DP" && item.Operands.Count > 1)
+                .Select(item => item.Operands[1]).OfType<PdfName>()];
             if (NeedsCleanup("Font", fonts) || NeedsCleanup("XObject", xObjects)
-                || NeedsCleanup("ColorSpace", colorSpaces))
+                || NeedsCleanup("ColorSpace", colorSpaces)
+                || NeedsCleanup("ExtGState", graphicsStates)
+                || NeedsCleanup("Shading", shadings)
+                || NeedsCleanup("Properties", properties))
                 result.Add(page.Index);
 
             bool NeedsCleanup(string category, HashSet<PdfName> used) =>
@@ -428,21 +436,27 @@ public static class PdfOptimizer
         Dictionary<PdfName, PdfName> fonts = Aliases("Font");
         Dictionary<PdfName, PdfName> xObjects = Aliases("XObject");
         Dictionary<PdfName, PdfName> colorSpaces = Aliases("ColorSpace");
+        Dictionary<PdfName, PdfName> graphicsStates = Aliases("ExtGState");
+        Dictionary<PdfName, PdfName> shadings = Aliases("Shading");
+        Dictionary<PdfName, PdfName> properties = Aliases("Properties");
         return Array.AsReadOnly(instructions.Select(instruction =>
         {
-            Dictionary<PdfName, PdfName>? aliases = instruction.Operator switch
+            (Dictionary<PdfName, PdfName>? aliases, int operandIndex) = instruction.Operator switch
             {
-                "Tf" => fonts,
-                "Do" => xObjects,
-                "CS" or "cs" => colorSpaces,
-                _ => null
+                "Tf" => (fonts, 0),
+                "Do" => (xObjects, 0),
+                "CS" or "cs" => (colorSpaces, 0),
+                "gs" => (graphicsStates, 0),
+                "sh" => (shadings, 0),
+                "BDC" or "DP" => (properties, 1),
+                _ => (null, 0)
             };
-            if (aliases is null || instruction.Operands.Count == 0
-                || instruction.Operands[0] is not PdfName name
+            if (aliases is null || instruction.Operands.Count <= operandIndex
+                || instruction.Operands[operandIndex] is not PdfName name
                 || !aliases.TryGetValue(name, out PdfName? canonical))
                 return instruction;
             PdfObject[] operands = instruction.Operands.ToArray();
-            operands[0] = canonical;
+            operands[operandIndex] = canonical;
             return new KillerPdf.Engine.Parsing.PdfContentInstruction(
                 instruction.Operator, instruction.Offset, operands,
                 instruction.InlineImageData);
@@ -456,6 +470,13 @@ public static class PdfOptimizer
             return DuplicateAliases(dictionary);
         }
     }
+
+    private static HashSet<PdfName> UsedNames(
+        IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction> instructions,
+        string operation, int operandIndex) => [.. instructions
+            .Where(item => item.Operator == operation
+                && item.Operands.Count > operandIndex)
+            .Select(item => item.Operands[operandIndex]).OfType<PdfName>()];
 
     private static Dictionary<PdfName, PdfName> DuplicateAliases(PdfDictionary dictionary)
     {
