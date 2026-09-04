@@ -1,4 +1,5 @@
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -96,5 +97,29 @@ public sealed class PdfDataMergeTests
             mapped.FormData.Fields.Select(field => field.Values.Single()));
         Assert.Equal(["invoice.customer", "invoice.total"],
             mapped.FormData.Fields.Select(field => field.Name));
+    }
+
+    [Fact]
+    public void FormBatchGeneratesNamedPdfsAndIsolatesBadRecords()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 20, 20, 140, 24).Build());
+        var profile = new PdfDataMergeProfile("Customers",
+            [new PdfDataMergeFieldMapping("Name", "customer.name")],
+            "customer-{{Number}}.pdf");
+        IReadOnlyDictionary<string, string?>[] records = [
+            new Dictionary<string, string?> { ["Name"] = "Ada", ["Number"] = "1" },
+            new Dictionary<string, string?> { ["Number"] = "2" }];
+
+        IReadOnlyList<PdfDataMergeDocumentResult> results =
+            PdfDataMerge.RunFormBatch(template, records, profile);
+
+        Assert.True(results[0].Succeeded);
+        Assert.Equal("customer-1.pdf", results[0].OutputFileName);
+        PdfDocument generated = PdfDocument.Open(results[0].Data!.Value);
+        Assert.Equal("Ada", Assert.Single(PdfFormWidgetReader.ReadPage(generated, 0)).Value);
+        Assert.False(results[1].Succeeded);
+        Assert.Contains("Name", results[1].Error, StringComparison.Ordinal);
+        Assert.Equal(string.Empty, Assert.Single(PdfFormWidgetReader.ReadPage(template, 0)).Value);
     }
 }

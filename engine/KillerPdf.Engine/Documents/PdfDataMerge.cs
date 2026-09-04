@@ -56,6 +56,45 @@ public static class PdfDataMerge
         }
         return Array.AsReadOnly(results.ToArray());
     }
+
+    /// <summary>Maps records into an AcroForm template and isolates each generated PDF.</summary>
+    public static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatch(
+        PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
+        PdfDataMergeProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(records);
+        ArgumentNullException.ThrowIfNull(profile);
+        var results = new List<PdfDataMergeDocumentResult>();
+        int index = 0;
+        foreach (IReadOnlyDictionary<string, string?> record in records)
+        {
+            string? outputFileName = null;
+            try
+            {
+                PdfDataMergeMappedRecord mapped = profile.Map(record);
+                outputFileName = mapped.OutputFileName;
+                IReadOnlyList<PdfFormDataMatch> preview =
+                    PdfFormDataImporter.Preview(template, mapped.FormData);
+                PdfFormDataMatch[] blocked = [.. preview.Where(match =>
+                    match.Status != PdfFormDataMatchStatus.Matched)];
+                if (blocked.Length > 0)
+                    throw new InvalidOperationException("The record cannot be applied to: "
+                        + string.Join(", ", blocked.Select(match => match.FieldName)) + ".");
+                byte[] data = PdfFormDataImporter.Apply(template, mapped.FormData);
+                results.Add(new PdfDataMergeDocumentResult(
+                    index, outputFileName, data, null));
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException
+                and not StackOverflowException and not AccessViolationException)
+            {
+                results.Add(new PdfDataMergeDocumentResult(
+                    index, outputFileName, null, exception.Message));
+            }
+            index++;
+        }
+        return Array.AsReadOnly(results.ToArray());
+    }
 }
 
 /// <summary>How missing data values are handled during template expansion.</summary>
@@ -73,5 +112,13 @@ public enum PdfMissingMergeValueBehavior
 public sealed record PdfDataMergeResult(int RecordIndex, ReadOnlyMemory<byte>? Data, string? Error)
 {
     /// <summary>Gets whether generation succeeded.</summary>
+    public bool Succeeded => Data.HasValue && Error is null;
+}
+
+/// <summary>The isolated outcome of generating one mapped PDF document.</summary>
+public sealed record PdfDataMergeDocumentResult(int RecordIndex, string? OutputFileName,
+    ReadOnlyMemory<byte>? Data, string? Error)
+{
+    /// <summary>Gets whether PDF generation succeeded.</summary>
     public bool Succeeded => Data.HasValue && Error is null;
 }
