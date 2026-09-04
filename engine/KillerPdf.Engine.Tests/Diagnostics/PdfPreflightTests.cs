@@ -359,6 +359,21 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void AttachmentSafetyReportsEncryptedZipFamilyPayloads()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("protected.docx",
+                new byte[] { (byte)'P', (byte)'K', 3, 4, 20, 0, 1, 0 })
+            .Build();
+
+        PdfPreflightFinding finding = Assert.Single(PdfPreflightRunner.Run(
+            source, PdfPreflightProfile.Attachments).Findings);
+
+        Assert.Equal("Attachment.EncryptedContent", finding.Code);
+        Assert.Equal(PdfDiagnosticSeverity.Warning, finding.Severity);
+    }
+
+    [Fact]
     public void MeasurementCheckReportsValidCalibrationScaleAndLocation()
     {
         var measurement = new PdfMeasurementProfile("Site plan", 0.125, "ft", 3);

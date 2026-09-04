@@ -517,6 +517,10 @@ internal static class PdfPreflightDocumentChecks
                 findings.Add(Error("Attachment.ExecutableContent",
                     $"Attachment '{attachment.FileName}' contains a recognized executable signature.",
                     pageIndex, objectNumber));
+            if (attachment.HasEncryptedContent)
+                findings.Add(Warning("Attachment.EncryptedContent",
+                    $"Attachment '{attachment.FileName}' contains encrypted content.",
+                    pageIndex, objectNumber));
             if (attachment.SizeMatches == false)
                 findings.Add(Error("Attachment.SizeMismatch",
                     $"Attachment '{attachment.FileName}' does not match its declared size.",

@@ -2,6 +2,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Security;
 using KillerPdf.Engine.Writing;
 using Xunit;
 
@@ -41,6 +42,30 @@ public sealed class PdfAttachmentReaderTests
         Assert.False(attachment.HasUnsafeFileName);
         Assert.False(attachment.IsPotentiallyExecutable);
         Assert.False(attachment.HasExecutableContent);
+        Assert.False(attachment.HasEncryptedContent);
+    }
+
+    [Fact]
+    public void ReadDetectsEncryptedPdfAndZipFamilyPayloads()
+    {
+        byte[] protectedPdf = new PdfDocumentBuilder()
+            .SetPasswordEncryption(new PdfPasswordEncryptionOptions
+            {
+                UserPassword = "reader",
+                OwnerPassword = "owner"
+            })
+            .AddBlankPage()
+            .Build();
+        byte[] protectedZipHeader =
+            [(byte)'P', (byte)'K', 3, 4, 20, 0, 1, 0];
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("protected.pdf", protectedPdf, "application/pdf")
+            .AddAttachment("protected.docx", protectedZipHeader,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            .Build());
+
+        Assert.All(PdfAttachmentReader.Read(document), attachment =>
+            Assert.True(attachment.HasEncryptedContent));
     }
 
     [Fact]

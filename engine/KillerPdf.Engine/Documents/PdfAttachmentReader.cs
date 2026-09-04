@@ -144,7 +144,8 @@ public static class PdfAttachmentReader
             EmbeddedFileObjectNumber = streamReference?.ObjectNumber,
             HasUnsafeFileName = !IsSafeFileName(fileName),
             IsPotentiallyExecutable = IsPotentiallyExecutable(fileName),
-            HasExecutableContent = HasExecutableContent(data)
+            HasExecutableContent = HasExecutableContent(data),
+            HasEncryptedContent = HasEncryptedContent(data)
         };
     }
 
@@ -230,6 +231,26 @@ public static class PdfAttachmentReader
         || data.StartsWith(new byte[] { 0xfe, 0xed, 0xfa, 0xce })
         || data.StartsWith(new byte[] { 0xfe, 0xed, 0xfa, 0xcf })
         || data.StartsWith(new byte[] { 0xca, 0xfe, 0xba, 0xbe });
+
+    private static bool HasEncryptedContent(ReadOnlySpan<byte> data)
+    {
+        if (data.StartsWith("%PDF-"u8))
+        {
+            try
+            {
+                return !PdfDocument.Open(data.ToArray()).IsDecrypted;
+            }
+            catch (Exception error) when (error is FormatException
+                or InvalidOperationException or NotSupportedException)
+            {
+                return false;
+            }
+        }
+        return data.Length >= 8
+            && data[0] == (byte)'P' && data[1] == (byte)'K'
+            && data[2] == 3 && data[3] == 4
+            && (data[6] & 1) != 0;
+    }
 
     private static T Value<T>(PdfDocument document, PdfDictionary dictionary, string key, string error)
         where T : PdfObject => dictionary.TryGetValue(Name(key), out PdfObject? value)
@@ -375,6 +396,8 @@ public sealed record PdfAttachmentInfo
     public bool IsPotentiallyExecutable { get; init; }
     /// <summary>Gets whether the payload begins with a recognized executable-file signature.</summary>
     public bool HasExecutableContent { get; init; }
+    /// <summary>Gets whether a PDF or ZIP-family payload declares encryption.</summary>
+    public bool HasEncryptedContent { get; init; }
 }
 
 /// <summary>A page placement that exposes a registered embedded file.</summary>
