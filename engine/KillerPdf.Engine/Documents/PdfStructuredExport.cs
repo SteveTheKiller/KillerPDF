@@ -1,5 +1,6 @@
 using System.Net;
 using System.IO.Compression;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -259,7 +260,7 @@ public static class PdfStructuredExport
             output.Append("<section id=\"page-").Append(page.Index + 1)
                 .Append("\" data-page=\"").Append(page.Index + 1).Append("\">");
             foreach (PdfExtractedLine line in page.Content.Lines)
-                output.Append("<p>").Append(WebUtility.HtmlEncode(line.Text)).Append("</p>");
+                AppendHtmlLine(output, line);
             foreach (PdfExtractedImage image in page.Content.Images)
                 output.Append("<figure data-image=\"").Append(WebUtility.HtmlEncode(image.ResourceName ?? "inline"))
                     .Append("\"></figure>");
@@ -283,6 +284,30 @@ public static class PdfStructuredExport
             output.Append("</section>");
         }
         return output.Append("</body></html>").ToString();
+    }
+
+    private static void AppendHtmlLine(StringBuilder output, PdfExtractedLine line)
+    {
+        output.Append("<p>");
+        string runText = string.Concat(line.Runs.Select(run => run.Text));
+        if (line.Runs.Count == 0 || runText != line.Text)
+            output.Append(WebUtility.HtmlEncode(line.Text));
+        else
+            foreach (PdfExtractedTextRun run in line.Runs)
+            {
+                string font = string.IsNullOrWhiteSpace(run.FontName)
+                    ? "sans-serif" : run.FontName;
+                double size = double.IsFinite(run.PointSize) && run.PointSize > 0
+                    ? run.PointSize : 12;
+                output.Append("<span style=\"font-family:&quot;")
+                    .Append(WebUtility.HtmlEncode(font))
+                    .Append("&quot;;font-size:")
+                    .Append(size.ToString("R", CultureInfo.InvariantCulture))
+                    .Append("pt\">")
+                    .Append(WebUtility.HtmlEncode(run.Text))
+                    .Append("</span>");
+            }
+        output.Append("</p>");
     }
 
     /// <summary>Exports selected pages as editable Markdown with page headings.</summary>

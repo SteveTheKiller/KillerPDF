@@ -16,7 +16,7 @@ public sealed class PdfStructuredExportTests
 
         Assert.Equal("A & B", PdfStructuredExport.ToPlainText(document));
         string html = PdfStructuredExport.ToHtml(document);
-        Assert.Contains("<p>A &amp; B</p>", html);
+        Assert.Contains("<p><span style=\"font-family:&quot;Helvetica&quot;;font-size:12pt\">A &amp; B</span></p>", html);
         Assert.Equal("# Page 1\r\n\r\nA & B", PdfStructuredExport.ToMarkdown(document));
         using JsonDocument json = JsonDocument.Parse(PdfStructuredExport.ToJson(document));
         JsonElement page = json.RootElement[0];
