@@ -24,6 +24,30 @@ public sealed record PdfMacro
     /// <summary>Gets the ordered operation steps.</summary>
     public IReadOnlyList<PdfMacroStep> Steps { get; }
 
+    /// <summary>Creates a data-free preview of steps, file names, and overwrite decisions.</summary>
+    public PdfMacroPreview Preview(IEnumerable<PdfMacroPreviewFile> files,
+        PdfMacroOverwriteBehavior overwriteBehavior = PdfMacroOverwriteBehavior.Error)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        if (!Enum.IsDefined(overwriteBehavior))
+            throw new ArgumentOutOfRangeException(nameof(overwriteBehavior));
+        PdfMacroPreviewFile[] planned = files.ToArray();
+        if (planned.Any(file => string.IsNullOrWhiteSpace(file.InputName)
+            || string.IsNullOrWhiteSpace(file.OutputName)))
+            throw new ArgumentException("Macro preview file names cannot be empty.", nameof(files));
+        if (planned.Select(file => file.OutputName)
+            .Distinct(StringComparer.OrdinalIgnoreCase).Count() != planned.Length)
+            throw new ArgumentException("Macro preview output names must be unique.", nameof(files));
+        PdfMacroPreviewFile[] selected = overwriteBehavior == PdfMacroOverwriteBehavior.Skip
+            ? [.. planned.Where(file => !file.OutputExists)] : planned;
+        bool canRun = overwriteBehavior != PdfMacroOverwriteBehavior.Error
+            || planned.All(file => !file.OutputExists);
+        return new PdfMacroPreview(Name,
+            Array.AsReadOnly(Steps.Select(Copy).ToArray()),
+            Array.AsReadOnly(planned), Array.AsReadOnly(selected),
+            overwriteBehavior, canRun);
+    }
+
     /// <summary>Returns an independently named copy of this macro.</summary>
     public PdfMacro Duplicate(string name) => new(name, Steps.Select(Copy));
 
@@ -124,6 +148,27 @@ public sealed record PdfMacro
 /// <summary>One configured operation in a PDF macro.</summary>
 public sealed record PdfMacroStep(PdfMacroOperation Operation,
     IReadOnlyDictionary<string, string>? Settings = null);
+
+/// <summary>One input and planned output shown before a macro run.</summary>
+public sealed record PdfMacroPreviewFile(
+    string InputName, string OutputName, bool OutputExists = false);
+
+/// <summary>A data-free macro execution preview.</summary>
+public sealed record PdfMacroPreview(string Name, IReadOnlyList<PdfMacroStep> Steps,
+    IReadOnlyList<PdfMacroPreviewFile> Files,
+    IReadOnlyList<PdfMacroPreviewFile> FilesToProcess,
+    PdfMacroOverwriteBehavior OverwriteBehavior, bool CanRun);
+
+/// <summary>How a macro handles output files that already exist.</summary>
+public enum PdfMacroOverwriteBehavior
+{
+    /// <summary>Block the run until collisions are resolved.</summary>
+    Error,
+    /// <summary>Skip inputs whose output already exists.</summary>
+    Skip,
+    /// <summary>Allow replacement of existing outputs.</summary>
+    Replace
+}
 
 /// <summary>The fixed set of operations accepted by the macro model.</summary>
 public enum PdfMacroOperation

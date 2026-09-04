@@ -110,6 +110,29 @@ public sealed class PdfMacroTests
     }
 
     [Fact]
+    public void PreviewReportsOrderedStepsFilesAndOverwriteDecisionsWithoutData()
+    {
+        var macro = new PdfMacro("Archive", [
+            new(PdfMacroOperation.Ocr,
+                new Dictionary<string, string> { ["language"] = "en-US" }),
+            new(PdfMacroOperation.Save)]);
+        PdfMacroPreview blocked = macro.Preview([
+            new("scan-a.pdf", "archive-a.pdf"),
+            new("scan-b.pdf", "archive-b.pdf", OutputExists: true)]);
+        PdfMacroPreview skipped = macro.Preview(blocked.Files,
+            PdfMacroOverwriteBehavior.Skip);
+
+        Assert.False(blocked.CanRun);
+        Assert.Equal([PdfMacroOperation.Ocr, PdfMacroOperation.Save],
+            blocked.Steps.Select(step => step.Operation));
+        Assert.Equal("en-US", blocked.Steps[0].Settings!["language"]);
+        Assert.True(skipped.CanRun);
+        Assert.Equal("scan-a.pdf", Assert.Single(skipped.FilesToProcess).InputName);
+        Assert.Throws<ArgumentException>(() => macro.Preview([
+            new("a.pdf", "same.pdf"), new("b.pdf", "SAME.PDF")]));
+    }
+
+    [Fact]
     public void RunnerStopsCleanlyWhenCanceled()
     {
         var cancellation = new CancellationTokenSource();
