@@ -244,7 +244,8 @@ public sealed record PdfFormFieldProposal
         bool suggestedNoExport = false,
         PdfFormFieldVisibility suggestedVisibility = PdfFormFieldVisibility.Visible,
         PdfRecognizedPushButtonAction? suggestedPushButtonAction = null,
-        string? suggestedMappingName = null)
+        string? suggestedMappingName = null,
+        string? suggestedDefaultValue = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -268,6 +269,21 @@ public sealed record PdfFormFieldProposal
             && kind is PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.ListBox
             && !options.Contains(suggestedValue, StringComparer.Ordinal))
             throw new ArgumentException("The suggested value must match a suggested choice.", nameof(suggestedValue));
+        if (suggestedDefaultValue is not null && string.IsNullOrWhiteSpace(suggestedDefaultValue))
+            throw new ArgumentException(
+                "A suggested default value cannot be empty.", nameof(suggestedDefaultValue));
+        if (suggestedDefaultValue is not null
+            && kind is not (PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.DropDown
+                or PdfRecognizedFieldKind.EditableComboBox or PdfRecognizedFieldKind.ListBox))
+            throw new ArgumentException(
+                "A default value can be suggested only for a text or choice field.",
+                nameof(suggestedDefaultValue));
+        if (suggestedDefaultValue is not null
+            && kind is PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.ListBox
+            && !options.Contains(suggestedDefaultValue, StringComparer.Ordinal))
+            throw new ArgumentException(
+                "The suggested default value must match a suggested choice.",
+                nameof(suggestedDefaultValue));
         if (suggestedChecked && kind is not (PdfRecognizedFieldKind.CheckBox
                 or PdfRecognizedFieldKind.RadioButton))
             throw new ArgumentException(
@@ -340,6 +356,7 @@ public sealed record PdfFormFieldProposal
         SuggestedVisibility = suggestedVisibility;
         SuggestedPushButtonAction = suggestedPushButtonAction;
         SuggestedMappingName = suggestedMappingName;
+        SuggestedDefaultValue = suggestedDefaultValue;
         Status = status;
     }
 
@@ -393,6 +410,8 @@ public sealed record PdfFormFieldProposal
     public PdfRecognizedPushButtonAction? SuggestedPushButtonAction { get; }
     /// <summary>Gets the proposed export mapping name.</summary>
     public string? SuggestedMappingName { get; }
+    /// <summary>Gets the value restored when the proposed field is reset.</summary>
+    public string? SuggestedDefaultValue { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
@@ -407,7 +426,7 @@ public sealed record PdfFormFieldProposal
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
         PdfRecognizedPushButtonAction? pushButtonAction = null,
-        string? mappingName = null) =>
+        string? mappingName = null, string? defaultValue = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
@@ -418,7 +437,8 @@ public sealed record PdfFormFieldProposal
             fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle,
             noExport ?? SuggestedNoExport, visibility ?? SuggestedVisibility,
             pushButtonAction ?? SuggestedPushButtonAction,
-            mappingName ?? SuggestedMappingName);
+            mappingName ?? SuggestedMappingName,
+            defaultValue ?? SuggestedDefaultValue);
 
     internal PdfFormFieldProposal Duplicate(string id, int pageIndex,
         PdfContentBounds bounds, string suggestedName) =>
@@ -428,7 +448,7 @@ public sealed record PdfFormFieldProposal
             SuggestedDoNotScroll, SuggestedPassword, SuggestedDoNotSpellCheck,
             SuggestedComb, SuggestedMaximumLength, SuggestedAlignment, SuggestedFontSize,
             SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility,
-            SuggestedPushButtonAction, SuggestedMappingName);
+            SuggestedPushButtonAction, SuggestedMappingName, SuggestedDefaultValue);
 
     private static PdfFormFieldAppearanceStyle ValidateAppearance(
         PdfFormFieldAppearanceStyle? style)
@@ -504,13 +524,13 @@ public sealed class PdfFormRecognitionReview
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
         PdfRecognizedPushButtonAction? pushButtonAction = null,
-        string? mappingName = null) =>
+        string? mappingName = null, string? defaultValue = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
             readOnly, required, isChecked, multiline, doNotScroll,
             password, doNotSpellCheck, comb, maximumLength, alignment,
             fontSize, appearanceStyle, noExport, visibility, pushButtonAction,
-            mappingName));
+            mappingName, defaultValue));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -600,6 +620,7 @@ public sealed class PdfFormRecognitionReview
                         },
                         fontSize: proposal.SuggestedFontSize,
                         fieldMetadata: metadata,
+                        defaultValue: proposal.SuggestedDefaultValue,
                         appearanceStyle: proposal.SuggestedAppearanceStyle);
                     break;
                 case PdfRecognizedFieldKind.CheckBox:
@@ -621,6 +642,8 @@ public sealed class PdfFormRecognitionReview
                         choiceOptions: new PdfChoiceFieldOptions
                         {
                             Alignment = proposal.SuggestedAlignment,
+                            DefaultSelectedExportValues = proposal.SuggestedDefaultValue is null
+                                ? null : [proposal.SuggestedDefaultValue],
                             AppearanceStyle = proposal.SuggestedAppearanceStyle
                         });
                     break;
@@ -633,6 +656,8 @@ public sealed class PdfFormRecognitionReview
                         choiceOptions: new PdfChoiceFieldOptions
                         {
                             Alignment = proposal.SuggestedAlignment,
+                            DefaultSelectedExportValues = proposal.SuggestedDefaultValue is null
+                                ? null : [proposal.SuggestedDefaultValue],
                             AppearanceStyle = proposal.SuggestedAppearanceStyle
                         });
                     break;

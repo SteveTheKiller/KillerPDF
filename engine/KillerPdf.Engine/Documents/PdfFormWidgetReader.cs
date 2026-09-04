@@ -17,6 +17,7 @@ public static class PdfFormWidgetReader
     private static readonly PdfName TooltipName = Name("TU");
     private static readonly PdfName MappingName = Name("TM");
     private static readonly PdfName ValueName = Name("V");
+    private static readonly PdfName DefaultValueName = Name("DV");
     private static readonly PdfName DefaultAppearanceName = Name("DA");
     private static readonly PdfName AlignmentName = Name("Q");
     private static readonly PdfName FlagsName = Name("Ff");
@@ -65,9 +66,11 @@ public static class PdfFormWidgetReader
 
             PdfName? fieldType = null;
             string value = string.Empty;
+            string defaultValue = string.Empty;
             string tooltip = string.Empty;
             string mappingName = string.Empty;
             IReadOnlyList<string> values = [];
+            IReadOnlyList<string> defaultValues = [];
             string defaultAppearance = string.Empty;
             PdfTextFieldAlignment alignment = PdfTextFieldAlignment.Left;
             bool hasAlignment = false;
@@ -113,6 +116,12 @@ public static class PdfFormWidgetReader
                 {
                     values = FieldValues(document, currentValue);
                     value = values.Count > 0 ? values[0] : string.Empty;
+                }
+                if (defaultValues.Count == 0
+                    && node.TryGetValue(DefaultValueName, out PdfObject? resetValue))
+                {
+                    defaultValues = FieldValues(document, resetValue);
+                    defaultValue = defaultValues.Count > 0 ? defaultValues[0] : string.Empty;
                 }
                 if (defaultAppearance.Length == 0
                     && node.TryGetValue(DefaultAppearanceName, out PdfObject? appearanceValue))
@@ -170,6 +179,8 @@ public static class PdfFormWidgetReader
                     ? Integer(document, annotationFlagsValue, "A widget /F value") : 0,
                 Value = value,
                 Values = values,
+                DefaultValue = defaultValue,
+                DefaultValues = defaultValues,
                 DefaultAppearance = defaultAppearance,
                 Alignment = alignment,
                 BackgroundColor = WidgetColor(

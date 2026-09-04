@@ -104,7 +104,8 @@ public sealed class PdfFormRecognitionTests
             new PdfFormFieldProposal("name", 0, new PdfContentBounds(10, 10, 110, 30),
                 PdfRecognizedFieldKind.Text, 0.95, "name", suggestedTooltip: "Name",
                 suggestedValue: "Alice", suggestedRequired: true, suggestedFontSize: 9,
-                suggestedAppearanceStyle: style, suggestedMappingName: "customer_name"),
+                suggestedAppearanceStyle: style, suggestedMappingName: "customer_name",
+                suggestedDefaultValue: "Guest"),
             Proposal("unused", 0, 0.8)]);
 
         PdfFormRecognitionReview duplicated = original.Duplicate(
@@ -123,6 +124,7 @@ public sealed class PdfFormRecognitionTests
         Assert.Equal(9, copy.SuggestedFontSize);
         Assert.Equal(style, copy.SuggestedAppearanceStyle);
         Assert.Equal("customer_name", copy.SuggestedMappingName);
+        Assert.Equal("Guest", copy.SuggestedDefaultValue);
         Assert.False(duplicated.IsReadyToApply);
         Assert.True(decided.IsReadyToApply);
         Assert.Equal(["name-copy", "name"], decided.Accepted.Select(item => item.Id));
@@ -230,6 +232,31 @@ public sealed class PdfFormRecognitionTests
         PdfFormWidgetInfo approved = widgets.Single(widget => widget.FieldName == "approved");
         Assert.Equal("/Approved", approved.Value);
         Assert.Equal("/Approved", approved.OnValue);
+    }
+
+    [Fact]
+    public void ReviewedTextAndChoiceDefaultValuesPersistIndependently()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new("name", 0, new PdfContentBounds(10, 10, 150, 30),
+                PdfRecognizedFieldKind.Text, 1, "name", suggestedValue: "Alice"),
+            new("country", 0, new PdfContentBounds(10, 50, 150, 70),
+                PdfRecognizedFieldKind.DropDown, 1, "country",
+                suggestedOptions: ["US", "CA"], suggestedValue: "CA")])
+            .Accept("name", defaultValue: "Guest")
+            .Accept("country", defaultValue: "US");
+
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(review.ApplyAccepted(document)), 0);
+
+        PdfFormWidgetInfo name = widgets.Single(widget => widget.FieldName == "name");
+        Assert.Equal("Alice", name.Value);
+        Assert.Equal("Guest", name.DefaultValue);
+        PdfFormWidgetInfo country = widgets.Single(widget => widget.FieldName == "country");
+        Assert.Equal("CA", country.Value);
+        Assert.Equal("US", country.DefaultValue);
     }
 
     [Fact]
