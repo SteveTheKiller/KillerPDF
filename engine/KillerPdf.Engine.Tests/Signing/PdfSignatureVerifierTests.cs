@@ -150,7 +150,8 @@ public sealed class PdfSignatureVerifierTests
             {
                 CustomTrustRoots = [certificate],
                 RevocationMode = X509RevocationMode.NoCheck,
-                VerificationTime = verificationTime
+                VerificationTime = verificationTime,
+                DisableCertificateDownloads = true
             });
 
         Assert.True(result.IsCryptographicallyValid);
@@ -160,6 +161,7 @@ public sealed class PdfSignatureVerifierTests
         Assert.Equal(PdfCertificateRevocationStatus.NotChecked, result.RevocationStatus);
         Assert.Equal(X509RevocationMode.NoCheck, result.RequestedRevocationMode);
         Assert.Equal(verificationTime, result.RequestedVerificationTime);
+        Assert.True(result.CertificateDownloadsDisabled);
         Assert.Empty(result.CertificateChainErrors);
     }
 
@@ -185,7 +187,8 @@ public sealed class PdfSignatureVerifierTests
             PdfDocument.Open(signed), new PdfSignatureTrustOptions
             {
                 CustomTrustRoots = [certificate],
-                RevocationMode = X509RevocationMode.NoCheck
+                RevocationMode = X509RevocationMode.NoCheck,
+                DisableCertificateDownloads = true
             });
         PdfSignatureInspectionEntry entry = Assert.Single(report.Entries);
         string json = report.ToJson();
@@ -208,6 +211,7 @@ public sealed class PdfSignatureVerifierTests
         Assert.Contains("Revocation: NotChecked", text);
         Assert.Contains("Requested revocation mode: NoCheck", text);
         Assert.Contains("Requested verification time: ", text);
+        Assert.Contains("Network certificate retrieval: Disabled", text);
         Assert.Contains("PAdES evidence: BaselineB", text);
         Assert.Contains($"Signer subject: {certificate.Subject}", text);
         Assert.Contains($"Signer issuer: {certificate.Issuer}", text);

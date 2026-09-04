@@ -42,6 +42,7 @@ public static class PdfSignatureVerifier
                 CertificateTrustWasChecked = checkCertificateTrust,
                 RequestedRevocationMode = trustOptions?.RevocationMode,
                 RequestedVerificationTime = trustOptions?.VerificationTime,
+                CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
                 Error = "The signature does not contain a valid byte range and CMS value."
             };
         X509Certificate2? signer = null;
@@ -69,6 +70,8 @@ public static class PdfSignatureVerifier
                 chain.ChainPolicy.RevocationFlag = X509RevocationFlag.ExcludeRoot;
                 chain.ChainPolicy.VerificationTime = policy.VerificationTime;
                 chain.ChainPolicy.UrlRetrievalTimeout = policy.UrlRetrievalTimeout;
+                chain.ChainPolicy.DisableCertificateDownloads =
+                    policy.DisableCertificateDownloads;
                 foreach (X509Certificate2 certificate in policy.ExtraCertificates)
                     chain.ChainPolicy.ExtraStore.Add(certificate);
                 if (policy.CustomTrustRoots.Count > 0)
@@ -105,6 +108,7 @@ public static class PdfSignatureVerifier
                     RevocationStatus = revocation,
                     RequestedRevocationMode = policy.RevocationMode,
                     RequestedVerificationTime = policy.VerificationTime,
+                    CertificateDownloadsDisabled = policy.DisableCertificateDownloads,
                     DigestAlgorithmOid = digestAlgorithm,
                     SignatureAlgorithmOid = signatureAlgorithm,
                     SignerSubject = signer.Subject,
@@ -140,6 +144,7 @@ public static class PdfSignatureVerifier
                 CertificateTrustWasChecked = checkCertificateTrust,
                 RequestedRevocationMode = trustOptions?.RevocationMode,
                 RequestedVerificationTime = trustOptions?.VerificationTime,
+                CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
                 Error = exception.Message
             };
         }
@@ -157,6 +162,7 @@ public static class PdfSignatureVerifier
                 RevocationStatus = revocationStatus,
                 RequestedRevocationMode = trustOptions?.RevocationMode,
                 RequestedVerificationTime = trustOptions?.VerificationTime,
+                CertificateDownloadsDisabled = trustOptions?.DisableCertificateDownloads,
                 CertificateChainErrors = chainErrors,
                 DigestAlgorithmOid = digestAlgorithm,
                 SignatureAlgorithmOid = signatureAlgorithm,

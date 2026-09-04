@@ -23,6 +23,8 @@ public sealed record PdfSignatureVerificationResult
     public X509RevocationMode? RequestedRevocationMode { get; init; }
     /// <summary>Gets the certificate verification time requested for this trust evaluation.</summary>
     public DateTime? RequestedVerificationTime { get; init; }
+    /// <summary>Gets whether the requested trust policy prohibited network downloads.</summary>
+    public bool? CertificateDownloadsDisabled { get; init; }
     /// <summary>Gets certificate-chain status details supplied by the platform.</summary>
     public IReadOnlyList<string> CertificateChainErrors { get; init; } = [];
     /// <summary>Gets the CMS digest algorithm object identifier.</summary>

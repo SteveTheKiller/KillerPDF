@@ -38,6 +38,9 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
             if (entry.Verification.RequestedVerificationTime is DateTime verificationTime)
                 output.Append("  Requested verification time: ")
                     .AppendLine(verificationTime.ToString("O"));
+            if (entry.Verification.CertificateDownloadsDisabled is bool downloadsDisabled)
+                output.Append("  Network certificate retrieval: ")
+                    .AppendLine(downloadsDisabled ? "Disabled" : "Allowed");
             Add("  Signer subject: ", entry.Verification.SignerSubject);
             Add("  Signer issuer: ", entry.Verification.SignerIssuer);
             Add("  Certificate SHA-256: ", entry.Verification.SignerCertificateSha256);
