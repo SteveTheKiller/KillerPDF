@@ -566,6 +566,31 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesVerticalOriginsAdvancesAndPositionAdjustments()
+    {
+        TrueTypeFont font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(
+            format12: false, includeOutlines: true));
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0)
+            .BeginText()
+            .SetFont(font, 10)
+            .SetTextMatrix(1, 0, 0, 1, 5, 20)
+            .ShowPositionedUnicodeText(["A", "A"], [100])
+            .EndText();
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 20, content).Build());
+        PdfDocument document = MakeEmbeddedFontVertical(source);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 20, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 15));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 10));
+        Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsEmbeddedCffCubicGlyphContours()
     {
         var content = new PdfContentStreamBuilder()
@@ -1005,6 +1030,39 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Widths"), Reals(1000)),
             new KeyValuePair<PdfName, PdfObject>(Name("FontDescriptor"), descriptor)]);
         return PdfDocument.Open(update.ReplaceObject(fontReference.ObjectNumber, font).Build());
+    }
+
+    private static PdfDocument MakeEmbeddedFontVertical(PdfDocument source)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary fonts = Assert.IsType<PdfDictionary>(resources[Name("Font")]);
+        PdfIndirectReference fontReference = Assert.IsType<PdfIndirectReference>(
+            Assert.Single(fonts).Value);
+        PdfDictionary font = Assert.IsType<PdfDictionary>(source.Resolve(fontReference));
+        PdfArray descendants = Assert.IsType<PdfArray>(font[Name("DescendantFonts")]);
+        PdfIndirectReference descendantReference = Assert.IsType<PdfIndirectReference>(
+            Assert.Single(descendants));
+        PdfDictionary descendant = Assert.IsType<PdfDictionary>(
+            source.Resolve(descendantReference));
+        var verticalFont = new PdfDictionary(font
+            .Where(entry => !entry.Key.Equals(Name("Encoding")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Encoding"), Name("Identity-V"))));
+        var verticalDescendant = new PdfDictionary(descendant
+            .Where(entry => !entry.Key.Equals(Name("DW2")) && !entry.Key.Equals(Name("W2")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("DW2"), Reals(1000, -1000)))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("W2"),
+                new PdfArray(new PdfObject[]
+                {
+                    new PdfInteger(1), Reals(-1000, 500, 1000)
+                }))));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        update.ReplaceObject(fontReference.ObjectNumber, verticalFont);
+        update.ReplaceObject(descendantReference.ObjectNumber, verticalDescendant);
+        return PdfDocument.Open(update.Build());
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));

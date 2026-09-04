@@ -292,7 +292,11 @@ public sealed class PdfPageRenderer
                         PdfObject part = Resolve(item);
                         if (part is PdfString segment) ShowText(segment);
                         else if (part is PdfInteger or PdfReal)
-                            AdvanceText(-Number(part) / 1000 * textSize * horizontalScale);
+                        {
+                            double adjustment = -Number(part) / 1000 * textSize;
+                            if (IsVerticalText()) AdvanceTextVector(0, adjustment);
+                            else AdvanceText(adjustment * horizontalScale);
+                        }
                     }
                     break;
                 case "'" when values.Count == 1 && values[0] is PdfString nextLineText:
@@ -349,6 +353,14 @@ public sealed class PdfPageRenderer
 
             void AdvanceTextVector(double x, double y) =>
                 textMatrix = new Matrix(1, 0, 0, 1, x, y).Then(textMatrix);
+
+            bool IsVerticalText()
+            {
+                if (textFont is null || NameValue(textFont, "Subtype") == "Type3")
+                    return false;
+                extractionFont ??= PdfFontResourceReader.Read(_document, textFont);
+                return extractionFont.IsVertical;
+            }
 
             void ShowText(PdfString text)
             {
@@ -412,16 +424,22 @@ public sealed class PdfPageRenderer
                 try
                 {
                     extractionFont ??= PdfFontResourceReader.Read(_document, textFont!);
-                    if (extractionFont.IsVertical || textRenderingMode is < 0 or > 7)
+                    if (textRenderingMode is < 0 or > 7)
                     {
                         diagnostics.Add("Text rendering is not implemented.");
                         return;
                     }
-                    Matrix textScale = new(textSize * horizontalScale / 1000, 0, 0,
-                        textSize / 1000, 0, textRise);
-                    Matrix glyphTransform = textScale.Then(textMatrix).Then(state.Transform);
                     foreach (PdfDecodedCharacter character in extractionFont.Decode(text.Bytes))
                     {
+                        PdfVerticalGlyphMetrics vertical =
+                            extractionFont.GetVerticalMetrics(character.Code);
+                        double originX = extractionFont.IsVertical
+                            ? -vertical.OriginX / 1000 * textSize * horizontalScale : 0;
+                        double originY = extractionFont.IsVertical
+                            ? -vertical.OriginY / 1000 * textSize : 0;
+                        Matrix textScale = new(textSize * horizontalScale / 1000, 0, 0,
+                            textSize / 1000, originX, originY + textRise);
+                        Matrix glyphTransform = textScale.Then(textMatrix).Then(state.Transform);
                         PdfGlyphOutline? outline = extractionFont.GetGlyphOutline(character.Code);
                         int paintMode = textRenderingMode % 4;
                         bool clipsText = textRenderingMode >= 4;
@@ -444,10 +462,11 @@ public sealed class PdfPageRenderer
                             diagnostics.Add("A text glyph outline is not implemented.");
                         double spacing = characterSpacing
                             + (character.Code == 32 && character.ByteLength == 1 ? wordSpacing : 0);
-                        double advance = extractionFont.GetWidth(character.Code) / 1000
-                            * textSize + spacing;
-                        AdvanceText(advance * horizontalScale);
-                        glyphTransform = textScale.Then(textMatrix).Then(state.Transform);
+                        if (extractionFont.IsVertical)
+                            AdvanceTextVector(0, vertical.Advance / 1000 * textSize + spacing);
+                        else
+                            AdvanceText((extractionFont.GetWidth(character.Code) / 1000
+                                * textSize + spacing) * horizontalScale);
                     }
                 }
                 catch (NotSupportedException)
