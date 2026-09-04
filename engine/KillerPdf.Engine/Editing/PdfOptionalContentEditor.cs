@@ -255,6 +255,7 @@ public static class PdfOptionalContentEditor
         if (tree.Catalog.ContainsKey(new PdfName("StructTreeRoot"u8)))
             throw new NotSupportedException(
                 "Flattening tagged PDF content is not supported because hidden structure elements must be repaired with their content.");
+        EnsureNoNestedOptionalContent();
         var registered = info.Groups.Select(group => group.ObjectNumber).ToHashSet();
         HashSet<int> visible = visibleGroupObjectNumbers is null
             ? info.Groups.Where(group => group.IsInitiallyVisible)
@@ -374,6 +375,52 @@ public static class PdfOptionalContentEditor
                 value = document.Resolve(reference);
             }
             return value;
+        }
+
+        void EnsureNoNestedOptionalContent()
+        {
+            var visited = new HashSet<(int, int)>();
+            foreach (PdfPageTreeEntry page in tree.Pages)
+                if (page.InheritedValues.TryGetValue(ResourcesKey,
+                        out PdfObject? resourcesValue)
+                    && ResolveObject(resourcesValue) is PdfDictionary resources)
+                    InspectResources(resources, 0);
+
+            void InspectResources(PdfDictionary resources, int depth)
+            {
+                if (depth >= 64)
+                    throw new InvalidOperationException(
+                        "The page Form XObject graph is too deeply nested.");
+                if (!resources.TryGetValue(new PdfName("XObject"u8),
+                        out PdfObject? xObjectsValue)
+                    || ResolveObject(xObjectsValue) is not PdfDictionary xObjects)
+                    return;
+                foreach (PdfObject item in xObjects.Values)
+                {
+                    PdfIndirectReference? reference = item as PdfIndirectReference;
+                    if (reference is not null && !visited.Add(
+                            (reference.ObjectNumber, reference.Generation)))
+                        continue;
+                    if (ResolveObject(item) is not PdfStream stream
+                        || !stream.Dictionary.TryGetValue(new PdfName("Subtype"u8),
+                            out PdfObject? subtypeValue)
+                        || ResolveObject(subtypeValue) is not PdfName subtype
+                        || subtype.ValueAsLatin1() != "Form")
+                        continue;
+                    byte[] bytes = PdfStreamDecoder.Decode(
+                        stream, document.Resolve, 64 * 1024 * 1024);
+                    if (PdfContentStreamReader.Read(bytes).Any(instruction =>
+                            instruction.Operator is "BDC" or "DP"
+                            && IsOptionalContent(instruction)))
+                        throw new NotSupportedException(
+                            "Optional content inside Form XObjects cannot be flattened safely.");
+                    PdfDictionary nestedResources = stream.Dictionary.TryGetValue(
+                            ResourcesKey, out PdfObject? nestedValue)
+                        && ResolveObject(nestedValue) is PdfDictionary nested
+                            ? nested : resources;
+                    InspectResources(nestedResources, depth + 1);
+                }
+            }
         }
 
         PdfDocument FlattenAnnotations(PdfDocument input)

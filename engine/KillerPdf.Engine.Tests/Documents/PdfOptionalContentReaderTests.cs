@@ -476,6 +476,21 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void FlatteningReportsOptionalContentInsideFormXObjects()
+    {
+        var layer = new PdfOptionalContentGroup("Nested");
+        var form = new PdfFormXObject(20, 20, new PdfContentStreamBuilder()
+            .BeginOptionalContent(layer).Rectangle(0, 0, 20, 20).Fill()
+            .EndMarkedContent());
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .DrawForm(form, 10, 10)).Build());
+
+        Assert.Throws<NotSupportedException>(() =>
+            PdfOptionalContentEditor.FlattenPageContent(document));
+    }
+
+    [Fact]
     public void PageContentAndAnnotationsCanBeMergedIntoAnotherLayer()
     {
         var sourceLayer = new PdfOptionalContentGroup("Source");
