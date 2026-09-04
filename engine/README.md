@@ -108,6 +108,7 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 
 - PDF syntax, objects, streams, classic cross-reference tables, cross-reference streams, object streams, trailers, and incremental revisions
 - Page text, word and glyph geometry, font information, and image placements, including nested forms and inline images
+- Bounded BGRA32 rendering for blank pages and transformed device-color rectangle fills
 - Deterministic full rewrites and byte-preserving incremental updates
 - PDF 2.0 document authoring with pages, content streams, graphics state, fonts, images, color spaces, shadings, patterns, transparency, and resources
 - Navigation, bookmarks, named destinations, page labels, viewer preferences, transitions, optional content, and attachments
@@ -119,9 +120,12 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 - Detached CMS signatures, certification permissions, field locks, seed constraints, signature discovery, cryptographic verification, and signed-revision analysis
 - Structural diagnostics, bounded parsing, implementation limits, round-trip validation, and fail-closed import validation
 
-## What it does not do
+## Rendering status
 
-The KillerPDF.Engine reads and edits documents and extracts text and image placements. It does not render pages or provide UI controls. KillerPDF uses PDFium for rendering.
+The engine has the first bounded CPU-rendering slice for blank pages and transformed DeviceGray,
+DeviceRGB, and DeviceCMYK rectangle fills. Text, images, general paths, clipping, transparency,
+annotations, and forms are not rendered yet, so KillerPDF continues using PDFium for complete
+application rendering while coverage expands. The engine does not provide UI controls.
 
 ## Repository layout
 
@@ -174,7 +178,7 @@ The original architecture decision is recorded in [ADR-001](https://github.com/S
 
 ## KillerPDF integration
 
-KillerPDF directly references The KillerPDF.Engine for document parsing, text extraction, writing, and editing. The Windows application no longer references PdfPig or PdfSharpCore. PDFium remains responsible for rendering.
+KillerPDF directly references The KillerPDF.Engine for document parsing, text extraction, writing, and editing. The Windows application no longer references PdfPig or PdfSharpCore. Its rendering calls now pass through one replaceable boundary; PDFium remains the active complete renderer while engine coverage expands.
 
 See [The KillerPDF.Engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md) for detailed capability history.
 
