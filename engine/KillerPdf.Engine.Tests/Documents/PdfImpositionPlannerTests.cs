@@ -1,3 +1,4 @@
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -171,6 +172,39 @@ public sealed class PdfImpositionPlannerTests
         Assert.Equal(new PdfImpositionMark(600, 400, 610, 400), marks[5]);
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfImpositionPlanner.PlanFoldMarks(600, 800, [600], []));
+    }
+
+    [Fact]
+    public void ExporterWritesFittedSourcePagesAsReusableVectorContent()
+    {
+        byte[] sourceBytes = new PdfDocumentBuilder()
+            .AddPage(100, 200, Text("First", 10, 100))
+            .AddPage(200, 100, Text("Second", 20, 50))
+            .Build();
+        PdfDocument source = PdfDocument.Open(sourceBytes);
+        IReadOnlyList<PdfImposedSheetSide> sides = [
+            new(0, PdfImposedSheetFace.Front, Array.AsReadOnly<int?>([0, 1])),
+            new(1, PdfImposedSheetFace.Front, Array.AsReadOnly<int?>([null, null]))];
+
+        PdfDocument output = PdfDocument.Open(PdfImpositionExporter.Build(
+            source, sides, columns: 2, rows: 1,
+            sheetWidth: 420, sheetHeight: 200, margin: 10, gutter: 20));
+
+        Assert.Equal(2, PdfPageBoxInformation.Read(output).Count);
+        PdfPageContent content = new PdfPageContentReader(output).Read(0);
+        Assert.Equal("First Second", content.Text);
+        Assert.Contains(content.TextRuns, run => run.Text == "First"
+            && run.BoundingBox.Left < 200
+            && run.WritingDirection == PdfWritingDirection.BottomToTop);
+        Assert.Contains(content.TextRuns, run => run.Text == "Second"
+            && run.BoundingBox.Left > 200
+            && run.WritingDirection == PdfWritingDirection.LeftToRight);
+        Assert.Empty(new PdfPageContentReader(output).Read(1).TextRuns);
+
+        static PdfContentStreamBuilder Text(string value, double x, double y) =>
+            new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 10).MoveText(x, y)
+                .ShowLatin1Text(value).EndText();
     }
 
     private static void AssertSide(PdfImposedSheetSide side, int sheet,

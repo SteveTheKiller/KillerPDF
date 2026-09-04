@@ -1514,6 +1514,37 @@ public sealed class PdfIncrementalPageEditor
         => AppendTypedPageContent(pageIndex, width, height, content, artifact: false);
 
     /// <summary>
+    /// Appends one source page as a Form XObject transformed into destination coordinates.
+    /// Page annotations are not copied.
+    /// </summary>
+    public PdfIncrementalPageEditor AppendImportedPageContent(
+        int pageIndex, PdfDocument source, int sourcePageIndex,
+        double a, double b, double c, double d, double e, double f)
+    {
+        ValidateIndex(pageIndex, nameof(pageIndex));
+        ArgumentNullException.ThrowIfNull(source);
+        foreach (double value in new[] { a, b, c, d, e, f })
+            if (!double.IsFinite(value))
+                throw new ArgumentOutOfRangeException(nameof(a),
+                    "An imported-page transformation must contain only finite values.");
+        EnforceSourceCopyPermission(source);
+        PdfPageTree sourceTree = PdfPageTree.Read(source);
+        if (sourcePageIndex < 0 || sourcePageIndex >= sourceTree.Pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(sourcePageIndex));
+        PdfPageTreeEntry sourcePage = sourceTree.Pages[sourcePageIndex];
+        ValidateImportablePage(source, sourcePage,
+            allowFormWidgets: true, allowTaggedPage: true);
+        PageState page = _pages[pageIndex];
+        if (page.Entry is null)
+            throw new InvalidOperationException(
+                "Imported content can only be appended to an existing destination page.");
+        page.TypedOverlays.Add(new TypedOverlay(
+            source, sourcePageIndex, false, null, a, b, c, d, e, f));
+        _pagePresentationChanged = true;
+        return this;
+    }
+
+    /// <summary>
     /// Appends decorative content as an artifact without changing the page's logical structure.
     /// Do not use this method for semantic text replacements or other accessible content.
     /// </summary>
@@ -1545,7 +1576,8 @@ public sealed class PdfIncrementalPageEditor
             throw new InvalidOperationException(
                 "Typed content can only be appended to an existing destination page.");
         page.TypedOverlays.Add(new TypedOverlay(
-            BuildTypedPage(width, height, content), artifact, marker));
+            BuildTypedPage(width, height, content), 0, artifact, marker,
+            1, 0, 0, 1, 0, 0));
         _pagePresentationChanged = true;
         return this;
     }
@@ -4011,24 +4043,25 @@ public sealed class PdfIncrementalPageEditor
         foreach (TypedOverlay pendingOverlay in state.TypedOverlays)
         {
             PdfDocument overlay = pendingOverlay.Document;
-            PdfPageTreeEntry overlayPage = AssertSinglePage(overlay);
+            PdfPageTree overlayTree = PdfPageTree.Read(overlay);
+            PdfPageTreeEntry overlayPage = overlayTree.Pages[pendingOverlay.PageIndex];
             PdfObject overlayResources = overlayPage.InheritedValues.TryGetValue(
                     Name("Resources"), out PdfObject? inheritedResources)
                 ? inheritedResources
                 : new PdfDictionary([]);
-            if (!overlayPage.Dictionary.TryGetValue(ContentsName, out PdfObject? contentsValue)
-                || ResolveCatalogValue(overlay, contentsValue,
-                    "A typed overlay /Contents value") is not PdfStream contents)
-                throw new InvalidOperationException(
-                    "A typed overlay page must contain one content stream.");
+            byte[] overlayContent = overlayPage.Dictionary.TryGetValue(
+                ContentsName, out PdfObject? contentsValue)
+                ? DecodePageContent(overlay, contentsValue)
+                : [];
 
             var form = new PdfStream(Dictionary(
                 ("Type", Name("XObject")),
                 ("Subtype", Name("Form")),
                 ("FormType", new PdfInteger(1)),
-                ("BBox", overlayPage.InheritedValues[MediaBoxName]),
+                ("BBox", overlayPage.InheritedValues.TryGetValue(CropBoxName, out PdfObject? crop)
+                    ? crop : overlayPage.InheritedValues[MediaBoxName]),
                 ("Resources", overlayResources)),
-                PdfStreamDecoder.Decode(contents, overlay.Resolve, 64 * 1024 * 1024));
+                overlayContent);
             var importer = new PdfObjectGraphImporter(overlay, update, []);
             PdfIndirectReference formReference = update.AddObject(importer.Import(form));
 
@@ -4048,7 +4081,20 @@ public sealed class PdfIncrementalPageEditor
                 invocation.Write(" BDC\n"u8);
             }
             else if (pendingOverlay.Artifact) invocation.Write("/Artifact BMC\n"u8);
-            invocation.Write("q /"u8);
+            invocation.Write("q"u8);
+            if (pendingOverlay is not { A: 1, B: 0, C: 0, D: 1, E: 0, F: 0 })
+            {
+                invocation.WriteByte((byte)'\n');
+                foreach (double component in new[] { pendingOverlay.A, pendingOverlay.B,
+                             pendingOverlay.C, pendingOverlay.D, pendingOverlay.E, pendingOverlay.F })
+                {
+                    invocation.Write(PdfObjectWriter.Write(new PdfReal(component)));
+                    invocation.WriteByte((byte)' ');
+                }
+                invocation.Write("cm\n"u8);
+            }
+            else invocation.WriteByte((byte)' ');
+            invocation.Write("/"u8);
             invocation.Write(resourceName.Bytes.Span);
             invocation.Write(" Do Q\n"u8);
             if (pendingOverlay.Artifact) invocation.Write("EMC\n"u8);
@@ -4066,12 +4112,27 @@ public sealed class PdfIncrementalPageEditor
             && state.TypedOverlays.All(overlay => overlay.Artifact)
                 ? PageContentUpdate.ArtifactAppend : PageContentUpdate.Append;
 
-        static PdfPageTreeEntry AssertSinglePage(PdfDocument document)
+        static byte[] DecodePageContent(PdfDocument document, PdfObject value)
         {
-            PdfPageTree tree = PdfPageTree.Read(document);
-            if (tree.Pages.Count != 1)
-                throw new InvalidOperationException("A typed overlay must contain exactly one page.");
-            return tree.Pages[0];
+            PdfObject resolved = ResolveCatalogValue(
+                document, value, "An imported overlay /Contents value");
+            if (resolved is PdfStream stream)
+                return PdfStreamDecoder.Decode(stream, document.Resolve, 64 * 1024 * 1024);
+            if (resolved is not PdfArray streams)
+                throw new InvalidOperationException(
+                    "An imported overlay /Contents value is not a stream or stream array.");
+            using var output = new MemoryStream();
+            foreach (PdfObject item in streams)
+            {
+                PdfStream part = ResolveCatalogValue(
+                    document, item, "An imported overlay content item") as PdfStream
+                    ?? throw new InvalidOperationException(
+                        "An imported overlay content item is not a stream.");
+                output.Write(PdfStreamDecoder.Decode(
+                    part, document.Resolve, 64 * 1024 * 1024));
+                output.WriteByte((byte)'\n');
+            }
+            return output.ToArray();
         }
     }
 
@@ -17920,7 +17981,9 @@ public sealed class PdfIncrementalPageEditor
 
     private enum FieldDefaultKind { Remove, Text, CheckBox, Radio, Choice }
 
-    private sealed record TypedOverlay(PdfDocument Document, bool Artifact, string? Marker);
+    private sealed record TypedOverlay(
+        PdfDocument Document, int PageIndex, bool Artifact, string? Marker,
+        double A, double B, double C, double D, double E, double F);
     private enum PageContentUpdate { None, Append, ArtifactAppend, Replace }
 
     private static PdfName PageTabOrderName(PdfPageTabOrder tabOrder) => tabOrder switch
