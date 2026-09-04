@@ -2,6 +2,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Rendering;
+using System.Text;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Rendering;
@@ -131,6 +132,24 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 255, 255, 255], Pixel(page, 3, 5));
         Assert.Equal([255, 255, 255, 255], Pixel(page, 8, 5));
         Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 8));
+    }
+
+    [Fact]
+    public void Render_DecodesInlineRgbImages()
+    {
+        byte[] prefix = Encoding.ASCII.GetBytes(
+            "q 4 0 0 2 2 3 cm BI /W 2 /H 1 /BPC 8 /CS /RGB ID ");
+        byte[] suffix = Encoding.ASCII.GetBytes(" EI Q");
+        byte[] content = [.. prefix, 255, 0, 0, 0, 255, 0, .. suffix];
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 2, 6));
+        Assert.Equal([0, 255, 0, 255], Pixel(page, 5, 6));
+        Assert.DoesNotContain("Inline-image rendering is not implemented.", page.Diagnostics);
     }
 
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>

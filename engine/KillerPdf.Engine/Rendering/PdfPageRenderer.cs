@@ -200,12 +200,21 @@ public sealed class PdfPageRenderer
                     diagnostics.Add("Text rendering is not implemented.");
                     break;
                 case "Do" when values.Count == 1 && values[0] is PdfName imageName:
-                    if (!TryRenderImage(pageIndex, imageName, state.Transform, state.Clips, pixels,
-                        options.Width, options.Height, scaleX, scaleY, out string? imageDiagnostic))
+                    if (!TryGetImage(pageIndex, imageName, out PdfStream? image) || image is null)
+                        diagnostics.Add("Form XObject rendering is not implemented.");
+                    else if (!TryRenderImage(image, state.Transform, state.Clips, pixels,
+                        options.Width, options.Height, scaleX, scaleY,
+                        out string? imageDiagnostic))
                         diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
                     break;
-                case "BI":
-                    diagnostics.Add("Inline-image rendering is not implemented.");
+                case "BI" when values.Count == 1 && values[0] is PdfDictionary inlineDictionary
+                    && instruction.InlineImageData.HasValue:
+                    var inlineImage = new PdfStream(inlineDictionary,
+                        instruction.InlineImageData.Value.Span);
+                    if (!TryRenderImage(inlineImage, state.Transform, state.Clips, pixels,
+                        options.Width, options.Height, scaleX, scaleY,
+                        out string? inlineDiagnostic))
+                        diagnostics.Add(inlineDiagnostic ?? "Inline-image rendering is not implemented.");
                     break;
             }
         }
@@ -216,26 +225,29 @@ public sealed class PdfPageRenderer
         return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
     }
 
-    private bool TryRenderImage(int pageIndex, PdfName resourceName, Matrix transform,
+    private bool TryGetImage(int pageIndex, PdfName resourceName, out PdfStream? image)
+    {
+        PdfPageTreeEntry page = _tree.Pages[pageIndex];
+        image = page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
+            && Resolve(resourcesValue) is PdfDictionary resources
+            && resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
+            && Resolve(xObjectsValue) is PdfDictionary xObjects
+            && xObjects.TryGetValue(resourceName, out PdfObject? imageValue)
+            && Resolve(imageValue) is PdfStream stream
+            && IsName(stream.Dictionary, "Subtype", "Image") ? stream : null;
+        return image is not null;
+    }
+
+    private bool TryRenderImage(PdfStream stream, Matrix transform,
         IReadOnlyList<ClipRegion> clips,
         byte[] target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic)
     {
         diagnostic = null;
-        PdfPageTreeEntry page = _tree.Pages[pageIndex];
-        if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
-            || Resolve(resourcesValue) is not PdfDictionary resources
-            || !resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
-            || Resolve(xObjectsValue) is not PdfDictionary xObjects
-            || !xObjects.TryGetValue(resourceName, out PdfObject? imageValue)
-            || Resolve(imageValue) is not PdfStream stream
-            || !IsName(stream.Dictionary, "Subtype", "Image"))
-        {
-            diagnostic = "Form XObject rendering is not implemented.";
-            return false;
-        }
         if (stream.Dictionary.ContainsKey(Name("Mask"))
-            || stream.Dictionary.ContainsKey(Name("SMask")))
+            || stream.Dictionary.ContainsKey(Name("SMask"))
+            || stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
+                && Resolve(maskValue) is PdfBoolean { Value: true })
         {
             diagnostic = "Masked-image rendering is not implemented.";
             return false;
