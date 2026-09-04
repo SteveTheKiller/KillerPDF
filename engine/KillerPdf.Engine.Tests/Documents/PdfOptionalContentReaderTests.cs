@@ -124,4 +124,24 @@ public sealed class PdfOptionalContentReaderTests
         Assert.False(Assert.Single(PdfOptionalContentReader.Read(original).Groups)
             .IsInitiallyVisible);
     }
+
+    [Fact]
+    public void LayerLockCanBeEnabledAndDisabled()
+    {
+        var layer = new PdfOptionalContentGroup("Artwork");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(layer).Rectangle(0, 0, 10, 10).Fill().EndMarkedContent())
+            .Build());
+        int objectNumber = Assert.Single(PdfOptionalContentReader.Read(original).Groups).ObjectNumber;
+
+        PdfDocument locked = PdfDocument.Open(
+            PdfOptionalContentEditor.SetLocked(original, objectNumber, true));
+        Assert.True(Assert.Single(PdfOptionalContentReader.Read(locked).Groups).IsLocked);
+
+        PdfDocument unlocked = PdfDocument.Open(
+            PdfOptionalContentEditor.SetLocked(locked, objectNumber, false));
+        Assert.False(Assert.Single(PdfOptionalContentReader.Read(unlocked).Groups).IsLocked);
+        Assert.False(Assert.Single(PdfOptionalContentReader.Read(original).Groups).IsLocked);
+    }
 }

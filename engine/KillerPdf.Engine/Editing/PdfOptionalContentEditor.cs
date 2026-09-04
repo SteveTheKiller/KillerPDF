@@ -13,6 +13,7 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName DefaultConfigurationKey = new("D"u8);
     private static readonly PdfName OnKey = new("ON"u8);
     private static readonly PdfName OffKey = new("OFF"u8);
+    private static readonly PdfName LockedKey = new("Locked"u8);
 
     /// <summary>Renames one registered layer by its source object number.</summary>
     public static byte[] RenameGroup(PdfDocument document, int objectNumber, string name)
@@ -76,6 +77,53 @@ public static class PdfOptionalContentEditor
             off = [.. off, reference];
         SetArray(configurationEntries, OnKey, on);
         SetArray(configurationEntries, OffKey, off);
+        var replacementConfiguration = new PdfDictionary(configurationEntries);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        if (configurationReference is not null)
+            update.ReplaceObject(configurationReference.ObjectNumber, replacementConfiguration);
+        else
+        {
+            var propertiesEntries = properties.ToDictionary(entry => entry.Key, entry => entry.Value);
+            propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
+            var replacementProperties = new PdfDictionary(propertiesEntries);
+            if (propertiesReference is not null)
+                update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
+            else
+            {
+                var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+                catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+                update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                    new PdfDictionary(catalogEntries));
+            }
+        }
+        return update.Build();
+    }
+
+    /// <summary>Sets whether the default configuration locks a layer's visibility.</summary>
+    public static byte[] SetLocked(PdfDocument document, int objectNumber, bool locked)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        PdfOptionalContentGroupInfo group = FindGroup(
+            PdfOptionalContentReader.Read(document), objectNumber);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (!tree.Catalog.TryGetValue(OptionalContentPropertiesKey, out PdfObject? propertiesValue))
+            throw new InvalidOperationException("The document has no optional-content properties.");
+        (PdfDictionary properties, PdfIndirectReference? propertiesReference) =
+            ResolveDictionaryWithReference(document, propertiesValue,
+                "The optional-content properties");
+        if (!properties.TryGetValue(DefaultConfigurationKey, out PdfObject? configurationValue))
+            throw new InvalidOperationException("The document has no default optional-content configuration.");
+        (PdfDictionary configuration, PdfIndirectReference? configurationReference) =
+            ResolveDictionaryWithReference(document, configurationValue,
+                "The default optional-content configuration");
+        var reference = new PdfIndirectReference(group.ObjectNumber, group.Generation);
+        var configurationEntries = configuration.ToDictionary(
+            entry => entry.Key, entry => entry.Value);
+        PdfObject[] values = StateReferences(
+            document, configurationEntries.GetValueOrDefault(LockedKey), reference);
+        if (locked) values = [.. values, reference];
+        SetArray(configurationEntries, LockedKey, values);
         var replacementConfiguration = new PdfDictionary(configurationEntries);
         var update = new PdfIncrementalUpdateBuilder(document);
         if (configurationReference is not null)
