@@ -39,4 +39,19 @@ public sealed class PdfFdfFormDataTests
         Assert.Throws<InvalidOperationException>(() =>
             PdfFdfFormData.Read(Encoding.Latin1.GetBytes(brokenText)));
     }
+
+    [Fact]
+    public void ResolvesLocalSourceReferencesRelativeToTheInterchangeFile()
+    {
+        var relative = new PdfFormDataSet { SourcePdfPath = "forms/source.pdf" };
+        string interchange = Path.Combine(Path.GetTempPath(), "case", "values.fdf");
+
+        string? resolved = PdfFormDataSourceResolver.Resolve(relative, interchange);
+
+        Assert.Equal(Path.GetFullPath(Path.Combine(
+            Path.GetTempPath(), "case", "forms", "source.pdf")), resolved);
+        Assert.Throws<NotSupportedException>(() => PdfFormDataSourceResolver.Resolve(
+            new PdfFormDataSet { SourcePdfPath = "https://example.com/source.pdf" }, interchange));
+        Assert.Null(PdfFormDataSourceResolver.Resolve(new PdfFormDataSet(), interchange));
+    }
 }
