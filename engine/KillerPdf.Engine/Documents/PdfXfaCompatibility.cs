@@ -1,3 +1,6 @@
+using System.Xml;
+using System.Xml.Linq;
+
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Reports XFA constructs that require capabilities outside the safe engine subset.</summary>
@@ -17,9 +20,9 @@ public static class PdfXfaCompatibility
         if (!info.IsPacketArray)
             findings.Add(new("combined-xdp", null,
                 "Combined XDP streams cannot yet be edited or converted safely."));
-        if (info.FormType == PdfXfaFormType.Dynamic)
+        if (info.FormType == PdfXfaFormType.Dynamic && !HasSupportedDynamicLayout(info))
             findings.Add(new("dynamic-layout", null,
-                "Dynamic XFA layout and pagination are not supported."));
+                "The dynamic XFA form does not use a supported flowed layout."));
 
         PdfXfaPacket? templatePacket = info.Packets.FirstOrDefault(packet =>
             packet.Name.Equals("template", StringComparison.OrdinalIgnoreCase));
@@ -43,6 +46,36 @@ public static class PdfXfaCompatibility
     private static bool IsFormCalc(string? contentType) => contentType is not null
         && (contentType.Equals("application/x-formcalc", StringComparison.OrdinalIgnoreCase)
             || contentType.StartsWith("application/x-formcalc;", StringComparison.OrdinalIgnoreCase));
+
+    private static bool HasSupportedDynamicLayout(PdfXfaInfo info)
+    {
+        PdfXfaPacket? packet = info.Packets.FirstOrDefault(item =>
+            item.Name.Equals("template", StringComparison.OrdinalIgnoreCase));
+        if (packet is null) return false;
+        using var input = new MemoryStream(packet.Data.ToArray(), writable: false);
+        using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = 64 * 1024 * 1024,
+            IgnoreComments = true
+        });
+        XDocument document = XDocument.Load(reader, LoadOptions.None);
+        string[] layouts = [.. document.Descendants().Where(element =>
+                element.Name.LocalName.Equals("subform", StringComparison.OrdinalIgnoreCase))
+            .Select(element => element.Attributes().FirstOrDefault(attribute =>
+                attribute.Name.LocalName.Equals("layout", StringComparison.OrdinalIgnoreCase))?.Value)
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!)];
+        bool flowed = layouts.Any(layout => layout.Equals("tb", StringComparison.OrdinalIgnoreCase)
+            || layout.Equals("lr-tb", StringComparison.OrdinalIgnoreCase)
+            || layout.Equals("rl-tb", StringComparison.OrdinalIgnoreCase));
+        return flowed && layouts.All(layout => layout.Equals("position", StringComparison.OrdinalIgnoreCase)
+            || layout.Equals("row", StringComparison.OrdinalIgnoreCase)
+            || layout.Equals("tb", StringComparison.OrdinalIgnoreCase)
+            || layout.Equals("lr-tb", StringComparison.OrdinalIgnoreCase)
+            || layout.Equals("rl-tb", StringComparison.OrdinalIgnoreCase));
+    }
 }
 
 /// <summary>A non-mutating XFA compatibility summary.</summary>

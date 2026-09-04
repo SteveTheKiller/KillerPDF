@@ -47,6 +47,26 @@ public sealed class PdfXfaCompatibilityTests
         Assert.Empty(report.Findings);
     }
 
+    [Fact]
+    public void AnalyzeAcceptsSupportedDynamicFlowLayouts()
+    {
+        PdfXfaInfo info = new()
+        {
+            IsPacketArray = true,
+            FormType = PdfXfaFormType.Dynamic,
+            Packets = [Packet("template", """
+                <template><subform name="items" layout="tb">
+                  <subform name="row" layout="row"><field name="value"><ui><textEdit/></ui></field></subform>
+                </subform></template>
+                """)]
+        };
+
+        PdfXfaCompatibilityReport report = PdfXfaCompatibility.Analyze(info);
+
+        Assert.True(report.IsSupported);
+        Assert.Empty(report.Findings);
+    }
+
     private static PdfXfaPacket Packet(string name, string xml) =>
         new(name, System.Text.Encoding.UTF8.GetBytes(xml));
 }
