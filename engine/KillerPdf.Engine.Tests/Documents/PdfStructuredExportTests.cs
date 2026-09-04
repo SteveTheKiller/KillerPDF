@@ -215,7 +215,8 @@ public sealed class PdfStructuredExportTests
     [Fact]
     public void BatchExportIsolatesFailuresAndProducesADataSafeReport()
     {
-        byte[] valid = DocumentBytes("BT /F1 12 Tf 10 30 Td (first) Tj ET");
+        byte[] valid = DocumentBytes(
+            "BT /F1 12 Tf 10 30 Td (first) Tj ET 10 10 20 20 re f");
         var items = new[]
         {
             new PdfStructuredExportBatchItem("first.pdf", valid),
@@ -240,8 +241,16 @@ public sealed class PdfStructuredExportTests
         Assert.Equal("first.pdf", json.RootElement.GetProperty("results")[0]
             .GetProperty("sourceName").GetString());
         Assert.Equal("first.txt", report.Results[0].OutputName);
+        PdfStructuredExportFinding loss = Assert.Single(
+            Assert.IsType<PdfStructuredExportReport>(report.Results[0].LossReport).Findings);
+        Assert.Equal("VectorContentNotExported", loss.Code);
+        Assert.Null(report.Results[1].LossReport);
         Assert.Equal("first.txt", json.RootElement.GetProperty("results")[0]
             .GetProperty("outputName").GetString());
+        Assert.False(json.RootElement.GetProperty("results")[0]
+            .GetProperty("isLossless").GetBoolean());
+        Assert.Equal("VectorContentNotExported", json.RootElement.GetProperty("results")[0]
+            .GetProperty("losses")[0].GetProperty("code").GetString());
         Assert.DoesNotContain("not a PDF", jsonText, StringComparison.Ordinal);
         Assert.DoesNotContain("first\"", jsonText, StringComparison.Ordinal);
     }

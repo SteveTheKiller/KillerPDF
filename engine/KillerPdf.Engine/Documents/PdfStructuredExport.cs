@@ -71,7 +71,8 @@ public sealed record PdfStructuredExportBatchItem
 /// <summary>The isolated outcome of exporting one PDF.</summary>
 public sealed record PdfStructuredExportBatchResult(
     PdfStructuredExportBatchItem Input, ReadOnlyMemory<byte>? Data,
-    string? Error, bool WasCanceled, string OutputName)
+    string? Error, bool WasCanceled, string OutputName,
+    PdfStructuredExportReport? LossReport)
 {
     /// <summary>Gets whether export completed.</summary>
     public bool Succeeded => Data.HasValue && Error is null && !WasCanceled;
@@ -123,7 +124,14 @@ public sealed record PdfStructuredExportBatchReport
             result.Succeeded,
             result.WasCanceled,
             result.Error,
-            OutputByteCount = result.Data?.Length
+            OutputByteCount = result.Data?.Length,
+            IsLossless = result.LossReport?.IsLossless,
+            Losses = result.LossReport?.Findings.Select(finding => new
+            {
+                finding.Code,
+                finding.PageIndex,
+                finding.Count
+            })
         })
     }, new JsonSerializerOptions
     {
@@ -167,21 +175,23 @@ public static class PdfStructuredExportBatchRunner
             try
             {
                 PdfDocument document = PdfDocument.Open(item.Source);
+                PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(
+                    document, format, item.PageIndices, cancellationToken);
                 byte[] data = Export(document, format, item.PageIndices, cancellationToken);
                 results.Add(new PdfStructuredExportBatchResult(
-                    item, data, null, false, outputNames[itemIndex]));
+                    item, data, null, false, outputNames[itemIndex], losses));
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
                 results.Add(new PdfStructuredExportBatchResult(
-                    item, null, null, true, outputNames[itemIndex]));
+                    item, null, null, true, outputNames[itemIndex], null));
                 break;
             }
             catch (Exception exception) when (exception is not OutOfMemoryException
                 and not StackOverflowException and not AccessViolationException)
             {
                 results.Add(new PdfStructuredExportBatchResult(
-                    item, null, exception.Message, false, outputNames[itemIndex]));
+                    item, null, exception.Message, false, outputNames[itemIndex], null));
             }
         }
         return Array.AsReadOnly(results.ToArray());
