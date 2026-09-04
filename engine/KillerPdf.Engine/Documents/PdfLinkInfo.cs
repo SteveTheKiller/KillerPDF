@@ -25,4 +25,6 @@ public sealed record PdfLinkInfo
     public string? NamedDestination { get; init; }
     /// <summary>Gets the decoded URI target.</summary>
     public string? Uri { get; init; }
+    /// <summary>Gets the annotation's user-facing description.</summary>
+    public string? Description { get; init; }
 }

@@ -34,11 +34,18 @@ public static class PdfAccessibilityInspector
             findings.Add(Finding(PdfAccessibilityFindingCode.DocumentNotMarked,
                 "The document catalog does not declare marked content."));
         foreach (PdfPageTreeEntry page in pageTree.Pages)
+        {
             foreach (PdfFormWidgetInfo widget in PdfFormWidgetReader.ReadPage(document, page.Index))
                 if (string.IsNullOrWhiteSpace(widget.Tooltip))
                     findings.Add(Finding(PdfAccessibilityFindingCode.MissingFormFieldDescription,
                         $"Form field {widget.FieldName} has no user-facing description.",
                         page.Index, widget.ObjectNumber == 0 ? null : widget.ObjectNumber));
+            foreach (PdfLinkInfo link in PdfLinkReader.ReadPage(document, page.Index))
+                if (string.IsNullOrWhiteSpace(link.Description))
+                    findings.Add(Finding(PdfAccessibilityFindingCode.MissingLinkDescription,
+                        "A link annotation has no user-facing description.",
+                        page.Index, link.ObjectNumber));
+        }
         return new PdfAccessibilityReport(findings);
 
         void InspectStructureTree(PdfObject rootValue)
@@ -138,7 +145,9 @@ public enum PdfAccessibilityFindingCode
     /// <summary>A figure structure element has no alternate description.</summary>
     MissingFigureAlternateDescription,
     /// <summary>An interactive form field has no user-facing description.</summary>
-    MissingFormFieldDescription
+    MissingFormFieldDescription,
+    /// <summary>A link annotation has no user-facing description.</summary>
+    MissingLinkDescription
 }
 
 /// <summary>One accessibility finding with a stable code and severity.</summary>

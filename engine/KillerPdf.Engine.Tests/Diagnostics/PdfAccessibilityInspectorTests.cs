@@ -108,4 +108,20 @@ public sealed class PdfAccessibilityInspectorTests
         Assert.DoesNotContain(PdfAccessibilityInspector.Inspect(document).Findings,
             item => item.Code == PdfAccessibilityFindingCode.MissingFormFieldDescription);
     }
+
+    [Fact]
+    public void InspectReportsOnlyLinksWithoutDescriptions()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddUriLink(0, 10, 10, 50, 20, "https://example.test/missing")
+            .AddUriLink(0, 10, 40, 50, 20, "https://example.test/described",
+                contents: "Account help").Build());
+
+        PdfAccessibilityFinding finding = Assert.Single(
+            PdfAccessibilityInspector.Inspect(document).Findings,
+            item => item.Code == PdfAccessibilityFindingCode.MissingLinkDescription);
+
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+    }
 }

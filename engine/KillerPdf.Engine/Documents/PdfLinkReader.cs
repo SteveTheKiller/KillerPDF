@@ -17,6 +17,7 @@ public static class PdfLinkReader
     private static readonly PdfName DestinationName = Name("Dest");
     private static readonly PdfName DName = Name("D");
     private static readonly PdfName UriName = Name("URI");
+    private static readonly PdfName ContentsName = Name("Contents");
     private static readonly PdfName NamesName = Name("Names");
     private static readonly PdfName DestsName = Name("Dests");
 
@@ -74,6 +75,11 @@ public static class PdfLinkReader
                 (destinationPage, namedDestination) = ResolveDestination(
                     document, destination, pages, named);
             if (destinationPage is null && namedDestination is null && uri is null) continue;
+            string? description = annotation.TryGetValue(ContentsName, out PdfObject? contentsValue)
+                && Resolve(document, contentsValue, "A link description") is PdfString contents
+                    ? PdfUnicodeEncoding.DecodeTextString(
+                        contents.Bytes.Span, "A link description")
+                    : null;
             result.Add(new PdfLinkInfo
             {
                 PageIndex = pageIndex,
@@ -84,7 +90,8 @@ public static class PdfLinkReader
                 Right = Math.Max(x1, x2), Top = Math.Max(y1, y2),
                 DestinationPageIndex = destinationPage,
                 NamedDestination = namedDestination,
-                Uri = uri
+                Uri = uri,
+                Description = description
             });
         }
         return result;
