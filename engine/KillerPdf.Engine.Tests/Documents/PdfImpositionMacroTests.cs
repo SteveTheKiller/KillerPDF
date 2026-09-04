@@ -15,7 +15,9 @@ public sealed class PdfImpositionMacroTests
             .AddBlankPage(200, 300)
             .Build();
         var preset = new PdfImpositionPreset(
-            "Two-up", 2, 1, 792, 612, margin: 18, gutter: 12, duplex: true);
+            "Two-up", 2, 1, 792, 612, margin: 18, gutter: 12, duplex: true,
+            includeFoldMarks: true, includeColorBars: true,
+            includePageInformation: true);
         PdfMacro macro = PdfMacro.FromJson(new PdfMacro(
             "Impose", [PdfImpositionMacro.NUpStep(preset)]).ToJson());
 
@@ -28,6 +30,7 @@ public sealed class PdfImpositionMacroTests
         Assert.Equal(2, pages.Count);
         Assert.All(pages, page => Assert.Equal(
             new PdfPageBoxBounds(0, 0, 792, 612), page.MediaBox));
+        Assert.Equal("Sheet 1 front", new PdfPageContentReader(imposed).Read(0).Text);
         Assert.Throws<ArgumentException>(() => PdfImpositionMacro.Execute(
             new PdfMacroStep(PdfMacroOperation.Save), source));
     }

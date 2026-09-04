@@ -10,7 +10,8 @@ public sealed record PdfImpositionPreset
         double sheetWidth, double sheetHeight, double margin = 0, double gutter = 0,
         bool duplex = false, bool rotateToFit = true,
         bool includeCropMarks = false, bool includeRegistrationMarks = false,
-        double creepPerSheet = 0)
+        double creepPerSheet = 0, bool includeFoldMarks = false,
+        bool includeColorBars = false, bool includePageInformation = false)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preset name is required.", nameof(name));
@@ -42,6 +43,9 @@ public sealed record PdfImpositionPreset
         IncludeCropMarks = includeCropMarks;
         IncludeRegistrationMarks = includeRegistrationMarks;
         CreepPerSheet = creepPerSheet;
+        IncludeFoldMarks = includeFoldMarks;
+        IncludeColorBars = includeColorBars;
+        IncludePageInformation = includePageInformation;
     }
 
     /// <summary>Gets the preset name.</summary>
@@ -68,6 +72,12 @@ public sealed record PdfImpositionPreset
     public bool IncludeRegistrationMarks { get; }
     /// <summary>Gets the outward content offset added for each inner sheet.</summary>
     public double CreepPerSheet { get; }
+    /// <summary>Gets whether grid fold marks are requested.</summary>
+    public bool IncludeFoldMarks { get; }
+    /// <summary>Gets whether process-color control bars are requested.</summary>
+    public bool IncludeColorBars { get; }
+    /// <summary>Gets whether sheet and side information is requested.</summary>
+    public bool IncludePageInformation { get; }
 
     /// <summary>Plans sequential source pages using this preset's grid and duplex setting.</summary>
     public IReadOnlyList<PdfImposedSheetSide> Plan(int pageCount) =>
@@ -87,7 +97,8 @@ public sealed record PdfImpositionPreset
     /// <summary>Serializes the preset without source document data.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PresetFile(1, Name, Columns, Rows, SheetWidth, SheetHeight, Margin, Gutter,
-            Duplex, RotateToFit, IncludeCropMarks, IncludeRegistrationMarks, CreepPerSheet),
+            Duplex, RotateToFit, IncludeCropMarks, IncludeRegistrationMarks, CreepPerSheet,
+            IncludeFoldMarks, IncludeColorBars, IncludePageInformation),
         new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -107,11 +118,13 @@ public sealed record PdfImpositionPreset
         return new PdfImpositionPreset(file.Name, file.Columns, file.Rows,
             file.SheetWidth, file.SheetHeight, file.Margin, file.Gutter,
             file.Duplex, file.RotateToFit, file.IncludeCropMarks,
-            file.IncludeRegistrationMarks, file.CreepPerSheet);
+            file.IncludeRegistrationMarks, file.CreepPerSheet, file.IncludeFoldMarks,
+            file.IncludeColorBars, file.IncludePageInformation);
     }
 
     private sealed record PresetFile(int Version, string Name, int Columns, int Rows,
         double SheetWidth, double SheetHeight, double Margin, double Gutter,
         bool Duplex, bool RotateToFit, bool IncludeCropMarks,
-        bool IncludeRegistrationMarks, double CreepPerSheet);
+        bool IncludeRegistrationMarks, double CreepPerSheet,
+        bool IncludeFoldMarks, bool IncludeColorBars, bool IncludePageInformation);
 }

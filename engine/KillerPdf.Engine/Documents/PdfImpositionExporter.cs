@@ -15,7 +15,8 @@ public static class PdfImpositionExporter
         int columns, int rows, double sheetWidth, double sheetHeight,
         double margin = 0, double gutter = 0, bool rotateToFit = true,
         double creepPerSheet = 0, bool includeCropMarks = false,
-        bool includeRegistrationMarks = false)
+        bool includeRegistrationMarks = false, bool includeFoldMarks = false,
+        bool includeColorBars = false, bool includePageInformation = false)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(sides);
@@ -65,7 +66,8 @@ public static class PdfImpositionExporter
                         target.Bottom - sourceBox.Left * scale);
                 }
             }
-            if (includeCropMarks || includeRegistrationMarks)
+            if (includeCropMarks || includeRegistrationMarks || includeFoldMarks
+                || includeColorBars || includePageInformation)
             {
                 var marks = new PdfContentStreamBuilder().SetStrokeGray(0).SetLineWidth(0.25);
                 if (includeCropMarks)
@@ -85,6 +87,55 @@ public static class PdfImpositionExporter
                             .LineTo(mark.CenterX, mark.CenterY + half).Stroke()
                             .Circle(mark.CenterX, mark.CenterY, mark.Radius).Stroke();
                     }
+                if (includeFoldMarks)
+                {
+                    const double length = 6;
+                    double cellWidth = (sheetWidth - margin * 2
+                        - gutter * (columns - 1)) / columns;
+                    double cellHeight = (sheetHeight - margin * 2
+                        - gutter * (rows - 1)) / rows;
+                    for (int column = 1; column < columns; column++)
+                    {
+                        double x = margin + column * cellWidth
+                            + (column - 0.5) * gutter;
+                        marks.MoveTo(x, 0).LineTo(x, length).Stroke()
+                            .MoveTo(x, sheetHeight - length)
+                            .LineTo(x, sheetHeight).Stroke();
+                    }
+                    for (int row = 1; row < rows; row++)
+                    {
+                        double y = margin + row * cellHeight + (row - 0.5) * gutter;
+                        marks.MoveTo(0, y).LineTo(length, y).Stroke()
+                            .MoveTo(sheetWidth - length, y)
+                            .LineTo(sheetWidth, y).Stroke();
+                    }
+                }
+                if (includeColorBars)
+                {
+                    const double size = 6;
+                    double x = Math.Max(2, margin);
+                    foreach ((double C, double M, double Y, double K) color in new[]
+                    {
+                        (1d, 0d, 0d, 0d), (0d, 1d, 0d, 0d),
+                        (0d, 0d, 1d, 0d), (0d, 0d, 0d, 1d)
+                    })
+                    {
+                        marks.SetFillCmyk(color.C, color.M, color.Y, color.K)
+                            .Rectangle(x, 2, size, size).Fill();
+                        x += size;
+                    }
+                    marks.SetStrokeGray(0);
+                }
+                if (includePageInformation)
+                {
+                    string face = sides[outputPage].Face == PdfImposedSheetFace.Front
+                        ? "front" : "back";
+                    marks.SetFillGray(0).BeginText()
+                        .SetFont(PdfStandardFont.Helvetica, 6)
+                        .MoveText(Math.Max(2, margin), sheetHeight - 8)
+                        .ShowLatin1Text($"Sheet {sides[outputPage].SheetIndex + 1} {face}")
+                        .EndText();
+                }
                 editor.AppendPageArtifact(outputPage, sheetWidth, sheetHeight, marks);
             }
         }

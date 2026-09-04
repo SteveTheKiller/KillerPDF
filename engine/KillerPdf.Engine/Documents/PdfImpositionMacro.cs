@@ -50,6 +50,8 @@ public static class PdfImpositionMacro
         return PdfImpositionExporter.Build(document, sides,
             preset.Columns, preset.Rows, preset.SheetWidth, preset.SheetHeight,
             preset.Margin, preset.Gutter, preset.RotateToFit, preset.CreepPerSheet,
-            preset.IncludeCropMarks, preset.IncludeRegistrationMarks);
+            preset.IncludeCropMarks, preset.IncludeRegistrationMarks,
+            preset.IncludeFoldMarks, preset.IncludeColorBars,
+            preset.IncludePageInformation);
     }
 }

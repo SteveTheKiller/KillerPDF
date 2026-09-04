@@ -276,6 +276,26 @@ public sealed class PdfImpositionPlannerTests
             && path.BoundingBox.Right == 17);
     }
 
+    [Fact]
+    public void ExporterDrawsFoldColorAndPageInformationMarks()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(100, 100).AddBlankPage(100, 100).Build());
+        IReadOnlyList<PdfImposedSheetSide> sides =
+            [new(0, PdfImposedSheetFace.Front, Array.AsReadOnly<int?>([0, 1]))];
+
+        PdfDocument output = PdfDocument.Open(PdfImpositionExporter.Build(
+            source, sides, 2, 1, 260, 140, margin: 10, gutter: 10,
+            includeFoldMarks: true, includeColorBars: true,
+            includePageInformation: true));
+        PdfPageContent content = new PdfPageContentReader(output).Read(0);
+
+        Assert.Equal("Sheet 1 front", content.Text);
+        Assert.Contains(content.Paths, path => path.BoundingBox.Left == 130
+            && path.BoundingBox.Bottom == 0 && path.BoundingBox.Top == 6);
+        Assert.True(content.Paths.Count(path => path.PaintOperator == "f") >= 4);
+    }
+
     private static void AssertSide(PdfImposedSheetSide side, int sheet,
         PdfImposedSheetFace face, params int?[] pages)
     {
