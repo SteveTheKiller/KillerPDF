@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -35,6 +36,41 @@ public sealed class PdfFormDataImporterTests
             includeNoExportFields: true);
         Assert.Contains(complete.Fields, field => field.Name == "private"
             && field.Values.SequenceEqual(["secret"]));
+    }
+
+    [Fact]
+    public void ExportPreservesReviewAnnotationsAndReplyIdentity()
+    {
+        PdfDocument blank = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 200).Build());
+        PdfDocument reviewed = PdfDocument.Open(new PdfIncrementalAnnotationEditor(blank)
+            .AddHighlight(0, 10, 20, 70, 20, "Review",
+                new PdfRgbColor(1, 0.5, 0), 0.6,
+                new PdfAnnotationMetadata
+                {
+                    Author = "Reviewer",
+                    Subject = "Copy",
+                    CreationDate = new DateTimeOffset(2026, 9, 4, 12, 0, 0, TimeSpan.Zero),
+                    ModificationDate = new DateTimeOffset(2026, 9, 4, 12, 30, 0, TimeSpan.Zero)
+                }, name: "review")
+            .Build());
+        PdfDocument source = PdfDocument.Open(new PdfIncrementalAnnotationEditor(reviewed)
+            .AddTextNote(0, 90, 20, "Done", name: "reply", inReplyTo: "review")
+            .Build());
+
+        PdfFormDataSet exported = PdfFormDataExporter.Export(source);
+
+        Assert.Equal(2, exported.Annotations.Count);
+        Assert.Equal("Highlight", exported.Annotations[0].Subtype);
+        Assert.Equal("review", exported.Annotations[0].Name);
+        Assert.Equal("Review", exported.Annotations[0].Contents);
+        Assert.Equal("Reviewer", exported.Annotations[0].Author);
+        Assert.Equal("Copy", exported.Annotations[0].Subject);
+        Assert.Equal("#FF8000", exported.Annotations[0].Color);
+        Assert.Equal(0.6, exported.Annotations[0].Opacity);
+        Assert.Equal("review", exported.Annotations[1].ReplyToName);
+        Assert.Equal(2, PdfFdfFormData.Read(PdfFdfFormData.Write(exported)).Annotations.Count);
+        Assert.Equal(2, PdfXfdfFormData.Read(PdfXfdfFormData.Write(exported)).Annotations.Count);
     }
 
     [Fact]
