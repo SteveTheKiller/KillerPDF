@@ -19,6 +19,8 @@ public enum PdfOptimizationChangeKind
     RemoveBookmarks,
     /// <summary>Remove every interactive form field and widget.</summary>
     RemoveFormFields,
+    /// <summary>Remove every annotation that contains review text.</summary>
+    RemoveComments,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -38,6 +40,8 @@ public sealed record PdfOptimizationOptions
     public bool RemoveBookmarks { get; init; }
     /// <summary>Gets whether every interactive form field and widget is removed.</summary>
     public bool RemoveFormFields { get; init; }
+    /// <summary>Gets whether annotations containing review text are removed.</summary>
+    public bool RemoveComments { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -107,16 +111,30 @@ public sealed class PdfOptimizationPlan
         bool removesOpenAction = Changes.Contains(PdfOptimizationChangeKind.RemoveOpenAction);
         bool removesBookmarks = Changes.Contains(PdfOptimizationChangeKind.RemoveBookmarks);
         bool removesFormFields = Changes.Contains(PdfOptimizationChangeKind.RemoveFormFields);
-        if (!removesAttachments && !removesOpenAction && !removesBookmarks && !removesFormFields)
+        bool removesComments = Changes.Contains(PdfOptimizationChangeKind.RemoveComments);
+        if (!removesAttachments && !removesOpenAction && !removesBookmarks
+            && !removesFormFields && !removesComments)
             return _document;
-        var editor = new PdfIncrementalPageEditor(_document);
-        if (removesAttachments)
-            foreach (string name in _attachmentNames) editor.RemoveAttachment(name);
-        if (removesOpenAction) editor.ClearOpenAction();
-        if (removesBookmarks) editor.ClearBookmarks();
-        if (removesFormFields)
-            foreach (string name in _formFieldNames) editor.RemoveFormField(name);
-        return PdfDocument.Open(editor.Build());
+        PdfDocument formSanitized = _document;
+        if (removesAttachments || removesOpenAction || removesBookmarks || removesFormFields)
+        {
+            var editor = new PdfIncrementalPageEditor(_document);
+            if (removesAttachments)
+                foreach (string name in _attachmentNames) editor.RemoveAttachment(name);
+            if (removesOpenAction) editor.ClearOpenAction();
+            if (removesBookmarks) editor.ClearBookmarks();
+            if (removesFormFields)
+                foreach (string name in _formFieldNames) editor.RemoveFormField(name);
+            formSanitized = PdfDocument.Open(editor.Build());
+        }
+        if (!removesComments) return formSanitized;
+        var annotationEditor = new PdfIncrementalAnnotationEditor(formSanitized);
+        foreach ((int pageIndex, int annotationIndex) in PdfCommentReader.Read(formSanitized)
+            .Select(comment => (comment.PageIndex, comment.AnnotationIndex))
+            .OrderByDescending(comment => comment.PageIndex)
+            .ThenByDescending(comment => comment.AnnotationIndex))
+            annotationEditor.RemoveAnnotationAt(pageIndex, annotationIndex);
+        return PdfDocument.Open(annotationEditor.Build());
     }
 }
 
@@ -141,6 +159,9 @@ public static class PdfOptimizer
         string[] formFieldNames = options.RemoveFormFields
             ? [.. tree.Pages.SelectMany((_, pageIndex) => PdfFormWidgetReader.ReadPage(document, pageIndex))
                 .Select(widget => widget.FieldName).Distinct(StringComparer.Ordinal)] : [];
+        (int PageIndex, int AnnotationIndex)[] comments = options.RemoveComments
+            ? [.. PdfCommentReader.Read(document)
+                .Select(comment => (comment.PageIndex, comment.AnnotationIndex))] : [];
         if (options.RemoveMetadata && (document.Trailer.ContainsKey(InformationName)
             || tree.Catalog.ContainsKey(MetadataName)))
             changes.Add(PdfOptimizationChangeKind.RemoveMetadata);
@@ -152,9 +173,12 @@ public static class PdfOptimizer
             changes.Add(PdfOptimizationChangeKind.RemoveBookmarks);
         if (formFieldNames.Length > 0)
             changes.Add(PdfOptimizationChangeKind.RemoveFormFields);
+        if (comments.Length > 0)
+            changes.Add(PdfOptimizationChangeKind.RemoveComments);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
-        return new PdfOptimizationPlan(document, options, changes, attachmentNames, formFieldNames);
+        return new PdfOptimizationPlan(document, options, changes, attachmentNames,
+            formFieldNames);
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));

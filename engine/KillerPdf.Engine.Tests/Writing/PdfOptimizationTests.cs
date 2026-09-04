@@ -97,4 +97,44 @@ public sealed class PdfOptimizationTests
         Assert.Contains(PdfOptimizationChangeKind.RemoveFormFields, plan.Changes);
         Assert.Empty(PdfFormWidgetReader.ReadPage(sanitized, 0));
     }
+
+    [Fact]
+    public void SelectiveSanitizationRemovesComments()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+            PdfDocument.Open(source)).AddTextNote(0, 20, 20, "Private review note").Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document, new PdfOptimizationOptions
+        {
+            RemoveComments = true,
+            PackObjects = false,
+            CompressStructure = false
+        });
+        PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.RemoveComments, plan.Changes);
+        Assert.Empty(PdfCommentReader.Read(sanitized));
+    }
+
+    [Fact]
+    public void CommentRemovalStillTargetsCommentsAfterFormWidgetsAreRemoved()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "private.name", 20, 20, 120, 24, "Secret").Build();
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+            PdfDocument.Open(source)).AddTextNote(0, 20, 60, "Private review note").Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document, new PdfOptimizationOptions
+        {
+            RemoveFormFields = true,
+            RemoveComments = true,
+            PackObjects = false,
+            CompressStructure = false
+        });
+        PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
+
+        Assert.Empty(PdfFormWidgetReader.ReadPage(sanitized, 0));
+        Assert.Empty(PdfCommentReader.Read(sanitized));
+    }
 }
