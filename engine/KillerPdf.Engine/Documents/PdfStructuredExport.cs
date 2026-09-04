@@ -51,7 +51,8 @@ public sealed record PdfStructuredExportBatchItem
 {
     /// <summary>Creates a validated batch input with an isolated source copy.</summary>
     public PdfStructuredExportBatchItem(string sourceName, ReadOnlyMemory<byte> source,
-        IEnumerable<int>? pageIndices = null)
+        IEnumerable<int>? pageIndices = null, PdfOcrReview? ocrReview = null,
+        TrueTypeFont? ocrFont = null)
     {
         if (string.IsNullOrWhiteSpace(sourceName))
             throw new ArgumentException("A source name is required.", nameof(sourceName));
@@ -59,6 +60,12 @@ public sealed record PdfStructuredExportBatchItem
         Source = source.ToArray();
         PageIndices = pageIndices is null
             ? null : Array.AsReadOnly(pageIndices.ToArray());
+        if (ocrReview is null != (ocrFont is null))
+            throw new ArgumentException(
+                "A batch OCR review and its embedded font must be supplied together.",
+                nameof(ocrReview));
+        OcrReview = ocrReview;
+        OcrFont = ocrFont;
     }
 
     /// <summary>Gets the source file name.</summary>
@@ -67,6 +74,10 @@ public sealed record PdfStructuredExportBatchItem
     public ReadOnlyMemory<byte> Source { get; }
     /// <summary>Gets the optional zero-based page selection.</summary>
     public IReadOnlyList<int>? PageIndices { get; }
+    /// <summary>Gets optional reviewed OCR text to include before export.</summary>
+    public PdfOcrReview? OcrReview { get; }
+    /// <summary>Gets the font used to embed optional reviewed OCR text.</summary>
+    public TrueTypeFont? OcrFont { get; }
 }
 
 /// <summary>The isolated outcome of exporting one PDF.</summary>
@@ -172,10 +183,14 @@ public static class PdfStructuredExportBatchRunner
             if (cancellationToken.IsCancellationRequested) break;
             PdfStructuredExportBatchItem suppliedItem = supplied[itemIndex];
             var item = new PdfStructuredExportBatchItem(suppliedItem.SourceName,
-                suppliedItem.Source, suppliedItem.PageIndices);
+                suppliedItem.Source, suppliedItem.PageIndices,
+                suppliedItem.OcrReview, suppliedItem.OcrFont);
             try
             {
                 PdfDocument document = PdfDocument.Open(item.Source);
+                if (item.OcrReview is not null)
+                    document = PdfDocument.Open(item.OcrReview.WriteSearchableText(
+                        document, item.OcrFont!));
                 PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(
                     document, format, item.PageIndices, cancellationToken);
                 byte[] data = PdfStructuredExport.Export(

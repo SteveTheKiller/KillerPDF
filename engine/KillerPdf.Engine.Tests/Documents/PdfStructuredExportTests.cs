@@ -38,6 +38,33 @@ public sealed class PdfStructuredExportTests
     }
 
     [Fact]
+    public void BatchExportIncludesReviewedOcrAndKeepsSourceIsolated()
+    {
+        byte[] source = new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .AddBlankPage(300, 400).Build();
+        byte[] original = source.ToArray();
+        var review = new PdfOcrReview([
+            new PdfOcrWord("word-1", 0, 0, "wrong", "wrong",
+                new PdfContentBounds(10, 20, 30, 32), 0.4, "en")
+        ]).Correct("word-1", "A");
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+
+        PdfStructuredExportBatchResult result = Assert.Single(
+            PdfStructuredExportBatchRunner.Run([
+                new PdfStructuredExportBatchItem(
+                    "scan.pdf", source, ocrReview: review, ocrFont: font)
+            ], PdfStructuredExportFormat.PlainText));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("A", Encoding.UTF8.GetString(
+            Assert.IsType<ReadOnlyMemory<byte>>(result.Data).Span));
+        Assert.Equal(original, source);
+        Assert.Throws<ArgumentException>(() =>
+            new PdfStructuredExportBatchItem("scan.pdf", source, ocrReview: review));
+    }
+
+    [Fact]
     public void ExportsTextHtmlMarkdownAndStructuredJsonFromTheSamePageModel()
     {
         PdfDocument document = Document("BT /F1 12 Tf 10 30 Td (A & B) Tj ET");
