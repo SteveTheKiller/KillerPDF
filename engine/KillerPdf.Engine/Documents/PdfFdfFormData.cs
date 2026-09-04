@@ -7,7 +7,7 @@ using KillerPdf.Engine.Writing;
 
 namespace KillerPdf.Engine.Documents;
 
-/// <summary>Reads and writes field-only Forms Data Format files without executing actions.</summary>
+/// <summary>Reads and writes Forms Data Format fields and annotations without executing actions.</summary>
 public static class PdfFdfFormData
 {
     private const int MaximumBytes = 64 * 1024 * 1024;
@@ -46,11 +46,19 @@ public static class PdfFdfFormData
                 ?? throw new InvalidOperationException("The FDF /Fields value is not an array.");
             foreach (PdfObject field in array) ReadField(field, null, fields, 0);
         }
+        var annotations = new List<PdfFormDataAnnotation>();
+        if (fdf.TryGetValue(Name("Annots"), out PdfObject? annotationsValue))
+        {
+            PdfArray array = Resolve(annotationsValue) as PdfArray
+                ?? throw new InvalidOperationException("The FDF /Annots value is not an array.");
+            foreach (PdfObject annotation in array) annotations.Add(ReadAnnotation(annotation));
+        }
         return new PdfFormDataSet
         {
             SourcePdfPath = fdf.TryGetValue(Name("F"), out PdfObject? fileValue)
                 ? Text(Resolve(fileValue), "The FDF /F value") : null,
             Fields = Array.AsReadOnly(fields.ToArray()),
+            Annotations = Array.AsReadOnly(annotations.ToArray()),
             ContainsJavaScript = ContainsScript(root, new HashSet<(int, int)>(), 0)
         };
 
@@ -88,6 +96,68 @@ public static class PdfFdfFormData
         IReadOnlyList<string> Values(PdfObject value) => value is PdfArray array
             ? Array.AsReadOnly(array.Select(item => Text(Resolve(item), "An FDF field value")).ToArray())
             : Array.AsReadOnly([Text(value, "An FDF field value")]);
+
+        PdfFormDataAnnotation ReadAnnotation(PdfObject value)
+        {
+            PdfDictionary annotation = Resolve(value) as PdfDictionary
+                ?? throw new InvalidOperationException("An FDF annotation is not a dictionary.");
+            string subtype = annotation.TryGetValue(Name("Subtype"), out PdfObject? subtypeValue)
+                && Resolve(subtypeValue) is PdfName subtypeName
+                ? subtypeName.ValueAsLatin1()
+                : throw new InvalidOperationException("An FDF annotation has no subtype name.");
+            int page = annotation.TryGetValue(Name("Page"), out PdfObject? pageValue)
+                && Resolve(pageValue) is PdfInteger pageNumber && pageNumber.Value >= 0
+                ? checked((int)pageNumber.Value)
+                : throw new InvalidOperationException("An FDF annotation has an invalid page index.");
+            PdfArray rectangle = annotation.TryGetValue(Name("Rect"), out PdfObject? rectangleValue)
+                ? Resolve(rectangleValue) as PdfArray
+                    ?? throw new InvalidOperationException("An FDF annotation rectangle is not an array.")
+                : throw new InvalidOperationException("An FDF annotation has no rectangle.");
+            double[] coordinates = rectangle.Select(Number).ToArray();
+            if (coordinates.Length != 4 || coordinates[2] < coordinates[0]
+                || coordinates[3] < coordinates[1])
+                throw new InvalidOperationException("An FDF annotation rectangle is invalid.");
+            double? opacity = OptionalNumber(annotation, "CA");
+            if (opacity is < 0 or > 1)
+                throw new InvalidOperationException("An FDF annotation opacity must be between zero and one.");
+            return new PdfFormDataAnnotation
+            {
+                Subtype = subtype,
+                PageIndex = page,
+                Rectangle = Array.AsReadOnly(coordinates),
+                Name = OptionalText(annotation, "NM"),
+                Contents = OptionalText(annotation, "Contents"),
+                Author = OptionalText(annotation, "T"),
+                Subject = OptionalText(annotation, "Subj"),
+                Color = Color(annotation),
+                Opacity = opacity,
+                CreationDate = OptionalText(annotation, "CreationDate"),
+                ModifiedDate = OptionalText(annotation, "M"),
+                ReplyToName = OptionalText(annotation, "IRT")
+            };
+        }
+
+        string? OptionalText(PdfDictionary dictionary, string key) =>
+            dictionary.TryGetValue(Name(key), out PdfObject? value)
+                ? Text(Resolve(value), $"An FDF annotation /{key} value") : null;
+        double? OptionalNumber(PdfDictionary dictionary, string key) =>
+            dictionary.TryGetValue(Name(key), out PdfObject? value) ? Number(Resolve(value)) : null;
+        double Number(PdfObject value) => Resolve(value) switch
+        {
+            PdfInteger integer => integer.Value,
+            PdfReal real when double.IsFinite(real.Value) => real.Value,
+            _ => throw new InvalidOperationException("An FDF annotation number is invalid.")
+        };
+        string? Color(PdfDictionary dictionary)
+        {
+            if (!dictionary.TryGetValue(Name("C"), out PdfObject? value)) return null;
+            PdfArray color = Resolve(value) as PdfArray
+                ?? throw new InvalidOperationException("An FDF annotation color is not an array.");
+            double[] components = color.Select(Number).ToArray();
+            if (components.Length != 3 || components.Any(component => component is < 0 or > 1))
+                throw new InvalidOperationException("An FDF annotation RGB color is invalid.");
+            return $"#{(int)Math.Round(components[0] * 255):X2}{(int)Math.Round(components[1] * 255):X2}{(int)Math.Round(components[2] * 255):X2}";
+        }
 
         bool ContainsScript(PdfObject value, HashSet<(int, int)> visited, int depth)
         {
@@ -131,6 +201,9 @@ public static class PdfFdfFormData
             new(Name("Fields"), new PdfArray(fields))
         };
         if (data.SourcePdfPath is not null) fdfEntries.Add(new(Name("F"), String(data.SourcePdfPath)));
+        if (data.Annotations.Count > 0)
+            fdfEntries.Add(new(Name("Annots"), new PdfArray(
+                data.Annotations.Select(annotation => (PdfObject)Annotation(annotation)))));
         var root = new PdfDictionary([
             new(Name("Type"), Name("Catalog")),
             new(Name("FDF"), new PdfDictionary(fdfEntries))]);
@@ -146,6 +219,54 @@ public static class PdfFdfFormData
         WriteAscii(output, $"\nstartxref\n{xrefOffset.ToString(CultureInfo.InvariantCulture)}\n%%EOF\n");
         return output.ToArray();
     }
+
+    private static PdfDictionary Annotation(PdfFormDataAnnotation annotation)
+    {
+        if (string.IsNullOrWhiteSpace(annotation.Subtype) || annotation.PageIndex < 0
+            || annotation.Rectangle.Count != 4
+            || annotation.Rectangle.Any(value => !double.IsFinite(value))
+            || annotation.Rectangle[2] < annotation.Rectangle[0]
+            || annotation.Rectangle[3] < annotation.Rectangle[1])
+            throw new ArgumentException("An FDF annotation has invalid required data.", nameof(annotation));
+        if (annotation.Opacity is < 0 or > 1 || annotation.Opacity is double.NaN)
+            throw new ArgumentException("An FDF annotation opacity must be between zero and one.", nameof(annotation));
+        var entries = new List<KeyValuePair<PdfName, PdfObject>>
+        {
+            new(Name("Subtype"), Name(annotation.Subtype)),
+            new(Name("Page"), new PdfInteger(annotation.PageIndex)),
+            new(Name("Rect"), new PdfArray(annotation.Rectangle.Select(Number)))
+        };
+        AddText(entries, "NM", annotation.Name);
+        AddText(entries, "Contents", annotation.Contents);
+        AddText(entries, "T", annotation.Author);
+        AddText(entries, "Subj", annotation.Subject);
+        AddText(entries, "CreationDate", annotation.CreationDate);
+        AddText(entries, "M", annotation.ModifiedDate);
+        AddText(entries, "IRT", annotation.ReplyToName);
+        if (annotation.Color is string color)
+        {
+            if (color.Length != 7 || color[0] != '#'
+                || !int.TryParse(color.AsSpan(1), NumberStyles.HexNumber,
+                    CultureInfo.InvariantCulture, out int rgb))
+                throw new ArgumentException("An FDF annotation color must be #RRGGBB.", nameof(annotation));
+            entries.Add(new(Name("C"), new PdfArray([
+                new PdfReal(((rgb >> 16) & 255) / 255d),
+                new PdfReal(((rgb >> 8) & 255) / 255d),
+                new PdfReal((rgb & 255) / 255d)])));
+        }
+        if (annotation.Opacity is double opacity)
+            entries.Add(new(Name("CA"), new PdfReal(opacity)));
+        return new PdfDictionary(entries);
+    }
+
+    private static void AddText(
+        ICollection<KeyValuePair<PdfName, PdfObject>> entries, string key, string? value)
+    {
+        if (value is not null) entries.Add(new(Name(key), String(value)));
+    }
+    private static PdfObject Number(double value) => value == Math.Truncate(value)
+        && value is >= long.MinValue and <= long.MaxValue
+        ? new PdfInteger((long)value) : new PdfReal(value);
 
     private static string Text(PdfObject value, string description) => value switch
     {

@@ -61,6 +61,39 @@ public sealed class PdfFdfFormDataTests
     }
 
     [Fact]
+    public void WriteAndReadRoundTripAnnotationsAndReplies()
+    {
+        var source = new PdfFormDataSet
+        {
+            Annotations =
+            [
+                new PdfFormDataAnnotation
+                {
+                    Subtype = "Highlight", PageIndex = 1, Rectangle = [10.5, 20, 30, 40],
+                    Name = "review-1", Contents = "Replace this", Author = "Reviewer",
+                    Subject = "Translation", Color = "#FFD319", Opacity = 0.5,
+                    CreationDate = "D:20260904120000Z", ModifiedDate = "D:20260904123000Z"
+                },
+                new PdfFormDataAnnotation
+                {
+                    Subtype = "Text", PageIndex = 1, Rectangle = [30, 40, 50, 60],
+                    Name = "reply-1", Contents = "Done", ReplyToName = "review-1"
+                }
+            ]
+        };
+
+        PdfFormDataSet result = PdfFdfFormData.Read(PdfFdfFormData.Write(source));
+
+        Assert.Equal(source.Annotations.Count, result.Annotations.Count);
+        for (int index = 0; index < source.Annotations.Count; index++)
+        {
+            Assert.Equal(source.Annotations[index] with { Rectangle = [] },
+                result.Annotations[index] with { Rectangle = [] });
+            Assert.Equal(source.Annotations[index].Rectangle, result.Annotations[index].Rectangle);
+        }
+    }
+
+    [Fact]
     public void ResolvesLocalSourceReferencesRelativeToTheInterchangeFile()
     {
         var relative = new PdfFormDataSet { SourcePdfPath = "forms/source.pdf" };
