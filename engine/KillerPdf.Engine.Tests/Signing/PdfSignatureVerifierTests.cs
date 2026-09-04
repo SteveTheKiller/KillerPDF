@@ -192,7 +192,9 @@ public sealed class PdfSignatureVerifierTests
             entry.Verification.CertificateTrustStatus);
         Assert.NotNull(entry.Revision);
         Assert.False(entry.Revision.HasLaterChanges);
+        Assert.Equal(PdfPadesProfile.BaselineB, entry.PadesProfile);
         Assert.Contains("\"fieldName\":\"Approval\"", json);
+        Assert.Contains("\"padesProfile\":1", json);
         Assert.DoesNotContain("contents", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("cms", json, StringComparison.OrdinalIgnoreCase);
     }

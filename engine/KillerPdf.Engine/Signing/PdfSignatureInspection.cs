@@ -7,7 +7,8 @@ namespace KillerPdf.Engine.Signing;
 public sealed record PdfSignatureInspectionEntry(
     PdfSignatureInfo Signature,
     PdfSignatureVerificationResult Verification,
-    PdfSignedRevisionAnalysis? Revision);
+    PdfSignedRevisionAnalysis? Revision,
+    PdfPadesProfile PadesProfile);
 
 /// <summary>A reusable report for every signature in a document.</summary>
 public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInspectionEntry> Entries)
@@ -40,6 +41,7 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                 entry.Signature.ByteRange,
                 entry.Signature.HasValidByteRange,
                 entry.Signature.CoversWholeDocument,
+                entry.PadesProfile,
                 entry.Verification,
                 entry.Revision
             })
@@ -67,7 +69,8 @@ public static class PdfSignatureInspection
                     : PdfSignatureVerifier.VerifyTrust(document, signature, trustOptions),
                 signature.HasValidByteRange
                     ? PdfSignedRevisionAnalyzer.Analyze(document, signature)
-                    : null))];
+                    : null,
+                PdfPadesProfileInspector.Inspect(document, signature)))];
         return new PdfSignatureInspectionReport(Array.AsReadOnly(entries));
     }
 }
