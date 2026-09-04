@@ -19,7 +19,9 @@ public enum PdfNavigationFindingCode
     /// <summary>The document contains a JavaScript action that was not executed.</summary>
     DocumentJavaScript,
     /// <summary>The document contains an unsafe launch action that was not executed.</summary>
-    UnsafeLaunchAction
+    UnsafeLaunchAction,
+    /// <summary>An action /Next chain contains a reference cycle.</summary>
+    CircularActionChain
 }
 
 /// <summary>A safe repair that can be offered for a navigation problem.</summary>
@@ -122,29 +124,47 @@ public static class PdfNavigationAudit
         ICollection<PdfNavigationFinding> findings)
     {
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        var active = new HashSet<(int ObjectNumber, int Generation)>();
         int visitedValues = 0;
-        Walk(root, null, 0);
+        Walk(root, null, 0, false);
 
-        void Walk(PdfObject value, int? sourceObjectNumber, int depth)
+        void Walk(PdfObject value, int? sourceObjectNumber, int depth,
+            bool actionChain)
         {
             if (depth >= 256 || ++visitedValues > 1_000_000)
                 throw new InvalidOperationException(
                     "The navigation action graph exceeds the inspection limit.");
             if (value is PdfIndirectReference reference)
             {
-                if (!visited.Add((reference.ObjectNumber, reference.Generation))) return;
-                Walk(document.Resolve(reference), reference.ObjectNumber, depth + 1);
+                var identity = (reference.ObjectNumber, reference.Generation);
+                if (active.Contains(identity))
+                {
+                    if (actionChain)
+                        findings.Add(new(PdfNavigationFindingCode.CircularActionChain,
+                            "Action", null, "Next",
+                            "The document contains a circular action chain that was not executed.",
+                            PdfNavigationRepairKind.Remove, reference.ObjectNumber));
+                    return;
+                }
+                if (!visited.Add(identity)) return;
+                active.Add(identity);
+                Walk(document.Resolve(reference), reference.ObjectNumber,
+                    depth + 1, actionChain);
+                active.Remove(identity);
                 return;
             }
             if (value is PdfArray array)
             {
-                foreach (PdfObject item in array) Walk(item, sourceObjectNumber, depth + 1);
+                foreach (PdfObject item in array)
+                    Walk(item, sourceObjectNumber, depth + 1, actionChain);
                 return;
             }
             if (value is not PdfDictionary dictionary) return;
+            bool isAction = false;
             if (dictionary.TryGetValue(new PdfName("S"u8), out PdfObject? actionValue)
                 && Resolve(actionValue) is PdfName action)
             {
+                isAction = true;
                 string actionName = action.ValueAsLatin1();
                 if (actionName == "JavaScript")
                     findings.Add(new(PdfNavigationFindingCode.DocumentJavaScript,
@@ -157,8 +177,9 @@ public static class PdfNavigationAudit
                         "The document contains an unsafe launch action that was not executed.",
                         PdfNavigationRepairKind.Remove, sourceObjectNumber));
             }
-            foreach ((PdfName _, PdfObject child) in dictionary)
-                Walk(child, sourceObjectNumber, depth + 1);
+            foreach ((PdfName key, PdfObject child) in dictionary)
+                Walk(child, sourceObjectNumber, depth + 1,
+                    isAction && key.ValueAsLatin1() == "Next");
         }
 
         PdfObject Resolve(PdfObject value)
