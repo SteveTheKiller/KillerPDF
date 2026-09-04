@@ -26,14 +26,17 @@ public static class PdfNavigationMacro
         PdfBookmarkDetectionOptions? options = null)
     {
         options ??= new PdfBookmarkDetectionOptions();
+        var settings = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["minimumPointSize"] = options.MinimumPointSize.ToString("R", CultureInfo.InvariantCulture),
+            ["maximumTitleLength"] = options.MaximumTitleLength.ToString(CultureInfo.InvariantCulture),
+            ["maximumDepth"] = options.MaximumDepth.ToString(CultureInfo.InvariantCulture),
+            ["acceptDetectedHeadings"] = "true"
+        };
+        if (options.TitlePattern is not null)
+            settings["titlePattern"] = options.TitlePattern;
         return new PdfMacroStep(PdfMacroOperation.GenerateBookmarks,
-            new Dictionary<string, string>(StringComparer.Ordinal)
-            {
-                ["minimumPointSize"] = options.MinimumPointSize.ToString("R", CultureInfo.InvariantCulture),
-                ["maximumTitleLength"] = options.MaximumTitleLength.ToString(CultureInfo.InvariantCulture),
-                ["maximumDepth"] = options.MaximumDepth.ToString(CultureInfo.InvariantCulture),
-                ["acceptDetectedHeadings"] = "true"
-            });
+            settings);
     }
 
     /// <summary>Creates a clickable table-of-contents generation step.</summary>
@@ -165,7 +168,10 @@ public static class PdfNavigationMacro
         {
             MinimumPointSize = PositiveDouble(step, "minimumPointSize"),
             MaximumTitleLength = PositiveInteger(step, "maximumTitleLength", int.MaxValue),
-            MaximumDepth = PositiveInteger(step, "maximumDepth", 256)
+            MaximumDepth = PositiveInteger(step, "maximumDepth", 256),
+            TitlePattern = step.Settings.TryGetValue("titlePattern", out string? pattern)
+                ? pattern
+                : null
         };
     }
 
