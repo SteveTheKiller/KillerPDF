@@ -111,4 +111,23 @@ public sealed class PdfContentTransformationTests
         Assert.Throws<ArgumentException>(() => PdfContentTransformation.RecolorDeviceRange(
             source, 0, 1, new PdfDeviceRgbColor(0, 0, 0), fill: false, stroke: false));
     }
+
+    [Fact]
+    public void ResizeTextRangePreservesFontResourcesAndUntouchedInstructions()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "/F1 10 Tf (first) Tj 7 FutureOp /F2 12 Tf (second) Tj"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result = PdfContentTransformation.ResizeTextRange(
+            source, 0, 3, 18);
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal("F1", Assert.IsType<PdfName>(reopened[0].Operands[0]).ValueAsLatin1());
+        Assert.Equal(18, Assert.IsType<PdfReal>(reopened[0].Operands[1]).Value);
+        Assert.Equal("FutureOp", reopened[2].Operator);
+        Assert.Equal(12, Assert.IsType<PdfInteger>(reopened[3].Operands[1]).Value);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfContentTransformation.ResizeTextRange(source, 0, source.Count, 0));
+    }
 }

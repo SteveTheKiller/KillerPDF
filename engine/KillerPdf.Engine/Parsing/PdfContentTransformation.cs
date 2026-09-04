@@ -220,4 +220,31 @@ public static class PdfContentTransformation
         }
         return Array.AsReadOnly(result);
     }
+
+    /// <summary>Changes existing text font-size settings in a selected instruction range.</summary>
+    public static IReadOnlyList<PdfContentInstruction> ResizeTextRange(
+        IEnumerable<PdfContentInstruction> instructions,
+        int startIndex, int count, double fontSize)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        if (!double.IsFinite(fontSize) || fontSize <= 0)
+            throw new ArgumentOutOfRangeException(nameof(fontSize),
+                "Text font size must be finite and positive.");
+        PdfContentInstruction[] source = instructions.ToArray();
+        if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
+            throw new ArgumentOutOfRangeException(nameof(startIndex),
+                "The resized text instruction range is outside the stream.");
+
+        var result = source.ToArray();
+        for (int index = startIndex; index < startIndex + count; index++)
+        {
+            PdfContentInstruction instruction = result[index];
+            if (instruction.Operator != "Tf") continue;
+            if (instruction.Operands.Count != 2 || instruction.Operands[0] is not PdfName)
+                throw new FormatException("A text font instruction has invalid operands.");
+            result[index] = new PdfContentInstruction("Tf", instruction.Offset,
+                [instruction.Operands[0], new PdfReal(fontSize)]);
+        }
+        return Array.AsReadOnly(result);
+    }
 }
