@@ -213,9 +213,20 @@ public sealed class PdfOptimizationTests
         var names = new PdfDictionary([
             new(new PdfName("JavaScript"u8), scripts)
         ]);
+        var nonScriptAction = new PdfDictionary([
+            new(new PdfName("S"u8), new PdfName("GoTo"u8)),
+            new(new PdfName("D"u8), new PdfArray([new PdfInteger(0), new PdfName("Fit"u8)]))
+        ]);
+        var additionalActions = new PdfDictionary([
+            new(new PdfName("WC"u8), scriptAction),
+            new(new PdfName("WS"u8), nonScriptAction)
+        ]);
+        var catalogEntries = catalog.ToDictionary(item => item.Key, item => item.Value);
+        catalogEntries[new PdfName("Names"u8)] = names;
+        catalogEntries[new PdfName("OpenAction"u8)] = scriptAction;
+        catalogEntries[new PdfName("AA"u8)] = additionalActions;
         PdfDocument document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(original)
-            .ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(catalog.Append(
-                new KeyValuePair<PdfName, PdfObject>(new PdfName("Names"u8), names)))).Build());
+            .ReplaceObject(catalogReference.ObjectNumber, new PdfDictionary(catalogEntries)).Build());
 
         PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document, new PdfOptimizationOptions
         {
@@ -223,13 +234,24 @@ public sealed class PdfOptimizationTests
             PackObjects = false,
             CompressStructure = false
         });
-        PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument sanitized = PdfDocument.Open(result.Data);
         PdfDictionary sanitizedCatalog = Assert.IsType<PdfDictionary>(sanitized.Resolve(
             Assert.IsType<PdfIndirectReference>(sanitized.Trailer[new PdfName("Root"u8)])));
 
         Assert.Contains(PdfOptimizationChangeKind.RemoveDocumentJavaScript, plan.Changes);
         Assert.DoesNotContain(sanitizedCatalog.Keys,
             key => key.ValueAsLatin1() == "Names");
+        Assert.DoesNotContain(sanitizedCatalog.Keys,
+            key => key.ValueAsLatin1() == "OpenAction");
+        string saved = Encoding.Latin1.GetString(result.Data.Span);
+        Assert.DoesNotContain("app.alert", saved);
+        PdfDictionary savedActions = Assert.IsType<PdfDictionary>(
+            sanitizedCatalog[new PdfName("AA"u8)]);
+        PdfDictionary savedNonScript = Assert.IsType<PdfDictionary>(
+            savedActions[new PdfName("WS"u8)]);
+        Assert.Equal("GoTo", Assert.IsType<PdfName>(
+            savedNonScript[new PdfName("S"u8)]).ValueAsLatin1());
     }
 
     [Fact]

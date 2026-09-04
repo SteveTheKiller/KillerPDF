@@ -25,7 +25,7 @@ public enum PdfOptimizationChangeKind
     RemoveXfaData,
     /// <summary>Remove every annotation that contains review text.</summary>
     RemoveComments,
-    /// <summary>Remove the document-level JavaScript name tree.</summary>
+    /// <summary>Remove the document JavaScript name tree and reachable JavaScript actions.</summary>
     RemoveDocumentJavaScript,
     /// <summary>Remove embedded page thumbnail images.</summary>
     RemovePageThumbnails,
@@ -60,7 +60,7 @@ public sealed record PdfOptimizationOptions
     public bool RemoveXfaData { get; init; }
     /// <summary>Gets whether annotations containing review text are removed.</summary>
     public bool RemoveComments { get; init; }
-    /// <summary>Gets whether the document-level JavaScript name tree is removed.</summary>
+    /// <summary>Gets whether the document JavaScript name tree and reachable actions are removed.</summary>
     public bool RemoveDocumentJavaScript { get; init; }
     /// <summary>Gets whether embedded page thumbnail images are removed.</summary>
     public bool RemovePageThumbnails { get; init; }
@@ -145,6 +145,8 @@ public sealed class PdfOptimizationPlan
     {
         int pageCount = PdfPageTree.Read(_document).Pages.Count;
         PdfDocument source = ApplySelectiveSanitization();
+        if (Changes.Contains(PdfOptimizationChangeKind.RemoveDocumentJavaScript))
+            source = PdfOptimizer.RemoveJavaScriptActions(source);
         byte[] output = PdfDocumentWriter.Write(source, new PdfDocumentWriteOptions
         {
             MetadataPolicy = _options.RemoveMetadata
@@ -202,7 +204,8 @@ public sealed class PdfOptimizationPlan
             out PdfObject? namesValue)
             && Resolve(document, namesValue) is PdfDictionary names
             && names.ContainsKey(new PdfName("JavaScript"u8));
-        Verify(PdfOptimizationChangeKind.RemoveDocumentJavaScript, !hasJavaScript);
+        Verify(PdfOptimizationChangeKind.RemoveDocumentJavaScript,
+            !hasJavaScript && !PdfOptimizer.HasJavaScriptActions(document));
         Verify(PdfOptimizationChangeKind.RemovePageThumbnails,
             tree.Pages.All(page => !page.Dictionary.ContainsKey(new PdfName("Thumb"u8))));
         Verify(PdfOptimizationChangeKind.FlattenOptionalContent,
@@ -356,10 +359,12 @@ public static class PdfOptimizer
             changes.Add(PdfOptimizationChangeKind.RemoveXfaData);
         if (comments.Length > 0)
             changes.Add(PdfOptimizationChangeKind.RemoveComments);
-        if (options.RemoveDocumentJavaScript
-            && tree.Catalog.TryGetValue(NamesName, out PdfObject? namesValue)
+        bool hasJavaScriptNameTree = tree.Catalog.TryGetValue(
+                NamesName, out PdfObject? namesValue)
             && Resolve(document, namesValue) is PdfDictionary names
-            && names.ContainsKey(JavaScriptName))
+            && names.ContainsKey(JavaScriptName);
+        if (options.RemoveDocumentJavaScript
+            && (hasJavaScriptNameTree || HasJavaScriptActions(document)))
             changes.Add(PdfOptimizationChangeKind.RemoveDocumentJavaScript);
         if (options.RemovePageThumbnails
             && tree.Pages.Any(page => page.Dictionary.ContainsKey(Name("Thumb"))))
@@ -428,6 +433,115 @@ public static class PdfOptimizer
                     || DuplicateAliases(document, dictionary).Count > 0);
         }
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    internal static bool HasJavaScriptActions(PdfDocument document)
+    {
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        return Visit(document.Trailer[new PdfName("Root"u8)]);
+
+        bool Visit(PdfObject value)
+        {
+            if (value is PdfIndirectReference reference)
+            {
+                if (!visited.Add((reference.ObjectNumber, reference.Generation))) return false;
+                value = document.Resolve(reference);
+            }
+            if (IsJavaScriptAction(document, value)) return true;
+            return value switch
+            {
+                PdfDictionary dictionary => dictionary.Values.Any(Visit),
+                PdfArray array => array.Any(Visit),
+                PdfStream stream => Visit(stream.Dictionary),
+                _ => false
+            };
+        }
+    }
+
+    internal static PdfDocument RemoveJavaScriptActions(PdfDocument document)
+    {
+        var update = new PdfIncrementalUpdateBuilder(document);
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        bool changed = false;
+        Visit(document.Trailer[new PdfName("Root"u8)]);
+        return changed ? PdfDocument.Open(update.Build()) : document;
+
+        PdfObject Visit(PdfObject value)
+        {
+            if (value is PdfIndirectReference reference)
+            {
+                if (!visited.Add((reference.ObjectNumber, reference.Generation))) return reference;
+                PdfObject resolved = document.Resolve(reference);
+                PdfObject sanitized = VisitDirect(resolved);
+                if (!ReferenceEquals(resolved, sanitized))
+                {
+                    update.ReplaceObject(reference.ObjectNumber, sanitized);
+                    changed = true;
+                }
+                return reference;
+            }
+            return VisitDirect(value);
+        }
+
+        PdfObject VisitDirect(PdfObject value)
+        {
+            if (value is PdfDictionary dictionary)
+            {
+                var entries = new List<KeyValuePair<PdfName, PdfObject>>(dictionary.Count);
+                bool localChange = false;
+                foreach ((PdfName key, PdfObject item) in dictionary)
+                {
+                    if (IsJavaScriptAction(document, item))
+                    {
+                        localChange = true;
+                        continue;
+                    }
+                    PdfObject sanitized = Visit(item);
+                    entries.Add(new KeyValuePair<PdfName, PdfObject>(key, sanitized));
+                    localChange |= !ReferenceEquals(item, sanitized);
+                }
+                return localChange ? new PdfDictionary(entries) : dictionary;
+            }
+            if (value is PdfArray array)
+            {
+                var items = new List<PdfObject>(array.Count);
+                bool localChange = false;
+                foreach (PdfObject item in array)
+                {
+                    if (IsJavaScriptAction(document, item))
+                    {
+                        localChange = true;
+                        continue;
+                    }
+                    PdfObject sanitized = Visit(item);
+                    items.Add(sanitized);
+                    localChange |= !ReferenceEquals(item, sanitized);
+                }
+                return localChange ? new PdfArray(items) : array;
+            }
+            if (value is PdfStream stream)
+            {
+                PdfObject streamDictionary = VisitDirect(stream.Dictionary);
+                return ReferenceEquals(streamDictionary, stream.Dictionary) ? stream
+                    : new PdfStream((PdfDictionary)streamDictionary, stream.EncodedData.Span);
+            }
+            return value;
+        }
+    }
+
+    private static bool IsJavaScriptAction(PdfDocument document, PdfObject value)
+    {
+        try
+        {
+            return Resolve(document, value) is PdfDictionary action
+                && action.TryGetValue(new PdfName("S"u8), out PdfObject? type)
+                && Resolve(document, type) is PdfName name
+                && name.ValueAsLatin1() == "JavaScript";
+        }
+        catch (Exception error) when (error is FormatException or InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     internal static IReadOnlyList<KillerPdf.Engine.Parsing.PdfContentInstruction>
