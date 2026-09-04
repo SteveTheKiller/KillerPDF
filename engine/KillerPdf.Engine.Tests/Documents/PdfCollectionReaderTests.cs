@@ -3,6 +3,7 @@ using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -61,6 +62,39 @@ public sealed class PdfCollectionReaderTests
             new PdfCollectionSortInfo("Department", true),
             new PdfCollectionSortInfo("Name", false)
         ], info.Sort);
+    }
+
+    [Fact]
+    public void JsonReportIncludesPortfolioMetadataWithoutAttachmentPayloads()
+    {
+        PdfDocument document = WithCollection(new PdfDictionary([
+            new(Name("View"), Name("T")),
+            new(Name("D"), Text("cover.pdf")),
+            new(Name("Schema"), new PdfDictionary([
+                new(Name("Name"), new PdfDictionary([
+                    new(Name("N"), Text("File name")),
+                    new(Name("Subtype"), Name("F"))
+                ]))
+            ]))
+        ]));
+
+        string json = PdfCollectionReader.ToJson(document);
+        using JsonDocument parsed = JsonDocument.Parse(json);
+
+        Assert.True(parsed.RootElement.GetProperty("hasCollection").GetBoolean());
+        JsonElement collection = parsed.RootElement.GetProperty("collection");
+        Assert.Equal("Tile", collection.GetProperty("view").GetString());
+        Assert.Equal("cover.pdf", collection.GetProperty("initialDocument").GetString());
+        Assert.Equal("Name", collection.GetProperty("fields")[0]
+            .GetProperty("key").GetString());
+        Assert.DoesNotContain("payload", json, StringComparison.OrdinalIgnoreCase);
+
+        PdfDocument plain = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        using JsonDocument empty = JsonDocument.Parse(PdfCollectionReader.ToJson(plain));
+        Assert.False(empty.RootElement.GetProperty("hasCollection").GetBoolean());
+        Assert.Equal(JsonValueKind.Null,
+            empty.RootElement.GetProperty("collection").ValueKind);
     }
 
     [Fact]

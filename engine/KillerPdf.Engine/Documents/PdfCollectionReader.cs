@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 
@@ -7,6 +8,30 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Reads portfolio collection settings without interpreting presentation data.</summary>
 public static class PdfCollectionReader
 {
+    /// <summary>Exports portfolio metadata without embedded file payloads.</summary>
+    public static string ToJson(PdfDocument document, bool indented = false)
+    {
+        PdfCollectionInfo? collection = Read(document);
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            HasCollection = collection is not null,
+            Collection = collection is null ? null : new
+            {
+                View = collection.View.ToString(),
+                collection.RawViewName,
+                collection.InitialDocument,
+                collection.Fields,
+                collection.Sort,
+                collection.Folders
+            }
+        }, new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        });
+    }
+
     /// <summary>Reads the document catalog's optional collection dictionary.</summary>
     public static PdfCollectionInfo? Read(PdfDocument document)
     {
