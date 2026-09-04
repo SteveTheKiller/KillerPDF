@@ -23,6 +23,25 @@ public sealed class PdfXfaReaderTests
             Encoding.UTF8.GetString(info.Packets[1].Data.Span));
     }
 
+    [Fact]
+    public void ReadsUnicodeAndRepeatedDatasetValuesByQualifiedPath()
+    {
+        const string datasets = """
+            <xfa:datasets xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/">
+              <xfa:data><form><name>Zo&#235;</name><colors>red</colors><colors>blue</colors></form></xfa:data>
+            </xfa:datasets>
+            """;
+        PdfXfaInfo info = Assert.IsType<PdfXfaInfo>(
+            PdfXfaReader.Read(Document("<template/>", datasets)));
+
+        PdfFormDataSet values = PdfXfaDatasets.Read(info);
+
+        Assert.Equal(["form.name", "form.colors"], values.Fields.Select(field => field.Name));
+        Assert.Equal(["Zoë"], values.Fields[0].Values);
+        Assert.Equal(["red", "blue"], values.Fields[1].Values);
+        Assert.False(values.ContainsJavaScript);
+    }
+
     private static PdfDocument Document(string template, string datasets)
     {
         string[] objects =

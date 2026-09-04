@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
-- Added safe XFA packet inspection without executing form scripts (#330).
+- Added safe XFA packet and dataset inspection without executing form scripts (#330).
 - Added safe local source PDF resolution for FDF and XFDF files (#329).
 - Added shading resources and clipped bounds to page-content extraction (#331).
 - Added isolated transformations for selected page-content instruction ranges (#332).
