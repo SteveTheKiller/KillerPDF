@@ -35,7 +35,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added common sensitive-data searches including payment card checksums, bulk review selection, privacy-safe reports, and isolated batch verification of image-only rebuilding that removes recoverable document data (#341).
 - Added locally saved and editable fillable text-field presets with reusable dimensions and visual styles (#340).
 - Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).
-- Added region validation and text, image, path, and shading planning for partial rasterization (#369).
+- Added source-preserving partial rasterization with region validation, affected-content planning, exact raster sizing, and selected-zone replacement (#369).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection, process and spot-colorant separation inventories, and validated output-intent ICC profile details for print workflows (#264).
 - Added per-image CCITT Group 4, adaptive predictor, or plain Flate selection for smaller lossless raster pages, plus strict full-page JPEG passthrough detection (#366).
 

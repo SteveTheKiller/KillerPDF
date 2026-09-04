@@ -1,3 +1,8 @@
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
+
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Describes the page content and raster dimensions affected by a selected region.</summary>
@@ -57,6 +62,50 @@ public static class PdfPartialRasterization
                 .Where(shading => Intersects(shading.BoundingBox, region)).ToArray())
         };
     }
+
+    /// <summary>Replaces the selected visual region with caller-rendered raster pixels.</summary>
+    public static byte[] Apply(PdfDocument document, int pageIndex,
+        PdfPartialRasterizationPlan plan, PdfImage raster)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(raster);
+        PdfPageContent page = new PdfPageContentReader(document).Read(pageIndex);
+        if (plan.Region.Left < 0 || plan.Region.Bottom < 0
+            || plan.Region.Right > page.Width || plan.Region.Top > page.Height
+            || plan.Region.Width <= 0 || plan.Region.Height <= 0)
+            throw new ArgumentException(
+                "The rasterization plan does not fit the selected page.", nameof(plan));
+        if (raster.Width != plan.PixelWidth || raster.Height != plan.PixelHeight)
+            throw new ArgumentException(
+                "The raster dimensions do not match the rasterization plan.", nameof(raster));
+
+        var retained = new List<PdfContentInstruction>(page.Instructions.Count + 7)
+        {
+            new("q", 0, []),
+            Rectangle(0, 0, page.Width, page.Height),
+            Rectangle(plan.Region.Left, plan.Region.Bottom,
+                plan.Region.Width, plan.Region.Height),
+            new("W*", 0, []),
+            new("n", 0, [])
+        };
+        retained.AddRange(page.Instructions);
+        retained.Add(new PdfContentInstruction("Q", 0, []));
+        var replacement = new PdfContentStreamBuilder()
+            .DrawImage(raster, plan.Region.Left, plan.Region.Bottom,
+                plan.Region.Width, plan.Region.Height);
+        return new PdfIncrementalPageEditor(document)
+            .SetPageContent(pageIndex, retained)
+            .AppendPageContent(pageIndex, page.Width, page.Height, replacement)
+            .Build();
+    }
+
+    private static PdfContentInstruction Rectangle(
+        double x, double y, double width, double height) =>
+        new("re", 0, [Number(x), Number(y), Number(width), Number(height)]);
+
+    private static PdfObject Number(double value) => value == Math.Truncate(value)
+        ? new PdfInteger((long)value) : new PdfReal(value);
 
     private static int CheckedPixels(double points, double dpi)
     {

@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Parsing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -50,5 +51,46 @@ public sealed class PdfPartialRasterizationTests
 
         Assert.Single(inside.Shadings);
         Assert.Empty(outside.Shadings);
+    }
+
+    [Fact]
+    public void ApplyClipsOriginalContentOutsideRegionAndPlacesExactRaster()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .Rectangle(10, 10, 20, 20).Stroke()
+                .Rectangle(60, 60, 20, 20).Stroke())
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+        PdfPageContent page = new PdfPageContentReader(document).Read(0);
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(
+            page, new PdfContentBounds(5, 5, 30, 30), 72);
+        PdfImage raster = PdfImage.FromRgb(25, 25,
+            Enumerable.Repeat((byte)180, 25 * 25 * 3).ToArray());
+
+        byte[] changed = PdfPartialRasterization.Apply(document, 0, plan, raster);
+        PdfDocument reopened = PdfDocument.Open(changed);
+        PdfPageContent result = new PdfPageContentReader(reopened).Read(0);
+
+        Assert.True(changed.AsSpan(0, source.Length).SequenceEqual(source));
+        PdfExtractedImage image = Assert.Single(result.Images);
+        Assert.Equal(new PdfContentBounds(5, 5, 30, 30), image.BoundingBox);
+        IReadOnlyList<PdfContentInstruction> instructions =
+            new PdfPageContentReader(reopened).ReadInstructions(0);
+        Assert.Contains(instructions, instruction => instruction.Operator == "W*");
+        Assert.True(instructions.Count(instruction => instruction.Operator == "re") >= 3);
+    }
+
+    [Fact]
+    public void ApplyRejectsRasterDimensionsThatDoNotMatchPlan()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(100, 100).Build());
+        PdfPartialRasterizationPlan plan = PdfPartialRasterization.Plan(
+            new PdfPageContentReader(document).Read(0),
+            new PdfContentBounds(0, 0, 10, 10), 72);
+
+        Assert.Throws<ArgumentException>(() => PdfPartialRasterization.Apply(
+            document, 0, plan, PdfImage.FromRgb(9, 10, new byte[9 * 10 * 3])));
     }
 }
