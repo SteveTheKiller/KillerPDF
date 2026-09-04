@@ -1021,4 +1021,16 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Err_FileRepairFailed">Не удалось восстановить файл «{0}».</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Редактирование шрифтом {0}, {1} пт. Метрики шрифта могут отличаться от оригинала.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">Шрифт {0} недоступен. Редактирование шрифтом {1}, {2} пт.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Выбранный принтер не сообщает о поддержке двусторонней печати.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Щелкните, чтобы добавить инициалы</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Щелкните, чтобы подписать</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Инициалы</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Предыдущая измененная область</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Следующая измененная область</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Портативный режим - получить устанавливаемую версию</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Не удалось отобразить предварительный просмотр:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Подготовка к печати...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Перейти на страницу {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Измерение недоступно</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Не удалось восстановить файл - он слишком сильно поврежден.&#10;&#10;Попробуйте открыть оригинал в другом приложении (Adobe Acrobat или браузере), которое может предложить дополнительные возможности восстановления.</sys:String>
 </ResourceDictionary>

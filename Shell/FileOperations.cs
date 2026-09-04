@@ -265,8 +265,7 @@ namespace KillerPDF
                 {
                     HideBusyOverlay(busy);
                     _asyncOpenPending = false;
-                    KillerDialog.Show(this,
-                        "Repair failed - the file is too severely damaged to recover.\n\nTry opening the original in a different application (Adobe Acrobat, browsers) which may have additional recovery options.",
+                    KillerDialog.Show(this, Loc("Str_Repair_Unrecoverable"),
                         "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }

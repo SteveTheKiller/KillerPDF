@@ -1001,4 +1001,16 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Err_FileRepairFailed">&quot;{0}&quot; onarılamadı.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">{0}, {1} pt ile düzenleniyor. Yazı tipi ölçüleri orijinalden farklı olabilir.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">{0} yazı tipi kullanılamıyor. {1}, {2} pt ile düzenleniyor.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Seçilen yazıcı çift taraflı yazdırma desteği bildirmiyor.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Parafınızı eklemek için tıklayın</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">İmzalamak için tıklayın</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Paraf</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Önceki değişen bölge</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Sonraki değişen bölge</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Taşınabilir mod - kurulan sürümü edinin</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Önizleme oluşturulamadı:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Yazdırmaya hazırlanıyor...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">{0}. sayfaya git</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Ölçüm kullanılamıyor</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Onarım başarısız oldu - dosya kurtarılamayacak kadar hasarlı.&#10;&#10;Ek kurtarma seçenekleri sunabilecek başka bir uygulamada (Adobe Acrobat veya tarayıcı) özgün dosyayı açmayı deneyin.</sys:String>
 </ResourceDictionary>

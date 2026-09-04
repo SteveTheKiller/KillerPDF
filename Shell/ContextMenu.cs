@@ -149,20 +149,20 @@ namespace KillerPDF
         }
 
         // A short human label for the kind of annotation right-clicked, shown as a disabled menu header.
-        private static string AnnotationKindLabel(PageAnnotation a) => a switch
+        private string AnnotationKindLabel(PageAnnotation a) => a switch
         {
-            CoverAnnotation => "Cover",
-            TextAnnotation => "Text box",
-            InkAnnotation => "Drawing",
-            SignatureAnnotation => "Signature",
-            ImageAnnotation => "Image",
+            CoverAnnotation => Loc("Str_Annot_Cover"),
+            TextAnnotation => Loc("Str_Annot_TextBox"),
+            InkAnnotation => Loc("Str_Annot_Drawing"),
+            SignatureAnnotation => Loc("Str_Annot_Signature"),
+            ImageAnnotation => Loc("Str_Annot_Image"),
             HighlightAnnotation h => h.Style switch
             {
-                HighlightStyle.Strikethrough => "Strikethrough",
-                HighlightStyle.Underline => "Underline",
-                _ => "Highlight"
+                HighlightStyle.Strikethrough => Loc("Str_Annot_Strikethrough"),
+                HighlightStyle.Underline => Loc("Str_Annot_Underline"),
+                _ => Loc("Str_Annot_Highlight")
             },
-            _ => "Annotation"
+            _ => Loc("Str_Annot_Item")
         };
 
         // Per-type menu for a clicked annotation. Page-level items (tools, rotate, stamp) are omitted.

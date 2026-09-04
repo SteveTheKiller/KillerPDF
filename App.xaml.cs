@@ -1634,7 +1634,8 @@ namespace KillerPDF
 
             var titleText = new TextBlock
             {
-                Text = $"About KillerPDF",
+                Text = (Current.TryFindResource("Str_TT_About") as string ?? AppName)
+                    .Replace(" (F12)", string.Empty, StringComparison.Ordinal),
                 Foreground = fg, VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(12, 0, 0, 0), FontSize = 13, FontWeight = FontWeights.SemiBold
             };

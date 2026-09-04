@@ -175,7 +175,7 @@ public partial class PdfViewer
     private string MeasurementText(Vector canvasDelta)
     {
         if (_measurementPageInfo is null || _measurementRenderSize.w <= 0 || _measurementRenderSize.h <= 0)
-            return "Measurement unavailable";
+            return Loc("Str_Measurement_Unavailable");
 
         MeasurementValues value = MeasurementCalculator.Calculate(
             _measurementPageInfo.Width, _measurementPageInfo.Height,

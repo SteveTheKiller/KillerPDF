@@ -1009,4 +1009,16 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Err_FileRepairFailed">Nie można naprawić pliku „{0}”.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Edycja czcionką {0}, {1} pkt. Metryki czcionki mogą różnić się od oryginału.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">Czcionka {0} jest niedostępna. Edycja czcionką {1}, {2} pkt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Wybrana drukarka nie zgłasza obsługi drukowania dwustronnego.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Kliknij, aby dodać inicjały</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Kliknij, aby podpisać</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Inicjał</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Poprzedni zmieniony obszar</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Następny zmieniony obszar</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Tryb przenośny - pobierz wersję instalowaną</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Nie można wyświetlić podglądu:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Przygotowywanie do drukowania...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Przejdź do strony {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Pomiar niedostępny</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Naprawa nie powiodła się - plik jest zbyt poważnie uszkodzony.&#10;&#10;Spróbuj otworzyć oryginał w innej aplikacji (Adobe Acrobat lub przeglądarce), która może oferować dodatkowe opcje odzyskiwania.</sys:String>
 </ResourceDictionary>

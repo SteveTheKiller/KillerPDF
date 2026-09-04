@@ -1021,4 +1021,16 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Err_FileRepairFailed">Impossibile riparare &quot;{0}&quot;.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Modifica con {0}, {1} pt. Le metriche del carattere possono differire dall’originale.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">Il carattere {0} non è disponibile. Modifica con {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">La stampante selezionata non segnala il supporto per la stampa fronte-retro.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Fare clic per aggiungere le iniziali</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Fare clic per firmare</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Iniziale</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Area modificata precedente</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Area modificata successiva</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Modalità portatile - ottieni la versione installata</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Impossibile visualizzare l’anteprima:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Preparazione della stampa...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Vai alla pagina {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Misurazione non disponibile</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Riparazione non riuscita - il file è troppo danneggiato per essere recuperato.&#10;&#10;Prova ad aprire l’originale in un’altra applicazione (Adobe Acrobat o un browser), che potrebbe offrire ulteriori opzioni di recupero.</sys:String>
 </ResourceDictionary>

@@ -1021,4 +1021,16 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Err_FileRepairFailed">&quot;{0}&quot; could not be repaired.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Editing with {0}, {1} pt. Font metrics may differ from the original.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">Font {0} is unavailable. Editing with {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">The selected printer doesn't report two-sided support.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Click to add your initials</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Click to sign</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Initial</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Previous changed region</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Next changed region</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Portable mode - get the installed version</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Could not render preview:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Preparing to print...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Go to page {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Measurement unavailable</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Repair failed - the file is too severely damaged to recover.&#10;&#10;Try opening the original in a different application (Adobe Acrobat or a browser), which may have additional recovery options.</sys:String>
 </ResourceDictionary>

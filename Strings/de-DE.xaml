@@ -1007,4 +1007,16 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Err_FileRepairFailed">&quot;{0}&quot; konnte nicht repariert werden.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Bearbeitung mit {0}, {1} pt. Die Schriftmaße können vom Original abweichen.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">Die Schriftart {0} ist nicht verfügbar. Bearbeitung mit {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Der ausgewählte Drucker meldet keine Unterstützung für beidseitigen Druck.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Klicken, um Ihre Initialen hinzuzufügen</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Zum Unterschreiben klicken</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Initialen</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Vorheriger geänderter Bereich</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Nächster geänderter Bereich</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Portabler Modus - installierte Version herunterladen</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Vorschau konnte nicht gerendert werden:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Druck wird vorbereitet...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Zu Seite {0} wechseln</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Messung nicht verfügbar</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Reparatur fehlgeschlagen - die Datei ist zu stark beschädigt.&#10;&#10;Versuchen Sie, das Original in einer anderen Anwendung (Adobe Acrobat oder einem Browser) zu öffnen, die möglicherweise weitere Wiederherstellungsoptionen bietet.</sys:String>
 </ResourceDictionary>

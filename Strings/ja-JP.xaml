@@ -1021,4 +1021,16 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">「{0}」を修復できませんでした。</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">{0}、{1} pt で編集中です。フォントのメトリクスが元のものと異なる場合があります。</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">フォント {0} は使用できません。{1}、{2} pt で編集中です。</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">選択したプリンターは両面印刷の対応状況を報告していません。</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">クリックしてイニシャルを追加</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">クリックして署名</sys:String>
+    <sys:String x:Key="Str_Form_Initial">イニシャル</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">前の変更領域</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">次の変更領域</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">ポータブルモード - インストール版を取得</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">プレビューを表示できませんでした:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">印刷を準備しています...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">{0} ページへ移動</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">測定できません</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">修復に失敗しました - ファイルの損傷が激しく、復元できません。&#10;&#10;追加の復元機能がある別のアプリケーション (Adobe Acrobat またはブラウザー) で元のファイルを開いてみてください。</sys:String>
 </ResourceDictionary>

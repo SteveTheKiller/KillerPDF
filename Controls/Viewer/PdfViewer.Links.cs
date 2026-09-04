@@ -243,7 +243,9 @@ namespace KillerPDF.Controls
                     string? uri = link.Uri;
                     if (targetPage is null && uri is null) continue;
                     object tag = targetPage.HasValue ? (object)targetPage.Value : uri!;
-                    string tip = targetPage.HasValue ? $"Go to page {targetPage.Value + 1}" : uri!;
+                    string tip = targetPage.HasValue
+                        ? string.Format(Loc("Str_Link_GoToPage"), targetPage.Value + 1)
+                        : uri!;
                     links.Add(new LinkInfo(cx, cy, cw, ch, tag, tip, link.AnnotationIndex));
                 }
             }

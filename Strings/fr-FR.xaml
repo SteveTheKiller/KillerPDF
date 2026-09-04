@@ -1021,4 +1021,16 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Err_FileRepairFailed">Impossible de réparer « {0} ».</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Modification avec {0}, {1} pt. Les métriques de la police peuvent différer de l’original.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">La police {0} n’est pas disponible. Modification avec {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">L’imprimante sélectionnée ne signale pas la prise en charge de l’impression recto verso.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Cliquez pour ajouter vos initiales</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Cliquez pour signer</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Paraphe</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Zone modifiée précédente</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Zone modifiée suivante</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Mode portable - obtenir la version installée</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Impossible d’afficher l’aperçu :&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Préparation de l’impression...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Aller à la page {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Mesure indisponible</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">La réparation a échoué - le fichier est trop endommagé pour être récupéré.&#10;&#10;Essayez d’ouvrir l’original dans une autre application (Adobe Acrobat ou un navigateur), qui peut proposer d’autres options de récupération.</sys:String>
 </ResourceDictionary>

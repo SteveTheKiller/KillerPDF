@@ -1005,4 +1005,16 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">无法修复“{0}”。</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">正在使用 {0}、{1} 磅编辑。字体度量可能与原文不同。</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">字体 {0} 不可用。正在使用 {1}、{2} 磅编辑。</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">所选打印机未报告支持双面打印。</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">单击以添加您的姓名首字母</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">单击以签名</sys:String>
+    <sys:String x:Key="Str_Form_Initial">姓名首字母</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">上一个更改区域</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">下一个更改区域</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">便携模式 - 获取安装版</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">无法呈现预览:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">正在准备打印...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">转到第 {0} 页</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">测量不可用</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">修复失败 - 文件损坏过于严重，无法恢复。&#10;&#10;请尝试使用其他应用程序 (Adobe Acrobat 或浏览器) 打开原始文件，这些应用程序可能提供其他恢复选项。</sys:String>
 </ResourceDictionary>

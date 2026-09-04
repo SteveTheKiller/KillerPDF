@@ -2564,14 +2564,14 @@
                                 </Button>
                                 <StackPanel x:Name="ComparisonRegionNavigation" Orientation="Horizontal" Margin="5,0,0,0" Visibility="Collapsed">
                                     <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
-                                            Click="ComparisonPreviousDifference_Click" ToolTip="Previous changed region">
+                                            Click="ComparisonPreviousDifference_Click" ToolTip="{DynamicResource Str_Compare_PreviousRegion}">
                                         <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                                     </Button>
                                     <TextBlock x:Name="ComparisonRegionText" MinWidth="38" TextAlignment="Center"
                                                FontFamily="{DynamicResource MenuFontFamily}" FontSize="{DynamicResource MenuFontSize}"
                                                Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
                                     <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
-                                            Click="ComparisonNextDifference_Click" ToolTip="Next changed region">
+                                            Click="ComparisonNextDifference_Click" ToolTip="{DynamicResource Str_Compare_NextRegion}">
                                         <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
                                     </Button>
                                 </StackPanel>
@@ -2660,7 +2660,7 @@
                       Margin="6,0,8,0" Visibility="Collapsed">
                     <Button x:Name="InstallBtn" Content="{DynamicResource Str_Portable}"
                             Click="Install_Click" Style="{StaticResource OutlineButton}"
-                            ToolTip="Portable mode - get the installed version"
+                            ToolTip="{DynamicResource Str_Portable_InstallTip}"
                             FontFamily="{DynamicResource UiFont}" FontSize="10"
                             Padding="8,1"
                             VerticalAlignment="Center">

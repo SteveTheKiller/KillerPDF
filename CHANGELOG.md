@@ -51,7 +51,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Restored the Compare PDFs toolbar caption and kept its choices open when launched from the overflow menu (#360).
 - Opened PDF comparison with equal document pane widths, excluding the sidebar (#359).
 - Restored toolbar captions for fillable text fields and the measuring tool.
-- Localized remaining round-trip validation messages in all 15 supported languages (#227).
+- Localized the remaining validation messages and audited interface text across all 15 languages. The localization gate now rejects hardcoded UI labels and tooltips (#227).
 - Added installer file details and the installed size in Windows' program list (#361).
 
 ## [1.8.4] - Unreleased
@@ -78,7 +78,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Restored the Compare PDFs toolbar caption and kept its choices open when launched from the overflow menu (#360).
 - Opened PDF comparison with equal document pane widths, excluding the sidebar (#359).
 - Restored toolbar captions for fillable text fields and the measuring tool.
-- Localized remaining round-trip validation messages in all 15 supported languages (#227).
+- Localized the remaining validation messages and audited interface text across all 15 languages. The localization gate now rejects hardcoded UI labels and tooltips (#227).
 - Added installer file details and the installed size in Windows' program list (#361).
 
 ## [1.8.3] - 2026-09-02

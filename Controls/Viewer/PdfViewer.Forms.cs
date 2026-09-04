@@ -951,10 +951,10 @@ namespace KillerPDF.Controls
                 BorderThickness = new Thickness(1.4),
                 CornerRadius    = new CornerRadius(2),
                 Cursor          = Cursors.Hand,
-                ToolTip         = initials ? "Click to add your initials" : "Click to sign",
+                ToolTip         = Loc(initials ? "Str_Form_ClickInitials" : "Str_Form_ClickSign"),
                 Child = new TextBlock
                 {
-                    Text                = initials ? "Initial" : "Sign",
+                    Text                = Loc(initials ? "Str_Form_Initial" : "Str_Sign_Sign"),
                     FontSize            = Math.Max(8, Math.Min(f.Ch * 0.45, 12)),
                     FontWeight          = FontWeights.SemiBold,
                     Foreground          = new SolidColorBrush(accent),

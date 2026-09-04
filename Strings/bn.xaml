@@ -1001,4 +1001,16 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Err_FileRepairFailed">“{0}” মেরামত করা যায়নি।</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">{0}, {1} pt দিয়ে সম্পাদনা করা হচ্ছে। ফন্টের মাপ মূলের থেকে আলাদা হতে পারে।</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">{0} ফন্টটি উপলব্ধ নয়। {1}, {2} pt দিয়ে সম্পাদনা করা হচ্ছে।</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">নির্বাচিত প্রিন্টারটি দুই পাশে মুদ্রণের সমর্থন জানায় না।</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">আপনার আদ্যক্ষর যোগ করতে ক্লিক করুন</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">স্বাক্ষর করতে ক্লিক করুন</sys:String>
+    <sys:String x:Key="Str_Form_Initial">আদ্যক্ষর</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">আগের পরিবর্তিত অঞ্চল</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">পরবর্তী পরিবর্তিত অঞ্চল</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">পোর্টেবল মোড - ইনস্টল করা সংস্করণ নিন</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">পূর্বরূপ রেন্ডার করা যায়নি:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">মুদ্রণের প্রস্তুতি চলছে...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">পৃষ্ঠা {0}-এ যান</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">পরিমাপ পাওয়া যাচ্ছে না</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">মেরামত ব্যর্থ হয়েছে - ফাইলটি পুনরুদ্ধার করার জন্য অত্যন্ত ক্ষতিগ্রস্ত।&#10;&#10;মূল ফাইলটি অন্য কোনো অ্যাপ্লিকেশনে (Adobe Acrobat বা ব্রাউজার) খোলার চেষ্টা করুন, যেখানে অতিরিক্ত পুনরুদ্ধারের বিকল্প থাকতে পারে।</sys:String>
 </ResourceDictionary>

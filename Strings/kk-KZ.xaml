@@ -1020,4 +1020,16 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Err_FileRepairFailed">«{0}» файлын жөндеу мүмкін болмады.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">{0}, {1} pt қарпімен өңделуде. Қаріп өлшемдері түпнұсқадан өзгеше болуы мүмкін.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">{0} қарпі қолжетімсіз. {1}, {2} pt қарпімен өңделуде.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Таңдалған принтер екі жақты басып шығаруды қолдайтынын хабарламайды.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Инициалдарыңызды қосу үшін басыңыз</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Қол қою үшін басыңыз</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Инициал</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Алдыңғы өзгерген аймақ</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Келесі өзгерген аймақ</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Портативті режим - орнатылатын нұсқаны алу</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Алдын ала қарау көрсетілмеді:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Басып шығаруға дайындалуда...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">{0}-бетке өту</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Өлшеу қолжетімсіз</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Жөндеу сәтсіз аяқталды - файл қалпына келтіруге келмейтіндей қатты зақымдалған.&#10;&#10;Түпнұсқаны қосымша қалпына келтіру мүмкіндіктері бар басқа қолданбада (Adobe Acrobat немесе браузерде) ашып көріңіз.</sys:String>
 </ResourceDictionary>

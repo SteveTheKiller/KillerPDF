@@ -1006,4 +1006,16 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Err_FileRepairFailed">Soubor „{0}“ se nepodařilo opravit.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Úprava písmem {0}, {1} pt. Metriky písma se mohou lišit od originálu.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">Písmo {0} není dostupné. Úprava písmem {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Vybraná tiskárna nehlásí podporu oboustranného tisku.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Kliknutím přidáte své iniciály</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Kliknutím podepíšete</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Iniciála</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Předchozí změněná oblast</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Další změněná oblast</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Přenosný režim - získat nainstalovanou verzi</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Náhled se nepodařilo vykreslit:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Příprava tisku...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Přejít na stránku {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Měření není k dispozici</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Oprava se nezdařila - soubor je příliš poškozený.&#10;&#10;Zkuste otevřít originál v jiné aplikaci (Adobe Acrobat nebo prohlížeči), která může nabídnout další možnosti obnovení.</sys:String>
 </ResourceDictionary>

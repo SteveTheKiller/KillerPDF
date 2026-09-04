@@ -450,7 +450,7 @@ namespace KillerPDF
             _duplexCheck.IsEnabled = ok;
             if (!ok) { _duplexCheck.IsChecked = false; _duplex = false; }
             _duplexCheck.Opacity = ok ? 1.0 : 0.4;
-            _duplexCheck.ToolTip = ok ? null : "The selected printer doesn't report two-sided support.";
+            _duplexCheck.ToolTip = ok ? null : S("Str_Print_NoTwoSidedSupport");
         }
 
         // ---- UI construction -------------------------------------------------
@@ -1175,7 +1175,7 @@ namespace KillerPDF
             _previewHost.Children.Clear();
             _previewHost.Children.Add(new TextBlock
             {
-                Text                = "Could not render preview:\n" + message,
+                Text                = string.Format(S("Str_Print_PreviewFailed"), message),
                 Foreground          = R("MutedTextBrush"),
                 TextWrapping        = TextWrapping.Wrap,
                 TextAlignment       = TextAlignment.Center,
@@ -1509,7 +1509,7 @@ namespace KillerPDF
 
             status = new TextBlock
             {
-                Text                = "Preparing to print…",
+                Text                = S("Str_Print_PreparingToPrint"),
                 Foreground          = R("TextBrush"),
                 FontSize            = 13,
                 HorizontalAlignment = HorizontalAlignment.Center,

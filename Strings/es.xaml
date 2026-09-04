@@ -1001,4 +1001,16 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Err_FileRepairFailed">No se pudo reparar &quot;{0}&quot;.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Editando con {0}, {1} pt. Las métricas de la fuente pueden diferir del original.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">La fuente {0} no está disponible. Editando con {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">La impresora seleccionada no indica que admita impresión a doble cara.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Haga clic para añadir sus iniciales</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Haga clic para firmar</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Inicial</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Región modificada anterior</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Región modificada siguiente</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Modo portátil - obtener la versión instalada</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">No se pudo representar la vista previa:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Preparando la impresión...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Ir a la página {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Medición no disponible</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">La reparación falló - el archivo está demasiado dañado para recuperarlo.&#10;&#10;Intente abrir el original en otra aplicación (Adobe Acrobat o un navegador), que puede ofrecer opciones adicionales de recuperación.</sys:String>
 </ResourceDictionary>

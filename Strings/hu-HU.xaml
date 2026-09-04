@@ -1008,4 +1008,16 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Err_FileRepairFailed">A(z) „{0}” nem javítható.</sys:String>
     <sys:String x:Key="Str_St_TextEditDetectedFont">Szerkesztés ezzel: {0}, {1} pt. A betűméretek eltérhetnek az eredetitől.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">A(z) {0} betűtípus nem érhető el. Szerkesztés ezzel: {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">A kiválasztott nyomtató nem jelzi a kétoldalas nyomtatás támogatását.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Kattintson a monogram hozzáadásához</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Kattintson az aláíráshoz</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Monogram</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Előző módosított terület</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Következő módosított terület</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Hordozható mód - a telepített verzió beszerzése</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Az előnézet nem jeleníthető meg:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Nyomtatás előkészítése...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Ugrás a(z) {0}. oldalra</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">A mérés nem érhető el</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">A javítás nem sikerült - a fájl túl súlyosan sérült.&#10;&#10;Próbálja meg megnyitni az eredetit egy másik alkalmazásban (Adobe Acrobat vagy böngésző), amely további helyreállítási lehetőségeket kínálhat.</sys:String>
 </ResourceDictionary>
