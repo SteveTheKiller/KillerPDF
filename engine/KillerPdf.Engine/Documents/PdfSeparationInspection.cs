@@ -1,5 +1,6 @@
 using System.Text;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -33,11 +34,15 @@ public static class PdfSeparationInspection
         var contentReader = new PdfPageContentReader(document);
         foreach (PdfPageTreeEntry page in tree.Pages)
         {
-            if (contentReader.Read(page.Index).Instructions.Any(instruction =>
-                    instruction.Operator is "k" or "K"))
+            foreach (PdfContentInstruction instruction in contentReader.Read(page.Index)
+                .Instructions.Where(instruction => instruction.Operator is "k" or "K"))
             {
-                foreach (string process in new[] { "Cyan", "Magenta", "Yellow", "Black" })
-                    Add(process, process: true, page.Index);
+                if (instruction.Operands.Count != 4)
+                    throw new FormatException("A CMYK color instruction does not have four components.");
+                string[] processNames = ["Cyan", "Magenta", "Yellow", "Black"];
+                for (int component = 0; component < processNames.Length; component++)
+                    if (ColorNumber(instruction.Operands[component]) > 0)
+                        Add(processNames[component], process: true, page.Index);
             }
             if (page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resources))
                 InspectResources(resources, page.Index, new HashSet<(int, int)>());
@@ -108,6 +113,13 @@ public static class PdfSeparationInspection
             }
             return value;
         }
+
+        static double ColorNumber(PdfObject value) => value switch
+        {
+            PdfInteger integer => integer.Value,
+            PdfReal real => real.Value,
+            _ => throw new FormatException("A CMYK color component is not numeric.")
+        };
     }
 
     private static bool IsName(PdfDictionary dictionary, string key, string expected) =>

@@ -20,13 +20,10 @@ public sealed class PdfSeparationInspectionTests
 
         PdfSeparationReport report = PdfSeparationInspection.Inspect(PdfDocument.Open(source));
 
-        Assert.Equal(["Black", "Cyan", "Magenta", "Yellow", "Killer Orange"],
+        Assert.Equal(["Cyan", "Killer Orange"],
             report.Colorants.Select(colorant => colorant.Name));
-        Assert.All(report.Colorants.Take(4), colorant =>
-        {
-            Assert.True(colorant.IsProcess);
-            Assert.Equal([0], colorant.PageIndexes);
-        });
+        Assert.True(report.Colorants[0].IsProcess);
+        Assert.Equal([0], report.Colorants[0].PageIndexes);
         PdfSeparationColorant spot = report.Colorants[^1];
         Assert.False(spot.IsProcess);
         Assert.Equal([0, 1], spot.PageIndexes);
