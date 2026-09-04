@@ -92,6 +92,67 @@ public sealed class PdfPermanentRedactionTests
     }
 
     [Fact]
+    public void VerifierRejectsRecoverableCatalogAndPageDataStores()
+    {
+        byte[] clean = PdfPermanentRedaction.RebuildFromSanitizedPages([
+            new PdfSanitizedRasterPage(100, 100,
+                PdfImage.FromRgb(1, 1, new byte[] { 0, 0, 0 }))]);
+        PdfDocument document = PdfDocument.Open(clean);
+        PdfIndirectReference catalogReference = Assert.IsType<PdfIndirectReference>(
+            document.Trailer[Name("Root")]);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(
+            document.Resolve(catalogReference));
+        PdfIndirectReference pagesReference = Assert.IsType<PdfIndirectReference>(
+            catalog[Name("Pages")]);
+        PdfDictionary pages = Assert.IsType<PdfDictionary>(
+            document.Resolve(pagesReference));
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(
+            document.Resolve(pageReference));
+        var update = new PdfIncrementalUpdateBuilder(document);
+        PdfObject marker = new PdfString("private"u8.ToArray(), PdfStringForm.Literal);
+        update.ReplaceObject(catalogReference.ObjectNumber,
+            new PdfDictionary(catalog.Concat(new KeyValuePair<PdfName, PdfObject>[]
+            {
+                new(Name("StructTreeRoot"), marker),
+                new(Name("AF"), marker),
+                new(Name("Collection"), marker),
+                new(Name("OpenAction"), marker),
+                new(Name("AA"), marker),
+                new(Name("OCProperties"), marker),
+                new(Name("PieceInfo"), marker)
+            })));
+        update.ReplaceObject(pageReference.ObjectNumber,
+            new PdfDictionary(page.Concat(new KeyValuePair<PdfName, PdfObject>[]
+            {
+                new(Name("Metadata"), marker),
+                new(Name("PieceInfo"), marker),
+                new(Name("AA"), marker),
+                new(Name("Thumb"), marker),
+                new(Name("AF"), marker)
+            })));
+
+        PdfRedactionVerificationReport report =
+            PdfPermanentRedaction.VerifySanitizedOutput(update.Build(), 1);
+
+        Assert.False(report.Succeeded);
+        string[] codes = [.. report.Findings.Select(item => item.Code)];
+        Assert.Contains("StructureTree", codes);
+        Assert.Contains("AssociatedFiles", codes);
+        Assert.Contains("Collection", codes);
+        Assert.Contains("OpenAction", codes);
+        Assert.Contains("CatalogActions", codes);
+        Assert.Contains("OptionalContent", codes);
+        Assert.Contains("CatalogPieceInfo", codes);
+        Assert.Contains("PageMetadata", codes);
+        Assert.Contains("PagePieceInfo", codes);
+        Assert.Contains("PageActions", codes);
+        Assert.Contains("PageThumbnail", codes);
+        Assert.Contains("PageAssociatedFiles", codes);
+    }
+
+    [Fact]
     public void RebuildValidatesPageInputAndVerifierHonorsCancellation()
     {
         Assert.Throws<ArgumentException>(() => PdfPermanentRedaction.RebuildFromSanitizedPages([]));
@@ -122,4 +183,7 @@ public sealed class PdfPermanentRedactionTests
         Assert.True(results[2].Document.Length > 0);
         Assert.NotNull(PdfDocument.Open(results[2].Document));
     }
+
+    private static PdfName Name(string value) =>
+        new(System.Text.Encoding.ASCII.GetBytes(value));
 }

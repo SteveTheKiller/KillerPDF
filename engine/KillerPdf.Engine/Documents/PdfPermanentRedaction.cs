@@ -94,6 +94,24 @@ public static class PdfPermanentRedaction
     private static readonly PdfName AcroFormName = Name("AcroForm");
     private static readonly PdfName OutlinesName = Name("Outlines");
     private static readonly PdfName AnnotationsName = Name("Annots");
+    private static readonly (PdfName Key, string Code, string Message)[] CatalogDataStores =
+    [
+        (Name("StructTreeRoot"), "StructureTree", "The output contains a structure tree."),
+        (Name("AF"), "AssociatedFiles", "The output contains associated files."),
+        (Name("Collection"), "Collection", "The output contains portfolio data."),
+        (Name("OpenAction"), "OpenAction", "The output contains an open action."),
+        (Name("AA"), "CatalogActions", "The output contains catalog actions."),
+        (Name("OCProperties"), "OptionalContent", "The output contains optional-content data."),
+        (Name("PieceInfo"), "CatalogPieceInfo", "The output contains private application data.")
+    ];
+    private static readonly (PdfName Key, string Code, string Message)[] PageDataStores =
+    [
+        (Name("Metadata"), "PageMetadata", "The output page contains metadata."),
+        (Name("PieceInfo"), "PagePieceInfo", "The output page contains private application data."),
+        (Name("AA"), "PageActions", "The output page contains actions."),
+        (Name("Thumb"), "PageThumbnail", "The output page contains a thumbnail."),
+        (Name("AF"), "PageAssociatedFiles", "The output page contains associated files.")
+    ];
 
     /// <summary>Permanently removes selected reviewed comments and verifies the rewritten result.</summary>
     public static PdfCommentRedactionResult ApplyReviewedComments(
@@ -212,11 +230,15 @@ public static class PdfPermanentRedaction
             findings.Add(new("IncrementalRevisions", "The output contains incremental revision history."));
         if (document.Trailer.ContainsKey(InformationName))
             findings.Add(new("DocumentInformation", "The output contains a document-information dictionary."));
+        if (document.Trailer.ContainsKey(Name("Encrypt")))
+            findings.Add(new("Encryption", "The output remains encrypted."));
         PdfPageTree tree = PdfPageTree.Read(document);
         CheckCatalog(MetadataName, "XmpMetadata", "The output contains XMP metadata.");
         CheckCatalog(NamesName, "NameTrees", "The output contains document name trees.");
         CheckCatalog(AcroFormName, "AcroForm", "The output contains form data.");
         CheckCatalog(OutlinesName, "Outlines", "The output contains bookmarks.");
+        foreach (var dataStore in CatalogDataStores)
+            CheckCatalog(dataStore.Key, dataStore.Code, dataStore.Message);
         if (tree.Pages.Count != expectedPageCount)
             findings.Add(new("PageCount", $"Expected {expectedPageCount} pages but found {tree.Pages.Count}."));
         var reader = new PdfPageContentReader(document);
@@ -225,6 +247,9 @@ public static class PdfPermanentRedaction
             cancellationToken.ThrowIfCancellationRequested();
             if (tree.Pages[pageIndex].Dictionary.ContainsKey(AnnotationsName))
                 findings.Add(new("Annotations", "The output page contains annotations.", pageIndex));
+            foreach (var dataStore in PageDataStores)
+                if (tree.Pages[pageIndex].Dictionary.ContainsKey(dataStore.Key))
+                    findings.Add(new(dataStore.Code, dataStore.Message, pageIndex));
             PdfPageContent content = reader.Read(pageIndex, cancellationToken);
             if (content.Images.Count != 1 || content.Letters.Count != 0 || content.Paths.Count != 0)
                 findings.Add(new("NonRasterContent", "The output page is not a single image-only page.", pageIndex));
