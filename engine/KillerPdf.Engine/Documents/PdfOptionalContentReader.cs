@@ -80,6 +80,7 @@ public static class PdfOptionalContentReader
         ApplyState("ON", true);
         ApplyState("OFF", false);
         HashSet<int> locked = References("Locked");
+        IReadOnlyList<int> displayOrder = ReadDisplayOrder();
         return new PdfOptionalContentConfigurationInfo
         {
             Name = OptionalText(document, dictionary, "Name"),
@@ -92,7 +93,8 @@ public static class PdfOptionalContentReader
                 _ => PdfOptionalContentBaseState.On
             },
             VisibleGroupObjectNumbers = visible,
-            LockedGroupObjectNumbers = locked
+            LockedGroupObjectNumbers = locked,
+            DisplayOrderGroupObjectNumbers = displayOrder
         };
 
         void ApplyState(string key, bool state)
@@ -117,6 +119,43 @@ public static class PdfOptionalContentReader
                 result.Add(reference.ObjectNumber);
             }
             return result;
+        }
+
+        IReadOnlyList<int> ReadDisplayOrder()
+        {
+            if (!TryValue(document, dictionary, "Order", out PdfObject? orderValue))
+                return Array.AsReadOnly(groups.Select(group => group.ObjectNumber).ToArray());
+            if (orderValue is not PdfArray order)
+                throw new InvalidOperationException(
+                    "An optional-content configuration /Order value is not an array.");
+            var result = new List<int>();
+            AddItems(order, 0);
+            return Array.AsReadOnly(result.ToArray());
+
+            void AddItems(PdfArray items, int depth)
+            {
+                if (depth > 64)
+                    throw new InvalidOperationException(
+                        "An optional-content configuration /Order value is too deeply nested.");
+                foreach (PdfObject item in items)
+                {
+                    PdfObject resolved = Resolve(document, item);
+                    if (resolved is PdfString) continue;
+                    if (resolved is PdfArray children)
+                    {
+                        AddItems(children, depth + 1);
+                        continue;
+                    }
+                    if (item is not PdfIndirectReference reference
+                        || resolved is not PdfDictionary
+                        || !groups.Any(group => group.ObjectNumber == reference.ObjectNumber
+                            && group.Generation == reference.Generation))
+                        throw new InvalidOperationException(
+                            "An optional-content configuration /Order entry is not a registered group or subgroup.");
+                    if (!result.Contains(reference.ObjectNumber))
+                        result.Add(reference.ObjectNumber);
+                }
+            }
         }
     }
 
@@ -224,6 +263,8 @@ public sealed record PdfOptionalContentConfigurationInfo
     public IReadOnlySet<int> VisibleGroupObjectNumbers { get; init; } = new HashSet<int>();
     /// <summary>Gets locked group object numbers.</summary>
     public IReadOnlySet<int> LockedGroupObjectNumbers { get; init; } = new HashSet<int>();
+    /// <summary>Gets group object numbers in the configuration's display order.</summary>
+    public IReadOnlyList<int> DisplayOrderGroupObjectNumbers { get; init; } = [];
 }
 
 /// <summary>The initial state applied before explicit group overrides.</summary>

@@ -32,6 +32,8 @@ public sealed class PdfOptionalContentReaderTests
         Assert.Equal(PdfOptionalContentBaseState.On, configuration.BaseState);
         Assert.Contains(result.Groups[0].ObjectNumber, configuration.VisibleGroupObjectNumbers);
         Assert.DoesNotContain(result.Groups[1].ObjectNumber, configuration.VisibleGroupObjectNumbers);
+        Assert.Equal(result.Groups.Select(group => group.ObjectNumber),
+            configuration.DisplayOrderGroupObjectNumbers);
     }
 
     [Fact]
