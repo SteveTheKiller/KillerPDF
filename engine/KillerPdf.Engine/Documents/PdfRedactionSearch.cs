@@ -68,6 +68,13 @@ public sealed class PdfRedactionReview
         return new PdfRedactionReview(_matches, _excluded.Where(value => !string.Equals(value, id, StringComparison.Ordinal)));
     }
 
+    /// <summary>Returns a new review with every match excluded.</summary>
+    public PdfRedactionReview ExcludeAll() =>
+        new(_matches, _matches.Select(match => match.Id));
+
+    /// <summary>Returns a new review with every match included.</summary>
+    public PdfRedactionReview IncludeAll() => new(_matches);
+
     /// <summary>Exports a stable review report without matched text unless explicitly requested.</summary>
     public string ToJson(bool includeMatchedText = false, bool indented = false)
     {

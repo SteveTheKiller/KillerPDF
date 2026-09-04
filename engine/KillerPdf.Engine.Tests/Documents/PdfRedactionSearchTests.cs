@@ -76,6 +76,25 @@ public sealed class PdfRedactionSearchTests
         Assert.Contains("secret", detailedJson, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ReviewCanExcludeAndRestoreAllMatches()
+    {
+        PdfRedactionReview original = PdfRedactionSearch.Find([Read("secret secret")],
+            new PdfRedactionSearchOptions
+            {
+                Kind = PdfRedactionSearchKind.ExactText,
+                Query = "secret"
+            });
+
+        PdfRedactionReview excluded = original.ExcludeAll();
+        PdfRedactionReview restored = excluded.IncludeAll();
+
+        Assert.Equal(2, original.Included.Count);
+        Assert.Empty(excluded.Included);
+        Assert.Equal(2, restored.Included.Count);
+        Assert.Equal(2, excluded.Matches.Count);
+    }
+
     private static PdfPageContent Read(string text)
     {
         string content = $"BT /F1 12 Tf 20 100 Td ({text}) Tj ET";

@@ -29,7 +29,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added safe macro saving, importing, duplication, and step insertion, replacement, removal, and reordering (#343).
 - Added locally saved, editable fillable text-field presets with reusable dimensions and visual styles (#340).
 - Added region validation and affected-content planning for partial rasterization (#369).
-- Added privacy-safe JSON reports for redaction reviews and verification (#341).
+- Added bulk review selection and privacy-safe JSON reports for redaction reviews and verification (#341).
 - Added reviewed field descriptions, choice fields, and radio groups to automatic form authoring (#342).
 - Added header and footer placement, PDF writing, and content collision checks (#344).
 - Added Markdown export and structured reports for content that cannot be fully represented (#346).
