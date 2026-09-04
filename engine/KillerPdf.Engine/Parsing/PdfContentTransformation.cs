@@ -183,26 +183,7 @@ public static class PdfContentTransformation
         ArgumentNullException.ThrowIfNull(instructions);
         ArgumentNullException.ThrowIfNull(textObjectIndexes);
         PdfContentInstruction[] source = instructions.ToArray();
-        var ranges = new List<(int Start, int End)>();
-        int start = -1;
-        for (int index = 0; index < source.Length; index++)
-        {
-            if (source[index].Operator == "BT")
-            {
-                if (start >= 0)
-                    throw new FormatException("A content stream contains nested text objects.");
-                start = index;
-            }
-            else if (source[index].Operator == "ET")
-            {
-                if (start < 0)
-                    throw new FormatException("A content stream closes a text object that was not opened.");
-                ranges.Add((start, index));
-                start = -1;
-            }
-        }
-        if (start >= 0)
-            throw new FormatException("A content stream contains an unclosed text object.");
+        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
 
         int[] requested = textObjectIndexes.ToArray();
         if (requested.Any(index => index < 0 || index >= ranges.Count)
@@ -227,6 +208,62 @@ public static class PdfContentTransformation
             }
             result.Add(source[index]);
         }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
+    /// <summary>Sets the rendering mode inside selected complete text objects.</summary>
+    public static IReadOnlyList<PdfContentInstruction> SetTextObjectRenderingMode(
+        IEnumerable<PdfContentInstruction> instructions,
+        IEnumerable<int> textObjectIndexes, int renderingMode)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(textObjectIndexes);
+        if (renderingMode is < 0 or > 7)
+            throw new ArgumentOutOfRangeException(nameof(renderingMode),
+                "Text rendering mode must be between zero and seven.");
+        PdfContentInstruction[] source = instructions.ToArray();
+        IReadOnlyList<(int Start, int End)> ranges = TextObjectRanges(source);
+        int[] requested = textObjectIndexes.ToArray();
+        if (requested.Any(index => index < 0 || index >= ranges.Count)
+            || requested.Distinct().Count() != requested.Length)
+            throw new ArgumentException(
+                "Selected text-object indexes must be valid and unique.",
+                nameof(textObjectIndexes));
+        HashSet<int> selected = requested.ToHashSet();
+        var result = new List<PdfContentInstruction>(source.Length + selected.Count);
+        for (int objectIndex = 0; objectIndex < ranges.Count; objectIndex++)
+        {
+            (int start, int end) = ranges[objectIndex];
+            int priorEnd = objectIndex == 0 ? 0 : ranges[objectIndex - 1].End + 1;
+            result.AddRange(source[priorEnd..start]);
+            result.Add(source[start]);
+            if (!selected.Contains(objectIndex))
+            {
+                result.AddRange(source[(start + 1)..(end + 1)]);
+                continue;
+            }
+            bool replaced = false;
+            for (int index = start + 1; index < end; index++)
+            {
+                PdfContentInstruction instruction = source[index];
+                if (instruction.Operator != "Tr")
+                {
+                    result.Add(instruction);
+                    continue;
+                }
+                if (instruction.Operands is not [PdfInteger] and not [PdfReal])
+                    throw new FormatException("A text rendering instruction has invalid operands.");
+                result.Add(new PdfContentInstruction("Tr", instruction.Offset,
+                    [new PdfInteger(renderingMode)]));
+                replaced = true;
+            }
+            if (!replaced)
+                result.Insert(result.Count - (end - start - 1),
+                    new PdfContentInstruction("Tr", 0, [new PdfInteger(renderingMode)]));
+            result.Add(source[end]);
+        }
+        if (ranges.Count == 0) result.AddRange(source);
+        else result.AddRange(source[(ranges[^1].End + 1)..]);
         return Array.AsReadOnly(result.ToArray());
     }
 
@@ -748,5 +785,31 @@ public static class PdfContentTransformation
                 [fontResource, instruction.Operands[1]]);
         }
         return Array.AsReadOnly(result);
+    }
+
+    private static IReadOnlyList<(int Start, int End)> TextObjectRanges(
+        IReadOnlyList<PdfContentInstruction> source)
+    {
+        var ranges = new List<(int Start, int End)>();
+        int start = -1;
+        for (int index = 0; index < source.Count; index++)
+        {
+            if (source[index].Operator == "BT")
+            {
+                if (start >= 0)
+                    throw new FormatException("A content stream contains nested text objects.");
+                start = index;
+            }
+            else if (source[index].Operator == "ET")
+            {
+                if (start < 0)
+                    throw new FormatException("A content stream closes a text object that was not opened.");
+                ranges.Add((start, index));
+                start = -1;
+            }
+        }
+        if (start >= 0)
+            throw new FormatException("A content stream contains an unclosed text object.");
+        return ranges;
     }
 }

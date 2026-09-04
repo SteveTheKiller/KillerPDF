@@ -32,6 +32,30 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void SetTextObjectRenderingModeChangesOnlySelectedCompleteObjects()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "q BT /F1 10 Tf (first) Tj ET 7 FutureOp BT 1 Tr /F2 12 Tf (second) Tj ET Q"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.SetTextObjectRenderingMode(source, [0], 2);
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal([2, 1], reopened.Where(instruction => instruction.Operator == "Tr")
+            .Select(instruction => Assert.IsType<PdfInteger>(instruction.Operands[0]).Value));
+        Assert.Equal("FutureOp", reopened.Single(instruction =>
+            instruction.Operator == "FutureOp").Operator);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfContentTransformation.SetTextObjectRenderingMode(source, [0], 8));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.SetTextObjectRenderingMode(source, [0, 0], 0));
+        Assert.Throws<FormatException>(() =>
+            PdfContentTransformation.SetTextObjectRenderingMode(
+                PdfContentStreamReader.Read("BT 1 2 Tr (bad) Tj ET"u8.ToArray()), [0], 0));
+    }
+
+    [Fact]
     public void RemovePaintedPathsPreservesOtherArtworkAndRejectsClipping()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
