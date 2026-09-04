@@ -56,4 +56,30 @@ public sealed class PdfPageFurnitureMacroTests
         Assert.Throws<ArgumentException>(() => PdfPageFurnitureMacro.Execute(
             new PdfMacroStep(PdfMacroOperation.Save), source));
     }
+
+    [Fact]
+    public void BatesStepContinuesAcrossOrderedMixedSizeDocuments()
+    {
+        byte[] first = new PdfDocumentBuilder()
+            .AddBlankPage(200, 300).AddBlankPage(300, 200).Build();
+        byte[] second = new PdfDocumentBuilder().AddBlankPage(400, 500).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Bates", [
+            PdfPageFurnitureMacro.BatesBatchStep(new PdfBatesMacroOptions
+            {
+                StartNumber = 98,
+                DigitCount = 4,
+                Prefix = "CASE-",
+                Alignment = PdfPageFurnitureAlignment.Left,
+                HorizontalMargin = 12
+            })]).ToJson());
+
+        IReadOnlyList<byte[]> output = PdfPageFurnitureMacro.ExecuteBatesBatch(
+            Assert.Single(macro.Steps), [first, second]);
+        string[] text = [.. output.SelectMany(bytes =>
+            PdfPageFurnitureReport.Inspect(PdfDocument.Open(bytes))).Select(mark => mark.Text)];
+
+        Assert.Equal(["CASE-0098", "CASE-0099", "CASE-0100"], text);
+        Assert.All(output.Select(bytes => PdfDocument.Open(bytes)), document =>
+            Assert.NotEmpty(PdfPageFurnitureReport.Inspect(document)));
+    }
 }
