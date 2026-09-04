@@ -112,6 +112,24 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void DeclaredConformanceAcceptsEngineAuthoredPdfA4()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "PDF/A-4" })
+            .SetOutputIntent(PdfIccProfile.Load(Profile()), "Test RGB")
+            .EnablePdfA4Conformance()
+            .AddBlankPage()
+            .Build();
+        var profile = new PdfPreflightProfile("Declared conformance",
+            [PdfPreflightCheck.ConformanceDeclarations]);
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(source, profile);
+
+        Assert.Empty(report.Findings);
+        Assert.Contains("conformanceDeclarations", profile.ToJson(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImageResolutionUsesTheProfileThresholdAndPageIndex()
     {
         PdfImage image = PdfImage.FromRgb(100, 100, new byte[30_000]);
