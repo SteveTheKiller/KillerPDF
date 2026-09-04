@@ -81,6 +81,35 @@ public sealed class PdfPageFurnitureMacroTests
     }
 
     [Fact]
+    public void NumberingStepRoundTripsCustomTemplateTokens()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage(300, 400).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Custom tokens", [
+            PdfPageFurnitureMacro.NumberPagesStep(new PdfPageNumberMacroOptions
+            {
+                Template = "{matter} | {client}",
+                Date = new DateOnly(2026, 9, 4),
+                CustomTokens = new Dictionary<string, string?>
+                {
+                    ["matter"] = "2026-104",
+                    ["client"] = "Example"
+                }
+            })]).ToJson());
+
+        PdfDocument output = PdfDocument.Open(PdfPageFurnitureMacro.Execute(
+            Assert.Single(macro.Steps), source));
+
+        Assert.Equal("2026-104 | Example",
+            Assert.Single(PdfPageFurnitureReport.Inspect(output)).Text);
+        Assert.Throws<ArgumentException>(() =>
+            PdfPageFurnitureMacro.NumberPagesStep(new PdfPageNumberMacroOptions
+            {
+                Date = new DateOnly(2026, 9, 4),
+                CustomTokens = new Dictionary<string, string?> { [" "] = "invalid" }
+            }));
+    }
+
+    [Fact]
     public void BatesStepContinuesAcrossOrderedMixedSizeDocuments()
     {
         byte[] first = new PdfDocumentBuilder()

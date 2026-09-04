@@ -13,6 +13,9 @@ public sealed record PdfPageNumberMacroOptions
     public required DateOnly Date { get; init; }
     /// <summary>Gets the optional source filename used by the filename token.</summary>
     public string? FileName { get; init; }
+    /// <summary>Gets additional case-sensitive template token values.</summary>
+    public IReadOnlyDictionary<string, string?> CustomTokens { get; init; }
+        = new Dictionary<string, string?>();
     /// <summary>Gets the page edge used for placement.</summary>
     public PdfPageFurnitureEdge Edge { get; init; } = PdfPageFurnitureEdge.Footer;
     /// <summary>Gets the horizontal alignment.</summary>
@@ -189,7 +192,7 @@ public static class PdfPageFurnitureMacro
         PdfDocumentInformation information = PdfDocumentInformation.Read(document);
         IReadOnlyList<PdfPageFurnitureContext> contexts =
             PdfPageFurnitureFormatter.CreateContexts(document, options.Date, options.FileName,
-                information.Title, information.Author);
+                information.Title, information.Author, options.CustomTokens);
         int[] pages = options.PageIndices?.ToArray() ?? [.. Enumerable.Range(0, boxes.Count)];
         if (pages.Any(page => page >= boxes.Count))
             throw new ArgumentOutOfRangeException(nameof(step),
@@ -220,6 +223,10 @@ public static class PdfPageFurnitureMacro
         ArgumentNullException.ThrowIfNull(options);
         if (string.IsNullOrEmpty(options.Template))
             throw new ArgumentException("A page-numbering template is required.", nameof(options));
+        if (options.CustomTokens is null
+            || options.CustomTokens.Keys.Any(string.IsNullOrWhiteSpace))
+            throw new ArgumentException(
+                "Page-numbering custom token names must be nonempty.", nameof(options));
         if (!Enum.IsDefined(options.Edge) || !Enum.IsDefined(options.Alignment)
             || !Enum.IsDefined(options.NumberFormat))
             throw new ArgumentOutOfRangeException(nameof(options));
