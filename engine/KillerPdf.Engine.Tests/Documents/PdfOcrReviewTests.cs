@@ -124,6 +124,25 @@ public sealed class PdfOcrReviewTests
     }
 
     [Fact]
+    public void ReviewSelectsPagesWithoutChangingSourceState()
+    {
+        var original = new PdfOcrReview([
+            Word("first", 0, 0, "First", 0.9),
+            Word("middle", 1, 0, "Middle", 0.8),
+            Word("last", 2, 0, "Last", 0.7)
+        ]).Correct("middle", "Corrected");
+
+        PdfOcrReview selected = original.SelectPages([2, 1]);
+
+        Assert.Equal(["middle", "last"], selected.Words.Select(word => word.Id));
+        Assert.Equal("Corrected", selected.Words[0].Text);
+        Assert.Equal(3, original.Words.Count);
+        Assert.Throws<ArgumentException>(() => original.SelectPages([]));
+        Assert.Throws<ArgumentException>(() => original.SelectPages([1, 1]));
+        Assert.Throws<ArgumentException>(() => original.SelectPages([-1]));
+    }
+
+    [Fact]
     public void LowConfidenceListUsesInclusiveThresholdAndPendingState()
     {
         var review = new PdfOcrReview([

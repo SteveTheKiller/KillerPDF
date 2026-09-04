@@ -256,6 +256,20 @@ public sealed class PdfOcrReview
     /// <summary>Gets words in page reading order.</summary>
     public IReadOnlyList<PdfOcrWord> Words { get; }
 
+    /// <summary>Returns an immutable review containing only the selected source pages.</summary>
+    public PdfOcrReview SelectPages(IEnumerable<int> pageIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(pageIndexes);
+        int[] selected = pageIndexes.ToArray();
+        if (selected.Length == 0 || selected.Any(index => index < 0)
+            || selected.Distinct().Count() != selected.Length)
+            throw new ArgumentException(
+                "Selected OCR page indexes must be nonnegative and unique.",
+                nameof(pageIndexes));
+        var selectedPages = new HashSet<int>(selected);
+        return new PdfOcrReview(_words.Where(word => selectedPages.Contains(word.PageIndex)));
+    }
+
     /// <summary>Gets pending words at or below the supplied confidence threshold.</summary>
     public IReadOnlyList<PdfOcrWord> GetLowConfidenceWords(double threshold)
     {
