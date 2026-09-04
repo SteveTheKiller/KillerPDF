@@ -267,6 +267,34 @@ public static class PdfAttachmentReader
         return path;
     }
 
+    /// <summary>Preflights and extracts an attachment batch without partial validation failures.</summary>
+    public static IReadOnlyList<string> ExtractAll(
+        IEnumerable<PdfAttachmentInfo> attachments,
+        string directory, bool overwrite = false)
+    {
+        ArgumentNullException.ThrowIfNull(attachments);
+        PdfAttachmentInfo[] values = attachments.Select(attachment => attachment
+            ?? throw new ArgumentException(
+                "An attachment extraction item cannot be null.", nameof(attachments)))
+            .ToArray();
+        string[] paths = [.. values.Select(attachment =>
+            GetSafeExtractionPath(directory, attachment.FileName))];
+        if (paths.Distinct(StringComparer.OrdinalIgnoreCase).Count() != paths.Length)
+            throw new ArgumentException(
+                "Attachment extraction destinations must be unique.", nameof(attachments));
+        if (!overwrite && paths.Any(File.Exists))
+            throw new IOException(
+                "An attachment extraction destination already exists.");
+        for (int index = 0; index < values.Length; index++)
+        {
+            using var destination = new FileStream(paths[index],
+                overwrite ? FileMode.Create : FileMode.CreateNew,
+                FileAccess.Write, FileShare.None);
+            destination.Write(values[index].Data.Span);
+        }
+        return Array.AsReadOnly(paths);
+    }
+
     private static bool IsSafeFileName(string? fileName) =>
         !string.IsNullOrWhiteSpace(fileName)
         && !Path.IsPathRooted(fileName)

@@ -139,6 +139,38 @@ public sealed class PdfAttachmentReaderTests
     }
 
     [Fact]
+    public void ExtractAllPreflightsEveryDestinationBeforeWriting()
+    {
+        string directory = Path.Combine(Path.GetTempPath(), $"killerpdf-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(directory);
+        try
+        {
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+                .AddAttachment("first.txt", "first"u8.ToArray())
+                .AddAttachment("second.txt", "second"u8.ToArray()).Build());
+            IReadOnlyList<PdfAttachmentInfo> attachments =
+                PdfAttachmentReader.Read(document);
+            string existing = Path.Combine(directory, "second.txt");
+            File.WriteAllText(existing, "preserved");
+
+            Assert.Throws<IOException>(() =>
+                PdfAttachmentReader.ExtractAll(attachments, directory));
+            Assert.False(File.Exists(Path.Combine(directory, "first.txt")));
+            Assert.Equal("preserved", File.ReadAllText(existing));
+
+            IReadOnlyList<string> paths = PdfAttachmentReader.ExtractAll(
+                attachments, directory, overwrite: true);
+            Assert.Equal([Path.Combine(directory, "first.txt"), existing], paths);
+            Assert.Equal("first"u8.ToArray(), File.ReadAllBytes(paths[0]));
+            Assert.Equal("second"u8.ToArray(), File.ReadAllBytes(paths[1]));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ReadPageAnnotationsReturnsPlacementIconDescriptionAndAttachment()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
