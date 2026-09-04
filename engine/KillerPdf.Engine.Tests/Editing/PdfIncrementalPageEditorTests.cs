@@ -13626,6 +13626,46 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void SetChoiceFieldBehavior_PreservesChoiceTypeAndComposesWithValues()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddComboBox(0, "region", 10, 10, 100, 20,
+                ["North", "South"], "North", editable: true)
+            .AddTextField(0, "name", 10, 40, 100, 20)
+            .Build();
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetChoiceFieldValue("region", "South")
+                .SetChoiceFieldBehavior("region", PdfTextFieldAlignment.Center,
+                    sortOptions: true, doNotSpellCheck: true,
+                    commitOnSelectionChange: true)
+                .Build());
+        PdfFormWidgetInfo region = PdfFormWidgetReader.ReadPage(updated, 0)
+            .Single(widget => widget.FieldName == "region");
+
+        Assert.Equal("South", region.Value);
+        Assert.Equal(PdfTextFieldAlignment.Center, region.Alignment);
+        Assert.NotEqual(0, region.Flags & (1L << 17));
+        Assert.NotEqual(0, region.Flags & (1L << 18));
+        Assert.NotEqual(0, region.Flags & (1L << 19));
+        Assert.NotEqual(0, region.Flags & (1L << 22));
+        Assert.NotEqual(0, region.Flags & (1L << 26));
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(updated)
+            .SetChoiceFieldBehavior(" ", PdfTextFieldAlignment.Left,
+                false, false, false));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfIncrementalPageEditor(updated)
+            .SetChoiceFieldBehavior("region", (PdfTextFieldAlignment)99,
+                false, false, false));
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetChoiceFieldBehavior("name", PdfTextFieldAlignment.Left,
+                false, false, false).Build());
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetChoiceFieldBehavior("missing", PdfTextFieldAlignment.Left,
+                false, false, false).Build());
+    }
+
+    [Fact]
     public void RenameFormField_RenamesTerminalAndParentFieldsWithoutChangingValues()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()
