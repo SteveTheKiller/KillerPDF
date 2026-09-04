@@ -55,6 +55,17 @@ public static class PdfImpositionMacro
             });
     }
 
+    /// <summary>Creates a simplex cut-stack imposition step from a reusable preset.</summary>
+    public static PdfMacroStep CutStackStep(PdfImpositionPreset preset)
+    {
+        ValidateCutStack(preset);
+        return new PdfMacroStep(PdfMacroOperation.ImposeCutStack,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                [PresetKey] = preset.ToJson()
+            });
+    }
+
     /// <summary>Executes one N-up imposition macro step without external actions.</summary>
     public static ReadOnlyMemory<byte> Execute(PdfMacroStep step,
         ReadOnlyMemory<byte> source, CancellationToken cancellationToken = default)
@@ -62,7 +73,8 @@ public static class PdfImpositionMacro
         ArgumentNullException.ThrowIfNull(step);
         if (step.Operation is not (PdfMacroOperation.ImposeNUp
                 or PdfMacroOperation.ImposeBooklet
-                or PdfMacroOperation.ImposeStepAndRepeat))
+                or PdfMacroOperation.ImposeStepAndRepeat
+                or PdfMacroOperation.ImposeCutStack))
             throw new ArgumentException(
                 "The macro step is not an imposition operation.", nameof(step));
         if (source.IsEmpty) throw new ArgumentException("The PDF source is empty.", nameof(source));
@@ -120,6 +132,12 @@ public static class PdfImpositionMacro
             sides = PdfImpositionPlanner.PlanStepAndRepeat(sourcePageIndex,
                 copyCount, preset.Columns, preset.Rows, preset.Duplex);
         }
+        else if (step.Operation == PdfMacroOperation.ImposeCutStack)
+        {
+            ValidateCutStack(preset);
+            sides = PdfImpositionPlanner.PlanCutStack(
+                pageCount, preset.Columns, preset.Rows);
+        }
         else
         {
             sides = preset.Plan(pageCount);
@@ -154,5 +172,13 @@ public static class PdfImpositionMacro
             && (signaturePageCount < 4 || signaturePageCount % 4 != 0))
             throw new ArgumentOutOfRangeException(nameof(signaturePageCount),
                 "A booklet signature size must be zero or a positive multiple of four.");
+    }
+
+    private static void ValidateCutStack(PdfImpositionPreset preset)
+    {
+        ArgumentNullException.ThrowIfNull(preset);
+        if (preset.Duplex)
+            throw new ArgumentException(
+                "A cut-stack preset must use simplex output.", nameof(preset));
     }
 }

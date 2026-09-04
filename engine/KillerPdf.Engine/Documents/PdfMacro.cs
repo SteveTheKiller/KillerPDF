@@ -263,7 +263,9 @@ public enum PdfMacroOperation
     /// <summary>Replace the document's page-label ranges.</summary>
     SetPageLabels,
     /// <summary>Repeat one source page across imposed output sheets.</summary>
-    ImposeStepAndRepeat
+    ImposeStepAndRepeat,
+    /// <summary>Arrange source pages into simplex cut stacks.</summary>
+    ImposeCutStack
 }
 
 /// <summary>One contextual macro operation result and its values for later steps.</summary>

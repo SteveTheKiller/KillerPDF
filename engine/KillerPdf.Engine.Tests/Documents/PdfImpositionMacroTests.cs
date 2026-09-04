@@ -90,4 +90,38 @@ public sealed class PdfImpositionMacroTests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfImpositionMacro.StepAndRepeatStep(preset, 0, -1));
     }
+
+    [Fact]
+    public void CutStackStepRoundTripsAndExportsSimplexSheets()
+    {
+        var builder = new PdfDocumentBuilder();
+        for (int page = 0; page < 5; page++) builder.AddBlankPage(200, 300);
+        byte[] source = builder.Build();
+        var preset = new PdfImpositionPreset(
+            "Cut stack", 2, 2, 792, 612, margin: 18, gutter: 12,
+            includePageInformation: true);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Cut stack",
+            [PdfImpositionMacro.CutStackStep(preset)]).ToJson());
+
+        PdfMacroStep step = Assert.Single(macro.Steps);
+        PdfDocument imposed = PdfDocument.Open(
+            PdfImpositionMacro.Execute(step, source));
+
+        Assert.Equal(PdfMacroOperation.ImposeCutStack, step.Operation);
+        Assert.Equal(2, PdfPageBoxInformation.Read(imposed).Count);
+        Assert.Equal("Sheet 1 front", new PdfPageContentReader(imposed).Read(0).Text);
+        Assert.Equal(PdfDuplexMode.Simplex,
+            PdfDocumentInformation.Read(imposed).InitialView.ViewerPreferences.Duplex);
+        var duplexPreset = new PdfImpositionPreset(
+            "Duplex cut stack", 2, 2, 792, 612, margin: 18, gutter: 12,
+            duplex: true, includePageInformation: true);
+        Assert.Throws<ArgumentException>(() => PdfImpositionMacro.CutStackStep(
+            duplexPreset));
+        Assert.Throws<ArgumentException>(() => PdfImpositionMacro.Execute(
+            new PdfMacroStep(PdfMacroOperation.ImposeCutStack,
+                new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["preset"] = duplexPreset.ToJson()
+                }), source));
+    }
 }
