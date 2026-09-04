@@ -1,6 +1,8 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Writing;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -148,4 +150,45 @@ public sealed class PdfAttachmentReaderTests
         Assert.Equal(created, attachment.CreationDate);
         Assert.Equal(created, attachment.ModificationDate);
     }
+
+    [Fact]
+    public void ReadReturnsOrderedPortfolioValuesAndSubitemPrefixes()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("evidence.txt", "evidence"u8.ToArray()).Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary names = ResolveDictionary(source, catalog[Name("Names")]);
+        PdfDictionary tree = ResolveDictionary(source, names[Name("EmbeddedFiles")]);
+        PdfArray entries = Assert.IsType<PdfArray>(tree[Name("Names")]);
+        PdfIndirectReference fileReference = Assert.IsType<PdfIndirectReference>(entries[1]);
+        PdfDictionary file = ResolveDictionary(source, fileReference);
+        var collectionItem = new PdfDictionary([
+            new(Name("Score"), new PdfReal(4.5)),
+            new(Name("Department"), new PdfDictionary([
+                new(Name("D"), Text("Legal")),
+                new(Name("P"), Text("Team: "))
+            ]))
+        ]);
+        var updatedFile = new PdfDictionary(file.Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("CI"), collectionItem)));
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(fileReference.ObjectNumber, updatedFile).Build());
+
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(document));
+
+        Assert.Equal([
+            new PdfCollectionItemValue("Department", "Legal", null, "Team: "),
+            new PdfCollectionItemValue("Score", null, 4.5, null)
+        ], attachment.CollectionValues);
+    }
+
+    private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
+        Assert.IsType<PdfDictionary>(value is PdfIndirectReference reference
+            ? document.Resolve(reference) : value);
+
+    private static PdfName Name(string value) =>
+        new(System.Text.Encoding.ASCII.GetBytes(value));
+
+    private static PdfString Text(string value) =>
+        new(System.Text.Encoding.UTF8.GetBytes(value), PdfStringForm.Literal);
 }

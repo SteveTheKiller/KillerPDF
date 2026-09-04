@@ -76,6 +76,7 @@ public static class PdfAttachmentReader
                 ChecksumMatches = declaredChecksum is not null
                     ? CryptographicOperations.FixedTimeEquals(
                         declaredChecksum, MD5.HashData(data)) : null,
+                CollectionValues = ReadCollectionValues(document, specification),
                 FileSpecificationObjectNumber = specificationReference?.ObjectNumber,
                 EmbeddedFileObjectNumber = streamReference?.ObjectNumber,
                 HasUnsafeFileName = !IsSafeFileName(fileName),
@@ -84,6 +85,44 @@ public static class PdfAttachmentReader
             });
         }
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    private static IReadOnlyList<PdfCollectionItemValue> ReadCollectionValues(
+        PdfDocument document, PdfDictionary specification)
+    {
+        if (!specification.TryGetValue(Name("CI"), out PdfObject? itemValue)) return [];
+        if (Resolve(document, itemValue) is not PdfDictionary item)
+            throw new InvalidOperationException(
+                "A file specification /CI value is not a dictionary.");
+        var values = new List<PdfCollectionItemValue>();
+        foreach ((PdfName key, PdfObject storedValue) in item)
+        {
+            PdfObject value = Resolve(document, storedValue);
+            string? prefix = null;
+            if (value is PdfDictionary subitem)
+            {
+                prefix = Text(document, subitem, "P");
+                if (!subitem.TryGetValue(Name("D"), out PdfObject? dataValue))
+                    throw new InvalidOperationException(
+                        $"A collection item /{key.ValueAsLatin1()} has no /D value.");
+                value = Resolve(document, dataValue);
+            }
+            string name = key.ValueAsLatin1();
+            values.Add(value switch
+            {
+                PdfString text => new PdfCollectionItemValue(name,
+                    PdfUnicodeEncoding.DecodeTextString(text.Bytes.Span,
+                        $"A collection item /{name} value"), null, prefix),
+                PdfInteger integer => new PdfCollectionItemValue(
+                    name, null, integer.Value, prefix),
+                PdfReal real => new PdfCollectionItemValue(
+                    name, null, real.Value, prefix),
+                _ => throw new InvalidOperationException(
+                    $"A collection item /{name} value is not a string or number.")
+            });
+        }
+        return Array.AsReadOnly(values.OrderBy(value => value.Key,
+            StringComparer.Ordinal).ToArray());
     }
 
     /// <summary>Returns a destination path confined to the selected directory.</summary>
@@ -241,6 +280,8 @@ public sealed record PdfAttachmentInfo
     public ReadOnlyMemory<byte>? DeclaredChecksum { get; init; }
     /// <summary>Gets whether the declared checksum matches the decoded payload.</summary>
     public bool? ChecksumMatches { get; init; }
+    /// <summary>Gets the portfolio collection values assigned to this file.</summary>
+    public required IReadOnlyList<PdfCollectionItemValue> CollectionValues { get; init; }
     /// <summary>Gets the source file-specification object number when indirect.</summary>
     public int? FileSpecificationObjectNumber { get; init; }
     /// <summary>Gets the source embedded-file stream object number when indirect.</summary>
@@ -252,3 +293,7 @@ public sealed record PdfAttachmentInfo
     /// <summary>Gets whether the payload begins with a recognized executable-file signature.</summary>
     public bool HasExecutableContent { get; init; }
 }
+
+/// <summary>One text or numeric value assigned to a portfolio file.</summary>
+public sealed record PdfCollectionItemValue(
+    string Key, string? Text, double? Number, string? Prefix);
