@@ -88,4 +88,27 @@ public sealed class PdfContentTransformationTests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new PdfContentClipRectangle(0, 0, 0, 1));
     }
+
+    [Fact]
+    public void RecolorDeviceRangeChangesSelectedFillAndStrokeColorsOnly()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "0 g 0 G 0 1 0 rg 0 1 0 RG 0 0 0 1 k 0 0 0 1 K /Spot cs 0.5 scn 7 FutureOp"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result = PdfContentTransformation.RecolorDeviceRange(
+            source, 1, 7, new PdfDeviceRgbColor(0.25, 0.5, 0.75));
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal("g", reopened[0].Operator);
+        Assert.Equal(["RG", "rg", "RG", "rg", "RG", "cs", "scn"],
+            reopened.Skip(1).Take(7).Select(item => item.Operator));
+        Assert.All(reopened.Skip(1).Take(5), item => Assert.Equal(
+            [0.25, 0.5, 0.75], item.Operands.Cast<PdfReal>().Select(value => value.Value)));
+        Assert.Equal("FutureOp", reopened[^1].Operator);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfDeviceRgbColor(0, 1.1, 0));
+        Assert.Throws<ArgumentException>(() => PdfContentTransformation.RecolorDeviceRange(
+            source, 0, 1, new PdfDeviceRgbColor(0, 0, 0), fill: false, stroke: false));
+    }
 }

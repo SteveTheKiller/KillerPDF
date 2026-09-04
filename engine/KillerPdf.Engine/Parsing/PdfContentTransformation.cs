@@ -68,6 +68,28 @@ public readonly record struct PdfContentClipRectangle
     public double Height { get; }
 }
 
+/// <summary>An RGB device color whose components are between zero and one.</summary>
+public readonly record struct PdfDeviceRgbColor
+{
+    /// <summary>Creates a validated RGB device color.</summary>
+    public PdfDeviceRgbColor(double red, double green, double blue)
+    {
+        if (!IsComponent(red) || !IsComponent(green) || !IsComponent(blue))
+            throw new ArgumentOutOfRangeException(nameof(red),
+                "Device RGB components must be finite values between zero and one.");
+        Red = red; Green = green; Blue = blue;
+    }
+
+    /// <summary>Gets the red component.</summary>
+    public double Red { get; }
+    /// <summary>Gets the green component.</summary>
+    public double Green { get; }
+    /// <summary>Gets the blue component.</summary>
+    public double Blue { get; }
+
+    private static bool IsComponent(double value) => double.IsFinite(value) && value is >= 0 and <= 1;
+}
+
 /// <summary>Rewrites selected instructions or transforms a complete decoded content stream.</summary>
 public static class PdfContentTransformation
 {
@@ -159,5 +181,43 @@ public static class PdfContentTransformation
         result.Add(new PdfContentInstruction("Q", 0, []));
         result.AddRange(source.Skip(startIndex + count));
         return Array.AsReadOnly(result.ToArray());
+    }
+
+    /// <summary>
+    /// Recolors explicit device-gray, device-RGB, and device-CMYK settings in a selected range.
+    /// Pattern, spot-color, color-space selection, transparency, and overprint instructions remain unchanged.
+    /// </summary>
+    public static IReadOnlyList<PdfContentInstruction> RecolorDeviceRange(
+        IEnumerable<PdfContentInstruction> instructions,
+        int startIndex, int count,
+        PdfDeviceRgbColor color,
+        bool fill = true, bool stroke = true)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        PdfContentInstruction[] source = instructions.ToArray();
+        if (startIndex < 0 || count <= 0 || startIndex > source.Length - count)
+            throw new ArgumentOutOfRangeException(nameof(startIndex),
+                "The recolored instruction range is outside the stream.");
+        if (!fill && !stroke)
+            throw new ArgumentException(
+                "At least one of fill or stroke must be selected.", nameof(fill));
+
+        PdfObject[] operands =
+        [
+            new PdfReal(color.Red),
+            new PdfReal(color.Green),
+            new PdfReal(color.Blue)
+        ];
+        var result = source.ToArray();
+        for (int index = startIndex; index < startIndex + count; index++)
+        {
+            string operation = result[index].Operator;
+            bool replaceFill = fill && operation is "g" or "rg" or "k";
+            bool replaceStroke = stroke && operation is "G" or "RG" or "K";
+            if (replaceFill || replaceStroke)
+                result[index] = new PdfContentInstruction(
+                    replaceFill ? "rg" : "RG", result[index].Offset, operands);
+        }
+        return Array.AsReadOnly(result);
     }
 }
