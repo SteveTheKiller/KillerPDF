@@ -167,4 +167,29 @@ public sealed class PdfOptionalContentReaderTests
         Assert.Throws<ArgumentException>(() =>
             PdfOptionalContentEditor.SetDisplayOrder(original, [reversed[0]]));
     }
+
+    [Fact]
+    public void DefaultConfigurationMetadataCanBeSetAndCleared()
+    {
+        var layer = new PdfOptionalContentGroup("Artwork");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(layer).Rectangle(0, 0, 10, 10).Fill().EndMarkedContent())
+            .Build());
+
+        PdfDocument named = PdfDocument.Open(
+            PdfOptionalContentEditor.SetDefaultConfigurationMetadata(
+                original, "Press review", "KillerPDF"));
+        PdfOptionalContentConfigurationInfo configuration =
+            Assert.Single(PdfOptionalContentReader.Read(named).Configurations);
+
+        Assert.Equal("Press review", configuration.Name);
+        Assert.Equal("KillerPDF", configuration.Creator);
+        PdfDocument cleared = PdfDocument.Open(
+            PdfOptionalContentEditor.SetDefaultConfigurationMetadata(named, null, null));
+        PdfOptionalContentConfigurationInfo clearedConfiguration =
+            Assert.Single(PdfOptionalContentReader.Read(cleared).Configurations);
+        Assert.Null(clearedConfiguration.Name);
+        Assert.Null(clearedConfiguration.Creator);
+    }
 }

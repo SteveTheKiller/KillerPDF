@@ -15,6 +15,7 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName OffKey = new("OFF"u8);
     private static readonly PdfName LockedKey = new("Locked"u8);
     private static readonly PdfName OrderKey = new("Order"u8);
+    private static readonly PdfName CreatorKey = new("Creator"u8);
 
     /// <summary>Renames one registered layer by its source object number.</summary>
     public static byte[] RenameGroup(PdfDocument document, int objectNumber, string name)
@@ -200,6 +201,55 @@ public static class PdfOptionalContentEditor
         return update.Build();
     }
 
+    /// <summary>Sets or clears the default layer configuration name and creator.</summary>
+    public static byte[] SetDefaultConfigurationMetadata(
+        PdfDocument document, string? name, string? creator)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (name is not null && string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException(
+                "A layer configuration name cannot be empty.", nameof(name));
+        if (creator is not null && string.IsNullOrWhiteSpace(creator))
+            throw new ArgumentException(
+                "A layer configuration creator cannot be empty.", nameof(creator));
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (!tree.Catalog.TryGetValue(OptionalContentPropertiesKey, out PdfObject? propertiesValue))
+            throw new InvalidOperationException("The document has no optional-content properties.");
+        (PdfDictionary properties, PdfIndirectReference? propertiesReference) =
+            ResolveDictionaryWithReference(document, propertiesValue,
+                "The optional-content properties");
+        if (!properties.TryGetValue(DefaultConfigurationKey, out PdfObject? configurationValue))
+            throw new InvalidOperationException(
+                "The document has no default optional-content configuration.");
+        (PdfDictionary configuration, PdfIndirectReference? configurationReference) =
+            ResolveDictionaryWithReference(document, configurationValue,
+                "The default optional-content configuration");
+        var configurationEntries = configuration.ToDictionary(
+            entry => entry.Key, entry => entry.Value);
+        SetOptionalText(configurationEntries, NameKey, name);
+        SetOptionalText(configurationEntries, CreatorKey, creator);
+        var replacementConfiguration = new PdfDictionary(configurationEntries);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        if (configurationReference is not null)
+            update.ReplaceObject(configurationReference.ObjectNumber, replacementConfiguration);
+        else
+        {
+            var propertiesEntries = properties.ToDictionary(entry => entry.Key, entry => entry.Value);
+            propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
+            var replacementProperties = new PdfDictionary(propertiesEntries);
+            if (propertiesReference is not null)
+                update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
+            else
+            {
+                var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+                catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+                update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                    new PdfDictionary(catalogEntries));
+            }
+        }
+        return update.Build();
+    }
+
     private static byte[] SetUsageVisibility(PdfDocument document, int objectNumber,
         string categoryName, string stateName, bool? visible)
     {
@@ -281,6 +331,13 @@ public static class PdfOptionalContentEditor
     {
         if (values.Length == 0) entries.Remove(key);
         else entries[key] = new PdfArray(values);
+    }
+
+    private static void SetOptionalText(Dictionary<PdfName, PdfObject> entries,
+        PdfName key, string? value)
+    {
+        if (value is null) entries.Remove(key);
+        else entries[key] = UnicodeString(value);
     }
 
     private static PdfString UnicodeString(string value)
