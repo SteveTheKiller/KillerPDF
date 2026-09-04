@@ -62,7 +62,8 @@ public sealed record PdfFormFieldProposal
             throw new ArgumentException("Suggested choices must be unique.", nameof(suggestedOptions));
         if (suggestedValue is not null && string.IsNullOrWhiteSpace(suggestedValue))
             throw new ArgumentException("A suggested value cannot be empty.", nameof(suggestedValue));
-        if (suggestedValue is not null && kind != PdfRecognizedFieldKind.EditableComboBox
+        if (suggestedValue is not null
+            && kind is PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.ListBox
             && !options.Contains(suggestedValue, StringComparer.Ordinal))
             throw new ArgumentException("The suggested value must match a suggested choice.", nameof(suggestedValue));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
@@ -94,7 +95,7 @@ public sealed record PdfFormFieldProposal
     public string? SuggestedTooltip { get; }
     /// <summary>Gets the proposed choices for a choice field.</summary>
     public IReadOnlyList<string> SuggestedOptions { get; }
-    /// <summary>Gets the proposed selected value for a choice field.</summary>
+    /// <summary>Gets the proposed selected value for a choice field or export value for a radio option.</summary>
     public string? SuggestedValue { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
@@ -154,6 +155,16 @@ public sealed class PdfFormRecognitionReview
             throw new NotSupportedException(
                 $"Accepted {unsupported.Kind} proposal '{unsupported.Id}' requires additional authoring choices.");
         if (Accepted.Count == 0) return CopySource(document);
+        PdfFormFieldProposal[][] radioGroups = [.. Accepted
+            .Where(item => item.Kind == PdfRecognizedFieldKind.RadioButton)
+            .GroupBy(item => item.SuggestedName, StringComparer.Ordinal)
+            .Select(group => group.ToArray())];
+        PdfFormFieldProposal[]? invalidRadioGroup = radioGroups.FirstOrDefault(group =>
+            group.Length < 2 || group.Select(item => item.SuggestedValue)
+                .Distinct(StringComparer.Ordinal).Count() != group.Length);
+        if (invalidRadioGroup is not null)
+            throw new NotSupportedException(
+                $"Radio group '{invalidRadioGroup[0].SuggestedName}' requires at least two unique options.");
         var editor = new PdfIncrementalPageEditor(document);
         foreach (PdfFormFieldProposal proposal in Accepted)
         {
@@ -193,6 +204,15 @@ public sealed class PdfFormRecognitionReview
                     break;
             }
         }
+        foreach (PdfFormFieldProposal[] group in radioGroups)
+        {
+            PdfFormFieldMetadata? metadata = group[0].SuggestedTooltip is null ? null
+                : new PdfFormFieldMetadata { Tooltip = group[0].SuggestedTooltip };
+            editor.AddRadioGroup(group[0].SuggestedName, group.Select(proposal =>
+                new PdfRadioButtonOption(proposal.PageIndex, proposal.Bounds.Left,
+                    proposal.Bounds.Bottom, proposal.Bounds.Width, proposal.Bounds.Height,
+                    proposal.SuggestedValue!)), fieldMetadata: metadata);
+        }
         return editor.Build();
     }
 
@@ -202,6 +222,7 @@ public sealed class PdfFormRecognitionReview
     {
         PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.CheckBox
             or PdfRecognizedFieldKind.Signature => true,
+        PdfRecognizedFieldKind.RadioButton => proposal.SuggestedValue is not null,
         PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.EditableComboBox
             or PdfRecognizedFieldKind.ListBox => proposal.SuggestedOptions.Count > 0,
         _ => false

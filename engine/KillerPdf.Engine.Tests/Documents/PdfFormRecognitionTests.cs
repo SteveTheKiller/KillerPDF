@@ -101,6 +101,45 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewedRadioOptionsPersistAsOneGroup()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new("basic", 0, new PdfContentBounds(10, 10, 30, 30),
+                PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Basic"),
+            new("pro", 0, new PdfContentBounds(10, 40, 30, 60),
+                PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Pro")])
+            .Accept("basic", tooltip: "Plan")
+            .Accept("pro");
+
+        PdfDocument reopened = PdfDocument.Open(review.ApplyAccepted(document));
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(reopened, 0);
+
+        Assert.Equal(2, widgets.Count);
+        Assert.All(widgets, widget =>
+        {
+            Assert.Equal("plan", widget.FieldName);
+            Assert.Equal(PdfFormFieldKind.Button, widget.FieldKind);
+        });
+        Assert.Equal(["/Basic", "/Pro"], widgets.Select(widget => widget.OnValue).Order());
+    }
+
+    [Fact]
+    public void ApplyRejectsIncompleteRadioGroupsBeforeChangingDocument()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+        var review = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("only", 0, new PdfContentBounds(0, 0, 20, 20),
+                PdfRecognizedFieldKind.RadioButton, 1, "choice", suggestedValue: "Only")])
+            .Accept("only");
+
+        NotSupportedException error = Assert.Throws<NotSupportedException>(
+            () => review.ApplyAccepted(document));
+
+        Assert.Contains("at least two unique options", error.Message);
+    }
+
+    [Fact]
     public void ApplyRejectsAcceptedKindsThatNeedMoreAuthoringChoices()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
