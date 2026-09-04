@@ -245,6 +245,11 @@ public sealed class PdfPageRenderer
                         out string? inlineDiagnostic))
                         diagnostics.Add(inlineDiagnostic ?? "Inline-image rendering is not implemented.");
                     break;
+                case "sh" when values.Count == 1 && values[0] is PdfName shadingName:
+                    if (!TryRenderAxialShading(resources, shadingName, state, pixels,
+                        options.Width, options.Height, scaleX, scaleY, out string? shadingDiagnostic))
+                        diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
+                    break;
                 }
             }
         }
@@ -590,7 +595,8 @@ public sealed class PdfPageRenderer
             if (array.Count != 4 || Resolve(array[1]) is not PdfName
                 || ReadColorSpace(array[2], resources, depth + 1) is not { Palette: null } alternate)
                 throw new FormatException("A Separation image color space is invalid.");
-            Func<double, Color> tintTransform = ReadExponentialFunction(array[3], alternate);
+            Func<double, Color> tintTransform = ReadColorFunction(
+                array[3], alternate, "Separation tint transform");
             return new ImageColorSpace(1, null,
                 (tint, _, _, _) => tintTransform(tint));
         }
@@ -689,7 +695,7 @@ public sealed class PdfPageRenderer
     }
 
     private Func<double, Color> ReadExponentialFunction(
-        PdfObject value, ImageColorSpace alternate)
+        PdfObject value, ImageColorSpace alternate, string description)
     {
         int outputCount = alternate.Components;
         PdfObject resolved = Resolve(value);
@@ -697,7 +703,7 @@ public sealed class PdfPageRenderer
         {
             PdfDictionary direct => direct,
             PdfStream stream => stream.Dictionary,
-            _ => throw new FormatException("A Separation tint transform is invalid.")
+            _ => throw new FormatException($"A {description} is invalid.")
         };
         if (!dictionary.TryGetValue(Name("FunctionType"), out PdfObject? typeValue)
             || Resolve(typeValue) is not PdfInteger { Value: 2 })
@@ -706,25 +712,25 @@ public sealed class PdfPageRenderer
             defaultValues: []);
         if (!double.IsFinite(domain[0]) || !double.IsFinite(domain[1])
             || domain[0] >= domain[1])
-            throw new FormatException("A Separation tint-transform domain is invalid.");
+            throw new FormatException($"A {description} domain is invalid.");
         double[] c0 = ReadFunctionArray(dictionary, "C0", outputCount, required: false,
             defaultValues: Enumerable.Repeat(0d, outputCount).ToArray());
         double[] c1 = ReadFunctionArray(dictionary, "C1", outputCount, required: false,
             defaultValues: Enumerable.Repeat(1d, outputCount).ToArray());
         if (!dictionary.TryGetValue(Name("N"), out PdfObject? exponentValue))
-            throw new FormatException("A Separation tint-transform exponent is missing.");
+            throw new FormatException($"A {description} exponent is missing.");
         double exponent = Number(Resolve(exponentValue));
         if (!double.IsFinite(exponent) || exponent <= 0
             || c0.Any(component => !double.IsFinite(component))
             || c1.Any(component => !double.IsFinite(component)))
-            throw new FormatException("A Separation tint transform is invalid.");
+            throw new FormatException($"A {description} is invalid.");
         double[]? range = dictionary.TryGetValue(Name("Range"), out _)
             ? ReadFunctionArray(dictionary, "Range", outputCount * 2, required: true,
                 defaultValues: []) : null;
         if (range is not null && (range.Any(component => !double.IsFinite(component))
             || Enumerable.Range(0, outputCount).Any(index =>
                 range[index * 2] > range[index * 2 + 1])))
-            throw new FormatException("A Separation tint-transform range is invalid.");
+            throw new FormatException($"A {description} range is invalid.");
         return input =>
         {
             double factor = Math.Pow(Math.Clamp(input, domain[0], domain[1]), exponent);
@@ -737,6 +743,165 @@ public sealed class PdfPageRenderer
             return alternate.Convert(Component(0), outputCount > 1 ? Component(1) : 0,
                 outputCount > 2 ? Component(2) : 0, outputCount > 3 ? Component(3) : 0);
         };
+    }
+
+    private Func<double, Color> ReadColorFunction(
+        PdfObject value, ImageColorSpace colorSpace, string description)
+    {
+        PdfObject resolved = Resolve(value);
+        PdfDictionary dictionary = resolved switch
+        {
+            PdfDictionary direct => direct,
+            PdfStream stream => stream.Dictionary,
+            _ => throw new FormatException($"A {description} is invalid.")
+        };
+        if (!dictionary.TryGetValue(Name("FunctionType"), out PdfObject? typeValue)
+            || Resolve(typeValue) is not PdfInteger type)
+            throw new FormatException($"A {description} type is missing.");
+        return type.Value switch
+        {
+            2 => ReadExponentialFunction(value, colorSpace, description),
+            3 => ReadStitchingFunction(dictionary, colorSpace, description),
+            _ => throw new NotSupportedException()
+        };
+    }
+
+    private Func<double, Color> ReadStitchingFunction(
+        PdfDictionary dictionary, ImageColorSpace colorSpace, string description)
+    {
+        double[] domain = ReadFunctionArray(dictionary, "Domain", 2, required: true,
+            defaultValues: []);
+        if (!double.IsFinite(domain[0]) || !double.IsFinite(domain[1])
+            || domain[0] >= domain[1])
+            throw new FormatException($"A {description} domain is invalid.");
+        if (dictionary.ContainsKey(Name("Range"))) throw new NotSupportedException();
+        if (!dictionary.TryGetValue(Name("Functions"), out PdfObject? functionsValue)
+            || Resolve(functionsValue) is not PdfArray functionValues
+            || functionValues.Count == 0)
+            throw new FormatException($"A {description} function array is invalid.");
+        Func<double, Color>[] functions = functionValues.Select((function, index) =>
+            ReadColorFunction(function, colorSpace, $"{description} segment {index + 1}"))
+            .ToArray();
+        double[] bounds = functions.Length == 1 ? []
+            : ReadFunctionArray(dictionary, "Bounds", functions.Length - 1, required: true,
+                defaultValues: []);
+        double previous = domain[0];
+        foreach (double bound in bounds)
+        {
+            if (!double.IsFinite(bound) || bound <= previous || bound >= domain[1])
+                throw new FormatException($"A {description} boundary array is invalid.");
+            previous = bound;
+        }
+        double[] encode = ReadFunctionArray(dictionary, "Encode", functions.Length * 2,
+            required: true, defaultValues: []);
+        if (encode.Any(value => !double.IsFinite(value)))
+            throw new FormatException($"A {description} encoding array is invalid.");
+        return input =>
+        {
+            double clipped = Math.Clamp(input, domain[0], domain[1]);
+            int segment = 0;
+            while (segment < bounds.Length && clipped >= bounds[segment]) segment++;
+            double start = segment == 0 ? domain[0] : bounds[segment - 1];
+            double end = segment == bounds.Length ? domain[1] : bounds[segment];
+            double fraction = (clipped - start) / (end - start);
+            double mapped = encode[segment * 2] + fraction
+                * (encode[segment * 2 + 1] - encode[segment * 2]);
+            return functions[segment](mapped);
+        };
+    }
+
+    private bool TryRenderAxialShading(PdfDictionary resources, PdfName resourceName,
+        GraphicsState state, byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY, out string? diagnostic)
+    {
+        diagnostic = null;
+        try
+        {
+            if (!resources.TryGetValue(Name("Shading"), out PdfObject? shadingsValue)
+                || Resolve(shadingsValue) is not PdfDictionary shadings
+                || !shadings.TryGetValue(resourceName, out PdfObject? shadingValue))
+                throw new FormatException("A shading resource could not be resolved.");
+            PdfObject resolved = Resolve(shadingValue);
+            PdfDictionary shading = resolved switch
+            {
+                PdfDictionary dictionary => dictionary,
+                PdfStream stream => stream.Dictionary,
+                _ => throw new FormatException("An axial shading dictionary is invalid.")
+            };
+            if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
+                || Resolve(typeValue) is not PdfInteger { Value: 2 })
+                throw new NotSupportedException();
+            if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
+                throw new FormatException("An axial shading color space is missing.");
+            ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
+            if (colorSpace.Palette is not null)
+                throw new NotSupportedException();
+            if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
+                throw new FormatException("An axial shading coordinate array is missing.");
+            PdfArray coordinates = ResolveArray(coordinatesValue, 4,
+                "Axial shading coordinate array");
+            double x0 = Number(Resolve(coordinates[0]));
+            double y0 = Number(Resolve(coordinates[1]));
+            double x1 = Number(Resolve(coordinates[2]));
+            double y1 = Number(Resolve(coordinates[3]));
+            double axisX = x1 - x0, axisY = y1 - y0;
+            double axisLengthSquared = axisX * axisX + axisY * axisY;
+            if (!double.IsFinite(axisLengthSquared) || axisLengthSquared <= 0)
+                throw new FormatException("An axial shading axis is invalid.");
+            if (!shading.TryGetValue(Name("Function"), out PdfObject? functionValue))
+                throw new FormatException("An axial shading function is missing.");
+            Func<double, Color> function = ReadColorFunction(
+                functionValue, colorSpace, "axial shading function");
+            double[] domain = shading.TryGetValue(Name("Domain"), out PdfObject? domainValue)
+                ? ResolveArray(domainValue, 2, "Axial shading domain")
+                    .Select(item => Number(Resolve(item))).ToArray()
+                : [0, 1];
+            if (domain.Any(value => !double.IsFinite(value)) || domain[0] >= domain[1])
+                throw new FormatException("An axial shading domain is invalid.");
+            bool extendStart = false, extendEnd = false;
+            if (shading.TryGetValue(Name("Extend"), out PdfObject? extendValue))
+            {
+                PdfArray extend = ResolveArray(extendValue, 2, "Axial shading extension array");
+                extendStart = Resolve(extend[0]) is PdfBoolean { Value: true };
+                extendEnd = Resolve(extend[1]) is PdfBoolean { Value: true };
+            }
+            Point[]? bounds = null;
+            if (shading.TryGetValue(Name("BBox"), out PdfObject? boundsValue))
+            {
+                PdfArray box = ResolveArray(boundsValue, 4, "Axial shading bounding box");
+                double left = Number(Resolve(box[0])), bottom = Number(Resolve(box[1]));
+                double right = Number(Resolve(box[2])), top = Number(Resolve(box[3]));
+                if (right <= left || top <= bottom)
+                    throw new FormatException("An axial shading bounding box is invalid.");
+                bounds =
+                [
+                    state.Transform.Apply(left, bottom), state.Transform.Apply(right, bottom),
+                    state.Transform.Apply(right, top), state.Transform.Apply(left, top)
+                ];
+            }
+            if (!state.Transform.TryInverse(out Matrix inverse)) return true;
+            for (int y = 0; y < targetHeight; y++)
+                for (int x = 0; x < targetWidth; x++)
+                {
+                    double pageX = (x + 0.5) / scaleX;
+                    double pageY = (targetHeight - y - 0.5) / scaleY;
+                    if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                    if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
+                    Point point = inverse.Apply(pageX, pageY);
+                    double unit = ((point.X - x0) * axisX + (point.Y - y0) * axisY)
+                        / axisLengthSquared;
+                    if (unit < 0 && !extendStart || unit > 1 && !extendEnd) continue;
+                    unit = Math.Clamp(unit, 0, 1);
+                    double input = domain[0] + unit * (domain[1] - domain[0]);
+                    SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha);
+                }
+            return true;
+        }
+        catch (NotSupportedException)
+        {
+            diagnostic = "The shading type or function is not implemented.";
+            return false;
+        }
     }
 
     private double[] ReadFunctionArray(PdfDictionary dictionary, string key, int count,
