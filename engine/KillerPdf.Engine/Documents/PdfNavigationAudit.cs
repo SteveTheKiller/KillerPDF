@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -33,6 +34,31 @@ public sealed record PdfNavigationFinding(PdfNavigationFindingCode Code, string 
 /// <summary>Validates resolved bookmark and link targets without executing document actions.</summary>
 public static class PdfNavigationAudit
 {
+    /// <summary>Removes links whose URI schemes are unsafe or invalid.</summary>
+    public static byte[] RemoveUnsafeLinks(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        PdfNavigationFinding[] unsafeLinks = [.. Inspect(document).Where(finding =>
+            finding.Code == PdfNavigationFindingCode.LinkUnsafeUri
+            && finding.SourcePageIndex.HasValue
+            && finding.SourceObjectNumber.HasValue)];
+        if (unsafeLinks.Length == 0) return document.Source.ToArray();
+        var editor = new PdfIncrementalAnnotationEditor(document);
+        foreach (IGrouping<int, PdfNavigationFinding> pageFindings in unsafeLinks
+            .GroupBy(finding => finding.SourcePageIndex!.Value))
+        {
+            Dictionary<int, int> annotationIndexes = PdfLinkReader.ReadPage(
+                    document, pageFindings.Key)
+                .Where(link => link.ObjectNumber.HasValue)
+                .ToDictionary(link => link.ObjectNumber!.Value, link => link.AnnotationIndex);
+            foreach (int annotationIndex in pageFindings
+                .Select(finding => annotationIndexes[finding.SourceObjectNumber!.Value])
+                .OrderByDescending(index => index))
+                editor.RemoveAnnotationAt(pageFindings.Key, annotationIndex);
+        }
+        return editor.Build();
+    }
+
     /// <summary>Exports navigation findings as stable machine-readable JSON.</summary>
     public static string ExportJson(PdfDocument document, bool indented = true) =>
         JsonSerializer.Serialize(Inspect(document), new JsonSerializerOptions

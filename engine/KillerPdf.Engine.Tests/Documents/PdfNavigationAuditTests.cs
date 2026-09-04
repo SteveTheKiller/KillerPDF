@@ -34,6 +34,21 @@ public sealed class PdfNavigationAuditTests
         Assert.Equal("Remove", report.RootElement[0].GetProperty("SuggestedRepair").GetString());
     }
 
+    [Fact]
+    public void RemoveUnsafeLinksPreservesNavigationThatNeedsReview()
+    {
+        PdfDocument original = Document("[5 0 R 6 0 R]",
+            "<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /A << /S /URI /URI (javascript:alert) >> >>",
+            "<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /Dest (missing) >>");
+
+        PdfDocument repaired = PdfDocument.Open(PdfNavigationAudit.RemoveUnsafeLinks(original));
+        IReadOnlyList<PdfNavigationFinding> remaining = PdfNavigationAudit.Inspect(repaired);
+
+        Assert.Single(remaining);
+        Assert.Equal(PdfNavigationFindingCode.LinkUnresolvedDestination, remaining[0].Code);
+        Assert.Equal(2, PdfNavigationAudit.Inspect(original).Count);
+    }
+
     private static PdfDocument Document(string annots, params string[] extras)
     {
         string[] objects = ["<< /Type /Catalog /Pages 2 0 R >>",
