@@ -22,7 +22,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added step-and-repeat, poster tiling, manual sequences, bounded booklet signatures, fitted sheet grids, crop marks, and registration marks to imposition planning (#349).
 - Added layer and configuration naming, locking, editable base state, visibility, and display order, plus readable preflight reports (#350, #334).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
-- Added source identities, JSON reports, stable findings, safe-link removal, and link retargeting to navigation audits (#351).
+- Added bookmark renaming, source identities, JSON reports, stable findings, safe-link removal, and link retargeting to navigation workflows (#351).
 - Added CSV and JSON record import, reusable mapping profiles, batch reports, and cancellable collision-safe form generation (#352).
 - Added searchable text-layer writing, review persistence, confidence-based acceptance, accuracy summaries, batch isolation, and configurable OCR processing (#345).
 - Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).

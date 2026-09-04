@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using System.Text;
 using Xunit;
 
@@ -91,6 +92,27 @@ public sealed class PdfBookmarkReaderTests
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
 
         Assert.Empty(PdfBookmarkReader.Read(document));
+    }
+
+    [Fact]
+    public void RenamePreservesBookmarkHierarchyAndDestination()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().AddBlankPage()
+            .AddBookmark("Chapter", 0)
+            .AddBookmark("Old title", 1, level: 1)
+            .Build());
+        PdfBookmarkInfo child = Assert.Single(
+            Assert.Single(PdfBookmarkReader.Read(original)).Children);
+
+        PdfDocument changed = PdfDocument.Open(
+            PdfBookmarkEditor.Rename(original, child.ObjectNumber, "Résumé"));
+        PdfBookmarkInfo renamed = Assert.Single(
+            Assert.Single(PdfBookmarkReader.Read(changed)).Children);
+
+        Assert.Equal("Résumé", renamed.Title);
+        Assert.Equal(1, renamed.DestinationPageIndex);
+        Assert.Equal("Old title", child.Title);
     }
 
     private static byte[] ReplaceAscii(byte[] source, string oldValue, string newValue)
