@@ -243,7 +243,8 @@ public sealed record PdfFormFieldProposal
         PdfFormFieldAppearanceStyle? suggestedAppearanceStyle = null,
         bool suggestedNoExport = false,
         PdfFormFieldVisibility suggestedVisibility = PdfFormFieldVisibility.Visible,
-        PdfRecognizedPushButtonAction? suggestedPushButtonAction = null)
+        PdfRecognizedPushButtonAction? suggestedPushButtonAction = null,
+        string? suggestedMappingName = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -253,6 +254,9 @@ public sealed record PdfFormFieldProposal
         if (string.IsNullOrWhiteSpace(suggestedName)) throw new ArgumentException("A suggested field name is required.", nameof(suggestedName));
         if (suggestedTooltip is not null && string.IsNullOrWhiteSpace(suggestedTooltip))
             throw new ArgumentException("A suggested tooltip cannot be empty.", nameof(suggestedTooltip));
+        if (suggestedMappingName is not null && string.IsNullOrWhiteSpace(suggestedMappingName))
+            throw new ArgumentException(
+                "A suggested export mapping name cannot be empty.", nameof(suggestedMappingName));
         string[] options = suggestedOptions?.ToArray() ?? [];
         if (options.Any(string.IsNullOrWhiteSpace))
             throw new ArgumentException("Suggested choices cannot be empty.", nameof(suggestedOptions));
@@ -335,6 +339,7 @@ public sealed record PdfFormFieldProposal
         SuggestedNoExport = suggestedNoExport;
         SuggestedVisibility = suggestedVisibility;
         SuggestedPushButtonAction = suggestedPushButtonAction;
+        SuggestedMappingName = suggestedMappingName;
         Status = status;
     }
 
@@ -386,6 +391,8 @@ public sealed record PdfFormFieldProposal
     public PdfFormFieldVisibility SuggestedVisibility { get; }
     /// <summary>Gets the reviewed safe action for a proposed push button.</summary>
     public PdfRecognizedPushButtonAction? SuggestedPushButtonAction { get; }
+    /// <summary>Gets the proposed export mapping name.</summary>
+    public string? SuggestedMappingName { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
@@ -399,7 +406,8 @@ public sealed record PdfFormFieldProposal
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
-        PdfRecognizedPushButtonAction? pushButtonAction = null) =>
+        PdfRecognizedPushButtonAction? pushButtonAction = null,
+        string? mappingName = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
@@ -409,7 +417,8 @@ public sealed record PdfFormFieldProposal
             maximumLength ?? SuggestedMaximumLength, alignment ?? SuggestedAlignment,
             fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle,
             noExport ?? SuggestedNoExport, visibility ?? SuggestedVisibility,
-            pushButtonAction ?? SuggestedPushButtonAction);
+            pushButtonAction ?? SuggestedPushButtonAction,
+            mappingName ?? SuggestedMappingName);
 
     internal PdfFormFieldProposal Duplicate(string id, int pageIndex,
         PdfContentBounds bounds, string suggestedName) =>
@@ -419,7 +428,7 @@ public sealed record PdfFormFieldProposal
             SuggestedDoNotScroll, SuggestedPassword, SuggestedDoNotSpellCheck,
             SuggestedComb, SuggestedMaximumLength, SuggestedAlignment, SuggestedFontSize,
             SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility,
-            SuggestedPushButtonAction);
+            SuggestedPushButtonAction, SuggestedMappingName);
 
     private static PdfFormFieldAppearanceStyle ValidateAppearance(
         PdfFormFieldAppearanceStyle? style)
@@ -494,12 +503,14 @@ public sealed class PdfFormRecognitionReview
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
-        PdfRecognizedPushButtonAction? pushButtonAction = null) =>
+        PdfRecognizedPushButtonAction? pushButtonAction = null,
+        string? mappingName = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
             readOnly, required, isChecked, multiline, doNotScroll,
             password, doNotSpellCheck, comb, maximumLength, alignment,
-            fontSize, appearanceStyle, noExport, visibility, pushButtonAction));
+            fontSize, appearanceStyle, noExport, visibility, pushButtonAction,
+            mappingName));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -553,8 +564,13 @@ public sealed class PdfFormRecognitionReview
         foreach (PdfFormFieldProposal proposal in Accepted)
         {
             PdfContentBounds bounds = proposal.Bounds;
-            PdfFormFieldMetadata? metadata = proposal.SuggestedTooltip is null ? null
-                : new PdfFormFieldMetadata { Tooltip = proposal.SuggestedTooltip };
+            PdfFormFieldMetadata? metadata = proposal.SuggestedTooltip is null
+                    && proposal.SuggestedMappingName is null ? null
+                : new PdfFormFieldMetadata
+                {
+                    Tooltip = proposal.SuggestedTooltip,
+                    MappingName = proposal.SuggestedMappingName
+                };
             var fieldOptions = new PdfFormFieldOptions
             {
                 ReadOnly = proposal.SuggestedReadOnly,
@@ -638,11 +654,17 @@ public sealed class PdfFormRecognitionReview
                 || proposal.SuggestedRequired != group[0].SuggestedRequired
                 || proposal.SuggestedNoExport != group[0].SuggestedNoExport
                 || proposal.SuggestedVisibility != group[0].SuggestedVisibility
+                || proposal.SuggestedMappingName != group[0].SuggestedMappingName
                 || proposal.SuggestedAppearanceStyle != group[0].SuggestedAppearanceStyle))
                 throw new NotSupportedException(
                     $"Radio group '{group[0].SuggestedName}' has inconsistent field requirements.");
-            PdfFormFieldMetadata? metadata = group[0].SuggestedTooltip is null ? null
-                : new PdfFormFieldMetadata { Tooltip = group[0].SuggestedTooltip };
+            PdfFormFieldMetadata? metadata = group[0].SuggestedTooltip is null
+                    && group[0].SuggestedMappingName is null ? null
+                : new PdfFormFieldMetadata
+                {
+                    Tooltip = group[0].SuggestedTooltip,
+                    MappingName = group[0].SuggestedMappingName
+                };
             editor.AddRadioGroup(group[0].SuggestedName, group.Select(proposal =>
                 new PdfRadioButtonOption(proposal.PageIndex, proposal.Bounds.Left,
                     proposal.Bounds.Bottom, proposal.Bounds.Width, proposal.Bounds.Height,

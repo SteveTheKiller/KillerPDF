@@ -104,7 +104,7 @@ public sealed class PdfFormRecognitionTests
             new PdfFormFieldProposal("name", 0, new PdfContentBounds(10, 10, 110, 30),
                 PdfRecognizedFieldKind.Text, 0.95, "name", suggestedTooltip: "Name",
                 suggestedValue: "Alice", suggestedRequired: true, suggestedFontSize: 9,
-                suggestedAppearanceStyle: style),
+                suggestedAppearanceStyle: style, suggestedMappingName: "customer_name"),
             Proposal("unused", 0, 0.8)]);
 
         PdfFormRecognitionReview duplicated = original.Duplicate(
@@ -122,6 +122,7 @@ public sealed class PdfFormRecognitionTests
         Assert.True(copy.SuggestedRequired);
         Assert.Equal(9, copy.SuggestedFontSize);
         Assert.Equal(style, copy.SuggestedAppearanceStyle);
+        Assert.Equal("customer_name", copy.SuggestedMappingName);
         Assert.False(duplicated.IsReadyToApply);
         Assert.True(decided.IsReadyToApply);
         Assert.Equal(["name-copy", "name"], decided.Accepted.Select(item => item.Id));
@@ -138,7 +139,7 @@ public sealed class PdfFormRecognitionTests
         var review = new PdfFormRecognitionReview([
             Proposal("second", 1, 0.7),
             Proposal("first", 0, 0.9)
-        ]).Accept("first").Reject("second");
+        ]).Accept("first", mappingName: "first_export").Reject("second");
 
         using JsonDocument json = JsonDocument.Parse(review.ToJson());
         JsonElement root = json.RootElement;
@@ -149,6 +150,8 @@ public sealed class PdfFormRecognitionTests
         Assert.Equal("first", proposals[0].GetProperty("id").GetString());
         Assert.Equal((int)PdfFormProposalStatus.Accepted,
             proposals[0].GetProperty("status").GetInt32());
+        Assert.Equal("first_export",
+            proposals[0].GetProperty("suggestedMappingName").GetString());
         Assert.Equal("second", proposals[1].GetProperty("id").GetString());
         Assert.Equal((int)PdfFormProposalStatus.Rejected,
             proposals[1].GetProperty("status").GetInt32());
@@ -185,7 +188,8 @@ public sealed class PdfFormRecognitionTests
         Assert.Throws<InvalidOperationException>(() => pending.ApplyAccepted(document));
 
         PdfFormRecognitionReview reviewed = pending.Accept("text", tooltip: "Text value",
-                readOnly: true, required: true, multiline: true)
+                readOnly: true, required: true, multiline: true,
+                mappingName: "customer_text")
             .Accept("check", tooltip: "Check value")
             .Accept("signature", tooltip: "Approval signature");
         PdfDocument reopened = PdfDocument.Open(reviewed.ApplyAccepted(document));
@@ -196,6 +200,8 @@ public sealed class PdfFormRecognitionTests
         Assert.Contains(widgets, widget => widget.FieldName == "check" && widget.FieldKind == PdfFormFieldKind.Button);
         Assert.Contains(widgets, widget => widget.FieldName == "signature" && widget.FieldKind == PdfFormFieldKind.Signature);
         Assert.Equal("Text value", widgets.Single(widget => widget.FieldName == "text").Tooltip);
+        Assert.Equal("customer_text",
+            widgets.Single(widget => widget.FieldName == "text").MappingName);
         Assert.Equal(3 | 4096,
             widgets.Single(widget => widget.FieldName == "text").Flags & (3 | 4096));
         Assert.Equal("Check value", widgets.Single(widget => widget.FieldName == "check").Tooltip);
