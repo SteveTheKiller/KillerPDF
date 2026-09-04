@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Objects;
@@ -8,6 +9,39 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Reads review comments from every annotation subtype.</summary>
 public static class PdfCommentReader
 {
+    /// <summary>Exports threaded review comments as readable text.</summary>
+    public static string ExportText(PdfDocument document)
+    {
+        IReadOnlyList<PdfCommentThread> threads = ReadThreads(document);
+        int count = threads.Sum(Count);
+        var output = new StringBuilder();
+        output.Append("Comments: ").AppendLine(count.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfCommentThread thread in threads) Append(thread, 0);
+        return output.ToString().TrimEnd();
+
+        void Append(PdfCommentThread thread, int depth)
+        {
+            PdfCommentInfo comment = thread.Comment;
+            output.Append(' ', depth * 2).Append(depth == 0 ? "Comment" : "Reply")
+                .Append(" on page ")
+                .Append((comment.PageIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(", annotation ")
+                .Append((comment.AnnotationIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(" [").Append(comment.Subtype).Append(']');
+            if (!string.IsNullOrWhiteSpace(comment.Author))
+                output.Append(" by ").Append(SingleLine(comment.Author));
+            if (!string.IsNullOrWhiteSpace(comment.Subject))
+                output.Append(" (subject: ").Append(SingleLine(comment.Subject)).Append(')');
+            output.AppendLine();
+            output.Append(' ', depth * 2 + 2)
+                .AppendLine(SingleLine(comment.Contents));
+            foreach (PdfCommentThread reply in thread.Replies) Append(reply, depth + 1);
+        }
+
+        static int Count(PdfCommentThread thread) =>
+            1 + thread.Replies.Sum(Count);
+    }
+
     /// <summary>Exports threaded review comments as stable machine-readable JSON.</summary>
     public static string ExportJson(PdfDocument document, bool indented = true) =>
         JsonSerializer.Serialize(ReadThreads(document), new JsonSerializerOptions
@@ -168,6 +202,10 @@ public static class PdfCommentReader
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+
+    private static string SingleLine(string value) => value
+        .Replace("\r", " ", StringComparison.Ordinal)
+        .Replace("\n", " ", StringComparison.Ordinal);
 }
 
 /// <summary>One review comment and its ordered replies.</summary>

@@ -88,6 +88,24 @@ public sealed class PdfCommentReaderTests
         Assert.Equal("Applied", json.RootElement[0].GetProperty("replies")[0]
             .GetProperty("replies")[0].GetProperty("comment")
             .GetProperty("contents").GetString());
+        string text = PdfCommentReader.ExportText(document);
+        Assert.Contains("Comments: 4", text, StringComparison.Ordinal);
+        Assert.Contains("Comment on page 1, annotation 1 [Text]", text,
+            StringComparison.Ordinal);
+        Assert.Contains("  Reply on page 1, annotation 2 [Text]", text,
+            StringComparison.Ordinal);
+        Assert.Contains("    Reply on page 1, annotation 3 [Text]", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Check this separately", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmptyCommentReportIsReadable()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+
+        Assert.Equal("Comments: 0", PdfCommentReader.ExportText(document));
     }
 
     [Fact]
