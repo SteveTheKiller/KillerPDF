@@ -13547,6 +13547,59 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void RenameFormField_RenamesTerminalAndParentFieldsWithoutChangingValues()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 10, 10, 100, 20, "Steve")
+            .AddTextField(0, "customer.email", 10, 40, 100, 20, "steve@example.com")
+            .Build();
+
+        byte[] terminalBytes = new PdfIncrementalPageEditor(PdfDocument.Open(source))
+            .RenameFormField("customer.name", "fullName")
+            .Build();
+        Assert.Equal(source, terminalBytes.AsSpan(0, source.Length).ToArray());
+        PdfDocument terminal = PdfDocument.Open(terminalBytes);
+        IReadOnlyList<PdfFormWidgetInfo> terminalWidgets =
+            PdfFormWidgetReader.ReadPage(terminal, 0);
+        Assert.Equal("Steve", terminalWidgets.Single(
+            widget => widget.FieldName == "customer.fullName").Value);
+        Assert.Equal("steve@example.com", terminalWidgets.Single(
+            widget => widget.FieldName == "customer.email").Value);
+
+        PdfDocument parent = PdfDocument.Open(
+            new PdfIncrementalPageEditor(terminal)
+                .RenameFormField("customer", "client")
+                .Build());
+        IReadOnlyList<PdfFormWidgetInfo> parentWidgets =
+            PdfFormWidgetReader.ReadPage(parent, 0);
+        Assert.Contains(parentWidgets,
+            widget => widget.FieldName == "client.fullName" && widget.Value == "Steve");
+        Assert.Contains(parentWidgets,
+            widget => widget.FieldName == "client.email" && widget.Value == "steve@example.com");
+    }
+
+    [Fact]
+    public void RenameFormField_RejectsInvalidMissingAndDuplicateNames()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 10, 10, 100, 20)
+            .AddTextField(0, "customer.email", 10, 40, 100, 20)
+            .Build();
+        PdfDocument document = PdfDocument.Open(source);
+
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(document)
+            .RenameFormField(" ", "name"));
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(document)
+            .RenameFormField("customer.name", " "));
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(document)
+            .RenameFormField("customer.name", "contact.name"));
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(document)
+            .RenameFormField("missing", "renamed").Build());
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(document)
+            .RenameFormField("customer.name", "email").Build());
+    }
+
+    [Fact]
     public void SetFieldDefaultValues_ChangeDefaultsWithoutChangingCurrentValues()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()

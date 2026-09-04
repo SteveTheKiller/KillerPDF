@@ -189,6 +189,8 @@ public sealed class PdfIncrementalPageEditor
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, PendingCommonFieldFlags> _fieldFlagChanges =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _fieldNameChanges =
+        new(StringComparer.Ordinal);
     private readonly Dictionary<(int ObjectNumber, int Generation), PendingWidgetRectangle>
         _widgetRectangleChanges = [];
     private readonly Dictionary<(int ObjectNumber, int Generation), PdfFormFieldVisibility>
@@ -355,6 +357,23 @@ public sealed class PdfIncrementalPageEditor
         return this;
     }
 
+    /// <summary>Changes the partial name of an existing field while preserving its hierarchy.</summary>
+    public PdfIncrementalPageEditor RenameFormField(
+        string fieldName, string newPartialName)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("The form field name cannot be empty.", nameof(fieldName));
+        if (string.IsNullOrWhiteSpace(newPartialName))
+            throw new ArgumentException("The new partial field name cannot be empty.", nameof(newPartialName));
+        if (newPartialName.Contains('.', StringComparison.Ordinal))
+            throw new ArgumentException(
+                "The new partial field name cannot contain a hierarchy separator.",
+                nameof(newPartialName));
+        _fieldNameChanges[fieldName] = newPartialName;
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
     /// <summary>Moves or resizes one indirect AcroForm widget annotation.</summary>
     public PdfIncrementalPageEditor SetFormWidgetRectangle(
         int objectNumber, int generation,
@@ -442,6 +461,7 @@ public sealed class PdfIncrementalPageEditor
         _resetFieldValues.Remove(fieldName);
         _fieldMetadataChanges.Remove(fieldName);
         _fieldFlagChanges.Remove(fieldName);
+        _fieldNameChanges.Remove(fieldName);
         _fieldDefaultChanges.Remove(fieldName);
         _removedFormFields.Add(fieldName);
         _catalogPresentationChanged = true;
@@ -1947,6 +1967,7 @@ public sealed class PdfIncrementalPageEditor
                 || _textFieldValues.Count != 0 || _choiceFieldValues.Count != 0
                 || _resetFieldValues.Count != 0 || _fieldMetadataChanges.Count != 0
                 || _fieldFlagChanges.Count != 0
+                || _fieldNameChanges.Count != 0
                 || _fieldDefaultChanges.Count != 0);
         bool deferFormFieldRemovals = _removedFormFields.Count != 0
             && mergesFormFields;
@@ -1987,6 +2008,8 @@ public sealed class PdfIncrementalPageEditor
                 formUpdate._fieldMetadataChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldFlagChanges)
                 formUpdate._fieldFlagChanges[entry.Key] = entry.Value;
+            foreach (var entry in _fieldNameChanges)
+                formUpdate._fieldNameChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldDefaultChanges)
                 formUpdate._fieldDefaultChanges[entry.Key] = entry.Value;
             foreach (string fieldName in _removedFormFields)
@@ -2003,6 +2026,7 @@ public sealed class PdfIncrementalPageEditor
             && _textFieldValues.Count == 0 && _choiceFieldValues.Count == 0
             && _resetFieldValues.Count == 0 && _fieldMetadataChanges.Count == 0
             && _fieldFlagChanges.Count == 0
+            && _fieldNameChanges.Count == 0
             && _fieldDefaultChanges.Count == 0) return;
         if (!_tree.Catalog.TryGetValue(AcroFormName, out PdfObject? formValue))
             throw new InvalidOperationException("The document has no AcroForm fields.");
@@ -2012,10 +2036,12 @@ public sealed class PdfIncrementalPageEditor
         var matched = new HashSet<string>(StringComparer.Ordinal);
         var metadataMatched = new HashSet<string>(StringComparer.Ordinal);
         var flagsMatched = new HashSet<string>(StringComparer.Ordinal);
+        var namesMatched = new HashSet<string>(StringComparer.Ordinal);
         var defaultMatched = new HashSet<string>(StringComparer.Ordinal);
+        var resultingNames = new HashSet<string>(StringComparer.Ordinal);
         var visited = new HashSet<(int ObjectNumber, int Generation)>();
         foreach (PdfObject field in fields)
-            Visit(field, null, null, 0);
+            Visit(field, null, null, null, 0);
         foreach (string requested in _checkBoxValues.Keys)
             if (!matched.Contains(requested))
                 throw new InvalidOperationException(
@@ -2044,12 +2070,17 @@ public sealed class PdfIncrementalPageEditor
             if (!flagsMatched.Contains(requested))
                 throw new InvalidOperationException(
                     $"The AcroForm has no field named '{requested}'.");
+        foreach (string requested in _fieldNameChanges.Keys)
+            if (!namesMatched.Contains(requested))
+                throw new InvalidOperationException(
+                    $"The AcroForm has no field named '{requested}'.");
         foreach (string requested in _fieldDefaultChanges.Keys)
             if (!defaultMatched.Contains(requested))
                 throw new InvalidOperationException(
                     $"The AcroForm has no field named '{requested}'.");
 
-        void Visit(PdfObject value, string? parentName, PdfName? inheritedType, int depth)
+        void Visit(PdfObject value, string? originalParentName,
+            string? resultingParentName, PdfName? inheritedType, int depth)
         {
             if (depth >= 256)
                 throw new InvalidOperationException("The AcroForm field tree is too deeply nested.");
@@ -2069,7 +2100,8 @@ public sealed class PdfIncrementalPageEditor
                     _document, typeValue, "An AcroForm field /FT value") as PdfName
                     ?? throw new InvalidOperationException(
                         "An AcroForm field /FT value is not a name.");
-            string? qualifiedName = parentName;
+            string? qualifiedName = originalParentName;
+            string? resultingQualifiedName = resultingParentName;
             bool hasPartialName = field.TryGetValue(FieldName, out PdfObject? nameValue);
             if (hasPartialName)
             {
@@ -2079,12 +2111,35 @@ public sealed class PdfIncrementalPageEditor
                         "An AcroForm field /T value is not a string.");
                 string part = PdfUnicodeEncoding.DecodeTextString(
                     partialName.Bytes.Span, "An AcroForm field /T value");
-                qualifiedName = parentName is null ? part : $"{parentName}.{part}";
+                qualifiedName = originalParentName is null
+                    ? part : $"{originalParentName}.{part}";
+                string resultingPart = part;
+                if (_fieldNameChanges.TryGetValue(qualifiedName, out string? replacementName))
+                {
+                    if (!namesMatched.Add(qualifiedName))
+                        throw new InvalidOperationException(
+                            $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                    resultingPart = replacementName;
+                }
+                resultingQualifiedName = resultingParentName is null
+                    ? resultingPart : $"{resultingParentName}.{resultingPart}";
+                if (!resultingNames.Add(resultingQualifiedName))
+                    throw new InvalidOperationException(
+                        $"Renaming the AcroForm field '{qualifiedName}' would create the duplicate name '{resultingQualifiedName}'.");
             }
             PdfFormFieldMetadata? metadata = null;
             bool hasMetadataChange = hasPartialName && qualifiedName is not null
                 && _fieldMetadataChanges.TryGetValue(qualifiedName, out metadata);
             PdfDictionary editedField = field;
+            string? newPartialName = null;
+            bool hasNameChange = hasPartialName && qualifiedName is not null
+                && _fieldNameChanges.TryGetValue(qualifiedName, out newPartialName);
+            if (hasNameChange)
+                editedField = ReplaceMany(editedField,
+                    new Dictionary<PdfName, PdfObject>
+                    {
+                        [FieldName] = TextString(newPartialName!)
+                    });
             PendingCommonFieldFlags? flagChange = null;
             bool hasFlagChange = hasPartialName && qualifiedName is not null
                 && _fieldFlagChanges.TryGetValue(qualifiedName, out flagChange);
@@ -2192,13 +2247,13 @@ public sealed class PdfIncrementalPageEditor
                 UpdateChoiceField(
                     update, reference, editedField, form, qualifiedName, choiceValue);
             }
-            else if (hasMetadataChange || hasDefaultChange || hasFlagChange)
+            else if (hasMetadataChange || hasDefaultChange || hasFlagChange || hasNameChange)
                 update.ReplaceObject(reference.ObjectNumber, editedField);
             if (!field.TryGetValue(KidsName, out PdfObject? kidsValue)) return;
             PdfArray kids = ResolveArray(
                 _document, kidsValue, "An AcroForm field /Kids value");
             foreach (PdfObject kid in kids)
-                Visit(kid, qualifiedName, fieldType, depth + 1);
+                Visit(kid, qualifiedName, resultingQualifiedName, fieldType, depth + 1);
         }
     }
 
