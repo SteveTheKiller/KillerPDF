@@ -15,7 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added shading resources and clipped bounds to page-content extraction (#331).
 - Added isolated transformations, rectangular clipping, and resource-aware structural comparison for page content (#332).
 - Expanded selective sanitization to remove forms, comments, and document JavaScript (#333).
-- Added accessibility checks for missing form field descriptions (#335).
+- Added accessibility and preflight checks for missing form field descriptions (#334, #335).
 - Added certificate identity and algorithm details to signature verification (#336).
 - Added attachment renaming and replacement, executable-content and integrity checks, and portfolio metadata (#347).
 - Added saved calibration profiles, document, page, and region assignments, coordinates, directional deltas, and point, axis, and angle snapping to measurement tools (#348).

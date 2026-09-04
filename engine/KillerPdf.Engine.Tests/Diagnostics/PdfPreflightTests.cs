@@ -47,6 +47,25 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void FormAccessibilityReportsOnlyFieldsWithoutDescriptions()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "undocumented", 10, 10, 100, 20)
+            .AddTextField(0, "documented", 10, 40, 100, 20, fieldMetadata:
+                new PdfFormFieldMetadata { Tooltip = "Account name" }).Build();
+        var profile = new PdfPreflightProfile("Accessible forms",
+            [PdfPreflightCheck.FormAccessibility]);
+
+        PdfPreflightFinding finding = Assert.Single(
+            PdfPreflightRunner.Run(source, profile).Findings);
+
+        Assert.Equal("Accessibility.MissingFormFieldDescription", finding.Code);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+        Assert.Contains("undocumented", finding.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GeneralProfileReportsStructuralDamageWithoutThrowing()
     {
         PdfPreflightReport report = PdfPreflightRunner.Run(

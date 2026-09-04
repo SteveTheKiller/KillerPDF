@@ -14,6 +14,8 @@ public enum PdfPreflightCheck
     DocumentLanguage,
     /// <summary>Checks for a structure tree and marked-content declaration.</summary>
     TaggedStructure,
+    /// <summary>Checks interactive form fields for user-facing descriptions.</summary>
+    FormAccessibility,
     /// <summary>Checks effective media and crop boxes on every page.</summary>
     PageBoxes,
     /// <summary>Checks for a usable document output intent and ICC profile.</summary>
@@ -189,14 +191,20 @@ public static class PdfPreflightRunner
         PdfDocument checkedDocument = password is null
             ? PdfDocument.Open(source) : PdfDocument.Open(source, password);
         if (profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage)
-            || profile.Checks.Contains(PdfPreflightCheck.TaggedStructure))
+            || profile.Checks.Contains(PdfPreflightCheck.TaggedStructure)
+            || profile.Checks.Contains(PdfPreflightCheck.FormAccessibility))
         {
             foreach (PdfAccessibilityFinding finding in
                 PdfAccessibilityInspector.Inspect(checkedDocument).Findings)
             {
-                bool selected = finding.Code == PdfAccessibilityFindingCode.MissingDocumentLanguage
-                    ? profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage)
-                    : profile.Checks.Contains(PdfPreflightCheck.TaggedStructure);
+                bool selected = finding.Code switch
+                {
+                    PdfAccessibilityFindingCode.MissingDocumentLanguage =>
+                        profile.Checks.Contains(PdfPreflightCheck.DocumentLanguage),
+                    PdfAccessibilityFindingCode.MissingFormFieldDescription =>
+                        profile.Checks.Contains(PdfPreflightCheck.FormAccessibility),
+                    _ => profile.Checks.Contains(PdfPreflightCheck.TaggedStructure)
+                };
                 if (selected)
                     findings.Add(new PdfPreflightFinding(
                         $"Accessibility.{finding.Code}", finding.Severity, finding.Message,
