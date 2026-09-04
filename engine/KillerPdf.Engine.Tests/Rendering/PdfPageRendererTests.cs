@@ -323,6 +323,34 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesSeparationTintTransforms()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(2, 1, new byte[] { 0, 255 }), 2, 3, 6, 2))
+            .Build());
+        var function = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(1, 1, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(1, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Separation"), Name("SpotRed"), Name("DeviceRGB"), function
+        });
+        PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 3, 6));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 7, 6));
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();

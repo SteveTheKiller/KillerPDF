@@ -585,6 +585,15 @@ public sealed class PdfPageRenderer
                     whitePoint[1] * LabInverse(fy), whitePoint[2] * LabInverse(fz));
             }, [0, 100, range[0], range[1], range[2], range[3]]);
         }
+        if (kind.ValueAsLatin1() == "Separation")
+        {
+            if (array.Count != 4 || Resolve(array[1]) is not PdfName
+                || ReadColorSpace(array[2], resources, depth + 1) is not { Palette: null } alternate)
+                throw new FormatException("A Separation image color space is invalid.");
+            Func<double, Color> tintTransform = ReadExponentialFunction(array[3], alternate);
+            return new ImageColorSpace(1, null,
+                (tint, _, _, _) => tintTransform(tint));
+        }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
@@ -677,6 +686,69 @@ public sealed class PdfPageRenderer
         const double threshold = 6d / 29;
         return value >= threshold ? value * value * value
             : 3 * threshold * threshold * (value - 4d / 29);
+    }
+
+    private Func<double, Color> ReadExponentialFunction(
+        PdfObject value, ImageColorSpace alternate)
+    {
+        int outputCount = alternate.Components;
+        PdfObject resolved = Resolve(value);
+        PdfDictionary dictionary = resolved switch
+        {
+            PdfDictionary direct => direct,
+            PdfStream stream => stream.Dictionary,
+            _ => throw new FormatException("A Separation tint transform is invalid.")
+        };
+        if (!dictionary.TryGetValue(Name("FunctionType"), out PdfObject? typeValue)
+            || Resolve(typeValue) is not PdfInteger { Value: 2 })
+            throw new NotSupportedException();
+        double[] domain = ReadFunctionArray(dictionary, "Domain", 2, required: true,
+            defaultValues: []);
+        if (!double.IsFinite(domain[0]) || !double.IsFinite(domain[1])
+            || domain[0] >= domain[1])
+            throw new FormatException("A Separation tint-transform domain is invalid.");
+        double[] c0 = ReadFunctionArray(dictionary, "C0", outputCount, required: false,
+            defaultValues: Enumerable.Repeat(0d, outputCount).ToArray());
+        double[] c1 = ReadFunctionArray(dictionary, "C1", outputCount, required: false,
+            defaultValues: Enumerable.Repeat(1d, outputCount).ToArray());
+        if (!dictionary.TryGetValue(Name("N"), out PdfObject? exponentValue))
+            throw new FormatException("A Separation tint-transform exponent is missing.");
+        double exponent = Number(Resolve(exponentValue));
+        if (!double.IsFinite(exponent) || exponent <= 0
+            || c0.Any(component => !double.IsFinite(component))
+            || c1.Any(component => !double.IsFinite(component)))
+            throw new FormatException("A Separation tint transform is invalid.");
+        double[]? range = dictionary.TryGetValue(Name("Range"), out _)
+            ? ReadFunctionArray(dictionary, "Range", outputCount * 2, required: true,
+                defaultValues: []) : null;
+        if (range is not null && (range.Any(component => !double.IsFinite(component))
+            || Enumerable.Range(0, outputCount).Any(index =>
+                range[index * 2] > range[index * 2 + 1])))
+            throw new FormatException("A Separation tint-transform range is invalid.");
+        return input =>
+        {
+            double factor = Math.Pow(Math.Clamp(input, domain[0], domain[1]), exponent);
+            double Component(int index)
+            {
+                double component = c0[index] + factor * (c1[index] - c0[index]);
+                return range is null ? component
+                    : Math.Clamp(component, range[index * 2], range[index * 2 + 1]);
+            }
+            return alternate.Convert(Component(0), outputCount > 1 ? Component(1) : 0,
+                outputCount > 2 ? Component(2) : 0, outputCount > 3 ? Component(3) : 0);
+        };
+    }
+
+    private double[] ReadFunctionArray(PdfDictionary dictionary, string key, int count,
+        bool required, double[] defaultValues)
+    {
+        if (!dictionary.TryGetValue(Name(key), out PdfObject? value))
+        {
+            if (required) throw new FormatException($"A Separation tint-transform /{key} array is missing.");
+            return defaultValues;
+        }
+        PdfArray array = ResolveArray(value, count, $"Separation tint-transform /{key} array");
+        return array.Select(item => Number(Resolve(item))).ToArray();
     }
 
     private SoftMask? ReadSoftMask(PdfDictionary dictionary)
