@@ -7,6 +7,33 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfMacroTests
 {
     [Fact]
+    public void StarterMacrosProvideEditableOperationOnlyWorkflows()
+    {
+        PdfMacro archival = PdfMacro.CreateStarter(PdfMacroStarterKind.Archival);
+        PdfMacro sharing = PdfMacro.CreateStarter(PdfMacroStarterKind.Sharing);
+        PdfMacro scanning = PdfMacro.CreateStarter(PdfMacroStarterKind.Scanning);
+        PdfMacro privacy = PdfMacro.CreateStarter(PdfMacroStarterKind.Privacy);
+
+        Assert.Equal([PdfMacroOperation.Ocr, PdfMacroOperation.Validate,
+            PdfMacroOperation.Save], archival.Steps.Select(step => step.Operation));
+        Assert.Equal([PdfMacroOperation.Optimize, PdfMacroOperation.Flatten,
+            PdfMacroOperation.Validate, PdfMacroOperation.Save],
+            sharing.Steps.Select(step => step.Operation));
+        Assert.Equal([PdfMacroOperation.Ocr, PdfMacroOperation.Optimize,
+            PdfMacroOperation.Save], scanning.Steps.Select(step => step.Operation));
+        Assert.Equal([PdfMacroOperation.Redact, PdfMacroOperation.Flatten,
+            PdfMacroOperation.Validate, PdfMacroOperation.Save],
+            privacy.Steps.Select(step => step.Operation));
+
+        PdfMacro edited = archival.InsertStep(1,
+            new PdfMacroStep(PdfMacroOperation.Optimize));
+        Assert.Equal(3, archival.Steps.Count);
+        Assert.Equal(4, edited.Steps.Count);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfMacro.CreateStarter((PdfMacroStarterKind)99));
+    }
+
+    [Fact]
     public void MacroRoundTripsDuplicatesAndReordersWithoutSharingSettings()
     {
         var macro = new PdfMacro("Archive", [

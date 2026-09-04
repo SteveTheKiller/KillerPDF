@@ -6,6 +6,30 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>A reusable ordered list of supported PDF operations.</summary>
 public sealed record PdfMacro
 {
+    /// <summary>Creates one editable built-in workflow without executable code.</summary>
+    public static PdfMacro CreateStarter(PdfMacroStarterKind kind) => kind switch
+    {
+        PdfMacroStarterKind.Archival => new("Archival", [
+            new(PdfMacroOperation.Ocr),
+            new(PdfMacroOperation.Validate),
+            new(PdfMacroOperation.Save)]),
+        PdfMacroStarterKind.Sharing => new("Sharing", [
+            new(PdfMacroOperation.Optimize),
+            new(PdfMacroOperation.Flatten),
+            new(PdfMacroOperation.Validate),
+            new(PdfMacroOperation.Save)]),
+        PdfMacroStarterKind.Scanning => new("Scanning", [
+            new(PdfMacroOperation.Ocr),
+            new(PdfMacroOperation.Optimize),
+            new(PdfMacroOperation.Save)]),
+        PdfMacroStarterKind.Privacy => new("Privacy", [
+            new(PdfMacroOperation.Redact),
+            new(PdfMacroOperation.Flatten),
+            new(PdfMacroOperation.Validate),
+            new(PdfMacroOperation.Save)]),
+        _ => throw new ArgumentOutOfRangeException(nameof(kind))
+    };
+
     /// <summary>Creates a named macro.</summary>
     public PdfMacro(string name, IEnumerable<PdfMacroStep> steps)
     {
@@ -143,6 +167,19 @@ public sealed record PdfMacro
     private sealed record PdfMacroFile(int Version, string Name, PdfMacroStepFile[]? Steps);
     private sealed record PdfMacroStepFile(
         PdfMacroOperation Operation, Dictionary<string, string>? Settings);
+}
+
+/// <summary>A built-in editable macro workflow.</summary>
+public enum PdfMacroStarterKind
+{
+    /// <summary>Recognize, validate, and save archival documents.</summary>
+    Archival,
+    /// <summary>Optimize and flatten a validated sharing copy.</summary>
+    Sharing,
+    /// <summary>Recognize and optimize scanned documents.</summary>
+    Scanning,
+    /// <summary>Redact and flatten a validated privacy copy.</summary>
+    Privacy
 }
 
 /// <summary>One configured operation in a PDF macro.</summary>
