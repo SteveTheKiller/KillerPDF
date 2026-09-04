@@ -10,6 +10,32 @@ namespace KillerPdf.Engine.Tests.Diagnostics;
 public sealed class PdfAccessibilityInspectorTests
 {
     [Fact]
+    public void TaggingProposalInfersVisualOrderAndRequiresReview()
+    {
+        PdfImage image = PdfImage.FromRgb(1, 1, new byte[] { 255, 0, 0 });
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.HelveticaBold, 20)
+                .MoveText(20, 350).ShowLatin1Text("Heading").EndText()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+                .MoveText(20, 300).ShowLatin1Text("Body text").EndText()
+                .DrawImage(image, 20, 200, 40, 40))
+            .Build());
+
+        IReadOnlyList<PdfAccessibilityTaggingProposalItem> proposals =
+            PdfAccessibilityTaggingProposal.Inspect(document);
+
+        Assert.Equal([PdfAccessibilityProposedRole.Heading,
+            PdfAccessibilityProposedRole.Paragraph,
+            PdfAccessibilityProposedRole.Figure], proposals.Select(item => item.Role));
+        Assert.Equal([0, 1, 2], proposals.Select(item => item.Order));
+        Assert.Equal("Heading", proposals[0].Text);
+        Assert.Null(proposals[2].Text);
+        Assert.All(proposals, item => Assert.True(item.RequiresReview));
+        Assert.All(proposals, item => Assert.InRange(item.Confidence, 0.5, 0.75));
+    }
+
+    [Fact]
     public void InspectReportsMissingDocumentLevelAccessibilityRequirements()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
