@@ -228,6 +228,8 @@ public enum PdfMacroOperation
     DataMerge,
     /// <summary>Inspect bookmark, link, and action navigation.</summary>
     AuditNavigation,
+    /// <summary>Remove links whose URI schemes are unsafe or invalid.</summary>
+    RemoveUnsafeLinks,
     /// <summary>Inspect embedded-file safety and integrity.</summary>
     AuditAttachments,
     /// <summary>Remove document-level and page-placed attachments.</summary>

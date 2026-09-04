@@ -8,6 +8,10 @@ public static class PdfNavigationMacro
     /// <summary>Creates a navigation-audit macro step.</summary>
     public static PdfMacroStep AuditStep() => new(PdfMacroOperation.AuditNavigation);
 
+    /// <summary>Creates a macro step that removes unsafe URI links.</summary>
+    public static PdfMacroStep RemoveUnsafeLinksStep() =>
+        new(PdfMacroOperation.RemoveUnsafeLinks);
+
     /// <summary>Creates an explicitly configured heading-bookmark generation step.</summary>
     public static PdfMacroStep HeadingBookmarksStep(
         PdfBookmarkDetectionOptions? options = null)
@@ -41,6 +45,8 @@ public static class PdfNavigationMacro
         return step.Operation switch
         {
             PdfMacroOperation.AuditNavigation => Audit(document, source),
+            PdfMacroOperation.RemoveUnsafeLinks =>
+                PdfNavigationAudit.RemoveUnsafeLinks(document),
             PdfMacroOperation.GenerateBookmarks => GenerateBookmarks(
                 document, HeadingOptions(step), cancellationToken),
             PdfMacroOperation.GenerateTableOfContents => PdfTableOfContentsWriter.Write(
