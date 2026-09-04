@@ -330,6 +330,55 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void UnusedGroupCanBeRemovedButReferencedGroupIsProtected()
+    {
+        var artwork = new PdfOptionalContentGroup("Artwork");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(artwork).Rectangle(0, 0, 10, 10).Fill()
+                .EndMarkedContent()).Build());
+        PdfDocument withUnused = PdfDocument.Open(
+            PdfOptionalContentEditor.AddGroup(original, "Unused",
+                initiallyVisible: false, locked: true));
+        PdfOptionalContentInfo before = PdfOptionalContentReader.Read(withUnused);
+        int unusedObjectNumber = before.Groups.Single(group => group.Name == "Unused")
+            .ObjectNumber;
+        int artworkObjectNumber = before.Groups.Single(group => group.Name == "Artwork")
+            .ObjectNumber;
+        PdfDocument nested = PdfDocument.Open(PdfOptionalContentEditor.SetDisplayOrderTree(
+            withUnused,
+            [PdfOptionalContentOrderItem.Layer(artworkObjectNumber),
+                PdfOptionalContentOrderItem.Folder("Temporary",
+                    PdfOptionalContentOrderItem.Layer(unusedObjectNumber))]));
+
+        PdfDocument changed = PdfDocument.Open(
+            PdfOptionalContentEditor.RemoveUnusedGroup(nested, unusedObjectNumber));
+        PdfOptionalContentInfo after = PdfOptionalContentReader.Read(changed);
+
+        Assert.Equal("Artwork", Assert.Single(after.Groups).Name);
+        Assert.Equal([artworkObjectNumber], after.Configurations.Single()
+            .DisplayOrderGroupObjectNumbers);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfOptionalContentEditor.RemoveUnusedGroup(nested, artworkObjectNumber));
+    }
+
+    [Fact]
+    public void RemovingOnlyUnusedGroupRemovesOptionalContentProperties()
+    {
+        PdfDocument original = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(100, 100).Build());
+        PdfDocument layered = PdfDocument.Open(
+            PdfOptionalContentEditor.AddGroup(original, "Empty"));
+        int objectNumber = Assert.Single(PdfOptionalContentReader.Read(layered).Groups)
+            .ObjectNumber;
+
+        PdfDocument changed = PdfDocument.Open(
+            PdfOptionalContentEditor.RemoveUnusedGroup(layered, objectNumber));
+
+        Assert.Empty(PdfOptionalContentReader.Read(changed).Groups);
+    }
+
+    [Fact]
     public void AnnotationCanBeAssignedToLayerAndCleared()
     {
         var review = new PdfOptionalContentGroup("Review");

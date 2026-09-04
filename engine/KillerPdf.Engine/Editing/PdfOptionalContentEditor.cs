@@ -1,3 +1,4 @@
+using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
@@ -220,6 +221,153 @@ public static class PdfOptionalContentEditor
         return new PdfIncrementalUpdateBuilder(intermediate)
             .ReplaceObject(duplicateInfo.ObjectNumber, new PdfDictionary(entries))
             .Build();
+    }
+
+    /// <summary>
+    /// Unregisters a layer that is not referenced by page resources, annotations, or other
+    /// document objects, and removes it from every optional-content configuration.
+    /// </summary>
+    public static byte[] RemoveUnusedGroup(PdfDocument document, int objectNumber)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (objectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
+        PdfOptionalContentGroupInfo group = FindGroup(info, objectNumber);
+        var target = new PdfIndirectReference(group.ObjectNumber, group.Generation);
+        PdfPageTree tree = PdfPageTree.Read(document);
+        PdfObject propertiesValue = tree.Catalog.TryGetValue(
+                OptionalContentPropertiesKey, out PdfObject? properties)
+            ? properties : throw new InvalidOperationException(
+                "The document has no optional-content properties.");
+
+        var propertyObjects = new HashSet<int>();
+        CollectPropertyObjects(propertiesValue, 0);
+        foreach (PdfCrossReferenceEntry entry in document.CrossReferences.Values)
+        {
+            if (entry.Type is not (PdfCrossReferenceEntryType.InUse
+                    or PdfCrossReferenceEntryType.Compressed)
+                || entry.ObjectNumber == objectNumber
+                || propertyObjects.Contains(entry.ObjectNumber))
+                continue;
+            PdfObject value = document.Resolve(entry.ObjectNumber);
+            if (entry.ObjectNumber == tree.CatalogReference.ObjectNumber
+                && value is PdfDictionary catalog)
+                value = new PdfDictionary(catalog.Where(item =>
+                    !item.Key.Equals(OptionalContentPropertiesKey)));
+            if (ContainsTarget(value, 0))
+                throw new InvalidOperationException(
+                    $"Layer {objectNumber} is still referenced outside its configurations.");
+        }
+
+        var update = new PdfIncrementalUpdateBuilder(document);
+        if (info.Groups.Count == 1)
+        {
+            var catalogEntries = tree.Catalog.ToDictionary(item => item.Key, item => item.Value);
+            catalogEntries.Remove(OptionalContentPropertiesKey);
+            return update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                new PdfDictionary(catalogEntries)).Build();
+        }
+
+        var rewritten = new HashSet<int>();
+        PdfObject replacementProperties = Rewrite(propertiesValue, false, 0)
+            ?? throw new InvalidOperationException(
+                "Removing the layer produced empty optional-content properties.");
+        if (propertiesValue is not PdfIndirectReference)
+        {
+            var catalogEntries = tree.Catalog.ToDictionary(item => item.Key, item => item.Value);
+            catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+            update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                new PdfDictionary(catalogEntries));
+        }
+        return update.Build();
+
+        void CollectPropertyObjects(PdfObject value, int depth)
+        {
+            if (depth >= 128)
+                throw new InvalidOperationException(
+                    "The optional-content property graph is too deeply nested.");
+            if (value is PdfIndirectReference reference)
+            {
+                if (!propertyObjects.Add(reference.ObjectNumber)) return;
+                CollectPropertyObjects(document.Resolve(reference), depth + 1);
+                return;
+            }
+            if (value is PdfDictionary dictionary)
+                foreach (var item in dictionary)
+                    CollectPropertyObjects(item.Value, depth + 1);
+            else if (value is PdfArray array)
+                foreach (PdfObject item in array)
+                    CollectPropertyObjects(item, depth + 1);
+        }
+
+        bool ContainsTarget(PdfObject value, int depth)
+        {
+            if (depth >= 128)
+                throw new InvalidOperationException("A document object is too deeply nested.");
+            if (value is PdfIndirectReference reference)
+                return SameReference(reference, target);
+            if (value is PdfStream stream)
+                return ContainsTarget(stream.Dictionary, depth + 1);
+            if (value is PdfDictionary dictionary)
+                return dictionary.Any(item => ContainsTarget(item.Value, depth + 1));
+            return value is PdfArray array
+                && array.Any(item => ContainsTarget(item, depth + 1));
+        }
+
+        PdfObject? Rewrite(PdfObject value, bool order, int depth)
+        {
+            if (depth >= 128)
+                throw new InvalidOperationException(
+                    "The optional-content property graph is too deeply nested.");
+            if (value is PdfIndirectReference reference)
+            {
+                if (SameReference(reference, target)) return null;
+                if (!propertyObjects.Contains(reference.ObjectNumber)) return reference;
+                if (rewritten.Add(reference.ObjectNumber))
+                {
+                    PdfObject replacement = Rewrite(
+                            document.Resolve(reference), order, depth + 1)
+                        ?? throw new InvalidOperationException(
+                            "An optional-content configuration object became empty.");
+                    update.ReplaceObject(reference.ObjectNumber, replacement);
+                }
+                return reference;
+            }
+            if (value is PdfArray array)
+            {
+                var items = new List<PdfObject>();
+                foreach (PdfObject item in array)
+                {
+                    PdfObject? replacement = Rewrite(item, order, depth + 1);
+                    if (replacement is not null) items.Add(replacement);
+                }
+                if (order && items.Count == 1 && items[0] is PdfString)
+                    return null;
+                return new PdfArray(items);
+            }
+            if (value is PdfDictionary dictionary)
+            {
+                var entries = new List<KeyValuePair<PdfName, PdfObject>>();
+                foreach (var item in dictionary)
+                {
+                    PdfObject? replacement = Rewrite(item.Value,
+                        item.Key.Equals(OrderKey), depth + 1);
+                    if (replacement is not null)
+                        entries.Add(new(item.Key, replacement));
+                }
+                return new PdfDictionary(entries);
+            }
+            if (value is PdfStream)
+                throw new NotSupportedException(
+                    "Optional-content properties stored in streams cannot be edited safely.");
+            return value;
+        }
+
+        static bool SameReference(
+            PdfIndirectReference left, PdfIndirectReference right) =>
+            left.ObjectNumber == right.ObjectNumber
+            && left.Generation == right.Generation;
     }
 
     /// <summary>Renames one registered layer by its source object number.</summary>
