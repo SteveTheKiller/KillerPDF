@@ -254,6 +254,52 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ConvertsCalGrayImagesToSrgb()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(1, 1, new byte[] { 128 }), 2, 3, 6, 2))
+            .Build());
+        var parameters = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("WhitePoint"),
+                Reals(0.95047, 1, 1.08883))]);
+        var colorSpace = new PdfArray(new PdfObject[] { Name("CalGray"), parameters });
+        PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([188, 188, 188, 255], Pixel(rendered, 3, 6));
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_ConvertsCalRgbImagesToSrgb()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(1, 1, new byte[] { 128, 0, 0 }), 2, 3, 6, 2))
+            .Build());
+        var parameters = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("WhitePoint"),
+                Reals(0.95047, 1, 1.08883)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), Reals(
+                0.4124564, 0.2126729, 0.0193339,
+                0.3575761, 0.7151522, 0.119192,
+                0.1804375, 0.072175, 0.9503041))]);
+        var colorSpace = new PdfArray(new PdfObject[] { Name("CalRGB"), parameters });
+        PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 188, 255], Pixel(rendered, 3, 6));
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
@@ -485,4 +531,7 @@ public sealed class PdfPageRendererTests
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+
+    private static PdfArray Reals(params double[] values) =>
+        new(values.Select(value => (PdfObject)new PdfReal(value)));
 }

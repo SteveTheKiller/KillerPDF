@@ -460,7 +460,7 @@ public sealed class PdfPageRenderer
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
             transform, samples, width, height, components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
-            colorKeyMask, colorSpace.Palette, stencilColor, stencilAlpha);
+            colorKeyMask, colorSpace, stencilColor, stencilAlpha);
         return true;
     }
 
@@ -515,6 +515,53 @@ public sealed class PdfPageRenderer
                 throw new FormatException("An ICCBased image alternate has the wrong component count.");
             return alternate;
         }
+        if (kind.ValueAsLatin1() == "CalGray")
+        {
+            if (array.Count != 2 || Resolve(array[1]) is not PdfDictionary parameters)
+                throw new FormatException("A CalGray image color space is invalid.");
+            double[] whitePoint = ReadCieArray(parameters, "WhitePoint", required: true,
+                defaultValues: []);
+            ValidateWhitePoint(whitePoint, "CalGray");
+            ReadAndValidateBlackPoint(parameters, "CalGray");
+            double gamma = parameters.TryGetValue(Name("Gamma"), out PdfObject? gammaValue)
+                ? Number(Resolve(gammaValue)) : 1;
+            if (!double.IsFinite(gamma) || gamma <= 0)
+                throw new FormatException("A CalGray image gamma value is invalid.");
+            Func<double, double, double, Color> convertXyz = CreateXyzConverter(whitePoint);
+            return new ImageColorSpace(1, null, (gray, _, _, _) =>
+            {
+                double adjusted = Math.Pow(gray, gamma);
+                return convertXyz(whitePoint[0] * adjusted,
+                    whitePoint[1] * adjusted, whitePoint[2] * adjusted);
+            });
+        }
+        if (kind.ValueAsLatin1() == "CalRGB")
+        {
+            if (array.Count != 2 || Resolve(array[1]) is not PdfDictionary parameters)
+                throw new FormatException("A CalRGB image color space is invalid.");
+            double[] whitePoint = ReadCieArray(parameters, "WhitePoint", required: true,
+                defaultValues: []);
+            ValidateWhitePoint(whitePoint, "CalRGB");
+            ReadAndValidateBlackPoint(parameters, "CalRGB");
+            double[] gamma = ReadCieArray(parameters, "Gamma", required: false,
+                defaultValues: [1, 1, 1]);
+            if (gamma.Any(value => !double.IsFinite(value) || value <= 0))
+                throw new FormatException("A CalRGB image gamma array is invalid.");
+            double[] matrix = ReadCieArray(parameters, "Matrix", required: false,
+                defaultValues: [1, 0, 0, 0, 1, 0, 0, 0, 1], count: 9);
+            if (matrix.Any(value => !double.IsFinite(value)))
+                throw new FormatException("A CalRGB image matrix is invalid.");
+            Func<double, double, double, Color> convertXyz = CreateXyzConverter(whitePoint);
+            return new ImageColorSpace(3, null, (red, green, blue, _) =>
+            {
+                double a = Math.Pow(red, gamma[0]);
+                double b = Math.Pow(green, gamma[1]);
+                double c = Math.Pow(blue, gamma[2]);
+                return convertXyz(matrix[0] * a + matrix[3] * b + matrix[6] * c,
+                    matrix[1] * a + matrix[4] * b + matrix[7] * c,
+                    matrix[2] * a + matrix[5] * b + matrix[8] * c);
+            });
+        }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
@@ -536,15 +583,70 @@ public sealed class PdfPageRenderer
         for (int entry = 0; entry < entryCount; entry++)
         {
             int offset = entry * baseComponents;
-            palette[entry] = baseComponents switch
-            {
-                1 => new Color(lookup[offset], lookup[offset], lookup[offset]),
-                3 => new Color(lookup[offset], lookup[offset + 1], lookup[offset + 2]),
-                _ => Color.Cmyk(lookup[offset] / 255d, lookup[offset + 1] / 255d,
-                    lookup[offset + 2] / 255d, lookup[offset + 3] / 255d)
-            };
+            palette[entry] = baseSpace.Convert(lookup[offset] / 255d,
+                baseComponents > 1 ? lookup[offset + 1] / 255d : 0,
+                baseComponents > 2 ? lookup[offset + 2] / 255d : 0,
+                baseComponents > 3 ? lookup[offset + 3] / 255d : 0);
         }
         return new ImageColorSpace(1, palette);
+    }
+
+    private double[] ReadCieArray(PdfDictionary dictionary, string key, bool required,
+        double[] defaultValues, int count = 3)
+    {
+        if (!dictionary.TryGetValue(Name(key), out PdfObject? value))
+        {
+            if (required) throw new FormatException($"A calibrated image /{key} array is missing.");
+            return defaultValues;
+        }
+        PdfArray array = ResolveArray(value, count, $"Calibrated image /{key} array");
+        return array.Select(item => Number(Resolve(item))).ToArray();
+    }
+
+    private void ReadAndValidateBlackPoint(PdfDictionary dictionary, string colorSpace)
+    {
+        double[] blackPoint = ReadCieArray(dictionary, "BlackPoint", required: false,
+            defaultValues: [0, 0, 0]);
+        if (blackPoint.Any(value => !double.IsFinite(value) || value < 0))
+            throw new FormatException($"A {colorSpace} image black point is invalid.");
+    }
+
+    private static void ValidateWhitePoint(double[] whitePoint, string colorSpace)
+    {
+        if (whitePoint.Any(value => !double.IsFinite(value))
+            || whitePoint[0] <= 0 || Math.Abs(whitePoint[1] - 1) > 1e-9
+            || whitePoint[2] <= 0)
+            throw new FormatException($"A {colorSpace} image white point is invalid.");
+    }
+
+    private static Func<double, double, double, Color> CreateXyzConverter(double[] whitePoint)
+    {
+        const double d65X = 0.95047, d65Y = 1, d65Z = 1.08883;
+        (double sourceL, double sourceM, double sourceS) = Bradford(
+            whitePoint[0], whitePoint[1], whitePoint[2]);
+        (double targetL, double targetM, double targetS) = Bradford(d65X, d65Y, d65Z);
+        double scaleL = targetL / sourceL;
+        double scaleM = targetM / sourceM;
+        double scaleS = targetS / sourceS;
+        return (x, y, z) =>
+        {
+            (double l, double m, double s) = Bradford(x, y, z);
+            l *= scaleL;
+            m *= scaleM;
+            s *= scaleS;
+            double adaptedX = 0.9869929 * l - 0.1470543 * m + 0.1599627 * s;
+            double adaptedY = 0.4323053 * l + 0.5183603 * m + 0.0492912 * s;
+            double adaptedZ = -0.0085287 * l + 0.0400428 * m + 0.9684867 * s;
+            return Color.LinearRgb(
+                3.2404542 * adaptedX - 1.5371385 * adaptedY - 0.4985314 * adaptedZ,
+                -0.969266 * adaptedX + 1.8760108 * adaptedY + 0.041556 * adaptedZ,
+                0.0556434 * adaptedX - 0.2040259 * adaptedY + 1.0572252 * adaptedZ);
+        };
+
+        static (double L, double M, double S) Bradford(double x, double y, double z) => (
+            0.8951 * x + 0.2664 * y - 0.1614 * z,
+            -0.7502 * x + 1.7135 * y + 0.0367 * z,
+            0.0389 * x - 0.0685 * y + 1.0296 * z);
     }
 
     private SoftMask? ReadSoftMask(PdfDictionary dictionary)
@@ -595,7 +697,7 @@ public sealed class PdfPageRenderer
         int sourceWidth, int sourceHeight, int components, int bits,
         IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
         SoftMask? softMask, double[] decode, int[]? colorKeyMask,
-        Color[]? palette, Color stencilColor, double stencilAlpha)
+        ImageColorSpace colorSpace, Color stencilColor, double stencilAlpha)
     {
         Point[] corners =
         [
@@ -632,14 +734,11 @@ public sealed class PdfPageRenderer
                 else
                 {
                     double first = SampleValue(0);
-                    color = palette is not null
-                        ? palette[Math.Min(RawSample(0), palette.Length - 1)]
-                        : components switch
-                    {
-                        1 => Color.Gray(first),
-                        3 => Color.Rgb(first, SampleValue(1), SampleValue(2)),
-                        _ => Color.Cmyk(first, SampleValue(1), SampleValue(2), SampleValue(3))
-                    };
+                    color = colorSpace.Palette is not null
+                        ? colorSpace.Palette[Math.Min(RawSample(0), colorSpace.Palette.Length - 1)]
+                        : colorSpace.Convert(first, components > 1 ? SampleValue(1) : 0,
+                            components > 2 ? SampleValue(2) : 0,
+                            components > 3 ? SampleValue(3) : 0);
                     if (colorKeyMask is not null)
                     {
                         bool matches = true;
@@ -891,7 +990,17 @@ public sealed class PdfPageRenderer
             => PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height, bool Inverted);
-    private sealed record ImageColorSpace(int Components, Color[]? Palette);
+    private sealed record ImageColorSpace(int Components, Color[]? Palette,
+        Func<double, double, double, double, Color>? Converter = null)
+    {
+        internal Color Convert(double first, double second, double third, double fourth) =>
+            Converter?.Invoke(first, second, third, fourth) ?? Components switch
+            {
+                1 => Color.Gray(first),
+                3 => Color.Rgb(first, second, third),
+                _ => Color.Cmyk(first, second, third, fourth)
+            };
+    }
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
@@ -927,10 +1036,14 @@ public sealed class PdfPageRenderer
         internal static Color Gray(double gray) => Rgb(gray, gray, gray);
         internal static Color Rgb(double red, double green, double blue) =>
             new(Channel(red), Channel(green), Channel(blue));
+        internal static Color LinearRgb(double red, double green, double blue) =>
+            Rgb(Compand(red), Compand(green), Compand(blue));
         internal static Color Cmyk(double cyan, double magenta, double yellow, double black) =>
             Rgb(1 - Math.Min(1, cyan + black), 1 - Math.Min(1, magenta + black),
                 1 - Math.Min(1, yellow + black));
         private static byte Channel(double value) =>
             (byte)Math.Round(Math.Clamp(value, 0, 1) * 255, MidpointRounding.AwayFromZero);
+        private static double Compand(double value) => value <= 0.0031308
+            ? 12.92 * value : 1.055 * Math.Pow(value, 1 / 2.4) - 0.055;
     }
 }
