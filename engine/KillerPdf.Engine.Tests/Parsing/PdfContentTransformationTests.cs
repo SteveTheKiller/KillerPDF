@@ -235,6 +235,37 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void SubstituteXObjectPlacementsChangesOnlyRequestedOccurrences()
+    {
+        var image = new PdfName("Im1"u8);
+        var replacement = new PdfName("Im2"u8);
+        var form = new PdfName("Fm1"u8);
+        PdfContentInstruction[] source =
+        [
+            new("Do", 0, [image]),
+            new("Do", 4, [form]),
+            new("Do", 8, [image])
+        ];
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.SubstituteXObjectPlacements(
+                source, image, [1], replacement);
+
+        Assert.Equal([image, form, replacement], result.Select(instruction =>
+            Assert.IsType<PdfName>(Assert.Single(instruction.Operands))));
+        Assert.Equal([0, 4, 8], result.Select(instruction => instruction.Offset));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.SubstituteXObjectPlacements(
+                source, image, [2], replacement));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.SubstituteXObjectPlacements(
+                source, image, [0, 0], replacement));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.SubstituteXObjectPlacements(
+                source, image, [0], new PdfName(ReadOnlySpan<byte>.Empty)));
+    }
+
+    [Fact]
     public void ClipXObjectPlacementsSelectsOnlyRequestedOccurrences()
     {
         var image = new PdfName("Im1"u8);

@@ -613,6 +613,27 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(source.Where((_, index) => !removed.Contains(index)).ToArray());
     }
 
+    /// <summary>Replaces selected placements of one image or Form XObject with another resource.</summary>
+    public static IReadOnlyList<PdfContentInstruction> SubstituteXObjectPlacements(
+        IEnumerable<PdfContentInstruction> instructions,
+        PdfName resourceName, IEnumerable<int> occurrenceIndexes,
+        PdfName replacementResourceName)
+    {
+        ArgumentNullException.ThrowIfNull(replacementResourceName);
+        if (replacementResourceName.Bytes.IsEmpty)
+            throw new ArgumentException(
+                "A replacement XObject resource name is required.",
+                nameof(replacementResourceName));
+        PdfContentInstruction[] source = ValidateNamedPlacements(
+            instructions, resourceName, occurrenceIndexes, "Do", "XObject",
+            out HashSet<int> selected);
+        PdfContentInstruction[] result = source.ToArray();
+        foreach (int index in selected)
+            result[index] = new PdfContentInstruction(
+                "Do", source[index].Offset, [replacementResourceName]);
+        return Array.AsReadOnly(result);
+    }
+
     /// <summary>Clips selected placements of one image or Form XObject resource.</summary>
     public static IReadOnlyList<PdfContentInstruction> ClipXObjectPlacements(
         IEnumerable<PdfContentInstruction> instructions,
