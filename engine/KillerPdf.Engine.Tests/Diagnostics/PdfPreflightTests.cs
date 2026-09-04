@@ -211,6 +211,34 @@ public sealed class PdfPreflightTests
         Assert.NotNull(finding.ObjectNumber);
     }
 
+    [Fact]
+    public void DocumentMetadataReportsMissingFieldsAndAcceptsCompleteMetadata()
+    {
+        var profile = new PdfPreflightProfile("Document metadata",
+            [PdfPreflightCheck.DocumentMetadata]);
+        byte[] missing = new PdfDocumentBuilder().AddBlankPage().Build();
+        byte[] complete = new PdfDocumentBuilder().SetMetadata(new PdfDocumentMetadata
+        {
+            Title = "Production proof",
+            Author = "KillerPDF",
+            Subject = "Preflight sample",
+            Keywords = "preflight, proof"
+        }).AddBlankPage().Build();
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(missing, profile);
+
+        Assert.Equal([
+            "Metadata.MissingTitle",
+            "Metadata.MissingAuthor",
+            "Metadata.MissingSubject",
+            "Metadata.MissingKeywords"
+        ], report.Findings.Select(finding => finding.Code));
+        Assert.Equal(PdfDiagnosticSeverity.Warning, report.Findings[0].Severity);
+        Assert.All(report.Findings.Skip(1), finding =>
+            Assert.Equal(PdfDiagnosticSeverity.Information, finding.Severity));
+        Assert.Empty(PdfPreflightRunner.Run(complete, profile).Findings);
+    }
+
     private static byte[] Profile()
     {
         byte[] result = new byte[132];

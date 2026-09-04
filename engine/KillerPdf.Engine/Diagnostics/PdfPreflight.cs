@@ -29,7 +29,9 @@ public enum PdfPreflightCheck
     /// <summary>Checks device color, ICC profiles, spot colors, and overprint settings.</summary>
     ColorUsage,
     /// <summary>Checks PDF layer structure and reports effective layer state.</summary>
-    OptionalContent
+    OptionalContent,
+    /// <summary>Checks descriptive document metadata for completeness and validity.</summary>
+    DocumentMetadata
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
@@ -67,7 +69,8 @@ public sealed record PdfPreflightProfile
         PdfPreflightCheck.FontEmbedding,
         PdfPreflightCheck.Transparency,
         PdfPreflightCheck.ColorUsage,
-        PdfPreflightCheck.OptionalContent
+        PdfPreflightCheck.OptionalContent,
+        PdfPreflightCheck.DocumentMetadata
     ]);
 
     /// <summary>Gets the profile name.</summary>
@@ -226,6 +229,8 @@ public static class PdfPreflightRunner
             findings.AddRange(PdfPreflightDocumentChecks.CheckColorUsage(checkedDocument));
         if (profile.Checks.Contains(PdfPreflightCheck.OptionalContent))
             findings.AddRange(PdfPreflightDocumentChecks.CheckOptionalContent(checkedDocument));
+        if (profile.Checks.Contains(PdfPreflightCheck.DocumentMetadata))
+            findings.AddRange(PdfPreflightDocumentChecks.CheckDocumentMetadata(checkedDocument));
         return new PdfPreflightReport(profile.Name, findings);
     }
 }

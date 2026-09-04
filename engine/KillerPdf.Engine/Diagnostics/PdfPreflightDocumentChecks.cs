@@ -406,6 +406,35 @@ internal static class PdfPreflightDocumentChecks
         };
     }
 
+    internal static IReadOnlyList<PdfPreflightFinding> CheckDocumentMetadata(PdfDocument document)
+    {
+        try
+        {
+            PdfDocumentInformation information = PdfDocumentInformation.Read(document);
+            var findings = new List<PdfPreflightFinding>();
+            AddMissing(information.Title, "Metadata.MissingTitle",
+                "The document metadata has no title.", PdfDiagnosticSeverity.Warning);
+            AddMissing(information.Author, "Metadata.MissingAuthor",
+                "The document metadata has no author.", PdfDiagnosticSeverity.Information);
+            AddMissing(information.Subject, "Metadata.MissingSubject",
+                "The document metadata has no subject.", PdfDiagnosticSeverity.Information);
+            AddMissing(information.Keywords, "Metadata.MissingKeywords",
+                "The document metadata has no keywords.", PdfDiagnosticSeverity.Information);
+            return Array.AsReadOnly(findings.ToArray());
+
+            void AddMissing(string? value, string code, string message,
+                PdfDiagnosticSeverity severity)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    findings.Add(new PdfPreflightFinding(code, severity, message));
+            }
+        }
+        catch (Exception error) when (IsDocumentFailure(error))
+        {
+            return [Error("Metadata.Invalid", error.Message)];
+        }
+    }
+
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,
         PdfName name, bool required)
     {
