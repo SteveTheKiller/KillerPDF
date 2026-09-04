@@ -52,4 +52,24 @@ public sealed class PdfPermanentRedactionTests
         Assert.Throws<OperationCanceledException>(() => PdfPermanentRedaction.VerifySanitizedOutput(
             output, 1, cancellationToken: new CancellationToken(true)));
     }
+
+    [Fact]
+    public void BatchRebuildIsOrderedAndIsolatesDocumentFailures()
+    {
+        var page = new PdfSanitizedRasterPage(100, 100,
+            PdfImage.FromRgb(1, 1, new byte[] { 0, 0, 0 }));
+
+        IReadOnlyList<PdfRedactionBatchResult> results = PdfPermanentRedaction.RebuildBatch([
+            new PdfRedactionBatchInput("first.pdf", [page], ["private"]),
+            new PdfRedactionBatchInput("broken.pdf", []),
+            new PdfRedactionBatchInput("last.pdf", [page])]);
+
+        Assert.Equal([0, 1, 2], results.Select(result => result.Index));
+        Assert.True(results[0].Succeeded);
+        Assert.False(results[1].Succeeded);
+        Assert.NotNull(results[1].Error);
+        Assert.True(results[2].Succeeded);
+        Assert.True(results[2].Document.Length > 0);
+        Assert.NotNull(PdfDocument.Open(results[2].Document));
+    }
 }

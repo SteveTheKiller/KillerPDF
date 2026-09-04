@@ -46,6 +46,21 @@ public sealed record PdfRedactionVerificationReport(IReadOnlyList<PdfRedactionVe
     }
 }
 
+/// <summary>One named set of fully sanitized raster pages for isolated batch rebuilding.</summary>
+public sealed record PdfRedactionBatchInput(
+    string Name,
+    IReadOnlyList<PdfSanitizedRasterPage> Pages,
+    IReadOnlyList<string>? ProhibitedText = null);
+
+/// <summary>The isolated rebuild and verification result for one batch input.</summary>
+public sealed record PdfRedactionBatchResult(
+    int Index,
+    string Name,
+    bool Succeeded,
+    ReadOnlyMemory<byte> Document,
+    PdfRedactionVerificationReport? Verification,
+    string? Error);
+
 /// <summary>Creates and verifies PDFs that contain only sanitized page images.</summary>
 public static class PdfPermanentRedaction
 {
@@ -67,6 +82,40 @@ public static class PdfPermanentRedaction
             builder.AddPage(page.Width, page.Height,
                 new PdfContentStreamBuilder().DrawImage(page.Image, 0, 0, page.Width, page.Height));
         return builder.Build();
+    }
+
+    /// <summary>Rebuilds and verifies ordered inputs while isolating document-specific failures.</summary>
+    public static IReadOnlyList<PdfRedactionBatchResult> RebuildBatch(
+        IEnumerable<PdfRedactionBatchInput> inputs,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(inputs);
+        var results = new List<PdfRedactionBatchResult>();
+        foreach ((PdfRedactionBatchInput input, int index) in inputs.Select((item, index) =>
+                     (item ?? throw new ArgumentException("A redaction batch input is null.",
+                         nameof(inputs)), index)))
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                if (string.IsNullOrWhiteSpace(input.Name))
+                    throw new ArgumentException("A redaction batch input name is required.");
+                byte[] document = RebuildFromSanitizedPages(input.Pages);
+                PdfRedactionVerificationReport verification = VerifySanitizedOutput(
+                    document, input.Pages.Count, input.ProhibitedText, cancellationToken);
+                results.Add(new PdfRedactionBatchResult(index, input.Name,
+                    verification.Succeeded, document, verification,
+                    verification.Succeeded ? null : "The rebuilt document failed verification."));
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception error) when (error is ArgumentException or FormatException
+                or InvalidOperationException or NotSupportedException or OverflowException)
+            {
+                results.Add(new PdfRedactionBatchResult(
+                    index, input.Name, false, ReadOnlyMemory<byte>.Empty, null, error.Message));
+            }
+        }
+        return Array.AsReadOnly(results.ToArray());
     }
 
     /// <summary>Verifies that a rebuilt output contains only one raster image per page and no recoverable document data.</summary>
