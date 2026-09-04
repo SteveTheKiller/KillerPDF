@@ -9,9 +9,13 @@ public sealed record PdfOcrImageRegion(int Left, int Top, int Right, int Bottom)
     public int Height => Bottom - Top;
 }
 
-/// <summary>A detected OCR text line and its ordered connected components.</summary>
-public sealed record PdfOcrTextLine(
+/// <summary>A detected OCR word candidate and its ordered connected components.</summary>
+public sealed record PdfOcrWordRegion(
     PdfOcrImageRegion Bounds, IReadOnlyList<PdfOcrImageRegion> Components);
+
+/// <summary>A detected OCR text line with ordered words and connected components.</summary>
+public sealed record PdfOcrTextLine(PdfOcrImageRegion Bounds,
+    IReadOnlyList<PdfOcrWordRegion> Words, IReadOnlyList<PdfOcrImageRegion> Components);
 
 /// <summary>Connected-component and line analysis for a prepared OCR image.</summary>
 public sealed class PdfOcrPageLayout
@@ -19,11 +23,14 @@ public sealed class PdfOcrPageLayout
     internal PdfOcrPageLayout(IEnumerable<PdfOcrTextLine> lines)
     {
         Lines = Array.AsReadOnly(lines.ToArray());
+        Words = Array.AsReadOnly(Lines.SelectMany(line => line.Words).ToArray());
         Components = Array.AsReadOnly(Lines.SelectMany(line => line.Components).ToArray());
     }
 
     /// <summary>Gets detected components in reading order.</summary>
     public IReadOnlyList<PdfOcrImageRegion> Components { get; }
+    /// <summary>Gets detected word candidates in reading order.</summary>
+    public IReadOnlyList<PdfOcrWordRegion> Words { get; }
     /// <summary>Gets detected text lines from top to bottom.</summary>
     public IReadOnlyList<PdfOcrTextLine> Lines { get; }
 }
@@ -89,10 +96,34 @@ public static class PdfOcrLayoutAnalyzer
         return new PdfOcrPageLayout(lines.Select(line =>
         {
             PdfOcrImageRegion[] ordered = [.. line.OrderBy(item => item.Left)];
+            IReadOnlyList<PdfOcrWordRegion> words = GroupWords(ordered);
             return new PdfOcrTextLine(new PdfOcrImageRegion(
                 ordered.Min(item => item.Left), ordered.Min(item => item.Top),
                 ordered.Max(item => item.Right), ordered.Max(item => item.Bottom)),
-                Array.AsReadOnly(ordered));
+                words, Array.AsReadOnly(ordered));
         }).OrderBy(line => line.Bounds.Top).ThenBy(line => line.Bounds.Left));
+    }
+
+    private static IReadOnlyList<PdfOcrWordRegion> GroupWords(
+        IReadOnlyList<PdfOcrImageRegion> components)
+    {
+        if (components.Count == 0) return [];
+        int[] widths = [.. components.Select(item => item.Width).OrderBy(value => value)];
+        double medianWidth = widths[widths.Length / 2];
+        int wordGap = Math.Max(2, (int)Math.Ceiling(medianWidth * 1.5));
+        var groups = new List<List<PdfOcrImageRegion>> { new() { components[0] } };
+        for (int index = 1; index < components.Count; index++)
+        {
+            PdfOcrImageRegion component = components[index];
+            List<PdfOcrImageRegion> current = groups[^1];
+            if (component.Left - current[^1].Right > wordGap)
+                groups.Add([component]);
+            else
+                current.Add(component);
+        }
+        return Array.AsReadOnly(groups.Select(group => new PdfOcrWordRegion(
+            new PdfOcrImageRegion(group.Min(item => item.Left), group.Min(item => item.Top),
+                group.Max(item => item.Right), group.Max(item => item.Bottom)),
+            Array.AsReadOnly(group.ToArray()))).ToArray());
     }
 }

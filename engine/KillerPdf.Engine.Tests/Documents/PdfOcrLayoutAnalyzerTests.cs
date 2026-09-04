@@ -18,9 +18,27 @@ public sealed class PdfOcrLayoutAnalyzerTests
 
         Assert.Equal(2, layout.Lines.Count);
         Assert.Equal(2, layout.Lines[0].Components.Count);
+        Assert.Single(layout.Lines[0].Words);
         Assert.Equal(1, layout.Lines[0].Components[0].Left);
         Assert.Equal(5, layout.Lines[0].Components[1].Left);
         Assert.Equal(6, layout.Lines[1].Bounds.Top);
+    }
+
+    [Fact]
+    public void Analyze_SplitsWordsAtGlyphScaledHorizontalGaps()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 24 * 6).ToArray();
+        Paint(pixels, 24, 1, 1, 2, 3);
+        Paint(pixels, 24, 5, 1, 2, 3);
+        Paint(pixels, 24, 14, 1, 2, 3);
+        Paint(pixels, 24, 18, 1, 2, 3);
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(Prepared(24, 6, pixels));
+
+        Assert.Single(layout.Lines);
+        Assert.Equal(2, layout.Words.Count);
+        Assert.Equal(new PdfOcrImageRegion(1, 1, 7, 4), layout.Words[0].Bounds);
+        Assert.Equal(new PdfOcrImageRegion(14, 1, 20, 4), layout.Words[1].Bounds);
     }
 
     [Fact]
