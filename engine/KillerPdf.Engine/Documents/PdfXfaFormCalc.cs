@@ -5,7 +5,7 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Evaluates a bounded arithmetic subset of FormCalc without application access.</summary>
 public static class PdfXfaFormCalc
 {
-    /// <summary>Evaluates numeric literals, supplied variables, parentheses, and arithmetic operators.</summary>
+    /// <summary>Evaluates numeric literals, variables, arithmetic, and safe numeric functions.</summary>
     public static double Evaluate(string expression,
         IReadOnlyDictionary<string, double>? variables = null)
     {
@@ -106,7 +106,7 @@ public static class PdfXfaFormCalc
                 string name = _source[start.._index];
                 WhiteSpace();
                 if (_index < _source.Length && _source[_index] == '(')
-                    throw Error("FormCalc function calls are not supported by this evaluator.");
+                    return Function(name);
                 return _variables.TryGetValue(name, out double value)
                     ? value : throw new KeyNotFoundException(
                         $"The FormCalc variable '{name}' was not supplied.");
@@ -121,6 +121,44 @@ public static class PdfXfaFormCalc
                 || !double.IsFinite(number))
                 throw Error("A FormCalc numeric value is invalid or unsupported.");
             return number;
+        }
+
+        private double Function(string name)
+        {
+            _index++;
+            var arguments = new List<double>();
+            WhiteSpace();
+            if (!Take(')'))
+            {
+                while (true)
+                {
+                    arguments.Add(Expression());
+                    WhiteSpace();
+                    if (Take(')')) break;
+                    if (!Take(',')) throw Error("A FormCalc function argument list is invalid.");
+                }
+            }
+            if (name.Equals("Abs", StringComparison.OrdinalIgnoreCase) && arguments.Count == 1)
+                return Math.Abs(arguments[0]);
+            if (name.Equals("Round", StringComparison.OrdinalIgnoreCase)
+                && arguments.Count is 1 or 2)
+            {
+                int digits = arguments.Count == 1 ? 0
+                    : arguments[1] == Math.Truncate(arguments[1])
+                        && arguments[1] is >= 0 and <= 15
+                        ? (int)arguments[1]
+                        : throw Error("FormCalc Round precision must be an integer from zero through 15.");
+                return Math.Round(arguments[0], digits, MidpointRounding.AwayFromZero);
+            }
+            if (arguments.Count > 0 && name.Equals("Sum", StringComparison.OrdinalIgnoreCase))
+                return Checked(arguments.Sum());
+            if (arguments.Count > 0 && name.Equals("Avg", StringComparison.OrdinalIgnoreCase))
+                return Checked(arguments.Average());
+            if (arguments.Count > 0 && name.Equals("Min", StringComparison.OrdinalIgnoreCase))
+                return arguments.Min();
+            if (arguments.Count > 0 && name.Equals("Max", StringComparison.OrdinalIgnoreCase))
+                return arguments.Max();
+            throw Error($"FormCalc function '{name}' is unsupported or has the wrong argument count.");
         }
 
         private void Enter()
