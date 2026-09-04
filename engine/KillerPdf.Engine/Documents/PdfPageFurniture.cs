@@ -4,6 +4,7 @@ using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -225,6 +226,16 @@ public static class PdfPageFurnitureReport
             RotationDegrees = mark.RotationDegrees
         }));
 
+    internal static bool IsMarker(PdfContentInstruction instruction) =>
+        instruction.Operator == "BDC" && instruction.Operands.Count == 2
+        && instruction.Operands[0] is PdfName tag
+        && tag.ValueAsLatin1() == "Artifact"
+        && instruction.Operands[1] is PdfDictionary properties
+        && properties.TryGetValue(MarkerName, out PdfObject? value)
+        && value is PdfString marker
+        && Encoding.UTF8.GetString(marker.Bytes.Span)
+            .StartsWith("KPF1:", StringComparison.Ordinal);
+
     private sealed class MarkerData
     {
         public string? Text { get; set; }
@@ -290,6 +301,58 @@ public static class PdfPageFurnitureWriter
                 PdfPageFurnitureReport.CreateMarker(mark));
         }
         return editor.Build();
+    }
+}
+
+/// <summary>Removes or replaces only versioned KillerPDF-created page furniture.</summary>
+public static class PdfPageFurnitureEditor
+{
+    /// <summary>Removes all recognized furniture while preserving ordinary page content.</summary>
+    public static byte[] RemoveAll(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var reader = new PdfPageContentReader(document);
+        var editor = new PdfIncrementalPageEditor(document);
+        bool changed = false;
+        for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
+        {
+            IReadOnlyList<PdfContentInstruction> source = reader.ReadInstructions(pageIndex);
+            var retained = new List<PdfContentInstruction>(source.Count);
+            for (int index = 0; index < source.Count; index++)
+            {
+                if (!PdfPageFurnitureReport.IsMarker(source[index]))
+                {
+                    retained.Add(source[index]);
+                    continue;
+                }
+
+                changed = true;
+                int depth = 1;
+                while (depth > 0 && ++index < source.Count)
+                {
+                    if (source[index].Operator is "BMC" or "BDC") depth++;
+                    else if (source[index].Operator == "EMC") depth--;
+                }
+                if (depth != 0)
+                    throw new FormatException(
+                        "KillerPDF page-furniture marked content is not closed.");
+            }
+            if (retained.Count != source.Count)
+                editor.SetPageContent(pageIndex, retained);
+        }
+        return changed ? editor.Build() : document.Source.ToArray();
+    }
+
+    /// <summary>Replaces all recognized furniture with the supplied reviewed marks.</summary>
+    public static byte[] ReplaceAll(
+        PdfDocument document, IEnumerable<PdfPageFurnitureMark> marks)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(marks);
+        PdfPageFurnitureMark[] requested = marks.ToArray();
+        byte[] removed = RemoveAll(document);
+        if (requested.Length == 0) return removed;
+        return PdfPageFurnitureWriter.Apply(PdfDocument.Open(removed), requested);
     }
 }
 

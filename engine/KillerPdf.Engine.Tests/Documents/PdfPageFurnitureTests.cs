@@ -152,6 +152,29 @@ public sealed class PdfPageFurnitureTests
     }
 
     [Fact]
+    public void EditorRemovesAndReplacesOnlyKillerPdfCreatedFurniture()
+    {
+        var originalContent = new PdfContentStreamBuilder().BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 12).MoveText(20, 200)
+            .ShowLatin1Text("Original").EndText();
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(300, 400, originalContent).Build());
+        PdfDocument numbered = PdfDocument.Open(PdfPageFurnitureWriter.Apply(original, [
+            new PdfPageFurnitureMark(0, "CASE-000001", 20, 20)]));
+
+        PdfDocument removed = PdfDocument.Open(PdfPageFurnitureEditor.RemoveAll(numbered));
+        Assert.Equal("Original", new PdfPageContentReader(removed).Read(0).Text);
+        Assert.Empty(PdfPageFurnitureReport.Inspect(removed));
+
+        PdfDocument replaced = PdfDocument.Open(PdfPageFurnitureEditor.ReplaceAll(numbered, [
+            new PdfPageFurnitureMark(0, "CASE-000099", 30, 30)]));
+        Assert.Equal("Original CASE-000099",
+            new PdfPageContentReader(replaced).Read(0).Text);
+        Assert.Equal("CASE-000099",
+            Assert.Single(PdfPageFurnitureReport.Inspect(replaced)).Text);
+    }
+
+    [Fact]
     public void BatesBatchWriterAppliesContinuousNumbersInDocumentOrder()
     {
         PdfDocument first = PdfDocument.Open(new PdfDocumentBuilder()
