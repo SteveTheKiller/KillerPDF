@@ -368,6 +368,34 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(result.ToArray());
     }
 
+    /// <summary>Removes selected placements of one image or Form XObject resource.</summary>
+    public static IReadOnlyList<PdfContentInstruction> RemoveXObjectPlacements(
+        IEnumerable<PdfContentInstruction> instructions,
+        PdfName resourceName,
+        IEnumerable<int> occurrenceIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(resourceName);
+        ArgumentNullException.ThrowIfNull(occurrenceIndexes);
+        if (resourceName.Bytes.IsEmpty)
+            throw new ArgumentException("An XObject resource name is required.",
+                nameof(resourceName));
+        PdfContentInstruction[] source = instructions.ToArray();
+        int[] placements = [.. source.Select((instruction, index) => (instruction, index))
+            .Where(item => item.instruction.Operator == "Do"
+                && item.instruction.Operands is [PdfName name]
+                && name.Equals(resourceName))
+            .Select(item => item.index)];
+        int[] requested = occurrenceIndexes.ToArray();
+        if (requested.Any(index => index < 0 || index >= placements.Length)
+            || requested.Distinct().Count() != requested.Length)
+            throw new ArgumentException(
+                "Selected XObject occurrence indexes must be valid and unique.",
+                nameof(occurrenceIndexes));
+        HashSet<int> removed = requested.Select(index => placements[index]).ToHashSet();
+        return Array.AsReadOnly(source.Where((_, index) => !removed.Contains(index)).ToArray());
+    }
+
     /// <summary>Clips a contiguous instruction range to a rectangle without changing surrounding content.</summary>
     public static IReadOnlyList<PdfContentInstruction> ClipRange(
         IEnumerable<PdfContentInstruction> instructions,
