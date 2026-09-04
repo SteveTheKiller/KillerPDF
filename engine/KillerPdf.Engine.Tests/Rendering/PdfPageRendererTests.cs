@@ -114,27 +114,37 @@ public sealed class PdfPageRendererTests
             .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
                 PdfImage.FromRgb(1, 1, new byte[] { 10, 20, 30 }), 2, 3, 6, 2))
             .Build());
-        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
-        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
-        PdfDictionary page = ResolveDictionary(source,
-            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
-        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
-        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
-        PdfIndirectReference imageReference = Assert.IsType<PdfIndirectReference>(xObjects[Name("Im1")]);
-        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
         var decode = new PdfArray(Enumerable.Range(0, 3).SelectMany(_ =>
             new PdfObject[] { new PdfInteger(1), new PdfInteger(0) }));
-        var dictionary = new PdfDictionary(image.Dictionary.Append(
-            new KeyValuePair<PdfName, PdfObject>(Name("Decode"), decode)));
-        var update = new PdfIncrementalUpdateBuilder(source)
-            .ReplaceObject(imageReference.ObjectNumber,
-                new PdfStream(dictionary, image.EncodedData.Span));
-        PdfDocument document = PdfDocument.Open(update.Build());
+        PdfDocument document = AddImageDictionaryEntry(source, "Decode", decode);
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
 
         Assert.Equal([225, 235, 245, 255], Pixel(rendered, 3, 6));
+    }
+
+    [Fact]
+    public void Render_AppliesImageColorKeyMasks()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(2, 1, new byte[] { 255, 0, 0, 0, 255, 0 }), 2, 3, 6, 2))
+            .Build());
+        var mask = new PdfArray(new PdfObject[]
+        {
+            new PdfInteger(250), new PdfInteger(255),
+            new PdfInteger(0), new PdfInteger(5),
+            new PdfInteger(0), new PdfInteger(5)
+        });
+        PdfDocument document = AddImageDictionaryEntry(source, "Mask", mask);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 0], Pixel(rendered, 3, 6));
+        Assert.Equal([0, 255, 0, 255], Pixel(rendered, 7, 6));
     }
 
     [Fact]
@@ -305,6 +315,24 @@ public sealed class PdfPageRendererTests
 
     private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
         Assert.IsType<PdfDictionary>(document.Resolve(Assert.IsType<PdfIndirectReference>(value)));
+
+    private static PdfDocument AddImageDictionaryEntry(
+        PdfDocument source, string name, PdfObject value)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(xObjects[Name("Im1")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(reference));
+        var dictionary = new PdfDictionary(image.Dictionary.Append(
+            new KeyValuePair<PdfName, PdfObject>(Name(name), value)));
+        return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber,
+                new PdfStream(dictionary, image.EncodedData.Span)).Build());
+    }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
 }

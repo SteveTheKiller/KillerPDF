@@ -394,11 +394,6 @@ public sealed class PdfPageRenderer
         out string? diagnostic)
     {
         diagnostic = null;
-        if (stream.Dictionary.ContainsKey(Name("Mask")))
-        {
-            diagnostic = "Masked-image rendering is not implemented.";
-            return false;
-        }
         bool imageMask = stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
             && Resolve(maskValue) is PdfBoolean { Value: true };
         int width = PositiveInteger(stream.Dictionary, "Width");
@@ -420,6 +415,21 @@ public sealed class PdfPageRenderer
         byte[] samples;
         SoftMask? softMask;
         double[] decode;
+        int[]? colorKeyMask = null;
+        if (stream.Dictionary.TryGetValue(Name("Mask"), out PdfObject? colorKeyValue))
+        {
+            if (Resolve(colorKeyValue) is not PdfArray colorKey
+                || colorKey.Count != components * 2 || imageMask)
+            {
+                diagnostic = "Masked-image rendering is not implemented.";
+                return false;
+            }
+            colorKeyMask = colorKey.Select(item => Resolve(item) is PdfInteger integer
+                    && integer.Value >= 0 && integer.Value <= (1 << bits) - 1
+                    ? (int)integer.Value
+                    : throw new FormatException("An image color-key mask range is invalid."))
+                .ToArray();
+        }
         try
         {
             int expected = checked(((width * components * bits + 7) / 8) * height);
@@ -441,7 +451,7 @@ public sealed class PdfPageRenderer
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
             transform, samples, width, height, components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
-            stencilColor, stencilAlpha);
+            colorKeyMask, stencilColor, stencilAlpha);
         return true;
     }
 
@@ -492,7 +502,8 @@ public sealed class PdfPageRenderer
         double scaleX, double scaleY, Matrix transform, byte[] samples,
         int sourceWidth, int sourceHeight, int components, int bits,
         IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
-        SoftMask? softMask, double[] decode, Color stencilColor, double stencilAlpha)
+        SoftMask? softMask, double[] decode, int[]? colorKeyMask,
+        Color stencilColor, double stencilAlpha)
     {
         Point[] corners =
         [
@@ -535,17 +546,33 @@ public sealed class PdfPageRenderer
                         3 => Color.Rgb(first, SampleValue(1), SampleValue(2)),
                         _ => Color.Cmyk(first, SampleValue(1), SampleValue(2), SampleValue(3))
                     };
+                    if (colorKeyMask is not null)
+                    {
+                        bool matches = true;
+                        for (int component = 0; component < components && matches; component++)
+                        {
+                            int sample = RawSample(component);
+                            matches = sample >= colorKeyMask[component * 2]
+                                && sample <= colorKeyMask[component * 2 + 1];
+                        }
+                        if (matches) alpha = 0;
+                    }
 
                     double SampleValue(int component)
                     {
-                        int bitOffset = sx * components + component;
-                        int sample = bits == 8
-                            ? samples[sy * rowBytes + bitOffset]
-                            : (samples[sy * rowBytes + bitOffset / 8]
-                                >> (7 - bitOffset % 8)) & 1;
+                        int sample = RawSample(component);
                         double normalized = sample / (double)((1 << bits) - 1);
                         return Math.Clamp(decode[component * 2] + normalized
                             * (decode[component * 2 + 1] - decode[component * 2]), 0, 1);
+                    }
+
+                    int RawSample(int component)
+                    {
+                        int bitOffset = sx * components + component;
+                        return bits == 8
+                            ? samples[sy * rowBytes + bitOffset]
+                            : (samples[sy * rowBytes + bitOffset / 8]
+                                >> (7 - bitOffset % 8)) & 1;
                     }
                 }
                 if (softMask is not null)
