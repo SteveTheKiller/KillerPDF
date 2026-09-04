@@ -12,6 +12,7 @@ internal sealed class PdfType1GlyphReader
     private readonly Dictionary<string, byte[]> _glyphs = new(StringComparer.Ordinal);
     private readonly Dictionary<int, byte[]> _subrs = [];
     private readonly Dictionary<string, PdfGlyphBounds?> _bounds = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PdfGlyphOutline?> _outlines = new(StringComparer.Ordinal);
     private readonly string[] _standardNames = PdfFontTables.EncodingNames("StandardEncoding")!;
     private int _lenIv = 4;
     private double _xx = 1, _xy, _yx, _yy = 1, _tx, _ty;
@@ -51,6 +52,28 @@ internal sealed class PdfType1GlyphReader
     }
 
     internal PdfGlyphBounds? GetBounds(string name) => Bounds(name, 0);
+
+    internal PdfGlyphOutline? GetOutline(string name) => GlyphOutline(name, 0);
+
+    private PdfGlyphOutline? GlyphOutline(string name, int depth)
+    {
+        if (_outlines.TryGetValue(name, out var cached)) return cached;
+        if (depth >= 16 || !_glyphs.TryGetValue(name, out byte[]? program)) return null;
+        try
+        {
+            var state = new Outline(this, depth);
+            state.Run(DecodeProgram(program), 0);
+            PdfGlyphOutline? result = state.OutlineResult();
+            _outlines[name] = result;
+            return result;
+        }
+        catch (Exception ex) when (ex is FormatException or ArgumentException
+            or OverflowException or NotSupportedException)
+        {
+            _outlines[name] = null;
+            return null;
+        }
+    }
 
     private PdfGlyphBounds? Bounds(string name, int depth)
     {
@@ -208,10 +231,12 @@ internal sealed class PdfType1GlyphReader
         private readonly List<double> _stack = [];
         private readonly Stack<double> _other = [];
         private readonly List<(double X, double Y)> _flex = [];
+        private readonly List<PdfGlyphContour> _contours = [];
+        private List<PdfGlyphPoint>? _contour;
         private double _x, _y, _sideBearing;
         private double _left = double.PositiveInfinity, _bottom = double.PositiveInfinity;
         private double _right = double.NegativeInfinity, _top = double.NegativeInfinity;
-        private bool _flexing;
+        private bool _flexing, _incompleteOutline;
         private int _operations;
 
         internal void Run(byte[] bytes, int depth)
@@ -249,7 +274,7 @@ internal sealed class PdfType1GlyphReader
                         for (int j = 0; j + 5 < _stack.Count; j += 6)
                             Curve(_stack[j], _stack[j + 1], _stack[j + 2], _stack[j + 3], _stack[j + 4], _stack[j + 5]);
                         _stack.Clear(); break;
-                    case 9: _stack.Clear(); break; // Type1 closepath preserves the current point.
+                    case 9: FinishContour(); _stack.Clear(); break;
                     case 10:
                         int subr = checked((int)Pop());
                         if (!font._subrs.TryGetValue(subr, out var subroutine)) throw new FormatException("Missing Type1 subroutine.");
@@ -259,7 +284,7 @@ internal sealed class PdfType1GlyphReader
                         Require(bytes, i, 1); Escape(bytes[i++]); break;
                     case 13:
                         Need(2); _sideBearing = _stack[0]; _x = _sideBearing; _y = 0; _stack.Clear(); break;
-                    case 14: return;
+                    case 14: FinishContour(); return;
                     case 21: Need(2); Move(_stack[^2], _stack[^1]); _stack.Clear(); break;
                     case 22: Move(Pop(), 0); _stack.Clear(); break;
                     case 30: case 31:
@@ -283,6 +308,12 @@ internal sealed class PdfType1GlyphReader
                     if (baseCode is < 0 or > 255 || accentCode is < 0 or > 255) throw new FormatException("Invalid Type1 accent code.");
                     AddBox(font.Bounds(font._standardNames[baseCode], glyphDepth + 1), 0, 0);
                     AddBox(font.Bounds(font._standardNames[accentCode], glyphDepth + 1), _stack[1] - _stack[0] + _sideBearing, _stack[2]);
+                    bool baseAdded = AddOutline(font.GlyphOutline(
+                        font._standardNames[baseCode], glyphDepth + 1), 0, 0);
+                    bool accentAdded = AddOutline(font.GlyphOutline(
+                        font._standardNames[accentCode], glyphDepth + 1),
+                        _stack[1] - _stack[0] + _sideBearing, _stack[2]);
+                    _incompleteOutline = !baseAdded || !accentAdded;
                     _stack.Clear(); return;
                 case 7: Need(4); _sideBearing = _stack[0]; _x = _stack[0]; _y = _stack[1]; _stack.Clear(); return;
                 case 12: double divisor = Pop(), dividend = Pop(); Push(dividend / divisor); return;
@@ -309,13 +340,25 @@ internal sealed class PdfType1GlyphReader
                     else throw new NotSupportedException("Unsupported Type1 OtherSubr.");
                     return;
                 case 17: if (_other.Count == 0) throw new FormatException("Type1 OtherSubr stack underflow."); Push(_other.Pop()); return;
-                case 33: Need(2); _x = _stack[^2]; _y = _stack[^1]; _stack.Clear(); return;
+                case 33: Need(2); FinishContour(); _x = _stack[^2]; _y = _stack[^1]; _stack.Clear(); return;
                 default: throw new NotSupportedException($"Type1 escaped operator {op} is not supported.");
             }
         }
 
-        private void Move(double dx, double dy) { _x += dx; _y += dy; }
-        private void Line(double dx, double dy) { Include(_x, _y); _x += dx; _y += dy; Include(_x, _y); }
+        private void Move(double dx, double dy)
+        {
+            if (!_flexing) FinishContour();
+            _x += dx; _y += dy;
+        }
+        private void Line(double dx, double dy)
+        {
+            EnsureContour();
+            Include(_x, _y);
+            _x += dx; _y += dy;
+            Include(_x, _y);
+            var end = Transform(_x, _y);
+            _contour?.Add(new PdfGlyphPoint(end.X, end.Y, true));
+        }
         private void Curve(double dx1, double dy1, double dx2, double dy2, double dx3, double dy3)
         {
             var a = (_x + dx1, _y + dy1);
@@ -325,8 +368,12 @@ internal sealed class PdfType1GlyphReader
         }
         private void CurveTo((double X, double Y) a, (double X, double Y) b, (double X, double Y) c)
         {
+            EnsureContour();
             var (X, Y) = Transform(_x, _y); var p1 = Transform(a.X, a.Y);
             var p2 = Transform(b.X, b.Y); var p3 = Transform(c.X, c.Y);
+            _contour?.Add(new PdfGlyphPoint(p1.X, p1.Y, false, true));
+            _contour?.Add(new PdfGlyphPoint(p2.X, p2.Y, false, true));
+            _contour?.Add(new PdfGlyphPoint(p3.X, p3.Y, true));
             IncludeTransformed(X, Y); IncludeTransformed(p3.X, p3.Y);
             foreach (double t in Roots(X, p1.X, p2.X, p3.X).Concat(Roots(Y, p1.Y, p2.Y, p3.Y)))
                 IncludeTransformed(Bezier(X, p1.X, p2.X, p3.X, t), Bezier(Y, p1.Y, p2.Y, p3.Y, t));
@@ -349,6 +396,18 @@ internal sealed class PdfType1GlyphReader
             return u * u * u * a + 3 * u * u * t * b + 3 * u * t * t * c + t * t * t * d;
         }
         private (double X, double Y) Transform(double x, double y) => (x * font._xx + y * font._yx + font._tx, x * font._xy + y * font._yy + font._ty);
+        private void EnsureContour()
+        {
+            if (_contour is not null) return;
+            var start = Transform(_x, _y);
+            _contour = [new PdfGlyphPoint(start.X, start.Y, true)];
+        }
+        private void FinishContour()
+        {
+            if (_contour is { Count: > 1 })
+                _contours.Add(new PdfGlyphContour(_contour.AsReadOnly()));
+            _contour = null;
+        }
         private void Include(double x, double y) { var (X, Y) = Transform(x, y); IncludeTransformed(X, Y); }
         private void IncludeTransformed(double x, double y)
         {
@@ -361,7 +420,27 @@ internal sealed class PdfType1GlyphReader
             IncludeTransformed(b.Left + dx * font._xx + dy * font._yx, b.Bottom + dx * font._xy + dy * font._yy);
             IncludeTransformed(b.Right + dx * font._xx + dy * font._yx, b.Top + dx * font._xy + dy * font._yy);
         }
+        private bool AddOutline(PdfGlyphOutline? outline, double dx, double dy)
+        {
+            if (outline is null) return false;
+            double offsetX = dx * font._xx + dy * font._yx;
+            double offsetY = dx * font._xy + dy * font._yy;
+            foreach (PdfGlyphContour contour in outline.Contours)
+                _contours.Add(new PdfGlyphContour(Array.AsReadOnly([
+                    .. contour.Points.Select(point => point with
+                    {
+                        X = point.X + offsetX,
+                        Y = point.Y + offsetY
+                    })])));
+            return true;
+        }
         internal PdfGlyphBounds? Result() => double.IsFinite(_left) ? new PdfGlyphBounds(_left, _bottom, _right, _top) : null;
+        internal PdfGlyphOutline? OutlineResult()
+        {
+            FinishContour();
+            return _incompleteOutline || _contours.Count == 0
+                ? null : new PdfGlyphOutline(_contours.AsReadOnly());
+        }
         private void Push(double value) { if (_stack.Count >= 96 || !double.IsFinite(value)) throw new FormatException("Invalid Type1 operand stack."); _stack.Add(value); }
         private double Pop() { Need(1); double value = _stack[^1]; _stack.RemoveAt(_stack.Count - 1); return value; }
         private void Need(int count) { if (_stack.Count < count) throw new FormatException("Type1 operand stack underflow."); }

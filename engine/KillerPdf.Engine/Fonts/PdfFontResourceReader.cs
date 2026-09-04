@@ -193,6 +193,8 @@ public static class PdfFontResourceReader
                 },
                 OutlineReader = code => outlines?.Outline(Glyph(code))
                     ?? cff?.GetOutline(CffGlyph(code))
+                    ?? (!composite && code < glyphNames.Length
+                        ? type1?.GetOutline(glyphNames[code]) : null)
             };
         }
 
