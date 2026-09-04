@@ -537,8 +537,15 @@ public sealed class PdfOptionalContentReaderTests
         PdfIndirectReference layer = Assert.IsType<PdfIndirectReference>(
             annotation[new PdfName("OC"u8)]);
         Assert.Equal(groupObjectNumber, layer.ObjectNumber);
-        Assert.Throws<InvalidOperationException>(() =>
+        PdfDocument visibleFlattened = PdfDocument.Open(
             PdfOptionalContentEditor.FlattenPageContent(assigned));
+        PdfDocument hiddenFlattened = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(assigned, []));
+        Assert.False(Assert.IsType<PdfDictionary>(visibleFlattened.Resolve(
+                new PdfIndirectReference(annotationObjectNumber, 0)))
+            .ContainsKey(new PdfName("OC"u8)));
+        Assert.Single(PdfLinkReader.ReadPage(visibleFlattened, 0));
+        Assert.Empty(PdfLinkReader.ReadPage(hiddenFlattened, 0));
 
         PdfDocument cleared = PdfDocument.Open(PdfOptionalContentEditor.SetAnnotationGroup(
             assigned, annotationObjectNumber, null));

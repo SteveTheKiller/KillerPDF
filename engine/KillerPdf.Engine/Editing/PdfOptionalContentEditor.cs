@@ -317,6 +317,7 @@ public static class PdfOptionalContentEditor
         }
 
         PdfDocument flattened = changed ? PdfDocument.Open(editor.Build()) : document;
+        flattened = FlattenAnnotations(flattened);
         foreach (PdfOptionalContentGroupInfo group in info.Groups)
             flattened = PdfDocument.Open(
                 RemoveUnusedGroup(flattened, group.ObjectNumber));
@@ -373,6 +374,95 @@ public static class PdfOptionalContentEditor
                 value = document.Resolve(reference);
             }
             return value;
+        }
+
+        PdfDocument FlattenAnnotations(PdfDocument input)
+        {
+            PdfPageTree inputTree = PdfPageTree.Read(input);
+            var update = new PdfIncrementalUpdateBuilder(input);
+            bool annotationChanges = false;
+            foreach (PdfPageTreeEntry page in inputTree.Pages)
+            {
+                if (!page.Dictionary.TryGetValue(AnnotationsKey,
+                        out PdfObject? annotationsValue))
+                    continue;
+                PdfObject resolved = ResolveInput(annotationsValue);
+                PdfArray annotations = resolved as PdfArray
+                    ?? throw new InvalidOperationException(
+                        "A page annotation list is not an array.");
+                var retained = new List<PdfObject>(annotations.Count);
+                bool pageChanged = false;
+                foreach (PdfObject item in annotations)
+                {
+                    PdfIndirectReference? reference = item as PdfIndirectReference;
+                    PdfDictionary annotation = ResolveInput(item) as PdfDictionary
+                        ?? throw new InvalidOperationException(
+                            "A page annotation is not a dictionary.");
+                    if (!annotation.TryGetValue(OptionalContentKey,
+                            out PdfObject? optionalContent))
+                    {
+                        retained.Add(item);
+                        continue;
+                    }
+                    if (optionalContent is not PdfIndirectReference groupReference)
+                        throw new NotSupportedException(
+                            "Direct annotation optional-content properties cannot be flattened safely.");
+                    PdfDictionary groupDictionary = ResolveInput(groupReference) as PdfDictionary
+                        ?? throw new InvalidOperationException(
+                            "An annotation optional-content property is not a dictionary.");
+                    string type = groupDictionary.TryGetValue(TypeKey, out PdfObject? typeValue)
+                        && ResolveInput(typeValue) is PdfName typeName
+                            ? typeName.ValueAsLatin1() : string.Empty;
+                    if (type == "OCMD")
+                        throw new NotSupportedException(
+                            "Annotation optional-content membership expressions cannot be flattened safely.");
+                    if (type != "OCG" || !registered.Contains(groupReference.ObjectNumber))
+                        throw new InvalidOperationException(
+                            "An annotation does not reference a registered optional-content group.");
+                    annotationChanges = true;
+                    if (!visible.Contains(groupReference.ObjectNumber))
+                    {
+                        pageChanged = true;
+                        continue;
+                    }
+                    var entries = annotation.ToDictionary(
+                        entry => entry.Key, entry => entry.Value);
+                    entries.Remove(OptionalContentKey);
+                    var replacement = new PdfDictionary(entries);
+                    if (reference is not null)
+                    {
+                        update.ReplaceObject(reference.ObjectNumber, replacement);
+                        retained.Add(reference);
+                    }
+                    else
+                    {
+                        retained.Add(replacement);
+                        pageChanged = true;
+                    }
+                }
+                if (!pageChanged) continue;
+                var pageEntries = page.Dictionary.ToDictionary(
+                    entry => entry.Key, entry => entry.Value);
+                if (retained.Count == 0) pageEntries.Remove(AnnotationsKey);
+                else pageEntries[AnnotationsKey] = new PdfArray(retained);
+                update.ReplaceObject(page.Reference.ObjectNumber,
+                    new PdfDictionary(pageEntries));
+            }
+            return annotationChanges ? PdfDocument.Open(update.Build()) : input;
+
+            PdfObject ResolveInput(PdfObject value)
+            {
+                var visited = new HashSet<(int, int)>();
+                for (int depth = 0; value is PdfIndirectReference reference; depth++)
+                {
+                    if (depth >= 32 || !visited.Add(
+                            (reference.ObjectNumber, reference.Generation)))
+                        throw new InvalidOperationException(
+                            "An annotation has an invalid reference chain.");
+                    value = input.Resolve(reference);
+                }
+                return value;
+            }
         }
     }
 
