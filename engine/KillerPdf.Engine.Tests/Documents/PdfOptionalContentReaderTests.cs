@@ -192,4 +192,28 @@ public sealed class PdfOptionalContentReaderTests
         Assert.Null(clearedConfiguration.Name);
         Assert.Null(clearedConfiguration.Creator);
     }
+
+    [Fact]
+    public void DefaultBaseStateCanBeChangedWithoutMutatingTheSource()
+    {
+        var visible = new PdfOptionalContentGroup("Visible");
+        var hidden = new PdfOptionalContentGroup("Hidden", initiallyVisible: false);
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(visible).Rectangle(0, 0, 10, 10).Fill().EndMarkedContent()
+                .BeginOptionalContent(hidden).Rectangle(20, 0, 10, 10).Fill().EndMarkedContent())
+            .Build());
+
+        PdfDocument changed = PdfDocument.Open(
+            PdfOptionalContentEditor.SetDefaultBaseState(
+                original, PdfOptionalContentBaseState.Off));
+        PdfOptionalContentConfigurationInfo configuration =
+            Assert.Single(PdfOptionalContentReader.Read(changed).Configurations);
+
+        Assert.Equal(PdfOptionalContentBaseState.Off, configuration.BaseState);
+        Assert.Empty(configuration.VisibleGroupObjectNumbers);
+        Assert.Single(PdfOptionalContentReader.Read(original).Configurations);
+        Assert.Equal(PdfOptionalContentBaseState.On,
+            PdfOptionalContentReader.Read(original).Configurations[0].BaseState);
+    }
 }

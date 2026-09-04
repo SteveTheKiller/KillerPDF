@@ -11,6 +11,7 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName UsageKey = new("Usage"u8);
     private static readonly PdfName OptionalContentPropertiesKey = new("OCProperties"u8);
     private static readonly PdfName DefaultConfigurationKey = new("D"u8);
+    private static readonly PdfName BaseStateKey = new("BaseState"u8);
     private static readonly PdfName OnKey = new("ON"u8);
     private static readonly PdfName OffKey = new("OFF"u8);
     private static readonly PdfName LockedKey = new("Locked"u8);
@@ -228,6 +229,56 @@ public static class PdfOptionalContentEditor
             entry => entry.Key, entry => entry.Value);
         SetOptionalText(configurationEntries, NameKey, name);
         SetOptionalText(configurationEntries, CreatorKey, creator);
+        var replacementConfiguration = new PdfDictionary(configurationEntries);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        if (configurationReference is not null)
+            update.ReplaceObject(configurationReference.ObjectNumber, replacementConfiguration);
+        else
+        {
+            var propertiesEntries = properties.ToDictionary(entry => entry.Key, entry => entry.Value);
+            propertiesEntries[DefaultConfigurationKey] = replacementConfiguration;
+            var replacementProperties = new PdfDictionary(propertiesEntries);
+            if (propertiesReference is not null)
+                update.ReplaceObject(propertiesReference.ObjectNumber, replacementProperties);
+            else
+            {
+                var catalogEntries = tree.Catalog.ToDictionary(entry => entry.Key, entry => entry.Value);
+                catalogEntries[OptionalContentPropertiesKey] = replacementProperties;
+                update.ReplaceObject(tree.CatalogReference.ObjectNumber,
+                    new PdfDictionary(catalogEntries));
+            }
+        }
+        return update.Build();
+    }
+
+    /// <summary>Sets the default state applied before explicit layer overrides.</summary>
+    public static byte[] SetDefaultBaseState(
+        PdfDocument document, PdfOptionalContentBaseState baseState)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!Enum.IsDefined(baseState))
+            throw new ArgumentOutOfRangeException(nameof(baseState));
+        PdfPageTree tree = PdfPageTree.Read(document);
+        if (!tree.Catalog.TryGetValue(OptionalContentPropertiesKey, out PdfObject? propertiesValue))
+            throw new InvalidOperationException("The document has no optional-content properties.");
+        (PdfDictionary properties, PdfIndirectReference? propertiesReference) =
+            ResolveDictionaryWithReference(document, propertiesValue,
+                "The optional-content properties");
+        if (!properties.TryGetValue(DefaultConfigurationKey, out PdfObject? configurationValue))
+            throw new InvalidOperationException(
+                "The document has no default optional-content configuration.");
+        (PdfDictionary configuration, PdfIndirectReference? configurationReference) =
+            ResolveDictionaryWithReference(document, configurationValue,
+                "The default optional-content configuration");
+        var configurationEntries = configuration.ToDictionary(
+            entry => entry.Key, entry => entry.Value);
+        configurationEntries[BaseStateKey] = baseState switch
+        {
+            PdfOptionalContentBaseState.On => new PdfName("ON"u8),
+            PdfOptionalContentBaseState.Off => new PdfName("OFF"u8),
+            PdfOptionalContentBaseState.Unchanged => new PdfName("Unchanged"u8),
+            _ => throw new ArgumentOutOfRangeException(nameof(baseState))
+        };
         var replacementConfiguration = new PdfDictionary(configurationEntries);
         var update = new PdfIncrementalUpdateBuilder(document);
         if (configurationReference is not null)
