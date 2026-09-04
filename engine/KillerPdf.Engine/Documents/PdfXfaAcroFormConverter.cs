@@ -44,9 +44,6 @@ public static class PdfXfaAcroFormConverter
         if ((hasImages || hasBarcodes) && mode != PdfXfaConversionMode.Flattened)
             throw new NotSupportedException(
                 "XFA image and barcode fields can be preserved only in flattened output.");
-        if ((hasImages || hasBarcodes) && info.FormType == PdfXfaFormType.Dynamic)
-            throw new NotSupportedException(
-                "Dynamic XFA image and barcode conversion is not supported.");
         Dictionary<string, PdfXfaImageValue> images = hasImages
             ? PdfXfaImages.Read(info).ToDictionary(image => image.FieldPath, StringComparer.Ordinal)
             : [];
@@ -71,8 +68,23 @@ public static class PdfXfaAcroFormConverter
             {
                 PdfXfaTemplateField field = fields[placement.FieldPath];
                 string name = placement.FieldPath + "[" + placement.OccurrenceIndex + "]";
+                double bottom = firstPage.Height - placement.Y - placement.Height;
+                if (field.ControlType!.Equals("imageEdit", StringComparison.OrdinalIgnoreCase))
+                {
+                    AddImage(editor, field, images, placement.PageIndex,
+                        firstPage.Width, firstPage.Height, placement.X, bottom,
+                        placement.Width, placement.Height);
+                    continue;
+                }
+                if (field.ControlType.Equals("barcode", StringComparison.OrdinalIgnoreCase))
+                {
+                    AddBarcode(editor, field, placement.PageIndex,
+                        firstPage.Width, firstPage.Height, placement.X, bottom,
+                        placement.Width, placement.Height, placement.Value);
+                    continue;
+                }
                 AddField(editor, field, name, placement.PageIndex, placement.X,
-                    firstPage.Height - placement.Y - placement.Height,
+                    bottom,
                     placement.Width, placement.Height, placement.Value);
             }
             return Finish(editor, mode);

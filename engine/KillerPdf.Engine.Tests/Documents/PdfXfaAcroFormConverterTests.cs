@@ -195,6 +195,45 @@ public sealed class PdfXfaAcroFormConverterTests
     }
 
     [Fact]
+    public void ConvertPreservesDynamicCode39BarcodeAsVectorContent()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="rows" layout="tb"><field name="tracking" w="70pt" h="15pt"><bind ref="$record.order.tracking"/><ui><barcode type="code39" dataLength="8" checksum="none"/></ui></field></subform></template>""",
+            """<datasets><data><order><tracking>ABC-123</tracking></order></data></datasets>""",
+            """<config><present><pdf><dynamicRender>required</dynamicRender></pdf></present></config>""");
+
+        PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(
+            source, PdfXfaConversionMode.Flattened));
+        PdfPageContent content = new PdfPageContentReader(converted).Read(0);
+
+        Assert.Null(PdfXfaReader.Read(converted));
+        Assert.Empty(PdfFormWidgetReader.ReadPage(converted, 0));
+        Assert.True(content.Paths.Count > 20);
+        Assert.All(content.Paths, path => Assert.Equal("f", path.PaintOperator));
+    }
+
+    [Fact]
+    public void ConvertPreservesDynamicEmbeddedJpegAsImageContent()
+    {
+        string encoded = Convert.ToBase64String(MinimalJpeg(2, 1, 3));
+        PdfDocument source = Document(
+            $"""<template><subform name="rows" layout="tb"><field name="photo" w="70pt" h="15pt"><value><image contentType="image/jpeg">{encoded}</image></value><ui><imageEdit/></ui></field></subform></template>""",
+            """<datasets><data><rows><photo/></rows></data></datasets>""",
+            """<config><present><pdf><dynamicRender>required</dynamicRender></pdf></present></config>""");
+
+        PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(
+            source, PdfXfaConversionMode.Flattened));
+        PdfExtractedImage image = Assert.Single(
+            new PdfPageContentReader(converted).Read(0).Images);
+
+        Assert.Null(PdfXfaReader.Read(converted));
+        Assert.Equal(0, image.BoundingBox.Left);
+        Assert.Equal(85, image.BoundingBox.Bottom);
+        Assert.Equal(70, image.BoundingBox.Right);
+        Assert.Equal(100, image.BoundingBox.Top);
+    }
+
+    [Fact]
     public void ConvertAppliesSafeCalculationsToDynamicFlowValues()
     {
         PdfDocument source = Document(
