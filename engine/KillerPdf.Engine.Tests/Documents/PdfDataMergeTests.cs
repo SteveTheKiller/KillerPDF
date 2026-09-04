@@ -125,4 +125,29 @@ public sealed class PdfDataMergeTests
         Assert.Contains("already used", results[2].Error, StringComparison.Ordinal);
         Assert.Equal(string.Empty, Assert.Single(PdfFormWidgetReader.ReadPage(template, 0)).Value);
     }
+
+    [Fact]
+    public void FormBatchCancellationStopsBeforeAnotherRecord()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "customer.name", 20, 20, 140, 24).Build());
+        var profile = new PdfDataMergeProfile("Customers",
+            [new PdfDataMergeFieldMapping("Name", "customer.name")],
+            "customer-{{Name}}.pdf");
+        using var cancellation = new CancellationTokenSource();
+
+        IEnumerable<IReadOnlyDictionary<string, string?>> Records()
+        {
+            yield return new Dictionary<string, string?> { ["Name"] = "Ada" };
+            cancellation.Cancel();
+            yield return new Dictionary<string, string?> { ["Name"] = "Grace" };
+        }
+
+        IReadOnlyList<PdfDataMergeDocumentResult> results = PdfDataMerge.RunFormBatch(
+            template, Records(), profile, cancellation.Token);
+
+        Assert.Single(results);
+        Assert.Equal("customer-Ada.pdf", results[0].OutputFileName);
+        Assert.Equal(string.Empty, Assert.Single(PdfFormWidgetReader.ReadPage(template, 0)).Value);
+    }
 }

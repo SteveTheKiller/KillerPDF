@@ -60,7 +60,7 @@ public static class PdfDataMerge
     /// <summary>Maps records into an AcroForm template and isolates each generated PDF.</summary>
     public static IReadOnlyList<PdfDataMergeDocumentResult> RunFormBatch(
         PdfDocument template, IEnumerable<IReadOnlyDictionary<string, string?>> records,
-        PdfDataMergeProfile profile)
+        PdfDataMergeProfile profile, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(template);
         ArgumentNullException.ThrowIfNull(records);
@@ -70,6 +70,7 @@ public static class PdfDataMerge
         int index = 0;
         foreach (IReadOnlyDictionary<string, string?> record in records)
         {
+            if (cancellationToken.IsCancellationRequested) break;
             string? outputFileName = null;
             try
             {

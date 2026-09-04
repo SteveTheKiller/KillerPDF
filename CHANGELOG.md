@@ -23,7 +23,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added layer renaming, locking, editable visibility and display order, plus readable preflight reports (#350, #334).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
 - Added source identities, JSON reports, stable findings, and safe-link removal to navigation audits (#351).
-- Added CSV and JSON record import, reusable mapping profiles, and collision-safe form generation (#352).
+- Added CSV and JSON record import, reusable mapping profiles, and cancellable collision-safe form generation (#352).
 - Added searchable text-layer writing, review persistence, accuracy summaries, batch isolation, and configurable OCR processing (#345).
 - Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).
 - Added safe macro saving, importing, duplication, and step reordering (#343).
