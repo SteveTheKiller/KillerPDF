@@ -24,6 +24,11 @@ public sealed record PdfAccessibilityLinkRepair(
     int PageIndex, int AnnotationIndex, int? ObjectNumber, string Description,
     PdfAccessibilityReport Before, bool WillChange);
 
+/// <summary>A reviewed role correction for one table data-cell structure element.</summary>
+public sealed record PdfAccessibilityTableHeaderRepair(
+    int TableObjectNumber, int CellObjectNumber,
+    PdfAccessibilityReport Before, bool WillChange);
+
 /// <summary>The saved document and accessibility reports surrounding one repair.</summary>
 public sealed record PdfAccessibilityRepairResult(
     ReadOnlyMemory<byte> Document,
@@ -33,6 +38,57 @@ public sealed record PdfAccessibilityRepairResult(
 /// <summary>Previews and applies accessibility corrections that require no semantic inference.</summary>
 public static class PdfAccessibilityRepair
 {
+    /// <summary>Previews promoting a supplied data cell in a reported table to a header cell.</summary>
+    public static PdfAccessibilityTableHeaderRepair PreviewTableHeader(
+        PdfDocument document, int tableObjectNumber, int cellObjectNumber)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (tableObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(tableObjectNumber));
+        if (cellObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(cellObjectNumber));
+        PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
+        bool missing = before.Findings.Any(finding =>
+            finding.Code == PdfAccessibilityFindingCode.MissingTableHeader
+            && finding.ObjectNumber == tableObjectNumber);
+        bool dataCell = missing && IsDescendantDataCell(
+            document, tableObjectNumber, cellObjectNumber);
+        return new PdfAccessibilityTableHeaderRepair(
+            tableObjectNumber, cellObjectNumber, before, dataCell);
+    }
+
+    /// <summary>Applies a previewed table-header role and verifies the saved result.</summary>
+    public static PdfAccessibilityRepairResult ApplyTableHeader(
+        PdfDocument document, PdfAccessibilityTableHeaderRepair repair)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(repair);
+        PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
+        bool missing = before.Findings.Any(finding =>
+            finding.Code == PdfAccessibilityFindingCode.MissingTableHeader
+            && finding.ObjectNumber == repair.TableObjectNumber);
+        if (!repair.WillChange || !missing || !IsDescendantDataCell(
+                document, repair.TableObjectNumber, repair.CellObjectNumber))
+            throw new InvalidOperationException(
+                "The document does not have the previewed table data cell.");
+        PdfDictionary cell = document.Resolve(new PdfIndirectReference(
+            repair.CellObjectNumber, 0)) as PdfDictionary
+            ?? throw new InvalidOperationException(
+                "The table cell object is not a dictionary.");
+        var entries = cell.ToDictionary(item => item.Key, item => item.Value);
+        entries[new PdfName("S"u8)] = new PdfName("TH"u8);
+        byte[] saved = new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(repair.CellObjectNumber, new PdfDictionary(entries)).Build();
+        PdfDocument reopened = PdfDocument.Open(saved);
+        PdfAccessibilityReport after = PdfAccessibilityInspector.Inspect(reopened);
+        if (after.Findings.Any(finding =>
+                finding.Code == PdfAccessibilityFindingCode.MissingTableHeader
+                && finding.ObjectNumber == repair.TableObjectNumber))
+            throw new InvalidOperationException(
+                "The saved table still has no header cell.");
+        return new PdfAccessibilityRepairResult(saved, before, after);
+    }
+
     /// <summary>Previews adding a supplied user-facing description to one link.</summary>
     public static PdfAccessibilityLinkRepair PreviewLinkDescription(
         PdfDocument document, int pageIndex, int annotationIndex, string description)
@@ -209,6 +265,47 @@ public static class PdfAccessibilityRepair
     private static PdfString TextString(string value) => new(
         [0xFE, 0xFF, .. Encoding.BigEndianUnicode.GetBytes(value)],
         PdfStringForm.Hexadecimal);
+
+    private static bool IsDescendantDataCell(
+        PdfDocument document, int tableObjectNumber, int cellObjectNumber)
+    {
+        PdfDictionary table = document.Resolve(new PdfIndirectReference(
+            tableObjectNumber, 0)) as PdfDictionary
+            ?? throw new InvalidOperationException(
+                "The table structure object is not a dictionary.");
+        if (!table.TryGetValue(new PdfName("S"u8), out PdfObject? tableRole)
+            || tableRole is not PdfName tableName
+            || tableName.ValueAsLatin1() != "Table")
+            return false;
+        var visited = new HashSet<(int ObjectNumber, int Generation)>();
+        return table.TryGetValue(new PdfName("K"u8), out PdfObject? children)
+            && Visit(children, 0);
+
+        bool Visit(PdfObject value, int depth)
+        {
+            if (depth >= 256)
+                throw new InvalidOperationException(
+                    "The table structure exceeds the supported nesting depth.");
+            if (value is PdfIndirectReference reference)
+            {
+                if (!visited.Add((reference.ObjectNumber, reference.Generation)))
+                    return false;
+                if (reference.ObjectNumber == cellObjectNumber)
+                {
+                    PdfDictionary? candidate = document.Resolve(reference) as PdfDictionary;
+                    return candidate is not null
+                        && candidate.TryGetValue(new PdfName("S"u8), out PdfObject? role)
+                        && role is PdfName name && name.ValueAsLatin1() == "TD";
+                }
+                value = document.Resolve(reference);
+            }
+            if (value is PdfArray array)
+                return array.Any(item => Visit(item, depth + 1));
+            return value is PdfDictionary dictionary
+                && dictionary.TryGetValue(new PdfName("K"u8), out PdfObject? descendants)
+                && Visit(descendants, depth + 1);
+        }
+    }
 
     private static PdfFormWidgetInfo[] Widgets(PdfDocument document, string fieldName) =>
         [.. PdfPageTree.Read(document).Pages.SelectMany((_, pageIndex) =>

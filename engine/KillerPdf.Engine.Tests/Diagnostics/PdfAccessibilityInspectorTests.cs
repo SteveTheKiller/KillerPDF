@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Objects;
 using System.Text.Json;
 using Xunit;
 
@@ -267,6 +268,48 @@ public sealed class PdfAccessibilityInspectorTests
         Assert.Equal(PdfAccessibilityFindingCode.MissingTableHeader, finding.Code);
         Assert.Equal(0, finding.PageIndex);
         Assert.NotNull(finding.ObjectNumber);
+    }
+
+    [Fact]
+    public void RepairsReviewedTableDataCellAsHeader()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginMarkedContent(PdfStructureType.TableDataCell, 0)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .ShowLatin1Text("Name").EndText().EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "Table", Language = "en-US" })
+            .AddPage(100, 100, content)
+            .AddStructureContainer(PdfStructureType.Document)
+            .AddStructureContainer(PdfStructureType.Table, 1)
+            .AddStructureContainer(PdfStructureType.TableRow, 2)
+            .AddStructureElement(PdfStructureType.TableDataCell, 0, 0, 3)
+            .Build());
+        int tableObjectNumber = Assert.Single(
+            PdfAccessibilityInspector.Inspect(document).Findings).ObjectNumber!.Value;
+        PdfDictionary table = Assert.IsType<PdfDictionary>(document.Resolve(
+            new PdfIndirectReference(tableObjectNumber, 0)));
+        PdfDictionary row = Assert.IsType<PdfDictionary>(document.Resolve(
+            Assert.IsType<PdfIndirectReference>(table[new PdfName("K"u8)])));
+        int cellObjectNumber = Assert.IsType<PdfIndirectReference>(
+            row[new PdfName("K"u8)]).ObjectNumber;
+
+        PdfAccessibilityTableHeaderRepair preview =
+            PdfAccessibilityRepair.PreviewTableHeader(
+                document, tableObjectNumber, cellObjectNumber);
+        PdfAccessibilityRepairResult result =
+            PdfAccessibilityRepair.ApplyTableHeader(document, preview);
+
+        Assert.True(preview.WillChange);
+        Assert.DoesNotContain(result.After.Findings, finding =>
+            finding.Code == PdfAccessibilityFindingCode.MissingTableHeader);
+        PdfDictionary repaired = Assert.IsType<PdfDictionary>(PdfDocument.Open(
+            result.Document).Resolve(new PdfIndirectReference(cellObjectNumber, 0)));
+        Assert.Equal("TH", Assert.IsType<PdfName>(
+            repaired[new PdfName("S"u8)]).ValueAsLatin1());
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfAccessibilityRepair.ApplyTableHeader(
+                PdfDocument.Open(result.Document), preview));
     }
 
     [Fact]
