@@ -101,6 +101,26 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void MappingProfilesApplyReusableDefaultsToMissingValues()
+    {
+        var profile = new PdfDataMergeProfile("Invoices", [
+            new PdfDataMergeFieldMapping("Country", "invoice.country", "US"),
+            new PdfDataMergeFieldMapping("Customer", "invoice.customer")],
+            "invoice-{{Number}}.pdf");
+
+        PdfDataMergeProfile restored = PdfDataMergeProfile.FromJson(profile.ToJson());
+        PdfDataMergeMappedRecord mapped = restored.Map(new Dictionary<string, string?>
+        {
+            ["Customer"] = "Ada",
+            ["Number"] = "1001"
+        });
+
+        Assert.Equal(["US", "Ada"],
+            mapped.FormData.Fields.Select(field => field.Values.Single()));
+        Assert.Equal("US", restored.Mappings[0].DefaultValue);
+    }
+
+    [Fact]
     public void FormBatchGeneratesNamedPdfsAndIsolatesBadRecords()
     {
         PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()

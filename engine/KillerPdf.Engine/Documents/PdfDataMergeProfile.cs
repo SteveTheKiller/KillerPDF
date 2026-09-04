@@ -4,7 +4,8 @@ using System.Text.Json.Serialization;
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Maps one imported record field to one PDF form field.</summary>
-public sealed record PdfDataMergeFieldMapping(string SourceField, string TargetField);
+public sealed record PdfDataMergeFieldMapping(
+    string SourceField, string TargetField, string? DefaultValue = null);
 
 /// <summary>A reusable data-merge mapping that contains no source records.</summary>
 public sealed class PdfDataMergeProfile
@@ -54,8 +55,11 @@ public sealed class PdfDataMergeProfile
         var fields = new List<PdfFormDataField>(Mappings.Count);
         foreach (PdfDataMergeFieldMapping mapping in Mappings)
         {
-            string value = PdfDataMerge.Expand("{{" + mapping.SourceField + "}}",
-                record, MissingValueBehavior);
+            string value = record.TryGetValue(mapping.SourceField, out string? supplied)
+                && supplied is not null
+                ? supplied
+                : mapping.DefaultValue ?? PdfDataMerge.Expand(
+                    "{{" + mapping.SourceField + "}}", record, MissingValueBehavior);
             fields.Add(new PdfFormDataField { Name = mapping.TargetField, Values = [value] });
         }
         string outputFileName = PdfDataMerge.Expand(
