@@ -375,15 +375,7 @@ public sealed class PdfPageRenderer
             for (int x = 0; x < width; x++)
             {
                 double sampleX = x + 0.5;
-                int crossings = 0;
-                foreach (Point[] polygon in scaled)
-                    for (int i = 0, j = polygon.Length - 1; i < polygon.Length; j = i++)
-                        if ((polygon[i].Y > sampleY) != (polygon[j].Y > sampleY)
-                            && sampleX < (polygon[j].X - polygon[i].X)
-                                * (sampleY - polygon[i].Y) / (polygon[j].Y - polygon[i].Y)
-                                + polygon[i].X)
-                            crossings++;
-                if ((evenOdd ? crossings % 2 : crossings) != 0
+                if (Contains(scaled, evenOdd, sampleX, sampleY)
                     && InsideClips(clips, sampleX / scaleX, (height - sampleY) / scaleY))
                     SetPixel(pixels, width, x, y, color);
             }
@@ -452,6 +444,27 @@ public sealed class PdfPageRenderer
     private static bool InsideClips(IReadOnlyList<ClipRegion> clips, double x, double y) =>
         clips.All(clip => clip.Contains(x, y));
 
+    private static bool Contains(IReadOnlyList<Point[]> polygons,
+        bool evenOdd, double x, double y)
+    {
+        int winding = 0;
+        int crossings = 0;
+        foreach (Point[] polygon in polygons)
+            for (int current = 0, previous = polygon.Length - 1;
+                current < polygon.Length; previous = current++)
+            {
+                Point from = polygon[previous], to = polygon[current];
+                if ((from.Y > y) != (to.Y > y)
+                    && x < (to.X - from.X) * (y - from.Y) / (to.Y - from.Y) + from.X)
+                    crossings++;
+                double side = (to.X - from.X) * (y - from.Y)
+                    - (x - from.X) * (to.Y - from.Y);
+                if (from.Y <= y && to.Y > y && side > 0) winding++;
+                else if (from.Y > y && to.Y <= y && side < 0) winding--;
+            }
+        return evenOdd ? crossings % 2 != 0 : winding != 0;
+    }
+
     private static double Number(PdfObject value) => value switch
     {
         PdfInteger integer => integer.Value,
@@ -465,24 +478,7 @@ public sealed class PdfPageRenderer
     private sealed record ClipRegion(IReadOnlyList<Point[]> Polygons, bool EvenOdd)
     {
         internal bool Contains(double x, double y)
-        {
-            int winding = 0;
-            int crossings = 0;
-            foreach (Point[] polygon in Polygons)
-                for (int current = 0, previous = polygon.Length - 1;
-                    current < polygon.Length; previous = current++)
-                {
-                    Point from = polygon[previous], to = polygon[current];
-                    if ((from.Y > y) != (to.Y > y)
-                        && x < (to.X - from.X) * (y - from.Y) / (to.Y - from.Y) + from.X)
-                        crossings++;
-                    double side = (to.X - from.X) * (y - from.Y)
-                        - (x - from.X) * (to.Y - from.Y);
-                    if (from.Y <= y && to.Y > y && side > 0) winding++;
-                    else if (from.Y > y && to.Y <= y && side < 0) winding--;
-                }
-            return EvenOdd ? crossings % 2 != 0 : winding != 0;
-        }
+            => PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
     }
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)

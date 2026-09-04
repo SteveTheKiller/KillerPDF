@@ -152,6 +152,21 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Inline-image rendering is not implemented.", page.Diagnostics);
     }
 
+    [Fact]
+    public void Render_DistinguishesNonzeroAndEvenOddCompoundFills()
+    {
+        byte[] content = "1 0 0 rg 1 1 8 8 re 3 3 4 4 re f 0 0 1 rg 11 1 8 8 re 13 3 4 4 re f*"u8.ToArray();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(20, 10, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 5, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 15, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 12, 5));
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }
