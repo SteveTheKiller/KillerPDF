@@ -59,6 +59,48 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void InvalidProductionBoxCorrectionIsPreviewedAppliedAndVerified()
+    {
+        PdfDocument valid = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300).Build());
+        (int ObjectNumber, PdfDictionary Dictionary) page = valid.CrossReferences.Values
+            .Select(entry => (entry.ObjectNumber, Object: valid.Resolve(entry.ObjectNumber)))
+            .Where(item => item.Object is PdfDictionary dictionary
+                && dictionary.TryGetValue(new PdfName("Type"u8), out PdfObject? type)
+                && type is PdfName name && name.ValueAsLatin1() == "Page")
+            .Select(item => (item.ObjectNumber, (PdfDictionary)item.Object)).Single();
+        PdfDictionary changedPage = new(page.Dictionary.Append(new(
+            new PdfName("TrimBox"u8), new PdfArray([
+                new PdfInteger(-5), new PdfInteger(0),
+                new PdfInteger(200), new PdfInteger(300)]))));
+        byte[] source = new PdfIncrementalUpdateBuilder(valid)
+            .ReplaceObject(page.ObjectNumber, changedPage).Build();
+        PdfDocument document = PdfDocument.Open(source);
+
+        PdfPreflightCorrectionPlan plan =
+            PdfPreflightCorrectionPlan.ClearProductionPageBox(
+                document, 0, PdfPageBox.Trim);
+        byte[] correctedBytes = plan.Apply();
+        PdfDocument corrected = PdfDocument.Open(correctedBytes);
+        PdfPreflightCorrectionPlan unchanged =
+            PdfPreflightCorrectionPlan.ClearProductionPageBox(
+                corrected, 0, PdfPageBox.Trim);
+
+        Assert.Equal(PdfPreflightCorrectionKind.ClearProductionPageBox, plan.Kind);
+        Assert.Equal(0, plan.PageIndex);
+        Assert.Equal(PdfPageBox.Trim, plan.PageBox);
+        Assert.True(plan.ChangesDocument);
+        Assert.DoesNotContain(PdfPreflightRunner.Run(correctedBytes,
+                new PdfPreflightProfile("Page boxes", [PdfPreflightCheck.PageBoxes])).Findings,
+            finding => finding.Code == "PageBoxes.TrimOutsideMediaBox");
+        Assert.False(unchanged.ChangesDocument);
+        Assert.Equal(correctedBytes, unchanged.Apply());
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfPreflightCorrectionPlan.ClearProductionPageBox(
+                document, 0, PdfPageBox.Crop));
+    }
+
+    [Fact]
     public void TaggedProfileReportsBothRequiredCatalogDeclarations()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage().Build();
