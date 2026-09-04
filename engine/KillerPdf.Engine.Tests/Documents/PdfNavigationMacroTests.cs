@@ -73,6 +73,22 @@ public sealed class PdfNavigationMacroTests
         Assert.Equal(PdfNavigationFindingCode.LinkUnresolvedDestination, remaining.Code);
     }
 
+    [Fact]
+    public void MacroRoundTripRemovesOnlyUnresolvedDestinationLinks()
+    {
+        byte[] source = DocumentWithUnsafeAndUnresolvedLinks();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Broken links",
+        [
+            PdfNavigationMacro.RemoveUnresolvedLinksStep()
+        ]).ToJson());
+
+        PdfDocument output = PdfDocument.Open(PdfNavigationMacro.Execute(
+            Assert.Single(macro.Steps), source));
+
+        PdfNavigationFinding remaining = Assert.Single(PdfNavigationAudit.Inspect(output));
+        Assert.Equal(PdfNavigationFindingCode.LinkUnsafeUri, remaining.Code);
+    }
+
     private static byte[] DocumentWithUnsafeAndUnresolvedLinks()
     {
         string[] objects =

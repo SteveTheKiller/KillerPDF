@@ -45,25 +45,35 @@ public static class PdfNavigationAudit
     public static byte[] RemoveUnsafeLinks(PdfDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        PdfNavigationFinding[] unsafeLinks = [.. Inspect(document).Where(finding =>
-            finding.Code == PdfNavigationFindingCode.LinkUnsafeUri
-            && finding.SourcePageIndex.HasValue
-            && finding.SourceObjectNumber.HasValue)];
-        if (unsafeLinks.Length == 0) return document.Source.ToArray();
+        return RemoveLinks(document, link => link.Uri is not null
+            && (!Uri.TryCreate(link.Uri, UriKind.Absolute, out Uri? uri)
+                || uri.Scheme is not ("http" or "https" or "mailto")));
+    }
+
+    /// <summary>Removes links whose local or named destination cannot be resolved.</summary>
+    public static byte[] RemoveUnresolvedLinks(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        return RemoveLinks(document, link => link.Uri is null
+            && link.DestinationPageIndex is null);
+    }
+
+    private static byte[] RemoveLinks(PdfDocument document, Func<PdfLinkInfo, bool> remove)
+    {
         var editor = new PdfIncrementalAnnotationEditor(document);
-        foreach (IGrouping<int, PdfNavigationFinding> pageFindings in unsafeLinks
-            .GroupBy(finding => finding.SourcePageIndex!.Value))
+        bool changed = false;
+        int pageCount = PdfPageTree.Read(document).Pages.Count;
+        for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
         {
-            Dictionary<int, int> annotationIndexes = PdfLinkReader.ReadPage(
-                    document, pageFindings.Key)
-                .Where(link => link.ObjectNumber.HasValue)
-                .ToDictionary(link => link.ObjectNumber!.Value, link => link.AnnotationIndex);
-            foreach (int annotationIndex in pageFindings
-                .Select(finding => annotationIndexes[finding.SourceObjectNumber!.Value])
-                .OrderByDescending(index => index))
-                editor.RemoveAnnotationAt(pageFindings.Key, annotationIndex);
+            int[] indexes = [.. PdfLinkReader.ReadPage(document, pageIndex)
+                .Where(remove).Select(link => link.AnnotationIndex).OrderByDescending(index => index)];
+            foreach (int annotationIndex in indexes)
+            {
+                editor.RemoveAnnotationAt(pageIndex, annotationIndex);
+                changed = true;
+            }
         }
-        return editor.Build();
+        return changed ? editor.Build() : document.Source.ToArray();
     }
 
     /// <summary>Exports navigation findings as stable machine-readable JSON.</summary>

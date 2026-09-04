@@ -255,7 +255,9 @@ public enum PdfMacroOperation
     /// <summary>Rename the output.</summary>
     Rename,
     /// <summary>Save the result.</summary>
-    Save
+    Save,
+    /// <summary>Remove links whose local or named destination cannot be resolved.</summary>
+    RemoveUnresolvedLinks
 }
 
 /// <summary>One contextual macro operation result and its values for later steps.</summary>

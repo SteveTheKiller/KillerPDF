@@ -12,6 +12,10 @@ public static class PdfNavigationMacro
     public static PdfMacroStep RemoveUnsafeLinksStep() =>
         new(PdfMacroOperation.RemoveUnsafeLinks);
 
+    /// <summary>Creates a macro step that removes unresolved destination links.</summary>
+    public static PdfMacroStep RemoveUnresolvedLinksStep() =>
+        new(PdfMacroOperation.RemoveUnresolvedLinks);
+
     /// <summary>Creates an explicitly configured heading-bookmark generation step.</summary>
     public static PdfMacroStep HeadingBookmarksStep(
         PdfBookmarkDetectionOptions? options = null)
@@ -47,6 +51,8 @@ public static class PdfNavigationMacro
             PdfMacroOperation.AuditNavigation => Audit(document, source),
             PdfMacroOperation.RemoveUnsafeLinks =>
                 PdfNavigationAudit.RemoveUnsafeLinks(document),
+            PdfMacroOperation.RemoveUnresolvedLinks =>
+                PdfNavigationAudit.RemoveUnresolvedLinks(document),
             PdfMacroOperation.GenerateBookmarks => GenerateBookmarks(
                 document, HeadingOptions(step), cancellationToken),
             PdfMacroOperation.GenerateTableOfContents => PdfTableOfContentsWriter.Write(
