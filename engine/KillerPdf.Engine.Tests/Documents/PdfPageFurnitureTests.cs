@@ -43,6 +43,28 @@ public sealed class PdfPageFurnitureTests
             PdfPageFurnitureFormatter.Format("{missing}", context));
     }
 
+    [Theory]
+    [InlineData(PdfPageNumberFormat.Decimal, 27, "27")]
+    [InlineData(PdfPageNumberFormat.UpperRoman, 27, "XXVII")]
+    [InlineData(PdfPageNumberFormat.LowerRoman, 27, "xxvii")]
+    [InlineData(PdfPageNumberFormat.UpperLetters, 27, "AA")]
+    [InlineData(PdfPageNumberFormat.LowerLetters, 27, "aa")]
+    public void FormatterUsesIndependentVisiblePageNumberFormats(
+        PdfPageNumberFormat format, int number, string expected)
+    {
+        var context = new PdfPageFurnitureContext
+        {
+            PageNumber = number,
+            TotalPages = 30,
+            PageLabel = "A-7",
+            PageNumberFormat = format,
+            Date = new DateOnly(2026, 9, 4)
+        };
+
+        Assert.Equal(expected + " / A-7",
+            PdfPageFurnitureFormatter.Format("{page} / {label}", context));
+    }
+
     [Fact]
     public void FormatterContextsUseSavedLogicalPageLabels()
     {

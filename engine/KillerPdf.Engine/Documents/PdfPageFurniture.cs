@@ -15,6 +15,8 @@ public sealed record PdfPageFurnitureContext
     public required int PageNumber { get; init; }
     /// <summary>Gets the total physical page count.</summary>
     public required int TotalPages { get; init; }
+    /// <summary>Gets the visible format used by the page token.</summary>
+    public PdfPageNumberFormat PageNumberFormat { get; init; }
     /// <summary>Gets the optional logical page label.</summary>
     public string? PageLabel { get; init; }
     /// <summary>Gets the optional source filename.</summary>
@@ -72,7 +74,7 @@ public static class PdfPageFurnitureFormatter
 
         var values = new Dictionary<string, string?>(context.CustomTokens, StringComparer.Ordinal)
         {
-            ["page"] = context.PageNumber.ToString(CultureInfo.InvariantCulture),
+            ["page"] = FormatNumber(context.PageNumber, context.PageNumberFormat),
             ["pages"] = context.TotalPages.ToString(CultureInfo.InvariantCulture),
             ["label"] = context.PageLabel,
             ["filename"] = context.FileName,
@@ -107,6 +109,61 @@ public static class PdfPageFurnitureFormatter
         }
         return output.ToString();
     }
+
+    /// <summary>Formats a positive page number independently from the document page label.</summary>
+    public static string FormatNumber(int number, PdfPageNumberFormat format)
+    {
+        if (number <= 0) throw new ArgumentOutOfRangeException(nameof(number));
+        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
+        return format switch
+        {
+            PdfPageNumberFormat.Decimal => number.ToString(CultureInfo.InvariantCulture),
+            PdfPageNumberFormat.UpperRoman => Roman(number),
+            PdfPageNumberFormat.LowerRoman => Roman(number).ToLowerInvariant(),
+            PdfPageNumberFormat.UpperLetters => Letters(number),
+            PdfPageNumberFormat.LowerLetters => Letters(number).ToLowerInvariant(),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
+    private static string Roman(int number)
+    {
+        if (number > 3999) throw new ArgumentOutOfRangeException(nameof(number));
+        (int Value, string Text)[] values = [(1000, "M"), (900, "CM"), (500, "D"),
+            (400, "CD"), (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+            (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")];
+        var result = new StringBuilder();
+        foreach ((int value, string text) in values)
+            while (number >= value) { result.Append(text); number -= value; }
+        return result.ToString();
+    }
+
+    private static string Letters(int number)
+    {
+        var result = new StringBuilder();
+        while (number > 0)
+        {
+            number--;
+            result.Insert(0, (char)('A' + number % 26));
+            number /= 26;
+        }
+        return result.ToString();
+    }
+}
+
+/// <summary>The visible numbering format used independently from logical page labels.</summary>
+public enum PdfPageNumberFormat
+{
+    /// <summary>Decimal Arabic numerals.</summary>
+    Decimal,
+    /// <summary>Uppercase Roman numerals.</summary>
+    UpperRoman,
+    /// <summary>Lowercase Roman numerals.</summary>
+    LowerRoman,
+    /// <summary>Uppercase alphabetic sequences.</summary>
+    UpperLetters,
+    /// <summary>Lowercase alphabetic sequences.</summary>
+    LowerLetters
 }
 
 /// <summary>The vertical edge used for repeated page furniture.</summary>
