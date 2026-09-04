@@ -1,6 +1,8 @@
 using System.Globalization;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -89,6 +91,28 @@ public static class PdfTextReflow
             if (lines[index].Text.Length > 0) content.ShowUnicodeText(lines[index].Text);
         }
         return content.EndText();
+    }
+
+    /// <summary>
+    /// Replaces one top-level text object with wrapped Unicode text in an untagged document.
+    /// </summary>
+    public static byte[] ReplaceTextObject(
+        PdfDocument document, int pageIndex, int textObjectIndex,
+        string text, TrueTypeFont font, double fontSize, double maximumWidth,
+        double x, double y, double leading)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var reader = new PdfPageContentReader(document);
+        PdfPageContent page = reader.Read(pageIndex);
+        IReadOnlyList<PdfContentInstruction> rewritten =
+            PdfContentTransformation.RemoveTextObjects(
+                reader.ReadInstructions(pageIndex), [textObjectIndex]);
+        PdfContentStreamBuilder replacement = CreateUnicodeContent(
+            text, font, fontSize, maximumWidth, x, y, leading);
+        return new PdfIncrementalPageEditor(document)
+            .SetPageContentAndPruneResources(pageIndex, rewritten)
+            .AppendPageContent(pageIndex, page.Width, page.Height, replacement)
+            .Build();
     }
 
     private static IReadOnlyList<PdfReflowLine> BreakWord(

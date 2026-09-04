@@ -4472,9 +4472,10 @@ public sealed class PdfIncrementalPageEditor
     {
         if (state.TypedOverlays.Count == 0) return;
 
-        PdfObject? resourcesValue = page.TryGetValue(Name("Resources"), out PdfObject? direct)
-            ? direct
-            : state.Entry!.InheritedValues.GetValueOrDefault(Name("Resources"));
+        PdfObject? resourcesValue = state.ReplacementResources
+            ?? (page.TryGetValue(Name("Resources"), out PdfObject? direct)
+                ? direct
+                : state.Entry!.InheritedValues.GetValueOrDefault(Name("Resources")));
         PdfDictionary resources = resourcesValue is null
             ? new PdfDictionary([])
             : ResolveCatalogValue(_document, resourcesValue, "A page /Resources value")
@@ -4558,9 +4559,11 @@ public sealed class PdfIncrementalPageEditor
 
         byte[] commands = invocation.ToArray();
         state.Content = state.Content is null ? commands : [.. state.Content, .. commands];
-        state.ContentUpdate = state.ContentUpdate is PageContentUpdate.None or PageContentUpdate.ArtifactAppend
-            && state.TypedOverlays.All(overlay => overlay.Artifact)
-                ? PageContentUpdate.ArtifactAppend : PageContentUpdate.Append;
+        if (state.ContentUpdate != PageContentUpdate.Replace)
+            state.ContentUpdate = (state.ContentUpdate is PageContentUpdate.None
+                    or PageContentUpdate.ArtifactAppend)
+                && state.TypedOverlays.All(overlay => overlay.Artifact)
+                    ? PageContentUpdate.ArtifactAppend : PageContentUpdate.Append;
 
         static byte[] DecodePageContent(PdfDocument document, PdfObject value)
         {
