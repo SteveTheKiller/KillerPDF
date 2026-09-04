@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using KillerPdf.Engine.Fonts;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -177,7 +178,8 @@ public static class PdfStructuredExportBatchRunner
                 PdfDocument document = PdfDocument.Open(item.Source);
                 PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(
                     document, format, item.PageIndices, cancellationToken);
-                byte[] data = Export(document, format, item.PageIndices, cancellationToken);
+                byte[] data = PdfStructuredExport.Export(
+                    document, format, item.PageIndices, cancellationToken: cancellationToken);
                 results.Add(new PdfStructuredExportBatchResult(
                     item, data, null, false, outputNames[itemIndex], losses));
             }
@@ -220,30 +222,50 @@ public static class PdfStructuredExportBatchRunner
         return stem + extension;
     }
 
-    private static byte[] Export(PdfDocument document, PdfStructuredExportFormat format,
-        IEnumerable<int>? pageIndices, CancellationToken cancellationToken) => format switch
-    {
-        PdfStructuredExportFormat.PlainText => Encoding.UTF8.GetBytes(
-            PdfStructuredExport.ToPlainText(document, pageIndices, cancellationToken)),
-        PdfStructuredExportFormat.Html => Encoding.UTF8.GetBytes(
-            PdfStructuredExport.ToHtml(document, pageIndices, cancellationToken)),
-        PdfStructuredExportFormat.Markdown => Encoding.UTF8.GetBytes(
-            PdfStructuredExport.ToMarkdown(document, pageIndices, cancellationToken)),
-        PdfStructuredExportFormat.Json => Encoding.UTF8.GetBytes(
-            PdfStructuredExport.ToJson(document, pageIndices, cancellationToken)),
-        PdfStructuredExportFormat.WordDocument =>
-            PdfStructuredExport.ToDocx(document, pageIndices, cancellationToken),
-        PdfStructuredExportFormat.Spreadsheet =>
-            PdfStructuredExport.ToXlsx(document, pageIndices, cancellationToken),
-        PdfStructuredExportFormat.Presentation =>
-            PdfStructuredExport.ToPptx(document, pageIndices, cancellationToken),
-        _ => throw new ArgumentOutOfRangeException(nameof(format))
-    };
 }
 
 /// <summary>Exports engine-owned page extraction to editable text and web formats.</summary>
 public static class PdfStructuredExport
 {
+    /// <summary>
+    /// Exports through one target-neutral API, optionally applying reviewed OCR text first.
+    /// </summary>
+    public static byte[] Export(PdfDocument document, PdfStructuredExportFormat format,
+        IEnumerable<int>? pageIndices = null, PdfOcrReview? ocrReview = null,
+        TrueTypeFont? ocrFont = null, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (!Enum.IsDefined(format)) throw new ArgumentOutOfRangeException(nameof(format));
+        if (ocrReview is null && ocrFont is not null)
+            throw new ArgumentException(
+                "An OCR font cannot be supplied without a reviewed OCR result.", nameof(ocrFont));
+        if (ocrReview is not null)
+        {
+            ArgumentNullException.ThrowIfNull(ocrFont);
+            cancellationToken.ThrowIfCancellationRequested();
+            document = PdfDocument.Open(ocrReview.WriteSearchableText(document, ocrFont));
+        }
+
+        return format switch
+        {
+            PdfStructuredExportFormat.PlainText => Encoding.UTF8.GetBytes(
+                ToPlainText(document, pageIndices, cancellationToken)),
+            PdfStructuredExportFormat.Html => Encoding.UTF8.GetBytes(
+                ToHtml(document, pageIndices, cancellationToken)),
+            PdfStructuredExportFormat.Markdown => Encoding.UTF8.GetBytes(
+                ToMarkdown(document, pageIndices, cancellationToken)),
+            PdfStructuredExportFormat.Json => Encoding.UTF8.GetBytes(
+                ToJson(document, pageIndices, cancellationToken)),
+            PdfStructuredExportFormat.WordDocument =>
+                ToDocx(document, pageIndices, cancellationToken),
+            PdfStructuredExportFormat.Spreadsheet =>
+                ToXlsx(document, pageIndices, cancellationToken),
+            PdfStructuredExportFormat.Presentation =>
+                ToPptx(document, pageIndices, cancellationToken),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+    }
+
     /// <summary>Reports source content that the selected export cannot fully represent.</summary>
     public static PdfStructuredExportReport InspectLosses(PdfDocument document,
         PdfStructuredExportFormat format, IEnumerable<int>? pageIndices = null,

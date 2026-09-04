@@ -3,12 +3,40 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Tests.Fonts;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfStructuredExportTests
 {
+    [Fact]
+    public void UnifiedExportUsesCorrectedReviewedOcrWithoutChangingSource()
+    {
+        byte[] source = new KillerPdf.Engine.Authoring.PdfDocumentBuilder()
+            .AddBlankPage(300, 400).Build();
+        byte[] original = source.ToArray();
+        PdfDocument document = PdfDocument.Open(source);
+        var review = new PdfOcrReview([
+            new PdfOcrWord("word-1", 0, 0, "wrong", "wrong",
+                new PdfContentBounds(10, 20, 70, 32), 0.4, "en")
+        ]).Correct("word-1", "A");
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+
+        string exported = Encoding.UTF8.GetString(PdfStructuredExport.Export(
+            document, PdfStructuredExportFormat.PlainText,
+            ocrReview: review, ocrFont: font));
+
+        Assert.Equal("A", exported);
+        Assert.Equal(original, source);
+        Assert.Throws<ArgumentNullException>(() => PdfStructuredExport.Export(
+            document, PdfStructuredExportFormat.Json, ocrReview: review));
+        Assert.Throws<ArgumentException>(() => PdfStructuredExport.Export(
+            document, PdfStructuredExportFormat.Json, ocrFont: font));
+    }
+
     [Fact]
     public void ExportsTextHtmlMarkdownAndStructuredJsonFromTheSamePageModel()
     {
