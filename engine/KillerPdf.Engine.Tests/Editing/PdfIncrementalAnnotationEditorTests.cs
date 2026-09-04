@@ -2063,6 +2063,32 @@ public sealed class PdfIncrementalAnnotationEditorTests
     }
 
     [Fact]
+    public void Build_WritesCalibratedPolylineAndPolygonMeasurements()
+    {
+        var profile = new PdfMeasurementProfile("Plan", 0.5, "m", 2);
+        PdfDocument reopened = PdfDocument.Open(new PdfIncrementalAnnotationEditor(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(200, 200).Build()))
+            .AddPolyline(0, [new PdfPoint(10, 10), new PdfPoint(50, 10),
+                new PdfPoint(50, 60)], measurement: profile)
+            .AddPolygon(0, [new PdfPoint(80, 10), new PdfPoint(120, 10),
+                new PdfPoint(120, 60)], measurement: profile)
+            .Build());
+        PdfArray annotations = Assert.IsType<PdfArray>(
+            Pages(reopened)[0].Page[Name("Annots")]);
+        PdfDictionary polyline = ResolveDictionary(reopened, annotations[0]);
+        PdfDictionary polygon = ResolveDictionary(reopened, annotations[1]);
+
+        Assert.Equal("PolyLineDimension", Assert.IsType<PdfName>(
+            polyline[Name("IT")]).ValueAsLatin1());
+        Assert.False(Assert.IsType<PdfDictionary>(polyline[Name("Measure")])
+            .ContainsKey(Name("A")));
+        PdfDictionary measure = Assert.IsType<PdfDictionary>(polygon[Name("Measure")]);
+        PdfDictionary area = Assert.IsType<PdfDictionary>(
+            Assert.IsType<PdfArray>(measure[Name("A")])[0]);
+        Assert.Equal(0.25, Assert.IsType<PdfReal>(area[Name("C")]).Value);
+    }
+
+    [Fact]
     public void Build_WritesAlignedDashedCalloutFreeTextWithExpandedBounds()
     {
         TrueTypeFont font = TrueTypeFont.Load(

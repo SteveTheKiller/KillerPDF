@@ -450,10 +450,11 @@ public sealed class PdfIncrementalAnnotationEditor
         IReadOnlyList<double>? dashPattern = null,
         PdfRgbColor? interiorColor = null,
         PdfAnnotationMetadata? annotationMetadata = null,
-        PdfVertexAnnotationIntent? intent = null)
+        PdfVertexAnnotationIntent? intent = null,
+        PdfMeasurementProfile? measurement = null)
         => AddVertex(pageIndex, vertices, false, color, null, lineWidth,
             opacity, contents, startEnding, endEnding, dashPattern,
-            interiorColor, annotationMetadata, intent);
+            interiorColor, annotationMetadata, intent, measurement);
 
     /// <summary>Adds a polygon annotation with optional fill, dash style, and intent.</summary>
     public PdfIncrementalAnnotationEditor AddPolygon(
@@ -462,10 +463,12 @@ public sealed class PdfIncrementalAnnotationEditor
         double lineWidth = 1, double opacity = 1, string? contents = null,
         IReadOnlyList<double>? dashPattern = null,
         PdfAnnotationMetadata? annotationMetadata = null,
-        PdfVertexAnnotationIntent? intent = null)
+        PdfVertexAnnotationIntent? intent = null,
+        PdfMeasurementProfile? measurement = null)
         => AddVertex(pageIndex, vertices, true, strokeColor, fillColor,
             lineWidth, opacity, contents, PdfLineEndingStyle.None,
-            PdfLineEndingStyle.None, dashPattern, null, annotationMetadata, intent);
+            PdfLineEndingStyle.None, dashPattern, null, annotationMetadata, intent,
+            measurement);
 
     /// <summary>Adds a single-path ink annotation.</summary>
     public PdfIncrementalAnnotationEditor AddInk(
@@ -780,7 +783,8 @@ public sealed class PdfIncrementalAnnotationEditor
         double lineWidth, double opacity, string? contents,
         PdfLineEndingStyle startEnding, PdfLineEndingStyle endEnding,
         IReadOnlyList<double>? dashPattern, PdfRgbColor? interiorColor,
-        PdfAnnotationMetadata? metadata, PdfVertexAnnotationIntent? intent)
+        PdfAnnotationMetadata? metadata, PdfVertexAnnotationIntent? intent,
+        PdfMeasurementProfile? measurement)
     {
         ValidatePage(pageIndex);
         ArgumentNullException.ThrowIfNull(vertices);
@@ -794,6 +798,13 @@ public sealed class PdfIncrementalAnnotationEditor
         if (!closed && intent == PdfVertexAnnotationIntent.Cloud)
             throw new ArgumentException(
                 "Cloud intent is only valid for polygons.", nameof(intent));
+        if (measurement is not null)
+        {
+            if (intent is not null && intent != PdfVertexAnnotationIntent.Dimension)
+                throw new ArgumentException(
+                    "A measurement profile requires dimension intent.", nameof(intent));
+            intent = PdfVertexAnnotationIntent.Dimension;
+        }
         double[]? dash = ValidateDashPattern(dashPattern);
         int minimum = closed ? 3 : 2;
         if (vertices.Count < minimum)
@@ -807,7 +818,7 @@ public sealed class PdfIncrementalAnnotationEditor
         _annotations.Add(new PendingVertex(pageIndex, values, closed,
             strokeColor ?? new PdfRgbColor(0, 0, 0), fillColor, lineWidth,
             opacity, contents, startEnding, endEnding, dash, interiorColor,
-            metadata, intent));
+            metadata, intent, measurement));
         return this;
     }
 
@@ -2911,11 +2922,12 @@ public sealed class PdfIncrementalAnnotationEditor
         if (line.Intent.HasValue)
             entries.Add(("IT", Name(PdfAnnotationIntentNames.Name(line.Intent.Value))));
         if (line.Measurement is not null)
-            entries.Add(("Measure", MeasurementDictionary(line.Measurement)));
+            entries.Add(("Measure", MeasurementDictionary(line.Measurement, false)));
         return Dictionary([.. entries]);
     }
 
-    private static PdfDictionary MeasurementDictionary(PdfMeasurementProfile profile)
+    private static PdfDictionary MeasurementDictionary(
+        PdfMeasurementProfile profile, bool includeArea)
     {
         long denominator = 1;
         for (int index = 0; index < profile.Precision; index++) denominator *= 10;
@@ -2927,13 +2939,24 @@ public sealed class PdfIncrementalAnnotationEditor
             ("D", new PdfInteger(denominator)),
             ("FD", new PdfBoolean(true)));
         PdfArray formats = new([format]);
-        return Dictionary(
+        var entries = new List<(string, PdfObject)>
+        {
             ("Type", Name("Measure")),
             ("Subtype", Name("RL")),
             ("R", UnicodeString($"1 pt = {Format(profile.UnitsPerPoint)} {profile.UnitSymbol}")),
             ("X", formats),
             ("Y", formats),
-            ("D", formats));
+            ("D", formats)
+        };
+        if (includeArea)
+            entries.Add(("A", new PdfArray([Dictionary(
+                ("Type", Name("NumberFormat")),
+                ("U", UnicodeString(profile.UnitSymbol + "^2")),
+                ("C", Number(profile.UnitsPerPoint * profile.UnitsPerPoint)),
+                ("F", Name("D")),
+                ("D", new PdfInteger(denominator)),
+                ("FD", new PdfBoolean(true)))])));
+        return Dictionary([.. entries]);
     }
 
     private static PdfStream LineAppearance(PendingLine line)
@@ -3001,6 +3024,9 @@ public sealed class PdfIncrementalAnnotationEditor
         if (vertex.Intent is not null)
             entries.Add(("IT", Name(PdfAnnotationIntentNames.Name(
                 vertex.Intent.Value, vertex.Closed))));
+        if (vertex.Measurement is not null)
+            entries.Add(("Measure", MeasurementDictionary(
+                vertex.Measurement, vertex.Closed)));
         if (vertex.Closed && vertex.FillColor.HasValue)
             entries.Add(("IC", ColorArray(vertex.FillColor.Value)));
         if (!vertex.Closed)
@@ -3813,7 +3839,8 @@ public sealed class PdfIncrementalAnnotationEditor
         double Opacity, string? Contents, PdfLineEndingStyle StartEnding,
         PdfLineEndingStyle EndEnding, IReadOnlyList<double>? DashPattern,
         PdfRgbColor? InteriorColor, PdfAnnotationMetadata? Metadata,
-        PdfVertexAnnotationIntent? Intent) : PendingAnnotation(PageIndex);
+        PdfVertexAnnotationIntent? Intent, PdfMeasurementProfile? Measurement)
+        : PendingAnnotation(PageIndex);
     private sealed record PendingInk(
         int PageIndex, IReadOnlyList<IReadOnlyList<PdfPoint>> Strokes, PdfRgbColor Color,
         double LineWidth, double Opacity, string? Contents,
