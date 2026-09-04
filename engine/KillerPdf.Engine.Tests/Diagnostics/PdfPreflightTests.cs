@@ -5,6 +5,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Tests.Fonts;
@@ -332,6 +333,29 @@ public sealed class PdfPreflightTests
         Assert.All(report.Findings.Skip(1), finding =>
             Assert.Equal(PdfDiagnosticSeverity.Information, finding.Severity));
         Assert.Empty(PdfPreflightRunner.Run(complete, profile).Findings);
+    }
+
+    [Fact]
+    public void MeasurementCheckReportsValidCalibrationScaleAndLocation()
+    {
+        var measurement = new PdfMeasurementProfile("Site plan", 0.125, "ft", 3);
+        byte[] source = new PdfIncrementalAnnotationEditor(PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build()))
+            .AddLine(0, new PdfPoint(20, 30), new PdfPoint(120, 30),
+                contents: "12.500 ft", measurement: measurement)
+            .Build();
+        var profile = new PdfPreflightProfile("Measurements",
+            [PdfPreflightCheck.MeasurementAnnotations]);
+
+        PdfPreflightFinding finding = Assert.Single(
+            PdfPreflightRunner.Run(source, profile).Findings);
+
+        Assert.Equal("Measurement.Calibration", finding.Code);
+        Assert.Equal(PdfDiagnosticSeverity.Information, finding.Severity);
+        Assert.Equal(0, finding.PageIndex);
+        Assert.NotNull(finding.ObjectNumber);
+        Assert.Contains("0.125 ft per PDF point, precision 3", finding.Message,
+            StringComparison.Ordinal);
     }
 
     private static byte[] Profile()

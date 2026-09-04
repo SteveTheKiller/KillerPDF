@@ -463,6 +463,89 @@ internal static class PdfPreflightDocumentChecks
         }
     }
 
+    internal static IReadOnlyList<PdfPreflightFinding> CheckMeasurementAnnotations(
+        PdfDocument document)
+    {
+        var findings = new List<PdfPreflightFinding>();
+        PdfPageTree tree = PdfPageTree.Read(document);
+        foreach (PdfPageTreeEntry page in tree.Pages)
+        {
+            if (!page.Dictionary.TryGetValue(Name("Annots"), out PdfObject? annotationsValue))
+                continue;
+            PdfArray annotations;
+            try
+            {
+                annotations = Resolve(document, annotationsValue) as PdfArray
+                    ?? throw new InvalidOperationException("A page /Annots value is not an array.");
+            }
+            catch (Exception error) when (IsDocumentFailure(error))
+            {
+                findings.Add(Error("Measurement.InvalidAnnotations", error.Message, page.Index));
+                continue;
+            }
+            foreach (PdfObject annotationValue in annotations)
+            {
+                int? objectNumber = (annotationValue as PdfIndirectReference)?.ObjectNumber;
+                try
+                {
+                    if (Resolve(document, annotationValue) is not PdfDictionary annotation
+                        || !annotation.TryGetValue(Name("Measure"), out PdfObject? measureValue))
+                        continue;
+                    PdfDictionary measure = Resolve(document, measureValue) as PdfDictionary
+                        ?? throw new InvalidOperationException(
+                            "A measurement annotation /Measure value is not a dictionary.");
+                    if (!IsName(measure, "Subtype", "RL"))
+                        throw new InvalidOperationException(
+                            "A measurement annotation does not use a rectilinear scale.");
+                    (double scale, string unit, int precision) = ReadMeasurementFormat(
+                        document, measure, "D");
+                    findings.Add(Information("Measurement.Calibration",
+                        $"Measurement scale: {scale:R} {unit} per PDF point, precision {precision}.",
+                        page.Index, objectNumber));
+                }
+                catch (Exception error) when (IsDocumentFailure(error))
+                {
+                    findings.Add(Error("Measurement.Invalid", error.Message,
+                        page.Index, objectNumber));
+                }
+            }
+        }
+        return Array.AsReadOnly(findings.ToArray());
+    }
+
+    private static (double Scale, string Unit, int Precision) ReadMeasurementFormat(
+        PdfDocument document, PdfDictionary measure, string key)
+    {
+        if (!measure.TryGetValue(Name(key), out PdfObject? formatsValue)
+            || Resolve(document, formatsValue) is not PdfArray { Count: > 0 } formats
+            || Resolve(document, formats[0]) is not PdfDictionary format)
+            throw new InvalidOperationException(
+                $"A measurement annotation has no usable /{key} number format.");
+        double scale = format.TryGetValue(Name("C"), out PdfObject? scaleValue)
+            ? Number(document, scaleValue) : 1;
+        if (scale <= 0)
+            throw new InvalidOperationException(
+                "A measurement annotation scale must be positive.");
+        if (!format.TryGetValue(Name("U"), out PdfObject? unitValue)
+            || Resolve(document, unitValue) is not PdfString unitString)
+            throw new InvalidOperationException(
+                "A measurement annotation has no display unit.");
+        string unit = PdfUnicodeEncoding.DecodeTextString(
+            unitString.Bytes.Span, "A measurement display unit");
+        if (string.IsNullOrWhiteSpace(unit))
+            throw new InvalidOperationException(
+                "A measurement annotation display unit is empty.");
+        long denominator = format.TryGetValue(Name("D"), out PdfObject? denominatorValue)
+            && Resolve(document, denominatorValue) is PdfInteger integer ? integer.Value : 1;
+        if (denominator <= 0 || denominator > 1_000_000_000_000)
+            throw new InvalidOperationException(
+                "A measurement annotation precision denominator is invalid.");
+        int precision = 0;
+        for (long value = denominator; value > 1 && value % 10 == 0; value /= 10)
+            precision++;
+        return (scale, unit, precision);
+    }
+
     private static PdfBox? Box(PdfDocument document, PdfPageTreeEntry page,
         PdfName name, bool required)
     {
