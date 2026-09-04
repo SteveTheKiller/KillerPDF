@@ -10,32 +10,36 @@ The 1.9.0 engine adds text and image placement extraction.
 
 ### Added
 
-- Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, and identified image placements, including nested forms, inline images, vertical text, and ActualText replacements.
+- Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, identified image placements, paths, shadings, and clipped bounds, including nested forms, inline images, vertical text, and ActualText replacements (#331).
 - Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
 - Added typed reading of saved initial-view layouts, panels, viewer chrome preferences, opening pages, zoom, and fit modes (#338).
-- Added direct instruction replacement and affine page-content transformations that preserve untouched and unknown operators (#332).
+- Added direct instruction replacement, isolated affine transformations, rectangular clipping, and structural comparison of page instructions and effective resources without relying on object numbers (#332).
 
 ### Fixed
 
 - Added localized round-trip failures with stable codes and numeric details in all 15 supported languages (#227).
 - Added explicit artifact overlays for temporary rasterization of tagged PDFs, preserving existing structure and ordinary content-editing guards (#356).
-- Added inspectable repair and lossless optimization plans with metadata sanitization and measured output sizes (#333).
-- Added reusable preflight profiles for structural, language, tagged-document, page-box, output-intent, image-resolution, font, transparency, and color-use checks with stable JSON reports (#334).
-- Added accessibility findings for language, structure trees, marked content, and missing figure descriptions (#335).
-- Added configurable signature trust results and complete signer, purpose, location, contact, and time details (#336).
-- Added document attachment inspection with decoded payloads, source objects, executable-content warnings, and traversal-safe extraction paths (#347).
-- Added typed inspection of PDF layers, default visibility, locks, and alternate optional-content configurations (#350).
-- Added calibrated distance, perimeter, area, and angle calculations with reusable profiles and JSON or CSV reports (#348).
-- Added deterministic N-up and saddle-stitched booklet planning with duplex sides and explicit blank slots (#349).
-- Added reusable data placeholder expansion with explicit missing-value policies and isolated per-record batch results (#352).
-- Added typed PDF macros with ordered supported operations, source preservation, cancellation, and isolated per-file results (#343).
-- Added safe FDF and XFDF field-data reading, writing, preview, and AcroForm application with Unicode, hierarchical names, multi-select values, source references, and non-executing script detection (#329).
-- Added deterministic header and footer token formatting plus continuous Bates numbering across ordered document batches (#344).
-- Added plain-text, semantic HTML, and structured JSON export from the engine page-content model (#346).
-- Added unified bookmark and link auditing for unresolved local targets and unsupported URI schemes (#351).
-- Added immutable OCR review results, low-confidence correction workflows, reports, and isolated page batches (#345).
-- Added immutable automatic-field proposals with an explicit accept or reject review boundary before form authoring (#342).
-- Added reviewable redaction search and verified image-only rebuilding that removes recoverable document data (#341).
+- Added inspectable repair and lossless optimization plans with selective metadata, form, comment, attachment, bookmark, open-action, and document JavaScript sanitization, measured output sizes, and post-save removal verification (#333).
+- Added reusable preflight profiles for structural, language, tagged-document, form, page-box, output-intent, image-resolution, font, transparency, color-use, and layer checks with stable JSON and readable reports (#334).
+- Added accessibility findings for language, structure trees, marked content, and missing figure, form-field, and link descriptions (#335).
+- Added configurable signature trust results with signer certificate identity, SHA-256 fingerprints, algorithms, purpose, location, contact, and time details (#336).
+- Added document attachment inspection and editing with decoded payloads, names, descriptions, replacements, portfolio metadata, executable-content warnings, integrity checks, and traversal-safe extraction paths (#347).
+- Added typed PDF layer inspection and editing for names, configuration metadata, locks, base state, visibility, display order, and alternate optional-content configurations (#350).
+- Added calibrated distance, perimeter, area, and angle calculations with saved profiles, scoped assignments, coordinates, deltas, intersection and angle snapping, and JSON or CSV reports (#348).
+- Added deterministic N-up, poster, step-and-repeat, manual-sequence, and bounded booklet planning with fitted grids, duplex sides, blank slots, crop marks, and registration marks (#349).
+- Added CSV and JSON data import, reusable mappings and defaults, placeholder expansion, collision-safe form generation, cancellation, and isolated batch reports (#352).
+- Added typed PDF macro saving, editing, and execution with ordered supported operations, source preservation, cancellation, and isolated batch reports (#343).
+- Added safe FDF, XFDF, and XFA dataset interchange with selective fields, Unicode, hierarchical names, multi-select values, safe local source resolution, and non-executing script inspection (#329, #330).
+- Added deterministic styled header and footer placement, PDF writing, content collision checks, and continuous Bates numbering across ordered document batches (#344).
+- Added plain-text, semantic HTML, structured JSON, Markdown, and editable Word export with reports for content that cannot be fully represented (#346).
+- Added unified bookmark and link auditing and editing with source identities, stable findings, JSON reports, safe-link removal, retargeting, and bookmark renaming (#351).
+- Added searchable OCR text-layer writing, review persistence, confidence-based acceptance, accuracy summaries, configurable processing, and isolated page batches (#345).
+- Added automatic-field proposals and reviewed field descriptions, requirements, choice fields, and radio groups behind an explicit accept or reject boundary (#342).
+- Added common sensitive-data searches, bulk review selection, privacy-safe reports, and verified image-only rebuilding that removes recoverable document data (#341).
+- Added locally saved and editable fillable text-field presets with reusable dimensions and visual styles (#340).
+- Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).
+- Added region validation and text, image, path, and shading planning for partial rasterization (#369).
+- Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
 
 ## [1.8.3] - 2026-09-02
 

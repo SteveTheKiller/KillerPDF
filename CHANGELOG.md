@@ -10,29 +10,6 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Changed
 
-- Added safe XFA packet inspection and dataset interchange without executing form scripts (#330).
-- Added safe local source resolution and selective field interchange for FDF and XFDF files (#329).
-- Added shading resources and clipped bounds to page-content extraction (#331).
-- Added isolated transformations, rectangular clipping, and resource-aware instruction comparison for page content (#332).
-- Expanded selective sanitization with post-save verification for forms, comments, document JavaScript, and other removals (#333).
-- Added accessibility and preflight checks for missing form field and link descriptions (#334, #335).
-- Added certificate identity, SHA-256 fingerprints, and algorithm details to signature verification (#336).
-- Added attachment renaming, descriptions, replacement, executable-content and integrity checks, and portfolio metadata (#347).
-- Added saved calibration profiles, scoped assignments, coordinates, directional deltas, and point, intersection, axis, and angle snapping to measurement tools (#348).
-- Added step-and-repeat, poster tiling, manual sequences, bounded booklet signatures, fitted sheet grids, crop marks, and registration marks to imposition planning (#349).
-- Added layer and configuration naming, locking, editable base state, visibility, and display order, plus readable preflight reports (#350, #334).
-- Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
-- Added bookmark renaming, source identities, JSON reports, stable findings, safe-link removal, and link retargeting to navigation workflows (#351).
-- Added CSV and JSON record import, reusable mappings with defaults, batch reports, and cancellable collision-safe form generation (#352).
-- Added searchable text-layer writing, review persistence, confidence-based acceptance, accuracy summaries, batch isolation, and configurable OCR processing (#345).
-- Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).
-- Added safe macro saving, editing, and batch result reports (#343).
-- Added locally saved, editable fillable text-field presets with reusable dimensions and visual styles (#340).
-- Added region validation and text, image, path, and shading planning for partial rasterization (#369).
-- Added common sensitive-data searches, bulk selection, and privacy-safe reports for redaction reviews and verification (#341).
-- Added reviewed field descriptions, requirements, choice fields, and radio groups to automatic form authoring (#342).
-- Added styled header and footer placement, PDF writing, and content collision checks (#344).
-- Added Word and Markdown export with structured reports for content that cannot be fully represented (#346).
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
 - Click the footer page dimensions to cycle through pixel, inch, millimeter, and point dimensions (#364).
 - Transform and image export DPI previews show the output scale (#365).
