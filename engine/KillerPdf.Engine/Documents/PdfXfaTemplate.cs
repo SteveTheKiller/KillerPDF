@@ -82,7 +82,11 @@ public static class PdfXfaTemplate
                     kind,
                     Attribute(script, "contentType"),
                     script?.Value,
-                    picture?.Value));
+                    picture?.Value)
+                {
+                    Activity = kind == PdfXfaTemplateBehaviorKind.Event
+                        ? EmptyToNull(Attribute(behavior, "activity")) : null
+                });
             }
         }
         int scriptCount = root.Descendants().Count(element => string.Equals(
@@ -242,7 +246,11 @@ public sealed record PdfXfaTemplateBehavior(
     PdfXfaTemplateBehaviorKind Kind,
     string? ScriptContentType,
     string? Script,
-    string? Picture);
+    string? Picture)
+{
+    /// <summary>Gets the declared event activity when this behavior is an event.</summary>
+    public string? Activity { get; init; }
+}
 
 /// <summary>The supported categories of XFA field behavior metadata.</summary>
 public enum PdfXfaTemplateBehaviorKind
@@ -252,7 +260,9 @@ public enum PdfXfaTemplateBehaviorKind
     /// <summary>A field validation rule.</summary>
     Validate,
     /// <summary>A field display or data-formatting rule.</summary>
-    Format
+    Format,
+    /// <summary>A form event that remains caller-selected and sandboxed.</summary>
+    Event
 }
 
 internal static class PdfXfaTemplateBehaviorKindExtensions
@@ -272,6 +282,11 @@ internal static class PdfXfaTemplateBehaviorKindExtensions
         if (value.Equals("format", StringComparison.OrdinalIgnoreCase))
         {
             kind = PdfXfaTemplateBehaviorKind.Format;
+            return true;
+        }
+        if (value.Equals("event", StringComparison.OrdinalIgnoreCase))
+        {
+            kind = PdfXfaTemplateBehaviorKind.Event;
             return true;
         }
         kind = default;
