@@ -36,7 +36,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added locally saved and editable fillable text-field presets with reusable dimensions and visual styles (#340).
 - Added unified threaded comment inspection with accurate bounds, editing, removal, and JSON review reports for notes, highlights, drawings, replies, and other annotations (#288).
 - Added source-preserving partial rasterization with region validation, affected-content planning, exact raster sizing, and atomic selected-zone replacement (#369).
-- Added unified print-production reports with complete page boxes, selectable process and spot separation-preview planning, and validated output-intent ICC profile details (#264).
+- Added unified print-production reports with complete page boxes, selectable process and spot separation-preview planning with data-safe JSON, and validated output-intent ICC profile details (#264).
 - Added per-image CCITT Group 4, adaptive predictor, or plain Flate selection for smaller lossless raster pages, plus strict full-page JPEG passthrough detection (#366).
 
 ## [1.8.3] - 2026-09-02

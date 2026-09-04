@@ -56,6 +56,12 @@ public sealed class PdfPrintProductionReportTests
         Assert.False(preview.Plates[1].IsProcess);
         Assert.Equal(["Black"], preview.Pages[0].PlateNames);
         Assert.Equal(["Killer Orange"], preview.Pages[1].PlateNames);
+        using JsonDocument json = JsonDocument.Parse(preview.ToJson());
+        Assert.Equal(1, json.RootElement.GetProperty("version").GetInt32());
+        Assert.Equal("Killer Orange", json.RootElement.GetProperty("plates")[1]
+            .GetProperty("name").GetString());
+        Assert.Equal("Black", json.RootElement.GetProperty("pages")[0]
+            .GetProperty("plateNames")[0].GetString());
         Assert.Throws<ArgumentException>(() =>
             PdfSeparationPreview.Create(document, ["Killer Orange", "Killer Orange"]));
         Assert.Throws<ArgumentException>(() =>

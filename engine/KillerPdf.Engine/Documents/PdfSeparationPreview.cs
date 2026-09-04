@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>A process or spot plate selected for a separation preview.</summary>
@@ -13,6 +15,18 @@ public sealed record PdfSeparationPreview(
     IReadOnlyList<PdfSeparationPreviewPlate> Plates,
     IReadOnlyList<PdfSeparationPreviewPage> Pages)
 {
+    /// <summary>Exports the selected plates and per-page presence without document content.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        Plates,
+        Pages
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
+
     /// <summary>Creates a preview selection from the document's declared process and spot plates.</summary>
     public static PdfSeparationPreview Create(
         PdfDocument document, IEnumerable<string> plateNames)
