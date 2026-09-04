@@ -401,7 +401,11 @@ public static class PdfOptimizer
             HashSet<PdfName> xObjects = [.. instructions
                 .Where(item => item.Operator == "Do" && item.Operands.Count > 0)
                 .Select(item => item.Operands[0]).OfType<PdfName>()];
-            if (NeedsCleanup("Font", fonts) || NeedsCleanup("XObject", xObjects))
+            HashSet<PdfName> colorSpaces = [.. instructions
+                .Where(item => item.Operator is "CS" or "cs" && item.Operands.Count > 0)
+                .Select(item => item.Operands[0]).OfType<PdfName>()];
+            if (NeedsCleanup("Font", fonts) || NeedsCleanup("XObject", xObjects)
+                || NeedsCleanup("ColorSpace", colorSpaces))
                 result.Add(page.Index);
 
             bool NeedsCleanup(string category, HashSet<PdfName> used) =>
@@ -423,12 +427,14 @@ public static class PdfOptimizer
             return instructions;
         Dictionary<PdfName, PdfName> fonts = Aliases("Font");
         Dictionary<PdfName, PdfName> xObjects = Aliases("XObject");
+        Dictionary<PdfName, PdfName> colorSpaces = Aliases("ColorSpace");
         return Array.AsReadOnly(instructions.Select(instruction =>
         {
             Dictionary<PdfName, PdfName>? aliases = instruction.Operator switch
             {
                 "Tf" => fonts,
                 "Do" => xObjects,
+                "CS" or "cs" => colorSpaces,
                 _ => null
             };
             if (aliases is null || instruction.Operands.Count == 0
