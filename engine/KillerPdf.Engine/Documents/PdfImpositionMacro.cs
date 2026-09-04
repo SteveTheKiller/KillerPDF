@@ -52,6 +52,6 @@ public static class PdfImpositionMacro
             preset.Margin, preset.Gutter, preset.RotateToFit, preset.CreepPerSheet,
             preset.IncludeCropMarks, preset.IncludeRegistrationMarks,
             preset.IncludeFoldMarks, preset.IncludeColorBars,
-            preset.IncludePageInformation, preset.SourceBox);
+            preset.IncludePageInformation, preset.SourceBox, preset.BindingEdge);
     }
 }

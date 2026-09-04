@@ -12,7 +12,8 @@ public sealed class PdfImpositionPlannerTests
         var preset = new PdfImpositionPreset("Two-up letter", 2, 1, 792, 612,
             margin: 18, gutter: 12, duplex: true, includeCropMarks: true,
             includeRegistrationMarks: true, creepPerSheet: 0.5,
-            sourceBox: PdfImpositionSourceBox.Bleed);
+            sourceBox: PdfImpositionSourceBox.Bleed,
+            bindingEdge: PdfImpositionBindingEdge.Short);
 
         PdfImpositionPreset restored = PdfImpositionPreset.FromJson(preset.ToJson());
         IReadOnlyList<PdfImposedSheetSide> sides = restored.Plan(3);
@@ -28,6 +29,7 @@ public sealed class PdfImpositionPlannerTests
         Assert.True(restored.IncludeRegistrationMarks);
         Assert.Equal(0.5, restored.CreepPerSheet);
         Assert.Equal(PdfImpositionSourceBox.Bleed, restored.SourceBox);
+        Assert.Equal(PdfImpositionBindingEdge.Short, restored.BindingEdge);
         Assert.DoesNotContain("source", preset.ToJson(), StringComparison.OrdinalIgnoreCase);
         Assert.Throws<NotSupportedException>(() => PdfImpositionPreset.FromJson(
             preset.ToJson().Replace("\"version\":1", "\"version\":2",

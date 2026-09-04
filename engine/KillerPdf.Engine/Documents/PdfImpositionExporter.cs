@@ -17,7 +17,8 @@ public static class PdfImpositionExporter
         double creepPerSheet = 0, bool includeCropMarks = false,
         bool includeRegistrationMarks = false, bool includeFoldMarks = false,
         bool includeColorBars = false, bool includePageInformation = false,
-        PdfImpositionSourceBox sourceBox = PdfImpositionSourceBox.Crop)
+        PdfImpositionSourceBox sourceBox = PdfImpositionSourceBox.Crop,
+        PdfImpositionBindingEdge bindingEdge = PdfImpositionBindingEdge.Long)
     {
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(sides);
@@ -26,6 +27,8 @@ public static class PdfImpositionExporter
                 "At least one imposed sheet side is required.", nameof(sides));
         if (!Enum.IsDefined(sourceBox))
             throw new ArgumentOutOfRangeException(nameof(sourceBox));
+        if (!Enum.IsDefined(bindingEdge))
+            throw new ArgumentOutOfRangeException(nameof(bindingEdge));
 
         IReadOnlyList<PdfPageBoxInformation> pageBoxes =
             PdfPageBoxInformation.Read(source);
@@ -50,7 +53,15 @@ public static class PdfImpositionExporter
             _ => throw new ArgumentOutOfRangeException(nameof(sourceBox))
         };
 
-        var builder = new PdfDocumentBuilder();
+        bool duplex = sides.Any(side => side.Face == PdfImposedSheetFace.Back);
+        var builder = new PdfDocumentBuilder().SetViewerPreferences(new PdfViewerPreferences
+        {
+            Duplex = duplex
+                ? bindingEdge == PdfImpositionBindingEdge.Long
+                    ? PdfDuplexMode.DuplexFlipLongEdge
+                    : PdfDuplexMode.DuplexFlipShortEdge
+                : PdfDuplexMode.Simplex
+        });
         foreach (PdfImposedSheetSide _ in sides)
             builder.AddBlankPage(sheetWidth, sheetHeight);
         byte[] seed = builder.Build();

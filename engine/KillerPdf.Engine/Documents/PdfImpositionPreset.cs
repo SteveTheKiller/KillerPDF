@@ -16,6 +16,15 @@ public enum PdfImpositionSourceBox
     Art
 }
 
+/// <summary>The sheet edge used when turning duplex imposition output.</summary>
+public enum PdfImpositionBindingEdge
+{
+    /// <summary>Turns each sheet along its long edge.</summary>
+    Long,
+    /// <summary>Turns each sheet along its short edge.</summary>
+    Short
+}
+
 /// <summary>Reusable sheet and grid settings for an N-up imposition job.</summary>
 public sealed record PdfImpositionPreset
 {
@@ -26,7 +35,8 @@ public sealed record PdfImpositionPreset
         bool includeCropMarks = false, bool includeRegistrationMarks = false,
         double creepPerSheet = 0, bool includeFoldMarks = false,
         bool includeColorBars = false, bool includePageInformation = false,
-        PdfImpositionSourceBox sourceBox = PdfImpositionSourceBox.Crop)
+        PdfImpositionSourceBox sourceBox = PdfImpositionSourceBox.Crop,
+        PdfImpositionBindingEdge bindingEdge = PdfImpositionBindingEdge.Long)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("A preset name is required.", nameof(name));
@@ -44,6 +54,8 @@ public sealed record PdfImpositionPreset
             throw new ArgumentOutOfRangeException(nameof(creepPerSheet));
         if (!Enum.IsDefined(sourceBox))
             throw new ArgumentOutOfRangeException(nameof(sourceBox));
+        if (!Enum.IsDefined(bindingEdge))
+            throw new ArgumentOutOfRangeException(nameof(bindingEdge));
         double usableWidth = sheetWidth - margin * 2 - gutter * (columns - 1);
         double usableHeight = sheetHeight - margin * 2 - gutter * (rows - 1);
         if (usableWidth <= 0 || usableHeight <= 0)
@@ -64,6 +76,7 @@ public sealed record PdfImpositionPreset
         IncludeColorBars = includeColorBars;
         IncludePageInformation = includePageInformation;
         SourceBox = sourceBox;
+        BindingEdge = bindingEdge;
     }
 
     /// <summary>Gets the preset name.</summary>
@@ -98,6 +111,8 @@ public sealed record PdfImpositionPreset
     public bool IncludePageInformation { get; }
     /// <summary>Gets the source-page boundary fitted into each sheet slot.</summary>
     public PdfImpositionSourceBox SourceBox { get; }
+    /// <summary>Gets the edge used to turn duplex sheets.</summary>
+    public PdfImpositionBindingEdge BindingEdge { get; }
 
     /// <summary>Plans sequential source pages using this preset's grid and duplex setting.</summary>
     public IReadOnlyList<PdfImposedSheetSide> Plan(int pageCount) =>
@@ -118,7 +133,7 @@ public sealed record PdfImpositionPreset
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PresetFile(1, Name, Columns, Rows, SheetWidth, SheetHeight, Margin, Gutter,
             Duplex, RotateToFit, IncludeCropMarks, IncludeRegistrationMarks, CreepPerSheet,
-            IncludeFoldMarks, IncludeColorBars, IncludePageInformation, SourceBox),
+            IncludeFoldMarks, IncludeColorBars, IncludePageInformation, SourceBox, BindingEdge),
         new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -144,7 +159,7 @@ public sealed record PdfImpositionPreset
             file.SheetWidth, file.SheetHeight, file.Margin, file.Gutter,
             file.Duplex, file.RotateToFit, file.IncludeCropMarks,
             file.IncludeRegistrationMarks, file.CreepPerSheet, file.IncludeFoldMarks,
-            file.IncludeColorBars, file.IncludePageInformation, file.PageBox);
+            file.IncludeColorBars, file.IncludePageInformation, file.PageBox, file.BindingEdge);
     }
 
     private sealed record PresetFile(int Version, string Name, int Columns, int Rows,
@@ -152,5 +167,5 @@ public sealed record PdfImpositionPreset
         bool Duplex, bool RotateToFit, bool IncludeCropMarks,
         bool IncludeRegistrationMarks, double CreepPerSheet,
         bool IncludeFoldMarks, bool IncludeColorBars, bool IncludePageInformation,
-        PdfImpositionSourceBox PageBox);
+        PdfImpositionSourceBox PageBox, PdfImpositionBindingEdge BindingEdge);
 }
