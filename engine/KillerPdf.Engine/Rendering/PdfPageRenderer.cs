@@ -61,20 +61,34 @@ public sealed class PdfPageRenderer
             270 => new Matrix(0, 1, -1, 0, page.Height, 0),
             _ => Matrix.Identity
         };
-        var state = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
+        var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
             1, 1, 1, []);
-        var stack = new Stack<GraphicsState>();
-        var path = new List<List<Point>>();
-        List<Point>? subpath = null;
-        bool? pendingClipEvenOdd = null;
         var diagnostics = new HashSet<string>();
-        foreach (PdfContentInstruction instruction in _content.ReadInstructions(
-            pageIndex, cancellationToken))
+        var activeForms = new HashSet<PdfStream>();
+        PdfDictionary pageResources = PageResources(pageIndex);
+        Process(_content.ReadInstructions(pageIndex, cancellationToken),
+            pageResources, initialState, 0);
+        if (options.IncludeAnnotations)
+            diagnostics.Add("Annotation rendering is not implemented.");
+        if (options.IncludeFormFields)
+            diagnostics.Add("Form-field rendering is not implemented.");
+        return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
+
+        void Process(IEnumerable<PdfContentInstruction> instructions,
+            PdfDictionary resources, GraphicsState initial, int depth)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            IReadOnlyList<PdfObject> values = instruction.Operands;
-            switch (instruction.Operator)
+            if (depth > 32) throw new FormatException("Form XObject nesting limit exceeded.");
+            GraphicsState state = initial;
+            var stack = new Stack<GraphicsState>();
+            var path = new List<List<Point>>();
+            List<Point>? subpath = null;
+            bool? pendingClipEvenOdd = null;
+            foreach (PdfContentInstruction instruction in instructions)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                IReadOnlyList<PdfObject> values = instruction.Operands;
+                switch (instruction.Operator)
+                {
                 case "q":
                     stack.Push(state);
                     break;
@@ -122,7 +136,7 @@ public sealed class PdfPageRenderer
                     state = state with { LineWidth = Math.Max(0, Number(values[0])) };
                     break;
                 case "gs" when values.Count == 1 && values[0] is PdfName stateName:
-                    if (TryGetGraphicsState(pageIndex, stateName, out double fillAlpha,
+                    if (TryGetGraphicsState(resources, stateName, out double fillAlpha,
                         out double strokeAlpha, out bool unsupportedBlend))
                         state = state with { FillAlpha = fillAlpha, StrokeAlpha = strokeAlpha };
                     if (unsupportedBlend)
@@ -209,13 +223,19 @@ public sealed class PdfPageRenderer
                     or "'" or "\"":
                     diagnostics.Add("Text rendering is not implemented.");
                     break;
-                case "Do" when values.Count == 1 && values[0] is PdfName imageName:
-                    if (!TryGetImage(pageIndex, imageName, out PdfStream? image) || image is null)
-                        diagnostics.Add("Form XObject rendering is not implemented.");
-                    else if (!TryRenderImage(image, state.Transform, state.Clips, pixels,
-                        options.Width, options.Height, scaleX, scaleY,
-                        out string? imageDiagnostic))
-                        diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
+                case "Do" when values.Count == 1 && values[0] is PdfName xObjectName:
+                    if (!TryGetXObject(resources, xObjectName, out PdfStream? xObject)
+                        || xObject is null)
+                        diagnostics.Add("An XObject resource could not be resolved.");
+                    else if (IsName(xObject.Dictionary, "Subtype", "Image"))
+                    {
+                        if (!TryRenderImage(xObject, state.Transform, state.Clips, pixels,
+                            options.Width, options.Height, scaleX, scaleY,
+                            out string? imageDiagnostic))
+                            diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
+                    }
+                    else if (IsName(xObject.Dictionary, "Subtype", "Form"))
+                        RenderForm(xObject, resources, state, depth);
                     break;
                 case "BI" when values.Count == 1 && values[0] is PdfDictionary inlineDictionary
                     && instruction.InlineImageData.HasValue:
@@ -226,26 +246,72 @@ public sealed class PdfPageRenderer
                         out string? inlineDiagnostic))
                         diagnostics.Add(inlineDiagnostic ?? "Inline-image rendering is not implemented.");
                     break;
+                }
             }
         }
-        if (options.IncludeAnnotations)
-            diagnostics.Add("Annotation rendering is not implemented.");
-        if (options.IncludeFormFields)
-            diagnostics.Add("Form-field rendering is not implemented.");
-        return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
+
+        void RenderForm(PdfStream form, PdfDictionary inheritedResources,
+            GraphicsState parentState, int depth)
+        {
+            if (!activeForms.Add(form)) throw new FormatException("Cyclic Form XObject.");
+            try
+            {
+                Matrix matrix = form.Dictionary.TryGetValue(Name("Matrix"), out PdfObject? value)
+                    ? Matrix.From(ResolveArray(value, 6, "Form XObject matrix")) : Matrix.Identity;
+                GraphicsState formState = parentState with
+                {
+                    Transform = matrix.Then(parentState.Transform)
+                };
+                if (form.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boxValue))
+                {
+                    PdfArray box = ResolveArray(boxValue, 4, "Form XObject bounding box");
+                    double left = Number(Resolve(box[0])), bottom = Number(Resolve(box[1]));
+                    double right = Number(Resolve(box[2])), top = Number(Resolve(box[3]));
+                    Point[] polygon =
+                    [
+                        formState.Transform.Apply(left, bottom),
+                        formState.Transform.Apply(right, bottom),
+                        formState.Transform.Apply(right, top),
+                        formState.Transform.Apply(left, top)
+                    ];
+                    ClipRegion[] clips = [.. formState.Clips,
+                        new ClipRegion([polygon], false)];
+                    formState = formState with { Clips = Array.AsReadOnly(clips) };
+                }
+                PdfDictionary formResources = form.Dictionary.TryGetValue(
+                    Name("Resources"), out PdfObject? resourceValue)
+                    ? Resolve(resourceValue) as PdfDictionary
+                        ?? throw new FormatException("Form XObject resources are not a dictionary.")
+                    : inheritedResources;
+                byte[] bytes = PdfStreamDecoder.Decode(form, _document.Resolve,
+                    PdfContentStreamReader.MaximumSourceBytes);
+                Process(PdfContentStreamReader.Read(bytes, cancellationToken: cancellationToken),
+                    formResources, formState, depth + 1);
+            }
+            finally
+            {
+                activeForms.Remove(form);
+            }
+        }
     }
 
-    private bool TryGetImage(int pageIndex, PdfName resourceName, out PdfStream? image)
+    private PdfDictionary PageResources(int pageIndex)
     {
         PdfPageTreeEntry page = _tree.Pages[pageIndex];
-        image = page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
-            && Resolve(resourcesValue) is PdfDictionary resources
-            && resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
+        return page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? value)
+            ? Resolve(value) as PdfDictionary
+                ?? throw new FormatException("Page resources are not a dictionary.")
+            : new PdfDictionary([]);
+    }
+
+    private bool TryGetXObject(PdfDictionary resources, PdfName resourceName,
+        out PdfStream? xObject)
+    {
+        xObject = resources.TryGetValue(Name("XObject"), out PdfObject? xObjectsValue)
             && Resolve(xObjectsValue) is PdfDictionary xObjects
-            && xObjects.TryGetValue(resourceName, out PdfObject? imageValue)
-            && Resolve(imageValue) is PdfStream stream
-            && IsName(stream.Dictionary, "Subtype", "Image") ? stream : null;
-        return image is not null;
+            && xObjects.TryGetValue(resourceName, out PdfObject? value)
+            && Resolve(value) is PdfStream stream ? stream : null;
+        return xObject is not null;
     }
 
     private bool TryRenderImage(PdfStream stream, Matrix transform,
@@ -344,15 +410,12 @@ public sealed class PdfPageRenderer
             }
     }
 
-    private bool TryGetGraphicsState(int pageIndex, PdfName resourceName,
+    private bool TryGetGraphicsState(PdfDictionary resources, PdfName resourceName,
         out double fillAlpha, out double strokeAlpha, out bool unsupportedBlend)
     {
         fillAlpha = strokeAlpha = 1;
         unsupportedBlend = false;
-        PdfPageTreeEntry page = _tree.Pages[pageIndex];
-        if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
-            || Resolve(resourcesValue) is not PdfDictionary resources
-            || !resources.TryGetValue(Name("ExtGState"), out PdfObject? statesValue)
+        if (!resources.TryGetValue(Name("ExtGState"), out PdfObject? statesValue)
             || Resolve(statesValue) is not PdfDictionary states
             || !states.TryGetValue(resourceName, out PdfObject? stateValue)
             || Resolve(stateValue) is not PdfDictionary dictionary)
@@ -394,6 +457,13 @@ public sealed class PdfPageRenderer
 
     private bool IsName(PdfDictionary dictionary, string key, string expected) =>
         NameValue(dictionary, key) == expected;
+
+    private PdfArray ResolveArray(PdfObject value, int count, string description)
+    {
+        if (Resolve(value) is not PdfArray array || array.Count != count)
+            throw new FormatException($"{description} is invalid.");
+        return array;
+    }
 
     private PdfObject Resolve(PdfObject value)
     {

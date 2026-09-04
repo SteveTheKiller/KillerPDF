@@ -10,7 +10,7 @@ The 1.9.0 engine adds page-content extraction and begins engine-owned page rende
 
 ### Added
 
-- Added bounded BGRA32 page rendering with crop and page-rotation geometry, nested clipping paths, nonzero and even-odd path painting, graphics-state opacity, transformed device colors, image XObjects, and inline images.
+- Added bounded BGRA32 page rendering with crop and page-rotation geometry, nested clipping paths, nonzero and even-odd path painting, graphics-state opacity, transformed device colors, recursive Form XObjects, image XObjects, and inline images.
 - Added direct engine-rendered OCR with bounded preprocessing, layout analysis, versioned recognition models, CPU glyph inference, and PDF-coordinate results.
 - Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, identified image placements, paths, shadings, and clipped bounds, including nested forms, inline images, vertical text, and ActualText replacements (#331).
 - Added font-resource decoding with Unicode maps, standard and embedded font metrics, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.

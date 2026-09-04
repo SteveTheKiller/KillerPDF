@@ -188,6 +188,28 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 255, 128], Pixel(transparent, 5, 5));
     }
 
+    [Fact]
+    public void Render_ExpandsNestedFormsWithScopedResourcesMatricesAndBounds()
+    {
+        var inner = new PdfFormXObject(4, 4, new PdfContentStreamBuilder()
+            .SetOpacity(0.5)
+            .SetFillRgb(1, 0, 0)
+            .Rectangle(-2, -2, 8, 8)
+            .Fill());
+        var outer = new PdfFormXObject(8, 8,
+            new PdfContentStreamBuilder().DrawForm(inner, 2, 2));
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawForm(outer, 1, 1))
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([128, 128, 255, 255], Pixel(page, 4, 4));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 2, 4));
+        Assert.DoesNotContain("Form XObject rendering is not implemented.", page.Diagnostics);
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 }
