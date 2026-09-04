@@ -235,6 +235,8 @@ public sealed record PdfFormFieldProposal
         string? suggestedValue = null, bool suggestedReadOnly = false,
         bool suggestedRequired = false, bool suggestedChecked = false,
         bool suggestedMultiline = false, bool suggestedDoNotScroll = false,
+        bool suggestedPassword = false, bool suggestedDoNotSpellCheck = false,
+        bool suggestedComb = false, int? suggestedMaximumLength = null,
         PdfTextFieldAlignment suggestedAlignment = PdfTextFieldAlignment.Left,
         double suggestedFontSize = 12,
         PdfFormFieldAppearanceStyle? suggestedAppearanceStyle = null,
@@ -274,6 +276,20 @@ public sealed record PdfFormFieldProposal
             throw new ArgumentException(
                 "No-scroll behavior can be suggested only for a text field.",
                 nameof(suggestedDoNotScroll));
+        if ((suggestedPassword || suggestedDoNotSpellCheck || suggestedComb
+                || suggestedMaximumLength.HasValue)
+            && kind != PdfRecognizedFieldKind.Text)
+            throw new ArgumentException(
+                "Text-entry behavior can be suggested only for a text field.", nameof(kind));
+        if (suggestedMaximumLength <= 0)
+            throw new ArgumentOutOfRangeException(nameof(suggestedMaximumLength));
+        if (suggestedPassword && suggestedMultiline)
+            throw new ArgumentException("A password field cannot be multiline.", nameof(suggestedPassword));
+        if (suggestedComb && (!suggestedMaximumLength.HasValue
+                || suggestedMultiline || suggestedPassword))
+            throw new ArgumentException(
+                "A comb field requires a maximum length and cannot be multiline or password protected.",
+                nameof(suggestedComb));
         if (!Enum.IsDefined(suggestedAlignment))
             throw new ArgumentOutOfRangeException(nameof(suggestedAlignment));
         if (!double.IsFinite(suggestedFontSize) || suggestedFontSize <= 0)
@@ -308,6 +324,10 @@ public sealed record PdfFormFieldProposal
         SuggestedChecked = suggestedChecked;
         SuggestedMultiline = suggestedMultiline;
         SuggestedDoNotScroll = suggestedDoNotScroll;
+        SuggestedPassword = suggestedPassword;
+        SuggestedDoNotSpellCheck = suggestedDoNotSpellCheck;
+        SuggestedComb = suggestedComb;
+        SuggestedMaximumLength = suggestedMaximumLength;
         SuggestedAlignment = suggestedAlignment;
         SuggestedFontSize = suggestedFontSize;
         SuggestedAppearanceStyle = suggestedAppearanceStyle;
@@ -345,6 +365,14 @@ public sealed record PdfFormFieldProposal
     public bool SuggestedMultiline { get; }
     /// <summary>Gets whether a proposed text field should disable viewer scrolling.</summary>
     public bool SuggestedDoNotScroll { get; }
+    /// <summary>Gets whether the proposed text value is visually obscured.</summary>
+    public bool SuggestedPassword { get; }
+    /// <summary>Gets whether viewer spell checking is disabled for the proposed text field.</summary>
+    public bool SuggestedDoNotSpellCheck { get; }
+    /// <summary>Gets whether the proposed text field uses equally spaced character cells.</summary>
+    public bool SuggestedComb { get; }
+    /// <summary>Gets the proposed maximum text length.</summary>
+    public int? SuggestedMaximumLength { get; }
     /// <summary>Gets the proposed horizontal text or choice alignment.</summary>
     public PdfTextFieldAlignment SuggestedAlignment { get; }
     /// <summary>Gets the proposed appearance font size in points.</summary>
@@ -365,6 +393,8 @@ public sealed record PdfFormFieldProposal
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
         bool? multiline = null, bool? doNotScroll = null,
+        bool? password = null, bool? doNotSpellCheck = null,
+        bool? comb = null, int? maximumLength = null,
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
@@ -373,7 +403,9 @@ public sealed record PdfFormFieldProposal
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
             isChecked ?? SuggestedChecked, multiline ?? SuggestedMultiline,
-            doNotScroll ?? SuggestedDoNotScroll, alignment ?? SuggestedAlignment,
+            doNotScroll ?? SuggestedDoNotScroll, password ?? SuggestedPassword,
+            doNotSpellCheck ?? SuggestedDoNotSpellCheck, comb ?? SuggestedComb,
+            maximumLength ?? SuggestedMaximumLength, alignment ?? SuggestedAlignment,
             fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle,
             noExport ?? SuggestedNoExport, visibility ?? SuggestedVisibility,
             pushButtonAction ?? SuggestedPushButtonAction);
@@ -383,7 +415,8 @@ public sealed record PdfFormFieldProposal
         new(id, pageIndex, bounds, Kind, Confidence, suggestedName,
             PdfFormProposalStatus.Proposed, SuggestedTooltip, SuggestedOptions, SuggestedValue,
             SuggestedReadOnly, SuggestedRequired, SuggestedChecked, SuggestedMultiline,
-            SuggestedDoNotScroll, SuggestedAlignment, SuggestedFontSize,
+            SuggestedDoNotScroll, SuggestedPassword, SuggestedDoNotSpellCheck,
+            SuggestedComb, SuggestedMaximumLength, SuggestedAlignment, SuggestedFontSize,
             SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility,
             SuggestedPushButtonAction);
 
@@ -439,13 +472,16 @@ public sealed class PdfFormRecognitionReview
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
         bool? readOnly = null, bool? required = null, bool? isChecked = null,
         bool? multiline = null, bool? doNotScroll = null,
+        bool? password = null, bool? doNotSpellCheck = null,
+        bool? comb = null, int? maximumLength = null,
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
         PdfFormFieldVisibility? visibility = null,
         PdfRecognizedPushButtonAction? pushButtonAction = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
-            readOnly, required, isChecked, multiline, doNotScroll, alignment,
+            readOnly, required, isChecked, multiline, doNotScroll,
+            password, doNotSpellCheck, comb, maximumLength, alignment,
             fontSize, appearanceStyle, noExport, visibility, pushButtonAction));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
@@ -522,7 +558,11 @@ public sealed class PdfFormRecognitionReview
                             NoExport = proposal.SuggestedNoExport,
                             Visibility = proposal.SuggestedVisibility,
                             Multiline = proposal.SuggestedMultiline,
+                            Password = proposal.SuggestedPassword,
+                            DoNotSpellCheck = proposal.SuggestedDoNotSpellCheck,
                             DoNotScroll = proposal.SuggestedDoNotScroll,
+                            Comb = proposal.SuggestedComb,
+                            MaximumLength = proposal.SuggestedMaximumLength,
                             Alignment = proposal.SuggestedAlignment
                         },
                         fontSize: proposal.SuggestedFontSize,

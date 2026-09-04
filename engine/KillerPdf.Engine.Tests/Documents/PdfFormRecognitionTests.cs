@@ -260,6 +260,41 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewedTextEntryBehaviorPersists()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("code", 0, new PdfContentBounds(10, 10, 150, 40),
+                PdfRecognizedFieldKind.Text, 1, "code")])
+            .Accept("code", doNotScroll: true, doNotSpellCheck: true,
+                comb: true, maximumLength: 8);
+
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(review.ApplyAccepted(document)), 0));
+
+        Assert.Equal(8, widget.MaximumLength);
+        Assert.NotEqual(0, widget.Flags & (1L << 22));
+        Assert.NotEqual(0, widget.Flags & (1L << 23));
+        Assert.NotEqual(0, widget.Flags & (1L << 24));
+    }
+
+    [Fact]
+    public void ReviewedTextEntryBehaviorRejectsIncompatibleSettings()
+    {
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
+            "choice", 0, new PdfContentBounds(10, 10, 150, 40),
+            PdfRecognizedFieldKind.DropDown, 1, "choice", suggestedPassword: true));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
+            "password", 0, new PdfContentBounds(10, 10, 150, 40),
+            PdfRecognizedFieldKind.Text, 1, "password", suggestedMultiline: true,
+            suggestedPassword: true));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
+            "comb", 0, new PdfContentBounds(10, 10, 150, 40),
+            PdfRecognizedFieldKind.Text, 1, "comb", suggestedComb: true));
+    }
+
+    [Fact]
     public void ReviewedChoiceProposalsPersistAsFormFields()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
