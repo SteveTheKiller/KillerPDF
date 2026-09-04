@@ -75,6 +75,30 @@ public sealed class PdfXfdfFormDataTests
     }
 
     [Fact]
+    public void WriteCanSelectFieldsAndAnnotationPagesTogether()
+    {
+        var source = new PdfFormDataSet
+        {
+            Fields =
+            [
+                new PdfFormDataField { Name = "first", Values = ["1"] },
+                new PdfFormDataField { Name = "second", Values = ["2"] }
+            ],
+            Annotations =
+            [
+                new PdfFormDataAnnotation { Subtype = "text", PageIndex = 0, Rectangle = [0, 0, 10, 10] },
+                new PdfFormDataAnnotation { Subtype = "text", PageIndex = 2, Rectangle = [0, 0, 10, 10] }
+            ]
+        };
+
+        PdfFormDataSet selected = PdfXfdfFormData.Read(
+            PdfXfdfFormData.Write(source, ["second"], [2]));
+
+        Assert.Equal("second", Assert.Single(selected.Fields).Name);
+        Assert.Equal(2, Assert.Single(selected.Annotations).PageIndex);
+    }
+
+    [Fact]
     public void WriteAndReadRoundTripAnnotationsAndReplies()
     {
         var source = new PdfFormDataSet

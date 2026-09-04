@@ -57,6 +57,14 @@ public static class PdfXfdfFormData
         return Write(data.SelectFields(fieldNames));
     }
 
+    /// <summary>Writes selected fields and annotations from selected pages as UTF-8 XFDF.</summary>
+    public static byte[] Write(PdfFormDataSet data, IEnumerable<string> fieldNames,
+        IEnumerable<int> annotationPageIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return Write(data.SelectFields(fieldNames).SelectAnnotationPages(annotationPageIndexes));
+    }
+
     /// <summary>Writes all field values and an optional source PDF reference as UTF-8 XFDF.</summary>
     public static byte[] Write(PdfFormDataSet data)
     {

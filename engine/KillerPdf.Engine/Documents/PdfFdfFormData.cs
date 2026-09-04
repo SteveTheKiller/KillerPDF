@@ -181,6 +181,14 @@ public static class PdfFdfFormData
         return Write(data.SelectFields(fieldNames));
     }
 
+    /// <summary>Writes selected fields and annotations from selected pages as deterministic FDF.</summary>
+    public static byte[] Write(PdfFormDataSet data, IEnumerable<string> fieldNames,
+        IEnumerable<int> annotationPageIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        return Write(data.SelectFields(fieldNames).SelectAnnotationPages(annotationPageIndexes));
+    }
+
     /// <summary>Writes all field values and an optional source PDF reference as deterministic FDF.</summary>
     public static byte[] Write(PdfFormDataSet data)
     {

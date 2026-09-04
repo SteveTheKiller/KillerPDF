@@ -30,6 +30,23 @@ public sealed record PdfFormDataSet
                     $"The form data has no field named '{name}'."));
         return this with { Fields = Array.AsReadOnly(selected.ToArray()) };
     }
+
+    /// <summary>Returns annotations from selected zero-based pages in source order.</summary>
+    public PdfFormDataSet SelectAnnotationPages(IEnumerable<int> pageIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(pageIndexes);
+        int[] requested = pageIndexes.ToArray();
+        if (requested.Any(page => page < 0)
+            || requested.Distinct().Count() != requested.Length)
+            throw new ArgumentException(
+                "Selected annotation pages must be nonnegative and unique.", nameof(pageIndexes));
+        var selected = requested.ToHashSet();
+        return this with
+        {
+            Annotations = Array.AsReadOnly(Annotations
+                .Where(annotation => selected.Contains(annotation.PageIndex)).ToArray())
+        };
+    }
 }
 
 /// <summary>One portable annotation carried by FDF-compatible interchange.</summary>

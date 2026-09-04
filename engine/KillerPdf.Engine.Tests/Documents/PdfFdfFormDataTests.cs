@@ -61,6 +61,20 @@ public sealed class PdfFdfFormDataTests
     }
 
     [Fact]
+    public void WriteCanSelectFieldsAndAnnotationPagesTogether()
+    {
+        var source = SelectionSource("Text");
+
+        PdfFormDataSet selected = PdfFdfFormData.Read(
+            PdfFdfFormData.Write(source, ["second"], [2]));
+
+        Assert.Equal("second", Assert.Single(selected.Fields).Name);
+        Assert.Equal(2, Assert.Single(selected.Annotations).PageIndex);
+        Assert.Throws<ArgumentException>(() =>
+            source.SelectAnnotationPages([2, 2]));
+    }
+
+    [Fact]
     public void WriteAndReadRoundTripAnnotationsAndReplies()
     {
         var source = new PdfFormDataSet
@@ -107,4 +121,19 @@ public sealed class PdfFdfFormDataTests
             new PdfFormDataSet { SourcePdfPath = "https://example.com/source.pdf" }, interchange));
         Assert.Null(PdfFormDataSourceResolver.Resolve(new PdfFormDataSet(), interchange));
     }
+
+
+    private static PdfFormDataSet SelectionSource(string subtype) => new()
+    {
+        Fields =
+        [
+            new PdfFormDataField { Name = "first", Values = ["1"] },
+            new PdfFormDataField { Name = "second", Values = ["2"] }
+        ],
+        Annotations =
+        [
+            new PdfFormDataAnnotation { Subtype = subtype, PageIndex = 0, Rectangle = [0, 0, 10, 10] },
+            new PdfFormDataAnnotation { Subtype = subtype, PageIndex = 2, Rectangle = [0, 0, 10, 10] }
+        ]
+    };
 }
