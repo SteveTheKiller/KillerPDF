@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using System.Text.Json;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -35,6 +36,9 @@ public sealed class PdfPermanentRedactionTests
         Assert.False(report.Succeeded);
         Assert.Contains(report.Findings, finding => finding.Code == "NonRasterContent");
         Assert.Contains(report.Findings, finding => finding.Code == "ProhibitedText");
+        using JsonDocument json = JsonDocument.Parse(report.ToJson());
+        Assert.False(json.RootElement.GetProperty("succeeded").GetBoolean());
+        Assert.Equal(2, json.RootElement.GetProperty("findings").GetArrayLength());
     }
 
     [Fact]

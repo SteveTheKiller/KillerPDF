@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -50,6 +51,29 @@ public sealed class PdfRedactionSearchTests
         Assert.Throws<OperationCanceledException>(() => PdfRedactionSearch.Find([Read("text")],
             new PdfRedactionSearchOptions { Kind = PdfRedactionSearchKind.ExactText, Query = "text" },
             new CancellationToken(true)));
+    }
+
+    [Fact]
+    public void ReviewReportTracksSelectionsWithoutLeakingMatchedTextByDefault()
+    {
+        PdfRedactionReview review = PdfRedactionSearch.Find([Read("secret account")],
+            new PdfRedactionSearchOptions
+            {
+                Kind = PdfRedactionSearchKind.ExactText,
+                Query = "secret"
+            });
+        review = review.Exclude(Assert.Single(review.Matches).Id);
+
+        string safeJson = review.ToJson();
+        string detailedJson = review.ToJson(includeMatchedText: true);
+        using JsonDocument report = JsonDocument.Parse(safeJson);
+
+        Assert.Equal(1, report.RootElement.GetProperty("matchCount").GetInt32());
+        Assert.Equal(0, report.RootElement.GetProperty("includedCount").GetInt32());
+        Assert.False(report.RootElement.GetProperty("matches")[0]
+            .GetProperty("included").GetBoolean());
+        Assert.DoesNotContain("secret", safeJson, StringComparison.Ordinal);
+        Assert.Contains("secret", detailedJson, StringComparison.Ordinal);
     }
 
     private static PdfPageContent Read(string text)

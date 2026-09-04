@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Objects;
+using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -32,6 +33,17 @@ public sealed record PdfRedactionVerificationReport(IReadOnlyList<PdfRedactionVe
 {
     /// <summary>Gets whether the output passed every redaction safety check.</summary>
     public bool Succeeded => Findings.Count == 0;
+
+    /// <summary>Exports the verification result as stable machine-readable JSON.</summary>
+    public string ToJson(bool indented = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        return JsonSerializer.Serialize(new { Version = 1, Succeeded, Findings }, options);
+    }
 }
 
 /// <summary>Creates and verifies PDFs that contain only sanitized page images.</summary>

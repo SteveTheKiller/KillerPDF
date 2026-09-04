@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -65,6 +66,32 @@ public sealed class PdfRedactionReview
         if (!_matches.Any(match => string.Equals(match.Id, id, StringComparison.Ordinal)))
             throw new KeyNotFoundException($"Redaction match '{id}' was not found.");
         return new PdfRedactionReview(_matches, _excluded.Where(value => !string.Equals(value, id, StringComparison.Ordinal)));
+    }
+
+    /// <summary>Exports a stable review report without matched text unless explicitly requested.</summary>
+    public string ToJson(bool includeMatchedText = false, bool indented = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        return JsonSerializer.Serialize(new
+        {
+            Version = 1,
+            MatchCount = _matches.Length,
+            IncludedCount = Included.Count,
+            Matches = _matches.Select(match => new
+            {
+                match.Id,
+                match.PageIndex,
+                Text = includeMatchedText ? match.Text : null,
+                match.Bounds,
+                match.FirstWordIndex,
+                match.WordCount,
+                Included = !_excluded.Contains(match.Id)
+            })
+        }, options);
     }
 }
 
