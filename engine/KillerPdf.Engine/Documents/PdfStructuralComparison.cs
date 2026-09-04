@@ -1,4 +1,7 @@
 using System.Security.Cryptography;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 
@@ -46,6 +49,46 @@ public sealed class PdfStructuralComparison
     public IReadOnlyList<PdfStructuralChange> Changes { get; }
     /// <summary>Gets whether any structural page-content change was found.</summary>
     public bool HasChanges => Changes.Count > 0;
+
+    /// <summary>Exports a readable page-by-page summary.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Structural comparison: ")
+            .AppendLine(HasChanges ? "changes found" : "no changes");
+        output.Append("Changes: ")
+            .AppendLine(Changes.Count.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfStructuralChange change in Changes)
+        {
+            output.Append("  Page ")
+                .Append((change.PageIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(": ").Append(change.Kind)
+                .Append(" (original ")
+                .Append(change.OriginalCount.ToString(CultureInfo.InvariantCulture))
+                .Append(", changed ")
+                .Append(change.ChangedCount.ToString(CultureInfo.InvariantCulture))
+                .AppendLine(")");
+        }
+        return output.ToString().TrimEnd();
+    }
+
+    /// <summary>Exports the comparison as stable machine-readable JSON.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        HasChanges,
+        Changes = Changes.Select(change => new
+        {
+            change.PageIndex,
+            Kind = change.Kind.ToString(),
+            change.OriginalCount,
+            change.ChangedCount
+        })
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
 
     /// <summary>Compares interpreted content, effective resources, and page geometry.</summary>
     public static PdfStructuralComparison Compare(PdfDocument original, PdfDocument changed,

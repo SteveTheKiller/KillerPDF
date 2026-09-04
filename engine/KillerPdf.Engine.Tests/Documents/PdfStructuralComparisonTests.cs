@@ -1,3 +1,4 @@
+using System.Text.Json;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using Xunit;
@@ -63,6 +64,40 @@ public sealed class PdfStructuralComparisonTests
         Assert.Equal(PdfStructuralChangeKind.Instructions, change.Kind);
         Assert.Equal(0, change.OriginalCount);
         Assert.Equal(2, change.ChangedCount);
+    }
+
+    [Fact]
+    public void ComparisonExportsReadableAndMachineReadableReports()
+    {
+        PdfStructuralComparison comparison = PdfStructuralComparison.Compare(
+            Document("Original", includePath: false, pages: 1),
+            Document("Changed", includePath: true, pages: 2));
+
+        string text = comparison.ToText();
+        Assert.Contains("Structural comparison: changes found", text, StringComparison.Ordinal);
+        Assert.Contains("Page 1: Text", text, StringComparison.Ordinal);
+        Assert.Contains("Page 2: PageAdded (original 0, changed 1)", text,
+            StringComparison.Ordinal);
+
+        using JsonDocument json = JsonDocument.Parse(comparison.ToJson(indented: true));
+        Assert.Equal(1, json.RootElement.GetProperty("version").GetInt32());
+        Assert.True(json.RootElement.GetProperty("hasChanges").GetBoolean());
+        JsonElement changes = json.RootElement.GetProperty("changes");
+        Assert.Contains(changes.EnumerateArray(), change =>
+            change.GetProperty("kind").GetString() == nameof(PdfStructuralChangeKind.Text));
+    }
+
+    [Fact]
+    public void UnchangedComparisonExportsAnEmptyReport()
+    {
+        PdfStructuralComparison comparison = PdfStructuralComparison.Compare(
+            Document("Same", includePath: true, pages: 1),
+            Document("Same", includePath: true, pages: 1));
+
+        Assert.Equal("Structural comparison: no changes\r\nChanges: 0", comparison.ToText());
+        using JsonDocument json = JsonDocument.Parse(comparison.ToJson());
+        Assert.False(json.RootElement.GetProperty("hasChanges").GetBoolean());
+        Assert.Empty(json.RootElement.GetProperty("changes").EnumerateArray());
     }
 
     private static PdfDocument Document(string text, bool includePath, int pages,
