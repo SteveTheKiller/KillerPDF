@@ -51,6 +51,9 @@ public sealed class PdfStructuredExportTests
         string xml = reader.ReadToEnd();
         Assert.Contains("<w:t xml:space=\"preserve\">A &amp; B</w:t>", xml,
             StringComparison.Ordinal);
+        Assert.Contains("<w:rFonts w:ascii=\"Helvetica\" w:hAnsi=\"Helvetica\"/>", xml,
+            StringComparison.Ordinal);
+        Assert.Contains("<w:sz w:val=\"24\"/>", xml, StringComparison.Ordinal);
     }
 
     [Fact]

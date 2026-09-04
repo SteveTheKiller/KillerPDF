@@ -346,8 +346,16 @@ public static class PdfStructuredExport
             {
                 if (pageIndex > 0) body.Append("<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>");
                 foreach (PdfExtractedLine line in pages[pageIndex].Content.Lines)
-                    body.Append("<w:p><w:r><w:t xml:space=\"preserve\">")
-                        .Append(WebUtility.HtmlEncode(line.Text)).Append("</w:t></w:r></w:p>");
+                {
+                    body.Append("<w:p>");
+                    string runText = string.Concat(line.Runs.Select(run => run.Text));
+                    if (line.Runs.Count == 0 || runText != line.Text)
+                        AppendWordRun(body, line.Text, line.Runs.FirstOrDefault());
+                    else
+                        foreach (PdfExtractedTextRun run in line.Runs)
+                            AppendWordRun(body, run.Text, run);
+                    body.Append("</w:p>");
+                }
                 foreach (PdfExtractedImage image in pages[pageIndex].Content.Images)
                     body.Append("<w:p><w:r><w:t>[Image: ")
                         .Append(WebUtility.HtmlEncode(image.ResourceName ?? "inline"))
@@ -359,6 +367,21 @@ public static class PdfStructuredExport
                 "<w:body>" + body + "<w:sectPr/></w:body></w:document>");
         }
         return output.ToArray();
+    }
+
+    private static void AppendWordRun(
+        StringBuilder output, string text, PdfExtractedTextRun? run)
+    {
+        string font = string.IsNullOrWhiteSpace(run?.FontName) ? "Arial" : run.FontName;
+        int halfPoints = run is null || !double.IsFinite(run.PointSize) || run.PointSize <= 0
+            ? 24 : Math.Clamp((int)Math.Round(run.PointSize * 2), 2, 3276);
+        string encodedFont = WebUtility.HtmlEncode(font);
+        output.Append("<w:r><w:rPr><w:rFonts w:ascii=\"")
+            .Append(encodedFont).Append("\" w:hAnsi=\"").Append(encodedFont)
+            .Append("\"/><w:sz w:val=\"").Append(halfPoints)
+            .Append("\"/><w:szCs w:val=\"").Append(halfPoints)
+            .Append("\"/></w:rPr><w:t xml:space=\"preserve\">")
+            .Append(WebUtility.HtmlEncode(text)).Append("</w:t></w:r>");
     }
 
     /// <summary>Exports selected pages as an editable Office Open XML spreadsheet.</summary>
