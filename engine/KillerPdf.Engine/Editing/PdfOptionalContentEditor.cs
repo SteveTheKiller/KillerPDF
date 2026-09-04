@@ -187,6 +187,41 @@ public static class PdfOptionalContentEditor
         }
     }
 
+    /// <summary>
+    /// Duplicates a registered layer definition and its visibility settings under a new name.
+    /// Existing page content and annotations remain assigned only to the source layer.
+    /// </summary>
+    public static byte[] DuplicateGroup(
+        PdfDocument document, int objectNumber, string name)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (objectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(objectNumber));
+        if (string.IsNullOrWhiteSpace(name))
+            throw new ArgumentException("A layer name is required.", nameof(name));
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(document);
+        PdfOptionalContentGroupInfo sourceInfo = FindGroup(info, objectNumber);
+        if (info.Groups.Any(group => string.Equals(
+                group.Name, name, StringComparison.Ordinal)))
+            throw new ArgumentException("Layer names must be unique.", nameof(name));
+
+        byte[] added = AddGroup(document, name,
+            sourceInfo.IsInitiallyVisible, sourceInfo.IsLocked,
+            sourceInfo.IsVisibleWhenPrinting, sourceInfo.IsVisibleWhenExporting);
+        PdfDocument intermediate = PdfDocument.Open(added);
+        PdfOptionalContentGroupInfo duplicateInfo = PdfOptionalContentReader.Read(intermediate)
+            .Groups.Single(group => string.Equals(group.Name, name, StringComparison.Ordinal));
+        PdfDictionary source = document.Resolve(new PdfIndirectReference(
+                sourceInfo.ObjectNumber, sourceInfo.Generation)) as PdfDictionary
+            ?? throw new InvalidOperationException(
+                "The source optional-content group is not a dictionary.");
+        var entries = source.ToDictionary(entry => entry.Key, entry => entry.Value);
+        entries[NameKey] = UnicodeString(name);
+        return new PdfIncrementalUpdateBuilder(intermediate)
+            .ReplaceObject(duplicateInfo.ObjectNumber, new PdfDictionary(entries))
+            .Build();
+    }
+
     /// <summary>Renames one registered layer by its source object number.</summary>
     public static byte[] RenameGroup(PdfDocument document, int objectNumber, string name)
     {

@@ -296,6 +296,40 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void GroupDefinitionCanBeDuplicatedWithIndependentIdentityAndSettings()
+    {
+        var sourceLayer = new PdfOptionalContentGroup("Source",
+            initiallyVisible: false, visibleWhenPrinting: true,
+            visibleWhenExporting: false);
+        PdfDocument unlocked = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(sourceLayer).Rectangle(0, 0, 10, 10).Fill()
+                .EndMarkedContent()).Build());
+        int sourceObjectNumber = Assert.Single(
+            PdfOptionalContentReader.Read(unlocked).Groups).ObjectNumber;
+        PdfDocument original = PdfDocument.Open(PdfOptionalContentEditor.SetLocked(
+            unlocked, sourceObjectNumber, true));
+        PdfOptionalContentGroupInfo source = Assert.Single(
+            PdfOptionalContentReader.Read(original).Groups);
+
+        PdfDocument changed = PdfDocument.Open(PdfOptionalContentEditor.DuplicateGroup(
+            original, source.ObjectNumber, "Copy"));
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(changed);
+        PdfOptionalContentGroupInfo copy = info.Groups.Single(group => group.Name == "Copy");
+
+        Assert.NotEqual(source.ObjectNumber, copy.ObjectNumber);
+        Assert.False(copy.IsInitiallyVisible);
+        Assert.True(copy.IsLocked);
+        Assert.True(copy.IsVisibleWhenPrinting);
+        Assert.False(copy.IsVisibleWhenExporting);
+        Assert.Equal(["Source", "Copy"], info.Configurations.Single()
+            .DisplayOrderGroupObjectNumbers.Select(number =>
+                info.Groups.Single(group => group.ObjectNumber == number).Name));
+        Assert.Throws<ArgumentException>(() =>
+            PdfOptionalContentEditor.DuplicateGroup(changed, source.ObjectNumber, "Copy"));
+    }
+
+    [Fact]
     public void AnnotationCanBeAssignedToLayerAndCleared()
     {
         var review = new PdfOptionalContentGroup("Review");
