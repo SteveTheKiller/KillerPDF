@@ -68,9 +68,11 @@ public sealed record PdfFormFieldProposal
             && kind is PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.ListBox
             && !options.Contains(suggestedValue, StringComparer.Ordinal))
             throw new ArgumentException("The suggested value must match a suggested choice.", nameof(suggestedValue));
-        if (suggestedChecked && kind != PdfRecognizedFieldKind.CheckBox)
+        if (suggestedChecked && kind is not (PdfRecognizedFieldKind.CheckBox
+                or PdfRecognizedFieldKind.RadioButton))
             throw new ArgumentException(
-                "A checked state can be suggested only for a checkbox.", nameof(suggestedChecked));
+                "A selected state can be suggested only for a checkbox or radio option.",
+                nameof(suggestedChecked));
         if (suggestedMultiline && kind != PdfRecognizedFieldKind.Text)
             throw new ArgumentException(
                 "Multiline behavior can be suggested only for a text field.",
@@ -114,7 +116,7 @@ public sealed record PdfFormFieldProposal
     public bool SuggestedReadOnly { get; }
     /// <summary>Gets whether the proposed field should require a value.</summary>
     public bool SuggestedRequired { get; }
-    /// <summary>Gets whether a proposed checkbox should initially be checked.</summary>
+    /// <summary>Gets whether a proposed checkbox or radio option should initially be selected.</summary>
     public bool SuggestedChecked { get; }
     /// <summary>Gets whether a proposed text field should accept multiple lines.</summary>
     public bool SuggestedMultiline { get; }
@@ -189,10 +191,11 @@ public sealed class PdfFormRecognitionReview
             .Select(group => group.ToArray())];
         PdfFormFieldProposal[]? invalidRadioGroup = radioGroups.FirstOrDefault(group =>
             group.Length < 2 || group.Select(item => item.SuggestedValue)
-                .Distinct(StringComparer.Ordinal).Count() != group.Length);
+                .Distinct(StringComparer.Ordinal).Count() != group.Length
+            || group.Count(item => item.SuggestedChecked) > 1);
         if (invalidRadioGroup is not null)
             throw new NotSupportedException(
-                $"Radio group '{invalidRadioGroup[0].SuggestedName}' requires at least two unique options.");
+                $"Radio group '{invalidRadioGroup[0].SuggestedName}' requires at least two unique options and no more than one selection.");
         var editor = new PdfIncrementalPageEditor(document);
         foreach (PdfFormFieldProposal proposal in Accepted)
         {
@@ -257,7 +260,10 @@ public sealed class PdfFormRecognitionReview
             editor.AddRadioGroup(group[0].SuggestedName, group.Select(proposal =>
                 new PdfRadioButtonOption(proposal.PageIndex, proposal.Bounds.Left,
                     proposal.Bounds.Bottom, proposal.Bounds.Width, proposal.Bounds.Height,
-                    proposal.SuggestedValue!)), fieldMetadata: metadata,
+                    proposal.SuggestedValue!)),
+                selectedValue: group.SingleOrDefault(proposal => proposal.SuggestedChecked)
+                    ?.SuggestedValue,
+                fieldMetadata: metadata,
                 fieldOptions: new PdfFormFieldOptions
                 {
                     ReadOnly = group[0].SuggestedReadOnly,

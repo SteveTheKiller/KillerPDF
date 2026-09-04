@@ -135,7 +135,8 @@ public sealed class PdfFormRecognitionTests
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
         var review = new PdfFormRecognitionReview([
             new("basic", 0, new PdfContentBounds(10, 10, 30, 30),
-                PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Basic"),
+                PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Basic",
+                suggestedChecked: true),
             new("pro", 0, new PdfContentBounds(10, 40, 30, 60),
                 PdfRecognizedFieldKind.RadioButton, 1, "plan", suggestedValue: "Pro")])
             .Accept("basic", tooltip: "Plan")
@@ -151,6 +152,7 @@ public sealed class PdfFormRecognitionTests
             Assert.Equal(PdfFormFieldKind.Button, widget.FieldKind);
         });
         Assert.Equal(["/Basic", "/Pro"], widgets.Select(widget => widget.OnValue).Order());
+        Assert.All(widgets, widget => Assert.Equal("/Basic", widget.Value));
     }
 
     [Fact]
@@ -166,6 +168,16 @@ public sealed class PdfFormRecognitionTests
             () => review.ApplyAccepted(document));
 
         Assert.Contains("at least two unique options", error.Message);
+
+        var ambiguous = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("a", 0, new PdfContentBounds(0, 0, 20, 20),
+                PdfRecognizedFieldKind.RadioButton, 1, "choice", suggestedValue: "A",
+                suggestedChecked: true),
+            new PdfFormFieldProposal("b", 0, new PdfContentBounds(30, 0, 50, 20),
+                PdfRecognizedFieldKind.RadioButton, 1, "choice", suggestedValue: "B",
+                suggestedChecked: true)])
+            .Accept("a").Accept("b");
+        Assert.Throws<NotSupportedException>(() => ambiguous.ApplyAccepted(document));
     }
 
     [Fact]
