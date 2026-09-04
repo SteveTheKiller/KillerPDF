@@ -232,6 +232,28 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_UsesIccImageAlternateColorSpaces()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(1, 1, new byte[] { 0, 255, 0 }), 2, 3, 6, 2))
+            .Build());
+        var profile = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(3)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Alternate"), Name("ImageRgb"))]), []);
+        PdfDocument profiled = AddIccImageColorSpace(source, profile);
+        PdfDocument document = AddPageColorSpaceResource(
+            profiled, "ImageRgb", Name("DeviceRGB"));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 255, 0, 255], Pixel(rendered, 3, 6));
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
@@ -439,6 +461,27 @@ public sealed class PdfPageRendererTests
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), updatedResources)));
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
+    }
+
+    private static PdfDocument AddIccImageColorSpace(PdfDocument source, PdfStream profile)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference imageReference = Assert.IsType<PdfIndirectReference>(
+            xObjects[Name("Im1")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference profileReference = update.AddObject(profile);
+        var colorSpace = new PdfArray(new PdfObject[] { Name("ICCBased"), profileReference });
+        var dictionary = new PdfDictionary(image.Dictionary
+            .Where(entry => !entry.Key.Equals(Name("ColorSpace")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace)));
+        return PdfDocument.Open(update.ReplaceObject(imageReference.ObjectNumber,
+            new PdfStream(dictionary, image.EncodedData.Span)).Build());
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));

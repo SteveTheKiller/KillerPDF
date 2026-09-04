@@ -493,8 +493,29 @@ public sealed class PdfPageRenderer
                 throw new NotSupportedException();
             return ReadColorSpace(namedValue, resources, depth + 1);
         }
-        if (resolved is not PdfArray { Count: 4 } array
-            || Resolve(array[0]) is not PdfName kind || kind.ValueAsLatin1() != "Indexed"
+        if (resolved is not PdfArray array || array.Count < 2
+            || Resolve(array[0]) is not PdfName kind)
+            throw new NotSupportedException();
+        if (kind.ValueAsLatin1() == "ICCBased")
+        {
+            if (array.Count != 2 || Resolve(array[1]) is not PdfStream profile
+                || !profile.Dictionary.TryGetValue(Name("N"), out PdfObject? countValue)
+                || Resolve(countValue) is not PdfInteger count || count.Value is not (1 or 3 or 4))
+                throw new FormatException("An ICCBased image color space is invalid.");
+            ImageColorSpace alternate = profile.Dictionary.TryGetValue(
+                Name("Alternate"), out PdfObject? alternateValue)
+                ? ReadColorSpace(alternateValue, resources, depth + 1)
+                : count.Value switch
+                {
+                    1 => new ImageColorSpace(1, null),
+                    3 => new ImageColorSpace(3, null),
+                    _ => new ImageColorSpace(4, null)
+                };
+            if (alternate.Components != count.Value || alternate.Palette is not null)
+                throw new FormatException("An ICCBased image alternate has the wrong component count.");
+            return alternate;
+        }
+        if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
             throw new NotSupportedException();
