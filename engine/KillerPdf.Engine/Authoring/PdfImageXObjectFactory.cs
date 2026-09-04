@@ -25,6 +25,12 @@ internal static class PdfImageXObjectFactory
         if (image.InvertComponents)
             entries.Add(("Decode", new PdfArray(Enumerable.Range(0, 4)
                 .SelectMany(_ => new PdfObject[] { new PdfInteger(1), new PdfInteger(0) }))));
+        if (image.Filter == "CCITTFaxDecode")
+            entries.Add(("DecodeParms", Dictionary(
+                ("K", new PdfInteger(-1)),
+                ("Columns", new PdfInteger(image.Width)),
+                ("Rows", new PdfInteger(image.Height)),
+                ("BlackIs1", new PdfBoolean(false)))));
         if (softMaskReference is not null) entries.Add(("SMask", softMaskReference));
         return new PdfStream(Dictionary([.. entries]), image.Data.Span);
     }

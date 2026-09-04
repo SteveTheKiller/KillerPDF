@@ -37,6 +37,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added unified comment inspection for notes, highlights, drawings, replies, and other annotations (#288).
 - Added region validation and text, image, path, and shading planning for partial rasterization (#369).
 - Added complete MediaBox, CropBox, BleedBox, TrimBox, and ArtBox inspection for print workflows (#264).
+- Added per-image CCITT Group 4 or Flate selection for smaller lossless one-bit raster pages (#366).
 
 ## [1.8.3] - 2026-09-02
 

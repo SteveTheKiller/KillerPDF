@@ -52,6 +52,37 @@ public sealed class PdfImageTests
     }
 
     [Fact]
+    public void FromBitonalUsesSmallerGroup4PayloadWithDecodeParameters()
+    {
+        byte[] pixels = new byte[1728 * 100];
+        for (int y = 0; y < 100; y++)
+            for (int x = 0; x < 1728; x++)
+                pixels[y * 1728 + x] = x is < 576 or >= 1152 ? (byte)255 : (byte)0;
+        PdfImage image = PdfImage.FromBitonal(1728, 100, pixels);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .DrawImage(image, 0, 0, 100, 100)).Build());
+        PdfDictionary catalog = ResolveDictionary(document, document.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(document, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(document,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xobjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfStream stream = Assert.IsType<PdfStream>(document.Resolve(
+            Assert.IsType<PdfIndirectReference>(xobjects[Name("Im1")])));
+
+        Assert.Equal("CCITTFaxDecode", Assert.IsType<PdfName>(
+            stream.Dictionary[Name("Filter")]).ValueAsLatin1());
+        PdfDictionary parameters = Assert.IsType<PdfDictionary>(
+            stream.Dictionary[Name("DecodeParms")]);
+        Assert.Equal(-1, Assert.IsType<PdfInteger>(parameters[Name("K")]).Value);
+        Assert.Equal(1728, Assert.IsType<PdfInteger>(parameters[Name("Columns")]).Value);
+        Assert.Equal(100, Assert.IsType<PdfInteger>(parameters[Name("Rows")]).Value);
+        Assert.False(Assert.IsType<PdfBoolean>(parameters[Name("BlackIs1")]).Value);
+        Assert.True(image.Data.Length < 100);
+    }
+
+    [Fact]
     public void FromCmyk_CompressesExactPixelBytesAndWritesDeviceCmyk()
     {
         byte[] pixels = [0, 64, 128, 255, 255, 128, 64, 0];

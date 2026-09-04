@@ -215,8 +215,13 @@ public sealed class PdfImage
         using var output = new MemoryStream();
         using (var zlib = new ZLibStream(output, compressionLevel, leaveOpen: true))
             zlib.Write(packed);
+        byte[] flate = output.ToArray();
+        byte[] ccitt = PdfCcittGroup4Encoder.Encode(width, height, source);
+        if (ccitt.Length < flate.Length)
+            return new PdfImage(width, height, 1, PdfImageColorSpace.Gray,
+                "CCITTFaxDecode", ccitt, invertComponents: false);
         return new PdfImage(width, height, 1, PdfImageColorSpace.Gray,
-            "FlateDecode", output.ToArray(), invertComponents: false);
+            "FlateDecode", flate, invertComponents: false);
     }
 
     /// <summary>Compresses interleaved 8-bit CMYK pixels with the PDF Flate filter.</summary>
