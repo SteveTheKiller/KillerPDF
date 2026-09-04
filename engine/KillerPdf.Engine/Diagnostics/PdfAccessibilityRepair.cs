@@ -19,6 +19,11 @@ public sealed record PdfAccessibilityFigureRepair(
 public sealed record PdfAccessibilityFormFieldRepair(
     string FieldName, string Description, PdfAccessibilityReport Before, bool WillChange);
 
+/// <summary>A reviewed description correction for one link annotation.</summary>
+public sealed record PdfAccessibilityLinkRepair(
+    int PageIndex, int AnnotationIndex, int? ObjectNumber, string Description,
+    PdfAccessibilityReport Before, bool WillChange);
+
 /// <summary>The saved document and accessibility reports surrounding one repair.</summary>
 public sealed record PdfAccessibilityRepairResult(
     ReadOnlyMemory<byte> Document,
@@ -28,6 +33,49 @@ public sealed record PdfAccessibilityRepairResult(
 /// <summary>Previews and applies accessibility corrections that require no semantic inference.</summary>
 public static class PdfAccessibilityRepair
 {
+    /// <summary>Previews adding a supplied user-facing description to one link.</summary>
+    public static PdfAccessibilityLinkRepair PreviewLinkDescription(
+        PdfDocument document, int pageIndex, int annotationIndex, string description)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
+        PdfLinkInfo? link = PdfLinkReader.ReadPage(document, pageIndex)
+            .SingleOrDefault(item => item.AnnotationIndex == annotationIndex);
+        return new PdfAccessibilityLinkRepair(pageIndex, annotationIndex,
+            link?.ObjectNumber, description, before,
+            link is not null && string.IsNullOrWhiteSpace(link.Description));
+    }
+
+    /// <summary>Applies a previewed link description and verifies the saved result.</summary>
+    public static PdfAccessibilityRepairResult ApplyLinkDescription(
+        PdfDocument document, PdfAccessibilityLinkRepair repair)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(repair);
+        PdfAccessibilityReport before = PdfAccessibilityInspector.Inspect(document);
+        PdfLinkInfo? link = PdfLinkReader.ReadPage(document, repair.PageIndex)
+            .SingleOrDefault(item => item.AnnotationIndex == repair.AnnotationIndex);
+        if (!repair.WillChange || link is null
+            || !string.IsNullOrWhiteSpace(link.Description)
+            || link.ObjectNumber != repair.ObjectNumber)
+            throw new InvalidOperationException(
+                "The document does not have the previewed missing link description.");
+        byte[] saved = new PdfIncrementalAnnotationEditor(document)
+            .SetAnnotationContentsAt(
+                repair.PageIndex, repair.AnnotationIndex, repair.Description)
+            .Build();
+        PdfDocument reopened = PdfDocument.Open(saved);
+        PdfLinkInfo? repaired = PdfLinkReader.ReadPage(reopened, repair.PageIndex)
+            .SingleOrDefault(item => item.AnnotationIndex == repair.AnnotationIndex);
+        if (repaired is null || !string.Equals(
+                repaired.Description, repair.Description, StringComparison.Ordinal))
+            throw new InvalidOperationException(
+                "The saved link still has no matching user-facing description.");
+        return new PdfAccessibilityRepairResult(
+            saved, before, PdfAccessibilityInspector.Inspect(reopened));
+    }
+
     /// <summary>Previews adding a supplied user-facing description to one form field.</summary>
     public static PdfAccessibilityFormFieldRepair PreviewFormFieldDescription(
         PdfDocument document, string fieldName, string description)

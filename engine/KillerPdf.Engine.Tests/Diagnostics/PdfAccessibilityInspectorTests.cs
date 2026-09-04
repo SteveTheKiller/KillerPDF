@@ -221,6 +221,31 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void RepairsMissingLinkDescriptionAfterExplicitPreview()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddUriLink(0, 10, 10, 50, 20, "https://example.test/help").Build());
+        PdfLinkInfo link = Assert.Single(PdfLinkReader.ReadPage(document, 0));
+
+        PdfAccessibilityLinkRepair preview = PdfAccessibilityRepair.PreviewLinkDescription(
+            document, 0, link.AnnotationIndex, "Account help");
+        PdfAccessibilityRepairResult result =
+            PdfAccessibilityRepair.ApplyLinkDescription(document, preview);
+        PdfDocument reopened = PdfDocument.Open(result.Document);
+
+        Assert.True(preview.WillChange);
+        Assert.Equal(link.ObjectNumber, preview.ObjectNumber);
+        Assert.Equal("Account help", Assert.Single(
+            PdfLinkReader.ReadPage(reopened, 0)).Description);
+        Assert.DoesNotContain(result.After.Findings,
+            item => item.Code == PdfAccessibilityFindingCode.MissingLinkDescription);
+        Assert.False(PdfAccessibilityRepair.PreviewLinkDescription(
+            reopened, 0, link.AnnotationIndex, "Replacement").WillChange);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfAccessibilityRepair.ApplyLinkDescription(reopened, preview));
+    }
+
+    [Fact]
     public void InspectReportsTableDataWithoutHeaders()
     {
         var content = new PdfContentStreamBuilder()
