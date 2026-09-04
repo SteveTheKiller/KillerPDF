@@ -153,4 +153,28 @@ public sealed class PdfLayerMacroTests
         Assert.Null(cleared.Name);
         Assert.Null(cleared.Creator);
     }
+
+    [Fact]
+    public void MacroReordersEveryLayerByStableName()
+    {
+        ReadOnlyMemory<byte> source = new PdfDocumentBuilder().AddPage(200, 200,
+            new PdfContentStreamBuilder()
+                .BeginOptionalContent(new PdfOptionalContentGroup("Artwork"))
+                .Rectangle(0, 0, 10, 10).Fill().EndMarkedContent()
+                .BeginOptionalContent(new PdfOptionalContentGroup("Notes"))
+                .Rectangle(20, 0, 10, 10).Fill().EndMarkedContent()).Build();
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Order", [
+            PdfLayerMacro.DisplayOrderStep(["Notes", "Artwork"])
+        ]).ToJson());
+
+        source = PdfLayerMacro.Execute(Assert.Single(macro.Steps), source);
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(PdfDocument.Open(source));
+        Dictionary<int, string> names = info.Groups.ToDictionary(
+            group => group.ObjectNumber, group => group.Name);
+
+        Assert.Equal(["Notes", "Artwork"], info.Configurations.Single()
+            .DisplayOrderGroupObjectNumbers.Select(number => names[number]));
+        Assert.Throws<ArgumentException>(() =>
+            PdfLayerMacro.DisplayOrderStep(["Artwork", "Artwork"]));
+    }
 }

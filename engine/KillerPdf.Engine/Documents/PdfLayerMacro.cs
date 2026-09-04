@@ -57,6 +57,20 @@ public static class PdfLayerMacro
                     new ConfigurationMetadataSettings(name, creator))
             });
 
+    /// <summary>Creates a step that replaces the flat display order using stable layer names.</summary>
+    public static PdfMacroStep DisplayOrderStep(IEnumerable<string> layerNames)
+    {
+        ArgumentNullException.ThrowIfNull(layerNames);
+        string[] names = layerNames.ToArray();
+        ValidateNames(names, nameof(layerNames));
+        return new PdfMacroStep(PdfMacroOperation.EditLayers,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["action"] = "displayOrder",
+                ["value"] = JsonSerializer.Serialize(names)
+            });
+    }
+
     /// <summary>Creates a layer-flattening step using default visibility.</summary>
     public static PdfMacroStep FlattenStep() => new(PdfMacroOperation.FlattenLayers);
 
@@ -120,6 +134,25 @@ public static class PdfLayerMacro
                 throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
             return PdfOptionalContentEditor.SetDefaultConfigurationMetadata(
                 document, settings.Name, settings.Creator);
+        }
+        if (action == "displayOrder" && !string.IsNullOrWhiteSpace(value))
+        {
+            if (step.Settings.ContainsKey("layer"))
+                throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
+            string[] names;
+            try
+            {
+                names = JsonSerializer.Deserialize<string[]>(value)
+                    ?? throw new JsonException();
+            }
+            catch (JsonException exception)
+            {
+                throw new ArgumentException(
+                    "The layer display order is invalid.", nameof(step), exception);
+            }
+            ValidateNames(names, nameof(step));
+            int[] objectNumbers = [.. names.Select(name => GroupNumber(document, name))];
+            return PdfOptionalContentEditor.SetDisplayOrder(document, objectNumbers);
         }
         if (!step.Settings.TryGetValue("layer", out string? layerName))
             throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
@@ -198,6 +231,14 @@ public static class PdfLayerMacro
             _ => throw new InvalidOperationException(
                 $"Layer name '{name}' is ambiguous in this document.")
         };
+    }
+
+    private static void ValidateNames(IReadOnlyList<string> names, string parameterName)
+    {
+        if (names.Count == 0 || names.Any(string.IsNullOrWhiteSpace)
+            || names.Distinct(StringComparer.Ordinal).Count() != names.Count)
+            throw new ArgumentException(
+                "Layer names must be nonempty and unique.", parameterName);
     }
 
     private static IReadOnlyCollection<int>? VisibleGroups(
