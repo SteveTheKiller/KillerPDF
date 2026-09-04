@@ -164,7 +164,9 @@ public sealed class PdfOptimizationPlan
             !document.Trailer.ContainsKey(new PdfName("Info"u8))
             && !tree.Catalog.ContainsKey(new PdfName("Metadata"u8)));
         Verify(PdfOptimizationChangeKind.RemoveAttachments,
-            PdfAttachmentReader.Read(document).Count == 0);
+            PdfAttachmentReader.Read(document).Count == 0
+            && tree.Pages.SelectMany((_, pageIndex) =>
+                PdfAttachmentReader.ReadPageAnnotations(document, pageIndex)).Any() == false);
         Verify(PdfOptimizationChangeKind.RemoveOpenAction,
             !tree.Catalog.ContainsKey(new PdfName("OpenAction"u8)));
         Verify(PdfOptimizationChangeKind.RemoveBookmarks,
@@ -227,7 +229,7 @@ public sealed class PdfOptimizationPlan
         PdfDocument formSanitized = flattensOptionalContent
             ? PdfDocument.Open(PdfOptionalContentEditor.FlattenPageContent(_document))
             : _document;
-        if (removesAttachments || removesOpenAction || removesBookmarks || removesFormFields
+        if (_attachmentNames.Length > 0 || removesOpenAction || removesBookmarks || removesFormFields
             || removesDocumentJavaScript || removesPageThumbnails)
         {
             var editor = new PdfIncrementalPageEditor(formSanitized);
@@ -243,12 +245,25 @@ public sealed class PdfOptimizationPlan
                     editor.ClearPageThumbnail(pageIndex);
             formSanitized = PdfDocument.Open(editor.Build());
         }
-        if (!removesComments) return formSanitized;
+        if (!removesAttachments && !removesComments) return formSanitized;
         var annotationEditor = new PdfIncrementalAnnotationEditor(formSanitized);
-        foreach ((int pageIndex, int annotationIndex) in PdfCommentReader.Read(formSanitized)
-            .Select(comment => (comment.PageIndex, comment.AnnotationIndex))
+        IEnumerable<(int PageIndex, int AnnotationIndex)> annotationRemovals = [];
+        if (removesAttachments)
+            annotationRemovals = annotationRemovals.Concat(
+                PdfPageTree.Read(formSanitized).Pages.SelectMany((_, pageIndex) =>
+                    PdfAttachmentReader.ReadPageAnnotations(formSanitized, pageIndex))
+                .Select(attachment =>
+                    (attachment.PageIndex, attachment.AnnotationIndex)));
+        if (removesComments)
+            annotationRemovals = annotationRemovals.Concat(
+                PdfCommentReader.Read(formSanitized).Select(comment =>
+                    (comment.PageIndex, comment.AnnotationIndex)));
+        (int PageIndex, int AnnotationIndex)[] removalTargets = [.. annotationRemovals
+            .Distinct()
             .OrderByDescending(comment => comment.PageIndex)
-            .ThenByDescending(comment => comment.AnnotationIndex))
+            .ThenByDescending(comment => comment.AnnotationIndex)];
+        if (removalTargets.Length == 0) return formSanitized;
+        foreach ((int pageIndex, int annotationIndex) in removalTargets)
             annotationEditor.RemoveAnnotationAt(pageIndex, annotationIndex);
         return PdfDocument.Open(annotationEditor.Build());
     }
@@ -274,6 +289,9 @@ public static class PdfOptimizer
         PdfPageTree tree = PdfPageTree.Read(document);
         string[] attachmentNames = options.RemoveAttachments
             ? [.. PdfAttachmentReader.Read(document).Select(attachment => attachment.FileName)] : [];
+        bool hasAttachmentAnnotations = options.RemoveAttachments
+            && tree.Pages.SelectMany((_, pageIndex) =>
+                PdfAttachmentReader.ReadPageAnnotations(document, pageIndex)).Any();
         string[] formFieldNames = options.RemoveFormFields
             ? [.. tree.Pages.SelectMany((_, pageIndex) => PdfFormWidgetReader.ReadPage(document, pageIndex))
                 .Select(widget => widget.FieldName).Distinct(StringComparer.Ordinal)] : [];
@@ -283,7 +301,7 @@ public static class PdfOptimizer
         if (options.RemoveMetadata && (document.Trailer.ContainsKey(InformationName)
             || tree.Catalog.ContainsKey(MetadataName)))
             changes.Add(PdfOptimizationChangeKind.RemoveMetadata);
-        if (attachmentNames.Length > 0)
+        if (attachmentNames.Length > 0 || hasAttachmentAnnotations)
             changes.Add(PdfOptimizationChangeKind.RemoveAttachments);
         if (options.RemoveOpenAction && tree.Catalog.ContainsKey(OpenActionName))
             changes.Add(PdfOptimizationChangeKind.RemoveOpenAction);

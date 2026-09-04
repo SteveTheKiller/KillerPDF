@@ -66,10 +66,13 @@ public sealed class PdfOptimizationTests
     [Fact]
     public void SelectiveSanitizationRemovesOnlyRequestedDocumentFeatures()
     {
-        byte[] input = new PdfDocumentBuilder().AddBlankPage()
+        byte[] authored = new PdfDocumentBuilder().AddBlankPage()
             .AddAttachment("private.txt", "secret"u8.ToArray())
             .SetOpenAction(0, PdfDestination.FitPage())
             .AddBookmark("Private bookmark", 0).Build();
+        byte[] input = new PdfIncrementalAnnotationEditor(PdfDocument.Open(authored))
+            .AddFileAttachmentAnnotation(0, 20, 20, 24, "private.txt")
+            .Build();
         PdfDocument document = PdfDocument.Open(input);
 
         PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document, new PdfOptimizationOptions
@@ -94,8 +97,40 @@ public sealed class PdfOptimizationTests
             PdfOptimizationChangeKind.RemoveOpenAction,
             PdfOptimizationChangeKind.RemoveBookmarks], result.VerifiedRemovals);
         Assert.Empty(PdfAttachmentReader.Read(sanitized));
+        Assert.Empty(PdfAttachmentReader.ReadPageAnnotations(sanitized, 0));
         Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "OpenAction");
         Assert.DoesNotContain(catalog.Keys, key => key.ValueAsLatin1() == "Outlines");
+    }
+
+    [Fact]
+    public void AttachmentSanitizationFindsAndRemovesPageLocalAttachments()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage()
+            .AddAttachment("local.txt", "private"u8.ToArray())
+            .AddFileAttachmentAnnotation(0, 20, 20, 24, "local.txt")
+            .Build());
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalPageEditor(
+            PdfDocument.Open(new PdfDocumentBuilder().Build()))
+            .AddImportedPage(source, 0)
+            .Build());
+        Assert.Empty(PdfAttachmentReader.Read(document));
+        Assert.Single(PdfAttachmentReader.ReadPageAnnotations(document, 0));
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                RemoveAttachments = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument sanitized = PdfDocument.Open(result.Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.RemoveAttachments, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.RemoveAttachments,
+            result.VerifiedRemovals);
+        Assert.Empty(PdfAttachmentReader.ReadPageAnnotations(sanitized, 0));
     }
 
     [Fact]
