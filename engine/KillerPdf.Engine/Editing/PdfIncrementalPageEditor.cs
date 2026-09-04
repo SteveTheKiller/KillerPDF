@@ -1180,6 +1180,24 @@ public sealed class PdfIncrementalPageEditor
             modificationDate ?? attachment.ModificationDate, attachment.CreationDate);
     }
 
+    /// <summary>Changes an embedded file description while preserving its payload and metadata.</summary>
+    public PdfIncrementalPageEditor SetAttachmentDescription(
+        string fileName, string? description)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+            throw new ArgumentException(
+                "An attachment file name is required.", nameof(fileName));
+        PdfAttachmentInfo attachment = PdfAttachmentReader.Read(_document).SingleOrDefault(
+            item => string.Equals(item.FileName, fileName, StringComparison.OrdinalIgnoreCase))
+            ?? throw new ArgumentException(
+                $"The document has no attachment named '{fileName}'.", nameof(fileName));
+
+        RemoveAttachment(fileName);
+        return AddAttachment(attachment.FileName, attachment.Data, attachment.MimeType,
+            description, attachment.Relationship,
+            attachment.ModificationDate, attachment.CreationDate);
+    }
+
     /// <summary>Adds a bookmark targeting a page in the edited document.</summary>
     public PdfIncrementalPageEditor AddBookmark(
         string title, int pageIndex, int level = 0,

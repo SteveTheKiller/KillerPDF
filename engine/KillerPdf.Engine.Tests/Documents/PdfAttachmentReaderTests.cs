@@ -106,4 +106,24 @@ public sealed class PdfAttachmentReaderTests
         Assert.Equal(originalPayload,
             Assert.Single(PdfAttachmentReader.Read(original)).Data.ToArray());
     }
+
+    [Fact]
+    public void SetAttachmentDescriptionPreservesPayloadAndMetadata()
+    {
+        byte[] payload = "evidence"u8.ToArray();
+        var created = new DateTimeOffset(2026, 8, 1, 8, 0, 0, TimeSpan.Zero);
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddAttachment("evidence.txt", payload, "text/plain", "Old description",
+                PdfAssociatedFileRelationship.Source, created, created).Build());
+
+        PdfDocument changed = PdfDocument.Open(new PdfIncrementalPageEditor(original)
+            .SetAttachmentDescription("EVIDENCE.TXT", "Reviewed evidence").Build());
+        PdfAttachmentInfo attachment = Assert.Single(PdfAttachmentReader.Read(changed));
+
+        Assert.Equal("Reviewed evidence", attachment.Description);
+        Assert.Equal(payload, attachment.Data.ToArray());
+        Assert.Equal(PdfAssociatedFileRelationship.Source, attachment.Relationship);
+        Assert.Equal(created, attachment.CreationDate);
+        Assert.Equal(created, attachment.ModificationDate);
+    }
 }
