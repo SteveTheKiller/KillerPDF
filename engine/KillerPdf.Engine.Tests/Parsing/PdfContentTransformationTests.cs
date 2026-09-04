@@ -94,6 +94,35 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void TransformXObjectPlacementsSelectsResourceOccurrences()
+    {
+        var image = new PdfName("Im1"u8);
+        var form = new PdfName("Fm1"u8);
+        PdfContentInstruction[] source =
+        [
+            new("Do", 0, [image]),
+            new("Do", 4, [form]),
+            new("Do", 8, [image])
+        ];
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.TransformXObjectPlacements(
+                source, image, [1], PdfContentTransformMatrix.Translation(12, 34));
+
+        Assert.Equal(["Do", "Do", "q", "cm", "Do", "Q"],
+            result.Select(instruction => instruction.Operator));
+        Assert.Equal([12d, 34d], result[3].Operands.Skip(4)
+            .Cast<PdfReal>().Select(value => value.Value));
+        Assert.Equal(8, result[4].Offset);
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.TransformXObjectPlacements(
+                source, image, [2], PdfContentTransformMatrix.Scale(2, 2)));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.TransformXObjectPlacements(
+                source, image, [0, 0], PdfContentTransformMatrix.Scale(2, 2)));
+    }
+
+    [Fact]
     public void ClipRangeChangesOnlySelectedInstructionsAndRoundTrips()
     {
         IReadOnlyList<PdfContentInstruction> source =
