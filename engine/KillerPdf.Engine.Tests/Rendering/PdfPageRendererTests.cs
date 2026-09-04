@@ -213,6 +213,25 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ResolvesNamedImageColorSpaceResources()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(1, 1, new byte[] { 255, 0, 0 }), 2, 3, 6, 2))
+            .Build());
+        PdfDocument named = AddImageDictionaryEntry(source, "ColorSpace", Name("ImageRgb"));
+        PdfDocument document = AddPageColorSpaceResource(
+            named, "ImageRgb", Name("DeviceRGB"));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 3, 6));
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
@@ -399,6 +418,27 @@ public sealed class PdfPageRendererTests
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(reference.ObjectNumber,
                 new PdfStream(dictionary, encodedData ?? image.EncodedData.ToArray())).Build());
+    }
+
+    private static PdfDocument AddPageColorSpaceResource(
+        PdfDocument source, string name, PdfObject value)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        var colorSpaces = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name(name), value)]);
+        var updatedResources = new PdfDictionary(resources
+            .Where(entry => !entry.Key.Equals(Name("ColorSpace")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpaces)));
+        var updatedPage = new PdfDictionary(page
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), updatedResources)));
+        return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));

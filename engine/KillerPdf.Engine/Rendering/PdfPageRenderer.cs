@@ -226,7 +226,7 @@ public sealed class PdfPageRenderer
                         diagnostics.Add("An XObject resource could not be resolved.");
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
-                        if (!TryRenderImage(xObject, state.Transform, state.Clips,
+                        if (!TryRenderImage(xObject, resources, state.Transform, state.Clips,
                             state.Fill, state.FillAlpha, pixels,
                             options.Width, options.Height, scaleX, scaleY,
                             out string? imageDiagnostic))
@@ -239,7 +239,7 @@ public sealed class PdfPageRenderer
                     && instruction.InlineImageData.HasValue:
                     var inlineImage = new PdfStream(inlineDictionary,
                         instruction.InlineImageData.Value.Span);
-                    if (!TryRenderImage(inlineImage, state.Transform, state.Clips,
+                    if (!TryRenderImage(inlineImage, resources, state.Transform, state.Clips,
                         state.Fill, state.FillAlpha, pixels,
                         options.Width, options.Height, scaleX, scaleY,
                         out string? inlineDiagnostic))
@@ -388,7 +388,7 @@ public sealed class PdfPageRenderer
         return xObject is not null;
     }
 
-    private bool TryRenderImage(PdfStream stream, Matrix transform,
+    private bool TryRenderImage(PdfStream stream, PdfDictionary resources, Matrix transform,
         IReadOnlyList<ClipRegion> clips, Color stencilColor, double stencilAlpha,
         byte[] target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic)
@@ -403,7 +403,7 @@ public sealed class PdfPageRenderer
         try
         {
             colorSpace = imageMask ? new ImageColorSpace(1, null)
-                : ReadImageColorSpace(stream.Dictionary);
+                : ReadImageColorSpace(stream.Dictionary, resources);
         }
         catch (PdfFilterException)
         {
@@ -464,30 +464,43 @@ public sealed class PdfPageRenderer
         return true;
     }
 
-    private ImageColorSpace ReadImageColorSpace(PdfDictionary dictionary)
+    private ImageColorSpace ReadImageColorSpace(
+        PdfDictionary dictionary, PdfDictionary resources)
     {
         if (!dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value))
             throw new NotSupportedException();
+        return ReadColorSpace(value, resources, 0);
+    }
+
+    private ImageColorSpace ReadColorSpace(
+        PdfObject value, PdfDictionary resources, int depth)
+    {
+        if (depth > 16) throw new FormatException("An image color-space reference is cyclic.");
         PdfObject resolved = Resolve(value);
         if (resolved is PdfName name)
-            return name.ValueAsLatin1() switch
+        {
+            ImageColorSpace? standard = name.ValueAsLatin1() switch
             {
-                "DeviceGray" => new ImageColorSpace(1, null),
-                "DeviceRGB" => new ImageColorSpace(3, null),
-                "DeviceCMYK" => new ImageColorSpace(4, null),
-                _ => throw new NotSupportedException()
+                "DeviceGray" or "G" => new ImageColorSpace(1, null),
+                "DeviceRGB" or "RGB" => new ImageColorSpace(3, null),
+                "DeviceCMYK" or "CMYK" => new ImageColorSpace(4, null),
+                _ => null
             };
+            if (standard is not null) return standard;
+            if (!resources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
+                || Resolve(spacesValue) is not PdfDictionary spaces
+                || !spaces.TryGetValue(name, out PdfObject? namedValue))
+                throw new NotSupportedException();
+            return ReadColorSpace(namedValue, resources, depth + 1);
+        }
         if (resolved is not PdfArray { Count: 4 } array
             || Resolve(array[0]) is not PdfName kind || kind.ValueAsLatin1() != "Indexed"
-            || Resolve(array[1]) is not PdfName baseName
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
             throw new NotSupportedException();
-        int baseComponents = baseName.ValueAsLatin1() switch
-        {
-            "DeviceGray" => 1, "DeviceRGB" => 3, "DeviceCMYK" => 4,
-            _ => throw new NotSupportedException()
-        };
+        ImageColorSpace baseSpace = ReadColorSpace(array[1], resources, depth + 1);
+        if (baseSpace.Palette is not null) throw new NotSupportedException();
+        int baseComponents = baseSpace.Components;
         int entryCount = (int)highValue.Value + 1;
         int expected = checked(entryCount * baseComponents);
         byte[] lookup = Resolve(array[3]) switch
