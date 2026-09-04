@@ -11,8 +11,7 @@ public sealed class PdfOcrRecognitionTests
     [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
-        PdfOcrRecognitionModel created = PdfOcrRecognitionModel.Create(2, 2, ["I", "L"],
-            new float[] { 0, 2, 0, -1, 0, -2, 0, 1 }, new float[] { 0, 0 });
+        PdfOcrRecognitionModel created = RecognitionModel();
         byte[] bytes = created.Save();
         string hash = Convert.ToHexString(SHA256.HashData(bytes));
         PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Load(bytes, hash);
@@ -43,10 +42,25 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void GlyphNormalizationPreservesAspectRatioAndCentersInk()
+    {
+        PdfOcrPreparedImage image = Prepared(4, 1, ["####"]);
+
+        float[] features = PdfOcrRecognizer.NormalizeGlyph(
+            image, new PdfOcrImageRegion(0, 0, 4, 1), 4, 4);
+
+        Assert.Equal([
+            0, 0, 0, 0,
+            1, 1, 1, 1,
+            0, 0, 0, 0,
+            0, 0, 0, 0
+        ], features);
+    }
+
+    [Fact]
     public void PageRecognizerRunsDirectlyFromEngineRenderAndMapsPdfBounds()
     {
-        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(2, 2, ["I", "L"],
-            new float[] { 0, 2, 0, -1, 0, -2, 0, 1 }, new float[] { 0, 0 });
+        PdfOcrRecognitionModel model = RecognitionModel();
         PdfImage image = RasterImage(
         [
             "........",
@@ -87,6 +101,19 @@ public sealed class PdfOcrRecognitionTests
         return PdfOcrImagePreprocessor.PrepareBgra(bgra, width, height,
             new PdfOcrOptions(["eng"], deskew: false, correctOrientation: false,
                 detectPageSegments: false));
+    }
+
+    private static PdfOcrRecognitionModel RecognitionModel()
+    {
+        var iWeights = new float[16];
+        var lWeights = new float[16];
+        foreach (int index in new[] { 10, 14 })
+        {
+            iWeights[index] = -2;
+            lWeights[index] = 2;
+        }
+        return PdfOcrRecognitionModel.Create(4, 4, ["I", "L"],
+            iWeights.Concat(lWeights).ToArray(), new float[] { 0, 0 });
     }
 
     private static PdfImage RasterImage(string[] rows)

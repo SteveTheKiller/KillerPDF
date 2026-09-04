@@ -163,7 +163,7 @@ public static class PdfOcrRecognizer
             double confidence = 0;
             foreach (PdfOcrImageRegion component in word.Components)
             {
-                float[] features = Normalize(image, component, model.Width, model.Height);
+                float[] features = NormalizeGlyph(image, component, model.Width, model.Height);
                 (string label, double score) = model.Classify(features);
                 text.Append(label);
                 confidence += score;
@@ -174,17 +174,26 @@ public static class PdfOcrRecognizer
         return Array.AsReadOnly(words.ToArray());
     }
 
-    private static float[] Normalize(PdfOcrPreparedImage image, PdfOcrImageRegion region,
+    /// <summary>Normalizes one glyph into a centered, aspect-preserving model feature grid.</summary>
+    public static float[] NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
         int width, int height)
     {
         var result = new float[width * height];
         ReadOnlySpan<byte> source = image.Pixels.Span;
-        for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
+        double scale = Math.Min(width / (double)region.Width, height / (double)region.Height);
+        int scaledWidth = Math.Clamp((int)Math.Round(region.Width * scale), 1, width);
+        int scaledHeight = Math.Clamp((int)Math.Round(region.Height * scale), 1, height);
+        int offsetX = (width - scaledWidth) / 2;
+        int offsetY = (height - scaledHeight) / 2;
+        for (int y = 0; y < scaledHeight; y++)
+            for (int x = 0; x < scaledWidth; x++)
             {
-                int sx = region.Left + Math.Min(region.Width - 1, x * region.Width / width);
-                int sy = region.Top + Math.Min(region.Height - 1, y * region.Height / height);
-                result[y * width + x] = 1 - source[sy * image.Width + sx] / 255f;
+                int sx = region.Left
+                    + Math.Min(region.Width - 1, x * region.Width / scaledWidth);
+                int sy = region.Top
+                    + Math.Min(region.Height - 1, y * region.Height / scaledHeight);
+                result[(offsetY + y) * width + offsetX + x] =
+                    1 - source[sy * image.Width + sx] / 255f;
             }
         return result;
     }
