@@ -5,10 +5,11 @@ using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Diagnostics;
 
-/// <summary>One marked-content item in logical structure-tree reading order.</summary>
+/// <summary>One content or object reference in logical structure-tree reading order.</summary>
 public sealed record PdfAccessibilityReadingOrderItem(
-    int Sequence, string Role, int PageIndex, int MarkedContentId,
-    int? StructureObjectNumber, string? AlternateDescription, string? ActualText);
+    int Sequence, string Role, int PageIndex, int? MarkedContentId,
+    int? ReferencedObjectNumber, int? StructureObjectNumber,
+    string? AlternateDescription, string? ActualText);
 
 /// <summary>Inspectable logical reading order for a tagged PDF.</summary>
 public sealed class PdfAccessibilityReadingOrderReport
@@ -34,9 +35,15 @@ public sealed class PdfAccessibilityReadingOrderReport
         var output = new StringBuilder()
             .Append("Reading-order items: ").AppendLine(Items.Count.ToString());
         foreach (PdfAccessibilityReadingOrderItem item in Items)
+        {
             output.Append(item.Sequence + 1).Append(". ").Append(item.Role)
-                .Append(" | Page ").Append(item.PageIndex + 1)
-                .Append(" | MCID ").AppendLine(item.MarkedContentId.ToString());
+                .Append(" | Page ").Append(item.PageIndex + 1);
+            if (item.MarkedContentId is int markedContentId)
+                output.Append(" | MCID ").Append(markedContentId);
+            if (item.ReferencedObjectNumber is int referencedObjectNumber)
+                output.Append(" | Object ").Append(referencedObjectNumber);
+            output.AppendLine();
+        }
         return output.ToString();
     }
 }
@@ -97,6 +104,16 @@ public static class PdfAccessibilityReadingOrder
                     structureObjectNumber, structureElement);
                 return;
             }
+            if (IsName(dictionary, "Type", "OBJR"))
+            {
+                if (!dictionary.TryGetValue(Name("Obj"), out PdfObject? objectValue)
+                    || objectValue is not PdfIndirectReference objectReference)
+                    throw new InvalidOperationException(
+                        "A reading-order object reference has no indirect object.");
+                AddObjectReference(role, PageIndex(dictionary) ?? pageIndex,
+                    objectReference.ObjectNumber, structureObjectNumber, structureElement);
+                return;
+            }
             if (!IsName(dictionary, "Type", "StructElem")) return;
             string elementRole = dictionary.TryGetValue(Name("S"), out PdfObject? roleValue)
                 && Resolve(document, roleValue) is PdfName roleName
@@ -118,7 +135,18 @@ public static class PdfAccessibilityReadingOrder
                 throw new InvalidOperationException(
                     "A reading-order item has no valid role, page, or marked-content identifier.");
             items.Add(new PdfAccessibilityReadingOrderItem(items.Count, role,
-                pageIndex.Value, (int)markedContentId.Value, objectNumber,
+                pageIndex.Value, (int)markedContentId.Value, null, objectNumber,
+                Text(element, "Alt"), Text(element, "ActualText")));
+        }
+
+        void AddObjectReference(string? role, int? pageIndex, int referencedObjectNumber,
+            int? structureObjectNumber, PdfDictionary? element)
+        {
+            if (role is null || pageIndex is null)
+                throw new InvalidOperationException(
+                    "A reading-order object reference has no valid role or page.");
+            items.Add(new PdfAccessibilityReadingOrderItem(items.Count, role,
+                pageIndex.Value, null, referencedObjectNumber, structureObjectNumber,
                 Text(element, "Alt"), Text(element, "ActualText")));
         }
 

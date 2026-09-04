@@ -228,6 +228,34 @@ public sealed class PdfAccessibilityInspectorTests
     }
 
     [Fact]
+    public void ReadingOrderIncludesTaggedAnnotationObjectReferences()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata
+            {
+                Title = "Accessible link",
+                Language = "en-US"
+            })
+            .EnablePdfUa2Conformance()
+            .AddBlankPage()
+            .AddUriLink(0, 10, 10, 80, 20, "https://killerpdf.net",
+                contents: "Open KillerPDF")
+            .AddStructureContainer(PdfStructureType.Document)
+            .Build());
+
+        PdfAccessibilityReadingOrderItem item = Assert.Single(
+            PdfAccessibilityReadingOrder.Read(document).Items);
+
+        Assert.Equal("Link", item.Role);
+        Assert.Equal(0, item.PageIndex);
+        Assert.Null(item.MarkedContentId);
+        Assert.NotNull(item.ReferencedObjectNumber);
+        Assert.NotNull(item.StructureObjectNumber);
+        Assert.Contains("| Object ",
+            PdfAccessibilityReadingOrder.Read(document).ToText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ReordersReviewedStructureChildrenAndVerifiesSavedOrder()
     {
         PdfContentStreamBuilder content = new PdfContentStreamBuilder()
