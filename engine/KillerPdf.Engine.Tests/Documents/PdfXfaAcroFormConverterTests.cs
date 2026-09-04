@@ -160,6 +160,20 @@ public sealed class PdfXfaAcroFormConverterTests
         Assert.Equal("three", third.Value);
     }
 
+    [Fact]
+    public void ConvertAppliesSafeCalculationsToDynamicFlowValues()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="rows" layout="tb"><field name="total" w="70pt" h="20pt"><calculate><script contentType="application/x-formcalc">$record.input * 2</script></calculate><ui><numericEdit/></ui></field></subform></template>""",
+            """<datasets><data><input>3</input><rows><total>0</total></rows></data></datasets>""",
+            """<config><present><pdf><dynamicRender>required</dynamicRender></pdf></present></config>""");
+
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(PdfXfaAcroFormConverter.Convert(source)), 0));
+
+        Assert.Equal("6", widget.Value);
+    }
+
     private static PdfDocument Document(string template, string datasets, string? config = null)
     {
         var objects = new List<string>

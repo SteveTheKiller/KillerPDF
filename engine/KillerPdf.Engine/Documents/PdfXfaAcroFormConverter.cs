@@ -51,13 +51,14 @@ public static class PdfXfaAcroFormConverter
             field => field.Name,
             field => field.Values.Count == 0 ? string.Empty : field.Values[0],
             StringComparer.Ordinal);
+        PdfFormDataSet effectiveData = ApplyBehaviors(info, template, data, values);
 
         var editor = new PdfIncrementalPageEditor(document).RemoveXfa();
         if (info.FormType == PdfXfaFormType.Dynamic)
         {
             PdfPageContent firstPage = new PdfPageContentReader(document).Read(0);
             PdfXfaFlowLayoutPlan flow = PdfXfaFlowLayout.Plan(
-                info, data, firstPage.Width, firstPage.Height, 0);
+                info, effectiveData, firstPage.Width, firstPage.Height, 0);
             while (editor.PageCount < flow.PageCount)
                 editor.AddBlankPage(firstPage.Width, firstPage.Height);
             PdfDocument expanded = PdfDocument.Open(editor.Build());
@@ -72,8 +73,6 @@ public static class PdfXfaAcroFormConverter
             }
             return Finish(editor, mode);
         }
-
-        ApplyBehaviors(info, template, data, values);
 
         PdfXfaStaticLayoutPlan layout = PdfXfaStaticLayout.Plan(info);
         if (layout.UnsupportedFlowedFieldPaths.Count != 0)
@@ -107,31 +106,50 @@ public static class PdfXfaAcroFormConverter
         return Finish(editor, mode);
     }
 
-    private static void ApplyBehaviors(PdfXfaInfo info, PdfXfaTemplateInfo template,
+    private static PdfFormDataSet ApplyBehaviors(PdfXfaInfo info, PdfXfaTemplateInfo template,
         PdfFormDataSet data, IDictionary<string, string> values)
     {
+        var changed = new HashSet<string>(StringComparer.Ordinal);
         if (template.Behaviors.Any(behavior =>
                 behavior.Kind == PdfXfaTemplateBehaviorKind.Calculate))
         {
             foreach (PdfXfaCalculationResult calculation in
                      PdfXfaCalculationEngine.Evaluate(info, data).Where(result =>
                          result.Status == PdfXfaCalculationStatus.Evaluated))
+            {
                 values[calculation.FieldPath] = calculation.Value!.Value.ToString(
                     System.Globalization.CultureInfo.InvariantCulture);
+                changed.Add(calculation.FieldPath);
+            }
         }
-        if (!template.Behaviors.Any(behavior =>
-                behavior.Kind == PdfXfaTemplateBehaviorKind.Format)) return;
-        var effectiveData = new PdfFormDataSet
+        if (template.Behaviors.Any(behavior =>
+                behavior.Kind == PdfXfaTemplateBehaviorKind.Format))
         {
-            Fields = Array.AsReadOnly(values.Select(value => new PdfFormDataField
+            var formattingData = new PdfFormDataSet
             {
-                Name = value.Key,
-                Values = [value.Value]
-            }).ToArray())
+                Fields = Array.AsReadOnly(values.Select(value => new PdfFormDataField
+                {
+                    Name = value.Key,
+                    Values = [value.Value]
+                }).ToArray())
+            };
+            foreach (PdfXfaFormatResult format in PdfXfaFormatter.Format(info, formattingData)
+                         .Where(result => result.Status == PdfXfaFormatStatus.Formatted))
+            {
+                values[format.FieldPath] = format.Value!;
+                changed.Add(format.FieldPath);
+            }
+        }
+        var existing = data.Fields.Select(field => field.Name).ToHashSet(StringComparer.Ordinal);
+        return new PdfFormDataSet
+        {
+            Fields = Array.AsReadOnly(data.Fields.Select(field => changed.Contains(field.Name)
+                    ? new PdfFormDataField { Name = field.Name, Values = [values[field.Name]] }
+                    : field)
+                .Concat(changed.Where(name => !existing.Contains(name)).Select(name =>
+                    new PdfFormDataField { Name = name, Values = [values[name]] })).ToArray()),
+            ContainsJavaScript = data.ContainsJavaScript
         };
-        foreach (PdfXfaFormatResult format in PdfXfaFormatter.Format(info, effectiveData)
-                     .Where(result => result.Status == PdfXfaFormatStatus.Formatted))
-            values[format.FieldPath] = format.Value!;
     }
 
     private static void AddImage(PdfIncrementalPageEditor editor, PdfXfaTemplateField field,
