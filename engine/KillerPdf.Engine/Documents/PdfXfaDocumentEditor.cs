@@ -14,7 +14,24 @@ public static class PdfXfaDocumentEditor
         ArgumentNullException.ThrowIfNull(data);
         PdfXfaInfo current = PdfXfaReader.Read(document)
             ?? throw new InvalidOperationException("The document has no XFA form.");
-        PdfXfaInfo updated = PdfXfaDatasets.Replace(current, data);
+        return Persist(document, current, PdfXfaDatasets.Replace(current, data));
+    }
+
+    /// <summary>Changes one repeated field occurrence and appends one PDF revision.</summary>
+    public static byte[] SetValue(PdfDocument document, string fieldName,
+        int occurrenceIndex, string value)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        PdfXfaInfo current = PdfXfaReader.Read(document)
+            ?? throw new InvalidOperationException("The document has no XFA form.");
+        return Persist(document, current,
+            PdfXfaDatasets.SetValue(current, fieldName, occurrenceIndex, value));
+    }
+
+    private static byte[] Persist(PdfDocument document,
+        PdfXfaInfo current, PdfXfaInfo updated)
+    {
+        PdfFormDataSet expected = PdfXfaDatasets.Read(updated);
 
         PdfObject rootValue = document.Trailer.TryGetValue(Name("Root"), out PdfObject? root)
             ? root : throw new InvalidOperationException("The PDF trailer has no /Root value.");
@@ -64,7 +81,7 @@ public static class PdfXfaDocumentEditor
 
         byte[] output = revision.Build();
         if (!document.IsEncrypted)
-            Verify(output, data);
+            Verify(output, expected);
         return output;
     }
 

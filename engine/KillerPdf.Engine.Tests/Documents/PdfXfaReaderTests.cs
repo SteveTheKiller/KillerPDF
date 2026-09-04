@@ -126,6 +126,21 @@ public sealed class PdfXfaReaderTests
     }
 
     [Fact]
+    public void PersistsOneEditedDatasetOccurrenceWithoutReplacingItsSiblings()
+    {
+        PdfDocument source = Document("<template/>",
+            "<datasets><data><form><color>red</color><color>blue</color></form></data></datasets>");
+
+        PdfXfaInfo saved = PdfXfaReader.Read(PdfDocument.Open(
+            PdfXfaDocumentEditor.SetValue(source, "form.color", 1, "green")))!;
+
+        Assert.Equal(["red", "green"], Assert.Single(
+            PdfXfaDatasets.Read(saved).Fields).Values);
+        Assert.Throws<KeyNotFoundException>(() => PdfXfaDocumentEditor.SetValue(
+            source, "form.color", 2, "missing"));
+    }
+
+    [Fact]
     public void ReadsReplacesAndEditsDatasetsInsideCombinedXdp()
     {
         const string xdp = """
