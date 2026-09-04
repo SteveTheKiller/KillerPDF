@@ -37,6 +37,38 @@ public static class PdfCollectionMacro
             });
     }
 
+    /// <summary>Creates a step that replaces portfolio fields and sort rules.</summary>
+    public static PdfMacroStep SchemaStep(
+        IEnumerable<PdfCollectionFieldInfo> fields,
+        IEnumerable<PdfCollectionSortInfo>? sort = null)
+    {
+        ArgumentNullException.ThrowIfNull(fields);
+        PdfCollectionFieldInfo[] selectedFields = fields.ToArray();
+        PdfCollectionSortInfo[] selectedSort = sort?.ToArray() ?? [];
+        return new PdfMacroStep(PdfMacroOperation.EditPortfolio,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["action"] = "schema",
+                ["fields"] = JsonSerializer.Serialize(selectedFields),
+                ["sort"] = JsonSerializer.Serialize(selectedSort)
+            });
+    }
+
+    /// <summary>Creates a step that replaces one portfolio file's collection values.</summary>
+    public static PdfMacroStep ItemValuesStep(
+        string fileName, IEnumerable<PdfCollectionItemValue> values)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+        ArgumentNullException.ThrowIfNull(values);
+        return new PdfMacroStep(PdfMacroOperation.EditPortfolio,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["action"] = "itemValues",
+                ["fileName"] = fileName,
+                ["values"] = JsonSerializer.Serialize(values.ToArray())
+            });
+    }
+
     /// <summary>Creates a step that removes portfolio metadata without removing attachments.</summary>
     public static PdfMacroStep ClearStep() => new(PdfMacroOperation.EditPortfolio,
         new Dictionary<string, string>(StringComparer.Ordinal) { ["action"] = "clear" });
@@ -58,6 +90,8 @@ public static class PdfCollectionMacro
         {
             "presentation" => SetPresentation(step, document),
             "folders" => SetFolders(step, document),
+            "schema" => SetSchema(step, document),
+            "itemValues" => SetItemValues(step, document),
             "clear" when step.Settings.Count == 1 => PdfCollectionEditor.Clear(document),
             _ => throw new ArgumentException(
                 "The portfolio edit settings are invalid.", nameof(step))
@@ -94,6 +128,52 @@ public static class PdfCollectionMacro
         {
             throw new ArgumentException(
                 "The portfolio folder list is invalid.", nameof(step), error);
+        }
+    }
+
+    private static byte[] SetSchema(PdfMacroStep step, PdfDocument document)
+    {
+        if (step.Settings is null || step.Settings.Count != 3
+            || !step.Settings.TryGetValue("fields", out string? fieldsJson)
+            || !step.Settings.TryGetValue("sort", out string? sortJson))
+            throw new ArgumentException(
+                "The portfolio schema settings are invalid.", nameof(step));
+        try
+        {
+            PdfCollectionFieldInfo[] fields =
+                JsonSerializer.Deserialize<PdfCollectionFieldInfo[]>(fieldsJson)
+                ?? throw new JsonException("The portfolio field list is empty.");
+            PdfCollectionSortInfo[] sort =
+                JsonSerializer.Deserialize<PdfCollectionSortInfo[]>(sortJson)
+                ?? throw new JsonException("The portfolio sort list is empty.");
+            return PdfCollectionEditor.SetSchema(document, fields, sort);
+        }
+        catch (JsonException error)
+        {
+            throw new ArgumentException(
+                "The portfolio schema is invalid.", nameof(step), error);
+        }
+    }
+
+    private static byte[] SetItemValues(PdfMacroStep step, PdfDocument document)
+    {
+        if (step.Settings is null || step.Settings.Count != 3
+            || !step.Settings.TryGetValue("fileName", out string? fileName)
+            || string.IsNullOrWhiteSpace(fileName)
+            || !step.Settings.TryGetValue("values", out string? valuesJson))
+            throw new ArgumentException(
+                "The portfolio item settings are invalid.", nameof(step));
+        try
+        {
+            PdfCollectionItemValue[] values =
+                JsonSerializer.Deserialize<PdfCollectionItemValue[]>(valuesJson)
+                ?? throw new JsonException("The portfolio item value list is empty.");
+            return PdfCollectionEditor.SetItemValues(document, fileName, values);
+        }
+        catch (JsonException error)
+        {
+            throw new ArgumentException(
+                "The portfolio item values are invalid.", nameof(step), error);
         }
     }
 }

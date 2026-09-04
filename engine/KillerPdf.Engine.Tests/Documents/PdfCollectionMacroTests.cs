@@ -15,7 +15,22 @@ public sealed class PdfCollectionMacroTests
             PdfCollectionMacro.PresentationStep(PdfCollectionView.Tile, "cover.pdf"),
             PdfCollectionMacro.FoldersStep([
                 new PdfCollectionFolder(1, "Evidence"),
-                new PdfCollectionFolder(2, "Photos", 1)])
+                new PdfCollectionFolder(2, "Photos", 1)]),
+            PdfCollectionMacro.SchemaStep([
+                new PdfCollectionFieldInfo
+                {
+                    Key = "Department", DisplayName = "Department",
+                    Subtype = "S", IsVisible = true
+                },
+                new PdfCollectionFieldInfo
+                {
+                    Key = "Score", DisplayName = "Score",
+                    Subtype = "N", IsVisible = true
+                }
+            ], [new PdfCollectionSortInfo("Score", false)]),
+            PdfCollectionMacro.ItemValuesStep("cover.pdf", [
+                new PdfCollectionItemValue("Department", "Legal", null, "Team: "),
+                new PdfCollectionItemValue("Score", null, 4.5, null)])
         ]);
         PdfMacro restored = PdfMacro.FromJson(macro.ToJson());
 
@@ -30,6 +45,14 @@ public sealed class PdfCollectionMacroTests
         Assert.Equal(["Evidence", "Photos"],
             collection.Folders.Select(folder => folder.Name));
         Assert.Equal(1L, collection.Folders[1].ParentId);
+        Assert.Equal(["Department", "Score"],
+            collection.Fields.Select(field => field.Key));
+        Assert.Equal(new PdfCollectionSortInfo("Score", false),
+            Assert.Single(collection.Sort));
+        Assert.Equal([
+            new PdfCollectionItemValue("Department", "Legal", null, "Team: "),
+            new PdfCollectionItemValue("Score", null, 4.5, null)
+        ], Assert.Single(PdfAttachmentReader.Read(PdfDocument.Open(output))).CollectionValues);
 
         PdfDocument cleared = PdfDocument.Open(PdfCollectionMacro.Execute(
             PdfCollectionMacro.ClearStep(), output));
