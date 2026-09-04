@@ -445,7 +445,7 @@ public sealed class PdfPageRenderer
             samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
             if (samples.Length != expected) throw new FormatException("Image sample data has an invalid length.");
             softMask = ReadSoftMask(stream.Dictionary);
-            decode = ReadImageDecode(stream.Dictionary, components, imageMask);
+            decode = ReadImageDecode(stream.Dictionary, colorSpace, imageMask);
         }
         catch (PdfFilterException)
         {
@@ -562,6 +562,29 @@ public sealed class PdfPageRenderer
                     matrix[2] * a + matrix[5] * b + matrix[8] * c);
             });
         }
+        if (kind.ValueAsLatin1() == "Lab")
+        {
+            if (array.Count != 2 || Resolve(array[1]) is not PdfDictionary parameters)
+                throw new FormatException("A Lab image color space is invalid.");
+            double[] whitePoint = ReadCieArray(parameters, "WhitePoint", required: true,
+                defaultValues: []);
+            ValidateWhitePoint(whitePoint, "Lab");
+            ReadAndValidateBlackPoint(parameters, "Lab");
+            double[] range = ReadCieArray(parameters, "Range", required: false,
+                defaultValues: [-100, 100, -100, 100], count: 4);
+            if (range.Any(value => !double.IsFinite(value))
+                || range[0] >= range[1] || range[2] >= range[3])
+                throw new FormatException("A Lab image range is invalid.");
+            Func<double, double, double, Color> convertXyz = CreateXyzConverter(whitePoint);
+            return new ImageColorSpace(3, null, (lightness, a, b, _) =>
+            {
+                double fy = (lightness + 16) / 116;
+                double fx = fy + a / 500;
+                double fz = fy - b / 200;
+                return convertXyz(whitePoint[0] * LabInverse(fx),
+                    whitePoint[1] * LabInverse(fy), whitePoint[2] * LabInverse(fz));
+            }, [0, 100, range[0], range[1], range[2], range[3]]);
+        }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
@@ -583,10 +606,10 @@ public sealed class PdfPageRenderer
         for (int entry = 0; entry < entryCount; entry++)
         {
             int offset = entry * baseComponents;
-            palette[entry] = baseSpace.Convert(lookup[offset] / 255d,
-                baseComponents > 1 ? lookup[offset + 1] / 255d : 0,
-                baseComponents > 2 ? lookup[offset + 2] / 255d : 0,
-                baseComponents > 3 ? lookup[offset + 3] / 255d : 0);
+            palette[entry] = baseSpace.Convert(baseSpace.DefaultValue(0, lookup[offset] / 255d),
+                baseComponents > 1 ? baseSpace.DefaultValue(1, lookup[offset + 1] / 255d) : 0,
+                baseComponents > 2 ? baseSpace.DefaultValue(2, lookup[offset + 2] / 255d) : 0,
+                baseComponents > 3 ? baseSpace.DefaultValue(3, lookup[offset + 3] / 255d) : 0);
         }
         return new ImageColorSpace(1, palette);
     }
@@ -649,6 +672,13 @@ public sealed class PdfPageRenderer
             0.0389 * x - 0.0685 * y + 1.0296 * z);
     }
 
+    private static double LabInverse(double value)
+    {
+        const double threshold = 6d / 29;
+        return value >= threshold ? value * value * value
+            : 3 * threshold * threshold * (value - 4d / 29);
+    }
+
     private SoftMask? ReadSoftMask(PdfDictionary dictionary)
     {
         if (!dictionary.TryGetValue(Name("SMask"), out PdfObject? value)) return null;
@@ -683,12 +713,14 @@ public sealed class PdfPageRenderer
         return Number(Resolve(decode[0])) > Number(Resolve(decode[1]));
     }
 
-    private double[] ReadImageDecode(PdfDictionary dictionary, int components, bool imageMask)
+    private double[] ReadImageDecode(
+        PdfDictionary dictionary, ImageColorSpace colorSpace, bool imageMask)
     {
         if (imageMask) return [];
         if (!dictionary.TryGetValue(Name("Decode"), out PdfObject? value))
-            return Enumerable.Repeat(new[] { 0d, 1d }, components).SelectMany(pair => pair).ToArray();
-        PdfArray array = ResolveArray(value, components * 2, "Image decode array");
+            return colorSpace.DefaultDecode ?? Enumerable.Repeat(new[] { 0d, 1d },
+                colorSpace.Components).SelectMany(pair => pair).ToArray();
+        PdfArray array = ResolveArray(value, colorSpace.Components * 2, "Image decode array");
         return array.Select(item => Number(Resolve(item))).ToArray();
     }
 
@@ -755,8 +787,8 @@ public sealed class PdfPageRenderer
                     {
                         int sample = RawSample(component);
                         double normalized = sample / (double)((1 << bits) - 1);
-                        return Math.Clamp(decode[component * 2] + normalized
-                            * (decode[component * 2 + 1] - decode[component * 2]), 0, 1);
+                        return decode[component * 2] + normalized
+                            * (decode[component * 2 + 1] - decode[component * 2]);
                     }
 
                     int RawSample(int component)
@@ -991,7 +1023,8 @@ public sealed class PdfPageRenderer
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height, bool Inverted);
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
-        Func<double, double, double, double, Color>? Converter = null)
+        Func<double, double, double, double, Color>? Converter = null,
+        double[]? DefaultDecode = null)
     {
         internal Color Convert(double first, double second, double third, double fourth) =>
             Converter?.Invoke(first, second, third, fourth) ?? Components switch
@@ -1000,6 +1033,9 @@ public sealed class PdfPageRenderer
                 3 => Color.Rgb(first, second, third),
                 _ => Color.Cmyk(first, second, third, fourth)
             };
+        internal double DefaultValue(int component, double normalized) => DefaultDecode is null
+            ? normalized : DefaultDecode[component * 2] + normalized
+                * (DefaultDecode[component * 2 + 1] - DefaultDecode[component * 2]);
     }
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)

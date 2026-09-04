@@ -300,6 +300,29 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ConvertsLabImagesUsingDefaultDecodeRanges()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(1, 1, new byte[] { 128, 128, 128 }), 2, 3, 6, 2))
+            .Build());
+        var parameters = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("WhitePoint"),
+                Reals(0.95047, 1, 1.08883))]);
+        var colorSpace = new PdfArray(new PdfObject[] { Name("Lab"), parameters });
+        PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        byte[] pixel = Pixel(rendered, 3, 6);
+        Assert.All(pixel[..3], channel => Assert.InRange(channel, (byte)115, (byte)125));
+        Assert.Equal(255, pixel[3]);
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
