@@ -1,4 +1,6 @@
 using KillerPdf.Engine.Documents;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Diagnostics;
 
@@ -88,6 +90,19 @@ public static class PdfAccessibilityTaggingProposal
         }
         return Array.AsReadOnly(result.ToArray());
     }
+
+    /// <summary>Exports semantic proposals as stable data without changing the document.</summary>
+    public static string ToJson(PdfDocument document, bool indented = false) =>
+        JsonSerializer.Serialize(new
+        {
+            schemaVersion = 1,
+            proposals = Inspect(document)
+        }, new JsonSerializerOptions
+        {
+            WriteIndented = indented,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        });
 
     private static bool LooksLikeListItem(string text)
     {

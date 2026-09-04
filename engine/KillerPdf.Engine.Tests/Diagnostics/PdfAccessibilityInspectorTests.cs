@@ -45,6 +45,17 @@ public sealed class PdfAccessibilityInspectorTests
         Assert.Equal("Account number", proposals[5].Text);
         Assert.All(proposals, item => Assert.True(item.RequiresReview));
         Assert.All(proposals, item => Assert.InRange(item.Confidence, 0.5, 0.9));
+
+        using JsonDocument json = JsonDocument.Parse(
+            PdfAccessibilityTaggingProposal.ToJson(document));
+        Assert.Equal(1, json.RootElement.GetProperty("schemaVersion").GetInt32());
+        JsonElement[] exported = [.. json.RootElement.GetProperty("proposals")
+            .EnumerateArray()];
+        Assert.Equal(6, exported.Length);
+        Assert.Equal("heading", exported[0].GetProperty("role").GetString());
+        Assert.Equal("formField", exported[^1].GetProperty("role").GetString());
+        Assert.All(exported, item =>
+            Assert.True(item.GetProperty("requiresReview").GetBoolean()));
     }
 
     [Fact]
