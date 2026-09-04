@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
+using System.Formats.Asn1;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
@@ -102,6 +103,29 @@ public sealed class PdfSignatureVerifierTests
         Assert.True(changed.IsStructurallyValid);
         Assert.False(changed.IsCryptographicallyValid);
         Assert.NotNull(changed.Error);
+    }
+
+    [Fact]
+    public void VerifyIntegrityReportsCadesSignaturePolicyIdentifier()
+    {
+        using RSA key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=KillerPDF Policy Test", key,
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using X509Certificate2 certificate = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        const string policyOid = "1.2.3.4.5.6";
+        byte[] signed = PdfDetachedSignatureWriter.Sign(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()),
+            content => Sign(content, certificate, policyOid),
+            new PdfSignatureOptions { ReservedSignatureSize = 4_096 });
+
+        PdfSignatureInspectionReport report = PdfSignatureInspection.Inspect(
+            PdfDocument.Open(signed));
+
+        Assert.Equal([policyOid], Assert.Single(report.Entries)
+            .Verification.SignaturePolicyOids);
+        Assert.Contains($"Signature policy: {policyOid}", report.ToText());
+        Assert.Contains($"\"signaturePolicyOids\":[\"{policyOid}\"]", report.ToJson());
     }
 
     [Fact]
@@ -271,14 +295,34 @@ public sealed class PdfSignatureVerifierTests
                 }));
     }
 
-    private static byte[] Sign(ReadOnlyMemory<byte> content, X509Certificate2 certificate)
+    private static byte[] Sign(ReadOnlyMemory<byte> content, X509Certificate2 certificate,
+        string? policyOid = null)
     {
         var cms = new SignedCms(new ContentInfo(content.ToArray()), detached: true);
-        cms.ComputeSignature(new CmsSigner(certificate)
+        var signer = new CmsSigner(certificate)
         {
             IncludeOption = X509IncludeOption.EndCertOnly,
             DigestAlgorithm = new Oid("2.16.840.1.101.3.4.2.1")
-        });
+        };
+        if (policyOid is not null)
+        {
+            var writer = new AsnWriter(AsnEncodingRules.DER);
+            writer.PushSequence();
+            writer.WriteObjectIdentifier(policyOid);
+            writer.PushSequence();
+            writer.PushSequence();
+            writer.WriteObjectIdentifier("2.16.840.1.101.3.4.2.1");
+            writer.WriteNull();
+            writer.PopSequence();
+            writer.WriteOctetString(SHA256.HashData("policy"u8));
+            writer.PopSequence();
+            writer.PopSequence();
+            var attributeOid = new Oid("1.2.840.113549.1.9.16.2.15");
+            signer.SignedAttributes.Add(new CryptographicAttributeObject(
+                attributeOid, new AsnEncodedDataCollection(
+                    new AsnEncodedData(attributeOid, writer.Encode()))));
+        }
+        cms.ComputeSignature(signer);
         return cms.Encode();
     }
 }

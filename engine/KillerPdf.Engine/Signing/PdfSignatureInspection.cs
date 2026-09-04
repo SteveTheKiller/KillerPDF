@@ -46,6 +46,8 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
             Add("  Certificate SHA-256: ", entry.Verification.SignerCertificateSha256);
             Add("  Digest algorithm: ", entry.Verification.DigestAlgorithmOid);
             Add("  Signature algorithm: ", entry.Verification.SignatureAlgorithmOid);
+            foreach (string policy in entry.Verification.SignaturePolicyOids)
+                output.Append("  Signature policy: ").AppendLine(policy);
             if (entry.Verification.CertificateNotBefore is DateTimeOffset notBefore)
                 output.Append("  Certificate valid from: ")
                     .AppendLine(notBefore.ToString("O"));

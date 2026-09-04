@@ -1,3 +1,4 @@
+using System.Formats.Asn1;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
@@ -48,6 +49,7 @@ public static class PdfSignatureVerifier
         X509Certificate2? signer = null;
         string? digestAlgorithm = null;
         string? signatureAlgorithm = null;
+        IReadOnlyList<string> signaturePolicies = [];
         try
         {
             byte[] content = PdfSignatureReader.GetSignedContent(document, signature);
@@ -58,6 +60,7 @@ public static class PdfSignatureVerifier
             signer = signerInfo?.Certificate;
             digestAlgorithm = signerInfo?.DigestAlgorithm.Value;
             signatureAlgorithm = signerInfo?.SignatureAlgorithm.Value;
+            signaturePolicies = signerInfo is null ? [] : SignaturePolicies(signerInfo);
             if (checkCertificateTrust)
             {
                 if (signer is null)
@@ -111,6 +114,7 @@ public static class PdfSignatureVerifier
                     CertificateDownloadsDisabled = policy.DisableCertificateDownloads,
                     DigestAlgorithmOid = digestAlgorithm,
                     SignatureAlgorithmOid = signatureAlgorithm,
+                    SignaturePolicyOids = signaturePolicies,
                     SignerSubject = signer.Subject,
                     SignerIssuer = signer.Issuer,
                     SignerSerialNumber = signer.SerialNumber,
@@ -128,6 +132,7 @@ public static class PdfSignatureVerifier
                 RevocationStatus = PdfCertificateRevocationStatus.NotChecked,
                 DigestAlgorithmOid = digestAlgorithm,
                 SignatureAlgorithmOid = signatureAlgorithm,
+                SignaturePolicyOids = signaturePolicies,
                 SignerSubject = signer?.Subject,
                 SignerIssuer = signer?.Issuer,
                 SignerSerialNumber = signer?.SerialNumber,
@@ -166,6 +171,7 @@ public static class PdfSignatureVerifier
                 CertificateChainErrors = chainErrors,
                 DigestAlgorithmOid = digestAlgorithm,
                 SignatureAlgorithmOid = signatureAlgorithm,
+                SignaturePolicyOids = signaturePolicies,
                 SignerSubject = signer?.Subject,
                 SignerIssuer = signer?.Issuer,
                 SignerSerialNumber = signer?.SerialNumber,
@@ -178,4 +184,25 @@ public static class PdfSignatureVerifier
 
     private static string? CertificateFingerprint(X509Certificate2? certificate) =>
         certificate is null ? null : Convert.ToHexString(SHA256.HashData(certificate.RawData));
+
+    private static IReadOnlyList<string> SignaturePolicies(SignerInfo signer)
+    {
+        const string signaturePolicyAttribute = "1.2.840.113549.1.9.16.2.15";
+        var result = new List<string>();
+        foreach (CryptographicAttributeObject attribute in signer.SignedAttributes)
+        {
+            if (attribute.Oid?.Value != signaturePolicyAttribute) continue;
+            foreach (AsnEncodedData value in attribute.Values)
+            {
+                var reader = new AsnReader(value.RawData, AsnEncodingRules.DER);
+                AsnReader sequence = reader.ReadSequence();
+                string policy = sequence.ReadObjectIdentifier();
+                if (reader.HasData || string.IsNullOrWhiteSpace(policy))
+                    throw new CryptographicException(
+                        "The CAdES signature policy attribute is malformed.");
+                result.Add(policy);
+            }
+        }
+        return Array.AsReadOnly(result.Distinct(StringComparer.Ordinal).ToArray());
+    }
 }
