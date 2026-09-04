@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 
@@ -7,6 +8,56 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Reads review comments from every annotation subtype.</summary>
 public static class PdfCommentReader
 {
+    /// <summary>Exports threaded review comments as stable machine-readable JSON.</summary>
+    public static string ExportJson(PdfDocument document, bool indented = true) =>
+        JsonSerializer.Serialize(ReadThreads(document), new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        });
+
+    /// <summary>Returns comments grouped into reply threads in page annotation order.</summary>
+    public static IReadOnlyList<PdfCommentThread> ReadThreads(PdfDocument document)
+    {
+        IReadOnlyList<PdfCommentInfo> comments = Read(document);
+        Dictionary<int, PdfCommentInfo> byObject = comments
+            .Where(comment => comment.ObjectNumber.HasValue)
+            .ToDictionary(comment => comment.ObjectNumber!.Value);
+        var replies = new Dictionary<int, List<PdfCommentInfo>>();
+        foreach (PdfCommentInfo comment in comments)
+        {
+            if (comment.ReplyToObjectNumber is not int parent || !byObject.ContainsKey(parent))
+                continue;
+            if (!replies.TryGetValue(parent, out List<PdfCommentInfo>? children))
+                replies.Add(parent, children = []);
+            children.Add(comment);
+        }
+        var active = new HashSet<int>();
+        var included = new HashSet<PdfCommentInfo>(ReferenceEqualityComparer.Instance);
+        var roots = new List<PdfCommentThread>();
+        foreach (PdfCommentInfo comment in comments)
+            if (comment.ReplyToObjectNumber is not int parent || !byObject.ContainsKey(parent))
+                roots.Add(Build(comment));
+        foreach (PdfCommentInfo comment in comments)
+            if (!included.Contains(comment)) roots.Add(Build(comment));
+        return Array.AsReadOnly(roots.ToArray());
+
+        PdfCommentThread Build(PdfCommentInfo comment)
+        {
+            if (!included.Add(comment))
+                throw new InvalidOperationException(
+                    "A comment appears more than once in the reply graph.");
+            if (comment.ObjectNumber is not int objectNumber)
+                return new PdfCommentThread(comment, []);
+            if (!active.Add(objectNumber))
+                throw new InvalidOperationException("The comment reply graph contains a cycle.");
+            PdfCommentThread[] children = replies.TryGetValue(objectNumber, out var replyList)
+                ? [.. replyList.Select(Build)] : [];
+            active.Remove(objectNumber);
+            return new PdfCommentThread(comment, Array.AsReadOnly(children));
+        }
+    }
+
     /// <summary>Returns annotations that contain review text, in page annotation order.</summary>
     public static IReadOnlyList<PdfCommentInfo> Read(PdfDocument document)
     {
@@ -118,6 +169,10 @@ public static class PdfCommentReader
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
 }
+
+/// <summary>One review comment and its ordered replies.</summary>
+public sealed record PdfCommentThread(
+    PdfCommentInfo Comment, IReadOnlyList<PdfCommentThread> Replies);
 
 /// <summary>Review text and source identity for one annotation.</summary>
 public sealed record PdfCommentInfo
