@@ -1,5 +1,7 @@
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Authoring;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 
 namespace KillerPdf.Engine.Documents;
@@ -622,6 +624,38 @@ public sealed class PdfFormRecognitionReview
         }, options);
     }
 
+    /// <summary>Formats ordered form proposals and their review decisions.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Form proposals: ").Append(_proposals.Length.ToString(CultureInfo.InvariantCulture))
+            .Append(", accepted ").Append(Accepted.Count.ToString(CultureInfo.InvariantCulture))
+            .Append(", pending ").Append(_proposals.Count(item => item.Status == PdfFormProposalStatus.Proposed)
+                .ToString(CultureInfo.InvariantCulture))
+            .Append(", rejected ").AppendLine(_proposals.Count(item => item.Status == PdfFormProposalStatus.Rejected)
+                .ToString(CultureInfo.InvariantCulture));
+        output.Append("Ready to apply: ").AppendLine(IsReadyToApply ? "yes" : "no");
+        foreach (PdfFormFieldProposal proposal in _proposals)
+        {
+            output.Append("  ").Append(proposal.Id).Append(": page ")
+                .Append((proposal.PageIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(", ").Append(proposal.Kind).Append(", ").Append(proposal.Status)
+                .Append(", name \"").Append(OneLine(proposal.SuggestedName)).Append("\", confidence ")
+                .AppendLine(proposal.Confidence.ToString("0.###", CultureInfo.InvariantCulture));
+            output.Append("    Bounds: ").Append(proposal.Bounds.Left.ToString("R", CultureInfo.InvariantCulture))
+                .Append(", ").Append(proposal.Bounds.Bottom.ToString("R", CultureInfo.InvariantCulture))
+                .Append(" to ").Append(proposal.Bounds.Right.ToString("R", CultureInfo.InvariantCulture))
+                .Append(", ").AppendLine(proposal.Bounds.Top.ToString("R", CultureInfo.InvariantCulture));
+            if (!string.IsNullOrWhiteSpace(proposal.SuggestedTooltip))
+                output.Append("    Tooltip: \"").Append(OneLine(proposal.SuggestedTooltip)).AppendLine("\"");
+        }
+        return output.ToString().TrimEnd();
+    }
+
+    private static string OneLine(string value) =>
+        value.Replace("\r", " ", StringComparison.Ordinal)
+            .Replace("\n", " ", StringComparison.Ordinal);
+
     /// <summary>Returns a new review with a proposal accepted and optionally adjusted.</summary>
     public PdfFormRecognitionReview Accept(string id, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
@@ -911,8 +945,9 @@ public sealed class PdfFormRecognitionReview
                 radioOptions: new PdfRadioGroupOptions
                 {
                     AppearanceStyle = group[0].SuggestedAppearanceStyle
-                });
-        }
+        });
+    }
+
         return editor.Build();
     }
 

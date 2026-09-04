@@ -200,6 +200,14 @@ public sealed class PdfFormRecognitionTests
         Assert.Equal("second", proposals[1].GetProperty("id").GetString());
         Assert.Equal((int)PdfFormProposalStatus.Rejected,
             proposals[1].GetProperty("status").GetInt32());
+        string text = review.ToText();
+        Assert.Contains("Form proposals: 2, accepted 1, pending 0, rejected 1", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Ready to apply: yes", text, StringComparison.Ordinal);
+        Assert.Contains("first: page 1, Text, Accepted, name \"first\", confidence 0.9", text,
+            StringComparison.Ordinal);
+        Assert.Contains("second: page 2, Text, Rejected", text, StringComparison.Ordinal);
+        Assert.Contains("Bounds:", text, StringComparison.Ordinal);
     }
 
     [Fact]
