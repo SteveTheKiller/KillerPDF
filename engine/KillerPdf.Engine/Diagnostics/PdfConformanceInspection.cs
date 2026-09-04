@@ -14,10 +14,14 @@ internal static class PdfConformanceInspection
 
     internal static IReadOnlyList<PdfPreflightFinding> Check(PdfDocument document)
     {
+        int? metadataObjectNumber = null;
         try
         {
-            PdfDictionary catalog = PdfPageTree.Read(document).Catalog;
+            PdfPageTree tree = PdfPageTree.Read(document);
+            PdfDictionary catalog = tree.Catalog;
             if (!catalog.TryGetValue(Name("Metadata"), out PdfObject? metadataValue)) return [];
+            metadataObjectNumber = metadataValue is PdfIndirectReference reference
+                ? reference.ObjectNumber : tree.CatalogReference.ObjectNumber;
             PdfStream metadata = Resolve(document, metadataValue) as PdfStream
                 ?? throw new InvalidOperationException("The catalog metadata value is not a stream.");
             using var input = new MemoryStream(PdfStreamDecoder.Decode(
@@ -37,7 +41,7 @@ internal static class PdfConformanceInspection
             {
                 if (pdfAPart != "4")
                     findings.Add(Unsupported("Conformance.UnsupportedPdfA",
-                        $"PDF/A-{pdfAPart} validation is not implemented."));
+                        $"PDF/A-{pdfAPart} validation is not implemented.", metadataObjectNumber));
                 else
                 {
                     if (document.Trailer.ContainsKey(Name("Encrypt")))
@@ -54,7 +58,7 @@ internal static class PdfConformanceInspection
             {
                 if (pdfUaPart != "2")
                     findings.Add(Unsupported("Conformance.UnsupportedPdfUa",
-                        $"PDF/UA-{pdfUaPart} validation is not implemented."));
+                        $"PDF/UA-{pdfUaPart} validation is not implemented.", metadataObjectNumber));
                 else
                     findings.AddRange(PdfAccessibilityInspector.Inspect(document).Findings
                         .Select(finding => new PdfPreflightFinding(
@@ -73,14 +77,15 @@ internal static class PdfConformanceInspection
                         Code = "Conformance.PdfX." + finding.Code
                     }));
                 findings.Add(Unsupported("Conformance.PdfXValidationUnavailable",
-                    $"The document declares {pdfXVersion}; PDF/X validation is not implemented."));
+                    $"The document declares {pdfXVersion}; PDF/X validation is not implemented.",
+                    metadataObjectNumber));
             }
             return Array.AsReadOnly(findings.ToArray());
         }
         catch (Exception error) when (error is InvalidOperationException or FormatException
             or XmlException or OverflowException)
         {
-            return [Error("Conformance.InvalidMetadata", error.Message)];
+            return [Error("Conformance.InvalidMetadata", error.Message, metadataObjectNumber)];
         }
     }
 
@@ -103,11 +108,13 @@ internal static class PdfConformanceInspection
         return value;
     }
 
-    private static PdfPreflightFinding Error(string code, string message) =>
-        new(code, PdfDiagnosticSeverity.Error, message);
+    private static PdfPreflightFinding Error(
+        string code, string message, int? objectNumber = null) =>
+        new(code, PdfDiagnosticSeverity.Error, message, ObjectNumber: objectNumber);
 
-    private static PdfPreflightFinding Unsupported(string code, string message) =>
-        new(code, PdfDiagnosticSeverity.Unsupported, message);
+    private static PdfPreflightFinding Unsupported(
+        string code, string message, int? objectNumber = null) =>
+        new(code, PdfDiagnosticSeverity.Unsupported, message, ObjectNumber: objectNumber);
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
 }

@@ -341,6 +341,7 @@ public sealed class PdfPreflightTests
         ], report.Findings.Select(finding => finding.Code));
         Assert.Equal(PdfDiagnosticSeverity.Error, report.Findings[0].Severity);
         Assert.Equal(PdfDiagnosticSeverity.Unsupported, report.Findings[1].Severity);
+        Assert.Equal(metadataReference.ObjectNumber, report.Findings[1].ObjectNumber);
     }
 
     [Fact]
