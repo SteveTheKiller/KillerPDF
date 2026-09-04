@@ -364,6 +364,33 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void RecolorDeviceRangeConvertsToGrayOrCmyk()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "0 1 0 rg 0 1 0 RG 0.5 g 0.5 G 0 0 0 1 k 0 0 0 1 K /Spot cs 0.5 scn"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> gray =
+            PdfContentTransformation.RecolorDeviceRange(
+                source, 0, 8, new PdfDeviceGrayColor(0.25));
+        IReadOnlyList<PdfContentInstruction> cmyk =
+            PdfContentTransformation.RecolorDeviceRange(
+                source, 0, 8, new PdfDeviceCmykColor(0.1, 0.2, 0.3, 0.4));
+
+        Assert.Equal(["g", "G", "g", "G", "g", "G", "cs", "scn"],
+            gray.Select(instruction => instruction.Operator));
+        Assert.All(gray.Take(6), instruction => Assert.Equal(0.25,
+            Assert.IsType<PdfReal>(Assert.Single(instruction.Operands)).Value));
+        Assert.Equal(["k", "K", "k", "K", "k", "K", "cs", "scn"],
+            cmyk.Select(instruction => instruction.Operator));
+        Assert.All(cmyk.Take(6), instruction => Assert.Equal(
+            [0.1, 0.2, 0.3, 0.4], instruction.Operands
+                .Cast<PdfReal>().Select(value => value.Value)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfDeviceGrayColor(-0.1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfDeviceCmykColor(0, 0, 0, double.NaN));
+    }
+
+    [Fact]
     public void ResizeTextRangePreservesFontResourcesAndUntouchedInstructions()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(

@@ -91,6 +91,48 @@ public readonly record struct PdfDeviceRgbColor
     private static bool IsComponent(double value) => double.IsFinite(value) && value is >= 0 and <= 1;
 }
 
+/// <summary>A device-gray color whose component is between zero and one.</summary>
+public readonly record struct PdfDeviceGrayColor
+{
+    /// <summary>Creates a validated device-gray color.</summary>
+    public PdfDeviceGrayColor(double gray)
+    {
+        if (!double.IsFinite(gray) || gray is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(gray),
+                "A device-gray component must be between zero and one.");
+        Gray = gray;
+    }
+
+    /// <summary>Gets the gray component.</summary>
+    public double Gray { get; }
+}
+
+/// <summary>A device-CMYK color whose components are between zero and one.</summary>
+public readonly record struct PdfDeviceCmykColor
+{
+    /// <summary>Creates a validated device-CMYK color.</summary>
+    public PdfDeviceCmykColor(double cyan, double magenta, double yellow, double black)
+    {
+        if (!IsComponent(cyan) || !IsComponent(magenta)
+            || !IsComponent(yellow) || !IsComponent(black))
+            throw new ArgumentOutOfRangeException(nameof(cyan),
+                "Device CMYK components must be between zero and one.");
+        Cyan = cyan; Magenta = magenta; Yellow = yellow; Black = black;
+    }
+
+    /// <summary>Gets the cyan component.</summary>
+    public double Cyan { get; }
+    /// <summary>Gets the magenta component.</summary>
+    public double Magenta { get; }
+    /// <summary>Gets the yellow component.</summary>
+    public double Yellow { get; }
+    /// <summary>Gets the black component.</summary>
+    public double Black { get; }
+
+    private static bool IsComponent(double value) =>
+        double.IsFinite(value) && value is >= 0 and <= 1;
+}
+
 /// <summary>Rewrites selected instructions or transforms a complete decoded content stream.</summary>
 public static class PdfContentTransformation
 {
@@ -768,6 +810,32 @@ public static class PdfContentTransformation
         int startIndex, int count,
         PdfDeviceRgbColor color,
         bool fill = true, bool stroke = true)
+        => RecolorDeviceRange(instructions, startIndex, count,
+            "rg", "RG", [color.Red, color.Green, color.Blue], fill, stroke);
+
+    /// <summary>Converts explicit device color settings in a selected range to device gray.</summary>
+    public static IReadOnlyList<PdfContentInstruction> RecolorDeviceRange(
+        IEnumerable<PdfContentInstruction> instructions,
+        int startIndex, int count,
+        PdfDeviceGrayColor color,
+        bool fill = true, bool stroke = true)
+        => RecolorDeviceRange(instructions, startIndex, count,
+            "g", "G", [color.Gray], fill, stroke);
+
+    /// <summary>Converts explicit device color settings in a selected range to device CMYK.</summary>
+    public static IReadOnlyList<PdfContentInstruction> RecolorDeviceRange(
+        IEnumerable<PdfContentInstruction> instructions,
+        int startIndex, int count,
+        PdfDeviceCmykColor color,
+        bool fill = true, bool stroke = true)
+        => RecolorDeviceRange(instructions, startIndex, count,
+            "k", "K", [color.Cyan, color.Magenta, color.Yellow, color.Black],
+            fill, stroke);
+
+    private static IReadOnlyList<PdfContentInstruction> RecolorDeviceRange(
+        IEnumerable<PdfContentInstruction> instructions,
+        int startIndex, int count, string fillOperator, string strokeOperator,
+        IReadOnlyList<double> components, bool fill, bool stroke)
     {
         ArgumentNullException.ThrowIfNull(instructions);
         PdfContentInstruction[] source = instructions.ToArray();
@@ -778,12 +846,7 @@ public static class PdfContentTransformation
             throw new ArgumentException(
                 "At least one of fill or stroke must be selected.", nameof(fill));
 
-        PdfObject[] operands =
-        [
-            new PdfReal(color.Red),
-            new PdfReal(color.Green),
-            new PdfReal(color.Blue)
-        ];
+        PdfObject[] operands = [.. components.Select(value => new PdfReal(value))];
         var result = source.ToArray();
         for (int index = startIndex; index < startIndex + count; index++)
         {
@@ -792,7 +855,8 @@ public static class PdfContentTransformation
             bool replaceStroke = stroke && operation is "G" or "RG" or "K";
             if (replaceFill || replaceStroke)
                 result[index] = new PdfContentInstruction(
-                    replaceFill ? "rg" : "RG", result[index].Offset, operands);
+                    replaceFill ? fillOperator : strokeOperator,
+                    result[index].Offset, operands);
         }
         return Array.AsReadOnly(result);
     }
