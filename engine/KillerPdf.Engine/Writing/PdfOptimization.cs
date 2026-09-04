@@ -27,6 +27,8 @@ public enum PdfOptimizationChangeKind
     RemoveDocumentJavaScript,
     /// <summary>Remove embedded page thumbnail images.</summary>
     RemovePageThumbnails,
+    /// <summary>Preserve initially visible optional content and remove hidden layer content.</summary>
+    FlattenOptionalContent,
     /// <summary>Write eligible objects into compressed object streams.</summary>
     PackObjects,
     /// <summary>Compress structural streams.</summary>
@@ -52,6 +54,8 @@ public sealed record PdfOptimizationOptions
     public bool RemoveDocumentJavaScript { get; init; }
     /// <summary>Gets whether embedded page thumbnail images are removed.</summary>
     public bool RemovePageThumbnails { get; init; }
+    /// <summary>Gets whether initially visible optional content is flattened and hidden content removed.</summary>
+    public bool FlattenOptionalContent { get; init; }
     /// <summary>Gets whether eligible objects are packed into object streams.</summary>
     public bool PackObjects { get; init; } = true;
     /// <summary>Gets whether structural streams are compressed.</summary>
@@ -177,6 +181,8 @@ public sealed class PdfOptimizationPlan
         Verify(PdfOptimizationChangeKind.RemoveDocumentJavaScript, !hasJavaScript);
         Verify(PdfOptimizationChangeKind.RemovePageThumbnails,
             tree.Pages.All(page => !page.Dictionary.ContainsKey(new PdfName("Thumb"u8))));
+        Verify(PdfOptimizationChangeKind.FlattenOptionalContent,
+            PdfOptionalContentReader.Read(document).Groups.Count == 0);
         return Array.AsReadOnly(verified.ToArray());
 
         void Verify(PdfOptimizationChangeKind kind, bool absent)
@@ -212,15 +218,19 @@ public sealed class PdfOptimizationPlan
             PdfOptimizationChangeKind.RemoveDocumentJavaScript);
         bool removesPageThumbnails = Changes.Contains(
             PdfOptimizationChangeKind.RemovePageThumbnails);
+        bool flattensOptionalContent = Changes.Contains(
+            PdfOptimizationChangeKind.FlattenOptionalContent);
         if (!removesAttachments && !removesOpenAction && !removesBookmarks
             && !removesFormFields && !removesComments && !removesDocumentJavaScript
-            && !removesPageThumbnails)
+            && !removesPageThumbnails && !flattensOptionalContent)
             return _document;
-        PdfDocument formSanitized = _document;
+        PdfDocument formSanitized = flattensOptionalContent
+            ? PdfDocument.Open(PdfOptionalContentEditor.FlattenPageContent(_document))
+            : _document;
         if (removesAttachments || removesOpenAction || removesBookmarks || removesFormFields
             || removesDocumentJavaScript || removesPageThumbnails)
         {
-            var editor = new PdfIncrementalPageEditor(_document);
+            var editor = new PdfIncrementalPageEditor(formSanitized);
             if (removesAttachments)
                 foreach (string name in _attachmentNames) editor.RemoveAttachment(name);
             if (removesOpenAction) editor.ClearOpenAction();
@@ -229,7 +239,7 @@ public sealed class PdfOptimizationPlan
                 foreach (string name in _formFieldNames) editor.RemoveFormField(name);
             if (removesDocumentJavaScript) editor.ClearDocumentJavaScript();
             if (removesPageThumbnails)
-                for (int pageIndex = 0; pageIndex < PdfPageTree.Read(_document).Pages.Count; pageIndex++)
+                for (int pageIndex = 0; pageIndex < PdfPageTree.Read(formSanitized).Pages.Count; pageIndex++)
                     editor.ClearPageThumbnail(pageIndex);
             formSanitized = PdfDocument.Open(editor.Build());
         }
@@ -291,6 +301,9 @@ public static class PdfOptimizer
         if (options.RemovePageThumbnails
             && tree.Pages.Any(page => page.Dictionary.ContainsKey(Name("Thumb"))))
             changes.Add(PdfOptimizationChangeKind.RemovePageThumbnails);
+        if (options.FlattenOptionalContent
+            && PdfOptionalContentReader.Read(document).Groups.Count > 0)
+            changes.Add(PdfOptimizationChangeKind.FlattenOptionalContent);
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,

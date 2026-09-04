@@ -221,4 +221,54 @@ public sealed class PdfOptimizationTests
         Assert.DoesNotContain("/Thumb",
             System.Text.Encoding.Latin1.GetString(result.Data.Span));
     }
+
+    [Fact]
+    public void SelectiveSanitizationFlattensVisibleOptionalContentAndRemovesHiddenContent()
+    {
+        var visibleLayer = new PdfOptionalContentGroup("Visible");
+        var hiddenLayer = new PdfOptionalContentGroup("Hidden", initiallyVisible: false);
+        PdfContentStreamBuilder content = new PdfContentStreamBuilder()
+            .BeginOptionalContent(visibleLayer)
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 70).ShowLatin1Text("Keep").EndText()
+            .EndMarkedContent()
+            .BeginOptionalContent(hiddenLayer)
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 40).ShowLatin1Text("Drop").EndText()
+            .EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, content).Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                FlattenOptionalContent = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+        PdfOptimizationResult result = plan.Apply();
+        PdfDocument sanitized = PdfDocument.Open(result.Data);
+
+        Assert.Contains(PdfOptimizationChangeKind.FlattenOptionalContent, plan.Changes);
+        Assert.Contains(PdfOptimizationChangeKind.FlattenOptionalContent,
+            result.VerifiedRemovals);
+        Assert.Empty(PdfOptionalContentReader.Read(sanitized).Groups);
+        Assert.Equal("Keep", new PdfPageContentReader(sanitized).Read(0).Text);
+    }
+
+    [Fact]
+    public void PlanDoesNotClaimAbsentOptionalContentFlattening()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
+
+        PdfOptimizationPlan plan = PdfOptimizer.CreatePlan(document,
+            new PdfOptimizationOptions
+            {
+                FlattenOptionalContent = true,
+                PackObjects = false,
+                CompressStructure = false
+            });
+
+        Assert.DoesNotContain(PdfOptimizationChangeKind.FlattenOptionalContent, plan.Changes);
+    }
 }
