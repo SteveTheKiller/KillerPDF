@@ -71,6 +71,21 @@ public static class PdfLayerMacro
             });
     }
 
+    /// <summary>Creates a step that replaces the nested display order using stable layer names.</summary>
+    public static PdfMacroStep DisplayOrderTreeStep(
+        IEnumerable<PdfLayerOrderItem> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+        PdfLayerOrderItem[] tree = items.ToArray();
+        ValidateOrderTree(tree, nameof(items));
+        return new PdfMacroStep(PdfMacroOperation.EditLayers,
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["action"] = "displayOrderTree",
+                ["value"] = JsonSerializer.Serialize(tree)
+            });
+    }
+
     /// <summary>Creates a layer-flattening step using default visibility.</summary>
     public static PdfMacroStep FlattenStep() => new(PdfMacroOperation.FlattenLayers);
 
@@ -153,6 +168,25 @@ public static class PdfLayerMacro
             ValidateNames(names, nameof(step));
             int[] objectNumbers = [.. names.Select(name => GroupNumber(document, name))];
             return PdfOptionalContentEditor.SetDisplayOrder(document, objectNumbers);
+        }
+        if (action == "displayOrderTree" && !string.IsNullOrWhiteSpace(value))
+        {
+            if (step.Settings.ContainsKey("layer"))
+                throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
+            PdfLayerOrderItem[] items;
+            try
+            {
+                items = JsonSerializer.Deserialize<PdfLayerOrderItem[]>(value)
+                    ?? throw new JsonException();
+            }
+            catch (JsonException exception)
+            {
+                throw new ArgumentException(
+                    "The nested layer display order is invalid.", nameof(step), exception);
+            }
+            ValidateOrderTree(items, nameof(step));
+            return PdfOptionalContentEditor.SetDisplayOrderTree(document,
+                Array.AsReadOnly(items.Select(item => Convert(document, item)).ToArray()));
         }
         if (!step.Settings.TryGetValue("layer", out string? layerName))
             throw new ArgumentException("The layer edit settings are invalid.", nameof(step));
@@ -241,6 +275,34 @@ public static class PdfLayerMacro
                 "Layer names must be nonempty and unique.", parameterName);
     }
 
+    private static void ValidateOrderTree(
+        IReadOnlyList<PdfLayerOrderItem> items, string parameterName)
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        if (items.Count == 0 || items.Any(item => !Valid(item, 0)))
+            throw new ArgumentException(
+                "The nested layer display order is invalid.", parameterName);
+
+        bool Valid(PdfLayerOrderItem? item, int depth)
+        {
+            if (item is null || depth > 64) return false;
+            PdfLayerOrderItem[] children = item.Children?.ToArray() ?? [];
+            if (item.LayerName is not null)
+                return !string.IsNullOrWhiteSpace(item.LayerName)
+                    && item.Label is null && children.Length == 0
+                    && names.Add(item.LayerName);
+            return !string.IsNullOrWhiteSpace(item.Label) && children.Length > 0
+                && children.All(child => Valid(child, depth + 1));
+        }
+    }
+
+    private static PdfOptionalContentOrderItem Convert(
+        PdfDocument document, PdfLayerOrderItem item) =>
+        item.LayerName is not null
+            ? PdfOptionalContentOrderItem.Layer(GroupNumber(document, item.LayerName))
+            : PdfOptionalContentOrderItem.Folder(item.Label!,
+                (item.Children ?? []).Select(child => Convert(document, child)).ToArray());
+
     private static IReadOnlyCollection<int>? VisibleGroups(
         PdfMacroStep step, PdfDocument document)
     {
@@ -279,4 +341,18 @@ public static class PdfLayerMacro
                 "The visible layer list contains a layer not found in the document.", nameof(step));
         return Array.AsReadOnly(names.Select(name => groups[name]).ToArray());
     }
+}
+
+/// <summary>One stable-name layer or named folder in a macro display-order tree.</summary>
+public sealed record PdfLayerOrderItem(
+    string? LayerName, string? Label, IReadOnlyList<PdfLayerOrderItem>? Children = null)
+{
+    /// <summary>Creates a layer entry.</summary>
+    public static PdfLayerOrderItem Layer(string layerName) =>
+        new(layerName, null);
+
+    /// <summary>Creates a named folder entry.</summary>
+    public static PdfLayerOrderItem Folder(
+        string label, params PdfLayerOrderItem[] children) =>
+        new(null, label, Array.AsReadOnly(children.ToArray()));
 }
