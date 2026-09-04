@@ -19,7 +19,7 @@ The 1.9.0 engine adds text and image placement extraction.
 - Added inspectable repair and lossless optimization plans with selective metadata, form, comment, attachment, bookmark, open-action, and document JavaScript sanitization, measured output sizes, and post-save removal verification (#333).
 - Added reusable preflight profiles for structural, metadata, language, tagged-document, form, page-box, output-intent, image-resolution, font, transparency, color-use, and layer checks with stable JSON and readable reports (#334).
 - Added accessibility findings for language, structure trees, marked content, table headers, and missing figure, form-field, and link descriptions (#335).
-- Added configurable signature trust results with signer certificate identity, SHA-256 fingerprints, algorithms, purpose, location, contact, and time details (#336).
+- Added consolidated signature inspection with configurable trust, certificate identity, SHA-256 fingerprints, algorithms, purpose, location, contact, signing time, byte ranges, permissions, and later-revision analysis (#336).
 - Added document attachment inspection and editing with decoded payloads, names, descriptions, classifications, replacements, portfolio metadata, executable-content warnings, integrity checks, and traversal-safe extraction paths (#347).
 - Added typed PDF layer inspection and editing for names, configuration metadata, locks, base state, visibility, nested display order, and alternate optional-content configurations (#350).
 - Added calibrated distance, perimeter, area, and angle calculations with saved profiles, scoped assignments, coordinates, deltas, intersection and angle snapping, and source-aware JSON or CSV reports (#348).

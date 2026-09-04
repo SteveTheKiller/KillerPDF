@@ -159,6 +159,44 @@ public sealed class PdfSignatureVerifierTests
         Assert.Empty(result.CertificateChainErrors);
     }
 
+    [Fact]
+    public void InspectionReportCombinesSignatureTrustAndRevisionDetailsSafely()
+    {
+        using RSA key = RSA.Create(2048);
+        var request = new CertificateRequest("CN=KillerPDF Inspection Test", key,
+            HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        using X509Certificate2 certificate = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1), DateTimeOffset.UtcNow.AddDays(1));
+        byte[] signed = PdfDetachedSignatureWriter.Sign(
+            PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()),
+            content => Sign(content, certificate),
+            new PdfSignatureOptions
+            {
+                FieldName = "Approval",
+                SignerName = "Ada",
+                ReservedSignatureSize = 4_096
+            });
+
+        PdfSignatureInspectionReport report = PdfSignatureInspection.Inspect(
+            PdfDocument.Open(signed), new PdfSignatureTrustOptions
+            {
+                CustomTrustRoots = [certificate],
+                RevocationMode = X509RevocationMode.NoCheck
+            });
+        PdfSignatureInspectionEntry entry = Assert.Single(report.Entries);
+        string json = report.ToJson();
+
+        Assert.Equal("Approval", entry.Signature.FieldName);
+        Assert.True(entry.Verification.IsCryptographicallyValid);
+        Assert.Equal(PdfCertificateTrustStatus.Trusted,
+            entry.Verification.CertificateTrustStatus);
+        Assert.NotNull(entry.Revision);
+        Assert.False(entry.Revision.HasLaterChanges);
+        Assert.Contains("\"fieldName\":\"Approval\"", json);
+        Assert.DoesNotContain("contents", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("cms", json, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static byte[] Sign(ReadOnlyMemory<byte> content, X509Certificate2 certificate)
     {
         var cms = new SignedCms(new ContentInfo(content.ToArray()), detached: true);
