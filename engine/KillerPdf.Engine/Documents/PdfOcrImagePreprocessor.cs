@@ -1,0 +1,131 @@
+namespace KillerPdf.Engine.Documents;
+
+/// <summary>A bounded grayscale raster prepared for OCR recognition.</summary>
+public sealed class PdfOcrPreparedImage
+{
+    internal PdfOcrPreparedImage(int width, int height, byte[] pixels, bool binary,
+        IEnumerable<string> diagnostics)
+    {
+        Width = width;
+        Height = height;
+        Pixels = new ReadOnlyMemory<byte>(pixels);
+        IsBinary = binary;
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+    }
+
+    /// <summary>Gets the image width.</summary>
+    public int Width { get; }
+    /// <summary>Gets the image height.</summary>
+    public int Height { get; }
+    /// <summary>Gets tightly packed eight-bit grayscale samples.</summary>
+    public ReadOnlyMemory<byte> Pixels { get; }
+    /// <summary>Gets whether every sample is black or white.</summary>
+    public bool IsBinary { get; }
+    /// <summary>Gets requested preprocessing operations that remain incomplete.</summary>
+    public IReadOnlyList<string> Diagnostics { get; }
+}
+
+/// <summary>Prepares rendered BGRA32 pages for engine-owned OCR recognition.</summary>
+public static class PdfOcrImagePreprocessor
+{
+    private const int MaximumDimension = 32_768;
+    private const long MaximumInputBytes = 512L * 1024 * 1024;
+
+    /// <summary>Converts and optionally cleans one rendered page without platform APIs.</summary>
+    public static PdfOcrPreparedImage PrepareBgra(ReadOnlyMemory<byte> bgra, int width,
+        int height, PdfOcrOptions options, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (width <= 0 || width > MaximumDimension)
+            throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0 || height > MaximumDimension)
+            throw new ArgumentOutOfRangeException(nameof(height));
+        long expected = checked((long)width * height * 4);
+        if (expected > MaximumInputBytes || bgra.Length != expected)
+            throw new ArgumentException("The BGRA image length or dimensions are invalid.", nameof(bgra));
+
+        byte[] gray = GC.AllocateUninitializedArray<byte>(checked(width * height));
+        ReadOnlySpan<byte> source = bgra.Span;
+        for (int pixel = 0; pixel < gray.Length; pixel++)
+        {
+            if ((pixel & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int offset = pixel * 4;
+            int alpha = source[offset + 3];
+            int blue = (source[offset] * alpha + 255 * (255 - alpha) + 127) / 255;
+            int green = (source[offset + 1] * alpha + 255 * (255 - alpha) + 127) / 255;
+            int red = (source[offset + 2] * alpha + 255 * (255 - alpha) + 127) / 255;
+            gray[pixel] = (byte)((29 * blue + 150 * green + 77 * red + 128) >> 8);
+        }
+
+        bool binary = false;
+        if (options.RemoveBackground)
+        {
+            gray = AdaptiveThreshold(gray, width, height, cancellationToken);
+            binary = true;
+        }
+        if (options.RemoveNoise)
+            gray = Median3x3(gray, width, height, cancellationToken);
+
+        var diagnostics = new List<string>();
+        if (options.Deskew) diagnostics.Add("OCR deskew is not implemented.");
+        if (options.CorrectOrientation)
+            diagnostics.Add("OCR orientation detection is not implemented.");
+        if (options.DetectPageSegments)
+            diagnostics.Add("OCR page segmentation is not implemented.");
+        return new PdfOcrPreparedImage(width, height, gray, binary, diagnostics);
+    }
+
+    private static byte[] AdaptiveThreshold(byte[] source, int width, int height,
+        CancellationToken cancellationToken)
+    {
+        int stride = width + 1;
+        long[] integral = new long[checked(stride * (height + 1))];
+        for (int y = 0; y < height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            long row = 0;
+            for (int x = 0; x < width; x++)
+            {
+                row += source[y * width + x];
+                integral[(y + 1) * stride + x + 1] = integral[y * stride + x + 1] + row;
+            }
+        }
+        byte[] result = new byte[source.Length];
+        int radius = Math.Clamp(Math.Min(width, height) / 32, 4, 32);
+        for (int y = 0; y < height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int top = Math.Max(0, y - radius), bottom = Math.Min(height, y + radius + 1);
+            for (int x = 0; x < width; x++)
+            {
+                int left = Math.Max(0, x - radius), right = Math.Min(width, x + radius + 1);
+                long sum = integral[bottom * stride + right] - integral[top * stride + right]
+                    - integral[bottom * stride + left] + integral[top * stride + left];
+                int mean = (int)(sum / ((right - left) * (bottom - top)));
+                result[y * width + x] = source[y * width + x] < mean - 12 ? (byte)0 : (byte)255;
+            }
+        }
+        return result;
+    }
+
+    private static byte[] Median3x3(byte[] source, int width, int height,
+        CancellationToken cancellationToken)
+    {
+        byte[] result = source.ToArray();
+        Span<byte> values = stackalloc byte[9];
+        for (int y = 1; y < height - 1; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int x = 1; x < width - 1; x++)
+            {
+                int count = 0;
+                for (int yy = y - 1; yy <= y + 1; yy++)
+                    for (int xx = x - 1; xx <= x + 1; xx++)
+                        values[count++] = source[yy * width + xx];
+                values.Sort();
+                result[y * width + x] = values[4];
+            }
+        }
+        return result;
+    }
+}
