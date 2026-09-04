@@ -189,6 +189,34 @@ public sealed class PdfContentTransformationTests
     }
 
     [Fact]
+    public void TransformAndRemoveShadingPlacementsSelectOccurrencesByResource()
+    {
+        var first = new PdfName("Shade1"u8);
+        var second = new PdfName("Shade2"u8);
+        PdfContentInstruction[] source =
+        [
+            new("sh", 0, [first]),
+            new("sh", 8, [second]),
+            new("sh", 16, [first])
+        ];
+
+        IReadOnlyList<PdfContentInstruction> transformed =
+            PdfContentTransformation.TransformShadingPlacements(
+                source, first, [1], PdfContentTransformMatrix.Translation(20, 30));
+        IReadOnlyList<PdfContentInstruction> removed =
+            PdfContentTransformation.RemoveShadingPlacements(source, first, [0]);
+
+        Assert.Equal(["sh", "sh", "q", "cm", "sh", "Q"],
+            transformed.Select(item => item.Operator));
+        Assert.Equal([20d, 30d], transformed[3].Operands.Skip(4)
+            .Cast<PdfReal>().Select(value => value.Value));
+        Assert.Equal([second, first], removed.Select(item =>
+            Assert.IsType<PdfName>(Assert.Single(item.Operands))));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.RemoveShadingPlacements(source, first, [2]));
+    }
+
+    [Fact]
     public void ClipRangeChangesOnlySelectedInstructionsAndRoundTrips()
     {
         IReadOnlyList<PdfContentInstruction> source =

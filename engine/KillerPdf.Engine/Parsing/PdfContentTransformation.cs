@@ -532,6 +532,74 @@ public static class PdfContentTransformation
         return Array.AsReadOnly(source.Where((_, index) => !removed.Contains(index)).ToArray());
     }
 
+    /// <summary>Transforms selected placements of one shading resource.</summary>
+    public static IReadOnlyList<PdfContentInstruction> TransformShadingPlacements(
+        IEnumerable<PdfContentInstruction> instructions,
+        PdfName resourceName, IEnumerable<int> occurrenceIndexes,
+        PdfContentTransformMatrix matrix)
+    {
+        PdfContentInstruction[] source = ValidateNamedPlacements(
+            instructions, resourceName, occurrenceIndexes, "sh", "shading",
+            out HashSet<int> selected);
+        var result = new List<PdfContentInstruction>(source.Length + selected.Count * 3);
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (!selected.Contains(index))
+            {
+                result.Add(source[index]);
+                continue;
+            }
+            result.Add(new PdfContentInstruction("q", 0, []));
+            result.Add(new PdfContentInstruction("cm", 0,
+            [
+                new PdfReal(matrix.A), new PdfReal(matrix.B),
+                new PdfReal(matrix.C), new PdfReal(matrix.D),
+                new PdfReal(matrix.E), new PdfReal(matrix.F)
+            ]));
+            result.Add(source[index]);
+            result.Add(new PdfContentInstruction("Q", 0, []));
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
+    /// <summary>Removes selected placements of one shading resource.</summary>
+    public static IReadOnlyList<PdfContentInstruction> RemoveShadingPlacements(
+        IEnumerable<PdfContentInstruction> instructions,
+        PdfName resourceName, IEnumerable<int> occurrenceIndexes)
+    {
+        PdfContentInstruction[] source = ValidateNamedPlacements(
+            instructions, resourceName, occurrenceIndexes, "sh", "shading",
+            out HashSet<int> selected);
+        return Array.AsReadOnly(source.Where((_, index) => !selected.Contains(index)).ToArray());
+    }
+
+    private static PdfContentInstruction[] ValidateNamedPlacements(
+        IEnumerable<PdfContentInstruction> instructions, PdfName resourceName,
+        IEnumerable<int> occurrenceIndexes, string operation, string kind,
+        out HashSet<int> selected)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(resourceName);
+        ArgumentNullException.ThrowIfNull(occurrenceIndexes);
+        if (resourceName.Bytes.IsEmpty)
+            throw new ArgumentException($"A {kind} resource name is required.",
+                nameof(resourceName));
+        PdfContentInstruction[] source = instructions.ToArray();
+        int[] placements = [.. source.Select((instruction, index) => (instruction, index))
+            .Where(item => item.instruction.Operator == operation
+                && item.instruction.Operands is [PdfName name]
+                && name.Equals(resourceName))
+            .Select(item => item.index)];
+        int[] requested = occurrenceIndexes.ToArray();
+        if (requested.Any(index => index < 0 || index >= placements.Length)
+            || requested.Distinct().Count() != requested.Length)
+            throw new ArgumentException(
+                $"Selected {kind} occurrence indexes must be valid and unique.",
+                nameof(occurrenceIndexes));
+        selected = requested.Select(index => placements[index]).ToHashSet();
+        return source;
+    }
+
     /// <summary>Clips a contiguous instruction range to a rectangle without changing surrounding content.</summary>
     public static IReadOnlyList<PdfContentInstruction> ClipRange(
         IEnumerable<PdfContentInstruction> instructions,
