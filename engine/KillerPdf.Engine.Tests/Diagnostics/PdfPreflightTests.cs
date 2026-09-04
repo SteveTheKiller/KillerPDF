@@ -364,6 +364,39 @@ public sealed class PdfPreflightTests
         Assert.Equal(PdfDiagnosticSeverity.Error, report.Findings[0].Severity);
         Assert.Equal(PdfDiagnosticSeverity.Unsupported, report.Findings[1].Severity);
         Assert.Equal(metadataReference.ObjectNumber, report.Findings[1].ObjectNumber);
+        Assert.False(report.Passed);
+        Assert.False(report.Complete);
+        Assert.Contains("Result: Failed", report.ToText(), StringComparison.Ordinal);
+        Assert.Contains("\"complete\":false", report.ToJson(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnsupportedConformanceIsIncompleteWithoutClaimingFailure()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .SetMetadata(new PdfDocumentMetadata { Title = "PDF/A sample" })
+            .SetOutputIntent(PdfIccProfile.Load(Profile()), "Test RGB")
+            .EnablePdfA4Conformance().AddBlankPage().Build());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(original.Resolve(
+            Assert.IsType<PdfIndirectReference>(original.Trailer[new PdfName("Root"u8)])));
+        PdfIndirectReference metadataReference = Assert.IsType<PdfIndirectReference>(
+            catalog[new PdfName("Metadata"u8)]);
+        PdfStream metadata = Assert.IsType<PdfStream>(original.Resolve(metadataReference));
+        byte[] xmp = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(metadata.EncodedData.Span)
+            .Replace(">4</pdfaid:part>",
+                ">3</pdfaid:part>", StringComparison.Ordinal));
+        byte[] source = new PdfIncrementalUpdateBuilder(original)
+            .ReplaceObject(metadataReference.ObjectNumber,
+                new PdfStream(metadata.Dictionary, xmp)).Build();
+        var profile = new PdfPreflightProfile("Declared conformance",
+            [PdfPreflightCheck.ConformanceDeclarations]);
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(source, profile);
+
+        Assert.True(report.Passed);
+        Assert.False(report.Complete);
+        Assert.Contains("Result: Incomplete", report.ToText(), StringComparison.Ordinal);
+        Assert.Contains("\"complete\":false", report.ToJson(), StringComparison.Ordinal);
     }
 
     [Fact]

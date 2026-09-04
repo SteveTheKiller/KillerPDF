@@ -155,13 +155,16 @@ public sealed class PdfPreflightReport
     public IReadOnlyList<PdfPreflightFinding> Findings { get; }
     /// <summary>Gets whether every selected implemented check passed.</summary>
     public bool Passed => !Findings.Any(finding => finding.Severity == PdfDiagnosticSeverity.Error);
+    /// <summary>Gets whether every selected check was available.</summary>
+    public bool Complete => !Findings.Any(finding =>
+        finding.Severity == PdfDiagnosticSeverity.Unsupported);
 
     /// <summary>Formats a readable report with page and object locations.</summary>
     public string ToText()
     {
         var output = new StringBuilder()
             .Append("Preflight profile: ").AppendLine(ProfileName)
-            .Append("Result: ").AppendLine(Passed ? "Passed" : "Failed");
+            .Append("Result: ").AppendLine(!Passed ? "Failed" : Complete ? "Passed" : "Incomplete");
         if (Findings.Count == 0) return output.AppendLine("No findings.").ToString();
         foreach (PdfPreflightFinding finding in Findings)
         {
@@ -185,7 +188,7 @@ public sealed class PdfPreflightReport
             WriteIndented = indented
         };
         options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        return JsonSerializer.Serialize(new { ProfileName, Passed, Findings }, options);
+        return JsonSerializer.Serialize(new { ProfileName, Passed, Complete, Findings }, options);
     }
 }
 
