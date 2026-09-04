@@ -312,9 +312,9 @@ internal static class PdfPreflightDocumentChecks
         PdfDocument document, double maximumInkCoveragePercent)
     {
         var findings = new List<PdfPreflightFinding>();
-        var visitedColorSpaces = new HashSet<(int, int)>();
-        var visitedStates = new HashSet<(int, int)>();
-        var visitedForms = new HashSet<(int, int)>();
+        var visitedColorSpaces = new HashSet<(int, int, int)>();
+        var visitedStates = new HashSet<(int, int, int)>();
+        var visitedXObjects = new HashSet<(int, int, int)>();
         foreach (PdfPageContentBatchResult page in PdfPageContentBatch.Read(document))
         {
             if (!page.Succeeded) continue;
@@ -356,17 +356,10 @@ internal static class PdfPreflightDocumentChecks
                 {
                     PdfIndirectReference? reference = item.Value as PdfIndirectReference;
                     if (reference is not null
-                        && !visitedColorSpaces.Add((reference.ObjectNumber, reference.Generation)))
+                        && !visitedColorSpaces.Add((reference.ObjectNumber,
+                            reference.Generation, pageIndex)))
                         continue;
-                    PdfObject space = Resolve(document, item.Value);
-                    if (space is not PdfArray array || array.Count == 0
-                        || Resolve(document, array[0]) is not PdfName family) continue;
-                    if (family.ValueAsLatin1() is "Separation" or "DeviceN")
-                        findings.Add(Information("ColorUsage.SpotColor",
-                            "The document declares a spot color space.", pageIndex,
-                            reference?.ObjectNumber));
-                    if (family.ValueAsLatin1() == "ICCBased")
-                        ValidateIccProfile(array, pageIndex, reference?.ObjectNumber);
+                    InspectColorSpace(item.Value, pageIndex, reference?.ObjectNumber);
                 }
             }
             if (resources.TryGetValue(ExtGStateName, out PdfObject? statesValue))
@@ -377,7 +370,8 @@ internal static class PdfPreflightDocumentChecks
                 {
                     PdfIndirectReference? reference = item.Value as PdfIndirectReference;
                     if (reference is not null
-                        && !visitedStates.Add((reference.ObjectNumber, reference.Generation)))
+                        && !visitedStates.Add((reference.ObjectNumber,
+                            reference.Generation, pageIndex)))
                         continue;
                     PdfDictionary state = Resolve(document, item.Value) as PdfDictionary
                         ?? throw new InvalidOperationException("An extended graphics state is not a dictionary.");
@@ -394,13 +388,39 @@ internal static class PdfPreflightDocumentChecks
             {
                 PdfIndirectReference? reference = item.Value as PdfIndirectReference;
                 if (reference is not null
-                    && !visitedForms.Add((reference.ObjectNumber, reference.Generation)))
+                    && !visitedXObjects.Add((reference.ObjectNumber,
+                        reference.Generation, pageIndex)))
                     continue;
-                if (Resolve(document, item.Value) is PdfStream stream
-                    && IsName(stream.Dictionary, "Subtype", "Form")
-                    && stream.Dictionary.TryGetValue(ResourcesName, out PdfObject? formResources))
+                if (Resolve(document, item.Value) is not PdfStream stream) continue;
+                if (IsName(stream.Dictionary, "Subtype", "Image")
+                    && stream.Dictionary.TryGetValue(ColorSpaceName,
+                        out PdfObject? imageColorSpace))
+                    InspectColorSpace(imageColorSpace, pageIndex, reference?.ObjectNumber);
+                if (IsName(stream.Dictionary, "Subtype", "Form")
+                    && stream.Dictionary.TryGetValue(ResourcesName,
+                        out PdfObject? formResources))
                     InspectResources(formResources, pageIndex);
             }
+        }
+
+        void InspectColorSpace(PdfObject value, int pageIndex, int? objectNumber)
+        {
+            PdfObject space = Resolve(document, value);
+            if (space is PdfName name)
+            {
+                if (name.ValueAsLatin1() == "DeviceRGB")
+                    findings.Add(Warning("ColorUsage.DeviceRgb",
+                        "An image uses the device RGB color space.", pageIndex, objectNumber));
+                return;
+            }
+            if (space is not PdfArray array || array.Count == 0
+                || Resolve(document, array[0]) is not PdfName family)
+                return;
+            if (family.ValueAsLatin1() is "Separation" or "DeviceN")
+                findings.Add(Information("ColorUsage.SpotColor",
+                    "The document declares a spot color space.", pageIndex, objectNumber));
+            if (family.ValueAsLatin1() == "ICCBased")
+                ValidateIccProfile(array, pageIndex, objectNumber);
         }
 
         bool IsTrue(PdfDictionary dictionary, string key) =>

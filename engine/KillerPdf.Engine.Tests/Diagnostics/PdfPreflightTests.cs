@@ -467,6 +467,29 @@ public sealed class PdfPreflightTests
     }
 
     [Fact]
+    public void ColorUsageFindsDeviceRgbImagesOnEveryPage()
+    {
+        PdfImage image = PdfImage.FromRgb(2, 2, new byte[12]);
+        var profile = new PdfPreflightProfile("Color usage",
+            [PdfPreflightCheck.ColorUsage]);
+        var builder = new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .DrawImage(image, 10, 10, 20, 20))
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .DrawImage(image, 30, 30, 20, 20));
+
+        PdfPreflightReport report = PdfPreflightRunner.Run(builder.Build(), profile);
+
+        Assert.Equal(2, report.Findings.Count);
+        Assert.All(report.Findings, finding =>
+        {
+            Assert.Equal("ColorUsage.DeviceRgb", finding.Code);
+            Assert.NotNull(finding.ObjectNumber);
+        });
+        Assert.Equal([0, 1], report.Findings.Select(finding => finding.PageIndex));
+    }
+
+    [Fact]
     public void ColorUsageValidatesEmbeddedIccProfileBytes()
     {
         var content = new PdfContentStreamBuilder()
