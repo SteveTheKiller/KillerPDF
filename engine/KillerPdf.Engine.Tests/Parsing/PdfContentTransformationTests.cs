@@ -7,6 +7,31 @@ namespace KillerPdf.Engine.Tests.Parsing;
 public sealed class PdfContentTransformationTests
 {
     [Fact]
+    public void RemoveTextObjectsRemovesOnlySelectedCompleteObjects()
+    {
+        IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(
+            "q BT /F1 10 Tf (first) Tj ET 7 FutureOp BT /F2 12 Tf (second) Tj ET Q"u8.ToArray());
+
+        IReadOnlyList<PdfContentInstruction> result =
+            PdfContentTransformation.RemoveTextObjects(source, [0]);
+        IReadOnlyList<PdfContentInstruction> reopened = PdfContentStreamReader.Read(
+            PdfContentStreamWriter.Write(result));
+
+        Assert.Equal(["q", "FutureOp", "BT", "Tf", "Tj", "ET", "Q"],
+            reopened.Select(instruction => instruction.Operator));
+        Assert.Equal("second", System.Text.Encoding.Latin1.GetString(
+            Assert.IsType<PdfString>(reopened[4].Operands[0]).Bytes.Span));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.RemoveTextObjects(source, [0, 0]));
+        Assert.Throws<ArgumentException>(() =>
+            PdfContentTransformation.RemoveTextObjects(source, [2]));
+        Assert.Throws<FormatException>(() => PdfContentTransformation.RemoveTextObjects(
+            PdfContentStreamReader.Read("BT (open) Tj"u8.ToArray()), [0]));
+        Assert.Throws<FormatException>(() => PdfContentTransformation.RemoveTextObjects(
+            PdfContentStreamReader.Read("BT q (open) Tj ET Q"u8.ToArray()), [0]));
+    }
+
+    [Fact]
     public void RewriteRemovesAndReplacesSelectedInstructions()
     {
         IReadOnlyList<PdfContentInstruction> source = PdfContentStreamReader.Read(

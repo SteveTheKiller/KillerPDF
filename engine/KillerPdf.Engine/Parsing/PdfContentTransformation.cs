@@ -93,6 +93,88 @@ public readonly record struct PdfDeviceRgbColor
 /// <summary>Rewrites selected instructions or transforms a complete decoded content stream.</summary>
 public static class PdfContentTransformation
 {
+    /// <summary>Removes selected complete text objects while preserving surrounding instructions.</summary>
+    public static IReadOnlyList<PdfContentInstruction> RemoveTextObjects(
+        IEnumerable<PdfContentInstruction> instructions,
+        IEnumerable<int> textObjectIndexes)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(textObjectIndexes);
+        PdfContentInstruction[] source = instructions.ToArray();
+        var ranges = new List<(int Start, int End)>();
+        int start = -1;
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (source[index].Operator == "BT")
+            {
+                if (start >= 0)
+                    throw new FormatException("A content stream contains nested text objects.");
+                start = index;
+            }
+            else if (source[index].Operator == "ET")
+            {
+                if (start < 0)
+                    throw new FormatException("A content stream closes a text object that was not opened.");
+                ranges.Add((start, index));
+                start = -1;
+            }
+        }
+        if (start >= 0)
+            throw new FormatException("A content stream contains an unclosed text object.");
+
+        int[] requested = textObjectIndexes.ToArray();
+        if (requested.Any(index => index < 0 || index >= ranges.Count)
+            || requested.Distinct().Count() != requested.Length)
+            throw new ArgumentException(
+                "Selected text-object indexes must be valid and unique.",
+                nameof(textObjectIndexes));
+        foreach (int requestedIndex in requested)
+        {
+            (int rangeStart, int rangeEnd) = ranges[requestedIndex];
+            ValidateContainedScopes(source, rangeStart + 1, rangeEnd);
+        }
+        Dictionary<int, int> removed = requested.Select(index => ranges[index])
+            .ToDictionary(range => range.Start, range => range.End);
+        var result = new List<PdfContentInstruction>(source.Length);
+        for (int index = 0; index < source.Length; index++)
+        {
+            if (removed.TryGetValue(index, out int end))
+            {
+                index = end;
+                continue;
+            }
+            result.Add(source[index]);
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
+    private static void ValidateContainedScopes(
+        IReadOnlyList<PdfContentInstruction> source, int start, int end)
+    {
+        int graphics = 0, marked = 0, compatibility = 0;
+        for (int index = start; index < end; index++)
+        {
+            switch (source[index].Operator)
+            {
+                case "q": graphics++; break;
+                case "Q" when --graphics < 0:
+                    throw new FormatException(
+                        "A removed text object closes an outer graphics-state scope.");
+                case "BMC" or "BDC": marked++; break;
+                case "EMC" when --marked < 0:
+                    throw new FormatException(
+                        "A removed text object closes an outer marked-content scope.");
+                case "BX": compatibility++; break;
+                case "EX" when --compatibility < 0:
+                    throw new FormatException(
+                        "A removed text object closes an outer compatibility scope.");
+            }
+        }
+        if (graphics != 0 || marked != 0 || compatibility != 0)
+            throw new FormatException(
+                "A removed text object contains an unclosed graphics, marked-content, or compatibility scope.");
+    }
+
     /// <summary>Removes or replaces zero-based instructions while preserving every untouched instruction.</summary>
     public static IReadOnlyList<PdfContentInstruction> Rewrite(
         IEnumerable<PdfContentInstruction> instructions,
