@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -88,7 +89,12 @@ public static class PdfDataMerge
                 if (blocked.Length > 0)
                     throw new InvalidOperationException("The record cannot be applied to: "
                         + string.Join(", ", blocked.Select(match => match.FieldName)) + ".");
-                byte[] data = PdfFormDataImporter.Apply(template, mapped.FormData);
+                byte[] data = mapped.FormData.Fields.Count == 0
+                    ? template.Source.ToArray()
+                    : PdfFormDataImporter.Apply(template, mapped.FormData);
+                if (mapped.TextReplacements.Count > 0)
+                    data = ApplyTextReplacements(PdfDocument.Open(data),
+                        mapped.TextReplacements, cancellationToken);
                 usedFileNames.Add(outputFileName);
                 results.Add(new PdfDataMergeDocumentResult(
                     index, outputFileName, data, null));
@@ -104,6 +110,40 @@ public static class PdfDataMerge
         return Array.AsReadOnly(results.ToArray());
     }
 
+    private static byte[] ApplyTextReplacements(PdfDocument document,
+        IReadOnlyDictionary<string, string> replacements,
+        CancellationToken cancellationToken)
+    {
+        var reader = new PdfPageContentReader(document);
+        var editor = new PdfIncrementalPageEditor(document);
+        var counts = replacements.Keys.ToDictionary(key => key, _ => 0,
+            StringComparer.Ordinal);
+        for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<PdfContentInstruction> instructions =
+                reader.ReadInstructions(pageIndex, cancellationToken);
+            bool changed = false;
+            foreach ((string placeholder, string value) in replacements)
+            {
+                instructions = PdfContentTransformation.ReplaceLatin1Text(
+                    instructions, new Dictionary<string, string>
+                    {
+                        [placeholder] = value
+                    }, out int count);
+                counts[placeholder] += count;
+                changed |= count > 0;
+            }
+            if (changed) editor.SetPageContent(pageIndex, instructions);
+        }
+        string[] unmatched = [.. counts.Where(item => item.Value == 0)
+            .Select(item => item.Key)];
+        if (unmatched.Length > 0)
+            throw new InvalidOperationException("The template does not contain text placeholder(s): "
+                + string.Join(", ", unmatched) + ".");
+        return editor.Build();
+    }
+
     /// <summary>Previews one mapped record without changing the template or retaining its values.</summary>
     public static PdfDataMergePreview PreviewFormRecord(PdfDocument template,
         IReadOnlyDictionary<string, string?> record, PdfDataMergeProfile profile)
@@ -116,18 +156,49 @@ public static class PdfDataMerge
             PdfDataMergeMappedRecord mapped = profile.Map(record);
             IReadOnlyList<PdfFormDataMatch> matches =
                 PdfFormDataImporter.Preview(template, mapped.FormData);
+            IReadOnlyList<PdfDataMergeTextMatch> textMatches =
+                PreviewTextReplacements(template, mapped.TextReplacements);
             PdfFormDataMatch[] blocked = [.. matches.Where(match =>
                 match.Status != PdfFormDataMatchStatus.Matched)];
-            string? error = blocked.Length == 0 ? null
+            string[] missingText = [.. textMatches.Where(match => !match.Matched)
+                .Select(match => match.Placeholder)];
+            var blockedTargets = blocked.Select(match => match.FieldName)
+                .Concat(missingText).ToArray();
+            string? error = blockedTargets.Length == 0 ? null
                 : "The record cannot be applied to: "
-                    + string.Join(", ", blocked.Select(match => match.FieldName)) + ".";
-            return new PdfDataMergePreview(mapped.OutputFileName, matches, error);
+                    + string.Join(", ", blockedTargets) + ".";
+            return new PdfDataMergePreview(mapped.OutputFileName, matches, error)
+            {
+                TextPlaceholders = textMatches
+            };
         }
         catch (Exception exception) when (exception is not OutOfMemoryException
             and not StackOverflowException and not AccessViolationException)
         {
             return new PdfDataMergePreview(null, [], exception.Message);
         }
+    }
+
+    private static IReadOnlyList<PdfDataMergeTextMatch> PreviewTextReplacements(
+        PdfDocument document, IReadOnlyDictionary<string, string> replacements)
+    {
+        var reader = new PdfPageContentReader(document);
+        var counts = replacements.Keys.ToDictionary(key => key, _ => 0,
+            StringComparer.Ordinal);
+        for (int pageIndex = 0; pageIndex < reader.PageCount; pageIndex++)
+        {
+            IReadOnlyList<PdfContentInstruction> instructions =
+                reader.ReadInstructions(pageIndex);
+            foreach ((string placeholder, string value) in replacements)
+            {
+                _ = PdfContentTransformation.ReplaceLatin1Text(instructions,
+                    new Dictionary<string, string> { [placeholder] = value },
+                    out int count);
+                counts[placeholder] += count;
+            }
+        }
+        return Array.AsReadOnly(counts.Select(item =>
+            new PdfDataMergeTextMatch(item.Key, item.Value)).ToArray());
     }
 
     /// <summary>Combines successful generated records in batch order and skips failed records.</summary>
@@ -190,9 +261,19 @@ public sealed record PdfDataMergeCombinedResult(
 public sealed record PdfDataMergePreview(string? OutputFileName,
     IReadOnlyList<PdfFormDataMatch> Fields, string? Error)
 {
+    /// <summary>Gets data-free page-text placeholder matches.</summary>
+    public IReadOnlyList<PdfDataMergeTextMatch> TextPlaceholders { get; init; } = [];
     /// <summary>Gets whether the record can be generated.</summary>
     public bool CanGenerate => Error is null
-        && Fields.All(match => match.Status == PdfFormDataMatchStatus.Matched);
+        && Fields.All(match => match.Status == PdfFormDataMatchStatus.Matched)
+        && TextPlaceholders.All(match => match.Matched);
+}
+
+/// <summary>A data-free page-text placeholder match.</summary>
+public sealed record PdfDataMergeTextMatch(string Placeholder, int OccurrenceCount)
+{
+    /// <summary>Gets whether the placeholder occurs in the template.</summary>
+    public bool Matched => OccurrenceCount > 0;
 }
 
 /// <summary>A data-free summary of one form-generation batch.</summary>

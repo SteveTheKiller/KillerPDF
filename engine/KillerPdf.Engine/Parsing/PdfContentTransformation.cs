@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Objects;
+using System.Text;
 
 namespace KillerPdf.Engine.Parsing;
 
@@ -93,6 +94,87 @@ public readonly record struct PdfDeviceRgbColor
 /// <summary>Rewrites selected instructions or transforms a complete decoded content stream.</summary>
 public static class PdfContentTransformation
 {
+    /// <summary>Replaces exact Latin-1 byte sequences in Tj and TJ text operands.</summary>
+    public static IReadOnlyList<PdfContentInstruction> ReplaceLatin1Text(
+        IEnumerable<PdfContentInstruction> instructions,
+        IReadOnlyDictionary<string, string> replacements,
+        out int replacementCount)
+    {
+        ArgumentNullException.ThrowIfNull(instructions);
+        ArgumentNullException.ThrowIfNull(replacements);
+        if (replacements.Any(item => item.Key.Length == 0
+            || item.Key.Any(character => character > 0xff)
+            || item.Value.Any(character => character > 0xff)))
+            throw new ArgumentException(
+                "Latin-1 text replacements require nonempty Latin-1 keys and values.",
+                nameof(replacements));
+        var encoded = replacements.Select(item => (
+            Find: Encoding.Latin1.GetBytes(item.Key),
+            Replace: Encoding.Latin1.GetBytes(item.Value))).ToArray();
+        PdfContentInstruction[] source = instructions.ToArray();
+        var result = source.ToArray();
+        replacementCount = 0;
+        for (int index = 0; index < result.Length; index++)
+        {
+            PdfContentInstruction instruction = result[index];
+            if (instruction.Operator == "Tj" && instruction.Operands is [PdfString text])
+            {
+                PdfString changed = Replace(text, encoded, ref replacementCount);
+                if (!ReferenceEquals(changed, text))
+                    result[index] = new PdfContentInstruction("Tj", instruction.Offset, [changed]);
+            }
+            else if (instruction.Operator == "TJ"
+                && instruction.Operands is [PdfArray array])
+            {
+                PdfObject[] items = array.ToArray();
+                bool changed = false;
+                for (int itemIndex = 0; itemIndex < items.Length; itemIndex++)
+                {
+                    if (items[itemIndex] is not PdfString arrayText) continue;
+                    PdfString replacement = Replace(arrayText, encoded, ref replacementCount);
+                    if (ReferenceEquals(replacement, arrayText)) continue;
+                    items[itemIndex] = replacement;
+                    changed = true;
+                }
+                if (changed)
+                    result[index] = new PdfContentInstruction("TJ", instruction.Offset,
+                        [new PdfArray(items)]);
+            }
+        }
+        return Array.AsReadOnly(result);
+
+        static PdfString Replace(PdfString text,
+            IReadOnlyList<(byte[] Find, byte[] Replace)> replacements,
+            ref int count)
+        {
+            byte[] current = text.Bytes.ToArray();
+            bool changed = false;
+            foreach ((byte[] find, byte[] replacement) in replacements)
+            {
+                using var output = new MemoryStream();
+                int start = 0;
+                for (int index = 0; index <= current.Length - find.Length;)
+                {
+                    if (!current.AsSpan(index, find.Length).SequenceEqual(find))
+                    {
+                        index++;
+                        continue;
+                    }
+                    output.Write(current, start, index - start);
+                    output.Write(replacement);
+                    index += find.Length;
+                    start = index;
+                    count++;
+                    changed = true;
+                }
+                if (start == 0) continue;
+                output.Write(current, start, current.Length - start);
+                current = output.ToArray();
+            }
+            return changed ? new PdfString(current, text.Form) : text;
+        }
+    }
+
     /// <summary>Removes selected complete text objects while preserving surrounding instructions.</summary>
     public static IReadOnlyList<PdfContentInstruction> RemoveTextObjects(
         IEnumerable<PdfContentInstruction> instructions,

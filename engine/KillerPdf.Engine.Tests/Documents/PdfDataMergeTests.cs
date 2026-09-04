@@ -284,6 +284,44 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void FormBatchReplacesLatin1PageTextPlaceholdersAndReportsMissingTargets()
+    {
+        PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(300, 200, new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 12).MoveText(20, 100)
+                .ShowPositionedLatin1Text(["Hello {{Name}}", "!"], [0])
+                .EndText()).Build());
+        var profile = new PdfDataMergeProfile("Letters",
+            [new PdfDataMergeFieldMapping("Customer", "Name",
+                TargetKind: PdfDataMergeTargetKind.TextPlaceholder)],
+            "letter.pdf");
+
+        PdfDataMergeDocumentResult result = Assert.Single(PdfDataMerge.RunFormBatch(
+            template, [new Dictionary<string, string?> { ["Customer"] = "Ada" }], profile));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("Hello Ada!", PdfStructuredExport.ToPlainText(
+            PdfDocument.Open(result.Data!.Value)));
+        Assert.Equal("Hello {{Name}}!", PdfStructuredExport.ToPlainText(template));
+        PdfDataMergePreview preview = PdfDataMerge.PreviewFormRecord(template,
+            new Dictionary<string, string?> { ["Customer"] = "Ada" }, profile);
+        Assert.True(preview.CanGenerate);
+        Assert.Equal(1, Assert.Single(preview.TextPlaceholders).OccurrenceCount);
+        Assert.DoesNotContain("Ada", JsonSerializer.Serialize(preview),
+            StringComparison.Ordinal);
+
+        var missing = new PdfDataMergeProfile("Missing",
+            [new PdfDataMergeFieldMapping("Customer", "Unknown",
+                TargetKind: PdfDataMergeTargetKind.TextPlaceholder)], "missing.pdf");
+        PdfDataMergeDocumentResult failed = Assert.Single(PdfDataMerge.RunFormBatch(
+            template, [new Dictionary<string, string?> { ["Customer"] = "Ada" }], missing));
+        Assert.False(failed.Succeeded);
+        Assert.Contains("{{Unknown}}", failed.Error, StringComparison.Ordinal);
+        Assert.False(PdfDataMerge.PreviewFormRecord(template,
+            new Dictionary<string, string?> { ["Customer"] = "Ada" }, missing).CanGenerate);
+    }
+
+    [Fact]
     public void FormRecordPreviewReportsMappedTypesAndBlockedFieldsWithoutValues()
     {
         PdfDocument template = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()

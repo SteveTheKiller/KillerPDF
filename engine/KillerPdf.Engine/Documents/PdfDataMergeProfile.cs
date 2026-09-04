@@ -9,7 +9,8 @@ public sealed record PdfDataMergeFieldMapping(
     string SourceField, string TargetField, string? DefaultValue = null,
     PdfDataMergeValueKind ValueKind = PdfDataMergeValueKind.Text,
     string? Format = null, string? CultureName = null,
-    string? IncludeWhenField = null, string? IncludeWhenValue = null);
+    string? IncludeWhenField = null, string? IncludeWhenValue = null,
+    PdfDataMergeTargetKind TargetKind = PdfDataMergeTargetKind.FormField);
 
 /// <summary>A reusable data-merge mapping that contains no source records.</summary>
 public sealed class PdfDataMergeProfile
@@ -31,6 +32,8 @@ public sealed class PdfDataMergeProfile
             throw new ArgumentException("Data-merge field names cannot be empty.", nameof(mappings));
         if (selected.Any(mapping => !Enum.IsDefined(mapping.ValueKind)))
             throw new ArgumentException("A data-merge value kind is invalid.", nameof(mappings));
+        if (selected.Any(mapping => !Enum.IsDefined(mapping.TargetKind)))
+            throw new ArgumentException("A data-merge target kind is invalid.", nameof(mappings));
         if (selected.Any(mapping => mapping.ValueKind == PdfDataMergeValueKind.Text
             && mapping.Format is not null))
             throw new ArgumentException("Text mappings cannot have a format string.", nameof(mappings));
@@ -69,6 +72,7 @@ public sealed class PdfDataMergeProfile
     {
         ArgumentNullException.ThrowIfNull(record);
         var fields = new List<PdfFormDataField>(Mappings.Count);
+        var text = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (PdfDataMergeFieldMapping mapping in Mappings)
         {
             if (mapping.IncludeWhenField is not null
@@ -81,18 +85,25 @@ public sealed class PdfDataMergeProfile
                 ? supplied
                 : mapping.DefaultValue ?? PdfDataMerge.Expand(
                     "{{" + mapping.SourceField + "}}", record, MissingValueBehavior);
-            fields.Add(new PdfFormDataField
-            {
-                Name = mapping.TargetField,
-                Values = [FormatValue(mapping, value)]
-            });
+            string formatted = FormatValue(mapping, value);
+            if (mapping.TargetKind == PdfDataMergeTargetKind.FormField)
+                fields.Add(new PdfFormDataField
+                {
+                    Name = mapping.TargetField,
+                    Values = [formatted]
+                });
+            else
+                text.Add("{{" + mapping.TargetField + "}}", formatted);
         }
         string outputFileName = PdfDataMerge.Expand(
             OutputFileNameTemplate, record, MissingValueBehavior);
         if (outputFileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
             throw new InvalidOperationException("The mapped output filename contains invalid characters.");
         return new PdfDataMergeMappedRecord(
-            new PdfFormDataSet { Fields = Array.AsReadOnly(fields.ToArray()) }, outputFileName);
+            new PdfFormDataSet { Fields = Array.AsReadOnly(fields.ToArray()) }, outputFileName)
+        {
+            TextReplacements = text
+        };
     }
 
     private static string FormatValue(PdfDataMergeFieldMapping mapping, string value)
@@ -172,7 +183,21 @@ public sealed class PdfDataMergeProfile
 }
 
 /// <summary>One mapped form-data record and its generated output filename.</summary>
-public sealed record PdfDataMergeMappedRecord(PdfFormDataSet FormData, string OutputFileName);
+public sealed record PdfDataMergeMappedRecord(PdfFormDataSet FormData, string OutputFileName)
+{
+    /// <summary>Gets exact Latin-1 page-text placeholders and their replacement values.</summary>
+    public IReadOnlyDictionary<string, string> TextReplacements { get; init; } =
+        new Dictionary<string, string>();
+}
+
+/// <summary>The PDF destination receiving a mapped value.</summary>
+public enum PdfDataMergeTargetKind
+{
+    /// <summary>An AcroForm field name.</summary>
+    FormField,
+    /// <summary>A double-braced placeholder in a Latin-1 page text operand.</summary>
+    TextPlaceholder
+}
 
 /// <summary>The value conversion applied by a reusable field mapping.</summary>
 public enum PdfDataMergeValueKind
