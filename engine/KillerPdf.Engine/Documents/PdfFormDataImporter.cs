@@ -65,8 +65,15 @@ public static class PdfFormDataImporter
     }
 
     /// <summary>Applies matched values in one byte-preserving incremental revision.</summary>
-    public static byte[] Apply(PdfDocument document, PdfFormDataSet data)
+    public static byte[] Apply(PdfDocument document, PdfFormDataSet data) =>
+        Apply(document, data, PdfFormDataImportOutputMode.Editable);
+
+    /// <summary>Applies matched values and optionally flattens the updated form.</summary>
+    public static byte[] Apply(PdfDocument document, PdfFormDataSet data,
+        PdfFormDataImportOutputMode outputMode)
     {
+        if (!Enum.IsDefined(outputMode))
+            throw new ArgumentOutOfRangeException(nameof(outputMode));
         IReadOnlyList<PdfFormDataMatch> preview = Preview(document, data);
         Dictionary<string, IReadOnlyList<PdfFormWidgetInfo>> widgets = Widgets(document);
         var editor = new PdfIncrementalPageEditor(document);
@@ -101,7 +108,9 @@ public static class PdfFormDataImporter
             changed = true;
         }
         if (!changed) throw new InvalidOperationException("The form data has no applicable field values.");
-        return editor.Build();
+        byte[] updated = editor.Build();
+        return outputMode == PdfFormDataImportOutputMode.Flattened
+            ? PdfFormFlattener.Flatten(PdfDocument.Open(updated)) : updated;
     }
 
     private static bool ValuesAreValid(PdfFormDataField field,
@@ -152,6 +161,15 @@ public static class PdfFormDataImporter
             item => (IReadOnlyList<PdfFormWidgetInfo>)item.Value.AsReadOnly(),
             StringComparer.Ordinal);
     }
+}
+
+/// <summary>Controls whether imported form values remain editable.</summary>
+public enum PdfFormDataImportOutputMode
+{
+    /// <summary>Retain form fields and their imported values.</summary>
+    Editable,
+    /// <summary>Paint field appearances into page content and remove the fields.</summary>
+    Flattened
 }
 
 /// <summary>The preview status for one imported form-data field.</summary>

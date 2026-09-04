@@ -87,6 +87,26 @@ public sealed class PdfFormDataImporterTests
     }
 
     [Fact]
+    public void ApplyCanFlattenImportedValues()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "name", 10, 10, 100, 20)
+            .Build());
+        var data = new PdfFormDataSet { Fields =
+        [
+            new PdfFormDataField { Name = "name", Values = ["Ada"] }
+        ] };
+
+        PdfDocument reopened = PdfDocument.Open(PdfFormDataImporter.Apply(
+            document, data, PdfFormDataImportOutputMode.Flattened));
+
+        Assert.Empty(PdfFormWidgetReader.ReadPage(reopened, 0));
+        Assert.Contains("Ada", new PdfPageContentReader(reopened).Read(0).Text);
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfFormDataImporter.Apply(
+            document, data, (PdfFormDataImportOutputMode)int.MaxValue));
+    }
+
+    [Fact]
     public void PreviewRejectsValuesThatGenerationCannotApply()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage()
