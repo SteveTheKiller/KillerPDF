@@ -75,6 +75,29 @@ public sealed class PdfLayerMacroTests
     }
 
     [Fact]
+    public void MacroAssignsWholePageContentToNamedLayer()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(10, 50).ShowLatin1Text("Visible").EndText())
+            .Build());
+        ReadOnlyMemory<byte> source = PdfOptionalContentEditor.AddGroup(
+            original, "Review", initiallyVisible: false);
+        PdfMacro macro = PdfMacro.FromJson(new PdfMacro("Assign", [
+            PdfLayerMacro.PageContentStep("Review", 0)
+        ]).ToJson());
+
+        source = PdfLayerMacro.Execute(Assert.Single(macro.Steps), source);
+        PdfDocument flattened = PdfDocument.Open(
+            PdfOptionalContentEditor.FlattenPageContent(PdfDocument.Open(source)));
+
+        Assert.Equal(string.Empty, new PdfPageContentReader(flattened).Read(0).Text);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfLayerMacro.PageContentStep("Review", -1));
+    }
+
+    [Fact]
     public void MacroSetsAndClearsIndependentPrintAndExportVisibility()
     {
         var layer = new PdfOptionalContentGroup("Artwork");

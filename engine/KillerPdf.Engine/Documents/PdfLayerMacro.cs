@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Globalization;
 using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
@@ -46,6 +47,14 @@ public static class PdfLayerMacro
     /// <summary>Creates a step that removes an unused layer.</summary>
     public static PdfMacroStep RemoveUnusedStep(string layerName) =>
         EditStep("removeUnused", layerName, null);
+
+    /// <summary>Creates a step that assigns all content on one page to a layer.</summary>
+    public static PdfMacroStep PageContentStep(string layerName, int pageIndex)
+    {
+        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        return EditStep("pageContent", layerName,
+            pageIndex.ToString(CultureInfo.InvariantCulture));
+    }
 
     /// <summary>Creates a step that changes or clears default layer configuration metadata.</summary>
     public static PdfMacroStep ConfigurationMetadataStep(string? name, string? creator) =>
@@ -252,6 +261,10 @@ public static class PdfLayerMacro
                     document, objectNumber, GroupNumber(document, value)),
             "removeUnused" when value is null =>
                 PdfOptionalContentEditor.RemoveUnusedGroup(document, objectNumber),
+            "pageContent" when int.TryParse(value, NumberStyles.None,
+                CultureInfo.InvariantCulture, out int pageIndex) && pageIndex >= 0 =>
+                PdfOptionalContentEditor.SetPageContentGroup(
+                    document, pageIndex, objectNumber),
             _ => throw new ArgumentException("The layer edit action is invalid.", nameof(step))
         };
     }
