@@ -560,6 +560,54 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 255, 128], Pixel(transparent, 5, 5));
     }
 
+    [Theory]
+    [InlineData(PdfBlendMode.Multiply, 0, 0, 0)]
+    [InlineData(PdfBlendMode.Screen, 255, 0, 255)]
+    [InlineData(PdfBlendMode.Darken, 0, 0, 0)]
+    [InlineData(PdfBlendMode.Lighten, 255, 0, 255)]
+    [InlineData(PdfBlendMode.Difference, 255, 0, 255)]
+    [InlineData(PdfBlendMode.Exclusion, 255, 0, 255)]
+    public void Render_CompositesSeparableBlendModes(
+        PdfBlendMode blendMode, byte blue, byte green, byte red)
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetBlendMode(blendMode)
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 10, 10).Fill();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([blue, green, red, (byte)255], Pixel(rendered, 5, 5));
+        Assert.DoesNotContain("Transparency blend-mode rendering is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(PdfBlendMode.Overlay)]
+    [InlineData(PdfBlendMode.ColorDodge)]
+    [InlineData(PdfBlendMode.ColorBurn)]
+    [InlineData(PdfBlendMode.HardLight)]
+    [InlineData(PdfBlendMode.SoftLight)]
+    public void Render_AcceptsRemainingSeparableBlendModes(PdfBlendMode blendMode)
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(0.2, 0.4, 0.6).Rectangle(0, 0, 10, 10).Fill()
+            .SetBlendMode(blendMode)
+            .SetFillRgb(0.8, 0.3, 0.1).Rectangle(0, 0, 10, 10).Fill();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.DoesNotContain("Transparency blend-mode rendering is not implemented.",
+            rendered.Diagnostics);
+        Assert.Equal(255, Pixel(rendered, 5, 5)[3]);
+    }
+
     [Fact]
     public void Render_ExpandsNestedFormsWithScopedResourcesMatricesAndBounds()
     {
