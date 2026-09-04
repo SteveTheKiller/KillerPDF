@@ -37,6 +37,37 @@ public sealed class PdfOcrImagePreprocessorTests
     }
 
     [Fact]
+    public void PrepareBgra_DeskewsSlantedTextRows()
+    {
+        const int width = 41, height = 21;
+        byte[] bgra = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();
+        for (int x = 0; x < width; x++)
+            foreach (int baseline in new[] { 5, 12 })
+            {
+                int y = baseline + x / 10;
+                int offset = (y * width + x) * 4;
+                bgra[offset] = bgra[offset + 1] = bgra[offset + 2] = 0;
+            }
+        var options = new PdfOcrOptions(["eng"], deskew: true,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        PdfOcrPreparedImage image = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, width, height, options);
+
+        int longestRow = 0;
+        for (int y = 0; y < height; y++)
+        {
+            int dark = 0;
+            foreach (byte value in image.Pixels.Span.Slice(y * width, width))
+                if (value < 128) dark++;
+            longestRow = Math.Max(longestRow, dark);
+        }
+        Assert.True(longestRow > 10, $"Longest corrected row was {longestRow} pixels.");
+        Assert.Empty(image.Diagnostics);
+    }
+
+    [Fact]
     public void PrepareBgra_ValidatesLengthAndCancellation()
     {
         var options = new PdfOcrOptions(["eng"]);

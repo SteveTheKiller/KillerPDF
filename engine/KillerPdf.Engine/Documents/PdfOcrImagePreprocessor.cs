@@ -65,9 +65,10 @@ public static class PdfOcrImagePreprocessor
         }
         if (options.RemoveNoise)
             gray = Median3x3(gray, width, height, cancellationToken);
+        if (options.Deskew)
+            gray = Deskew(gray, width, height, cancellationToken);
 
         var diagnostics = new List<string>();
-        if (options.Deskew) diagnostics.Add("OCR deskew is not implemented.");
         if (options.CorrectOrientation)
             diagnostics.Add("OCR orientation detection is not implemented.");
         if (options.DetectPageSegments)
@@ -106,6 +107,66 @@ public static class PdfOcrImagePreprocessor
             }
         }
         return result;
+    }
+
+    private static byte[] Deskew(byte[] source, int width, int height,
+        CancellationToken cancellationToken)
+    {
+        double angle = EstimateSkew(source, width, height, cancellationToken);
+        if (Math.Abs(angle) < 0.25) return source;
+        double radians = angle * Math.PI / 180;
+        double cosine = Math.Cos(radians), sine = Math.Sin(radians);
+        double centerX = (width - 1) / 2d, centerY = (height - 1) / 2d;
+        byte[] result = Enumerable.Repeat(byte.MaxValue, source.Length).ToArray();
+        for (int y = 0; y < height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            double dy = y - centerY;
+            for (int x = 0; x < width; x++)
+            {
+                double dx = x - centerX;
+                int sourceX = (int)Math.Round(centerX + cosine * dx - sine * dy);
+                int sourceY = (int)Math.Round(centerY + sine * dx + cosine * dy);
+                if (sourceX >= 0 && sourceX < width && sourceY >= 0 && sourceY < height)
+                    result[y * width + x] = source[sourceY * width + sourceX];
+            }
+        }
+        return result;
+    }
+
+    private static double EstimateSkew(byte[] source, int width, int height,
+        CancellationToken cancellationToken)
+    {
+        int stride = Math.Max(1, source.Length / 250_000);
+        var dark = new List<(int X, int Y)>();
+        for (int index = 0; index < source.Length; index += stride)
+        {
+            if ((index & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (source[index] < 192) dark.Add((index % width, index / width));
+        }
+        if (dark.Count < 8) return 0;
+        double bestAngle = 0, bestScore = double.NegativeInfinity;
+        var rows = new int[height + width / 3 + 4];
+        int offset = width / 6 + 2;
+        for (int step = -20; step <= 20; step++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            Array.Clear(rows);
+            double angle = step * 0.5;
+            double tangent = Math.Tan(angle * Math.PI / 180);
+            foreach ((int x, int y) in dark)
+            {
+                int row = (int)Math.Round(y - x * tangent) + offset;
+                if ((uint)row < (uint)rows.Length) rows[row]++;
+            }
+            double score = rows.Sum(count => (double)count * count);
+            if (score > bestScore)
+            {
+                bestScore = score;
+                bestAngle = angle;
+            }
+        }
+        return bestAngle;
     }
 
     private static byte[] Median3x3(byte[] source, int width, int height,
