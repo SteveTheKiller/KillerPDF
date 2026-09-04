@@ -389,6 +389,58 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewedMultiSelectValuesPersistThroughDuplicationAndAuthoring()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("regions", 0,
+                new PdfContentBounds(10, 10, 150, 80),
+                PdfRecognizedFieldKind.ListBox, 1, "regions",
+                suggestedOptions: ["North", "South", "West"],
+                suggestedOptionExportValues: ["N", "S", "W"],
+                suggestedMultiSelect: true,
+                suggestedSelectedValues: ["N", "W"],
+                suggestedDefaultValues: ["S", "W"])
+        ]).Duplicate("regions", "regions-copy", "regions.copy",
+            new PdfContentBounds(10, 100, 150, 170));
+
+        PdfFormFieldProposal copy = review.Proposals.Single(item =>
+            item.Id == "regions-copy");
+        Assert.True(copy.SuggestedMultiSelect);
+        Assert.Equal(["N", "W"], copy.SuggestedValues);
+        Assert.Equal(["S", "W"], copy.SuggestedDefaultValues);
+
+        PdfFormRecognitionReview accepted = review.Accept("regions")
+            .Reject("regions-copy");
+        using JsonDocument json = JsonDocument.Parse(accepted.ToJson());
+        JsonElement proposal = json.RootElement.GetProperty("proposals")[0];
+        Assert.True(proposal.GetProperty("suggestedMultiSelect").GetBoolean());
+        Assert.Equal(["N", "W"], proposal.GetProperty("suggestedValues")
+            .EnumerateArray().Select(value => value.GetString()));
+
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(accepted.ApplyAccepted(document)), 0));
+        Assert.NotEqual(0, widget.Flags & (1L << 21));
+        Assert.Equal(["N", "W"], widget.Values);
+        Assert.Equal(["S", "W"], widget.DefaultValues);
+    }
+
+    [Fact]
+    public void ReviewedMultiSelectValuesRejectInvalidProposals()
+    {
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
+            "country", 0, new PdfContentBounds(10, 10, 150, 40),
+            PdfRecognizedFieldKind.DropDown, 1, "country",
+            suggestedOptions: ["North", "South"], suggestedMultiSelect: true));
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldProposal(
+            "regions", 0, new PdfContentBounds(10, 10, 150, 80),
+            PdfRecognizedFieldKind.ListBox, 1, "regions",
+            suggestedOptions: ["North", "South"], suggestedMultiSelect: true,
+            suggestedSelectedValues: ["Missing"]));
+    }
+
+    [Fact]
     public void ReviewedRadioOptionsPersistAsOneGroup()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(300, 300).Build());
