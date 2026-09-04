@@ -13547,6 +13547,46 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void SetTextFieldBehavior_PreservesOtherFlagsAndComposesWithValues()
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage()
+            .AddTextField(0, "name", 10, 10, 100, 40, "Old", options:
+                new PdfTextFieldOptions
+                {
+                    Required = true,
+                    DoNotSpellCheck = true
+                })
+            .AddCheckBox(0, "approved", 10, 60, 20, 20)
+            .Build();
+
+        PdfDocument updated = PdfDocument.Open(
+            new PdfIncrementalPageEditor(PdfDocument.Open(source))
+                .SetTextFieldValue("name", "New")
+                .SetTextFieldBehavior("name", multiline: true, doNotScroll: true,
+                    PdfTextFieldAlignment.Right)
+                .Build());
+        PdfFormWidgetInfo name = PdfFormWidgetReader.ReadPage(updated, 0)
+            .Single(widget => widget.FieldName == "name");
+
+        Assert.Equal("New", name.Value);
+        Assert.Equal(PdfTextFieldAlignment.Right, name.Alignment);
+        Assert.NotEqual(0, name.Flags & (1L << 1));
+        Assert.NotEqual(0, name.Flags & (1L << 12));
+        Assert.NotEqual(0, name.Flags & (1L << 22));
+        Assert.NotEqual(0, name.Flags & (1L << 23));
+        Assert.Throws<ArgumentException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldBehavior(" ", false, false, PdfTextFieldAlignment.Left));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldBehavior("name", false, false, (PdfTextFieldAlignment)99));
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldBehavior("approved", false, false,
+                PdfTextFieldAlignment.Left).Build());
+        Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(updated)
+            .SetTextFieldBehavior("missing", false, false,
+                PdfTextFieldAlignment.Left).Build());
+    }
+
+    [Fact]
     public void RenameFormField_RenamesTerminalAndParentFieldsWithoutChangingValues()
     {
         byte[] source = new PdfDocumentBuilder().AddBlankPage()

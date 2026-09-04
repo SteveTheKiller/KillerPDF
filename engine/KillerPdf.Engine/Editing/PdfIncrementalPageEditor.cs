@@ -189,6 +189,8 @@ public sealed class PdfIncrementalPageEditor
         new(StringComparer.Ordinal);
     private readonly Dictionary<string, PendingCommonFieldFlags> _fieldFlagChanges =
         new(StringComparer.Ordinal);
+    private readonly Dictionary<string, PendingTextFieldBehavior> _textFieldBehaviorChanges =
+        new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _fieldNameChanges =
         new(StringComparer.Ordinal);
     private readonly Dictionary<(int ObjectNumber, int Generation), PendingWidgetRectangle>
@@ -357,6 +359,21 @@ public sealed class PdfIncrementalPageEditor
         return this;
     }
 
+    /// <summary>Changes multiline, scrolling, and alignment behavior on an existing text field.</summary>
+    public PdfIncrementalPageEditor SetTextFieldBehavior(
+        string fieldName, bool multiline, bool doNotScroll,
+        PdfTextFieldAlignment alignment)
+    {
+        if (string.IsNullOrWhiteSpace(fieldName))
+            throw new ArgumentException("The form field name cannot be empty.", nameof(fieldName));
+        if (!Enum.IsDefined(alignment))
+            throw new ArgumentOutOfRangeException(nameof(alignment));
+        _textFieldBehaviorChanges[fieldName] = new PendingTextFieldBehavior(
+            multiline, doNotScroll, alignment);
+        _catalogPresentationChanged = true;
+        return this;
+    }
+
     /// <summary>Changes the partial name of an existing field while preserving its hierarchy.</summary>
     public PdfIncrementalPageEditor RenameFormField(
         string fieldName, string newPartialName)
@@ -461,6 +478,7 @@ public sealed class PdfIncrementalPageEditor
         _resetFieldValues.Remove(fieldName);
         _fieldMetadataChanges.Remove(fieldName);
         _fieldFlagChanges.Remove(fieldName);
+        _textFieldBehaviorChanges.Remove(fieldName);
         _fieldNameChanges.Remove(fieldName);
         _fieldDefaultChanges.Remove(fieldName);
         _removedFormFields.Add(fieldName);
@@ -1967,6 +1985,7 @@ public sealed class PdfIncrementalPageEditor
                 || _textFieldValues.Count != 0 || _choiceFieldValues.Count != 0
                 || _resetFieldValues.Count != 0 || _fieldMetadataChanges.Count != 0
                 || _fieldFlagChanges.Count != 0
+                || _textFieldBehaviorChanges.Count != 0
                 || _fieldNameChanges.Count != 0
                 || _fieldDefaultChanges.Count != 0);
         bool deferFormFieldRemovals = _removedFormFields.Count != 0
@@ -2008,6 +2027,8 @@ public sealed class PdfIncrementalPageEditor
                 formUpdate._fieldMetadataChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldFlagChanges)
                 formUpdate._fieldFlagChanges[entry.Key] = entry.Value;
+            foreach (var entry in _textFieldBehaviorChanges)
+                formUpdate._textFieldBehaviorChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldNameChanges)
                 formUpdate._fieldNameChanges[entry.Key] = entry.Value;
             foreach (var entry in _fieldDefaultChanges)
@@ -2026,6 +2047,7 @@ public sealed class PdfIncrementalPageEditor
             && _textFieldValues.Count == 0 && _choiceFieldValues.Count == 0
             && _resetFieldValues.Count == 0 && _fieldMetadataChanges.Count == 0
             && _fieldFlagChanges.Count == 0
+            && _textFieldBehaviorChanges.Count == 0
             && _fieldNameChanges.Count == 0
             && _fieldDefaultChanges.Count == 0) return;
         if (!_tree.Catalog.TryGetValue(AcroFormName, out PdfObject? formValue))
@@ -2036,6 +2058,7 @@ public sealed class PdfIncrementalPageEditor
         var matched = new HashSet<string>(StringComparer.Ordinal);
         var metadataMatched = new HashSet<string>(StringComparer.Ordinal);
         var flagsMatched = new HashSet<string>(StringComparer.Ordinal);
+        var behaviorMatched = new HashSet<string>(StringComparer.Ordinal);
         var namesMatched = new HashSet<string>(StringComparer.Ordinal);
         var defaultMatched = new HashSet<string>(StringComparer.Ordinal);
         var resultingNames = new HashSet<string>(StringComparer.Ordinal);
@@ -2070,6 +2093,10 @@ public sealed class PdfIncrementalPageEditor
             if (!flagsMatched.Contains(requested))
                 throw new InvalidOperationException(
                     $"The AcroForm has no field named '{requested}'.");
+        foreach (string requested in _textFieldBehaviorChanges.Keys)
+            if (!behaviorMatched.Contains(requested))
+                throw new InvalidOperationException(
+                    $"The AcroForm has no text field named '{requested}'.");
         foreach (string requested in _fieldNameChanges.Keys)
             if (!namesMatched.Contains(requested))
                 throw new InvalidOperationException(
@@ -2157,6 +2184,29 @@ public sealed class PdfIncrementalPageEditor
                     new Dictionary<PdfName, PdfObject>
                     {
                         [FieldFlagsName] = new PdfInteger(flags)
+                    });
+            }
+            PendingTextFieldBehavior? behaviorChange = null;
+            bool hasBehaviorChange = hasPartialName && qualifiedName is not null
+                && _textFieldBehaviorChanges.TryGetValue(
+                    qualifiedName, out behaviorChange);
+            if (hasBehaviorChange)
+            {
+                if (!behaviorMatched.Add(qualifiedName!))
+                    throw new InvalidOperationException(
+                        $"The AcroForm contains more than one field named '{qualifiedName}'.");
+                if (fieldType is null || !fieldType.Equals(TextFieldName))
+                    throw new InvalidOperationException(
+                        $"The AcroForm field '{qualifiedName}' is not a text field.");
+                long flags = FieldFlags(editedField, qualifiedName!);
+                flags = (flags & ~((1L << 12) | (1L << 23)))
+                    | (behaviorChange!.Multiline ? 1L << 12 : 0L)
+                    | (behaviorChange.DoNotScroll ? 1L << 23 : 0L);
+                editedField = ReplaceMany(editedField,
+                    new Dictionary<PdfName, PdfObject>
+                    {
+                        [FieldFlagsName] = new PdfInteger(flags),
+                        [QuaddingName] = new PdfInteger((int)behaviorChange.Alignment)
                     });
             }
             PendingFieldDefaultValue? defaultChange = null;
@@ -2247,7 +2297,8 @@ public sealed class PdfIncrementalPageEditor
                 UpdateChoiceField(
                     update, reference, editedField, form, qualifiedName, choiceValue);
             }
-            else if (hasMetadataChange || hasDefaultChange || hasFlagChange || hasNameChange)
+            else if (hasMetadataChange || hasDefaultChange || hasFlagChange
+                     || hasBehaviorChange || hasNameChange)
                 update.ReplaceObject(reference.ObjectNumber, editedField);
             if (!field.TryGetValue(KidsName, out PdfObject? kidsValue)) return;
             PdfArray kids = ResolveArray(
@@ -18130,6 +18181,8 @@ public sealed class PdfIncrementalPageEditor
     private sealed record PendingTextFieldValue(
         string Value, TrueTypeFont? EmbeddedFont, double? FontSize,
         bool HasBackgroundColor, PdfRgbColor? BackgroundColor);
+    private sealed record PendingTextFieldBehavior(
+        bool Multiline, bool DoNotScroll, PdfTextFieldAlignment Alignment);
     private sealed record PendingChoiceFieldValue(
         IReadOnlyList<string> Values, TrueTypeFont? EmbeddedFont,
         bool AllowEmptySingle);
