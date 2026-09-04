@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Objects;
 using System.Text.Json;
 using Xunit;
 
@@ -292,5 +293,38 @@ public sealed class PdfOptionalContentReaderTests
             info.Configurations.Single().DisplayOrderGroupObjectNumbers);
         Assert.Throws<ArgumentException>(() =>
             PdfOptionalContentEditor.AddGroup(changed, "Notes"));
+    }
+
+    [Fact]
+    public void AnnotationCanBeAssignedToLayerAndCleared()
+    {
+        var review = new PdfOptionalContentGroup("Review");
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .BeginOptionalContent(review).Rectangle(0, 0, 10, 10).Fill()
+                .EndMarkedContent())
+            .AddUriLink(0, 10, 10, 20, 10, "https://example.com")
+            .Build());
+        int groupObjectNumber = Assert.Single(
+            PdfOptionalContentReader.Read(original).Groups).ObjectNumber;
+        int annotationObjectNumber = Assert.Single(
+            PdfLinkReader.ReadPage(original, 0)).ObjectNumber!.Value;
+
+        PdfDocument assigned = PdfDocument.Open(PdfOptionalContentEditor.SetAnnotationGroup(
+            original, annotationObjectNumber, groupObjectNumber));
+        PdfDictionary annotation = Assert.IsType<PdfDictionary>(assigned.Resolve(
+            new PdfIndirectReference(annotationObjectNumber, 0)));
+        PdfIndirectReference layer = Assert.IsType<PdfIndirectReference>(
+            annotation[new PdfName("OC"u8)]);
+        Assert.Equal(groupObjectNumber, layer.ObjectNumber);
+
+        PdfDocument cleared = PdfDocument.Open(PdfOptionalContentEditor.SetAnnotationGroup(
+            assigned, annotationObjectNumber, null));
+        PdfDictionary clearedAnnotation = Assert.IsType<PdfDictionary>(cleared.Resolve(
+            new PdfIndirectReference(annotationObjectNumber, 0)));
+        Assert.False(clearedAnnotation.ContainsKey(new PdfName("OC"u8)));
+        Assert.False(Assert.IsType<PdfDictionary>(original.Resolve(
+            new PdfIndirectReference(annotationObjectNumber, 0)))
+            .ContainsKey(new PdfName("OC"u8)));
     }
 }

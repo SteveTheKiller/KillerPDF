@@ -19,6 +19,61 @@ public static class PdfOptionalContentEditor
     private static readonly PdfName CreatorKey = new("Creator"u8);
     private static readonly PdfName GroupsKey = new("OCGs"u8);
     private static readonly PdfName TypeKey = new("Type"u8);
+    private static readonly PdfName AnnotationsKey = new("Annots"u8);
+    private static readonly PdfName OptionalContentKey = new("OC"u8);
+
+    /// <summary>Assigns a page annotation to a registered layer, or clears its layer.</summary>
+    public static byte[] SetAnnotationGroup(
+        PdfDocument document, int annotationObjectNumber, int? groupObjectNumber)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        if (annotationObjectNumber <= 0)
+            throw new ArgumentOutOfRangeException(nameof(annotationObjectNumber));
+        PdfOptionalContentGroupInfo? group = groupObjectNumber.HasValue
+            ? FindGroup(PdfOptionalContentReader.Read(document), groupObjectNumber.Value)
+            : null;
+        PdfPageTree tree = PdfPageTree.Read(document);
+        PdfIndirectReference? annotationReference = tree.Pages
+            .Select(page => FindAnnotation(
+                page.Dictionary.GetValueOrDefault(AnnotationsKey), annotationObjectNumber))
+            .FirstOrDefault(reference => reference is not null);
+        if (annotationReference is null)
+            throw new KeyNotFoundException(
+                $"Annotation {annotationObjectNumber} was not found on a page.");
+        PdfDictionary annotation = document.Resolve(annotationReference) as PdfDictionary
+            ?? throw new InvalidOperationException("The annotation is not a dictionary.");
+        var entries = annotation.ToDictionary(entry => entry.Key, entry => entry.Value);
+        if (group is null)
+            entries.Remove(OptionalContentKey);
+        else
+            entries[OptionalContentKey] = new PdfIndirectReference(
+                group.ObjectNumber, group.Generation);
+        return new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(annotationObjectNumber, new PdfDictionary(entries)).Build();
+
+        PdfIndirectReference? FindAnnotation(PdfObject? value, int objectNumber)
+        {
+            if (value is null) return null;
+            PdfObject resolved = value is PdfIndirectReference arrayReference
+                ? document.Resolve(arrayReference) : value;
+            if (resolved is not PdfArray array)
+                throw new InvalidOperationException("A page annotation list is not an array.");
+            foreach (PdfObject item in array)
+            {
+                PdfObject current = item;
+                var visited = new HashSet<(int, int)>();
+                for (int depth = 0; current is PdfIndirectReference reference; depth++)
+                {
+                    if (reference.ObjectNumber == objectNumber) return reference;
+                    if (depth >= 32 || !visited.Add((reference.ObjectNumber, reference.Generation)))
+                        throw new InvalidOperationException(
+                            "A page annotation has an invalid reference chain.");
+                    current = document.Resolve(reference);
+                }
+            }
+            return null;
+        }
+    }
 
     /// <summary>Creates and registers a layer in the default configuration.</summary>
     public static byte[] AddGroup(PdfDocument document, string name,
