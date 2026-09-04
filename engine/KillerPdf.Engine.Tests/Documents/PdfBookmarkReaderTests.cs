@@ -1,6 +1,7 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
+using System.Text.Json;
 using System.Text;
 using Xunit;
 
@@ -135,6 +136,66 @@ public sealed class PdfBookmarkReaderTests
             PdfBookmarkEditor.SetAppearance(styled, bookmark.ObjectNumber))));
         Assert.Equal(PdfBookmarkStyle.Regular, cleared.Style);
         Assert.Null(cleared.Color);
+    }
+
+    [Fact]
+    public void BookmarkJsonRoundTripPreservesHierarchyDestinationsAndAppearance()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().AddBlankPage()
+            .AddBookmark("Chapter", 0, options: new PdfBookmarkOptions
+            {
+                IsOpen = false,
+                Style = PdfBookmarkStyle.Bold,
+                Color = new PdfRgbColor(0.25, 0.5, 0.75),
+                Destination = PdfDestination.At(72, 700, 1.5)
+            })
+            .AddBookmark("Section", 1, level: 1, options: new PdfBookmarkOptions
+            {
+                Style = PdfBookmarkStyle.Italic,
+                Destination = PdfDestination.FitWidth(640)
+            })
+            .Build());
+
+        string json = PdfBookmarkExchange.ToJson(source, indented: true);
+        using JsonDocument parsed = JsonDocument.Parse(json);
+        Assert.Equal(1, parsed.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal("Chapter", parsed.RootElement.GetProperty("bookmarks")[0]
+            .GetProperty("title").GetString());
+        PdfDocument target = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().AddBlankPage().AddBookmark("Old", 0).Build());
+
+        PdfDocument imported = PdfDocument.Open(
+            PdfBookmarkExchange.Import(target, json, replaceExisting: true));
+        PdfBookmarkInfo chapter = Assert.Single(PdfBookmarkReader.Read(imported));
+        PdfBookmarkInfo section = Assert.Single(chapter.Children);
+
+        Assert.Equal("Chapter", chapter.Title);
+        Assert.False(chapter.IsOpen);
+        Assert.Equal(PdfBookmarkStyle.Bold, chapter.Style);
+        Assert.Equal(new PdfRgbColor(0.25, 0.5, 0.75), chapter.Color);
+        Assert.Equal(0, chapter.DestinationPageIndex);
+        Assert.Equal(PdfDestinationKind.Xyz, chapter.Destination!.Kind);
+        Assert.Equal([72, 700, 1.5], chapter.Destination.Values);
+        Assert.Equal("Section", section.Title);
+        Assert.Equal(1, section.DestinationPageIndex);
+        Assert.Equal(PdfBookmarkStyle.Italic, section.Style);
+        Assert.Equal(PdfDestinationKind.FitH, section.Destination!.Kind);
+        Assert.Equal([640], section.Destination.Values);
+    }
+
+    [Fact]
+    public void BookmarkImportRejectsUnresolvedAndUnsupportedData()
+    {
+        PdfDocument target = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+
+        InvalidOperationException unresolved = Assert.Throws<InvalidOperationException>(() =>
+            PdfBookmarkExchange.Import(target,
+                """{"schemaVersion":1,"bookmarks":[{"title":"Missing","isOpen":true,"style":"regular","children":[]}]}"""));
+        Assert.Contains("no resolved page destination", unresolved.Message);
+        Assert.Throws<NotSupportedException>(() => PdfBookmarkExchange.Import(target,
+            """{"schemaVersion":2,"bookmarks":[]}"""));
     }
 
     private static byte[] ReplaceAscii(byte[] source, string oldValue, string newValue)
