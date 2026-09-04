@@ -21,6 +21,8 @@ public enum PdfOptimizationChangeKind
     RemoveBookmarks,
     /// <summary>Remove every interactive form field and widget.</summary>
     RemoveFormFields,
+    /// <summary>Remove the XFA packet set without removing ordinary AcroForm fields.</summary>
+    RemoveXfaData,
     /// <summary>Remove every annotation that contains review text.</summary>
     RemoveComments,
     /// <summary>Remove the document-level JavaScript name tree.</summary>
@@ -50,6 +52,8 @@ public sealed record PdfOptimizationOptions
     public bool RemoveBookmarks { get; init; }
     /// <summary>Gets whether every interactive form field and widget is removed.</summary>
     public bool RemoveFormFields { get; init; }
+    /// <summary>Gets whether the embedded XFA packet set is removed.</summary>
+    public bool RemoveXfaData { get; init; }
     /// <summary>Gets whether annotations containing review text are removed.</summary>
     public bool RemoveComments { get; init; }
     /// <summary>Gets whether the document-level JavaScript name tree is removed.</summary>
@@ -180,6 +184,8 @@ public sealed class PdfOptimizationPlan
         Verify(PdfOptimizationChangeKind.RemoveFormFields,
             tree.Pages.SelectMany((_, pageIndex) =>
                 PdfFormWidgetReader.ReadPage(document, pageIndex)).Any() == false);
+        Verify(PdfOptimizationChangeKind.RemoveXfaData,
+            PdfXfaReader.Read(document) is null);
         Verify(PdfOptimizationChangeKind.RemoveComments,
             PdfCommentReader.Read(document).Count == 0);
         bool hasJavaScript = tree.Catalog.TryGetValue(new PdfName("Names"u8),
@@ -223,6 +229,7 @@ public sealed class PdfOptimizationPlan
         bool removesOpenAction = Changes.Contains(PdfOptimizationChangeKind.RemoveOpenAction);
         bool removesBookmarks = Changes.Contains(PdfOptimizationChangeKind.RemoveBookmarks);
         bool removesFormFields = Changes.Contains(PdfOptimizationChangeKind.RemoveFormFields);
+        bool removesXfaData = Changes.Contains(PdfOptimizationChangeKind.RemoveXfaData);
         bool removesComments = Changes.Contains(PdfOptimizationChangeKind.RemoveComments);
         bool removesDocumentJavaScript = Changes.Contains(
             PdfOptimizationChangeKind.RemoveDocumentJavaScript);
@@ -233,7 +240,7 @@ public sealed class PdfOptimizationPlan
         bool prunesUnusedResources = Changes.Contains(
             PdfOptimizationChangeKind.PruneUnusedPageResources);
         if (!removesAttachments && !removesOpenAction && !removesBookmarks
-            && !removesFormFields && !removesComments && !removesDocumentJavaScript
+            && !removesFormFields && !removesXfaData && !removesComments && !removesDocumentJavaScript
             && !removesPageThumbnails && !flattensOptionalContent
             && !prunesUnusedResources)
             return _document;
@@ -241,6 +248,7 @@ public sealed class PdfOptimizationPlan
             ? PdfDocument.Open(PdfOptionalContentEditor.FlattenPageContent(_document))
             : _document;
         if (_attachmentNames.Length > 0 || removesOpenAction || removesBookmarks || removesFormFields
+            || removesXfaData
             || removesDocumentJavaScript || removesPageThumbnails || prunesUnusedResources)
         {
             var editor = new PdfIncrementalPageEditor(formSanitized);
@@ -259,6 +267,7 @@ public sealed class PdfOptimizationPlan
             if (removesBookmarks) editor.ClearBookmarks();
             if (removesFormFields)
                 foreach (string name in _formFieldNames) editor.RemoveFormField(name);
+            if (removesXfaData) editor.RemoveXfa();
             if (removesDocumentJavaScript) editor.ClearDocumentJavaScript();
             if (removesPageThumbnails)
                 for (int pageIndex = 0; pageIndex < PdfPageTree.Read(formSanitized).Pages.Count; pageIndex++)
@@ -329,6 +338,8 @@ public static class PdfOptimizer
             changes.Add(PdfOptimizationChangeKind.RemoveBookmarks);
         if (formFieldNames.Length > 0)
             changes.Add(PdfOptimizationChangeKind.RemoveFormFields);
+        if (options.RemoveXfaData && PdfXfaReader.Read(document) is not null)
+            changes.Add(PdfOptimizationChangeKind.RemoveXfaData);
         if (comments.Length > 0)
             changes.Add(PdfOptimizationChangeKind.RemoveComments);
         if (options.RemoveDocumentJavaScript
