@@ -258,6 +258,42 @@ public sealed class PdfFormRecognitionTests
     }
 
     [Fact]
+    public void ReviewedPushButtonActionsPersistWithoutScriptExecution()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(300, 300).AddBlankPage(300, 300).Build());
+        var review = new PdfFormRecognitionReview([
+            new PdfFormFieldProposal("website", 0,
+                new PdfContentBounds(10, 10, 130, 34),
+                PdfRecognizedFieldKind.PushButton, 1, "website",
+                suggestedValue: "Open website"),
+            new PdfFormFieldProposal("next", 0,
+                new PdfContentBounds(10, 50, 130, 74),
+                PdfRecognizedFieldKind.PushButton, 1, "next",
+                suggestedValue: "Next page")])
+            .Accept("website", alignment: PdfTextFieldAlignment.Center,
+                pushButtonAction: new PdfRecognizedPushButtonAction(
+                    PdfRecognizedPushButtonActionKind.Uri,
+                    target: "https://example.com"))
+            .Accept("next", pushButtonAction: new PdfRecognizedPushButtonAction(
+                PdfRecognizedPushButtonActionKind.Page, pageIndex: 1));
+
+        PdfDocument reopened = PdfDocument.Open(review.ApplyAccepted(document));
+        IReadOnlyList<PdfFormWidgetInfo> widgets = PdfFormWidgetReader.ReadPage(reopened, 0);
+
+        Assert.Equal(2, widgets.Count);
+        Assert.All(widgets, widget => Assert.True(widget.HasAction));
+        Assert.All(widgets, widget => Assert.Equal(PdfFormFieldKind.Button, widget.FieldKind));
+        Assert.Throws<ArgumentException>(() => new PdfRecognizedPushButtonAction(
+            PdfRecognizedPushButtonActionKind.Page, target: "bad", pageIndex: 1));
+        Assert.Throws<ArgumentException>(() => new PdfRecognizedPushButtonAction(
+            PdfRecognizedPushButtonActionKind.Uri));
+        Assert.Throws<ArgumentException>(() => new PdfRecognizedPushButtonAction(
+            PdfRecognizedPushButtonActionKind.Uri, "https://example.com",
+            fields: ["name"]));
+    }
+
+    [Fact]
     public void ApplyRejectsIncompleteRadioGroupsBeforeChangingDocument()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());

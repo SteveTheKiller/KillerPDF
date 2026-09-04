@@ -26,6 +26,71 @@ public enum PdfRecognizedFieldKind
     Signature
 }
 
+/// <summary>A safe action that may be assigned to a reviewed push-button proposal.</summary>
+public enum PdfRecognizedPushButtonActionKind
+{
+    /// <summary>Opens an absolute URI.</summary>
+    Uri,
+    /// <summary>Navigates to a page.</summary>
+    Page,
+    /// <summary>Navigates to a named destination.</summary>
+    NamedDestination,
+    /// <summary>Resets all or selected fields.</summary>
+    ResetForm,
+    /// <summary>Submits PDF form data to an absolute URI.</summary>
+    SubmitPdf
+}
+
+/// <summary>Describes a reviewed push-button action without executable script content.</summary>
+public sealed record PdfRecognizedPushButtonAction
+{
+    /// <summary>Creates a validated reviewed action.</summary>
+    public PdfRecognizedPushButtonAction(PdfRecognizedPushButtonActionKind kind,
+        string? target = null, int? pageIndex = null,
+        IEnumerable<string>? fields = null, bool excludeFields = false)
+    {
+        if (!Enum.IsDefined(kind)) throw new ArgumentOutOfRangeException(nameof(kind));
+        string[]? selectedFields = fields?.ToArray();
+        if (selectedFields?.Any(string.IsNullOrWhiteSpace) == true
+            || selectedFields?.Distinct(StringComparer.Ordinal).Count() != selectedFields?.Length)
+            throw new ArgumentException("Push-button field selections must be nonempty and unique.", nameof(fields));
+        if (excludeFields && selectedFields is not { Length: > 0 })
+            throw new ArgumentException("Excluded push-button fields must be specified.", nameof(fields));
+        bool needsTarget = kind is PdfRecognizedPushButtonActionKind.Uri
+            or PdfRecognizedPushButtonActionKind.NamedDestination
+            or PdfRecognizedPushButtonActionKind.SubmitPdf;
+        if (needsTarget != !string.IsNullOrWhiteSpace(target))
+            throw new ArgumentException(needsTarget
+                ? "This push-button action requires a target."
+                : "This push-button action does not accept a target.", nameof(target));
+        if ((kind == PdfRecognizedPushButtonActionKind.Page) != pageIndex.HasValue
+            || pageIndex < 0)
+            throw new ArgumentException(kind == PdfRecognizedPushButtonActionKind.Page
+                ? "A page push-button action requires a nonnegative page index."
+                : "Only a page push-button action accepts a page index.", nameof(pageIndex));
+        if (selectedFields is not null
+            && kind is not (PdfRecognizedPushButtonActionKind.ResetForm
+                or PdfRecognizedPushButtonActionKind.SubmitPdf))
+            throw new ArgumentException("Only reset and submit actions accept field selections.", nameof(fields));
+        Kind = kind;
+        Target = target;
+        PageIndex = pageIndex;
+        Fields = selectedFields is null ? null : Array.AsReadOnly(selectedFields);
+        ExcludeFields = excludeFields;
+    }
+
+    /// <summary>Gets the reviewed action type.</summary>
+    public PdfRecognizedPushButtonActionKind Kind { get; }
+    /// <summary>Gets the URI or named destination target.</summary>
+    public string? Target { get; }
+    /// <summary>Gets the zero-based destination page index.</summary>
+    public int? PageIndex { get; }
+    /// <summary>Gets the selected reset or submit fields.</summary>
+    public IReadOnlyList<string>? Fields { get; }
+    /// <summary>Gets whether the field selection is excluded rather than included.</summary>
+    public bool ExcludeFields { get; }
+}
+
 /// <summary>The review state of a recognized field proposal.</summary>
 public enum PdfFormProposalStatus
 {
@@ -52,7 +117,8 @@ public sealed record PdfFormFieldProposal
         double suggestedFontSize = 12,
         PdfFormFieldAppearanceStyle? suggestedAppearanceStyle = null,
         bool suggestedNoExport = false,
-        PdfFormFieldVisibility suggestedVisibility = PdfFormFieldVisibility.Visible)
+        PdfFormFieldVisibility suggestedVisibility = PdfFormFieldVisibility.Visible,
+        PdfRecognizedPushButtonAction? suggestedPushButtonAction = null)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -93,11 +159,17 @@ public sealed record PdfFormFieldProposal
         suggestedAppearanceStyle = ValidateAppearance(suggestedAppearanceStyle);
         if (!Enum.IsDefined(suggestedVisibility))
             throw new ArgumentOutOfRangeException(nameof(suggestedVisibility));
+        if (suggestedPushButtonAction is not null
+            && kind != PdfRecognizedFieldKind.PushButton)
+            throw new ArgumentException(
+                "A push-button action can be suggested only for a push button.",
+                nameof(suggestedPushButtonAction));
         if (suggestedAlignment != PdfTextFieldAlignment.Left
             && kind is not (PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.DropDown
-                or PdfRecognizedFieldKind.EditableComboBox or PdfRecognizedFieldKind.ListBox))
+                or PdfRecognizedFieldKind.EditableComboBox or PdfRecognizedFieldKind.ListBox
+                or PdfRecognizedFieldKind.PushButton))
             throw new ArgumentException(
-                "Alignment can be suggested only for a text or choice field.",
+                "Alignment can be suggested only for a text, choice, or push-button field.",
                 nameof(suggestedAlignment));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
         Id = id;
@@ -119,6 +191,7 @@ public sealed record PdfFormFieldProposal
         SuggestedAppearanceStyle = suggestedAppearanceStyle;
         SuggestedNoExport = suggestedNoExport;
         SuggestedVisibility = suggestedVisibility;
+        SuggestedPushButtonAction = suggestedPushButtonAction;
         Status = status;
     }
 
@@ -160,6 +233,8 @@ public sealed record PdfFormFieldProposal
     public bool SuggestedNoExport { get; }
     /// <summary>Gets the proposed screen and print visibility.</summary>
     public PdfFormFieldVisibility SuggestedVisibility { get; }
+    /// <summary>Gets the reviewed safe action for a proposed push button.</summary>
+    public PdfRecognizedPushButtonAction? SuggestedPushButtonAction { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
@@ -170,14 +245,16 @@ public sealed record PdfFormFieldProposal
         bool? multiline = null, bool? doNotScroll = null,
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
-        PdfFormFieldVisibility? visibility = null) =>
+        PdfFormFieldVisibility? visibility = null,
+        PdfRecognizedPushButtonAction? pushButtonAction = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
             isChecked ?? SuggestedChecked, multiline ?? SuggestedMultiline,
             doNotScroll ?? SuggestedDoNotScroll, alignment ?? SuggestedAlignment,
             fontSize ?? SuggestedFontSize, appearanceStyle ?? SuggestedAppearanceStyle,
-            noExport ?? SuggestedNoExport, visibility ?? SuggestedVisibility);
+            noExport ?? SuggestedNoExport, visibility ?? SuggestedVisibility,
+            pushButtonAction ?? SuggestedPushButtonAction);
 
     internal PdfFormFieldProposal Duplicate(string id, int pageIndex,
         PdfContentBounds bounds, string suggestedName) =>
@@ -185,7 +262,8 @@ public sealed record PdfFormFieldProposal
             PdfFormProposalStatus.Proposed, SuggestedTooltip, SuggestedOptions, SuggestedValue,
             SuggestedReadOnly, SuggestedRequired, SuggestedChecked, SuggestedMultiline,
             SuggestedDoNotScroll, SuggestedAlignment, SuggestedFontSize,
-            SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility);
+            SuggestedAppearanceStyle, SuggestedNoExport, SuggestedVisibility,
+            SuggestedPushButtonAction);
 
     private static PdfFormFieldAppearanceStyle ValidateAppearance(
         PdfFormFieldAppearanceStyle? style)
@@ -241,11 +319,12 @@ public sealed class PdfFormRecognitionReview
         bool? multiline = null, bool? doNotScroll = null,
         PdfTextFieldAlignment? alignment = null, double? fontSize = null,
         PdfFormFieldAppearanceStyle? appearanceStyle = null, bool? noExport = null,
-        PdfFormFieldVisibility? visibility = null) =>
+        PdfFormFieldVisibility? visibility = null,
+        PdfRecognizedPushButtonAction? pushButtonAction = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
             readOnly, required, isChecked, multiline, doNotScroll, alignment,
-            fontSize, appearanceStyle, noExport, visibility));
+            fontSize, appearanceStyle, noExport, visibility, pushButtonAction));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -362,6 +441,9 @@ public sealed class PdfFormRecognitionReview
                             AppearanceStyle = proposal.SuggestedAppearanceStyle
                         });
                     break;
+                case PdfRecognizedFieldKind.PushButton:
+                    AddPushButton(editor, proposal, bounds, metadata, fieldOptions);
+                    break;
                 case PdfRecognizedFieldKind.Signature:
                     editor.AddSignatureField(proposal.PageIndex, proposal.SuggestedName,
                         bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
@@ -406,6 +488,65 @@ public sealed class PdfFormRecognitionReview
 
     private static byte[] CopySource(PdfDocument document) => document.Source.ToArray();
 
+    private static void AddPushButton(PdfIncrementalPageEditor editor,
+        PdfFormFieldProposal proposal, PdfContentBounds bounds,
+        PdfFormFieldMetadata? metadata, PdfFormFieldOptions fieldOptions)
+    {
+        PdfRecognizedPushButtonAction action = proposal.SuggestedPushButtonAction!;
+        var appearance = new PdfPushButtonAppearanceOptions
+        {
+            Alignment = proposal.SuggestedAlignment
+        };
+        switch (action.Kind)
+        {
+            case PdfRecognizedPushButtonActionKind.Uri:
+                editor.AddUriPushButton(proposal.PageIndex, proposal.SuggestedName,
+                    bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                    proposal.SuggestedValue!, action.Target!, proposal.SuggestedFontSize,
+                    fieldMetadata: metadata, fieldOptions: fieldOptions,
+                    appearanceStyle: proposal.SuggestedAppearanceStyle,
+                    appearanceOptions: appearance);
+                break;
+            case PdfRecognizedPushButtonActionKind.Page:
+                editor.AddPagePushButton(proposal.PageIndex, proposal.SuggestedName,
+                    bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                    proposal.SuggestedValue!, action.PageIndex!.Value,
+                    fontSize: proposal.SuggestedFontSize,
+                    fieldMetadata: metadata, fieldOptions: fieldOptions,
+                    appearanceStyle: proposal.SuggestedAppearanceStyle,
+                    appearanceOptions: appearance);
+                break;
+            case PdfRecognizedPushButtonActionKind.NamedDestination:
+                editor.AddNamedDestinationPushButton(proposal.PageIndex, proposal.SuggestedName,
+                    bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                    proposal.SuggestedValue!, action.Target!, proposal.SuggestedFontSize,
+                    fieldMetadata: metadata, fieldOptions: fieldOptions,
+                    appearanceStyle: proposal.SuggestedAppearanceStyle,
+                    appearanceOptions: appearance);
+                break;
+            case PdfRecognizedPushButtonActionKind.ResetForm:
+                editor.AddResetFormPushButton(proposal.PageIndex, proposal.SuggestedName,
+                    bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                    proposal.SuggestedValue!, action.Fields, action.ExcludeFields,
+                    proposal.SuggestedFontSize, fieldMetadata: metadata,
+                    fieldOptions: fieldOptions,
+                    appearanceStyle: proposal.SuggestedAppearanceStyle,
+                    appearanceOptions: appearance);
+                break;
+            case PdfRecognizedPushButtonActionKind.SubmitPdf:
+                editor.AddSubmitPdfPushButton(proposal.PageIndex, proposal.SuggestedName,
+                    bounds.Left, bounds.Bottom, bounds.Width, bounds.Height,
+                    proposal.SuggestedValue!, action.Target!, action.Fields,
+                    action.ExcludeFields, proposal.SuggestedFontSize,
+                    fieldMetadata: metadata, fieldOptions: fieldOptions,
+                    appearanceStyle: proposal.SuggestedAppearanceStyle,
+                    appearanceOptions: appearance);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(action));
+        }
+    }
+
     private static bool CanAuthor(PdfFormFieldProposal proposal) => proposal.Kind switch
     {
         PdfRecognizedFieldKind.Text or PdfRecognizedFieldKind.CheckBox
@@ -413,6 +554,8 @@ public sealed class PdfFormRecognitionReview
         PdfRecognizedFieldKind.RadioButton => proposal.SuggestedValue is not null,
         PdfRecognizedFieldKind.DropDown or PdfRecognizedFieldKind.EditableComboBox
             or PdfRecognizedFieldKind.ListBox => proposal.SuggestedOptions.Count > 0,
+        PdfRecognizedFieldKind.PushButton => proposal.SuggestedValue is not null
+            && proposal.SuggestedPushButtonAction is not null,
         _ => false
     };
 
