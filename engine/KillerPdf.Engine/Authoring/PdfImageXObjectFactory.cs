@@ -31,6 +31,12 @@ internal static class PdfImageXObjectFactory
                 ("Columns", new PdfInteger(image.Width)),
                 ("Rows", new PdfInteger(image.Height)),
                 ("BlackIs1", new PdfBoolean(false)))));
+        else if (image.PngPredictorColors > 0)
+            entries.Add(("DecodeParms", Dictionary(
+                ("Predictor", new PdfInteger(15)),
+                ("Colors", new PdfInteger(image.PngPredictorColors)),
+                ("BitsPerComponent", new PdfInteger(8)),
+                ("Columns", new PdfInteger(image.Width)))));
         if (softMaskReference is not null) entries.Add(("SMask", softMaskReference));
         return new PdfStream(Dictionary([.. entries]), image.Data.Span);
     }

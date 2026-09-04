@@ -2,6 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Syntax;
 using Xunit;
@@ -49,6 +50,32 @@ public sealed class PdfImageTests
         Assert.Equal(1, image.BitsPerComponent);
         Assert.Equal(PdfImageColorSpace.Gray, image.ColorSpace);
         Assert.Equal("DeviceGray", ImageColorSpace(image));
+    }
+
+    [Fact]
+    public void FromGrayKeepsSmallerAdaptivePredictorAndRoundTripsExactly()
+    {
+        byte[] pixels = new byte[256 * 100];
+        for (int y = 0; y < 100; y++)
+            for (int x = 0; x < 256; x++) pixels[y * 256 + x] = (byte)x;
+        PdfImage image = PdfImage.FromGray(256, 100, pixels);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, new PdfContentStreamBuilder()
+                .DrawImage(image, 0, 0, 100, 100)).Build());
+        PdfDictionary catalog = ResolveDictionary(document, document.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(document, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(document,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xobjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfStream stream = Assert.IsType<PdfStream>(document.Resolve(
+            Assert.IsType<PdfIndirectReference>(xobjects[Name("Im1")])));
+        PdfDictionary parameters = Assert.IsType<PdfDictionary>(
+            stream.Dictionary[Name("DecodeParms")]);
+
+        Assert.Equal(15, Assert.IsType<PdfInteger>(parameters[Name("Predictor")]).Value);
+        Assert.Equal(1, Assert.IsType<PdfInteger>(parameters[Name("Colors")]).Value);
+        Assert.Equal(pixels, PdfStreamDecoder.Decode(stream, document.Resolve, pixels.Length));
     }
 
     [Fact]

@@ -7,7 +7,8 @@ public sealed class PdfImage
 {
     private PdfImage(
         int width, int height, int bitsPerComponent, PdfImageColorSpace colorSpace,
-        string filter, byte[] data, bool invertComponents, PdfImage? softMask = null)
+        string filter, byte[] data, bool invertComponents,
+        int pngPredictorColors = 0, PdfImage? softMask = null)
     {
         Width = width;
         Height = height;
@@ -16,6 +17,7 @@ public sealed class PdfImage
         Filter = filter;
         Data = data;
         InvertComponents = invertComponents;
+        PngPredictorColors = pngPredictorColors;
         SoftMask = softMask;
     }
 
@@ -31,6 +33,7 @@ public sealed class PdfImage
     public ReadOnlyMemory<byte> Data { get; }
     internal string Filter { get; }
     internal bool InvertComponents { get; }
+    internal int PngPredictorColors { get; }
     internal PdfImage? SoftMask { get; }
 
     /// <summary>Wraps a JPEG without recompressing its pixels.</summary>
@@ -168,11 +171,8 @@ public sealed class PdfImage
         int required = RequiredBytes(width, height, 3);
         if (pixels.Length != required)
             throw new ArgumentException($"An {width} by {height} RGB image requires {required} bytes.", nameof(pixels));
-        using var output = new MemoryStream();
-        using (var zlib = new ZLibStream(output, compressionLevel, leaveOpen: true))
-            zlib.Write(pixels.Span);
-        return new PdfImage(width, height, 8, PdfImageColorSpace.Rgb,
-            "FlateDecode", output.ToArray(), invertComponents: false);
+        return FromInterleaved(width, height, pixels, PdfImageColorSpace.Rgb,
+            compressionLevel);
     }
 
     /// <summary>Compresses 8-bit grayscale pixels with the PDF Flate filter.</summary>
@@ -262,7 +262,8 @@ public sealed class PdfImage
         PdfImage color = FromRgb(width, height, rgb, compressionLevel);
         PdfImage mask = FromGray(width, height, alpha, compressionLevel);
         return new PdfImage(width, height, 8, PdfImageColorSpace.Rgb,
-            color.Filter, color.Data.ToArray(), invertComponents: false, mask);
+            color.Filter, color.Data.ToArray(), invertComponents: false,
+            color.PngPredictorColors, mask);
     }
 
     /// <summary>Compresses interleaved 8-bit grayscale and alpha pixels.</summary>
@@ -288,7 +289,8 @@ public sealed class PdfImage
         PdfImage color = FromGray(width, height, gray, compressionLevel);
         PdfImage mask = FromGray(width, height, alpha, compressionLevel);
         return new PdfImage(width, height, 8, PdfImageColorSpace.Gray,
-            color.Filter, color.Data.ToArray(), invertComponents: false, mask);
+            color.Filter, color.Data.ToArray(), invertComponents: false,
+            color.PngPredictorColors, mask);
     }
 
     /// <summary>Compresses interleaved 8-bit CMYK and alpha pixels.</summary>
@@ -314,18 +316,37 @@ public sealed class PdfImage
         PdfImage color = FromCmyk(width, height, cmyk, compressionLevel);
         PdfImage mask = FromGray(width, height, alpha, compressionLevel);
         return new PdfImage(width, height, 8, PdfImageColorSpace.Cmyk,
-            color.Filter, color.Data.ToArray(), invertComponents: false, mask);
+            color.Filter, color.Data.ToArray(), invertComponents: false,
+            color.PngPredictorColors, mask);
     }
 
     private static PdfImage FromInterleaved(
         int width, int height, ReadOnlyMemory<byte> pixels,
         PdfImageColorSpace colorSpace, CompressionLevel compressionLevel)
     {
+        int colors = colorSpace switch
+        {
+            PdfImageColorSpace.Gray => 1,
+            PdfImageColorSpace.Rgb => 3,
+            PdfImageColorSpace.Cmyk => 4,
+            _ => throw new ArgumentOutOfRangeException(nameof(colorSpace))
+        };
+        byte[] plain = Compress(pixels.Span, compressionLevel);
+        byte[] predicted = Compress(PdfPngPredictorEncoder.Encode(
+            width, height, colors, pixels.Span), compressionLevel);
+        if (predicted.Length < plain.Length)
+            return new PdfImage(width, height, 8, colorSpace,
+                "FlateDecode", predicted, invertComponents: false, colors);
+        return new PdfImage(width, height, 8, colorSpace,
+            "FlateDecode", plain, invertComponents: false);
+    }
+
+    private static byte[] Compress(ReadOnlySpan<byte> source, CompressionLevel compressionLevel)
+    {
         using var output = new MemoryStream();
         using (var zlib = new ZLibStream(output, compressionLevel, leaveOpen: true))
-            zlib.Write(pixels.Span);
-        return new PdfImage(width, height, 8, colorSpace,
-            "FlateDecode", output.ToArray(), invertComponents: false);
+            zlib.Write(source);
+        return output.ToArray();
     }
 
     private static bool IsSupportedStartOfFrame(byte marker) => marker is
