@@ -197,6 +197,13 @@ public sealed class PdfSignatureVerifierTests
         Assert.Contains("\"padesProfile\":1", json);
         Assert.DoesNotContain("contents", json, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("cms", json, StringComparison.OrdinalIgnoreCase);
+        string text = report.ToText();
+        Assert.Contains("Approval", text);
+        Assert.Contains("Cryptographic integrity: Valid", text);
+        Assert.Contains("Certificate trust: Trusted", text);
+        Assert.Contains("Revocation: NotChecked", text);
+        Assert.Contains("PAdES evidence: BaselineB", text);
+        Assert.Contains("Later changes: No", text);
     }
 
     private static byte[] Sign(ReadOnlyMemory<byte> content, X509Certificate2 certificate)

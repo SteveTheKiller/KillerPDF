@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text;
 using KillerPdf.Engine.Documents;
 
 namespace KillerPdf.Engine.Signing;
@@ -13,6 +14,34 @@ public sealed record PdfSignatureInspectionEntry(
 /// <summary>A reusable report for every signature in a document.</summary>
 public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInspectionEntry> Entries)
 {
+    /// <summary>Formats signature integrity, trust, evidence, and revision details for review.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder()
+            .Append("Signatures: ").AppendLine(Entries.Count.ToString());
+        foreach (PdfSignatureInspectionEntry entry in Entries)
+        {
+            output.AppendLine(entry.Signature.FieldName)
+                .Append("  Signed: ").AppendLine(entry.Signature.IsSigned ? "Yes" : "No")
+                .Append("  Cryptographic integrity: ")
+                .AppendLine(entry.Verification.IsCryptographicallyValid ? "Valid" : "Invalid")
+                .Append("  Certificate trust: ")
+                .AppendLine(entry.Verification.CertificateTrustStatus.ToString())
+                .Append("  Revocation: ")
+                .AppendLine(entry.Verification.RevocationStatus.ToString())
+                .Append("  PAdES evidence: ").AppendLine(entry.PadesProfile.ToString())
+                .Append("  Covers whole document: ")
+                .AppendLine(entry.Signature.CoversWholeDocument ? "Yes" : "No");
+            if (entry.Revision is not null)
+                output.Append("  Later changes: ")
+                    .AppendLine(entry.Revision.HasLaterChanges ? "Yes" : "No");
+            if (!string.IsNullOrWhiteSpace(entry.Verification.Error))
+                output.Append("  Verification error: ")
+                    .AppendLine(entry.Verification.Error);
+        }
+        return output.ToString();
+    }
+
     /// <summary>Exports inspection details without embedding CMS or signed document bytes.</summary>
     public string ToJson(bool indented = false)
     {
