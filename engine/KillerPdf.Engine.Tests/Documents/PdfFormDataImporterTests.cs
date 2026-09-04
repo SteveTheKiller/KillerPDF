@@ -111,6 +111,7 @@ public sealed class PdfFormDataImporterTests
         ] };
 
         PdfFormDataImportReport report = PdfFormDataImporter.CreateReport(document, data);
+        string text = report.ToText();
         string json = report.ToJson();
 
         Assert.Equal(3, report.TotalFieldCount);
@@ -122,6 +123,14 @@ public sealed class PdfFormDataImporterTests
         Assert.DoesNotContain("private value", json);
         Assert.DoesNotContain("blocked value", json);
         Assert.DoesNotContain("unknown value", json);
+        Assert.Contains("Form data fields: 3, applicable 1, blocked 2, required 1, excluded from export 1",
+            text, StringComparison.Ordinal);
+        Assert.Contains("required: Matched, Text, required", text, StringComparison.Ordinal);
+        Assert.Contains("excluded: ReadOnly, Text, excluded from export", text,
+            StringComparison.Ordinal);
+        Assert.Contains("missing: Unmatched", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("private value", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("blocked value", text, StringComparison.Ordinal);
     }
 
     [Fact]

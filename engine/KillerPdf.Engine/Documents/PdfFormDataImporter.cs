@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Globalization;
+using System.Text;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 
@@ -318,4 +319,25 @@ public sealed record PdfFormDataImportReport(
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
         });
+
+    /// <summary>Formats the value-free import review for people and command-line output.</summary>
+    public string ToText()
+    {
+        var output = new StringBuilder();
+        output.Append("Form data fields: ").Append(TotalFieldCount.ToString(CultureInfo.InvariantCulture))
+            .Append(", applicable ").Append(ApplicableFieldCount.ToString(CultureInfo.InvariantCulture))
+            .Append(", blocked ").Append(BlockedFieldCount.ToString(CultureInfo.InvariantCulture))
+            .Append(", required ").Append(RequiredFieldCount.ToString(CultureInfo.InvariantCulture))
+            .Append(", excluded from export ").AppendLine(NoExportFieldCount.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfFormDataMatch field in Fields)
+        {
+            output.Append("  ").Append(field.FieldName).Append(": ").Append(field.Status);
+            if (field.Status != PdfFormDataMatchStatus.Unmatched)
+                output.Append(", ").Append(field.FieldKind);
+            if (field.IsRequired) output.Append(", required");
+            if (field.IsNoExport) output.Append(", excluded from export");
+            output.AppendLine();
+        }
+        return output.ToString().TrimEnd();
+    }
 }

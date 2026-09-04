@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added complete FDF and XFDF form-data and review-annotation interchange with safe previews and reports (#329).
 - Added complete AcroForm authoring, reviewable field recognition, editing, flattening, and reports (#342).
 - Added editable document exports, OCR integration, page selection, batches, and loss reports (#346).
 - Added reusable data-driven PDF generation, validation, conditional records, macros, and reports (#352).
