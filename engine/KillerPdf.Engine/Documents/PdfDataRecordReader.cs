@@ -63,6 +63,14 @@ public static class PdfDataRecordReader
         return Array.AsReadOnly(records.ToArray());
     }
 
+    /// <summary>Reads one merge record from Forms Data Format field data.</summary>
+    public static IReadOnlyDictionary<string, string?> FromFdf(ReadOnlyMemory<byte> fdf) =>
+        FromFormData(PdfFdfFormData.Read(fdf), "FDF");
+
+    /// <summary>Reads one merge record from XML Forms Data Format field data.</summary>
+    public static IReadOnlyDictionary<string, string?> FromXfdf(ReadOnlyMemory<byte> xfdf) =>
+        FromFormData(PdfXfdfFormData.Read(xfdf), "XFDF");
+
     /// <summary>Reads records from a selected worksheet in an Office Open XML workbook.</summary>
     public static IReadOnlyList<IReadOnlyDictionary<string, string?>> FromXlsx(
         ReadOnlyMemory<byte> xlsx, string? sheetName = null)
@@ -152,6 +160,28 @@ public static class PdfDataRecordReader
         {
             throw new FormatException($"The XLSX part '{path}' is malformed.", error);
         }
+    }
+
+    private static IReadOnlyDictionary<string, string?> FromFormData(
+        PdfFormDataSet data, string format)
+    {
+        if (data.ContainsJavaScript)
+            throw new FormatException($"{format} merge data cannot contain scripts.");
+        var record = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (PdfFormDataField field in data.Fields)
+        {
+            if (string.IsNullOrWhiteSpace(field.Name) || !record.TryAdd(field.Name,
+                    field.Values.Count switch
+                    {
+                        0 => null,
+                        1 => field.Values[0],
+                        _ => throw new FormatException(
+                            $"{format} merge field '{field.Name}' has multiple values.")
+                    }))
+                throw new FormatException(
+                    $"{format} merge field names must be nonempty and unique.");
+        }
+        return record;
     }
 
     private static string WorkbookTarget(string target)

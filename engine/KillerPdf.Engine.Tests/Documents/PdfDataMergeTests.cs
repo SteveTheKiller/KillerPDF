@@ -77,6 +77,29 @@ public sealed class PdfDataMergeTests
     }
 
     [Fact]
+    public void FdfAndXfdfFieldsImportAsSingleSafeRecords()
+    {
+        var data = new PdfFormDataSet
+        {
+            Fields =
+            [
+                new PdfFormDataField { Name = "Name", Values = ["Ada"] }
+            ]
+        };
+
+        IReadOnlyDictionary<string, string?> fdf = PdfDataRecordReader.FromFdf(
+            PdfFdfFormData.Write(data));
+        IReadOnlyDictionary<string, string?> xfdf = PdfDataRecordReader.FromXfdf(
+            PdfXfdfFormData.Write(data));
+
+        Assert.Equal("Ada", fdf["name"]);
+        Assert.Equal("Ada", xfdf["name"]);
+        Assert.Throws<FormatException>(() => PdfDataRecordReader.FromXfdf(
+            Encoding.UTF8.GetBytes(
+                "<xfdf xmlns=\"http://ns.adobe.com/xfdf/\"><script>bad</script></xfdf>")));
+    }
+
+    [Fact]
     public void XlsxRecordsSupportSheetSelectionAndInlineStrings()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
