@@ -10,7 +10,7 @@ public sealed class PdfXfaAcroFormConverterTests
     public void ConvertPreservesPageAndCreatesEditableFieldWithDatasetValue()
     {
         PdfDocument source = Document(
-            """<template><subform name="form" layout="position"><field name="name" x="10pt" y="20pt" w="70pt" h="15pt"><bind ref="$record.person.name"/><ui><textEdit/></ui></field></subform></template>""",
+            """<template><subform name="form" layout="position"><field name="name" x="10pt" y="20pt" w="70pt" h="15pt"><bind ref="$record.person.name"/><assist><toolTip>Customer name</toolTip></assist><ui><textEdit/></ui></field></subform></template>""",
             """<datasets><data><person><name>Ada</name></person></data></datasets>""");
 
         PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(source));
@@ -18,6 +18,8 @@ public sealed class PdfXfaAcroFormConverterTests
         Assert.Null(PdfXfaReader.Read(converted));
         PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(converted, 0));
         Assert.Equal("form.name", widget.FieldName);
+        Assert.Equal("Customer name", widget.Tooltip);
+        Assert.Equal("form.name", widget.MappingName);
         Assert.Equal("Ada", widget.Value);
         Assert.Equal(10, widget.Left);
         Assert.Equal(65, widget.Bottom);

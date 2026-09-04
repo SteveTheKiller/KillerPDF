@@ -59,7 +59,8 @@ public static class PdfXfaTemplate
                 field.Descendants().Any(element => string.Equals(
                     element.Name.LocalName, "format", StringComparison.OrdinalIgnoreCase)))
             {
-                ChoiceOptions = ChoiceOptions(field, path)
+                ChoiceOptions = ChoiceOptions(field, path),
+                Description = AssistText(field)
             });
             foreach (XElement behavior in field.Elements().Where(element =>
                 PdfXfaTemplateBehaviorKindExtensions.TryParse(
@@ -111,6 +112,17 @@ public static class PdfXfaTemplate
         return Array.AsReadOnly(exports.Select((value, index) =>
             new PdfXfaChoiceOption(value, displays[index])).ToArray());
     }
+
+    private static string? AssistText(XElement field)
+    {
+        XElement? assist = field.Elements().FirstOrDefault(element =>
+            element.Name.LocalName.Equals("assist", StringComparison.OrdinalIgnoreCase));
+        XElement? text = assist?.Elements().FirstOrDefault(element =>
+            element.Name.LocalName.Equals("toolTip", StringComparison.OrdinalIgnoreCase))
+            ?? assist?.Elements().FirstOrDefault(element =>
+                element.Name.LocalName.Equals("speak", StringComparison.OrdinalIgnoreCase));
+        return string.IsNullOrWhiteSpace(text?.Value) ? null : text.Value;
+    }
 }
 
 /// <summary>A safe summary of an XFA template packet.</summary>
@@ -133,6 +145,8 @@ public sealed record PdfXfaTemplateField(
 {
     /// <summary>Gets ordered saved and displayed choice-list values.</summary>
     public IReadOnlyList<PdfXfaChoiceOption> ChoiceOptions { get; init; } = [];
+    /// <summary>Gets the field's user-facing assist text.</summary>
+    public string? Description { get; init; }
 }
 
 /// <summary>One saved and displayed XFA choice-list item.</summary>

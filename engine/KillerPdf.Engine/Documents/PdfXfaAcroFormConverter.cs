@@ -98,24 +98,33 @@ public static class PdfXfaAcroFormConverter
         PdfXfaTemplateField field, string name, int pageIndex,
         double x, double bottom, double width, double height, string? value)
     {
+        var metadata = new PdfFormFieldMetadata
+        {
+            Tooltip = field.Description,
+            MappingName = field.Path
+        };
         if (TextControls.Contains(field.ControlType!))
-            editor.AddTextField(pageIndex, name, x, bottom, width, height, value ?? string.Empty);
+            editor.AddTextField(pageIndex, name, x, bottom, width, height,
+                value ?? string.Empty, fieldMetadata: metadata);
         else if (field.ControlType!.Equals("checkButton", StringComparison.OrdinalIgnoreCase))
-            editor.AddCheckBox(pageIndex, name, x, bottom, width, height, Checked(value));
+            editor.AddCheckBox(pageIndex, name, x, bottom, width, height,
+                Checked(value), fieldMetadata: metadata);
         else if (field.ControlType.Equals("choiceList", StringComparison.OrdinalIgnoreCase))
         {
             if (field.ChoiceOptions.Count == 0)
                 throw new NotSupportedException($"XFA choice field '{field.Path}' has no options.");
             editor.AddComboBoxOptions(pageIndex, name, x, bottom, width, height,
                 field.ChoiceOptions.Select(option => new PdfChoiceOption(
-                    option.ExportValue, option.DisplayValue)), value);
+                    option.ExportValue, option.DisplayValue)), value,
+                fieldMetadata: metadata);
         }
         else
         {
             if (!string.IsNullOrEmpty(value))
                 throw new NotSupportedException(
                     $"Signed XFA field '{field.Path}' cannot be converted safely.");
-            editor.AddSignatureField(pageIndex, name, x, bottom, width, height);
+            editor.AddSignatureField(pageIndex, name, x, bottom, width, height,
+                fieldMetadata: metadata);
         }
     }
 

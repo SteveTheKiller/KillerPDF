@@ -146,6 +146,7 @@ public sealed class PdfXfaReaderTests
               <subform name="invoice">
                 <field name="total">
                   <ui><numericEdit/></ui>
+                  <assist><toolTip>Invoice total</toolTip></assist>
                   <bind ref="$record.invoice.total"/>
                   <calculate><script contentType="application/x-formcalc">1 + 1</script></calculate>
                   <validate><script contentType="application/x-javascript">unsafe()</script></validate>
@@ -165,6 +166,7 @@ public sealed class PdfXfaReaderTests
         Assert.Equal("invoice.total", total.Path);
         Assert.Equal("$record.invoice.total", total.Binding);
         Assert.Equal("numericEdit", total.ControlType);
+        Assert.Equal("Invoice total", total.Description);
         Assert.True(total.HasCalculation);
         Assert.True(total.HasValidation);
         Assert.True(total.HasFormatting);
