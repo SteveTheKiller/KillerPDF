@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Authoring;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -94,5 +95,19 @@ public sealed class PdfPageFurnitureTests
         Assert.Throws<ArgumentException>(() => PdfPageFurniturePlacementPlanner.Plan(
             100, 100, 90, 10, 6, 5, PdfPageFurnitureEdge.Header,
             PdfPageFurnitureAlignment.Left));
+    }
+
+    [Fact]
+    public void WriterAddsReviewedFurnitureToSelectedPages()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(300, 400).AddBlankPage(300, 400).Build());
+
+        PdfDocument reopened = PdfDocument.Open(PdfPageFurnitureWriter.Apply(document, [
+            new PdfPageFurnitureMark(0, "CASE-000001", 20, 20),
+            new PdfPageFurnitureMark(1, "CASE-000002", 20, 20)]));
+
+        Assert.Equal("CASE-000001", new PdfPageContentReader(reopened).Read(0).Text);
+        Assert.Equal("CASE-000002", new PdfPageContentReader(reopened).Read(1).Text);
     }
 }

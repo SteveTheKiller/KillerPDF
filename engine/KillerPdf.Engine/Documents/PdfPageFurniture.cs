@@ -1,5 +1,7 @@
 using System.Globalization;
 using System.Text;
+using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -149,6 +151,43 @@ public static class PdfPageFurniturePlacementPlanner
             .Where(candidate => candidate.Right > bounds.Left && candidate.Left < bounds.Right
                 && candidate.Top > bounds.Bottom && candidate.Bottom < bounds.Top)];
         return new PdfPageFurniturePlacement(bounds, Array.AsReadOnly(collisions));
+    }
+}
+
+/// <summary>One text mark to write into a page header or footer.</summary>
+public sealed record PdfPageFurnitureMark(
+    int PageIndex, string Text, double X, double Baseline, double FontSize = 10);
+
+/// <summary>Writes reviewed page-furniture marks as decorative page artifacts.</summary>
+public static class PdfPageFurnitureWriter
+{
+    /// <summary>Appends the supplied marks without changing the document's logical structure.</summary>
+    public static byte[] Apply(PdfDocument document, IEnumerable<PdfPageFurnitureMark> marks)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(marks);
+        PdfPageFurnitureMark[] requested = marks.ToArray();
+        if (requested.Length == 0)
+            throw new ArgumentException("At least one page-furniture mark is required.", nameof(marks));
+        IReadOnlyList<PdfPageBoxInformation> pages = PdfPageBoxInformation.Read(document);
+        var editor = new PdfIncrementalPageEditor(document);
+        foreach (PdfPageFurnitureMark mark in requested)
+        {
+            if (mark.PageIndex < 0 || mark.PageIndex >= pages.Count)
+                throw new ArgumentOutOfRangeException(nameof(marks));
+            if (string.IsNullOrEmpty(mark.Text))
+                throw new ArgumentException("Page-furniture text cannot be empty.", nameof(marks));
+            if (!double.IsFinite(mark.X) || !double.IsFinite(mark.Baseline)
+                || !double.IsFinite(mark.FontSize) || mark.FontSize <= 0)
+                throw new ArgumentOutOfRangeException(nameof(marks));
+            PdfPageBoxBounds media = pages[mark.PageIndex].MediaBox;
+            var content = new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, mark.FontSize)
+                .MoveText(mark.X, mark.Baseline)
+                .ShowLatin1Text(mark.Text).EndText();
+            editor.AppendPageArtifact(mark.PageIndex, media.Width, media.Height, content);
+        }
+        return editor.Build();
     }
 }
 

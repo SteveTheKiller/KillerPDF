@@ -31,7 +31,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added region validation and affected-content planning for partial rasterization (#369).
 - Added privacy-safe JSON reports for redaction reviews and verification (#341).
 - Added reviewed field descriptions and choice fields to automatic form authoring (#342).
-- Added header and footer placement with content collision checks (#344).
+- Added header and footer placement, PDF writing, and content collision checks (#344).
 - Added structured export reports for content that cannot be fully represented (#346).
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
 - Click the footer page dimensions to cycle through pixel, inch, millimeter, and point dimensions (#364).
