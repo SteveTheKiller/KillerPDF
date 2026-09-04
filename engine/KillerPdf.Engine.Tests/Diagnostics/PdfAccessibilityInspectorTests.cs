@@ -22,6 +22,8 @@ public sealed class PdfAccessibilityInspectorTests
                 .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
                 .MoveText(20, 270).ShowLatin1Text("1. First item").EndText()
                 .DrawImage(image, 20, 200, 40, 40))
+            .AddUriLink(0, 20, 150, 80, 20, "https://example.com",
+                contents: "Example link")
             .Build());
 
         IReadOnlyList<PdfAccessibilityTaggingProposalItem> proposals =
@@ -30,13 +32,15 @@ public sealed class PdfAccessibilityInspectorTests
         Assert.Equal([PdfAccessibilityProposedRole.Heading,
             PdfAccessibilityProposedRole.Paragraph,
             PdfAccessibilityProposedRole.ListItem,
-            PdfAccessibilityProposedRole.Figure], proposals.Select(item => item.Role));
-        Assert.Equal([0, 1, 2, 3], proposals.Select(item => item.Order));
+            PdfAccessibilityProposedRole.Figure,
+            PdfAccessibilityProposedRole.Link], proposals.Select(item => item.Role));
+        Assert.Equal([0, 1, 2, 3, 4], proposals.Select(item => item.Order));
         Assert.Equal("Heading", proposals[0].Text);
         Assert.Equal("1. First item", proposals[2].Text);
         Assert.Null(proposals[3].Text);
+        Assert.Equal("Example link", proposals[4].Text);
         Assert.All(proposals, item => Assert.True(item.RequiresReview));
-        Assert.All(proposals, item => Assert.InRange(item.Confidence, 0.5, 0.75));
+        Assert.All(proposals, item => Assert.InRange(item.Confidence, 0.5, 0.9));
     }
 
     [Fact]

@@ -11,6 +11,8 @@ public enum PdfAccessibilityProposedRole
     Paragraph,
     /// <summary>A text line with a common bullet or numbered-list prefix.</summary>
     ListItem,
+    /// <summary>A link annotation that requires a meaningful description.</summary>
+    Link,
     /// <summary>An image placement that requires alternate text.</summary>
     Figure
 }
@@ -60,6 +62,11 @@ public static class PdfAccessibilityTaggingProposal
                             : PdfAccessibilityProposedRole.Paragraph,
                         Confidence: heading ? 0.75 : LooksLikeListItem(text) ? 0.7 : 0.65);
                 })
+                .Concat(PdfLinkReader.ReadPage(document, pageIndex).Select(link =>
+                    (BoundingBox: new PdfContentBounds(link.Left, link.Bottom, link.Right, link.Top),
+                        Text: link.Description,
+                        Role: PdfAccessibilityProposedRole.Link,
+                        Confidence: string.IsNullOrWhiteSpace(link.Description) ? 0.55 : 0.9)))
                 .Concat(page.Images.Select(image => (image.BoundingBox, Text: (string?)null,
                     Role: PdfAccessibilityProposedRole.Figure, Confidence: 0.5)))
                 .OrderByDescending(region => region.BoundingBox.Top)
