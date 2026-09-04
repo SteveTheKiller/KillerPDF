@@ -130,11 +130,12 @@ public sealed class PdfOptimizationPlan
     private readonly string[] _formFieldNames;
     private readonly int[] _resourcePages;
     private readonly PdfSaveRepairChange[] _repairs;
+    private readonly int _commentCount;
 
     internal PdfOptimizationPlan(PdfDocument document, PdfOptimizationOptions options,
         IEnumerable<PdfOptimizationChangeKind> changes, IEnumerable<string> attachmentNames,
         IEnumerable<string> formFieldNames, IEnumerable<int> resourcePages,
-        IEnumerable<PdfSaveRepairChange> repairs)
+        IEnumerable<PdfSaveRepairChange> repairs, int commentCount)
     {
         _document = document;
         _options = options;
@@ -142,6 +143,7 @@ public sealed class PdfOptimizationPlan
         _formFieldNames = formFieldNames.ToArray();
         _resourcePages = resourcePages.ToArray();
         _repairs = repairs.ToArray();
+        _commentCount = commentCount;
         Changes = Array.AsReadOnly(changes.ToArray());
     }
 
@@ -149,6 +151,33 @@ public sealed class PdfOptimizationPlan
     public int OriginalSize => _document.Source.Length;
     /// <summary>Gets every material change in application order.</summary>
     public IReadOnlyList<PdfOptimizationChangeKind> Changes { get; }
+    /// <summary>Gets embedded-file names that the plan will remove.</summary>
+    public IReadOnlyList<string> AttachmentNames => Array.AsReadOnly(_attachmentNames);
+    /// <summary>Gets form-field names that the plan will remove.</summary>
+    public IReadOnlyList<string> FormFieldNames => Array.AsReadOnly(_formFieldNames);
+    /// <summary>Gets the number of review annotations that the plan will remove.</summary>
+    public int CommentCount => _commentCount;
+    /// <summary>Gets zero-based pages whose resource dictionaries will be pruned.</summary>
+    public IReadOnlyList<int> ResourcePageIndexes => Array.AsReadOnly(_resourcePages);
+    /// <summary>Gets structural repairs that the plan will apply.</summary>
+    public IReadOnlyList<PdfSaveRepairChange> Repairs => Array.AsReadOnly(_repairs);
+
+    /// <summary>Serializes the complete preview without changing the document.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        OriginalSize,
+        Changes,
+        AttachmentNames,
+        FormFieldNames,
+        CommentCount,
+        ResourcePageIndexes,
+        Repairs
+    }, new JsonSerializerOptions
+    {
+        WriteIndented = indented,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+    });
 
     /// <summary>Applies the previewed plan and verifies that the result reopens with the same page count.</summary>
     public PdfOptimizationResult Apply()
@@ -402,7 +431,7 @@ public static class PdfOptimizer
         if (options.PackObjects) changes.Add(PdfOptimizationChangeKind.PackObjects);
         if (options.CompressStructure) changes.Add(PdfOptimizationChangeKind.CompressStructure);
         return new PdfOptimizationPlan(document, options, changes, attachmentNames,
-            formFieldNames, resourcePages, repairs);
+            formFieldNames, resourcePages, repairs, comments.Length);
     }
 
     internal static IReadOnlyList<int> UnusedResourcePages(PdfDocument document)

@@ -121,6 +121,10 @@ public sealed class PdfOptimizationTests
                 new PdfName("Root"u8)])));
 
         Assert.Contains(PdfOptimizationChangeKind.RemoveAttachments, plan.Changes);
+        Assert.Equal(["private.txt"], plan.AttachmentNames);
+        using JsonDocument preview = JsonDocument.Parse(plan.ToJson());
+        Assert.Equal("private.txt", preview.RootElement.GetProperty("attachmentNames")[0]
+            .GetString());
         Assert.Contains(PdfOptimizationChangeKind.RemoveOpenAction, plan.Changes);
         Assert.Contains(PdfOptimizationChangeKind.RemoveBookmarks, plan.Changes);
         Assert.Equal([
@@ -179,6 +183,7 @@ public sealed class PdfOptimizationTests
         PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
 
         Assert.Contains(PdfOptimizationChangeKind.RemoveFormFields, plan.Changes);
+        Assert.Equal(["private.name"], plan.FormFieldNames);
         Assert.Empty(PdfFormWidgetReader.ReadPage(sanitized, 0));
     }
 
@@ -198,6 +203,7 @@ public sealed class PdfOptimizationTests
         PdfDocument sanitized = PdfDocument.Open(plan.Apply().Data);
 
         Assert.Contains(PdfOptimizationChangeKind.RemoveComments, plan.Changes);
+        Assert.Equal(1, plan.CommentCount);
         Assert.Empty(PdfCommentReader.Read(sanitized));
     }
 
