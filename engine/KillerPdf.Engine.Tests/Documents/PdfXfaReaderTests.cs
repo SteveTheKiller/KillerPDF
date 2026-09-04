@@ -42,6 +42,33 @@ public sealed class PdfXfaReaderTests
         Assert.False(values.ContainsJavaScript);
     }
 
+    [Fact]
+    public void WritesQualifiedUnicodeAndRepeatedDatasetValues()
+    {
+        var values = new PdfFormDataSet
+        {
+            Fields = [
+                new PdfFormDataField { Name = "form.name", Values = ["Zoë"] },
+                new PdfFormDataField { Name = "form.colors", Values = ["red", "blue"] }]
+        };
+
+        byte[] packet = PdfXfaDatasets.Write(values);
+        PdfFormDataSet restored = PdfXfaDatasets.Read(new PdfXfaInfo
+        {
+            Packets = [new PdfXfaPacket("datasets", packet)]
+        });
+
+        Assert.Equal(["form.name", "form.colors"],
+            restored.Fields.Select(field => field.Name));
+        Assert.Equal(["red", "blue"], restored.Fields[1].Values);
+        Assert.Throws<ArgumentException>(() => PdfXfaDatasets.Write(new PdfFormDataSet
+        {
+            Fields = [
+                new PdfFormDataField { Name = "form", Values = ["value"] },
+                new PdfFormDataField { Name = "form.child", Values = ["value"] }]
+        }));
+    }
+
     private static PdfDocument Document(string template, string datasets)
     {
         string[] objects =

@@ -1,5 +1,6 @@
 using System.Xml;
 using System.Xml.Linq;
+using System.Text;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -57,5 +58,83 @@ public static class PdfXfaDatasets
             }).ToArray()),
             ContainsJavaScript = info.ContainsScript
         };
+    }
+
+    /// <summary>Writes portable field values as a deterministic XFA datasets packet.</summary>
+    public static byte[] Write(PdfFormDataSet data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        var rootNode = new DatasetNode();
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (PdfFormDataField field in data.Fields)
+        {
+            if (string.IsNullOrWhiteSpace(field.Name) || !names.Add(field.Name))
+                throw new ArgumentException(
+                    "XFA dataset field names must be nonempty and unique.", nameof(data));
+            string[] parts = field.Name.Split('.');
+            if (parts.Any(part => part.Length == 0 || !IsXmlName(part)))
+                throw new ArgumentException(
+                    $"XFA dataset field '{field.Name}' is not a valid qualified XML name.",
+                    nameof(data));
+            DatasetNode node = rootNode;
+            foreach (string part in parts)
+            {
+                if (node.Values is not null)
+                    throw new ArgumentException(
+                        "An XFA dataset field cannot also contain child fields.", nameof(data));
+                if (!node.Children.TryGetValue(part, out DatasetNode? child))
+                {
+                    child = new DatasetNode();
+                    node.Children.Add(part, child);
+                }
+                node = child;
+            }
+            if (node.Children.Count > 0)
+                throw new ArgumentException(
+                    "An XFA dataset field cannot also contain child fields.", nameof(data));
+            node.Values = field.Values.ToArray();
+        }
+
+        XNamespace xfa = "http://www.xfa.org/schema/xfa-data/1.0/";
+        var dataElement = new XElement(xfa + "data");
+        AddChildren(dataElement, rootNode);
+        var document = new XDocument(new XDeclaration("1.0", "UTF-8", null),
+            new XElement(xfa + "datasets", dataElement));
+        using var output = new MemoryStream();
+        using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings
+        {
+            Encoding = new UTF8Encoding(false),
+            Indent = true,
+            NewLineChars = "\n"
+        })) document.Save(writer);
+        return output.ToArray();
+    }
+
+    private static void AddChildren(XElement parent, DatasetNode node)
+    {
+        foreach ((string name, DatasetNode child) in node.Children)
+        {
+            if (child.Values is not null)
+                foreach (string value in child.Values) parent.Add(new XElement(name, value));
+            else
+            {
+                var element = new XElement(name);
+                AddChildren(element, child);
+                parent.Add(element);
+            }
+        }
+    }
+
+    private static bool IsXmlName(string value)
+    {
+        try { XmlConvert.VerifyNCName(value); return true; }
+        catch (XmlException) { return false; }
+    }
+
+    private sealed class DatasetNode
+    {
+        internal Dictionary<string, DatasetNode> Children { get; } =
+            new(StringComparer.Ordinal);
+        internal string[]? Values { get; set; }
     }
 }
