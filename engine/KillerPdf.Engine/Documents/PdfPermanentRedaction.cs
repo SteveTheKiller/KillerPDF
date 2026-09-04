@@ -1,7 +1,9 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.CrossReference;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Writing;
 using System.Text;
 using System.Text.Json;
 
@@ -65,6 +67,24 @@ public sealed record PdfRedactionBatchResult(
     PdfRedactionVerificationReport? Verification,
     string? Error);
 
+/// <summary>The verified result of permanently removing reviewed comment annotations.</summary>
+public sealed record PdfCommentRedactionResult(
+    ReadOnlyMemory<byte> Document, IReadOnlyList<string> RemovedIds, int RemainingComments)
+{
+    /// <summary>Exports a data-safe result without document bytes or comment text.</summary>
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    {
+        Version = 1,
+        RemovedCount = RemovedIds.Count,
+        RemovedIds,
+        RemainingComments
+    }, new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    });
+}
+
 /// <summary>Creates and verifies PDFs that contain only sanitized page images.</summary>
 public static class PdfPermanentRedaction
 {
@@ -74,6 +94,63 @@ public static class PdfPermanentRedaction
     private static readonly PdfName AcroFormName = Name("AcroForm");
     private static readonly PdfName OutlinesName = Name("Outlines");
     private static readonly PdfName AnnotationsName = Name("Annots");
+
+    /// <summary>Permanently removes selected reviewed comments and verifies the rewritten result.</summary>
+    public static PdfCommentRedactionResult ApplyReviewedComments(
+        PdfDocument document, PdfRedactionReview review,
+        bool allowSignatureInvalidation = false)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(review);
+        PdfRedactionMatch[] selected = review.Included.ToArray();
+        if (selected.Any(match => match.TargetKind != PdfRedactionTargetKind.Comment))
+            throw new ArgumentException(
+                "Reviewed comment removal accepts only comment targets.", nameof(review));
+        if (selected.Any(match => !string.IsNullOrEmpty(match.OverlayText)))
+            throw new NotSupportedException(
+                "Comment redaction overlay text requires a rasterized page workflow.");
+        if (selected.Length == 0)
+            return new PdfCommentRedactionResult(document.Source,
+                Array.Empty<string>(), PdfCommentReader.Read(document).Count);
+
+        PdfCommentInfo[] current = PdfCommentReader.Read(document).ToArray();
+        var targets = new List<(PdfRedactionMatch Match, PdfCommentInfo Comment)>();
+        foreach (PdfRedactionMatch match in selected)
+        {
+            PdfCommentInfo? comment = current.SingleOrDefault(item => string.Equals(
+                match.Id, $"comment:{item.PageIndex}:{item.AnnotationIndex}",
+                StringComparison.Ordinal));
+            if (comment is null || comment.Bounds != match.Bounds
+                || !string.Equals(comment.Contents, match.Text, StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    $"The document no longer contains reviewed comment '{match.Id}'.");
+            targets.Add((match, comment));
+        }
+
+        var editor = new PdfIncrementalAnnotationEditor(document);
+        foreach (var target in targets.OrderByDescending(item => item.Comment.PageIndex)
+                     .ThenByDescending(item => item.Comment.AnnotationIndex))
+            editor.RemoveAnnotationAt(
+                target.Comment.PageIndex, target.Comment.AnnotationIndex);
+        PdfDocument edited = PdfDocument.Open(editor.Build());
+        byte[] output = PdfDocumentWriter.Write(edited, new PdfDocumentWriteOptions
+        {
+            PruneUnreachableObjects = true,
+            AllowSignatureInvalidation = allowSignatureInvalidation
+        });
+        PdfDocument reopened = PdfDocument.Open(output);
+        PdfCommentInfo[] remaining = PdfCommentReader.Read(reopened).ToArray();
+        string[] expected = [.. current.Except(targets.Select(item => item.Comment))
+            .Select(item => item.Contents).Order(StringComparer.Ordinal)];
+        string[] actual = [.. remaining.Select(item => item.Contents)
+            .Order(StringComparer.Ordinal)];
+        if (!expected.SequenceEqual(actual, StringComparer.Ordinal)
+            || reopened.CrossReferences.Sections.Count != 1)
+            throw new InvalidOperationException(
+                "The saved document did not preserve the reviewed comment-removal result.");
+        return new PdfCommentRedactionResult(output,
+            Array.AsReadOnly(selected.Select(match => match.Id).ToArray()), remaining.Length);
+    }
 
     /// <summary>Builds a new PDF without copying any object or revision from the source document.</summary>
     public static byte[] RebuildFromSanitizedPages(IEnumerable<PdfSanitizedRasterPage> pages)

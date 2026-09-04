@@ -1,5 +1,6 @@
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 using System.Text.Json;
@@ -9,6 +10,34 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfPermanentRedactionTests
 {
+    [Fact]
+    public void ReviewedCommentsArePermanentlyRemovedAndVerified()
+    {
+        PdfDocument source = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfDocument reviewed = PdfDocument.Open(new PdfIncrementalAnnotationEditor(source)
+            .AddTextNote(0, 20, 30, "remove this", name: "remove")
+            .AddTextNote(0, 60, 70, "retain this", name: "retain")
+            .Build());
+        PdfRedactionReview review = PdfRedactionReview.FromComments(reviewed)
+            .Exclude("comment:0:1");
+
+        PdfCommentRedactionResult result =
+            PdfPermanentRedaction.ApplyReviewedComments(reviewed, review);
+        PdfDocument output = PdfDocument.Open(result.Document);
+
+        Assert.Equal(["comment:0:0"], result.RemovedIds);
+        Assert.Equal(1, result.RemainingComments);
+        Assert.Equal("retain this", Assert.Single(PdfCommentReader.Read(output)).Contents);
+        Assert.Single(output.CrossReferences.Sections);
+        Assert.DoesNotContain("remove this",
+            System.Text.Encoding.Latin1.GetString(result.Document.Span));
+        Assert.DoesNotContain("retain this", result.ToJson());
+        Assert.Throws<NotSupportedException>(() =>
+            PdfPermanentRedaction.ApplyReviewedComments(reviewed,
+                PdfRedactionReview.FromComments(reviewed, overlayText: "REMOVED")));
+    }
+
     [Fact]
     public void RebuildCreatesSingleRevisionImageOnlyPagesWithoutSourceData()
     {
