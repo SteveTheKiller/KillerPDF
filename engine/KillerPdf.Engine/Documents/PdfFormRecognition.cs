@@ -46,7 +46,8 @@ public sealed record PdfFormFieldProposal
         PdfFormProposalStatus status = PdfFormProposalStatus.Proposed,
         string? suggestedTooltip = null, IEnumerable<string>? suggestedOptions = null,
         string? suggestedValue = null, bool suggestedReadOnly = false,
-        bool suggestedRequired = false, bool suggestedChecked = false)
+        bool suggestedRequired = false, bool suggestedChecked = false,
+        bool suggestedMultiline = false)
     {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("A proposal ID is required.", nameof(id));
         if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -70,6 +71,10 @@ public sealed record PdfFormFieldProposal
         if (suggestedChecked && kind != PdfRecognizedFieldKind.CheckBox)
             throw new ArgumentException(
                 "A checked state can be suggested only for a checkbox.", nameof(suggestedChecked));
+        if (suggestedMultiline && kind != PdfRecognizedFieldKind.Text)
+            throw new ArgumentException(
+                "Multiline behavior can be suggested only for a text field.",
+                nameof(suggestedMultiline));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
         Id = id;
         PageIndex = pageIndex;
@@ -83,6 +88,7 @@ public sealed record PdfFormFieldProposal
         SuggestedReadOnly = suggestedReadOnly;
         SuggestedRequired = suggestedRequired;
         SuggestedChecked = suggestedChecked;
+        SuggestedMultiline = suggestedMultiline;
         Status = status;
     }
 
@@ -110,17 +116,20 @@ public sealed record PdfFormFieldProposal
     public bool SuggestedRequired { get; }
     /// <summary>Gets whether a proposed checkbox should initially be checked.</summary>
     public bool SuggestedChecked { get; }
+    /// <summary>Gets whether a proposed text field should accept multiple lines.</summary>
+    public bool SuggestedMultiline { get; }
     /// <summary>Gets the current review state.</summary>
     public PdfFormProposalStatus Status { get; }
 
     internal PdfFormFieldProposal Review(PdfFormProposalStatus status, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
-        bool? readOnly = null, bool? required = null, bool? isChecked = null) =>
+        bool? readOnly = null, bool? required = null, bool? isChecked = null,
+        bool? multiline = null) =>
         new(Id, PageIndex, bounds ?? Bounds, kind ?? Kind, Confidence, name ?? SuggestedName,
             status, tooltip ?? SuggestedTooltip, options ?? SuggestedOptions, value ?? SuggestedValue,
             readOnly ?? SuggestedReadOnly, required ?? SuggestedRequired,
-            isChecked ?? SuggestedChecked);
+            isChecked ?? SuggestedChecked, multiline ?? SuggestedMultiline);
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
@@ -152,10 +161,11 @@ public sealed class PdfFormRecognitionReview
     public PdfFormRecognitionReview Accept(string id, string? name = null,
         PdfRecognizedFieldKind? kind = null, PdfContentBounds? bounds = null,
         string? tooltip = null, IEnumerable<string>? options = null, string? value = null,
-        bool? readOnly = null, bool? required = null, bool? isChecked = null) =>
+        bool? readOnly = null, bool? required = null, bool? isChecked = null,
+        bool? multiline = null) =>
         Change(id, item => item.Review(
             PdfFormProposalStatus.Accepted, name, kind, bounds, tooltip, options, value,
-            readOnly, required, isChecked));
+            readOnly, required, isChecked, multiline));
 
     /// <summary>Returns a new review with a proposal rejected.</summary>
     public PdfFormRecognitionReview Reject(string id) =>
@@ -203,7 +213,8 @@ public sealed class PdfFormRecognitionReview
                         options: new PdfTextFieldOptions
                         {
                             ReadOnly = proposal.SuggestedReadOnly,
-                            Required = proposal.SuggestedRequired
+                            Required = proposal.SuggestedRequired,
+                            Multiline = proposal.SuggestedMultiline
                         },
                         fieldMetadata: metadata);
                     break;
