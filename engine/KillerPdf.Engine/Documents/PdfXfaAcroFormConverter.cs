@@ -11,7 +11,7 @@ public static class PdfXfaAcroFormConverter
         "dateTimeEdit", "defaultUi", "numericEdit", "passwordEdit", "textEdit"
     };
     private static readonly HashSet<string> ConvertibleControls = new(
-        TextControls.Concat(["checkButton", "choiceList", "imageEdit", "signature"]),
+        TextControls.Concat(["barcode", "checkButton", "choiceList", "imageEdit", "signature"]),
         StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Preserves source pages, removes XFA, and authors editable text widgets.</summary>
@@ -37,12 +37,14 @@ public static class PdfXfaAcroFormConverter
                 $"XFA control '{unsupported.ControlType ?? "unknown"}' cannot be converted.");
         bool hasImages = fields.Values.Any(field =>
             field.ControlType!.Equals("imageEdit", StringComparison.OrdinalIgnoreCase));
-        if (hasImages && mode != PdfXfaConversionMode.Flattened)
+        bool hasBarcodes = fields.Values.Any(field =>
+            field.ControlType!.Equals("barcode", StringComparison.OrdinalIgnoreCase));
+        if ((hasImages || hasBarcodes) && mode != PdfXfaConversionMode.Flattened)
             throw new NotSupportedException(
-                "XFA image fields can be preserved only in flattened output.");
-        if (hasImages && info.FormType == PdfXfaFormType.Dynamic)
+                "XFA image and barcode fields can be preserved only in flattened output.");
+        if ((hasImages || hasBarcodes) && info.FormType == PdfXfaFormType.Dynamic)
             throw new NotSupportedException(
-                "Dynamic XFA image-field conversion is not supported.");
+                "Dynamic XFA image and barcode conversion is not supported.");
         Dictionary<string, PdfXfaImageValue> images = hasImages
             ? PdfXfaImages.Read(info).ToDictionary(image => image.FieldPath, StringComparer.Ordinal)
             : [];
@@ -98,6 +100,12 @@ public static class PdfXfaAcroFormConverter
             {
                 AddImage(editor, field, images, placement.PageIndex, page.Width, page.Height,
                     placement.X, bottom, placement.Width, placement.Height);
+                continue;
+            }
+            if (field.ControlType.Equals("barcode", StringComparison.OrdinalIgnoreCase))
+            {
+                AddBarcode(editor, field, placement.PageIndex, page.Width, page.Height,
+                    placement.X, bottom, placement.Width, placement.Height, value);
                 continue;
             }
             AddField(editor, field, placement.FieldPath, placement.PageIndex,
@@ -169,6 +177,81 @@ public static class PdfXfaAcroFormConverter
             .DrawImage(PdfImage.FromJpeg(image.Data), x, bottom, width, height);
         editor.AppendPageContent(pageIndex, pageWidth, pageHeight, content);
     }
+
+    private static void AddBarcode(PdfIncrementalPageEditor editor,
+        PdfXfaTemplateField field, int pageIndex, double pageWidth, double pageHeight,
+        double x, double bottom, double width, double height, string? value)
+    {
+        PdfXfaBarcodeInfo barcode = field.Barcode
+            ?? throw new NotSupportedException(
+                $"XFA barcode field '{field.Path}' has no barcode parameters.");
+        string type = barcode.Type?.Trim() ?? string.Empty;
+        if (!type.Equals("code39", StringComparison.OrdinalIgnoreCase)
+            && !type.Equals("code3of9", StringComparison.OrdinalIgnoreCase))
+            throw new NotSupportedException(
+                $"XFA barcode type '{barcode.Type ?? "unspecified"}' cannot be converted.");
+        string data = (value ?? string.Empty).ToUpperInvariant();
+        if (data.Length == 0 || data.Any(character => !Code39Patterns.ContainsKey(character)))
+            throw new InvalidOperationException(
+                $"XFA barcode field '{field.Path}' contains invalid Code 39 data.");
+        if (barcode.Attributes.TryGetValue("dataLength", out string? lengthText))
+        {
+            if (!int.TryParse(lengthText, out int length) || length < 0)
+                throw new InvalidOperationException(
+                    $"XFA barcode field '{field.Path}' has an invalid data length.");
+            if (data.Length > length)
+                throw new InvalidOperationException(
+                    $"XFA barcode field '{field.Path}' exceeds its declared data length.");
+        }
+        if (barcode.Attributes.TryGetValue("checksum", out string? checksum)
+            && !string.IsNullOrWhiteSpace(checksum)
+            && !checksum.Equals("none", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!checksum.Equals("1mod43", StringComparison.OrdinalIgnoreCase))
+                throw new NotSupportedException(
+                    $"XFA barcode checksum '{checksum}' cannot be converted.");
+            const string alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%";
+            data += alphabet[data.Sum(character => alphabet.IndexOf(character)) % 43];
+        }
+        string encoded = "*" + data + "*";
+        int units = encoded.Sum(character => Code39Patterns[character]
+            .Sum(mark => mark == 'w' ? 3 : 1)) + encoded.Length - 1 + 20;
+        double module = width / units;
+        double cursor = x + 10 * module;
+        var content = new PdfContentStreamBuilder().SetFillRgb(0, 0, 0);
+        foreach (char character in encoded)
+        {
+            string pattern = Code39Patterns[character];
+            for (int index = 0; index < pattern.Length; index++)
+            {
+                double span = module * (pattern[index] == 'w' ? 3 : 1);
+                if (index % 2 == 0) content.Rectangle(cursor, bottom, span, height).Fill();
+                cursor += span;
+            }
+            cursor += module;
+        }
+        editor.AppendPageContent(pageIndex, pageWidth, pageHeight, content);
+    }
+
+    private static readonly IReadOnlyDictionary<char, string> Code39Patterns =
+        new Dictionary<char, string>
+        {
+            ['0'] = "nnnwwnwnn", ['1'] = "wnnwnnnnw", ['2'] = "nnwwnnnnw",
+            ['3'] = "wnwwnnnnn", ['4'] = "nnnwwnnnw", ['5'] = "wnnwwnnnn",
+            ['6'] = "nnwwwnnnn", ['7'] = "nnnwnnwnw", ['8'] = "wnnwnnwnn",
+            ['9'] = "nnwwnnwnn", ['A'] = "wnnnnwnnw", ['B'] = "nnwnnwnnw",
+            ['C'] = "wnwnnwnnn", ['D'] = "nnnnwwnnw", ['E'] = "wnnnwwnnn",
+            ['F'] = "nnwnwwnnn", ['G'] = "nnnnnwwnw", ['H'] = "wnnnnwwnn",
+            ['I'] = "nnwnnwwnn", ['J'] = "nnnnwwwnn", ['K'] = "wnnnnnnww",
+            ['L'] = "nnwnnnnww", ['M'] = "wnwnnnnwn", ['N'] = "nnnnwnnww",
+            ['O'] = "wnnnwnnwn", ['P'] = "nnwnwnnwn", ['Q'] = "nnnnnnwww",
+            ['R'] = "wnnnnnwwn", ['S'] = "nnwnnnwwn", ['T'] = "nnnnwnwwn",
+            ['U'] = "wwnnnnnnw", ['V'] = "nwwnnnnnw", ['W'] = "wwwnnnnnn",
+            ['X'] = "nwnnwnnnw", ['Y'] = "wwnnwnnnn", ['Z'] = "nwwnwnnnn",
+            ['-'] = "nwnnnnwnw", ['.'] = "wwnnnnwnn", [' '] = "nwwnnnwnn",
+            ['$'] = "nwnwnwnnn", ['/'] = "nwnwnnnwn", ['+'] = "nwnnnwnwn",
+            ['%'] = "nnnwnwnwn", ['*'] = "nwnnwnwnn"
+        };
 
     private static byte[] Finish(PdfIncrementalPageEditor editor, PdfXfaConversionMode mode)
     {

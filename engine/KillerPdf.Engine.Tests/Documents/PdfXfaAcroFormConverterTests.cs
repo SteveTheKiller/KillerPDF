@@ -143,6 +143,24 @@ public sealed class PdfXfaAcroFormConverterTests
     }
 
     [Fact]
+    public void ConvertPreservesStaticCode39BarcodeAsVectorContent()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="form" layout="position"><field name="tracking" x="10pt" y="20pt" w="70pt" h="15pt"><ui><barcode type="code39" dataLength="8" checksum="1mod43"/></ui></field></subform></template>""",
+            """<datasets><data><form><tracking>ABC-123</tracking></form></data></datasets>""");
+
+        PdfDocument converted = PdfDocument.Open(PdfXfaAcroFormConverter.Convert(
+            source, PdfXfaConversionMode.Flattened));
+        PdfPageContent content = new PdfPageContentReader(converted).Read(0);
+
+        Assert.Null(PdfXfaReader.Read(converted));
+        Assert.Empty(PdfFormWidgetReader.ReadPage(converted, 0));
+        Assert.True(content.Paths.Count > 20);
+        Assert.All(content.Paths, path => Assert.Equal("f", path.PaintOperator));
+        Assert.Throws<NotSupportedException>(() => PdfXfaAcroFormConverter.Convert(source));
+    }
+
+    [Fact]
     public void ConvertPaginatesRepeatedDynamicValuesAsEditableFields()
     {
         PdfDocument source = Document(
