@@ -1,5 +1,8 @@
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Authoring;
+using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -25,8 +28,7 @@ public static class PdfXfaAcroFormConverter
         if (!Enum.IsDefined(mode)) throw new ArgumentOutOfRangeException(nameof(mode));
         PdfXfaInfo info = PdfXfaReader.Read(document)
             ?? throw new InvalidOperationException("The document has no XFA form.");
-        if (!info.IsPacketArray)
-            throw new NotSupportedException("Combined XDP conversion is not supported.");
+        info = ExpandCombinedXdp(info);
         PdfXfaTemplateInfo template = PdfXfaTemplate.Read(info);
         Dictionary<string, PdfXfaTemplateField> fields = template.Fields.ToDictionary(
             field => field.Path, StringComparer.Ordinal);
@@ -112,6 +114,49 @@ public static class PdfXfaAcroFormConverter
                 placement.X, bottom, placement.Width, placement.Height, value);
         }
         return Finish(editor, mode);
+    }
+
+    private static PdfXfaInfo ExpandCombinedXdp(PdfXfaInfo info)
+    {
+        if (info.IsPacketArray) return info;
+        PdfXfaPacket packet = info.Packets.Count == 1 ? info.Packets[0]
+            : throw new InvalidOperationException("Combined XDP data must contain one packet.");
+        using var input = new MemoryStream(packet.Data.ToArray(), writable: false);
+        using XmlReader reader = XmlReader.Create(input, new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null,
+            MaxCharactersInDocument = 64 * 1024 * 1024
+        });
+        XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
+        XElement root = document.Root
+            ?? throw new InvalidOperationException("The combined XDP stream has no root element.");
+        XElement[] elements = root.Elements().ToArray();
+        if (elements.Length == 0)
+            throw new InvalidOperationException("The combined XDP stream has no packets.");
+        var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        PdfXfaPacket[] packets = [.. elements.Select(element =>
+        {
+            string name = element.Name.LocalName;
+            if (!names.Add(name))
+                throw new InvalidOperationException(
+                    $"The combined XDP stream contains duplicate '{name}' packets.");
+            return new PdfXfaPacket(name,
+                Encoding.UTF8.GetBytes(element.ToString(SaveOptions.DisableFormatting)));
+        })];
+        XElement? dynamicRender = elements.FirstOrDefault(element =>
+                element.Name.LocalName.Equals("config", StringComparison.OrdinalIgnoreCase))
+            ?.Descendants().FirstOrDefault(element =>
+                element.Name.LocalName.Equals("dynamicRender", StringComparison.OrdinalIgnoreCase));
+        PdfXfaFormType formType = dynamicRender is not null
+            && dynamicRender.Value.Trim().Equals("required", StringComparison.OrdinalIgnoreCase)
+                ? PdfXfaFormType.Dynamic : PdfXfaFormType.Static;
+        return info with
+        {
+            IsPacketArray = true,
+            Packets = Array.AsReadOnly(packets),
+            FormType = formType
+        };
     }
 
     private static PdfFormDataSet ApplyBehaviors(PdfXfaInfo info, PdfXfaTemplateInfo template,
