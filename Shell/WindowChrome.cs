@@ -150,10 +150,6 @@ namespace KillerPDF
 
         private int WmNcHitTest(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam)
         {
-            // Let the OS answer for its own borders first.
-            int def = DefWindowProc(hwnd, msg, wParam, lParam).ToInt32();
-            if (def != HTCLIENT) return def;
-
             // Screen coords; short cast keeps the sign on monitors left of or above the primary.
             long lp = lParam.ToInt64();
             int  mx = unchecked((short)(lp & 0xFFFF));
@@ -168,12 +164,18 @@ namespace KillerPDF
                 return HTTOP;
             }
 
-            return IsCaptionAt(mx, my) ? HTCAPTION : HTCLIENT;
+            // The native frame still has an invisible caption. Classify the visible custom title
+            // bar first so those stale native button and caption zones cannot override it.
+            if (TryGetTitleBarHit(mx, my, out int titleBarHit)) return titleBarHit;
+
+            // Outside the custom title bar, let Windows answer for its real side and bottom borders.
+            return DefWindowProc(hwnd, msg, wParam, lParam).ToInt32();
         }
 
         // Title-bar row is the caption, except over a control or the logo (scroll-wheel scaling).
-        private bool IsCaptionAt(int screenX, int screenY)
+        private bool TryGetTitleBarHit(int screenX, int screenY, out int hitTest)
         {
+            hitTest = HTCLIENT;
             try
             {
                 var pt  = PointFromScreen(new Point(screenX, screenY));
@@ -181,17 +183,16 @@ namespace KillerPDF
                 var bar = TitleBarBorder.TransformToAncestor(this)
                                         .TransformBounds(new Rect(TitleBarBorder.RenderSize));
                 if (!bar.Contains(pt)) return false;
+                hitTest = HTCAPTION;
                 var res = VisualTreeHelper.HitTest(this, pt);
                 DependencyObject? hit = res?.VisualHit;
-                bool inTitleBar = false;
                 while (hit != null)
                 {
-                    if (hit is Control && !ReferenceEquals(hit, this)) return false;
-                    if (ReferenceEquals(hit, LogoBar))        return false;
-                    if (ReferenceEquals(hit, TitleBarBorder)) inTitleBar = true;
+                    if (hit is Control && !ReferenceEquals(hit, this)) hitTest = HTCLIENT;
+                    if (ReferenceEquals(hit, LogoBar)) hitTest = HTCLIENT;
                     hit = VisualTreeHelper.GetParent(hit);
                 }
-                return inTitleBar;
+                return true;
             }
             catch { return false; }   // not laid out yet; treat as client
         }
