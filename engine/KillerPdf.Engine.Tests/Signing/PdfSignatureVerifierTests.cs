@@ -81,6 +81,8 @@ public sealed class PdfSignatureVerifierTests
         Assert.Equal(certificate.Subject, valid.SignerSubject);
         Assert.Equal(certificate.Issuer, valid.SignerIssuer);
         Assert.Equal(certificate.SerialNumber, valid.SignerSerialNumber);
+        Assert.Equal(Convert.ToHexString(SHA256.HashData(certificate.RawData)),
+            valid.SignerCertificateSha256);
         Assert.Equal(certificate.NotBefore, valid.CertificateNotBefore);
         Assert.Equal(certificate.NotAfter, valid.CertificateNotAfter);
         Assert.Null(valid.Error);

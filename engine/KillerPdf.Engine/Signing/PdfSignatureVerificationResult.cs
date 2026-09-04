@@ -29,6 +29,8 @@ public sealed record PdfSignatureVerificationResult
     public string? SignerIssuer { get; init; }
     /// <summary>Gets the signing certificate serial number.</summary>
     public string? SignerSerialNumber { get; init; }
+    /// <summary>Gets the uppercase SHA-256 fingerprint of the signing certificate.</summary>
+    public string? SignerCertificateSha256 { get; init; }
     /// <summary>Gets the beginning of the signing certificate validity period.</summary>
     public DateTimeOffset? CertificateNotBefore { get; init; }
     /// <summary>Gets the end of the signing certificate validity period.</summary>

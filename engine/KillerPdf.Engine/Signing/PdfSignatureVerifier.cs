@@ -106,6 +106,7 @@ public static class PdfSignatureVerifier
                     SignerSubject = signer.Subject,
                     SignerIssuer = signer.Issuer,
                     SignerSerialNumber = signer.SerialNumber,
+                    SignerCertificateSha256 = CertificateFingerprint(signer),
                     CertificateNotBefore = signer.NotBefore,
                     CertificateNotAfter = signer.NotAfter
                 };
@@ -122,6 +123,7 @@ public static class PdfSignatureVerifier
                 SignerSubject = signer?.Subject,
                 SignerIssuer = signer?.Issuer,
                 SignerSerialNumber = signer?.SerialNumber,
+                SignerCertificateSha256 = CertificateFingerprint(signer),
                 CertificateNotBefore = signer?.NotBefore,
                 CertificateNotAfter = signer?.NotAfter
             };
@@ -153,9 +155,13 @@ public static class PdfSignatureVerifier
                 SignerSubject = signer?.Subject,
                 SignerIssuer = signer?.Issuer,
                 SignerSerialNumber = signer?.SerialNumber,
+                SignerCertificateSha256 = CertificateFingerprint(signer),
                 CertificateNotBefore = signer?.NotBefore,
                 CertificateNotAfter = signer?.NotAfter,
                 Error = error
             };
     }
+
+    private static string? CertificateFingerprint(X509Certificate2? certificate) =>
+        certificate is null ? null : Convert.ToHexString(SHA256.HashData(certificate.RawData));
 }
