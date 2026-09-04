@@ -127,4 +127,38 @@ public sealed class PdfPageFurnitureTests
         Assert.Contains(content.Instructions, instruction => instruction.Operator == "gs");
         Assert.Contains(content.Instructions, instruction => instruction.Operator == "rg");
     }
+
+    [Fact]
+    public void BatesBatchWriterAppliesContinuousNumbersInDocumentOrder()
+    {
+        PdfDocument first = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(300, 400).AddBlankPage(300, 400).Build());
+        PdfDocument middle = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(300, 400).Build());
+        PdfDocument second = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(300, 400).Build());
+
+        IReadOnlyList<byte[]> output = PdfBatesNumbering.ApplyBatch(
+            [first, middle, second],
+            new PdfBatesNumberingOptions
+            {
+                StartNumber = 8,
+                DigitCount = 3,
+                Prefix = "CASE-"
+            },
+            number => new PdfPageFurnitureMark(
+                number.PageIndex, number.Text, 20, 20));
+
+        Assert.Equal("CASE-008", new PdfPageContentReader(
+            PdfDocument.Open(output[0])).Read(0).Text);
+        Assert.Equal("CASE-009", new PdfPageContentReader(
+            PdfDocument.Open(output[0])).Read(1).Text);
+        Assert.Equal("CASE-010", new PdfPageContentReader(
+            PdfDocument.Open(output[1])).Read(0).Text);
+        Assert.Equal("CASE-011", new PdfPageContentReader(
+            PdfDocument.Open(output[2])).Read(0).Text);
+        Assert.Throws<InvalidOperationException>(() => PdfBatesNumbering.ApplyBatch(
+            [first], new PdfBatesNumberingOptions(),
+            number => new PdfPageFurnitureMark(number.PageIndex + 1, number.Text, 20, 20)));
+    }
 }

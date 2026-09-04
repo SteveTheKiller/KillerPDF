@@ -255,4 +255,42 @@ public static class PdfBatesNumbering
         }
         return Array.AsReadOnly(result.ToArray());
     }
+
+    /// <summary>Applies continuous Bates values to an ordered document batch.</summary>
+    public static IReadOnlyList<byte[]> ApplyBatch(
+        IEnumerable<PdfDocument> documents,
+        PdfBatesNumberingOptions options,
+        Func<PdfBatesNumber, PdfPageFurnitureMark> createMark)
+    {
+        ArgumentNullException.ThrowIfNull(documents);
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(createMark);
+        PdfDocument[] sources = documents.ToArray();
+        int[] pageCounts = sources.Select(document =>
+        {
+            ArgumentNullException.ThrowIfNull(document);
+            return PdfPageBoxInformation.Read(document).Count;
+        }).ToArray();
+        IReadOnlyList<PdfBatesNumber> numbers = Plan(pageCounts, options);
+        var outputs = new List<byte[]>(sources.Length);
+        for (int documentIndex = 0; documentIndex < sources.Length; documentIndex++)
+        {
+            PdfPageFurnitureMark[] marks = numbers
+                .Where(number => number.DocumentIndex == documentIndex)
+                .Select(number =>
+                {
+                    PdfPageFurnitureMark mark = createMark(number)
+                        ?? throw new InvalidOperationException(
+                            "The Bates mark factory returned no mark.");
+                    if (mark.PageIndex != number.PageIndex)
+                        throw new InvalidOperationException(
+                            "The Bates mark page does not match its assigned number.");
+                    return mark;
+                }).ToArray();
+            outputs.Add(marks.Length == 0
+                ? sources[documentIndex].Source.ToArray()
+                : PdfPageFurnitureWriter.Apply(sources[documentIndex], marks));
+        }
+        return Array.AsReadOnly(outputs.ToArray());
+    }
 }
