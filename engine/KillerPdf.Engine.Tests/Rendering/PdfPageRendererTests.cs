@@ -148,6 +148,27 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ResolvesIndexedImageColorSpaces()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(2, 1, new byte[] { 0, 1 }), 2, 3, 6, 2))
+            .Build());
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
+            new PdfString(new byte[] { 255, 0, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)
+        });
+        PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 3, 6));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 7, 6));
+    }
+
+    [Fact]
     public void Render_FillsAndStrokesPathsAndSupportsCurveShorthands()
     {
         byte[] content = "1 0 0 rg 0 0 1 RG 1 w 2 2 4 4 re B 1 8 m 3 6 5 8 v 5 8 m 7 6 9 8 y S"u8.ToArray();
@@ -327,8 +348,10 @@ public sealed class PdfPageRendererTests
         PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
         PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(xObjects[Name("Im1")]);
         PdfStream image = Assert.IsType<PdfStream>(source.Resolve(reference));
-        var dictionary = new PdfDictionary(image.Dictionary.Append(
-            new KeyValuePair<PdfName, PdfObject>(Name(name), value)));
+        PdfName entryName = Name(name);
+        var dictionary = new PdfDictionary(image.Dictionary
+            .Where(entry => !entry.Key.Equals(entryName)).Append(
+            new KeyValuePair<PdfName, PdfObject>(entryName, value)));
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(reference.ObjectNumber,
                 new PdfStream(dictionary, image.EncodedData.Span)).Build());

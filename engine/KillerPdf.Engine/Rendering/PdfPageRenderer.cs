@@ -399,15 +399,24 @@ public sealed class PdfPageRenderer
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
         int bits = imageMask ? 1 : PositiveInteger(stream.Dictionary, "BitsPerComponent");
-        string colorSpace = imageMask ? string.Empty : NameValue(stream.Dictionary, "ColorSpace");
-        int components = imageMask ? 1 : colorSpace switch
+        ImageColorSpace colorSpace;
+        try
         {
-            "DeviceGray" => 1,
-            "DeviceRGB" => 3,
-            "DeviceCMYK" => 4,
-            _ => 0
-        };
-        if (components == 0 || bits is not (1 or 8))
+            colorSpace = imageMask ? new ImageColorSpace(1, null)
+                : ReadImageColorSpace(stream.Dictionary);
+        }
+        catch (PdfFilterException)
+        {
+            diagnostic = "The image compression filter is not implemented.";
+            return false;
+        }
+        catch (NotSupportedException)
+        {
+            diagnostic = "The image color space or sample depth is not implemented.";
+            return false;
+        }
+        int components = colorSpace.Components;
+        if (bits is not (1 or 8))
         {
             diagnostic = "The image color space or sample depth is not implemented.";
             return false;
@@ -451,8 +460,57 @@ public sealed class PdfPageRenderer
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
             transform, samples, width, height, components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
-            colorKeyMask, stencilColor, stencilAlpha);
+            colorKeyMask, colorSpace.Palette, stencilColor, stencilAlpha);
         return true;
+    }
+
+    private ImageColorSpace ReadImageColorSpace(PdfDictionary dictionary)
+    {
+        if (!dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value))
+            throw new NotSupportedException();
+        PdfObject resolved = Resolve(value);
+        if (resolved is PdfName name)
+            return name.ValueAsLatin1() switch
+            {
+                "DeviceGray" => new ImageColorSpace(1, null),
+                "DeviceRGB" => new ImageColorSpace(3, null),
+                "DeviceCMYK" => new ImageColorSpace(4, null),
+                _ => throw new NotSupportedException()
+            };
+        if (resolved is not PdfArray { Count: 4 } array
+            || Resolve(array[0]) is not PdfName kind || kind.ValueAsLatin1() != "Indexed"
+            || Resolve(array[1]) is not PdfName baseName
+            || Resolve(array[2]) is not PdfInteger highValue
+            || highValue.Value is < 0 or > 255)
+            throw new NotSupportedException();
+        int baseComponents = baseName.ValueAsLatin1() switch
+        {
+            "DeviceGray" => 1, "DeviceRGB" => 3, "DeviceCMYK" => 4,
+            _ => throw new NotSupportedException()
+        };
+        int entryCount = (int)highValue.Value + 1;
+        int expected = checked(entryCount * baseComponents);
+        byte[] lookup = Resolve(array[3]) switch
+        {
+            PdfString text => text.Bytes.ToArray(),
+            PdfStream stream => PdfStreamDecoder.Decode(stream, _document.Resolve, expected),
+            _ => throw new NotSupportedException()
+        };
+        if (lookup.Length < expected)
+            throw new FormatException("An Indexed image color lookup is truncated.");
+        var palette = new Color[entryCount];
+        for (int entry = 0; entry < entryCount; entry++)
+        {
+            int offset = entry * baseComponents;
+            palette[entry] = baseComponents switch
+            {
+                1 => new Color(lookup[offset], lookup[offset], lookup[offset]),
+                3 => new Color(lookup[offset], lookup[offset + 1], lookup[offset + 2]),
+                _ => Color.Cmyk(lookup[offset] / 255d, lookup[offset + 1] / 255d,
+                    lookup[offset + 2] / 255d, lookup[offset + 3] / 255d)
+            };
+        }
+        return new ImageColorSpace(1, palette);
     }
 
     private SoftMask? ReadSoftMask(PdfDictionary dictionary)
@@ -503,7 +561,7 @@ public sealed class PdfPageRenderer
         int sourceWidth, int sourceHeight, int components, int bits,
         IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
         SoftMask? softMask, double[] decode, int[]? colorKeyMask,
-        Color stencilColor, double stencilAlpha)
+        Color[]? palette, Color stencilColor, double stencilAlpha)
     {
         Point[] corners =
         [
@@ -540,7 +598,9 @@ public sealed class PdfPageRenderer
                 else
                 {
                     double first = SampleValue(0);
-                    color = components switch
+                    color = palette is not null
+                        ? palette[Math.Min(RawSample(0), palette.Length - 1)]
+                        : components switch
                     {
                         1 => Color.Gray(first),
                         3 => Color.Rgb(first, SampleValue(1), SampleValue(2)),
@@ -797,6 +857,7 @@ public sealed class PdfPageRenderer
             => PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height, bool Inverted);
+    private sealed record ImageColorSpace(int Components, Color[]? Palette);
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
