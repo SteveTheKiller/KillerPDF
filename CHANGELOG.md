@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added calibrated measurement profiles, editable annotations, snapping, preflight checks, and reports (#348).
 - Added safe attachment and PDF portfolio inspection, editing, extraction, comparison, macros, and reports (#347).
 - Added reviewable OCR correction, searchable output, batches, accuracy checks, and reports (#345).
 - Added reusable headers, footers, page numbering, Bates batches, and reports (#344).

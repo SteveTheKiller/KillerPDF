@@ -402,6 +402,35 @@ public sealed record PdfMeasurementResult
 /// <summary>Exports stable machine-readable measurement reports.</summary>
 public static class PdfMeasurementReport
 {
+    /// <summary>Writes a readable measurement report.</summary>
+    public static string ToText(IEnumerable<PdfMeasurementResult> results)
+    {
+        PdfMeasurementResult[] values = Checked(results);
+        var output = new StringBuilder();
+        output.Append("Measurements: ").AppendLine(values.Length.ToString(CultureInfo.InvariantCulture));
+        foreach (PdfMeasurementResult result in values)
+        {
+            output.Append("  Page ").Append((result.PageIndex + 1).ToString(CultureInfo.InvariantCulture))
+                .Append(": ").Append(result.Kind).Append(" = ")
+                .Append(result.Value.ToString("R", CultureInfo.InvariantCulture)).Append(' ')
+                .Append(result.Unit).Append(" (profile ").Append(Quoted(result.Profile));
+            if (result.UnitsPerPoint.HasValue)
+                output.Append(", ").Append(result.UnitsPerPoint.Value.ToString("R", CultureInfo.InvariantCulture))
+                    .Append(' ').Append(result.Unit).Append(" per PDF point");
+            output.AppendLine(")");
+            if (!string.IsNullOrWhiteSpace(result.Document))
+                output.Append("    Document: ").AppendLine(Quoted(result.Document));
+            if (!string.IsNullOrWhiteSpace(result.Label))
+                output.Append("    Label: ").AppendLine(Quoted(result.Label));
+            if (!string.IsNullOrWhiteSpace(result.Comment))
+                output.Append("    Comment: ").AppendLine(Quoted(result.Comment));
+            if (result.Points.Count > 0)
+                output.Append("    Geometry: ").AppendLine(string.Join("; ", result.Points.Select(point =>
+                    $"{point.X.ToString("R", CultureInfo.InvariantCulture)}, {point.Y.ToString("R", CultureInfo.InvariantCulture)}")));
+        }
+        return output.ToString().TrimEnd();
+    }
+
     /// <summary>Writes measurement results as JSON.</summary>
     public static string ToJson(IEnumerable<PdfMeasurementResult> results) =>
         JsonSerializer.Serialize(Checked(results), new JsonSerializerOptions { WriteIndented = true });
@@ -441,4 +470,7 @@ public static class PdfMeasurementReport
     }
 
     private static string Csv(string value) => '"' + value.Replace("\"", "\"\"") + '"';
+
+    private static string Quoted(string value) =>
+        $"\"{value.Replace("\r", " ", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal)}\"";
 }

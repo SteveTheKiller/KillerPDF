@@ -64,9 +64,18 @@ public sealed class PdfMeasurementTests
             Points = [new(1, 2), new(3, 4)]
         }];
 
+        string text = PdfMeasurementReport.ToText(results);
         string json = PdfMeasurementReport.ToJson(results);
         string csv = PdfMeasurementReport.ToCsv(results);
 
+        Assert.Contains("Measurements: 1", text, StringComparison.Ordinal);
+        Assert.Contains("Page 2: Distance = 12.5 ft", text, StringComparison.Ordinal);
+        Assert.Contains("profile \"Floor plan\", 0.5 ft per PDF point", text,
+            StringComparison.Ordinal);
+        Assert.Contains("Document: \"site,plan.pdf\"", text, StringComparison.Ordinal);
+        Assert.Contains("Label: \"Wall, north\"", text, StringComparison.Ordinal);
+        Assert.Contains("Comment: \"Verify, onsite\"", text, StringComparison.Ordinal);
+        Assert.Contains("Geometry: 1, 2; 3, 4", text, StringComparison.Ordinal);
         Assert.Contains("\"PageIndex\": 1", json, StringComparison.Ordinal);
         Assert.Contains("\"Document\": \"site,plan.pdf\"", json, StringComparison.Ordinal);
         Assert.Contains("\"Comment\": \"Verify, onsite\"", json, StringComparison.Ordinal);
