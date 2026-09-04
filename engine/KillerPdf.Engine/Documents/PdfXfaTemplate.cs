@@ -57,7 +57,10 @@ public static class PdfXfaTemplate
                 field.Descendants().Any(element => string.Equals(
                     element.Name.LocalName, "validate", StringComparison.OrdinalIgnoreCase)),
                 field.Descendants().Any(element => string.Equals(
-                    element.Name.LocalName, "format", StringComparison.OrdinalIgnoreCase))));
+                    element.Name.LocalName, "format", StringComparison.OrdinalIgnoreCase)))
+            {
+                ChoiceOptions = ChoiceOptions(field, path)
+            });
             foreach (XElement behavior in field.Elements().Where(element =>
                 PdfXfaTemplateBehaviorKindExtensions.TryParse(
                     element.Name.LocalName, out _)))
@@ -89,6 +92,25 @@ public static class PdfXfaTemplate
     private static string? Attribute(XElement? element, string name) =>
         element?.Attributes().FirstOrDefault(attribute => string.Equals(
             attribute.Name.LocalName, name, StringComparison.OrdinalIgnoreCase))?.Value;
+
+    private static IReadOnlyList<PdfXfaChoiceOption> ChoiceOptions(XElement field, string path)
+    {
+        XElement[] sets = [.. field.Elements().Where(element =>
+            element.Name.LocalName.Equals("items", StringComparison.OrdinalIgnoreCase))];
+        if (sets.Length == 0) return [];
+        if (sets.Length > 2)
+            throw new InvalidOperationException($"XFA field '{path}' has too many item lists.");
+        string[] First(XElement set) => [.. set.Elements().Select(item => item.Value)];
+        XElement displaySet = sets.FirstOrDefault(set => Attribute(set, "save") != "1") ?? sets[0];
+        XElement exportSet = sets.FirstOrDefault(set => Attribute(set, "save") == "1") ?? displaySet;
+        string[] displays = First(displaySet);
+        string[] exports = First(exportSet);
+        if (displays.Length != exports.Length)
+            throw new InvalidOperationException(
+                $"XFA field '{path}' has mismatched display and saved item lists.");
+        return Array.AsReadOnly(exports.Select((value, index) =>
+            new PdfXfaChoiceOption(value, displays[index])).ToArray());
+    }
 }
 
 /// <summary>A safe summary of an XFA template packet.</summary>
@@ -107,7 +129,14 @@ public sealed record PdfXfaTemplateField(
     string? ControlType,
     bool HasCalculation,
     bool HasValidation,
-    bool HasFormatting);
+    bool HasFormatting)
+{
+    /// <summary>Gets ordered saved and displayed choice-list values.</summary>
+    public IReadOnlyList<PdfXfaChoiceOption> ChoiceOptions { get; init; } = [];
+}
+
+/// <summary>One saved and displayed XFA choice-list item.</summary>
+public sealed record PdfXfaChoiceOption(string ExportValue, string DisplayValue);
 
 /// <summary>An inspectable XFA field behavior definition.</summary>
 public sealed record PdfXfaTemplateBehavior(

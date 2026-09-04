@@ -41,6 +41,22 @@ public sealed class PdfXfaAcroFormConverterTests
         Assert.Equal(PdfFormFieldKind.Signature, widgets["form.signature"].FieldKind);
     }
 
+    [Fact]
+    public void ConvertPreservesChoiceDisplayAndSavedValues()
+    {
+        PdfDocument source = Document(
+            """<template><subform name="form" layout="position"><field name="color" x="10pt" y="10pt" w="70pt" h="15pt"><ui><choiceList/></ui><items><text>Red</text><text>Blue</text></items><items save="1"><text>r</text><text>b</text></items></field></subform></template>""",
+            """<datasets><data><form><color>b</color></form></data></datasets>""");
+
+        PdfFormWidgetInfo widget = Assert.Single(PdfFormWidgetReader.ReadPage(
+            PdfDocument.Open(PdfXfaAcroFormConverter.Convert(source)), 0));
+
+        Assert.Equal(PdfFormFieldKind.Choice, widget.FieldKind);
+        Assert.Equal("b", widget.Value);
+        Assert.Equal(["Red", "Blue"], widget.Options.Select(option => option.DisplayValue));
+        Assert.Equal(["r", "b"], widget.Options.Select(option => option.ExportValue));
+    }
+
     private static PdfDocument Document(string template, string datasets)
     {
         string[] objects =

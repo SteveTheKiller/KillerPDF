@@ -1,4 +1,5 @@
 using KillerPdf.Engine.Editing;
+using KillerPdf.Engine.Authoring;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -10,7 +11,7 @@ public static class PdfXfaAcroFormConverter
         "dateTimeEdit", "defaultUi", "numericEdit", "passwordEdit", "textEdit"
     };
     private static readonly HashSet<string> ConvertibleControls = new(
-        TextControls.Concat(["checkButton", "signature"]), StringComparer.OrdinalIgnoreCase);
+        TextControls.Concat(["checkButton", "choiceList", "signature"]), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Preserves source pages, removes XFA, and authors editable text widgets.</summary>
     public static byte[] Convert(PdfDocument document)
@@ -60,6 +61,16 @@ public static class PdfXfaAcroFormConverter
             else if (field.ControlType!.Equals("checkButton", StringComparison.OrdinalIgnoreCase))
                 editor.AddCheckBox(placement.PageIndex, placement.FieldPath,
                     placement.X, bottom, placement.Width, placement.Height, Checked(value));
+            else if (field.ControlType.Equals("choiceList", StringComparison.OrdinalIgnoreCase))
+            {
+                if (field.ChoiceOptions.Count == 0)
+                    throw new NotSupportedException(
+                        $"XFA choice field '{placement.FieldPath}' has no options.");
+                editor.AddComboBoxOptions(placement.PageIndex, placement.FieldPath,
+                    placement.X, bottom, placement.Width, placement.Height,
+                    field.ChoiceOptions.Select(option => new PdfChoiceOption(
+                        option.ExportValue, option.DisplayValue)), value);
+            }
             else
             {
                 if (!string.IsNullOrEmpty(value))
