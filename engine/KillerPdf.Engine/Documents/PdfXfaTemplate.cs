@@ -48,7 +48,8 @@ public static class PdfXfaTemplate
                 string.Equals(element.Name.LocalName, "bind", StringComparison.OrdinalIgnoreCase));
             XElement? ui = field.Elements().FirstOrDefault(element =>
                 string.Equals(element.Name.LocalName, "ui", StringComparison.OrdinalIgnoreCase));
-            string? control = ui?.Elements().FirstOrDefault()?.Name.LocalName;
+            XElement? controlElement = ui?.Elements().FirstOrDefault();
+            string? control = controlElement?.Name.LocalName;
             fields.Add(new PdfXfaTemplateField(
                 path,
                 name,
@@ -63,7 +64,8 @@ public static class PdfXfaTemplate
             {
                 ChoiceOptions = ChoiceOptions(field, path),
                 Description = AssistText(field),
-                Appearance = Appearance(field, path)
+                Appearance = Appearance(field, path),
+                Barcode = Barcode(controlElement)
             });
             foreach (XElement behavior in field.Elements().Where(element =>
                 PdfXfaTemplateBehaviorKindExtensions.TryParse(
@@ -129,6 +131,22 @@ public static class PdfXfaTemplate
             ?? assist?.Elements().FirstOrDefault(element =>
                 element.Name.LocalName.Equals("speak", StringComparison.OrdinalIgnoreCase));
         return string.IsNullOrWhiteSpace(text?.Value) ? null : text.Value;
+    }
+
+    private static PdfXfaBarcodeInfo? Barcode(XElement? control)
+    {
+        if (control is null || !control.Name.LocalName.Equals(
+                "barcode", StringComparison.OrdinalIgnoreCase)) return null;
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (XAttribute attribute in control.Attributes())
+        {
+            if (!attributes.TryAdd(attribute.Name.LocalName, attribute.Value))
+                throw new InvalidOperationException(
+                    "An XFA barcode declares duplicate local attribute names.");
+        }
+        return new PdfXfaBarcodeInfo(
+            EmptyToNull(Attribute(control, "type")),
+            new System.Collections.ObjectModel.ReadOnlyDictionary<string, string>(attributes));
     }
 
     private static PdfXfaFieldAppearance Appearance(XElement field, string path)
@@ -218,7 +236,14 @@ public sealed record PdfXfaTemplateField(
     public string? Description { get; init; }
     /// <summary>Gets safely representable field appearance metadata.</summary>
     public PdfXfaFieldAppearance Appearance { get; init; } = new();
+    /// <summary>Gets declared barcode parameters when the field uses a barcode control.</summary>
+    public PdfXfaBarcodeInfo? Barcode { get; init; }
 }
+
+/// <summary>Inspectable barcode parameters preserved from an XFA field.</summary>
+public sealed record PdfXfaBarcodeInfo(
+    string? Type,
+    IReadOnlyDictionary<string, string> Attributes);
 
 /// <summary>Safely representable appearance metadata declared by an XFA field.</summary>
 public sealed record PdfXfaFieldAppearance
