@@ -3336,7 +3336,14 @@ public sealed class PdfPageRenderer
             && colorSpace.MultiConverter is null
             && decode is [0, 1, 0, 1, 0, 1]
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        if (directRgb)
+        bool directGray = !imageMask && bits == 8 && components == 1
+            && softMask is null && colorKeyMask is null && clips.Count == 0
+            && graphicsSoftMask is null
+            && colorSpace.Palette is null && colorSpace.Converter is null
+            && colorSpace.MultiConverter is null
+            && decode is [0, 1]
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        if (directRgb || directGray)
         {
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
@@ -3354,11 +3361,21 @@ public sealed class PdfPageRenderer
                     if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
                     int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                     int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
-                    int sourceOffset = sourceY * rowBytes + sourceX * 3;
+                    int sourceOffset = sourceY * rowBytes + sourceX * components;
                     int targetOffset = (y * targetWidth + x) * 4;
-                    target[targetOffset] = samples[sourceOffset + 2];
-                    target[targetOffset + 1] = samples[sourceOffset + 1];
-                    target[targetOffset + 2] = samples[sourceOffset];
+                    if (directGray)
+                    {
+                        byte gray = samples[sourceOffset];
+                        target[targetOffset] = gray;
+                        target[targetOffset + 1] = gray;
+                        target[targetOffset + 2] = gray;
+                    }
+                    else
+                    {
+                        target[targetOffset] = samples[sourceOffset + 2];
+                        target[targetOffset + 1] = samples[sourceOffset + 1];
+                        target[targetOffset + 2] = samples[sourceOffset];
+                    }
                     target[targetOffset + 3] = 255;
                 }
             }

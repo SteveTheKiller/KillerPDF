@@ -515,6 +515,23 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Image rendering is not implemented.", page.Diagnostics);
     }
 
+    [Fact]
+    public void Render_DecodesEightBitGrayImages()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(2, 1, new byte[] { 32, 224 }), 0, 0, 2, 1))
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(2, 1,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([32, 32, 32, 255], Pixel(page, 0, 0));
+        Assert.Equal([224, 224, 224, 255], Pixel(page, 1, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
     [Theory]
     [InlineData(2, new byte[] { 0x30 })]
     [InlineData(4, new byte[] { 0x0F })]
