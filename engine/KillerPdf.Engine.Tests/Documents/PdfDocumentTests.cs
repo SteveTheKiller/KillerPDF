@@ -187,6 +187,31 @@ public sealed class PdfDocumentTests
     }
 
     [Fact]
+    public void OpenWithCompatibilityRecoveryIgnoresNullPageTreeKids()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        int catalogOffset = source.Length;
+        source.Append("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n");
+        int pagesOffset = source.Length;
+        source.Append("2 0 obj << /Type /Pages /Kids [null 3 0 R null] /Count 1 >> endobj\n");
+        int pageOffset = source.Length;
+        source.Append("3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 10 10] >> endobj\n");
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 4\n0000000000 65535 f\n");
+        source.Append($"{catalogOffset:0000000000} 00000 n\n");
+        source.Append($"{pagesOffset:0000000000} 00000 n\n");
+        source.Append($"{pageOffset:0000000000} 00000 n\n");
+        source.Append("trailer << /Size 4 /Root 1 0 R >>\n");
+        source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Throws<InvalidOperationException>(() =>
+            new PdfPageContentReader(PdfDocument.Open(bytes)));
+        Assert.Equal(1, new PdfPageContentReader(
+            PdfDocument.OpenWithCompatibilityRecovery(bytes)).PageCount);
+    }
+
+    [Fact]
     public void Open_ResolvesMultipleObjectsFromAnObjectStreamByXrefIndex()
     {
         PdfDocument document = PdfDocument.Open(ObjectStreamPdf(
