@@ -6,6 +6,19 @@ namespace KillerPdf.Engine.Tests.Parsing;
 
 public sealed class PdfToUnicodeMapTests
 {
+    [Fact]
+    public void ParseFont_CompatibilityRecoveryReplacesInvalidUtf16Destinations()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "1 begincodespacerange <00> <ff> endcodespacerange "
+            + "1 beginbfchar <41> <d800> endbfchar");
+
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        PdfToUnicodeMap map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+
+        Assert.Equal("\uFFFD", Assert.Single(map.Decode([0x41])).Text);
+    }
+
     private const string Space = "1 begincodespacerange <0000> <FFFF> endcodespacerange ";
 
     [Fact]

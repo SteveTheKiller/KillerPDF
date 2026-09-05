@@ -123,7 +123,8 @@ public static class PdfFontResourceReader
             }
 
             PdfToUnicodeMap unicode = Get(font, "ToUnicode") is PdfStream unicodeStream
-                ? PdfToUnicodeMap.ParseFont(Decode(unicodeStream), !composite)
+                ? PdfToUnicodeMap.ParseFont(Decode(unicodeStream), !composite,
+                    document.UsesCompatibilityRecovery)
                 : encodingSpaces ?? PdfToUnicodeMap.Create(simpleText, codeLength);
             string? UnicodeText(uint code) => unicode.Lookup(code, codeLength)
                 ?? Enumerable.Range(1, 4).Where(length => length != codeLength)

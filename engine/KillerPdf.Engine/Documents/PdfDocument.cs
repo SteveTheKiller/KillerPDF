@@ -47,6 +47,7 @@ public sealed class PdfDocument
     /// <summary>Gets the newest revision trailer dictionary.</summary>
     public PdfDictionary Trailer => CrossReferences.LatestTrailer;
     internal ReadOnlyMemory<byte> Source => _source;
+    internal bool UsesCompatibilityRecovery => _compatibilityRecovery;
     /// <summary>Gets whether the document declares an encryption security handler.</summary>
     public bool IsEncrypted => CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out _);
     /// <summary>Gets whether encrypted objects are available in decrypted form.</summary>

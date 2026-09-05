@@ -39,13 +39,21 @@ public sealed class PdfToUnicodeMap
     public static PdfToUnicodeMap Parse(ReadOnlyMemory<byte> source, int maximumMappings = 65536)
         => ParseCore(source, maximumMappings, false);
 
+    /// <summary>Parses a CMap while replacing malformed UTF-16 destinations.</summary>
+    public static PdfToUnicodeMap ParseWithCompatibilityRecovery(
+        ReadOnlyMemory<byte> source, int maximumMappings = 65536)
+        => ParseCore(source, maximumMappings, false, compatibilityRecovery: true);
+
     internal static PdfToUnicodeMap ParseSimpleFont(ReadOnlyMemory<byte> source)
         => ParseFont(source, true);
 
-    internal static PdfToUnicodeMap ParseFont(ReadOnlyMemory<byte> source, bool simpleFont)
-        => ParseCore(PdfCMapMetadata.WithoutDictionaries(source), 65536, simpleFont);
+    internal static PdfToUnicodeMap ParseFont(ReadOnlyMemory<byte> source, bool simpleFont,
+        bool compatibilityRecovery = false)
+        => ParseCore(PdfCMapMetadata.WithoutDictionaries(source), 65536, simpleFont,
+            compatibilityRecovery);
 
-    private static PdfToUnicodeMap ParseCore(ReadOnlyMemory<byte> source, int maximumMappings, bool simpleFont)
+    private static PdfToUnicodeMap ParseCore(ReadOnlyMemory<byte> source, int maximumMappings,
+        bool simpleFont, bool compatibilityRecovery = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumMappings);
         var map = new PdfToUnicodeMap();
@@ -79,7 +87,8 @@ public sealed class PdfToUnicodeMap
                 var low = Code(operands[i]);
                 if (block == "beginbfchar")
                 {
-                    map.Add(low, Unicode(Bytes(operands[i + 1])), maximumMappings);
+                    map.Add(low, Unicode(Bytes(operands[i + 1]), compatibilityRecovery),
+                        maximumMappings);
                     continue;
                 }
                 var high = Code(operands[i + 1]);
@@ -97,14 +106,16 @@ public sealed class PdfToUnicodeMap
                 {
                     if ((ulong)destinations.Count != length) throw new FormatException("ToUnicode destination array has the wrong length.");
                     for (int j = 0; j < destinations.Count; j++)
-                        map.Add((low.Code + (uint)j, low.Length), Unicode(Bytes(destinations[j])), maximumMappings);
+                        map.Add((low.Code + (uint)j, low.Length),
+                            Unicode(Bytes(destinations[j]), compatibilityRecovery), maximumMappings);
                 }
                 else
                 {
                     byte[] destination = Bytes(operands[i + 2]);
                     for (ulong j = 0; j < length; j++)
                     {
-                        map.Add((low.Code + (uint)j, low.Length), Unicode(destination), maximumMappings);
+                        map.Add((low.Code + (uint)j, low.Length),
+                            Unicode(destination, compatibilityRecovery), maximumMappings);
                         if (j + 1 < length) Increment(destination);
                     }
                 }
@@ -195,11 +206,16 @@ public sealed class PdfToUnicodeMap
     private static byte[] Bytes(PdfObject value) => value is PdfString text && text.Form == PdfStringForm.Hexadecimal
         ? text.Bytes.ToArray() : throw new FormatException("Expected a CMap hexadecimal string.");
 
-    private static string Unicode(byte[] bytes)
+    private static string Unicode(byte[] bytes, bool compatibilityRecovery)
     {
         if (bytes.Length == 0 || bytes.Length % 2 != 0) throw new FormatException("Expected nonempty UTF-16BE text.");
         try { return Utf16.GetString(bytes); }
-        catch (DecoderFallbackException e) { throw new FormatException("Invalid UTF-16BE mapping.", e); }
+        catch (DecoderFallbackException e)
+        {
+            if (compatibilityRecovery)
+                return Encoding.BigEndianUnicode.GetString(bytes);
+            throw new FormatException("Invalid UTF-16BE mapping.", e);
+        }
     }
 
     private static void Increment(byte[] bytes)
