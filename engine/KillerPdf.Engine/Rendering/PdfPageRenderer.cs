@@ -436,6 +436,11 @@ public sealed class PdfPageRenderer
                     path.Clear();
                     subpath = null;
                     break;
+                case "S" or "s" or "B" or "B*" or "b" or "b*":
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
+                    path.Clear();
+                    subpath = null;
+                    break;
                 case "n":
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
                     path.Clear();

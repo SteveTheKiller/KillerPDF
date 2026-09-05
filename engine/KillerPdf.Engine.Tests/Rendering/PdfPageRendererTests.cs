@@ -85,6 +85,19 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AcceptsEmptyPathPaintingOperatorsAsNoOps()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, "S s B B* b b*"u8.ToArray()).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PreservesNonzeroAndEvenOddFillRules()
     {
         const string paths = "1 1 m 9 1 l 9 9 l 1 9 l h "
