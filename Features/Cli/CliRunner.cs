@@ -564,7 +564,8 @@ namespace KillerPDF.Features
 
             var (renderPath, rotations, dims) = CliPrepareRenderSource(inPath, password, con);
 
-            using var renderSession = PdfPageRenderSession.Open(renderPath, dpi / 72.0);
+            using var renderSession =
+                PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0);
             int pageCount = renderSession.PageCount;
             PdfDocument renderDocument = PdfDocument.Open(File.ReadAllBytes(renderPath));
             IReadOnlyList<bool> bitonalHints =

@@ -86,6 +86,24 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void FlatteningUsesTheEngineFirstRenderSession()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(
+            Path.Combine(root, "Features", "Cli", "CliRunner.cs"));
+        int methodStart = source.IndexOf("private static int CliFlatten(",
+            StringComparison.Ordinal);
+        int methodEnd = source.IndexOf("private static int ParseBoundedIntOption(",
+            methodStart, StringComparison.Ordinal);
+        string method = source[methodStart..methodEnd];
+
+        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", method,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", method,
+            StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
