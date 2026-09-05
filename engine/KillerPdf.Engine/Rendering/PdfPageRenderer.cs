@@ -1383,8 +1383,13 @@ public sealed class PdfPageRenderer
             else
             {
                 int expected = checked(((width * encodedComponents * bits + 7) / 8) * height);
-                samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
-                if (samples.Length != expected)
+                int limit = _document.UsesCompatibilityRecovery
+                    ? Math.Max(expected, PdfStreamDecoder.DefaultMaximumDecodedBytes)
+                    : expected;
+                samples = PdfStreamDecoder.Decode(stream, _document.Resolve, limit);
+                if (_document.UsesCompatibilityRecovery && samples.Length > expected)
+                    samples = samples[..expected];
+                else if (samples.Length != expected)
                     throw new FormatException("Image sample data has an invalid length.");
             }
             if (!recoveredPng)

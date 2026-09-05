@@ -503,6 +503,30 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_CompatibilityRecoveryIgnoresExtraImageSamples()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(2, 1, new byte[6]), 0, 0, 2, 1)).Build());
+        byte[] malformedBytes = AddImageDictionaryEntryBytes(source, "Filter",
+            Name("FlateDecode"), Compress([
+                255, 0, 0, 0, 255, 0,
+                0, 0, 255]));
+        PdfRenderOptions options = new(2, 1, includeAnnotations: false,
+            includeFormFields: false);
+
+        PdfRenderedPage strict = new PdfPageRenderer(
+            PdfDocument.Open(malformedBytes)).Render(0, options);
+        PdfRenderedPage recovered = new PdfPageRenderer(
+            PdfDocument.OpenWithCompatibilityRecovery(malformedBytes)).Render(0, options);
+
+        Assert.Contains("The image compression filter is not implemented.", strict.Diagnostics);
+        Assert.Empty(recovered.Diagnostics);
+        Assert.Equal([0, 0, 255, 255], Pixel(recovered, 0, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(recovered, 1, 0));
+    }
+
+    [Fact]
     public void Render_CompositesImageSoftMasks()
     {
         PdfImage image = PdfImage.FromRgba(2, 1, new byte[]
