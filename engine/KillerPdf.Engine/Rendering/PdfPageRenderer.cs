@@ -67,6 +67,9 @@ public sealed class PdfPageRenderer
             false, null, null, false, null, null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
+        HashSet<int> hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
+            .Where(group => !group.IsInitiallyVisible)
+            .Select(group => group.ObjectNumber).ToHashSet();
         PdfDictionary pageResources = PageResources(pageIndex);
         Process(_content.ReadInstructions(pageIndex, cancellationToken),
             pageResources, initialState, 0);
@@ -81,6 +84,8 @@ public sealed class PdfPageRenderer
             var stack = new Stack<GraphicsState>();
             var path = new List<List<Point>>();
             List<Point>? subpath = null;
+            var visibilityStack = new Stack<bool>();
+            bool contentVisible = true;
             var textClipPaths = new List<List<Point>>();
             bool? pendingClipEvenOdd = null;
             Matrix textMatrix = Matrix.Identity, textLineMatrix = Matrix.Identity;
@@ -93,6 +98,20 @@ public sealed class PdfPageRenderer
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 IReadOnlyList<PdfObject> values = instruction.Operands;
+                if (instruction.Operator is "BMC" or "BDC")
+                {
+                    visibilityStack.Push(contentVisible);
+                    if (instruction.Operator == "BDC")
+                        contentVisible &= OptionalContentVisible(values, resources);
+                    continue;
+                }
+                if (instruction.Operator == "EMC")
+                {
+                    contentVisible = visibilityStack.Count > 0
+                        ? visibilityStack.Pop() : contentVisible;
+                    continue;
+                }
+                if (!contentVisible) continue;
                 switch (instruction.Operator)
                 {
                 case "q":
@@ -437,6 +456,24 @@ public sealed class PdfPageRenderer
                         diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
                     break;
                 }
+            }
+
+            bool OptionalContentVisible(
+                IReadOnlyList<PdfObject> operands, PdfDictionary currentResources)
+            {
+                if (operands.Count != 2 || operands[0] is not PdfName tag
+                    || tag.ValueAsLatin1() != "OC") return true;
+                PdfObject property = operands[1];
+                if (property is PdfName propertyName)
+                {
+                    if (!currentResources.TryGetValue(Name("Properties"),
+                        out PdfObject? propertiesValue)
+                        || Resolve(propertiesValue) is not PdfDictionary properties
+                        || !properties.TryGetValue(propertyName, out property))
+                        return true;
+                }
+                return property is not PdfIndirectReference reference
+                    || !hiddenOptionalContentGroups.Contains(reference.ObjectNumber);
             }
 
             void PaintFill(IReadOnlyList<List<Point>> fillPath, bool evenOdd)

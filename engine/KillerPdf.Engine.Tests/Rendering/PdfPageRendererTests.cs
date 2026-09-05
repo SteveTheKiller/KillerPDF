@@ -70,6 +70,28 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_HonorsDefaultOptionalContentVisibility()
+    {
+        var hidden = new PdfOptionalContentGroup("Hidden", initiallyVisible: false);
+        var visible = new PdfOptionalContentGroup("Visible", initiallyVisible: true);
+        var content = new PdfContentStreamBuilder()
+            .BeginOptionalContent(hidden)
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 1, 1).Fill()
+            .EndMarkedContent()
+            .BeginOptionalContent(visible)
+            .SetFillRgb(0, 1, 0).Rectangle(1, 0, 1, 1).Fill()
+            .EndMarkedContent();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(2, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 0, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(page, 1, 0));
+    }
+
+    [Fact]
     public void Render_FillsWithColoredTilingPatterns()
     {
         var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
