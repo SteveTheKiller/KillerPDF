@@ -54,7 +54,7 @@
 
     <SolidColorBrush x:Key="SurfaceBrush" Color="#3f4947" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <SolidColorBrush x:Key="PaneBrush" Color="#343b3d" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="PaneBrush" Color="#232a2b" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="TableHeaderBrush" Color="#4b5652" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
@@ -74,9 +74,9 @@
 
     <SolidColorBrush x:Key="RowHoverBrush" Color="#4b5b57" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <SolidColorBrush x:Key="SelectionBg" Color="#365b58" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="SelectionBg" Color="#ff6f91" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
-    <SolidColorBrush x:Key="SelectionFg" Color="#f2f4f3" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+    <SolidColorBrush x:Key="SelectionFg" Color="#292c31" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="InputBorderBrush" Color="#394742" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
