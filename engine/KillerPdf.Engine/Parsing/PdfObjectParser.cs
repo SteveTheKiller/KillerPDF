@@ -124,6 +124,11 @@ public sealed class PdfObjectParser(
 
     private PdfObject ParseIntegerOrReference(PdfToken first)
     {
+        if (!_allowIndirectReferences
+            && !long.TryParse(first.Value.Span, NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture, out _))
+            return ParseReal(first);
+
         long value = ParseInteger(first);
         if (!_allowIndirectReferences) return new PdfInteger(value);
         if (Peek().Kind != PdfTokenKind.Integer

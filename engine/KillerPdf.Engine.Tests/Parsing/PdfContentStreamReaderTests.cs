@@ -46,6 +46,20 @@ public sealed class PdfContentStreamReaderTests
         Assert.Equal(9, Assert.IsType<PdfInteger>(instructions[2].Operands[0]).Value);
     }
 
+    [Fact]
+    public void ReadsFiniteIntegerOperandsBeyondTheInt64RangeAsRealNumbers()
+    {
+        const string oversized = "-2366213136885537460660416106463232";
+        PdfContentInstruction instruction = Assert.Single(Read($"{oversized} 2 m"));
+
+        Assert.Equal("m", instruction.Operator);
+        Assert.Equal(double.Parse(oversized, System.Globalization.CultureInfo.InvariantCulture),
+            Assert.IsType<PdfReal>(instruction.Operands[0]).Value);
+        Assert.Equal(2, Assert.IsType<PdfInteger>(instruction.Operands[1]).Value);
+        Assert.Throws<PdfSyntaxException>(() =>
+            new PdfObjectParser(Encoding.ASCII.GetBytes(oversized)).ParseObject());
+    }
+
     [Theory]
     [InlineData("12")]
     [InlineData("[(unterminated) TJ")]
