@@ -359,6 +359,7 @@ public static class PdfFontResourceReader
         private readonly int _glyf;
         private readonly int _glyfLength;
         private readonly bool _longLocations;
+        private readonly Dictionary<ushort, PdfGlyphOutline?> _outlineCache = [];
 
         internal OutlineReader(TrueTypeFont font)
         {
@@ -398,7 +399,17 @@ public static class PdfFontResourceReader
                 BinaryPrimitives.ReadInt16BigEndian(box[6..]) * scale);
         }
 
-        internal PdfGlyphOutline? Outline(ushort glyph) => Outline(glyph, [], 0);
+        internal PdfGlyphOutline? Outline(ushort glyph)
+        {
+            lock (_outlineCache)
+            {
+                if (_outlineCache.TryGetValue(glyph, out PdfGlyphOutline? cached))
+                    return cached;
+                PdfGlyphOutline? outline = Outline(glyph, [], 0);
+                _outlineCache.Add(glyph, outline);
+                return outline;
+            }
+        }
 
         private PdfGlyphOutline? Outline(ushort glyph, HashSet<ushort> active, int depth)
         {

@@ -74,6 +74,8 @@ public sealed class PdfPageRenderer
             new ImageColorSpace(1, null), new ImageColorSpace(1, null));
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
+        var fontCache = new Dictionary<PdfDictionary, PdfExtractionFont>(
+            ReferenceEqualityComparer.Instance);
         HashSet<int> hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
             .Where(group => !group.IsInitiallyVisible)
             .Select(group => group.ObjectNumber).ToHashSet();
@@ -786,7 +788,9 @@ public sealed class PdfPageRenderer
             {
                 try
                 {
-                    extractionFont ??= PdfFontResourceReader.Read(_document, textFont!);
+                    extractionFont ??= fontCache.GetValueOrDefault(textFont!)
+                        ?? (fontCache[textFont!] = PdfFontResourceReader.Read(
+                            _document, textFont!));
                     if (textRenderingMode is < 0 or > 7)
                     {
                         diagnostics.Add("Text rendering is not implemented.");
@@ -2439,17 +2443,79 @@ public sealed class PdfPageRenderer
         int right = (int)Math.Clamp(Math.Ceiling(maximumX * scaleX), 0, width);
         int top = (int)Math.Clamp(Math.Floor(height - maximumY * scaleY), 0, height);
         int bottom = (int)Math.Clamp(Math.Ceiling(height - minimumY * scaleY), 0, height);
+        int regionWidth = right - left;
+        int regionHeight = bottom - top;
+        if (regionWidth <= 0 || regionHeight <= 0) return;
+        var coverage = new System.Collections.BitArray(checked(regionWidth * regionHeight));
+        foreach (Point[] path in geometry)
+        {
+            bool closed = path.Length > 2 && path[0] == path[^1];
+            for (int index = 1; index < path.Length; index++)
+            {
+                Point from = path[index - 1], to = path[index];
+                bool first = index == 1 && !closed;
+                bool last = index == path.Length - 1 && !closed;
+                double capExpansion = lineCap == RendererLineCap.ProjectingSquare
+                    && (first || last) ? pageRadius * Math.Sqrt(2) : pageRadius;
+                MarkBounds(Math.Min(from.X, to.X) - capExpansion,
+                    Math.Max(from.X, to.X) + capExpansion,
+                    Math.Min(from.Y, to.Y) - capExpansion,
+                    Math.Max(from.Y, to.Y) + capExpansion,
+                    (x, y) => IsWithinSegment(from, to, pageRadius, x, y,
+                        lineCap, first, last));
+            }
+            int vertexCount = closed ? path.Length - 1 : path.Length;
+            int firstVertex = closed ? 0 : 1;
+            int lastVertex = closed ? vertexCount - 1 : vertexCount - 2;
+            double joinExpansion = pageRadius
+                * (lineJoin == RendererLineJoin.Miter ? miterLimit : 1);
+            for (int vertexIndex = firstVertex; vertexIndex <= lastVertex; vertexIndex++)
+            {
+                int previousIndex = vertexIndex == 0 ? vertexCount - 1 : vertexIndex - 1;
+                int nextIndex = (vertexIndex + 1) % vertexCount;
+                Point vertex = path[vertexIndex];
+                MarkBounds(vertex.X - joinExpansion, vertex.X + joinExpansion,
+                    vertex.Y - joinExpansion, vertex.Y + joinExpansion,
+                    (x, y) => IsInsideJoin(path[previousIndex], vertex,
+                        path[nextIndex], pageRadius, lineJoin, miterLimit, x, y));
+            }
+        }
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            double pageY = (height - y - 0.5) / scaleY;
             for (int x = left; x < right; x++)
             {
-                double pageX = (x + 0.5) / scaleX;
+                if (coverage[(y - top) * regionWidth + x - left])
+                {
+                    double pageX = (x + 0.5) / scaleX;
+                    if (InsideClips(clips, pageX, pageY))
+                        SetPixel(pixels, width, x, y, color, alpha, blendMode);
+                }
+            }
+        }
+
+        void MarkBounds(double minimumPageX, double maximumPageX,
+            double minimumPageY, double maximumPageY, Func<double, double, bool> contains)
+        {
+            int candidateLeft = Math.Max(left,
+                (int)Math.Clamp(Math.Floor(minimumPageX * scaleX), 0, width));
+            int candidateRight = Math.Min(right,
+                (int)Math.Clamp(Math.Ceiling(maximumPageX * scaleX), 0, width));
+            int candidateTop = Math.Max(top,
+                (int)Math.Clamp(Math.Floor(height - maximumPageY * scaleY), 0, height));
+            int candidateBottom = Math.Min(bottom,
+                (int)Math.Clamp(Math.Ceiling(height - minimumPageY * scaleY), 0, height));
+            for (int y = candidateTop; y < candidateBottom; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 double pageY = (height - y - 0.5) / scaleY;
-                if (InsideClips(clips, pageX, pageY)
-                    && IsWithinStroke(geometry, pageRadius, pageX, pageY,
-                        lineCap, lineJoin, miterLimit))
-                    SetPixel(pixels, width, x, y, color, alpha, blendMode);
+                for (int x = candidateLeft; x < candidateRight; x++)
+                {
+                    double pageX = (x + 0.5) / scaleX;
+                    if (contains(pageX, pageY))
+                        coverage[(y - top) * regionWidth + x - left] = true;
+                }
             }
         }
     }
@@ -2827,43 +2893,18 @@ public sealed class PdfPageRenderer
         return evenOdd ? crossings % 2 != 0 : winding != 0;
     }
 
-    private static bool IsWithinStroke(
-        IReadOnlyList<Point[]> paths, double radius, double x, double y,
-        RendererLineCap lineCap, RendererLineJoin lineJoin, double miterLimit)
+    private static bool IsWithinStroke(IReadOnlyList<Point[]> paths, double radius,
+        double x, double y, RendererLineCap lineCap, RendererLineJoin lineJoin,
+        double miterLimit)
     {
-        double squaredRadius = radius * radius;
         foreach (Point[] path in paths)
         {
             bool closed = path.Length > 2 && path[0] == path[^1];
             for (int index = 1; index < path.Length; index++)
-            {
-                Point from = path[index - 1], to = path[index];
-                double dx = to.X - from.X, dy = to.Y - from.Y;
-                double lengthSquared = dx * dx + dy * dy;
-                if (lengthSquared <= 1e-24) continue;
-                double raw = ((x - from.X) * dx + (y - from.Y) * dy) / lengthSquared;
-                bool first = index == 1 && !closed;
-                bool last = index == path.Length - 1 && !closed;
-                double extension = radius / Math.Sqrt(lengthSquared);
-                if (raw < 0)
-                {
-                    if (!first || lineCap == RendererLineCap.Butt
-                        || lineCap == RendererLineCap.ProjectingSquare && raw < -extension)
-                        continue;
-                }
-                if (raw > 1)
-                {
-                    if (!last || lineCap == RendererLineCap.Butt
-                        || lineCap == RendererLineCap.ProjectingSquare && raw > 1 + extension)
-                        continue;
-                }
-                double parameter = lineCap == RendererLineCap.ProjectingSquare
-                    ? Math.Clamp(raw, first ? -extension : 0, last ? 1 + extension : 1)
-                    : Math.Clamp(raw, 0, 1);
-                double offsetX = x - (from.X + parameter * dx);
-                double offsetY = y - (from.Y + parameter * dy);
-                if (offsetX * offsetX + offsetY * offsetY <= squaredRadius) return true;
-            }
+                if (IsWithinSegment(path[index - 1], path[index], radius, x, y,
+                    lineCap, index == 1 && !closed,
+                    index == path.Length - 1 && !closed))
+                    return true;
             int vertexCount = closed ? path.Length - 1 : path.Length;
             int firstVertex = closed ? 0 : 1;
             int lastVertex = closed ? vertexCount - 1 : vertexCount - 2;
@@ -2871,54 +2912,80 @@ public sealed class PdfPageRenderer
             {
                 int previousIndex = vertexIndex == 0 ? vertexCount - 1 : vertexIndex - 1;
                 int nextIndex = (vertexIndex + 1) % vertexCount;
-                if (InsideJoin(path[previousIndex], path[vertexIndex], path[nextIndex]))
+                if (IsInsideJoin(path[previousIndex], path[vertexIndex], path[nextIndex],
+                    radius, lineJoin, miterLimit, x, y))
                     return true;
             }
         }
         return false;
+    }
 
-        bool InsideJoin(Point previous, Point vertex, Point next)
-        {
-            double incomingX = vertex.X - previous.X;
-            double incomingY = vertex.Y - previous.Y;
-            double outgoingX = next.X - vertex.X;
-            double outgoingY = next.Y - vertex.Y;
-            double incomingLength = Math.Sqrt(
-                incomingX * incomingX + incomingY * incomingY);
-            double outgoingLength = Math.Sqrt(
-                outgoingX * outgoingX + outgoingY * outgoingY);
-            if (incomingLength <= 1e-12 || outgoingLength <= 1e-12) return false;
-            incomingX /= incomingLength;
-            incomingY /= incomingLength;
-            outgoingX /= outgoingLength;
-            outgoingY /= outgoingLength;
-            double turn = Cross(incomingX, incomingY, outgoingX, outgoingY);
-            double dot = incomingX * outgoingX + incomingY * outgoingY;
-            if (Math.Abs(turn) <= 1e-12)
-                return dot < 0 && lineJoin == RendererLineJoin.Round
-                    && SquaredDistance(vertex, x, y) <= squaredRadius;
-            if (lineJoin == RendererLineJoin.Round)
-                return SquaredDistance(vertex, x, y) <= squaredRadius;
+    private static bool IsWithinSegment(Point from, Point to, double radius,
+        double x, double y, RendererLineCap lineCap, bool first, bool last)
+    {
+        double squaredRadius = radius * radius;
+        double dx = to.X - from.X, dy = to.Y - from.Y;
+        double lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared <= 1e-24) return false;
+        double raw = ((x - from.X) * dx + (y - from.Y) * dy) / lengthSquared;
+        double extension = radius / Math.Sqrt(lengthSquared);
+        if (raw < 0 && (!first || lineCap == RendererLineCap.Butt
+            || lineCap == RendererLineCap.ProjectingSquare && raw < -extension))
+            return false;
+        if (raw > 1 && (!last || lineCap == RendererLineCap.Butt
+            || lineCap == RendererLineCap.ProjectingSquare && raw > 1 + extension))
+            return false;
+        double parameter = lineCap == RendererLineCap.ProjectingSquare
+            ? Math.Clamp(raw, first ? -extension : 0, last ? 1 + extension : 1)
+            : Math.Clamp(raw, 0, 1);
+        double offsetX = x - (from.X + parameter * dx);
+        double offsetY = y - (from.Y + parameter * dy);
+        return offsetX * offsetX + offsetY * offsetY <= squaredRadius;
+    }
 
-            double side = turn > 0 ? 1 : -1;
-            Point firstOuter = new(vertex.X + side * incomingY * radius,
-                vertex.Y - side * incomingX * radius);
-            Point secondOuter = new(vertex.X + side * outgoingY * radius,
-                vertex.Y - side * outgoingX * radius);
-            Point[] bevel = [vertex, firstOuter, secondOuter];
-            if (lineJoin == RendererLineJoin.Bevel) return Contains([bevel], false, x, y);
+    private static bool IsInsideJoin(Point previous, Point vertex, Point next,
+        double radius, RendererLineJoin lineJoin, double miterLimit, double x, double y)
+    {
+        double squaredRadius = radius * radius;
+        double incomingX = vertex.X - previous.X;
+        double incomingY = vertex.Y - previous.Y;
+        double outgoingX = next.X - vertex.X;
+        double outgoingY = next.Y - vertex.Y;
+        double incomingLength = Math.Sqrt(
+            incomingX * incomingX + incomingY * incomingY);
+        double outgoingLength = Math.Sqrt(
+            outgoingX * outgoingX + outgoingY * outgoingY);
+        if (incomingLength <= 1e-12 || outgoingLength <= 1e-12) return false;
+        incomingX /= incomingLength;
+        incomingY /= incomingLength;
+        outgoingX /= outgoingLength;
+        outgoingY /= outgoingLength;
+        double turn = Cross(incomingX, incomingY, outgoingX, outgoingY);
+        double dot = incomingX * outgoingX + incomingY * outgoingY;
+        if (Math.Abs(turn) <= 1e-12)
+            return dot < 0 && lineJoin == RendererLineJoin.Round
+                && SquaredDistance(vertex, x, y) <= squaredRadius;
+        if (lineJoin == RendererLineJoin.Round)
+            return SquaredDistance(vertex, x, y) <= squaredRadius;
 
-            double denominator = Cross(incomingX, incomingY, outgoingX, outgoingY);
-            double deltaX = secondOuter.X - firstOuter.X;
-            double deltaY = secondOuter.Y - firstOuter.Y;
-            double distance = Cross(deltaX, deltaY, outgoingX, outgoingY) / denominator;
-            Point miter = new(firstOuter.X + distance * incomingX,
-                firstOuter.Y + distance * incomingY);
-            double miterRatio = Math.Sqrt(SquaredDistance(vertex, miter.X, miter.Y)) / radius;
-            return miterRatio <= miterLimit
-                ? Contains([[vertex, firstOuter, miter, secondOuter]], false, x, y)
-                : Contains([bevel], false, x, y);
-        }
+        double side = turn > 0 ? 1 : -1;
+        Point firstOuter = new(vertex.X + side * incomingY * radius,
+            vertex.Y - side * incomingX * radius);
+        Point secondOuter = new(vertex.X + side * outgoingY * radius,
+            vertex.Y - side * outgoingX * radius);
+        Point[] bevel = [vertex, firstOuter, secondOuter];
+        if (lineJoin == RendererLineJoin.Bevel) return Contains([bevel], false, x, y);
+
+        double denominator = Cross(incomingX, incomingY, outgoingX, outgoingY);
+        double deltaX = secondOuter.X - firstOuter.X;
+        double deltaY = secondOuter.Y - firstOuter.Y;
+        double distance = Cross(deltaX, deltaY, outgoingX, outgoingY) / denominator;
+        Point miter = new(firstOuter.X + distance * incomingX,
+            firstOuter.Y + distance * incomingY);
+        double miterRatio = Math.Sqrt(SquaredDistance(vertex, miter.X, miter.Y)) / radius;
+        return miterRatio <= miterLimit
+            ? Contains([[vertex, firstOuter, miter, secondOuter]], false, x, y)
+            : Contains([bevel], false, x, y);
 
         static double Cross(double firstX, double firstY, double secondX, double secondY) =>
             firstX * secondY - firstY * secondX;

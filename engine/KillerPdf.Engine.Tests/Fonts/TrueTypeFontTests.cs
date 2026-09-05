@@ -186,6 +186,7 @@ public sealed class TrueTypeFontTests
 
         PdfGlyphOutline? outline = font.GetGlyphOutline(1);
         Assert.NotNull(outline);
+        Assert.Same(outline, font.GetGlyphOutline(1));
         PdfGlyphContour contour = Assert.Single(outline.Contours);
         Assert.Equal([
             new PdfGlyphPoint(0, 0, true),

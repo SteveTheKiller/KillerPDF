@@ -1085,6 +1085,22 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 255, 128], Pixel(transparent, 5, 5));
     }
 
+    [Fact]
+    public void Render_CompositesOverlappingStrokeSegmentsOnce()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetOpacity(0.5).SetLineWidth(2)
+            .MoveTo(1, 1).LineTo(5, 5).LineTo(1, 5).LineTo(5, 1).Stroke();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(6, 6, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(6, 6,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([128, 128, 128, 255], Pixel(page, 3, 3));
+    }
+
     [Theory]
     [InlineData(PdfBlendMode.Multiply, 0, 0, 0)]
     [InlineData(PdfBlendMode.Screen, 255, 0, 255)]
