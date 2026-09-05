@@ -2408,7 +2408,9 @@ public sealed class PdfPageRendererTests
             filtered, "SMaskInData", new PdfInteger(2));
         PdfDocument withMatte = AddImageDictionaryEntry(
             masked, "Matte", Reals(0, 0, 1));
-        PdfDocument document = RemoveImageDictionaryEntry(withMatte, "ColorSpace");
+        PdfDocument withoutColorSpace = RemoveImageDictionaryEntry(withMatte, "ColorSpace");
+        PdfDocument document = RemoveImageDictionaryEntry(
+            withoutColorSpace, "BitsPerComponent");
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));

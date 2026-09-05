@@ -1450,7 +1450,6 @@ public sealed class PdfPageRenderer
             && Resolve(maskValue) is PdfBoolean { Value: true };
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
-        int bits = imageMask ? 1 : PositiveInteger(stream.Dictionary, "BitsPerComponent");
         bool jpeg2000 = IsSoleJpeg2000Filter(stream.Dictionary);
         bool jpeg = IsSoleDctFilter(stream.Dictionary);
         bool recoveredPng = _document.UsesCompatibilityRecovery
@@ -1461,6 +1460,11 @@ public sealed class PdfPageRenderer
             ? EmbeddedJpeg2000MaskMode(stream.Dictionary) : 0;
         Jpeg2000Shape? jpeg2000Shape = jpeg2000
             ? PdfJpeg2000Decoder.ReadShape(stream.EncodedData.Span) : null;
+        int bits = imageMask ? 1
+            : stream.Dictionary.ContainsKey(Name("BitsPerComponent"))
+                ? PositiveInteger(stream.Dictionary, "BitsPerComponent")
+                : jpeg2000Shape?.Bits
+                    ?? PositiveInteger(stream.Dictionary, "BitsPerComponent");
         ImageColorSpace colorSpace;
         try
         {
