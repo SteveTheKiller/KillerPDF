@@ -1,6 +1,7 @@
 using CoreJ2K;
 using CoreJ2K.Configuration;
 using CoreJ2K.Util;
+using System.Buffers;
 using System.Buffers.Binary;
 
 namespace KillerPdf.Engine.Filters;
@@ -58,16 +59,30 @@ internal static class PdfJpeg2000Decoder
             if (length > maximumDecodedBytes)
                 throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
 
-            int[] values = image.GetDataCopy();
             if (bits == 8)
             {
                 var bytes = new byte[length];
-                for (int index = 0; index < values.Length; index++)
-                    bytes[index] = checked((byte)values[index]);
+                byte[] component = ArrayPool<byte>.Shared.Rent(
+                    checked(image.Width * image.Height));
+                try
+                {
+                    Span<byte> samples = component.AsSpan(0, image.Width * image.Height);
+                    for (int channel = 0; channel < components; channel++)
+                    {
+                        image.ToComponentBytes(channel, samples);
+                        for (int index = 0; index < samples.Length; index++)
+                            bytes[index * components + channel] = samples[index];
+                    }
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(component);
+                }
                 return new Jpeg2000DecodedImage(
                     bytes, image.Width, image.Height, components, bits);
             }
 
+            int[] values = image.GetDataCopy();
             var packed = new byte[length];
             int maximum = (1 << bits) - 1;
             int samplesPerRow = image.Width * components;
