@@ -1540,8 +1540,18 @@ public sealed class PdfPageRenderer
             0 => ReadSampledFunction(resolved, dictionary, colorSpace, description),
             2 => ReadExponentialFunction(value, colorSpace, description),
             3 => ReadStitchingFunction(dictionary, colorSpace, description),
+            4 when resolved is PdfStream calculator =>
+                ReadSingleInputCalculatorFunction(calculator, colorSpace, description),
             _ => throw new NotSupportedException()
         };
+    }
+
+    private Func<double, Color> ReadSingleInputCalculatorFunction(
+        PdfStream stream, ImageColorSpace colorSpace, string description)
+    {
+        Func<double[], Color> function = ReadCalculatorFunction(
+            stream, 1, colorSpace, description);
+        return input => function([input]);
     }
 
     private Func<double, Color> ReadSampledFunction(PdfObject resolved,
