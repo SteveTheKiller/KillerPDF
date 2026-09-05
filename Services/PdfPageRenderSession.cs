@@ -36,7 +36,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         double scale, bool allowNativeFallback)
     {
         _path = path;
-        _engineRenderer = new EngineRenderer(document);
+        _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
         _enginePages = pages;
         _maximumWidth = maximumWidth;
         _maximumHeight = maximumHeight;
@@ -187,7 +187,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         try
         {
             EngineDocument document = EngineDocument.Open(File.ReadAllBytes(path));
-            var renderer = new EngineRenderer(document);
+            var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
             KillerPdf.Engine.Rendering.PdfRenderedPage rendered = renderer.Render(
                 pageIndex, new EngineRenderOptions(width, height, transparentBackground,
                     includeAnnotations: true, includeFormFields));

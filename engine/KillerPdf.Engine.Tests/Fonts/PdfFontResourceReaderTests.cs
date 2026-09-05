@@ -50,6 +50,26 @@ public sealed class PdfFontResourceReaderTests
         Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
     }
 
+    [Fact]
+    public void MissingCompositeFontUsesInjectedPlatformNeutralFontBytes()
+    {
+        var resolver = new TestFontResolver(
+            TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        var descendant = D(("Subtype", N("CIDFontType2")),
+            ("CIDSystemInfo", D(("Registry", Text("Adobe")),
+                ("Ordering", Text("Identity")))));
+        PdfStream unicode = Stream(
+            "1 begincodespacerange <0000> <FFFF> endcodespacerange "
+            + "1 beginbfchar <0041> <0041> endbfchar");
+
+        PdfExtractionFont font = PdfFontResourceReader.Read(Document,
+            Type0(descendant, N("Identity-V"), unicode), resolver);
+
+        Assert.Equal(new PdfFontRequest("TestCID", "Adobe", "Identity", true),
+            Assert.Single(resolver.Requests));
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
     [Theory]
     [InlineData("WinAnsiEncoding", 128, "\u20AC")]
     [InlineData("MacRomanEncoding", 128, "\u00C4")]
@@ -314,4 +334,15 @@ public sealed class PdfFontResourceReaderTests
     private static PdfName N(string name) => new(Encoding.ASCII.GetBytes(name));
     private static PdfDictionary D(params (string Name, PdfObject Value)[] values) =>
         new(values.Select(v => new KeyValuePair<PdfName, PdfObject>(N(v.Name), v.Value)));
+
+    private sealed class TestFontResolver(byte[] bytes) : IPdfFontResolver
+    {
+        internal List<PdfFontRequest> Requests { get; } = [];
+
+        public byte[] Resolve(PdfFontRequest request)
+        {
+            Requests.Add(request);
+            return bytes;
+        }
+    }
 }

@@ -11,15 +11,16 @@ namespace KillerPdf.Engine.Fonts;
 public static class PdfFontResourceReader
 {
     /// <summary>Reads a page font resource without loading a platform font or rendering library.</summary>
-    public static PdfExtractionFont Read(PdfDocument document, PdfDictionary font)
+    public static PdfExtractionFont Read(PdfDocument document, PdfDictionary font,
+        IPdfFontResolver? fontResolver = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentNullException.ThrowIfNull(font);
-        var reader = new Reader(document);
+        var reader = new Reader(document, fontResolver);
         return reader.Read(font);
     }
 
-    private sealed class Reader(PdfDocument document)
+    private sealed class Reader(PdfDocument document, IPdfFontResolver? fontResolver)
     {
         internal PdfExtractionFont Read(PdfDictionary font)
         {
@@ -36,10 +37,21 @@ public static class PdfFontResourceReader
                 metrics = descendant;
             }
             var descriptor = Get(metrics, "FontDescriptor") as PdfDictionary;
+            var systemInfo = Get(metrics, "CIDSystemInfo") as PdfDictionary;
+            string registry = Get(systemInfo, "Registry") is PdfString registryText
+                ? Encoding.Latin1.GetString(registryText.Bytes.Span) : "Adobe";
+            string ordering = Get(systemInfo, "Ordering") is PdfString orderingText
+                ? Encoding.Latin1.GetString(orderingText.Bytes.Span) : "Identity";
             byte[]? embeddedData = (Get(descriptor, "FontFile2") ?? Get(descriptor, "FontFile3")) is PdfStream embeddedStream
                 ? Decode(embeddedStream) : null;
-            TrueTypeFont? embedded = ReadEmbedded(embeddedData);
-            PdfCffGlyphReader? cff = embeddedData is null ? null : PdfCffGlyphReader.TryRead(embeddedData);
+            byte[]? resolvedData = embeddedData is null && composite
+                ? fontResolver?.Resolve(new PdfFontRequest(
+                    metricsName, registry, ordering,
+                    Name(Get(font, "Encoding"))?.EndsWith("-V", StringComparison.Ordinal) == true))
+                : null;
+            byte[]? outlineData = embeddedData ?? resolvedData;
+            TrueTypeFont? embedded = ReadEmbedded(outlineData);
+            PdfCffGlyphReader? cff = outlineData is null ? null : PdfCffGlyphReader.TryRead(outlineData);
             PdfType1GlyphReader? type1 = Get(descriptor, "FontFile") is PdfStream type1Stream
                 ? PdfType1GlyphReader.TryRead(Decode(type1Stream), checked((int)Number(Get(type1Stream.Dictionary, "Length1"), 0)),
                     checked((int)Number(Get(type1Stream.Dictionary, "Length2"), 0))) : null;
@@ -117,17 +129,26 @@ public static class PdfFontResourceReader
                 ?? Enumerable.Range(1, 4).Where(length => length != codeLength)
                     .Select(length => unicode.Lookup(code, length))
                     .FirstOrDefault(text => text is not null);
+            string? CharacterText(uint code) => UnicodeText(code)
+                ?? (composite ? PdfPredefinedCMaps.Unicode(registry + "-" + ordering,
+                    vertical, cidSelector?.Invoke(code) ?? code) : simpleText.GetValueOrDefault(code));
             byte[]? cidToGid = Get(metrics, "CIDToGIDMap") is PdfStream gidStream ? Decode(gidStream) : null;
             ushort Glyph(uint code)
             {
                 if (composite)
                 {
+                    if (resolvedData is not null)
+                    {
+                        string? mappedText = CharacterText(code);
+                        return embedded is not null && !string.IsNullOrEmpty(mappedText)
+                            ? embedded.GetGlyphId(char.ConvertToUtf32(mappedText, 0)) : (ushort)0;
+                    }
                     uint cid = cidSelector?.Invoke(code) ?? code;
                     if (cidToGid is not null)
                         return cid < cidToGid.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(cidToGid.AsSpan((int)cid * 2, 2)) : (ushort)0;
                     return cid <= ushort.MaxValue ? (ushort)cid : (ushort)0;
                 }
-                string? text = UnicodeText(code) ?? simpleText.GetValueOrDefault(code);
+                string? text = CharacterText(code);
                 if (embedded is null || string.IsNullOrEmpty(text)) return 0;
                 int scalar = char.ConvertToUtf32(text, 0);
                 ushort glyph = embedded.GetGlyphId(scalar);
@@ -137,7 +158,7 @@ public static class PdfFontResourceReader
             }
             ushort SubstituteGlyph(uint code)
             {
-                string? text = UnicodeText(code) ?? simpleText.GetValueOrDefault(code);
+                string? text = CharacterText(code);
                 if (substitute is null || string.IsNullOrEmpty(text)) return 0;
                 int scalar = char.ConvertToUtf32(text, 0);
                 ushort glyph = substitute.GetGlyphId(scalar);
@@ -149,9 +170,6 @@ public static class PdfFontResourceReader
                     if (!widths.ContainsKey(code) && Glyph(code) is ushort glyph && glyph < embedded.GlyphCount)
                         widths[code] = embedded.GetPdfAdvanceWidth(glyph);
             var reverse = new Lazy<Dictionary<ushort, string>>(() => ReverseUnicode(embedded));
-            var systemInfo = Get(metrics, "CIDSystemInfo") as PdfDictionary;
-            string registry = Get(systemInfo, "Registry") is PdfString registryText ? Encoding.Latin1.GetString(registryText.Bytes.Span) : "Adobe";
-            string ordering = Get(systemInfo, "Ordering") is PdfString orderingText ? Encoding.Latin1.GetString(orderingText.Bytes.Span) : "Identity";
             string? Fallback(uint code) => !composite ? simpleText.GetValueOrDefault(code)
                 : PdfPredefinedCMaps.Unicode(registry + "-" + ordering, vertical, cidSelector?.Invoke(code) ?? code)
                     ?? (embedded is null ? null : reverse.Value.GetValueOrDefault(Glyph(code)));

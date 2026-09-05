@@ -15,14 +15,16 @@ public sealed class PdfPageRenderer
     private readonly IReadOnlyList<PdfPageInformation> _pages;
     private readonly IReadOnlyList<PdfPageBoxInformation> _boxes;
     private readonly PdfPageTree _tree;
+    private readonly IPdfFontResolver? _fontResolver;
 
     /// <summary>Creates a renderer for an immutable document.</summary>
-    public PdfPageRenderer(PdfDocument document)
+    public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
         if (!document.IsDecrypted)
             throw new InvalidOperationException("Authenticate the document before rendering pages.");
         _content = new PdfPageContentReader(document);
+        _fontResolver = fontResolver;
         _tree = PdfPageTree.Read(document);
         _pages = PdfPageInformation.Read(document);
         _boxes = PdfPageBoxInformation.Read(document);
@@ -733,7 +735,7 @@ public sealed class PdfPageRenderer
             {
                 if (textFont is null || NameValue(textFont, "Subtype") == "Type3")
                     return false;
-                extractionFont ??= PdfFontResourceReader.Read(_document, textFont);
+                extractionFont ??= PdfFontResourceReader.Read(_document, textFont, _fontResolver);
                 return extractionFont.IsVertical;
             }
 
@@ -801,7 +803,7 @@ public sealed class PdfPageRenderer
                 {
                     extractionFont ??= fontCache.GetValueOrDefault(textFont!)
                         ?? (fontCache[textFont!] = PdfFontResourceReader.Read(
-                            _document, textFont!));
+                            _document, textFont!, _fontResolver));
                     if (textRenderingMode is < 0 or > 7)
                     {
                         diagnostics.Add("Text rendering is not implemented.");
