@@ -10,6 +10,40 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfOcrRecognitionTests
 {
     [Fact]
+    public void TrainerBuildsDeterministicSerializableClassifier()
+    {
+        PdfOcrTrainingSample[] samples =
+        [
+            new("A", new float[] { 1, 0 }),
+            new("A", new float[] { 0.8f, 0 }),
+            new("B", new float[] { 0, 1 }),
+            new("B", new float[] { 0, 0.8f })
+        ];
+
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 1, samples);
+        PdfOcrRecognitionModel restored = PdfOcrRecognitionModel.Load(model.Save());
+
+        Assert.Equal(["A", "B"], model.Labels);
+        Assert.Equal(model.Labels, restored.Labels);
+        Assert.Equal((2, 1), (restored.Width, restored.Height));
+        Assert.Equal(model.Save(),
+            PdfOcrModelTrainer.Train(2, 1, samples.Reverse()).Save());
+    }
+
+    [Fact]
+    public void TrainerRejectsInvalidFeaturesAndHonorsCancellation()
+    {
+        Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
+            [new PdfOcrTrainingSample("A", new float[] { float.NaN })]));
+        Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
+            [new PdfOcrTrainingSample("A", new float[] { 2 })]));
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+        Assert.Throws<OperationCanceledException>(() => PdfOcrModelTrainer.Train(1, 1,
+            [new PdfOcrTrainingSample("A", new float[] { 1 })], canceled.Token));
+    }
+
+    [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
         PdfOcrRecognitionModel created = RecognitionModel();
