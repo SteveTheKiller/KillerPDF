@@ -2927,6 +2927,7 @@ public sealed class PdfPageRenderer
             + 2 * dataComponents * componentBits);
         var points = new Point[16];
         var values = new double[4][];
+        bool[]? clipMask = state.Clips.Count == 0 ? null : BuildClipMask();
         while (bytes.Length * 8 - bitOffset >= minimumRecordBits)
         {
             uint flag = Read(flagBits);
@@ -2981,6 +2982,18 @@ public sealed class PdfPageRenderer
         }
         Color Convert(double[] components) =>
             function is null ? colorSpace.Convert(components) : function(components[0]);
+        bool[] BuildClipMask()
+        {
+            var mask = new bool[checked(targetWidth * targetHeight)];
+            for (int y = 0; y < targetHeight; y++)
+                for (int x = 0; x < targetWidth; x++)
+                {
+                    double pageX = (x + 0.5) / scaleX;
+                    double pageY = (targetHeight - y - 0.5) / scaleY;
+                    mask[y * targetWidth + x] = InsideClips(state.Clips, pageX, pageY);
+                }
+            return mask;
+        }
         static void AddCoonsInteriorPoints(Point[] source)
         {
             source[12] = Combine(source[0], -4, source[1], 6, source[11], 6,
@@ -3056,7 +3069,7 @@ public sealed class PdfPageRenderer
                 {
                     double pageX = (x + 0.5) / scaleX;
                     double pageY = (targetHeight - y - 0.5) / scaleY;
-                    if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                    if (clipMask is not null && !clipMask[y * targetWidth + x]) continue;
                     double a = Edge(second, third, pageX, pageY) / area;
                     double b = Edge(third, first, pageX, pageY) / area;
                     double c = 1 - a - b;
@@ -3784,13 +3797,13 @@ public sealed class PdfPageRenderer
             int vertexCount = closed ? path.Length - 1 : path.Length;
             int firstVertex = closed ? 0 : 1;
             int lastVertex = closed ? vertexCount - 1 : vertexCount - 2;
-            double joinExpansion = pageRadius
-                * (lineJoin == RendererLineJoin.Miter ? miterLimit : 1);
             for (int vertexIndex = firstVertex; vertexIndex <= lastVertex; vertexIndex++)
             {
                 int previousIndex = vertexIndex == 0 ? vertexCount - 1 : vertexIndex - 1;
                 int nextIndex = (vertexIndex + 1) % vertexCount;
                 Point vertex = path[vertexIndex];
+                double joinExpansion = JoinExpansion(path[previousIndex], vertex,
+                    path[nextIndex], pageRadius, lineJoin, miterLimit);
                 MarkBounds(vertex.X - joinExpansion, vertex.X + joinExpansion,
                     vertex.Y - joinExpansion, vertex.Y + joinExpansion,
                     (x, y) => IsInsideJoin(path[previousIndex], vertex,
@@ -4333,6 +4346,25 @@ public sealed class PdfPageRenderer
             double dy = otherY - point.Y;
             return dx * dx + dy * dy;
         }
+    }
+
+    private static double JoinExpansion(Point previous, Point vertex, Point next,
+        double radius, RendererLineJoin lineJoin, double miterLimit)
+    {
+        if (lineJoin != RendererLineJoin.Miter) return radius;
+        double incomingX = vertex.X - previous.X;
+        double incomingY = vertex.Y - previous.Y;
+        double outgoingX = next.X - vertex.X;
+        double outgoingY = next.Y - vertex.Y;
+        double incomingLength = Math.Sqrt(incomingX * incomingX + incomingY * incomingY);
+        double outgoingLength = Math.Sqrt(outgoingX * outgoingX + outgoingY * outgoingY);
+        if (incomingLength <= 1e-12 || outgoingLength <= 1e-12) return radius;
+        double dot = (incomingX * outgoingX + incomingY * outgoingY)
+            / (incomingLength * outgoingLength);
+        double denominator = 1 + Math.Clamp(dot, -1, 1);
+        if (denominator <= 1e-12) return radius;
+        double ratio = Math.Sqrt(2 / denominator);
+        return ratio <= miterLimit ? radius * ratio : radius;
     }
 
     private static double Number(PdfObject value) => value switch

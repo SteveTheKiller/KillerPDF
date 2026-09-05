@@ -1220,10 +1220,10 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
-    public void Render_PaintsTensorPatchShadings()
+    public void Render_PaintsAndClipsTensorPatchShadings()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("0 0 5 10 re W n /Sh1 sh")).Build());
         byte[] points =
         [
             0, 0, 85, 0, 170, 0, 255, 0,
@@ -1247,7 +1247,8 @@ public sealed class PdfPageRendererTests
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
 
-        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 7, 5));
         Assert.DoesNotContain("The shading type or function is not implemented.",
             rendered.Diagnostics);
     }
