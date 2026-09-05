@@ -141,8 +141,11 @@ public sealed record PdfOcrPageAccuracy(
     int EmptyTextCount);
 
 /// <summary>A confidence and review summary for an OCR result.</summary>
-public sealed record PdfOcrAccuracyReport
+public sealed partial record PdfOcrAccuracyReport
 {
+    private static readonly PdfOcrAccuracyCompactJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfOcrAccuracyIndentedJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Gets the low-confidence threshold used by the report.</summary>
     public double LowConfidenceThreshold { get; init; }
     /// <summary>Gets page summaries in page order.</summary>
@@ -157,19 +160,14 @@ public sealed record PdfOcrAccuracyReport
         || page.PendingCount > 0 || page.EmptyTextCount > 0);
 
     /// <summary>Exports the accuracy summary as stable JSON without recognized text.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    public string ToJson(bool indented = false)
     {
-        Version = 1,
-        LowConfidenceThreshold,
-        WordCount,
-        AverageConfidence,
-        HasWarnings,
-        Pages
-    }, new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = indented
-    });
+        var report = new PdfOcrAccuracyJson(1, LowConfidenceThreshold,
+            WordCount, AverageConfidence, HasWarnings, Pages.ToArray());
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.PdfOcrAccuracyJson
+            : CompactJson.PdfOcrAccuracyJson);
+    }
 
     /// <summary>Exports page-level accuracy and review counts as CSV.</summary>
     public string ToCsv()
@@ -211,6 +209,24 @@ public sealed record PdfOcrAccuracyReport
                 .Append(" | Empty ").Append(page.EmptyTextCount).AppendLine();
         return output.ToString();
     }
+
+    private sealed record PdfOcrAccuracyJson(int Version, double LowConfidenceThreshold,
+        int WordCount, double AverageConfidence, bool HasWarnings, PdfOcrPageAccuracy[] Pages);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfOcrAccuracyJson))]
+    private sealed partial class PdfOcrAccuracyCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfOcrAccuracyJson))]
+    private sealed partial class PdfOcrAccuracyIndentedJsonContext : JsonSerializerContext;
 }
 
 /// <summary>A recognized word with stable page order, geometry, confidence, and review state.</summary>
@@ -511,8 +527,11 @@ public interface IPdfOcrProvider
 }
 
 /// <summary>A data-safe aggregate report for an OCR page batch.</summary>
-public sealed record PdfOcrBatchReport
+public sealed partial record PdfOcrBatchReport
 {
+    private static readonly PdfOcrBatchCompactJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfOcrBatchIndentedJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Creates a report from an isolated batch result prefix.</summary>
     public PdfOcrBatchReport(int totalPageCount, IEnumerable<PdfOcrBatchResult> results)
     {
@@ -547,29 +566,17 @@ public sealed record PdfOcrBatchReport
     public int UnprocessedCount => TotalPageCount - Results.Count;
 
     /// <summary>Exports outcomes without page buffers or recognized text.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
+    public string ToJson(bool indented = false)
     {
-        Version = 1,
-        TotalPageCount,
-        SucceededCount,
-        FailedCount,
-        CanceledCount,
-        UnprocessedCount,
-        Sources,
-        Results = Results.Select(result => new
-        {
-            result.Input.SourceName,
-            result.Input.PageIndex,
-            result.Succeeded,
-            result.WasCanceled,
-            result.Error,
-            WordCount = result.Review?.Words.Count
-        })
-    }, new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = indented
-    });
+        var report = new PdfOcrBatchJson(1, TotalPageCount, SucceededCount,
+            FailedCount, CanceledCount, UnprocessedCount, Sources.ToArray(),
+            [.. Results.Select(result => new PdfOcrBatchResultJson(
+                result.Input.SourceName, result.Input.PageIndex, result.Succeeded,
+                result.WasCanceled, result.Error, result.Review?.Words.Count))]);
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.PdfOcrBatchJson
+            : CompactJson.PdfOcrBatchJson);
+    }
 
     /// <summary>Exports readable data-safe batch outcomes without recognized text.</summary>
     public string ToText()
@@ -594,6 +601,28 @@ public sealed record PdfOcrBatchReport
         }
         return output.ToString();
     }
+
+    private sealed record PdfOcrBatchJson(int Version, int TotalPageCount,
+        int SucceededCount, int FailedCount, int CanceledCount, int UnprocessedCount,
+        PdfOcrBatchSourceSummary[] Sources, PdfOcrBatchResultJson[] Results);
+
+    private sealed record PdfOcrBatchResultJson(string SourceName, int PageIndex,
+        bool Succeeded, bool WasCanceled, string? Error, int? WordCount);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfOcrBatchJson))]
+    private sealed partial class PdfOcrBatchCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfOcrBatchJson))]
+    private sealed partial class PdfOcrBatchIndentedJsonContext : JsonSerializerContext;
 }
 
 /// <summary>Runs OCR page recognition with source preservation, failure isolation, and cancellation.</summary>
