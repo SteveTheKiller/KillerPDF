@@ -11,6 +11,7 @@ internal static class PdfJpegDecoder
         58, 59, 52, 45, 38, 31, 39, 46, 53, 60, 61, 54, 47, 55, 62, 63
     ];
     private static readonly double[,] Cosines = CreateCosines();
+    private static readonly double[,,] ReducedCosines = CreateReducedCosines();
     private static readonly double[] Scales = [1 / Math.Sqrt(2), 1, 1, 1, 1, 1, 1, 1];
 
     internal static byte[] Decode(
@@ -23,8 +24,8 @@ internal static class PdfJpegDecoder
     {
         try
         {
-            if (reduction is not (1 or 8))
-                throw new PdfFilterException("JPEG reduction must be 1 or 8.");
+            if (reduction is not (1 or 2 or 4 or 8))
+                throw new PdfFilterException("JPEG reduction must be 1, 2, 4, or 8.");
             return new Decoder(
                 source.ToArray(), maximumDecodedBytes, reduction, colorTransform).Decode();
         }
@@ -599,28 +600,26 @@ internal static class PdfJpegDecoder
             Component component, int left, int top, ReadOnlySpan<int> coefficients)
         {
             int[] quantization = _quantization[component.QuantizationTable];
-            if (reduction == 8)
-            {
-                component.Samples[top * component.Stride + left]
-                    = Clamp(128 + coefficients[0] * quantization[0] / 8d);
-                return;
-            }
+            int blockSize = 8 / reduction;
+            int reductionIndex = reduction switch { 1 => 0, 2 => 1, 4 => 2, _ => 3 };
             Span<double> horizontal = stackalloc double[64];
             for (int v = 0; v < 8; v++)
-                for (int x = 0; x < 8; x++)
+                for (int x = 0; x < blockSize; x++)
                 {
                     double sum = 0;
                     for (int u = 0; u < 8; u++)
                         sum += Scales[u] * coefficients[v * 8 + u]
-                            * quantization[v * 8 + u] * Cosines[x, u];
-                    horizontal[v * 8 + x] = sum;
+                            * quantization[v * 8 + u]
+                            * ReducedCosines[reductionIndex, x, u];
+                    horizontal[v * blockSize + x] = sum;
                 }
-            for (int y = 0; y < 8; y++)
-                for (int x = 0; x < 8; x++)
+            for (int y = 0; y < blockSize; y++)
+                for (int x = 0; x < blockSize; x++)
                 {
                     double sum = 0;
                     for (int v = 0; v < 8; v++)
-                        sum += Scales[v] * horizontal[v * 8 + x] * Cosines[y, v];
+                        sum += Scales[v] * horizontal[v * blockSize + x]
+                            * ReducedCosines[reductionIndex, y, v];
                     component.Samples[(top + y) * component.Stride + left + x]
                         = Clamp(128 + sum / 4);
                 }
@@ -672,6 +671,25 @@ internal static class PdfJpegDecoder
             for (int frequency = 0; frequency < 8; frequency++)
                 result[sample, frequency] = Math.Cos(
                     (2 * sample + 1) * frequency * Math.PI / 16);
+        return result;
+    }
+
+    private static double[,,] CreateReducedCosines()
+    {
+        var result = new double[4, 8, 8];
+        for (int reductionIndex = 0; reductionIndex < 4; reductionIndex++)
+        {
+            int reduction = 1 << reductionIndex;
+            int blockSize = 8 / reduction;
+            for (int sample = 0; sample < blockSize; sample++)
+                for (int frequency = 0; frequency < 8; frequency++)
+                {
+                    double sum = 0;
+                    for (int offset = 0; offset < reduction; offset++)
+                        sum += Cosines[sample * reduction + offset, frequency];
+                    result[reductionIndex, sample, frequency] = sum / reduction;
+                }
+        }
         return result;
     }
 

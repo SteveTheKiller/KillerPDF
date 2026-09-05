@@ -575,7 +575,7 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
-    public void Render_DecodesJpegThumbnailsAtOneEighthResolution()
+    public void Render_DecodesJpegThumbnailsAtScaledIdctResolutions()
     {
         byte[] jpeg = Convert.FromBase64String(
             "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDAwMEAwMEBQgFBQQEBQoHBwYIDAoMDAsKCwsNDhIQDQ4RDgsLEBYQERMUFRUVDA8XGBYUGBIUFRT/2wBDAQMEBAUEBQkFBQkUDQsNFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBT/wAARCAAIAAgDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDwyiiivw8/0oP/2Q==");
@@ -587,20 +587,28 @@ public sealed class PdfPageRendererTests
 
         PdfRenderedPage page = renderer.Render(0, new PdfRenderOptions(
             1, 1, includeAnnotations: false, includeFormFields: false));
+        renderer.Render(0, new PdfRenderOptions(
+            2, 2, includeAnnotations: false, includeFormFields: false));
+        renderer.Render(0, new PdfRenderOptions(
+            4, 4, includeAnnotations: false, includeFormFields: false));
+        renderer.Render(0, new PdfRenderOptions(
+            8, 8, includeAnnotations: false, includeFormFields: false));
         object cache = typeof(PdfPageRenderer).GetField("_imageCache",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .GetValue(renderer)!;
         object usage = cache.GetType().GetField("_usage",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .GetValue(cache)!;
-        object node = usage.GetType().GetProperty("First")!.GetValue(usage)!;
-        object entry = node.GetType().GetProperty("Value")!.GetValue(node)!;
-        object decoded = entry.GetType().GetField("Item2")!.GetValue(entry)!;
-        int decodedWidth = (int)decoded.GetType().GetProperty("Width")!.GetValue(decoded)!;
-        int decodedHeight = (int)decoded.GetType().GetProperty("Height")!.GetValue(decoded)!;
+        object[] decoded = ((System.Collections.IEnumerable)usage).Cast<object>()
+            .Select(entry => entry.GetType().GetField("Item2")!.GetValue(entry)!)
+            .ToArray();
+        int[] decodedWidths = decoded.Select(image =>
+            (int)image.GetType().GetProperty("Width")!.GetValue(image)!).Order().ToArray();
+        int[] decodedHeights = decoded.Select(image =>
+            (int)image.GetType().GetProperty("Height")!.GetValue(image)!).Order().ToArray();
 
-        Assert.Equal(1, decodedWidth);
-        Assert.Equal(1, decodedHeight);
+        Assert.Equal([1, 2, 4, 8], decodedWidths);
+        Assert.Equal([1, 2, 4, 8], decodedHeights);
         Assert.InRange(Pixel(page, 0, 0)[2], 235, 245);
         Assert.DoesNotContain("The image compression filter is not implemented.", page.Diagnostics);
     }

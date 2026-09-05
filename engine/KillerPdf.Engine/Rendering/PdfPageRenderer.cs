@@ -1504,7 +1504,7 @@ public sealed class PdfPageRenderer
             int jpegReduction = jpeg
                 ? SelectJpegReduction(width, height, transform, scaleX, scaleY) : 1;
             int cacheLevel = recoveredPng ? -2
-                : jpeg ? jpegReduction == 8 ? -6 : -5
+                : jpeg ? -10 - jpegReduction
                 : resolutionLevel;
             DecodedImage decodedImage = _imageCache.GetOrAdd(
                 new ImageCacheKey(stream, cacheLevel), _ => DecodeImage());
@@ -1616,8 +1616,12 @@ public sealed class PdfPageRenderer
     {
         (int desiredWidth, int desiredHeight) = DesiredImageDimensions(
             transform, scaleX, scaleY);
-        return checked((width + 7) / 8) >= desiredWidth
-            && checked((height + 7) / 8) >= desiredHeight ? 8 : 1;
+        ReadOnlySpan<int> reductions = [8, 4, 2];
+        foreach (int reduction in reductions)
+            if (checked((width + reduction - 1) / reduction) >= desiredWidth
+                && checked((height + reduction - 1) / reduction) >= desiredHeight)
+                return reduction;
+        return 1;
     }
 
     private static (int Width, int Height) DesiredImageDimensions(
