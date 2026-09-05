@@ -258,6 +258,26 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void EmbeddedCffComposesLigaturesWhenSubsetOmitsComponentOutlines()
+    {
+        byte[] unrelatedGlyph = [.. PdfCffGlyphReaderTests.Numbers(0, 0), 21,
+            .. PdfCffGlyphReaderTests.Numbers(100, 0, 0, 500), 5, 14];
+        var fontFile = new PdfStream(D(("Subtype", N("Type1C"))),
+            PdfCffGlyphReaderTests.BuildNamed(("A", unrelatedGlyph)));
+        var encoding = D(("Differences", new PdfArray([new PdfInteger(11), N("ff")])),
+            ("BaseEncoding", N("StandardEncoding")));
+        var descriptor = D(("FontFile3", fontFile), ("MissingWidth", new PdfInteger(0)));
+        var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("KillerTest")),
+            ("FirstChar", new PdfInteger(11)), ("LastChar", new PdfInteger(11)),
+            ("Widths", new PdfArray([new PdfInteger(570)])), ("Encoding", encoding),
+            ("FontDescriptor", descriptor)));
+
+        PdfGlyphOutline component = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(102));
+        PdfGlyphOutline ligature = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(11));
+        Assert.Equal(component.Contours.Count * 2, ligature.Contours.Count);
+    }
+
+    [Fact]
     public void EmbeddedNameKeyedCffCompositeUsesItsUnicodeMap()
     {
         byte[] program = [.. PdfCffGlyphReaderTests.Numbers(10, 20), 21,

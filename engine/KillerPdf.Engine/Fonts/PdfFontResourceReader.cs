@@ -218,28 +218,38 @@ public static class PdfFontResourceReader
                 }
                 if (ascent <= descent) { ascent = 800; descent = -200; }
             }
-            PdfGlyphOutline? CffCompatibilityOutline(uint code)
+            PdfGlyphOutline? CompatibilityOutline(uint code)
             {
-                if (cff is null || composite) return null;
+                if (composite || cff is null && type1 is null) return null;
                 string? text = CharacterText(code)?.Normalize(NormalizationForm.FormKD);
                 if (string.IsNullOrEmpty(text)) return null;
                 Rune[] scalars = [.. text.EnumerateRunes()];
                 if (scalars.Length < 2) return null;
+                double targetWidth = widths.GetValueOrDefault(code, defaultWidth);
+                if (targetWidth <= 0) return null;
                 var components = new List<(PdfGlyphOutline Outline, double Advance)>();
                 foreach (Rune scalar in scalars)
                 {
-                    PdfGlyphOutline? outline = cff.GetOutline(cff.FindUnicode(scalar.Value));
+                    int sourceCode = Enumerable.Range(0, glyphNames.Length)
+                        .FirstOrDefault(index =>
+                            simpleText.GetValueOrDefault((uint)index) == scalar.ToString(), -1);
+                    PdfGlyphOutline? outline = sourceCode >= 0
+                        ? cff?.GetOutline(cff.FindGlyph(glyphNames[sourceCode])) : null;
+                    outline ??= cff?.GetOutline(cff.FindUnicode(scalar.Value))
+                        ?? (sourceCode >= 0 ? type1?.GetOutline(glyphNames[sourceCode]) : null);
+                    if (outline is null && sourceCode >= 0
+                        && SubstituteGlyph((uint)sourceCode) is ushort substituteGlyph
+                        && substituteGlyph != 0)
+                        outline = substituteOutlines?.Outline(substituteGlyph);
                     if (outline is null) return null;
-                    double advance = Enumerable.Range(0, glyphNames.Length)
-                        .Where(index => simpleText.GetValueOrDefault((uint)index) == scalar.ToString())
-                        .Select(index => widths.GetValueOrDefault((uint)index, defaultWidth))
-                        .FirstOrDefault(defaultWidth);
-                    if (advance <= 0) return null;
+                    double advance = sourceCode >= 0
+                        ? widths.GetValueOrDefault((uint)sourceCode, defaultWidth)
+                        : defaultWidth;
+                    if (advance <= 0) advance = targetWidth / scalars.Length;
                     components.Add((outline, advance));
                 }
                 double naturalWidth = components.Sum(component => component.Advance);
-                double targetWidth = widths.GetValueOrDefault(code, defaultWidth);
-                if (naturalWidth <= 0 || targetWidth <= 0) return null;
+                if (naturalWidth <= 0) return null;
                 double position = 0;
                 var contours = new List<PdfGlyphContour>();
                 foreach ((PdfGlyphOutline outline, double advance) in components)
@@ -281,7 +291,7 @@ public static class PdfFontResourceReader
                 },
                 OutlineReader = code => embeddedOutlines?.Outline(Glyph(code))
                     ?? cff?.GetOutline(CffGlyph(code))
-                    ?? CffCompatibilityOutline(code)
+                    ?? CompatibilityOutline(code)
                     ?? (!composite && code < glyphNames.Length
                         ? type1?.GetOutline(glyphNames[code]) : null)
                     ?? (SubstituteGlyph(code) is ushort substituteGlyph && substituteGlyph != 0
