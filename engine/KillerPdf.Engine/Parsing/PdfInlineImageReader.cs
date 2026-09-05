@@ -81,8 +81,8 @@ internal static class PdfInlineImageReader
                 : cs is PdfArray { Count: > 0 } a && a[0] is PdfName n ? n.ValueAsLatin1() : null;
             components = space switch
             {
-                "DeviceGray" or "Indexed" => 1,
-                "DeviceRGB" => 3,
+                "DeviceGray" or "CalGray" or "Indexed" => 1,
+                "DeviceRGB" or "CalRGB" or "Lab" => 3,
                 "DeviceCMYK" => 4,
                 _ => cs is PdfName resourceName && resolveColorComponents?.Invoke(resourceName) is int resolved
                     && resolved is > 0 and <= 32 ? resolved

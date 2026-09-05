@@ -32,6 +32,8 @@ public sealed class PdfPageContentReader
         if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
         PdfPageTreeEntry page = _tree.Pages[pageIndex];
         if (!page.Dictionary.TryGetValue(Name("Contents"), out PdfObject? content)) return [];
+        PdfDictionary resources = page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? inherited)
+            ? Resolve(inherited) as PdfDictionary ?? Empty : Empty;
         using var output = new MemoryStream();
         PdfObject resolved = Resolve(content);
         IEnumerable<PdfObject> items = resolved is PdfArray array ? array : [resolved];
@@ -48,7 +50,43 @@ public sealed class PdfPageContentReader
             output.Write(bytes);
             output.WriteByte((byte)'\n');
         }
-        return PdfContentStreamReader.Read(output.ToArray(), cancellationToken: cancellationToken);
+        return PdfContentStreamReader.Read(output.ToArray(), cancellationToken: cancellationToken,
+            resolveColorComponents: name => ColorComponents(name, resources, 0));
+
+        int? ColorComponents(PdfObject value, PdfDictionary current, int depth)
+        {
+            if (depth >= 32) throw new FormatException("Color space nesting limit exceeded.");
+            value = Resolve(value);
+            if (value is PdfName name)
+            {
+                int? standard = name.ValueAsLatin1() switch
+                {
+                    "DeviceGray" or "G" => 1,
+                    "DeviceRGB" or "RGB" => 3,
+                    "DeviceCMYK" or "CMYK" => 4,
+                    _ => null
+                };
+                if (standard.HasValue) return standard;
+                if (!current.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
+                    || Resolve(spacesValue) is not PdfDictionary spaces
+                    || !spaces.TryGetValue(name, out PdfObject? namedValue))
+                    return null;
+                return ColorComponents(namedValue, current, depth + 1);
+            }
+            if (value is not PdfArray array || array.Count == 0
+                || Resolve(array[0]) is not PdfName family)
+                return null;
+            return family.ValueAsLatin1() switch
+            {
+                "CalGray" or "Indexed" or "I" or "Separation" => 1,
+                "CalRGB" or "Lab" => 3,
+                "DeviceN" when array.Count > 1 && Resolve(array[1]) is PdfArray names => names.Count,
+                "ICCBased" when array.Count > 1 && Resolve(array[1]) is PdfStream profile
+                    && profile.Dictionary.TryGetValue(Name("N"), out PdfObject? count) =>
+                    checked((int)Number(count)),
+                _ => null
+            };
+        }
     }
 
     /// <summary>Extracts one zero-based page in unrotated, crop-relative PDF points.</summary>

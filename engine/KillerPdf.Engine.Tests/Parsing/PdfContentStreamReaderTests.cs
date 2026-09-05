@@ -74,6 +74,20 @@ public sealed class PdfContentStreamReaderTests
     public void RejectsMalformedInlineImagesBeforeTreatingTheirBytesAsText() =>
         Assert.Throws<PdfSyntaxException>(() => Read("q BI /W 1 /H 1 ID (fake) Tj EI Q"));
 
+    [Theory]
+    [InlineData("CalGray", "A")]
+    [InlineData("CalRGB", "ABC")]
+    [InlineData("Lab", "ABC")]
+    public void ReadsUnfilteredInlineImagesWithCalibratedColorSpaces(
+        string colorSpace, string samples)
+    {
+        string content = $"BI /W 1 /H 1 /BPC 8 /CS [/{colorSpace} <<>>] ID {samples} EI";
+
+        PdfContentInstruction image = Assert.Single(Read(content));
+
+        Assert.Equal(samples.Length, image.InlineImageData!.Value.Length);
+    }
+
     [Fact]
     public void EnforcesInstructionAndOperandBudgets()
     {
