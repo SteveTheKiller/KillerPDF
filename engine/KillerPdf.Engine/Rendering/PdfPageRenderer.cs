@@ -2157,6 +2157,9 @@ public sealed class PdfPageRenderer
             if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
                 || Resolve(typeValue) is not PdfInteger shadingType)
                 throw new NotSupportedException();
+            if (shadingType.Value == 1)
+                return RenderFunctionShading(shading, resources, state, target,
+                    targetWidth, targetHeight, scaleX, scaleY);
             if (shadingType.Value == 4)
                 return resolved is PdfStream freeForm
                     ? RenderFreeFormMeshShading(freeForm, resources, state, target,
@@ -2236,6 +2239,47 @@ public sealed class PdfPageRenderer
             diagnostic = "The shading type or function is not implemented.";
             return false;
         }
+    }
+
+    private bool RenderFunctionShading(PdfDictionary shading, PdfDictionary resources,
+        GraphicsState state, byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY)
+    {
+        if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
+            throw new FormatException("A function shading color space is missing.");
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
+        if (colorSpace.Palette is not null) throw new NotSupportedException();
+        if (!shading.TryGetValue(Name("Function"), out PdfObject? functionValue))
+            throw new FormatException("A function shading function is missing.");
+        Func<double[], Color> function = ReadMultidimensionalColorFunction(
+            functionValue, 2, colorSpace, "function shading function");
+        double[] domain = shading.TryGetValue(Name("Domain"), out _)
+            ? ReadFunctionArray(shading, "Domain", 4, required: true, defaultValues: [])
+            : [0, 1, 0, 1];
+        if (domain.Any(value => !double.IsFinite(value))
+            || domain[0] >= domain[1] || domain[2] >= domain[3])
+            throw new FormatException("A function shading domain is invalid.");
+        Matrix matrix = shading.TryGetValue(Name("Matrix"), out PdfObject? matrixValue)
+            ? Matrix.From(ResolveArray(matrixValue, 6, "Function shading matrix"))
+            : Matrix.Identity;
+        Matrix shadingToPage = matrix.Then(state.Transform);
+        if (!shadingToPage.TryInverse(out Matrix pageToShading)) return true;
+        Point[]? bounds = ReadShadingBounds(shading,
+            state with { Transform = shadingToPage }, "Function");
+        for (int y = 0; y < targetHeight; y++)
+            for (int x = 0; x < targetWidth; x++)
+            {
+                double pageX = (x + 0.5) / scaleX;
+                double pageY = (targetHeight - y - 0.5) / scaleY;
+                if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
+                Point point = pageToShading.Apply(pageX, pageY);
+                if (point.X < domain[0] || point.X > domain[1]
+                    || point.Y < domain[2] || point.Y > domain[3]) continue;
+                SetPixel(target, targetWidth, x, y, function([point.X, point.Y]),
+                    state.FillAlpha, state.BlendMode);
+            }
+        return true;
     }
 
     private bool RenderFreeFormMeshShading(PdfStream stream, PdfDictionary resources,

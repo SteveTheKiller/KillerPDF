@@ -899,6 +899,33 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsFunctionShadingsWithTheirMatrixAndDomain()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]),
+            Encoding.ASCII.GetBytes("{ pop dup dup }") );
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), Reals(5, 0, 0, 5, 2, 3)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function)]);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 5));
+        Assert.Equal([25, 25, 25, 255], Pixel(rendered, 2, 6));
+        Assert.Equal([230, 230, 230, 255], Pixel(rendered, 6, 6));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsTensorPatchShadings()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -1991,7 +2018,7 @@ public sealed class PdfPageRendererTests
             new PdfStream(dictionary, imageSamples)).Build());
     }
 
-    private static PdfDocument AddShadingResource(PdfDocument source, PdfStream shading)
+    private static PdfDocument AddShadingResource(PdfDocument source, PdfObject shading)
     {
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
         PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
@@ -2000,7 +2027,18 @@ public sealed class PdfPageRendererTests
         PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
         PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
         var update = new PdfIncrementalUpdateBuilder(source);
-        PdfIndirectReference shadingReference = update.AddObject(shading);
+        PdfObject preparedShading = shading;
+        if (shading is PdfDictionary dictionary
+            && dictionary.TryGetValue(Name("Function"), out PdfObject? functionValue)
+            && functionValue is PdfStream function)
+        {
+            PdfIndirectReference functionReference = update.AddObject(function);
+            preparedShading = new PdfDictionary(dictionary
+                .Where(entry => !entry.Key.Equals(Name("Function")))
+                .Append(new KeyValuePair<PdfName, PdfObject>(
+                    Name("Function"), functionReference)));
+        }
+        PdfIndirectReference shadingReference = update.AddObject(preparedShading);
         var shadings = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("Sh1"), shadingReference)
         ]);
