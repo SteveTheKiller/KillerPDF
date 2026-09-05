@@ -15,6 +15,26 @@ public readonly record struct PdfOcrLabeledGlyph(
 /// <summary>One observed expected and predicted label pair.</summary>
 public sealed record PdfOcrConfusion(string Expected, string Predicted, int Count);
 
+/// <summary>Assigns complete source documents to deterministic OCR evaluation partitions.</summary>
+public static class PdfOcrTrainingPartition
+{
+    /// <summary>Returns whether every sample from a document belongs in the holdout set.</summary>
+    public static bool IsHoldout(string documentName, int holdoutPercent)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(documentName);
+        if (holdoutPercent is < 1 or > 99)
+            throw new ArgumentOutOfRangeException(nameof(holdoutPercent));
+
+        uint hash = 2166136261;
+        foreach (char supplied in documentName)
+        {
+            char value = supplied == '\\' ? '/' : char.ToUpperInvariant(supplied);
+            hash = (hash ^ value) * 16777619;
+        }
+        return hash % 100 < holdoutPercent;
+    }
+}
+
 /// <summary>Measured recognition quality for a labeled OCR sample set.</summary>
 public sealed class PdfOcrModelEvaluation
 {

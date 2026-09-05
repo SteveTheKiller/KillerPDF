@@ -301,12 +301,13 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         + $"{error.GetType().Name}: {error.Message}");
                 continue;
             }
+            bool isHoldout = PdfOcrTrainingPartition.IsHoldout(relative, holdoutPercent);
             for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++)
                 for (int sampleIndex = 0; sampleIndex < pages[pageIndex].Count; sampleIndex++)
                 {
                     PdfOcrTrainingSample sample = pages[pageIndex][sampleIndex];
                     if (Encoding.UTF8.GetByteCount(sample.Label) > 64) continue;
-                    if (IsHoldout(relative, pageIndex, sampleIndex) == selectHoldout)
+                    if (isHoldout == selectHoldout)
                         yield return sample;
                 }
             if (reportFailures && ((fileIndex + 1) % 100 == 0 || fileIndex + 1 == ocrFiles.Length))
@@ -314,18 +315,6 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         }
     }
 
-    bool IsHoldout(string relative, int pageIndex, int sampleIndex)
-    {
-        uint hash = 2166136261;
-        foreach (char value in relative)
-        {
-            hash ^= char.ToUpperInvariant(value);
-            hash *= 16777619;
-        }
-        hash = (hash ^ (uint)pageIndex) * 16777619;
-        hash = (hash ^ (uint)sampleIndex) * 16777619;
-        return hash % 100 < holdoutPercent;
-    }
 }
 
 if (args.Length == 2 && args[0] == "--incremental-xref-stream-smoke")

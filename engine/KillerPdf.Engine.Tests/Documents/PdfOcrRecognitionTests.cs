@@ -10,6 +10,20 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfOcrRecognitionTests
 {
     [Fact]
+    public void TrainingPartitionHoldsOutWholeDocumentsDeterministically()
+    {
+        bool selected = PdfOcrTrainingPartition.IsHoldout("Folder\\Document.pdf", 10);
+
+        Assert.Equal(selected,
+            PdfOcrTrainingPartition.IsHoldout("folder/document.PDF", 10));
+        int heldOut = Enumerable.Range(0, 1000).Count(index =>
+            PdfOcrTrainingPartition.IsHoldout($"document-{index}.pdf", 10));
+        Assert.InRange(heldOut, 75, 125);
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrTrainingPartition.IsHoldout("document.pdf", 0));
+    }
+
+    [Fact]
     public void TrainerBuildsDeterministicSerializableClassifier()
     {
         PdfOcrTrainingSample[] samples =
