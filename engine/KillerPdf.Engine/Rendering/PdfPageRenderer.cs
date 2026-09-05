@@ -1434,9 +1434,11 @@ public sealed class PdfPageRenderer
         int height = PositiveInteger(stream.Dictionary, "Height");
         int bits = imageMask ? 1 : PositiveInteger(stream.Dictionary, "BitsPerComponent");
         bool jpeg2000 = IsSoleJpeg2000Filter(stream.Dictionary);
+        bool jpeg = IsSoleDctFilter(stream.Dictionary);
         bool recoveredPng = _document.UsesCompatibilityRecovery
-            && IsSoleDctFilter(stream.Dictionary)
+            && jpeg
             && PdfPngDecoder.HasSignature(stream.EncodedData.Span);
+        jpeg &= !recoveredPng;
         int embeddedMaskMode = jpeg2000
             ? EmbeddedJpeg2000MaskMode(stream.Dictionary) : 0;
         Jpeg2000Shape? jpeg2000Shape = jpeg2000
@@ -1499,7 +1501,11 @@ public sealed class PdfPageRenderer
                 throw new FormatException("JPEG 2000 image metadata does not match its codestream.");
             int resolutionLevel = jpeg2000Shape is Jpeg2000Shape jpxShape
                 ? SelectJpeg2000ResolutionLevel(jpxShape, transform, scaleX, scaleY) : -1;
-            int cacheLevel = recoveredPng ? -2 : resolutionLevel;
+            int jpegReduction = jpeg
+                ? SelectJpegReduction(width, height, transform, scaleX, scaleY) : 1;
+            int cacheLevel = recoveredPng ? -2
+                : jpeg ? jpegReduction == 8 ? -6 : -5
+                : resolutionLevel;
             DecodedImage decodedImage = _imageCache.GetOrAdd(
                 new ImageCacheKey(stream, cacheLevel), _ => DecodeImage());
             samples = decodedImage.Samples;
@@ -1525,6 +1531,19 @@ public sealed class PdfPageRenderer
                     Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(
                         stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes,
                         resolutionLevel);
+                    return new DecodedImage(decoded.Samples, decoded.Width, decoded.Height);
+                }
+                if (jpeg)
+                {
+                    JpegDecodedImage decoded = _document.DecodeJpegImage(
+                        stream, PdfStreamDecoder.DefaultMaximumDecodedBytes, jpegReduction);
+                    int expectedWidth = checked((width + jpegReduction - 1) / jpegReduction);
+                    int expectedHeight = checked((height + jpegReduction - 1) / jpegReduction);
+                    if (decoded.SourceWidth != width || decoded.SourceHeight != height
+                        || decoded.Width != expectedWidth || decoded.Height != expectedHeight
+                        || decoded.Components != encodedComponents || bits != 8)
+                        throw new FormatException(
+                            "JPEG image metadata does not match its PDF dictionary.");
                     return new DecodedImage(decoded.Samples, decoded.Width, decoded.Height);
                 }
                 int rowBytes = checked((width * encodedComponents * bits + 7) / 8);
@@ -1578,15 +1597,8 @@ public sealed class PdfPageRenderer
     private static int SelectJpeg2000ResolutionLevel(
         Jpeg2000Shape shape, Matrix transform, double scaleX, double scaleY)
     {
-        Point[] corners =
-        [
-            transform.Apply(0, 0), transform.Apply(1, 0),
-            transform.Apply(0, 1), transform.Apply(1, 1)
-        ];
-        int desiredWidth = Math.Max(1, (int)Math.Ceiling(
-            (corners.Max(point => point.X) - corners.Min(point => point.X)) * scaleX));
-        int desiredHeight = Math.Max(1, (int)Math.Ceiling(
-            (corners.Max(point => point.Y) - corners.Min(point => point.Y)) * scaleY));
+        (int desiredWidth, int desiredHeight) = DesiredImageDimensions(
+            transform, scaleX, scaleY);
         for (int level = 0; level < shape.ResolutionLevels; level++)
         {
             int reduction = shape.ResolutionLevels - 1 - level;
@@ -1597,6 +1609,30 @@ public sealed class PdfPageRenderer
             if (width >= desiredWidth && height >= desiredHeight) return level;
         }
         return shape.ResolutionLevels - 1;
+    }
+
+    private static int SelectJpegReduction(
+        int width, int height, Matrix transform, double scaleX, double scaleY)
+    {
+        (int desiredWidth, int desiredHeight) = DesiredImageDimensions(
+            transform, scaleX, scaleY);
+        return checked((width + 7) / 8) >= desiredWidth
+            && checked((height + 7) / 8) >= desiredHeight ? 8 : 1;
+    }
+
+    private static (int Width, int Height) DesiredImageDimensions(
+        Matrix transform, double scaleX, double scaleY)
+    {
+        Point[] corners =
+        [
+            transform.Apply(0, 0), transform.Apply(1, 0),
+            transform.Apply(0, 1), transform.Apply(1, 1)
+        ];
+        return (
+            Math.Max(1, (int)Math.Ceiling(
+                (corners.Max(point => point.X) - corners.Min(point => point.X)) * scaleX)),
+            Math.Max(1, (int)Math.Ceiling(
+                (corners.Max(point => point.Y) - corners.Min(point => point.Y)) * scaleY)));
     }
 
     private int EmbeddedJpeg2000MaskMode(PdfDictionary dictionary)

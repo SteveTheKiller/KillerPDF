@@ -50,6 +50,22 @@ public static class PdfStreamDecoder
         return DecodeCore(stream, resolve, maximumDecodedBytes, 0, true);
     }
 
+    internal static JpegDecodedImage DecodeJpegImage(
+        PdfStream stream, Func<PdfIndirectReference, PdfObject> resolve,
+        int maximumDecodedBytes, int reduction)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(resolve);
+        List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
+        if (filters.Count != 1
+            || filters[0].ValueAsLatin1() is not ("DCTDecode" or "DCT"))
+            throw new PdfFilterException("Reduced JPEG decoding requires one DCTDecode filter.");
+        PdfDictionary? parameters = ReadParameters(
+            stream.Dictionary, filters.Count, resolve)[0];
+        return PdfJpegDecoder.DecodeImage(stream.EncodedData.Span,
+            maximumDecodedBytes, reduction, GetDctColorTransform(parameters, resolve));
+    }
+
     private static byte[] DecodeCore(
         PdfStream stream,
         Func<PdfIndirectReference, PdfObject>? resolve,

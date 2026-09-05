@@ -2,6 +2,7 @@ namespace KillerPdf.Engine.Filters;
 
 internal static class PdfJpegDecoder
 {
+    private const long MaximumTemporarySampleBytes = 256L * 1024 * 1024;
     private static readonly int[] ZigZag =
     [
         0, 1, 8, 16, 9, 2, 3, 10, 17, 24, 32, 25, 18, 11, 4, 5,
@@ -14,10 +15,18 @@ internal static class PdfJpegDecoder
 
     internal static byte[] Decode(
         ReadOnlySpan<byte> source, int maximumDecodedBytes, int? colorTransform = null)
+        => DecodeImage(source, maximumDecodedBytes, 1, colorTransform).Samples;
+
+    internal static JpegDecodedImage DecodeImage(
+        ReadOnlySpan<byte> source, int maximumDecodedBytes, int reduction,
+        int? colorTransform = null)
     {
         try
         {
-            return new Decoder(source.ToArray(), maximumDecodedBytes, colorTransform).Decode();
+            if (reduction is not (1 or 8))
+                throw new PdfFilterException("JPEG reduction must be 1 or 8.");
+            return new Decoder(
+                source.ToArray(), maximumDecodedBytes, reduction, colorTransform).Decode();
         }
         catch (PdfFilterException)
         {
@@ -30,7 +39,8 @@ internal static class PdfJpegDecoder
         }
     }
 
-    private sealed class Decoder(byte[] source, int maximumDecodedBytes, int? colorTransform)
+    private sealed class Decoder(
+        byte[] source, int maximumDecodedBytes, int reduction, int? colorTransform)
     {
         private readonly int[][] _quantization = new int[4][];
         private readonly HuffmanTable?[,] _huffman = new HuffmanTable?[2, 4];
@@ -48,7 +58,7 @@ internal static class PdfJpegDecoder
         private int _successiveHigh;
         private int _successiveLow;
 
-        internal byte[] Decode()
+        internal JpegDecodedImage Decode()
         {
             if (source.Length < 4 || source[0] != 0xFF || source[1] != 0xD8)
                 throw Error("The DCTDecode stream has no JPEG SOI marker.");
@@ -209,10 +219,12 @@ internal static class PdfJpegDecoder
                 throw Error("The progressive JPEG scan parameters are invalid.");
         }
 
-        private byte[] DecodeScan()
+        private JpegDecodedImage DecodeScan()
         {
             int components = _components.Count;
-            long outputLength = checked((long)_width * _height * components);
+            int outputWidth = ReducedDimension(_width);
+            int outputHeight = ReducedDimension(_height);
+            long outputLength = checked((long)outputWidth * outputHeight * components);
             if (outputLength > maximumDecodedBytes || outputLength > int.MaxValue)
                 throw Error("Decoded JPEG data exceeds the configured safety limit.");
             int maxHorizontal = _components.Max(item => item.HorizontalSampling);
@@ -222,6 +234,7 @@ internal static class PdfJpegDecoder
                 throw Error("The JPEG component sampling factors are incompatible.");
             int mcuColumns = (_width + maxHorizontal * 8 - 1) / (maxHorizontal * 8);
             int mcuRows = (_height + maxVertical * 8 - 1) / (maxVertical * 8);
+            long temporarySampleBytes = 0;
             foreach (Component component in _components)
             {
                 if (_quantization[component.QuantizationTable] is null
@@ -229,9 +242,15 @@ internal static class PdfJpegDecoder
                     || _huffman[0, component.DcTable] is null
                     || _huffman[1, component.AcTable] is null)
                     throw Error("The JPEG scan references an undefined decoding table.");
-                component.Stride = checked(mcuColumns * component.HorizontalSampling * 8);
-                component.Samples = new byte[checked(component.Stride
-                    * mcuRows * component.VerticalSampling * 8)];
+                int blockSize = 8 / reduction;
+                component.Stride = checked(
+                    mcuColumns * component.HorizontalSampling * blockSize);
+                int sampleCount = checked(component.Stride
+                    * mcuRows * component.VerticalSampling * blockSize);
+                temporarySampleBytes = checked(temporarySampleBytes + sampleCount);
+                if (temporarySampleBytes > MaximumTemporarySampleBytes)
+                    throw Error("JPEG temporary samples exceed the configured safety limit.");
+                component.Samples = new byte[sampleCount];
             }
             var bits = new BitReader(source, _position);
             int mcu = 0;
@@ -247,13 +266,18 @@ internal static class PdfJpegDecoder
                         for (int vertical = 0; vertical < component.VerticalSampling; vertical++)
                             for (int horizontal = 0; horizontal < component.HorizontalSampling; horizontal++)
                                 DecodeBlock(bits, component,
-                                    (column * component.HorizontalSampling + horizontal) * 8,
-                                    (row * component.VerticalSampling + vertical) * 8);
+                                    (column * component.HorizontalSampling + horizontal)
+                                        * (8 / reduction),
+                                    (row * component.VerticalSampling + vertical)
+                                        * (8 / reduction));
                 }
-            return BuildOutput(maxHorizontal, maxVertical, (int)outputLength);
+            return BuildOutput(maxHorizontal, maxVertical, outputWidth, outputHeight,
+                (int)outputLength);
         }
 
-        private byte[] BuildOutput(int maxHorizontal, int maxVertical, int outputLength)
+        private JpegDecodedImage BuildOutput(
+            int maxHorizontal, int maxVertical, int outputWidth, int outputHeight,
+            int outputLength)
         {
             int components = _components.Count;
             var output = new byte[outputLength];
@@ -261,8 +285,8 @@ internal static class PdfJpegDecoder
             if (transform is < 0 or > 2 || components == 3 && transform == 2
                 || components == 4 && transform == 1)
                 throw Error("The JPEG color transform is not supported.");
-            for (int y = 0, offset = 0; y < _height; y++)
-                for (int x = 0; x < _width; x++)
+            for (int y = 0, offset = 0; y < outputHeight; y++)
+                for (int x = 0; x < outputWidth; x++)
                 {
                     if (components == 1)
                     {
@@ -292,7 +316,8 @@ internal static class PdfJpegDecoder
                                 maxHorizontal, maxVertical);
                     }
                 }
-            return output;
+            return new JpegDecodedImage(
+                output, outputWidth, outputHeight, components, _width, _height);
         }
 
         private void DecodeProgressiveScan()
@@ -356,7 +381,9 @@ internal static class PdfJpegDecoder
         private (int MaxHorizontal, int MaxVertical, int McuColumns, int McuRows)
             PrepareProgressiveComponents()
         {
-            long outputLength = checked((long)_width * _height * _components.Count);
+            int outputWidth = ReducedDimension(_width);
+            int outputHeight = ReducedDimension(_height);
+            long outputLength = checked((long)outputWidth * outputHeight * _components.Count);
             if (outputLength > maximumDecodedBytes || outputLength > int.MaxValue)
                 throw Error("Decoded JPEG data exceeds the configured safety limit.");
             int maxHorizontal = _components.Max(item => item.HorizontalSampling);
@@ -366,6 +393,7 @@ internal static class PdfJpegDecoder
                 throw Error("The JPEG component sampling factors are incompatible.");
             int mcuColumns = (_width + maxHorizontal * 8 - 1) / (maxHorizontal * 8);
             int mcuRows = (_height + maxVertical * 8 - 1) / (maxVertical * 8);
+            long coefficientBytes = 0;
             foreach (Component component in _components)
             {
                 if (_quantization[component.QuantizationTable] is null)
@@ -378,9 +406,14 @@ internal static class PdfJpegDecoder
                 component.VisibleBlockRows = checked(
                     (_height * component.VerticalSampling + maxVertical * 8 - 1)
                     / (maxVertical * 8));
+                int coefficientCount = checked(
+                    component.BlockColumns * component.BlockRows * 64);
+                coefficientBytes = checked(
+                    coefficientBytes + (long)coefficientCount * sizeof(int));
+                if (coefficientBytes > MaximumTemporarySampleBytes)
+                    throw Error("JPEG temporary coefficients exceed the configured safety limit.");
                 if (component.Coefficients.Length == 0)
-                    component.Coefficients = new int[checked(
-                        component.BlockColumns * component.BlockRows * 64)];
+                    component.Coefficients = new int[coefficientCount];
             }
             return (maxHorizontal, maxVertical, mcuColumns, mcuRows);
         }
@@ -507,25 +540,30 @@ internal static class PdfJpegDecoder
             coefficients[position] += coefficients[position] > 0 ? bit : -bit;
         }
 
-        private byte[] BuildProgressiveOutput()
+        private JpegDecodedImage BuildProgressiveOutput()
         {
             var geometry = PrepareProgressiveComponents();
             if (_components.Any(component => !component.HasDc))
                 throw Error("The progressive JPEG is missing a DC scan.");
             foreach (Component component in _components)
             {
-                component.Stride = checked(component.BlockColumns * 8);
-                component.Samples = new byte[checked(component.Stride * component.BlockRows * 8)];
+                int blockSize = 8 / reduction;
+                component.Stride = checked(component.BlockColumns * blockSize);
+                component.Samples = new byte[checked(
+                    component.Stride * component.BlockRows * blockSize)];
                 for (int row = 0; row < component.VisibleBlockRows; row++)
                     for (int column = 0; column < component.VisibleBlockColumns; column++)
                     {
                         int offset = (row * component.BlockColumns + column) * 64;
-                        WriteBlock(component, column * 8, row * 8,
+                        WriteBlock(component, column * blockSize, row * blockSize,
                             component.Coefficients.AsSpan(offset, 64));
                     }
             }
+            int outputWidth = ReducedDimension(_width);
+            int outputHeight = ReducedDimension(_height);
             return BuildOutput(geometry.MaxHorizontal, geometry.MaxVertical,
-                checked(_width * _height * _components.Count));
+                outputWidth, outputHeight,
+                checked(outputWidth * outputHeight * _components.Count));
         }
 
         private void DecodeBlock(BitReader bits, Component component, int left, int top)
@@ -561,6 +599,12 @@ internal static class PdfJpegDecoder
             Component component, int left, int top, ReadOnlySpan<int> coefficients)
         {
             int[] quantization = _quantization[component.QuantizationTable];
+            if (reduction == 8)
+            {
+                component.Samples[top * component.Stride + left]
+                    = Clamp(128 + coefficients[0] * quantization[0] / 8d);
+                return;
+            }
             Span<double> horizontal = stackalloc double[64];
             for (int v = 0; v < 8; v++)
                 for (int x = 0; x < 8; x++)
@@ -617,6 +661,7 @@ internal static class PdfJpegDecoder
         }
 
         private static byte Clamp(double value) => (byte)Math.Clamp((int)Math.Round(value), 0, 255);
+        private int ReducedDimension(int value) => checked((value + reduction - 1) / reduction);
         private static PdfFilterException Error(string message) => new(message);
     }
 
@@ -737,3 +782,7 @@ internal static class PdfJpegDecoder
         }
     }
 }
+
+internal readonly record struct JpegDecodedImage(
+    byte[] Samples, int Width, int Height, int Components,
+    int SourceWidth, int SourceHeight);
