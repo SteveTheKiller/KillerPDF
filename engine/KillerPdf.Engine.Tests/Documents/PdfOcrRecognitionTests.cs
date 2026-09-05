@@ -302,6 +302,38 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal("en", word.Language);
     }
 
+    [Fact]
+    public void PageRecognizerSelectsAndMapsRightAngleOrientation()
+    {
+        string[] upright =
+        [
+            "........",
+            "..#.....",
+            "..#.....",
+            "..#.....",
+            "..####..",
+            "........"
+        ];
+        PdfOcrRecognitionModel model = OrientationModel(upright);
+        string[] rotated = RotateRowsClockwise(upright);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(rotated[0].Length, rotated.Length, new PdfContentStreamBuilder()
+                .DrawImage(RasterImage(rotated), 0, 0, rotated[0].Length, rotated.Length))
+            .Build());
+        var recognizer = new PdfOcrPageRecognizer(document, model);
+
+        PdfOcrPageRecognition result = recognizer.Recognize(0,
+            new PdfRenderOptions(rotated[0].Length, rotated.Length,
+                includeAnnotations: false, includeFormFields: false),
+            new PdfOcrOptions(["eng"], deskew: false, correctOrientation: true,
+                removeBackground: false, removeNoise: false, detectPageSegments: false));
+
+        PdfOcrWord word = Assert.Single(result.Review.Words);
+        Assert.Equal("L", word.Text);
+        Assert.Equal(new PdfContentBounds(1, 2, 5, 6), word.BoundingBox);
+        Assert.Empty(result.Diagnostics);
+    }
+
     private static PdfOcrPreparedImage Prepared(int width, int height, string[] rows)
     {
         byte[] bgra = new byte[width * height * 4];
@@ -331,6 +363,56 @@ public sealed class PdfOcrRecognitionTests
             iWeights.Concat(lWeights).ToArray(), new float[] { 0, 0 });
     }
 
+    private static PdfOcrRecognitionModel OrientationModel(string[] uprightRows)
+    {
+        const int size = 6;
+        PdfOcrPreparedImage upright = Prepared(
+            uprightRows[0].Length, uprightRows.Length, uprightRows);
+        PdfOcrImageRegion bounds = Assert.Single(
+            PdfOcrLayoutAnalyzer.Analyze(upright).Components);
+        float[] features = PdfOcrRecognizer.NormalizeGlyph(upright, bounds, size, size);
+        float[][] wrongFeatures = Enumerable.Range(1, 3).Select(turns =>
+        {
+            string[] rotated = uprightRows;
+            for (int turn = 0; turn < turns; turn++) rotated = RotateRowsClockwise(rotated);
+            PdfOcrPreparedImage prepared = Prepared(rotated[0].Length, rotated.Length, rotated);
+            PdfOcrImageRegion rotatedBounds = Assert.Single(
+                PdfOcrLayoutAnalyzer.Analyze(prepared).Components);
+            return PdfOcrRecognizer.NormalizeGlyph(prepared, rotatedBounds, size, size);
+        }).ToArray();
+        var basis = new List<float[]>();
+        foreach (float[] wrong in wrongFeatures)
+        {
+            float[] vector = [.. wrong];
+            foreach (float[] existing in basis)
+            {
+                float projection = Dot(vector, existing);
+                for (int index = 0; index < vector.Length; index++)
+                    vector[index] -= projection * existing[index];
+            }
+            float length = MathF.Sqrt(Dot(vector, vector));
+            if (length > 0.0001f)
+            {
+                for (int index = 0; index < vector.Length; index++) vector[index] /= length;
+                basis.Add(vector);
+            }
+        }
+        float[] weights = [.. features];
+        foreach (float[] vector in basis)
+        {
+            float projection = Dot(weights, vector);
+            for (int index = 0; index < weights.Length; index++)
+                weights[index] -= projection * vector[index];
+        }
+        float scale = 8 / Dot(weights, features);
+        for (int index = 0; index < weights.Length; index++) weights[index] *= scale;
+        return PdfOcrRecognitionModel.Create(size, size, ["L", "X"],
+            weights.Concat(new float[weights.Length]).ToArray(), new float[] { 0, 0 });
+
+        static float Dot(float[] left, float[] right) =>
+            left.Zip(right, (a, b) => a * b).Sum();
+    }
+
     private static PdfOcrRecognitionModel TinyModel(string label) =>
         PdfOcrRecognitionModel.Create(1, 1, [label], new float[] { 1 }, new float[] { 0 });
 
@@ -346,5 +428,18 @@ public sealed class PdfOcrRecognitionTests
                 rgb[offset] = rgb[offset + 1] = rgb[offset + 2] = value;
             }
         return PdfImage.FromRgb(width, rows.Length, rgb);
+    }
+
+    private static string[] RotateRowsClockwise(string[] rows)
+    {
+        int width = rows[0].Length;
+        var rotated = new string[width];
+        for (int x = 0; x < width; x++)
+        {
+            var row = new char[rows.Length];
+            for (int y = 0; y < rows.Length; y++) row[y] = rows[rows.Length - 1 - y][x];
+            rotated[x] = new string(row);
+        }
+        return rotated;
     }
 }
