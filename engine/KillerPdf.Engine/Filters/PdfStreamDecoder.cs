@@ -119,8 +119,9 @@ public static class PdfStreamDecoder
                     filterLimit,
                     GetImageDimension(stream.Dictionary, WidthName, resolve),
                     GetImageDimension(stream.Dictionary, HeightName, resolve)),
-                "CCITTFaxDecode" or "CCF" => PdfCcittFaxDecoder.Decode(current,
-                    GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit),
+                "CCITTFaxDecode" or "CCF" => DecodeCcitt(current,
+                    GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit,
+                    compatibilityRecovery),
                 "Crypt" => current,
                 _ => throw new PdfFilterException($"The PDF stream filter /{filter} is not supported yet.")
             };
@@ -136,6 +137,21 @@ public static class PdfStreamDecoder
         }
 
         return current;
+    }
+
+    private static byte[] DecodeCcitt(
+        ReadOnlySpan<byte> encoded, PdfCcittFaxOptions options,
+        int maximumDecodedBytes, bool compatibilityRecovery)
+    {
+        try
+        {
+            return PdfCcittFaxDecoder.Decode(encoded, options, maximumDecodedBytes);
+        }
+        catch (PdfFilterException) when (compatibilityRecovery && options.EncodedByteAlign)
+        {
+            return PdfCcittFaxDecoder.Decode(encoded,
+                options with { EncodedByteAlign = false }, maximumDecodedBytes);
+        }
     }
 
     private static int PredictorEncodedLimit(

@@ -520,6 +520,22 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_CompatibilityRecoveryIgnoresIncorrectCcittByteAlignment()
+    {
+        PdfStream stream = Stream([0xFF, 0xC0, 0x04, 0x00, 0x40],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("K", new PdfInteger(-1)),
+                Pair("Columns", new PdfInteger(10)),
+                Pair("Rows", new PdfInteger(10)),
+                Pair("EncodedByteAlign", new PdfBoolean(true)),
+                Pair("BlackIs1", new PdfBoolean(true)))));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal(new byte[20], PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
+    }
+
+    [Fact]
     public void Decode_ExpandsCcittMakeupRuns()
     {
         PdfStream stream = Stream([0x4D, 0x9A, 0x80],
