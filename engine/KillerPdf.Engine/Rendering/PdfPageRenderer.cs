@@ -1094,15 +1094,16 @@ public sealed class PdfPageRenderer
                 bool knockout = transparencyGroup
                     && group!.TryGetValue(Name("K"), out PdfObject? knockoutValue)
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
-                if (knockout)
+                IReadOnlyList<PdfContentInstruction> instructions =
+                    ReadStreamInstructions(form, cancellationToken);
+                if (knockout && instructions.Count(IsPaintingOperation) > 1)
                 {
                     diagnostics.Add("Transparency knockout-group rendering is not implemented.");
                     return;
                 }
                 if (!isolated)
                 {
-                    Process(ReadStreamInstructions(form, cancellationToken),
-                        formResources, formState, depth + 1);
+                    Process(instructions, formResources, formState, depth + 1);
                     return;
                 }
 
@@ -1112,7 +1113,7 @@ public sealed class PdfPageRenderer
                 {
                     Array.Clear(groupPixels, 0, pagePixels.Length);
                     pixels = groupPixels;
-                    Process(ReadStreamInstructions(form, cancellationToken), formResources,
+                    Process(instructions, formResources,
                         formState with
                         {
                             FillAlpha = 1,
@@ -1147,6 +1148,11 @@ public sealed class PdfPageRenderer
             {
                 activeForms.Remove(form);
             }
+
+            static bool IsPaintingOperation(PdfContentInstruction instruction) =>
+                instruction.Operator is "S" or "s" or "f" or "F" or "f*"
+                    or "B" or "B*" or "b" or "b*" or "Do" or "sh" or "BI"
+                    or "Tj" or "TJ" or "'" or "\"";
         }
 
         void RenderAppearances()
