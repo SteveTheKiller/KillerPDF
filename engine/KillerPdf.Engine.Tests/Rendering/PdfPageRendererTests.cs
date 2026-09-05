@@ -1789,6 +1789,36 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesAlphaSoftMaskBackdropAndTransferFunction()
+    {
+        PdfDocument document = AddGraphicsSoftMask(
+            "Alpha", 0.5, 1, 0.5, "0 0 5 10 re f");
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([127, 127, 255, 255], Pixel(rendered, 7, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_AppliesLuminositySoftMaskBackdropAndTransferFunction()
+    {
+        PdfDocument document = AddGraphicsSoftMask(
+            "Luminosity", 0.25, 0.75, 1, "0 g 0 0 5 10 re f");
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([191, 191, 255, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([64, 64, 255, 255], Pixel(rendered, 7, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_ExpandsNestedFormsWithScopedResourcesMatricesAndBounds()
     {
         var inner = new PdfFormXObject(4, 4, new PdfContentStreamBuilder()
@@ -2025,6 +2055,60 @@ public sealed class PdfPageRendererTests
         PdfDocument source, string name, PdfObject value)
         => AddPageColorSpaceResources(source,
             new KeyValuePair<PdfName, PdfObject>(Name(name), value));
+
+    private static PdfDocument AddGraphicsSoftMask(string subtype,
+        double transferStart, double transferEnd, double backdrop, string maskContent)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes(
+                "q /Mask gs 1 0 0 rg 0 0 10 10 re f Q"))
+            .Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference groupReference = update.AddObject(new PdfStream(
+            new PdfDictionary([
+                Entry("Type", Name("XObject")),
+                Entry("Subtype", Name("Form")),
+                Entry("BBox", Reals(0, 0, 10, 10)),
+                Entry("Resources", new PdfDictionary([])),
+                Entry("Group", new PdfDictionary([
+                    Entry("Type", Name("Group")),
+                    Entry("S", Name("Transparency")),
+                    Entry("CS", Name("DeviceGray"))
+                ]))
+            ]), Encoding.ASCII.GetBytes(maskContent)));
+        var transfer = new PdfDictionary([
+            Entry("FunctionType", new PdfInteger(2)),
+            Entry("Domain", Reals(0, 1)),
+            Entry("Range", Reals(0, 1)),
+            Entry("N", new PdfInteger(1)),
+            Entry("C0", Reals(transferStart)),
+            Entry("C1", Reals(transferEnd))
+        ]);
+        var softMask = new PdfDictionary([
+            Entry("S", Name(subtype)),
+            Entry("G", groupReference),
+            Entry("BC", Reals(backdrop)),
+            Entry("TR", transfer)
+        ]);
+        var states = new PdfDictionary([Entry("Mask",
+            new PdfDictionary([Entry("SMask", softMask)]))]);
+        var updatedResources = new PdfDictionary(resources.Append(
+            Entry("ExtGState", states)));
+        var updatedPage = new PdfDictionary(page
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(Entry("Resources", updatedResources)));
+        return PdfDocument.Open(update.ReplaceObject(
+            pageReference.ObjectNumber, updatedPage).Build());
+
+        static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) =>
+            new(Name(name), value);
+    }
 
     private static PdfDocument AddPageColorSpaceResources(PdfDocument source,
         params KeyValuePair<PdfName, PdfObject>[] values)

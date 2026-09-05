@@ -74,7 +74,7 @@ public sealed class PdfPageRenderer
             1, 1, 1, RendererLineCap.Butt, RendererLineJoin.Miter, 10,
             [], 0, RendererBlendMode.Normal, [],
             false, null, null, false, null, null,
-            new ImageColorSpace(1, null), new ImageColorSpace(1, null));
+            new ImageColorSpace(1, null), new ImageColorSpace(1, null), null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         var fontCache = new Dictionary<PdfDictionary, PdfExtractionFont>(
@@ -349,12 +349,15 @@ public sealed class PdfPageRenderer
                 case "gs" when values.Count == 1 && values[0] is PdfName stateName:
                     if (TryGetGraphicsState(resources, stateName, out double? fillAlpha,
                         out double? strokeAlpha, out RendererBlendMode? blendMode,
-                        out bool unsupportedBlend))
+                        out bool unsupportedBlend, out PdfObject? softMaskValue))
                         state = state with
                         {
                             FillAlpha = fillAlpha ?? state.FillAlpha,
                             StrokeAlpha = strokeAlpha ?? state.StrokeAlpha,
-                            BlendMode = blendMode ?? state.BlendMode
+                            BlendMode = blendMode ?? state.BlendMode,
+                            GraphicsSoftMask = softMaskValue is null
+                                ? state.GraphicsSoftMask
+                                : ReadGraphicsSoftMask(softMaskValue, resources, state, depth)
                         };
                     if (unsupportedBlend)
                         diagnostics.Add("Transparency blend-mode rendering is not implemented.");
@@ -525,11 +528,15 @@ public sealed class PdfPageRenderer
                         break;
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
-                        if (!TryRenderImage(xObject, resources, state.Transform, state.Clips,
-                            state.Fill, state.FillAlpha, state.BlendMode, cancellationToken, pixels,
-                            options.Width, options.Height, scaleX, scaleY,
-                            out string? imageDiagnostic))
-                            diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
+                        PaintWithSoftMask(() =>
+                        {
+                            if (!TryRenderImage(xObject, resources, state.Transform, state.Clips,
+                                state.Fill, state.FillAlpha, state.BlendMode, cancellationToken,
+                                pixels, options.Width, options.Height, scaleX, scaleY,
+                                out string? imageDiagnostic))
+                                diagnostics.Add(imageDiagnostic
+                                    ?? "Image rendering is not implemented.");
+                        }, state.GraphicsSoftMask);
                     }
                     else if (IsName(xObject.Dictionary, "Subtype", "Form"))
                         RenderForm(xObject, resources, state, depth);
@@ -538,17 +545,25 @@ public sealed class PdfPageRenderer
                     && instruction.InlineImageData.HasValue:
                     var inlineImage = new PdfStream(inlineDictionary,
                         instruction.InlineImageData.Value.Span);
-                    if (!TryRenderImage(inlineImage, resources, state.Transform, state.Clips,
-                        state.Fill, state.FillAlpha, state.BlendMode, cancellationToken, pixels,
-                        options.Width, options.Height, scaleX, scaleY,
-                        out string? inlineDiagnostic))
-                        diagnostics.Add(inlineDiagnostic ?? "Inline-image rendering is not implemented.");
+                    PaintWithSoftMask(() =>
+                    {
+                        if (!TryRenderImage(inlineImage, resources, state.Transform, state.Clips,
+                            state.Fill, state.FillAlpha, state.BlendMode, cancellationToken, pixels,
+                            options.Width, options.Height, scaleX, scaleY,
+                            out string? inlineDiagnostic))
+                            diagnostics.Add(inlineDiagnostic
+                                ?? "Inline-image rendering is not implemented.");
+                    }, state.GraphicsSoftMask);
                     break;
                 case "sh" when values.Count == 1 && values[0] is PdfName shadingName:
-                    if (!TryRenderShading(resources, shadingName, state, pixels,
-                        options.Width, options.Height, scaleX, scaleY, cancellationToken,
-                        out string? shadingDiagnostic))
-                        diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
+                    PaintWithSoftMask(() =>
+                    {
+                        if (!TryRenderShading(resources, shadingName, state, pixels,
+                            options.Width, options.Height, scaleX, scaleY, cancellationToken,
+                            out string? shadingDiagnostic))
+                            diagnostics.Add(shadingDiagnostic
+                                ?? "Shading rendering is not implemented.");
+                    }, state.GraphicsSoftMask);
                     break;
                 case "ri" when values.Count == 1 && values[0] is PdfName:
                 case "i" when values.Count == 1:
@@ -592,9 +607,9 @@ public sealed class PdfPageRenderer
             {
                 if (state.FillPattern is null)
                 {
-                    FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        fillPath, state.Fill, state.FillAlpha, evenOdd,
-                        state.BlendMode, state.Clips, cancellationToken);
+                    PaintWithSoftMask(() => FillPaths(pixels, options.Width, options.Height,
+                        scaleX, scaleY, fillPath, state.Fill, state.FillAlpha, evenOdd,
+                        state.BlendMode, state.Clips, cancellationToken), state.GraphicsSoftMask);
                     return;
                 }
                 var fillClip = new ClipRegion(
@@ -610,10 +625,11 @@ public sealed class PdfPageRenderer
                         state.DashPattern, state.DashPhase);
                 if (state.StrokePattern is null)
                 {
-                    StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                    PaintWithSoftMask(() => StrokePaths(pixels, options.Width, options.Height,
+                        scaleX, scaleY,
                         paintedPath, state.Stroke, state.StrokeAlpha, lineWidth,
                         state.LineCap, state.LineJoin, state.MiterLimit,
-                        state.BlendMode, state.Clips, cancellationToken);
+                        state.BlendMode, state.Clips, cancellationToken), state.GraphicsSoftMask);
                     return;
                 }
                 Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
@@ -644,11 +660,14 @@ public sealed class PdfPageRenderer
                         StrokePatternBase = null,
                         StrokePattern = null
                     };
-                    if (!TryRenderResolvedShading(paint.Shading, parentResources,
-                        shadingState, pixels, options.Width, options.Height, scaleX, scaleY,
-                        cancellationToken, out string? shadingDiagnostic)
-                        && shadingDiagnostic is not null)
-                        diagnostics.Add(shadingDiagnostic);
+                    PaintWithSoftMask(() =>
+                    {
+                        if (!TryRenderResolvedShading(paint.Shading, parentResources,
+                            shadingState, pixels, options.Width, options.Height, scaleX, scaleY,
+                            cancellationToken, out string? shadingDiagnostic)
+                            && shadingDiagnostic is not null)
+                            diagnostics.Add(shadingDiagnostic);
+                    }, parentState.GraphicsSoftMask);
                     return;
                 }
 
@@ -842,15 +861,19 @@ public sealed class PdfPageRenderer
                             IReadOnlyList<List<Point>> glyphPaths =
                                 FlattenGlyphOutline(outline, glyphTransform);
                             if (paintMode is 0 or 2)
-                                FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                                PaintWithSoftMask(() => FillPaths(pixels, options.Width,
+                                    options.Height, scaleX, scaleY,
                                     glyphPaths, state.Fill, state.FillAlpha, false,
-                                    state.BlendMode, state.Clips, cancellationToken);
+                                    state.BlendMode, state.Clips, cancellationToken),
+                                    state.GraphicsSoftMask);
                             if (paintMode is 1 or 2)
-                                StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
+                                PaintWithSoftMask(() => StrokePaths(pixels, options.Width,
+                                    options.Height, scaleX, scaleY,
                                     glyphPaths, state.Stroke, state.StrokeAlpha,
                                     state.LineWidth * state.Transform.StrokeScale,
                                     state.LineCap, state.LineJoin, state.MiterLimit,
-                                    state.BlendMode, state.Clips, cancellationToken);
+                                    state.BlendMode, state.Clips, cancellationToken),
+                                    state.GraphicsSoftMask);
                             if (clipsText)
                                 textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
                         }
@@ -874,6 +897,89 @@ public sealed class PdfPageRenderer
                 {
                     diagnostics.Add("Text rendering is not implemented.");
                 }
+            }
+
+            GraphicsSoftMask? ReadGraphicsSoftMask(PdfObject value,
+                PdfDictionary inheritedResources, GraphicsState currentState, int currentDepth)
+            {
+                PdfObject resolved = Resolve(value);
+                if (resolved is PdfName name && name.ValueAsLatin1() == "None") return null;
+                if (resolved is not PdfDictionary dictionary
+                    || !dictionary.TryGetValue(Name("S"), out PdfObject? subtypeValue)
+                    || Resolve(subtypeValue) is not PdfName subtype
+                    || subtype.ValueAsLatin1() is not ("Alpha" or "Luminosity")
+                    || !dictionary.TryGetValue(Name("G"), out PdfObject? groupValue)
+                    || Resolve(groupValue) is not PdfStream group
+                    || !IsName(group.Dictionary, "Subtype", "Form"))
+                {
+                    diagnostics.Add("Graphics-state soft-mask rendering is not implemented.");
+                    return null;
+                }
+
+                byte[] maskPixels = GC.AllocateUninitializedArray<byte>(pixels.Length);
+                bool luminosity = subtype.ValueAsLatin1() == "Luminosity";
+                byte backdrop = luminosity ? ReadBackdrop(dictionary) : (byte)255;
+                for (int offset = 0; offset < maskPixels.Length; offset += 4)
+                {
+                    maskPixels[offset] = backdrop;
+                    maskPixels[offset + 1] = backdrop;
+                    maskPixels[offset + 2] = backdrop;
+                    maskPixels[offset + 3] = luminosity ? (byte)255 : (byte)0;
+                }
+                byte[] pagePixels = pixels;
+                try
+                {
+                    pixels = maskPixels;
+                    RenderForm(group, inheritedResources,
+                        currentState with { GraphicsSoftMask = null }, currentDepth);
+                }
+                finally
+                {
+                    pixels = pagePixels;
+                }
+                var samples = new byte[checked(options.Width * options.Height)];
+                Func<double, Color>? transfer = null;
+                if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
+                {
+                    PdfObject resolvedTransfer = Resolve(transferValue);
+                    if (resolvedTransfer is not PdfName transferName
+                        || transferName.ValueAsLatin1() != "Identity")
+                        transfer = ReadColorFunction(transferValue,
+                            new ImageColorSpace(1, null), "soft-mask transfer function");
+                }
+                for (int index = 0; index < samples.Length; index++)
+                {
+                    int offset = index * 4;
+                    double sample = luminosity
+                        ? (0.3 * maskPixels[offset + 2]
+                            + 0.59 * maskPixels[offset + 1]
+                            + 0.11 * maskPixels[offset]) / 255d
+                        : maskPixels[offset + 3] / 255d;
+                    samples[index] = transfer is null
+                        ? (byte)Math.Round(sample * 255)
+                        : transfer(sample).Red;
+                }
+                return new GraphicsSoftMask(samples);
+
+                byte ReadBackdrop(PdfDictionary source)
+                {
+                    if (!source.TryGetValue(Name("BC"), out PdfObject? backdropValue))
+                        return 0;
+                    PdfArray array = ResolveArray(backdropValue, 1, "Soft-mask backdrop color");
+                    return (byte)Math.Round(Math.Clamp(Number(Resolve(array[0])), 0, 1) * 255);
+                }
+            }
+
+            void PaintWithSoftMask(Action paint, GraphicsSoftMask? softMask)
+            {
+                if (softMask is null)
+                {
+                    paint();
+                    return;
+                }
+                byte[] before = (byte[])pixels.Clone();
+                paint();
+                ApplyGraphicsSoftMask(before, pixels, softMask.Samples);
             }
         }
 
@@ -3084,11 +3190,12 @@ public sealed class PdfPageRenderer
 
     private bool TryGetGraphicsState(PdfDictionary resources, PdfName resourceName,
         out double? fillAlpha, out double? strokeAlpha, out RendererBlendMode? blendMode,
-        out bool unsupportedBlend)
+        out bool unsupportedBlend, out PdfObject? softMaskValue)
     {
         fillAlpha = strokeAlpha = null;
         blendMode = null;
         unsupportedBlend = false;
+        softMaskValue = null;
         if (!resources.TryGetValue(Name("ExtGState"), out PdfObject? statesValue)
             || Resolve(statesValue) is not PdfDictionary states
             || !states.TryGetValue(resourceName, out PdfObject? stateValue)
@@ -3096,6 +3203,7 @@ public sealed class PdfPageRenderer
             return false;
         fillAlpha = Alpha(dictionary, "ca");
         strokeAlpha = Alpha(dictionary, "CA");
+        dictionary.TryGetValue(Name("SMask"), out softMaskValue);
         if (dictionary.TryGetValue(Name("BM"), out PdfObject? blendValue))
         {
             PdfObject blend = Resolve(blendValue);
@@ -3556,6 +3664,30 @@ public sealed class PdfPageRenderer
         }
     }
 
+    private static void ApplyGraphicsSoftMask(
+        byte[] before, byte[] after, byte[] mask)
+    {
+        for (int index = 0; index < mask.Length; index++)
+        {
+            double amount = mask[index] / 255d;
+            if (amount >= 1) continue;
+            int offset = index * 4;
+            double beforeAlpha = before[offset + 3] / 255d;
+            double afterAlpha = after[offset + 3] / 255d;
+            double outputAlpha = beforeAlpha + (afterAlpha - beforeAlpha) * amount;
+            for (int channel = 0; channel < 3; channel++)
+            {
+                double beforePremultiplied = before[offset + channel] / 255d * beforeAlpha;
+                double afterPremultiplied = after[offset + channel] / 255d * afterAlpha;
+                double outputPremultiplied = beforePremultiplied
+                    + (afterPremultiplied - beforePremultiplied) * amount;
+                after[offset + channel] = outputAlpha <= 0 ? (byte)255
+                    : (byte)Math.Round(Math.Clamp(outputPremultiplied / outputAlpha, 0, 1) * 255);
+            }
+            after[offset + 3] = (byte)Math.Round(Math.Clamp(outputAlpha, 0, 1) * 255);
+        }
+    }
+
     private static double BlendChannel(
         double backdrop, double source, RendererBlendMode mode) => mode switch
     {
@@ -3907,7 +4039,7 @@ public sealed class PdfPageRenderer
         ImageColorSpace? FillPatternBase, PatternPaint? FillPattern,
         bool StrokePatternSpace, ImageColorSpace? StrokePatternBase,
         PatternPaint? StrokePattern, ImageColorSpace? FillColorSpace,
-        ImageColorSpace? StrokeColorSpace);
+        ImageColorSpace? StrokeColorSpace, GraphicsSoftMask? GraphicsSoftMask);
     private enum RendererLineCap { Butt, Round, ProjectingSquare }
     private enum RendererLineJoin { Miter, Round, Bevel }
     private enum RendererBlendMode
@@ -3924,6 +4056,7 @@ public sealed class PdfPageRenderer
             => Predicate?.Invoke(x, y) ?? PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height);
+    private sealed record GraphicsSoftMask(byte[] Samples);
     private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,
         Matrix Matrix, Color? BaseColor);
     private readonly record struct MeshVertex(Point Point, double[] Values);
