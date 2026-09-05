@@ -56,14 +56,14 @@ public static class PdfOcrLayoutAnalyzer
     {
         ArgumentNullException.ThrowIfNull(image);
         int width = image.Width, height = image.Height;
-        byte[] pixels = image.Pixels.ToArray();
+        ReadOnlyMemory<byte> pixels = image.Pixels;
         var visited = new byte[pixels.Length];
         var components = new List<PdfOcrImageRegion>();
         var queue = new Queue<int>();
         for (int index = 0; index < pixels.Length; index++)
         {
             if ((index & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (visited[index] != 0 || pixels[index] >= 128) continue;
+            if (visited[index] != 0 || pixels.Span[index] >= 128) continue;
             visited[index] = 1;
             queue.Enqueue(index);
             int left = index % width, right = left + 1;
@@ -85,7 +85,7 @@ public static class PdfOcrLayoutAnalyzer
             {
                 if (x < 0 || x >= width || y < 0 || y >= height) return;
                 int neighbor = y * width + x;
-                if (visited[neighbor] != 0 || pixels[neighbor] >= 128) return;
+                if (visited[neighbor] != 0 || pixels.Span[neighbor] >= 128) return;
                 visited[neighbor] = 1;
                 queue.Enqueue(neighbor);
             }
