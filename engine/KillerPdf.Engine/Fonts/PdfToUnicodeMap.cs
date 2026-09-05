@@ -95,7 +95,10 @@ public sealed class PdfToUnicodeMap
             }
             if (op != "end" + block[5..]) throw new FormatException("Unterminated ToUnicode block.");
             int stride = block == "beginbfrange" ? 3 : 2;
-            if ((long)count * stride != operands.Count) throw new FormatException("ToUnicode block count does not match its entries.");
+            if ((long)count * stride != operands.Count
+                && (!compatibilityRecovery || operands.Count % stride != 0
+                    || operands.Count / stride > maximumMappings))
+                throw new FormatException("ToUnicode block count does not match its entries.");
             for (int i = 0; i < operands.Count; i += stride)
             {
                 var low = Code(operands[i]);

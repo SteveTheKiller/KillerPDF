@@ -48,6 +48,19 @@ public sealed class PdfToUnicodeMapTests
         Assert.Equal("A", Assert.Single(map.Decode([0x41])).Text);
     }
 
+    [Fact]
+    public void ParseFont_CompatibilityRecoveryUsesCompleteEntriesWhenCountIsWrong()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "1 begincodespacerange <00> <ff> endcodespacerange "
+            + "1 beginbfchar <41> <0041> <42> <0042> endbfchar");
+
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        PdfToUnicodeMap map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+
+        Assert.Equal(["A", "B"], map.Decode([0x41, 0x42]).Select(item => item.Text));
+    }
+
     private const string Space = "1 begincodespacerange <0000> <FFFF> endcodespacerange ";
 
     [Fact]
