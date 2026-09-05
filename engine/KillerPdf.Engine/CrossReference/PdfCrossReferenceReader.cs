@@ -130,7 +130,11 @@ public static class PdfCrossReferenceReader
                     source.Length, objectNumber, field1, field2, statusToken,
                     compatibilityRecovery);
                 if (!entries.TryAdd(objectNumber, entry))
-                    throw Error($"The xref table defines object {objectNumber} more than once", first.Offset);
+                {
+                    if (!compatibilityRecovery)
+                        throw Error($"The xref table defines object {objectNumber} more than once", first.Offset);
+                    entries[objectNumber] = entry;
+                }
             }
         }
     }
@@ -148,9 +152,11 @@ public static class PdfCrossReferenceReader
             return new PdfCrossReferenceEntry(
                 objectNumber, PdfCrossReferenceEntryType.Null, 0, 0);
 
-        if (objectNumber == 0 && compatibilityRecovery && IsKeyword(statusToken, "f"))
-            field2 = 65_535;
-        else if (field2 is < 0 or > 65_535)
+        if (objectNumber == 0 && compatibilityRecovery
+            && (IsKeyword(statusToken, "f") || IsKeyword(statusToken, "n")))
+            return new PdfCrossReferenceEntry(
+                0, PdfCrossReferenceEntryType.Free, 0, 65_535);
+        if (field2 is < 0 or > 65_535)
             throw Error("An xref generation must be between 0 and 65,535", statusToken.Offset);
         if (objectNumber == 0 && !IsKeyword(statusToken, "f"))
             throw Error("Cross-reference object 0 must be free with generation 65,535",

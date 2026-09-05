@@ -158,6 +158,39 @@ public sealed class PdfCrossReferenceReaderTests
     }
 
     [Fact]
+    public void ReadSection_CompatibilityRecoveryCanonicalizesInUseObjectZero()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "xref\n0 1\n0000000010 00000 n\ntrailer\n<< /Size 1 >>");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0));
+        PdfCrossReferenceEntry entry = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true)[0];
+
+        Assert.Equal(PdfCrossReferenceEntryType.Free, entry.Type);
+        Assert.Equal(0, entry.Field1);
+        Assert.Equal(65_535, entry.Field2);
+    }
+
+    [Fact]
+    public void ReadSection_CompatibilityRecoveryUsesLastDuplicateEntry()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "xref\n0 1\n0000000010 00000 n\n0 1\n0000000000 65535 f\n" +
+            "trailer\n<< /Size 1 >>");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0));
+        PdfCrossReferenceEntry entry = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true)[0];
+
+        Assert.Equal(PdfCrossReferenceEntryType.Free, entry.Type);
+        Assert.Equal(0, entry.Field1);
+        Assert.Equal(65_535, entry.Field2);
+    }
+
+    [Fact]
     public void ReadSection_CompatibilityRecoveryIgnoresRetiredInUsePlaceholder()
     {
         byte[] source = Encoding.ASCII.GetBytes(
