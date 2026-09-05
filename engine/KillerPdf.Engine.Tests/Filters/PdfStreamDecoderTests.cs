@@ -95,6 +95,35 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_InflatesBrotliData()
+    {
+        byte[] expected = Encoding.ASCII.GetBytes("PDF 2.0 Brotli stream");
+        PdfStream stream = Stream(CompressBrotli(expected), Pair("Filter", Name("BrotliDecode")));
+
+        Assert.Equal(expected, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_EnforcesOutputLimitForBrotliData()
+    {
+        byte[] expected = new byte[10_000];
+        PdfStream stream = Stream(CompressBrotli(expected), Pair("Filter", Name("BrotliDecode")));
+
+        PdfFilterException error = Assert.Throws<PdfFilterException>(
+            () => PdfStreamDecoder.Decode(stream, expected.Length - 1));
+
+        Assert.Contains("safety limit", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Decode_RejectsInvalidBrotliData()
+    {
+        PdfStream stream = Stream("not brotli"u8.ToArray(), Pair("Filter", Name("BrotliDecode")));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
     public void Decode_CompatibilityRecoveryIgnoresInvalidZlibChecksum()
     {
         byte[] expected = Encoding.ASCII.GetBytes("recover a broken Adler checksum");
@@ -660,6 +689,14 @@ public sealed class PdfStreamDecoderTests
         using var output = new MemoryStream();
         using (var zlib = new ZLibStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
             zlib.Write(source);
+        return output.ToArray();
+    }
+
+    private static byte[] CompressBrotli(byte[] source)
+    {
+        using var output = new MemoryStream();
+        using (var brotli = new BrotliStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+            brotli.Write(source);
         return output.ToArray();
     }
 

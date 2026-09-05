@@ -102,6 +102,7 @@ public static class PdfStreamDecoder
             {
                 "FlateDecode" or "Fl" => DecodeFlate(
                     current, filterLimit, compatibilityRecovery),
+                "BrotliDecode" => DecodeBrotli(current, filterLimit),
                 "ASCIIHexDecode" or "AHx" => DecodeAsciiHex(current, filterLimit),
                 "ASCII85Decode" or "A85" => DecodeAscii85(current, filterLimit),
                 "RunLengthDecode" or "RL" => DecodeRunLength(current, filterLimit),
@@ -548,6 +549,35 @@ public static class PdfStreamDecoder
             && compression >> 4 <= 7
             && (flags & 32) == 0
             && ((compression << 8) + flags) % 31 == 0;
+    }
+
+    private static byte[] DecodeBrotli(byte[] encoded, int maximumDecodedBytes)
+    {
+        try
+        {
+            using var input = new MemoryStream(encoded, writable: false);
+            using var brotli = new BrotliStream(input, CompressionMode.Decompress);
+            using var output = new MemoryStream();
+            byte[] buffer = new byte[81_920];
+            while (true)
+            {
+                int read = brotli.Read(buffer, 0, buffer.Length);
+                if (read == 0)
+                    break;
+
+                EnsureWithinLimit(output.Length + read, maximumDecodedBytes);
+                output.Write(buffer, 0, read);
+            }
+            return output.ToArray();
+        }
+        catch (PdfFilterException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ex is InvalidDataException or InvalidOperationException)
+        {
+            throw new PdfFilterException("The BrotliDecode stream contains invalid data.", ex);
+        }
     }
 
     private static byte[] ReversePredictor(
