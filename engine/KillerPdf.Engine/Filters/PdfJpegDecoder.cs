@@ -255,6 +255,28 @@ internal static class PdfJpegDecoder
             }
             var bits = new BitReader(source, _position);
             int mcu = 0;
+            if (_scanComponents.Count == 1)
+            {
+                Component component = _scanComponents[0];
+                int blockSize = 8 / reduction;
+                int blockColumns = checked((_width * component.HorizontalSampling
+                    + maxHorizontal * 8 - 1) / (maxHorizontal * 8));
+                int blockRows = checked((_height * component.VerticalSampling
+                    + maxVertical * 8 - 1) / (maxVertical * 8));
+                for (int row = 0; row < blockRows; row++)
+                    for (int column = 0; column < blockColumns; column++, mcu++)
+                    {
+                        if (_restartInterval > 0 && mcu > 0 && mcu % _restartInterval == 0)
+                        {
+                            bits.ConsumeRestart();
+                            component.DcPredictor = 0;
+                        }
+                        DecodeBlock(bits, component,
+                            column * blockSize, row * blockSize);
+                    }
+                return BuildOutput(maxHorizontal, maxVertical, outputWidth, outputHeight,
+                    (int)outputLength);
+            }
             for (int row = 0; row < mcuRows; row++)
                 for (int column = 0; column < mcuColumns; column++, mcu++)
                 {
