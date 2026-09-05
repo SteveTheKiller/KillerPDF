@@ -1660,6 +1660,31 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesType3GlyphProgramsToTheClippingPath()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 10)
+            .SetTextRenderingMode(PdfTextRenderingMode.Clip)
+            .SetTextMatrix(1, 0, 0, 1, 0, 0)
+            .ShowLatin1Text("A")
+            .EndText()
+            .SetFillRgb(1, 0, 0)
+            .Rectangle(0, 0, 10, 10)
+            .Fill();
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+        PdfDocument document = AddType3TriangleFont(source);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 1));
+        Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsEmbeddedTrueTypeGlyphContours()
     {
         TrueTypeFont font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(

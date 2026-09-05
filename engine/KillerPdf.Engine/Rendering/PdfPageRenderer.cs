@@ -113,6 +113,7 @@ public sealed class PdfPageRenderer
             bool contentVisible = true;
             int compatibilityDepth = 0;
             var textClipPaths = new List<List<Point>>();
+            byte[]? textClipMask = null;
             bool? pendingClipEvenOdd = null;
             Matrix textMatrix = Matrix.Identity, textLineMatrix = Matrix.Identity;
             PdfDictionary? textFont = null;
@@ -455,15 +456,29 @@ public sealed class PdfPageRenderer
                 case "BT":
                     textMatrix = textLineMatrix = Matrix.Identity;
                     textClipPaths.Clear();
+                    textClipMask = null;
                     break;
                 case "ET":
-                    if (textClipPaths.Count > 0)
+                    if (textClipPaths.Count > 0 || textClipMask is not null)
                     {
                         Point[][] polygons = [.. textClipPaths.Select(item => item.ToArray())];
+                        byte[]? mask = textClipMask;
                         ClipRegion[] clips = [.. state.Clips,
-                            new ClipRegion(polygons, false)];
+                            new ClipRegion(polygons, false, mask is null ? null : ContainsTextMask)];
                         state = state with { Clips = Array.AsReadOnly(clips) };
                         textClipPaths.Clear();
+                        textClipMask = null;
+
+                        bool ContainsTextMask(double x, double y)
+                        {
+                            if (polygons.Length > 0 && Contains(polygons, false, x, y))
+                                return true;
+                            int pixelX = (int)Math.Floor(x * scaleX);
+                            int pixelY = (int)Math.Floor(options.Height - y * scaleY);
+                            return pixelX >= 0 && pixelX < options.Width
+                                && pixelY >= 0 && pixelY < options.Height
+                                && mask![(pixelY * options.Width + pixelX) * 4 + 3] != 0;
+                        }
                     }
                     break;
                 case "Tf" when values.Count == 2 && values[0] is PdfName fontName:
@@ -799,13 +814,14 @@ public sealed class PdfPageRenderer
                     ? Resolve(fontResourcesValue) as PdfDictionary
                         ?? throw new FormatException("Type 3 font resources are not a dictionary.")
                     : resources;
-                bool paintsType3 = textRenderingMode is >= 0 and <= 2;
-                if (textRenderingMode is < 0 or > 3)
+                bool paintsType3 = textRenderingMode is >= 0 and <= 2 or >= 4 and <= 6;
+                bool clipsType3 = textRenderingMode is >= 4 and <= 7;
+                if (textRenderingMode is < 0 or > 7)
                     diagnostics.Add("Text rendering is not implemented.");
                 foreach (byte code in text.Bytes.Span)
                 {
                     string glyphName = encoding[code];
-                    if (paintsType3 && glyphName.Length > 0
+                    if ((paintsType3 || clipsType3) && glyphName.Length > 0
                         && charProcs.TryGetValue(Name(glyphName), out PdfObject? glyphValue)
                         && Resolve(glyphValue) is PdfStream glyph)
                     {
@@ -816,8 +832,30 @@ public sealed class PdfPageRenderer
                             Transform = fontMatrix.Then(textScale).Then(textMatrix)
                                 .Then(state.Transform)
                         };
-                        Process(ReadStreamInstructions(glyph, cancellationToken), fontResources,
-                            glyphState, depth + 1);
+                        IReadOnlyList<PdfContentInstruction> glyphInstructions =
+                            ReadStreamInstructions(glyph, cancellationToken);
+                        if (paintsType3)
+                            Process(glyphInstructions, fontResources, glyphState, depth + 1);
+                        if (clipsType3)
+                        {
+                            textClipMask ??= new byte[pixels.Length];
+                            byte[] pagePixels = pixels;
+                            try
+                            {
+                                pixels = textClipMask;
+                                Process(glyphInstructions, fontResources, glyphState with
+                                {
+                                    FillAlpha = 1,
+                                    StrokeAlpha = 1,
+                                    BlendMode = RendererBlendMode.Normal,
+                                    GraphicsSoftMask = null
+                                }, depth + 1);
+                            }
+                            finally
+                            {
+                                pixels = pagePixels;
+                            }
+                        }
                     }
                     double width = Type3Width(textFont, code);
                     Point widthOrigin = fontMatrix.Apply(0, 0);
