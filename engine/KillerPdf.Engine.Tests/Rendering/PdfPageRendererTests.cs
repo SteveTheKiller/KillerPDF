@@ -152,6 +152,23 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_TransformsStrokeWidthWithTheCurrentMatrix()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes(
+                "q 0.1 0 0 0.1 0 0 cm 50 w 0 50 m 100 50 l S Q"))
+            .Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 5, 0));
+        Assert.Equal([0, 0, 0, 255], Pixel(page, 5, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 5, 9));
+    }
+
+    [Fact]
     public void Render_AppliesButtRoundAndProjectingLineCaps()
     {
         PdfRenderedPage butt = RenderCap(PdfLineCap.Butt);

@@ -604,19 +604,20 @@ public sealed class PdfPageRenderer
 
             void PaintStroke(IReadOnlyList<List<Point>> strokePath)
             {
+                double lineWidth = state.LineWidth * state.Transform.StrokeScale;
                 IReadOnlyList<List<Point>> paintedPath = state.DashPattern.Count == 0
                     ? strokePath : CreateDashedPaths(strokePath, state.Transform,
                         state.DashPattern, state.DashPhase);
                 if (state.StrokePattern is null)
                 {
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        paintedPath, state.Stroke, state.StrokeAlpha, state.LineWidth,
+                        paintedPath, state.Stroke, state.StrokeAlpha, lineWidth,
                         state.LineCap, state.LineJoin, state.MiterLimit,
                         state.BlendMode, state.Clips, cancellationToken);
                     return;
                 }
                 Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
-                double radius = Math.Max(state.LineWidth / 2,
+                double radius = Math.Max(lineWidth / 2,
                     Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
                 var strokeClip = new ClipRegion([], false,
                     (x, y) => IsWithinStroke(segments, radius, x, y,
@@ -846,7 +847,8 @@ public sealed class PdfPageRenderer
                                     state.BlendMode, state.Clips, cancellationToken);
                             if (paintMode is 1 or 2)
                                 StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                                    glyphPaths, state.Stroke, state.StrokeAlpha, state.LineWidth,
+                                    glyphPaths, state.Stroke, state.StrokeAlpha,
+                                    state.LineWidth * state.Transform.StrokeScale,
                                     state.LineCap, state.LineJoin, state.MiterLimit,
                                     state.BlendMode, state.Clips, cancellationToken);
                             if (clipsText)
@@ -4010,6 +4012,7 @@ public sealed class PdfPageRenderer
             E * next.A + F * next.C + next.E, E * next.B + F * next.D + next.F);
         internal Point Apply(double x, double y) =>
             new(x * A + y * C + E, x * B + y * D + F);
+        internal double StrokeScale => Math.Sqrt(Math.Abs(A * D - B * C));
         internal bool TryInverse(out Matrix inverse)
         {
             double determinant = A * D - B * C;
