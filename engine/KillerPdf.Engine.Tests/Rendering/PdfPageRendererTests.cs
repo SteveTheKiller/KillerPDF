@@ -932,6 +932,78 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsCoonsPatchShadings()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        byte[] boundary =
+        [
+            0, 0, 85, 0, 170, 0, 255, 0,
+            255, 85, 255, 170, 255, 255, 170, 255,
+            85, 255, 0, 255, 0, 170, 0, 85
+        ];
+        byte[] colors = Enumerable.Repeat(new byte[] { 0, 255, 0 }, 4)
+            .SelectMany(value => value).ToArray();
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(6)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerComponent"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerFlag"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"),
+                Reals(0, 10, 0, 10, 0, 1, 0, 1, 0, 1))]),
+            new byte[] { 0 }.Concat(boundary).Concat(colors).ToArray());
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 255, 0, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_ContinuesTensorPatchMeshesAcrossSharedEdges()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        byte[] firstPoints =
+        [
+            0, 0, 43, 0, 85, 0, 128, 0,
+            128, 43, 128, 85, 128, 128, 85, 128,
+            43, 128, 0, 128, 0, 85, 0, 43,
+            43, 43, 85, 43, 85, 85, 43, 85
+        ];
+        byte[] secondPoints =
+        [
+            170, 128, 213, 128, 255, 128, 255, 85,
+            255, 43, 255, 0, 213, 0, 170, 0,
+            170, 43, 213, 43, 213, 85, 170, 85
+        ];
+        byte[] firstColors = Enumerable.Repeat(new byte[] { 255, 0, 0 }, 4)
+            .SelectMany(value => value).ToArray();
+        byte[] secondColors = [0, 0, 255, 0, 0, 255];
+        byte[] data = new byte[] { 0 }.Concat(firstPoints).Concat(firstColors)
+            .Concat(new byte[] { 1 }).Concat(secondPoints).Concat(secondColors).ToArray();
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(7)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerComponent"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerFlag"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"),
+                Reals(0, 10, 0, 10, 0, 1, 0, 1, 0, 1))]), data);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        byte[] continuedPatch = Pixel(rendered, 9, 7);
+        Assert.True(continuedPatch[0] > 200 && continuedPatch[2] < 50);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsFreeFormGouraudMeshShadings()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

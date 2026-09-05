@@ -2167,11 +2167,12 @@ public sealed class PdfPageRenderer
                     ? RenderLatticeMeshShading(lattice, resources, state, target,
                         targetWidth, targetHeight, scaleX, scaleY, cancellationToken)
                     : throw new FormatException("A lattice mesh shading must be a stream.");
-            if (shadingType.Value == 7)
-                return resolved is PdfStream tensorPatch
-                    ? RenderTensorPatchShading(tensorPatch, resources, state, target,
-                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken)
-                    : throw new FormatException("A tensor-patch shading must be a stream.");
+            if (shadingType.Value is 6 or 7)
+                return resolved is PdfStream patch
+                    ? RenderPatchMeshShading(patch, resources, state, target,
+                        targetWidth, targetHeight, scaleX, scaleY,
+                        tensorProduct: shadingType.Value == 7, cancellationToken)
+                    : throw new FormatException("A patch mesh shading must be a stream.");
             if (shadingType.Value == 3)
                 return RenderRadialShading(shading, resources, state, target,
                     targetWidth, targetHeight, scaleX, scaleY);
@@ -2381,49 +2382,75 @@ public sealed class PdfPageRenderer
             (to.X - from.X) * (y - from.Y) - (to.Y - from.Y) * (x - from.X);
     }
 
-    private bool RenderTensorPatchShading(PdfStream stream, PdfDictionary resources,
+    private bool RenderPatchMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, byte[] target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken)
+        double scaleX, double scaleY, bool tensorProduct,
+        CancellationToken cancellationToken)
     {
         PdfDictionary shading = stream.Dictionary;
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
-            throw new FormatException("A tensor-patch shading color space is missing.");
+            throw new FormatException("A patch mesh shading color space is missing.");
         ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
         if (colorSpace.Palette is not null) throw new NotSupportedException();
         int coordinateBits = PositiveInteger(shading, "BitsPerCoordinate");
         int componentBits = PositiveInteger(shading, "BitsPerComponent");
         int flagBits = PositiveInteger(shading, "BitsPerFlag");
-        if (coordinateBits is < 1 or > 32 || componentBits is < 1 or > 32
-            || flagBits is < 1 or > 8)
+        if (coordinateBits is not (1 or 2 or 4 or 8 or 12 or 16 or 24 or 32)
+            || componentBits is not (1 or 2 or 4 or 8 or 12 or 16)
+            || flagBits is not (2 or 4 or 8))
             throw new NotSupportedException();
+        Func<double, Color>? function = shading.TryGetValue(Name("Function"),
+            out PdfObject? functionValue)
+            ? ReadColorFunction(functionValue, colorSpace, "patch mesh shading function") : null;
+        int dataComponents = function is null ? colorSpace.Components : 1;
         double[] decode = ReadFunctionArray(shading, "Decode",
-            4 + colorSpace.Components * 2, required: true, defaultValues: []);
+            4 + dataComponents * 2, required: true, defaultValues: []);
         if (decode.Any(value => !double.IsFinite(value)))
-            throw new FormatException("A tensor-patch shading decode array is invalid.");
+            throw new FormatException("A patch mesh shading decode array is invalid.");
         byte[] bytes = PdfStreamDecoder.Decode(stream, _document.Resolve);
         int bitOffset = 0;
         bool rendered = false;
-        while (bitOffset < bytes.Length * 8)
+        int pointCount = tensorProduct ? 16 : 12;
+        int minimumRecordBits = checked(flagBits
+            + (pointCount - 4) * coordinateBits * 2
+            + 2 * dataComponents * componentBits);
+        var points = new Point[16];
+        var values = new double[4][];
+        while (bytes.Length * 8 - bitOffset >= minimumRecordBits)
         {
             uint flag = Read(flagBits);
-            if (flag != 0) throw new NotSupportedException();
-            var points = new Point[16];
-            for (int index = 0; index < points.Length; index++)
+            if (flag > 3 || !rendered && flag != 0)
+                throw new FormatException("A patch mesh shading has an invalid edge flag.");
+            int firstPoint = 0;
+            int firstColor = 0;
+            if (flag != 0)
+            {
+                var shared = new Point[4];
+                for (int index = 0; index < shared.Length; index++)
+                    shared[index] = points[(flag * 3 + index) % 12];
+                Array.Copy(shared, points, shared.Length);
+                double[][] sharedValues = [values[flag], values[(flag + 1) % 4]];
+                values[0] = sharedValues[0];
+                values[1] = sharedValues[1];
+                firstPoint = 4;
+                firstColor = 2;
+            }
+            for (int index = firstPoint; index < pointCount; index++)
             {
                 double x = Decode(Read(coordinateBits), coordinateBits, decode[0], decode[1]);
                 double y = Decode(Read(coordinateBits), coordinateBits, decode[2], decode[3]);
                 points[index] = state.Transform.Apply(x, y);
             }
-            var colors = new Color[4];
-            for (int corner = 0; corner < colors.Length; corner++)
+            for (int corner = firstColor; corner < values.Length; corner++)
             {
-                var components = new double[colorSpace.Components];
+                var components = new double[dataComponents];
                 for (int component = 0; component < components.Length; component++)
                     components[component] = Decode(Read(componentBits), componentBits,
                         decode[4 + component * 2], decode[5 + component * 2]);
-                colors[corner] = colorSpace.Convert(components);
+                values[corner] = components;
             }
-            RenderPatch(points, colors);
+            if (!tensorProduct) AddCoonsInteriorPoints(points);
+            RenderPatch(points, values);
             rendered = true;
         }
         return rendered;
@@ -2431,7 +2458,7 @@ public sealed class PdfPageRenderer
         uint Read(int bits)
         {
             if (bitOffset + bits > bytes.Length * 8)
-                throw new FormatException("A tensor-patch shading stream is truncated.");
+                throw new FormatException("A patch mesh shading stream is truncated.");
             uint value = ReadPackedSample(bytes, bitOffset, bits);
             bitOffset += bits;
             return value;
@@ -2441,7 +2468,28 @@ public sealed class PdfPageRenderer
             double limit = bits == 32 ? uint.MaxValue : (1u << bits) - 1u;
             return minimum + value / limit * (maximum - minimum);
         }
-        void RenderPatch(Point[] source, Color[] colors)
+        Color Convert(double[] components) =>
+            function is null ? colorSpace.Convert(components) : function(components[0]);
+        static void AddCoonsInteriorPoints(Point[] source)
+        {
+            source[12] = Combine(source[0], -4, source[1], 6, source[11], 6,
+                source[3], -2, source[9], -2, source[8], 3, source[4], 3, source[6], -1);
+            source[13] = Combine(source[3], -4, source[2], 6, source[4], 6,
+                source[0], -2, source[6], -2, source[7], 3, source[11], 3, source[9], -1);
+            source[15] = Combine(source[9], -4, source[8], 6, source[10], 6,
+                source[6], -2, source[0], -2, source[1], 3, source[5], 3, source[3], -1);
+            source[14] = Combine(source[6], -4, source[7], 6, source[5], 6,
+                source[9], -2, source[3], -2, source[2], 3, source[10], 3, source[0], -1);
+
+            static Point Combine(Point a, double aw, Point b, double bw,
+                Point c, double cw, Point d, double dw, Point e, double ew,
+                Point f, double fw, Point g, double gw, Point h, double hw) =>
+                new((a.X * aw + b.X * bw + c.X * cw + d.X * dw + e.X * ew
+                    + f.X * fw + g.X * gw + h.X * hw) / 9,
+                    (a.Y * aw + b.Y * bw + c.Y * cw + d.Y * dw + e.Y * ew
+                    + f.Y * fw + g.Y * gw + h.Y * hw) / 9);
+        }
+        void RenderPatch(Point[] source, double[][] colors)
         {
             Point[,] grid =
             {
@@ -2452,31 +2500,31 @@ public sealed class PdfPageRenderer
             };
             const int divisions = 4;
             var sampledPoints = new Point[divisions + 1, divisions + 1];
-            var sampledColors = new Color[divisions + 1, divisions + 1];
+            var sampledValues = new double[divisions + 1, divisions + 1][];
             for (int row = 0; row <= divisions; row++)
                 for (int column = 0; column <= divisions; column++)
                 {
                     double u = column / (double)divisions;
                     double v = row / (double)divisions;
                     sampledPoints[row, column] = BezierSurface(grid, u, v);
-                    sampledColors[row, column] = Bilinear(colors, u, v);
+                    sampledValues[row, column] = Bilinear(colors, u, v);
                 }
             for (int row = 0; row < divisions; row++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 for (int column = 0; column < divisions; column++)
                 {
-                    PaintTriangle(sampledPoints[row, column], sampledColors[row, column],
-                        sampledPoints[row, column + 1], sampledColors[row, column + 1],
-                        sampledPoints[row + 1, column + 1], sampledColors[row + 1, column + 1]);
-                    PaintTriangle(sampledPoints[row, column], sampledColors[row, column],
-                        sampledPoints[row + 1, column + 1], sampledColors[row + 1, column + 1],
-                        sampledPoints[row + 1, column], sampledColors[row + 1, column]);
+                    PaintTriangle(sampledPoints[row, column], sampledValues[row, column],
+                        sampledPoints[row, column + 1], sampledValues[row, column + 1],
+                        sampledPoints[row + 1, column + 1], sampledValues[row + 1, column + 1]);
+                    PaintTriangle(sampledPoints[row, column], sampledValues[row, column],
+                        sampledPoints[row + 1, column + 1], sampledValues[row + 1, column + 1],
+                        sampledPoints[row + 1, column], sampledValues[row + 1, column]);
                 }
             }
         }
-        void PaintTriangle(Point first, Color firstColor, Point second, Color secondColor,
-            Point third, Color thirdColor)
+        void PaintTriangle(Point first, double[] firstValues, Point second,
+            double[] secondValues, Point third, double[] thirdValues)
         {
             double area = Edge(first, second, third.X, third.Y);
             if (Math.Abs(area) < 1e-12) return;
@@ -2502,8 +2550,12 @@ public sealed class PdfPageRenderer
                     double b = Edge(third, first, pageX, pageY) / area;
                     double c = 1 - a - b;
                     if (a < -1e-9 || b < -1e-9 || c < -1e-9) continue;
-                    SetPixel(target, targetWidth, x, y, Mix(firstColor, secondColor, thirdColor,
-                        a, b, c), state.FillAlpha, state.BlendMode);
+                    var components = new double[firstValues.Length];
+                    for (int component = 0; component < components.Length; component++)
+                        components[component] = firstValues[component] * a
+                            + secondValues[component] * b + thirdValues[component] * c;
+                    SetPixel(target, targetWidth, x, y, Convert(components),
+                        state.FillAlpha, state.BlendMode);
                 }
         }
         static double Edge(Point first, Point second, double x, double y) =>
@@ -2527,20 +2579,16 @@ public sealed class PdfPageRenderer
             return [inverse * inverse * inverse, 3 * value * inverse * inverse,
                 3 * value * value * inverse, value * value * value];
         }
-        static Color Bilinear(Color[] colors, double u, double v) => MixFour(
-            colors[0], colors[1], colors[2], colors[3],
-            (1 - u) * (1 - v), u * (1 - v), u * v, (1 - u) * v);
-        static Color Mix(Color first, Color second, Color third,
-            double a, double b, double c) => new(
-            Channel(first.Red * a + second.Red * b + third.Red * c),
-            Channel(first.Green * a + second.Green * b + third.Green * c),
-            Channel(first.Blue * a + second.Blue * b + third.Blue * c));
-        static Color MixFour(Color first, Color second, Color third, Color fourth,
-            double a, double b, double c, double d) => new(
-            Channel(first.Red * a + second.Red * b + third.Red * c + fourth.Red * d),
-            Channel(first.Green * a + second.Green * b + third.Green * c + fourth.Green * d),
-            Channel(first.Blue * a + second.Blue * b + third.Blue * c + fourth.Blue * d));
-        static byte Channel(double value) => (byte)Math.Clamp(Math.Round(value), 0, 255);
+        static double[] Bilinear(double[][] values, double u, double v)
+        {
+            var result = new double[values[0].Length];
+            for (int component = 0; component < result.Length; component++)
+                result[component] = values[0][component] * (1 - u) * (1 - v)
+                    + values[1][component] * u * (1 - v)
+                    + values[2][component] * u * v
+                    + values[3][component] * (1 - u) * v;
+            return result;
+        }
     }
 
     private bool RenderRadialShading(PdfDictionary shading, PdfDictionary resources,
