@@ -39,4 +39,16 @@ public sealed class PageAnnotationInsertionTests
         Assert.Same(annotation, Assert.Single(annotations[1]));
         Assert.Equal(1, annotation.PageIndex);
     }
+
+    [Fact]
+    public void Shift_PreservesPlacedImageOnItsOriginalPage()
+    {
+        var image = new ImageAnnotation { PageIndex = 0, ImageData = "image" };
+        var annotations = new Dictionary<int, List<PageAnnotation>> { [0] = [image] };
+
+        PageAnnotationInsertion.Shift(annotations, insertionIndex: 1, pageCount: 1);
+
+        Assert.Same(image, Assert.Single(annotations[0]));
+        Assert.Equal(0, image.PageIndex);
+    }
 }

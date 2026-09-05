@@ -113,12 +113,32 @@ namespace KillerPDF
             int insertIndex = insertAfter + 1;
             try
             {
-                SaveTempAndReload(
-                    finalizeSavedFile: path =>
-                        PdfEngineIntegration.InsertBlankPage(path, insertIndex, 595, 842),
-                    remapRotations: rotations =>
-                        PdfEngineIntegration.RemapRotationsAfterPageInsertion(
-                            rotations, insertIndex));
+                UndoEntry? documentUndo = CaptureDocumentUndo();
+                var annotationBackup = _annotations.ToDictionary(
+                    pair => pair.Key, pair => pair.Value);
+                try
+                {
+                    PageAnnotationInsertion.Shift(_annotations, insertIndex, 1);
+                    SaveTempAndReload(
+                        keepAnnotations: true,
+                        finalizeSavedFile: path =>
+                            PdfEngineIntegration.InsertBlankPage(path, insertIndex, 595, 842),
+                        remapRotations: rotations =>
+                            PdfEngineIntegration.RemapRotationsAfterPageInsertion(
+                                rotations, insertIndex),
+                        documentUndo: documentUndo);
+                }
+                catch
+                {
+                    _annotations.Clear();
+                    foreach (var pair in annotationBackup)
+                    {
+                        foreach (PageAnnotation annotation in pair.Value)
+                            annotation.PageIndex = pair.Key;
+                        _annotations[pair.Key] = pair.Value;
+                    }
+                    throw;
+                }
                 PageList.SelectedIndex = insertIndex;
                 SetStatus(string.Format(Loc("Str_St_InsertedBlank"), insertAfter + 2));
             }
@@ -137,6 +157,7 @@ namespace KillerPDF
             {
                 int insertIndex = _doc.PageCount;
                 SaveTempAndReload(
+                    keepAnnotations: true,
                     finalizeSavedFile: path =>
                         PdfEngineIntegration.InsertBlankPage(path, insertIndex, 595, 842),
                     remapRotations: rotations =>
