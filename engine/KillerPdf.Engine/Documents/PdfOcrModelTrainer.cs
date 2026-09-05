@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text;
 
 namespace KillerPdf.Engine.Documents;
@@ -5,6 +6,33 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>One labeled, normalized glyph used to train an engine OCR model.</summary>
 public readonly record struct PdfOcrTrainingSample(
     string Label, ReadOnlyMemory<float> Features);
+
+/// <summary>One observed expected and predicted label pair.</summary>
+public sealed record PdfOcrConfusion(string Expected, string Predicted, int Count);
+
+/// <summary>Measured recognition quality for a labeled OCR sample set.</summary>
+public sealed class PdfOcrModelEvaluation
+{
+    internal PdfOcrModelEvaluation(int sampleCount, int correctCount,
+        double averageConfidence, IEnumerable<PdfOcrConfusion> confusion)
+    {
+        SampleCount = sampleCount;
+        CorrectCount = correctCount;
+        AverageConfidence = averageConfidence;
+        Confusion = Array.AsReadOnly(confusion.ToArray());
+    }
+
+    /// <summary>Gets the number of evaluated glyphs.</summary>
+    public int SampleCount { get; }
+    /// <summary>Gets the number of correctly classified glyphs.</summary>
+    public int CorrectCount { get; }
+    /// <summary>Gets the correctly classified fraction.</summary>
+    public double Accuracy => CorrectCount / (double)SampleCount;
+    /// <summary>Gets the mean winning-class confidence.</summary>
+    public double AverageConfidence { get; }
+    /// <summary>Gets observed label pairs in stable ordinal order.</summary>
+    public IReadOnlyList<PdfOcrConfusion> Confusion { get; }
+}
 
 /// <summary>Builds deterministic engine OCR models without a native inference runtime.</summary>
 public static class PdfOcrModelTrainer
@@ -78,12 +106,73 @@ public static class PdfOcrModelTrainer
             width, height, orderedLabels, weights, biases);
     }
 
+    /// <summary>Evaluates a model against labeled normalized glyphs.</summary>
+    public static PdfOcrModelEvaluation Evaluate(PdfOcrRecognitionModel model,
+        IEnumerable<PdfOcrTrainingSample> samples,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(samples);
+        int featureCount = checked(model.Width * model.Height);
+        double[] scores = ArrayPool<double>.Shared.Rent(model.LabelCount);
+        var confusion = new Dictionary<(string Expected, string Predicted), int>();
+        int sampleCount = 0, correctCount = 0;
+        double confidenceSum = 0;
+        try
+        {
+            foreach (PdfOcrTrainingSample sample in samples)
+            {
+                if ((sampleCount & 0x3FF) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+                if (++sampleCount > MaximumSamples)
+                    throw new ArgumentException(
+                        "The OCR evaluation set exceeds the sample limit.", nameof(samples));
+                ValidateLabel(sample.Label, samples);
+                ValidateFeatures(sample.Features.Span, featureCount, samples);
+                (string predicted, double confidence) = model.Classify(
+                    sample.Features.Span, scores.AsSpan(0, model.LabelCount));
+                if (string.Equals(sample.Label, predicted, StringComparison.Ordinal))
+                    correctCount++;
+                confidenceSum += confidence;
+                var pair = (sample.Label, predicted);
+                confusion[pair] = confusion.GetValueOrDefault(pair) + 1;
+            }
+        }
+        finally
+        {
+            ArrayPool<double>.Shared.Return(scores);
+        }
+        if (sampleCount == 0)
+            throw new ArgumentException("At least one OCR evaluation sample is required.",
+                nameof(samples));
+        PdfOcrConfusion[] entries = [.. confusion
+            .OrderBy(item => item.Key.Expected, StringComparer.Ordinal)
+            .ThenBy(item => item.Key.Predicted, StringComparer.Ordinal)
+            .Select(item => new PdfOcrConfusion(
+                item.Key.Expected, item.Key.Predicted, item.Value))];
+        return new PdfOcrModelEvaluation(
+            sampleCount, correctCount, confidenceSum / sampleCount, entries);
+    }
+
     private static void ValidateLabel(string label,
         IEnumerable<PdfOcrTrainingSample> samples)
     {
         if (string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64)
             throw new ArgumentException(
                 "OCR training labels are empty, oversized, or invalid.", nameof(samples));
+    }
+
+    private static void ValidateFeatures(ReadOnlySpan<float> features, int featureCount,
+        IEnumerable<PdfOcrTrainingSample> samples)
+    {
+        if (features.Length != featureCount)
+            throw new ArgumentException(
+                "An OCR sample has the wrong feature count.", nameof(samples));
+        foreach (float value in features)
+            if (!float.IsFinite(value) || value is < 0 or > 1)
+                throw new ArgumentException(
+                    "OCR sample features must be finite values from zero through one.",
+                    nameof(samples));
     }
 
     private sealed class Accumulator(int featureCount)

@@ -44,6 +44,33 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerEvaluatesAccuracyConfidenceAndConfusion()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 1,
+        [
+            new("A", new float[] { 1, 0 }),
+            new("B", new float[] { 0, 1 })
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+        [
+            new("A", new float[] { 1, 0 }),
+            new("B", new float[] { 0, 1 }),
+            new("B", new float[] { 1, 0 })
+        ]);
+
+        Assert.Equal(3, evaluation.SampleCount);
+        Assert.Equal(2, evaluation.CorrectCount);
+        Assert.Equal(2d / 3, evaluation.Accuracy, 12);
+        Assert.InRange(evaluation.AverageConfidence, 0.5, 1);
+        Assert.Equal([
+            new PdfOcrConfusion("A", "A", 1),
+            new PdfOcrConfusion("B", "A", 1),
+            new PdfOcrConfusion("B", "B", 1)
+        ], evaluation.Confusion);
+    }
+
+    [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
         PdfOcrRecognitionModel created = RecognitionModel();
