@@ -185,7 +185,14 @@ public sealed class PdfCffGlyphReader
             for (int i = 1; i < count; i++) result[i] = i;
             return result;
         }
-        if (position is 0 or 1 or 2) throw new NotSupportedException("Predefined Expert CFF charsets are not supported.");
+        if (!_cid && position is 1 or 2)
+        {
+            int[] predefined = position == 1 ? ExpertCharset : ExpertSubsetCharset;
+            if (count - 1 > predefined.Length) throw Bad();
+            predefined.AsSpan(0, count - 1).CopyTo(result.AsSpan(1));
+            return result;
+        }
+        if (position is 0 or 1 or 2) throw Bad();
         int format = Byte(ref position), glyph = 1;
         if (format is < 0 or > 2) throw Bad();
         while (glyph < count)
@@ -294,7 +301,35 @@ public sealed class PdfCffGlyphReader
     private static byte Take(ReadOnlySpan<byte> bytes, ref int position) => position < bytes.Length ? bytes[position++] : throw Bad();
     private static FormatException Bad() => new("Invalid or unsupported CFF outline data.");
 
-    private static readonly string[] Standard = (".notdef space exclam quotedbl numbersign dollar percent ampersand quoteright parenleft parenright asterisk plus comma hyphen period slash zero one two three four five six seven eight nine colon semicolon less equal greater question at A B C D E F G H I J K L M N O P Q R S T U V W X Y Z bracketleft backslash bracketright asciicircum underscore quoteleft a b c d e f g h i j k l m n o p q r s t u v w x y z braceleft bar braceright asciitilde exclamdown cent sterling fraction yen florin section currency quotesingle quotedblleft guillemotleft guilsinglleft guilsinglright fi fl endash dagger daggerdbl periodcentered paragraph bullet quotesinglbase quotedblbase quotedblright guillemotright ellipsis perthousand questiondown grave acute circumflex tilde macron breve dotaccent dieresis ring cedilla hungarumlaut ogonek caron emdash AE ordfeminine Lslash Oslash OE ordmasculine ae dotlessi lslash oslash oe germandbls onesuperior logicalnot mu trademark Eth onehalf plusminus Thorn onequarter divide brokenbar degree thorn threequarters twosuperior registered minus eth multiply threesuperior copyright Aacute Acircumflex Adieresis Agrave Aring Atilde Ccedilla Eacute Ecircumflex Edieresis Egrave Iacute Icircumflex Idieresis Igrave Ntilde Oacute Ocircumflex Odieresis Ograve Otilde Scaron Uacute Ucircumflex Udieresis Ugrave Yacute Ydieresis Zcaron aacute acircumflex adieresis agrave aring atilde ccedilla eacute ecircumflex edieresis egrave iacute icircumflex idieresis igrave ntilde oacute ocircumflex odieresis ograve otilde scaron uacute ucircumflex udieresis ugrave yacute ydieresis zcaron").Split(' ');
+    private static readonly string[] Standard = (".notdef space exclam quotedbl numbersign dollar percent ampersand quoteright parenleft parenright asterisk plus comma hyphen period slash zero one two three four five six seven eight nine colon semicolon less equal greater question at A B C D E F G H I J K L M N O P Q R S T U V W X Y Z bracketleft backslash bracketright asciicircum underscore quoteleft a b c d e f g h i j k l m n o p q r s t u v w x y z braceleft bar braceright asciitilde exclamdown cent sterling fraction yen florin section currency quotesingle quotedblleft guillemotleft guilsinglleft guilsinglright fi fl endash dagger daggerdbl periodcentered paragraph bullet quotesinglbase quotedblbase quotedblright guillemotright ellipsis perthousand questiondown grave acute circumflex tilde macron breve dotaccent dieresis ring cedilla hungarumlaut ogonek caron emdash AE ordfeminine Lslash Oslash OE ordmasculine ae dotlessi lslash oslash oe germandbls onesuperior logicalnot mu trademark Eth onehalf plusminus Thorn onequarter divide brokenbar degree thorn threequarters twosuperior registered minus eth multiply threesuperior copyright Aacute Acircumflex Adieresis Agrave Aring Atilde Ccedilla Eacute Ecircumflex Edieresis Egrave Iacute Icircumflex Idieresis Igrave Ntilde Oacute Ocircumflex Odieresis Ograve Otilde Scaron Uacute Ucircumflex Udieresis Ugrave Yacute Ydieresis Zcaron aacute acircumflex adieresis agrave aring atilde ccedilla eacute ecircumflex edieresis egrave iacute icircumflex idieresis igrave ntilde oacute ocircumflex odieresis ograve otilde scaron uacute ucircumflex udieresis ugrave yacute ydieresis zcaron exclamsmall Hungarumlautsmall dollaroldstyle dollarsuperior ampersandsmall Acutesmall parenleftsuperior parenrightsuperior twodotenleader onedotenleader zerooldstyle oneoldstyle twooldstyle threeoldstyle fouroldstyle fiveoldstyle sixoldstyle sevenoldstyle eightoldstyle nineoldstyle commasuperior threequartersemdash periodsuperior questionsmall asuperior bsuperior centsuperior dsuperior esuperior isuperior lsuperior msuperior nsuperior osuperior rsuperior ssuperior tsuperior ff ffi ffl parenleftinferior parenrightinferior Circumflexsmall hyphensuperior Gravesmall Asmall Bsmall Csmall Dsmall Esmall Fsmall Gsmall Hsmall Ismall Jsmall Ksmall Lsmall Msmall Nsmall Osmall Psmall Qsmall Rsmall Ssmall Tsmall Usmall Vsmall Wsmall Xsmall Ysmall Zsmall colonmonetary onefitted rupiah Tildesmall exclamdownsmall centoldstyle Lslashsmall Scaronsmall Zcaronsmall Dieresissmall Brevesmall Caronsmall Dotaccentsmall Macronsmall figuredash hypheninferior Ogoneksmall Ringsmall Cedillasmall questiondownsmall oneeighth threeeighths fiveeighths seveneighths onethird twothirds zerosuperior foursuperior fivesuperior sixsuperior sevensuperior eightsuperior ninesuperior zeroinferior oneinferior twoinferior threeinferior fourinferior fiveinferior sixinferior seveninferior eightinferior nineinferior centinferior dollarinferior periodinferior commainferior Agravesmall Aacutesmall Acircumflexsmall Atildesmall Adieresissmall Aringsmall AEsmall Ccedillasmall Egravesmall Eacutesmall Ecircumflexsmall Edieresissmall Igravesmall Iacutesmall Icircumflexsmall Idieresissmall Ethsmall Ntildesmall Ogravesmall Oacutesmall Ocircumflexsmall Otildesmall Odieresissmall OEsmall Oslashsmall Ugravesmall Uacutesmall Ucircumflexsmall Udieresissmall Yacutesmall Thornsmall Ydieresissmall 001.000 001.001 001.002 001.003 Black Bold Book Light Medium Regular Roman Semibold").Split(' ');
+
+    private static readonly int[] ExpertCharset =
+    [
+        1, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 13, 14, 15, 99,
+        239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 27, 28,
+        249, 250, 251, 252, 253, 254, 255, 256, 257, 258, 259, 260, 261,
+        262, 263, 264, 265, 266, 109, 110, 267, 268, 269, 270, 271, 272,
+        273, 274, 275, 276, 277, 278, 279, 280, 281, 282, 283, 284, 285,
+        286, 287, 288, 289, 290, 291, 292, 293, 294, 295, 296, 297, 298,
+        299, 300, 301, 302, 303, 304, 305, 306, 307, 308, 309, 310, 311,
+        312, 313, 314, 315, 316, 317, 318, 158, 155, 163, 319, 320, 321,
+        322, 323, 324, 325, 326, 150, 164, 169, 327, 328, 329, 330, 331,
+        332, 333, 334, 335, 336, 337, 338, 339, 340, 341, 342, 343, 344,
+        345, 346, 347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357,
+        358, 359, 360, 361, 362, 363, 364, 365, 366, 367, 368, 369, 370,
+        371, 372, 373, 374, 375, 376, 377, 378
+    ];
+
+    private static readonly int[] ExpertSubsetCharset =
+    [
+        1, 231, 232, 235, 236, 237, 238, 13, 14, 15, 99, 239, 240, 241,
+        242, 243, 244, 245, 246, 247, 248, 27, 28, 249, 250, 251, 253,
+        254, 255, 256, 257, 258, 259, 260, 261, 262, 263, 264, 265, 266,
+        109, 110, 267, 268, 269, 270, 272, 300, 301, 302, 305, 314, 315,
+        158, 155, 163, 320, 321, 322, 323, 324, 325, 326, 150, 164, 169,
+        327, 328, 329, 330, 331, 332, 333, 334, 335, 336, 337, 338, 339,
+        340, 341, 342, 343, 344, 345, 346
+    ];
 
     private sealed class Interpreter(ReadOnlyMemory<byte>[] global, ReadOnlyMemory<byte>[] local,
         double[] matrix, Func<string, PdfGlyphOutline?>? componentOutline = null)

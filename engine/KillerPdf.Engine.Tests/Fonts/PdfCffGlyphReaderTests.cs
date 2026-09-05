@@ -153,6 +153,34 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(0, first.Top);
     }
 
+    [Theory]
+    [InlineData(1, "exclamsmall")]
+    [InlineData(2, "dollaroldstyle")]
+    public void ReadsPredefinedExpertCharsets(int charset, string secondGlyph)
+    {
+        var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(
+            BuildPredefined(charset, [14], [14])));
+
+        Assert.Equal("space", font.GetGlyphName(1));
+        Assert.Equal(secondGlyph, font.GetGlyphName(2));
+        Assert.Equal(2, font.FindGlyph(secondGlyph));
+    }
+
+    [Theory]
+    [InlineData(1, 165, "Ydieresissmall")]
+    [InlineData(2, 86, "commainferior")]
+    public void ReadsCompletePredefinedExpertCharset(
+        int charset, int glyphCount, string lastGlyph)
+    {
+        byte[][] programs = Enumerable.Range(0, glyphCount)
+            .Select(_ => new byte[] { 14 }).ToArray();
+        var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(
+            BuildPredefined(charset, programs)));
+
+        Assert.Equal(lastGlyph, font.GetGlyphName(glyphCount));
+        Assert.Equal(glyphCount, font.FindGlyph(lastGlyph));
+    }
+
     internal static byte[] Build(byte[] program, byte[]? subr = null)
     {
         byte[] name = Index("Example"u8.ToArray());
@@ -186,6 +214,19 @@ public sealed class PdfCffGlyphReaderTests
         byte[] dict = [.. Offset(charsetOffset), 15, .. Offset(charstringsOffset), 17,
             141, .. Offset(privateOffset), 18];
         return [1, 0, 4, 4, .. name, .. Index(dict), 0, 0, 0, 0, .. charset,
+            .. charstrings, 141, 19, 0, 0];
+    }
+    private static byte[] BuildPredefined(int charset, params byte[][] glyphs)
+    {
+        byte[] name = Index("Example"u8.ToArray());
+        byte[][] programs = [[14], .. glyphs];
+        byte[] charstrings = Index(programs);
+        int topLength = 15;
+        int charstringsOffset = 4 + name.Length + Index(new byte[topLength]).Length + 2 + 2;
+        int privateOffset = charstringsOffset + charstrings.Length;
+        byte[] dict = [.. Numbers(charset), 15, .. Offset(charstringsOffset), 17,
+            141, .. Offset(privateOffset), 18];
+        return [1, 0, 4, 4, .. name, .. Index(dict), 0, 0, 0, 0,
             .. charstrings, 141, 19, 0, 0];
     }
     private static byte[] Offset(int value) => [29, (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
