@@ -143,4 +143,41 @@ public sealed class PdfOcrImagePreprocessorTests
             PdfOcrImagePreprocessor.CropBgra(
                 new byte[16], 2, 2, 0, 0, 1, 1, canceled.Token));
     }
+
+    [Theory]
+    [InlineData(90, 3, 2, new byte[] { 5, 3, 1, 6, 4, 2 })]
+    [InlineData(180, 2, 3, new byte[] { 6, 5, 4, 3, 2, 1 })]
+    [InlineData(270, 3, 2, new byte[] { 2, 4, 6, 1, 3, 5 })]
+    public void RotateBgra_RotatesWholePixelsClockwise(
+        int degrees, int expectedWidth, int expectedHeight, byte[] expected)
+    {
+        var bgra = new byte[2 * 3 * 4];
+        for (int pixel = 0; pixel < 6; pixel++)
+        {
+            bgra[pixel * 4] = (byte)(pixel + 1);
+            bgra[pixel * 4 + 3] = 255;
+        }
+
+        PdfOcrBgraImage rotated = PdfOcrImagePreprocessor.RotateBgra(
+            bgra, 2, 3, degrees);
+
+        Assert.Equal(expectedWidth, rotated.Width);
+        Assert.Equal(expectedHeight, rotated.Height);
+        Assert.Equal(expected,
+            Enumerable.Range(0, 6).Select(pixel => rotated.Pixels.Span[pixel * 4]));
+        Assert.All(Enumerable.Range(0, 6),
+            pixel => Assert.Equal(255, rotated.Pixels.Span[pixel * 4 + 3]));
+    }
+
+    [Fact]
+    public void RotateBgra_RejectsNonRightAnglesAndHonorsCancellation()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrImagePreprocessor.RotateBgra(new byte[4], 1, 1, 45));
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfOcrImagePreprocessor.RotateBgra(
+                new byte[4], 1, 1, 90, canceled.Token));
+    }
 }

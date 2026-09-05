@@ -107,6 +107,37 @@ public static class PdfOcrImagePreprocessor
         return new PdfOcrBgraImage(width, height, result);
     }
 
+    /// <summary>Rotates a rendered BGRA32 image clockwise by a right angle.</summary>
+    public static PdfOcrBgraImage RotateBgra(ReadOnlyMemory<byte> bgra, int width,
+        int height, int degrees, CancellationToken cancellationToken = default)
+    {
+        ValidateBgra(bgra, width, height);
+        degrees = ((degrees % 360) + 360) % 360;
+        if (degrees is not (0 or 90 or 180 or 270))
+            throw new ArgumentOutOfRangeException(nameof(degrees));
+        int rotatedWidth = degrees is 90 or 270 ? height : width;
+        int rotatedHeight = degrees is 90 or 270 ? width : height;
+        byte[] result = GC.AllocateUninitializedArray<byte>(bgra.Length);
+        ReadOnlySpan<byte> source = bgra.Span;
+        for (int y = 0; y < height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int x = 0; x < width; x++)
+            {
+                (int destinationX, int destinationY) = degrees switch
+                {
+                    90 => (height - 1 - y, x),
+                    180 => (width - 1 - x, height - 1 - y),
+                    270 => (y, width - 1 - x),
+                    _ => (x, y)
+                };
+                source.Slice((y * width + x) * 4, 4).CopyTo(
+                    result.AsSpan((destinationY * rotatedWidth + destinationX) * 4));
+            }
+        }
+        return new PdfOcrBgraImage(rotatedWidth, rotatedHeight, result);
+    }
+
     private static void ValidateBgra(ReadOnlyMemory<byte> bgra, int width, int height)
     {
         if (width <= 0 || width > MaximumDimension)

@@ -64,9 +64,16 @@ namespace KillerPDF.Features
                         PdfRenderedPage page = renderSession.RenderBasePage(pages[i]);
                         int w = page.Width;
                         int h = page.Height;
-                        byte[] bgra = page.Pixels;
+                        ReadOnlyMemory<byte> bgra = page.Pixels;
                         int rot = rotations[i];
-                        if (rot != 0) (bgra, w, h) = BitmapHelpers.RotateBitmap(bgra, w, h, rot);
+                        if (rot != 0)
+                        {
+                            PdfOcrBgraImage rotated = PdfOcrImagePreprocessor.RotateBgra(
+                                bgra, w, h, rot, ct);
+                            bgra = rotated.Pixels;
+                            w = rotated.Width;
+                            h = rotated.Height;
+                        }
                         recognized.Add(!formAware
                             ? ocr.RecognizeBgra(bgra, w, h)
                             : FormAwareOcr.Recognize(ocr, bgra, w, h,
@@ -133,8 +140,15 @@ namespace KillerPDF.Features
                     PdfRenderedPage page = renderSession.RenderBasePage(pageIdx);
                     int w = page.Width;
                     int h = page.Height;
-                    byte[] bgra = page.Pixels;
-                    if (rot != 0) (bgra, w, h) = BitmapHelpers.RotateBitmap(bgra, w, h, rot);
+                    ReadOnlyMemory<byte> bgra = page.Pixels;
+                    if (rot != 0)
+                    {
+                        PdfOcrBgraImage rotated = PdfOcrImagePreprocessor.RotateBgra(
+                            bgra, w, h, rot, ct);
+                        bgra = rotated.Pixels;
+                        w = rotated.Width;
+                        h = rotated.Height;
+                    }
 
                     double sx = (double)w / renderW, sy = (double)h / renderH;
                     PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(bgra, w, h,
