@@ -11,6 +11,7 @@ namespace KillerPdf.Engine.Rendering;
 public sealed class PdfPageRenderer
 {
     private const long MaximumDecodedImageCacheBytes = 64L * 1024 * 1024;
+    private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
@@ -22,6 +23,10 @@ public sealed class PdfPageRenderer
     private readonly BoundedCache<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = new(32);
     private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
         new(256, ReferenceEqualityComparer.Instance);
+    private readonly BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> _glyphPathCache = new(
+        4096, ReferenceEqualityComparer.Instance,
+        MaximumFlattenedGlyphCacheBytes,
+        paths => paths.Sum(path => (long)path.Length * sizeof(double) * 2));
     private readonly BoundedCache<ImageCacheKey, DecodedImage> _imageCache = new(
         64, maximumWeight: MaximumDecodedImageCacheBytes,
         weight: image => image.Samples.LongLength + (image.Alpha?.LongLength ?? 0));
@@ -3750,10 +3755,26 @@ public sealed class PdfPageRenderer
         }
     }
 
-    private static IReadOnlyList<List<Point>> FlattenGlyphOutline(
+    private IReadOnlyList<List<Point>> FlattenGlyphOutline(
         PdfGlyphOutline outline, Matrix transform)
     {
-        var paths = new List<List<Point>>(outline.Contours.Count);
+        IReadOnlyList<Point[]> source = _glyphPathCache.GetOrAdd(
+            outline, FlattenGlyphOutlineCore);
+        var paths = new List<List<Point>>(source.Count);
+        foreach (Point[] sourcePath in source)
+        {
+            var path = new List<Point>(sourcePath.Length);
+            foreach (Point point in sourcePath)
+                path.Add(transform.Apply(point.X, point.Y));
+            paths.Add(path);
+        }
+        return paths;
+    }
+
+    private static IReadOnlyList<Point[]> FlattenGlyphOutlineCore(
+        PdfGlyphOutline outline)
+    {
+        var paths = new List<Point[]>(outline.Contours.Count);
         foreach (PdfGlyphContour contour in outline.Contours)
         {
             IReadOnlyList<PdfGlyphPoint> points = contour.Points;
@@ -3762,14 +3783,14 @@ public sealed class PdfPageRenderer
             if (points.Any(point => point.IsCubicControl))
             {
                 if (!first.OnCurve) continue;
-                var cubicPath = new List<Point> { transform.Apply(first.X, first.Y) };
+                var cubicPath = new List<Point> { new(first.X, first.Y) };
                 bool valid = true;
                 for (int cubicIndex = 1; cubicIndex < points.Count;)
                 {
                     PdfGlyphPoint point = points[cubicIndex];
                     if (point.OnCurve)
                     {
-                        cubicPath.Add(transform.Apply(point.X, point.Y));
+                        cubicPath.Add(new Point(point.X, point.Y));
                         cubicIndex++;
                     }
                     else if (point.IsCubicControl && cubicIndex + 2 < points.Count
@@ -3777,10 +3798,10 @@ public sealed class PdfPageRenderer
                         && points[cubicIndex + 2].OnCurve)
                     {
                         AddCubic(cubicPath, cubicPath[^1],
-                            transform.Apply(point.X, point.Y),
-                            transform.Apply(points[cubicIndex + 1].X,
+                            new Point(point.X, point.Y),
+                            new Point(points[cubicIndex + 1].X,
                                 points[cubicIndex + 1].Y),
-                            transform.Apply(points[cubicIndex + 2].X,
+                            new Point(points[cubicIndex + 2].X,
                                 points[cubicIndex + 2].Y));
                         cubicIndex += 3;
                     }
@@ -3792,7 +3813,7 @@ public sealed class PdfPageRenderer
                 }
                 if (!valid) continue;
                 if (cubicPath[^1] != cubicPath[0]) cubicPath.Add(cubicPath[0]);
-                paths.Add(cubicPath);
+                paths.Add(cubicPath.ToArray());
                 continue;
             }
             PdfGlyphPoint start;
@@ -3815,14 +3836,14 @@ public sealed class PdfPageRenderer
                 index = 0;
                 consumed = 0;
             }
-            var path = new List<Point> { transform.Apply(start.X, start.Y) };
+            var path = new List<Point> { new(start.X, start.Y) };
             PdfGlyphPoint current = start;
             while (consumed < points.Count)
             {
                 PdfGlyphPoint point = points[index % points.Count];
                 if (point.OnCurve)
                 {
-                    path.Add(transform.Apply(point.X, point.Y));
+                    path.Add(new Point(point.X, point.Y));
                     current = point;
                     index++;
                     consumed++;
@@ -3833,7 +3854,7 @@ public sealed class PdfPageRenderer
                 for (int step = 1; step <= 12; step++)
                 {
                     double t = step / 12d, u = 1 - t;
-                    path.Add(transform.Apply(
+                    path.Add(new Point(
                         u * u * current.X + 2 * u * t * point.X + t * t * end.X,
                         u * u * current.Y + 2 * u * t * point.Y + t * t * end.Y));
                 }
@@ -3847,7 +3868,7 @@ public sealed class PdfPageRenderer
                 }
             }
             if (path[^1] != path[0]) path.Add(path[0]);
-            paths.Add(path);
+            paths.Add(path.ToArray());
         }
         return paths;
 

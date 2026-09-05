@@ -1735,9 +1735,16 @@ public sealed class PdfPageRendererTests
         int count = (int)cache.GetType().GetProperty("Count",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .GetValue(cache)!;
+        object glyphCache = typeof(PdfPageRenderer).GetField("_glyphPathCache",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(renderer)!;
+        int glyphCount = (int)glyphCache.GetType().GetProperty("Count",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(glyphCache)!;
 
         Assert.Equal(first.Pixels.ToArray(), second.Pixels.ToArray());
         Assert.Equal(1, count);
+        Assert.Equal(1, glyphCount);
         Assert.DoesNotContain("A text glyph outline is not implemented.", second.Diagnostics);
     }
 
