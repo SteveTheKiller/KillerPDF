@@ -109,9 +109,24 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     internal static byte[]? RenderExactPage(string path, int pageIndex, int width, int height,
-        bool transparentBackground = false, bool includeFormFields = true) =>
-        PdfiumInterop.RenderPageWithAnnotations(
+        bool transparentBackground = false, bool includeFormFields = true)
+    {
+        try
+        {
+            EngineDocument document = EngineDocument.Open(File.ReadAllBytes(path));
+            var renderer = new EngineRenderer(document);
+            KillerPdf.Engine.Rendering.PdfRenderedPage rendered = renderer.Render(
+                pageIndex, new EngineRenderOptions(width, height, transparentBackground,
+                    includeAnnotations: true, includeFormFields));
+            if (rendered.Diagnostics.Count == 0) return rendered.Pixels.ToArray();
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+        }
+
+        return PdfiumInterop.RenderPageWithAnnotations(
             path, pageIndex, width, height, transparentBackground, includeFormFields);
+    }
 
     public void Dispose() => _reader?.Dispose();
 }

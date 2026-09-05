@@ -52,6 +52,25 @@ public sealed class RenderBoundaryTests
         Assert.True(fallbackOpen > engineOpen);
     }
 
+    [Fact]
+    public void ExactComparisonPagesUseTheEngineBeforeTheNativeFallback()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
+        int methodStart = source.IndexOf("RenderExactPage(", StringComparison.Ordinal);
+        int methodEnd = source.IndexOf("public void Dispose", methodStart,
+            StringComparison.Ordinal);
+        string method = source[methodStart..methodEnd];
+
+        int engineOpen = method.IndexOf("EngineDocument.Open(", StringComparison.Ordinal);
+        int fallbackRender = method.IndexOf("PdfiumInterop.RenderPageWithAnnotations(",
+            StringComparison.Ordinal);
+
+        Assert.True(engineOpen >= 0);
+        Assert.True(fallbackRender > engineOpen);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
