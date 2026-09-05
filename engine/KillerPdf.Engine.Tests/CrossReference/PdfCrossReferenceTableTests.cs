@@ -629,6 +629,8 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("/ID must be an array of two strings", error.Message,
             StringComparison.Ordinal);
+        Assert.NotEmpty(PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true));
     }
 
     [Fact]

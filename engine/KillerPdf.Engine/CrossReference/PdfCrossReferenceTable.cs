@@ -174,8 +174,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         {
             ValidateRevisionSizes(revisions, startXref.Offset);
             ValidateRevisionGenerations(revisions, startXref.Offset, linearization);
+            ValidatePermanentIdentifiers(revisions, startXref.Offset);
         }
-        ValidatePermanentIdentifiers(revisions, startXref.Offset);
         ValidateEncryptionIntroduction(revisions, startXref.Offset);
 
         var entries = new Dictionary<int, PdfCrossReferenceEntry>();
