@@ -70,6 +70,7 @@ public static class PdfStreamDecoder
                     current, parameters[i], resolve, filterLimit),
                 "DCTDecode" or "DCT" => PdfJpegDecoder.Decode(current, filterLimit,
                     GetDctColorTransform(parameters[i], resolve)),
+                "JPXDecode" or "JPX" => PdfJpeg2000Decoder.Decode(current, filterLimit),
                 "CCITTFaxDecode" or "CCF" => PdfCcittFaxDecoder.Decode(current,
                     GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit),
                 "Crypt" => current,

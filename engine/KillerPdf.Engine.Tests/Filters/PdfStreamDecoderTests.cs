@@ -332,6 +332,28 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_DecodesJpeg2000WithoutApplyingContainerColorMapping()
+    {
+        byte[] jpeg2000 = Convert.FromBase64String(
+            "AAAADGpQICANCocKAAAAHGZ0eXBqcDIgAAAAAGpwMiBqcHhianB4IAAAAB5ycmVxAfj4AAUAAYAABUAADCAAEhAANwgAAAAAAFhqcDJoAAAAFmloZHIAAADsAAAA7AABBwcBAAAAAA9jb2xyAQIBAAAADAAAABNwY2xyAAEEBwcHBwD//wAAAAAYY21hcAAAAQAAAAEBAAABAgAAAQMAAAC7anAyY/9P/1EAKQAAAAAA7AAAAOwAAAAAAAAAAAAAAOwAAADsAAAAAAAAAAAAAQcBAf9SAAwAAQABAAUDAwAB/1wAE0BASEhQSEhQSEhQSEhQSEhQ/5AACgAAAAAAFgAG/5PfgCgRUFSjb/+QAAoAAAAAAA8BBv+TgP+QAAoAAAAAAA8CBv+TgP+QAAoAAAAAAA8DBv+TgP+QAAoAAAAAAA8EBv+TgP+QAAoAAAAAAA8FBv+TgP/Z");
+        PdfStream stream = Stream(jpeg2000, Pair("Filter", Name("JPXDecode")));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, 236 * 236);
+
+        Assert.Equal(new byte[236 * 236], decoded);
+    }
+
+    [Fact]
+    public void Decode_RejectsJpeg2000BeyondOutputLimit()
+    {
+        byte[] jpeg2000 = Convert.FromBase64String(
+            "AAAADGpQICANCocKAAAAHGZ0eXBqcDIgAAAAAGpwMiBqcHhianB4IAAAAB5ycmVxAfj4AAUAAYAABUAADCAAEhAANwgAAAAAAFhqcDJoAAAAFmloZHIAAADsAAAA7AABBwcBAAAAAA9jb2xyAQIBAAAADAAAABNwY2xyAAEEBwcHBwD//wAAAAAYY21hcAAAAQAAAAEBAAABAgAAAQMAAAC7anAyY/9P/1EAKQAAAAAA7AAAAOwAAAAAAAAAAAAAAOwAAADsAAAAAAAAAAAAAQcBAf9SAAwAAQABAAUDAwAB/1wAE0BASEhQSEhQSEhQSEhQSEhQ/5AACgAAAAAAFgAG/5PfgCgRUFSjb/+QAAoAAAAAAA8BBv+TgP+QAAoAAAAAAA8CBv+TgP+QAAoAAAAAAA8DBv+TgP+QAAoAAAAAAA8EBv+TgP+QAAoAAAAAAA8FBv+TgP/Z");
+        PdfStream stream = Stream(jpeg2000, Pair("Filter", Name("JPXDecode")));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream, 236 * 236 - 1));
+    }
+
+    [Fact]
     public void Decode_ReconstructsProgressiveJpegScans()
     {
         PdfStream stream = Stream(ProgressiveGrayJpeg(),

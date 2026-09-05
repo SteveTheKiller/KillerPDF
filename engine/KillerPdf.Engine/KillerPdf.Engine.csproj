@@ -36,6 +36,7 @@
   </Target>
 
   <ItemGroup>
+    <PackageReference Include="CoreJ2K" Version="2.3.3.91" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.10" />
   </ItemGroup>
 
