@@ -85,6 +85,28 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PreservesNonzeroAndEvenOddFillRules()
+    {
+        const string paths = "1 1 m 9 1 l 9 9 l 1 9 l h "
+            + "3 3 m 7 3 l 7 7 l 3 7 l h ";
+        PdfRenderedPage nonzero = Render(paths + "f");
+        PdfRenderedPage evenOdd = Render(paths + "f*");
+
+        Assert.Equal([0, 0, 0, 255], Pixel(nonzero, 5, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(evenOdd, 5, 5));
+        Assert.Equal([0, 0, 0, 255], Pixel(evenOdd, 2, 5));
+
+        static PdfRenderedPage Render(string content)
+        {
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddPage(10, 10, Encoding.ASCII.GetBytes(content)).Build());
+            return new PdfPageRenderer(document).Render(0,
+                new PdfRenderOptions(10, 10,
+                    includeAnnotations: false, includeFormFields: false));
+        }
+    }
+
+    [Fact]
     public void Render_AppliesLineDashPatternPhaseAndTransform()
     {
         PdfDocument patternDocument = PdfDocument.Open(new PdfDocumentBuilder()

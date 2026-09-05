@@ -2296,15 +2296,87 @@ public sealed class PdfPageRenderer
         int bottom = (int)Math.Clamp(Math.Ceiling(
             scaled.Max(path => path.Max(point => point.Y))), 0, height);
         bool rectangle = scaled.Length == 1 && IsAxisAlignedRectangle(scaled[0]);
-        bool directFill = rectangle && clips.Count == 0 && alpha >= 1
+        bool directFill = clips.Count == 0 && alpha >= 1
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        List<(double X, int Winding)>?[] scanlines = rectangle
+            ? [] : BuildScanlines();
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (rectangle)
+            {
+                FillSpan(left, right, y);
+                continue;
+            }
+            List<(double X, int Winding)>? intersections = scanlines[y - top];
+            if (intersections is null) continue;
+            intersections.Sort((first, second) => first.X.CompareTo(second.X));
+            int winding = 0;
+            bool inside = false;
+            double spanStart = 0;
+            for (int index = 0; index < intersections.Count;)
+            {
+                double x = intersections[index].X;
+                int windingChange = 0;
+                int crossingCount = 0;
+                while (index < intersections.Count && intersections[index].X == x)
+                {
+                    windingChange += intersections[index].Winding;
+                    crossingCount++;
+                    index++;
+                }
+                bool wasInside = inside;
+                if (evenOdd)
+                    inside ^= crossingCount % 2 != 0;
+                else
+                {
+                    winding += windingChange;
+                    inside = winding != 0;
+                }
+                if (!wasInside && inside) spanStart = x;
+                else if (wasInside && !inside)
+                {
+                    int spanLeft = Math.Max(left, (int)Math.Ceiling(spanStart - 0.5));
+                    int spanRight = Math.Min(right, (int)Math.Ceiling(x - 0.5));
+                    FillSpan(spanLeft, spanRight, y);
+                }
+            }
+        }
+
+        List<(double X, int Winding)>?[] BuildScanlines()
+        {
+            var result = new List<(double X, int Winding)>?[bottom - top];
+            foreach (Point[] polygon in scaled)
+            {
+                for (int index = 1; index < polygon.Length; index++)
+                    AddEdge(polygon[index - 1], polygon[index]);
+                if (polygon[0] != polygon[^1]) AddEdge(polygon[^1], polygon[0]);
+            }
+            return result;
+
+            void AddEdge(Point from, Point to)
+            {
+                if (from.Y == to.Y) return;
+                int firstRow = Math.Max(top,
+                    (int)Math.Ceiling(Math.Min(from.Y, to.Y) - 0.5));
+                int lastRow = Math.Min(bottom,
+                    (int)Math.Ceiling(Math.Max(from.Y, to.Y) - 0.5));
+                int winding = from.Y > to.Y ? 1 : -1;
+                double slope = (to.X - from.X) / (to.Y - from.Y);
+                for (int row = firstRow; row < lastRow; row++)
+                {
+                    double x = from.X + (row + 0.5 - from.Y) * slope;
+                    (result[row - top] ??= []).Add((x, winding));
+                }
+            }
+        }
+
+        void FillSpan(int spanLeft, int spanRight, int y)
+        {
             if (directFill)
             {
-                int rowOffset = (y * width + left) * 4;
-                int rowEnd = (y * width + right) * 4;
+                int rowOffset = (y * width + spanLeft) * 4;
+                int rowEnd = (y * width + spanRight) * 4;
                 for (int offset = rowOffset; offset < rowEnd; offset += 4)
                 {
                     pixels[offset] = color.Blue;
@@ -2312,14 +2384,13 @@ public sealed class PdfPageRenderer
                     pixels[offset + 2] = color.Red;
                     pixels[offset + 3] = 255;
                 }
-                continue;
+                return;
             }
-            double sampleY = y + 0.5;
-            for (int x = left; x < right; x++)
+            double pageY = (height - y - 0.5) / scaleY;
+            for (int x = spanLeft; x < spanRight; x++)
             {
-                double sampleX = x + 0.5;
-                if ((rectangle || Contains(scaled, evenOdd, sampleX, sampleY))
-                    && InsideClips(clips, sampleX / scaleX, (height - sampleY) / scaleY))
+                double pageX = (x + 0.5) / scaleX;
+                if (InsideClips(clips, pageX, pageY))
                     SetPixel(pixels, width, x, y, color, alpha, blendMode);
             }
         }
