@@ -23,8 +23,23 @@ public static class PdfCrossReferenceReader
     public static PdfCrossReferenceSection ReadSection(
         ReadOnlyMemory<byte> source, long offset, bool compatibilityRecovery = false)
     {
-        if (offset is < 0 or > int.MaxValue || offset >= source.Length)
+        if (offset is < 0 or > int.MaxValue)
             throw new PdfSyntaxException("The cross-reference offset is outside the file", ClampOffset(offset));
+        if (offset >= source.Length)
+        {
+            if (!compatibilityRecovery)
+                throw new PdfSyntaxException(
+                    "The cross-reference offset is outside the file", ClampOffset(offset));
+            int recoveryOffset = source.Length - 1;
+            (PdfToken Token, PdfTokenizer Tokenizer)? nearbyClassic =
+                FindNearbyClassicTable(source, recoveryOffset);
+            if (nearbyClassic.HasValue)
+                return ReadClassic(source, nearbyClassic.Value.Token,
+                    nearbyClassic.Value.Tokenizer, compatibilityRecovery: true);
+            return FindNearbyCrossReferenceStream(source, recoveryOffset)
+                ?? throw new PdfSyntaxException(
+                    "The cross-reference offset is outside the file", ClampOffset(offset));
+        }
 
         var probe = new PdfTokenizer(source, (int)offset);
         PdfToken first = probe.Read();

@@ -29,6 +29,16 @@ public sealed class PdfStartXrefTests
         Assert.Equal(1, result.Offset);
     }
 
+    [Fact]
+    public void Find_CompatibilityRecoveryRetainsOffsetPastEndOfFile()
+    {
+        byte[] source = "x\nstartxref\n999\n%%EOF\n"u8.ToArray();
+
+        Assert.Throws<PdfSyntaxException>(() => PdfStartXref.Find(source));
+        Assert.Equal(999, PdfStartXref.Find(
+            source, allowPastEndOffset: true).Offset);
+    }
+
     [Theory]
     [InlineData("x\nstartxref 1 % trailing startxref startxref text\n%%EOF\n")]
     [InlineData("x\nstartxref % pointer startxref follows\n1\n%%EOF\n")]

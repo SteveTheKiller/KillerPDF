@@ -125,7 +125,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         ReadOnlyMemory<byte> source, bool compatibilityRecovery = false)
     {
         PdfHeader header = PdfHeader.Parse(source.Span);
-        PdfStartXref startXref = PdfStartXref.Find(source.Span);
+        PdfStartXref startXref = PdfStartXref.Find(
+            source.Span, allowPastEndOffset: compatibilityRecovery);
         LinearizationInfo? linearization = ReadLinearizationInfo(source, header);
         var revisions = new List<Revision>();
         var visitedOffsets = new HashSet<long>();

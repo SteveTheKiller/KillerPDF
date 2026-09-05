@@ -9,7 +9,8 @@ public readonly record struct PdfStartXref(long Offset, int MarkerOffset)
     private static ReadOnlySpan<byte> EndMarker => "%%EOF"u8;
 
     /// <summary>Finds and validates the final startxref declaration and end-of-file marker.</summary>
-    public static PdfStartXref Find(ReadOnlySpan<byte> source)
+    public static PdfStartXref Find(
+        ReadOnlySpan<byte> source, bool allowPastEndOffset = false)
     {
         int markerOffset = FindFinalMarkerOutsideComment(source);
         if (markerOffset < 0)
@@ -40,9 +41,9 @@ public readonly record struct PdfStartXref(long Offset, int MarkerOffset)
 
         if (position == numberOffset)
             throw new PdfSyntaxException("The startxref declaration does not contain a byte offset", numberOffset);
-        if (offset >= source.Length)
+        if (offset >= source.Length && !allowPastEndOffset)
             throw new PdfSyntaxException("The startxref offset points beyond the end of the file", numberOffset);
-        if (offset >= markerOffset)
+        if (offset >= markerOffset && !allowPastEndOffset)
             throw new PdfSyntaxException(
                 "The startxref offset must point before its declaration", numberOffset);
 
