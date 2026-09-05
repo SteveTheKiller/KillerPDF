@@ -632,6 +632,34 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_IgnoresOneTrailingByteInFilteredIndexedColorLookup()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(2, 1, new byte[] { 0, 1 }), 2, 3, 6, 2))
+            .Build());
+        var lookup = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Filter"), Name("FlateDecode"))]),
+            Compress([255, 0, 0, 0, 0, 255, 10]));
+        var lookupUpdate = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference lookupReference = lookupUpdate.AddObject(lookup);
+        source = PdfDocument.Open(lookupUpdate.Build());
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1), lookupReference
+        });
+        PdfDocument document = AddImageDictionaryEntry(source, "ColorSpace", colorSpace);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 3, 6));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 7, 6));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_ResolvesNamedImageColorSpaceResources()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

@@ -1673,7 +1673,8 @@ public sealed class PdfPageRenderer
         byte[] lookup = Resolve(array[3]) switch
         {
             PdfString text => text.Bytes.ToArray(),
-            PdfStream stream => PdfStreamDecoder.Decode(stream, _document.Resolve, expected),
+            PdfStream stream => PdfStreamDecoder.Decode(
+                stream, _document.Resolve, checked(expected + 1)),
             _ => throw new NotSupportedException()
         };
         if (lookup.Length < expected)
