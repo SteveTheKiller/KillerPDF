@@ -1952,23 +1952,8 @@ public sealed class PdfPageRenderer
         var tokenizer = new PdfTokenizer(program);
         if (tokenizer.Read().Kind != PdfTokenKind.BraceStart)
             throw new FormatException($"A {description} program is invalid.");
-        var instructions = new List<CalculatorInstruction>();
-        while (true)
-        {
-            PdfToken token = tokenizer.Read();
-            if (token.Kind == PdfTokenKind.BraceEnd) break;
-            if (token.Kind == PdfTokenKind.EndOfInput || instructions.Count >= 4096)
-                throw new FormatException($"A {description} program is invalid or too large.");
-            instructions.Add(token.Kind switch
-            {
-                PdfTokenKind.Integer => new CalculatorInstruction(
-                    double.Parse(token.ValueAsLatin1(), System.Globalization.CultureInfo.InvariantCulture), null),
-                PdfTokenKind.Real => new CalculatorInstruction(
-                    double.Parse(token.ValueAsLatin1(), System.Globalization.CultureInfo.InvariantCulture), null),
-                PdfTokenKind.Keyword => new CalculatorInstruction(null, token.ValueAsLatin1()),
-                _ => throw new NotSupportedException()
-            });
-        }
+        int instructionCount = 0;
+        IReadOnlyList<CalculatorInstruction> instructions = ReadProcedure();
         if (tokenizer.Read().Kind != PdfTokenKind.EndOfInput)
             throw new FormatException($"A {description} program has trailing content.");
 
@@ -1976,41 +1961,55 @@ public sealed class PdfPageRenderer
         {
             if (inputs.Length != inputCount)
                 throw new InvalidOperationException("A calculator function received the wrong input count.");
-            var stack = new List<double>(Math.Max(16, inputCount + colorSpace.Components));
+            var stack = new List<object>(Math.Max(16, inputCount + colorSpace.Components));
             for (int index = 0; index < inputCount; index++)
                 stack.Add(Math.Clamp(inputs[index], domain[index * 2], domain[index * 2 + 1]));
-            foreach (CalculatorInstruction instruction in instructions)
-            {
-                if (instruction.Number is double number)
-                {
-                    Push(number);
-                    continue;
-                }
-                Execute(instruction.Operator!);
-            }
+            ExecuteInstructions(instructions);
             if (stack.Count < colorSpace.Components)
                 throw new FormatException($"A {description} program produced too few values.");
             int outputStart = stack.Count - colorSpace.Components;
             var outputs = new double[colorSpace.Components];
             for (int index = 0; index < outputs.Length; index++)
-                outputs[index] = Math.Clamp(stack[outputStart + index],
+                outputs[index] = Math.Clamp(NumberAt(outputStart + index),
                     range[index * 2], range[index * 2 + 1]);
             return colorSpace.Convert(outputs);
 
-            void Push(double value)
+            void ExecuteInstructions(IReadOnlyList<CalculatorInstruction> program)
             {
-                if (!double.IsFinite(value) || stack.Count >= 256)
+                foreach (CalculatorInstruction instruction in program)
+                {
+                    if (instruction.Number is double number) Push(number);
+                    else if (instruction.Procedure is not null) Push(instruction.Procedure);
+                    else Execute(instruction.Operator!);
+                }
+            }
+
+            void Push(object value)
+            {
+                if (value is double number && !double.IsFinite(number) || stack.Count >= 256)
                     throw new FormatException($"A {description} calculator stack is invalid.");
                 stack.Add(value);
             }
-            double Pop()
+            object PopValue()
             {
                 if (stack.Count == 0)
                     throw new FormatException($"A {description} calculator stack underflowed.");
-                double value = stack[^1];
+                object value = stack[^1];
                 stack.RemoveAt(stack.Count - 1);
                 return value;
             }
+            double Pop()
+            {
+                if (PopValue() is double value) return value;
+                throw new FormatException($"A {description} calculator value is not numeric.");
+            }
+            double NumberAt(int index) => stack[index] is double value ? value
+                : throw new FormatException($"A {description} calculator output is not numeric.");
+            bool PopBoolean() => PopValue() is bool value ? value
+                : throw new FormatException($"A {description} calculator value is not Boolean.");
+            IReadOnlyList<CalculatorInstruction> PopProcedure() =>
+                PopValue() is IReadOnlyList<CalculatorInstruction> value ? value
+                : throw new FormatException($"A {description} calculator value is not a procedure.");
             int PopInteger()
             {
                 double value = Pop();
@@ -2032,8 +2031,8 @@ public sealed class PdfPageRenderer
                         if (count < 0 || count > stack.Count
                             || stack.Count + count > 256)
                             throw new FormatException($"A {description} calculator copy is invalid.");
-                        double[] values = stack.GetRange(stack.Count - count, count).ToArray();
-                        foreach (double value in values) Push(value);
+                        object[] values = stack.GetRange(stack.Count - count, count).ToArray();
+                        foreach (object value in values) Push(value);
                         break;
                     }
                     case "cvi": Push(Math.Truncate(Pop())); break;
@@ -2042,8 +2041,9 @@ public sealed class PdfPageRenderer
                     case "dup": { double value = Pop(); Push(value); Push(value); break; }
                     case "exch": { double b = Pop(), a = Pop(); Push(b); Push(a); break; }
                     case "exp": { double exponent = Pop(); Push(Math.Pow(Pop(), exponent)); break; }
+                    case "false": Push(false); break;
                     case "floor": Push(Math.Floor(Pop())); break;
-                    case "idiv": { int b = PopInteger(); int a = PopInteger(); Push(a / b); break; }
+                    case "idiv": { int b = PopInteger(); int a = PopInteger(); Push((double)(a / b)); break; }
                     case "index":
                     {
                         int index = PopInteger();
@@ -2052,11 +2052,28 @@ public sealed class PdfPageRenderer
                         Push(stack[stack.Count - index - 1]);
                         break;
                     }
+                    case "if":
+                    {
+                        IReadOnlyList<CalculatorInstruction> procedure = PopProcedure();
+                        if (PopBoolean()) ExecuteInstructions(procedure);
+                        break;
+                    }
+                    case "ifelse":
+                    {
+                        IReadOnlyList<CalculatorInstruction> whenFalse = PopProcedure();
+                        IReadOnlyList<CalculatorInstruction> whenTrue = PopProcedure();
+                        ExecuteInstructions(PopBoolean() ? whenTrue : whenFalse);
+                        break;
+                    }
                     case "ln": Push(Math.Log(Pop())); break;
                     case "log": Push(Math.Log10(Pop())); break;
-                    case "mod": { int b = PopInteger(); int a = PopInteger(); Push(a % b); break; }
+                    case "mod": { int b = PopInteger(); int a = PopInteger(); Push((double)(a % b)); break; }
                     case "mul": { double b = Pop(); Push(Pop() * b); break; }
                     case "neg": Push(-Pop()); break;
+                    case "lt": { double b = Pop(); Push(Pop() < b); break; }
+                    case "le": { double b = Pop(); Push(Pop() <= b); break; }
+                    case "gt": { double b = Pop(); Push(Pop() > b); break; }
+                    case "ge": { double b = Pop(); Push(Pop() >= b); break; }
                     case "pop": Pop(); break;
                     case "roll":
                     {
@@ -2068,7 +2085,7 @@ public sealed class PdfPageRenderer
                         if (shift < 0) shift += count;
                         if (shift == 0) break;
                         int start = stack.Count - count;
-                        double[] values = stack.GetRange(start, count).ToArray();
+                        object[] values = stack.GetRange(start, count).ToArray();
                         for (int index = 0; index < count; index++)
                             stack[start + (index + shift) % count] = values[index];
                         break;
@@ -2077,12 +2094,43 @@ public sealed class PdfPageRenderer
                     case "sin": Push(Math.Sin(Pop() * Math.PI / 180)); break;
                     case "sqrt": Push(Math.Sqrt(Pop())); break;
                     case "sub": { double b = Pop(); Push(Pop() - b); break; }
+                    case "atan":
+                    {
+                        double denominator = Pop();
+                        double numerator = Pop();
+                        double angle = Math.Atan2(numerator, denominator) * 180 / Math.PI;
+                        Push(angle < 0 ? angle + 360 : angle);
+                        break;
+                    }
+                    case "true": Push(true); break;
                     case "truncate": Push(Math.Truncate(Pop())); break;
                     default: throw new NotSupportedException(
                         $"Calculator operator {operation} is not implemented.");
                 }
             }
         };
+
+        IReadOnlyList<CalculatorInstruction> ReadProcedure()
+        {
+            var procedure = new List<CalculatorInstruction>();
+            while (true)
+            {
+                PdfToken token = tokenizer.Read();
+                if (token.Kind == PdfTokenKind.BraceEnd) return procedure.AsReadOnly();
+                if (token.Kind == PdfTokenKind.EndOfInput || ++instructionCount > 4096)
+                    throw new FormatException($"A {description} program is invalid or too large.");
+                procedure.Add(token.Kind switch
+                {
+                    PdfTokenKind.Integer => new CalculatorInstruction(double.Parse(
+                        token.ValueAsLatin1(), System.Globalization.CultureInfo.InvariantCulture), null),
+                    PdfTokenKind.Real => new CalculatorInstruction(double.Parse(
+                        token.ValueAsLatin1(), System.Globalization.CultureInfo.InvariantCulture), null),
+                    PdfTokenKind.Keyword => new CalculatorInstruction(null, token.ValueAsLatin1()),
+                    PdfTokenKind.BraceStart => new CalculatorInstruction(null, null, ReadProcedure()),
+                    _ => throw new NotSupportedException()
+                });
+            }
+        }
     }
 
     private static uint ReadPackedSample(byte[] source, int bitOffset, int bits)
@@ -3922,7 +3970,8 @@ public sealed class PdfPageRenderer
             return minimum + value / limit * (maximum - minimum);
         }
     }
-    private sealed record CalculatorInstruction(double? Number, string? Operator);
+    private sealed record CalculatorInstruction(double? Number, string? Operator,
+        IReadOnlyList<CalculatorInstruction>? Procedure = null);
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
         Func<double, double, double, double, Color>? Converter = null,
         double[]? DefaultDecode = null, Func<double[], Color>? MultiConverter = null)
