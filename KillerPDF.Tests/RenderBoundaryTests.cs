@@ -118,6 +118,29 @@ public sealed class RenderBoundaryTests
         Assert.DoesNotContain("BitmapSource.Create", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OcrWorkflowsUseTheEngineFirstRenderSession()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(
+            Path.Combine(root, "Features", "Ocr", "OcrController.cs"));
+
+        Assert.Equal(4, Count(source, "PdfPageRenderSession.OpenEngineFirst("));
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", source,
+            StringComparison.Ordinal);
+
+        static int Count(string source, string value)
+        {
+            int count = 0;
+            for (int index = source.IndexOf(value, StringComparison.Ordinal);
+                index >= 0;
+                index = source.IndexOf(value, index + value.Length,
+                    StringComparison.Ordinal))
+                count++;
+            return count;
+        }
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

@@ -50,7 +50,8 @@ namespace KillerPDF.Features
             {
                 List<OcrResult> results = await Task.Run(() =>
                 {
-                    using var renderSession = PdfPageRenderSession.Open(file, OcrRenderMax, OcrRenderMax);
+                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                        file, OcrRenderMax, OcrRenderMax);
                     using var ocr = new OcrService(language: lang);   // engine is not thread-safe: one per operation
                     var recognized = new List<OcrResult>(pages.Length);
                     for (int i = 0; i < pages.Length; i++)
@@ -126,7 +127,8 @@ namespace KillerPDF.Features
             {
                 OcrResult result = await Task.Run(() =>
                 {
-                    using var renderSession = PdfPageRenderSession.Open(file, OcrRenderMax, OcrRenderMax);
+                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                        file, OcrRenderMax, OcrRenderMax);
                     PdfRenderedPage page = renderSession.RenderBasePage(pageIdx);
                     int w = page.Width;
                     int h = page.Height;
@@ -252,7 +254,8 @@ namespace KillerPDF.Features
             Action<int, int> report, string language, bool formAware,
             CancellationToken ct)
         {
-            using var renderSession = PdfPageRenderSession.Open(src, OcrRenderMax, OcrRenderMax);
+            using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                src, OcrRenderMax, OcrRenderMax);
             using var ocr = new OcrService(language: language);   // one engine reused across the whole document (single-threaded here)
             int pages = PdfEngineIntegration.ReadPageInformation(src).Count;
             IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
@@ -360,7 +363,8 @@ namespace KillerPDF.Features
         {
             string nl = Environment.NewLine;
             var sb = new StringBuilder();
-            using var renderSession = PdfPageRenderSession.Open(src, OcrRenderMax, OcrRenderMax);
+            using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                src, OcrRenderMax, OcrRenderMax);
             using var ocr = new OcrService(language: language);
             IReadOnlyList<IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>> formPages =
                 formAware ? ReadAllFormHints(src, pageCount) :
