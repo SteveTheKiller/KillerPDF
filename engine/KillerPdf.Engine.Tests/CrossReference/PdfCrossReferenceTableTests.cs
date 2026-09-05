@@ -757,6 +757,9 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("hybrid cross-reference chain reuses an offset",
             error.Message, StringComparison.Ordinal);
+        Assert.Single(PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true)
+            .Sections);
     }
 
     [Fact]

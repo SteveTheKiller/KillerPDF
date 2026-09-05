@@ -156,7 +156,15 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             {
                 long hybridOffset = primary.HybridStreamOffset.Value;
                 if (!visitedOffsets.Add(hybridOffset))
-                    throw new PdfSyntaxException("The hybrid cross-reference chain reuses an offset", (int)hybridOffset);
+                {
+                    if (!compatibilityRecovery)
+                        throw new PdfSyntaxException(
+                            "The hybrid cross-reference chain reuses an offset",
+                            (int)hybridOffset);
+                    revisions.Add(new Revision(primary, null));
+                    currentOffset = previousOffset;
+                    continue;
+                }
                 if (hybridOffset > currentOffset.Value
                     && !compatibilityRecovery
                     && !IsLinearizedForwardHybrid(primary, linearization))
