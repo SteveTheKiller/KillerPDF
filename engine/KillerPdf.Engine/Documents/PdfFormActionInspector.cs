@@ -21,8 +21,10 @@ public sealed record PdfFormActionInfo(string FieldName, int? SourceObjectNumber
     string Trigger, string ActionType, PdfFormActionSafety Safety, string? Target);
 
 /// <summary>Inspects field and widget actions without executing them.</summary>
-public static class PdfFormActionInspector
+public static partial class PdfFormActionInspector
 {
+    private static readonly PdfFormActionCompactJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfFormActionIndentedJsonContext IndentedJson = new(JsonOptions(true));
     private static readonly PdfName AcroFormName = Name("AcroForm");
     private static readonly PdfName FieldsName = Name("Fields");
     private static readonly PdfName KidsName = Name("Kids");
@@ -34,12 +36,23 @@ public static class PdfFormActionInspector
     private static readonly PdfName UriName = Name("URI");
 
     /// <summary>Exports the inspection result as stable machine-readable JSON.</summary>
-    public static string ExportJson(PdfDocument document, bool indented = true) =>
-        JsonSerializer.Serialize(Inspect(document), new JsonSerializerOptions
+    public static string ExportJson(PdfDocument document, bool indented = true)
+    {
+        PdfFormActionInfo[] actions = [.. Inspect(document)];
+        return JsonSerializer.Serialize(actions, indented
+            ? IndentedJson.PdfFormActionInfoArray
+            : CompactJson.PdfFormActionInfoArray);
+    }
+
+    private static JsonSerializerOptions JsonOptions(bool indented)
+    {
+        var options = new JsonSerializerOptions
         {
-            WriteIndented = indented,
-            Converters = { new JsonStringEnumConverter() }
-        });
+            WriteIndented = indented
+        };
+        options.Converters.Add(new JsonStringEnumConverter<PdfFormActionSafety>());
+        return options;
+    }
 
     /// <summary>Reports field and widget actions without executing active content.</summary>
     public static IReadOnlyList<PdfFormActionInfo> Inspect(PdfDocument document)
@@ -171,4 +184,11 @@ public static class PdfFormActionInspector
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+
+    [JsonSerializable(typeof(PdfFormActionInfo[]))]
+    private sealed partial class PdfFormActionCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(PdfFormActionInfo[]))]
+    private sealed partial class PdfFormActionIndentedJsonContext : JsonSerializerContext;
 }

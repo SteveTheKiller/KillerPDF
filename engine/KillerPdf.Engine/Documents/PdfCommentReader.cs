@@ -1,14 +1,24 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Reads review comments from every annotation subtype.</summary>
-public static class PdfCommentReader
+public static partial class PdfCommentReader
 {
+    private static readonly PdfCommentCompactJsonContext CompactJson = new(
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    private static readonly PdfCommentIndentedJsonContext IndentedJson = new(
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
+
     /// <summary>Exports threaded review comments as readable text.</summary>
     public static string ExportText(PdfDocument document)
     {
@@ -43,12 +53,13 @@ public static class PdfCommentReader
     }
 
     /// <summary>Exports threaded review comments as stable machine-readable JSON.</summary>
-    public static string ExportJson(PdfDocument document, bool indented = true) =>
-        JsonSerializer.Serialize(ReadThreads(document), new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+    public static string ExportJson(PdfDocument document, bool indented = true)
+    {
+        PdfCommentThread[] threads = [.. ReadThreads(document)];
+        return JsonSerializer.Serialize(threads, indented
+            ? IndentedJson.PdfCommentThreadArray
+            : CompactJson.PdfCommentThreadArray);
+    }
 
     /// <summary>Returns comments grouped into reply threads in page annotation order.</summary>
     public static IReadOnlyList<PdfCommentThread> ReadThreads(PdfDocument document)
@@ -206,6 +217,15 @@ public static class PdfCommentReader
     private static string SingleLine(string value) => value
         .Replace("\r", " ", StringComparison.Ordinal)
         .Replace("\n", " ", StringComparison.Ordinal);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfCommentThread[]))]
+    private sealed partial class PdfCommentCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfCommentThread[]))]
+    private sealed partial class PdfCommentIndentedJsonContext : JsonSerializerContext;
 }
 
 /// <summary>One review comment and its ordered replies.</summary>
