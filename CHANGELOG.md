@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Added engine-owned page rendering and OCR foundations with paths, tensor shadings, bundled, embedded, and host-resolved font outlines, calculator colors, JPEG, fax, transparent images, forms, preprocessing, layout analysis, and recognition.
+- Added engine-first rendering and OCR across the viewer, thumbnails, print, export, transforms, and OCR, with paths, shadings, font outlines, JPEG, JPEG 2000, JBIG2, fax, transparency, forms, preprocessing, layout analysis, and recognition.
 - Added safe XFA inspection, editing, rendering, calculation, conversion, and compatibility reports (#330).
 - Added complete FDF and XFDF form-data and review-annotation interchange with safe previews and reports (#329).
 - Added complete AcroForm authoring, reviewable field recognition, editing, flattening, and reports (#342).

@@ -256,7 +256,7 @@ namespace KillerPDF
             try
             {
                 string srcPath = sourceOverride ?? _currentFile;
-                using var renderSession = PdfPageRenderSession.Open(srcPath, maxPx, maxPx);
+                using var renderSession = PdfPageRenderSession.OpenEngineFirst(srcPath, maxPx, maxPx);
                 PdfRenderedPage page = renderSession.RenderPage(pageIdx);
                 int w = page.Width;
                 int h = page.Height;

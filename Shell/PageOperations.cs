@@ -272,7 +272,7 @@ namespace KillerPDF
             {
                 try
                 {
-                    using var renderSession = PdfPageRenderSession.Open(filePath, 128, 256);
+                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(filePath, 128, 256);
                     for (int i = 0; i < pageCount; i++)
                     {
                         if (ct.IsCancellationRequested) return;

@@ -1403,7 +1403,8 @@ namespace KillerPDF
             {
                 try
                 {
-                    using var renderSession = PdfPageRenderSession.Open(renderPath, previewBox, previewBox);
+                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                        renderPath, previewBox, previewBox);
                     for (int i = 0; i < pageCount; i++)
                     {
                         if (preview.Canceled) return;
