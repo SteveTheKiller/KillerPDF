@@ -138,6 +138,21 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(new PdfGlyphBounds(0, 0, 250, 30), font.GetBounds(1));
     }
 
+    [Fact]
+    public void RandomOperatorProducesDeterministicOutlineGeometry()
+    {
+        byte[] program = [.. Numbers(0, 0), 21, 12, 23, .. Numbers(100),
+            12, 24, .. Numbers(0), 5, 14];
+        var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(Build(program)));
+
+        PdfGlyphBounds first = Assert.IsType<PdfGlyphBounds>(font.GetBounds(1));
+        PdfGlyphBounds second = Assert.IsType<PdfGlyphBounds>(font.GetBounds(1));
+
+        Assert.Equal(first, second);
+        Assert.InRange(first.Right, 0.000001, 100);
+        Assert.Equal(0, first.Top);
+    }
+
     internal static byte[] Build(byte[] program, byte[]? subr = null)
     {
         byte[] name = Index("Example"u8.ToArray());

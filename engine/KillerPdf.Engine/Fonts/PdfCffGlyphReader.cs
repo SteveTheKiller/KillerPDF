@@ -306,6 +306,7 @@ public sealed class PdfCffGlyphReader
         private double _x, _y, _left = double.PositiveInfinity, _bottom = double.PositiveInfinity,
             _right = double.NegativeInfinity, _top = double.NegativeInfinity;
         private int _steps, _hints;
+        private uint _randomState = 0x6D2B79F5;
         private bool _width;
         internal PdfGlyphBounds? Read(ReadOnlyMemory<byte> program)
         {
@@ -458,7 +459,10 @@ public sealed class PdfCffGlyphReader
                 case 20: int put=Int(Pop()); if(put>=32)throw Bad(); _transient[put]=Pop(); return;
                 case 21: int get=Int(Pop()); if(get>=32)throw Bad(); Push(_transient[get]); return;
                 case 22: b=Pop(); a=Pop(); double s2=Pop(), s1=Pop(); Push(a<=b?s1:s2); return;
-                case 23: throw new NotSupportedException("Randomized Type 2 outlines have no fixed geometry.");
+                case 23:
+                    _randomState = unchecked(_randomState * 1664525 + 1013904223);
+                    Push(((_randomState >> 8) + 1d) / 16777217d);
+                    return;
                 case 24: b=Pop(); Push(Pop()*b); return;
                 case 26: Push(Math.Sqrt(Pop())); return;
                 case 27: if(_stack.Count==0)throw Bad(); Push(_stack[^1]); return;
