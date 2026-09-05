@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
@@ -263,7 +264,7 @@ public sealed record PdfOcrWord
 }
 
 /// <summary>An immutable, reviewable OCR result.</summary>
-public sealed class PdfOcrReview
+public sealed partial class PdfOcrReview
 {
     private readonly PdfOcrWord[] _words;
 
@@ -432,13 +433,15 @@ public sealed class PdfOcrReview
     }
 
     /// <summary>Exports the complete recognition and review state as stable JSON.</summary>
-    public string ExportJson() => JsonSerializer.Serialize(new PdfOcrReviewFile(1, _words));
+    public string ExportJson() => JsonSerializer.Serialize(
+        new PdfOcrReviewFile(1, _words), PdfOcrReviewJsonContext.Default.PdfOcrReviewFile);
 
     /// <summary>Restores a previously exported recognition and review state.</summary>
     public static PdfOcrReview ImportJson(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        PdfOcrReviewFile file = JsonSerializer.Deserialize<PdfOcrReviewFile>(json)
+        PdfOcrReviewFile file = JsonSerializer.Deserialize(
+            json, PdfOcrReviewJsonContext.Default.PdfOcrReviewFile)
             ?? throw new JsonException("The OCR review file is empty.");
         if (file.Version != 1)
             throw new NotSupportedException($"OCR review file version {file.Version} is not supported.");
@@ -460,6 +463,9 @@ public sealed class PdfOcrReview
         value.IndexOfAny([',', '"', '\r', '\n']) < 0 ? value : $"\"{value.Replace("\"", "\"\"")}\"";
 
     private sealed record PdfOcrReviewFile(int Version, PdfOcrWord[] Words);
+
+    [JsonSerializable(typeof(PdfOcrReviewFile))]
+    private sealed partial class PdfOcrReviewJsonContext : JsonSerializerContext;
 }
 
 /// <summary>One source page supplied to an OCR provider.</summary>
