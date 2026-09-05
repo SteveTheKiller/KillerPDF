@@ -22,6 +22,9 @@ if (args.Length == 3 && args[0] == "--render-one")
             throw new ArgumentException("Render size must be a positive integer.");
         PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
             File.ReadAllBytes(file));
+        if (document.IsEncrypted)
+            throw new InvalidOperationException(
+                "Authenticate the document before rendering pages.");
         if (PdfPageInformation.Read(document).Count == 0)
             throw new InvalidDataException("The PDF contains no pages.");
         PdfRenderedPage page = new PdfPageRenderer(document).Render(
