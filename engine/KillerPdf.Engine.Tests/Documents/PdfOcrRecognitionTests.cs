@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Numerics;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Rendering;
@@ -39,6 +40,26 @@ public sealed class PdfOcrRecognitionTests
         Assert.Throws<FormatException>(() => PdfOcrRecognitionModel.Load("bad"u8.ToArray()));
         Assert.Throws<ArgumentException>(() => PdfOcrRecognitionModel.Create(
             1, 1, ["x"], new float[] { float.NaN }, new float[] { 0 }));
+    }
+
+    [Fact]
+    public void ModelClassificationHandlesVectorBlocksAndScalarTail()
+    {
+        int features = Math.Min(128, Vector<float>.Count + 3);
+        float[] positive = Enumerable.Repeat(1f, features).ToArray();
+        float[] negative = Enumerable.Repeat(-1f, features).ToArray();
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
+            features, 1, ["positive", "negative"],
+            positive.Concat(negative).ToArray(), new float[] { 0, 0 });
+        string blank = new('.', features * 2);
+        PdfOcrPreparedImage image = Prepared(features * 2, 4,
+            [blank, new string('#', features) + new string('.', features), blank, blank]);
+
+        PdfOcrRecognizedWord word = Assert.Single(PdfOcrRecognizer.Recognize(
+            image, PdfOcrLayoutAnalyzer.Analyze(image), model));
+
+        Assert.Equal("positive", word.Text);
+        Assert.Equal(1 / (1 + Math.Exp(-2 * features)), word.Confidence, 12);
     }
 
     [Fact]
@@ -100,7 +121,7 @@ public sealed class PdfOcrRecognitionTests
             }
         return PdfOcrImagePreprocessor.PrepareBgra(bgra, width, height,
             new PdfOcrOptions(["eng"], deskew: false, correctOrientation: false,
-                detectPageSegments: false));
+                removeBackground: false, removeNoise: false, detectPageSegments: false));
     }
 
     private static PdfOcrRecognitionModel RecognitionModel()

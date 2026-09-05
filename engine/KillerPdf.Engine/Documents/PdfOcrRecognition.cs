@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Numerics;
 using KillerPdf.Engine.Rendering;
 
 namespace KillerPdf.Engine.Documents;
@@ -123,7 +124,17 @@ public sealed class PdfOcrRecognitionModel
         {
             double score = _biases[label];
             int offset = label * featureCount;
-            for (int feature = 0; feature < featureCount; feature++)
+            int feature = 0;
+            for (; feature <= featureCount - Vector<float>.Count;
+                feature += Vector<float>.Count)
+            {
+                var weights = new Vector<float>(
+                    _weights.AsSpan(offset + feature, Vector<float>.Count));
+                var inputs = new Vector<float>(
+                    features.Slice(feature, Vector<float>.Count));
+                score += Vector.Dot(weights, inputs);
+            }
+            for (; feature < featureCount; feature++)
                 score += _weights[offset + feature] * features[feature];
             scores[label] = score;
         }
