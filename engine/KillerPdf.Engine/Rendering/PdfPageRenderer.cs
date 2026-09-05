@@ -2295,17 +2295,56 @@ public sealed class PdfPageRenderer
             scaled.Min(path => path.Min(point => point.Y))), 0, height);
         int bottom = (int)Math.Clamp(Math.Ceiling(
             scaled.Max(path => path.Max(point => point.Y))), 0, height);
+        bool rectangle = scaled.Length == 1 && IsAxisAlignedRectangle(scaled[0]);
+        bool directFill = rectangle && clips.Count == 0 && alpha >= 1
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (directFill)
+            {
+                int rowOffset = (y * width + left) * 4;
+                int rowEnd = (y * width + right) * 4;
+                for (int offset = rowOffset; offset < rowEnd; offset += 4)
+                {
+                    pixels[offset] = color.Blue;
+                    pixels[offset + 1] = color.Green;
+                    pixels[offset + 2] = color.Red;
+                    pixels[offset + 3] = 255;
+                }
+                continue;
+            }
             double sampleY = y + 0.5;
             for (int x = left; x < right; x++)
             {
                 double sampleX = x + 0.5;
-                if (Contains(scaled, evenOdd, sampleX, sampleY)
+                if ((rectangle || Contains(scaled, evenOdd, sampleX, sampleY))
                     && InsideClips(clips, sampleX / scaleX, (height - sampleY) / scaleY))
                     SetPixel(pixels, width, x, y, color, alpha, blendMode);
             }
+        }
+
+        static bool IsAxisAlignedRectangle(Point[] polygon)
+        {
+            if (polygon.Length != 5 || polygon[0] != polygon[^1]) return false;
+            double minimumX = polygon.Take(4).Min(point => point.X);
+            double maximumX = polygon.Take(4).Max(point => point.X);
+            double minimumY = polygon.Take(4).Min(point => point.Y);
+            double maximumY = polygon.Take(4).Max(point => point.Y);
+            if (maximumX <= minimumX || maximumY <= minimumY) return false;
+            for (int index = 1; index < polygon.Length; index++)
+            {
+                Point from = polygon[index - 1], to = polygon[index];
+                bool horizontal = from.Y == to.Y && from.X != to.X;
+                bool vertical = from.X == to.X && from.Y != to.Y;
+                if (!horizontal && !vertical) return false;
+            }
+            double twiceArea = 0;
+            for (int index = 0; index < 4; index++)
+                twiceArea += polygon[index].X * polygon[index + 1].Y
+                    - polygon[index + 1].X * polygon[index].Y;
+            double expected = 2 * (maximumX - minimumX) * (maximumY - minimumY);
+            return Math.Abs(Math.Abs(twiceArea) - expected) <= expected * 1e-12;
         }
     }
 
