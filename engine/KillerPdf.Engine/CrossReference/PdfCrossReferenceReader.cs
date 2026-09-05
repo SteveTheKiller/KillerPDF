@@ -101,8 +101,10 @@ public static class PdfCrossReferenceReader
                     throw Error("A classic xref trailer must be a dictionary", tokenizer.Position);
                 ValidateSize(trailer, entries.Values, first.Offset,
                     compatibilityRecovery);
-                ValidateTrailerOffsets(trailer, source.Length, first.Offset);
-                return new PdfCrossReferenceSection(xrefToken.Offset, entries.Values, trailer, isStream: false);
+                ValidateTrailerOffsets(trailer, source.Length, first.Offset,
+                    compatibilityRecovery);
+                return new PdfCrossReferenceSection(xrefToken.Offset, entries.Values, trailer,
+                    isStream: false, compatibilityRecovery: compatibilityRecovery);
             }
 
             long firstObject = ParseInteger(first, "An xref subsection must begin with an object number");
@@ -192,7 +194,8 @@ public static class PdfCrossReferenceReader
         int size = RequiredNonNegativeInt(stream.Dictionary, SizeName, offset);
         int[] widths = ReadWidths(stream.Dictionary, offset);
         IReadOnlyList<(int First, int Count)> ranges = ReadIndex(stream.Dictionary, size, offset);
-        ValidateTrailerOffsets(stream.Dictionary, source.Length, offset);
+        ValidateTrailerOffsets(stream.Dictionary, source.Length, offset,
+            compatibilityRecovery);
 
         int rowWidth = checked(widths[0] + widths[1] + widths[2]);
         long rowCount = ranges.Sum(range => (long)range.Count);
@@ -226,7 +229,8 @@ public static class PdfCrossReferenceReader
         ValidateSize(stream.Dictionary, entries.Values, offset,
             compatibilityRecovery);
         return new PdfCrossReferenceSection(offset, entries.Values, stream.Dictionary,
-            isStream: true, streamObjectNumber: indirect.ObjectNumber);
+            isStream: true, streamObjectNumber: indirect.ObjectNumber,
+            compatibilityRecovery: compatibilityRecovery);
     }
 
     private static PdfCrossReferenceEntry ParseStreamEntry(
@@ -346,17 +350,33 @@ public static class PdfCrossReferenceReader
             throw Error("A free cross-reference entry lies beyond trailer /Size", offset);
     }
 
-    private static void ValidateTrailerOffsets(PdfDictionary trailer, int sourceLength, int offset)
+    private static void ValidateTrailerOffsets(
+        PdfDictionary trailer,
+        int sourceLength,
+        int offset,
+        bool compatibilityRecovery)
     {
-        ValidateOptionalOffset(trailer, new PdfName("Prev"u8), sourceLength, offset);
+        ValidateOptionalOffset(trailer, new PdfName("Prev"u8), sourceLength, offset,
+            allowPastEnd: compatibilityRecovery);
         ValidateOptionalOffset(trailer, new PdfName("XRefStm"u8), sourceLength, offset);
     }
 
-    private static void ValidateOptionalOffset(PdfDictionary trailer, PdfName name, int sourceLength, int offset)
+    private static void ValidateOptionalOffset(
+        PdfDictionary trailer,
+        PdfName name,
+        int sourceLength,
+        int offset,
+        bool allowPastEnd = false)
     {
         if (!trailer.TryGetValue(name, out PdfObject value))
             return;
-        if (value is not PdfInteger integer || integer.Value < 0 || integer.Value >= sourceLength)
+        if (allowPastEnd && value is PdfIndirectReference { Generation: 0 } reference)
+        {
+            if (reference.ObjectNumber < sourceLength) return;
+            throw Error($"Trailer {name} must point inside the file", offset);
+        }
+        if (value is not PdfInteger integer || integer.Value < 0
+            || !allowPastEnd && integer.Value >= sourceLength)
             throw Error($"Trailer {name} must point inside the file", offset);
     }
 

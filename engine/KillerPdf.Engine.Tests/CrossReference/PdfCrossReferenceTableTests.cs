@@ -76,6 +76,41 @@ public sealed class PdfCrossReferenceTableTests
             .Sections.Count);
     }
 
+    [Fact]
+    public void Read_CompatibilityRecoveryStopsAtPreviousOffsetPastEndOfFile()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 1\n0000000000 65535 f\n");
+        source.Append("trailer\n<< /Size 1 /Prev 999999 >>\n");
+        source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceTable.Read(Encoding.ASCII.GetBytes(source.ToString())));
+        Assert.Single(PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true)
+            .Sections);
+    }
+
+    [Fact]
+    public void Read_CompatibilityRecoveryUsesPreviousReferenceObjectNumberAsOffset()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        int olderOffset = source.Length;
+        source.Append("xref\n0 1\n0000000000 65535 f\n");
+        source.Append("trailer\n<< /Size 1 >>\n");
+        int latestOffset = source.Length;
+        source.Append("xref\n0 1\n0000000000 65535 f\n");
+        source.Append($"trailer\n<< /Size 1 /Prev {olderOffset} 0 R >>\n");
+        source.Append($"startxref\n{latestOffset}\n%%EOF\n");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceTable.Read(Encoding.ASCII.GetBytes(source.ToString())));
+        Assert.Equal(2, PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true)
+            .Sections.Count);
+    }
+
     [Theory]
     [InlineData("\n")]
     [InlineData("\r")]

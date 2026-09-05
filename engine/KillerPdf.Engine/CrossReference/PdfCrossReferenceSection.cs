@@ -16,15 +16,16 @@ public sealed class PdfCrossReferenceSection : IReadOnlyDictionary<int, PdfCross
         IEnumerable<PdfCrossReferenceEntry> entries,
         PdfDictionary trailer,
         bool isStream,
-        int? streamObjectNumber = null)
+        int? streamObjectNumber = null,
+        bool compatibilityRecovery = false)
     {
         Offset = offset;
         Trailer = trailer;
         IsStream = isStream;
         StreamObjectNumber = streamObjectNumber;
         _entries = entries.ToDictionary(entry => entry.ObjectNumber);
-        PreviousOffset = OptionalOffset(trailer, PrevName);
-        HybridStreamOffset = OptionalOffset(trailer, XRefStmName);
+        PreviousOffset = OptionalOffset(trailer, PrevName, compatibilityRecovery);
+        HybridStreamOffset = OptionalOffset(trailer, XRefStmName, compatibilityRecovery);
     }
 
     /// <summary>Gets the byte offset at which the section begins.</summary>
@@ -57,10 +58,16 @@ public sealed class PdfCrossReferenceSection : IReadOnlyDictionary<int, PdfCross
     public IEnumerator<KeyValuePair<int, PdfCrossReferenceEntry>> GetEnumerator() => _entries.GetEnumerator();
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    private static long? OptionalOffset(PdfDictionary trailer, PdfName name)
+    private static long? OptionalOffset(
+        PdfDictionary trailer,
+        PdfName name,
+        bool compatibilityRecovery)
     {
         if (!trailer.TryGetValue(name, out PdfObject value))
             return null;
+        if (compatibilityRecovery
+            && value is PdfIndirectReference { Generation: 0 } reference)
+            return reference.ObjectNumber;
         if (value is not PdfInteger integer || integer.Value < 0)
             throw new ArgumentException($"Trailer {name} must be a non-negative integer.", nameof(trailer));
         return integer.Value;
