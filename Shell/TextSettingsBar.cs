@@ -778,11 +778,7 @@ namespace KillerPDF
                     var src = Clipboard.GetImage();
                     if (src is null) { SetStatus(Loc("Str_St_ClipImageUnreadable")); return; }
 
-                    // Encode to PNG so ImageAnnotation stores standard bytes (same as file import).
-                    byte[] imgBytes;
-                    var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
-                    encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(src));
-                    using (var ms = new MemoryStream()) { encoder.Save(ms); imgBytes = ms.ToArray(); }
+                    byte[] imgBytes = BitmapHelpers.EncodeClipboardImagePng(src);
 
                     double srcW = src.PixelWidth > 0 ? src.PixelWidth : 400;
                     double srcH = src.PixelHeight > 0 ? src.PixelHeight : 300;

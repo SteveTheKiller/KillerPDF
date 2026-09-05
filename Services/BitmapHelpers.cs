@@ -167,6 +167,44 @@ namespace KillerPDF.Services
             finally { pin.Free(); }
         }
 
+        internal static byte[] EncodeClipboardImagePng(BitmapSource source)
+        {
+            ArgumentNullException.ThrowIfNull(source);
+            BitmapSource bgra = source.Format == PixelFormats.Bgra32
+                ? source
+                : new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0);
+            int stride = checked(bgra.PixelWidth * 4);
+            byte[] pixels = new byte[checked(stride * bgra.PixelHeight)];
+            bgra.CopyPixels(pixels, stride, 0);
+            EnsureVisibleClipboardAlpha(pixels);
+
+            double dpiX = bgra.DpiX > 0 ? bgra.DpiX : 96;
+            double dpiY = bgra.DpiY > 0 ? bgra.DpiY : 96;
+            BitmapSource normalized = BitmapSource.Create(
+                bgra.PixelWidth, bgra.PixelHeight, dpiX, dpiY,
+                PixelFormats.Bgra32, null, pixels, stride);
+            var encoder = new PngBitmapEncoder();
+            encoder.Frames.Add(BitmapFrame.Create(normalized));
+            using var output = new MemoryStream();
+            encoder.Save(output);
+            return output.ToArray();
+        }
+
+        internal static void EnsureVisibleClipboardAlpha(byte[] bgra)
+        {
+            ArgumentNullException.ThrowIfNull(bgra);
+            bool hasVisiblePixel = false;
+            for (int offset = 3; offset < bgra.Length; offset += 4)
+            {
+                if (bgra[offset] == 0) continue;
+                hasVisiblePixel = true;
+                break;
+            }
+            if (hasVisiblePixel) return;
+            for (int offset = 3; offset < bgra.Length; offset += 4)
+                bgra[offset] = 255;
+        }
+
         // Builds a frozen bitmap sized so its baked DPI displays it at (dipW x dipH) DIPs. Shared by the
         // tile and the render cache so a cached tile bitmap reuses the exact same geometry.
         internal static BitmapSource BuildScaledBitmap(int w, int h, byte[] rawBytes, int dipW, int dipH)
