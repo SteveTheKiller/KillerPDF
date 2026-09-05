@@ -906,12 +906,12 @@ public sealed class PdfPageRenderer
 
                 byte[] maskPixels = GC.AllocateUninitializedArray<byte>(pixels.Length);
                 bool luminosity = subtype.ValueAsLatin1() == "Luminosity";
-                byte backdrop = luminosity ? ReadBackdrop(dictionary) : (byte)255;
+                Color backdrop = luminosity ? ReadBackdrop(dictionary, group) : Color.White;
                 for (int offset = 0; offset < maskPixels.Length; offset += 4)
                 {
-                    maskPixels[offset] = backdrop;
-                    maskPixels[offset + 1] = backdrop;
-                    maskPixels[offset + 2] = backdrop;
+                    maskPixels[offset] = backdrop.Blue;
+                    maskPixels[offset + 1] = backdrop.Green;
+                    maskPixels[offset + 2] = backdrop.Red;
                     maskPixels[offset + 3] = luminosity ? (byte)255 : (byte)0;
                 }
                 byte[] pagePixels = pixels;
@@ -949,12 +949,25 @@ public sealed class PdfPageRenderer
                 }
                 return new GraphicsSoftMask(samples);
 
-                byte ReadBackdrop(PdfDictionary source)
+                Color ReadBackdrop(PdfDictionary source, PdfStream maskGroup)
                 {
+                    PdfDictionary groupResources = maskGroup.Dictionary.TryGetValue(
+                        Name("Resources"), out PdfObject? resourcesValue)
+                        ? Resolve(resourcesValue) as PdfDictionary
+                            ?? throw new FormatException("Soft-mask group resources are not a dictionary.")
+                        : inheritedResources;
+                    ImageColorSpace colorSpace = maskGroup.Dictionary.TryGetValue(
+                            Name("Group"), out PdfObject? attributesValue)
+                        && Resolve(attributesValue) is PdfDictionary attributes
+                        && attributes.TryGetValue(Name("CS"), out PdfObject? colorSpaceValue)
+                            ? ReadColorSpace(colorSpaceValue, groupResources, 0)
+                            : new ImageColorSpace(1, null);
                     if (!source.TryGetValue(Name("BC"), out PdfObject? backdropValue))
-                        return 0;
-                    PdfArray array = ResolveArray(backdropValue, 1, "Soft-mask backdrop color");
-                    return (byte)Math.Round(Math.Clamp(Number(Resolve(array[0])), 0, 1) * 255);
+                        return colorSpace.Convert(new double[colorSpace.Components]);
+                    PdfArray array = ResolveArray(backdropValue, colorSpace.Components,
+                        "Soft-mask backdrop color");
+                    return colorSpace.Convert(array.Select(item =>
+                        Number(Resolve(item))).ToArray());
                 }
             }
 

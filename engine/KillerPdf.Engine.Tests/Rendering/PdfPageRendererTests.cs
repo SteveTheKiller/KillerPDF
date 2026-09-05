@@ -1847,6 +1847,21 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ConvertsRgbSoftMaskBackdropToLuminosity()
+    {
+        PdfDocument document = AddGraphicsSoftMask(
+            "Luminosity", 0, 1, 0, "0 g 0 0 5 10 re f",
+            "DeviceRGB", [1, 0, 0]);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([178, 178, 255, 255], Pixel(rendered, 7, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_ExpandsNestedFormsWithScopedResourcesMatricesAndBounds()
     {
         var inner = new PdfFormXObject(4, 4, new PdfContentStreamBuilder()
@@ -2085,7 +2100,8 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name(name), value));
 
     private static PdfDocument AddGraphicsSoftMask(string subtype,
-        double transferStart, double transferEnd, double backdrop, string maskContent)
+        double transferStart, double transferEnd, double backdrop, string maskContent,
+        string groupColorSpace = "DeviceGray", double[]? backdropComponents = null)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes(
@@ -2107,7 +2123,7 @@ public sealed class PdfPageRendererTests
                 Entry("Group", new PdfDictionary([
                     Entry("Type", Name("Group")),
                     Entry("S", Name("Transparency")),
-                    Entry("CS", Name("DeviceGray"))
+                    Entry("CS", Name(groupColorSpace))
                 ]))
             ]), Encoding.ASCII.GetBytes(maskContent)));
         var transfer = new PdfDictionary([
@@ -2121,7 +2137,7 @@ public sealed class PdfPageRendererTests
         var softMask = new PdfDictionary([
             Entry("S", Name(subtype)),
             Entry("G", groupReference),
-            Entry("BC", Reals(backdrop)),
+            Entry("BC", Reals(backdropComponents ?? [backdrop])),
             Entry("TR", transfer)
         ]);
         var states = new PdfDictionary([Entry("Mask",
