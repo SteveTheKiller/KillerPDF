@@ -66,6 +66,8 @@ public static class PdfFontResourceReader
             int codeLength = composite ? 2 : 1;
             PdfToUnicodeMap? encodingSpaces = null;
             PdfPredefinedCMaps? predefined = null;
+            List<(uint Low, uint High, int Length)>? customCidSpaces = null;
+            PdfPredefinedCMaps? inheritedEncoding = null;
             string? encodingName = Name(Get(font, "Encoding"));
             bool vertical = encodingName?.EndsWith("-V", StringComparison.Ordinal) == true;
             if (composite)
@@ -73,9 +75,13 @@ public static class PdfFontResourceReader
                 ReadCidWidths(Get(metrics, "W") as PdfArray, widths);
                 if (Get(font, "Encoding") is PdfStream encodingStream)
                 {
-                    var (Map, Spaces, Vertical) = ReadCidMap(encodingStream);
-                    cidSelector = c => Map.GetValueOrDefault(c, 0u);
-                    encodingSpaces = PdfToUnicodeMap.CreateCodeSpaces(Spaces);
+                    var (Map, Spaces, Vertical, Base) = ReadCidMap(encodingStream);
+                    customCidSpaces = Spaces;
+                    inheritedEncoding = Base;
+                    cidSelector = c => Map.TryGetValue(c, out uint cid) ? cid : Base?.Cid(c) ?? 0;
+                    encodingSpaces = Spaces.Count > 0
+                        ? PdfToUnicodeMap.CreateCodeSpaces(Spaces)
+                        : Base is null ? null : PdfToUnicodeMap.Create(new Dictionary<uint, string>(), 2);
                     vertical = Vertical;
                 }
                 else if (encodingName is not "Identity-H" and not "Identity-V")
@@ -275,7 +281,10 @@ public static class PdfFontResourceReader
                 IsVertical = vertical,
                 CidSelector = cidSelector,
                 UnicodeFallback = Fallback,
-                CharacterDecoder = predefined is null ? null : input => predefined.Decode(input, unicode, Fallback),
+                CharacterDecoder = predefined is not null
+                    ? input => predefined.Decode(input, unicode, Fallback)
+                    : inheritedEncoding is null ? null
+                    : input => inheritedEncoding.Decode(input, unicode, Fallback, customCidSpaces ?? []),
                 VerticalMetricsReader = code =>
                 {
                     uint cid = cidSelector?.Invoke(code) ?? code;
@@ -349,7 +358,7 @@ public static class PdfFontResourceReader
         }
 
         private (Dictionary<uint, uint> Map,
-            List<(uint Low, uint High, int Length)> Spaces, bool Vertical)
+            List<(uint Low, uint High, int Length)> Spaces, bool Vertical, PdfPredefinedCMaps? Base)
             ReadCidMap(PdfStream stream)
         {
             var seen = new HashSet<PdfStream>(ReferenceEqualityComparer.Instance);
@@ -357,19 +366,21 @@ public static class PdfFontResourceReader
         }
 
         private (Dictionary<uint, uint> Map,
-            List<(uint Low, uint High, int Length)> Spaces, bool Vertical)
+            List<(uint Low, uint High, int Length)> Spaces, bool Vertical, PdfPredefinedCMaps? Base)
             ReadCidMap(PdfStream stream, HashSet<PdfStream> seen, int depth)
         {
             if (depth >= 32 || !seen.Add(stream))
                 throw new FormatException("Font encoding CMap inheritance cycle.");
             (Dictionary<uint, uint> Map,
-                List<(uint Low, uint High, int Length)> Spaces, bool Vertical)? inherited =
+                List<(uint Low, uint High, int Length)> Spaces, bool Vertical, PdfPredefinedCMaps? Base)? inherited =
                 Get(stream.Dictionary, "UseCMap") switch
                 {
                     null => null,
                     PdfStream baseStream => ReadCidMap(baseStream, seen, depth + 1),
-                    PdfName => throw new NotSupportedException(
-                        "Named inherited font encoding CMaps are not supported."),
+                    PdfName name => PdfPredefinedCMaps.Find(name.ValueAsLatin1()) is { } map
+                        ? (new Dictionary<uint, uint>(), [], name.ValueAsLatin1().EndsWith("-V", StringComparison.Ordinal), map)
+                        : throw new NotSupportedException(
+                            $"Inherited font encoding CMap /{name.ValueAsLatin1()} is not supported."),
                     _ => throw new FormatException("Invalid inherited font encoding CMap reference.")
                 };
             var result = ParseCidMap(Decode(stream), inherited);
@@ -459,9 +470,10 @@ public static class PdfFontResourceReader
     private static uint Cid(PdfObject value) => value is PdfInteger number && number.Value is >= 0 and <= 65535
         ? (uint)number.Value : throw new FormatException("CID is outside the valid range.");
 
-    private static (Dictionary<uint, uint> Map, List<(uint Low, uint High, int Length)> Spaces, bool Vertical) ParseCidMap(
+    private static (Dictionary<uint, uint> Map, List<(uint Low, uint High, int Length)> Spaces,
+        bool Vertical, PdfPredefinedCMaps? Base) ParseCidMap(
         byte[] data, (Dictionary<uint, uint> Map,
-            List<(uint Low, uint High, int Length)> Spaces, bool Vertical)? inherited)
+            List<(uint Low, uint High, int Length)> Spaces, bool Vertical, PdfPredefinedCMaps? Base)? inherited)
     {
         var map = inherited is null
             ? new Dictionary<uint, uint>() : new Dictionary<uint, uint>(inherited.Value.Map);
@@ -512,7 +524,7 @@ public static class PdfFontResourceReader
                 }
             }
         }
-        return (map, spaces, vertical);
+        return (map, spaces, vertical, inherited?.Base);
     }
 
     private static (uint Code, int Length) ReadCode(PdfObject value)

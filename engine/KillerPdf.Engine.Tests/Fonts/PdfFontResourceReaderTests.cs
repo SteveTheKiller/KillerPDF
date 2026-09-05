@@ -405,6 +405,24 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void EncodingCmapStreamInheritsAndOverridesAdobeMappings()
+    {
+        var encoding = new PdfStream(D(("UseCMap", N("90ms-RKSJ-H"))), Encoding.ASCII.GetBytes(
+            "/90ms-RKSJ-H usecmap 1 begincidchar <41> 2 endcidchar"));
+        var descendant = D(("CIDSystemInfo", D(("Registry", Text("Adobe")), ("Ordering", Text("Japan1")))),
+            ("DW", new PdfInteger(500)), ("W", new PdfArray([new PdfInteger(1), new PdfArray([
+                new PdfInteger(510), new PdfInteger(520)])])));
+
+        PdfExtractionFont font = Read(Type0(descendant, encoding));
+
+        Assert.Equal("!\u65E5", string.Concat(font.Decode(Convert.FromHexString("4193FA"))
+            .Select(character => character.Text)));
+        Assert.Equal([1, 2], font.Decode(Convert.FromHexString("4193FA"))
+            .Select(character => character.ByteLength));
+        Assert.Equal(520, font.GetWidth(0x41));
+    }
+
+    [Fact]
     public void PredefinedJapaneseCmapDecodesMixedSingleAndDoubleByteText()
     {
         var descendant = D(("CIDSystemInfo", D(("Registry", Text("Adobe")), ("Ordering", Text("Japan1")))));

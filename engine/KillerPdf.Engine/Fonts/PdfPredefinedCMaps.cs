@@ -120,6 +120,10 @@ internal sealed class PdfPredefinedCMaps
     }
 
     internal IReadOnlyList<PdfDecodedCharacter> Decode(ReadOnlyMemory<byte> input, PdfToUnicodeMap unicode, Func<uint, string?> fallback)
+        => Decode(input, unicode, fallback, []);
+
+    internal IReadOnlyList<PdfDecodedCharacter> Decode(ReadOnlyMemory<byte> input, PdfToUnicodeMap unicode,
+        Func<uint, string?> fallback, IReadOnlyList<(uint Low, uint High, int Length)> localSpaces)
     {
         var result = new List<PdfDecodedCharacter>();
         var bytes = input.Span;
@@ -130,7 +134,9 @@ internal sealed class PdfPredefinedCMaps
             for (int length = 1; length <= 4 && offset + length <= bytes.Length; length++)
             {
                 code = (code << 8) | bytes[offset + length - 1];
-                if (!TryCid(code, length, out _)) continue;
+                bool local = localSpaces.Any(space => space.Length == length
+                    && code >= space.Low && code <= space.High);
+                if (!local && !TryCid(code, length, out _)) continue;
                 result.Add(new PdfDecodedCharacter(code, length, unicode.Lookup(code, length) ?? fallback(code) ?? "\uFFFD"));
                 offset += length;
                 found = true;
