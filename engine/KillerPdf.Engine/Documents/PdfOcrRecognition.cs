@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Numerics;
@@ -115,11 +116,16 @@ public sealed class PdfOcrRecognitionModel
         catch (ArgumentException exception) { throw new FormatException("The OCR model payload is invalid.", exception); }
     }
 
-    internal (string Label, double Confidence) Classify(ReadOnlySpan<float> features)
+    internal int LabelCount => _labels.Length;
+
+    internal (string Label, double Confidence) Classify(
+        ReadOnlySpan<float> features, Span<double> scores)
     {
         int featureCount = Width * Height;
         if (features.Length != featureCount) throw new ArgumentException("Glyph feature size mismatch.");
-        var scores = new double[_labels.Length];
+        if (scores.Length < _labels.Length) throw new ArgumentException("OCR score workspace is too small.");
+        scores = scores[.._labels.Length];
+        int best = 0;
         for (int label = 0; label < _labels.Length; label++)
         {
             double score = _biases[label];
@@ -137,10 +143,11 @@ public sealed class PdfOcrRecognitionModel
             for (; feature < featureCount; feature++)
                 score += _weights[offset + feature] * features[feature];
             scores[label] = score;
+            if (score > scores[best]) best = label;
         }
-        int best = Array.IndexOf(scores, scores.Max());
         double maximum = scores[best];
-        double denominator = scores.Sum(score => Math.Exp(score - maximum));
+        double denominator = 0;
+        foreach (double score in scores) denominator += Math.Exp(score - maximum);
         return (_labels[best], 1 / denominator);
     }
 
@@ -272,21 +279,27 @@ public static class PdfOcrRecognizer
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(model);
         var words = new List<PdfOcrRecognizedWord>(layout.Words.Count);
-        foreach (PdfOcrWordRegion word in layout.Words)
+        double[] scores = ArrayPool<double>.Shared.Rent(model.LabelCount);
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var text = new StringBuilder();
-            double confidence = 0;
-            foreach (PdfOcrImageRegion component in word.Components)
+            foreach (PdfOcrWordRegion word in layout.Words)
             {
-                float[] features = NormalizeGlyph(image, component, model.Width, model.Height);
-                (string label, double score) = model.Classify(features);
-                text.Append(label);
-                confidence += score;
+                cancellationToken.ThrowIfCancellationRequested();
+                var text = new StringBuilder();
+                double confidence = 0;
+                foreach (PdfOcrImageRegion component in word.Components)
+                {
+                    float[] features = NormalizeGlyph(image, component, model.Width, model.Height);
+                    (string label, double score) = model.Classify(
+                        features, scores.AsSpan(0, model.LabelCount));
+                    text.Append(label);
+                    confidence += score;
+                }
+                words.Add(new PdfOcrRecognizedWord(text.ToString(),
+                    word.Components.Count == 0 ? 0 : confidence / word.Components.Count, word.Bounds));
             }
-            words.Add(new PdfOcrRecognizedWord(text.ToString(),
-                word.Components.Count == 0 ? 0 : confidence / word.Components.Count, word.Bounds));
         }
+        finally { ArrayPool<double>.Shared.Return(scores); }
         return Array.AsReadOnly(words.ToArray());
     }
 
