@@ -70,6 +70,33 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesLineDashPatternPhaseAndTransform()
+    {
+        PdfDocument patternDocument = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 1, "0 w [1 3] 0 d 0 0.5 m 8 0.5 l S"u8.ToArray()).Build());
+        PdfDocument phaseDocument = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 1, "0 w [1 3] 2 d 0 0.5 m 8 0.5 l S"u8.ToArray()).Build());
+        PdfDocument transformDocument = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 1,
+                "2 0 0 1 0 0 cm 0 w [1 1] 0 d 0 0.5 m 4 0.5 l S"u8.ToArray()).Build());
+
+        PdfRenderedPage pattern = new PdfPageRenderer(patternDocument).Render(
+            0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
+        PdfRenderedPage phase = new PdfPageRenderer(phaseDocument).Render(
+            0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
+        PdfRenderedPage transformed = new PdfPageRenderer(transformDocument).Render(
+            0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 0, 255], Pixel(pattern, 0, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(pattern, 2, 0));
+        Assert.Equal([0, 0, 0, 255], Pixel(pattern, 4, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(phase, 0, 0));
+        Assert.Equal([0, 0, 0, 255], Pixel(phase, 2, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(transformed, 3, 0));
+        Assert.Equal([0, 0, 0, 255], Pixel(transformed, 4, 0));
+    }
+
+    [Fact]
     public void Render_HonorsDefaultOptionalContentVisibility()
     {
         var hidden = new PdfOptionalContentGroup("Hidden", initiallyVisible: false);

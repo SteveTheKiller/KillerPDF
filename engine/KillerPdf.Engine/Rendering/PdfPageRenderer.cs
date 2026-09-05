@@ -63,7 +63,7 @@ public sealed class PdfPageRenderer
             _ => Matrix.Identity
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
-            1, 1, 1, RendererBlendMode.Normal, [],
+            1, 1, 1, [], 0, RendererBlendMode.Normal, [],
             false, null, null, false, null, null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
@@ -263,6 +263,19 @@ public sealed class PdfPageRenderer
                     break;
                 case "w" when values.Count == 1:
                     state = state with { LineWidth = Math.Max(0, Number(values[0])) };
+                    break;
+                case "d" when values.Count == 2 && Resolve(values[0]) is PdfArray dashArray:
+                    double[] dashPattern = dashArray.Select(item => Number(Resolve(item))).ToArray();
+                    double dashPhase = Number(Resolve(values[1]));
+                    if (dashPattern.Any(length => !double.IsFinite(length) || length < 0)
+                        || dashPattern.Length > 0 && dashPattern.All(length => length == 0)
+                        || !double.IsFinite(dashPhase) || dashPhase < 0)
+                        throw new FormatException("A line dash pattern is invalid.");
+                    state = state with
+                    {
+                        DashPattern = Array.AsReadOnly(dashPattern),
+                        DashPhase = dashPhase
+                    };
                     break;
                 case "gs" when values.Count == 1 && values[0] is PdfName stateName:
                     if (TryGetGraphicsState(resources, stateName, out double? fillAlpha,
@@ -497,19 +510,22 @@ public sealed class PdfPageRenderer
 
             void PaintStroke(IReadOnlyList<List<Point>> strokePath)
             {
+                IReadOnlyList<List<Point>> paintedPath = state.DashPattern.Count == 0
+                    ? strokePath : CreateDashedPaths(strokePath, state.Transform,
+                        state.DashPattern, state.DashPhase);
                 if (state.StrokePattern is null)
                 {
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
-                        strokePath, state.Stroke, state.StrokeAlpha, state.LineWidth,
+                        paintedPath, state.Stroke, state.StrokeAlpha, state.LineWidth,
                         state.BlendMode, state.Clips);
                     return;
                 }
-                Point[][] segments = [.. strokePath.Select(points => points.ToArray())];
+                Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
                 double radius = Math.Max(state.LineWidth / 2,
                     0.5 / Math.Max(scaleX, scaleY));
                 var strokeClip = new ClipRegion([], false,
                     (x, y) => IsWithinStroke(segments, radius, x, y));
-                RenderTilingPattern(state.StrokePattern, strokePath, strokeClip,
+                RenderTilingPattern(state.StrokePattern, paintedPath, strokeClip,
                     resources, state, depth);
             }
 
@@ -2456,6 +2472,92 @@ public sealed class PdfPageRenderer
         return state with { Clips = Array.AsReadOnly(clips) };
     }
 
+    private static IReadOnlyList<List<Point>> CreateDashedPaths(
+        IReadOnlyList<List<Point>> paths, Matrix transform,
+        IReadOnlyList<double> suppliedPattern, double suppliedPhase)
+    {
+        if (!transform.TryInverse(out Matrix inverse)) return paths;
+        double[] pattern = suppliedPattern.Count % 2 == 0
+            ? suppliedPattern.ToArray()
+            : [.. suppliedPattern, .. suppliedPattern];
+        double cycle = pattern.Sum();
+        var result = new List<List<Point>>();
+        foreach (List<Point> path in paths)
+        {
+            int patternIndex = 0;
+            bool paints = true;
+            double remaining = pattern[0];
+            double phase = suppliedPhase % cycle;
+            AdvancePastEmptyEntries();
+            while (phase > 0)
+            {
+                if (phase < remaining)
+                {
+                    remaining -= phase;
+                    phase = 0;
+                }
+                else
+                {
+                    phase -= remaining;
+                    AdvancePattern();
+                    AdvancePastEmptyEntries();
+                }
+            }
+
+            List<Point>? painted = null;
+            for (int segment = 1; segment < path.Count; segment++)
+            {
+                Point pageStart = path[segment - 1], pageEnd = path[segment];
+                Point userStart = inverse.Apply(pageStart.X, pageStart.Y);
+                Point userEnd = inverse.Apply(pageEnd.X, pageEnd.Y);
+                double userX = userEnd.X - userStart.X;
+                double userY = userEnd.Y - userStart.Y;
+                double userLength = Math.Sqrt(userX * userX + userY * userY);
+                if (userLength <= 1e-12) continue;
+                double used = 0;
+                while (used < userLength - 1e-12)
+                {
+                    AdvancePastEmptyEntries();
+                    double length = Math.Min(remaining, userLength - used);
+                    double startUnit = used / userLength;
+                    double endUnit = (used + length) / userLength;
+                    Point start = Lerp(pageStart, pageEnd, startUnit);
+                    Point end = Lerp(pageStart, pageEnd, endUnit);
+                    if (paints)
+                    {
+                        if (painted is null || painted[^1] != start)
+                        {
+                            painted = [start];
+                            result.Add(painted);
+                        }
+                        painted.Add(end);
+                    }
+                    else painted = null;
+                    used += length;
+                    remaining -= length;
+                    if (remaining <= 1e-12) AdvancePattern();
+                }
+            }
+
+            void AdvancePattern()
+            {
+                patternIndex = (patternIndex + 1) % pattern.Length;
+                paints = !paints;
+                remaining = pattern[patternIndex];
+            }
+
+            void AdvancePastEmptyEntries()
+            {
+                while (remaining <= 1e-12) AdvancePattern();
+            }
+        }
+        return result;
+
+        static Point Lerp(Point from, Point to, double amount) => new(
+            from.X + (to.X - from.X) * amount,
+            from.Y + (to.Y - from.Y) * amount);
+    }
+
     private static bool InsideClips(IReadOnlyList<ClipRegion> clips, double x, double y) =>
         clips.All(clip => clip.Contains(x, y));
 
@@ -2508,7 +2610,8 @@ public sealed class PdfPageRenderer
 
     private readonly record struct GraphicsState(
         Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
-        double LineWidth, RendererBlendMode BlendMode,
+        double LineWidth, IReadOnlyList<double> DashPattern, double DashPhase,
+        RendererBlendMode BlendMode,
         IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace,
         ImageColorSpace? FillPatternBase, TilingPatternPaint? FillPattern,
         bool StrokePatternSpace, ImageColorSpace? StrokePatternBase,
