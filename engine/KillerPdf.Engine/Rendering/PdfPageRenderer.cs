@@ -63,7 +63,8 @@ public sealed class PdfPageRenderer
             _ => Matrix.Identity
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
-            1, 1, 1, RendererLineCap.Butt, [], 0, RendererBlendMode.Normal, [],
+            1, 1, 1, RendererLineCap.Butt, RendererLineJoin.Miter, 10,
+            [], 0, RendererBlendMode.Normal, [],
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null));
         var diagnostics = new HashSet<string>();
@@ -312,6 +313,18 @@ public sealed class PdfPageRenderer
                     if (capValue != Math.Truncate(capValue) || capValue is < 0 or > 2)
                         throw new FormatException("A line cap style is invalid.");
                     state = state with { LineCap = (RendererLineCap)(int)capValue };
+                    break;
+                case "j" when values.Count == 1:
+                    double joinValue = Number(Resolve(values[0]));
+                    if (joinValue != Math.Truncate(joinValue) || joinValue is < 0 or > 2)
+                        throw new FormatException("A line join style is invalid.");
+                    state = state with { LineJoin = (RendererLineJoin)(int)joinValue };
+                    break;
+                case "M" when values.Count == 1:
+                    double miterLimit = Number(Resolve(values[0]));
+                    if (!double.IsFinite(miterLimit) || miterLimit < 1)
+                        throw new FormatException("A miter limit is invalid.");
+                    state = state with { MiterLimit = miterLimit };
                     break;
                 case "d" when values.Count == 2 && Resolve(values[0]) is PdfArray dashArray:
                     double[] dashPattern = dashArray.Select(item => Number(Resolve(item))).ToArray();
@@ -566,14 +579,16 @@ public sealed class PdfPageRenderer
                 {
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                         paintedPath, state.Stroke, state.StrokeAlpha, state.LineWidth,
-                        state.LineCap, state.BlendMode, state.Clips);
+                        state.LineCap, state.LineJoin, state.MiterLimit,
+                        state.BlendMode, state.Clips);
                     return;
                 }
                 Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
                 double radius = Math.Max(state.LineWidth / 2,
                     Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
                 var strokeClip = new ClipRegion([], false,
-                    (x, y) => IsWithinStroke(segments, radius, x, y, state.LineCap));
+                    (x, y) => IsWithinStroke(segments, radius, x, y,
+                        state.LineCap, state.LineJoin, state.MiterLimit));
                 RenderTilingPattern(state.StrokePattern, paintedPath, strokeClip,
                     resources, state, depth);
             }
@@ -778,7 +793,8 @@ public sealed class PdfPageRenderer
                             if (paintMode is 1 or 2)
                                 StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                                     glyphPaths, state.Stroke, state.StrokeAlpha, state.LineWidth,
-                                    state.LineCap, state.BlendMode, state.Clips);
+                                    state.LineCap, state.LineJoin, state.MiterLimit,
+                                    state.BlendMode, state.Clips);
                             if (clipsText)
                                 textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
                         }
@@ -2222,52 +2238,34 @@ public sealed class PdfPageRenderer
 
     private static void StrokePaths(byte[] pixels, int width, int height, double scaleX,
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha,
-        double lineWidth, RendererLineCap lineCap, RendererBlendMode blendMode,
+        double lineWidth, RendererLineCap lineCap, RendererLineJoin lineJoin,
+        double miterLimit, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips)
     {
-        int radius = Math.Max(1,
-            (int)Math.Ceiling(lineWidth * Math.Max(scaleX, scaleY) / 2) + 1);
         double pageRadius = Math.Max(lineWidth / 2,
             Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
-        var coverage = new bool[checked(width * height)];
-        int left = width, right = 0, top = height, bottom = 0;
-        foreach (List<Point> path in paths)
-        {
-            Point[][] geometry = [path.ToArray()];
-            for (int i = 1; i < path.Count; i++)
-            {
-                Point from = new(path[i - 1].X * scaleX, height - path[i - 1].Y * scaleY);
-                Point to = new(path[i].X * scaleX, height - path[i].Y * scaleY);
-                int steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(to.X - from.X), Math.Abs(to.Y - from.Y))));
-                for (int step = 0; step <= steps; step++)
-                {
-                    int cx = (int)Math.Round(from.X + (to.X - from.X) * step / steps);
-                    int cy = (int)Math.Round(from.Y + (to.Y - from.Y) * step / steps);
-                    for (int yy = cy - radius; yy <= cy + radius; yy++)
-                        for (int xx = cx - radius; xx <= cx + radius; xx++)
-                            if (xx >= 0 && xx < width && yy >= 0 && yy < height)
-                            {
-                                double pageX = (xx + 0.5) / scaleX;
-                                double pageY = (height - yy - 0.5) / scaleY;
-                                if (!coverage[yy * width + xx]
-                                    && InsideClips(clips, pageX, pageY)
-                                    && IsWithinStroke(geometry, pageRadius,
-                                        pageX, pageY, lineCap))
-                                {
-                                    coverage[yy * width + xx] = true;
-                                    left = Math.Min(left, xx);
-                                    right = Math.Max(right, xx + 1);
-                                    top = Math.Min(top, yy);
-                                    bottom = Math.Max(bottom, yy + 1);
-                                }
-                            }
-                }
-            }
-        }
+        Point[][] geometry = [.. paths.Where(path => path.Count > 1)
+            .Select(path => path.ToArray())];
+        if (geometry.Length == 0) return;
+        double expansion = pageRadius * (lineJoin == RendererLineJoin.Miter ? miterLimit : 1);
+        double minimumX = geometry.Min(path => path.Min(point => point.X)) - expansion;
+        double maximumX = geometry.Max(path => path.Max(point => point.X)) + expansion;
+        double minimumY = geometry.Min(path => path.Min(point => point.Y)) - expansion;
+        double maximumY = geometry.Max(path => path.Max(point => point.Y)) + expansion;
+        int left = (int)Math.Clamp(Math.Floor(minimumX * scaleX), 0, width);
+        int right = (int)Math.Clamp(Math.Ceiling(maximumX * scaleX), 0, width);
+        int top = (int)Math.Clamp(Math.Floor(height - maximumY * scaleY), 0, height);
+        int bottom = (int)Math.Clamp(Math.Ceiling(height - minimumY * scaleY), 0, height);
         for (int y = top; y < bottom; y++)
             for (int x = left; x < right; x++)
-                if (coverage[y * width + x])
+            {
+                double pageX = (x + 0.5) / scaleX;
+                double pageY = (height - y - 0.5) / scaleY;
+                if (InsideClips(clips, pageX, pageY)
+                    && IsWithinStroke(geometry, pageRadius, pageX, pageY,
+                        lineCap, lineJoin, miterLimit))
                     SetPixel(pixels, width, x, y, color, alpha, blendMode);
+            }
     }
 
     private static void AddCubic(List<Point> path, Point start, Point control1,
@@ -2645,7 +2643,7 @@ public sealed class PdfPageRenderer
 
     private static bool IsWithinStroke(
         IReadOnlyList<Point[]> paths, double radius, double x, double y,
-        RendererLineCap lineCap)
+        RendererLineCap lineCap, RendererLineJoin lineJoin, double miterLimit)
     {
         double squaredRadius = radius * radius;
         foreach (Point[] path in paths)
@@ -2661,15 +2659,15 @@ public sealed class PdfPageRenderer
                 bool first = index == 1 && !closed;
                 bool last = index == path.Length - 1 && !closed;
                 double extension = radius / Math.Sqrt(lengthSquared);
-                if (first && raw < 0)
+                if (raw < 0)
                 {
-                    if (lineCap == RendererLineCap.Butt
+                    if (!first || lineCap == RendererLineCap.Butt
                         || lineCap == RendererLineCap.ProjectingSquare && raw < -extension)
                         continue;
                 }
-                if (last && raw > 1)
+                if (raw > 1)
                 {
-                    if (lineCap == RendererLineCap.Butt
+                    if (!last || lineCap == RendererLineCap.Butt
                         || lineCap == RendererLineCap.ProjectingSquare && raw > 1 + extension)
                         continue;
                 }
@@ -2680,8 +2678,71 @@ public sealed class PdfPageRenderer
                 double offsetY = y - (from.Y + parameter * dy);
                 if (offsetX * offsetX + offsetY * offsetY <= squaredRadius) return true;
             }
+            int vertexCount = closed ? path.Length - 1 : path.Length;
+            int firstVertex = closed ? 0 : 1;
+            int lastVertex = closed ? vertexCount - 1 : vertexCount - 2;
+            for (int vertexIndex = firstVertex; vertexIndex <= lastVertex; vertexIndex++)
+            {
+                int previousIndex = vertexIndex == 0 ? vertexCount - 1 : vertexIndex - 1;
+                int nextIndex = (vertexIndex + 1) % vertexCount;
+                if (InsideJoin(path[previousIndex], path[vertexIndex], path[nextIndex]))
+                    return true;
+            }
         }
         return false;
+
+        bool InsideJoin(Point previous, Point vertex, Point next)
+        {
+            double incomingX = vertex.X - previous.X;
+            double incomingY = vertex.Y - previous.Y;
+            double outgoingX = next.X - vertex.X;
+            double outgoingY = next.Y - vertex.Y;
+            double incomingLength = Math.Sqrt(
+                incomingX * incomingX + incomingY * incomingY);
+            double outgoingLength = Math.Sqrt(
+                outgoingX * outgoingX + outgoingY * outgoingY);
+            if (incomingLength <= 1e-12 || outgoingLength <= 1e-12) return false;
+            incomingX /= incomingLength;
+            incomingY /= incomingLength;
+            outgoingX /= outgoingLength;
+            outgoingY /= outgoingLength;
+            double turn = Cross(incomingX, incomingY, outgoingX, outgoingY);
+            double dot = incomingX * outgoingX + incomingY * outgoingY;
+            if (Math.Abs(turn) <= 1e-12)
+                return dot < 0 && lineJoin == RendererLineJoin.Round
+                    && SquaredDistance(vertex, x, y) <= squaredRadius;
+            if (lineJoin == RendererLineJoin.Round)
+                return SquaredDistance(vertex, x, y) <= squaredRadius;
+
+            double side = turn > 0 ? 1 : -1;
+            Point firstOuter = new(vertex.X + side * incomingY * radius,
+                vertex.Y - side * incomingX * radius);
+            Point secondOuter = new(vertex.X + side * outgoingY * radius,
+                vertex.Y - side * outgoingX * radius);
+            Point[] bevel = [vertex, firstOuter, secondOuter];
+            if (lineJoin == RendererLineJoin.Bevel) return Contains([bevel], false, x, y);
+
+            double denominator = Cross(incomingX, incomingY, outgoingX, outgoingY);
+            double deltaX = secondOuter.X - firstOuter.X;
+            double deltaY = secondOuter.Y - firstOuter.Y;
+            double distance = Cross(deltaX, deltaY, outgoingX, outgoingY) / denominator;
+            Point miter = new(firstOuter.X + distance * incomingX,
+                firstOuter.Y + distance * incomingY);
+            double miterRatio = Math.Sqrt(SquaredDistance(vertex, miter.X, miter.Y)) / radius;
+            return miterRatio <= miterLimit
+                ? Contains([[vertex, firstOuter, miter, secondOuter]], false, x, y)
+                : Contains([bevel], false, x, y);
+        }
+
+        static double Cross(double firstX, double firstY, double secondX, double secondY) =>
+            firstX * secondY - firstY * secondX;
+
+        static double SquaredDistance(Point point, double otherX, double otherY)
+        {
+            double dx = otherX - point.X;
+            double dy = otherY - point.Y;
+            return dx * dx + dy * dy;
+        }
     }
 
     private static double Number(PdfObject value) => value switch
@@ -2701,7 +2762,8 @@ public sealed class PdfPageRenderer
 
     private readonly record struct GraphicsState(
         Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
-        double LineWidth, RendererLineCap LineCap,
+        double LineWidth, RendererLineCap LineCap, RendererLineJoin LineJoin,
+        double MiterLimit,
         IReadOnlyList<double> DashPattern, double DashPhase,
         RendererBlendMode BlendMode,
         IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace,
@@ -2710,6 +2772,7 @@ public sealed class PdfPageRenderer
         TilingPatternPaint? StrokePattern, ImageColorSpace? FillColorSpace,
         ImageColorSpace? StrokeColorSpace);
     private enum RendererLineCap { Butt, Round, ProjectingSquare }
+    private enum RendererLineJoin { Miter, Round, Bevel }
     private enum RendererBlendMode
     {
         Normal, Compatible, Multiply, Screen, Overlay, Darken, Lighten, ColorDodge,

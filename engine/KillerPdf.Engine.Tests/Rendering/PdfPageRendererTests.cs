@@ -122,6 +122,32 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesMiterRoundAndBevelLineJoins()
+    {
+        PdfRenderedPage miter = RenderJoin(PdfLineJoin.Miter, 10);
+        PdfRenderedPage limitedMiter = RenderJoin(PdfLineJoin.Miter, 1);
+        PdfRenderedPage round = RenderJoin(PdfLineJoin.Round, 10);
+        PdfRenderedPage bevel = RenderJoin(PdfLineJoin.Bevel, 10);
+
+        Assert.Equal([0, 0, 0, 255], Pixel(miter, 9, 1));
+        Assert.Equal([255, 255, 255, 255], Pixel(limitedMiter, 9, 1));
+        Assert.Equal([0, 0, 0, 255], Pixel(round, 9, 2));
+        Assert.Equal([255, 255, 255, 255], Pixel(bevel, 9, 2));
+
+        static PdfRenderedPage RenderJoin(PdfLineJoin join, double limit)
+        {
+            var content = new PdfContentStreamBuilder()
+                .SetLineWidth(4).SetLineJoin(join).SetMiterLimit(limit)
+                .MoveTo(4, 4).LineTo(10, 16).LineTo(16, 4).Stroke();
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddPage(20, 20, content).Build());
+            return new PdfPageRenderer(document).Render(0,
+                new PdfRenderOptions(20, 20,
+                    includeAnnotations: false, includeFormFields: false));
+        }
+    }
+
+    [Fact]
     public void Render_PaintsNamedAndExplicitNonPatternColorSpaces()
     {
         byte[] content = Encoding.ASCII.GetBytes(
