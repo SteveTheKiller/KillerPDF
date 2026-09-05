@@ -481,15 +481,22 @@ public static class PdfFontResourceReader
             ? [] : new List<(uint Low, uint High, int Length)>(inherited.Value.Spaces);
         long expanded = 0;
         bool vertical = inherited?.Vertical ?? false;
+        PdfPredefinedCMaps? baseMap = inherited?.Base;
         foreach (var instruction in PdfContentStreamReader.Read(PdfCMapMetadata.WithoutDictionaries(data)))
         {
             var values = instruction.Operands;
             if (instruction.Operator == "usecmap")
             {
-                if (inherited is null)
-                    throw new NotSupportedException("Named inherited font encoding CMaps are not supported.");
-                if (values.Count != 1 || values[0] is not PdfName)
+                if (values.Count != 1 || values[0] is not PdfName name)
                     throw new FormatException("Invalid inherited font encoding CMap reference.");
+                if (inherited is null)
+                {
+                    baseMap = PdfPredefinedCMaps.Find(name.ValueAsLatin1())
+                        ?? throw new NotSupportedException(
+                            $"Inherited font encoding CMap /{name.ValueAsLatin1()} is not supported.");
+                    if (name.ValueAsLatin1().EndsWith("-V", StringComparison.Ordinal))
+                        vertical = true;
+                }
                 continue;
             }
             if (instruction.Operator == "def" && values.Count == 2 && Name(values[0]) == "WMode") vertical = Number(values[1]) == 1;
@@ -524,7 +531,7 @@ public static class PdfFontResourceReader
                 }
             }
         }
-        return (map, spaces, vertical, inherited?.Base);
+        return (map, spaces, vertical, baseMap);
     }
 
     private static (uint Code, int Length) ReadCode(PdfObject value)
