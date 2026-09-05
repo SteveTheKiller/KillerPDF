@@ -28,9 +28,43 @@ public static class PdfCrossReferenceReader
 
         var probe = new PdfTokenizer(source, (int)offset);
         PdfToken first = probe.Read();
+        (PdfToken Token, PdfTokenizer Tokenizer)? recovered = compatibilityRecovery
+            && !IsKeyword(first, "xref")
+            ? FindNearbyClassicTable(source, (int)offset) : null;
+        if (recovered.HasValue)
+        {
+            first = recovered.Value.Token;
+            probe = recovered.Value.Tokenizer;
+        }
         return IsKeyword(first, "xref")
             ? ReadClassic(source, first, probe, compatibilityRecovery)
             : ReadStream(source, (int)offset, compatibilityRecovery);
+    }
+
+    private static (PdfToken Token, PdfTokenizer Tokenizer)? FindNearbyClassicTable(
+        ReadOnlyMemory<byte> source, int offset)
+    {
+        const int maximumDistance = 64;
+        for (int distance = 1; distance <= maximumDistance; distance++)
+        {
+            foreach (int candidate in new[] { offset + distance, offset - distance })
+            {
+                if (candidate < 0 || candidate + 4 > source.Length
+                    || !source.Span.Slice(candidate, 4).SequenceEqual("xref"u8)
+                    || candidate > 0 && !IsBoundary(source.Span[candidate - 1])
+                    || candidate + 4 < source.Length && !IsBoundary(source.Span[candidate + 4]))
+                    continue;
+                var tokenizer = new PdfTokenizer(source, candidate);
+                PdfToken token = tokenizer.Read();
+                if (IsKeyword(token, "xref") && token.Offset == candidate)
+                    return (token, tokenizer);
+            }
+        }
+        return null;
+
+        static bool IsBoundary(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32
+            or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
+            or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
     }
 
     private static PdfCrossReferenceSection ReadClassic(

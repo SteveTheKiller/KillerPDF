@@ -732,6 +732,28 @@ public sealed class PdfCrossReferenceTableTests
     }
 
     [Fact]
+    public void Read_RecoveryFindsNearbyClassicCrossReferenceTable()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        int objectOffset = source.Length;
+        source.Append("1 0 obj\ntrue\nendobj\n");
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 2\n");
+        source.Append("0000000000 65535 f\n");
+        source.Append($"{objectOffset:0000000000} 00000 n\n");
+        source.Append("trailer\n<< /Size 2 >>\n");
+        source.Append($"startxref\n{xrefOffset - 7}\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Throws<PdfSyntaxException>(() => PdfCrossReferenceTable.Read(bytes));
+        PdfCrossReferenceTable recovered = PdfCrossReferenceTable.Read(
+            bytes, compatibilityRecovery: true);
+
+        Assert.Equal(objectOffset, recovered[1].Field1);
+        Assert.Equal(xrefOffset, Assert.Single(recovered.Sections).Offset);
+    }
+
+    [Fact]
     public void Read_AcceptsUnregisteredStandaloneCrossReferenceStream()
     {
         using var source = new MemoryStream();
