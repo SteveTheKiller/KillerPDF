@@ -231,7 +231,12 @@ public static class PdfCrossReferenceReader
         if (IsKeyword(statusToken, "n"))
         {
             if (field1 < 0 || field1 >= sourceLength || field2 == 65_535)
+            {
+                if (compatibilityRecovery)
+                    return new PdfCrossReferenceEntry(
+                        objectNumber, PdfCrossReferenceEntryType.Null, 0, 0);
                 throw Error("An in-use xref entry contains an invalid offset or retired generation", statusToken.Offset);
+            }
             return new PdfCrossReferenceEntry(objectNumber, PdfCrossReferenceEntryType.InUse, field1, (int)field2);
         }
 

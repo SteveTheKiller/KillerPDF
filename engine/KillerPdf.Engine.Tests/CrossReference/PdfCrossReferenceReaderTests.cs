@@ -420,6 +420,22 @@ public sealed class PdfCrossReferenceReaderTests
         Assert.Equal(PdfCrossReferenceEntryType.InUse, recovered[1].Type);
     }
 
+    [Theory]
+    [InlineData("0000009999 00000 n")]
+    [InlineData("0000000010 65535 n")]
+    public void ReadSection_CompatibilityRecoveryIgnoresUnusableInUseEntries(string entry)
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            $"xref\n0 2\n0000000000 65535 f\n{entry}\ntrailer\n<< /Size 2 >>");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0));
+        PdfCrossReferenceSection recovered = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true);
+
+        Assert.Equal(PdfCrossReferenceEntryType.Null, recovered[1].Type);
+    }
+
     private static byte[] XrefStream(byte[] payload, string dictionary)
     {
         byte[] prefix = Encoding.ASCII.GetBytes($"9 0 obj {dictionary} stream\n");
