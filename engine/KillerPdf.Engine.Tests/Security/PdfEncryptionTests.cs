@@ -420,6 +420,187 @@ public sealed class PdfEncryptionTests
             PdfDocument.Open(Revision6Fixture(), "wrong-password"));
     }
 
+    [Theory]
+    [InlineData("gcm-user")]
+    [InlineData("gcm-owner")]
+    public void AuthoredRevision7AesGcmDocumentRoundTrips(string password)
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .SetPasswordEncryption(new PdfPasswordEncryptionOptions
+            {
+                UserPassword = "gcm-user",
+                OwnerPassword = "gcm-owner",
+                Algorithm = PdfPasswordEncryptionAlgorithm.Aes256Gcm
+            })
+            .AddPage(300, 400, new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 12).MoveText(20, 30)
+                .ShowLatin1Text("authenticated content").EndText())
+            .Build();
+
+        PdfDocument document = PdfDocument.Open(source, password);
+
+        Assert.True(document.IsDecrypted);
+        Assert.Equal("authenticated content",
+            new PdfPageContentReader(document).Read(0).Text);
+        PdfDictionary encryption = Assert.IsType<PdfDictionary>(document.Resolve(
+            Assert.IsType<PdfIndirectReference>(
+                document.Trailer[new PdfName("Encrypt"u8)])));
+        Assert.Equal(6, Assert.IsType<PdfInteger>(encryption[new PdfName("V"u8)]).Value);
+        Assert.Equal(7, Assert.IsType<PdfInteger>(encryption[new PdfName("R"u8)]).Value);
+    }
+
+    [Fact]
+    public void AesGcmAuthenticationRejectsChangedCiphertext()
+    {
+        byte[] source = new PdfDocumentBuilder()
+            .SetPasswordEncryption(new PdfPasswordEncryptionOptions
+            {
+                UserPassword = "gcm-user",
+                OwnerPassword = "gcm-owner",
+                Algorithm = PdfPasswordEncryptionAlgorithm.Aes256Gcm
+            })
+            .AddPage(300, 400, new PdfContentStreamBuilder()
+                .MoveTo(10, 10).LineTo(20, 20).Stroke())
+            .Build();
+        PdfDocument raw = PdfDocument.Open(source);
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(raw.Resolve(
+            Assert.IsType<PdfIndirectReference>(raw.Trailer[new PdfName("Root"u8)])));
+        PdfIndirectReference pagesReference = Assert.IsType<PdfIndirectReference>(
+            catalog[new PdfName("Pages"u8)]);
+        PdfDictionary pages = Assert.IsType<PdfDictionary>(raw.Resolve(pagesReference));
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[new PdfName("Kids"u8)])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(raw.Resolve(pageReference));
+        PdfIndirectReference contentsReference = Assert.IsType<PdfIndirectReference>(
+            page[new PdfName("Contents"u8)]);
+        PdfStream encryptedContents = Assert.IsType<PdfStream>(raw.Resolve(contentsReference));
+        int streamOffset = source.AsSpan().IndexOf(encryptedContents.EncodedData.Span);
+        Assert.True(streamOffset >= 0);
+        byte[] tampered = source.ToArray();
+        tampered[streamOffset + encryptedContents.EncodedData.Length - 1] ^= 1;
+
+        PdfDocument reopened = PdfDocument.Open(tampered, "gcm-owner");
+        Assert.ThrowsAny<CryptographicException>(() => reopened.Resolve(contentsReference));
+    }
+
+    [Theory]
+    [InlineData("user")]
+    [InlineData("owner")]
+    public void OpenWithCompatibilityRecovery_IgnoresTrailingRevision6PasswordRecordBytes(
+        string password)
+    {
+        (PdfDocument document, PdfIndirectReference encryptionReference,
+            PdfDictionary encryption, _, _) = AuthoredEncryptionDictionary();
+        var recoveredEncryption = new PdfDictionary(encryption.Select(entry =>
+            entry.Key.Equals(new PdfName("O"u8)) || entry.Key.Equals(new PdfName("U"u8))
+                ? new KeyValuePair<PdfName, PdfObject>(entry.Key,
+                    new PdfString(
+                        [.. Assert.IsType<PdfString>(entry.Value).Bytes.Span, 1, 2, 3],
+                        PdfStringForm.Hexadecimal))
+                : entry));
+        byte[] source = new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(encryptionReference.ObjectNumber, recoveredEncryption)
+            .Build();
+
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Open(source, password));
+        PdfDocument reopened = PdfDocument.OpenWithCompatibilityRecovery(source, password);
+
+        Assert.True(reopened.IsDecrypted);
+        Assert.NotEqual(PdfPasswordAuthenticationRole.None,
+            reopened.PasswordAuthenticationRole);
+    }
+
+    [Fact]
+    public void OpenWithCompatibilityRecovery_AcceptsUnsignedPermissionInteger()
+    {
+        PdfDocument document = PdfDocument.Open(Revision4Fixture(), "owner-password");
+        PdfIndirectReference encryptionReference = Assert.IsType<PdfIndirectReference>(
+            document.Trailer[new PdfName("Encrypt"u8)]);
+        PdfDictionary encryption = Assert.IsType<PdfDictionary>(
+            document.Resolve(encryptionReference));
+        var recoveredEncryption = new PdfDictionary(encryption.Select(entry =>
+            entry.Key.Equals(new PdfName("P"u8))
+                ? new KeyValuePair<PdfName, PdfObject>(entry.Key,
+                    new PdfInteger(uint.MaxValue - 3L))
+                : entry));
+        byte[] source = new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(encryptionReference.ObjectNumber, recoveredEncryption)
+            .Build();
+
+        Assert.Throws<OverflowException>(() =>
+            PdfDocument.Open(source, "owner-password"));
+        PdfDocument reopened = PdfDocument.OpenWithCompatibilityRecovery(
+            source, "owner-password");
+
+        Assert.True(reopened.IsDecrypted);
+        Assert.Equal(PdfPasswordAuthenticationRole.Owner,
+            reopened.PasswordAuthenticationRole);
+    }
+
+    [Fact]
+    public void OpenWithCompatibilityRecovery_AcceptsShortRevision4UserRecord()
+    {
+        PdfDocument document = PdfDocument.Open(Revision4Fixture(), "owner-password");
+        PdfIndirectReference encryptionReference = Assert.IsType<PdfIndirectReference>(
+            document.Trailer[new PdfName("Encrypt"u8)]);
+        PdfDictionary encryption = Assert.IsType<PdfDictionary>(
+            document.Resolve(encryptionReference));
+        var recoveredEncryption = new PdfDictionary(encryption.Select(entry =>
+            entry.Key.Equals(new PdfName("U"u8))
+                ? new KeyValuePair<PdfName, PdfObject>(entry.Key,
+                    new PdfString(Assert.IsType<PdfString>(entry.Value).Bytes.Span[..16],
+                        PdfStringForm.Hexadecimal))
+                : entry));
+        byte[] source = new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(encryptionReference.ObjectNumber, recoveredEncryption)
+            .Build();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfDocument.Open(source, "owner-password"));
+        Assert.True(PdfDocument.OpenWithCompatibilityRecovery(
+            source, "owner-password").IsDecrypted);
+    }
+
+    [Fact]
+    public void OpenWithCompatibilityRecovery_AcceptsMisspelledLegacyKeyLength()
+    {
+        PdfDocument document = PdfDocument.Open(Revision4Fixture(), "owner-password");
+        PdfIndirectReference encryptionReference = Assert.IsType<PdfIndirectReference>(
+            document.Trailer[new PdfName("Encrypt"u8)]);
+        PdfDictionary encryption = Assert.IsType<PdfDictionary>(
+            document.Resolve(encryptionReference));
+        var recoveredEncryption = new PdfDictionary(encryption.Select(entry =>
+            entry.Key.Equals(new PdfName("Length"u8))
+                ? new KeyValuePair<PdfName, PdfObject>(new PdfName("Wength"u8), entry.Value)
+                : entry));
+        byte[] source = new PdfIncrementalUpdateBuilder(document)
+            .ReplaceObject(encryptionReference.ObjectNumber, recoveredEncryption)
+            .Build();
+
+        Assert.ThrowsAny<CryptographicException>(() =>
+            PdfDocument.Open(source, "owner-password"));
+        Assert.True(PdfDocument.OpenWithCompatibilityRecovery(
+            source, "owner-password").IsDecrypted);
+    }
+
+    [Fact]
+    public void OpenWithCompatibilityRecovery_AcceptsDirectEncryptionDictionary()
+    {
+        string source = Encoding.Latin1.GetString(Revision6Fixture());
+        int objectStart = source.IndexOf("5 0 obj\n", StringComparison.Ordinal);
+        int dictionaryStart = source.IndexOf("<<", objectStart, StringComparison.Ordinal);
+        int dictionaryEnd = source.IndexOf("\nendobj", dictionaryStart, StringComparison.Ordinal);
+        string encryption = source[dictionaryStart..dictionaryEnd];
+        source = source.Replace("/Encrypt 5 0 R", $"/Encrypt {encryption}",
+            StringComparison.Ordinal);
+        byte[] bytes = Encoding.Latin1.GetBytes(source);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfDocument.Open(bytes, "owner-password"));
+        Assert.True(PdfDocument.OpenWithCompatibilityRecovery(
+            bytes, "owner-password").IsDecrypted);
+    }
+
     [Fact]
     public void Open_ResolvesMultiHopEncryptionDictionaryReferences()
     {

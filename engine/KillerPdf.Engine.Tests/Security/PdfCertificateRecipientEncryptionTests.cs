@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using KillerPdf.Engine.Security;
 using KillerPdf.Engine.Authoring;
@@ -34,6 +35,16 @@ public sealed class PdfCertificateRecipientEncryptionTests
                 created.RecipientBlocks, first).FileKey.ToArray());
         Assert.Equal(-44, openedFirst.PermissionFlags);
         Assert.Equal(-44, openedSecond.PermissionFlags);
+
+        var envelope = new EnvelopedCms();
+        envelope.Decode(created.RecipientBlocks[0].Span);
+        envelope.Decrypt(new X509Certificate2Collection(first));
+        Assert.Equal([0xFF, 0xFF, 0xFF, 0xD4], envelope.ContentInfo.Content[20..]);
+
+        PdfCertificateRecipientMaterial aes128 = PdfCertificateRecipientEncryption.Open(
+            created.RecipientBlocks, first, 16, encryptMetadata: false);
+        Assert.Equal(16, aes128.FileKey.Length);
+        Assert.Equal(-44, aes128.PermissionFlags);
     }
 
     [Fact]

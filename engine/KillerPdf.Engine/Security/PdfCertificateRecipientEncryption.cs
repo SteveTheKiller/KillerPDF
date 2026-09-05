@@ -5,7 +5,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace KillerPdf.Engine.Security;
 
-/// <summary>PDF public-key recipient blocks and their derived AES-256 file key.</summary>
+/// <summary>PDF public-key recipient blocks and their derived file key.</summary>
 public sealed record PdfCertificateRecipientMaterial
 {
     internal PdfCertificateRecipientMaterial(byte[] fileKey,
@@ -16,7 +16,7 @@ public sealed record PdfCertificateRecipientMaterial
         PermissionFlags = permissionFlags;
     }
 
-    /// <summary>Gets the 256-bit file-encryption key.</summary>
+    /// <summary>Gets the file-encryption key.</summary>
     public ReadOnlyMemory<byte> FileKey { get; }
     /// <summary>Gets one DER-encoded CMS envelope per certificate recipient.</summary>
     public IReadOnlyList<ReadOnlyMemory<byte>> RecipientBlocks { get; }
@@ -51,7 +51,7 @@ public static class PdfCertificateRecipientEncryption
         byte[] seed = RandomNumberGenerator.GetBytes(20);
         byte[] payload = new byte[24];
         seed.CopyTo(payload, 0);
-        BinaryPrimitives.WriteInt32LittleEndian(payload.AsSpan(20), permissionFlags);
+        BinaryPrimitives.WriteInt32BigEndian(payload.AsSpan(20), permissionFlags);
         var blocks = new List<ReadOnlyMemory<byte>>(certificates.Length);
         foreach (X509Certificate2 certificate in certificates)
         {
@@ -62,7 +62,7 @@ public static class PdfCertificateRecipientEncryption
             blocks.Add(envelope.Encode());
         }
         return new PdfCertificateRecipientMaterial(
-            DeriveFileKey(seed, blocks, encryptMetadata),
+            DeriveFileKey(seed, blocks, 32, encryptMetadata),
             Array.AsReadOnly(blocks.ToArray()), permissionFlags);
     }
 
@@ -70,6 +70,14 @@ public static class PdfCertificateRecipientEncryption
     public static PdfCertificateRecipientMaterial Open(
         IEnumerable<ReadOnlyMemory<byte>> recipientBlocks,
         X509Certificate2 recipient, bool encryptMetadata = true)
+        => Open(recipientBlocks, recipient, 32, encryptMetadata);
+
+    /// <summary>
+    /// Recovers the shared file key and permissions using the declared PDF key length.
+    /// </summary>
+    public static PdfCertificateRecipientMaterial Open(
+        IEnumerable<ReadOnlyMemory<byte>> recipientBlocks,
+        X509Certificate2 recipient, int fileKeyLength, bool encryptMetadata = true)
     {
         ArgumentNullException.ThrowIfNull(recipientBlocks);
         ArgumentNullException.ThrowIfNull(recipient);
@@ -108,22 +116,27 @@ public static class PdfCertificateRecipientEncryption
         if (payload.Length != 24)
             throw new CryptographicException(
                 "The PDF recipient payload must contain a 20-byte seed and permission flags.");
-        int permissions = BinaryPrimitives.ReadInt32LittleEndian(payload.AsSpan(20));
+        if (fileKeyLength is < 5 or > 32)
+            throw new ArgumentOutOfRangeException(nameof(fileKeyLength));
+        int permissions = BinaryPrimitives.ReadInt32BigEndian(payload.AsSpan(20));
         byte[] seed = payload.AsSpan(0, 20).ToArray();
         return new PdfCertificateRecipientMaterial(
-            DeriveFileKey(seed, blocks, encryptMetadata),
+            DeriveFileKey(seed, blocks, fileKeyLength, encryptMetadata),
             Array.AsReadOnly(blocks), permissions);
     }
 
     private static byte[] DeriveFileKey(byte[] seed,
-        IEnumerable<ReadOnlyMemory<byte>> recipientBlocks, bool encryptMetadata)
+        IEnumerable<ReadOnlyMemory<byte>> recipientBlocks, int fileKeyLength,
+        bool encryptMetadata)
     {
-        using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        HashAlgorithmName algorithm = fileKeyLength == 32
+            ? HashAlgorithmName.SHA256 : HashAlgorithmName.SHA1;
+        using IncrementalHash hash = IncrementalHash.CreateHash(algorithm);
         hash.AppendData(seed);
         foreach (ReadOnlyMemory<byte> block in recipientBlocks)
             hash.AppendData(block.Span);
         if (!encryptMetadata)
             hash.AppendData([0xFF, 0xFF, 0xFF, 0xFF]);
-        return hash.GetHashAndReset();
+        return hash.GetHashAndReset()[..fileKeyLength];
     }
 }

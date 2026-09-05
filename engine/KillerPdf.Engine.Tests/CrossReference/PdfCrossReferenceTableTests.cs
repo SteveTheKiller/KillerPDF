@@ -731,6 +731,8 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("cannot be introduced", error.Message,
             StringComparison.Ordinal);
+        Assert.NotEmpty(PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true));
     }
 
     [Fact]

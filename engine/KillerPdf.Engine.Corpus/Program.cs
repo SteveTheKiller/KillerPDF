@@ -29,38 +29,54 @@ if (args.Length == 3 && args[0] == "--render-one")
                 "KILLERPDF_CORPUS_CREDENTIAL_STATE");
             string? encodedPasswords = Environment.GetEnvironmentVariable(
                 "KILLERPDF_CORPUS_PASSWORDS");
+            string? encodedCertificate = Environment.GetEnvironmentVariable(
+                "KILLERPDF_CORPUS_CERTIFICATE");
             if (credentialState == "unavailable")
             {
                 Console.WriteLine($"KILLERPDF-RENDER\tskipped\t{Encode(
                     "Credentials are unavailable for this encrypted corpus file.")}");
                 return 0;
             }
-            if (encodedPasswords is null)
+            if (encodedCertificate is not null)
+            {
+                CertificateCredential certificateCredential = JsonSerializer.Deserialize<
+                    CertificateCredential>(Convert.FromBase64String(encodedCertificate))
+                    ?? throw new InvalidDataException(
+                        "The corpus certificate credential is invalid.");
+                using X509Certificate2 certificate = X509CertificateLoader.LoadPkcs12FromFile(
+                    certificateCredential.KeyStorePath, certificateCredential.Password,
+                    X509KeyStorageFlags.EphemeralKeySet);
+                document = PdfDocument.OpenWithCompatibilityRecovery(source, certificate);
+            }
+            else if (encodedPasswords is null)
             {
                 Console.WriteLine($"KILLERPDF-RENDER\tskipped\t{Encode(
                     "No credential is registered for this encrypted corpus file.")}");
                 return 0;
             }
-            string[] passwords = JsonSerializer.Deserialize<string[]>(
-                Convert.FromBase64String(encodedPasswords))
-                ?? throw new InvalidDataException("The corpus password list is invalid.");
-            Exception? lastError = null;
-            foreach (string password in passwords)
+            else
             {
-                try
+                string[] passwords = JsonSerializer.Deserialize<string[]>(
+                    Convert.FromBase64String(encodedPasswords))
+                    ?? throw new InvalidDataException("The corpus password list is invalid.");
+                Exception? lastError = null;
+                foreach (string password in passwords)
                 {
-                    document = PdfDocument.OpenWithCompatibilityRecovery(source, password);
-                    lastError = null;
-                    break;
+                    try
+                    {
+                        document = PdfDocument.OpenWithCompatibilityRecovery(source, password);
+                        lastError = null;
+                        break;
+                    }
+                    catch (Exception error) when (error is not OutOfMemoryException)
+                    {
+                        lastError = error;
+                    }
                 }
-                catch (Exception error) when (error is not OutOfMemoryException)
-                {
-                    lastError = error;
-                }
+                if (lastError is not null || !document.IsDecrypted)
+                    throw new InvalidOperationException(
+                        "The registered corpus credentials could not decrypt the PDF.", lastError);
             }
-            if (lastError is not null || !document.IsDecrypted)
-                throw new InvalidOperationException(
-                    "The registered corpus credentials could not decrypt the PDF.", lastError);
         }
         if (PdfPageInformation.Read(document).Count == 0)
             throw new InvalidDataException("The PDF contains no pages.");
@@ -94,6 +110,7 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
     int renderMaximum = int.MaxValue, timeoutSeconds = 30, size = 256;
     int parallelism = Math.Min(Environment.ProcessorCount, 8);
     string? passwordManifestPath = null;
+    string? certificateManifestPath = null;
     for (int index = 2; index < args.Length; index++)
     {
         if (index + 1 >= args.Length)
@@ -104,6 +121,11 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         if (args[index] == "--password-manifest")
         {
             passwordManifestPath = Path.GetFullPath(args[++index]);
+            continue;
+        }
+        if (args[index] == "--certificate-manifest")
+        {
+            certificateManifestPath = Path.GetFullPath(args[++index]);
             continue;
         }
         if (!int.TryParse(args[index + 1], out int value) || value < 1)
@@ -122,6 +144,46 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
                 return 2;
         }
         index++;
+    }
+
+    var certificatesByPath = new Dictionary<string, CertificateCredential>(
+        StringComparer.OrdinalIgnoreCase);
+    if (certificateManifestPath is not null)
+    {
+        if (!File.Exists(certificateManifestPath))
+        {
+            Console.Error.WriteLine(
+                $"Certificate manifest not found: {certificateManifestPath}");
+            return 2;
+        }
+        Dictionary<string, CertificateCredential> manifest = JsonSerializer.Deserialize<
+            Dictionary<string, CertificateCredential>>(
+                File.ReadAllText(certificateManifestPath))
+            ?? throw new InvalidDataException(
+                "The corpus certificate manifest is invalid.");
+        string manifestDirectory = Path.GetDirectoryName(certificateManifestPath)
+            ?? throw new InvalidDataException(
+                "The corpus certificate manifest directory is unavailable.");
+        foreach ((string path, CertificateCredential credential) in manifest)
+        {
+            string normalized = path.Replace('\\', '/');
+            if (Path.IsPathRooted(path) || normalized.Split('/').Contains(".."))
+                throw new InvalidDataException(
+                    $"Corpus certificate paths must be relative and contained: {path}");
+            if (credential is null || string.IsNullOrWhiteSpace(credential.KeyStorePath)
+                || credential.Password is null || credential.Password.Length > 4096)
+                throw new InvalidDataException(
+                    $"Corpus certificate credential is invalid: {path}");
+            string keyStorePath = Path.GetFullPath(
+                Path.Combine(manifestDirectory, credential.KeyStorePath));
+            if (!File.Exists(keyStorePath))
+                throw new InvalidDataException(
+                    $"Corpus certificate key store was not found: {credential.KeyStorePath}");
+            if (!certificatesByPath.TryAdd(normalized,
+                    credential with { KeyStorePath = keyStorePath }))
+                throw new InvalidDataException(
+                    $"Duplicate corpus certificate path: {path}");
+        }
     }
 
     var passwordsByPath = new Dictionary<string, string[]?>(StringComparer.OrdinalIgnoreCase);
@@ -175,8 +237,13 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         start.ArgumentList.Add(size.ToString(System.Globalization.CultureInfo.InvariantCulture));
         start.Environment.Remove("KILLERPDF_CORPUS_CREDENTIAL_STATE");
         start.Environment.Remove("KILLERPDF_CORPUS_PASSWORDS");
+        start.Environment.Remove("KILLERPDF_CORPUS_CERTIFICATE");
         string credentialPath = relative.Replace('\\', '/');
-        if (passwordsByPath.TryGetValue(credentialPath, out string[]? passwords))
+        if (certificatesByPath.TryGetValue(
+                credentialPath, out CertificateCredential? certificateCredential))
+            start.Environment["KILLERPDF_CORPUS_CERTIFICATE"] = Convert.ToBase64String(
+                JsonSerializer.SerializeToUtf8Bytes(certificateCredential));
+        else if (passwordsByPath.TryGetValue(credentialPath, out string[]? passwords))
         {
             if (passwords is null)
                 start.Environment["KILLERPDF_CORPUS_CREDENTIAL_STATE"] = "unavailable";
@@ -2593,3 +2660,5 @@ foreach (string file in files)
 TimeSpan elapsed = DateTimeOffset.UtcNow - started;
 Console.WriteLine($"Checked {files.Length:N0}: {passed:N0} passed, {failed:N0} failed in {elapsed.TotalSeconds:N1}s.");
 return failed == 0 ? 0 : 1;
+
+internal sealed record CertificateCredential(string KeyStorePath, string Password);

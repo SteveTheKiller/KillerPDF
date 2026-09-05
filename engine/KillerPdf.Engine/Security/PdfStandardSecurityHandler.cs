@@ -57,27 +57,31 @@ internal sealed class PdfStandardSecurityHandler
     }
 
     internal static PdfStandardSecurityHandler Create(
-        PdfDictionary encryption, string password, ReadOnlyMemory<byte> permanentIdentifier)
+        PdfDictionary encryption, string password, ReadOnlyMemory<byte> permanentIdentifier,
+        bool compatibilityRecovery = false)
     {
         ArgumentNullException.ThrowIfNull(encryption);
         ArgumentNullException.ThrowIfNull(password);
         RequireName(encryption, "Filter", "Standard");
         long version = RequireInteger(encryption, "V");
         long revision = RequireInteger(encryption, "R");
-        if ((version, revision) is (1, 2) or (2, 3) or (4, 4))
+        if ((version, revision) is (1, 2) or (2, 3) or (4, 4)
+            || compatibilityRecovery && (version, revision) == (1, 3))
             return CreateLegacy(
-                encryption, password, permanentIdentifier.Span, version, revision);
-        if (version != 5 || revision is not (5 or 6))
+                encryption, password, permanentIdentifier.Span, version, revision,
+                compatibilityRecovery);
+        bool aesGcm = (version, revision) == (6, 7);
+        if (!aesGcm && (version != 5 || revision is not (5 or 6)))
             throw new NotSupportedException(
                 $"Standard security handler V={version}, R={revision} is not supported.");
         if (RequireInteger(encryption, "Length") != 256)
             throw new InvalidOperationException(
                 "AES-256 encryption requires a 256-bit encryption key.");
-        byte[] owner = RequireBytes(encryption, "O", 48);
-        byte[] user = RequireBytes(encryption, "U", 48);
+        byte[] owner = RequireBytes(encryption, "O", 48, compatibilityRecovery);
+        byte[] user = RequireBytes(encryption, "U", 48, compatibilityRecovery);
         byte[] ownerEncryptedKey = RequireBytes(encryption, "OE", 32);
         byte[] userEncryptedKey = RequireBytes(encryption, "UE", 32);
-        byte[] passwordBytes = PasswordBytes(password, revision == 6);
+        byte[] passwordBytes = PasswordBytes(password, revision >= 6);
         byte[]? fileKey = TryOwnerPassword(
             passwordBytes, owner, user, ownerEncryptedKey, revision);
         PdfPasswordAuthenticationRole authenticationRole = fileKey is null
@@ -92,21 +96,23 @@ internal sealed class PdfStandardSecurityHandler
                 "The PDF encryption permission block has invalid reserved bytes.");
         if (!permissions.AsSpan(9, 3).SequenceEqual("adb"u8))
             throw new CryptographicException("The PDF encryption permission block is invalid.");
-        int declaredPermissions = checked((int)RequireInteger(encryption, "P"));
-        ValidatePermissionFlags(declaredPermissions, revision);
+        int declaredPermissions = ReadPermissionFlags(encryption, compatibilityRecovery);
+        if (!compatibilityRecovery)
+            ValidatePermissionFlags(declaredPermissions, revision);
         if (BinaryPrimitives.ReadInt32LittleEndian(permissions) != declaredPermissions)
             throw new CryptographicException("The PDF encryption permissions do not authenticate.");
         bool encryptMetadata = ReadEncryptMetadata(encryption);
         if (permissions[8] != (encryptMetadata ? (byte)'T' : (byte)'F'))
             throw new CryptographicException("The PDF metadata-encryption setting does not authenticate.");
-        CryptMethod stringMethod = ReadModernCryptFilter(encryption, "StrF", "AESV3");
-        CryptMethod streamMethod = ReadModernCryptFilter(encryption, "StmF", "AESV3");
+        string requiredMethod = aesGcm ? "AESV4" : "AESV3";
+        CryptMethod stringMethod = ReadModernCryptFilter(encryption, "StrF", requiredMethod);
+        CryptMethod streamMethod = ReadModernCryptFilter(encryption, "StmF", requiredMethod);
         CryptMethod embeddedFileMethod = encryption.ContainsKey(Name("EFF"))
-            ? ReadModernCryptFilter(encryption, "EFF", "AESV3") : streamMethod;
+            ? ReadModernCryptFilter(encryption, "EFF", requiredMethod) : streamMethod;
         return new PdfStandardSecurityHandler(
             fileKey, stringMethod, streamMethod, embeddedFileMethod, encryptMetadata,
             declaredPermissions, revision, authenticationRole,
-            ReadCryptFilters(encryption, "AESV3"));
+            ReadCryptFilters(encryption, requiredMethod));
     }
 
     internal static PdfStandardSecurityHandler CreateCertificate(
@@ -115,29 +121,91 @@ internal sealed class PdfStandardSecurityHandler
         ArgumentNullException.ThrowIfNull(encryption);
         ArgumentNullException.ThrowIfNull(recipient);
         RequireName(encryption, "Filter", "Adobe.PubSec");
-        RequireName(encryption, "SubFilter", "adbe.pkcs7.s5");
-        if (RequireInteger(encryption, "V") != 5
-            || RequireInteger(encryption, "Length") != 256)
+        string subFilter = RequireNameValue(encryption, "SubFilter");
+        if (subFilter is not ("adbe.pkcs7.s4" or "adbe.pkcs7.s5"))
             throw new NotSupportedException(
-                "Certificate security requires V=5 AES-256 encryption.");
-        if (!encryption.TryGetValue(Name("Recipients"), out PdfObject? recipientsValue)
-            || recipientsValue is not PdfArray recipients || recipients.Count == 0
-            || recipients.Any(value => value is not PdfString))
+                $"Certificate security subfilter /{subFilter} is not supported.");
+        long version = RequireInteger(encryption, "V");
+        if (version is not (2 or 4 or 5))
+            throw new NotSupportedException(
+                $"Certificate security V={version} is not supported.");
+        PdfDictionary? defaultCryptFilter = version >= 4
+            ? ReadSelectedCryptFilter(encryption, "StmF") : null;
+        long lengthBits = ReadCertificateKeyLength(encryption, defaultCryptFilter);
+        if (lengthBits is < 40 or > 256 || lengthBits % 8 != 0
+            || version == 5 && lengthBits != 256)
             throw new InvalidOperationException(
-                "The certificate encryption /Recipients value is invalid.");
+                "The certificate encryption key length is invalid.");
+        int fileKeyLength = checked((int)(lengthBits / 8));
+        PdfArray recipients = ReadCertificateRecipients(encryption, defaultCryptFilter);
         ReadOnlyMemory<byte>[] blocks = [.. recipients.Cast<PdfString>()
             .Select(value => value.Bytes)];
-        bool encryptMetadata = ReadEncryptMetadata(encryption);
+        bool encryptMetadata = defaultCryptFilter is not null
+            && defaultCryptFilter.ContainsKey(Name("EncryptMetadata"))
+            ? ReadEncryptMetadata(defaultCryptFilter)
+            : ReadEncryptMetadata(encryption);
         PdfCertificateRecipientMaterial material =
-            PdfCertificateRecipientEncryption.Open(blocks, recipient, encryptMetadata);
-        CryptMethod stringMethod = ReadModernCryptFilter(encryption, "StrF", "AESV3");
-        CryptMethod streamMethod = ReadModernCryptFilter(encryption, "StmF", "AESV3");
-        CryptMethod embeddedFileMethod = encryption.ContainsKey(Name("EFF"))
-            ? ReadModernCryptFilter(encryption, "EFF", "AESV3") : streamMethod;
+            PdfCertificateRecipientEncryption.Open(
+                blocks, recipient, fileKeyLength, encryptMetadata);
+        CryptMethod stringMethod, streamMethod, embeddedFileMethod;
+        IReadOnlyDictionary<string, CryptMethod>? cryptFilters;
+        if (version == 2)
+        {
+            stringMethod = streamMethod = embeddedFileMethod = CryptMethod.Rc4;
+            cryptFilters = null;
+        }
+        else
+        {
+            stringMethod = ReadModernCryptFilter(encryption, "StrF", null);
+            streamMethod = ReadModernCryptFilter(encryption, "StmF", null);
+            embeddedFileMethod = encryption.ContainsKey(Name("EFF"))
+                ? ReadModernCryptFilter(encryption, "EFF", null) : streamMethod;
+            cryptFilters = ReadCryptFilters(encryption, null);
+        }
         return new PdfStandardSecurityHandler(material.FileKey.ToArray(), stringMethod,
             streamMethod, embeddedFileMethod, encryptMetadata,
             material.PermissionFlags, 4, PdfPasswordAuthenticationRole.None,
-            ReadCryptFilters(encryption, "AESV3"));
+            cryptFilters);
+    }
+
+    private static long ReadCertificateKeyLength(
+        PdfDictionary encryption, PdfDictionary? defaultCryptFilter)
+    {
+        PdfObject? value = null;
+        if (!encryption.TryGetValue(Name("Length"), out value))
+            defaultCryptFilter?.TryGetValue(Name("Length"), out value);
+        if (value is null) return 40;
+        if (value is not PdfInteger length)
+            throw new InvalidOperationException(
+                "The certificate encryption /Length value is not an integer.");
+        return length.Value is >= 5 and <= 32 ? length.Value * 8 : length.Value;
+    }
+
+    private static PdfDictionary ReadSelectedCryptFilter(
+        PdfDictionary encryption, string key)
+    {
+        if (!encryption.TryGetValue(Name(key), out PdfObject? filterValue)
+            || filterValue is not PdfName filter
+            || !encryption.TryGetValue(Name("CF"), out PdfObject? filtersValue)
+            || filtersValue is not PdfDictionary filters
+            || !filters.TryGetValue(filter, out PdfObject? selectedValue)
+            || selectedValue is not PdfDictionary selected)
+            throw new InvalidOperationException(
+                $"The certificate encryption crypt filter for /{key} is missing.");
+        return selected;
+    }
+
+    private static PdfArray ReadCertificateRecipients(
+        PdfDictionary encryption, PdfDictionary? defaultCryptFilter)
+    {
+        PdfObject? recipientsValue = null;
+        if (!encryption.TryGetValue(Name("Recipients"), out recipientsValue))
+            defaultCryptFilter?.TryGetValue(Name("Recipients"), out recipientsValue);
+        if (recipientsValue is not PdfArray recipients || recipients.Count == 0
+            || recipients.Any(value => value is not PdfString))
+            throw new InvalidOperationException(
+                "The certificate encryption /Recipients value is invalid.");
+        return recipients;
     }
 
     internal static (PdfStandardSecurityHandler Handler, PdfDictionary Dictionary)
@@ -193,7 +261,7 @@ internal sealed class PdfStandardSecurityHandler
     }
 
     internal static (PdfStandardSecurityHandler Handler, PdfDictionary Dictionary)
-        CreateRevision6(PdfPasswordEncryptionOptions options)
+        CreateModernPassword(PdfPasswordEncryptionOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(options.UserPassword);
@@ -204,18 +272,23 @@ internal sealed class PdfStandardSecurityHandler
                 nameof(options));
         byte[] userPassword = PasswordBytes(options.UserPassword, normalize: true);
         byte[] ownerPassword = PasswordBytes(options.OwnerPassword, normalize: true);
+        bool aesGcm = options.Algorithm == PdfPasswordEncryptionAlgorithm.Aes256Gcm;
+        long version = aesGcm ? 6 : 5;
+        long revision = aesGcm ? 7 : 6;
+        string methodName = aesGcm ? "AESV4" : "AESV3";
+        CryptMethod method = aesGcm ? CryptMethod.Aes256Gcm : CryptMethod.Aes256;
         byte[] fileKey = RandomNumberGenerator.GetBytes(32);
         byte[] userValidationSalt = RandomNumberGenerator.GetBytes(8);
         byte[] userKeySalt = RandomNumberGenerator.GetBytes(8);
-        byte[] userHash = HashPassword(userPassword, userValidationSalt, null, 6);
+        byte[] userHash = HashPassword(userPassword, userValidationSalt, null, revision);
         byte[] user = [.. userHash, .. userValidationSalt, .. userKeySalt];
-        byte[] userKey = HashPassword(userPassword, userKeySalt, null, 6);
+        byte[] userKey = HashPassword(userPassword, userKeySalt, null, revision);
         byte[] userEncryptedKey = EncryptKey(userKey, fileKey);
         byte[] ownerValidationSalt = RandomNumberGenerator.GetBytes(8);
         byte[] ownerKeySalt = RandomNumberGenerator.GetBytes(8);
-        byte[] ownerHash = HashPassword(ownerPassword, ownerValidationSalt, user, 6);
+        byte[] ownerHash = HashPassword(ownerPassword, ownerValidationSalt, user, revision);
         byte[] owner = [.. ownerHash, .. ownerValidationSalt, .. ownerKeySalt];
-        byte[] ownerKey = HashPassword(ownerPassword, ownerKeySalt, user, 6);
+        byte[] ownerKey = HashPassword(ownerPassword, ownerKeySalt, user, revision);
         byte[] ownerEncryptedKey = EncryptKey(ownerKey, fileKey);
         int permissions = -4;
         SetPermission(3, options.AllowLowQualityPrinting);
@@ -234,21 +307,21 @@ internal sealed class PdfStandardSecurityHandler
         byte[] encryptedPermissions = EncryptEcb(fileKey, permissionBlock);
         PdfName standardFilter = Name("StdCF");
         var dictionary = new PdfDictionary([
-            Pair("Filter", Name("Standard")), Pair("V", new PdfInteger(5)),
-            Pair("Length", new PdfInteger(256)), Pair("R", new PdfInteger(6)),
+            Pair("Filter", Name("Standard")), Pair("V", new PdfInteger(version)),
+            Pair("Length", new PdfInteger(256)), Pair("R", new PdfInteger(revision)),
             Pair("O", Hex(owner)), Pair("U", Hex(user)), Pair("OE", Hex(ownerEncryptedKey)),
             Pair("UE", Hex(userEncryptedKey)), Pair("P", new PdfInteger(permissions)),
             Pair("Perms", Hex(encryptedPermissions)),
             Pair("EncryptMetadata", new PdfBoolean(options.EncryptMetadata)),
             Pair("CF", new PdfDictionary([new KeyValuePair<PdfName, PdfObject>(standardFilter,
-                new PdfDictionary([Pair("AuthEvent", Name("DocOpen")), Pair("CFM", Name("AESV3")),
+                new PdfDictionary([Pair("AuthEvent", Name("DocOpen")), Pair("CFM", Name(methodName)),
                     Pair("Length", new PdfInteger(32))]))])),
             Pair("StmF", standardFilter), Pair("StrF", standardFilter), Pair("EFF", standardFilter)
         ]);
-        return (new PdfStandardSecurityHandler(fileKey, CryptMethod.Aes256,
-            CryptMethod.Aes256, CryptMethod.Aes256, options.EncryptMetadata,
-            permissions, 6, PdfPasswordAuthenticationRole.Owner,
-            new Dictionary<string, CryptMethod> { ["StdCF"] = CryptMethod.Aes256 }), dictionary);
+        return (new PdfStandardSecurityHandler(fileKey, method,
+            method, method, options.EncryptMetadata,
+            permissions, revision, PdfPasswordAuthenticationRole.Owner,
+            new Dictionary<string, CryptMethod> { ["StdCF"] = method }), dictionary);
 
         static KeyValuePair<PdfName, PdfObject> Pair(string key, PdfObject value) =>
             new(Name(key), value);
@@ -446,9 +519,10 @@ internal sealed class PdfStandardSecurityHandler
         string password,
         ReadOnlySpan<byte> permanentIdentifier,
         long version,
-        long revision)
+        long revision,
+        bool compatibilityRecovery)
     {
-        if (permanentIdentifier.IsEmpty)
+        if (permanentIdentifier.IsEmpty && !compatibilityRecovery)
             throw new InvalidOperationException(
                 "Legacy Standard security requires a permanent document identifier.");
         long keyLengthBits = revision == 2
@@ -458,15 +532,20 @@ internal sealed class PdfStandardSecurityHandler
                     ? length.Value
                     : throw new InvalidOperationException(
                         "The encryption dictionary /Length value is not an integer.")
-                : 40;
+                : compatibilityRecovery
+                    && encryption.TryGetValue(Name("Wength"), out PdfObject? misspelledLength)
+                    && misspelledLength is PdfInteger recoveredLength
+                        ? recoveredLength.Value : 40;
         if (keyLengthBits is < 40 or > 128 || keyLengthBits % 8 != 0)
             throw new InvalidOperationException(
                 "Legacy Standard security requires a byte-aligned 40-bit through 128-bit key.");
         int keyLength = checked((int)(keyLengthBits / 8));
         byte[] owner = RequireBytes(encryption, "O", 32);
-        byte[] user = RequireBytes(encryption, "U", 32);
-        int permissions = checked((int)RequireInteger(encryption, "P"));
-        ValidatePermissionFlags(permissions, revision);
+        byte[] user = compatibilityRecovery && revision >= 3
+            ? RequireLegacyUserBytes(encryption) : RequireBytes(encryption, "U", 32);
+        int permissions = ReadPermissionFlags(encryption, compatibilityRecovery);
+        if (!compatibilityRecovery)
+            ValidatePermissionFlags(permissions, revision);
         bool encryptMetadata = ReadEncryptMetadata(encryption);
         byte[] supplied = PadLegacyPassword(password);
         byte[] recoveredUserPassword = RecoverLegacyUserPassword(
@@ -813,6 +892,7 @@ internal sealed class PdfStandardSecurityHandler
             CryptMethod.Aes128 => DecryptAes(
                 encrypted, ObjectKey(objectNumber, generation, aes: true)),
             CryptMethod.Aes256 => DecryptAes(encrypted, _fileKey),
+            CryptMethod.Aes256Gcm => DecryptAesGcm(encrypted, _fileKey),
             _ => encrypted.ToArray()
         };
 
@@ -824,6 +904,7 @@ internal sealed class PdfStandardSecurityHandler
             CryptMethod.Aes128 => EncryptAes(
                 cleartext, ObjectKey(objectNumber, generation, aes: true)),
             CryptMethod.Aes256 => EncryptAes(cleartext, _fileKey),
+            CryptMethod.Aes256Gcm => EncryptAesGcm(cleartext, _fileKey),
             _ => cleartext.ToArray()
         };
 
@@ -866,6 +947,33 @@ internal sealed class PdfStandardSecurityHandler
         aes.Key = key;
         byte[] encrypted = aes.EncryptCbc(cleartext, iv, PaddingMode.PKCS7);
         return [.. iv, .. encrypted];
+    }
+
+    private static byte[] DecryptAesGcm(ReadOnlySpan<byte> encrypted, byte[] key)
+    {
+        const int nonceLength = 12;
+        const int tagLength = 16;
+        if (encrypted.Length < nonceLength + tagLength)
+            throw new CryptographicException(
+                "An AES-GCM encrypted PDF value has an invalid length.");
+        int ciphertextLength = encrypted.Length - nonceLength - tagLength;
+        byte[] cleartext = new byte[ciphertextLength];
+        using var aes = new AesGcm(key, tagLength);
+        aes.Decrypt(encrypted[..nonceLength],
+            encrypted.Slice(nonceLength, ciphertextLength), encrypted[^tagLength..], cleartext);
+        return cleartext;
+    }
+
+    private static byte[] EncryptAesGcm(ReadOnlySpan<byte> cleartext, byte[] key)
+    {
+        const int nonceLength = 12;
+        const int tagLength = 16;
+        byte[] nonce = RandomNumberGenerator.GetBytes(nonceLength);
+        byte[] ciphertext = new byte[cleartext.Length];
+        byte[] tag = new byte[tagLength];
+        using var aes = new AesGcm(key, tagLength);
+        aes.Encrypt(nonce, cleartext, ciphertext, tag);
+        return [.. nonce, .. ciphertext, .. tag];
     }
 
     private static CryptMethod ReadModernCryptFilter(
@@ -926,8 +1034,9 @@ internal sealed class PdfStandardSecurityHandler
             bool validLength = methodName switch
             {
                 "V2" => length.Value is >= 5 and <= 16,
-                "AESV2" => length.Value == 16,
-                "AESV3" => length.Value == 32,
+                "AESV2" => length.Value is 16 or 128,
+                "AESV3" => length.Value is 32 or 256,
+                "AESV4" => length.Value is 32 or 256,
                 "None" => length.Value >= 0,
                 _ => true
             };
@@ -945,6 +1054,7 @@ internal sealed class PdfStandardSecurityHandler
             "V2" => CryptMethod.Rc4,
             "AESV2" => CryptMethod.Aes128,
             "AESV3" => CryptMethod.Aes256,
+            "AESV4" => CryptMethod.Aes256Gcm,
             "None" => CryptMethod.Identity,
             _ => throw new NotSupportedException(
                 $"Encryption crypt filter method /{methodName} is not supported.")
@@ -977,13 +1087,26 @@ internal sealed class PdfStandardSecurityHandler
         return output;
     }
 
-    private static byte[] RequireBytes(PdfDictionary dictionary, string key, int length)
+    private static byte[] RequireBytes(
+        PdfDictionary dictionary, string key, int length, bool allowTrailingBytes = false)
     {
         if (!dictionary.TryGetValue(Name(key), out PdfObject? value)
-            || value is not PdfString text || text.Bytes.Length != length)
+            || value is not PdfString text
+            || (allowTrailingBytes ? text.Bytes.Length < length : text.Bytes.Length != length))
             throw new InvalidOperationException(
                 $"The encryption dictionary /{key} value is not a {length}-byte string.");
-        return text.Bytes.ToArray();
+        return text.Bytes.Slice(0, length).ToArray();
+    }
+
+    private static byte[] RequireLegacyUserBytes(PdfDictionary encryption)
+    {
+        if (!encryption.TryGetValue(Name("U"), out PdfObject? value)
+            || value is not PdfString text || text.Bytes.Length is < 16 or > 32)
+            throw new InvalidOperationException(
+                "The encryption dictionary /U value is not a 16-byte through 32-byte string.");
+        byte[] user = new byte[32];
+        text.Bytes.Span.CopyTo(user);
+        return user;
     }
 
     private static bool ReadEncryptMetadata(PdfDictionary encryption)
@@ -1014,12 +1137,30 @@ internal sealed class PdfStandardSecurityHandler
         return integer.Value;
     }
 
+    private static int ReadPermissionFlags(
+        PdfDictionary encryption, bool compatibilityRecovery)
+    {
+        long value = RequireInteger(encryption, "P");
+        if (compatibilityRecovery && value is > int.MaxValue and <= uint.MaxValue)
+            return unchecked((int)(uint)value);
+        return checked((int)value);
+    }
+
     private static void RequireName(PdfDictionary dictionary, string key, string expected)
     {
         if (!dictionary.TryGetValue(Name(key), out PdfObject? value)
             || value is not PdfName name || name.ValueAsLatin1() != expected)
             throw new InvalidOperationException(
                 $"The encryption dictionary /{key} value is not /{expected}.");
+    }
+
+    private static string RequireNameValue(PdfDictionary dictionary, string key)
+    {
+        if (!dictionary.TryGetValue(Name(key), out PdfObject? value)
+            || value is not PdfName name)
+            throw new InvalidOperationException(
+                $"The encryption dictionary /{key} value is not a name.");
+        return name.ValueAsLatin1();
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
@@ -1029,6 +1170,7 @@ internal sealed class PdfStandardSecurityHandler
         Identity,
         Rc4,
         Aes128,
-        Aes256
+        Aes256,
+        Aes256Gcm
     }
 }

@@ -77,7 +77,12 @@ public sealed partial class PdfDocumentBuilder
         if (_certificateEncryption is not null)
             throw new InvalidOperationException(
                 "Password and certificate encryption cannot both be configured.");
-        _encryption = options ?? throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
+        if (options.Algorithm == PdfPasswordEncryptionAlgorithm.Aes256Gcm
+            && Version.CompareTo(PdfVersion.Pdf20) < 0)
+            throw new ArgumentException(
+                "AES-GCM password encryption requires PDF 2.0.", nameof(options));
+        _encryption = options;
         return this;
     }
 
@@ -2988,7 +2993,7 @@ public sealed partial class PdfDocumentBuilder
         if (_encryption is not null)
         {
             (security, PdfDictionary encryptionDictionary) =
-                PdfStandardSecurityHandler.CreateRevision6(_encryption);
+                PdfStandardSecurityHandler.CreateModernPassword(_encryption);
             encryptionNumber = checked(objects.Max(item => item.ObjectNumber) + 1);
             objects.Add(new PdfIndirectObject(
                 encryptionNumber.Value, 0, encryptionDictionary, 0));

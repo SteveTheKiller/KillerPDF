@@ -3,6 +3,9 @@ namespace KillerPdf.Engine.Security;
 /// <summary>Configures PDF 2.0 AES-256 password protection for a newly authored document.</summary>
 public sealed class PdfPasswordEncryptionOptions
 {
+    /// <summary>Gets the encryption algorithm.</summary>
+    public PdfPasswordEncryptionAlgorithm Algorithm { get; init; }
+        = PdfPasswordEncryptionAlgorithm.Aes256Cbc;
     /// <summary>Gets the password used to open the document with user permissions.</summary>
     public required string UserPassword { get; init; }
     /// <summary>Gets the owner password used to obtain unrestricted access.</summary>

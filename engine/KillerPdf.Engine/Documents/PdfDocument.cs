@@ -129,10 +129,8 @@ public sealed class PdfDocument
         if (!document.CrossReferences.TryGetTrailerValue(
                 new PdfName("Encrypt"u8), out PdfObject? encryptionValue))
             return document;
-        PdfIndirectReference encryptionReference = encryptionValue as PdfIndirectReference
-            ?? throw new InvalidOperationException("The trailer /Encrypt value is not indirect.");
-        (PdfDictionary encryption, int encryptionObjectNumber) =
-            document.ResolveEncryptionDictionary(encryptionReference);
+        PdfDictionary encryption = document.ResolveEncryptionValue(
+            encryptionValue, out int? encryptionObjectNumber);
         document._encryptionObjectNumber = encryptionObjectNumber;
         ReadOnlyMemory<byte> permanentIdentifier = ReadOnlyMemory<byte>.Empty;
         if (document.CrossReferences.TryGetTrailerValue(new PdfName("ID"u8), out PdfObject? idValue)
@@ -140,7 +138,8 @@ public sealed class PdfDocument
             && identifiers[0] is PdfString identifier)
             permanentIdentifier = identifier.Bytes;
         document._security = PdfStandardSecurityHandler.Create(
-            encryption, password, permanentIdentifier);
+            document.ResolveEncryptionDependencies(encryption), password,
+            permanentIdentifier, document._compatibilityRecovery);
         document._objects.Clear();
         document._objectStreams.Clear();
         return document;
@@ -151,18 +150,71 @@ public sealed class PdfDocument
     {
         ArgumentNullException.ThrowIfNull(recipient);
         PdfDocument document = Open(source);
+        return AuthenticateCertificate(document, recipient);
+    }
+
+    /// <summary>
+    /// Opens and authenticates a certificate-recipient encrypted PDF using bounded
+    /// compatibility recoveries.
+    /// </summary>
+    public static PdfDocument OpenWithCompatibilityRecovery(
+        ReadOnlyMemory<byte> source, X509Certificate2 recipient)
+    {
+        ArgumentNullException.ThrowIfNull(recipient);
+        PdfDocument document = OpenWithCompatibilityRecovery(source);
+        return AuthenticateCertificate(document, recipient);
+    }
+
+    private static PdfDocument AuthenticateCertificate(
+        PdfDocument document, X509Certificate2 recipient)
+    {
         if (!document.CrossReferences.TryGetTrailerValue(
                 new PdfName("Encrypt"u8), out PdfObject? encryptionValue))
             return document;
-        PdfIndirectReference encryptionReference = encryptionValue as PdfIndirectReference
-            ?? throw new InvalidOperationException("The trailer /Encrypt value is not indirect.");
-        (PdfDictionary encryption, int encryptionObjectNumber) =
-            document.ResolveEncryptionDictionary(encryptionReference);
+        PdfDictionary encryption = document.ResolveEncryptionValue(
+            encryptionValue, out int? encryptionObjectNumber);
         document._encryptionObjectNumber = encryptionObjectNumber;
-        document._security = PdfStandardSecurityHandler.CreateCertificate(encryption, recipient);
+        document._security = PdfStandardSecurityHandler.CreateCertificate(
+            document.ResolveEncryptionDependencies(encryption), recipient);
         document._objects.Clear();
         document._objectStreams.Clear();
         return document;
+    }
+
+    private PdfDictionary ResolveEncryptionValue(
+        PdfObject encryptionValue, out int? encryptionObjectNumber)
+    {
+        if (encryptionValue is PdfDictionary direct && _compatibilityRecovery)
+        {
+            encryptionObjectNumber = null;
+            _encryptionBootstrapObjectNumbers = [];
+            return direct;
+        }
+        PdfIndirectReference encryptionReference = encryptionValue as PdfIndirectReference
+            ?? throw new InvalidOperationException("The trailer /Encrypt value is not indirect.");
+        (PdfDictionary dictionary, int objectNumber) =
+            ResolveEncryptionDictionary(encryptionReference);
+        encryptionObjectNumber = objectNumber;
+        return dictionary;
+    }
+
+    private PdfDictionary ResolveEncryptionDependencies(PdfDictionary encryption)
+    {
+        if (!encryption.TryGetValue(new PdfName("CF"u8), out PdfObject? filtersValue))
+            return encryption;
+        PdfObject resolved = filtersValue is PdfIndirectReference filtersReference
+            ? Resolve(filtersReference) : filtersValue;
+        if (resolved is not PdfDictionary filters)
+            throw new InvalidOperationException(
+                "The encryption /CF reference does not resolve to a dictionary.");
+        var resolvedFilters = new PdfDictionary(filters.Select(entry =>
+            entry.Value is PdfIndirectReference reference
+                ? new KeyValuePair<PdfName, PdfObject>(entry.Key, Resolve(reference))
+                : entry));
+        return new PdfDictionary(encryption.Select(entry =>
+            entry.Key.Equals(new PdfName("CF"u8))
+                ? new KeyValuePair<PdfName, PdfObject>(entry.Key, resolvedFilters)
+                : entry));
     }
 
     private (PdfDictionary Dictionary, int ObjectNumber) ResolveEncryptionDictionary(
