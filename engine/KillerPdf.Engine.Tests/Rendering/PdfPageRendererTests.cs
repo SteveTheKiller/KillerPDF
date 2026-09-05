@@ -1134,7 +1134,8 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Functions"),
                 new PdfArray(new PdfObject[] { Segment(0), Segment(0.5), Segment(1) })),
             new KeyValuePair<PdfName, PdfObject>(Name("Bounds"), Reals(0.5, 0.5)),
-            new KeyValuePair<PdfName, PdfObject>(Name("Encode"), Reals(0, 1, 0, 1, 0, 1))]);
+            new KeyValuePair<PdfName, PdfObject>(Name("Encode"), Reals(0, 1, 0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]);
         var shading = new PdfStream(new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
             new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),

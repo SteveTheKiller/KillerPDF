@@ -2534,7 +2534,15 @@ public sealed class PdfPageRenderer
         if (!double.IsFinite(domain[0]) || !double.IsFinite(domain[1])
             || domain[0] >= domain[1])
             throw new FormatException($"A {description} domain is invalid.");
-        if (dictionary.ContainsKey(Name("Range"))) throw new NotSupportedException();
+        if (dictionary.TryGetValue(Name("Range"), out _))
+        {
+            double[] range = ReadFunctionArray(dictionary, "Range",
+                colorSpace.Components * 2, required: true, defaultValues: []);
+            if (range.Any(component => !double.IsFinite(component))
+                || Enumerable.Range(0, colorSpace.Components).Any(index =>
+                    range[index * 2] != 0 || range[index * 2 + 1] != 1))
+                throw new NotSupportedException();
+        }
         if (!dictionary.TryGetValue(Name("Functions"), out PdfObject? functionsValue)
             || Resolve(functionsValue) is not PdfArray functionValues
             || functionValues.Count == 0)
