@@ -162,6 +162,10 @@ internal sealed class PdfPageTree
                 foreach (PdfObject kid in kids)
                 {
                     if (kid is PdfNull && document.UsesCompatibilityRecovery) continue;
+                    if (kid is PdfIndirectReference kidReference
+                        && document.UsesCompatibilityRecovery
+                        && Resolve(kidReference) is PdfNull)
+                        continue;
                     actualCount = checked(actualCount + Visit(kid as PdfIndirectReference
                         ?? throw new InvalidOperationException("A page-tree kid is not an indirect reference."),
                         reference, depth + 1, effective));

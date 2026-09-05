@@ -275,15 +275,19 @@ public sealed class PdfDocument
         {
             indirect = ParseIndirectObject(offset);
         }
-        catch (PdfSyntaxException) when (_compatibilityRecovery
-            && FindNearbyIndirectObjectOffset(entry, offset) is int recoveredOffset)
+        catch (PdfSyntaxException) when (_compatibilityRecovery)
         {
-            indirect = ParseIndirectObject(recoveredOffset);
+            int? recoveredOffset = FindIndirectObjectOffset(entry, offset);
+            if (recoveredOffset is null) return PdfNull.Instance;
+            indirect = ParseIndirectObject(recoveredOffset.Value);
         }
         if (_compatibilityRecovery
-            && (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2)
-            && FindNearbyIndirectObjectOffset(entry, offset) is int matchingOffset)
-            indirect = ParseIndirectObject(matchingOffset);
+            && (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2))
+        {
+            int? matchingOffset = FindIndirectObjectOffset(entry, offset);
+            if (matchingOffset is null) return PdfNull.Instance;
+            indirect = ParseIndirectObject(matchingOffset.Value);
+        }
         if (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2)
         {
             throw Error(
@@ -301,27 +305,33 @@ public sealed class PdfDocument
                 ResolveStreamLength, _compatibilityRecovery).ParseIndirectObject();
     }
 
-    private int? FindNearbyIndirectObjectOffset(PdfCrossReferenceEntry entry, int offset)
+    private int? FindIndirectObjectOffset(PdfCrossReferenceEntry entry, int offset)
     {
-        const int maximumDistance = 1_048_576;
         byte[] header = Encoding.ASCII.GetBytes(
             $"{entry.ObjectNumber} {entry.Field2} obj");
-        int maximum = Math.Min(maximumDistance, _source.Length);
-        for (int distance = 1; distance <= maximum; distance++)
+        ReadOnlySpan<byte> source = _source.Span;
+        int? closest = null;
+        long closestDistance = long.MaxValue;
+        int searchStart = 0;
+        while (searchStart + header.Length <= source.Length)
         {
-            foreach (int candidate in new[] { offset + distance, offset - distance })
+            int relative = source[searchStart..].IndexOf(header);
+            if (relative < 0) break;
+            int candidate = searchStart + relative;
+            if ((candidate == 0 || IsObjectBoundary(source[candidate - 1]))
+                && (candidate + header.Length == source.Length
+                    || IsObjectBoundary(source[candidate + header.Length])))
             {
-                if (candidate < 0 || candidate + header.Length > _source.Length
-                    || candidate > 0 && !IsObjectBoundary(_source.Span[candidate - 1])
-                    || candidate + header.Length < _source.Length
-                        && !IsObjectBoundary(_source.Span[candidate + header.Length])
-                    || !_source.Span.Slice(candidate, header.Length).SequenceEqual(header))
-                    continue;
-                return candidate;
+                long distance = Math.Abs((long)candidate - offset);
+                if (distance < closestDistance)
+                {
+                    closest = candidate;
+                    closestDistance = distance;
+                }
             }
+            searchStart = candidate + 1;
         }
-        return null;
-
+        return closest;
     }
 
     private static bool IsObjectBoundary(byte value) =>
