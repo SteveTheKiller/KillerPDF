@@ -127,10 +127,10 @@ internal sealed class PdfPageTree
                 var effective = new Dictionary<PdfName, PdfObject>(inherited);
                 foreach (PdfName name in InheritableNames)
                     if (node.TryGetValue(name, out PdfObject value)) effective[name] = value;
-                PdfObject type = node.TryGetValue(TypeName, out PdfObject? typeValue)
-                    ? Resolve(typeValue)
-                    : document.UsesCompatibilityRecovery
-                        ? node.ContainsKey(KidsName) ? PagesName : PageName
+                PdfObject type = document.UsesCompatibilityRecovery
+                    ? node.ContainsKey(KidsName) ? PagesName : PageName
+                    : node.TryGetValue(TypeName, out PdfObject? typeValue)
+                        ? Resolve(typeValue)
                         : throw new InvalidOperationException("A page-tree node has no /Type value.");
                 if (type is PdfName typeName && typeName.Equals(PageName))
                 {

@@ -159,6 +159,8 @@ public sealed class PdfDocumentTests
     [InlineData(" /Type /Pages", "", " /Type /Page")]
     [InlineData(" /Type /Pages", " /Count 7", " /Type /Page")]
     [InlineData(" /Type /Pages", " /Count 1", "")]
+    [InlineData(" /Type /Page", " /Count 1", " /Type /Page")]
+    [InlineData(" /Type /Pages", " /Count 1", " /Type /Pages")]
     public void OpenWithCompatibilityRecoveryInfersIncompletePageTreeDeclarations(
         string pagesType, string count, string pageType)
     {
