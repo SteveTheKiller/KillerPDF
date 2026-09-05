@@ -18,6 +18,8 @@ public sealed class PdfPageRenderer
     private readonly PdfPageTree _tree;
     private readonly IPdfFontResolver? _fontResolver;
     private readonly ConcurrentDictionary<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = [];
+    private readonly ConcurrentDictionary<PdfDictionary, PdfExtractionFont> _fontCache =
+        new(ReferenceEqualityComparer.Instance);
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
@@ -79,8 +81,6 @@ public sealed class PdfPageRenderer
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
-        var fontCache = new Dictionary<PdfDictionary, PdfExtractionFont>(
-            ReferenceEqualityComparer.Instance);
         HashSet<int> hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
             .Where(group => !group.IsInitiallyVisible)
             .Select(group => group.ObjectNumber).ToHashSet();
@@ -758,7 +758,7 @@ public sealed class PdfPageRenderer
             {
                 if (textFont is null || NameValue(textFont, "Subtype") == "Type3")
                     return false;
-                extractionFont ??= PdfFontResourceReader.Read(_document, textFont, _fontResolver);
+                extractionFont ??= ReadFont(textFont);
                 return extractionFont.IsVertical;
             }
 
@@ -826,9 +826,7 @@ public sealed class PdfPageRenderer
             {
                 try
                 {
-                    extractionFont ??= fontCache.GetValueOrDefault(textFont!)
-                        ?? (fontCache[textFont!] = PdfFontResourceReader.Read(
-                            _document, textFont!, _fontResolver));
+                    extractionFont ??= ReadFont(textFont!);
                     if (textRenderingMode is < 0 or > 7)
                     {
                         diagnostics.Add("Text rendering is not implemented.");
@@ -1112,6 +1110,10 @@ public sealed class PdfPageRenderer
             _content.ReadInstructions(pageIndex, cancellationToken);
         return _instructionCache.GetOrAdd(pageIndex, parsed);
     }
+
+    private PdfExtractionFont ReadFont(PdfDictionary font) =>
+        _fontCache.GetOrAdd(font, value =>
+            PdfFontResourceReader.Read(_document, value, _fontResolver));
 
     private bool EvaluateOptionalContent(PdfObject value,
         IReadOnlySet<int> hiddenOptionalContentGroups, int expressionDepth)

@@ -1633,6 +1633,35 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
     }
 
+    [Fact]
+    public void Render_ReusesParsedFontsAcrossRepeatedRenders()
+    {
+        TrueTypeFont font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(
+            format12: false, includeOutlines: true));
+        var content = new PdfContentStreamBuilder()
+            .BeginText()
+            .SetFont(font, 10)
+            .SetTextMatrix(1, 0, 0, 1, 0, 0)
+            .ShowUnicodeText("A")
+            .EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+        var renderer = new PdfPageRenderer(document);
+        PdfRenderOptions options = new(10, 10,
+            includeAnnotations: false, includeFormFields: false);
+
+        PdfRenderedPage first = renderer.Render(0, options);
+        PdfRenderedPage second = renderer.Render(0, options);
+        object cache = typeof(PdfPageRenderer).GetField("_fontCache",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(renderer)!;
+        int count = (int)cache.GetType().GetProperty("Count")!.GetValue(cache)!;
+
+        Assert.Equal(first.Pixels.ToArray(), second.Pixels.ToArray());
+        Assert.Equal(1, count);
+        Assert.DoesNotContain("A text glyph outline is not implemented.", second.Diagnostics);
+    }
+
     [Theory]
     [InlineData(PdfStandardFont.Helvetica)]
     [InlineData(PdfStandardFont.HelveticaBold)]
