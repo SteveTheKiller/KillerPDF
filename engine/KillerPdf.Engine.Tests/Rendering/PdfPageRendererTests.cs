@@ -907,21 +907,43 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
     }
 
-    [Fact]
-    public void Render_IdentifiesAStandardFontWithoutOutlines()
+    [Theory]
+    [InlineData(PdfStandardFont.Helvetica)]
+    [InlineData(PdfStandardFont.HelveticaBold)]
+    [InlineData(PdfStandardFont.HelveticaOblique)]
+    [InlineData(PdfStandardFont.HelveticaBoldOblique)]
+    [InlineData(PdfStandardFont.TimesRoman)]
+    [InlineData(PdfStandardFont.TimesBold)]
+    [InlineData(PdfStandardFont.TimesItalic)]
+    [InlineData(PdfStandardFont.TimesBoldItalic)]
+    [InlineData(PdfStandardFont.Courier)]
+    [InlineData(PdfStandardFont.CourierBold)]
+    [InlineData(PdfStandardFont.CourierOblique)]
+    [InlineData(PdfStandardFont.CourierBoldOblique)]
+    public void Render_UsesBundledOutlinesForOrdinaryStandardFonts(
+        PdfStandardFont standardFont)
     {
-        var content = new PdfContentStreamBuilder().BeginText()
-            .SetFont(PdfStandardFont.HelveticaBold, 10)
-            .ShowLatin1Text("A").EndText();
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0)
+            .BeginText()
+            .SetFont(standardFont, 10)
+            .SetTextMatrix(1, 0, 0, 1, 0, 0)
+            .ShowLatin1Text("A A")
+            .EndText();
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(10, 10, content).Build());
+            .AddPage(20, 10, content).Build());
 
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
-            0, new PdfRenderOptions(10, 10,
+            0, new PdfRenderOptions(20, 10,
                 includeAnnotations: false, includeFormFields: false));
 
-        Assert.Contains("Text outlines for font Helvetica-Bold are not available.",
-            rendered.Diagnostics);
+        Assert.Contains(Enumerable.Range(0, rendered.Width * rendered.Height)
+            .Select(index => rendered.Pixels.Span.Slice(index * 4, 4).ToArray()),
+            pixel => pixel.SequenceEqual(new byte[] { 0, 0, 255, 255 }));
+        Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
+        Assert.DoesNotContain(rendered.Diagnostics,
+            diagnostic => diagnostic.StartsWith("Text outlines for font ",
+                StringComparison.Ordinal));
     }
 
     [Fact]

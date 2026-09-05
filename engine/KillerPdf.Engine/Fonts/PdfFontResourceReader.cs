@@ -38,11 +38,14 @@ public static class PdfFontResourceReader
             byte[]? embeddedData = (Get(descriptor, "FontFile2") ?? Get(descriptor, "FontFile3")) is PdfStream embeddedStream
                 ? Decode(embeddedStream) : null;
             TrueTypeFont? embedded = ReadEmbedded(embeddedData);
+            TrueTypeFont? outlineFont = embedded ?? (!composite
+                ? PdfStandardFontSubstitutes.Find(metricsName) : null);
             PdfCffGlyphReader? cff = embeddedData is null ? null : PdfCffGlyphReader.TryRead(embeddedData);
             PdfType1GlyphReader? type1 = Get(descriptor, "FontFile") is PdfStream type1Stream
                 ? PdfType1GlyphReader.TryRead(Decode(type1Stream), checked((int)Number(Get(type1Stream.Dictionary, "Length1"), 0)),
                     checked((int)Number(Get(type1Stream.Dictionary, "Length2"), 0))) : null;
-            var outlines = embedded is null ? null : new OutlineReader(embedded);
+            var outlines = outlineFont is null ? null : new OutlineReader(outlineFont);
+            var embeddedOutlines = embedded is null ? null : outlines;
             var widths = new Dictionary<uint, double>();
             var simpleText = new Dictionary<uint, string>();
             string[] glyphNames = [];
@@ -120,11 +123,11 @@ public static class PdfFontResourceReader
                     return cid <= ushort.MaxValue ? (ushort)cid : (ushort)0;
                 }
                 string? text = unicode.Lookup(code, 1) ?? simpleText.GetValueOrDefault(code);
-                if (embedded is null || string.IsNullOrEmpty(text)) return 0;
+                if (outlineFont is null || string.IsNullOrEmpty(text)) return 0;
                 int scalar = char.ConvertToUtf32(text, 0);
-                ushort glyph = embedded.GetGlyphId(scalar);
-                if (glyph == 0 && code < 256) glyph = embedded.GetGlyphId((int)code);
-                if (glyph == 0 && code < 256) glyph = embedded.GetGlyphId((int)code + 0xF000);
+                ushort glyph = outlineFont.GetGlyphId(scalar);
+                if (glyph == 0 && code < 256) glyph = outlineFont.GetGlyphId((int)code);
+                if (glyph == 0 && code < 256) glyph = outlineFont.GetGlyphId((int)code + 0xF000);
                 return glyph;
             }
             if (!composite && embedded is not null)
@@ -185,7 +188,7 @@ public static class PdfFontResourceReader
                 BoundsReader = code =>
                 {
                     ushort glyph = Glyph(code);
-                    var box = (glyph == 0 ? null : outlines?.Bounds(glyph))
+                    var box = (glyph == 0 ? null : embeddedOutlines?.Bounds(glyph))
                         ?? cff?.GetBounds(CffGlyph(code))
                         ?? (!composite && code < glyphNames.Length ? type1?.GetBounds(glyphNames[code]) : null)
                         ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(metricsName, glyphNames[code]) : null);
@@ -417,8 +420,8 @@ public static class PdfFontResourceReader
                 throw new FormatException("A compound TrueType glyph is cyclic or too deeply nested.");
             try
             {
-                if (!TryGlyphRange(glyph, out ReadOnlySpan<byte> data) || data.Length == 0)
-                    return null;
+                if (!TryGlyphRange(glyph, out ReadOnlySpan<byte> data)) return null;
+                if (data.Length == 0) return new PdfGlyphOutline([]);
                 int contourCount = BinaryPrimitives.ReadInt16BigEndian(data);
                 if (contourCount < 0) return CompoundOutline(data, active, depth);
                 if (contourCount == 0) return new PdfGlyphOutline([]);

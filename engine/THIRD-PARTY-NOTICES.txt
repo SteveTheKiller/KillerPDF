@@ -1,5 +1,12 @@
 Third-party font data notices
 
+Liberation Fonts 2.1.5 are bundled as rendering substitutes for the ordinary
+PDF standard fonts. Source: https://github.com/liberationfonts/liberation-fonts
+Digitized data copyright (c) 2010 Google Corporation.
+Copyright (c) 2012 Red Hat, Inc.
+Licensed under the SIL Open Font License, Version 1.1. The complete license is
+included in KillerPdf.Engine/Resources/Fonts/LIBERATION-LICENSE.txt.
+
 Static font data from ReportLab 4.4.9 and Adobe Glyph List 2.0.
 Sources: https://github.com/MrBitBucket/reportlab-mirror and https://github.com/adobe-type-tools/agl-aglfn
 Copyright 2002-2019 Adobe (http://www.adobe.com/).
