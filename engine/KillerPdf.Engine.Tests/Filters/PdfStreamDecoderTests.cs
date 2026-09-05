@@ -401,6 +401,27 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_RecoversProgressiveScanEndedByMarker()
+    {
+        byte[] source = ProgressiveGrayJpeg();
+        int scanCount = 0;
+        int scanData = -1;
+        for (int index = 0; index < source.Length - 3; index++)
+            if (source[index] == 0xFF && source[index + 1] == 0xDA
+                && ++scanCount == 3)
+            {
+                int length = source[index + 2] << 8 | source[index + 3];
+                scanData = index + 2 + length;
+                break;
+            }
+        Assert.True(scanData >= 0);
+        source = [.. source.AsSpan(0, scanData), .. source.AsSpan(scanData + 1)];
+        PdfStream stream = Stream(source, Pair("Filter", Name("DCTDecode")));
+
+        Assert.Equal(64, PdfStreamDecoder.Decode(stream, 64).Length);
+    }
+
+    [Fact]
     public void Decode_ReconstructsOneDimensionalCcittScanLines()
     {
         PdfStream stream = Stream([0x89, 0xC0],

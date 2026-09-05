@@ -346,10 +346,19 @@ internal static class PdfJpegDecoder
                             for (int vertical = 0; vertical < component.VerticalSampling; vertical++)
                                 for (int horizontal = 0;
                                     horizontal < component.HorizontalSampling; horizontal++)
-                                    if (DecodeProgressiveBlock(bits, component,
-                                            column * component.HorizontalSampling + horizontal,
-                                            row * component.VerticalSampling + vertical, ref eobRun))
+                                    try
+                                    {
+                                        if (DecodeProgressiveBlock(bits, component,
+                                                column * component.HorizontalSampling + horizontal,
+                                                row * component.VerticalSampling + vertical,
+                                                ref eobRun))
+                                            goto RecoverScan;
+                                    }
+                                    catch (PdfFilterException error) when (
+                                        error.Message == "A JPEG marker interrupted scan data.")
+                                    {
                                         goto RecoverScan;
+                                    }
                     }
             }
             else
@@ -359,8 +368,17 @@ internal static class PdfJpegDecoder
                     for (int column = 0; column < component.VisibleBlockColumns; column++, unit++)
                     {
                         RestartIfNeeded(bits, unit, ref eobRun);
-                        if (DecodeProgressiveBlock(bits, component, column, row, ref eobRun))
+                        try
+                        {
+                            if (DecodeProgressiveBlock(bits, component,
+                                    column, row, ref eobRun))
+                                goto RecoverScan;
+                        }
+                        catch (PdfFilterException error) when (
+                            error.Message == "A JPEG marker interrupted scan data.")
+                        {
                             goto RecoverScan;
+                        }
                     }
             }
             _position = bits.Position;
@@ -761,9 +779,13 @@ internal static class PdfJpegDecoder
                 int value = source[_position++];
                 if (value == 0xFF)
                 {
+                    int markerPosition = _position - 1;
                     while (_position < source.Length && source[_position] == 0xFF) _position++;
                     if (_position >= source.Length || source[_position++] != 0)
+                    {
+                        _position = markerPosition;
                         throw new PdfFilterException("A JPEG marker interrupted scan data.");
+                    }
                 }
                 _buffer = _buffer << 8 | value;
                 _bits += 8;
