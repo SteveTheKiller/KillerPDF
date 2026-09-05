@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Text;
+using KillerPdf.Engine.Rendering;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -137,6 +138,47 @@ public static class PdfOcrModelTrainer
         }
     }
 
+    /// <summary>Creates labeled samples from a PDF page that already has a text layer.</summary>
+    public static IReadOnlyList<PdfOcrTrainingSample> CreatePageSamples(
+        PdfDocument document, int pageIndex, PdfRenderOptions renderOptions,
+        PdfOcrOptions ocrOptions, int width, int height,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(renderOptions);
+        ArgumentNullException.ThrowIfNull(ocrOptions);
+        if (width is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
+        if (ocrOptions.Deskew || ocrOptions.CorrectOrientation)
+            throw new ArgumentException(
+                "PDF text-layer training cannot remap deskewed or reoriented pixels.",
+                nameof(ocrOptions));
+
+        PdfPageContent content = new PdfPageContentReader(document).Read(
+            pageIndex, cancellationToken);
+        PdfPageInformation page = PdfPageInformation.Read(document)[pageIndex];
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            pageIndex, renderOptions, cancellationToken);
+        PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
+            rendered.Pixels, rendered.Width, rendered.Height, ocrOptions, cancellationToken);
+        int featureCount = checked(width * height);
+        var samples = new List<PdfOcrTrainingSample>();
+        foreach (PdfExtractedLetter letter in content.Letters)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(letter.Value)) continue;
+            PdfOcrImageRegion? bounds = MapToPixels(
+                letter.BoundingBox, page, rendered.Width, rendered.Height);
+            if (bounds is null) continue;
+            if (checked((samples.Count + 1L) * featureCount) > MaximumModelValues)
+                throw new ArgumentException(
+                    "The PDF page has too many OCR training values.", nameof(document));
+            samples.Add(new PdfOcrTrainingSample(letter.Value,
+                PdfOcrRecognizer.NormalizeGlyph(prepared, bounds, width, height)));
+        }
+        return Array.AsReadOnly(samples.ToArray());
+    }
+
     /// <summary>Evaluates a model against labeled normalized glyphs.</summary>
     public static PdfOcrModelEvaluation Evaluate(PdfOcrRecognitionModel model,
         IEnumerable<PdfOcrTrainingSample> samples,
@@ -204,6 +246,40 @@ public static class PdfOcrModelTrainer
                 throw new ArgumentException(
                     "OCR sample features must be finite values from zero through one.",
                     nameof(samples));
+    }
+
+    private static PdfOcrImageRegion? MapToPixels(PdfContentBounds bounds,
+        PdfPageInformation page, int pixelWidth, int pixelHeight)
+    {
+        if (!double.IsFinite(bounds.Left) || !double.IsFinite(bounds.Bottom)
+            || !double.IsFinite(bounds.Right) || !double.IsFinite(bounds.Top))
+            return null;
+        (double X, double Y)[] points =
+        [
+            Rotate(bounds.Left, bounds.Bottom), Rotate(bounds.Right, bounds.Bottom),
+            Rotate(bounds.Left, bounds.Top), Rotate(bounds.Right, bounds.Top)
+        ];
+        bool quarterTurn = page.Rotation is 90 or 270;
+        double displayWidth = quarterTurn ? page.Height : page.Width;
+        double displayHeight = quarterTurn ? page.Width : page.Height;
+        int left = Math.Clamp((int)Math.Floor(
+            points.Min(point => point.X) * pixelWidth / displayWidth), 0, pixelWidth);
+        int right = Math.Clamp((int)Math.Ceiling(
+            points.Max(point => point.X) * pixelWidth / displayWidth), 0, pixelWidth);
+        int top = Math.Clamp((int)Math.Floor((displayHeight
+            - points.Max(point => point.Y)) * pixelHeight / displayHeight), 0, pixelHeight);
+        int bottom = Math.Clamp((int)Math.Ceiling((displayHeight
+            - points.Min(point => point.Y)) * pixelHeight / displayHeight), 0, pixelHeight);
+        return right > left && bottom > top
+            ? new PdfOcrImageRegion(left, top, right, bottom) : null;
+
+        (double X, double Y) Rotate(double x, double y) => page.Rotation switch
+        {
+            90 => (y, page.Width - x),
+            180 => (page.Width - x, page.Height - y),
+            270 => (page.Height - y, x),
+            _ => (x, y)
+        };
     }
 
     private sealed class Accumulator(int featureCount)

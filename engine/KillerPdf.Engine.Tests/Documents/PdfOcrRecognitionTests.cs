@@ -96,6 +96,36 @@ public sealed class PdfOcrRecognitionTests
             [new PdfOcrLabeledGlyph("I", new PdfOcrImageRegion(-1, 0, 1, 1))]));
     }
 
+    [Theory]
+    [InlineData(0, 200, 160)]
+    [InlineData(90, 160, 200)]
+    public void TrainerCreatesSamplesFromExistingPdfTextLayers(
+        int rotation, int pixelWidth, int pixelHeight)
+    {
+        var builder = new PdfDocumentBuilder()
+            .AddPage(100, 80, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 40)
+                .SetTextMatrix(1, 0, 0, 1, 10, 20)
+                .ShowLatin1Text("AB").EndText())
+            .SetPageRotation(0, rotation);
+        PdfDocument document = PdfDocument.Open(builder.Build());
+        var options = new PdfOcrOptions(["en"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreatePageSamples(document, 0,
+                new PdfRenderOptions(pixelWidth, pixelHeight, includeAnnotations: false,
+                    includeFormFields: false), options, 16, 16);
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, samples);
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model, samples);
+
+        Assert.Equal(["A", "B"], samples.Select(sample => sample.Label));
+        Assert.All(samples, sample => Assert.Contains(
+            sample.Features.ToArray(), value => value > 0));
+        Assert.Equal(1, evaluation.Accuracy);
+    }
+
     [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
