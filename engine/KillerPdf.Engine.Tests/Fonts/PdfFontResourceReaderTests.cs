@@ -40,6 +40,20 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void EmbeddedWindowsSymbolFontUsesPrivateUseCharacterMapping()
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(
+            format12: false, includeOutlines: true, symbolCmap: true);
+        int cmap = FindTable(bytes, "cmap");
+        BinaryPrimitives.WriteUInt16BigEndian(bytes.AsSpan(cmap + 14), 38);
+        PdfExtractionFont font = Read(D(("Subtype", N("TrueType")),
+            ("BaseFont", N("SubsetSymbol")),
+            ("FontDescriptor", D(("FontFile2", new PdfStream(D(), bytes))))));
+
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(31)).Contours);
+    }
+
+    [Fact]
     public void MissingCompositeFontUsesItsUnicodeMapWithBundledOutlines()
     {
         PdfStream unicode = Stream(

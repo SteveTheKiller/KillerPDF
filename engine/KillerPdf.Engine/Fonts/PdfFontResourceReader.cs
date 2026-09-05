@@ -161,9 +161,9 @@ public static class PdfFontResourceReader
                     return cid <= ushort.MaxValue ? (ushort)cid : (ushort)0;
                 }
                 string? text = CharacterText(code);
-                if (embedded is null || string.IsNullOrEmpty(text)) return 0;
-                int scalar = char.ConvertToUtf32(text, 0);
-                ushort glyph = embedded.GetGlyphId(scalar);
+                if (embedded is null) return 0;
+                ushort glyph = string.IsNullOrEmpty(text)
+                    ? (ushort)0 : embedded.GetGlyphId(char.ConvertToUtf32(text, 0));
                 if (glyph == 0 && code < 256) glyph = embedded.GetGlyphId((int)code);
                 if (glyph == 0 && code < 256) glyph = embedded.GetGlyphId((int)code + 0xF000);
                 return glyph;

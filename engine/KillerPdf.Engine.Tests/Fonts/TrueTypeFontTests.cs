@@ -37,6 +37,16 @@ public sealed class TrueTypeFontTests
         Assert.Equal((ushort)0, font.GetGlyphId('A'));
     }
 
+    [Fact]
+    public void Load_ReadsWindowsSymbolFormat4Cmap()
+    {
+        TrueTypeFont font = TrueTypeFont.Load(
+            BuildTestFont(format12: false, symbolCmap: true));
+
+        Assert.Equal((ushort)1, font.GetGlyphId(0xF01F));
+        Assert.Equal((ushort)0, font.GetGlyphId(0x001F));
+    }
+
     [Theory]
     [InlineData(0, 0x0041)]
     [InlineData(2, 0x1234)]
@@ -228,12 +238,13 @@ public sealed class TrueTypeFontTests
 
     internal static byte[] BuildTestFont(
         bool format12, ushort embeddingFlags = 0, bool includeOutlines = false,
-        bool cffOutlines = false, byte[]? cmap = null, bool includeCompound = false)
+        bool cffOutlines = false, byte[]? cmap = null, bool includeCompound = false,
+        bool symbolCmap = false)
     {
         int glyphCount = includeCompound ? 3 : 2;
         var tables = new Dictionary<string, byte[]>
         {
-            ["cmap"] = cmap ?? (format12 ? Cmap12() : Cmap4()),
+            ["cmap"] = cmap ?? (format12 ? Cmap12() : Cmap4(symbolCmap)),
             ["head"] = Bytes(54, bytes =>
             {
                 U16(bytes, 18, 1000);
@@ -316,12 +327,12 @@ public sealed class TrueTypeFontTests
         return result;
     }
 
-    private static byte[] Cmap4()
+    private static byte[] Cmap4(bool symbol = false)
     {
         byte[] result = new byte[44];
         U16(result, 2, 1);
         U16(result, 4, 3);
-        U16(result, 6, 1);
+        U16(result, 6, symbol ? 0 : 1);
         U32(result, 8, 12);
         int subtable = 12;
         U16(result, subtable, 4);
@@ -329,11 +340,11 @@ public sealed class TrueTypeFontTests
         U16(result, subtable + 6, 4);
         U16(result, subtable + 8, 4);
         U16(result, subtable + 10, 1);
-        U16(result, subtable + 14, 0x0041);
+        U16(result, subtable + 14, symbol ? 0xF01F : 0x0041);
         U16(result, subtable + 16, 0xFFFF);
-        U16(result, subtable + 20, 0x0041);
+        U16(result, subtable + 20, symbol ? 0xF01F : 0x0041);
         U16(result, subtable + 22, 0xFFFF);
-        U16(result, subtable + 24, 0xFFC0);
+        U16(result, subtable + 24, symbol ? 0x0FE2 : 0xFFC0);
         U16(result, subtable + 26, 1);
         return result;
     }

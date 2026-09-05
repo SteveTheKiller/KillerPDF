@@ -222,7 +222,7 @@ public sealed class TrueTypeFont
                 (0, _, 6) => 330,
                 (0, _, 0) => 320,
                 (0, _, 2) => 310,
-                (3, 0, 4) when extraction => 200,
+                (3, 0, 4) => 200,
                 (1, 0, 0) when extraction => 100,
                 (1, 0, 6) when extraction => 110,
                 _ => 0
@@ -237,7 +237,7 @@ public sealed class TrueTypeFont
         {
             0 => ReadFormat0(best.Value.Offset, cmap),
             2 => ReadFormat2(best.Value.Offset, cmap),
-            4 => ReadFormat4(best.Value.Offset, cmap),
+            4 => ReadFormat4(best.Value.Offset, cmap, extraction),
             6 => ReadFormat6(best.Value.Offset, cmap),
             8 => ReadFormat8(best.Value.Offset, cmap),
             10 => ReadFormat10(best.Value.Offset, cmap),
@@ -411,15 +411,21 @@ public sealed class TrueTypeFont
         return new Format12Cmap(groups);
     }
 
-    private Format4Cmap ReadFormat4(int offset, Table parent)
+    private Format4Cmap ReadFormat4(int offset, Table parent, bool extraction)
     {
         if (offset + 14 > parent.End || ReadU16(_data, offset) != 4)
             throw Error("The cmap format 4 header is truncated");
         int length = ReadU16(_data, offset + 2);
         int segmentCount = ReadU16(_data, offset + 6) / 2;
-        if (length < 16 || offset + length > parent.End || segmentCount < 1
-            || 16 + segmentCount * 8 > length)
+        int minimumLength = checked(16 + segmentCount * 8);
+        if (length < 16 || segmentCount < 1 || minimumLength > length
+            || offset + Math.Min(length, minimumLength) > parent.End)
             throw Error("The cmap format 4 segments are invalid");
+        if (offset + length > parent.End)
+        {
+            if (!extraction) throw Error("The cmap format 4 segments are invalid");
+            length = parent.End - offset;
+        }
         return new Format4Cmap(_data, offset, length, segmentCount, GlyphCount);
     }
 
