@@ -193,22 +193,24 @@ public sealed class PdfPageRenderer
                     break;
                 case "scn" when state.FillPatternSpace && values.Count > 0
                     && values[^1] is PdfName fillPatternName:
-                    if (!TryGetTilingPattern(resources, fillPatternName,
-                        out PdfStream? fillPattern, out int paintType)
-                        || paintType == 1 && values.Count != 1
-                        || paintType == 2 && (state.FillPatternBase is null
+                    if (!TryGetPattern(resources, fillPatternName,
+                        out PatternPaint? fillPattern, out int paintType)
+                        || fillPattern!.Shading is not null && values.Count != 1
+                        || fillPattern.Tiling is not null && paintType == 1 && values.Count != 1
+                        || fillPattern.Tiling is not null && paintType == 2
+                            && (state.FillPatternBase is null
                             || values.Count != state.FillPatternBase.Components + 1))
                     {
-                        diagnostics.Add("Tiling-pattern rendering is not implemented.");
+                        diagnostics.Add("Pattern rendering is not implemented.");
                         break;
                     }
-                    Color? baseColor = paintType == 2
+                    Color? baseColor = fillPattern.Tiling is not null && paintType == 2
                         ? state.FillPatternBase!.Convert(values.Take(values.Count - 1)
                             .Select(value => Number(Resolve(value))).ToArray())
                         : null;
                     state = state with
                     {
-                        FillPattern = new TilingPatternPaint(fillPattern!, baseColor)
+                        FillPattern = fillPattern with { BaseColor = baseColor }
                     };
                     break;
                 case "cs" when values.Count == 1:
@@ -298,22 +300,26 @@ public sealed class PdfPageRenderer
                     break;
                 case "SCN" when state.StrokePatternSpace && values.Count > 0
                     && values[^1] is PdfName strokePatternName:
-                    if (!TryGetTilingPattern(resources, strokePatternName,
-                        out PdfStream? strokePattern, out int strokePaintType)
-                        || strokePaintType == 1 && values.Count != 1
-                        || strokePaintType == 2 && (state.StrokePatternBase is null
+                    if (!TryGetPattern(resources, strokePatternName,
+                        out PatternPaint? strokePattern, out int strokePaintType)
+                        || strokePattern!.Shading is not null && values.Count != 1
+                        || strokePattern.Tiling is not null && strokePaintType == 1
+                            && values.Count != 1
+                        || strokePattern.Tiling is not null && strokePaintType == 2
+                            && (state.StrokePatternBase is null
                             || values.Count != state.StrokePatternBase.Components + 1))
                     {
-                        diagnostics.Add("Tiling-pattern rendering is not implemented.");
+                        diagnostics.Add("Pattern rendering is not implemented.");
                         break;
                     }
-                    Color? strokeBaseColor = strokePaintType == 2
+                    Color? strokeBaseColor = strokePattern.Tiling is not null
+                        && strokePaintType == 2
                         ? state.StrokePatternBase!.Convert(values.Take(values.Count - 1)
                             .Select(value => Number(Resolve(value))).ToArray())
                         : null;
                     state = state with
                     {
-                        StrokePattern = new TilingPatternPaint(strokePattern!, strokeBaseColor)
+                        StrokePattern = strokePattern with { BaseColor = strokeBaseColor }
                     };
                     break;
                 case "w" when values.Count == 1:
@@ -609,8 +615,7 @@ public sealed class PdfPageRenderer
                 }
                 var fillClip = new ClipRegion(
                     [.. fillPath.Select(points => points.ToArray())], evenOdd);
-                RenderTilingPattern(state.FillPattern, fillPath, fillClip,
-                    resources, state, depth);
+                RenderPattern(state.FillPattern, fillPath, fillClip, resources, state, depth);
             }
 
             void PaintStroke(IReadOnlyList<List<Point>> strokePath)
@@ -632,15 +637,37 @@ public sealed class PdfPageRenderer
                 var strokeClip = new ClipRegion([], false,
                     (x, y) => IsWithinStroke(segments, radius, x, y,
                         state.LineCap, state.LineJoin, state.MiterLimit));
-                RenderTilingPattern(state.StrokePattern, paintedPath, strokeClip,
+                RenderPattern(state.StrokePattern, paintedPath, strokeClip,
                     resources, state, depth);
             }
 
-            void RenderTilingPattern(TilingPatternPaint paint,
+            void RenderPattern(PatternPaint paint,
                 IReadOnlyList<List<Point>> paintPath, ClipRegion paintClip,
                 PdfDictionary parentResources, GraphicsState parentState, int patternDepth)
             {
-                PdfStream pattern = paint.Stream;
+                if (paint.Shading is not null)
+                {
+                    ClipRegion[] clips = [.. parentState.Clips, paintClip];
+                    GraphicsState shadingState = parentState with
+                    {
+                        Transform = paint.Matrix.Then(parentState.Transform),
+                        Clips = Array.AsReadOnly(clips),
+                        FillPatternSpace = false,
+                        FillPatternBase = null,
+                        FillPattern = null,
+                        StrokePatternSpace = false,
+                        StrokePatternBase = null,
+                        StrokePattern = null
+                    };
+                    if (!TryRenderResolvedShading(paint.Shading, parentResources,
+                        shadingState, pixels, options.Width, options.Height, scaleX, scaleY,
+                        cancellationToken, out string? shadingDiagnostic)
+                        && shadingDiagnostic is not null)
+                        diagnostics.Add(shadingDiagnostic);
+                    return;
+                }
+
+                PdfStream pattern = paint.Tiling!;
                 PdfArray box = pattern.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boxValue)
                     ? ResolveArray(boxValue, 4, "Tiling pattern bounding box")
                     : throw new FormatException("A tiling pattern has no bounding box.");
@@ -648,10 +675,7 @@ public sealed class PdfPageRenderer
                 double right = Number(Resolve(box[2])), top = Number(Resolve(box[3]));
                 double xStep = PatternStep(pattern.Dictionary, "XStep");
                 double yStep = PatternStep(pattern.Dictionary, "YStep");
-                Matrix patternMatrix = pattern.Dictionary.TryGetValue(Name("Matrix"),
-                    out PdfObject? matrixValue)
-                    ? Matrix.From(ResolveArray(matrixValue, 6, "Tiling pattern matrix"))
-                    : Matrix.Identity;
+                Matrix patternMatrix = paint.Matrix;
                 Matrix patternToPage = patternMatrix.Then(parentState.Transform);
                 if (!patternToPage.TryInverse(out Matrix pageToPattern)) return;
                 Point[] patternBounds = paintPath.SelectMany(points => points)
@@ -1128,21 +1152,44 @@ public sealed class PdfPageRenderer
         return xObject is not null;
     }
 
-    private bool TryGetTilingPattern(PdfDictionary resources, PdfName resourceName,
-        out PdfStream? pattern, out int paintType)
+    private bool TryGetPattern(PdfDictionary resources, PdfName resourceName,
+        out PatternPaint? pattern, out int paintType)
     {
-        pattern = resources.TryGetValue(Name("Pattern"), out PdfObject? patternsValue)
-            && Resolve(patternsValue) is PdfDictionary patterns
-            && patterns.TryGetValue(resourceName, out PdfObject? value)
-            && Resolve(value) is PdfStream stream
-            && stream.Dictionary.TryGetValue(Name("PatternType"), out PdfObject? typeValue)
-            && Resolve(typeValue) is PdfInteger { Value: 1 }
-            && stream.Dictionary.TryGetValue(Name("PaintType"), out PdfObject? paintValue)
-            && Resolve(paintValue) is PdfInteger { Value: 1 or 2 }
-            ? stream : null;
-        paintType = pattern is not null
-            ? checked((int)AssertInteger(pattern.Dictionary, "PaintType")) : 0;
-        return pattern is not null;
+        pattern = null;
+        paintType = 0;
+        if (!resources.TryGetValue(Name("Pattern"), out PdfObject? patternsValue)
+            || Resolve(patternsValue) is not PdfDictionary patterns
+            || !patterns.TryGetValue(resourceName, out PdfObject? value)) return false;
+        PdfObject resolved = Resolve(value);
+        PdfDictionary dictionary = resolved switch
+        {
+            PdfDictionary direct => direct,
+            PdfStream stream => stream.Dictionary,
+            _ => null!
+        };
+        if (dictionary is null
+            || !dictionary.TryGetValue(Name("PatternType"), out PdfObject? typeValue)
+            || Resolve(typeValue) is not PdfInteger type) return false;
+        Matrix matrix = dictionary.TryGetValue(Name("Matrix"), out PdfObject? matrixValue)
+            ? Matrix.From(ResolveArray(matrixValue, 6, "Pattern matrix"))
+            : Matrix.Identity;
+        if (type.Value == 2 && dictionary.TryGetValue(Name("Shading"),
+                out PdfObject? shadingValue))
+        {
+            PdfObject shading = Resolve(shadingValue);
+            if (shading is PdfDictionary or PdfStream)
+            {
+                pattern = new PatternPaint(null, shading, matrix, null);
+                return true;
+            }
+            return false;
+        }
+        if (type.Value != 1 || resolved is not PdfStream tiling
+            || !dictionary.TryGetValue(Name("PaintType"), out PdfObject? paintValue)
+            || Resolve(paintValue) is not PdfInteger { Value: 1 or 2 } paint) return false;
+        paintType = checked((int)paint.Value);
+        pattern = new PatternPaint(tiling, null, matrix, null);
+        return true;
     }
 
     private long AssertInteger(PdfDictionary dictionary, string key) =>
@@ -1928,7 +1975,7 @@ public sealed class PdfPageRenderer
         double previous = domain[0];
         foreach (double bound in bounds)
         {
-            if (!double.IsFinite(bound) || bound <= previous || bound >= domain[1])
+            if (!double.IsFinite(bound) || bound < previous || bound >= domain[1])
                 throw new FormatException($"A {description} boundary array is invalid.");
             previous = bound;
         }
@@ -1962,7 +2009,24 @@ public sealed class PdfPageRenderer
                 || Resolve(shadingsValue) is not PdfDictionary shadings
                 || !shadings.TryGetValue(resourceName, out PdfObject? shadingValue))
                 throw new FormatException("A shading resource could not be resolved.");
-            PdfObject resolved = Resolve(shadingValue);
+            return TryRenderResolvedShading(Resolve(shadingValue), resources, state, target,
+                targetWidth, targetHeight, scaleX, scaleY, cancellationToken, out diagnostic);
+        }
+        catch (NotSupportedException)
+        {
+            diagnostic = "The shading type or function is not implemented.";
+            return false;
+        }
+    }
+
+    private bool TryRenderResolvedShading(PdfObject resolved, PdfDictionary resources,
+        GraphicsState state, byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY, CancellationToken cancellationToken,
+        out string? diagnostic)
+    {
+        diagnostic = null;
+        try
+        {
             PdfDictionary shading = resolved switch
             {
                 PdfDictionary dictionary => dictionary,
@@ -3379,9 +3443,9 @@ public sealed class PdfPageRenderer
         IReadOnlyList<double> DashPattern, double DashPhase,
         RendererBlendMode BlendMode,
         IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace,
-        ImageColorSpace? FillPatternBase, TilingPatternPaint? FillPattern,
+        ImageColorSpace? FillPatternBase, PatternPaint? FillPattern,
         bool StrokePatternSpace, ImageColorSpace? StrokePatternBase,
-        TilingPatternPaint? StrokePattern, ImageColorSpace? FillColorSpace,
+        PatternPaint? StrokePattern, ImageColorSpace? FillColorSpace,
         ImageColorSpace? StrokeColorSpace);
     private enum RendererLineCap { Butt, Round, ProjectingSquare }
     private enum RendererLineJoin { Miter, Round, Bevel }
@@ -3399,7 +3463,8 @@ public sealed class PdfPageRenderer
             => Predicate?.Invoke(x, y) ?? PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height);
-    private sealed record TilingPatternPaint(PdfStream Stream, Color? BaseColor);
+    private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,
+        Matrix Matrix, Color? BaseColor);
     private sealed record CalculatorInstruction(double? Number, string? Operator);
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
         Func<double, double, double, double, Color>? Converter = null,

@@ -773,6 +773,37 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsAndClipsShadingPatterns()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes(
+                "/Pattern cs /P1 scn 0 0 5 10 re f /Pattern CS /P1 SCN 1 w 7 1 2 8 re S"))
+            .Build());
+        var function = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(0, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(1, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function),
+            new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
+                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))]);
+        PdfDocument document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 2, 0));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 13, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 5, 9));
+        Assert.Equal([0, 0, 140, 255], Pixel(rendered, 7, 1));
+        Assert.DoesNotContain("Pattern rendering is not implemented.", rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsMultiStopAxialShadings()
     {
         var shading = new PdfAxialGradient(0, 0, 10, 0,
@@ -791,6 +822,41 @@ public sealed class PdfPageRendererTests
         Assert.Equal([26, 26, 255, 255], Pixel(rendered, 5, 5));
         Assert.DoesNotContain("The shading type or function is not implemented.",
             rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_AcceptsRepeatedStitchingFunctionBoundaries()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        PdfDictionary Segment(double red) => new([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(red, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(red, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
+        var function = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(3)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Functions"),
+                new PdfArray(new PdfObject[] { Segment(0), Segment(0.5), Segment(1) })),
+            new KeyValuePair<PdfName, PdfObject>(Name("Bounds"), Reals(0.5, 0.5)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Encode"), Reals(0, 1, 0, 1, 0, 1))]);
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function),
+            new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
+                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))]), []);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 0, 255], Pixel(rendered, 4, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
     }
 
     [Fact]
@@ -1683,6 +1749,32 @@ public sealed class PdfPageRendererTests
         var updatedPage = new PdfDictionary(page
             .Where(entry => !entry.Key.Equals(Name("Resources")))
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), updatedResources)));
+        return PdfDocument.Open(update.ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
+    }
+
+    private static PdfDocument AddShadingPatternResource(
+        PdfDocument source, PdfDictionary shading, PdfArray matrix)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        var pattern = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Type"), Name("Pattern")),
+            new KeyValuePair<PdfName, PdfObject>(Name("PatternType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Shading"), shading),
+            new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), matrix)]);
+        var patterns = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("P1"), pattern)]);
+        var updatedResources = new PdfDictionary(resources
+            .Where(entry => !entry.Key.Equals(Name("Pattern")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Pattern"), patterns)));
+        var updatedPage = new PdfDictionary(page
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), updatedResources)));
+        var update = new PdfIncrementalUpdateBuilder(source);
         return PdfDocument.Open(update.ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
     }
 
