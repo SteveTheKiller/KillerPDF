@@ -129,7 +129,9 @@ internal sealed class PdfPageTree
                     if (node.TryGetValue(name, out PdfObject value)) effective[name] = value;
                 PdfObject type = node.TryGetValue(TypeName, out PdfObject? typeValue)
                     ? Resolve(typeValue)
-                    : throw new InvalidOperationException("A page-tree node has no /Type value.");
+                    : document.UsesCompatibilityRecovery
+                        ? node.ContainsKey(KidsName) ? PagesName : PageName
+                        : throw new InvalidOperationException("A page-tree node has no /Type value.");
                 if (type is PdfName typeName && typeName.Equals(PageName))
                 {
                     if (node.ContainsKey(KidsName) || node.ContainsKey(CountName))
@@ -149,18 +151,20 @@ internal sealed class PdfPageTree
                     : throw new InvalidOperationException("A page-tree node has neither /Type /Page nor /Kids.");
                 if (depth > 0 && kids.Count == 0)
                     throw new InvalidOperationException("A non-root page-tree /Kids array is empty.");
-                PdfInteger count = node.TryGetValue(CountName, out PdfObject? countValue)
+                PdfInteger? count = node.TryGetValue(CountName, out PdfObject? countValue)
                     ? Resolve(countValue) as PdfInteger
                         ?? throw new InvalidOperationException("A page-tree /Count value is not an integer.")
-                    : throw new InvalidOperationException("A /Type /Pages node has no /Count value.");
-                if (count.Value < 0)
+                    : document.UsesCompatibilityRecovery ? null
+                        : throw new InvalidOperationException("A /Type /Pages node has no /Count value.");
+                if (count?.Value < 0)
                     throw new InvalidOperationException("A page-tree /Count value is negative.");
                 int actualCount = 0;
                 foreach (PdfObject kid in kids)
                     actualCount = checked(actualCount + Visit(kid as PdfIndirectReference
                         ?? throw new InvalidOperationException("A page-tree kid is not an indirect reference."),
                         reference, depth + 1, effective));
-                if (count.Value != actualCount)
+                if (count is not null && count.Value != actualCount
+                    && !document.UsesCompatibilityRecovery)
                     throw new InvalidOperationException(
                         "A page-tree /Count value does not match its descendant page count.");
                 return actualCount;
