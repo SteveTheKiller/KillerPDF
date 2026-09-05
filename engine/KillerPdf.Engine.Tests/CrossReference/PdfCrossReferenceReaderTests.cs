@@ -148,6 +148,23 @@ public sealed class PdfCrossReferenceReaderTests
     }
 
     [Fact]
+    public void ReadSection_CompatibilityRecoveryFindsClassicTableFromMalformedTarget()
+    {
+        byte[] table =
+            "xref\n0 1\n0000000000 65535 f\ntrailer\n<< /Size 1 >>\n"u8.ToArray();
+        byte[] malformedTarget = "214425x\n"u8.ToArray();
+        byte[] source = [.. table, .. malformedTarget];
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, table.Length));
+        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(
+            source, table.Length, compatibilityRecovery: true);
+
+        Assert.False(section.IsStream);
+        Assert.Equal(0, section.Offset);
+    }
+
+    [Fact]
     public void ReadSection_CanonicalizesObjectZeroCrossReferenceStreamGeneration()
     {
         byte[] source = XrefStream(

@@ -42,7 +42,24 @@ public static class PdfCrossReferenceReader
         }
 
         var probe = new PdfTokenizer(source, (int)offset);
-        PdfToken first = probe.Read();
+        PdfToken first;
+        try
+        {
+            first = probe.Read();
+        }
+        catch (PdfSyntaxException) when (compatibilityRecovery)
+        {
+            PdfCrossReferenceSection? recoveredStream =
+                FindNearbyCrossReferenceStream(source, (int)offset);
+            if (recoveredStream is not null)
+                return recoveredStream;
+            (PdfToken Token, PdfTokenizer Tokenizer)? recovered =
+                FindNearbyClassicTable(source, (int)offset);
+            if (!recovered.HasValue)
+                throw;
+            return ReadClassic(source, recovered.Value.Token,
+                recovered.Value.Tokenizer, compatibilityRecovery: true);
+        }
         if (IsKeyword(first, "xref"))
             return ReadClassic(source, first, probe, compatibilityRecovery);
         if (!compatibilityRecovery)
