@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using KillerPdf.Engine.Documents;
 using Microsoft.Win32;
 using KillerPDF.Services;
 
@@ -48,12 +49,12 @@ namespace KillerPDF.Features
             var ct = _host.BeginOp(_host.Loc("Str_Op_Ocr"), _host.Loc("Str_Busy_Ocr"));
             try
             {
-                List<OcrResult> results = await Task.Run(() =>
+                List<PdfOcrResult> results = await Task.Run(() =>
                 {
                     using var renderSession = PdfPageRenderSession.OpenEngineFirst(
                         file, OcrRenderMax, OcrRenderMax);
                     using var ocr = new OcrService(language: lang);   // engine is not thread-safe: one per operation
-                    var recognized = new List<OcrResult>(pages.Length);
+                    var recognized = new List<PdfOcrResult>(pages.Length);
                     for (int i = 0; i < pages.Length; i++)
                     {
                         if (ct.IsCancellationRequested) break;
@@ -125,7 +126,7 @@ namespace KillerPDF.Features
             var ct = _host.BeginOp(_host.Loc("Str_Op_OcrRegion"), _host.Loc("Str_Busy_Region"));
             try
             {
-                OcrResult result = await Task.Run(() =>
+                PdfOcrResult result = await Task.Run(() =>
                 {
                     using var renderSession = PdfPageRenderSession.OpenEngineFirst(
                         file, OcrRenderMax, OcrRenderMax);
@@ -284,7 +285,7 @@ namespace KillerPDF.Features
                     continue;
                 }
 
-                OcrResult result = formAware
+                PdfOcrResult result = formAware
                     ? FormAwareOcr.Recognize(ocr, bgra, w, h, formPages[i])
                     : ocr.RecognizeBgra(bgra, w, h);
                 layers.Add(new PdfEngineIntegration.SearchablePage(w, h,

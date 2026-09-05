@@ -3,25 +3,6 @@ using Tesseract;
 
 namespace KillerPDF.Services
 {
-    /// <summary>A single recognized word with its confidence and pixel box (top-left origin, OCR image space).</summary>
-    internal sealed class OcrWord
-    {
-        public string Text { get; set; } = "";
-        public float Confidence { get; set; }
-        public int Left { get; set; }
-        public int Top { get; set; }
-        public int Right { get; set; }
-        public int Bottom { get; set; }
-    }
-
-    /// <summary>Result of recognizing one image/page: full text, mean confidence, and per-word boxes.</summary>
-    internal sealed class OcrResult
-    {
-        public string Text { get; set; } = "";
-        public float MeanConfidence { get; set; }
-        public List<OcrWord> Words { get; } = [];
-    }
-
     /// <summary>
     /// Local Tesseract OCR. The tessdata folder (with at least eng.traineddata) must sit next to the
     /// exe; the native engine loads language data by path. A TesseractEngine is NOT thread-safe, so run
@@ -44,14 +25,14 @@ namespace KillerPDF.Services
         }
 
         /// <summary>OCR an image file on disk (PNG, TIFF, JPEG, BMP).</summary>
-        public OcrResult RecognizeImageFile(string imagePath)
+        public PdfOcrResult RecognizeImageFile(string imagePath)
         {
             using var pix = Pix.LoadFromFile(imagePath);
             return Run(pix);
         }
 
         /// <summary>OCR an encoded image already in memory (e.g. PNG bytes).</summary>
-        public OcrResult RecognizeImageBytes(byte[] encodedImage)
+        public PdfOcrResult RecognizeImageBytes(byte[] encodedImage)
         {
             using var pix = Pix.LoadFromMemory(encodedImage);
             return Run(pix);
@@ -60,7 +41,7 @@ namespace KillerPDF.Services
         /// <summary>
         /// OCR a rendered page straight from the render pipeline (raw BGRA, 4 bytes/pixel).
         /// </summary>
-        public OcrResult RecognizeBgra(byte[] bgra, int width, int height,
+        public PdfOcrResult RecognizeBgra(byte[] bgra, int width, int height,
             string? characterWhitelist = null)
         {
             if (!string.IsNullOrEmpty(characterWhitelist))
@@ -79,14 +60,12 @@ namespace KillerPDF.Services
             }
         }
 
-        private OcrResult Run(Pix pix)
+        private PdfOcrResult Run(Pix pix)
         {
             using var page = _engine.Process(pix);
-            var res = new OcrResult
-            {
-                Text = page.GetText() ?? "",
-                MeanConfidence = page.GetMeanConfidence(),
-            };
+            string text = page.GetText() ?? "";
+            float confidence = page.GetMeanConfidence();
+            var words = new List<PdfOcrPixelWord>();
 
             using var iter = page.GetIterator();
             iter.Begin();
@@ -97,21 +76,15 @@ namespace KillerPDF.Services
                     string w = iter.GetText(PageIteratorLevel.Word) ?? "";
                     if (!string.IsNullOrWhiteSpace(w))
                     {
-                        res.Words.Add(new OcrWord
-                        {
-                            Text = w,
-                            Confidence = iter.GetConfidence(PageIteratorLevel.Word),
-                            Left = r.X1,
-                            Top = r.Y1,
-                            Right = r.X2,
-                            Bottom = r.Y2,
-                        });
+                        words.Add(new PdfOcrPixelWord(w,
+                            iter.GetConfidence(PageIteratorLevel.Word),
+                            r.X1, r.Y1, r.X2, r.Y2));
                     }
                 }
             }
             while (iter.Next(PageIteratorLevel.Word));
 
-            return res;
+            return new PdfOcrResult(text, confidence, words);
         }
 
         private static unsafe Pix CreateGrayscalePix(PdfOcrPreparedImage image)
