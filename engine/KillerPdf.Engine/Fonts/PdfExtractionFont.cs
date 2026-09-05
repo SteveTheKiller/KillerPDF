@@ -49,6 +49,10 @@ public sealed class PdfExtractionFont
     public IReadOnlyList<PdfDecodedCharacter> Decode(ReadOnlyMemory<byte> source) =>
         CharacterDecoder?.Invoke(source) ?? Unicode.DecodeWithFallback(source.Span, UnicodeFallback);
 
+    internal IReadOnlyList<PdfDecodedCharacter> DecodeWithCompatibilityRecovery(
+        ReadOnlyMemory<byte> source) => CharacterDecoder?.Invoke(source)
+            ?? Unicode.DecodeWithCompatibilityRecovery(source.Span, UnicodeFallback);
+
     /// <summary>Returns the embedded outline bounds when available.</summary>
     public PdfGlyphBounds? GetGlyphBounds(uint code) => BoundsReader?.Invoke(code);
 

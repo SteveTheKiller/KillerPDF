@@ -77,6 +77,18 @@ public sealed class PdfToUnicodeMapTests
         Assert.Throws<NotSupportedException>(() => map.Decode("B"u8));
     }
 
+    [Fact]
+    public void Decode_CompatibilityRecoveryReplacesIncompleteCharacterCodes()
+    {
+        var map = Parse(Space + "1 beginbfchar <0001> <0041> endbfchar");
+
+        IReadOnlyList<PdfDecodedCharacter> decoded =
+            map.DecodeWithCompatibilityRecovery([0, 1, 128]);
+
+        Assert.Equal(["A", "\uFFFD"], decoded.Select(character => character.Text));
+        Assert.Equal([2, 1], decoded.Select(character => character.ByteLength));
+    }
+
     [Theory]
     [InlineData("1 beginbfchar <0001> <0041> <0002> <0042> endbfchar")]
     [InlineData("1 beginbfchar <0001> <D800> endbfchar")]

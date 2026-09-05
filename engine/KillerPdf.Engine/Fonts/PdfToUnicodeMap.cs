@@ -144,12 +144,22 @@ public sealed class PdfToUnicodeMap
 
     /// <summary>Decodes character codes, retaining ligatures and supplementary Unicode characters.</summary>
     public IReadOnlyList<PdfDecodedCharacter> Decode(ReadOnlySpan<byte> source)
-        => DecodeCore(source, null, false);
+        => DecodeCore(source, null, false, false);
+
+    /// <summary>Decodes character codes while replacing invalid or incomplete codes.</summary>
+    public IReadOnlyList<PdfDecodedCharacter> DecodeWithCompatibilityRecovery(
+        ReadOnlySpan<byte> source)
+        => DecodeCore(source, null, true, true);
 
     internal IReadOnlyList<PdfDecodedCharacter> DecodeWithFallback(ReadOnlySpan<byte> source, Func<uint, string?>? fallback)
-        => DecodeCore(source, fallback, true);
+        => DecodeCore(source, fallback, true, false);
 
-    private List<PdfDecodedCharacter> DecodeCore(ReadOnlySpan<byte> source, Func<uint, string?>? fallback, bool replaceMissing)
+    internal IReadOnlyList<PdfDecodedCharacter> DecodeWithCompatibilityRecovery(
+        ReadOnlySpan<byte> source, Func<uint, string?>? fallback)
+        => DecodeCore(source, fallback, true, true);
+
+    private List<PdfDecodedCharacter> DecodeCore(ReadOnlySpan<byte> source,
+        Func<uint, string?>? fallback, bool replaceMissing, bool recoverInvalidCodes)
     {
         var result = new List<PdfDecodedCharacter>();
         int offset = 0;
@@ -171,7 +181,15 @@ public sealed class PdfToUnicodeMap
                 matched = true;
                 break;
             }
-            if (!matched) throw new FormatException("Text contains an incomplete or invalid character code.");
+            if (!matched)
+            {
+                if (!recoverInvalidCodes)
+                    throw new FormatException(
+                        "Text contains an incomplete or invalid character code.");
+                code = source[offset++];
+                result.Add(new PdfDecodedCharacter(
+                    code, 1, fallback?.Invoke(code) ?? "\uFFFD"));
+            }
         }
         return result;
     }

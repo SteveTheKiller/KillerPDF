@@ -832,7 +832,11 @@ public sealed class PdfPageRenderer
                         diagnostics.Add("Text rendering is not implemented.");
                         return;
                     }
-                    foreach (PdfDecodedCharacter character in extractionFont.Decode(text.Bytes))
+                    IReadOnlyList<PdfDecodedCharacter> characters =
+                        _document.UsesCompatibilityRecovery
+                            ? extractionFont.DecodeWithCompatibilityRecovery(text.Bytes)
+                            : extractionFont.Decode(text.Bytes);
+                    foreach (PdfDecodedCharacter character in characters)
                     {
                         PdfVerticalGlyphMetrics vertical =
                             extractionFont.GetVerticalMetrics(character.Code);
