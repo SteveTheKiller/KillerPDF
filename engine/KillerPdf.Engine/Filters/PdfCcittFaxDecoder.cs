@@ -117,55 +117,72 @@ internal static class PdfCcittFaxDecoder
         ref BitReader bits, Span<byte> output, int rowOffset, PdfCcittFaxOptions options,
         IReadOnlyList<int> reference)
     {
-        var changes = new List<int>();
-        int a0 = 0;
+        var referenceLine = new List<int>(reference);
+        if (referenceLine.Count == 0 || referenceLine[^1] != options.Columns)
+            referenceLine.Add(options.Columns);
+        referenceLine.Add(options.Columns);
+        var codingLine = new List<int> { 0 };
+        int codingPosition = 0;
+        int referencePosition = 0;
         bool black = false;
-        while (a0 < options.Columns)
+        while (codingLine[codingPosition] < options.Columns)
         {
             TwoDimensionalMode mode = ReadTwoDimensionalMode(ref bits);
-            (int b1, int b2) = ReferenceChanges(reference, a0, black, options.Columns);
             if (mode.Kind == TwoDimensionalModeKind.Pass)
             {
-                if (black) PaintBlack(output, rowOffset, a0, b2 - a0, options.BlackIs1);
-                a0 = b2;
+                Add(referenceLine[referencePosition + 1], black, allowBackward: false);
+                if (referenceLine[referencePosition + 1] < options.Columns)
+                    referencePosition += 2;
                 continue;
             }
             if (mode.Kind == TwoDimensionalModeKind.Horizontal)
             {
-                int first = ReadRun(ref bits, black ? Black : White, options.Columns - a0);
-                int a1 = a0 + first;
-                int second = ReadRun(ref bits, black ? White : Black, options.Columns - a1);
-                int a2 = a1 + second;
-                if (black) PaintBlack(output, rowOffset, a0, first, options.BlackIs1);
-                else PaintBlack(output, rowOffset, a1, second, options.BlackIs1);
-                changes.Add(a1);
-                changes.Add(a2);
-                a0 = a2;
+                int first = ReadRun(ref bits, black ? Black : White, options.Columns);
+                Add(codingLine[codingPosition] + first, black, allowBackward: false);
+                int second = ReadRun(ref bits, black ? White : Black, options.Columns);
+                Add(codingLine[codingPosition] + second, !black, allowBackward: false);
+                while (referenceLine[referencePosition] <= codingLine[codingPosition]
+                    && referenceLine[referencePosition] < options.Columns)
+                    referencePosition += 2;
                 continue;
             }
 
-            int vertical = b1 + mode.Delta;
-            if (vertical < a0 || vertical > options.Columns)
-                throw new PdfFilterException("A CCITT vertical mode exceeds its scan line.");
-            if (black) PaintBlack(output, rowOffset, a0, vertical - a0, options.BlackIs1);
-            changes.Add(vertical);
-            a0 = vertical;
+            Add(referenceLine[referencePosition] + mode.Delta, black,
+                allowBackward: mode.Delta < 0);
             black = !black;
+            if (codingLine[codingPosition] < options.Columns)
+            {
+                referencePosition = mode.Delta < 0 && referencePosition > 0
+                    ? referencePosition - 1 : referencePosition + 1;
+                while (referenceLine[referencePosition] <= codingLine[codingPosition]
+                    && referenceLine[referencePosition] < options.Columns)
+                    referencePosition += 2;
+            }
         }
-        if (changes.Count == 0 || changes[^1] != options.Columns)
-            changes.Add(options.Columns);
-        return changes;
-    }
+        for (int index = 1; index <= codingPosition; index += 2)
+            PaintBlack(output, rowOffset, codingLine[index - 1],
+                codingLine[index] - codingLine[index - 1], options.BlackIs1);
+        return codingLine.Take(codingPosition + 1).ToArray();
 
-    private static (int B1, int B2) ReferenceChanges(
-        IReadOnlyList<int> reference, int a0, bool black, int columns)
-    {
-        int parity = black ? 1 : 0;
-        for (int index = 0; index < reference.Count; index++)
-            if (reference[index] > a0 && index % 2 == parity)
-                return (reference[index], index + 1 < reference.Count
-                    ? reference[index + 1] : columns);
-        return (columns, columns);
+        void Add(int position, bool paintsBlack, bool allowBackward)
+        {
+            position = Math.Clamp(position, 0, options.Columns);
+            if (position > codingLine[codingPosition])
+            {
+                if (((codingPosition & 1) != 0) ^ paintsBlack)
+                {
+                    codingPosition++;
+                    if (codingPosition == codingLine.Count) codingLine.Add(position);
+                }
+                codingLine[codingPosition] = position;
+            }
+            else if (allowBackward && position < codingLine[codingPosition])
+            {
+                while (codingPosition > 0 && position < codingLine[codingPosition - 1])
+                    codingPosition--;
+                codingLine[codingPosition] = position;
+            }
+        }
     }
 
     private static TwoDimensionalMode ReadTwoDimensionalMode(ref BitReader bits)
@@ -191,14 +208,12 @@ internal static class PdfCcittFaxDecoder
 
     private static int ReadRun(ref BitReader bits, CodeTable table, int maximum)
     {
-        int total = 0;
+        long total = 0;
         while (true)
         {
             int run = table.Read(ref bits);
-            if (run > maximum - total)
-                throw new PdfFilterException("A CCITT run exceeds its scan line.");
             total += run;
-            if (run < 64) return total;
+            if (run < 64) return (int)Math.Min(total, maximum);
         }
     }
 

@@ -388,6 +388,17 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_UsesImageWidthWhenCcittColumnsAreOmitted()
+    {
+        PdfStream stream = Stream([0x89, 0xC0],
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("Width", new PdfInteger(8)),
+            Pair("DecodeParms", Dictionary()));
+
+        Assert.Equal(new byte[] { 0b1110_0011 }, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
     public void Decode_HonorsCcittEndOfLineAlignmentAndBlackPolarity()
     {
         PdfStream stream = Stream([0x00, 0x18, 0x9C],
@@ -449,6 +460,21 @@ public sealed class PdfStreamDecoderTests
 
         Assert.Equal(new byte[] { 0b1110_0011, 0b1111_0001 },
             PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_ClipsCcittTransitionsAtScanLineBounds()
+    {
+        PdfStream stream = Stream(Convert.FromHexString(
+            "26A0B9E07341C9D6107184F4F47DBD049E82B26A2D25874BBA5FAEE97F6BD2FF6BE830B8C7FAFFEBFFFFAFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEF5C20712040FFE0020020"),
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("Width", new PdfInteger(52)),
+            Pair("Height", new PdfInteger(70)),
+            Pair("DecodeParms", Dictionary(
+                Pair("K", new PdfInteger(-1)),
+                Pair("Columns", new PdfInteger(52)))));
+
+        Assert.Equal(490, PdfStreamDecoder.Decode(stream).Length);
     }
 
     [Fact]

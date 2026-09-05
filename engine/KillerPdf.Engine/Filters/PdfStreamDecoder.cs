@@ -340,8 +340,9 @@ public static class PdfStreamDecoder
         PdfDictionary stream, PdfDictionary? parameters,
         Func<PdfIndirectReference, PdfObject>? resolve)
     {
-        int columns = parameters is null ? 1728
-            : GetPositiveInteger(parameters, ColumnsName, 1728, resolve);
+        int columns = parameters is not null && parameters.ContainsKey(ColumnsName)
+            ? GetPositiveInteger(parameters, ColumnsName, 1728, resolve)
+            : GetPositiveInteger(stream, WidthName, 1728, resolve);
         int rows = parameters is not null && parameters.ContainsKey(new PdfName("Rows"u8))
             ? GetPositiveInteger(parameters, new PdfName("Rows"u8), 1, resolve)
             : GetPositiveInteger(stream, HeightName, 1, resolve);
