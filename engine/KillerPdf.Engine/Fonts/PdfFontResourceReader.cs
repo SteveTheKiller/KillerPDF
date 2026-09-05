@@ -25,7 +25,8 @@ public static class PdfFontResourceReader
         {
             string fontName = Name(Get(font, "BaseFont")) ?? "Unknown";
             string metricsName = fontName.Length > 7 && fontName[6] == '+' ? fontName[7..] : fontName;
-            bool composite = Name(Get(font, "Subtype")) == "Type0";
+            string? subtype = Name(Get(font, "Subtype"));
+            bool composite = subtype == "Type0";
             PdfDictionary metrics = font;
             if (composite)
             {
@@ -38,14 +39,14 @@ public static class PdfFontResourceReader
             byte[]? embeddedData = (Get(descriptor, "FontFile2") ?? Get(descriptor, "FontFile3")) is PdfStream embeddedStream
                 ? Decode(embeddedStream) : null;
             TrueTypeFont? embedded = ReadEmbedded(embeddedData);
-            TrueTypeFont? outlineFont = embedded ?? (!composite
-                ? PdfStandardFontSubstitutes.Find(metricsName) : null);
             PdfCffGlyphReader? cff = embeddedData is null ? null : PdfCffGlyphReader.TryRead(embeddedData);
             PdfType1GlyphReader? type1 = Get(descriptor, "FontFile") is PdfStream type1Stream
                 ? PdfType1GlyphReader.TryRead(Decode(type1Stream), checked((int)Number(Get(type1Stream.Dictionary, "Length1"), 0)),
                     checked((int)Number(Get(type1Stream.Dictionary, "Length2"), 0))) : null;
-            var outlines = outlineFont is null ? null : new OutlineReader(outlineFont);
-            var embeddedOutlines = embedded is null ? null : outlines;
+            TrueTypeFont? substitute = subtype is not null and not "Type3"
+                ? PdfStandardFontSubstitutes.Find(metricsName) : null;
+            var embeddedOutlines = embedded is null ? null : new OutlineReader(embedded);
+            var substituteOutlines = substitute is null ? null : new OutlineReader(substitute);
             var widths = new Dictionary<uint, double>();
             var simpleText = new Dictionary<uint, string>();
             string[] glyphNames = [];
@@ -122,12 +123,23 @@ public static class PdfFontResourceReader
                         return cid < cidToGid.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(cidToGid.AsSpan((int)cid * 2, 2)) : (ushort)0;
                     return cid <= ushort.MaxValue ? (ushort)cid : (ushort)0;
                 }
-                string? text = unicode.Lookup(code, 1) ?? simpleText.GetValueOrDefault(code);
-                if (outlineFont is null || string.IsNullOrEmpty(text)) return 0;
+                string? text = unicode.Lookup(code, codeLength)
+                    ?? simpleText.GetValueOrDefault(code);
+                if (embedded is null || string.IsNullOrEmpty(text)) return 0;
                 int scalar = char.ConvertToUtf32(text, 0);
-                ushort glyph = outlineFont.GetGlyphId(scalar);
-                if (glyph == 0 && code < 256) glyph = outlineFont.GetGlyphId((int)code);
-                if (glyph == 0 && code < 256) glyph = outlineFont.GetGlyphId((int)code + 0xF000);
+                ushort glyph = embedded.GetGlyphId(scalar);
+                if (glyph == 0 && code < 256) glyph = embedded.GetGlyphId((int)code);
+                if (glyph == 0 && code < 256) glyph = embedded.GetGlyphId((int)code + 0xF000);
+                return glyph;
+            }
+            ushort SubstituteGlyph(uint code)
+            {
+                string? text = unicode.Lookup(code, codeLength)
+                    ?? simpleText.GetValueOrDefault(code);
+                if (substitute is null || string.IsNullOrEmpty(text)) return 0;
+                int scalar = char.ConvertToUtf32(text, 0);
+                ushort glyph = substitute.GetGlyphId(scalar);
+                if (glyph == 0 && code < 256) glyph = substitute.GetGlyphId((int)code);
                 return glyph;
             }
             if (!composite && embedded is not null)
@@ -194,10 +206,12 @@ public static class PdfFontResourceReader
                         ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(metricsName, glyphNames[code]) : null);
                     return box is { } b && b.Right > b.Left && b.Top > b.Bottom ? box : null;
                 },
-                OutlineReader = code => outlines?.Outline(Glyph(code))
+                OutlineReader = code => embeddedOutlines?.Outline(Glyph(code))
                     ?? cff?.GetOutline(CffGlyph(code))
                     ?? (!composite && code < glyphNames.Length
                         ? type1?.GetOutline(glyphNames[code]) : null)
+                    ?? (SubstituteGlyph(code) is ushort substituteGlyph && substituteGlyph != 0
+                        ? substituteOutlines?.Outline(substituteGlyph) : null)
             };
         }
 

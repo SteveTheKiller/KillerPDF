@@ -25,6 +25,32 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Theory]
+    [InlineData("MyriadPro-Regular")]
+    [InlineData("MyriadPro-Semibold")]
+    [InlineData("MyriadPro-It")]
+    [InlineData("MinionPro-BoldIt")]
+    [InlineData("TimesNewRomanPSMT")]
+    [InlineData("CustomMono-Bold")]
+    public void MissingSimpleFontsReceiveBundledStyleCompatibleOutlines(string fontName)
+    {
+        PdfExtractionFont font = Read(D(
+            ("Subtype", N("Type1")), ("BaseFont", N(fontName))));
+
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
+    [Fact]
+    public void MissingCompositeFontUsesItsUnicodeMapWithBundledOutlines()
+    {
+        PdfStream unicode = Stream(
+            "1 begincodespacerange <0000> <FFFF> endcodespacerange "
+            + "1 beginbfchar <0041> <0041> endbfchar");
+        PdfExtractionFont font = Read(Type0(D(), N("Identity-H"), unicode));
+
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
+    [Theory]
     [InlineData("WinAnsiEncoding", 128, "\u20AC")]
     [InlineData("MacRomanEncoding", 128, "\u00C4")]
     [InlineData("StandardEncoding", 174, "\uFB01")]
