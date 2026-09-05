@@ -141,6 +141,18 @@ public sealed class RenderBoundaryTests
         Assert.Equal(4, Count(source, "PdfPageRenderSession.OpenEngineFirst("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", source,
             StringComparison.Ordinal);
+
+        string boundary = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
+        int methodStart = boundary.IndexOf("RenderBasePage(", StringComparison.Ordinal);
+        int methodEnd = boundary.IndexOf("internal PdfRenderedPage RenderPage(", methodStart,
+            StringComparison.Ordinal);
+        string method = boundary[methodStart..methodEnd];
+        Assert.Contains("RenderEnginePage(", method, StringComparison.Ordinal);
+        Assert.Contains("includeAnnotations: false", method, StringComparison.Ordinal);
+        Assert.Contains("includeFormFields: false", method, StringComparison.Ordinal);
+        Assert.True(method.IndexOf("RenderEnginePage(", StringComparison.Ordinal)
+            < method.IndexOf("NativeReader()", StringComparison.Ordinal));
     }
 
     [Fact]
