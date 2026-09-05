@@ -3073,30 +3073,37 @@ public sealed class PdfPageRenderer
         if (bits is not (1 or 2 or 4 or 8 or 16)) throw new NotSupportedException();
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
-        int rowBytes = checked((width * bits + 7) / 8);
-        int expected = checked(rowBytes * height);
-        byte[] packed = _document.DecodeStream(stream, expected);
-        if (packed.Length != expected)
-            throw new FormatException("Image soft-mask sample data has an invalid length.");
-        double decodeStart = 0, decodeEnd = 1;
-        if (stream.Dictionary.TryGetValue(Name("Decode"), out PdfObject? decodeValue))
+        DecodedImage decodedImage = _imageCache.GetOrAdd(
+            new ImageCacheKey(stream, -3), _ => DecodeMask());
+        return new SoftMask(decodedImage.Samples, decodedImage.Width, decodedImage.Height);
+
+        DecodedImage DecodeMask()
         {
-            PdfArray decode = ResolveArray(decodeValue, 2, "Image soft-mask decode array");
-            decodeStart = Number(Resolve(decode[0]));
-            decodeEnd = Number(Resolve(decode[1]));
-        }
-        uint maximum = (1u << bits) - 1;
-        var samples = new byte[checked(width * height)];
-        for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
+            int rowBytes = checked((width * bits + 7) / 8);
+            int expected = checked(rowBytes * height);
+            byte[] packed = _document.DecodeStream(stream, expected);
+            if (packed.Length != expected)
+                throw new FormatException("Image soft-mask sample data has an invalid length.");
+            double decodeStart = 0, decodeEnd = 1;
+            if (stream.Dictionary.TryGetValue(Name("Decode"), out PdfObject? decodeValue))
             {
-                uint sample = ReadPackedSample(packed,
-                    checked(y * rowBytes * 8 + x * bits), bits);
-                double decoded = decodeStart + sample / (double)maximum
-                    * (decodeEnd - decodeStart);
-                samples[y * width + x] = (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
+                PdfArray decode = ResolveArray(decodeValue, 2, "Image soft-mask decode array");
+                decodeStart = Number(Resolve(decode[0]));
+                decodeEnd = Number(Resolve(decode[1]));
             }
-        return new SoftMask(samples, width, height);
+            uint maximum = (1u << bits) - 1;
+            var samples = new byte[checked(width * height)];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    uint sample = ReadPackedSample(packed,
+                        checked(y * rowBytes * 8 + x * bits), bits);
+                    double decoded = decodeStart + sample / (double)maximum
+                        * (decodeEnd - decodeStart);
+                    samples[y * width + x] = (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
+                }
+            return new DecodedImage(samples, width, height);
+        }
     }
 
     private SoftMask ReadExplicitImageMask(PdfStream stream)
@@ -3109,20 +3116,27 @@ public sealed class PdfPageRenderer
             throw new NotSupportedException();
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
-        int rowBytes = checked((width + 7) / 8);
-        int expected = checked(rowBytes * height);
-        byte[] packed = _document.DecodeStream(stream, expected);
-        if (packed.Length != expected)
-            throw new FormatException("Image mask sample data has an invalid length.");
-        bool paintsOne = StencilPaintsOne(stream.Dictionary);
-        var samples = new byte[checked(width * height)];
-        for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
-            {
-                bool one = ReadPackedSample(packed, y * rowBytes * 8 + x, 1) != 0;
-                samples[y * width + x] = one == paintsOne ? byte.MaxValue : byte.MinValue;
-            }
-        return new SoftMask(samples, width, height);
+        DecodedImage decodedImage = _imageCache.GetOrAdd(
+            new ImageCacheKey(stream, -4), _ => DecodeMask());
+        return new SoftMask(decodedImage.Samples, decodedImage.Width, decodedImage.Height);
+
+        DecodedImage DecodeMask()
+        {
+            int rowBytes = checked((width + 7) / 8);
+            int expected = checked(rowBytes * height);
+            byte[] packed = _document.DecodeStream(stream, expected);
+            if (packed.Length != expected)
+                throw new FormatException("Image mask sample data has an invalid length.");
+            bool paintsOne = StencilPaintsOne(stream.Dictionary);
+            var samples = new byte[checked(width * height)];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                {
+                    bool one = ReadPackedSample(packed, y * rowBytes * 8 + x, 1) != 0;
+                    samples[y * width + x] = one == paintsOne ? byte.MaxValue : byte.MinValue;
+                }
+            return new DecodedImage(samples, width, height);
+        }
     }
 
     private bool StencilPaintsOne(PdfDictionary dictionary)

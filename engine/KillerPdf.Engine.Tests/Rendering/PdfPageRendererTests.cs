@@ -608,12 +608,22 @@ public sealed class PdfPageRendererTests
             .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(image, 2, 3, 6, 2))
             .Build());
 
-        PdfRenderedPage page = new PdfPageRenderer(document).Render(
-            0, new PdfRenderOptions(10, 10, transparentBackground: true,
-                includeAnnotations: false, includeFormFields: false));
+        var renderer = new PdfPageRenderer(document);
+        PdfRenderOptions options = new(10, 10, transparentBackground: true,
+            includeAnnotations: false, includeFormFields: false);
+        PdfRenderedPage page = renderer.Render(0, options);
+        PdfRenderedPage repeated = renderer.Render(0, options);
+        object cache = typeof(PdfPageRenderer).GetField("_imageCache",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(renderer)!;
+        int count = (int)cache.GetType().GetProperty("Count",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cache)!;
 
         Assert.Equal([0, 0, 255, 128], Pixel(page, 3, 6));
         Assert.Equal([255, 255, 255, 0], Pixel(page, 7, 6));
+        Assert.Equal(page.Pixels.ToArray(), repeated.Pixels.ToArray());
+        Assert.Equal(2, count);
         Assert.DoesNotContain("The image soft mask is not implemented.", page.Diagnostics);
     }
 
