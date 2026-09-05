@@ -155,6 +155,70 @@ public sealed class PdfOcrRecognitionModel
 /// <summary>A recognized OCR word with pixel bounds and calibrated model confidence.</summary>
 public sealed record PdfOcrRecognizedWord(string Text, double Confidence, PdfOcrImageRegion Bounds);
 
+/// <summary>A language-specific OCR recognition model selected from a catalog.</summary>
+public sealed record PdfOcrRecognitionModelSelection(
+    string Language, PdfOcrRecognitionModel Model);
+
+/// <summary>Maps requested OCR languages to bounded engine-owned recognition models.</summary>
+public sealed class PdfOcrRecognitionModelCatalog
+{
+    private readonly Dictionary<string, PdfOcrRecognitionModel> _models;
+
+    /// <summary>Creates a catalog from language and model pairs.</summary>
+    public PdfOcrRecognitionModelCatalog(
+        IEnumerable<KeyValuePair<string, PdfOcrRecognitionModel>> models)
+    {
+        ArgumentNullException.ThrowIfNull(models);
+        _models = new Dictionary<string, PdfOcrRecognitionModel>(StringComparer.Ordinal);
+        foreach ((string language, PdfOcrRecognitionModel model) in models)
+        {
+            string normalized = Normalize(language);
+            if (!_models.TryAdd(normalized, model
+                    ?? throw new ArgumentException("An OCR language model is null.", nameof(models))))
+                throw new ArgumentException(
+                    $"OCR language model '{normalized}' is registered more than once.", nameof(models));
+        }
+        if (_models.Count == 0)
+            throw new ArgumentException("At least one OCR language model is required.", nameof(models));
+        Languages = Array.AsReadOnly(_models.Keys.Order(StringComparer.Ordinal).ToArray());
+    }
+
+    /// <summary>Gets normalized language names available in the catalog.</summary>
+    public IReadOnlyList<string> Languages { get; }
+
+    /// <summary>Selects the first exact or primary-language model requested.</summary>
+    public PdfOcrRecognitionModelSelection Select(IEnumerable<string> languages)
+    {
+        ArgumentNullException.ThrowIfNull(languages);
+        foreach (string language in languages)
+        {
+            string normalized = Normalize(language);
+            if (_models.TryGetValue(normalized, out PdfOcrRecognitionModel? exact))
+                return new PdfOcrRecognitionModelSelection(normalized, exact);
+            int separator = normalized.IndexOf('-');
+            if (separator > 0)
+            {
+                string primary = normalized[..separator];
+                if (_models.TryGetValue(primary, out PdfOcrRecognitionModel? fallback))
+                    return new PdfOcrRecognitionModelSelection(primary, fallback);
+            }
+        }
+        throw new NotSupportedException(
+            "No engine OCR recognition model matches the requested languages.");
+    }
+
+    private static string Normalize(string language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+            throw new ArgumentException("An OCR model language is empty.", nameof(language));
+        string normalized = language.Trim().Replace('_', '-').ToLowerInvariant();
+        if (normalized.Length > 35 || normalized.Any(character =>
+            !char.IsAsciiLetterOrDigit(character) && character != '-'))
+            throw new ArgumentException("An OCR model language is invalid.", nameof(language));
+        return normalized;
+    }
+}
+
 /// <summary>Runs the engine-owned glyph model over a detected page layout.</summary>
 public static class PdfOcrRecognizer
 {
@@ -217,7 +281,8 @@ public sealed record PdfOcrPageRecognition(
 /// <summary>Renders, prepares, segments, and recognizes PDF pages entirely inside the engine.</summary>
 public sealed class PdfOcrPageRecognizer
 {
-    private readonly PdfOcrRecognitionModel _model;
+    private readonly PdfOcrRecognitionModel? _model;
+    private readonly PdfOcrRecognitionModelCatalog? _models;
     private readonly PdfPageRenderer _renderer;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
 
@@ -226,6 +291,15 @@ public sealed class PdfOcrPageRecognizer
     {
         ArgumentNullException.ThrowIfNull(document);
         _model = model ?? throw new ArgumentNullException(nameof(model));
+        _renderer = new PdfPageRenderer(document);
+        _pages = PdfPageInformation.Read(document);
+    }
+
+    /// <summary>Creates an engine-owned pipeline with language-specific models.</summary>
+    public PdfOcrPageRecognizer(PdfDocument document, PdfOcrRecognitionModelCatalog models)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        _models = models ?? throw new ArgumentNullException(nameof(models));
         _renderer = new PdfPageRenderer(document);
         _pages = PdfPageInformation.Read(document);
     }
@@ -245,10 +319,13 @@ public sealed class PdfOcrPageRecognizer
             rendered.Pixels, rendered.Width, rendered.Height, ocrOptions, cancellationToken);
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
             prepared, ocrOptions.DetectPageSegments, cancellationToken);
+        PdfOcrRecognitionModelSelection? selection = _models?.Select(ocrOptions.Languages);
+        PdfOcrRecognitionModel model = selection?.Model ?? _model!;
         IReadOnlyList<PdfOcrRecognizedWord> recognized = PdfOcrRecognizer.Recognize(
-            prepared, layout, _model, cancellationToken);
+            prepared, layout, model, cancellationToken);
         PdfPageInformation page = _pages[pageIndex];
-        string? language = ocrOptions.Languages.Count == 1 ? ocrOptions.Languages[0] : null;
+        string? language = selection?.Language
+            ?? (ocrOptions.Languages.Count == 1 ? ocrOptions.Languages[0] : null);
         var words = new PdfOcrWord[recognized.Count];
         for (int sequence = 0; sequence < recognized.Count; sequence++)
         {

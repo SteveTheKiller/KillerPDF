@@ -63,6 +63,24 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void ModelCatalogSelectsRequestedExactAndPrimaryLanguages()
+    {
+        PdfOcrRecognitionModel english = TinyModel("E");
+        PdfOcrRecognitionModel french = TinyModel("F");
+        var catalog = new PdfOcrRecognitionModelCatalog([
+            new("en", english),
+            new("fr-FR", french)
+        ]);
+
+        PdfOcrRecognitionModelSelection exact = catalog.Select(["FR_fr", "en-US"]);
+        PdfOcrRecognitionModelSelection fallback = catalog.Select(["de-DE", "en-US"]);
+
+        Assert.Equal(("fr-fr", french), (exact.Language, exact.Model));
+        Assert.Equal(("en", english), (fallback.Language, fallback.Model));
+        Assert.Throws<NotSupportedException>(() => catalog.Select(["de-DE"]));
+    }
+
+    [Fact]
     public void GlyphNormalizationPreservesAspectRatioAndCentersInk()
     {
         PdfOcrPreparedImage image = Prepared(4, 1, ["####"]);
@@ -108,6 +126,30 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal((8, 6), (result.PixelWidth, result.PixelHeight));
     }
 
+    [Fact]
+    public void PageRecognizerUsesTheFirstAvailableRequestedLanguageModel()
+    {
+        PdfImage image = RasterImage([
+            "....", ".##.", ".##.", "...."
+        ]);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 4, new PdfContentStreamBuilder().DrawImage(image, 0, 0, 4, 4)).Build());
+        var catalog = new PdfOcrRecognitionModelCatalog([
+            new("en", TinyModel("E"))
+        ]);
+        var recognizer = new PdfOcrPageRecognizer(document, catalog);
+
+        PdfOcrPageRecognition result = recognizer.Recognize(0,
+            new PdfRenderOptions(4, 4, includeAnnotations: false, includeFormFields: false),
+            new PdfOcrOptions(["de-DE", "en-US"], deskew: false,
+                correctOrientation: false, removeBackground: false, removeNoise: false,
+                detectPageSegments: false));
+
+        PdfOcrWord word = Assert.Single(result.Review.Words);
+        Assert.Equal("E", word.Text);
+        Assert.Equal("en", word.Language);
+    }
+
     private static PdfOcrPreparedImage Prepared(int width, int height, string[] rows)
     {
         byte[] bgra = new byte[width * height * 4];
@@ -136,6 +178,9 @@ public sealed class PdfOcrRecognitionTests
         return PdfOcrRecognitionModel.Create(4, 4, ["I", "L"],
             iWeights.Concat(lWeights).ToArray(), new float[] { 0, 0 });
     }
+
+    private static PdfOcrRecognitionModel TinyModel(string label) =>
+        PdfOcrRecognitionModel.Create(1, 1, [label], new float[] { 1 }, new float[] { 0 });
 
     private static PdfImage RasterImage(string[] rows)
     {
