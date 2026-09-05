@@ -62,22 +62,27 @@ public sealed class PdfOcrRecognitionModel
     /// <summary>Writes the stable model format used by the runtime.</summary>
     public byte[] Save()
     {
-        using var output = new MemoryStream();
-        using var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true);
-        writer.Write(Magic);
-        writer.Write(Width);
-        writer.Write(Height);
-        writer.Write(_labels.Length);
+        int labelBytes = _labels.Sum(label => 1 + Encoding.UTF8.GetByteCount(label));
+        int length = checked(Magic.Length + sizeof(int) * 3 + labelBytes
+            + checked((_biases.Length + _weights.Length) * sizeof(float)));
+        var output = new byte[length];
+        Span<byte> destination = output;
+        Magic.CopyTo(destination);
+        int position = Magic.Length;
+        WriteInt32(destination, ref position, Width);
+        WriteInt32(destination, ref position, Height);
+        WriteInt32(destination, ref position, _labels.Length);
         foreach (string label in _labels)
         {
-            byte[] bytes = Encoding.UTF8.GetBytes(label);
-            writer.Write((byte)bytes.Length);
-            writer.Write(bytes);
+            int bytes = Encoding.UTF8.GetByteCount(label);
+            destination[position++] = checked((byte)bytes);
+            position += Encoding.UTF8.GetBytes(label, destination[position..]);
         }
-        foreach (float value in _biases) writer.Write(value);
-        foreach (float value in _weights) writer.Write(value);
-        writer.Flush();
-        return output.ToArray();
+        foreach (float value in _biases)
+            WriteSingle(destination, ref position, value);
+        foreach (float value in _weights)
+            WriteSingle(destination, ref position, value);
+        return output;
     }
 
     /// <summary>Loads a model and optionally verifies its expected SHA-256 digest.</summary>
@@ -141,6 +146,18 @@ public sealed class PdfOcrRecognitionModel
         int value = BinaryPrimitives.ReadInt32LittleEndian(source[position..]);
         position += sizeof(int);
         return value;
+    }
+
+    private static void WriteInt32(Span<byte> destination, ref int position, int value)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(destination[position..], value);
+        position += sizeof(int);
+    }
+
+    private static void WriteSingle(Span<byte> destination, ref int position, float value)
+    {
+        BinaryPrimitives.WriteSingleLittleEndian(destination[position..], value);
+        position += sizeof(float);
     }
 
     private static float[] ReadFloats(
