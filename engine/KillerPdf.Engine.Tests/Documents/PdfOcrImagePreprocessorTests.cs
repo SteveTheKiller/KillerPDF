@@ -195,6 +195,33 @@ public sealed class PdfOcrImagePreprocessorTests
             pixel => Assert.Equal(255, rotated.Pixels.Span[pixel * 4 + 3]));
     }
 
+    [Theory]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public void PrepareBgraRotatedMatchesRotateThenPrepare(int degrees)
+    {
+        byte[] bgra =
+        [
+            10, 20, 30, 255, 40, 50, 60, 128,
+            70, 80, 90, 64, 100, 110, 120, 0,
+            130, 140, 150, 255, 160, 170, 180, 200
+        ];
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+        PdfOcrBgraImage rotated = PdfOcrImagePreprocessor.RotateBgra(
+            bgra, 2, 3, degrees);
+        PdfOcrPreparedImage expected = PdfOcrImagePreprocessor.PrepareBgra(
+            rotated.Pixels, rotated.Width, rotated.Height, options);
+
+        PdfOcrPreparedImage actual = PdfOcrImagePreprocessor.PrepareBgraRotated(
+            bgra, 2, 3, degrees, options);
+
+        Assert.Equal((expected.Width, expected.Height), (actual.Width, actual.Height));
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
     [Fact]
     public void RotateBgra_RejectsNonRightAnglesAndHonorsCancellation()
     {

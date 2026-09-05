@@ -440,17 +440,12 @@ public sealed class PdfOcrPageRecognizer
                 ocrOptions.Deskew, false, ocrOptions.RemoveBackground,
                 ocrOptions.RemoveNoise, ocrOptions.DetectPageSegments)
             : ocrOptions;
-        OrientationCandidate candidate = RecognizeOrientation(0, rendered.Pixels,
-            rendered.Width, rendered.Height);
+        OrientationCandidate candidate = RecognizeOrientation(0);
         if (ocrOptions.CorrectOrientation)
             foreach (int rotation in (ReadOnlySpan<int>)[90, 180, 270])
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                PdfOcrBgraImage rotated = PdfOcrImagePreprocessor.RotateBgra(
-                    rendered.Pixels, rendered.Width, rendered.Height,
-                    rotation, cancellationToken);
-                OrientationCandidate alternative = RecognizeOrientation(
-                    rotation, rotated.Pixels, rotated.Width, rotated.Height);
+                OrientationCandidate alternative = RecognizeOrientation(rotation);
                 if (alternative.Score > candidate.Score) candidate = alternative;
             }
         PdfPageInformation page = _pages[pageIndex];
@@ -471,11 +466,14 @@ public sealed class PdfOcrPageRecognizer
         return new PdfOcrPageRecognition(new PdfOcrReview(words),
             Array.AsReadOnly(diagnostics), rendered.Width, rendered.Height);
 
-        OrientationCandidate RecognizeOrientation(
-            int rotation, ReadOnlyMemory<byte> pixels, int width, int height)
+        OrientationCandidate RecognizeOrientation(int rotation)
         {
-            PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
-                pixels, width, height, pipelineOptions, cancellationToken);
+            PdfOcrPreparedImage prepared = rotation == 0
+                ? PdfOcrImagePreprocessor.PrepareBgra(rendered.Pixels,
+                    rendered.Width, rendered.Height, pipelineOptions, cancellationToken)
+                : PdfOcrImagePreprocessor.PrepareBgraRotated(rendered.Pixels,
+                    rendered.Width, rendered.Height, rotation,
+                    pipelineOptions, cancellationToken);
             PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
                 prepared, pipelineOptions.DetectPageSegments, cancellationToken);
             IReadOnlyList<PdfOcrRecognizedWord> recognized = PdfOcrRecognizer.Recognize(

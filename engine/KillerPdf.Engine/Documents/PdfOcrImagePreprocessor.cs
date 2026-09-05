@@ -55,28 +55,47 @@ public static class PdfOcrImagePreprocessor
     /// <summary>Converts and optionally cleans one rendered page without platform APIs.</summary>
     public static PdfOcrPreparedImage PrepareBgra(ReadOnlyMemory<byte> bgra, int width,
         int height, PdfOcrOptions options, CancellationToken cancellationToken = default)
+        => PrepareBgra(bgra, width, height, 0, options, cancellationToken);
+
+    /// <summary>Rotates, converts, and optionally cleans one rendered page.</summary>
+    public static PdfOcrPreparedImage PrepareBgraRotated(ReadOnlyMemory<byte> bgra,
+        int width, int height, int degrees, PdfOcrOptions options,
+        CancellationToken cancellationToken = default)
+        => PrepareBgra(bgra, width, height, degrees, options, cancellationToken);
+
+    private static PdfOcrPreparedImage PrepareBgra(ReadOnlyMemory<byte> bgra, int width,
+        int height, int degrees, PdfOcrOptions options, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
         ValidateBgra(bgra, width, height);
+        degrees = NormalizeRotation(degrees);
+        int preparedWidth = degrees is 90 or 270 ? height : width;
+        int preparedHeight = degrees is 90 or 270 ? width : height;
 
         byte[] gray = GC.AllocateUninitializedArray<byte>(checked(width * height));
-        ConvertBgraToGray(bgra.Span, gray, cancellationToken);
+        if (degrees == 0)
+            ConvertBgraToGray(bgra.Span, gray, cancellationToken);
+        else
+            ConvertBgraToRotatedGray(
+                bgra.Span, width, height, degrees, gray, cancellationToken);
 
         bool binary = false;
         if (options.RemoveBackground)
         {
-            gray = AdaptiveThreshold(gray, width, height, cancellationToken);
+            gray = AdaptiveThreshold(
+                gray, preparedWidth, preparedHeight, cancellationToken);
             binary = true;
         }
         if (options.RemoveNoise)
-            gray = Median3x3(gray, width, height, cancellationToken);
+            gray = Median3x3(gray, preparedWidth, preparedHeight, cancellationToken);
         if (options.Deskew)
-            gray = Deskew(gray, width, height, cancellationToken);
+            gray = Deskew(gray, preparedWidth, preparedHeight, cancellationToken);
 
         var diagnostics = new List<string>();
         if (options.CorrectOrientation)
             diagnostics.Add("OCR orientation detection is not implemented.");
-        return new PdfOcrPreparedImage(width, height, gray, binary, diagnostics);
+        return new PdfOcrPreparedImage(
+            preparedWidth, preparedHeight, gray, binary, diagnostics);
     }
 
     private static void ConvertBgraToGray(ReadOnlySpan<byte> source, Span<byte> gray,
@@ -123,18 +142,48 @@ public static class PdfOcrImagePreprocessor
             gray[pixel] = ConvertPixel(source, pixel);
         }
 
-        static byte ConvertPixel(ReadOnlySpan<byte> pixels, int index)
+    }
+
+    private static void ConvertBgraToRotatedGray(ReadOnlySpan<byte> source,
+        int width, int height, int degrees, Span<byte> gray,
+        CancellationToken cancellationToken)
+    {
+        int preparedWidth = degrees is 90 or 270 ? height : width;
+        for (int y = 0; y < height; y++)
         {
-            int offset = index * 4;
-            int alpha = pixels[offset + 3];
-            int blue = alpha == 255 ? pixels[offset]
-                : (pixels[offset] * alpha + 255 * (255 - alpha) + 127) / 255;
-            int green = alpha == 255 ? pixels[offset + 1]
-                : (pixels[offset + 1] * alpha + 255 * (255 - alpha) + 127) / 255;
-            int red = alpha == 255 ? pixels[offset + 2]
-                : (pixels[offset + 2] * alpha + 255 * (255 - alpha) + 127) / 255;
-            return (byte)((29 * blue + 150 * green + 77 * red + 128) >> 8);
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int x = 0; x < width; x++)
+            {
+                (int destinationX, int destinationY) = degrees switch
+                {
+                    90 => (height - 1 - y, x),
+                    180 => (width - 1 - x, height - 1 - y),
+                    _ => (y, width - 1 - x)
+                };
+                gray[destinationY * preparedWidth + destinationX] =
+                    ConvertPixel(source, y * width + x);
+            }
         }
+    }
+
+    private static byte ConvertPixel(ReadOnlySpan<byte> pixels, int index)
+    {
+        int offset = index * 4;
+        int alpha = pixels[offset + 3];
+        int blue = alpha == 255 ? pixels[offset]
+            : (pixels[offset] * alpha + 255 * (255 - alpha) + 127) / 255;
+        int green = alpha == 255 ? pixels[offset + 1]
+            : (pixels[offset + 1] * alpha + 255 * (255 - alpha) + 127) / 255;
+        int red = alpha == 255 ? pixels[offset + 2]
+            : (pixels[offset + 2] * alpha + 255 * (255 - alpha) + 127) / 255;
+        return (byte)((29 * blue + 150 * green + 77 * red + 128) >> 8);
+    }
+
+    private static int NormalizeRotation(int degrees)
+    {
+        degrees = ((degrees % 360) + 360) % 360;
+        return degrees is 0 or 90 or 180 or 270
+            ? degrees : throw new ArgumentOutOfRangeException(nameof(degrees));
     }
 
     /// <summary>Crops a rendered BGRA32 image with bounds clamped to its source.</summary>
@@ -163,9 +212,7 @@ public static class PdfOcrImagePreprocessor
         int height, int degrees, CancellationToken cancellationToken = default)
     {
         ValidateBgra(bgra, width, height);
-        degrees = ((degrees % 360) + 360) % 360;
-        if (degrees is not (0 or 90 or 180 or 270))
-            throw new ArgumentOutOfRangeException(nameof(degrees));
+        degrees = NormalizeRotation(degrees);
         int rotatedWidth = degrees is 90 or 270 ? height : width;
         int rotatedHeight = degrees is 90 or 270 ? width : height;
         byte[] result = GC.AllocateUninitializedArray<byte>(bgra.Length);
