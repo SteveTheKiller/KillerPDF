@@ -185,6 +185,9 @@ public sealed class PdfDocument
         ArgumentNullException.ThrowIfNull(reference);
         if (!CrossReferences.TryGetValue(reference.ObjectNumber, out PdfCrossReferenceEntry entry))
             return ResolveMissingReference(reference);
+        if (_compatibilityRecovery
+            && entry.Type is PdfCrossReferenceEntryType.Free or PdfCrossReferenceEntryType.Null)
+            return ResolveMissingReference(reference);
 
         int currentGeneration = entry.Type == PdfCrossReferenceEntryType.InUse ? entry.Field2 : 0;
         if (entry.Type is PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed

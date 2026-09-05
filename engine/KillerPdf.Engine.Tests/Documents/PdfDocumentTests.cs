@@ -79,6 +79,25 @@ public sealed class PdfDocumentTests
     }
 
     [Fact]
+    public void OpenWithCompatibilityRecoveryFindsReferencedObjectMarkedFree()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        source.Append("1 0 obj << /Type /Catalog >> endobj\n");
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 2\n0000000000 65535 f\n0000000000 00000 f\n");
+        source.Append("trailer << /Size 2 /Root 1 0 R >>\n");
+        source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Same(PdfNull.Instance,
+            PdfDocument.Open(bytes).Resolve(new PdfIndirectReference(1, 0)));
+        PdfDocument recovered = PdfDocument.OpenWithCompatibilityRecovery(bytes);
+
+        Assert.Equal(Name("Catalog"), Assert.IsType<PdfDictionary>(
+            recovered.Resolve(new PdfIndirectReference(1, 0)))[Name("Type")]);
+    }
+
+    [Fact]
     public void OpenWithCompatibilityRecoveryAllowsCatalogWithoutType()
     {
         var source = new StringBuilder("%PDF-2.0\n");
