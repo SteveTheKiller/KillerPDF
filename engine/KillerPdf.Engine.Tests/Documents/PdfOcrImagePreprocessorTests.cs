@@ -1,3 +1,4 @@
+using System.Numerics;
 using KillerPdf.Engine.Documents;
 using Xunit;
 
@@ -17,6 +18,31 @@ public sealed class PdfOcrImagePreprocessorTests
         Assert.Equal([77, 255], image.Pixels.ToArray());
         Assert.False(image.IsBinary);
         Assert.Empty(image.Diagnostics);
+    }
+
+    [Fact]
+    public void PrepareBgra_VectorizedOpaqueConversionMatchesExactLuma()
+    {
+        int width = Vector<byte>.Count + 3;
+        var bgra = new byte[width * 4];
+        var expected = new byte[width];
+        for (int pixel = 0; pixel < width; pixel++)
+        {
+            int offset = pixel * 4;
+            byte blue = bgra[offset] = (byte)(pixel * 17 + 3);
+            byte green = bgra[offset + 1] = (byte)(pixel * 29 + 5);
+            byte red = bgra[offset + 2] = (byte)(pixel * 43 + 7);
+            bgra[offset + 3] = 255;
+            expected[pixel] = (byte)((29 * blue + 150 * green + 77 * red + 128) >> 8);
+        }
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        PdfOcrPreparedImage image = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, width, 1, options);
+
+        Assert.Equal(expected, image.Pixels.ToArray());
     }
 
     [Fact]

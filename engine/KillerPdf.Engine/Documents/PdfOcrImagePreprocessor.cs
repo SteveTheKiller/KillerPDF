@@ -1,3 +1,6 @@
+using System.Numerics;
+using System.Runtime.InteropServices;
+
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>A bounded grayscale raster prepared for OCR recognition.</summary>
@@ -57,17 +60,7 @@ public static class PdfOcrImagePreprocessor
         ValidateBgra(bgra, width, height);
 
         byte[] gray = GC.AllocateUninitializedArray<byte>(checked(width * height));
-        ReadOnlySpan<byte> source = bgra.Span;
-        for (int pixel = 0; pixel < gray.Length; pixel++)
-        {
-            if ((pixel & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-            int offset = pixel * 4;
-            int alpha = source[offset + 3];
-            int blue = (source[offset] * alpha + 255 * (255 - alpha) + 127) / 255;
-            int green = (source[offset + 1] * alpha + 255 * (255 - alpha) + 127) / 255;
-            int red = (source[offset + 2] * alpha + 255 * (255 - alpha) + 127) / 255;
-            gray[pixel] = (byte)((29 * blue + 150 * green + 77 * red + 128) >> 8);
-        }
+        ConvertBgraToGray(bgra.Span, gray, cancellationToken);
 
         bool binary = false;
         if (options.RemoveBackground)
@@ -84,6 +77,64 @@ public static class PdfOcrImagePreprocessor
         if (options.CorrectOrientation)
             diagnostics.Add("OCR orientation detection is not implemented.");
         return new PdfOcrPreparedImage(width, height, gray, binary, diagnostics);
+    }
+
+    private static void ConvertBgraToGray(ReadOnlySpan<byte> source, Span<byte> gray,
+        CancellationToken cancellationToken)
+    {
+        int pixel = 0;
+        int batch = Vector<byte>.Count;
+        if (Vector.IsHardwareAccelerated && BitConverter.IsLittleEndian)
+        {
+            ReadOnlySpan<uint> packed = MemoryMarshal.Cast<byte, uint>(source);
+            var alpha = new Vector<uint>(255);
+            for (; pixel <= gray.Length - batch; pixel += batch)
+            {
+                if ((pixel & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+                int step = Vector<uint>.Count;
+                var first = new Vector<uint>(packed.Slice(pixel, step));
+                var second = new Vector<uint>(packed.Slice(pixel + step, step));
+                var third = new Vector<uint>(packed.Slice(pixel + 2 * step, step));
+                var fourth = new Vector<uint>(packed.Slice(pixel + 3 * step, step));
+                if (!Opaque(first) || !Opaque(second) || !Opaque(third) || !Opaque(fourth))
+                {
+                    for (int index = 0; index < batch; index++)
+                        gray[pixel + index] = ConvertPixel(source, pixel + index);
+                    continue;
+                }
+                Vector<ushort> firstHalf = Vector.Narrow(Luma(first), Luma(second));
+                Vector<ushort> secondHalf = Vector.Narrow(Luma(third), Luma(fourth));
+                Vector.Narrow(firstHalf, secondHalf).CopyTo(gray.Slice(pixel, batch));
+            }
+
+            bool Opaque(Vector<uint> values) => Vector.EqualsAll(values >> 24, alpha);
+            static Vector<uint> Luma(Vector<uint> values)
+            {
+                var mask = new Vector<uint>(255);
+                Vector<uint> blue = values & mask;
+                Vector<uint> green = (values >> 8) & mask;
+                Vector<uint> red = (values >> 16) & mask;
+                return (29 * blue + 150 * green + 77 * red + new Vector<uint>(128)) >> 8;
+            }
+        }
+        for (; pixel < gray.Length; pixel++)
+        {
+            if ((pixel & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            gray[pixel] = ConvertPixel(source, pixel);
+        }
+
+        static byte ConvertPixel(ReadOnlySpan<byte> pixels, int index)
+        {
+            int offset = index * 4;
+            int alpha = pixels[offset + 3];
+            int blue = alpha == 255 ? pixels[offset]
+                : (pixels[offset] * alpha + 255 * (255 - alpha) + 127) / 255;
+            int green = alpha == 255 ? pixels[offset + 1]
+                : (pixels[offset + 1] * alpha + 255 * (255 - alpha) + 127) / 255;
+            int red = alpha == 255 ? pixels[offset + 2]
+                : (pixels[offset + 2] * alpha + 255 * (255 - alpha) + 127) / 255;
+            return (byte)((29 * blue + 150 * green + 77 * red + 128) >> 8);
+        }
     }
 
     /// <summary>Crops a rendered BGRA32 image with bounds clamped to its source.</summary>
