@@ -156,7 +156,7 @@ public sealed class PdfPageRendererTests
     public void Render_AcceptsEmptyPathPaintingOperatorsAsNoOps()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(10, 10, "S s B B* b b*"u8.ToArray()).Build());
+            .AddPage(10, 10, "f F f* S s B B* b b*"u8.ToArray()).Build());
 
         PdfRenderedPage page = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(10, 10,
