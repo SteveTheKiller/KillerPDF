@@ -51,8 +51,11 @@ internal sealed class PdfPageTree
         if (!catalog.TryGetValue(TypeName, out PdfObject? catalogTypeValue)
             || Resolve(catalogTypeValue) is not PdfName catalogType
             || !catalogType.Equals(CatalogName))
-            throw new InvalidOperationException(
-                "The trailer /Root dictionary does not declare /Type /Catalog.");
+        {
+            if (!document.UsesCompatibilityRecovery || catalog.ContainsKey(TypeName))
+                throw new InvalidOperationException(
+                    "The trailer /Root dictionary does not declare /Type /Catalog.");
+        }
         PdfIndirectReference rootReference = catalog.TryGetValue(PagesName, out PdfObject pagesValue)
             ? pagesValue as PdfIndirectReference
                 ?? throw new InvalidOperationException("The catalog /Pages is not an indirect reference.")

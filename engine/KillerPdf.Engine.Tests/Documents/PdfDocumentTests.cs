@@ -79,6 +79,34 @@ public sealed class PdfDocumentTests
     }
 
     [Fact]
+    public void OpenWithCompatibilityRecoveryAllowsCatalogWithoutType()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        int catalogOffset = source.Length;
+        source.Append("1 0 obj << /Pages 2 0 R >> endobj\n");
+        int pagesOffset = source.Length;
+        source.Append("2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n");
+        int pageOffset = source.Length;
+        source.Append("3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >> endobj\n");
+        int contentOffset = source.Length;
+        source.Append("4 0 obj << /Length 0 >> stream\n\nendstream endobj\n");
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 5\n0000000000 65535 f\n");
+        source.Append($"{catalogOffset:0000000000} 00000 n\n");
+        source.Append($"{pagesOffset:0000000000} 00000 n\n");
+        source.Append($"{pageOffset:0000000000} 00000 n\n");
+        source.Append($"{contentOffset:0000000000} 00000 n\n");
+        source.Append("trailer << /Size 5 /Root 1 0 R >>\n");
+        source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Throws<InvalidOperationException>(() =>
+            new PdfPageContentReader(PdfDocument.Open(bytes)));
+        Assert.Equal(1, new PdfPageContentReader(
+            PdfDocument.OpenWithCompatibilityRecovery(bytes)).PageCount);
+    }
+
+    [Fact]
     public void Open_ResolvesMultipleObjectsFromAnObjectStreamByXrefIndex()
     {
         PdfDocument document = PdfDocument.Open(ObjectStreamPdf(
