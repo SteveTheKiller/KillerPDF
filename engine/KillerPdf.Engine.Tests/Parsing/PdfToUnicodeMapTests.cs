@@ -19,6 +19,35 @@ public sealed class PdfToUnicodeMapTests
         Assert.Equal("\uFFFD", Assert.Single(map.Decode([0x41])).Text);
     }
 
+    [Theory]
+    [InlineData("", "\uFFFD")]
+    [InlineData("41", "\uFFFD")]
+    public void ParseFont_CompatibilityRecoveryReplacesEmptyOrOddUtf16Destinations(
+        string destination, string expected)
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "1 begincodespacerange <00> <ff> endcodespacerange "
+            + $"1 beginbfchar <41> <{destination}> endbfchar");
+
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        PdfToUnicodeMap map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+
+        Assert.Equal(expected, Assert.Single(map.Decode([0x41])).Text);
+    }
+
+    [Fact]
+    public void ParseFont_CompatibilityRecoveryKeepsFirstDuplicateMapping()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "1 begincodespacerange <00> <ff> endcodespacerange "
+            + "2 beginbfchar <41> <0041> <41> <0042> endbfchar");
+
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        PdfToUnicodeMap map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+
+        Assert.Equal("A", Assert.Single(map.Decode([0x41])).Text);
+    }
+
     private const string Space = "1 begincodespacerange <0000> <FFFF> endcodespacerange ";
 
     [Fact]

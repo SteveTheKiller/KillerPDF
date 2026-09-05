@@ -88,7 +88,7 @@ public sealed class PdfToUnicodeMap
                 if (block == "beginbfchar")
                 {
                     map.Add(low, Unicode(Bytes(operands[i + 1]), compatibilityRecovery),
-                        maximumMappings);
+                        maximumMappings, compatibilityRecovery);
                     continue;
                 }
                 var high = Code(operands[i + 1]);
@@ -107,7 +107,8 @@ public sealed class PdfToUnicodeMap
                     if ((ulong)destinations.Count != length) throw new FormatException("ToUnicode destination array has the wrong length.");
                     for (int j = 0; j < destinations.Count; j++)
                         map.Add((low.Code + (uint)j, low.Length),
-                            Unicode(Bytes(destinations[j]), compatibilityRecovery), maximumMappings);
+                            Unicode(Bytes(destinations[j]), compatibilityRecovery), maximumMappings,
+                            compatibilityRecovery);
                 }
                 else
                 {
@@ -115,7 +116,8 @@ public sealed class PdfToUnicodeMap
                     for (ulong j = 0; j < length; j++)
                     {
                         map.Add((low.Code + (uint)j, low.Length),
-                            Unicode(destination, compatibilityRecovery), maximumMappings);
+                            Unicode(destination, compatibilityRecovery), maximumMappings,
+                            compatibilityRecovery);
                         if (j + 1 < length) Increment(destination);
                     }
                 }
@@ -188,10 +190,16 @@ public sealed class PdfToUnicodeMap
         }
     }
 
-    private void Add((uint Code, int Length) code, string text, int maximum)
+    private void Add((uint Code, int Length) code, string text, int maximum,
+        bool compatibilityRecovery)
     {
+        if (_characters.ContainsKey(code))
+        {
+            if (compatibilityRecovery) return;
+            throw new FormatException("Duplicate ToUnicode source mapping.");
+        }
         if (_characters.Count >= maximum) throw new FormatException("ToUnicode mapping limit exceeded.");
-        if (!_characters.TryAdd(code, text)) throw new FormatException("Duplicate ToUnicode source mapping.");
+        _characters.Add(code, text);
     }
 
     private static (uint Code, int Length) Code(PdfObject value)
@@ -208,7 +216,16 @@ public sealed class PdfToUnicodeMap
 
     private static string Unicode(byte[] bytes, bool compatibilityRecovery)
     {
-        if (bytes.Length == 0 || bytes.Length % 2 != 0) throw new FormatException("Expected nonempty UTF-16BE text.");
+        if (bytes.Length == 0)
+        {
+            if (compatibilityRecovery) return "\uFFFD";
+            throw new FormatException("Expected nonempty UTF-16BE text.");
+        }
+        if (bytes.Length % 2 != 0)
+        {
+            if (compatibilityRecovery) return Encoding.BigEndianUnicode.GetString(bytes);
+            throw new FormatException("Expected nonempty UTF-16BE text.");
+        }
         try { return Utf16.GetString(bytes); }
         catch (DecoderFallbackException e)
         {
