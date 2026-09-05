@@ -70,7 +70,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
         try
         {
-            EngineDocument document = EngineDocument.Open(File.ReadAllBytes(path));
+            EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
+                File.ReadAllBytes(path));
             IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
             return new PdfPageRenderSession(path, document, pages,
                 maximumWidth, maximumHeight, 0, true);
@@ -88,7 +89,8 @@ internal sealed class PdfPageRenderSession : IDisposable
             throw new ArgumentOutOfRangeException(nameof(scale));
         try
         {
-            EngineDocument document = EngineDocument.Open(File.ReadAllBytes(path));
+            EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
+                File.ReadAllBytes(path));
             IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
             return new PdfPageRenderSession(path, document, pages, 0, 0, scale, true);
         }
@@ -186,7 +188,8 @@ internal sealed class PdfPageRenderSession : IDisposable
     {
         try
         {
-            EngineDocument document = EngineDocument.Open(File.ReadAllBytes(path));
+            EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
+                File.ReadAllBytes(path));
             var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
             KillerPdf.Engine.Rendering.PdfRenderedPage rendered = renderer.Render(
                 pageIndex, new EngineRenderOptions(width, height, transparentBackground,

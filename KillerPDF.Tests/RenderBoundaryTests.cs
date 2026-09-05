@@ -87,7 +87,8 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         string method = source[methodStart..methodEnd];
 
-        int engineOpen = method.IndexOf("EngineDocument.Open(", StringComparison.Ordinal);
+        int engineOpen = method.IndexOf("EngineDocument.OpenWithCompatibilityRecovery(",
+            StringComparison.Ordinal);
         int fallbackRender = method.IndexOf("PdfiumInterop.RenderPageWithAnnotations(",
             StringComparison.Ordinal);
 

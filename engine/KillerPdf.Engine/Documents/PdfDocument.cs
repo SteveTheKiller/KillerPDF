@@ -24,6 +24,7 @@ public sealed class PdfDocument
     private static readonly PdfName FirstObjectOffsetName = new("First"u8);
 
     private readonly ReadOnlyMemory<byte> _source;
+    private readonly bool _compatibilityRecovery;
     private readonly Dictionary<int, PdfObject> _objects = [];
     private readonly Dictionary<int, ObjectStreamContents> _objectStreams = [];
     private readonly HashSet<int> _resolving = [];
@@ -31,10 +32,12 @@ public sealed class PdfDocument
     private int? _encryptionObjectNumber;
     private HashSet<int> _encryptionBootstrapObjectNumbers = [];
 
-    private PdfDocument(ReadOnlyMemory<byte> source, PdfCrossReferenceTable crossReferences)
+    private PdfDocument(ReadOnlyMemory<byte> source, PdfCrossReferenceTable crossReferences,
+        bool compatibilityRecovery = false)
     {
         _source = source;
         CrossReferences = crossReferences;
+        _compatibilityRecovery = compatibilityRecovery;
     }
 
     /// <summary>Gets the merged cross-reference revision table.</summary>
@@ -78,6 +81,18 @@ public sealed class PdfDocument
         // Own the bytes so lazy resolution cannot observe caller mutations after validation.
         byte[] ownedSource = source.ToArray();
         return new PdfDocument(ownedSource, PdfCrossReferenceTable.Read(ownedSource));
+    }
+
+    /// <summary>
+    /// Opens a PDF using bounded compatibility recoveries for malformed files accepted by
+    /// mainstream viewers. Strict parsing remains the default through <see cref="Open(ReadOnlyMemory{byte})"/>.
+    /// </summary>
+    public static PdfDocument OpenWithCompatibilityRecovery(ReadOnlyMemory<byte> source)
+    {
+        byte[] ownedSource = source.ToArray();
+        return new PdfDocument(ownedSource,
+            PdfCrossReferenceTable.Read(ownedSource, compatibilityRecovery: true),
+            compatibilityRecovery: true);
     }
 
     /// <summary>Opens and authenticates a password-encrypted PDF.</summary>
@@ -204,7 +219,8 @@ public sealed class PdfDocument
 
     private PdfObject ReadIndirectObject(PdfCrossReferenceEntry entry)
     {
-        var parser = new PdfObjectParser(_source, checked((int)entry.Field1), ResolveStreamLength);
+        var parser = new PdfObjectParser(_source, checked((int)entry.Field1),
+            ResolveStreamLength, _compatibilityRecovery);
         PdfIndirectObject indirect = parser.ParseIndirectObject();
         if (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2)
         {
@@ -325,7 +341,8 @@ public sealed class PdfDocument
                 throw Error("Object stream offsets do not define non-empty objects in ascending order", EntryOffset(entry));
 
             PdfObject value = isCurrent
-                ? new PdfObjectParser(decoded.AsMemory(start, end - start)).ParseSingleObject()
+                ? new PdfObjectParser(decoded.AsMemory(start, end - start),
+                    allowDuplicateDictionaryKeys: _compatibilityRecovery).ParseSingleObject()
                 : PdfNull.Instance;
             items.Add(new ObjectStreamItem(header.ObjectNumber, value));
         }

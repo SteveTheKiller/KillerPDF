@@ -20,7 +20,8 @@ public static class PdfCrossReferenceReader
     private static readonly PdfName XRefStmName = new("XRefStm"u8);
 
     /// <summary>Reads and validates one classic or stream cross-reference section at the specified offset.</summary>
-    public static PdfCrossReferenceSection ReadSection(ReadOnlyMemory<byte> source, long offset)
+    public static PdfCrossReferenceSection ReadSection(
+        ReadOnlyMemory<byte> source, long offset, bool compatibilityRecovery = false)
     {
         if (offset is < 0 or > int.MaxValue || offset >= source.Length)
             throw new PdfSyntaxException("The cross-reference offset is outside the file", ClampOffset(offset));
@@ -28,14 +29,15 @@ public static class PdfCrossReferenceReader
         var probe = new PdfTokenizer(source, (int)offset);
         PdfToken first = probe.Read();
         return IsKeyword(first, "xref")
-            ? ReadClassic(source, first, probe)
-            : ReadStream(source, (int)offset);
+            ? ReadClassic(source, first, probe, compatibilityRecovery)
+            : ReadStream(source, (int)offset, compatibilityRecovery);
     }
 
     private static PdfCrossReferenceSection ReadClassic(
         ReadOnlyMemory<byte> source,
         PdfToken xrefToken,
-        PdfTokenizer tokenizer)
+        PdfTokenizer tokenizer,
+        bool compatibilityRecovery)
     {
         var entries = new Dictionary<int, PdfCrossReferenceEntry>();
         while (true)
@@ -43,7 +45,8 @@ public static class PdfCrossReferenceReader
             PdfToken first = tokenizer.Read();
             if (IsKeyword(first, "trailer"))
             {
-                var parser = new PdfObjectParser(source, tokenizer.Position);
+                var parser = new PdfObjectParser(source, tokenizer.Position,
+                    allowDuplicateDictionaryKeys: compatibilityRecovery);
                 if (parser.ParseObject() is not PdfDictionary trailer)
                     throw Error("A classic xref trailer must be a dictionary", tokenizer.Position);
                 ValidateSize(trailer, entries.Values, first.Offset);
@@ -71,7 +74,8 @@ public static class PdfCrossReferenceReader
                 long field1 = ParseInteger(field1Token, "An xref entry must begin with a numeric field");
                 long field2 = ParseInteger(field2Token, "An xref entry must include a generation field");
                 PdfCrossReferenceEntry entry = ParseClassicEntry(
-                    source.Length, objectNumber, field1, field2, statusToken);
+                    source.Length, objectNumber, field1, field2, statusToken,
+                    compatibilityRecovery);
                 if (!entries.TryAdd(objectNumber, entry))
                     throw Error($"The xref table defines object {objectNumber} more than once", first.Offset);
             }
@@ -83,9 +87,12 @@ public static class PdfCrossReferenceReader
         int objectNumber,
         long field1,
         long field2,
-        PdfToken statusToken)
+        PdfToken statusToken,
+        bool compatibilityRecovery)
     {
-        if (field2 is < 0 or > 65_535)
+        if (objectNumber == 0 && compatibilityRecovery && IsKeyword(statusToken, "f"))
+            field2 = 65_535;
+        else if (field2 is < 0 or > 65_535)
             throw Error("An xref generation must be between 0 and 65,535", statusToken.Offset);
         if (objectNumber == 0 && !IsKeyword(statusToken, "f"))
             throw Error("Cross-reference object 0 must be free with generation 65,535",
@@ -110,9 +117,11 @@ public static class PdfCrossReferenceReader
         throw Error("An xref entry must end with n or f", statusToken.Offset);
     }
 
-    private static PdfCrossReferenceSection ReadStream(ReadOnlyMemory<byte> source, int offset)
+    private static PdfCrossReferenceSection ReadStream(
+        ReadOnlyMemory<byte> source, int offset, bool compatibilityRecovery)
     {
-        PdfIndirectObject indirect = new PdfObjectParser(source, offset).ParseIndirectObject();
+        PdfIndirectObject indirect = new PdfObjectParser(source, offset,
+            allowDuplicateDictionaryKeys: compatibilityRecovery).ParseIndirectObject();
         if (indirect.Generation != 0)
             throw Error("A cross-reference stream object must have generation 0", offset);
         if (indirect.Value is not PdfStream stream)

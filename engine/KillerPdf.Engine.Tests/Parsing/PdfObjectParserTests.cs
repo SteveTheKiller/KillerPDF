@@ -102,6 +102,19 @@ public sealed class PdfObjectParserTests
     }
 
     [Fact]
+    public void ParseObject_CompatibilityRecoveryUsesLastDuplicateDictionaryValue()
+    {
+        var parser = new PdfObjectParser(
+            Encoding.ASCII.GetBytes("<< /PageMode /UseNone /PageMode /UseOutlines >>"),
+            allowDuplicateDictionaryKeys: true);
+
+        PdfDictionary dictionary = Assert.IsType<PdfDictionary>(parser.ParseObject());
+
+        Assert.Equal("UseOutlines",
+            Assert.IsType<PdfName>(dictionary[Name("PageMode")]).ValueAsLatin1());
+    }
+
+    [Fact]
     public void ParseObject_EnforcesNestingLimit()
     {
         string source = new string('[', PdfObjectParser.MaximumNestingDepth + 1)

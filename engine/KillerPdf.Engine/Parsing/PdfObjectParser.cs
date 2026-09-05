@@ -9,7 +9,8 @@ namespace KillerPdf.Engine.Parsing;
 public sealed class PdfObjectParser(
     ReadOnlyMemory<byte> source,
     int startOffset,
-    Func<PdfIndirectReference, long>? streamLengthResolver = null)
+    Func<PdfIndirectReference, long>? streamLengthResolver = null,
+    bool allowDuplicateDictionaryKeys = false)
 {
     /// <summary>Maximum nested array and dictionary depth accepted by the object parser.</summary>
     public const int MaximumNestingDepth = 256;
@@ -19,6 +20,7 @@ public sealed class PdfObjectParser(
     private readonly ReadOnlyMemory<byte> _source = source;
     private readonly PdfTokenizer _tokenizer = new(source, startOffset);
     private readonly Func<PdfIndirectReference, long>? _streamLengthResolver = streamLengthResolver;
+    private readonly bool _allowDuplicateDictionaryKeys = allowDuplicateDictionaryKeys;
     private readonly List<PdfToken> _lookahead = [];
     private bool _allowIndirectReferences = true;
 
@@ -38,8 +40,9 @@ public sealed class PdfObjectParser(
     /// <summary>Creates a parser positioned at the beginning of a PDF byte sequence.</summary>
     public PdfObjectParser(
         ReadOnlyMemory<byte> source,
-        Func<PdfIndirectReference, long>? streamLengthResolver = null)
-        : this(source, 0, streamLengthResolver)
+        Func<PdfIndirectReference, long>? streamLengthResolver = null,
+        bool allowDuplicateDictionaryKeys = false)
+        : this(source, 0, streamLengthResolver, allowDuplicateDictionaryKeys)
     {
     }
 
@@ -171,10 +174,10 @@ public sealed class PdfObjectParser(
                 throw Error("A PDF dictionary key must be a name", keyToken.Offset);
 
             var key = new PdfName(keyToken.Value.Span);
-            if (entries.ContainsKey(key))
+            PdfObject value = ParseObject(depth);
+            if (!entries.TryAdd(key, value) && !_allowDuplicateDictionaryKeys)
                 throw Error($"The PDF dictionary contains the duplicate key {key}", keyToken.Offset);
-
-            entries.Add(key, ParseObject(depth));
+            entries[key] = value;
         }
 
         Take();

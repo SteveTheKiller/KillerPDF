@@ -125,6 +125,21 @@ public sealed class PdfCrossReferenceReaderTests
         Assert.Equal(65_535, entry.Field2);
     }
 
+    [Fact]
+    public void ReadSection_CompatibilityRecoveryCanonicalizesMalformedObjectZeroGeneration()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "xref\n0 1\n0000000000 65536 f\ntrailer\n<< /Size 1 >>");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0));
+        PdfCrossReferenceEntry entry = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true)[0];
+
+        Assert.Equal(PdfCrossReferenceEntryType.Free, entry.Type);
+        Assert.Equal(65_535, entry.Field2);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
