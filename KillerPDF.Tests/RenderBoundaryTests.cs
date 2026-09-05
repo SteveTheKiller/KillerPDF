@@ -105,6 +105,19 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
+    public void GuiFlattenAndImageExportUseTheEngineFirstRenderSession()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfRasterize.cs"));
+
+        Assert.Equal(2, Count(source, "PdfPageRenderSession.OpenEngineFirst("));
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("using Docnet.", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OcrConsumesEnginePreparedPixelsWithoutAPngRoundTrip()
     {
         string root = FindRepositoryRoot();
@@ -128,17 +141,17 @@ public sealed class RenderBoundaryTests
         Assert.Equal(4, Count(source, "PdfPageRenderSession.OpenEngineFirst("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", source,
             StringComparison.Ordinal);
+    }
 
-        static int Count(string source, string value)
-        {
-            int count = 0;
-            for (int index = source.IndexOf(value, StringComparison.Ordinal);
-                index >= 0;
-                index = source.IndexOf(value, index + value.Length,
-                    StringComparison.Ordinal))
-                count++;
-            return count;
-        }
+    private static int Count(string source, string value)
+    {
+        int count = 0;
+        for (int index = source.IndexOf(value, StringComparison.Ordinal);
+            index >= 0;
+            index = source.IndexOf(value, index + value.Length,
+                StringComparison.Ordinal))
+            count++;
+        return count;
     }
 
     private static string FindRepositoryRoot()

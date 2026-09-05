@@ -1,7 +1,5 @@
 using System.IO;
 using System.Threading;
-using Docnet.Core;
-using Docnet.Core.Models;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 
@@ -78,7 +76,8 @@ namespace KillerPDF.Services
             var docGate  = new object();
             int done     = 0;
             var po = new ParallelOptions { MaxDegreeOfParallelism = Math.Max(1, Environment.ProcessorCount) };
-            using var renderSession = PdfPageRenderSession.Open(sourcePath, options.Dpi / 72.0);
+            using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                sourcePath, options.Dpi / 72.0);
             Parallel.For(0, pageCount, po, i =>
             {
                 if (ct.IsCancellationRequested) return;   // cooperative: skip remaining pages' work
@@ -147,7 +146,8 @@ namespace KillerPDF.Services
             Action<int, int> progress, CancellationToken ct)
         {
             int written = 0;
-            using var renderSession = PdfPageRenderSession.Open(sourcePath, dpi / 72.0);
+            using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                sourcePath, dpi / 72.0);
             int done = 0;
             foreach (var idx in pages)
             {
