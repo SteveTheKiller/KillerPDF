@@ -130,9 +130,20 @@ public static class PdfFontResourceReader
                 ?? Enumerable.Range(1, 4).Where(length => length != codeLength)
                     .Select(length => unicode.Lookup(code, length))
                     .FirstOrDefault(text => text is not null);
-            string? CharacterText(uint code) => UnicodeText(code)
-                ?? (composite ? PdfPredefinedCMaps.Unicode(registry + "-" + ordering,
-                    vertical, cidSelector?.Invoke(code) ?? code) : simpleText.GetValueOrDefault(code));
+            string? CharacterText(uint code)
+            {
+                string? text = UnicodeText(code);
+                if (text == "\uFFFD" && document.UsesCompatibilityRecovery) text = null;
+                if (text is not null) return text;
+                if (!composite) return simpleText.GetValueOrDefault(code);
+                uint cid = cidSelector?.Invoke(code) ?? code;
+                text = PdfPredefinedCMaps.Unicode(
+                    registry + "-" + ordering, vertical, cid);
+                if (text is not null) return text;
+                return document.UsesCompatibilityRecovery && ordering == "Identity"
+                    && cid <= 0x10FFFF && cid is not (>= 0xD800 and <= 0xDFFF)
+                    ? char.ConvertFromUtf32((int)cid) : null;
+            }
             byte[]? cidToGid = Get(metrics, "CIDToGIDMap") is PdfStream gidStream ? Decode(gidStream) : null;
             ushort Glyph(uint code)
             {

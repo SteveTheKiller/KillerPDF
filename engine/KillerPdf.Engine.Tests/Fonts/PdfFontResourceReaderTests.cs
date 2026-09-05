@@ -51,6 +51,21 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void MissingIdentityFontRecoversInvalidUnicodeMappingsWithBundledOutlines()
+    {
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfStream unicode = Stream(
+            "1 begincodespacerange <0000> <FFFF> endcodespacerange "
+            + "1 beginbfchar <0041> <D800> endbfchar");
+
+        PdfExtractionFont font = PdfFontResourceReader.Read(document,
+            Type0(D(), N("Identity-H"), unicode));
+
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
+    [Fact]
     public void MissingCompositeFontUsesInjectedPlatformNeutralFontBytes()
     {
         var resolver = new TestFontResolver(
