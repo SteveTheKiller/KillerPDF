@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
 using KillerPdf.Engine.Validation;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Fonts;
@@ -20,11 +21,47 @@ if (args.Length == 3 && args[0] == "--render-one")
         string file = Path.GetFullPath(args[1]);
         if (!int.TryParse(args[2], out int size) || size < 1)
             throw new ArgumentException("Render size must be a positive integer.");
-        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
-            File.ReadAllBytes(file));
+        byte[] source = File.ReadAllBytes(file);
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(source);
         if (document.IsEncrypted)
-            throw new InvalidOperationException(
-                "Authenticate the document before rendering pages.");
+        {
+            string? credentialState = Environment.GetEnvironmentVariable(
+                "KILLERPDF_CORPUS_CREDENTIAL_STATE");
+            string? encodedPasswords = Environment.GetEnvironmentVariable(
+                "KILLERPDF_CORPUS_PASSWORDS");
+            if (credentialState == "unavailable")
+            {
+                Console.WriteLine($"KILLERPDF-RENDER\tskipped\t{Encode(
+                    "Credentials are unavailable for this encrypted corpus file.")}");
+                return 0;
+            }
+            if (encodedPasswords is null)
+            {
+                Console.WriteLine($"KILLERPDF-RENDER\tskipped\t{Encode(
+                    "No credential is registered for this encrypted corpus file.")}");
+                return 0;
+            }
+            string[] passwords = JsonSerializer.Deserialize<string[]>(
+                Convert.FromBase64String(encodedPasswords))
+                ?? throw new InvalidDataException("The corpus password list is invalid.");
+            Exception? lastError = null;
+            foreach (string password in passwords)
+            {
+                try
+                {
+                    document = PdfDocument.OpenWithCompatibilityRecovery(source, password);
+                    lastError = null;
+                    break;
+                }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                {
+                    lastError = error;
+                }
+            }
+            if (lastError is not null || !document.IsDecrypted)
+                throw new InvalidOperationException(
+                    "The registered corpus credentials could not decrypt the PDF.", lastError);
+        }
         if (PdfPageInformation.Read(document).Count == 0)
             throw new InvalidDataException("The PDF contains no pages.");
         PdfRenderedPage page = new PdfPageRenderer(document).Render(
@@ -56,12 +93,22 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
     }
     int renderMaximum = int.MaxValue, timeoutSeconds = 30, size = 256;
     int parallelism = Math.Min(Environment.ProcessorCount, 8);
+    string? passwordManifestPath = null;
     for (int index = 2; index < args.Length; index++)
     {
-        if (index + 1 >= args.Length
-            || !int.TryParse(args[index + 1], out int value) || value < 1)
+        if (index + 1 >= args.Length)
         {
-            Console.Error.WriteLine("Render corpus options require a positive integer value.");
+            Console.Error.WriteLine($"Render corpus option {args[index]} requires a value.");
+            return 2;
+        }
+        if (args[index] == "--password-manifest")
+        {
+            passwordManifestPath = Path.GetFullPath(args[++index]);
+            continue;
+        }
+        if (!int.TryParse(args[index + 1], out int value) || value < 1)
+        {
+            Console.Error.WriteLine("Render corpus numeric options require a positive integer value.");
             return 2;
         }
         switch (args[index])
@@ -77,10 +124,36 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         index++;
     }
 
+    var passwordsByPath = new Dictionary<string, string[]?>(StringComparer.OrdinalIgnoreCase);
+    if (passwordManifestPath is not null)
+    {
+        if (!File.Exists(passwordManifestPath))
+        {
+            Console.Error.WriteLine($"Password manifest not found: {passwordManifestPath}");
+            return 2;
+        }
+        Dictionary<string, string[]?> manifest = JsonSerializer.Deserialize<
+            Dictionary<string, string[]?>>(File.ReadAllText(passwordManifestPath))
+            ?? throw new InvalidDataException("The corpus password manifest is invalid.");
+        foreach ((string path, string[]? candidates) in manifest)
+        {
+            string normalized = path.Replace('\\', '/');
+            if (Path.IsPathRooted(path) || normalized.Split('/').Contains(".."))
+                throw new InvalidDataException(
+                    $"Corpus password paths must be relative and contained: {path}");
+            if (candidates is { Length: 0 or > 32 }
+                || candidates?.Any(password => password is null || password.Length > 4096) == true)
+                throw new InvalidDataException(
+                    $"Corpus password candidates exceed the configured limits: {path}");
+            if (!passwordsByPath.TryAdd(normalized, candidates))
+                throw new InvalidDataException($"Duplicate corpus password path: {path}");
+        }
+    }
+
     string[] renderFiles = [.. Directory.EnumerateFiles(
             renderRoot, "*.pdf", SearchOption.AllDirectories)
         .Order(StringComparer.OrdinalIgnoreCase).Take(renderMaximum)];
-    int clean = 0, diagnostic = 0, failure = 0, timedOut = 0, processed = 0;
+    int clean = 0, diagnostic = 0, skipped = 0, failure = 0, timedOut = 0, processed = 0;
     var signatures = new Dictionary<string, (int Count, List<string> Examples)>(
         StringComparer.Ordinal);
     var renderStarted = Stopwatch.StartNew();
@@ -100,6 +173,17 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         start.ArgumentList.Add("--render-one");
         start.ArgumentList.Add(file);
         start.ArgumentList.Add(size.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        start.Environment.Remove("KILLERPDF_CORPUS_CREDENTIAL_STATE");
+        start.Environment.Remove("KILLERPDF_CORPUS_PASSWORDS");
+        string credentialPath = relative.Replace('\\', '/');
+        if (passwordsByPath.TryGetValue(credentialPath, out string[]? passwords))
+        {
+            if (passwords is null)
+                start.Environment["KILLERPDF_CORPUS_CREDENTIAL_STATE"] = "unavailable";
+            else
+                start.Environment["KILLERPDF_CORPUS_PASSWORDS"] = Convert.ToBase64String(
+                    JsonSerializer.SerializeToUtf8Bytes(passwords));
+        }
         using Process process = Process.Start(start)
             ?? throw new InvalidOperationException("The render worker could not start.");
         Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
@@ -140,6 +224,7 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
             }
             if (status == "clean") Interlocked.Increment(ref clean);
             else if (status == "diagnostic") Interlocked.Increment(ref diagnostic);
+            else if (status == "skipped") Interlocked.Increment(ref skipped);
             else Interlocked.Increment(ref failure);
         }
         if (status != "clean") AddSignature(status, detail, relative);
@@ -147,13 +232,15 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         if (completedCount % 100 == 0 || completedCount == renderFiles.Length)
             Console.WriteLine($"Rendered {completedCount:N0}/{renderFiles.Length:N0}: "
                 + $"{clean:N0} clean, {diagnostic:N0} diagnostic, "
-                + $"{failure:N0} failed, {timedOut:N0} timed out.");
+                + $"{skipped:N0} skipped, {failure:N0} failed, {timedOut:N0} timed out.");
     });
     foreach ((string signature, (int count, List<string> examples)) in signatures
                  .OrderByDescending(entry => entry.Value.Count)
                  .ThenBy(entry => entry.Key, StringComparer.Ordinal))
         Console.WriteLine($"{count:N0} x {signature}: {string.Join(" | ", examples)}");
-    Console.WriteLine($"Render corpus completed in {renderStarted.Elapsed.TotalSeconds:N1}s.");
+    Console.WriteLine($"Render corpus completed in {renderStarted.Elapsed.TotalSeconds:N1}s: "
+        + $"{clean:N0} clean, {diagnostic:N0} diagnostic, {skipped:N0} skipped, "
+        + $"{failure:N0} failed, {timedOut:N0} timed out.");
     return diagnostic == 0 && failure == 0 && timedOut == 0 ? 0 : 1;
 
     void AddSignature(string status, string detail, string relative)
@@ -2340,7 +2427,7 @@ if (args.Length is 2 or 4 && args[0] == "--selected-page-import-corpus")
 if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
