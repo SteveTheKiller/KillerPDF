@@ -25,6 +25,23 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Theory]
+    [InlineData("ArialMT", 667)]
+    [InlineData("ABCDEF+Arial-BoldMT", 722)]
+    [InlineData("TimesNewRomanPSMT", 722)]
+    [InlineData("TimesNewRomanPS-BoldItalicMT", 667)]
+    [InlineData("CourierNewPSMT", 600)]
+    [InlineData("CourierNewPS-BoldItalicMT", 600)]
+    public void CoreFontAliasesUseCanonicalMetrics(string fontName, double expectedWidth)
+    {
+        PdfExtractionFont font = Read(D(
+            ("Subtype", N("Type1")), ("BaseFont", N(fontName))));
+
+        Assert.Equal(expectedWidth, font.GetWidth(65));
+        Assert.NotNull(font.GetGlyphBounds(65));
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
+    [Theory]
     [InlineData("MyriadPro-Regular")]
     [InlineData("MyriadPro-Semibold")]
     [InlineData("MyriadPro-It")]
@@ -117,6 +134,7 @@ public sealed class PdfFontResourceReaderTests
         var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name))));
         Assert.Equal(expected, Assert.Single(font.Decode(new byte[] { (byte)code })).Text);
         Assert.True(font.GetWidth((uint)code) > 0);
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline((uint)code)).Contours);
     }
 
     [Fact]

@@ -69,6 +69,48 @@ internal static class PdfStandardFontSubstitutes
         };
     }
 
+    internal static string CanonicalMetricsName(string fontName)
+    {
+        if (Fonts.ContainsKey(fontName) || fontName is "Symbol" or "ZapfDingbats")
+            return fontName;
+
+        string compact = new(fontName.Where(char.IsLetterOrDigit)
+            .Select(char.ToLowerInvariant).ToArray());
+        bool sans = compact.StartsWith("arial", StringComparison.Ordinal)
+            || compact.StartsWith("helv", StringComparison.Ordinal);
+        bool serif = compact.StartsWith("timesnewroman", StringComparison.Ordinal)
+            || compact.StartsWith("timesroman", StringComparison.Ordinal);
+        bool mono = compact.StartsWith("couriernew", StringComparison.Ordinal)
+            || compact.StartsWith("courierstd", StringComparison.Ordinal);
+        if (!sans && !serif && !mono) return fontName;
+
+        bool bold = Contains(fontName, "bold");
+        bool italic = Contains(fontName, "italic") || Contains(fontName, "oblique");
+        if (mono)
+            return (bold, italic) switch
+            {
+                (true, true) => "Courier-BoldOblique",
+                (true, false) => "Courier-Bold",
+                (false, true) => "Courier-Oblique",
+                _ => "Courier"
+            };
+        if (serif)
+            return (bold, italic) switch
+            {
+                (true, true) => "Times-BoldItalic",
+                (true, false) => "Times-Bold",
+                (false, true) => "Times-Italic",
+                _ => "Times-Roman"
+            };
+        return (bold, italic) switch
+        {
+            (true, true) => "Helvetica-BoldOblique",
+            (true, false) => "Helvetica-Bold",
+            (false, true) => "Helvetica-Oblique",
+            _ => "Helvetica"
+        };
+    }
+
     private static bool Contains(string value, string part) =>
         value.Contains(part, StringComparison.OrdinalIgnoreCase);
 

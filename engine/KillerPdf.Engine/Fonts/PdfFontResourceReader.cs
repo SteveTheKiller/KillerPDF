@@ -26,6 +26,7 @@ public static class PdfFontResourceReader
         {
             string fontName = Name(Get(font, "BaseFont")) ?? "Unknown";
             string metricsName = fontName.Length > 7 && fontName[6] == '+' ? fontName[7..] : fontName;
+            string standardMetricsName = PdfStandardFontSubstitutes.CanonicalMetricsName(metricsName);
             string? subtype = Name(Get(font, "Subtype"));
             bool composite = subtype == "Type0";
             PdfDictionary metrics = font;
@@ -96,8 +97,8 @@ public static class PdfFontResourceReader
                 var encodingDictionary = encoding as PdfDictionary;
                 encodingName ??= encodingDictionary is null ? null : Name(Get(encodingDictionary, "BaseEncoding"));
                 string[]? builtInEncoding = encodingName is null ? type1?.EncodingNames?.ToArray() : null;
-                encodingName ??= metricsName is "Symbol" ? "SymbolEncoding"
-                    : metricsName is "ZapfDingbats" ? "ZapfDingbatsEncoding" : "StandardEncoding";
+                encodingName ??= standardMetricsName is "Symbol" ? "SymbolEncoding"
+                    : standardMetricsName is "ZapfDingbats" ? "ZapfDingbatsEncoding" : "StandardEncoding";
                 glyphNames = builtInEncoding ?? PdfFontTables.EncodingNames(encodingName)
                     ?? (Get(font, "ToUnicode") is PdfStream ? Enumerable.Repeat(string.Empty, 256).ToArray()
                         : throw new NotSupportedException($"Font encoding /{encodingName} is not supported."));
@@ -117,7 +118,7 @@ public static class PdfFontResourceReader
                     string? text = PdfFontTables.GlyphText(glyphNames[code]);
                     if (text is null && Name(Get(font, "Subtype")) == "Type3") text = ((char)code).ToString();
                     if (text is not null) simpleText[code] = text;
-                    double? standardWidth = PdfStandardGlyphBounds.Width(metricsName, glyphNames[code]);
+                    double? standardWidth = PdfStandardGlyphBounds.Width(standardMetricsName, glyphNames[code]);
                     if (standardWidth is double width) widths[code] = width;
                 }
                 if (Get(font, "Widths") is PdfArray values)
@@ -297,7 +298,7 @@ public static class PdfFontResourceReader
                     var box = (glyph == 0 ? null : embeddedOutlines?.Bounds(glyph))
                         ?? cff?.GetBounds(CffGlyph(code))
                         ?? (!composite && code < glyphNames.Length ? type1?.GetBounds(glyphNames[code]) : null)
-                        ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(metricsName, glyphNames[code]) : null);
+                        ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(standardMetricsName, glyphNames[code]) : null);
                     return box is { } b && b.Right > b.Left && b.Top > b.Bottom ? box : null;
                 },
                 OutlineReader = code => embeddedOutlines?.Outline(Glyph(code))
