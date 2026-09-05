@@ -137,6 +137,34 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void ToUnicodeStreamInheritsAndOverridesBaseMappings()
+    {
+        PdfStream inherited = Stream(
+            "1 begincodespacerange <00> <FF> endcodespacerange "
+            + "2 beginbfchar <41> <0041> <42> <0042> endbfchar");
+        var dictionary = D(("UseCMap", inherited));
+        var derived = new PdfStream(dictionary, Encoding.ASCII.GetBytes(
+            "/Base usecmap 2 beginbfchar <42> <03A9> <43> <0043> endbfchar"));
+
+        PdfExtractionFont font = Read(D(("Subtype", N("Type1")),
+            ("BaseFont", N("Helvetica")), ("ToUnicode", derived)));
+
+        Assert.Equal(["A", "\u03A9", "C"],
+            font.Decode("ABC"u8.ToArray()).Select(character => character.Text));
+    }
+
+    [Fact]
+    public void ToUnicodeStreamRejectsNamedDictionaryInheritance()
+    {
+        var derived = new PdfStream(D(("UseCMap", N("Adobe-Identity-UCS"))),
+            Encoding.ASCII.GetBytes(
+                "1 begincodespacerange <00> <FF> endcodespacerange"));
+
+        Assert.Throws<NotSupportedException>(() => Read(D(("Subtype", N("Type1")),
+            ("BaseFont", N("Helvetica")), ("ToUnicode", derived))));
+    }
+
+    [Fact]
     public void ExplicitSpaceGlyphRemainsBlankWhenToUnicodeMapsAControlCharacter()
     {
         var encoding = D(("BaseEncoding", N("WinAnsiEncoding")),
@@ -344,6 +372,26 @@ public sealed class PdfFontResourceReaderTests
             Stream("2 begincodespacerange <00> <7F> <8000> <FFFF> endcodespacerange 2 begincidchar <41> 1 <8001> 1 endcidchar")));
         Assert.Equal([1, 2], font.Decode(new byte[] { 65, 128, 1 }).Select(c => c.ByteLength));
         Assert.Equal(["A", "A"], font.Decode(new byte[] { 65, 128, 1 }).Select(c => c.Text));
+    }
+
+    [Fact]
+    public void EncodingCmapStreamInheritsAndOverridesBaseMappings()
+    {
+        PdfStream inherited = Stream(
+            "1 begincodespacerange <00> <FF> endcodespacerange "
+            + "2 begincidchar <41> 1 <42> 2 endcidchar");
+        var encoding = new PdfStream(D(("UseCMap", inherited)), Encoding.ASCII.GetBytes(
+            "/Base usecmap 2 begincidchar <42> 3 <43> 4 endcidchar"));
+        var descendant = D(("DW", new PdfInteger(500)),
+            ("W", new PdfArray([new PdfInteger(1), new PdfArray([
+                new PdfInteger(510), new PdfInteger(520), new PdfInteger(530),
+                new PdfInteger(540)])])));
+
+        PdfExtractionFont font = Read(Type0(descendant, encoding));
+
+        Assert.Equal(510, font.GetWidth(0x41));
+        Assert.Equal(530, font.GetWidth(0x42));
+        Assert.Equal(540, font.GetWidth(0x43));
     }
 
     [Fact]

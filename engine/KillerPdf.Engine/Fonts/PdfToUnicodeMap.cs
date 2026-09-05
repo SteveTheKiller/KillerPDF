@@ -8,7 +8,7 @@ namespace KillerPdf.Engine.Fonts;
 public readonly record struct PdfDecodedCharacter(uint Code, int ByteLength, string Text);
 
 /// <summary>Reads explicit ToUnicode mappings without relying on a platform font library.</summary>
-/// <remarks>Inherited usecmap mappings are not supported. Missing mappings are reported, not guessed.</remarks>
+/// <remarks>Missing mappings are reported, not guessed.</remarks>
 public sealed class PdfToUnicodeMap
 {
     private static readonly Encoding Utf16 = new UnicodeEncoding(true, false, true);
@@ -48,22 +48,36 @@ public sealed class PdfToUnicodeMap
         => ParseFont(source, true);
 
     internal static PdfToUnicodeMap ParseFont(ReadOnlyMemory<byte> source, bool simpleFont,
-        bool compatibilityRecovery = false)
+        bool compatibilityRecovery = false, PdfToUnicodeMap? inherited = null)
         => ParseCore(PdfCMapMetadata.WithoutDictionaries(source), 65536, simpleFont,
-            compatibilityRecovery);
+            compatibilityRecovery, inherited);
 
     private static PdfToUnicodeMap ParseCore(ReadOnlyMemory<byte> source, int maximumMappings,
-        bool simpleFont, bool compatibilityRecovery = false)
+        bool simpleFont, bool compatibilityRecovery = false, PdfToUnicodeMap? inherited = null)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumMappings);
         var map = new PdfToUnicodeMap();
+        if (inherited is not null)
+        {
+            map._characters.EnsureCapacity(inherited._characters.Count);
+            foreach (var pair in inherited._characters) map._characters.Add(pair.Key, pair.Value);
+            map._spaces.AddRange(inherited._spaces);
+        }
+        var localMappings = new HashSet<(uint Code, int Length)>();
         string? block = null;
         int count = 0;
         foreach (var instruction in PdfContentStreamReader.Read(source))
         {
             string op = instruction.Operator;
             var operands = instruction.Operands;
-            if (op == "usecmap") throw new NotSupportedException("Inherited ToUnicode maps are not supported.");
+            if (op == "usecmap")
+            {
+                if (inherited is null)
+                    throw new NotSupportedException("Named inherited ToUnicode maps are not supported.");
+                if (operands.Count != 1 || operands[0] is not PdfName)
+                    throw new FormatException("Invalid inherited ToUnicode map reference.");
+                continue;
+            }
             if (op is "begincodespacerange" or "beginbfchar" or "beginbfrange")
             {
                 if (block is not null || operands.Count != 1 || operands[0] is not PdfInteger number ||
@@ -88,7 +102,7 @@ public sealed class PdfToUnicodeMap
                 if (block == "beginbfchar")
                 {
                     map.Add(low, Unicode(Bytes(operands[i + 1]), compatibilityRecovery),
-                        maximumMappings, compatibilityRecovery);
+                        maximumMappings, compatibilityRecovery, localMappings);
                     continue;
                 }
                 var high = Code(operands[i + 1]);
@@ -97,7 +111,8 @@ public sealed class PdfToUnicodeMap
                 if (block == "begincodespacerange")
                 {
                     if (map._spaces.Count >= 256) throw new FormatException("Too many ToUnicode code spaces.");
-                    map._spaces.Add((low.Code, high.Code, low.Length));
+                    var space = (low.Code, high.Code, low.Length);
+                    if (!map._spaces.Contains(space)) map._spaces.Add(space);
                     continue;
                 }
                 ulong length = (ulong)high.Code - low.Code + 1;
@@ -108,7 +123,7 @@ public sealed class PdfToUnicodeMap
                     for (int j = 0; j < destinations.Count; j++)
                         map.Add((low.Code + (uint)j, low.Length),
                             Unicode(Bytes(destinations[j]), compatibilityRecovery), maximumMappings,
-                            compatibilityRecovery);
+                            compatibilityRecovery, localMappings);
                 }
                 else
                 {
@@ -117,7 +132,7 @@ public sealed class PdfToUnicodeMap
                     {
                         map.Add((low.Code + (uint)j, low.Length),
                             Unicode(destination, compatibilityRecovery), maximumMappings,
-                            compatibilityRecovery);
+                            compatibilityRecovery, localMappings);
                         if (j + 1 < length) Increment(destination);
                     }
                 }
@@ -209,15 +224,16 @@ public sealed class PdfToUnicodeMap
     }
 
     private void Add((uint Code, int Length) code, string text, int maximum,
-        bool compatibilityRecovery)
+        bool compatibilityRecovery, HashSet<(uint Code, int Length)>? localMappings = null)
     {
-        if (_characters.ContainsKey(code))
+        if (localMappings is not null && !localMappings.Add(code))
         {
             if (compatibilityRecovery) return;
             throw new FormatException("Duplicate ToUnicode source mapping.");
         }
-        if (_characters.Count >= maximum) throw new FormatException("ToUnicode mapping limit exceeded.");
-        _characters.Add(code, text);
+        if (!_characters.ContainsKey(code) && _characters.Count >= maximum)
+            throw new FormatException("ToUnicode mapping limit exceeded.");
+        _characters[code] = text;
     }
 
     private static (uint Code, int Length) Code(PdfObject value)

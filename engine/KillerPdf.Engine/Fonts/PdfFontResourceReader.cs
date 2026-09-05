@@ -73,7 +73,7 @@ public static class PdfFontResourceReader
                 ReadCidWidths(Get(metrics, "W") as PdfArray, widths);
                 if (Get(font, "Encoding") is PdfStream encodingStream)
                 {
-                    var (Map, Spaces, Vertical) = ReadCidMap(Decode(encodingStream));
+                    var (Map, Spaces, Vertical) = ReadCidMap(encodingStream);
                     cidSelector = c => Map.GetValueOrDefault(c, 0u);
                     encodingSpaces = PdfToUnicodeMap.CreateCodeSpaces(Spaces);
                     vertical = Vertical;
@@ -123,8 +123,7 @@ public static class PdfFontResourceReader
             }
 
             PdfToUnicodeMap unicode = Get(font, "ToUnicode") is PdfStream unicodeStream
-                ? PdfToUnicodeMap.ParseFont(Decode(unicodeStream), !composite,
-                    document.UsesCompatibilityRecovery)
+                ? ReadToUnicode(unicodeStream, !composite)
                 : encodingSpaces ?? PdfToUnicodeMap.Create(simpleText, codeLength);
             string? UnicodeText(uint code) => unicode.Lookup(code, codeLength)
                 ?? Enumerable.Range(1, 4).Where(length => length != codeLength)
@@ -323,6 +322,60 @@ public static class PdfFontResourceReader
             catch (FormatException) { return null; } // CFF-only programs do not contain sfnt tables.
         }
 
+        private PdfToUnicodeMap ReadToUnicode(PdfStream stream, bool simpleFont)
+        {
+            var seen = new HashSet<PdfStream>(ReferenceEqualityComparer.Instance);
+            return ReadToUnicode(stream, simpleFont, seen, 0);
+        }
+
+        private PdfToUnicodeMap ReadToUnicode(PdfStream stream, bool simpleFont,
+            HashSet<PdfStream> seen, int depth)
+        {
+            if (depth >= 32 || !seen.Add(stream))
+                throw new FormatException("ToUnicode map inheritance cycle.");
+            PdfToUnicodeMap? inherited = Get(stream.Dictionary, "UseCMap") switch
+            {
+                null => null,
+                PdfStream baseStream => ReadToUnicode(baseStream, simpleFont, seen, depth + 1),
+                PdfName => throw new NotSupportedException(
+                    "Named inherited ToUnicode maps are not supported."),
+                _ => throw new FormatException("Invalid inherited ToUnicode map reference.")
+            };
+            PdfToUnicodeMap map = PdfToUnicodeMap.ParseFont(Decode(stream), simpleFont,
+                document.UsesCompatibilityRecovery, inherited);
+            seen.Remove(stream);
+            return map;
+        }
+
+        private (Dictionary<uint, uint> Map,
+            List<(uint Low, uint High, int Length)> Spaces, bool Vertical)
+            ReadCidMap(PdfStream stream)
+        {
+            var seen = new HashSet<PdfStream>(ReferenceEqualityComparer.Instance);
+            return ReadCidMap(stream, seen, 0);
+        }
+
+        private (Dictionary<uint, uint> Map,
+            List<(uint Low, uint High, int Length)> Spaces, bool Vertical)
+            ReadCidMap(PdfStream stream, HashSet<PdfStream> seen, int depth)
+        {
+            if (depth >= 32 || !seen.Add(stream))
+                throw new FormatException("Font encoding CMap inheritance cycle.");
+            (Dictionary<uint, uint> Map,
+                List<(uint Low, uint High, int Length)> Spaces, bool Vertical)? inherited =
+                Get(stream.Dictionary, "UseCMap") switch
+                {
+                    null => null,
+                    PdfStream baseStream => ReadCidMap(baseStream, seen, depth + 1),
+                    PdfName => throw new NotSupportedException(
+                        "Named inherited font encoding CMaps are not supported."),
+                    _ => throw new FormatException("Invalid inherited font encoding CMap reference.")
+                };
+            var result = ParseCidMap(Decode(stream), inherited);
+            seen.Remove(stream);
+            return result;
+        }
+
         private void ReadCidWidths(PdfArray? array, Dictionary<uint, double> widths)
         {
             if (array is null) return;
@@ -405,16 +458,27 @@ public static class PdfFontResourceReader
     private static uint Cid(PdfObject value) => value is PdfInteger number && number.Value is >= 0 and <= 65535
         ? (uint)number.Value : throw new FormatException("CID is outside the valid range.");
 
-    private static (Dictionary<uint, uint> Map, List<(uint Low, uint High, int Length)> Spaces, bool Vertical) ReadCidMap(byte[] data)
+    private static (Dictionary<uint, uint> Map, List<(uint Low, uint High, int Length)> Spaces, bool Vertical) ParseCidMap(
+        byte[] data, (Dictionary<uint, uint> Map,
+            List<(uint Low, uint High, int Length)> Spaces, bool Vertical)? inherited)
     {
-        var map = new Dictionary<uint, uint>();
-        var spaces = new List<(uint Low, uint High, int Length)>();
+        var map = inherited is null
+            ? new Dictionary<uint, uint>() : new Dictionary<uint, uint>(inherited.Value.Map);
+        var spaces = inherited is null
+            ? [] : new List<(uint Low, uint High, int Length)>(inherited.Value.Spaces);
         long expanded = 0;
-        bool vertical = false;
+        bool vertical = inherited?.Vertical ?? false;
         foreach (var instruction in PdfContentStreamReader.Read(PdfCMapMetadata.WithoutDictionaries(data)))
         {
             var values = instruction.Operands;
-            if (instruction.Operator == "usecmap") throw new NotSupportedException("Inherited font encoding CMaps are not supported.");
+            if (instruction.Operator == "usecmap")
+            {
+                if (inherited is null)
+                    throw new NotSupportedException("Named inherited font encoding CMaps are not supported.");
+                if (values.Count != 1 || values[0] is not PdfName)
+                    throw new FormatException("Invalid inherited font encoding CMap reference.");
+                continue;
+            }
             if (instruction.Operator == "def" && values.Count == 2 && Name(values[0]) == "WMode") vertical = Number(values[1]) == 1;
             if (instruction.Operator == "endcodespacerange")
             {
@@ -424,7 +488,8 @@ public static class PdfFontResourceReader
                     var (Code, Length) = ReadCode(values[i]);
                     var high = ReadCode(values[i + 1]);
                     if (Length != high.Length || high.Code < Code) throw new FormatException("Invalid CID code space range.");
-                    spaces.Add((Code, high.Code, Length));
+                    var space = (Code, high.Code, Length);
+                    if (!spaces.Contains(space)) spaces.Add(space);
                 }
             }
             if (instruction.Operator is not "endcidchar" and not "endcidrange") continue;
