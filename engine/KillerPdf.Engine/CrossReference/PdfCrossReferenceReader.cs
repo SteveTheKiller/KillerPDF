@@ -413,12 +413,12 @@ public static class PdfCrossReferenceReader
         bool compatibilityRecovery)
     {
         int size = RequiredNonNegativeInt(trailer, SizeName, offset);
-        if (size == 0 || !compatibilityRecovery && entries.Any(entry =>
+        if (!compatibilityRecovery && (size == 0 || entries.Any(entry =>
                 entry.Type is PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed
-                && entry.ObjectNumber >= size))
+                && entry.ObjectNumber >= size)))
             throw Error("Trailer /Size must be greater than every in-use object number", offset);
-        if (entries.Any(entry => entry.Type == PdfCrossReferenceEntryType.Free
-                && entry.ObjectNumber > size))
+        if (!compatibilityRecovery && entries.Any(entry =>
+                entry.Type == PdfCrossReferenceEntryType.Free && entry.ObjectNumber > size))
             throw Error("A free cross-reference entry lies beyond trailer /Size", offset);
     }
 
