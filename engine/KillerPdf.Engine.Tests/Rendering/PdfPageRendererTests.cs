@@ -116,6 +116,20 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_HonorsOptionalContentAttachedToAnnotations()
+    {
+        PdfRenderedPage visible = new PdfPageRenderer(
+            OptionalContentAnnotationDocument(hidden: false)).Render(
+            0, new PdfRenderOptions(2, 1, includeAnnotations: true, includeFormFields: false));
+        PdfRenderedPage hidden = new PdfPageRenderer(
+            OptionalContentAnnotationDocument(hidden: true)).Render(
+            0, new PdfRenderOptions(2, 1, includeAnnotations: true, includeFormFields: false));
+
+        Assert.Equal([0, 0, 0, 255], Pixel(visible, 0, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(hidden, 0, 0));
+    }
+
+    [Fact]
     public void Render_FillsWithColoredTilingPatterns()
     {
         var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
@@ -1361,6 +1375,34 @@ public sealed class PdfPageRendererTests
             $"<< /Length {Encoding.ASCII.GetByteCount(pageContent)} >>\nstream\n{pageContent}\nendstream",
             "<< /Type /OCG /Name (Hidden) >>",
             $"<< /Type /XObject /Subtype /Form /BBox [0 0 2 1] /OC 5 0 R /Length {Encoding.ASCII.GetByteCount(formContent)} >>\nstream\n{formContent}\nendstream"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+    }
+
+    private static PdfDocument OptionalContentAnnotationDocument(bool hidden)
+    {
+        const string appearanceContent = "0 0 2 1 re f";
+        string optionalContent = hidden ? " /OC 5 0 R" : string.Empty;
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R] /D << /BaseState /OFF >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 2 1] >>",
+            "<< /Type /Page /Parent 2 0 R /Annots [6 0 R] >>",
+            "<< >>",
+            "<< /Type /OCG /Name (Hidden) >>",
+            $"<< /Type /Annot /Subtype /Square /Rect [0 0 2 1] /AP << /N 7 0 R >>{optionalContent} >>",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 2 1] /Length {Encoding.ASCII.GetByteCount(appearanceContent)} >>\nstream\n{appearanceContent}\nendstream"
         ];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
