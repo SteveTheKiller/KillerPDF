@@ -12,6 +12,7 @@ public sealed class PdfPageRenderer
 {
     private const long MaximumDecodedImageCacheBytes = 64L * 1024 * 1024;
     private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
+    private const long MaximumRenderedPageCacheBytes = 64L * 1024 * 1024;
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
@@ -33,6 +34,9 @@ public sealed class PdfPageRenderer
     private readonly BoundedCache<PdfStream, ParsedStream> _streamInstructionCache = new(
         128, ReferenceEqualityComparer.Instance,
         PdfContentStreamReader.MaximumSourceBytes, parsed => parsed.SourceBytes);
+    private readonly BoundedCache<RenderCacheKey, PdfRenderedPage> _renderCache = new(
+        16, maximumWeight: MaximumRenderedPageCacheBytes,
+        weight: page => page.Pixels.Length);
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
@@ -60,7 +64,16 @@ public sealed class PdfPageRenderer
         if (pageIndex < 0 || pageIndex >= _pages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         cancellationToken.ThrowIfCancellationRequested();
+        var key = new RenderCacheKey(pageIndex, options.Width, options.Height,
+            options.TransparentBackground, options.IncludeAnnotations,
+            options.IncludeFormFields);
+        return _renderCache.GetOrAdd(key,
+            _ => RenderUncached(pageIndex, options, cancellationToken));
+    }
 
+    private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
+        CancellationToken cancellationToken)
+    {
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
         byte[] pixels = GC.AllocateUninitializedArray<byte>(
             checked(options.Width * options.Height * 4));
@@ -4393,7 +4406,17 @@ public sealed class PdfPageRenderer
                     _usage.AddFirst(existing);
                     return existing.Value.Value;
                 }
-                TValue value = factory(key);
+            }
+
+            TValue value = factory(key);
+            lock (_sync)
+            {
+                if (_entries.TryGetValue(key, out var existing))
+                {
+                    _usage.Remove(existing);
+                    _usage.AddFirst(existing);
+                    return existing.Value.Value;
+                }
                 long valueWeight = _weight(value);
                 if (valueWeight < 0) throw new InvalidOperationException("A cache entry has a negative weight.");
                 if (valueWeight > _maximumWeight) return value;
@@ -4411,6 +4434,9 @@ public sealed class PdfPageRenderer
             }
         }
     }
+    private readonly record struct RenderCacheKey(
+        int PageIndex, int Width, int Height, bool TransparentBackground,
+        bool IncludeAnnotations, bool IncludeFormFields);
     private readonly record struct ImageCacheKey(PdfStream Stream, int ResolutionLevel);
     private sealed record DecodedImage(byte[] Samples, int Width, int Height, byte[]? Alpha = null);
     private sealed record ParsedStream(

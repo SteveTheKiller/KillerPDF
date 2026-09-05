@@ -65,6 +65,28 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ReusesExactCompletedRastersAndKeepsProfilesSeparate()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, "1 0 0 rg 0 0 5 10 re f"u8.ToArray()).Build());
+        var renderer = new PdfPageRenderer(document);
+        var baseOptions = new PdfRenderOptions(10, 10,
+            includeAnnotations: false, includeFormFields: false);
+
+        PdfRenderedPage first = renderer.Render(0, baseOptions);
+        PdfRenderedPage repeated = renderer.Render(0, baseOptions);
+        PdfRenderedPage transparent = renderer.Render(0, new PdfRenderOptions(10, 10,
+            transparentBackground: true, includeAnnotations: false, includeFormFields: false));
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        Assert.Same(first, repeated);
+        Assert.NotSame(first, transparent);
+        Assert.Throws<OperationCanceledException>(() =>
+            renderer.Render(0, baseOptions, canceled.Token));
+    }
+
+    [Fact]
     public void Render_BoundsParsedPageCache()
     {
         var builder = new PdfDocumentBuilder();
@@ -80,8 +102,15 @@ public sealed class PdfPageRendererTests
         int count = (int)cache.GetType().GetProperty("Count",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .GetValue(cache)!;
+        object renderCache = typeof(PdfPageRenderer).GetField("_renderCache",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(renderer)!;
+        int renderCount = (int)renderCache.GetType().GetProperty("Count",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(renderCache)!;
 
         Assert.Equal(32, count);
+        Assert.Equal(16, renderCount);
     }
 
     [Fact]
