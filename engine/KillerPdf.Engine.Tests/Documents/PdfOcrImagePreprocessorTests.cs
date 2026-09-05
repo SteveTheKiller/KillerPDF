@@ -115,4 +115,32 @@ public sealed class PdfOcrImagePreprocessorTests
         Assert.Throws<OperationCanceledException>(() =>
             PdfOcrImagePreprocessor.PrepareBgra(new byte[4], 1, 1, options, canceled.Token));
     }
+
+    [Fact]
+    public void CropBgra_ClampsBoundsAndCopiesWholePixels()
+    {
+        byte[] bgra = Enumerable.Range(0, 4 * 3 * 4).Select(value => (byte)value).ToArray();
+
+        PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(
+            bgra, 4, 3, left: 2, top: 1, width: 8, height: 8);
+
+        Assert.Equal(2, crop.Width);
+        Assert.Equal(2, crop.Height);
+        Assert.Equal(bgra.AsSpan((1 * 4 + 2) * 4, 8).ToArray(),
+            crop.Pixels.Span[..8].ToArray());
+        Assert.Equal(bgra.AsSpan((2 * 4 + 2) * 4, 8).ToArray(),
+            crop.Pixels.Span[8..].ToArray());
+    }
+
+    [Fact]
+    public void CropBgra_ValidatesSourceAndHonorsCancellation()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            PdfOcrImagePreprocessor.CropBgra(new byte[3], 1, 1, 0, 0, 1, 1));
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfOcrImagePreprocessor.CropBgra(
+                new byte[16], 2, 2, 0, 0, 1, 1, canceled.Token));
+    }
 }

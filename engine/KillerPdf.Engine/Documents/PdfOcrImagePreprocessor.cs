@@ -25,6 +25,24 @@ public sealed class PdfOcrPreparedImage
     public IReadOnlyList<string> Diagnostics { get; }
 }
 
+/// <summary>A bounded BGRA32 image prepared for an OCR pipeline stage.</summary>
+public sealed class PdfOcrBgraImage
+{
+    internal PdfOcrBgraImage(int width, int height, byte[] pixels)
+    {
+        Width = width;
+        Height = height;
+        Pixels = new ReadOnlyMemory<byte>(pixels);
+    }
+
+    /// <summary>Gets the image width.</summary>
+    public int Width { get; }
+    /// <summary>Gets the image height.</summary>
+    public int Height { get; }
+    /// <summary>Gets tightly packed BGRA32 samples.</summary>
+    public ReadOnlyMemory<byte> Pixels { get; }
+}
+
 /// <summary>Prepares rendered BGRA32 pages for engine-owned OCR recognition.</summary>
 public static class PdfOcrImagePreprocessor
 {
@@ -36,13 +54,7 @@ public static class PdfOcrImagePreprocessor
         int height, PdfOcrOptions options, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(options);
-        if (width <= 0 || width > MaximumDimension)
-            throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0 || height > MaximumDimension)
-            throw new ArgumentOutOfRangeException(nameof(height));
-        long expected = checked((long)width * height * 4);
-        if (expected > MaximumInputBytes || bgra.Length != expected)
-            throw new ArgumentException("The BGRA image length or dimensions are invalid.", nameof(bgra));
+        ValidateBgra(bgra, width, height);
 
         byte[] gray = GC.AllocateUninitializedArray<byte>(checked(width * height));
         ReadOnlySpan<byte> source = bgra.Span;
@@ -72,6 +84,39 @@ public static class PdfOcrImagePreprocessor
         if (options.CorrectOrientation)
             diagnostics.Add("OCR orientation detection is not implemented.");
         return new PdfOcrPreparedImage(width, height, gray, binary, diagnostics);
+    }
+
+    /// <summary>Crops a rendered BGRA32 image with bounds clamped to its source.</summary>
+    public static PdfOcrBgraImage CropBgra(ReadOnlyMemory<byte> bgra, int sourceWidth,
+        int sourceHeight, int left, int top, int width, int height,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateBgra(bgra, sourceWidth, sourceHeight);
+        left = Math.Clamp(left, 0, sourceWidth - 1);
+        top = Math.Clamp(top, 0, sourceHeight - 1);
+        width = Math.Clamp(width, 1, sourceWidth - left);
+        height = Math.Clamp(height, 1, sourceHeight - top);
+        byte[] result = GC.AllocateUninitializedArray<byte>(checked(width * height * 4));
+        ReadOnlySpan<byte> source = bgra.Span;
+        for (int row = 0; row < height; row++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            source.Slice(((top + row) * sourceWidth + left) * 4, width * 4)
+                .CopyTo(result.AsSpan(row * width * 4));
+        }
+        return new PdfOcrBgraImage(width, height, result);
+    }
+
+    private static void ValidateBgra(ReadOnlyMemory<byte> bgra, int width, int height)
+    {
+        if (width <= 0 || width > MaximumDimension)
+            throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0 || height > MaximumDimension)
+            throw new ArgumentOutOfRangeException(nameof(height));
+        long expected = checked((long)width * height * 4);
+        if (expected > MaximumInputBytes || bgra.Length != expected)
+            throw new ArgumentException(
+                "The BGRA image length or dimensions are invalid.", nameof(bgra));
     }
 
     private static byte[] AdaptiveThreshold(byte[] source, int width, int height,

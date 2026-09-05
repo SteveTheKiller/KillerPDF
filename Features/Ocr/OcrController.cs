@@ -137,13 +137,12 @@ namespace KillerPDF.Features
                     if (rot != 0) (bgra, w, h) = BitmapHelpers.RotateBitmap(bgra, w, h, rot);
 
                     double sx = (double)w / renderW, sy = (double)h / renderH;
-                    byte[] crop = CropBgra(bgra, w, h,
+                    PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(bgra, w, h,
                         (int)Math.Round(cb.Left * sx), (int)Math.Round(cb.Top * sy),
-                        (int)Math.Round(cb.Width * sx), (int)Math.Round(cb.Height * sy),
-                        out int cw, out int chh);
+                        (int)Math.Round(cb.Width * sx), (int)Math.Round(cb.Height * sy));
 
                     using var ocr = new OcrService(language: lang);
-                    return ocr.RecognizeBgra(crop, cw, chh);
+                    return ocr.RecognizeBgra(crop.Pixels, crop.Width, crop.Height);
                 });
 
                 _host.HideBusy();
@@ -163,18 +162,6 @@ namespace KillerPDF.Features
             {
                 _host.EndOp();
             }
-        }
-
-        private static byte[] CropBgra(byte[] src, int srcW, int srcH, int x, int y, int cw, int ch, out int outW, out int outH)
-        {
-            x = Math.Max(0, Math.Min(x, srcW - 1));
-            y = Math.Max(0, Math.Min(y, srcH - 1));
-            outW = Math.Max(1, Math.Min(cw, srcW - x));
-            outH = Math.Max(1, Math.Min(ch, srcH - y));
-            var dst = new byte[outW * outH * 4];
-            for (int row = 0; row < outH; row++)
-                Array.Copy(src, ((y + row) * srcW + x) * 4, dst, row * outW * 4, outW * 4);
-            return dst;
         }
 
         // ============================================================

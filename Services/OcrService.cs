@@ -41,7 +41,7 @@ namespace KillerPDF.Services
         /// <summary>
         /// OCR a rendered page straight from the render pipeline (raw BGRA, 4 bytes/pixel).
         /// </summary>
-        public PdfOcrResult RecognizeBgra(byte[] bgra, int width, int height,
+        public PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
             string? characterWhitelist = null)
         {
             if (!string.IsNullOrEmpty(characterWhitelist))

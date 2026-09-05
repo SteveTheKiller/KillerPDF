@@ -5,7 +5,7 @@ namespace KillerPDF.Services;
 internal static class FormAwareOcr
 {
     internal static PdfOcrResult Recognize(
-        OcrService service, byte[] bgra, int width, int height,
+        OcrService service, ReadOnlyMemory<byte> bgra, int width, int height,
         IReadOnlyList<PdfFormWidgetInfo> widgets, int additionalRotation = 0)
     {
         PdfOcrResult full = service.RecognizeBgra(bgra, width, height);
@@ -21,13 +21,16 @@ internal static class FormAwareOcr
             float fieldConfidence;
             if (region.IsComb)
             {
-                (text, fieldConfidence) = RecognizeComb(service, bgra, width, region);
+                (text, fieldConfidence) = RecognizeComb(
+                    service, bgra, width, height, region);
             }
             else
             {
-                byte[] crop = Crop(bgra, width, region, out int cropWidth, out int cropHeight);
+                PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(
+                    bgra, width, height, region.Left, region.Top,
+                    region.Right - region.Left, region.Bottom - region.Top);
                 PdfOcrResult field = service.RecognizeBgra(
-                    crop, cropWidth, cropHeight, region.CharacterWhitelist);
+                    crop.Pixels, crop.Width, crop.Height, region.CharacterWhitelist);
                 text = string.Join(" ", field.Words.Select(word => word.Text)).Trim();
                 fieldConfidence = field.MeanConfidence;
             }
@@ -45,20 +48,9 @@ internal static class FormAwareOcr
     private static bool Contains(PdfOcrFormRegion region, int x, int y) =>
         x >= region.Left && x <= region.Right && y >= region.Top && y <= region.Bottom;
 
-    private static byte[] Crop(byte[] source, int sourceWidth, PdfOcrFormRegion region,
-        out int width, out int height)
-    {
-        width = region.Right - region.Left;
-        height = region.Bottom - region.Top;
-        var result = new byte[width * height * 4];
-        for (int row = 0; row < height; row++)
-            Array.Copy(source, ((region.Top + row) * sourceWidth + region.Left) * 4,
-                result, row * width * 4, width * 4);
-        return result;
-    }
-
     private static (string text, float confidence) RecognizeComb(
-        OcrService service, byte[] source, int sourceWidth, PdfOcrFormRegion region)
+        OcrService service, ReadOnlyMemory<byte> source, int sourceWidth, int sourceHeight,
+        PdfOcrFormRegion region)
     {
         var text = new System.Text.StringBuilder(region.MaximumLength);
         double confidence = 0;
@@ -70,9 +62,11 @@ internal static class FormAwareOcr
             int right = region.Left + (int)Math.Round(
                 (double)(region.Right - region.Left) * (cell + 1) / region.MaximumLength);
             var cellRegion = region with { Left = left, Right = Math.Max(left + 1, right), IsComb = false };
-            byte[] crop = Crop(source, sourceWidth, cellRegion, out int width, out int height);
+            PdfOcrBgraImage crop = PdfOcrImagePreprocessor.CropBgra(
+                source, sourceWidth, sourceHeight, cellRegion.Left, cellRegion.Top,
+                cellRegion.Right - cellRegion.Left, cellRegion.Bottom - cellRegion.Top);
             PdfOcrResult result = service.RecognizeBgra(
-                crop, width, height, region.CharacterWhitelist);
+                crop.Pixels, crop.Width, crop.Height, region.CharacterWhitelist);
             string value = string.Concat(result.Words.Select(word => word.Text)).Trim();
             if (value.Length == 0) continue;
             text.Append(value[0]);
