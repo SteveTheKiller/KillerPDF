@@ -1,3 +1,4 @@
+using System.Buffers;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Fonts;
@@ -972,50 +973,58 @@ public sealed class PdfPageRenderer
                     return null;
                 }
 
-                byte[] maskPixels = GC.AllocateUninitializedArray<byte>(pixels.Length);
+                byte[] pagePixels = pixels;
+                byte[] maskPixels = ArrayPool<byte>.Shared.Rent(pagePixels.Length);
                 bool luminosity = subtype.ValueAsLatin1() == "Luminosity";
                 Color backdrop = luminosity ? ReadBackdrop(dictionary, group) : Color.White;
-                for (int offset = 0; offset < maskPixels.Length; offset += 4)
-                {
-                    maskPixels[offset] = backdrop.Blue;
-                    maskPixels[offset + 1] = backdrop.Green;
-                    maskPixels[offset + 2] = backdrop.Red;
-                    maskPixels[offset + 3] = luminosity ? (byte)255 : (byte)0;
-                }
-                byte[] pagePixels = pixels;
                 try
                 {
-                    pixels = maskPixels;
-                    RenderForm(group, inheritedResources,
-                        currentState with { GraphicsSoftMask = null }, currentDepth);
+                    for (int offset = 0; offset < pagePixels.Length; offset += 4)
+                    {
+                        maskPixels[offset] = backdrop.Blue;
+                        maskPixels[offset + 1] = backdrop.Green;
+                        maskPixels[offset + 2] = backdrop.Red;
+                        maskPixels[offset + 3] = luminosity ? (byte)255 : (byte)0;
+                    }
+                    try
+                    {
+                        pixels = maskPixels;
+                        RenderForm(group, inheritedResources,
+                            currentState with { GraphicsSoftMask = null }, currentDepth);
+                    }
+                    finally
+                    {
+                        pixels = pagePixels;
+                    }
+                    var samples = new byte[checked(options.Width * options.Height)];
+                    Func<double, Color>? transfer = null;
+                    if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
+                    {
+                        PdfObject resolvedTransfer = Resolve(transferValue);
+                        if (resolvedTransfer is not PdfName transferName
+                            || transferName.ValueAsLatin1() != "Identity")
+                            transfer = ReadColorFunction(transferValue,
+                                new ImageColorSpace(1, null), "soft-mask transfer function");
+                    }
+                    for (int index = 0; index < samples.Length; index++)
+                    {
+                        int offset = index * 4;
+                        double sample = luminosity
+                            ? (0.3 * maskPixels[offset + 2]
+                                + 0.59 * maskPixels[offset + 1]
+                                + 0.11 * maskPixels[offset]) / 255d
+                            : maskPixels[offset + 3] / 255d;
+                        samples[index] = transfer is null
+                            ? (byte)Math.Round(sample * 255)
+                            : transfer(sample).Red;
+                    }
+                    return new GraphicsSoftMask(samples);
                 }
                 finally
                 {
                     pixels = pagePixels;
+                    ArrayPool<byte>.Shared.Return(maskPixels);
                 }
-                var samples = new byte[checked(options.Width * options.Height)];
-                Func<double, Color>? transfer = null;
-                if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
-                {
-                    PdfObject resolvedTransfer = Resolve(transferValue);
-                    if (resolvedTransfer is not PdfName transferName
-                        || transferName.ValueAsLatin1() != "Identity")
-                        transfer = ReadColorFunction(transferValue,
-                            new ImageColorSpace(1, null), "soft-mask transfer function");
-                }
-                for (int index = 0; index < samples.Length; index++)
-                {
-                    int offset = index * 4;
-                    double sample = luminosity
-                        ? (0.3 * maskPixels[offset + 2]
-                            + 0.59 * maskPixels[offset + 1]
-                            + 0.11 * maskPixels[offset]) / 255d
-                        : maskPixels[offset + 3] / 255d;
-                    samples[index] = transfer is null
-                        ? (byte)Math.Round(sample * 255)
-                        : transfer(sample).Red;
-                }
-                return new GraphicsSoftMask(samples);
 
                 Color ReadBackdrop(PdfDictionary source, PdfStream maskGroup)
                 {
@@ -1098,9 +1107,10 @@ public sealed class PdfPageRenderer
                 }
 
                 byte[] pagePixels = pixels;
-                byte[] groupPixels = new byte[pixels.Length];
+                byte[] groupPixels = ArrayPool<byte>.Shared.Rent(pagePixels.Length);
                 try
                 {
+                    Array.Clear(groupPixels, 0, pagePixels.Length);
                     pixels = groupPixels;
                     Process(ReadStreamInstructions(form, cancellationToken), formResources,
                         formState with
@@ -1110,25 +1120,27 @@ public sealed class PdfPageRenderer
                             BlendMode = RendererBlendMode.Normal,
                             GraphicsSoftMask = null
                         }, depth + 1);
+                    pixels = pagePixels;
+                    for (int y = 0; y < options.Height; y++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        for (int x = 0; x < options.Width; x++)
+                        {
+                            int offset = (y * options.Width + x) * 4;
+                            byte alpha = groupPixels[offset + 3];
+                            if (alpha == 0) continue;
+                            SetPixel(pagePixels, options.Width, x, y,
+                                new Color(groupPixels[offset + 2], groupPixels[offset + 1],
+                                    groupPixels[offset]),
+                                alpha / 255d * parentState.FillAlpha, parentState.BlendMode,
+                                parentState.GraphicsSoftMask);
+                        }
+                    }
                 }
                 finally
                 {
                     pixels = pagePixels;
-                }
-                for (int y = 0; y < options.Height; y++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    for (int x = 0; x < options.Width; x++)
-                    {
-                        int offset = (y * options.Width + x) * 4;
-                        byte alpha = groupPixels[offset + 3];
-                        if (alpha == 0) continue;
-                        SetPixel(pagePixels, options.Width, x, y,
-                            new Color(groupPixels[offset + 2], groupPixels[offset + 1],
-                                groupPixels[offset]),
-                            alpha / 255d * parentState.FillAlpha, parentState.BlendMode,
-                            parentState.GraphicsSoftMask);
-                    }
+                    ArrayPool<byte>.Shared.Return(groupPixels);
                 }
             }
             finally
