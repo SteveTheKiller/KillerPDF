@@ -1639,12 +1639,23 @@ public sealed class PdfPageRendererTests
             .AddPage(20, 10, content).Build());
         PdfDocument document = AddType3TriangleFont(source);
 
-        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
-            0, new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false));
+        var renderer = new PdfPageRenderer(document);
+        PdfRenderOptions options = new(20, 10,
+            includeAnnotations: false, includeFormFields: false);
+        PdfRenderedPage rendered = renderer.Render(0, options);
+        PdfRenderedPage repeated = renderer.Render(0, options);
+        object cache = typeof(PdfPageRenderer).GetField("_streamInstructionCache",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(renderer)!;
+        int count = (int)cache.GetType().GetProperty("Count",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cache)!;
 
         Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
         Assert.Equal([0, 0, 255, 255], Pixel(rendered, 15, 5));
         Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 1));
+        Assert.Equal(rendered.Pixels.ToArray(), repeated.Pixels.ToArray());
+        Assert.Equal(1, count);
         Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
     }
 

@@ -25,6 +25,9 @@ public sealed class PdfPageRenderer
     private readonly BoundedCache<ImageCacheKey, DecodedImage> _imageCache = new(
         64, maximumWeight: MaximumDecodedImageCacheBytes,
         weight: image => image.Samples.LongLength + (image.Alpha?.LongLength ?? 0));
+    private readonly BoundedCache<PdfStream, ParsedStream> _streamInstructionCache = new(
+        128, ReferenceEqualityComparer.Instance,
+        PdfContentStreamReader.MaximumSourceBytes, parsed => parsed.SourceBytes);
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
@@ -701,10 +704,8 @@ public sealed class PdfPageRenderer
                     ? Resolve(resourcesValue) as PdfDictionary
                         ?? throw new FormatException("Tiling pattern resources are not a dictionary.")
                     : parentResources;
-                byte[] content = _document.DecodeStream(pattern,
-                    PdfContentStreamReader.MaximumSourceBytes);
-                PdfContentInstruction[] patternInstructions = [.. PdfContentStreamReader.Read(
-                    content, cancellationToken: cancellationToken)];
+                IReadOnlyList<PdfContentInstruction> patternInstructions =
+                    ReadStreamInstructions(pattern, cancellationToken);
                 for (int cellY = firstY; cellY <= lastY; cellY++)
                     for (int cellX = firstX; cellX <= lastX; cellX++)
                     {
@@ -815,10 +816,7 @@ public sealed class PdfPageRenderer
                             Transform = fontMatrix.Then(textScale).Then(textMatrix)
                                 .Then(state.Transform)
                         };
-                        byte[] bytes = _document.DecodeStream(glyph,
-                            PdfContentStreamReader.MaximumSourceBytes);
-                        Process(PdfContentStreamReader.Read(bytes,
-                            cancellationToken: cancellationToken), fontResources,
+                        Process(ReadStreamInstructions(glyph, cancellationToken), fontResources,
                             glyphState, depth + 1);
                     }
                     double width = Type3Width(textFont, code);
@@ -1020,9 +1018,7 @@ public sealed class PdfPageRenderer
                     ? Resolve(resourceValue) as PdfDictionary
                         ?? throw new FormatException("Form XObject resources are not a dictionary.")
                     : inheritedResources;
-                byte[] bytes = _document.DecodeStream(form,
-                    PdfContentStreamReader.MaximumSourceBytes);
-                Process(PdfContentStreamReader.Read(bytes, cancellationToken: cancellationToken),
+                Process(ReadStreamInstructions(form, cancellationToken),
                     formResources, formState, depth + 1);
             }
             finally
@@ -1120,6 +1116,16 @@ public sealed class PdfPageRenderer
     private PdfExtractionFont ReadFont(PdfDictionary font) =>
         _fontCache.GetOrAdd(font, value =>
             PdfFontResourceReader.Read(_document, value, _fontResolver));
+
+    private IReadOnlyList<PdfContentInstruction> ReadStreamInstructions(
+        PdfStream stream, CancellationToken cancellationToken) =>
+        _streamInstructionCache.GetOrAdd(stream, value =>
+        {
+            byte[] bytes = _document.DecodeStream(value,
+                PdfContentStreamReader.MaximumSourceBytes);
+            return new ParsedStream(PdfContentStreamReader.Read(bytes,
+                cancellationToken: cancellationToken), bytes.Length);
+        }).Instructions;
 
     private bool EvaluateOptionalContent(PdfObject value,
         IReadOnlySet<int> hiddenOptionalContentGroups, int expressionDepth)
@@ -4294,6 +4300,8 @@ public sealed class PdfPageRenderer
     }
     private readonly record struct ImageCacheKey(PdfStream Stream, int ResolutionLevel);
     private sealed record DecodedImage(byte[] Samples, int Width, int Height, byte[]? Alpha = null);
+    private sealed record ParsedStream(
+        IReadOnlyList<PdfContentInstruction> Instructions, int SourceBytes);
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
