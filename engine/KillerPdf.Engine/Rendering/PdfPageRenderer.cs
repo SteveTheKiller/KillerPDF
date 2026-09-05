@@ -2242,10 +2242,19 @@ public sealed class PdfPageRenderer
     {
         var scaled = paths.Where(item => item.Count > 2).Select(item => item.Select(point =>
             new Point(point.X * scaleX, height - point.Y * scaleY)).ToArray()).ToArray();
-        for (int y = 0; y < height; y++)
+        if (scaled.Length == 0) return;
+        int left = (int)Math.Clamp(Math.Floor(
+            scaled.Min(path => path.Min(point => point.X))), 0, width);
+        int right = (int)Math.Clamp(Math.Ceiling(
+            scaled.Max(path => path.Max(point => point.X))), 0, width);
+        int top = (int)Math.Clamp(Math.Floor(
+            scaled.Min(path => path.Min(point => point.Y))), 0, height);
+        int bottom = (int)Math.Clamp(Math.Ceiling(
+            scaled.Max(path => path.Max(point => point.Y))), 0, height);
+        for (int y = top; y < bottom; y++)
         {
             double sampleY = y + 0.5;
-            for (int x = 0; x < width; x++)
+            for (int x = left; x < right; x++)
             {
                 double sampleX = x + 0.5;
                 if (Contains(scaled, evenOdd, sampleX, sampleY)
