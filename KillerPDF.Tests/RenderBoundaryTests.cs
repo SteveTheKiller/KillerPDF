@@ -143,6 +143,30 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void PrintWorkflowsUseTheEngineFirstRenderSession()
+    {
+        string root = FindRepositoryRoot();
+        string cli = File.ReadAllText(
+            Path.Combine(root, "Features", "Cli", "CliRunner.cs"));
+        int printStart = cli.IndexOf("private static int CliPrint(",
+            StringComparison.Ordinal);
+        int printEnd = cli.IndexOf("private static int CliOcr(", printStart,
+            StringComparison.Ordinal);
+        string print = cli[printStart..printEnd];
+        string preview = File.ReadAllText(
+            Path.Combine(root, "Controls", "PrintPreviewWindow.cs"));
+
+        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", print,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", print,
+            StringComparison.Ordinal);
+        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", preview,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", preview,
+            StringComparison.Ordinal);
+    }
+
     private static int Count(string source, string value)
     {
         int count = 0;

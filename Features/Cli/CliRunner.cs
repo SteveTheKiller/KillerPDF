@@ -696,7 +696,8 @@ namespace KillerPDF.Features
             // Rasterize the selected pages at 300 dpi, rotation-corrected.
             var bitmaps = new List<(BitmapSource Bs, int W, int H)>();
             List<int> selected;
-            using (var renderSession = PdfPageRenderSession.Open(renderPath, 300.0 / 72.0))
+            using (var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                renderPath, 300.0 / 72.0))
             {
                 int pageCount = renderSession.PageCount;
                 if (options.TryGetValue("--pages", out var rangeSpec))

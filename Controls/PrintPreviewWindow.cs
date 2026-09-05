@@ -1300,7 +1300,8 @@ namespace KillerPDF
                 int total = indices.Count;
                 await Task.Run(() =>
                 {
-                    using var renderSession = PdfPageRenderSession.Open(_renderPath, 300.0 / 72.0);
+                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                        _renderPath, 300.0 / 72.0);
                     int done = 0;
                     foreach (int idx in indices)
                     {
