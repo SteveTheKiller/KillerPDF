@@ -23,7 +23,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     private readonly int _maximumHeight;
     private readonly double _scale;
     private readonly bool _allowNativeFallback;
-    private readonly HashSet<int> _nativeFallbackPages = [];
+    private readonly HashSet<EngineRenderProfile> _nativeFallbackProfiles = [];
 
     private PdfPageRenderSession(string path, Docnet.Core.Readers.IDocReader reader)
     {
@@ -104,8 +104,10 @@ internal sealed class PdfPageRenderSession : IDisposable
 
     internal PdfRenderedPage RenderBasePage(int pageIndex)
     {
+        var profile = new EngineRenderProfile(pageIndex,
+            IncludeAnnotations: false, IncludeFormFields: false);
         if (_engineRenderer is not null && _enginePages is not null
-            && !_nativeFallbackPages.Contains(pageIndex))
+            && !_nativeFallbackProfiles.Contains(profile))
         {
             try
             {
@@ -115,7 +117,7 @@ internal sealed class PdfPageRenderSession : IDisposable
             catch (Exception exception) when (_allowNativeFallback
                 && exception is not OutOfMemoryException)
             {
-                _nativeFallbackPages.Add(pageIndex);
+                _nativeFallbackProfiles.Add(profile);
             }
         }
 
@@ -126,8 +128,10 @@ internal sealed class PdfPageRenderSession : IDisposable
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground = false,
         bool includeFormFields = true, bool removeTransparencyOnFallback = false)
     {
+        var profile = new EngineRenderProfile(pageIndex,
+            IncludeAnnotations: true, IncludeFormFields: includeFormFields);
         if (_engineRenderer is not null && _enginePages is not null
-            && !_nativeFallbackPages.Contains(pageIndex))
+            && !_nativeFallbackProfiles.Contains(profile))
         {
             try
             {
@@ -137,7 +141,7 @@ internal sealed class PdfPageRenderSession : IDisposable
             catch (Exception exception) when (_allowNativeFallback
                 && exception is not OutOfMemoryException)
             {
-                _nativeFallbackPages.Add(pageIndex);
+                _nativeFallbackProfiles.Add(profile);
             }
         }
 
@@ -205,6 +209,9 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     public void Dispose() => _reader?.Dispose();
+
+    private readonly record struct EngineRenderProfile(
+        int PageIndex, bool IncludeAnnotations, bool IncludeFormFields);
 }
 
 internal readonly record struct PdfRenderedPage(int Width, int Height, byte[] Pixels);

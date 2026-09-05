@@ -226,7 +226,7 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
-    public void LiveViewerUsesTheEngineFirstRenderSessionWithStickyPageFallback()
+    public void LiveViewerUsesTheEngineFirstRenderSessionWithProfileSpecificFallback()
     {
         string root = FindRepositoryRoot();
         string viewer = File.ReadAllText(
@@ -237,9 +237,13 @@ public sealed class RenderBoundaryTests
         Assert.Equal(4, Count(viewer, "PdfPageRenderSession.OpenEngineFirst("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", viewer,
             StringComparison.Ordinal);
-        Assert.Contains("_nativeFallbackPages.Add(pageIndex)", boundary,
+        Assert.Contains("_nativeFallbackProfiles.Add(profile)", boundary,
             StringComparison.Ordinal);
-        Assert.Contains("!_nativeFallbackPages.Contains(pageIndex)", boundary,
+        Assert.Contains("!_nativeFallbackProfiles.Contains(profile)", boundary,
+            StringComparison.Ordinal);
+        Assert.Contains("IncludeAnnotations: false, IncludeFormFields: false", boundary,
+            StringComparison.Ordinal);
+        Assert.Contains("IncludeAnnotations: true, IncludeFormFields: includeFormFields", boundary,
             StringComparison.Ordinal);
     }
 
