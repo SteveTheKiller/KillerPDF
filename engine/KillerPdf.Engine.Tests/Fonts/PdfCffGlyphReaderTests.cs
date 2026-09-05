@@ -153,6 +153,19 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(0, first.Top);
     }
 
+    [Fact]
+    public void RandomOperatorHonorsPrivateDictionarySeed()
+    {
+        byte[] program = [.. Numbers(0, 0), 21, 12, 23, .. Numbers(100),
+            12, 24, .. Numbers(0), 5, 14];
+        var first = Assert.IsType<PdfCffGlyphReader>(
+            PdfCffGlyphReader.TryRead(Build(program, initialRandomSeed: 1)));
+        var second = Assert.IsType<PdfCffGlyphReader>(
+            PdfCffGlyphReader.TryRead(Build(program, initialRandomSeed: 2)));
+
+        Assert.NotEqual(first.GetBounds(1), second.GetBounds(1));
+    }
+
     [Theory]
     [InlineData(1, "exclamsmall")]
     [InlineData(2, "dollaroldstyle")]
@@ -181,17 +194,22 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(glyphCount, font.FindGlyph(lastGlyph));
     }
 
-    internal static byte[] Build(byte[] program, byte[]? subr = null)
+    internal static byte[] Build(byte[] program, byte[]? subr = null,
+        int? initialRandomSeed = null)
     {
         byte[] name = Index("Example"u8.ToArray());
         byte[] charstrings = Index([14], program);
         int charsetOffset = 4 + name.Length + Index(new byte[19]).Length + 2 + 2;
         int charstringsOffset = charsetOffset + 3;
         int privateOffset = charstringsOffset + charstrings.Length;
+        byte[] seed = initialRandomSeed is null
+            ? [] : [.. Numbers(initialRandomSeed.Value), 12, 19];
+        int subrsOffset = seed.Length + 2;
+        byte[] privateDictionary = [.. seed, .. Numbers(subrsOffset), 19];
         byte[] dict = [.. Offset(charsetOffset), 15, .. Offset(charstringsOffset), 17,
-            141, .. Offset(privateOffset), 18];
+            .. Numbers(privateDictionary.Length), .. Offset(privateOffset), 18];
         return [1, 0, 4, 4, .. name, .. Index(dict), 0, 0, 0, 0, 0, 0, 34,
-            .. charstrings, 141, 19, .. (subr is null ? [0, 0] : Index(subr))];
+            .. charstrings, .. privateDictionary, .. (subr is null ? [0, 0] : Index(subr))];
     }
     internal static byte[] BuildNamed(params (string Name, byte[] Program)[] glyphs)
     {

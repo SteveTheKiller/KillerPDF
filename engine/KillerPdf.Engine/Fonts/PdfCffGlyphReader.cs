@@ -11,6 +11,7 @@ public sealed class PdfCffGlyphReader
     private readonly ReadOnlyMemory<byte>[] _glyphs, _global;
     private readonly ReadOnlyMemory<byte>[][] _local;
     private readonly int[] _fd, _charset;
+    private readonly uint[] _randomSeeds;
     private readonly double[][] _matrices;
     private readonly string[] _strings;
     private readonly bool _cid;
@@ -46,7 +47,8 @@ public sealed class PdfCffGlyphReader
         if (glyph < 0 || glyph >= _glyphs.Length) return null;
         if (_cache.TryGetValue(glyph, out var cached)) return cached;
         PdfGlyphBounds? result;
-        try { result = new Interpreter(_global, _local[_fd[glyph]], _matrices[_fd[glyph]]).Read(_glyphs[glyph]); }
+        try { result = new Interpreter(_global, _local[_fd[glyph]], _matrices[_fd[glyph]],
+            _randomSeeds[_fd[glyph]]).Read(_glyphs[glyph]); }
         catch (Exception e) when (e is FormatException or NotSupportedException or OverflowException or ArgumentException)
         { result = null; }
         _cache[glyph] = result;
@@ -63,7 +65,8 @@ public sealed class PdfCffGlyphReader
         try
         {
             PdfGlyphOutline outline = new Interpreter(
-                _global, _local[_fd[glyph]], _matrices[_fd[glyph]], ComponentOutline)
+                _global, _local[_fd[glyph]], _matrices[_fd[glyph]],
+                _randomSeeds[_fd[glyph]], ComponentOutline)
                 .ReadOutline(_glyphs[glyph]);
             result = glyph == 0 && outline.Contours.Count == 0 ? null : outline;
         }
@@ -128,30 +131,39 @@ public sealed class PdfCffGlyphReader
             var fontDicts = Index(ref position);
             if (fontDicts.Length is 0 or > 256) throw Bad();
             _local = new ReadOnlyMemory<byte>[fontDicts.Length][];
+            _randomSeeds = new uint[fontDicts.Length];
             _matrices = new double[fontDicts.Length][];
             for (int i = 0; i < fontDicts.Length; i++)
             {
                 var fd = Dict(fontDicts[i]);
-                _local[i] = Subrs(fd);
+                (_local[i], _randomSeeds[i]) = PrivateData(fd);
                 _matrices[i] = Multiply(Matrix(fd, [1, 0, 0, 1, 0, 0]), topMatrix);
             }
             _fd = FdSelect(Int(Value(dict, 1237, -1)), _glyphs.Length, fontDicts.Length);
         }
         else
         {
-            _local = [Subrs(dict)]; _matrices = [topMatrix]; _fd = new int[_glyphs.Length];
+            (ReadOnlyMemory<byte>[] subrs, uint randomSeed) = PrivateData(dict);
+            _local = [subrs]; _randomSeeds = [randomSeed];
+            _matrices = [topMatrix]; _fd = new int[_glyphs.Length];
         }
     }
 
-    private ReadOnlyMemory<byte>[] Subrs(Dictionary<int, double[]> dict)
+    private (ReadOnlyMemory<byte>[] Subrs, uint RandomSeed) PrivateData(
+        Dictionary<int, double[]> dict)
     {
-        if (!dict.TryGetValue(18, out var location)) return [];
+        if (!dict.TryGetValue(18, out var location)) return ([], 0);
         if (location.Length != 2) throw Bad();
         int length = Int(location[0]), offset = Int(location[1]);
         var privateDict = Dict(Slice(offset, length));
-        if (!privateDict.ContainsKey(19)) return [];
+        double seedValue = Value(privateDict, 1219, 0);
+        if (seedValue < int.MinValue || seedValue > int.MaxValue
+            || Math.Truncate(seedValue) != seedValue)
+            throw Bad();
+        uint randomSeed = unchecked((uint)(int)seedValue);
+        if (!privateDict.ContainsKey(19)) return ([], randomSeed);
         int position = checked(offset + Int(Value(privateDict, 19, 0)));
-        return Index(ref position);
+        return (Index(ref position), randomSeed);
     }
 
     private ReadOnlyMemory<byte>[] Index(ref int position)
@@ -332,7 +344,8 @@ public sealed class PdfCffGlyphReader
     ];
 
     private sealed class Interpreter(ReadOnlyMemory<byte>[] global, ReadOnlyMemory<byte>[] local,
-        double[] matrix, Func<string, PdfGlyphOutline?>? componentOutline = null)
+        double[] matrix, uint randomSeed,
+        Func<string, PdfGlyphOutline?>? componentOutline = null)
     {
         private readonly List<double> _stack = [];
         private readonly double[] _transient = new double[32];
@@ -341,7 +354,7 @@ public sealed class PdfCffGlyphReader
         private double _x, _y, _left = double.PositiveInfinity, _bottom = double.PositiveInfinity,
             _right = double.NegativeInfinity, _top = double.NegativeInfinity;
         private int _steps, _hints;
-        private uint _randomState = 0x6D2B79F5;
+        private uint _randomState = randomSeed == 0 ? 0x6D2B79F5 : randomSeed;
         private bool _width;
         internal PdfGlyphBounds? Read(ReadOnlyMemory<byte> program)
         {
