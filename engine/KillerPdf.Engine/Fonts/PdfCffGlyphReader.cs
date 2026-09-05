@@ -18,6 +18,7 @@ public sealed class PdfCffGlyphReader
     private readonly Dictionary<int, PdfGlyphOutline?> _outlineCache = [];
     private readonly Dictionary<string, int> _names = new(StringComparer.Ordinal);
     private readonly Dictionary<uint, int> _cids = [];
+    private readonly Dictionary<int, int> _unicode = [];
 
     /// <summary>Reads a standalone CFF1 or OpenType CFF table; returns null for unsupported or malformed data.</summary>
     public static PdfCffGlyphReader? TryRead(ReadOnlyMemory<byte> source)
@@ -32,6 +33,8 @@ public sealed class PdfCffGlyphReader
     public int FindGlyph(string name) => _names.GetValueOrDefault(name, -1);
     /// <summary>Finds a CID-keyed glyph, returning -1 when absent.</summary>
     public int FindCid(uint cid) => _cids.GetValueOrDefault(cid, -1);
+    /// <summary>Finds a name-keyed glyph by its Unicode scalar, returning -1 when absent.</summary>
+    public int FindUnicode(int scalar) => _unicode.GetValueOrDefault(scalar, -1);
     /// <summary>Gets the number of glyph programs.</summary>
     public int GlyphCount => _glyphs.Length;
     /// <summary>Gets a name-keyed glyph name, or null for CID glyphs and unsupported names.</summary>
@@ -104,7 +107,14 @@ public sealed class PdfCffGlyphReader
         for (int i = 0; i < _charset.Length; i++)
         {
             if (_cid) _cids.TryAdd((uint)_charset[i], i);
-            else if (Sid(_charset[i]) is string name) _names.TryAdd(name, i);
+            else if (Sid(_charset[i]) is string name)
+            {
+                _names.TryAdd(name, i);
+                string? text = PdfFontTables.GlyphText(name);
+                if (!string.IsNullOrEmpty(text) && char.ConvertToUtf32(text, 0) is int scalar
+                    && text.Length == char.ConvertFromUtf32(scalar).Length)
+                    _unicode.TryAdd(scalar, i);
+            }
         }
         var topMatrix = Matrix(dict, [0.001, 0, 0, 0.001, 0, 0]);
         if (_cid)

@@ -113,6 +113,10 @@ public static class PdfFontResourceReader
             PdfToUnicodeMap unicode = Get(font, "ToUnicode") is PdfStream unicodeStream
                 ? PdfToUnicodeMap.ParseFont(Decode(unicodeStream), !composite)
                 : encodingSpaces ?? PdfToUnicodeMap.Create(simpleText, codeLength);
+            string? UnicodeText(uint code) => unicode.Lookup(code, codeLength)
+                ?? Enumerable.Range(1, 4).Where(length => length != codeLength)
+                    .Select(length => unicode.Lookup(code, length))
+                    .FirstOrDefault(text => text is not null);
             byte[]? cidToGid = Get(metrics, "CIDToGIDMap") is PdfStream gidStream ? Decode(gidStream) : null;
             ushort Glyph(uint code)
             {
@@ -123,8 +127,7 @@ public static class PdfFontResourceReader
                         return cid < cidToGid.Length / 2 ? BinaryPrimitives.ReadUInt16BigEndian(cidToGid.AsSpan((int)cid * 2, 2)) : (ushort)0;
                     return cid <= ushort.MaxValue ? (ushort)cid : (ushort)0;
                 }
-                string? text = unicode.Lookup(code, codeLength)
-                    ?? simpleText.GetValueOrDefault(code);
+                string? text = UnicodeText(code) ?? simpleText.GetValueOrDefault(code);
                 if (embedded is null || string.IsNullOrEmpty(text)) return 0;
                 int scalar = char.ConvertToUtf32(text, 0);
                 ushort glyph = embedded.GetGlyphId(scalar);
@@ -134,8 +137,7 @@ public static class PdfFontResourceReader
             }
             ushort SubstituteGlyph(uint code)
             {
-                string? text = unicode.Lookup(code, codeLength)
-                    ?? simpleText.GetValueOrDefault(code);
+                string? text = UnicodeText(code) ?? simpleText.GetValueOrDefault(code);
                 if (substitute is null || string.IsNullOrEmpty(text)) return 0;
                 int scalar = char.ConvertToUtf32(text, 0);
                 ushort glyph = substitute.GetGlyphId(scalar);
@@ -161,8 +163,13 @@ public static class PdfFontResourceReader
                     ushort glyph = Glyph(code);
                     return glyph == 0 ? -1 : glyph;
                 }
-                return composite ? cff.FindCid(cidSelector?.Invoke(code) ?? code)
-                    : code < glyphNames.Length ? cff.FindGlyph(glyphNames[code]) : -1;
+                if (!composite)
+                    return code < glyphNames.Length ? cff.FindGlyph(glyphNames[code]) : -1;
+                int cffGlyph = cff.FindCid(cidSelector?.Invoke(code) ?? code);
+                if (cffGlyph >= 0) return cffGlyph;
+                string? text = UnicodeText(code);
+                return string.IsNullOrEmpty(text) ? -1
+                    : cff.FindUnicode(char.ConvertToUtf32(text, 0));
             }
             var verticalMetrics = new Dictionary<uint, PdfVerticalGlyphMetrics>();
             ReadVerticalWidths(Get(metrics, "W2") as PdfArray, verticalMetrics);

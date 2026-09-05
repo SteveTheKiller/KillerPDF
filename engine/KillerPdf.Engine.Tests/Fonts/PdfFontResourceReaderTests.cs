@@ -201,6 +201,23 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void EmbeddedNameKeyedCffCompositeUsesItsUnicodeMap()
+    {
+        byte[] program = [.. PdfCffGlyphReaderTests.Numbers(10, 20), 21,
+            .. PdfCffGlyphReaderTests.Numbers(100, 0, 0, 200, -100, 0), 5, 14];
+        var fontFile = new PdfStream(D(("Subtype", N("Type1C"))),
+            PdfCffGlyphReaderTests.Build(program));
+        var descendant = D(("Subtype", N("CIDFontType0")),
+            ("FontDescriptor", D(("FontFile3", fontFile))));
+        PdfStream unicode = Stream(
+            "1 begincodespacerange <00> <FF> endcodespacerange "
+            + "1 beginbfchar <41> <0041> endbfchar");
+        PdfExtractionFont font = Read(Type0(descendant, N("Identity-H"), unicode));
+
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
+    [Fact]
     public void VerticalCidMetricsUseW2AndDw2()
     {
         var descendant = D(("DW", new PdfInteger(600)), ("DW2", new PdfArray([new PdfInteger(900), new PdfInteger(-1100)])),

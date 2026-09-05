@@ -830,7 +830,8 @@ public sealed class PdfPageRenderer
                             if (clipsText)
                                 textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
                         }
-                        else if (paintMode != 3 || clipsText)
+                        else if ((paintMode != 3 || clipsText)
+                            && extractionFont.GetWidth(character.Code) != 0)
                         {
                             diagnostics.Add("A text glyph outline is not implemented.");
                             diagnostics.Add($"Text outlines for font "

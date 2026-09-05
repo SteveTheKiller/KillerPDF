@@ -21,6 +21,7 @@ public sealed class PdfCffGlyphReaderTests
             .. Numbers(1000, 1000), 21, 14];
         var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(Build(program)));
         Assert.Equal(1, font.FindGlyph("A"));
+        Assert.Equal(1, font.FindUnicode('A'));
         Assert.Equal(-1, font.FindGlyph("missing"));
         Assert.Equal(new PdfGlyphBounds(10, 20, 110, 220), font.GetBounds(1));
         PdfGlyphContour contour = Assert.Single(Assert.IsType<PdfGlyphOutline>(
