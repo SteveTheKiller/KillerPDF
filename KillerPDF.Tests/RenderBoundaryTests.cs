@@ -156,6 +156,9 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("Pix.Create(image.Width, image.Height, 8)", source,
             StringComparison.Ordinal);
+        Assert.Contains("RasterOptions, cancellationToken)", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("Pix.Load", source, StringComparison.Ordinal);
         Assert.DoesNotContain("PngBitmapEncoder", source, StringComparison.Ordinal);
         Assert.DoesNotContain("BitmapSource.Create", source, StringComparison.Ordinal);
     }

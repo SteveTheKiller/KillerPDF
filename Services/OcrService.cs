@@ -24,33 +24,21 @@ namespace KillerPDF.Services
             _engine = new TesseractEngine(dataPath, language, EngineMode.Default);
         }
 
-        /// <summary>OCR an image file on disk (PNG, TIFF, JPEG, BMP).</summary>
-        public PdfOcrResult RecognizeImageFile(string imagePath)
-        {
-            using var pix = Pix.LoadFromFile(imagePath);
-            return Run(pix);
-        }
-
-        /// <summary>OCR an encoded image already in memory (e.g. PNG bytes).</summary>
-        public PdfOcrResult RecognizeImageBytes(byte[] encodedImage)
-        {
-            using var pix = Pix.LoadFromMemory(encodedImage);
-            return Run(pix);
-        }
-
         /// <summary>
         /// OCR a rendered page straight from the render pipeline (raw BGRA, 4 bytes/pixel).
         /// </summary>
         public PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
-            string? characterWhitelist = null)
+            string? characterWhitelist = null,
+            CancellationToken cancellationToken = default)
         {
             if (!string.IsNullOrEmpty(characterWhitelist))
                 _engine.SetVariable("tessedit_char_whitelist", characterWhitelist);
             try
             {
                 PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
-                    bgra, width, height, RasterOptions);
-                using Pix pix = CreateGrayscalePix(prepared);
+                    bgra, width, height, RasterOptions, cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
+                using Pix pix = CreateGrayscalePix(prepared, cancellationToken);
                 return Run(pix);
             }
             finally
@@ -87,7 +75,8 @@ namespace KillerPDF.Services
             return new PdfOcrResult(text, confidence, words);
         }
 
-        private static unsafe Pix CreateGrayscalePix(PdfOcrPreparedImage image)
+        private static unsafe Pix CreateGrayscalePix(
+            PdfOcrPreparedImage image, CancellationToken cancellationToken)
         {
             Pix pix = Pix.Create(image.Width, image.Height, 8);
             PixData data = pix.GetData();
@@ -95,6 +84,7 @@ namespace KillerPDF.Services
             ReadOnlySpan<byte> pixels = image.Pixels.Span;
             for (int y = 0; y < image.Height; y++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 uint* row = start + y * data.WordsPerLine;
                 int source = y * image.Width;
                 for (int x = 0; x < image.Width; x++)

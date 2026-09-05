@@ -75,9 +75,9 @@ namespace KillerPDF.Features
                             h = rotated.Height;
                         }
                         recognized.Add(!formAware
-                            ? ocr.RecognizeBgra(bgra, w, h)
+                            ? ocr.RecognizeBgra(bgra, w, h, cancellationToken: ct)
                             : FormAwareOcr.Recognize(ocr, bgra, w, h,
-                                ReadFormHints(file, pages[i]), rot));
+                                ReadFormHints(file, pages[i]), rot, ct));
                     }
                     return recognized;
                 });
@@ -102,6 +102,11 @@ namespace KillerPDF.Features
                 _host.SetStatus(pages.Length == 1
                     ? string.Format(_host.Loc("Str_St_OcrCopiedPage"), text.Length, pages[0] + 1, confidence.ToString("P0"))
                     : string.Format(_host.Loc("Str_St_OcrCopiedPages"), text.Length, pages.Length, confidence.ToString("P0")));
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                _host.HideBusy();
+                _host.SetStatus(_host.Loc("Str_St_OcrCanceled"));
             }
             catch (Exception ex)
             {
@@ -156,7 +161,8 @@ namespace KillerPDF.Features
                         (int)Math.Round(cb.Width * sx), (int)Math.Round(cb.Height * sy));
 
                     using var ocr = new OcrService(language: lang);
-                    return ocr.RecognizeBgra(crop.Pixels, crop.Width, crop.Height);
+                    return ocr.RecognizeBgra(
+                        crop.Pixels, crop.Width, crop.Height, cancellationToken: ct);
                 });
 
                 _host.HideBusy();
@@ -166,6 +172,11 @@ namespace KillerPDF.Features
                 if (text.Length == 0) { _host.SetStatus(_host.Loc("Str_St_OcrNoText")); return; }
                 Clipboard.SetText(text);
                 _host.SetStatus(string.Format(_host.Loc("Str_St_OcrCopiedRegion"), text.Length, result.MeanConfidence.ToString("P0")));
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                _host.HideBusy();
+                _host.SetStatus(_host.Loc("Str_St_OcrCanceled"));
             }
             catch (Exception ex)
             {
@@ -229,6 +240,11 @@ namespace KillerPDF.Features
                     string.Format(_host.Loc("Str_Dlg_SearchableSaved"), outPath, pages, words),
                     "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Information);
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                _host.HideBusy();
+                _host.SetStatus(_host.Loc("Str_St_SearchablePdfCanceled"));
+            }
             catch (Exception ex)
             {
                 _host.HideBusy();
@@ -287,8 +303,9 @@ namespace KillerPDF.Features
                 }
 
                 PdfOcrResult result = formAware
-                    ? FormAwareOcr.Recognize(ocr, bgra, w, h, formPages[i])
-                    : ocr.RecognizeBgra(bgra, w, h);
+                    ? FormAwareOcr.Recognize(
+                        ocr, bgra, w, h, formPages[i], cancellationToken: ct)
+                    : ocr.RecognizeBgra(bgra, w, h, cancellationToken: ct);
                 layers.Add(new PdfEngineIntegration.SearchablePage(w, h,
                     [.. result.Words.Select(word => new PdfEngineIntegration.SearchableWord(
                         word.Text, word.Left, word.Top, word.Right, word.Bottom))]));
@@ -345,6 +362,11 @@ namespace KillerPDF.Features
                 if (ct.IsCancellationRequested) { _host.SetStatus(_host.Loc("Str_St_TextExtractCanceled")); return; }
                 _host.SetStatus(string.Format(_host.Loc("Str_St_TextExtracted"), pages, Path.GetFileName(outPath)));
             }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                _host.HideBusy();
+                _host.SetStatus(_host.Loc("Str_St_TextExtractCanceled"));
+            }
             catch (Exception ex)
             {
                 _host.HideBusy();
@@ -389,8 +411,10 @@ namespace KillerPDF.Features
                 string text = (bgra is null || bgra.Length == 0 || w <= 0 || h <= 0)
                     ? string.Empty
                     : (formAware
-                        ? FormAwareOcr.Recognize(ocr, bgra, w, h, formPages[i])
-                        : ocr.RecognizeBgra(bgra, w, h)).Text.TrimEnd();
+                        ? FormAwareOcr.Recognize(
+                            ocr, bgra, w, h, formPages[i], cancellationToken: ct)
+                        : ocr.RecognizeBgra(
+                            bgra, w, h, cancellationToken: ct)).Text.TrimEnd();
                 // Normalize Tesseract's LF line breaks to the platform's so .txt opens cleanly everywhere.
                 text = text.Replace("\r\n", "\n").Replace("\n", nl);
 
