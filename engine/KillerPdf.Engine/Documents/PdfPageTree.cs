@@ -96,25 +96,33 @@ internal sealed class PdfPageTree
                     ?? throw new InvalidOperationException("A page-tree reference is not a dictionary.");
                 if (expectedParent is null)
                 {
-                    if (node.ContainsKey(ParentName))
+                    if (node.ContainsKey(ParentName) && !document.UsesCompatibilityRecovery)
                         throw new InvalidOperationException(
                             "The root page-tree node contains a /Parent entry.");
                 }
                 else
                 {
-                    PdfIndirectReference parent = node.TryGetValue(
+                    PdfIndirectReference? parent = node.TryGetValue(
                         ParentName, out PdfObject? parentValue)
                         ? parentValue as PdfIndirectReference
-                            ?? throw new InvalidOperationException(
-                                "A non-root page-tree node /Parent is not an indirect reference.")
-                        : throw new InvalidOperationException(
-                            "A non-root page-tree node has no /Parent reference.");
-                    (_, parent) = ResolveReference(
-                        parent, "A page-tree node /Parent value");
-                    if (parent.ObjectNumber != expectedParent.ObjectNumber
-                        || parent.Generation != expectedParent.Generation)
-                        throw new InvalidOperationException(
-                            "A page-tree node /Parent does not identify the node that contains it.");
+                        : null;
+                    if (parent is null)
+                    {
+                        if (!document.UsesCompatibilityRecovery)
+                            throw new InvalidOperationException(node.ContainsKey(ParentName)
+                                ? "A non-root page-tree node /Parent is not an indirect reference."
+                                : "A non-root page-tree node has no /Parent reference.");
+                    }
+                    else
+                    {
+                        (_, parent) = ResolveReference(
+                            parent, "A page-tree node /Parent value");
+                        if ((parent.ObjectNumber != expectedParent.ObjectNumber
+                                || parent.Generation != expectedParent.Generation)
+                            && !document.UsesCompatibilityRecovery)
+                            throw new InvalidOperationException(
+                                "A page-tree node /Parent does not identify the node that contains it.");
+                    }
                 }
                 var effective = new Dictionary<PdfName, PdfObject>(inherited);
                 foreach (PdfName name in InheritableNames)
