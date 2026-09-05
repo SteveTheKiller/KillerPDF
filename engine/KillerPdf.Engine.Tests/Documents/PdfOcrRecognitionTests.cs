@@ -81,6 +81,27 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void ModelCatalogLazilyLoadsOnlyTheSelectedVerifiedLanguage()
+    {
+        byte[] english = TinyModel("E").Save();
+        byte[] french = TinyModel("F").Save();
+        int englishReads = 0, frenchReads = 0;
+        var catalog = PdfOcrRecognitionModelCatalog.Create([
+            new("en", () => { englishReads++; return english; },
+                Convert.ToHexString(SHA256.HashData(english))),
+            new("fr", () => { frenchReads++; return french; },
+                Convert.ToHexString(SHA256.HashData(french)))
+        ]);
+
+        PdfOcrRecognitionModelSelection first = catalog.Select(["en-US"]);
+        PdfOcrRecognitionModelSelection second = catalog.Select(["en"]);
+
+        Assert.Same(first.Model, second.Model);
+        Assert.Equal((1, 0), (englishReads, frenchReads));
+        Assert.Equal(["en", "fr"], catalog.Languages);
+    }
+
+    [Fact]
     public void GlyphNormalizationPreservesAspectRatioAndCentersInk()
     {
         PdfOcrPreparedImage image = Prepared(4, 1, ["####"]);

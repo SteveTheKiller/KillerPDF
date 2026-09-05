@@ -159,28 +159,61 @@ public sealed record PdfOcrRecognizedWord(string Text, double Confidence, PdfOcr
 public sealed record PdfOcrRecognitionModelSelection(
     string Language, PdfOcrRecognitionModel Model);
 
+/// <summary>Describes a lazily loaded, integrity-checked OCR language model.</summary>
+public sealed record PdfOcrRecognitionModelSource(
+    string Language, Func<ReadOnlyMemory<byte>> Read, string? ExpectedSha256 = null);
+
 /// <summary>Maps requested OCR languages to bounded engine-owned recognition models.</summary>
 public sealed class PdfOcrRecognitionModelCatalog
 {
-    private readonly Dictionary<string, PdfOcrRecognitionModel> _models;
+    private readonly Dictionary<string, Lazy<PdfOcrRecognitionModel>> _models;
 
     /// <summary>Creates a catalog from language and model pairs.</summary>
     public PdfOcrRecognitionModelCatalog(
         IEnumerable<KeyValuePair<string, PdfOcrRecognitionModel>> models)
     {
         ArgumentNullException.ThrowIfNull(models);
-        _models = new Dictionary<string, PdfOcrRecognitionModel>(StringComparer.Ordinal);
+        _models = new Dictionary<string, Lazy<PdfOcrRecognitionModel>>(StringComparer.Ordinal);
         foreach ((string language, PdfOcrRecognitionModel model) in models)
         {
             string normalized = Normalize(language);
-            if (!_models.TryAdd(normalized, model
-                    ?? throw new ArgumentException("An OCR language model is null.", nameof(models))))
+            PdfOcrRecognitionModel validated = model
+                ?? throw new ArgumentException("An OCR language model is null.", nameof(models));
+            if (!_models.TryAdd(normalized, new Lazy<PdfOcrRecognitionModel>(
+                    () => validated, LazyThreadSafetyMode.ExecutionAndPublication)))
                 throw new ArgumentException(
                     $"OCR language model '{normalized}' is registered more than once.", nameof(models));
         }
-        if (_models.Count == 0)
-            throw new ArgumentException("At least one OCR language model is required.", nameof(models));
-        Languages = Array.AsReadOnly(_models.Keys.Order(StringComparer.Ordinal).ToArray());
+        Languages = FinishConstruction(_models, nameof(models));
+    }
+
+    /// <summary>Creates a catalog that loads and verifies only a selected language model.</summary>
+    public static PdfOcrRecognitionModelCatalog Create(
+        IEnumerable<PdfOcrRecognitionModelSource> sources)
+    {
+        ArgumentNullException.ThrowIfNull(sources);
+        var models = new Dictionary<string, Lazy<PdfOcrRecognitionModel>>(StringComparer.Ordinal);
+        foreach (PdfOcrRecognitionModelSource source in sources)
+        {
+            if (source is null)
+                throw new ArgumentException("An OCR language model source is null.", nameof(sources));
+            string normalized = Normalize(source.Language);
+            Func<ReadOnlyMemory<byte>> read = source.Read
+                ?? throw new ArgumentException("An OCR language model reader is null.", nameof(sources));
+            if (!models.TryAdd(normalized, new Lazy<PdfOcrRecognitionModel>(
+                    () => PdfOcrRecognitionModel.Load(read(), source.ExpectedSha256),
+                    LazyThreadSafetyMode.ExecutionAndPublication)))
+                throw new ArgumentException(
+                    $"OCR language model '{normalized}' is registered more than once.", nameof(sources));
+        }
+        return new PdfOcrRecognitionModelCatalog(models);
+    }
+
+    private PdfOcrRecognitionModelCatalog(
+        Dictionary<string, Lazy<PdfOcrRecognitionModel>> models)
+    {
+        _models = models;
+        Languages = FinishConstruction(_models, nameof(models));
     }
 
     /// <summary>Gets normalized language names available in the catalog.</summary>
@@ -193,18 +226,26 @@ public sealed class PdfOcrRecognitionModelCatalog
         foreach (string language in languages)
         {
             string normalized = Normalize(language);
-            if (_models.TryGetValue(normalized, out PdfOcrRecognitionModel? exact))
-                return new PdfOcrRecognitionModelSelection(normalized, exact);
+            if (_models.TryGetValue(normalized, out Lazy<PdfOcrRecognitionModel>? exact))
+                return new PdfOcrRecognitionModelSelection(normalized, exact.Value);
             int separator = normalized.IndexOf('-');
             if (separator > 0)
             {
                 string primary = normalized[..separator];
-                if (_models.TryGetValue(primary, out PdfOcrRecognitionModel? fallback))
-                    return new PdfOcrRecognitionModelSelection(primary, fallback);
+                if (_models.TryGetValue(primary, out Lazy<PdfOcrRecognitionModel>? fallback))
+                    return new PdfOcrRecognitionModelSelection(primary, fallback.Value);
             }
         }
         throw new NotSupportedException(
             "No engine OCR recognition model matches the requested languages.");
+    }
+
+    private static IReadOnlyList<string> FinishConstruction(
+        Dictionary<string, Lazy<PdfOcrRecognitionModel>> models, string parameterName)
+    {
+        if (models.Count == 0)
+            throw new ArgumentException("At least one OCR language model is required.", parameterName);
+        return Array.AsReadOnly(models.Keys.Order(StringComparer.Ordinal).ToArray());
     }
 
     private static string Normalize(string language)
