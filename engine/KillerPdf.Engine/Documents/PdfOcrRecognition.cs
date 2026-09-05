@@ -320,6 +320,36 @@ public sealed class PdfOcrRecognitionModelCatalog
 /// <summary>Runs the engine-owned glyph model over a detected page layout.</summary>
 public static class PdfOcrRecognizer
 {
+    /// <summary>Runs the complete engine-owned recognition pipeline over raw BGRA pixels.</summary>
+    public static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
+        PdfOcrRecognitionModel model, PdfOcrOptions options,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(options);
+        PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, width, height, options, cancellationToken);
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            prepared, options.DetectPageSegments, cancellationToken);
+        IReadOnlyList<PdfOcrRecognizedWord> recognized = Recognize(
+            prepared, layout, model, cancellationToken);
+        var words = recognized.Select(word => new PdfOcrPixelWord(
+            word.Text, (float)word.Confidence, word.Bounds.Left, word.Bounds.Top,
+            word.Bounds.Right, word.Bounds.Bottom)).ToArray();
+        var lines = new List<string>(layout.Lines.Count);
+        int wordIndex = 0;
+        foreach (PdfOcrTextLine line in layout.Lines)
+        {
+            int count = line.Words.Count;
+            lines.Add(string.Join(' ', words.AsSpan(wordIndex, count).ToArray()
+                .Select(word => word.Text)));
+            wordIndex += count;
+        }
+        float confidence = words.Length == 0
+            ? 0 : (float)words.Average(word => word.Confidence);
+        return new PdfOcrResult(string.Join(Environment.NewLine, lines), confidence, words);
+    }
+
     /// <summary>Recognizes each component and assembles the labels into words.</summary>
     public static IReadOnlyList<PdfOcrRecognizedWord> Recognize(PdfOcrPreparedImage image,
         PdfOcrPageLayout layout, PdfOcrRecognitionModel model,

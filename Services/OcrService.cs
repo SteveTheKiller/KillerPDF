@@ -1,27 +1,32 @@
 using KillerPdf.Engine.Documents;
+using System.IO;
 using Tesseract;
 
 namespace KillerPDF.Services
 {
     /// <summary>
-    /// Local Tesseract OCR. The tessdata folder (with at least eng.traineddata) must sit next to the
-    /// exe; the native engine loads language data by path. A TesseractEngine is NOT thread-safe, so run
-    /// OCR off the UI thread and create a fresh OcrService per operation (or serialize calls). Dispose when done.
+    /// Uses an installed engine recognition model when one is available, with Tesseract retained as
+    /// the migration fallback. Instances are not thread-safe, so each operation owns its service.
     /// </summary>
     internal sealed class OcrService : IDisposable
     {
         private static readonly PdfOcrOptions RasterOptions = new(["und"],
             deskew: false, correctOrientation: false, detectPageSegments: false);
-        private readonly TesseractEngine _engine;
+        private readonly string _dataPath;
+        private readonly string _language;
+        private readonly bool _usesDefaultDataPath;
+        private readonly PdfOcrRecognitionModel? _engineModel;
+        private TesseractEngine? _engine;
 
         /// <param name="tessDataPath">Folder holding *.traineddata. Defaults to the self-extracted cache (OcrNativeBootstrap).</param>
         /// <param name="language">Tesseract language code(s), e.g. "eng" or "eng+ben".</param>
         public OcrService(string? tessDataPath = null, string language = "eng")
         {
-            // EnsureReady() extracts the embedded natives + language data and configures the native
-            // loader, so it must run before the engine is constructed.
-            string dataPath = tessDataPath ?? OcrNativeBootstrap.EnsureReady();
-            _engine = new TesseractEngine(dataPath, language, EngineMode.Default);
+            ArgumentException.ThrowIfNullOrWhiteSpace(language);
+            _usesDefaultDataPath = tessDataPath is null;
+            _dataPath = tessDataPath ?? OcrNativeBootstrap.EnsureLanguageData();
+            _language = language;
+            _engineModel = LoadEngineModel(_dataPath, language);
         }
 
         /// <summary>
@@ -31,8 +36,12 @@ namespace KillerPDF.Services
             string? characterWhitelist = null,
             CancellationToken cancellationToken = default)
         {
+            if (_engineModel is not null && string.IsNullOrEmpty(characterWhitelist))
+                return PdfOcrRecognizer.RecognizeBgra(
+                    bgra, width, height, _engineModel, RasterOptions, cancellationToken);
+            TesseractEngine engine = NativeEngine();
             if (!string.IsNullOrEmpty(characterWhitelist))
-                _engine.SetVariable("tessedit_char_whitelist", characterWhitelist);
+                engine.SetVariable("tessedit_char_whitelist", characterWhitelist);
             try
             {
                 PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
@@ -44,13 +53,13 @@ namespace KillerPDF.Services
             finally
             {
                 if (!string.IsNullOrEmpty(characterWhitelist))
-                    _engine.SetVariable("tessedit_char_whitelist", string.Empty);
+                    engine.SetVariable("tessedit_char_whitelist", string.Empty);
             }
         }
 
         private PdfOcrResult Run(Pix pix)
         {
-            using var page = _engine.Process(pix);
+            using var page = NativeEngine().Process(pix);
             string text = page.GetText() ?? "";
             float confidence = page.GetMeanConfidence();
             var words = new List<PdfOcrPixelWord>();
@@ -93,6 +102,26 @@ namespace KillerPDF.Services
             return pix;
         }
 
-        public void Dispose() => _engine.Dispose();
+        private TesseractEngine NativeEngine()
+        {
+            if (_engine is not null) return _engine;
+            if (_usesDefaultDataPath) OcrNativeBootstrap.EnsureReady();
+            return _engine = new TesseractEngine(_dataPath, _language, EngineMode.Default);
+        }
+
+        private static PdfOcrRecognitionModel? LoadEngineModel(
+            string dataPath, string language)
+        {
+            if (language.Contains('+', StringComparison.Ordinal)
+                || language.Length > 35
+                || language.Any(character => !char.IsAsciiLetterOrDigit(character)
+                    && character is not '_' and not '-'))
+                return null;
+            string modelPath = Path.Combine(dataPath, language + ".kpocr");
+            return File.Exists(modelPath)
+                ? PdfOcrRecognitionModel.Load(File.ReadAllBytes(modelPath)) : null;
+        }
+
+        public void Dispose() => _engine?.Dispose();
     }
 }

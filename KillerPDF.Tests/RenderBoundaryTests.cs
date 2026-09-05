@@ -164,6 +164,21 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
+    public void OcrUsesAnInstalledEngineModelBeforeLoadingTesseract()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root, "Services", "OcrService.cs"));
+
+        Assert.Contains("PdfOcrRecognitionModel.Load(", source, StringComparison.Ordinal);
+        Assert.Contains("PdfOcrRecognizer.RecognizeBgra(", source, StringComparison.Ordinal);
+        Assert.Contains("private TesseractEngine NativeEngine()", source,
+            StringComparison.Ordinal);
+        Assert.True(source.IndexOf("LoadEngineModel(_dataPath, language)",
+            StringComparison.Ordinal) < source.IndexOf("new TesseractEngine(",
+            StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void OcrWorkflowsUseTheEngineFirstRenderSession()
     {
         string root = FindRepositoryRoot();

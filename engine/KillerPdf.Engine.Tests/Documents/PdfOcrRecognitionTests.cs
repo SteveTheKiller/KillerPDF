@@ -166,6 +166,40 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RawBgraRecognitionRunsTheCompleteEnginePipeline()
+    {
+        string[] rows =
+        [
+            "........",
+            "#...#...",
+            "#...#...",
+            "#...##..",
+            "#...##..",
+            "........"
+        ];
+        byte[] bgra = new byte[8 * 6 * 4];
+        for (int y = 0; y < rows.Length; y++)
+            for (int x = 0; x < rows[y].Length; x++)
+            {
+                byte value = rows[y][x] == '#' ? (byte)0 : (byte)255;
+                int offset = (y * 8 + x) * 4;
+                bgra[offset] = bgra[offset + 1] = bgra[offset + 2] = value;
+                bgra[offset + 3] = 255;
+            }
+
+        PdfOcrResult result = PdfOcrRecognizer.RecognizeBgra(bgra, 8, 6,
+            RecognitionModel(), new PdfOcrOptions(["eng"], deskew: false,
+                correctOrientation: false, removeBackground: false,
+                removeNoise: false, detectPageSegments: false));
+
+        PdfOcrPixelWord word = Assert.Single(result.Words);
+        Assert.Equal("IL", result.Text);
+        Assert.Equal("IL", word.Text);
+        Assert.Equal((0, 1, 6, 5), (word.Left, word.Top, word.Right, word.Bottom));
+        Assert.InRange(result.MeanConfidence, 0.5f, 1f);
+    }
+
+    [Fact]
     public void ModelRejectsTruncatedAndNonFinitePayloads()
     {
         Assert.Throws<FormatException>(() => PdfOcrRecognitionModel.Load("bad"u8.ToArray()));
