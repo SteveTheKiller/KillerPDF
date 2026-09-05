@@ -10,6 +10,160 @@ using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Signing;
 using KillerPdf.Engine.Security;
 using KillerPdf.Engine.Syntax;
+using KillerPdf.Engine.Rendering;
+
+if (args.Length == 3 && args[0] == "--render-one")
+{
+    try
+    {
+        string file = Path.GetFullPath(args[1]);
+        if (!int.TryParse(args[2], out int size) || size < 1)
+            throw new ArgumentException("Render size must be a positive integer.");
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            File.ReadAllBytes(file));
+        if (PdfPageInformation.Read(document).Count == 0)
+            throw new InvalidDataException("The PDF contains no pages.");
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(size, size,
+                includeAnnotations: true, includeFormFields: true));
+        string status = page.Diagnostics.Count == 0 ? "clean" : "diagnostic";
+        string detail = string.Join(" | ", page.Diagnostics.Distinct(StringComparer.Ordinal));
+        Console.WriteLine($"KILLERPDF-RENDER\t{status}\t{Encode(detail)}");
+        return 0;
+    }
+    catch (Exception error) when (error is not OutOfMemoryException)
+    {
+        Console.WriteLine($"KILLERPDF-RENDER\tfailure\t{Encode(
+            error.GetType().Name + ": " + error.Message)}");
+        return 1;
+    }
+
+    static string Encode(string value) => Convert.ToBase64String(
+        System.Text.Encoding.UTF8.GetBytes(value));
+}
+
+if (args.Length >= 2 && args[0] == "--render-corpus")
+{
+    string renderRoot = Path.GetFullPath(args[1]);
+    if (!Directory.Exists(renderRoot))
+    {
+        Console.Error.WriteLine($"Directory not found: {renderRoot}");
+        return 2;
+    }
+    int renderMaximum = int.MaxValue, timeoutSeconds = 30, size = 256;
+    int parallelism = Math.Min(Environment.ProcessorCount, 8);
+    for (int index = 2; index < args.Length; index++)
+    {
+        if (index + 1 >= args.Length
+            || !int.TryParse(args[index + 1], out int value) || value < 1)
+        {
+            Console.Error.WriteLine("Render corpus options require a positive integer value.");
+            return 2;
+        }
+        switch (args[index])
+        {
+            case "--max": renderMaximum = value; break;
+            case "--timeout-seconds": timeoutSeconds = value; break;
+            case "--size": size = value; break;
+            case "--parallel": parallelism = value; break;
+            default:
+                Console.Error.WriteLine($"Unknown render corpus option: {args[index]}");
+                return 2;
+        }
+        index++;
+    }
+
+    string[] renderFiles = [.. Directory.EnumerateFiles(
+            renderRoot, "*.pdf", SearchOption.AllDirectories)
+        .Order(StringComparer.OrdinalIgnoreCase).Take(renderMaximum)];
+    int clean = 0, diagnostic = 0, failure = 0, timedOut = 0, processed = 0;
+    var signatures = new Dictionary<string, (int Count, List<string> Examples)>(
+        StringComparer.Ordinal);
+    var renderStarted = Stopwatch.StartNew();
+    string executable = Environment.ProcessPath
+        ?? throw new InvalidOperationException("The corpus executable path is unavailable.");
+    await Parallel.ForEachAsync(renderFiles,
+        new ParallelOptions { MaxDegreeOfParallelism = parallelism }, async (file, _) =>
+    {
+        string relative = Path.GetRelativePath(renderRoot, file);
+        var start = new ProcessStartInfo(executable)
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        start.ArgumentList.Add("--render-one");
+        start.ArgumentList.Add(file);
+        start.ArgumentList.Add(size.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        using Process process = Process.Start(start)
+            ?? throw new InvalidOperationException("The render worker could not start.");
+        Task<string> outputTask = process.StandardOutput.ReadToEndAsync();
+        Task<string> errorTask = process.StandardError.ReadToEndAsync();
+        Task completed = await Task.WhenAny(process.WaitForExitAsync(),
+            Task.Delay(TimeSpan.FromSeconds(timeoutSeconds)));
+        string status, detail;
+        if (!process.HasExited)
+        {
+            process.Kill(entireProcessTree: true);
+            await process.WaitForExitAsync();
+            await outputTask;
+            await errorTask;
+            status = "timeout";
+            detail = $"Exceeded {timeoutSeconds} seconds.";
+            Interlocked.Increment(ref timedOut);
+        }
+        else
+        {
+            string output = await outputTask;
+            string error = await errorTask;
+            string? resultLine = output.Split(['\r', '\n'],
+                    StringSplitOptions.RemoveEmptyEntries)
+                .LastOrDefault(line => line.StartsWith(
+                    "KILLERPDF-RENDER\t", StringComparison.Ordinal));
+            string[] fields = resultLine?.Split('\t', 3) ?? [];
+            if (fields.Length != 3)
+            {
+                status = "failure";
+                detail = error.Trim().Length > 0 ? error.Trim()
+                    : "The render worker returned no result.";
+            }
+            else
+            {
+                status = fields[1];
+                detail = System.Text.Encoding.UTF8.GetString(
+                    Convert.FromBase64String(fields[2]));
+            }
+            if (status == "clean") Interlocked.Increment(ref clean);
+            else if (status == "diagnostic") Interlocked.Increment(ref diagnostic);
+            else Interlocked.Increment(ref failure);
+        }
+        if (status != "clean") AddSignature(status, detail, relative);
+        int completedCount = Interlocked.Increment(ref processed);
+        if (completedCount % 100 == 0 || completedCount == renderFiles.Length)
+            Console.WriteLine($"Rendered {completedCount:N0}/{renderFiles.Length:N0}: "
+                + $"{clean:N0} clean, {diagnostic:N0} diagnostic, "
+                + $"{failure:N0} failed, {timedOut:N0} timed out.");
+    });
+    foreach ((string signature, (int count, List<string> examples)) in signatures
+                 .OrderByDescending(entry => entry.Value.Count)
+                 .ThenBy(entry => entry.Key, StringComparer.Ordinal))
+        Console.WriteLine($"{count:N0} x {signature}: {string.Join(" | ", examples)}");
+    Console.WriteLine($"Render corpus completed in {renderStarted.Elapsed.TotalSeconds:N1}s.");
+    return diagnostic == 0 && failure == 0 && timedOut == 0 ? 0 : 1;
+
+    void AddSignature(string status, string detail, string relative)
+    {
+        string signature = status + ": " + detail;
+        lock (signatures)
+        {
+            if (!signatures.TryGetValue(signature, out var current))
+                current = (0, []);
+            if (current.Examples.Count < 3) current.Examples.Add(relative);
+            signatures[signature] = (current.Count + 1, current.Examples);
+        }
+    }
+}
 
 if (args.Length == 2 && args[0] == "--incremental-xref-stream-smoke")
 {
@@ -2031,6 +2185,7 @@ if (args.Length is 2 or 4 && args[0] == "--selected-page-import-corpus")
 if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
