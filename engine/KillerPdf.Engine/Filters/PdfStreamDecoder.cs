@@ -130,7 +130,8 @@ public static class PdfStreamDecoder
             EnsureWithinLimit(current.Length, filterLimit);
             if (filter is "FlateDecode" or "Fl" or "LZWDecode" or "LZW")
                 current = ReversePredictor(
-                    current, parameters[i], resolve, outputLimit);
+                    current, parameters[i], resolve, outputLimit,
+                    compatibilityRecovery);
         }
 
         return current;
@@ -551,7 +552,8 @@ public static class PdfStreamDecoder
 
     private static byte[] ReversePredictor(
         byte[] data, PdfDictionary? parameters,
-        Func<PdfIndirectReference, PdfObject>? resolve, int maximumDecodedBytes)
+        Func<PdfIndirectReference, PdfObject>? resolve, int maximumDecodedBytes,
+        bool compatibilityRecovery)
     {
         if (parameters is null)
             return data;
@@ -584,7 +586,8 @@ public static class PdfStreamDecoder
                 data, rowLength, colors, columns, bitsPerComponent);
         if (predictor is >= 10 and <= 15)
             return ReversePngPredictor(
-                data, rowLength, bytesPerPixel, predictor, maximumDecodedBytes);
+                data, rowLength, bytesPerPixel, predictor, maximumDecodedBytes,
+                compatibilityRecovery);
 
         throw new PdfFilterException($"Predictor {predictor} is not defined by PDF.");
     }
@@ -645,7 +648,8 @@ public static class PdfStreamDecoder
         int rowLength,
         int bytesPerPixel,
         int predictor,
-        int maximumDecodedBytes)
+        int maximumDecodedBytes,
+        bool compatibilityRecovery)
     {
         int encodedRowLength;
         try
@@ -671,7 +675,7 @@ public static class PdfStreamDecoder
             byte filter = data[inputStart];
             if (filter > 4)
                 throw new PdfFilterException($"PNG predictor row {row} uses unknown filter {filter}.");
-            if (predictor != 15 && filter != predictor - 10)
+            if (!compatibilityRecovery && predictor != 15 && filter != predictor - 10)
                 throw new PdfFilterException(
                     $"PNG predictor row {row} uses filter {filter}, but predictor {predictor} requires filter {predictor - 10}.");
 

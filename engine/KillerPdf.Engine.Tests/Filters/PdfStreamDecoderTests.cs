@@ -556,6 +556,22 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_CompatibilityRecoveryUsesPngRowFilterThatContradictsFixedPredictor()
+    {
+        PdfDictionary parameters = Dictionary(
+            Pair("Predictor", new PdfInteger(10)),
+            Pair("Columns", new PdfInteger(3)));
+        PdfStream stream = Stream(
+            Compress([1, 10, 10, 10]),
+            Pair("Filter", Name("FlateDecode")),
+            Pair("DecodeParms", parameters));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal([10, 20, 30],
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
+    }
+
+    [Fact]
     public void Decode_DecodesJbig2ImageData()
     {
         byte[] encoded = Convert.FromBase64String(
