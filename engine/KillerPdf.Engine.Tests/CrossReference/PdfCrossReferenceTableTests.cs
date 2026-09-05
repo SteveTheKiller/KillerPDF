@@ -561,6 +561,8 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("/Size cannot decrease", error.Message,
             StringComparison.Ordinal);
+        Assert.NotEmpty(PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true));
     }
 
     [Fact]
@@ -587,6 +589,8 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("generation cannot decrease", error.Message,
             StringComparison.Ordinal);
+        Assert.Equal(4, PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true)[1].Field2);
     }
 
     [Fact]
@@ -676,6 +680,8 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("invalid generation transition", error.Message,
             StringComparison.Ordinal);
+        Assert.Equal(1, PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true)[1].Field2);
     }
 
     [Fact]

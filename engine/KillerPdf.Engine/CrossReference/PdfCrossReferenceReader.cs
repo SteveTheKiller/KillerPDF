@@ -99,7 +99,8 @@ public static class PdfCrossReferenceReader
                     allowDuplicateDictionaryKeys: compatibilityRecovery);
                 if (parser.ParseObject() is not PdfDictionary trailer)
                     throw Error("A classic xref trailer must be a dictionary", tokenizer.Position);
-                ValidateSize(trailer, entries.Values, first.Offset);
+                ValidateSize(trailer, entries.Values, first.Offset,
+                    compatibilityRecovery);
                 ValidateTrailerOffsets(trailer, source.Length, first.Offset);
                 return new PdfCrossReferenceSection(xrefToken.Offset, entries.Values, trailer, isStream: false);
             }
@@ -222,7 +223,8 @@ public static class PdfCrossReferenceReader
             }
         }
 
-        ValidateSize(stream.Dictionary, entries.Values, offset);
+        ValidateSize(stream.Dictionary, entries.Values, offset,
+            compatibilityRecovery);
         return new PdfCrossReferenceSection(offset, entries.Values, stream.Dictionary,
             isStream: true, streamObjectNumber: indirect.ObjectNumber);
     }
@@ -331,10 +333,11 @@ public static class PdfCrossReferenceReader
     private static void ValidateSize(
         PdfDictionary trailer,
         IEnumerable<PdfCrossReferenceEntry> entries,
-        int offset)
+        int offset,
+        bool compatibilityRecovery)
     {
         int size = RequiredNonNegativeInt(trailer, SizeName, offset);
-        if (size == 0 || entries.Any(entry =>
+        if (size == 0 || !compatibilityRecovery && entries.Any(entry =>
                 entry.Type is PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed
                 && entry.ObjectNumber >= size))
             throw Error("Trailer /Size must be greater than every in-use object number", offset);

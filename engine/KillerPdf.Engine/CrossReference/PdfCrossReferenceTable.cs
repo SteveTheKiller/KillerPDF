@@ -170,8 +170,11 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             currentOffset = primary.PreviousOffset;
         }
 
-        ValidateRevisionSizes(revisions, startXref.Offset);
-        ValidateRevisionGenerations(revisions, startXref.Offset, linearization);
+        if (!compatibilityRecovery)
+        {
+            ValidateRevisionSizes(revisions, startXref.Offset);
+            ValidateRevisionGenerations(revisions, startXref.Offset, linearization);
+        }
         ValidatePermanentIdentifiers(revisions, startXref.Offset);
         ValidateEncryptionIntroduction(revisions, startXref.Offset);
 
