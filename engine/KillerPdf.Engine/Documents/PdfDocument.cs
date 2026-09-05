@@ -111,6 +111,21 @@ public sealed class PdfDocument
     public static PdfDocument Open(ReadOnlyMemory<byte> source, string password)
     {
         PdfDocument document = Open(source);
+        return AuthenticatePassword(document, password);
+    }
+
+    /// <summary>
+    /// Opens and authenticates a password-encrypted PDF using bounded compatibility recoveries.
+    /// </summary>
+    public static PdfDocument OpenWithCompatibilityRecovery(
+        ReadOnlyMemory<byte> source, string password)
+    {
+        PdfDocument document = OpenWithCompatibilityRecovery(source);
+        return AuthenticatePassword(document, password);
+    }
+
+    private static PdfDocument AuthenticatePassword(PdfDocument document, string password)
+    {
         if (!document.CrossReferences.TryGetTrailerValue(
                 new PdfName("Encrypt"u8), out PdfObject? encryptionValue))
             return document;

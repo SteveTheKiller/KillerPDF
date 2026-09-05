@@ -7,6 +7,7 @@ using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Security;
+using KillerPdf.Engine.Syntax;
 using KillerPdf.Engine.Writing;
 using Xunit;
 
@@ -861,6 +862,25 @@ public sealed class PdfEncryptionTests
 
         Assert.True(document.IsEncrypted);
         Assert.False(document.IsDecrypted);
+    }
+
+    [Fact]
+    public void OpenWithCompatibilityRecovery_AuthenticatesMalformedEncryptedDocument()
+    {
+        byte[] bytes = Revision6Fixture();
+        int size = bytes.AsSpan().IndexOf("/Size 6"u8);
+        Assert.True(size >= 0);
+        bytes[size + "/Size ".Length] = (byte)'0';
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfDocument.Open(bytes, "user-password"));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            bytes, "user-password");
+
+        Assert.True(document.IsDecrypted);
+        Assert.Equal(PdfPasswordAuthenticationRole.User,
+            document.PasswordAuthenticationRole);
+        Assert.Single(PdfPageInformation.Read(document));
     }
 
     [Fact]
