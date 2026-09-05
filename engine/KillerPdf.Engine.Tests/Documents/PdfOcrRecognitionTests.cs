@@ -71,6 +71,32 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerLearnsLabeledGlyphsFromPreparedPagePixels()
+    {
+        PdfOcrPreparedImage image = Prepared(8, 6,
+        [
+            "........",
+            "#...#...",
+            "#...#...",
+            "#...##..",
+            "#...##..",
+            "........"
+        ]);
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(4, 4, image,
+        [
+            new("I", new PdfOcrImageRegion(0, 1, 1, 5)),
+            new("L", new PdfOcrImageRegion(4, 1, 6, 5))
+        ]);
+
+        PdfOcrRecognizedWord word = Assert.Single(PdfOcrRecognizer.Recognize(
+            image, PdfOcrLayoutAnalyzer.Analyze(image), model));
+
+        Assert.Equal("IL", word.Text);
+        Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(4, 4, image,
+            [new PdfOcrLabeledGlyph("I", new PdfOcrImageRegion(-1, 0, 1, 1))]));
+    }
+
+    [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
         PdfOcrRecognitionModel created = RecognitionModel();

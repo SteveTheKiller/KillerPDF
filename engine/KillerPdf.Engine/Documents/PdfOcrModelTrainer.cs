@@ -7,6 +7,10 @@ namespace KillerPdf.Engine.Documents;
 public readonly record struct PdfOcrTrainingSample(
     string Label, ReadOnlyMemory<float> Features);
 
+/// <summary>One labeled glyph rectangle in an OCR-prepared image.</summary>
+public readonly record struct PdfOcrLabeledGlyph(
+    string Label, PdfOcrImageRegion Bounds);
+
 /// <summary>One observed expected and predicted label pair.</summary>
 public sealed record PdfOcrConfusion(string Expected, string Predicted, int Count);
 
@@ -104,6 +108,33 @@ public static class PdfOcrModelTrainer
         }
         return PdfOcrRecognitionModel.Create(
             width, height, orderedLabels, weights, biases);
+    }
+
+    /// <summary>Trains directly from labeled glyph rectangles in a prepared image.</summary>
+    public static PdfOcrRecognitionModel Train(int width, int height,
+        PdfOcrPreparedImage image, IEnumerable<PdfOcrLabeledGlyph> glyphs,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(glyphs);
+        return Train(width, height, Samples(), cancellationToken);
+
+        IEnumerable<PdfOcrTrainingSample> Samples()
+        {
+            int count = 0;
+            foreach (PdfOcrLabeledGlyph glyph in glyphs)
+            {
+                if ((count++ & 0x3FF) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
+                PdfOcrImageRegion bounds = glyph.Bounds;
+                if (bounds.Left < 0 || bounds.Top < 0 || bounds.Right > image.Width
+                    || bounds.Bottom > image.Height || bounds.Width <= 0 || bounds.Height <= 0)
+                    throw new ArgumentException(
+                        "An OCR training glyph lies outside its prepared image.", nameof(glyphs));
+                yield return new PdfOcrTrainingSample(glyph.Label,
+                    PdfOcrRecognizer.NormalizeGlyph(image, bounds, width, height));
+            }
+        }
     }
 
     /// <summary>Evaluates a model against labeled normalized glyphs.</summary>
