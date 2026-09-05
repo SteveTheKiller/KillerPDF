@@ -232,7 +232,8 @@ public sealed class PdfOcrPageRecognizer
         PdfRenderedPage rendered = _renderer.Render(pageIndex, renderOptions, cancellationToken);
         PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
             rendered.Pixels, rendered.Width, rendered.Height, ocrOptions, cancellationToken);
-        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(prepared, cancellationToken);
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            prepared, ocrOptions.DetectPageSegments, cancellationToken);
         IReadOnlyList<PdfOcrRecognizedWord> recognized = PdfOcrRecognizer.Recognize(
             prepared, layout, _model, cancellationToken);
         PdfPageInformation page = _pages[pageIndex];

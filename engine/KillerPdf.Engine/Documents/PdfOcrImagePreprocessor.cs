@@ -71,8 +71,6 @@ public static class PdfOcrImagePreprocessor
         var diagnostics = new List<string>();
         if (options.CorrectOrientation)
             diagnostics.Add("OCR orientation detection is not implemented.");
-        if (options.DetectPageSegments)
-            diagnostics.Add("OCR page segmentation is not implemented.");
         return new PdfOcrPreparedImage(width, height, gray, binary, diagnostics);
     }
 
