@@ -2065,6 +2065,7 @@ public sealed class PdfPageRenderer
                 foreach (CalculatorInstruction instruction in program)
                 {
                     if (instruction.Number is double number) Push(number);
+                    else if (instruction.Boolean is bool boolean) Push(boolean);
                     else if (instruction.Procedure is not null) Push(instruction.Procedure);
                     else Execute(instruction.Operator!);
                 }
@@ -2109,6 +2110,15 @@ public sealed class PdfPageRenderer
                 {
                     case "abs": Push(Math.Abs(Pop())); break;
                     case "add": { double b = Pop(); Push(Pop() + b); break; }
+                    case "and": BinaryLogical((left, right) => left && right,
+                        (left, right) => left & right); break;
+                    case "bitshift":
+                    {
+                        int shift = PopInteger(), value = PopInteger();
+                        Push((double)(shift >= 32 ? 0 : shift <= -32 ? value < 0 ? -1 : 0
+                            : shift >= 0 ? value << shift : value >> -shift));
+                        break;
+                    }
                     case "ceiling": Push(Math.Ceiling(Pop())); break;
                     case "cos": Push(Math.Cos(Pop() * Math.PI / 180)); break;
                     case "copy":
@@ -2124,8 +2134,9 @@ public sealed class PdfPageRenderer
                     case "cvi": Push(Math.Truncate(Pop())); break;
                     case "cvr": break;
                     case "div": { double b = Pop(); Push(Pop() / b); break; }
-                    case "dup": { double value = Pop(); Push(value); Push(value); break; }
-                    case "exch": { double b = Pop(), a = Pop(); Push(b); Push(a); break; }
+                    case "dup": { object value = PopValue(); Push(value); Push(value); break; }
+                    case "eq": { object right = PopValue(); Push(Equals(PopValue(), right)); break; }
+                    case "exch": { object b = PopValue(), a = PopValue(); Push(b); Push(a); break; }
                     case "exp": { double exponent = Pop(); Push(Math.Pow(Pop(), exponent)); break; }
                     case "false": Push(false); break;
                     case "floor": Push(Math.Floor(Pop())); break;
@@ -2156,11 +2167,26 @@ public sealed class PdfPageRenderer
                     case "mod": { int b = PopInteger(); int a = PopInteger(); Push((double)(a % b)); break; }
                     case "mul": { double b = Pop(); Push(Pop() * b); break; }
                     case "neg": Push(-Pop()); break;
+                    case "ne": { object right = PopValue(); Push(!Equals(PopValue(), right)); break; }
+                    case "not":
+                    {
+                        object value = PopValue();
+                        if (value is bool boolean) Push(!boolean);
+                        else if (value is double number)
+                        {
+                            Push((double)~Integer(number));
+                        }
+                        else throw new FormatException(
+                            $"A {description} calculator not value is invalid.");
+                        break;
+                    }
+                    case "or": BinaryLogical((left, right) => left || right,
+                        (left, right) => left | right); break;
                     case "lt": { double b = Pop(); Push(Pop() < b); break; }
                     case "le": { double b = Pop(); Push(Pop() <= b); break; }
                     case "gt": { double b = Pop(); Push(Pop() > b); break; }
                     case "ge": { double b = Pop(); Push(Pop() >= b); break; }
-                    case "pop": Pop(); break;
+                    case "pop": PopValue(); break;
                     case "roll":
                     {
                         int shift = PopInteger(), count = PopInteger();
@@ -2190,8 +2216,31 @@ public sealed class PdfPageRenderer
                     }
                     case "true": Push(true); break;
                     case "truncate": Push(Math.Truncate(Pop())); break;
+                    case "xor": BinaryLogical((left, right) => left ^ right,
+                        (left, right) => left ^ right); break;
                     default: throw new NotSupportedException(
                         $"Calculator operator {operation} is not implemented.");
+                }
+
+                void BinaryLogical(Func<bool, bool, bool> booleanOperation,
+                    Func<int, int, int> integerOperation)
+                {
+                    object right = PopValue(), left = PopValue();
+                    if (left is bool leftBoolean && right is bool rightBoolean)
+                        Push(booleanOperation(leftBoolean, rightBoolean));
+                    else if (left is double leftNumber && right is double rightNumber)
+                        Push((double)integerOperation(Integer(leftNumber), Integer(rightNumber)));
+                    else throw new FormatException(
+                        $"A {description} calculator logical value is invalid.");
+                }
+
+                int Integer(double value)
+                {
+                    if (value < int.MinValue || value > int.MaxValue
+                        || value != Math.Truncate(value))
+                        throw new FormatException(
+                            $"A {description} calculator integer is invalid.");
+                    return (int)value;
                 }
             }
         };
@@ -2211,6 +2260,8 @@ public sealed class PdfPageRenderer
                         token.ValueAsLatin1(), System.Globalization.CultureInfo.InvariantCulture), null),
                     PdfTokenKind.Real => new CalculatorInstruction(double.Parse(
                         token.ValueAsLatin1(), System.Globalization.CultureInfo.InvariantCulture), null),
+                    PdfTokenKind.Boolean => new CalculatorInstruction(null, null,
+                        Boolean: token.Value.Span.SequenceEqual("true"u8)),
                     PdfTokenKind.Keyword => new CalculatorInstruction(null, token.ValueAsLatin1()),
                     PdfTokenKind.BraceStart => new CalculatorInstruction(null, null, ReadProcedure()),
                     _ => throw new NotSupportedException()
@@ -4070,7 +4121,7 @@ public sealed class PdfPageRenderer
         }
     }
     private sealed record CalculatorInstruction(double? Number, string? Operator,
-        IReadOnlyList<CalculatorInstruction>? Procedure = null);
+        IReadOnlyList<CalculatorInstruction>? Procedure = null, bool? Boolean = null);
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
         Func<double, double, double, double, Color>? Converter = null,
         double[]? DefaultDecode = null, Func<double[], Color>? MultiConverter = null)

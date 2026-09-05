@@ -1341,6 +1341,34 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesCalculatorLogicalAndBitwiseOperators()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromGray(2, 1, new byte[] { 0, 0 }), 2, 3, 6, 2))
+            .Build());
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]),
+            "{ pop pop true false or false xor false ne { 1 } { 0 } ifelse "u8.ToArray()
+                .Concat("true dup and false exch pop not 5 3 and 1 eq and "u8.ToArray())
+                .Concat("{ 1 } { 0 } ifelse 1 3 bitshift 8 eq not not "u8.ToArray())
+                .Concat("{ 1 } { 0 } ifelse }"u8.ToArray())
+                .ToArray());
+        PdfDocument document = AddDeviceNColorSpace(source, function,
+            new byte[] { 255, 0, 0, 255 });
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 3, 6));
+        Assert.DoesNotContain("The image color space or sample depth is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AppliesNestedCalculatorConditionalsAndAtan()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
