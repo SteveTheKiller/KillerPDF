@@ -1386,13 +1386,17 @@ public sealed class PdfPageRenderer
             }
             else
             {
-                int expected = checked(((width * encodedComponents * bits + 7) / 8) * height);
+                int rowBytes = checked((width * encodedComponents * bits + 7) / 8);
+                int expected = checked(rowBytes * height);
                 int limit = _document.UsesCompatibilityRecovery
                     ? Math.Max(expected, PdfStreamDecoder.DefaultMaximumDecodedBytes)
                     : expected;
                 samples = _document.DecodeStream(stream, limit);
                 if (_document.UsesCompatibilityRecovery && samples.Length > expected)
                     samples = samples[..expected];
+                else if (_document.UsesCompatibilityRecovery && samples.Length > 0
+                    && samples.Length < expected && samples.Length % rowBytes == 0)
+                    sampleHeight = samples.Length / rowBytes;
                 else if (samples.Length != expected)
                     throw new FormatException("Image sample data has an invalid length.");
             }

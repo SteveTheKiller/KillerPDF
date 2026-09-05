@@ -527,6 +527,27 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_CompatibilityRecoveryUsesCompleteRowsFromShortImage()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 2, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(2, 2, new byte[12]), 0, 0, 2, 2)).Build());
+        byte[] malformedBytes = AddImageDictionaryEntryBytes(source, "Filter",
+            Name("FlateDecode"), Compress([255, 0, 0, 0, 255, 0]));
+        PdfRenderOptions options = new(2, 2, includeAnnotations: false,
+            includeFormFields: false);
+
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(
+            PdfDocument.Open(malformedBytes)).Render(0, options));
+        PdfRenderedPage recovered = new PdfPageRenderer(
+            PdfDocument.OpenWithCompatibilityRecovery(malformedBytes)).Render(0, options);
+
+        Assert.Empty(recovered.Diagnostics);
+        Assert.Equal([0, 0, 255, 255], Pixel(recovered, 0, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(recovered, 1, 1));
+    }
+
+    [Fact]
     public void Render_CompositesImageSoftMasks()
     {
         PdfImage image = PdfImage.FromRgba(2, 1, new byte[]
