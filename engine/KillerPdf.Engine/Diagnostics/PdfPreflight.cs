@@ -43,8 +43,13 @@ public enum PdfPreflightCheck
 }
 
 /// <summary>A named, shareable selection of preflight checks.</summary>
-public sealed record PdfPreflightProfile
+public sealed partial record PdfPreflightProfile
 {
+    private static readonly PdfPreflightProfileCompactJsonContext CompactJson = new(
+        JsonOptions(false));
+    private static readonly PdfPreflightProfileIndentedJsonContext IndentedJson = new(
+        JsonOptions(true));
+
     /// <summary>Creates a validated profile.</summary>
     public PdfPreflightProfile(string name, IEnumerable<PdfPreflightCheck> checks,
         double minimumImageDpi = 300, double maximumInkCoveragePercent = 300)
@@ -103,14 +108,17 @@ public sealed record PdfPreflightProfile
     /// <summary>Serializes the profile with stable camel-case names.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new PdfPreflightProfileFile(1, Name, Checks.ToArray(), MinimumImageDpi,
-            MaximumInkCoveragePercent), JsonOptions(indented));
+            MaximumInkCoveragePercent), indented
+                ? IndentedJson.PdfPreflightProfileFile
+                : CompactJson.PdfPreflightProfileFile);
 
     /// <summary>Reads and validates a serialized profile.</summary>
     public static PdfPreflightProfile FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        PdfPreflightProfileFile file = JsonSerializer.Deserialize<PdfPreflightProfileFile>(
-            json, JsonOptions(false)) ?? throw new JsonException("The preflight profile is empty.");
+        PdfPreflightProfileFile file = JsonSerializer.Deserialize(
+            json, CompactJson.PdfPreflightProfileFile)
+            ?? throw new JsonException("The preflight profile is empty.");
         if (file.Version != 1)
             throw new NotSupportedException(
                 $"Preflight profile version {file.Version} is not supported.");
@@ -126,13 +134,24 @@ public sealed record PdfPreflightProfile
             PropertyNameCaseInsensitive = true,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfPreflightCheck>(JsonNamingPolicy.CamelCase));
         return options;
     }
 
     private sealed record PdfPreflightProfileFile(
         int Version, string Name, PdfPreflightCheck[] Checks, double? MinimumImageDpi,
         double? MaximumInkCoveragePercent);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true)]
+    [JsonSerializable(typeof(PdfPreflightProfileFile))]
+    private sealed partial class PdfPreflightProfileCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true, WriteIndented = true)]
+    [JsonSerializable(typeof(PdfPreflightProfileFile))]
+    private sealed partial class PdfPreflightProfileIndentedJsonContext : JsonSerializerContext;
 }
 
 /// <summary>One finding produced by a preflight profile.</summary>
@@ -141,8 +160,13 @@ public sealed record PdfPreflightFinding(
     int? PageIndex = null, int? ObjectNumber = null);
 
 /// <summary>The repeatable result of running one preflight profile.</summary>
-public sealed class PdfPreflightReport
+public sealed partial class PdfPreflightReport
 {
+    private static readonly PdfPreflightReportCompactJsonContext CompactJson = new(
+        JsonOptions(false));
+    private static readonly PdfPreflightReportIndentedJsonContext IndentedJson = new(
+        JsonOptions(true));
+
     internal PdfPreflightReport(string profileName, IEnumerable<PdfPreflightFinding> findings)
     {
         ProfileName = profileName;
@@ -182,14 +206,35 @@ public sealed class PdfPreflightReport
     /// <summary>Serializes the report with stable camel-case names.</summary>
     public string ToJson(bool indented = false)
     {
+        var report = new PdfPreflightReportJson(ProfileName, Passed, Complete, Findings);
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.PdfPreflightReportJson
+            : CompactJson.PdfPreflightReportJson);
+    }
+
+    private static JsonSerializerOptions JsonOptions(bool indented)
+    {
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        return JsonSerializer.Serialize(new { ProfileName, Passed, Complete, Findings }, options);
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfDiagnosticSeverity>(JsonNamingPolicy.CamelCase));
+        return options;
     }
+
+    private sealed record PdfPreflightReportJson(
+        string ProfileName, bool Passed, bool Complete, IReadOnlyList<PdfPreflightFinding> Findings);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfPreflightReportJson))]
+    private sealed partial class PdfPreflightReportCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfPreflightReportJson))]
+    private sealed partial class PdfPreflightReportIndentedJsonContext : JsonSerializerContext;
 }
 
 /// <summary>Runs selected structural and document-level accessibility checks.</summary>
