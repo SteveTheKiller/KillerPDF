@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Buffers.Binary;
 using System.Security.Cryptography;
 using System.Text;
 using System.Numerics;
@@ -91,29 +92,67 @@ public sealed class PdfOcrRecognitionModel
             if (!actual.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
                 throw new CryptographicException("The OCR model SHA-256 digest does not match.");
         }
-        using var input = new MemoryStream(source.ToArray(), writable: false);
-        using var reader = new BinaryReader(input, Encoding.UTF8, leaveOpen: false);
-        if (!reader.ReadBytes(Magic.Length).SequenceEqual(Magic))
+        ReadOnlySpan<byte> bytes = source.Span;
+        int position = 0;
+        if (bytes.Length < Magic.Length || !bytes[..Magic.Length].SequenceEqual(Magic))
             throw new FormatException("The OCR model header is invalid.");
-        int width = reader.ReadInt32(), height = reader.ReadInt32(), count = reader.ReadInt32();
+        position += Magic.Length;
+        int width = ReadInt32(bytes, ref position);
+        int height = ReadInt32(bytes, ref position);
+        int count = ReadInt32(bytes, ref position);
         if (width is <= 0 or > 128 || height is <= 0 or > 128 || count is <= 0 or > 65_536)
             throw new FormatException("The OCR model dimensions are invalid.");
+        int features;
+        int valueCount;
+        try
+        {
+            features = checked(width * height);
+            valueCount = checked(count * (features + 1));
+        }
+        catch (OverflowException exception)
+        {
+            throw new FormatException("The OCR model dimensions are invalid.", exception);
+        }
         var labels = new string[count];
+        var utf8 = new UTF8Encoding(false, true);
         for (int index = 0; index < count; index++)
         {
-            int length = reader.ReadByte();
-            if (length == 0 || input.Length - input.Position < length)
+            if (position >= bytes.Length)
                 throw new FormatException("An OCR model label is invalid.");
-            labels[index] = new UTF8Encoding(false, true).GetString(reader.ReadBytes(length));
+            int length = bytes[position++];
+            if (length == 0 || bytes.Length - position < length)
+                throw new FormatException("An OCR model label is invalid.");
+            labels[index] = utf8.GetString(bytes.Slice(position, length));
+            position += length;
         }
-        int features = checked(width * height);
-        long remaining = input.Length - input.Position;
-        long required = checked((long)count * (features + 1) * sizeof(float));
+        long remaining = bytes.Length - position;
+        long required = (long)valueCount * sizeof(float);
         if (remaining != required) throw new FormatException("The OCR model payload length is invalid.");
-        float[] biases = ReadFloats(reader, count);
-        float[] weights = ReadFloats(reader, checked(count * features));
+        float[] biases = ReadFloats(bytes, ref position, count);
+        float[] weights = ReadFloats(bytes, ref position, checked(count * features));
         try { return Create(width, height, labels, weights, biases); }
         catch (ArgumentException exception) { throw new FormatException("The OCR model payload is invalid.", exception); }
+    }
+
+    private static int ReadInt32(ReadOnlySpan<byte> source, ref int position)
+    {
+        if (source.Length - position < sizeof(int))
+            throw new FormatException("The OCR model header is truncated.");
+        int value = BinaryPrimitives.ReadInt32LittleEndian(source[position..]);
+        position += sizeof(int);
+        return value;
+    }
+
+    private static float[] ReadFloats(
+        ReadOnlySpan<byte> source, ref int position, int length)
+    {
+        var values = new float[length];
+        for (int index = 0; index < values.Length; index++)
+        {
+            values[index] = BinaryPrimitives.ReadSingleLittleEndian(source[position..]);
+            position += sizeof(float);
+        }
+        return values;
     }
 
     internal int LabelCount => _labels.Length;
@@ -151,12 +190,6 @@ public sealed class PdfOcrRecognitionModel
         return (_labels[best], 1 / denominator);
     }
 
-    private static float[] ReadFloats(BinaryReader reader, int count)
-    {
-        var values = new float[count];
-        for (int index = 0; index < count; index++) values[index] = reader.ReadSingle();
-        return values;
-    }
 }
 
 /// <summary>A recognized OCR word with pixel bounds and calibrated model confidence.</summary>
