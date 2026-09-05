@@ -11,8 +11,6 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using Docnet.Core;
-using Docnet.Core.Models;
 using Microsoft.Win32;
 using KillerPDF.Services;
 using ContentDoc = KillerPDF.Services.PdfContentDocument;

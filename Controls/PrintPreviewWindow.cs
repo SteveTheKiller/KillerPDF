@@ -10,8 +10,6 @@ using System.Windows.Input;
 using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Docnet.Core;
-using Docnet.Core.Models;
 using KillerPDF.Services;
 
 namespace KillerPDF

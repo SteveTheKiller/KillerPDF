@@ -4,8 +4,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Docnet.Core;
-using Docnet.Core.Models;
 using KillerPDF.Services;
 
 namespace KillerPDF

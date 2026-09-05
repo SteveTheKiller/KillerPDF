@@ -14,6 +14,7 @@ public sealed class RenderBoundaryTests
         string thisTest = Path.GetFullPath(Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
         string[] forbidden =
         [
+            "using Docnet.",
             "DocLib.Instance.GetDocReader",
             ".GetPageReader(",
             "PdfiumInterop.RenderPageWithAnnotations"
