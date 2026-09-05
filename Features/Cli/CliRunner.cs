@@ -367,7 +367,7 @@ namespace KillerPDF.Features
                 return 0;
             }
 
-            if (PdfiumInterop.TryPdfiumStripEncryption(inPath, outPath))
+            if (PdfiumInterop.TryRemoveEncryptionWithoutPassword(inPath, outPath))
             {
                 con.WriteLine($"Decrypted (lossless) -> {outPath}");
                 return 0;
@@ -403,7 +403,8 @@ namespace KillerPDF.Features
                 {
                     PdfEngineIntegration.RemoveEncryption(inPath, dec, password!);
                 }
-                else if (!PdfiumInterop.TryPdfiumStripEncryption(inPath, dec) && !PdfImport.TryImportRepairToPath(inPath, dec))
+                else if (!PdfiumInterop.TryRemoveEncryptionWithoutPassword(inPath, dec)
+                    && !PdfImport.TryImportRepairToPath(inPath, dec))
                 {
                     throw new InvalidOperationException(
                         "File is encrypted and could not be unlocked - pass --password if it needs one.");

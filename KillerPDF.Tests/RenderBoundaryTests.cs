@@ -38,6 +38,33 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
+    public void NativePdfiumFileFallbacksStayInsideTheInteropBoundary()
+    {
+        string root = FindRepositoryRoot();
+        string interop = Path.GetFullPath(Path.Combine(root, "Services", "PdfiumInterop.cs"));
+        string thisTest = Path.GetFullPath(
+            Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
+
+        foreach (string file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+        {
+            string fullPath = Path.GetFullPath(file);
+            if (fullPath.StartsWith(Path.Combine(root, "bin"), StringComparison.OrdinalIgnoreCase)
+                || fullPath.StartsWith(Path.Combine(root, "obj"), StringComparison.OrdinalIgnoreCase)
+                || fullPath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                || fullPath.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
+                || fullPath.Equals(interop, StringComparison.OrdinalIgnoreCase)
+                || fullPath.Equals(thisTest, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string source = File.ReadAllText(fullPath);
+            Assert.DoesNotContain("PdfiumInterop.TryPdfiumStripEncryption(", source,
+                StringComparison.Ordinal);
+            Assert.DoesNotContain("PdfiumInterop.TryPdfiumSaveWithZeroRotations(", source,
+                StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void PageThumbnailsUseTheEngineBeforeTheNativeFallback()
     {
         string root = FindRepositoryRoot();

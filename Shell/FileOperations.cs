@@ -241,7 +241,8 @@ namespace KillerPDF
                 repairedPath = await System.Threading.Tasks.Task.Run(() =>
                 {
                     var p = App.MakeTempFile("repaired");
-                    return PdfiumInterop.TryPdfiumStripEncryption(path, p) ? p : null;
+                    return PdfiumInterop.TryRemoveEncryptionWithoutPassword(path, p)
+                        ? p : null;
                 });
                 if (ct.IsCancellationRequested) { HideBusyOverlay(busy); _asyncOpenPending = false; SetStatus(Loc("Str_St_RepairCanceled")); return; }   // canceled during strategy 0
 
@@ -311,18 +312,8 @@ namespace KillerPDF
                 _doc?.Close();
                 _doc = null; var repairedPath = App.MakeTempFile("repaired");
                 bool ok = await System.Threading.Tasks.Task.Run(() =>
-                {
-                    try
-                    {
-                        PdfEngineIntegration.RemoveEncryption(srcPath, repairedPath, string.Empty);
-                        return true;
-                    }
-                    catch
-                    {
-                        return PdfiumInterop.TryPdfiumStripEncryption(srcPath, repairedPath)
-                            || PdfImport.TryImportRepairToPath(srcPath, repairedPath);
-                    }
-                });
+                    PdfiumInterop.TryRemoveEncryptionWithoutPassword(srcPath, repairedPath)
+                    || PdfImport.TryImportRepairToPath(srcPath, repairedPath));
                 if (ct.IsCancellationRequested) { HideBusyOverlay(busy); _asyncOpenPending = false; SetStatus(Loc("Str_St_Canceled")); EndCancellableOp(); return; }
                 if (!ok)
                 {
@@ -911,7 +902,8 @@ namespace KillerPDF
                     {
                         var fixedPath = App.MakeTempFile("savefixed");
                         if (!PdfImport.TryImportRepairToPath(tempClean, fixedPath)
-                            && !PdfiumInterop.TryPdfiumSaveWithZeroRotations(tempClean, fixedPath))
+                            && !PdfiumInterop.TryCreateZeroRotationCopy(
+                                tempClean, fixedPath))
                             throw;
                         tempClean = fixedPath;
                         _doc = PdfWorkingDocument.Open(tempClean);
@@ -1022,7 +1014,8 @@ namespace KillerPDF
                     {
                         var fixedPath = App.MakeTempFile("savefixed");
                         if (!PdfImport.TryImportRepairToPath(tempClean, fixedPath)
-                            && !PdfiumInterop.TryPdfiumSaveWithZeroRotations(tempClean, fixedPath))
+                            && !PdfiumInterop.TryCreateZeroRotationCopy(
+                                tempClean, fixedPath))
                             throw;
                         tempClean = fixedPath;
                         _doc = PdfWorkingDocument.Open(tempClean);
@@ -1226,7 +1219,8 @@ namespace KillerPDF
                 {
                     var fixedPath = App.MakeTempFile("savefixed");
                     if (!PdfImport.TryImportRepairToPath(tempClean, fixedPath)
-                        && !PdfiumInterop.TryPdfiumSaveWithZeroRotations(tempClean, fixedPath))
+                        && !PdfiumInterop.TryCreateZeroRotationCopy(
+                            tempClean, fixedPath))
                         throw;
                     tempClean = fixedPath;
                     _doc = PdfWorkingDocument.Open(tempClean);

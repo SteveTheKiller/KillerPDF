@@ -405,6 +405,37 @@ namespace KillerPDF.Services
 
         // ---- The two direct-PDFium file operations -------------------------------------------
 
+        /// <summary>Removes owner-only encryption through the engine before native repair.</summary>
+        internal static bool TryRemoveEncryptionWithoutPassword(
+            string sourcePath, string destinationPath)
+        {
+            try
+            {
+                PdfEngineIntegration.RemoveEncryption(
+                    sourcePath, destinationPath, string.Empty);
+                return true;
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                return TryPdfiumStripEncryption(sourcePath, destinationPath);
+            }
+        }
+
+        /// <summary>Creates a zero-rotation copy through the engine before native repair.</summary>
+        internal static bool TryCreateZeroRotationCopy(
+            string sourcePath, string destinationPath)
+        {
+            try
+            {
+                PdfEngineIntegration.CreateZeroRotationCopy(sourcePath, destinationPath);
+                return true;
+            }
+            catch (Exception exception) when (exception is not OutOfMemoryException)
+            {
+                return TryPdfiumSaveWithZeroRotations(sourcePath, destinationPath);
+            }
+        }
+
         /// <summary>
         /// Uses PDFium to save a copy of <paramref name="sourcePath"/> with all security/encryption
         /// removed. Returns true on success. Falls back gracefully if PDFium is unavailable.
