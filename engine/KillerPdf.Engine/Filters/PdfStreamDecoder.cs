@@ -17,10 +17,12 @@ public static class PdfStreamDecoder
     private static readonly PdfName ColumnsName = new("Columns"u8);
     private static readonly PdfName ColorTransformName = new("ColorTransform"u8);
     private static readonly PdfName HeightName = new("Height"u8);
+    private static readonly PdfName WidthName = new("Width"u8);
+    private static readonly PdfName Jbig2GlobalsName = new("JBIG2Globals"u8);
 
     /// <summary>Decodes a stream whose filter metadata contains no indirect references.</summary>
     public static byte[] Decode(PdfStream stream, int maximumDecodedBytes = DefaultMaximumDecodedBytes)
-        => DecodeCore(stream, null, maximumDecodedBytes);
+        => DecodeCore(stream, null, maximumDecodedBytes, 0);
 
     /// <summary>Decodes a stream while resolving indirect filter and predictor metadata.</summary>
     public static byte[] Decode(
@@ -29,16 +31,19 @@ public static class PdfStreamDecoder
         int maximumDecodedBytes = DefaultMaximumDecodedBytes)
     {
         ArgumentNullException.ThrowIfNull(resolve);
-        return DecodeCore(stream, resolve, maximumDecodedBytes);
+        return DecodeCore(stream, resolve, maximumDecodedBytes, 0);
     }
 
     private static byte[] DecodeCore(
         PdfStream stream,
         Func<PdfIndirectReference, PdfObject>? resolve,
-        int maximumDecodedBytes)
+        int maximumDecodedBytes,
+        int nestedDepth)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentOutOfRangeException.ThrowIfNegative(maximumDecodedBytes);
+        if (nestedDepth > 8)
+            throw new PdfFilterException("Nested stream decoding is too deep.");
 
         List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
         PdfDictionary?[] parameters = ReadParameters(
@@ -71,6 +76,13 @@ public static class PdfStreamDecoder
                 "DCTDecode" or "DCT" => PdfJpegDecoder.Decode(current, filterLimit,
                     GetDctColorTransform(parameters[i], resolve)),
                 "JPXDecode" or "JPX" => PdfJpeg2000Decoder.Decode(current, filterLimit),
+                "JBIG2Decode" => PdfJbig2Decoder.Decode(current,
+                    GetJbig2Globals(parameters[i], resolve),
+                    globalStream => DecodeCore(globalStream, resolve,
+                        DefaultMaximumDecodedBytes, nestedDepth + 1),
+                    filterLimit,
+                    GetImageDimension(stream.Dictionary, WidthName, resolve),
+                    GetImageDimension(stream.Dictionary, HeightName, resolve)),
                 "CCITTFaxDecode" or "CCF" => PdfCcittFaxDecoder.Decode(current,
                     GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit),
                 "Crypt" => current,
@@ -298,6 +310,30 @@ public static class PdfStreamDecoder
         int value = GetOptionalInteger(dictionary, ColorTransformName, -1, resolve);
         return value is 0 or 1 ? value
             : throw new PdfFilterException("DCTDecode ColorTransform must be 0 or 1.");
+    }
+
+    private static PdfStream? GetJbig2Globals(
+        PdfDictionary? dictionary, Func<PdfIndirectReference, PdfObject>? resolve)
+    {
+        if (dictionary is null
+            || !dictionary.TryGetValue(Jbig2GlobalsName, out PdfObject value))
+            return null;
+        value = Resolve(value, resolve, "Decode parameter /JBIG2Globals");
+        return value as PdfStream ?? throw new PdfFilterException(
+            "Decode parameter /JBIG2Globals must reference a stream.");
+    }
+
+    private static int? GetImageDimension(
+        PdfDictionary dictionary, PdfName name,
+        Func<PdfIndirectReference, PdfObject>? resolve)
+    {
+        if (!dictionary.TryGetValue(name, out PdfObject value))
+            return null;
+        value = Resolve(value, resolve, $"image /{name.ValueAsLatin1()}");
+        return value is PdfInteger integer && integer.Value is > 0 and <= int.MaxValue
+            ? (int)integer.Value
+            : throw new PdfFilterException(
+                $"Image {name.ValueAsLatin1()} must be a positive integer.");
     }
 
     private static PdfCcittFaxOptions GetCcittOptions(

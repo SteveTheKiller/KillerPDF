@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
@@ -472,6 +473,55 @@ public sealed class PdfStreamDecoderTests
             Pair("Filter", Name("DCTDecode")));
 
         Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_DecodesJbig2ImageData()
+    {
+        byte[] encoded = Convert.FromBase64String(
+            "l0pCMg0KGgoBAAAAAQAAAAAAAQAAAAAYAAEAAAABAAAAAenL9AAmrwS/8Hgv4ABAAAAAATAAAQAAABMAAABAAAAAOAAAAAAAAAAAAQAAAAAAAgABAQAAABwAAQAAAAIAAAAC5c34AHnghBCB8IIQhhB58ACAAAAAAwdCAAIBAAAAMQAAACUAAAAIAAAABAAAAAEADAkAEAAAAAUBEAAAAAAAAAAAAAAAAAAAAAxABwhwQdAAAAAEJwABAAAALAAAADYAAAAsAAAABAAAAAsAASagcc6n//////////////////////////jwAAAABRABAQAAAC0BBAQAAAAPINGEYRhF8vl8jxHDnkXy+X1ChQqqhGIv7uxEYiI1KgqDudzud4AAAAAGFyAFAQAAAFcAAAAgAAAAJAAAABAAAAAPAAEAAAAIAAAACQAAAAAAAAAABAAAAKqqqqqACACANtVVa1rUAEAELulS0tLSiqVKACACI+CVJLSSikqSVJLSSikqSUAEAEAAAAAHMQABAAAAAA==");
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("JBIG2Decode")));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, 448);
+
+        Assert.Equal(448, decoded.Length);
+        Assert.Equal("D806F2E73907D03B1DEFBB7AFADCEE5962D80A009A844D3170D8B3F8F446A2FD",
+            Convert.ToHexString(SHA256.HashData(decoded)));
+    }
+
+    [Fact]
+    public void Decode_DecodesJbig2ImageDataWithGlobalSegments()
+    {
+        byte[] globals = Convert.FromBase64String(
+            "AAAAAAABAAAAA6sAAAP//f8C/v7+AAAAKgAAACqUaqb/Lo/erhxQ1aqfI2lRqDbzVxH8KzDRZmZsUJ43oC3vqY7/fy0kgqQLZLeMgFGzTYuwokbUJTDeOr1Ft8VEXdtYH/avK0gueNsaZFF/XeMroHfvs97TxuFjdGGbdp5ItqsJnyd2T8X9SjqlZYlk9Yt17VI3iyYA7VOw6akdSsY5pgruvn2Oq4XHG9kmnBUJwZi1Yom4cBmRaUfu1EGUB1IAPaPrkrc8/1+j0DjhwlKlWnYgf+M/2MbiU3Kog2431bKtT4omDxrcfyW8wSQkzwhscgqIiWipxXXatDEI1/ytzezIGsUUMZ+hp1phypBZhA/m9uF0hNLBoCe0Of2A7YsD1Sgi/qZBFSPAZjqE5xbYZxmmSgH2TXM8D7sFwBOcvGoaUCv8wth3ewt89q9/2hQ1FZKDeoxb8Mx8Ih+Of3o62T9reUeHnCU38d35et4BeyeY4Dzkc7Bkt9z3/UZJPBY5+r7BHmh6fFk9RzhOu5JNePXgDeTBcCNIwSqDjvTe2ALa5xw82LDKVTKer4U9BEAPOeTa7u5V0vkheEETz1zppbVRa37nUboeqAdTHLZsaC8RWSwcJ3WbF8RPl1PA0yI8+4G2go87R0rGNVRYtM3V5vxB1Rl2V/h//AVZYRlTXGIEPUqWwcrVsX8MIXCrznHUsZqkvkqolsFJolxeiLTCcLJMvTcIlxmRWINgIGdlMIhZF7LcYUekCwr0kMr440pRBcBF3dMYlC6NvDDBfgZFLeKghIa1ugLfK5rCM9RtRUExHp/JkG9fuRgtWtAcz8XD3G47jynPnoydb8rv8d8Er4+rdlHd5gB5ijiqmtJ7Zm0dR+z9dMNkWuHn5u+wMU5X44iAB0MHKJqrPl/QPR9AH43RuuT3X7OpV5+x+4VI91V6tgIf3nwy2OxD9u9bTiwPFYy0Z6tLUgpxMc2bB50gPtS9X/4qD9gSU8O4qdlQ8RrTt0g8fwDhLWW5YfnDoM8MeS2+hi1RLvj4dzmyJZ7okJAilWTR1OCL/Bwmj2EY7dFglmdOBTqnzX8oduLIcCAWdxEoySXtqT8VzIMKkLvdmWpfSZQqvqNqjc9DavZ0cz1wWoHyjxjlXbK6sAorNeX9BeZL9fXisw0osFCovlP0oya2fr6UQFGEpnV7UOdeAIE1kq9H7J3aV/jsAMz/fX20cL1BEXAcGlGvGBacC1Upt92BoukKHr7WGi0ovJVkKO8IF4xH/6w=");
+        byte[] encoded = Convert.FromBase64String(
+            "AAAAATAAAQAAABMAAAkQAAAKcAAAAAAAAAAAQAAAAAAAAgYgAAEAAAEEAAAJEAAACnAAAAAAAAAAAAIAEAAAAHGN0fhKUK/bqCoKKRt0VWmWYApdnvtfE7vImFjXLUvvcSLh1GTu/dcrF/MItrblcCQyAZttAIgAae0UMkX6gmn06ykzjEBZ2wMSbzbuOeS831bbqrPYRVeGMB5aKp9wL6fOpjDkQRlsnSKX9nXJUnmlUahiTyuouJ9eEqJIEEfZi9tgasJBwkbfLTX5+nOUhq1gW6lq1qzVRgWUH/MAc2wz+ORIX6WadHZk4dnL44V9FPXHORJzGbLZ9O0wSx/T+XzyUP5paJtZTRU96aRPIHYpRiM/tlWQ1pMXPRgUKxJxr325vnQgYeiEtfIP/6w=");
+        PdfStream globalStream = Stream(globals);
+        PdfStream stream = Stream(encoded,
+            Pair("Filter", Name("JBIG2Decode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("JBIG2Globals", new PdfIndirectReference(7, 0)))));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream,
+            reference => reference.ObjectNumber == 7 ? globalStream
+                : throw new InvalidOperationException(), 774_880);
+
+        Assert.Equal(774_880, decoded.Length);
+        Assert.Equal("3CFC9C001A2D44B2711378AD78C044F05C182121D24EF91C36AD285BFC5BB8C5",
+            Convert.ToHexString(SHA256.HashData(decoded)));
+    }
+
+    [Fact]
+    public void Decode_RejectsJbig2ImageBeforeUnboundedBitmapAllocation()
+    {
+        byte[] encoded = Convert.FromBase64String(
+            "l0pCMg0KGgoBAAAAAQAAAAAAAQAAAAAYAAEAAAABAAAAAenL9AAmrwS/8Hgv4ABAAAAAATAAAQAAABMAAABAAAAAOAAAAAAAAAAAAQAAAAAAAgABAQAAABwAAQAAAAIAAAAC5c34AHnghBCB8IIQhhB58ACAAAAAAwdCAAIBAAAAMQAAACUAAAAIAAAABAAAAAEADAkAEAAAAAUBEAAAAAAAAAAAAAAAAAAAAAxABwhwQdAAAAAEJwABAAAALAAAADYAAAAsAAAABAAAAAsAASagcc6n//////////////////////////jwAAAABRABAQAAAC0BBAQAAAAPINGEYRhF8vl8jxHDnkXy+X1ChQqqhGIv7uxEYiI1KgqDudzud4AAAAAGFyAFAQAAAFcAAAAgAAAAJAAAABAAAAAPAAEAAAAIAAAACQAAAAAAAAAABAAAAKqqqqqACACANtVVa1rUAEAELulS0tLSiqVKACACI+CVJLSSikqSVJLSSikqSUAEAEAAAAAHMQABAAAAAA==");
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("JBIG2Decode")));
+
+        PdfFilterException error = Assert.Throws<PdfFilterException>(
+            () => PdfStreamDecoder.Decode(stream, 447));
+
+        Assert.Contains("safety limit", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

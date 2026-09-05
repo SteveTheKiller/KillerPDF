@@ -37,6 +37,16 @@ CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
+Apache PDFBox JBIG2 ImageIO decoder, modified for the KillerPDF engine:
+https://github.com/apache/pdfbox-jbig2
+
+Copyright 2017 The Apache Software Foundation
+Based on source code originally developed in the JBig2 project.
+Copyright (C) 1995-2017 levigo holding GmbH
+
+Licensed under the Apache License, Version 2.0. The complete license and
+upstream NOTICE are included in KillerPdf.Engine/Filters/Jbig2.
+
 #####################################################################################
 #
 #	Copyright (c) 2000-2024, ReportLab Inc.

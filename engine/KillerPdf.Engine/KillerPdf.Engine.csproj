@@ -46,6 +46,10 @@
     <None Include="icon.png" Pack="true" PackagePath="\" />
     <None Update="Resources\Fonts\LIBERATION-LICENSE.txt" Pack="true"
           PackagePath="\" />
+    <None Update="Filters\Jbig2\LICENSE.txt" Pack="true"
+          PackagePath="third_party\jbig2\LICENSE.txt" />
+    <None Update="Filters\Jbig2\NOTICE.txt" Pack="true"
+          PackagePath="third_party\jbig2\NOTICE.txt" />
     <EmbeddedResource Include="Resources\Fonts\Liberation*.ttf"
                       LogicalName="KillerPdf.Engine.Fonts.%(Filename)%(Extension)" />
   </ItemGroup>
