@@ -141,7 +141,9 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             PdfCrossReferenceSection primary = PdfCrossReferenceReader.ReadSection(
                 source, currentOffset.Value, compatibilityRecovery);
             long? previousOffset = primary.PreviousOffset;
-            if (compatibilityRecovery && previousOffset >= source.Length)
+            if (compatibilityRecovery
+                && (previousOffset == 0 && currentOffset.Value != 0
+                    || previousOffset >= source.Length))
                 previousOffset = null;
             if (previousOffset > currentOffset.Value
                 && !compatibilityRecovery

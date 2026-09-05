@@ -184,13 +184,52 @@ public sealed class PdfDocument
     {
         ArgumentNullException.ThrowIfNull(reference);
         if (!CrossReferences.TryGetValue(reference.ObjectNumber, out PdfCrossReferenceEntry entry))
-            return PdfNull.Instance;
+            return ResolveMissingReference(reference);
 
         int currentGeneration = entry.Type == PdfCrossReferenceEntryType.InUse ? entry.Field2 : 0;
         if (entry.Type is PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed
             && reference.Generation != currentGeneration)
             return PdfNull.Instance;
         return ResolveEntry(entry);
+    }
+
+    private PdfObject ResolveMissingReference(PdfIndirectReference reference)
+    {
+        if (!_compatibilityRecovery)
+            return PdfNull.Instance;
+
+        byte[] header = Encoding.ASCII.GetBytes(
+            $"{reference.ObjectNumber} {reference.Generation} obj");
+        ReadOnlySpan<byte> source = _source.Span;
+        var candidates = new List<int>();
+        int searchStart = 0;
+        while (searchStart + header.Length <= source.Length)
+        {
+            int relative = source[searchStart..].IndexOf(header);
+            if (relative < 0)
+                break;
+            int candidate = searchStart + relative;
+            if ((candidate == 0 || IsObjectBoundary(source[candidate - 1]))
+                && (candidate + header.Length == source.Length
+                    || IsObjectBoundary(source[candidate + header.Length])))
+                candidates.Add(candidate);
+            searchStart = candidate + 1;
+        }
+
+        for (int index = candidates.Count - 1; index >= 0; index--)
+        {
+            var recovered = new PdfCrossReferenceEntry(
+                reference.ObjectNumber, PdfCrossReferenceEntryType.InUse,
+                candidates[index], reference.Generation);
+            try
+            {
+                return ResolveEntry(recovered);
+            }
+            catch (PdfSyntaxException)
+            {
+            }
+        }
+        return PdfNull.Instance;
     }
 
     private PdfObject ResolveEntry(PdfCrossReferenceEntry entry)
@@ -264,9 +303,9 @@ public sealed class PdfDocument
             foreach (int candidate in new[] { offset + distance, offset - distance })
             {
                 if (candidate < 0 || candidate + header.Length > _source.Length
-                    || candidate > 0 && !IsBoundary(_source.Span[candidate - 1])
+                    || candidate > 0 && !IsObjectBoundary(_source.Span[candidate - 1])
                     || candidate + header.Length < _source.Length
-                        && !IsBoundary(_source.Span[candidate + header.Length])
+                        && !IsObjectBoundary(_source.Span[candidate + header.Length])
                     || !_source.Span.Slice(candidate, header.Length).SequenceEqual(header))
                     continue;
                 return candidate;
@@ -274,10 +313,12 @@ public sealed class PdfDocument
         }
         return null;
 
-        static bool IsBoundary(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32
+    }
+
+    private static bool IsObjectBoundary(byte value) =>
+        value is 0 or 9 or 10 or 12 or 13 or 32
             or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
             or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
-    }
 
     private long ResolveStreamLength(PdfIndirectReference reference)
     {

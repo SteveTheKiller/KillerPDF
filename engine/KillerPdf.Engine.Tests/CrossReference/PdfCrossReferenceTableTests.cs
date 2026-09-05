@@ -93,6 +93,22 @@ public sealed class PdfCrossReferenceTableTests
     }
 
     [Fact]
+    public void Read_CompatibilityRecoveryTreatsZeroPreviousOffsetAsNoPreviousRevision()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 1\n0000000000 65535 f\n");
+        source.Append("trailer\n<< /Size 1 /Prev 0 >>\n");
+        source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceTable.Read(Encoding.ASCII.GetBytes(source.ToString())));
+        Assert.Single(PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true)
+            .Sections);
+    }
+
+    [Fact]
     public void Read_CompatibilityRecoveryUsesPreviousReferenceObjectNumberAsOffset()
     {
         var source = new StringBuilder("%PDF-2.0\n");
