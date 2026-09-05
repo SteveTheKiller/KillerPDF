@@ -804,6 +804,41 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ResolvesNamedPatternColorSpaces()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes(
+                "/CS1 cs /P1 scn 0 0 5 10 re f /CS2 CS /P1 SCN 1 w 7 1 2 8 re S"))
+            .Build());
+        var function = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(0, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(1, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function),
+            new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
+                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))]);
+        PdfDocument document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0));
+        document = AddPageColorSpaceResources(document,
+            new KeyValuePair<PdfName, PdfObject>(Name("CS1"),
+                new PdfArray(new PdfObject[] { Name("Pattern") })),
+            new KeyValuePair<PdfName, PdfObject>(Name("CS2"),
+                new PdfArray(new PdfObject[] { Name("Pattern"), Name("DeviceRGB") })));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 13, 255], Pixel(rendered, 0, 5));
+        Assert.Equal([0, 0, 191, 255], Pixel(rendered, 7, 1));
+        Assert.DoesNotContain("Pattern rendering is not implemented.", rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsMultiStopAxialShadings()
     {
         var shading = new PdfAxialGradient(0, 0, 10, 0,
@@ -1923,6 +1958,11 @@ public sealed class PdfPageRendererTests
 
     private static PdfDocument AddPageColorSpaceResource(
         PdfDocument source, string name, PdfObject value)
+        => AddPageColorSpaceResources(source,
+            new KeyValuePair<PdfName, PdfObject>(Name(name), value));
+
+    private static PdfDocument AddPageColorSpaceResources(PdfDocument source,
+        params KeyValuePair<PdfName, PdfObject>[] values)
     {
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
         PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
@@ -1930,8 +1970,7 @@ public sealed class PdfPageRendererTests
             Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
         PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
         PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
-        var colorSpaces = new PdfDictionary([
-            new KeyValuePair<PdfName, PdfObject>(Name(name), value)]);
+        var colorSpaces = new PdfDictionary(values);
         var updatedResources = new PdfDictionary(resources
             .Where(entry => !entry.Key.Equals(Name("ColorSpace")))
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpaces)));

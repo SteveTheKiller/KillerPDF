@@ -169,28 +169,6 @@ public sealed class PdfPageRenderer
                         FillPattern = null
                     };
                     break;
-                case "cs" when values.Count == 1 && values[0] is PdfName fillSpace
-                    && fillSpace.ValueAsLatin1() == "Pattern":
-                    state = state with
-                    {
-                        FillPatternSpace = true,
-                        FillColorSpace = null,
-                        FillPatternBase = null,
-                        FillPattern = null
-                    };
-                    break;
-                case "cs" when values.Count == 1 && values[0] is PdfArray patternSpace
-                    && patternSpace.Count == 2
-                    && Resolve(patternSpace[0]) is PdfName patternKind
-                    && patternKind.ValueAsLatin1() == "Pattern":
-                    state = state with
-                    {
-                        FillPatternSpace = true,
-                        FillColorSpace = null,
-                        FillPatternBase = ReadColorSpace(patternSpace[1], resources, 0),
-                        FillPattern = null
-                    };
-                    break;
                 case "scn" when state.FillPatternSpace && values.Count > 0
                     && values[^1] is PdfName fillPatternName:
                     if (!TryGetPattern(resources, fillPatternName,
@@ -214,13 +192,27 @@ public sealed class PdfPageRenderer
                     };
                     break;
                 case "cs" when values.Count == 1:
-                    state = state with
+                    if (TryReadPatternColorSpace(values[0], resources,
+                        out ImageColorSpace? fillPatternBase))
                     {
-                        FillColorSpace = ReadColorSpace(values[0], resources, 0),
-                        FillPatternSpace = false,
-                        FillPatternBase = null,
-                        FillPattern = null
-                    };
+                        state = state with
+                        {
+                            FillPatternSpace = true,
+                            FillColorSpace = null,
+                            FillPatternBase = fillPatternBase,
+                            FillPattern = null
+                        };
+                    }
+                    else
+                    {
+                        state = state with
+                        {
+                            FillColorSpace = ReadColorSpace(values[0], resources, 0),
+                            FillPatternSpace = false,
+                            FillPatternBase = null,
+                            FillPattern = null
+                        };
+                    }
                     break;
                 case "sc" or "scn" when !state.FillPatternSpace
                     && state.FillColorSpace is not null:
@@ -260,36 +252,28 @@ public sealed class PdfPageRenderer
                         StrokePattern = null
                     };
                     break;
-                case "CS" when values.Count == 1 && values[0] is PdfName strokeSpace
-                    && strokeSpace.ValueAsLatin1() == "Pattern":
-                    state = state with
-                    {
-                        StrokePatternSpace = true,
-                        StrokeColorSpace = null,
-                        StrokePatternBase = null,
-                        StrokePattern = null
-                    };
-                    break;
-                case "CS" when values.Count == 1 && values[0] is PdfArray strokePatternSpace
-                    && strokePatternSpace.Count == 2
-                    && Resolve(strokePatternSpace[0]) is PdfName strokePatternKind
-                    && strokePatternKind.ValueAsLatin1() == "Pattern":
-                    state = state with
-                    {
-                        StrokePatternSpace = true,
-                        StrokeColorSpace = null,
-                        StrokePatternBase = ReadColorSpace(strokePatternSpace[1], resources, 0),
-                        StrokePattern = null
-                    };
-                    break;
                 case "CS" when values.Count == 1:
-                    state = state with
+                    if (TryReadPatternColorSpace(values[0], resources,
+                        out ImageColorSpace? strokePatternBase))
                     {
-                        StrokeColorSpace = ReadColorSpace(values[0], resources, 0),
-                        StrokePatternSpace = false,
-                        StrokePatternBase = null,
-                        StrokePattern = null
-                    };
+                        state = state with
+                        {
+                            StrokePatternSpace = true,
+                            StrokeColorSpace = null,
+                            StrokePatternBase = strokePatternBase,
+                            StrokePattern = null
+                        };
+                    }
+                    else
+                    {
+                        state = state with
+                        {
+                            StrokeColorSpace = ReadColorSpace(values[0], resources, 0),
+                            StrokePatternSpace = false,
+                            StrokePatternBase = null,
+                            StrokePattern = null
+                        };
+                    }
                     break;
                 case "SC" or "SCN" when !state.StrokePatternSpace
                     && state.StrokeColorSpace is not null:
@@ -1411,6 +1395,34 @@ public sealed class PdfPageRenderer
         if (!dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value))
             throw new NotSupportedException();
         return ReadColorSpace(value, resources, 0);
+    }
+
+    private bool TryReadPatternColorSpace(PdfObject value, PdfDictionary resources,
+        out ImageColorSpace? baseSpace, int depth = 0)
+    {
+        if (depth > 16) throw new FormatException("A pattern color-space reference is cyclic.");
+        PdfObject resolved = Resolve(value);
+        if (resolved is PdfName name)
+        {
+            if (name.ValueAsLatin1() == "Pattern")
+            {
+                baseSpace = null;
+                return true;
+            }
+            if (resources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
+                && Resolve(spacesValue) is PdfDictionary spaces
+                && spaces.TryGetValue(name, out PdfObject? namedValue))
+                return TryReadPatternColorSpace(namedValue, resources, out baseSpace, depth + 1);
+        }
+        else if (resolved is PdfArray { Count: 1 or 2 } array
+            && Resolve(array[0]) is PdfName kind
+            && kind.ValueAsLatin1() == "Pattern")
+        {
+            baseSpace = array.Count == 2 ? ReadColorSpace(array[1], resources, depth + 1) : null;
+            return true;
+        }
+        baseSpace = null;
+        return false;
     }
 
     private ImageColorSpace ReadColorSpace(
