@@ -1018,8 +1018,62 @@ public sealed class PdfPageRenderer
                     ? Resolve(resourceValue) as PdfDictionary
                         ?? throw new FormatException("Form XObject resources are not a dictionary.")
                     : inheritedResources;
-                Process(ReadStreamInstructions(form, cancellationToken),
-                    formResources, formState, depth + 1);
+                PdfDictionary? group = form.Dictionary.TryGetValue(Name("Group"),
+                        out PdfObject? groupValue)
+                    ? Resolve(groupValue) as PdfDictionary : null;
+                bool transparencyGroup = group is not null
+                    && IsName(group, "S", "Transparency");
+                bool isolated = transparencyGroup
+                    && group!.TryGetValue(Name("I"), out PdfObject? isolatedValue)
+                    && Resolve(isolatedValue) is PdfBoolean { Value: true };
+                bool knockout = transparencyGroup
+                    && group!.TryGetValue(Name("K"), out PdfObject? knockoutValue)
+                    && Resolve(knockoutValue) is PdfBoolean { Value: true };
+                if (knockout)
+                {
+                    diagnostics.Add("Transparency knockout-group rendering is not implemented.");
+                    return;
+                }
+                if (!isolated)
+                {
+                    Process(ReadStreamInstructions(form, cancellationToken),
+                        formResources, formState, depth + 1);
+                    return;
+                }
+
+                byte[] pagePixels = pixels;
+                byte[] groupPixels = new byte[pixels.Length];
+                try
+                {
+                    pixels = groupPixels;
+                    Process(ReadStreamInstructions(form, cancellationToken), formResources,
+                        formState with
+                        {
+                            FillAlpha = 1,
+                            StrokeAlpha = 1,
+                            BlendMode = RendererBlendMode.Normal,
+                            GraphicsSoftMask = null
+                        }, depth + 1);
+                }
+                finally
+                {
+                    pixels = pagePixels;
+                }
+                for (int y = 0; y < options.Height; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    for (int x = 0; x < options.Width; x++)
+                    {
+                        int offset = (y * options.Width + x) * 4;
+                        byte alpha = groupPixels[offset + 3];
+                        if (alpha == 0) continue;
+                        SetPixel(pagePixels, options.Width, x, y,
+                            new Color(groupPixels[offset + 2], groupPixels[offset + 1],
+                                groupPixels[offset]),
+                            alpha / 255d * parentState.FillAlpha, parentState.BlendMode,
+                            parentState.GraphicsSoftMask);
+                    }
+                }
             }
             finally
             {
