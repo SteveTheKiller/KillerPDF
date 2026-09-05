@@ -123,6 +123,21 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void ExplicitSpaceGlyphRemainsBlankWhenToUnicodeMapsAControlCharacter()
+    {
+        var encoding = D(("BaseEncoding", N("WinAnsiEncoding")),
+            ("Differences", new PdfArray([new PdfInteger(2), N("space")])));
+        var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("Times-Roman")),
+            ("Encoding", encoding), ("FirstChar", new PdfInteger(2)),
+            ("Widths", new PdfArray([new PdfInteger(250)])),
+            ("ToUnicode", Stream("1 begincodespacerange <00> <FF> endcodespacerange "
+                + "1 beginbfchar <02> <0002> endbfchar"))));
+
+        Assert.Equal("\u0002", Assert.Single(font.Decode(new byte[] { 2 })).Text);
+        Assert.Empty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(2)).Contours);
+    }
+
+    [Fact]
     public void SimpleFontUsesOneByteCodesDespiteIncorrectDeclaredToUnicodeCodeSpace()
     {
         var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),

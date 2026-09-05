@@ -264,6 +264,9 @@ public static class PdfFontResourceReader
                 }
                 return new PdfGlyphOutline(contours.AsReadOnly());
             }
+            PdfGlyphOutline? BlankOutline(uint code) => !composite
+                && code < glyphNames.Length && glyphNames[code] == "space"
+                    ? new PdfGlyphOutline(Array.Empty<PdfGlyphContour>()) : null;
             return new PdfExtractionFont(unicode, widths,
                 defaultWidth)
             {
@@ -296,6 +299,7 @@ public static class PdfFontResourceReader
                         ? type1?.GetOutline(glyphNames[code]) : null)
                     ?? (SubstituteGlyph(code) is ushort substituteGlyph && substituteGlyph != 0
                         ? substituteOutlines?.Outline(substituteGlyph) : null)
+                    ?? BlankOutline(code)
             };
         }
 
