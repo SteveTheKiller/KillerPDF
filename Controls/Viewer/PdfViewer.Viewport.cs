@@ -557,7 +557,8 @@ namespace KillerPDF.Controls
                             continue;
                         }
 
-                        renderSession ??= PdfPageRenderSession.Open(currentFile, renderW, renderW * 2);
+                        renderSession ??= PdfPageRenderSession.OpenEngineFirst(
+                            currentFile, renderW, renderW * 2);
                         PdfRenderedPage rendered = renderSession.RenderPage(i, includeFormFields: false);
                         int w = rendered.Width;
                         int h = rendered.Height;
@@ -789,7 +790,8 @@ namespace KillerPDF.Controls
                     foreach (int p in work)
                     {
                         if (cts.IsCancellationRequested) return;
-                        renderSession ??= PdfPageRenderSession.Open(currentFile, hiW, hiW * 2);
+                        renderSession ??= PdfPageRenderSession.OpenEngineFirst(
+                            currentFile, hiW, hiW * 2);
                         PdfRenderedPage rendered = renderSession.RenderPage(p, includeFormFields: false);
                         int w = rendered.Width, h = rendered.Height;
                         byte[] raw = rendered.Pixels;
@@ -870,7 +872,8 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    using var renderSession = PdfPageRenderSession.Open(_currentFile, scaledMax, scaledMax);
+                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                        _currentFile, scaledMax, scaledMax);
                     PdfRenderedPage rendered = renderSession.RenderPage(pageIndex, includeFormFields: false);
                     width = rendered.Width;
                     height = rendered.Height;
@@ -1180,7 +1183,8 @@ namespace KillerPDF.Controls
                             // tile, which read as "the grid's last column never refreshed".
                             try
                             {
-                                renderSession ??= PdfPageRenderSession.Open(currentFile, secondaryMax, secondaryMax);
+                                renderSession ??= PdfPageRenderSession.OpenEngineFirst(
+                                    currentFile, secondaryMax, secondaryMax);
                                 PdfRenderedPage rendered = renderSession.RenderPage(i, includeFormFields: false);
                                 int w = rendered.Width;
                                 int h = rendered.Height;

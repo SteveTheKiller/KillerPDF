@@ -181,6 +181,24 @@ public sealed class RenderBoundaryTests
         Assert.DoesNotContain("using Docnet.", source, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void LiveViewerUsesTheEngineFirstRenderSessionWithStickyPageFallback()
+    {
+        string root = FindRepositoryRoot();
+        string viewer = File.ReadAllText(
+            Path.Combine(root, "Controls", "Viewer", "PdfViewer.Viewport.cs"));
+        string boundary = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
+
+        Assert.Equal(4, Count(viewer, "PdfPageRenderSession.OpenEngineFirst("));
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", viewer,
+            StringComparison.Ordinal);
+        Assert.Contains("_nativeFallbackPages.Add(pageIndex)", boundary,
+            StringComparison.Ordinal);
+        Assert.Contains("!_nativeFallbackPages.Contains(pageIndex)", boundary,
+            StringComparison.Ordinal);
+    }
+
     private static int Count(string source, string value)
     {
         int count = 0;

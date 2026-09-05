@@ -23,6 +23,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     private readonly int _maximumHeight;
     private readonly double _scale;
     private readonly bool _allowNativeFallback;
+    private readonly HashSet<int> _nativeFallbackPages = [];
 
     private PdfPageRenderSession(string path, Docnet.Core.Readers.IDocReader reader)
     {
@@ -108,7 +109,8 @@ internal sealed class PdfPageRenderSession : IDisposable
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground = false,
         bool includeFormFields = true, bool removeTransparencyOnFallback = false)
     {
-        if (_engineRenderer is not null && _enginePages is not null)
+        if (_engineRenderer is not null && _enginePages is not null
+            && !_nativeFallbackPages.Contains(pageIndex))
         {
             try
             {
@@ -117,6 +119,7 @@ internal sealed class PdfPageRenderSession : IDisposable
             catch (Exception exception) when (_allowNativeFallback
                 && exception is not OutOfMemoryException)
             {
+                _nativeFallbackPages.Add(pageIndex);
             }
         }
 
