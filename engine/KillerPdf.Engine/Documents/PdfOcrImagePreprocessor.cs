@@ -77,31 +77,38 @@ public static class PdfOcrImagePreprocessor
     private static byte[] AdaptiveThreshold(byte[] source, int width, int height,
         CancellationToken cancellationToken)
     {
-        int stride = width + 1;
-        long[] integral = new long[checked(stride * (height + 1))];
-        for (int y = 0; y < height; y++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            long row = 0;
-            for (int x = 0; x < width; x++)
-            {
-                row += source[y * width + x];
-                integral[(y + 1) * stride + x + 1] = integral[y * stride + x + 1] + row;
-            }
-        }
         byte[] result = new byte[source.Length];
         int radius = Math.Clamp(Math.Min(width, height) / 32, 4, 32);
+        var columns = new int[width];
+        int initialBottom = Math.Min(height, radius + 1);
+        for (int row = 0; row < initialBottom; row++)
+            for (int x = 0; x < width; x++)
+                columns[x] += source[row * width + x];
         for (int y = 0; y < height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (y > 0)
+            {
+                int removed = y - radius - 1;
+                if (removed >= 0)
+                    for (int x = 0; x < width; x++)
+                        columns[x] -= source[removed * width + x];
+                int added = y + radius;
+                if (added < height)
+                    for (int x = 0; x < width; x++)
+                        columns[x] += source[added * width + x];
+            }
             int top = Math.Max(0, y - radius), bottom = Math.Min(height, y + radius + 1);
+            int right = Math.Min(width, radius + 1);
+            long sum = 0;
+            for (int column = 0; column < right; column++) sum += columns[column];
             for (int x = 0; x < width; x++)
             {
-                int left = Math.Max(0, x - radius), right = Math.Min(width, x + radius + 1);
-                long sum = integral[bottom * stride + right] - integral[top * stride + right]
-                    - integral[bottom * stride + left] + integral[top * stride + left];
+                int left = Math.Max(0, x - radius);
                 int mean = (int)(sum / ((right - left) * (bottom - top)));
                 result[y * width + x] = source[y * width + x] < mean - 12 ? (byte)0 : (byte)255;
+                if (x - radius >= 0) sum -= columns[x - radius];
+                if (right < width) sum += columns[right++];
             }
         }
         return result;

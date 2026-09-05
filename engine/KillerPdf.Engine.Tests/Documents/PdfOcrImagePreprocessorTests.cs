@@ -37,6 +37,43 @@ public sealed class PdfOcrImagePreprocessorTests
     }
 
     [Fact]
+    public void PrepareBgra_AdaptiveThresholdMatchesBoundedNeighborhoodMeans()
+    {
+        const int width = 19, height = 13;
+        var gray = new byte[width * height];
+        var bgra = new byte[gray.Length * 4];
+        for (int index = 0; index < gray.Length; index++)
+        {
+            byte value = gray[index] = (byte)((index * 37 + index / width * 19) % 256);
+            int offset = index * 4;
+            bgra[offset] = bgra[offset + 1] = bgra[offset + 2] = value;
+            bgra[offset + 3] = 255;
+        }
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: true, removeNoise: false,
+            detectPageSegments: false);
+
+        PdfOcrPreparedImage image = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, width, height, options);
+
+        const int radius = 4;
+        var expected = new byte[gray.Length];
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                int left = Math.Max(0, x - radius), right = Math.Min(width, x + radius + 1);
+                int top = Math.Max(0, y - radius), bottom = Math.Min(height, y + radius + 1);
+                long sum = 0;
+                for (int yy = top; yy < bottom; yy++)
+                    for (int xx = left; xx < right; xx++) sum += gray[yy * width + xx];
+                int mean = (int)(sum / ((right - left) * (bottom - top)));
+                expected[y * width + x] = gray[y * width + x] < mean - 12
+                    ? (byte)0 : (byte)255;
+            }
+        Assert.Equal(expected, image.Pixels.ToArray());
+    }
+
+    [Fact]
     public void PrepareBgra_DeskewsSlantedTextRows()
     {
         const int width = 41, height = 21;
