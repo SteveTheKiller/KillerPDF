@@ -1209,11 +1209,18 @@ public sealed class PdfPageRenderer
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
         int bits = imageMask ? 1 : PositiveInteger(stream.Dictionary, "BitsPerComponent");
+        bool jpeg2000 = IsSoleJpeg2000Filter(stream.Dictionary);
+        int embeddedMaskMode = jpeg2000
+            ? EmbeddedJpeg2000MaskMode(stream.Dictionary) : 0;
+        Jpeg2000Shape? jpeg2000Shape = jpeg2000
+            ? PdfJpeg2000Decoder.ReadShape(stream.EncodedData.Span) : null;
         ImageColorSpace colorSpace;
         try
         {
             colorSpace = imageMask ? new ImageColorSpace(1, null)
-                : ReadImageColorSpace(stream.Dictionary, resources);
+                : stream.Dictionary.ContainsKey(Name("ColorSpace"))
+                    ? ReadImageColorSpace(stream.Dictionary, resources)
+                    : InferJpeg2000ColorSpace(jpeg2000Shape, embeddedMaskMode);
         }
         catch (PdfFilterException)
         {
@@ -1233,6 +1240,7 @@ public sealed class PdfPageRenderer
         }
         byte[] samples;
         SoftMask? softMask;
+        Color? preblendMatte = null;
         double[] decode;
         int[]? colorKeyMask = null;
         PdfStream? explicitMask = null;
@@ -1256,13 +1264,22 @@ public sealed class PdfPageRenderer
         }
         try
         {
-            int expected = checked(((width * components * bits + 7) / 8) * height);
+            int encodedComponents = checked(components + (embeddedMaskMode == 0 ? 0 : 1));
+            if (jpeg2000Shape is Jpeg2000Shape shape
+                && (shape.Width != width || shape.Height != height
+                    || shape.Components != encodedComponents || shape.Bits != bits))
+                throw new FormatException("JPEG 2000 image metadata does not match its codestream.");
+            int expected = checked(((width * encodedComponents * bits + 7) / 8) * height);
             samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
             if (samples.Length != expected) throw new FormatException("Image sample data has an invalid length.");
-            softMask = ReadSoftMask(stream.Dictionary);
+            softMask = embeddedMaskMode == 0 ? null
+                : SeparateEmbeddedJpeg2000Alpha(ref samples, width, height, components, bits);
+            if (softMask is null) softMask = ReadSoftMask(stream.Dictionary);
             if (softMask is null && explicitMask is not null)
                 softMask = ReadExplicitImageMask(explicitMask);
             decode = ReadImageDecode(stream.Dictionary, colorSpace, imageMask);
+            if (embeddedMaskMode == 2)
+                preblendMatte = ReadPreblendMatte(stream.Dictionary, colorSpace);
         }
         catch (PdfFilterException)
         {
@@ -1280,8 +1297,70 @@ public sealed class PdfPageRenderer
             transform, samples, width, height, components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
-            cancellationToken);
+            cancellationToken, preblendMatte);
         return true;
+    }
+
+    private int EmbeddedJpeg2000MaskMode(PdfDictionary dictionary)
+    {
+        if (!dictionary.TryGetValue(Name("SMaskInData"), out PdfObject? value)) return 0;
+        if (Resolve(value) is not PdfInteger { Value: 0 or 1 or 2 } mode)
+            throw new FormatException("An image /SMaskInData value is invalid.");
+        return checked((int)mode.Value);
+    }
+
+    private bool IsSoleJpeg2000Filter(PdfDictionary dictionary)
+    {
+        if (!dictionary.TryGetValue(Name("Filter"), out PdfObject? value)) return false;
+        PdfObject resolved = Resolve(value);
+        if (resolved is PdfArray filters && filters.Count == 1) resolved = Resolve(filters[0]);
+        return resolved is PdfName name && name.ValueAsLatin1() is "JPXDecode" or "JPX";
+    }
+
+    private static ImageColorSpace InferJpeg2000ColorSpace(
+        Jpeg2000Shape? shape, int embeddedMaskMode)
+    {
+        int components = shape?.Components - (embeddedMaskMode == 0 ? 0 : 1) ?? 0;
+        return components switch
+        {
+            1 => new ImageColorSpace(1, null),
+            3 => new ImageColorSpace(3, null),
+            4 => new ImageColorSpace(4, null),
+            _ => throw new NotSupportedException()
+        };
+    }
+
+    private static SoftMask SeparateEmbeddedJpeg2000Alpha(
+        ref byte[] samples, int width, int height, int components, int bits)
+    {
+        int encodedComponents = checked(components + 1);
+        int sourceRowBytes = checked((width * encodedComponents * bits + 7) / 8);
+        int colorRowBytes = checked((width * components * bits + 7) / 8);
+        var colors = new byte[checked(colorRowBytes * height)];
+        var alpha = new byte[checked(width * height)];
+        uint maximum = (1u << bits) - 1;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                int sourcePixel = checked(y * sourceRowBytes * 8
+                    + x * encodedComponents * bits);
+                int colorPixel = checked(y * colorRowBytes * 8 + x * components * bits);
+                for (int component = 0; component < components; component++)
+                    WritePackedSample(colors, colorPixel + component * bits,
+                        bits, ReadPackedSample(samples, sourcePixel + component * bits, bits));
+                uint opacity = ReadPackedSample(
+                    samples, sourcePixel + components * bits, bits);
+                alpha[y * width + x] = (byte)Math.Round(opacity / (double)maximum * 255);
+            }
+        samples = colors;
+        return new SoftMask(alpha, width, height);
+    }
+
+    private Color ReadPreblendMatte(PdfDictionary dictionary, ImageColorSpace colorSpace)
+    {
+        if (!dictionary.TryGetValue(Name("Matte"), out PdfObject? value)) return Color.Black;
+        PdfArray matte = ResolveArray(value, colorSpace.Components, "Image matte array");
+        return colorSpace.Convert(matte.Select(item => Number(Resolve(item))).ToArray());
     }
 
     private ImageColorSpace ReadImageColorSpace(
@@ -2497,7 +2576,8 @@ public sealed class PdfPageRenderer
         IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
         SoftMask? softMask, double[] decode, int[]? colorKeyMask,
         ImageColorSpace colorSpace, Color stencilColor, double stencilAlpha,
-        RendererBlendMode blendMode, CancellationToken cancellationToken)
+        RendererBlendMode blendMode, CancellationToken cancellationToken,
+        Color? preblendMatte)
     {
         Point[] corners =
         [
@@ -2614,11 +2694,32 @@ public sealed class PdfPageRenderer
                     int maskY = Math.Min((int)((long)sy * softMask.Height / sourceHeight),
                         softMask.Height - 1);
                     byte maskSample = softMask.Samples[maskY * softMask.Width + maskX];
+                    if (preblendMatte.HasValue)
+                        color = UndoPreblend(color, preblendMatte.Value, maskSample);
                     alpha *= maskSample / 255d;
                 }
                 SetPixel(target, targetWidth, x, y, color, alpha, blendMode);
             }
         }
+    }
+
+    private static Color UndoPreblend(Color color, Color matte, byte alpha)
+    {
+        if (alpha == 0) return Color.White;
+        double factor = 255d / alpha;
+        return new Color(Channel(color.Red, matte.Red), Channel(color.Green, matte.Green),
+            Channel(color.Blue, matte.Blue));
+
+        byte Channel(byte value, byte matteValue) => checked((byte)Math.Clamp(
+            Math.Round((value - matteValue) * factor + matteValue), 0, 255));
+    }
+
+    private static void WritePackedSample(
+        byte[] target, int bitOffset, int bits, uint value)
+    {
+        for (int bit = bits - 1; bit >= 0; bit--, bitOffset++)
+            if ((value & (1u << bit)) != 0)
+                target[bitOffset / 8] |= (byte)(1 << (7 - bitOffset % 8));
     }
 
     private bool TryGetGraphicsState(PdfDictionary resources, PdfName resourceName,

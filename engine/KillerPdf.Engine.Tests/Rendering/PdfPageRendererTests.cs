@@ -1519,6 +1519,60 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Masked-image rendering is not implemented.", page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(2,
+        "AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAABPanAyaAAAABZpaGRyAAAAAQAAAAIABAcHAAAAAAAPY29scgEAAAAAABAAAAAiY2RlZgAEAAAAAAABAAEAAAACAAIAAAADAAMAAQAAAAAAnmpwMmP/T/9RADIAAAAAAAIAAAABAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAQHAQEHAQEHAQEHAQH/UgAMAAAAAQAABAQAAf9cAARAQP9kACUAAUNyZWF0ZWQgYnkgT3BlbkpQRUcgdmVyc2lvbiAyLjUuNP+QAAoAAAAAACMAAf+T34AQDF/fgBAJP9+AGAWxf8+0CAsX/9k=",
+        200, 0, 0)]
+    [InlineData(1,
+        "AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAABPanAyaAAAABZpaGRyAAAAAQAAAAIABAcHAAAAAAAPY29scgEAAAAAABAAAAAiY2RlZgAEAAAAAAABAAEAAAACAAIAAAADAAMAAQAAAAAAoGpwMmP/T/9RADIAAAAAAAIAAAABAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAQHAQEHAQEHAQEHAQH/UgAMAAAAAQAABAQAAf9cAARAQP9kACUAAUNyZWF0ZWQgYnkgT3BlbkpQRUcgdmVyc2lvbiAyLjUuNP+QAAoAAAAAACUAAf+T34AgC7KKf9+AGAWi3d+AEAk/z7QICxf/2Q==",
+        0, 255, 0)]
+    public void Render_UsesJpeg2000EmbeddedAlpha(
+        int maskMode, string encoded, byte blue, byte green, byte red)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(20, 10, new PdfContentStreamBuilder()
+                .SetFillGray(0.5).Rectangle(0, 0, 20, 10).Fill()
+                .DrawImage(PdfImage.FromRgb(2, 1, new byte[6]), 0, 0, 20, 10))
+            .Build());
+        PdfDocument filtered = AddImageDictionaryEntry(source, "Filter", Name("JPXDecode"),
+            Convert.FromBase64String(encoded));
+        PdfDocument document = AddImageDictionaryEntry(
+            filtered, "SMaskInData", new PdfInteger(maskMode));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([64, 64, 192, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([blue, green, red, (byte)255], Pixel(rendered, 15, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_InfersJpeg2000ColorSpaceWithEmbeddedAlpha()
+    {
+        const string encoded =
+            "AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAABPanAyaAAAABZpaGRyAAAAAQAAAAIABAcHAAAAAAAPY29scgEAAAAAABAAAAAiY2RlZgAEAAAAAAABAAEAAAACAAIAAAADAAMAAQAAAAAAnWpwMmP/T/9RADIAAAAAAAIAAAABAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAQHAQEHAQEHAQEHAQH/UgAMAAAAAQAABAQAAf9cAARAQP9kACUAAUNyZWF0ZWQgYnkgT3BlbkpQRUcgdmVyc2lvbiAyLjUuNP+QAAoAAAAAACIAAf+T34AQDF/fgBAMX8+0CAGv34AQDF//2Q==";
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder()
+                .SetFillGray(0.5).Rectangle(0, 0, 10, 10).Fill()
+                .DrawImage(PdfImage.FromRgb(2, 1, new byte[6]), 0, 0, 10, 10))
+            .Build());
+        PdfDocument filtered = AddImageDictionaryEntry(source, "Filter", Name("JPXDecode"),
+            Convert.FromBase64String(encoded));
+        PdfDocument masked = AddImageDictionaryEntry(
+            filtered, "SMaskInData", new PdfInteger(2));
+        PdfDocument withMatte = AddImageDictionaryEntry(
+            masked, "Matte", Reals(0, 0, 1));
+        PdfDocument document = RemoveImageDictionaryEntry(withMatte, "ColorSpace");
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([192, 192, 192, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([128, 128, 128, 255], Pixel(rendered, 7, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 
@@ -1551,6 +1605,24 @@ public sealed class PdfPageRendererTests
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(reference.ObjectNumber,
                 new PdfStream(dictionary, encodedData ?? image.EncodedData.ToArray())).Build());
+    }
+
+    private static PdfDocument RemoveImageDictionaryEntry(PdfDocument source, string name)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(xObjects[Name("Im1")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(reference));
+        PdfName entryName = Name(name);
+        var dictionary = new PdfDictionary(
+            image.Dictionary.Where(entry => !entry.Key.Equals(entryName)));
+        return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber,
+                new PdfStream(dictionary, image.EncodedData.ToArray())).Build());
     }
 
     private static PdfDocument ReplaceImageSoftMask(

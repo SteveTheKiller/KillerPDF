@@ -13,8 +13,9 @@ internal static class PdfJpeg2000Decoder
     {
         try
         {
+            Jpeg2000Shape shape = ReadShape(source.Span);
             (int expectedWidth, int expectedHeight, int expectedComponents, int expectedBits) =
-                ReadCodestreamShape(source.Span);
+                (shape.Width, shape.Height, shape.Components, shape.Bits);
             int expectedRowBytes = checked(
                 (expectedWidth * expectedComponents * expectedBits + 7) / 8);
             int expectedLength = checked(expectedRowBytes * expectedHeight);
@@ -83,7 +84,7 @@ internal static class PdfJpeg2000Decoder
         }
     }
 
-    private static (int Width, int Height, int Components, int Bits) ReadCodestreamShape(
+    internal static Jpeg2000Shape ReadShape(
         ReadOnlySpan<byte> source)
     {
         ReadOnlySpan<byte> codestream = LocateCodestream(source);
@@ -107,7 +108,8 @@ internal static class PdfJpeg2000Decoder
                 throw new PdfFilterException("JPEG 2000 components must use one supported sample depth.");
         if (bits is < 1 or > 16 || xSize - xOrigin > int.MaxValue || ySize - yOrigin > int.MaxValue)
             throw new PdfFilterException("JPEG 2000 data has unsupported codestream dimensions.");
-        return ((int)(xSize - xOrigin), (int)(ySize - yOrigin), components, bits);
+        return new Jpeg2000Shape(
+            (int)(xSize - xOrigin), (int)(ySize - yOrigin), components, bits);
     }
 
     private static ReadOnlySpan<byte> LocateCodestream(ReadOnlySpan<byte> source)
@@ -141,3 +143,6 @@ internal static class PdfJpeg2000Decoder
         throw new PdfFilterException("JPEG 2000 data has no codestream box.");
     }
 }
+
+internal readonly record struct Jpeg2000Shape(
+    int Width, int Height, int Components, int Bits);
