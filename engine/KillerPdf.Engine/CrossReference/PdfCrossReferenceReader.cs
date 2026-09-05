@@ -124,6 +124,11 @@ public static class PdfCrossReferenceReader
         PdfToken statusToken,
         bool compatibilityRecovery)
     {
+        if (compatibilityRecovery && objectNumber != 0 && field1 == 0 && field2 > 65_535
+            && IsKeyword(statusToken, "n"))
+            return new PdfCrossReferenceEntry(
+                objectNumber, PdfCrossReferenceEntryType.Null, 0, 0);
+
         if (objectNumber == 0 && compatibilityRecovery && IsKeyword(statusToken, "f"))
             field2 = 65_535;
         else if (field2 is < 0 or > 65_535)

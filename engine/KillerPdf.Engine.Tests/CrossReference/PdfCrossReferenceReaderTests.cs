@@ -140,6 +140,20 @@ public sealed class PdfCrossReferenceReaderTests
         Assert.Equal(65_535, entry.Field2);
     }
 
+    [Fact]
+    public void ReadSection_CompatibilityRecoveryIgnoresRetiredInUsePlaceholder()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "xref\n0 2\n0000000000 65535 f\n0000000000 65536 n\ntrailer\n<< /Size 2 >>");
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0));
+        PdfCrossReferenceEntry entry = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true)[1];
+
+        Assert.Equal(PdfCrossReferenceEntryType.Null, entry.Type);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
