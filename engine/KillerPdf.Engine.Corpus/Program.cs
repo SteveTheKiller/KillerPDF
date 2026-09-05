@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using KillerPdf.Engine.Validation;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Fonts;
@@ -162,6 +163,168 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
             if (current.Examples.Count < 3) current.Examples.Add(relative);
             signatures[signature] = (current.Count + 1, current.Examples);
         }
+    }
+}
+
+if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
+{
+    string ocrRoot = Path.GetFullPath(args[1]);
+    string modelPath = Path.GetFullPath(args[2]);
+    if (!Directory.Exists(ocrRoot))
+    {
+        Console.Error.WriteLine($"Directory not found: {ocrRoot}");
+        return 2;
+    }
+    if (File.Exists(modelPath))
+    {
+        Console.Error.WriteLine($"Output already exists: {modelPath}");
+        return 2;
+    }
+    int ocrMaximum = int.MaxValue, renderSize = 1600, pagesPerFile = 1;
+    int holdoutPercent = 10, modelWidth = 32, modelHeight = 32;
+    for (int index = 3; index < args.Length; index += 2)
+    {
+        if (index + 1 >= args.Length
+            || !int.TryParse(args[index + 1], out int value) || value < 1)
+        {
+            Console.Error.WriteLine("OCR corpus options require a positive integer value.");
+            return 2;
+        }
+        switch (args[index])
+        {
+            case "--max": ocrMaximum = value; break;
+            case "--size": renderSize = value; break;
+            case "--pages-per-file": pagesPerFile = value; break;
+            case "--holdout-percent" when value < 100: holdoutPercent = value; break;
+            case "--model-width" when value <= 128: modelWidth = value; break;
+            case "--model-height" when value <= 128: modelHeight = value; break;
+            default:
+                Console.Error.WriteLine($"Unknown or invalid OCR corpus option: {args[index]}");
+                return 2;
+        }
+    }
+
+    string[] ocrFiles = [.. Directory.EnumerateFiles(
+            ocrRoot, "*.pdf", SearchOption.AllDirectories)
+        .Order(StringComparer.OrdinalIgnoreCase).Take(ocrMaximum)];
+    if (ocrFiles.Length == 0)
+    {
+        Console.Error.WriteLine("The OCR corpus contains no PDF files.");
+        return 2;
+    }
+    var trainingStarted = Stopwatch.StartNew();
+    PdfOcrRecognitionModel ocrModel;
+    try
+    {
+        ocrModel = PdfOcrModelTrainer.Train(
+            modelWidth, modelHeight, Samples(selectHoldout: false, reportFailures: true));
+    }
+    catch (Exception error) when (error is not OutOfMemoryException)
+    {
+        Console.Error.WriteLine($"OCR training failed: {error.GetType().Name}: {error.Message}");
+        return 1;
+    }
+    PdfOcrModelEvaluation evaluation;
+    try
+    {
+        evaluation = PdfOcrModelTrainer.Evaluate(
+            ocrModel, Samples(selectHoldout: true, reportFailures: false));
+    }
+    catch (Exception error) when (error is not OutOfMemoryException)
+    {
+        Console.Error.WriteLine($"OCR holdout evaluation failed: "
+            + $"{error.GetType().Name}: {error.Message}");
+        return 1;
+    }
+    byte[] modelBytes = ocrModel.Save();
+    Directory.CreateDirectory(Path.GetDirectoryName(modelPath)!);
+    try
+    {
+        using var output = new FileStream(modelPath, FileMode.CreateNew,
+            FileAccess.Write, FileShare.None);
+        output.Write(modelBytes);
+    }
+    catch (IOException error)
+    {
+        Console.Error.WriteLine($"OCR model output failed: {error.Message}");
+        return 1;
+    }
+    Console.WriteLine($"OCR model: {ocrModel.Labels.Count:N0} labels, "
+        + $"{modelBytes.Length:N0} bytes, {evaluation.SampleCount:N0} holdout samples, "
+        + $"{evaluation.Accuracy:P2} accuracy, "
+        + $"{evaluation.AverageConfidence:P2} average confidence.");
+    foreach (PdfOcrConfusion confusion in evaluation.Confusion
+                 .Where(item => item.Expected != item.Predicted)
+                 .OrderByDescending(item => item.Count).Take(25))
+        Console.WriteLine($"  {confusion.Count:N0} x {confusion.Expected} -> {confusion.Predicted}");
+    Console.WriteLine($"OCR corpus training completed in "
+        + $"{trainingStarted.Elapsed.TotalSeconds:N1}s: {modelPath}");
+    return 0;
+
+    IEnumerable<PdfOcrTrainingSample> Samples(bool selectHoldout, bool reportFailures)
+    {
+        var options = new PdfOcrOptions(["und"], deskew: false,
+            correctOrientation: false, removeBackground: true, removeNoise: true,
+            detectPageSegments: false);
+        for (int fileIndex = 0; fileIndex < ocrFiles.Length; fileIndex++)
+        {
+            string file = ocrFiles[fileIndex];
+            string relative = Path.GetRelativePath(ocrRoot, file);
+            IReadOnlyList<PdfOcrTrainingSample>[] pages;
+            try
+            {
+                PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+                    File.ReadAllBytes(file));
+                IReadOnlyList<PdfPageInformation> information = PdfPageInformation.Read(document);
+                int pageCount = Math.Min(information.Count, pagesPerFile);
+                pages = new IReadOnlyList<PdfOcrTrainingSample>[pageCount];
+                for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
+                {
+                    PdfPageInformation page = information[pageIndex];
+                    bool quarterTurn = page.Rotation is 90 or 270;
+                    double pageWidth = quarterTurn ? page.Height : page.Width;
+                    double pageHeight = quarterTurn ? page.Width : page.Height;
+                    double scale = renderSize / Math.Max(pageWidth, pageHeight);
+                    int width = Math.Max(1, (int)Math.Round(pageWidth * scale));
+                    int height = Math.Max(1, (int)Math.Round(pageHeight * scale));
+                    pages[pageIndex] = PdfOcrModelTrainer.CreatePageSamples(
+                        document, pageIndex,
+                        new PdfRenderOptions(width, height, includeAnnotations: false,
+                            includeFormFields: false),
+                        options, modelWidth, modelHeight);
+                }
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                if (reportFailures)
+                    Console.WriteLine($"SKIP  {relative}: "
+                        + $"{error.GetType().Name}: {error.Message}");
+                continue;
+            }
+            for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++)
+                for (int sampleIndex = 0; sampleIndex < pages[pageIndex].Count; sampleIndex++)
+                {
+                    PdfOcrTrainingSample sample = pages[pageIndex][sampleIndex];
+                    if (Encoding.UTF8.GetByteCount(sample.Label) > 64) continue;
+                    if (IsHoldout(relative, pageIndex, sampleIndex) == selectHoldout)
+                        yield return sample;
+                }
+            if (reportFailures && ((fileIndex + 1) % 100 == 0 || fileIndex + 1 == ocrFiles.Length))
+                Console.WriteLine($"Sampled {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
+        }
+    }
+
+    bool IsHoldout(string relative, int pageIndex, int sampleIndex)
+    {
+        uint hash = 2166136261;
+        foreach (char value in relative)
+        {
+            hash ^= char.ToUpperInvariant(value);
+            hash *= 16777619;
+        }
+        hash = (hash ^ (uint)pageIndex) * 16777619;
+        hash = (hash ^ (uint)sampleIndex) * 16777619;
+        return hash % 100 < holdoutPercent;
     }
 }
 
@@ -2186,6 +2349,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");

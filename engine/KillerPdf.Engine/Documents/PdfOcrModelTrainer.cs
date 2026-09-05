@@ -102,10 +102,10 @@ public static class PdfOcrModelTrainer
             for (int feature = 0; feature < featureCount; feature++)
             {
                 double centroid = (double)(accumulator.Sums[feature] / accumulator.Count);
-                weights[offset + feature] = checked((float)(2 * centroid));
+                weights[offset + feature] = checked((float)(2 * centroid / featureCount));
                 squaredLength += centroid * centroid;
             }
-            biases[label] = checked((float)-squaredLength);
+            biases[label] = checked((float)(-squaredLength / featureCount));
         }
         return PdfOcrRecognitionModel.Create(
             width, height, orderedLabels, weights, biases);
