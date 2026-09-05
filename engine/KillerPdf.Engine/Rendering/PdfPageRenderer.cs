@@ -2157,6 +2157,16 @@ public sealed class PdfPageRenderer
             if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
                 || Resolve(typeValue) is not PdfInteger shadingType)
                 throw new NotSupportedException();
+            if (shadingType.Value == 4)
+                return resolved is PdfStream freeForm
+                    ? RenderFreeFormMeshShading(freeForm, resources, state, target,
+                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken)
+                    : throw new FormatException("A free-form mesh shading must be a stream.");
+            if (shadingType.Value == 5)
+                return resolved is PdfStream lattice
+                    ? RenderLatticeMeshShading(lattice, resources, state, target,
+                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken)
+                    : throw new FormatException("A lattice mesh shading must be a stream.");
             if (shadingType.Value == 7)
                 return resolved is PdfStream tensorPatch
                     ? RenderTensorPatchShading(tensorPatch, resources, state, target,
@@ -2225,6 +2235,150 @@ public sealed class PdfPageRenderer
             diagnostic = "The shading type or function is not implemented.";
             return false;
         }
+    }
+
+    private bool RenderFreeFormMeshShading(PdfStream stream, PdfDictionary resources,
+        GraphicsState state, byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY, CancellationToken cancellationToken)
+    {
+        MeshDecoder mesh = ReadMeshDecoder(
+            stream, resources, hasFlags: true, state.Transform);
+        var previous = new MeshVertex[3];
+        bool rendered = false;
+        while (mesh.HasData)
+        {
+            uint flag = mesh.ReadFlag();
+            if (flag == 0)
+            {
+                previous[0] = mesh.ReadVertex();
+                mesh.ReadFlag();
+                previous[1] = mesh.ReadVertex();
+                mesh.ReadFlag();
+                previous[2] = mesh.ReadVertex();
+            }
+            else if (flag == 1)
+            {
+                previous[0] = previous[1];
+                previous[1] = previous[2];
+                previous[2] = mesh.ReadVertex();
+            }
+            else if (flag == 2)
+            {
+                previous[1] = previous[2];
+                previous[2] = mesh.ReadVertex();
+            }
+            else throw new FormatException("A free-form mesh shading has an invalid edge flag.");
+            PaintMeshTriangle(previous[0], previous[1], previous[2], mesh, state, target,
+                targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
+            rendered = true;
+        }
+        return rendered;
+    }
+
+    private bool RenderLatticeMeshShading(PdfStream stream, PdfDictionary resources,
+        GraphicsState state, byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY, CancellationToken cancellationToken)
+    {
+        int verticesPerRow = checked((int)AssertInteger(stream.Dictionary, "VerticesPerRow"));
+        if (verticesPerRow < 2)
+            throw new FormatException("A lattice mesh shading has an invalid row width.");
+        MeshDecoder mesh = ReadMeshDecoder(
+            stream, resources, hasFlags: false, state.Transform);
+        var rows = new List<MeshVertex[]>();
+        while (mesh.HasData)
+        {
+            var row = new MeshVertex[verticesPerRow];
+            for (int column = 0; column < row.Length; column++)
+            {
+                if (!mesh.HasData)
+                    throw new FormatException("A lattice mesh shading has an incomplete row.");
+                row[column] = mesh.ReadVertex();
+            }
+            rows.Add(row);
+        }
+        for (int row = 1; row < rows.Count; row++)
+            for (int column = 1; column < verticesPerRow; column++)
+            {
+                PaintMeshTriangle(rows[row - 1][column - 1], rows[row - 1][column],
+                    rows[row][column], mesh, state, target, targetWidth, targetHeight,
+                    scaleX, scaleY, cancellationToken);
+                PaintMeshTriangle(rows[row - 1][column - 1], rows[row][column],
+                    rows[row][column - 1], mesh, state, target, targetWidth, targetHeight,
+                    scaleX, scaleY, cancellationToken);
+            }
+        return rows.Count >= 2;
+    }
+
+    private MeshDecoder ReadMeshDecoder(
+        PdfStream stream, PdfDictionary resources, bool hasFlags, Matrix transform)
+    {
+        PdfDictionary shading = stream.Dictionary;
+        if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
+            throw new FormatException("A mesh shading color space is missing.");
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
+        if (colorSpace.Palette is not null) throw new NotSupportedException();
+        int coordinateBits = PositiveInteger(shading, "BitsPerCoordinate");
+        int componentBits = PositiveInteger(shading, "BitsPerComponent");
+        int flagBits = hasFlags ? PositiveInteger(shading, "BitsPerFlag") : 0;
+        if (coordinateBits is not (1 or 2 or 4 or 8 or 12 or 16 or 24 or 32)
+            || componentBits is not (1 or 2 or 4 or 8 or 12 or 16)
+            || hasFlags && flagBits is not (2 or 4 or 8))
+            throw new NotSupportedException();
+        Func<double, Color>? function = shading.TryGetValue(Name("Function"),
+            out PdfObject? functionValue)
+            ? ReadColorFunction(functionValue, colorSpace, "mesh shading function") : null;
+        int dataComponents = function is null ? colorSpace.Components : 1;
+        double[] decode = ReadFunctionArray(shading, "Decode",
+            4 + dataComponents * 2, required: true, defaultValues: []);
+        if (decode.Any(value => !double.IsFinite(value)))
+            throw new FormatException("A mesh shading decode array is invalid.");
+        return new MeshDecoder(PdfStreamDecoder.Decode(stream, _document.Resolve),
+            coordinateBits, componentBits, flagBits, decode, dataComponents,
+            colorSpace, function, transform);
+    }
+
+    private static void PaintMeshTriangle(MeshVertex first, MeshVertex second,
+        MeshVertex third, MeshDecoder mesh, GraphicsState state, byte[] target, int targetWidth,
+        int targetHeight, double scaleX, double scaleY,
+        CancellationToken cancellationToken)
+    {
+        double area = Edge(first.Point, second.Point, third.Point.X, third.Point.Y);
+        if (Math.Abs(area) < 1e-12) return;
+        double minimumX = Math.Min(first.Point.X, Math.Min(second.Point.X, third.Point.X));
+        double maximumX = Math.Max(first.Point.X, Math.Max(second.Point.X, third.Point.X));
+        double minimumY = Math.Min(first.Point.Y, Math.Min(second.Point.Y, third.Point.Y));
+        double maximumY = Math.Max(first.Point.Y, Math.Max(second.Point.Y, third.Point.Y));
+        if (maximumX <= 0 || minimumX >= targetWidth / scaleX
+            || maximumY <= 0 || minimumY >= targetHeight / scaleY) return;
+        int left = Math.Clamp((int)Math.Floor(minimumX * scaleX), 0, targetWidth - 1);
+        int right = Math.Clamp((int)Math.Ceiling(maximumX * scaleX), 0, targetWidth - 1);
+        int top = Math.Clamp(targetHeight - (int)Math.Ceiling(maximumY * scaleY),
+            0, targetHeight - 1);
+        int bottom = Math.Clamp(targetHeight - (int)Math.Floor(minimumY * scaleY),
+            0, targetHeight - 1);
+        for (int y = top; y <= bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int x = left; x <= right; x++)
+            {
+                double pageX = (x + 0.5) / scaleX;
+                double pageY = (targetHeight - y - 0.5) / scaleY;
+                if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                double a = Edge(second.Point, third.Point, pageX, pageY) / area;
+                double b = Edge(third.Point, first.Point, pageX, pageY) / area;
+                double c = 1 - a - b;
+                if (a < -1e-9 || b < -1e-9 || c < -1e-9) continue;
+                var values = new double[first.Values.Length];
+                for (int component = 0; component < values.Length; component++)
+                    values[component] = first.Values[component] * a
+                        + second.Values[component] * b + third.Values[component] * c;
+                Color color = mesh.Convert(values);
+                SetPixel(target, targetWidth, x, y, color, state.FillAlpha, state.BlendMode);
+            }
+        }
+
+        static double Edge(Point from, Point to, double x, double y) =>
+            (to.X - from.X) * (y - from.Y) - (to.Y - from.Y) * (x - from.X);
     }
 
     private bool RenderTensorPatchShading(PdfStream stream, PdfDictionary resources,
@@ -3608,6 +3762,52 @@ public sealed class PdfPageRenderer
     private sealed record SoftMask(byte[] Samples, int Width, int Height);
     private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,
         Matrix Matrix, Color? BaseColor);
+    private readonly record struct MeshVertex(Point Point, double[] Values);
+    private sealed class MeshDecoder(
+        byte[] source, int coordinateBits, int componentBits, int flagBits,
+        double[] decode, int dataComponents, ImageColorSpace colorSpace,
+        Func<double, Color>? function, Matrix transform)
+    {
+        private int _bitOffset;
+        private int VertexBits => checked(coordinateBits * 2 + componentBits * dataComponents);
+        internal bool HasData => source.Length * 8 - _bitOffset
+            >= VertexBits + (flagBits == 0 ? 0 : flagBits);
+
+        internal uint ReadFlag()
+        {
+            if (flagBits == 0) throw new InvalidOperationException();
+            return Read(flagBits);
+        }
+
+        internal MeshVertex ReadVertex()
+        {
+            double x = Decode(Read(coordinateBits), coordinateBits, decode[0], decode[1]);
+            double y = Decode(Read(coordinateBits), coordinateBits, decode[2], decode[3]);
+            var values = new double[dataComponents];
+            for (int component = 0; component < values.Length; component++)
+                values[component] = Decode(Read(componentBits), componentBits,
+                    decode[4 + component * 2], decode[5 + component * 2]);
+            return new MeshVertex(transform.Apply(x, y), values);
+        }
+
+        internal Color Convert(double[] values) =>
+            function is null ? colorSpace.Convert(values) : function(values[0]);
+
+        private uint Read(int bits)
+        {
+            if (_bitOffset + bits > source.Length * 8)
+                throw new FormatException("A mesh shading stream is truncated.");
+            uint value = ReadPackedSample(source, _bitOffset, bits);
+            _bitOffset += bits;
+            return value;
+        }
+
+        private static double Decode(uint value, int bits, double minimum, double maximum)
+        {
+            double limit = bits == 32 ? uint.MaxValue : (1u << bits) - 1u;
+            return minimum + value / limit * (maximum - minimum);
+        }
+    }
     private sealed record CalculatorInstruction(double? Number, string? Operator);
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
         Func<double, double, double, double, Color>? Converter = null,
