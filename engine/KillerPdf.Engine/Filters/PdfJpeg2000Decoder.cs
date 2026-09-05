@@ -10,30 +10,42 @@ internal static class PdfJpeg2000Decoder
     private const long MaximumTemporarySampleBytes = 256L * 1024 * 1024;
 
     internal static byte[] Decode(ReadOnlyMemory<byte> source, int maximumDecodedBytes)
+        => DecodeImage(source, maximumDecodedBytes, -1).Samples;
+
+    internal static Jpeg2000DecodedImage DecodeImage(
+        ReadOnlyMemory<byte> source, int maximumDecodedBytes, int resolutionLevel)
     {
         try
         {
             Jpeg2000Shape shape = ReadShape(source.Span);
             (int expectedWidth, int expectedHeight, int expectedComponents, int expectedBits) =
                 (shape.Width, shape.Height, shape.Components, shape.Bits);
+            if (resolutionLevel < -1 || resolutionLevel >= shape.ResolutionLevels)
+                throw new PdfFilterException("JPEG 2000 resolution level is invalid.");
+            int selectedLevel = resolutionLevel < 0
+                ? shape.ResolutionLevels - 1 : resolutionLevel;
+            int reduction = shape.ResolutionLevels - 1 - selectedLevel;
+            int decodedWidth = ReducedDimension(shape.XSize, shape.XOrigin, reduction);
+            int decodedHeight = ReducedDimension(shape.YSize, shape.YOrigin, reduction);
             int expectedRowBytes = checked(
-                (expectedWidth * expectedComponents * expectedBits + 7) / 8);
-            int expectedLength = checked(expectedRowBytes * expectedHeight);
+                (decodedWidth * expectedComponents * expectedBits + 7) / 8);
+            int expectedLength = checked(expectedRowBytes * decodedHeight);
             if (expectedLength > maximumDecodedBytes)
                 throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
             long temporaryBytes = checked(
-                (long)expectedWidth * expectedHeight * expectedComponents * sizeof(int));
+                (long)decodedWidth * decodedHeight * expectedComponents * sizeof(int));
             if (temporaryBytes > MaximumTemporarySampleBytes)
                 throw new PdfFilterException("JPEG 2000 temporary samples exceed the configured safety limit.");
 
             var configuration = new J2KDecoderConfiguration
             {
                 UseColorSpace = false,
-                Verbose = false
+                Verbose = false,
+                ResolutionLevel = resolutionLevel
             };
             using InterleavedImage image = J2kImage.FromBytes(source, configuration);
             int components = image.NumberOfComponents;
-            if (image.Width != expectedWidth || image.Height != expectedHeight
+            if (image.Width != decodedWidth || image.Height != decodedHeight
                 || components != expectedComponents)
                 throw new PdfFilterException("JPEG 2000 decoded dimensions do not match its codestream header.");
             if (image.BitDepths.Count != components || image.BitDepths.Any(bits => bits is < 1 or > 16)
@@ -52,7 +64,8 @@ internal static class PdfJpeg2000Decoder
                 var bytes = new byte[length];
                 for (int index = 0; index < values.Length; index++)
                     bytes[index] = checked((byte)values[index]);
-                return bytes;
+                return new Jpeg2000DecodedImage(
+                    bytes, image.Width, image.Height, components, bits);
             }
 
             var packed = new byte[length];
@@ -72,7 +85,8 @@ internal static class PdfJpeg2000Decoder
                             packed[bitOffset / 8] |= (byte)(1 << (7 - bitOffset % 8));
                 }
             }
-            return packed;
+            return new Jpeg2000DecodedImage(
+                packed, image.Width, image.Height, components, bits);
         }
         catch (PdfFilterException)
         {
@@ -82,6 +96,14 @@ internal static class PdfJpeg2000Decoder
         {
             throw new PdfFilterException("JPEG 2000 data is malformed or unsupported.", ex);
         }
+    }
+
+    internal static int ReducedDimension(uint size, uint origin, int reduction)
+    {
+        long divisor = 1L << Math.Min(reduction, 32);
+        long reducedSize = ((long)size + divisor - 1) / divisor;
+        long reducedOrigin = ((long)origin + divisor - 1) / divisor;
+        return checked((int)Math.Max(1, reducedSize - reducedOrigin));
     }
 
     internal static Jpeg2000Shape ReadShape(
@@ -109,7 +131,36 @@ internal static class PdfJpeg2000Decoder
         if (bits is < 1 or > 16 || xSize - xOrigin > int.MaxValue || ySize - yOrigin > int.MaxValue)
             throw new PdfFilterException("JPEG 2000 data has unsupported codestream dimensions.");
         return new Jpeg2000Shape(
-            (int)(xSize - xOrigin), (int)(ySize - yOrigin), components, bits);
+            (int)(xSize - xOrigin), (int)(ySize - yOrigin), components, bits,
+            ReadResolutionLevels(codestream, markerLength + 4),
+            xSize, ySize, xOrigin, yOrigin);
+    }
+
+    private static int ReadResolutionLevels(ReadOnlySpan<byte> codestream, int offset)
+    {
+        while (offset <= codestream.Length - 2)
+        {
+            if (codestream[offset] != 0xFF) { offset++; continue; }
+            byte marker = codestream[offset + 1];
+            if (marker is 0x90 or 0x93 or 0xD9) break;
+            if (marker == 0x52)
+            {
+                if (offset > codestream.Length - 10)
+                    throw new PdfFilterException("JPEG 2000 data has a truncated coding-style header.");
+                int length = BinaryPrimitives.ReadUInt16BigEndian(codestream[(offset + 2)..]);
+                if (length < 10 || length > codestream.Length - offset - 2)
+                    throw new PdfFilterException("JPEG 2000 data has an invalid coding-style header.");
+                return checked(codestream[offset + 9] + 1);
+            }
+            if (marker is 0x4F or 0x92) { offset += 2; continue; }
+            if (offset > codestream.Length - 4)
+                throw new PdfFilterException("JPEG 2000 data has a truncated marker segment.");
+            int segmentLength = BinaryPrimitives.ReadUInt16BigEndian(codestream[(offset + 2)..]);
+            if (segmentLength < 2 || segmentLength > codestream.Length - offset - 2)
+                throw new PdfFilterException("JPEG 2000 data has an invalid marker segment.");
+            offset += checked(segmentLength + 2);
+        }
+        throw new PdfFilterException("JPEG 2000 data has no coding-style header.");
     }
 
     private static ReadOnlySpan<byte> LocateCodestream(ReadOnlySpan<byte> source)
@@ -145,4 +196,8 @@ internal static class PdfJpeg2000Decoder
 }
 
 internal readonly record struct Jpeg2000Shape(
-    int Width, int Height, int Components, int Bits);
+    int Width, int Height, int Components, int Bits, int ResolutionLevels,
+    uint XSize, uint YSize, uint XOrigin, uint YOrigin);
+
+internal readonly record struct Jpeg2000DecodedImage(
+    byte[] Samples, int Width, int Height, int Components, int Bits);

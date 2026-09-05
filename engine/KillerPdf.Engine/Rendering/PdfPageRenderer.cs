@@ -1240,6 +1240,7 @@ public sealed class PdfPageRenderer
         }
         byte[] samples;
         SoftMask? softMask;
+        int sampleWidth = width, sampleHeight = height;
         Color? preblendMatte = null;
         double[] decode;
         int[]? colorKeyMask = null;
@@ -1269,11 +1270,27 @@ public sealed class PdfPageRenderer
                 && (shape.Width != width || shape.Height != height
                     || shape.Components != encodedComponents || shape.Bits != bits))
                 throw new FormatException("JPEG 2000 image metadata does not match its codestream.");
-            int expected = checked(((width * encodedComponents * bits + 7) / 8) * height);
-            samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
-            if (samples.Length != expected) throw new FormatException("Image sample data has an invalid length.");
+            if (jpeg2000Shape is Jpeg2000Shape jpxShape)
+            {
+                int resolutionLevel = SelectJpeg2000ResolutionLevel(
+                    jpxShape, transform, scaleX, scaleY);
+                Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(
+                    stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes,
+                    resolutionLevel);
+                samples = decoded.Samples;
+                sampleWidth = decoded.Width;
+                sampleHeight = decoded.Height;
+            }
+            else
+            {
+                int expected = checked(((width * encodedComponents * bits + 7) / 8) * height);
+                samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
+                if (samples.Length != expected)
+                    throw new FormatException("Image sample data has an invalid length.");
+            }
             softMask = embeddedMaskMode == 0 ? null
-                : SeparateEmbeddedJpeg2000Alpha(ref samples, width, height, components, bits);
+                : SeparateEmbeddedJpeg2000Alpha(
+                    ref samples, sampleWidth, sampleHeight, components, bits);
             if (softMask is null) softMask = ReadSoftMask(stream.Dictionary);
             if (softMask is null && explicitMask is not null)
                 softMask = ReadExplicitImageMask(explicitMask);
@@ -1294,11 +1311,36 @@ public sealed class PdfPageRenderer
             return false;
         }
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
-            transform, samples, width, height, components, bits, clips,
+            transform, samples, sampleWidth, sampleHeight,
+            components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
             cancellationToken, preblendMatte);
         return true;
+    }
+
+    private static int SelectJpeg2000ResolutionLevel(
+        Jpeg2000Shape shape, Matrix transform, double scaleX, double scaleY)
+    {
+        Point[] corners =
+        [
+            transform.Apply(0, 0), transform.Apply(1, 0),
+            transform.Apply(0, 1), transform.Apply(1, 1)
+        ];
+        int desiredWidth = Math.Max(1, (int)Math.Ceiling(
+            (corners.Max(point => point.X) - corners.Min(point => point.X)) * scaleX));
+        int desiredHeight = Math.Max(1, (int)Math.Ceiling(
+            (corners.Max(point => point.Y) - corners.Min(point => point.Y)) * scaleY));
+        for (int level = 0; level < shape.ResolutionLevels; level++)
+        {
+            int reduction = shape.ResolutionLevels - 1 - level;
+            int width = PdfJpeg2000Decoder.ReducedDimension(
+                shape.XSize, shape.XOrigin, reduction);
+            int height = PdfJpeg2000Decoder.ReducedDimension(
+                shape.YSize, shape.YOrigin, reduction);
+            if (width >= desiredWidth && height >= desiredHeight) return level;
+        }
+        return shape.ResolutionLevels - 1;
     }
 
     private int EmbeddedJpeg2000MaskMode(PdfDictionary dictionary)

@@ -1573,6 +1573,26 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Fact]
+    public void Render_DecodesJpeg2000AtTheRequiredDisplayResolution()
+    {
+        const string encoded =
+            "AAAADGpQICANCocKAAAAHGZ0eXBqcDIgAAAAAGpwMiBqcHhianB4IAAAAB5ycmVxAfj4AAUAAYAABUAADCAAEhAANwgAAAAAAFhqcDJoAAAAFmloZHIAAADsAAAA7AABBwcBAAAAAA9jb2xyAQIBAAAADAAAABNwY2xyAAEEBwcHBwD//wAAAAAYY21hcAAAAQAAAAEBAAABAgAAAQMAAAC7anAyY/9P/1EAKQAAAAAA7AAAAOwAAAAAAAAAAAAAAOwAAADsAAAAAAAAAAAAAQcBAf9SAAwAAQABAAUDAwAB/1wAE0BASEhQSEhQSEhQSEhQSEhQ/5AACgAAAAAAFgAG/5PfgCgRUFSjb/+QAAoAAAAAAA8BBv+TgP+QAAoAAAAAAA8CBv+TgP+QAAoAAAAAAA8DBv+TgP+QAAoAAAAAAA8EBv+TgP+QAAoAAAAAAA8FBv+TgP/Z";
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder()
+                .DrawImage(PdfImage.FromGray(236, 236, new byte[236 * 236]),
+                    0, 0, 10, 10))
+            .Build());
+        PdfDocument document = AddImageDictionaryEntry(source, "Filter", Name("JPXDecode"),
+            Convert.FromBase64String(encoded));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 0, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 
