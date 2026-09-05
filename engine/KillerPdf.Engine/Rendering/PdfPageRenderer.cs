@@ -10,6 +10,7 @@ namespace KillerPdf.Engine.Rendering;
 /// <summary>Renders PDF page content through the engine-owned CPU raster pipeline.</summary>
 public sealed class PdfPageRenderer
 {
+    private const long MaximumDecodedImageCacheBytes = 64L * 1024 * 1024;
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
@@ -21,6 +22,9 @@ public sealed class PdfPageRenderer
     private readonly BoundedCache<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = new(32);
     private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
         new(256, ReferenceEqualityComparer.Instance);
+    private readonly BoundedCache<ImageCacheKey, DecodedImage> _imageCache = new(
+        64, maximumWeight: MaximumDecodedImageCacheBytes,
+        weight: image => image.Samples.LongLength + (image.Alpha?.LongLength ?? 0));
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
@@ -1377,43 +1381,51 @@ public sealed class PdfPageRenderer
                 && (shape.Width != width || shape.Height != height
                     || shape.Components != encodedComponents || shape.Bits != bits))
                 throw new FormatException("JPEG 2000 image metadata does not match its codestream.");
-            if (recoveredPng)
+            int resolutionLevel = jpeg2000Shape is Jpeg2000Shape jpxShape
+                ? SelectJpeg2000ResolutionLevel(jpxShape, transform, scaleX, scaleY) : -1;
+            int cacheLevel = recoveredPng ? -2 : resolutionLevel;
+            DecodedImage decodedImage = _imageCache.GetOrAdd(
+                new ImageCacheKey(stream, cacheLevel), _ => DecodeImage());
+            samples = decodedImage.Samples;
+            sampleWidth = decodedImage.Width;
+            sampleHeight = decodedImage.Height;
+            softMask = decodedImage.Alpha is null
+                ? null : new SoftMask(decodedImage.Alpha, sampleWidth, sampleHeight);
+
+            DecodedImage DecodeImage()
             {
-                PngDecodedImage decoded = PdfPngDecoder.Decode(
-                    stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes);
-                if (decoded.Width != width || decoded.Height != height
-                    || decoded.Components != components || decoded.Bits != bits)
-                    throw new FormatException("PNG image metadata does not match its PDF dictionary.");
-                samples = decoded.Samples;
-                softMask = decoded.Alpha is null
-                    ? null : new SoftMask(decoded.Alpha, width, height);
-            }
-            else if (jpeg2000Shape is Jpeg2000Shape jpxShape)
-            {
-                int resolutionLevel = SelectJpeg2000ResolutionLevel(
-                    jpxShape, transform, scaleX, scaleY);
-                Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(
-                    stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes,
-                    resolutionLevel);
-                samples = decoded.Samples;
-                sampleWidth = decoded.Width;
-                sampleHeight = decoded.Height;
-            }
-            else
-            {
+                if (recoveredPng)
+                {
+                    PngDecodedImage decoded = PdfPngDecoder.Decode(
+                        stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes);
+                    if (decoded.Width != width || decoded.Height != height
+                        || decoded.Components != components || decoded.Bits != bits)
+                        throw new FormatException("PNG image metadata does not match its PDF dictionary.");
+                    return new DecodedImage(decoded.Samples, decoded.Width,
+                        decoded.Height, decoded.Alpha);
+                }
+                if (jpeg2000Shape is not null)
+                {
+                    Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(
+                        stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes,
+                        resolutionLevel);
+                    return new DecodedImage(decoded.Samples, decoded.Width, decoded.Height);
+                }
                 int rowBytes = checked((width * encodedComponents * bits + 7) / 8);
                 int expected = checked(rowBytes * height);
                 int limit = _document.UsesCompatibilityRecovery
                     ? Math.Max(expected, PdfStreamDecoder.DefaultMaximumDecodedBytes)
                     : expected;
-                samples = _document.DecodeStream(stream, limit);
-                if (_document.UsesCompatibilityRecovery && samples.Length > expected)
-                    samples = samples[..expected];
-                else if (_document.UsesCompatibilityRecovery && samples.Length > 0
-                    && samples.Length < expected && samples.Length % rowBytes == 0)
-                    sampleHeight = samples.Length / rowBytes;
-                else if (samples.Length != expected)
+                byte[] decodedSamples = _document.DecodeStream(stream, limit);
+                int decodedHeight = height;
+                if (_document.UsesCompatibilityRecovery && decodedSamples.Length > expected)
+                    decodedSamples = decodedSamples[..expected];
+                else if (_document.UsesCompatibilityRecovery && decodedSamples.Length > 0
+                    && decodedSamples.Length < expected && decodedSamples.Length % rowBytes == 0)
+                    decodedHeight = decodedSamples.Length / rowBytes;
+                else if (decodedSamples.Length != expected)
                     throw new FormatException("Image sample data has an invalid length.");
+                return new DecodedImage(decodedSamples, width, decodedHeight);
             }
             if (!recoveredPng)
                 softMask = embeddedMaskMode == 0 ? null
@@ -4215,14 +4227,22 @@ public sealed class PdfPageRenderer
     private sealed class BoundedCache<TKey, TValue> where TKey : notnull
     {
         private readonly int _capacity;
-        private readonly Dictionary<TKey, LinkedListNode<(TKey Key, TValue Value)>> _entries;
-        private readonly LinkedList<(TKey Key, TValue Value)> _usage = [];
+        private readonly long _maximumWeight;
+        private readonly Func<TValue, long> _weight;
+        private readonly Dictionary<TKey, LinkedListNode<(TKey Key, TValue Value, long Weight)>> _entries;
+        private readonly LinkedList<(TKey Key, TValue Value, long Weight)> _usage = [];
         private readonly object _sync = new();
+        private long _currentWeight;
 
-        internal BoundedCache(int capacity, IEqualityComparer<TKey>? comparer = null)
+        internal BoundedCache(int capacity, IEqualityComparer<TKey>? comparer = null,
+            long maximumWeight = long.MaxValue, Func<TValue, long>? weight = null)
         {
             _capacity = capacity > 0 ? capacity : throw new ArgumentOutOfRangeException(nameof(capacity));
-            _entries = new Dictionary<TKey, LinkedListNode<(TKey Key, TValue Value)>>(comparer);
+            _maximumWeight = maximumWeight > 0 ? maximumWeight
+                : throw new ArgumentOutOfRangeException(nameof(maximumWeight));
+            _weight = weight ?? (_ => 1);
+            _entries = new Dictionary<TKey,
+                LinkedListNode<(TKey Key, TValue Value, long Weight)>>(comparer);
         }
 
         internal int Count
@@ -4241,18 +4261,25 @@ public sealed class PdfPageRenderer
                     return existing.Value.Value;
                 }
                 TValue value = factory(key);
-                var node = _usage.AddFirst((key, value));
+                long valueWeight = _weight(value);
+                if (valueWeight < 0) throw new InvalidOperationException("A cache entry has a negative weight.");
+                if (valueWeight > _maximumWeight) return value;
+                var node = _usage.AddFirst((key, value, valueWeight));
                 _entries.Add(key, node);
-                if (_entries.Count > _capacity)
+                _currentWeight += valueWeight;
+                while (_entries.Count > _capacity || _currentWeight > _maximumWeight)
                 {
-                    LinkedListNode<(TKey Key, TValue Value)> oldest = _usage.Last!;
+                    LinkedListNode<(TKey Key, TValue Value, long Weight)> oldest = _usage.Last!;
                     _usage.RemoveLast();
                     _entries.Remove(oldest.Value.Key);
+                    _currentWeight -= oldest.Value.Weight;
                 }
                 return value;
             }
         }
     }
+    private readonly record struct ImageCacheKey(PdfStream Stream, int ResolutionLevel);
+    private sealed record DecodedImage(byte[] Samples, int Width, int Height, byte[]? Alpha = null);
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
