@@ -340,8 +340,14 @@ public sealed class PdfPageRenderer
                     double dashPhase = Number(Resolve(values[1]));
                     if (dashPattern.Any(length => !double.IsFinite(length) || length < 0)
                         || dashPattern.Length > 0 && dashPattern.All(length => length == 0)
-                        || !double.IsFinite(dashPhase) || dashPhase < 0)
+                        || !double.IsFinite(dashPhase))
                         throw new FormatException("A line dash pattern is invalid.");
+                    if (dashPhase < 0 && dashPattern.Length > 0)
+                    {
+                        double cycle = dashPattern.Sum()
+                            * (dashPattern.Length % 2 == 0 ? 1 : 2);
+                        dashPhase = (dashPhase % cycle + cycle) % cycle;
+                    }
                     state = state with
                     {
                         DashPattern = Array.AsReadOnly(dashPattern),
@@ -733,11 +739,12 @@ public sealed class PdfPageRenderer
 
             void ShowText(PdfString text)
             {
-                if (textFont is null || textSize <= 0)
+                if (textFont is null)
                 {
                     diagnostics.Add("Text rendering is not implemented.");
                     return;
                 }
+                if (textSize == 0) return;
                 if (NameValue(textFont, "Subtype") != "Type3")
                 {
                     ShowOutlineText(text);

@@ -113,6 +113,8 @@ public sealed class PdfPageRendererTests
             .AddPage(8, 1, "0 w [1 3] 0 d 0 0.5 m 8 0.5 l S"u8.ToArray()).Build());
         PdfDocument phaseDocument = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(8, 1, "0 w [1 3] 2 d 0 0.5 m 8 0.5 l S"u8.ToArray()).Build());
+        PdfDocument negativePhaseDocument = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 1, "0 w [1 3] -2 d 0 0.5 m 8 0.5 l S"u8.ToArray()).Build());
         PdfDocument transformDocument = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(8, 1,
                 "2 0 0 1 0 0 cm 0 w [1 1] 0 d 0 0.5 m 4 0.5 l S"u8.ToArray()).Build());
@@ -120,6 +122,8 @@ public sealed class PdfPageRendererTests
         PdfRenderedPage pattern = new PdfPageRenderer(patternDocument).Render(
             0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
         PdfRenderedPage phase = new PdfPageRenderer(phaseDocument).Render(
+            0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
+        PdfRenderedPage negativePhase = new PdfPageRenderer(negativePhaseDocument).Render(
             0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
         PdfRenderedPage transformed = new PdfPageRenderer(transformDocument).Render(
             0, new PdfRenderOptions(8, 1, includeAnnotations: false, includeFormFields: false));
@@ -129,6 +133,7 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 0, 255], Pixel(pattern, 4, 0));
         Assert.Equal([255, 255, 255, 255], Pixel(phase, 0, 0));
         Assert.Equal([0, 0, 0, 255], Pixel(phase, 2, 0));
+        Assert.Equal(phase.Pixels.ToArray(), negativePhase.Pixels.ToArray());
         Assert.Equal([255, 255, 255, 255], Pixel(transformed, 3, 0));
         Assert.Equal([0, 0, 0, 255], Pixel(transformed, 4, 0));
     }
@@ -1064,6 +1069,28 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain(rendered.Diagnostics,
             diagnostic => diagnostic.StartsWith("Text outlines for font ",
                 StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Render_AcceptsNegativeFontSizes()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 10)
+            .SetTextMatrix(1, 0, 0, 1, 10, 10)
+            .ShowLatin1Text("A")
+            .EndText();
+        byte[] source = new PdfDocumentBuilder().AddPage(20, 20, content).Build();
+        string pdf = Encoding.Latin1.GetString(source)
+            .Replace(" 10 Tf", " -1 Tf", StringComparison.Ordinal);
+        PdfDocument document = PdfDocument.Open(Encoding.Latin1.GetBytes(pdf));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(20, 20,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
+        Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
     }
 
     [Fact]
