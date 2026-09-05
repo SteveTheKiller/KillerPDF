@@ -472,8 +472,70 @@ public sealed class PdfPageRenderer
                         || !properties.TryGetValue(propertyName, out property))
                         return true;
                 }
-                return property is not PdfIndirectReference reference
-                    || !hiddenOptionalContentGroups.Contains(reference.ObjectNumber);
+                return EvaluateOptionalContent(property, 0);
+            }
+
+            bool EvaluateOptionalContent(PdfObject value, int expressionDepth)
+            {
+                if (expressionDepth > 32)
+                    throw new FormatException(
+                        "An optional-content visibility expression is too deeply nested.");
+                PdfObject resolved = Resolve(value);
+                if (resolved is not PdfDictionary dictionary) return true;
+                string type = NameValue(dictionary, "Type");
+                if (type == "OCG")
+                    return value is not PdfIndirectReference groupReference
+                        || !hiddenOptionalContentGroups.Contains(groupReference.ObjectNumber);
+                if (type != "OCMD") return true;
+                if (dictionary.TryGetValue(Name("VE"), out PdfObject? expression))
+                    return EvaluateVisibilityExpression(expression, expressionDepth + 1);
+                if (!dictionary.TryGetValue(Name("OCGs"), out PdfObject? groupsValue))
+                    throw new FormatException(
+                        "An optional-content membership dictionary has no /OCGs or /VE value.");
+                PdfObject groups = Resolve(groupsValue);
+                bool[] states = groups is PdfArray array
+                    ? [.. array.Select(group => EvaluateOptionalContent(group, expressionDepth + 1))]
+                    : [EvaluateOptionalContent(groupsValue, expressionDepth + 1)];
+                if (states.Length == 0)
+                    throw new FormatException(
+                        "An optional-content membership dictionary has an empty /OCGs array.");
+                string policy = dictionary.TryGetValue(Name("P"), out PdfObject? policyValue)
+                    && Resolve(policyValue) is PdfName policyName
+                    ? policyName.ValueAsLatin1() : "AnyOn";
+                return policy switch
+                {
+                    "AllOn" => states.All(visible => visible),
+                    "AnyOn" => states.Any(visible => visible),
+                    "AnyOff" => states.Any(visible => !visible),
+                    "AllOff" => states.All(visible => !visible),
+                    _ => throw new FormatException(
+                        $"Optional-content membership policy /{policy} is not defined.")
+                };
+            }
+
+            bool EvaluateVisibilityExpression(PdfObject value, int expressionDepth)
+            {
+                if (expressionDepth > 32)
+                    throw new FormatException(
+                        "An optional-content visibility expression is too deeply nested.");
+                PdfArray expression = Resolve(value) as PdfArray
+                    ?? throw new FormatException(
+                        "An optional-content visibility expression is not an array.");
+                if (expression.Count < 2 || Resolve(expression[0]) is not PdfName operation)
+                    throw new FormatException(
+                        "An optional-content visibility expression has no operator and operands.");
+                bool[] states = [.. expression.Skip(1).Select(item =>
+                    Resolve(item) is PdfArray
+                        ? EvaluateVisibilityExpression(item, expressionDepth + 1)
+                        : EvaluateOptionalContent(item, expressionDepth + 1))];
+                return operation.ValueAsLatin1() switch
+                {
+                    "And" => states.All(visible => visible),
+                    "Or" => states.Any(visible => visible),
+                    "Not" when states.Length == 1 => !states[0],
+                    _ => throw new FormatException(
+                        "An optional-content visibility expression has an invalid operation.")
+                };
             }
 
             void PaintFill(IReadOnlyList<List<Point>> fillPath, bool evenOdd)

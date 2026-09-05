@@ -92,6 +92,20 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_EvaluatesOptionalContentMembershipPoliciesAndExpressions()
+    {
+        PdfRenderedPage hiddenByPolicy = new PdfPageRenderer(
+            OptionalContentMembershipDocument("/OCGs [5 0 R 6 0 R] /P /AllOn")).Render(
+            0, new PdfRenderOptions(2, 1, includeAnnotations: false, includeFormFields: false));
+        PdfRenderedPage visibleByExpression = new PdfPageRenderer(
+            OptionalContentMembershipDocument("/VE [/Or 5 0 R 6 0 R]")).Render(
+            0, new PdfRenderOptions(2, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(hiddenByPolicy, 0, 0));
+        Assert.Equal([0, 0, 0, 255], Pixel(visibleByExpression, 0, 0));
+    }
+
+    [Fact]
     public void Render_FillsWithColoredTilingPatterns()
     {
         var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
@@ -1296,6 +1310,33 @@ public sealed class PdfPageRendererTests
         update.ReplaceObject(fontReference.ObjectNumber, verticalFont);
         update.ReplaceObject(descendantReference.ObjectNumber, verticalDescendant);
         return PdfDocument.Open(update.Build());
+    }
+
+    private static PdfDocument OptionalContentMembershipDocument(string membershipEntries)
+    {
+        const string content = "/OC /LayerSet BDC 0 0 2 1 re f EMC";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R 6 0 R] /D << /BaseState /OFF /ON [5 0 R] >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 2 1] >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Properties << /LayerSet 7 0 R >> >> /Contents 4 0 R >>",
+            $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream",
+            "<< /Type /OCG /Name (Visible) >>",
+            "<< /Type /OCG /Name (Hidden) >>",
+            $"<< /Type /OCMD {membershipEntries} >>"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
     }
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
