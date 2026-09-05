@@ -6,22 +6,17 @@ using KillerPdf.Engine.Editing;
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Exports and imports portable bookmark hierarchies as JSON.</summary>
-public static class PdfBookmarkExchange
+public static partial class PdfBookmarkExchange
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    };
-
     /// <summary>Exports the document's bookmark hierarchy as stable JSON.</summary>
     public static string ToJson(PdfDocument document, bool indented = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         PdfBookmarkExchangeDocument exchange = new(1,
             [.. PdfBookmarkReader.Read(document).Select(Export)]);
-        JsonSerializerOptions options = new(JsonOptions) { WriteIndented = indented };
-        return JsonSerializer.Serialize(exchange, options);
+        return JsonSerializer.Serialize(exchange, indented
+            ? IndentedJsonContext.Default.PdfBookmarkExchangeDocument
+            : CompactJsonContext.Default.PdfBookmarkExchangeDocument);
     }
 
     /// <summary>Imports a JSON bookmark hierarchy, optionally replacing existing bookmarks.</summary>
@@ -32,7 +27,8 @@ public static class PdfBookmarkExchange
         PdfBookmarkExchangeDocument exchange;
         try
         {
-            exchange = JsonSerializer.Deserialize<PdfBookmarkExchangeDocument>(json, JsonOptions)
+            exchange = JsonSerializer.Deserialize(
+                json, CompactJsonContext.Default.PdfBookmarkExchangeDocument)
                 ?? throw new InvalidOperationException("The bookmark JSON document is empty.");
         }
         catch (JsonException exception)
@@ -130,4 +126,14 @@ public static class PdfBookmarkExchange
 
     private sealed record PdfBookmarkExchangeDestination(
         PdfDestinationKind Kind, IReadOnlyList<double?>? Values);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        UseStringEnumConverter = true)]
+    [JsonSerializable(typeof(PdfBookmarkExchangeDocument))]
+    private sealed partial class CompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        UseStringEnumConverter = true, WriteIndented = true)]
+    [JsonSerializable(typeof(PdfBookmarkExchangeDocument))]
+    private sealed partial class IndentedJsonContext : JsonSerializerContext;
 }
