@@ -387,6 +387,8 @@ public sealed class PdfPageRenderer
                 case "h" when subpath is { Count: > 1 }:
                     subpath.Add(subpath[0]);
                     break;
+                case "h":
+                    break;
                 case "W":
                     pendingClipEvenOdd = false;
                     break;
@@ -1608,16 +1610,28 @@ public sealed class PdfPageRenderer
         int inputCount, ImageColorSpace colorSpace, string description)
     {
         PdfObject resolved = Resolve(value);
-        if (resolved is not PdfStream stream)
-            throw new NotSupportedException();
-        PdfDictionary dictionary = stream.Dictionary;
+        PdfDictionary dictionary = resolved switch
+        {
+            PdfDictionary direct => direct,
+            PdfStream streamValue => streamValue.Dictionary,
+            _ => throw new FormatException($"A {description} is invalid.")
+        };
         if (!dictionary.TryGetValue(Name("FunctionType"), out PdfObject? typeValue)
             || Resolve(typeValue) is not PdfInteger type)
             throw new FormatException($"A {description} type is missing.");
         if (type.Value == 4)
-            return ReadCalculatorFunction(stream, inputCount, colorSpace, description);
+            return resolved is PdfStream calculator
+                ? ReadCalculatorFunction(calculator, inputCount, colorSpace, description)
+                : throw new FormatException($"A {description} calculator must be a stream.");
+        if (inputCount == 1 && type.Value != 0)
+        {
+            Func<double, Color> single = ReadColorFunction(value, colorSpace, description);
+            return inputs => single(inputs[0]);
+        }
         if (type.Value != 0)
             throw new NotSupportedException();
+        if (resolved is not PdfStream stream)
+            throw new FormatException($"A sampled {description} must be a stream.");
         double[] domain = ReadFunctionArray(dictionary, "Domain", inputCount * 2,
             required: true, defaultValues: []);
         if (domain.Any(component => !double.IsFinite(component))
