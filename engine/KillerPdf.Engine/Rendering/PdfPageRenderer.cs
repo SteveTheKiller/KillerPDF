@@ -16,6 +16,8 @@ public sealed class PdfPageRenderer
     private readonly IReadOnlyList<PdfPageBoxInformation> _boxes;
     private readonly PdfPageTree _tree;
     private readonly IPdfFontResolver? _fontResolver;
+    private readonly IReadOnlyList<PdfDictionary> _pageResources;
+    private readonly IReadOnlySet<int> _hiddenOptionalContentGroups;
     private readonly BoundedCache<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = new(32);
     private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
         new(256, ReferenceEqualityComparer.Instance);
@@ -31,6 +33,11 @@ public sealed class PdfPageRenderer
         _tree = PdfPageTree.Read(document);
         _pages = PdfPageInformation.Read(document);
         _boxes = PdfPageBoxInformation.Read(document);
+        _pageResources = Enumerable.Range(0, _pages.Count)
+            .Select(PageResources).ToArray();
+        _hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
+            .Where(group => !group.IsInitiallyVisible)
+            .Select(group => group.ObjectNumber).ToHashSet();
     }
 
     /// <summary>Renders the currently supported page operators into BGRA32 pixels.</summary>
@@ -80,10 +87,8 @@ public sealed class PdfPageRenderer
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
-        HashSet<int> hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
-            .Where(group => !group.IsInitiallyVisible)
-            .Select(group => group.ObjectNumber).ToHashSet();
-        PdfDictionary pageResources = PageResources(pageIndex);
+        IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
+        PdfDictionary pageResources = _pageResources[pageIndex];
         Process(ReadInstructions(pageIndex, cancellationToken),
             pageResources, initialState, 0);
         RenderAppearances();
