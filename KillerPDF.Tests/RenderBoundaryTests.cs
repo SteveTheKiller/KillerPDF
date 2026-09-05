@@ -43,13 +43,10 @@ public sealed class RenderBoundaryTests
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root, "Models", "PageThumbnailVm.cs"));
 
-        int engineOpen = source.IndexOf("PdfPageRenderSession.OpenEngine(",
+        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", source,
             StringComparison.Ordinal);
-        int fallbackOpen = source.IndexOf("PdfPageRenderSession.Open(",
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", source,
             StringComparison.Ordinal);
-
-        Assert.True(engineOpen >= 0);
-        Assert.True(fallbackOpen > engineOpen);
     }
 
     [Fact]
@@ -69,6 +66,24 @@ public sealed class RenderBoundaryTests
 
         Assert.True(engineOpen >= 0);
         Assert.True(fallbackRender > engineOpen);
+    }
+
+    [Fact]
+    public void ImageExportUsesTheEngineFirstRenderSession()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(
+            Path.Combine(root, "Features", "Cli", "CliRunner.cs"));
+        int methodStart = source.IndexOf("private static int CliToImage(",
+            StringComparison.Ordinal);
+        int methodEnd = source.IndexOf("private static int CliFlatten(", methodStart,
+            StringComparison.Ordinal);
+        string method = source[methodStart..methodEnd];
+
+        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", method,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", method,
+            StringComparison.Ordinal);
     }
 
     private static string FindRepositoryRoot()

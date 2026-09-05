@@ -484,7 +484,8 @@ namespace KillerPDF.Features
             options.TryGetValue("--password", out var password);
             var (renderPath, rotations, _) = CliPrepareRenderSource(inPath, password, con);
 
-            using var renderSession = PdfPageRenderSession.Open(renderPath, dpi / 72.0);
+            using var renderSession =
+                PdfPageRenderSession.OpenEngineFirst(renderPath, dpi / 72.0);
             int pageCount = renderSession.PageCount;
 
             List<int> selected;
