@@ -104,6 +104,20 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OcrConsumesEnginePreparedPixelsWithoutAPngRoundTrip()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root, "Services", "OcrService.cs"));
+
+        Assert.Contains("PdfOcrImagePreprocessor.PrepareBgra(", source,
+            StringComparison.Ordinal);
+        Assert.Contains("Pix.Create(image.Width, image.Height, 8)", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PngBitmapEncoder", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("BitmapSource.Create", source, StringComparison.Ordinal);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

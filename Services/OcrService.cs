@@ -1,5 +1,4 @@
-using System.IO;
-using System.Windows.Media.Imaging;
+using KillerPdf.Engine.Documents;
 using Tesseract;
 
 namespace KillerPDF.Services
@@ -30,6 +29,8 @@ namespace KillerPDF.Services
     /// </summary>
     internal sealed class OcrService : IDisposable
     {
+        private static readonly PdfOcrOptions RasterOptions = new(["und"],
+            deskew: false, correctOrientation: false, detectPageSegments: false);
         private readonly TesseractEngine _engine;
 
         /// <param name="tessDataPath">Folder holding *.traineddata. Defaults to the self-extracted cache (OcrNativeBootstrap).</param>
@@ -58,14 +59,19 @@ namespace KillerPDF.Services
 
         /// <summary>
         /// OCR a rendered page straight from the render pipeline (raw BGRA, 4 bytes/pixel).
-        /// Encodes to PNG via WPF first so we avoid a System.Drawing dependency.
         /// </summary>
         public OcrResult RecognizeBgra(byte[] bgra, int width, int height,
             string? characterWhitelist = null)
         {
             if (!string.IsNullOrEmpty(characterWhitelist))
                 _engine.SetVariable("tessedit_char_whitelist", characterWhitelist);
-            try { return RecognizeImageBytes(EncodePng(bgra, width, height)); }
+            try
+            {
+                PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
+                    bgra, width, height, RasterOptions);
+                using Pix pix = CreateGrayscalePix(prepared);
+                return Run(pix);
+            }
             finally
             {
                 if (!string.IsNullOrEmpty(characterWhitelist))
@@ -108,18 +114,20 @@ namespace KillerPDF.Services
             return res;
         }
 
-        private static byte[] EncodePng(byte[] bgra, int width, int height)
+        private static unsafe Pix CreateGrayscalePix(PdfOcrPreparedImage image)
         {
-            var bmp = BitmapSource.Create(
-                width, height, 96, 96,
-                System.Windows.Media.PixelFormats.Bgra32, null,
-                bgra, width * 4);
-
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(bmp));
-            using var ms = new MemoryStream();
-            encoder.Save(ms);
-            return ms.ToArray();
+            Pix pix = Pix.Create(image.Width, image.Height, 8);
+            PixData data = pix.GetData();
+            uint* start = (uint*)data.Data.ToPointer();
+            ReadOnlySpan<byte> pixels = image.Pixels.Span;
+            for (int y = 0; y < image.Height; y++)
+            {
+                uint* row = start + y * data.WordsPerLine;
+                int source = y * image.Width;
+                for (int x = 0; x < image.Width; x++)
+                    PixData.SetDataByte(row, x, pixels[source + x]);
+            }
+            return pix;
         }
 
         public void Dispose() => _engine.Dispose();
