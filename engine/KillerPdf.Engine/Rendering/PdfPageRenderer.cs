@@ -1691,7 +1691,6 @@ public sealed class PdfPageRenderer
                 || names.Count is < 1 or > 32
                 || names.Any(item => Resolve(item) is not PdfName))
                 throw new FormatException("A DeviceN image color space is invalid.");
-            if (names.Count > 8) throw new NotSupportedException();
             ImageColorSpace alternate = ReadColorSpace(array[2], resources, depth + 1);
             if (alternate.Palette is not null)
                 throw new FormatException("A DeviceN image alternate color space is invalid.");
