@@ -88,6 +88,7 @@ public sealed class PdfPageRenderer
             List<Point>? subpath = null;
             var visibilityStack = new Stack<bool>();
             bool contentVisible = true;
+            int compatibilityDepth = 0;
             var textClipPaths = new List<List<Point>>();
             bool? pendingClipEvenOdd = null;
             Matrix textMatrix = Matrix.Identity, textLineMatrix = Matrix.Identity;
@@ -534,6 +535,24 @@ public sealed class PdfPageRenderer
                     if (!TryRenderShading(resources, shadingName, state, pixels,
                         options.Width, options.Height, scaleX, scaleY, out string? shadingDiagnostic))
                         diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
+                    break;
+                case "ri" when values.Count == 1 && values[0] is PdfName:
+                case "i" when values.Count == 1:
+                case "MP" when values.Count == 1 && values[0] is PdfName:
+                case "DP" when values.Count == 2 && values[0] is PdfName:
+                case "d0" when values.Count == 2:
+                case "d1" when values.Count == 6:
+                    break;
+                case "BX" when values.Count == 0:
+                    compatibilityDepth++;
+                    break;
+                case "EX" when values.Count == 0:
+                    if (compatibilityDepth > 0) compatibilityDepth--;
+                    break;
+                default:
+                    if (compatibilityDepth == 0)
+                        diagnostics.Add(
+                            $"Rendering operator {instruction.Operator} is not implemented.");
                     break;
                 }
             }

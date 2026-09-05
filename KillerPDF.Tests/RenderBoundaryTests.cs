@@ -37,6 +37,21 @@ public sealed class RenderBoundaryTests
         }
     }
 
+    [Fact]
+    public void PageThumbnailsUseTheEngineBeforeTheNativeFallback()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root, "Models", "PageThumbnailVm.cs"));
+
+        int engineOpen = source.IndexOf("PdfPageRenderSession.OpenEngine(",
+            StringComparison.Ordinal);
+        int fallbackOpen = source.IndexOf("PdfPageRenderSession.Open(",
+            StringComparison.Ordinal);
+
+        Assert.True(engineOpen >= 0);
+        Assert.True(fallbackOpen > engineOpen);
+    }
+
     private static string FindRepositoryRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

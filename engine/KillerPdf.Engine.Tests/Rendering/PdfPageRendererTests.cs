@@ -148,6 +148,26 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ReportsUnsupportedOperatorsOutsideCompatibilitySections()
+    {
+        byte[] content = Encoding.ASCII.GetBytes(
+            "/Perceptual ri 1 i /Tag MP 1 2 d0 1 2 3 4 5 6 d1 "
+            + "BX UnsupportedInsideCompatibility EX UnsupportedOutsideCompatibility");
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.DoesNotContain(page.Diagnostics,
+            diagnostic => diagnostic.Contains("UnsupportedInsideCompatibility",
+                StringComparison.Ordinal));
+        Assert.Contains("Rendering operator UnsupportedOutsideCompatibility is not implemented.",
+            page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsNamedAndExplicitNonPatternColorSpaces()
     {
         byte[] content = Encoding.ASCII.GetBytes(

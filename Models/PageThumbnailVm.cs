@@ -83,8 +83,17 @@ namespace KillerPDF
                 // stays crisp when the sidebar is dragged wider (thumbnails scale to the sidebar width).
                 // 288px covers the ~240px the page can show at the widest sidebar; raise for sharper,
                 // lower to save memory (each loaded thumbnail is kept in RAM).
-                using var renderSession = PdfPageRenderSession.Open(filePath, 288, 576);
-                PdfRenderedPage page = renderSession.RenderPage(pageIndex);
+                PdfRenderedPage page;
+                try
+                {
+                    using var engineSession = PdfPageRenderSession.OpenEngine(filePath, 288, 576);
+                    page = engineSession.RenderPage(pageIndex);
+                }
+                catch
+                {
+                    using var fallbackSession = PdfPageRenderSession.Open(filePath, 288, 576);
+                    page = fallbackSession.RenderPage(pageIndex);
+                }
                 int tw = page.Width;
                 int th = page.Height;
                 byte[] raw = page.Pixels;
