@@ -815,6 +815,63 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsTensorPatchShadings()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        byte[] points =
+        [
+            0, 0, 85, 0, 170, 0, 255, 0,
+            255, 85, 255, 170, 255, 255, 170, 255,
+            85, 255, 0, 255, 0, 170, 0, 85,
+            85, 85, 170, 85, 170, 170, 85, 170
+        ];
+        byte[] colors = Enumerable.Repeat(new byte[] { 255, 0, 0 }, 4)
+            .SelectMany(value => value).ToArray();
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(7)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerComponent"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerFlag"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"),
+                Reals(0, 10, 0, 10, 0, 1, 0, 1, 0, 1))]),
+            new byte[] { 0 }.Concat(points).Concat(colors).ToArray());
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.DoesNotContain("The shading type or function is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_PaintsThirtyTwoBitSampledShadings()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Size"),
+                new PdfArray(new PdfObject[] { new PdfInteger(2) })),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(32))]),
+            new byte[12].Concat(Enumerable.Repeat(byte.MaxValue, 12)).ToArray());
+        PdfDocument document = AddSampledAxialShadingResource(source, function);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([13, 13, 13, 255], Pixel(rendered, 0, 5));
+        Assert.Equal([242, 242, 242, 255], Pixel(rendered, 9, 5));
+        Assert.DoesNotContain("The shading type or function is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AppliesSampledSeparationTintTransforms()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -1510,6 +1567,60 @@ public sealed class PdfPageRendererTests
             .Append(new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace)));
         return PdfDocument.Open(update.ReplaceObject(imageReference.ObjectNumber,
             new PdfStream(dictionary, imageSamples)).Build());
+    }
+
+    private static PdfDocument AddShadingResource(PdfDocument source, PdfStream shading)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference shadingReference = update.AddObject(shading);
+        var shadings = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Sh1"), shadingReference)
+        ]);
+        var updatedResources = new PdfDictionary(resources
+            .Where(entry => !entry.Key.Equals(Name("Shading")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Shading"), shadings)));
+        var updatedPage = new PdfDictionary(page
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), updatedResources)));
+        return PdfDocument.Open(update.ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
+    }
+
+    private static PdfDocument AddSampledAxialShadingResource(
+        PdfDocument source, PdfStream function)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference functionReference = update.AddObject(function);
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), functionReference),
+            new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
+                new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))
+        ]);
+        PdfIndirectReference shadingReference = update.AddObject(shading);
+        var shadings = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Sh1"), shadingReference)
+        ]);
+        var updatedResources = new PdfDictionary(resources
+            .Where(entry => !entry.Key.Equals(Name("Shading")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Shading"), shadings)));
+        var updatedPage = new PdfDictionary(page
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), updatedResources)));
+        return PdfDocument.Open(update.ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
     }
 
     private static PdfDocument AddType3TriangleFont(PdfDocument source)

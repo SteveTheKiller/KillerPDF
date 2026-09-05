@@ -543,7 +543,8 @@ public sealed class PdfPageRenderer
                     break;
                 case "sh" when values.Count == 1 && values[0] is PdfName shadingName:
                     if (!TryRenderShading(resources, shadingName, state, pixels,
-                        options.Width, options.Height, scaleX, scaleY, out string? shadingDiagnostic))
+                        options.Width, options.Height, scaleX, scaleY, cancellationToken,
+                        out string? shadingDiagnostic))
                         diagnostics.Add(shadingDiagnostic ?? "Shading rendering is not implemented.");
                     break;
                 case "ri" when values.Count == 1 && values[0] is PdfName:
@@ -1551,7 +1552,7 @@ public sealed class PdfPageRenderer
         int size = (int)sizeInteger.Value;
         if (!dictionary.TryGetValue(Name("BitsPerSample"), out PdfObject? bitsValue)
             || Resolve(bitsValue) is not PdfInteger bitsInteger
-            || bitsInteger.Value is not (1 or 2 or 4 or 8 or 12 or 16))
+            || bitsInteger.Value is not (1 or 2 or 4 or 8 or 12 or 16 or 24 or 32))
             throw new NotSupportedException();
         int bits = (int)bitsInteger.Value;
         if (dictionary.TryGetValue(Name("Order"), out PdfObject? orderValue)
@@ -1578,7 +1579,7 @@ public sealed class PdfPageRenderer
         byte[] samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expectedBytes);
         if (samples.Length != expectedBytes)
             throw new FormatException($"A sampled {description} stream is truncated.");
-        uint maximum = (1u << bits) - 1;
+        uint maximum = bits == 32 ? uint.MaxValue : (1u << bits) - 1;
         return input =>
         {
             double normalized = (Math.Clamp(input, domain[0], domain[1]) - domain[0])
@@ -1654,7 +1655,7 @@ public sealed class PdfPageRenderer
         }
         if (!dictionary.TryGetValue(Name("BitsPerSample"), out PdfObject? bitsValue)
             || Resolve(bitsValue) is not PdfInteger bitsInteger
-            || bitsInteger.Value is not (1 or 2 or 4 or 8 or 12 or 16))
+            || bitsInteger.Value is not (1 or 2 or 4 or 8 or 12 or 16 or 24 or 32))
             throw new NotSupportedException();
         int bits = (int)bitsInteger.Value;
         if (dictionary.TryGetValue(Name("Order"), out PdfObject? orderValue)
@@ -1681,7 +1682,7 @@ public sealed class PdfPageRenderer
         byte[] samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expectedBytes);
         if (samples.Length != expectedBytes)
             throw new FormatException($"A {description} stream is truncated.");
-        uint maximum = (1u << bits) - 1;
+        uint maximum = bits == 32 ? uint.MaxValue : (1u << bits) - 1;
         int cornerCount = 1 << inputCount;
         return inputs =>
         {
@@ -1926,7 +1927,8 @@ public sealed class PdfPageRenderer
 
     private bool TryRenderShading(PdfDictionary resources, PdfName resourceName,
         GraphicsState state, byte[] target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, out string? diagnostic)
+        double scaleX, double scaleY, CancellationToken cancellationToken,
+        out string? diagnostic)
     {
         diagnostic = null;
         try
@@ -1945,6 +1947,11 @@ public sealed class PdfPageRenderer
             if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
                 || Resolve(typeValue) is not PdfInteger shadingType)
                 throw new NotSupportedException();
+            if (shadingType.Value == 7)
+                return resolved is PdfStream tensorPatch
+                    ? RenderTensorPatchShading(tensorPatch, resources, state, target,
+                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken)
+                    : throw new FormatException("A tensor-patch shading must be a stream.");
             if (shadingType.Value == 3)
                 return RenderRadialShading(shading, resources, state, target,
                     targetWidth, targetHeight, scaleX, scaleY);
@@ -2008,6 +2015,168 @@ public sealed class PdfPageRenderer
             diagnostic = "The shading type or function is not implemented.";
             return false;
         }
+    }
+
+    private bool RenderTensorPatchShading(PdfStream stream, PdfDictionary resources,
+        GraphicsState state, byte[] target, int targetWidth, int targetHeight,
+        double scaleX, double scaleY, CancellationToken cancellationToken)
+    {
+        PdfDictionary shading = stream.Dictionary;
+        if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
+            throw new FormatException("A tensor-patch shading color space is missing.");
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
+        if (colorSpace.Palette is not null) throw new NotSupportedException();
+        int coordinateBits = PositiveInteger(shading, "BitsPerCoordinate");
+        int componentBits = PositiveInteger(shading, "BitsPerComponent");
+        int flagBits = PositiveInteger(shading, "BitsPerFlag");
+        if (coordinateBits is < 1 or > 32 || componentBits is < 1 or > 32
+            || flagBits is < 1 or > 8)
+            throw new NotSupportedException();
+        double[] decode = ReadFunctionArray(shading, "Decode",
+            4 + colorSpace.Components * 2, required: true, defaultValues: []);
+        if (decode.Any(value => !double.IsFinite(value)))
+            throw new FormatException("A tensor-patch shading decode array is invalid.");
+        byte[] bytes = PdfStreamDecoder.Decode(stream, _document.Resolve);
+        int bitOffset = 0;
+        bool rendered = false;
+        while (bitOffset < bytes.Length * 8)
+        {
+            uint flag = Read(flagBits);
+            if (flag != 0) throw new NotSupportedException();
+            var points = new Point[16];
+            for (int index = 0; index < points.Length; index++)
+            {
+                double x = Decode(Read(coordinateBits), coordinateBits, decode[0], decode[1]);
+                double y = Decode(Read(coordinateBits), coordinateBits, decode[2], decode[3]);
+                points[index] = state.Transform.Apply(x, y);
+            }
+            var colors = new Color[4];
+            for (int corner = 0; corner < colors.Length; corner++)
+            {
+                var components = new double[colorSpace.Components];
+                for (int component = 0; component < components.Length; component++)
+                    components[component] = Decode(Read(componentBits), componentBits,
+                        decode[4 + component * 2], decode[5 + component * 2]);
+                colors[corner] = colorSpace.Convert(components);
+            }
+            RenderPatch(points, colors);
+            rendered = true;
+        }
+        return rendered;
+
+        uint Read(int bits)
+        {
+            if (bitOffset + bits > bytes.Length * 8)
+                throw new FormatException("A tensor-patch shading stream is truncated.");
+            uint value = ReadPackedSample(bytes, bitOffset, bits);
+            bitOffset += bits;
+            return value;
+        }
+        static double Decode(uint value, int bits, double minimum, double maximum)
+        {
+            double limit = bits == 32 ? uint.MaxValue : (1u << bits) - 1u;
+            return minimum + value / limit * (maximum - minimum);
+        }
+        void RenderPatch(Point[] source, Color[] colors)
+        {
+            Point[,] grid =
+            {
+                { source[0], source[1], source[2], source[3] },
+                { source[11], source[12], source[13], source[4] },
+                { source[10], source[15], source[14], source[5] },
+                { source[9], source[8], source[7], source[6] }
+            };
+            const int divisions = 4;
+            var sampledPoints = new Point[divisions + 1, divisions + 1];
+            var sampledColors = new Color[divisions + 1, divisions + 1];
+            for (int row = 0; row <= divisions; row++)
+                for (int column = 0; column <= divisions; column++)
+                {
+                    double u = column / (double)divisions;
+                    double v = row / (double)divisions;
+                    sampledPoints[row, column] = BezierSurface(grid, u, v);
+                    sampledColors[row, column] = Bilinear(colors, u, v);
+                }
+            for (int row = 0; row < divisions; row++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                for (int column = 0; column < divisions; column++)
+                {
+                    PaintTriangle(sampledPoints[row, column], sampledColors[row, column],
+                        sampledPoints[row, column + 1], sampledColors[row, column + 1],
+                        sampledPoints[row + 1, column + 1], sampledColors[row + 1, column + 1]);
+                    PaintTriangle(sampledPoints[row, column], sampledColors[row, column],
+                        sampledPoints[row + 1, column + 1], sampledColors[row + 1, column + 1],
+                        sampledPoints[row + 1, column], sampledColors[row + 1, column]);
+                }
+            }
+        }
+        void PaintTriangle(Point first, Color firstColor, Point second, Color secondColor,
+            Point third, Color thirdColor)
+        {
+            double area = Edge(first, second, third.X, third.Y);
+            if (Math.Abs(area) < 1e-12) return;
+            double minimumX = Math.Min(first.X, Math.Min(second.X, third.X));
+            double maximumX = Math.Max(first.X, Math.Max(second.X, third.X));
+            double minimumY = Math.Min(first.Y, Math.Min(second.Y, third.Y));
+            double maximumY = Math.Max(first.Y, Math.Max(second.Y, third.Y));
+            if (maximumX <= 0 || minimumX >= targetWidth / scaleX
+                || maximumY <= 0 || minimumY >= targetHeight / scaleY) return;
+            int left = Math.Clamp((int)Math.Floor(minimumX * scaleX), 0, targetWidth - 1);
+            int right = Math.Clamp((int)Math.Ceiling(maximumX * scaleX), 0, targetWidth - 1);
+            int top = Math.Clamp(targetHeight - (int)Math.Ceiling(maximumY * scaleY),
+                0, targetHeight - 1);
+            int bottom = Math.Clamp(targetHeight - (int)Math.Floor(minimumY * scaleY),
+                0, targetHeight - 1);
+            for (int y = top; y <= bottom; y++)
+                for (int x = left; x <= right; x++)
+                {
+                    double pageX = (x + 0.5) / scaleX;
+                    double pageY = (targetHeight - y - 0.5) / scaleY;
+                    if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                    double a = Edge(second, third, pageX, pageY) / area;
+                    double b = Edge(third, first, pageX, pageY) / area;
+                    double c = 1 - a - b;
+                    if (a < -1e-9 || b < -1e-9 || c < -1e-9) continue;
+                    SetPixel(target, targetWidth, x, y, Mix(firstColor, secondColor, thirdColor,
+                        a, b, c), state.FillAlpha, state.BlendMode);
+                }
+        }
+        static double Edge(Point first, Point second, double x, double y) =>
+            (second.X - first.X) * (y - first.Y) - (second.Y - first.Y) * (x - first.X);
+        static Point BezierSurface(Point[,] points, double u, double v)
+        {
+            double[] bu = Bernstein(u), bv = Bernstein(v);
+            double x = 0, y = 0;
+            for (int row = 0; row < 4; row++)
+                for (int column = 0; column < 4; column++)
+                {
+                    double weight = bu[column] * bv[row];
+                    x += points[row, column].X * weight;
+                    y += points[row, column].Y * weight;
+                }
+            return new Point(x, y);
+        }
+        static double[] Bernstein(double value)
+        {
+            double inverse = 1 - value;
+            return [inverse * inverse * inverse, 3 * value * inverse * inverse,
+                3 * value * value * inverse, value * value * value];
+        }
+        static Color Bilinear(Color[] colors, double u, double v) => MixFour(
+            colors[0], colors[1], colors[2], colors[3],
+            (1 - u) * (1 - v), u * (1 - v), u * v, (1 - u) * v);
+        static Color Mix(Color first, Color second, Color third,
+            double a, double b, double c) => new(
+            Channel(first.Red * a + second.Red * b + third.Red * c),
+            Channel(first.Green * a + second.Green * b + third.Green * c),
+            Channel(first.Blue * a + second.Blue * b + third.Blue * c));
+        static Color MixFour(Color first, Color second, Color third, Color fourth,
+            double a, double b, double c, double d) => new(
+            Channel(first.Red * a + second.Red * b + third.Red * c + fourth.Red * d),
+            Channel(first.Green * a + second.Green * b + third.Green * c + fourth.Green * d),
+            Channel(first.Blue * a + second.Blue * b + third.Blue * c + fourth.Blue * d));
+        static byte Channel(double value) => (byte)Math.Clamp(Math.Round(value), 0, 255);
     }
 
     private bool RenderRadialShading(PdfDictionary shading, PdfDictionary resources,
