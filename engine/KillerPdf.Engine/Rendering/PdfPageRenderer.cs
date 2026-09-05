@@ -63,7 +63,7 @@ public sealed class PdfPageRenderer
             _ => Matrix.Identity
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
-            1, 1, 1, [], 0, RendererBlendMode.Normal, [],
+            1, 1, 1, RendererLineCap.Butt, [], 0, RendererBlendMode.Normal, [],
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null));
         var diagnostics = new HashSet<string>();
@@ -306,6 +306,12 @@ public sealed class PdfPageRenderer
                     break;
                 case "w" when values.Count == 1:
                     state = state with { LineWidth = Math.Max(0, Number(values[0])) };
+                    break;
+                case "J" when values.Count == 1:
+                    double capValue = Number(Resolve(values[0]));
+                    if (capValue != Math.Truncate(capValue) || capValue is < 0 or > 2)
+                        throw new FormatException("A line cap style is invalid.");
+                    state = state with { LineCap = (RendererLineCap)(int)capValue };
                     break;
                 case "d" when values.Count == 2 && Resolve(values[0]) is PdfArray dashArray:
                     double[] dashPattern = dashArray.Select(item => Number(Resolve(item))).ToArray();
@@ -560,14 +566,14 @@ public sealed class PdfPageRenderer
                 {
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                         paintedPath, state.Stroke, state.StrokeAlpha, state.LineWidth,
-                        state.BlendMode, state.Clips);
+                        state.LineCap, state.BlendMode, state.Clips);
                     return;
                 }
                 Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
                 double radius = Math.Max(state.LineWidth / 2,
-                    0.5 / Math.Max(scaleX, scaleY));
+                    Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
                 var strokeClip = new ClipRegion([], false,
-                    (x, y) => IsWithinStroke(segments, radius, x, y));
+                    (x, y) => IsWithinStroke(segments, radius, x, y, state.LineCap));
                 RenderTilingPattern(state.StrokePattern, paintedPath, strokeClip,
                     resources, state, depth);
             }
@@ -772,7 +778,7 @@ public sealed class PdfPageRenderer
                             if (paintMode is 1 or 2)
                                 StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                                     glyphPaths, state.Stroke, state.StrokeAlpha, state.LineWidth,
-                                    state.BlendMode, state.Clips);
+                                    state.LineCap, state.BlendMode, state.Clips);
                             if (clipsText)
                                 textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
                         }
@@ -2216,13 +2222,18 @@ public sealed class PdfPageRenderer
 
     private static void StrokePaths(byte[] pixels, int width, int height, double scaleX,
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha,
-        double lineWidth, RendererBlendMode blendMode,
+        double lineWidth, RendererLineCap lineCap, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips)
     {
-        int radius = Math.Max(0, (int)Math.Ceiling(lineWidth * Math.Max(scaleX, scaleY) / 2));
+        int radius = Math.Max(1,
+            (int)Math.Ceiling(lineWidth * Math.Max(scaleX, scaleY) / 2) + 1);
+        double pageRadius = Math.Max(lineWidth / 2,
+            Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
         var coverage = new bool[checked(width * height)];
         int left = width, right = 0, top = height, bottom = 0;
         foreach (List<Point> path in paths)
+        {
+            Point[][] geometry = [path.ToArray()];
             for (int i = 1; i < path.Count; i++)
             {
                 Point from = new(path[i - 1].X * scaleX, height - path[i - 1].Y * scaleY);
@@ -2235,8 +2246,13 @@ public sealed class PdfPageRenderer
                     for (int yy = cy - radius; yy <= cy + radius; yy++)
                         for (int xx = cx - radius; xx <= cx + radius; xx++)
                             if (xx >= 0 && xx < width && yy >= 0 && yy < height)
-                                if (InsideClips(clips, (xx + 0.5) / scaleX,
-                                    (height - yy - 0.5) / scaleY))
+                            {
+                                double pageX = (xx + 0.5) / scaleX;
+                                double pageY = (height - yy - 0.5) / scaleY;
+                                if (!coverage[yy * width + xx]
+                                    && InsideClips(clips, pageX, pageY)
+                                    && IsWithinStroke(geometry, pageRadius,
+                                        pageX, pageY, lineCap))
                                 {
                                     coverage[yy * width + xx] = true;
                                     left = Math.Min(left, xx);
@@ -2244,8 +2260,10 @@ public sealed class PdfPageRenderer
                                     top = Math.Min(top, yy);
                                     bottom = Math.Max(bottom, yy + 1);
                                 }
+                            }
                 }
             }
+        }
         for (int y = top; y < bottom; y++)
             for (int x = left; x < right; x++)
                 if (coverage[y * width + x])
@@ -2626,21 +2644,43 @@ public sealed class PdfPageRenderer
     }
 
     private static bool IsWithinStroke(
-        IReadOnlyList<Point[]> paths, double radius, double x, double y)
+        IReadOnlyList<Point[]> paths, double radius, double x, double y,
+        RendererLineCap lineCap)
     {
         double squaredRadius = radius * radius;
         foreach (Point[] path in paths)
+        {
+            bool closed = path.Length > 2 && path[0] == path[^1];
             for (int index = 1; index < path.Length; index++)
             {
                 Point from = path[index - 1], to = path[index];
                 double dx = to.X - from.X, dy = to.Y - from.Y;
                 double lengthSquared = dx * dx + dy * dy;
-                double parameter = lengthSquared == 0 ? 0 : Math.Clamp(
-                    ((x - from.X) * dx + (y - from.Y) * dy) / lengthSquared, 0, 1);
+                if (lengthSquared <= 1e-24) continue;
+                double raw = ((x - from.X) * dx + (y - from.Y) * dy) / lengthSquared;
+                bool first = index == 1 && !closed;
+                bool last = index == path.Length - 1 && !closed;
+                double extension = radius / Math.Sqrt(lengthSquared);
+                if (first && raw < 0)
+                {
+                    if (lineCap == RendererLineCap.Butt
+                        || lineCap == RendererLineCap.ProjectingSquare && raw < -extension)
+                        continue;
+                }
+                if (last && raw > 1)
+                {
+                    if (lineCap == RendererLineCap.Butt
+                        || lineCap == RendererLineCap.ProjectingSquare && raw > 1 + extension)
+                        continue;
+                }
+                double parameter = lineCap == RendererLineCap.ProjectingSquare
+                    ? Math.Clamp(raw, first ? -extension : 0, last ? 1 + extension : 1)
+                    : Math.Clamp(raw, 0, 1);
                 double offsetX = x - (from.X + parameter * dx);
                 double offsetY = y - (from.Y + parameter * dy);
                 if (offsetX * offsetX + offsetY * offsetY <= squaredRadius) return true;
             }
+        }
         return false;
     }
 
@@ -2661,13 +2701,15 @@ public sealed class PdfPageRenderer
 
     private readonly record struct GraphicsState(
         Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
-        double LineWidth, IReadOnlyList<double> DashPattern, double DashPhase,
+        double LineWidth, RendererLineCap LineCap,
+        IReadOnlyList<double> DashPattern, double DashPhase,
         RendererBlendMode BlendMode,
         IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace,
         ImageColorSpace? FillPatternBase, TilingPatternPaint? FillPattern,
         bool StrokePatternSpace, ImageColorSpace? StrokePatternBase,
         TilingPatternPaint? StrokePattern, ImageColorSpace? FillColorSpace,
         ImageColorSpace? StrokeColorSpace);
+    private enum RendererLineCap { Butt, Round, ProjectingSquare }
     private enum RendererBlendMode
     {
         Normal, Compatible, Multiply, Screen, Overlay, Darken, Lighten, ColorDodge,

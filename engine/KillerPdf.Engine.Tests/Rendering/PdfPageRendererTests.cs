@@ -97,6 +97,31 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AppliesButtRoundAndProjectingLineCaps()
+    {
+        PdfRenderedPage butt = RenderCap(PdfLineCap.Butt);
+        PdfRenderedPage round = RenderCap(PdfLineCap.Round);
+        PdfRenderedPage square = RenderCap(PdfLineCap.ProjectingSquare);
+
+        Assert.Equal([255, 255, 255, 255], Pixel(butt, 0, 1));
+        Assert.Equal([0, 0, 0, 255], Pixel(round, 0, 1));
+        Assert.Equal([255, 255, 255, 255], Pixel(round, 0, 0));
+        Assert.Equal([0, 0, 0, 255], Pixel(square, 0, 0));
+
+        static PdfRenderedPage RenderCap(PdfLineCap cap)
+        {
+            var content = new PdfContentStreamBuilder()
+                .SetLineWidth(2).SetLineCap(cap)
+                .MoveTo(1.5, 1.5).LineTo(3.5, 1.5).Stroke();
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddPage(5, 3, content).Build());
+            return new PdfPageRenderer(document).Render(0,
+                new PdfRenderOptions(5, 3,
+                    includeAnnotations: false, includeFormFields: false));
+        }
+    }
+
+    [Fact]
     public void Render_PaintsNamedAndExplicitNonPatternColorSpaces()
     {
         byte[] content = Encoding.ASCII.GetBytes(
