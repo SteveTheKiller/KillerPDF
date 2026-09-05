@@ -39,12 +39,17 @@ public sealed class PdfPageRenderer
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
         byte[] pixels = GC.AllocateUninitializedArray<byte>(
             checked(options.Width * options.Height * 4));
-        for (int offset = 0; offset < pixels.Length; offset += 4)
+        for (int y = 0; y < options.Height; y++)
         {
-            pixels[offset] = 255;
-            pixels[offset + 1] = 255;
-            pixels[offset + 2] = 255;
-            pixels[offset + 3] = background;
+            cancellationToken.ThrowIfCancellationRequested();
+            int rowEnd = checked((y + 1) * options.Width * 4);
+            for (int offset = y * options.Width * 4; offset < rowEnd; offset += 4)
+            {
+                pixels[offset] = 255;
+                pixels[offset + 1] = 255;
+                pixels[offset + 2] = 255;
+                pixels[offset + 3] = background;
+            }
         }
 
         PdfPageInformation page = _pages[pageIndex];
@@ -513,7 +518,7 @@ public sealed class PdfPageRenderer
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
                         if (!TryRenderImage(xObject, resources, state.Transform, state.Clips,
-                            state.Fill, state.FillAlpha, state.BlendMode, pixels,
+                            state.Fill, state.FillAlpha, state.BlendMode, cancellationToken, pixels,
                             options.Width, options.Height, scaleX, scaleY,
                             out string? imageDiagnostic))
                             diagnostics.Add(imageDiagnostic ?? "Image rendering is not implemented.");
@@ -526,7 +531,7 @@ public sealed class PdfPageRenderer
                     var inlineImage = new PdfStream(inlineDictionary,
                         instruction.InlineImageData.Value.Span);
                     if (!TryRenderImage(inlineImage, resources, state.Transform, state.Clips,
-                        state.Fill, state.FillAlpha, state.BlendMode, pixels,
+                        state.Fill, state.FillAlpha, state.BlendMode, cancellationToken, pixels,
                         options.Width, options.Height, scaleX, scaleY,
                         out string? inlineDiagnostic))
                         diagnostics.Add(inlineDiagnostic ?? "Inline-image rendering is not implemented.");
@@ -580,7 +585,7 @@ public sealed class PdfPageRenderer
                 {
                     FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
                         fillPath, state.Fill, state.FillAlpha, evenOdd,
-                        state.BlendMode, state.Clips);
+                        state.BlendMode, state.Clips, cancellationToken);
                     return;
                 }
                 var fillClip = new ClipRegion(
@@ -599,7 +604,7 @@ public sealed class PdfPageRenderer
                     StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                         paintedPath, state.Stroke, state.StrokeAlpha, state.LineWidth,
                         state.LineCap, state.LineJoin, state.MiterLimit,
-                        state.BlendMode, state.Clips);
+                        state.BlendMode, state.Clips, cancellationToken);
                     return;
                 }
                 Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
@@ -808,12 +813,12 @@ public sealed class PdfPageRenderer
                             if (paintMode is 0 or 2)
                                 FillPaths(pixels, options.Width, options.Height, scaleX, scaleY,
                                     glyphPaths, state.Fill, state.FillAlpha, false,
-                                    state.BlendMode, state.Clips);
+                                    state.BlendMode, state.Clips, cancellationToken);
                             if (paintMode is 1 or 2)
                                 StrokePaths(pixels, options.Width, options.Height, scaleX, scaleY,
                                     glyphPaths, state.Stroke, state.StrokeAlpha, state.LineWidth,
                                     state.LineCap, state.LineJoin, state.MiterLimit,
-                                    state.BlendMode, state.Clips);
+                                    state.BlendMode, state.Clips, cancellationToken);
                             if (clipsText)
                                 textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
                         }
@@ -1120,7 +1125,7 @@ public sealed class PdfPageRenderer
 
     private bool TryRenderImage(PdfStream stream, PdfDictionary resources, Matrix transform,
         IReadOnlyList<ClipRegion> clips, Color stencilColor, double stencilAlpha,
-        RendererBlendMode blendMode,
+        RendererBlendMode blendMode, CancellationToken cancellationToken,
         byte[] target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic)
     {
@@ -1200,7 +1205,8 @@ public sealed class PdfPageRenderer
         PaintImage(target, targetWidth, targetHeight, scaleX, scaleY,
             transform, samples, width, height, components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
-            colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode);
+            colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
+            cancellationToken);
         return true;
     }
 
@@ -2064,7 +2070,7 @@ public sealed class PdfPageRenderer
         IReadOnlyList<ClipRegion> clips, bool imageMask, bool stencilPaintsOne,
         SoftMask? softMask, double[] decode, int[]? colorKeyMask,
         ImageColorSpace colorSpace, Color stencilColor, double stencilAlpha,
-        RendererBlendMode blendMode)
+        RendererBlendMode blendMode, CancellationToken cancellationToken)
     {
         Point[] corners =
         [
@@ -2090,6 +2096,7 @@ public sealed class PdfPageRenderer
             double unitStepY = inverse.B * pageStepX;
             for (int y = top; y < bottom; y++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 double pageX = (left + 0.5) / scaleX;
                 double pageY = (targetHeight - y - 0.5) / scaleY;
                 Point first = inverse.Apply(pageX, pageY);
@@ -2112,6 +2119,8 @@ public sealed class PdfPageRenderer
         }
         var componentValues = new double[components];
         for (int y = top; y < bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x < right; x++)
             {
                 Point unit = inverse.Apply((x + 0.5) / scaleX,
@@ -2182,6 +2191,7 @@ public sealed class PdfPageRenderer
                 }
                 SetPixel(target, targetWidth, x, y, color, alpha, blendMode);
             }
+        }
     }
 
     private bool TryGetGraphicsState(PdfDictionary resources, PdfName resourceName,
@@ -2271,7 +2281,8 @@ public sealed class PdfPageRenderer
 
     private static void FillPaths(byte[] pixels, int width, int height, double scaleX,
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha, bool evenOdd,
-        RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips)
+        RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
+        CancellationToken cancellationToken)
     {
         var scaled = paths.Where(item => item.Count > 2).Select(item => item.Select(point =>
             new Point(point.X * scaleX, height - point.Y * scaleY)).ToArray()).ToArray();
@@ -2286,6 +2297,7 @@ public sealed class PdfPageRenderer
             scaled.Max(path => path.Max(point => point.Y))), 0, height);
         for (int y = top; y < bottom; y++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             double sampleY = y + 0.5;
             for (int x = left; x < right; x++)
             {
@@ -2301,7 +2313,7 @@ public sealed class PdfPageRenderer
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha,
         double lineWidth, RendererLineCap lineCap, RendererLineJoin lineJoin,
         double miterLimit, RendererBlendMode blendMode,
-        IReadOnlyList<ClipRegion> clips)
+        IReadOnlyList<ClipRegion> clips, CancellationToken cancellationToken)
     {
         double pageRadius = Math.Max(lineWidth / 2,
             Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
@@ -2318,6 +2330,8 @@ public sealed class PdfPageRenderer
         int top = (int)Math.Clamp(Math.Floor(height - maximumY * scaleY), 0, height);
         int bottom = (int)Math.Clamp(Math.Ceiling(height - minimumY * scaleY), 0, height);
         for (int y = top; y < bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x < right; x++)
             {
                 double pageX = (x + 0.5) / scaleX;
@@ -2327,6 +2341,7 @@ public sealed class PdfPageRenderer
                         lineCap, lineJoin, miterLimit))
                     SetPixel(pixels, width, x, y, color, alpha, blendMode);
             }
+        }
     }
 
     private static void AddCubic(List<Point> path, Point start, Point control1,

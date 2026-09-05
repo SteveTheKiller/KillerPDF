@@ -55,6 +55,21 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public async Task Render_HonorsCancellationDuringRasterization()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, "0 0 100 100 re f"u8.ToArray()).Build());
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(1);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.Run(() =>
+            new PdfPageRenderer(document).Render(0,
+                new PdfRenderOptions(4096, 4096,
+                    includeAnnotations: false, includeFormFields: false),
+                cancellation.Token)));
+    }
+
+    [Fact]
     public void Render_FillsGeneralPathAndStrokesCurve()
     {
         byte[] content = "0 1 0 rg 1 1 m 8 1 l 4 8 l h f 0 0 1 RG 1 w 1 9 m 3 5 7 5 9 9 c S"u8.ToArray();
