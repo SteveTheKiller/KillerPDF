@@ -280,6 +280,8 @@ public static class PdfOcrRecognizer
         ArgumentNullException.ThrowIfNull(model);
         var words = new List<PdfOcrRecognizedWord>(layout.Words.Count);
         double[] scores = ArrayPool<double>.Shared.Rent(model.LabelCount);
+        int featureCount = checked(model.Width * model.Height);
+        float[] features = ArrayPool<float>.Shared.Rent(featureCount);
         try
         {
             foreach (PdfOcrWordRegion word in layout.Words)
@@ -289,9 +291,10 @@ public static class PdfOcrRecognizer
                 double confidence = 0;
                 foreach (PdfOcrImageRegion component in word.Components)
                 {
-                    float[] features = NormalizeGlyph(image, component, model.Width, model.Height);
+                    Span<float> glyph = features.AsSpan(0, featureCount);
+                    NormalizeGlyph(image, component, model.Width, model.Height, glyph);
                     (string label, double score) = model.Classify(
-                        features, scores.AsSpan(0, model.LabelCount));
+                        glyph, scores.AsSpan(0, model.LabelCount));
                     text.Append(label);
                     confidence += score;
                 }
@@ -299,7 +302,11 @@ public static class PdfOcrRecognizer
                     word.Components.Count == 0 ? 0 : confidence / word.Components.Count, word.Bounds));
             }
         }
-        finally { ArrayPool<double>.Shared.Return(scores); }
+        finally
+        {
+            ArrayPool<float>.Shared.Return(features);
+            ArrayPool<double>.Shared.Return(scores);
+        }
         return Array.AsReadOnly(words.ToArray());
     }
 
@@ -308,6 +315,14 @@ public static class PdfOcrRecognizer
         int width, int height)
     {
         var result = new float[width * height];
+        NormalizeGlyph(image, region, width, height, result);
+        return result;
+    }
+
+    private static void NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
+        int width, int height, Span<float> result)
+    {
+        result.Clear();
         ReadOnlySpan<byte> source = image.Pixels.Span;
         double scale = Math.Min(width / (double)region.Width, height / (double)region.Height);
         int scaledWidth = Math.Clamp((int)Math.Round(region.Width * scale), 1, width);
@@ -324,7 +339,6 @@ public static class PdfOcrRecognizer
                 result[(offsetY + y) * width + offsetX + x] =
                     1 - source[sy * image.Width + sx] / 255f;
             }
-        return result;
     }
 }
 
