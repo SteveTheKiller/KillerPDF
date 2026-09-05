@@ -429,6 +429,10 @@ public sealed class PdfPageRenderer
                     if (!TryGetXObject(resources, xObjectName, out PdfStream? xObject)
                         || xObject is null)
                         diagnostics.Add("An XObject resource could not be resolved.");
+                    else if (xObject.Dictionary.TryGetValue(Name("OC"),
+                        out PdfObject? optionalContent)
+                        && !EvaluateOptionalContent(optionalContent, 0))
+                        break;
                     else if (IsName(xObject.Dictionary, "Subtype", "Image"))
                     {
                         if (!TryRenderImage(xObject, resources, state.Transform, state.Clips,

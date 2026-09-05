@@ -106,6 +106,16 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_HonorsOptionalContentAttachedToXObjects()
+    {
+        PdfRenderedPage page = new PdfPageRenderer(OptionalContentXObjectDocument()).Render(
+            0, new PdfRenderOptions(2, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 0, 0));
+        Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 0));
+    }
+
+    [Fact]
     public void Render_FillsWithColoredTilingPatterns()
     {
         var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
@@ -1324,6 +1334,33 @@ public sealed class PdfPageRendererTests
             "<< /Type /OCG /Name (Visible) >>",
             "<< /Type /OCG /Name (Hidden) >>",
             $"<< /Type /OCMD {membershipEntries} >>"
+        ];
+        var pdf = new StringBuilder("%PDF-1.7\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(Encoding.Latin1.GetByteCount(pdf.ToString()));
+            pdf.Append($"{index + 1} 0 obj\n{objects[index]}\nendobj\n");
+        }
+        int xref = Encoding.Latin1.GetByteCount(pdf.ToString());
+        pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
+        foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
+        pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
+        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+    }
+
+    private static PdfDocument OptionalContentXObjectDocument()
+    {
+        const string pageContent = "/Fm Do";
+        const string formContent = "0 0 2 1 re f";
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R] /D << /BaseState /OFF >> >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 2 1] >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Fm 6 0 R >> >> /Contents 4 0 R >>",
+            $"<< /Length {Encoding.ASCII.GetByteCount(pageContent)} >>\nstream\n{pageContent}\nendstream",
+            "<< /Type /OCG /Name (Hidden) >>",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 2 1] /OC 5 0 R /Length {Encoding.ASCII.GetByteCount(formContent)} >>\nstream\n{formContent}\nendstream"
         ];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
