@@ -64,7 +64,8 @@ public sealed class PdfPageRenderer
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
             1, 1, 1, [], 0, RendererBlendMode.Normal, [],
-            false, null, null, false, null, null);
+            false, null, null, false, null, null,
+            new ImageColorSpace(1, null), new ImageColorSpace(1, null));
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         HashSet<int> hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
@@ -129,6 +130,7 @@ public sealed class PdfPageRenderer
                     state = state with
                     {
                         Fill = Color.Gray(Number(values[0])),
+                        FillColorSpace = new ImageColorSpace(1, null),
                         FillPatternSpace = false,
                         FillPatternBase = null,
                         FillPattern = null
@@ -138,6 +140,7 @@ public sealed class PdfPageRenderer
                     state = state with
                     {
                         Fill = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2])),
+                        FillColorSpace = new ImageColorSpace(3, null),
                         FillPatternSpace = false,
                         FillPatternBase = null,
                         FillPattern = null
@@ -148,6 +151,7 @@ public sealed class PdfPageRenderer
                     {
                         Fill = Color.Cmyk(Number(values[0]), Number(values[1]),
                             Number(values[2]), Number(values[3])),
+                        FillColorSpace = new ImageColorSpace(4, null),
                         FillPatternSpace = false,
                         FillPatternBase = null,
                         FillPattern = null
@@ -158,6 +162,7 @@ public sealed class PdfPageRenderer
                     state = state with
                     {
                         FillPatternSpace = true,
+                        FillColorSpace = null,
                         FillPatternBase = null,
                         FillPattern = null
                     };
@@ -169,6 +174,7 @@ public sealed class PdfPageRenderer
                     state = state with
                     {
                         FillPatternSpace = true,
+                        FillColorSpace = null,
                         FillPatternBase = ReadColorSpace(patternSpace[1], resources, 0),
                         FillPattern = null
                     };
@@ -193,10 +199,27 @@ public sealed class PdfPageRenderer
                         FillPattern = new TilingPatternPaint(fillPattern!, baseColor)
                     };
                     break;
+                case "cs" when values.Count == 1:
+                    state = state with
+                    {
+                        FillColorSpace = ReadColorSpace(values[0], resources, 0),
+                        FillPatternSpace = false,
+                        FillPatternBase = null,
+                        FillPattern = null
+                    };
+                    break;
+                case "sc" or "scn" when !state.FillPatternSpace
+                    && state.FillColorSpace is not null:
+                    state = state with
+                    {
+                        Fill = ReadPaintColor(state.FillColorSpace, values)
+                    };
+                    break;
                 case "G" when values.Count == 1:
                     state = state with
                     {
                         Stroke = Color.Gray(Number(values[0])),
+                        StrokeColorSpace = new ImageColorSpace(1, null),
                         StrokePatternSpace = false,
                         StrokePatternBase = null,
                         StrokePattern = null
@@ -206,6 +229,7 @@ public sealed class PdfPageRenderer
                     state = state with
                     {
                         Stroke = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2])),
+                        StrokeColorSpace = new ImageColorSpace(3, null),
                         StrokePatternSpace = false,
                         StrokePatternBase = null,
                         StrokePattern = null
@@ -216,6 +240,7 @@ public sealed class PdfPageRenderer
                     {
                         Stroke = Color.Cmyk(Number(values[0]), Number(values[1]),
                             Number(values[2]), Number(values[3])),
+                        StrokeColorSpace = new ImageColorSpace(4, null),
                         StrokePatternSpace = false,
                         StrokePatternBase = null,
                         StrokePattern = null
@@ -226,6 +251,7 @@ public sealed class PdfPageRenderer
                     state = state with
                     {
                         StrokePatternSpace = true,
+                        StrokeColorSpace = null,
                         StrokePatternBase = null,
                         StrokePattern = null
                     };
@@ -237,8 +263,25 @@ public sealed class PdfPageRenderer
                     state = state with
                     {
                         StrokePatternSpace = true,
+                        StrokeColorSpace = null,
                         StrokePatternBase = ReadColorSpace(strokePatternSpace[1], resources, 0),
                         StrokePattern = null
+                    };
+                    break;
+                case "CS" when values.Count == 1:
+                    state = state with
+                    {
+                        StrokeColorSpace = ReadColorSpace(values[0], resources, 0),
+                        StrokePatternSpace = false,
+                        StrokePatternBase = null,
+                        StrokePattern = null
+                    };
+                    break;
+                case "SC" or "SCN" when !state.StrokePatternSpace
+                    && state.StrokeColorSpace is not null:
+                    state = state with
+                    {
+                        Stroke = ReadPaintColor(state.StrokeColorSpace, values)
                     };
                     break;
                 case "SCN" when state.StrokePatternSpace && values.Count > 0
@@ -2608,6 +2651,14 @@ public sealed class PdfPageRenderer
         _ => throw new FormatException("A rendering operand is not numeric.")
     };
 
+    private Color ReadPaintColor(ImageColorSpace colorSpace,
+        IReadOnlyList<PdfObject> operands)
+    {
+        if (operands.Count != colorSpace.Components)
+            throw new FormatException("A color operator has the wrong component count.");
+        return colorSpace.Convert(operands.Select(value => Number(Resolve(value))).ToArray());
+    }
+
     private readonly record struct GraphicsState(
         Matrix Transform, Color Fill, Color Stroke, double FillAlpha, double StrokeAlpha,
         double LineWidth, IReadOnlyList<double> DashPattern, double DashPhase,
@@ -2615,7 +2666,8 @@ public sealed class PdfPageRenderer
         IReadOnlyList<ClipRegion> Clips, bool FillPatternSpace,
         ImageColorSpace? FillPatternBase, TilingPatternPaint? FillPattern,
         bool StrokePatternSpace, ImageColorSpace? StrokePatternBase,
-        TilingPatternPaint? StrokePattern);
+        TilingPatternPaint? StrokePattern, ImageColorSpace? FillColorSpace,
+        ImageColorSpace? StrokeColorSpace);
     private enum RendererBlendMode
     {
         Normal, Compatible, Multiply, Screen, Overlay, Darken, Lighten, ColorDodge,
@@ -2648,8 +2700,10 @@ public sealed class PdfPageRenderer
             return Convert(values[0], values.Length > 1 ? values[1] : 0,
                 values.Length > 2 ? values[2] : 0, values.Length > 3 ? values[3] : 0);
         }
-        internal Color Convert(double[] values) => MultiConverter is not null
-            ? MultiConverter(values) : Convert((ReadOnlySpan<double>)values);
+        internal Color Convert(double[] values) => Palette is not null
+            ? Palette[Math.Clamp((int)Math.Round(values[0]), 0, Palette.Length - 1)]
+            : MultiConverter is not null
+                ? MultiConverter(values) : Convert((ReadOnlySpan<double>)values);
         internal double DefaultValue(int component, double normalized) => DefaultDecode is null
             ? normalized : DefaultDecode[component * 2] + normalized
                 * (DefaultDecode[component * 2 + 1] - DefaultDecode[component * 2]);

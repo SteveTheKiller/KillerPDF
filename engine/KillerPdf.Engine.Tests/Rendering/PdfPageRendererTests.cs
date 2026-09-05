@@ -97,6 +97,25 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsNamedAndExplicitNonPatternColorSpaces()
+    {
+        byte[] content = Encoding.ASCII.GetBytes(
+            "/CS1 cs 1 0 0 sc 0 0 1 1 re f "
+            + "/DeviceCMYK cs 1 0 0 0 scn 1 0 1 1 re f "
+            + "/CS1 CS 0 0 1 SCN 0 w 0 1.5 m 2 1.5 l S");
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 2, content).Build());
+        PdfDocument document = AddPageColorSpaceResource(source, "CS1", Name("DeviceRGB"));
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(2, 2, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 0, 0));
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 0, 1));
+        Assert.Equal([255, 255, 0, 255], Pixel(page, 1, 1));
+    }
+
+    [Fact]
     public void Render_HonorsDefaultOptionalContentVisibility()
     {
         var hidden = new PdfOptionalContentGroup("Hidden", initiallyVisible: false);
