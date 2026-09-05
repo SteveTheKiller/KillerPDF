@@ -15,8 +15,8 @@ public static partial class PdfBookmarkExchange
         PdfBookmarkExchangeDocument exchange = new(1,
             [.. PdfBookmarkReader.Read(document).Select(Export)]);
         return JsonSerializer.Serialize(exchange, indented
-            ? IndentedJsonContext.Default.PdfBookmarkExchangeDocument
-            : CompactJsonContext.Default.PdfBookmarkExchangeDocument);
+            ? PdfBookmarkIndentedJsonContext.Default.PdfBookmarkExchangeDocument
+            : PdfBookmarkCompactJsonContext.Default.PdfBookmarkExchangeDocument);
     }
 
     /// <summary>Imports a JSON bookmark hierarchy, optionally replacing existing bookmarks.</summary>
@@ -28,7 +28,7 @@ public static partial class PdfBookmarkExchange
         try
         {
             exchange = JsonSerializer.Deserialize(
-                json, CompactJsonContext.Default.PdfBookmarkExchangeDocument)
+                json, PdfBookmarkCompactJsonContext.Default.PdfBookmarkExchangeDocument)
                 ?? throw new InvalidOperationException("The bookmark JSON document is empty.");
         }
         catch (JsonException exception)
@@ -130,10 +130,10 @@ public static partial class PdfBookmarkExchange
     [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
         UseStringEnumConverter = true)]
     [JsonSerializable(typeof(PdfBookmarkExchangeDocument))]
-    private sealed partial class CompactJsonContext : JsonSerializerContext;
+    private sealed partial class PdfBookmarkCompactJsonContext : JsonSerializerContext;
 
     [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
         UseStringEnumConverter = true, WriteIndented = true)]
     [JsonSerializable(typeof(PdfBookmarkExchangeDocument))]
-    private sealed partial class IndentedJsonContext : JsonSerializerContext;
+    private sealed partial class PdfBookmarkIndentedJsonContext : JsonSerializerContext;
 }
