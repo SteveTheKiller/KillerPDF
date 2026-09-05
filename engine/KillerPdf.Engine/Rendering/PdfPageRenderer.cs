@@ -1295,6 +1295,9 @@ public sealed class PdfPageRenderer
         int height = PositiveInteger(stream.Dictionary, "Height");
         int bits = imageMask ? 1 : PositiveInteger(stream.Dictionary, "BitsPerComponent");
         bool jpeg2000 = IsSoleJpeg2000Filter(stream.Dictionary);
+        bool recoveredPng = _document.UsesCompatibilityRecovery
+            && IsSoleDctFilter(stream.Dictionary)
+            && PdfPngDecoder.HasSignature(stream.EncodedData.Span);
         int embeddedMaskMode = jpeg2000
             ? EmbeddedJpeg2000MaskMode(stream.Dictionary) : 0;
         Jpeg2000Shape? jpeg2000Shape = jpeg2000
@@ -1324,7 +1327,7 @@ public sealed class PdfPageRenderer
             return false;
         }
         byte[] samples;
-        SoftMask? softMask;
+        SoftMask? softMask = null;
         int sampleWidth = width, sampleHeight = height;
         Color? preblendMatte = null;
         double[] decode;
@@ -1355,7 +1358,18 @@ public sealed class PdfPageRenderer
                 && (shape.Width != width || shape.Height != height
                     || shape.Components != encodedComponents || shape.Bits != bits))
                 throw new FormatException("JPEG 2000 image metadata does not match its codestream.");
-            if (jpeg2000Shape is Jpeg2000Shape jpxShape)
+            if (recoveredPng)
+            {
+                PngDecodedImage decoded = PdfPngDecoder.Decode(
+                    stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes);
+                if (decoded.Width != width || decoded.Height != height
+                    || decoded.Components != components || decoded.Bits != bits)
+                    throw new FormatException("PNG image metadata does not match its PDF dictionary.");
+                samples = decoded.Samples;
+                softMask = decoded.Alpha is null
+                    ? null : new SoftMask(decoded.Alpha, width, height);
+            }
+            else if (jpeg2000Shape is Jpeg2000Shape jpxShape)
             {
                 int resolutionLevel = SelectJpeg2000ResolutionLevel(
                     jpxShape, transform, scaleX, scaleY);
@@ -1373,9 +1387,10 @@ public sealed class PdfPageRenderer
                 if (samples.Length != expected)
                     throw new FormatException("Image sample data has an invalid length.");
             }
-            softMask = embeddedMaskMode == 0 ? null
-                : SeparateEmbeddedJpeg2000Alpha(
-                    ref samples, sampleWidth, sampleHeight, components, bits);
+            if (!recoveredPng)
+                softMask = embeddedMaskMode == 0 ? null
+                    : SeparateEmbeddedJpeg2000Alpha(
+                        ref samples, sampleWidth, sampleHeight, components, bits);
             if (softMask is null) softMask = ReadSoftMask(stream.Dictionary);
             if (softMask is null && explicitMask is not null)
                 softMask = ReadExplicitImageMask(explicitMask);
@@ -1442,6 +1457,14 @@ public sealed class PdfPageRenderer
         PdfObject resolved = Resolve(value);
         if (resolved is PdfArray filters && filters.Count == 1) resolved = Resolve(filters[0]);
         return resolved is PdfName name && name.ValueAsLatin1() is "JPXDecode" or "JPX";
+    }
+
+    private bool IsSoleDctFilter(PdfDictionary dictionary)
+    {
+        if (!dictionary.TryGetValue(Name("Filter"), out PdfObject? value)) return false;
+        PdfObject resolved = Resolve(value);
+        if (resolved is PdfArray filters && filters.Count == 1) resolved = Resolve(filters[0]);
+        return resolved is PdfName name && name.ValueAsLatin1() is "DCTDecode" or "DCT";
     }
 
     private static ImageColorSpace InferJpeg2000ColorSpace(

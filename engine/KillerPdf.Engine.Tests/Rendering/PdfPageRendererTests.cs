@@ -6,6 +6,7 @@ using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Tests.Fonts;
 using KillerPdf.Engine.Writing;
+using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Text;
 using Xunit;
@@ -476,6 +477,29 @@ public sealed class PdfPageRendererTests
         Assert.InRange(pixel[0], 5, 15);
         Assert.Equal(255, pixel[3]);
         Assert.DoesNotContain("The image compression filter is not implemented.", page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_CompatibilityRecoveryDecodesPngMislabeledAsJpeg()
+    {
+        byte[] png = PngRgba(2, 1, [255, 0, 0, 128, 0, 255, 0, 255]);
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(2, 1, new byte[6]), 0, 0, 2, 1)).Build());
+        byte[] malformedBytes = AddImageDictionaryEntryBytes(source, "Filter",
+            Name("DCTDecode"), png);
+        PdfDocument malformed = PdfDocument.Open(malformedBytes);
+        PdfRenderOptions options = new(2, 1, transparentBackground: true,
+            includeAnnotations: false, includeFormFields: false);
+
+        PdfRenderedPage strict = new PdfPageRenderer(malformed).Render(0, options);
+        PdfDocument recoveredDocument = PdfDocument.OpenWithCompatibilityRecovery(malformedBytes);
+        PdfRenderedPage recovered = new PdfPageRenderer(recoveredDocument).Render(0, options);
+
+        Assert.Contains("The image compression filter is not implemented.", strict.Diagnostics);
+        Assert.Empty(recovered.Diagnostics);
+        Assert.Equal([0, 0, 255, 128], Pixel(recovered, 0, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(recovered, 1, 0));
     }
 
     [Fact]
@@ -2048,6 +2072,39 @@ public sealed class PdfPageRendererTests
         return output.ToArray();
     }
 
+    private static byte[] PngRgba(int width, int height, byte[] samples)
+    {
+        using var filtered = new MemoryStream();
+        for (int y = 0; y < height; y++)
+        {
+            filtered.WriteByte(0);
+            filtered.Write(samples, y * width * 4, width * 4);
+        }
+        byte[] compressed = Compress(filtered.ToArray());
+        using var png = new MemoryStream();
+        png.Write([137, 80, 78, 71, 13, 10, 26, 10]);
+        byte[] header = new byte[13];
+        BinaryPrimitives.WriteUInt32BigEndian(header, (uint)width);
+        BinaryPrimitives.WriteUInt32BigEndian(header.AsSpan(4), (uint)height);
+        header[8] = 8;
+        header[9] = 6;
+        WriteChunk(png, "IHDR"u8, header);
+        WriteChunk(png, "IDAT"u8, compressed);
+        WriteChunk(png, "IEND"u8, []);
+        return png.ToArray();
+    }
+
+    private static void WriteChunk(Stream target, ReadOnlySpan<byte> type,
+        ReadOnlySpan<byte> data)
+    {
+        Span<byte> length = stackalloc byte[4];
+        BinaryPrimitives.WriteUInt32BigEndian(length, (uint)data.Length);
+        target.Write(length);
+        target.Write(type);
+        target.Write(data);
+        target.Write([0, 0, 0, 0]);
+    }
+
     private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
         Assert.IsType<PdfDictionary>(document.Resolve(Assert.IsType<PdfIndirectReference>(value)));
 
@@ -2069,6 +2126,26 @@ public sealed class PdfPageRendererTests
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(reference.ObjectNumber,
                 new PdfStream(dictionary, encodedData ?? image.EncodedData.ToArray())).Build());
+    }
+
+    private static byte[] AddImageDictionaryEntryBytes(
+        PdfDocument source, string name, PdfObject value, byte[] encodedData)
+    {
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(xObjects[Name("Im1")]);
+        PdfStream image = Assert.IsType<PdfStream>(source.Resolve(reference));
+        PdfName entryName = Name(name);
+        var dictionary = new PdfDictionary(image.Dictionary
+            .Where(entry => !entry.Key.Equals(entryName)).Append(
+            new KeyValuePair<PdfName, PdfObject>(entryName, value)));
+        return new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber,
+                new PdfStream(dictionary, encodedData)).Build();
     }
 
     private static PdfDocument RemoveImageDictionaryEntry(PdfDocument source, string name)
