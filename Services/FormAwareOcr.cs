@@ -9,7 +9,7 @@ internal static class FormAwareOcr
         IReadOnlyList<PdfFormWidgetInfo> widgets, int additionalRotation = 0)
     {
         OcrResult full = service.RecognizeBgra(bgra, width, height);
-        IReadOnlyList<FormOcrPolicy.Region> regions = FormOcrPolicy.MapRegions(
+        IReadOnlyList<PdfOcrFormRegion> regions = PdfOcrFormLayout.MapRegions(
             widgets, width, height, additionalRotation);
         if (regions.Count == 0) return full;
 
@@ -17,7 +17,7 @@ internal static class FormAwareOcr
             Contains(region, (word.Left + word.Right) / 2, (word.Top + word.Bottom) / 2))).ToList();
         double confidenceTotal = words.Sum(word => word.Confidence);
         int confidenceCount = words.Count;
-        foreach (FormOcrPolicy.Region region in regions)
+        foreach (PdfOcrFormRegion region in regions)
         {
             string text;
             float fieldConfidence;
@@ -35,7 +35,7 @@ internal static class FormAwareOcr
             }
             if (text.Length == 0) continue;
             if (region.ChoiceValues.Count > 0)
-                text = FormOcrPolicy.ClosestChoice(text, region.ChoiceValues);
+                text = PdfOcrFormLayout.NormalizeChoice(text, region.ChoiceValues);
             if (region.MaximumLength > 0 && text.Length > region.MaximumLength)
                 text = text[..region.MaximumLength];
             words.Add(new OcrWord
@@ -65,10 +65,10 @@ internal static class FormAwareOcr
         return result;
     }
 
-    private static bool Contains(FormOcrPolicy.Region region, int x, int y) =>
+    private static bool Contains(PdfOcrFormRegion region, int x, int y) =>
         x >= region.Left && x <= region.Right && y >= region.Top && y <= region.Bottom;
 
-    private static byte[] Crop(byte[] source, int sourceWidth, FormOcrPolicy.Region region,
+    private static byte[] Crop(byte[] source, int sourceWidth, PdfOcrFormRegion region,
         out int width, out int height)
     {
         width = region.Right - region.Left;
@@ -81,7 +81,7 @@ internal static class FormAwareOcr
     }
 
     private static (string text, float confidence) RecognizeComb(
-        OcrService service, byte[] source, int sourceWidth, FormOcrPolicy.Region region)
+        OcrService service, byte[] source, int sourceWidth, PdfOcrFormRegion region)
     {
         var text = new System.Text.StringBuilder(region.MaximumLength);
         double confidence = 0;

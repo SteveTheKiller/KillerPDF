@@ -1,5 +1,4 @@
 using KillerPdf.Engine.Documents;
-using KillerPDF.Services;
 using Xunit;
 
 namespace KillerPDF.Tests;
@@ -12,12 +11,12 @@ public sealed class FormOcrPolicyTests
         PdfFormWidgetInfo widget = Widget("totalAmount", PdfFormFieldKind.Text,
             left: 10, bottom: 20, right: 60, top: 40, maximumLength: 8);
 
-        FormOcrPolicy.Region region = Assert.Single(
-            FormOcrPolicy.MapRegions([widget], 200, 100));
+        PdfOcrFormRegion region = Assert.Single(
+            PdfOcrFormLayout.MapRegions([widget], 200, 100));
 
         Assert.Equal((20, 60, 120, 80),
             (region.Left, region.Top, region.Right, region.Bottom));
-        Assert.Equal(FormOcrPolicy.NumericWhitelist, region.CharacterWhitelist);
+        Assert.Equal(PdfOcrFormLayout.NumericWhitelist, region.CharacterWhitelist);
         Assert.Equal(8, region.MaximumLength);
     }
 
@@ -27,8 +26,8 @@ public sealed class FormOcrPolicyTests
         PdfFormWidgetInfo widget = Widget("name", PdfFormFieldKind.Text,
             left: 10, bottom: 20, right: 60, top: 40, pageRotation: 90);
 
-        FormOcrPolicy.Region region = Assert.Single(
-            FormOcrPolicy.MapRegions([widget], 100, 200));
+        PdfOcrFormRegion region = Assert.Single(
+            PdfOcrFormLayout.MapRegions([widget], 100, 200));
 
         Assert.Equal((20, 20, 40, 120),
             (region.Left, region.Top, region.Right, region.Bottom));
@@ -39,8 +38,8 @@ public sealed class FormOcrPolicyTests
     {
         string[] choices = ["Mathematics", "English", "Science"];
 
-        Assert.Equal("Science", FormOcrPolicy.ClosestChoice("Scienoe", choices));
-        Assert.Equal("History", FormOcrPolicy.ClosestChoice("History", choices));
+        Assert.Equal("Science", PdfOcrFormLayout.NormalizeChoice("Scienoe", choices));
+        Assert.Equal("History", PdfOcrFormLayout.NormalizeChoice("History", choices));
     }
 
     [Fact]
@@ -52,8 +51,8 @@ public sealed class FormOcrPolicyTests
             Flags = 1L << 24
         };
 
-        FormOcrPolicy.Region region = Assert.Single(
-            FormOcrPolicy.MapRegions([widget], 200, 100));
+        PdfOcrFormRegion region = Assert.Single(
+            PdfOcrFormLayout.MapRegions([widget], 200, 100));
 
         Assert.True(region.IsComb);
         Assert.Equal(8, region.MaximumLength);
