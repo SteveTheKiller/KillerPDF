@@ -40,6 +40,10 @@ public static class PdfCrossReferenceReader
             }
             catch (PdfSyntaxException)
             {
+                PdfCrossReferenceSection? recoveredStream =
+                    FindNearbyCrossReferenceStream(source, (int)offset);
+                if (recoveredStream is not null)
+                    return recoveredStream;
                 (PdfToken Token, PdfTokenizer Tokenizer)? recovered =
                     FindNearbyClassicTable(source, (int)offset);
                 if (!recovered.HasValue)
@@ -49,12 +53,40 @@ public static class PdfCrossReferenceReader
             }
         }
 
+        PdfCrossReferenceSection? nearbyStream =
+            FindNearbyCrossReferenceStream(source, (int)offset);
+        if (nearbyStream is not null)
+            return nearbyStream;
         (PdfToken Token, PdfTokenizer Tokenizer)? nearby =
             FindNearbyClassicTable(source, (int)offset);
         return nearby.HasValue
             ? ReadClassic(source, nearby.Value.Token, nearby.Value.Tokenizer,
                 compatibilityRecovery: true)
             : ReadStream(source, (int)offset, compatibilityRecovery: true);
+    }
+
+    private static PdfCrossReferenceSection? FindNearbyCrossReferenceStream(
+        ReadOnlyMemory<byte> source, int offset)
+    {
+        const int maximumDistance = 1_048_576;
+        for (int distance = 1; distance <= maximumDistance; distance++)
+        {
+            foreach (int candidate in new[] { offset + distance, offset - distance })
+            {
+                if (candidate < 0 || candidate >= source.Length
+                    || source.Span[candidate] is < (byte)'0' or > (byte)'9'
+                    || candidate > 0 && !IsBoundary(source.Span[candidate - 1]))
+                    continue;
+                try
+                {
+                    return ReadStream(source, candidate, compatibilityRecovery: true);
+                }
+                catch (PdfSyntaxException)
+                {
+                }
+            }
+        }
+        return null;
     }
 
     private static (PdfToken Token, PdfTokenizer Tokenizer)? FindNearbyClassicTable(
@@ -77,11 +109,11 @@ public static class PdfCrossReferenceReader
             }
         }
         return null;
-
-        static bool IsBoundary(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32
-            or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
-            or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
     }
+
+    private static bool IsBoundary(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32
+        or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
+        or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
 
     private static PdfCrossReferenceSection ReadClassic(
         ReadOnlyMemory<byte> source,

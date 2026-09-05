@@ -130,6 +130,24 @@ public sealed class PdfCrossReferenceReaderTests
     }
 
     [Fact]
+    public void ReadSection_CompatibilityRecoveryFindsNearbyCrossReferenceStream()
+    {
+        byte[] prefix = "endobj\n"u8.ToArray();
+        byte[] stream = XrefStream(
+            [0, 0, 0, 255, 255],
+            "<< /Type /XRef /Size 1 /W [1 2 2] /Length 5 >>");
+        byte[] source = [.. prefix, .. stream];
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0));
+        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true);
+
+        Assert.True(section.IsStream);
+        Assert.Equal(prefix.Length, section.Offset);
+    }
+
+    [Fact]
     public void ReadSection_CanonicalizesObjectZeroCrossReferenceStreamGeneration()
     {
         byte[] source = XrefStream(
