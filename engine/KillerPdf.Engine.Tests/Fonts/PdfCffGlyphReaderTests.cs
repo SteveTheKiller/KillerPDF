@@ -115,6 +115,21 @@ public sealed class PdfCffGlyphReaderTests
     }
 
     [Fact]
+    public void ComposesSeacBaseAndAccentOutlines()
+    {
+        byte[] baseGlyph = [.. Numbers(0, 0), 21, .. Numbers(100, 0, 0, 200), 5, 14];
+        byte[] accentGlyph = [.. Numbers(0, 0), 21, .. Numbers(20, 20), 5, 14];
+        byte[] composite = [.. Numbers(10, 200, 65, 194), 14];
+        var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(
+            BuildNamed(("A", baseGlyph), ("acute", accentGlyph), ("Aacute", composite))));
+
+        PdfGlyphOutline outline = Assert.IsType<PdfGlyphOutline>(font.GetOutline(3));
+        Assert.Equal(2, outline.Contours.Count);
+        Assert.Equal(new PdfGlyphPoint(0, 0, true), outline.Contours[0].Points[0]);
+        Assert.Equal(new PdfGlyphPoint(10, 200, true), outline.Contours[1].Points[0]);
+    }
+
+    [Fact]
     public void FlexAndArithmeticOperatorsProduceOutlineBounds()
     {
         byte[] program = [.. Numbers(0, 0), 21, .. Numbers(5, 5), 12, 10,
@@ -134,6 +149,29 @@ public sealed class PdfCffGlyphReaderTests
             141, .. Offset(privateOffset), 18];
         return [1, 0, 4, 4, .. name, .. Index(dict), 0, 0, 0, 0, 0, 0, 34,
             .. charstrings, 141, 19, .. (subr is null ? [0, 0] : Index(subr))];
+    }
+    internal static byte[] BuildNamed(params (string Name, byte[] Program)[] glyphs)
+    {
+        int[] sids = glyphs.Select(glyph => glyph.Name switch
+        {
+            "A" => 34,
+            "f" => 71,
+            "i" => 74,
+            "acute" => 125,
+            "Aacute" => 171,
+            _ => throw new ArgumentOutOfRangeException(nameof(glyphs))
+        }).ToArray();
+        byte[] name = Index("Example"u8.ToArray());
+        byte[][] programs = [[14], .. glyphs.Select(glyph => glyph.Program)];
+        byte[] charstrings = Index(programs);
+        int charsetOffset = 4 + name.Length + Index(new byte[19]).Length + 2 + 2;
+        byte[] charset = [0, .. sids.SelectMany(sid => new byte[] { (byte)(sid >> 8), (byte)sid })];
+        int charstringsOffset = charsetOffset + charset.Length;
+        int privateOffset = charstringsOffset + charstrings.Length;
+        byte[] dict = [.. Offset(charsetOffset), 15, .. Offset(charstringsOffset), 17,
+            141, .. Offset(privateOffset), 18];
+        return [1, 0, 4, 4, .. name, .. Index(dict), 0, 0, 0, 0, .. charset,
+            .. charstrings, 141, 19, 0, 0];
     }
     private static byte[] Offset(int value) => [29, (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value];
     internal static byte[] Numbers(params int[] values) => [.. values.SelectMany(value => value is >= -107 and <= 107

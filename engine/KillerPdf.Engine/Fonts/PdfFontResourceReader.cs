@@ -218,6 +218,42 @@ public static class PdfFontResourceReader
                 }
                 if (ascent <= descent) { ascent = 800; descent = -200; }
             }
+            PdfGlyphOutline? CffCompatibilityOutline(uint code)
+            {
+                if (cff is null || composite) return null;
+                string? text = CharacterText(code)?.Normalize(NormalizationForm.FormKD);
+                if (string.IsNullOrEmpty(text)) return null;
+                Rune[] scalars = [.. text.EnumerateRunes()];
+                if (scalars.Length < 2) return null;
+                var components = new List<(PdfGlyphOutline Outline, double Advance)>();
+                foreach (Rune scalar in scalars)
+                {
+                    PdfGlyphOutline? outline = cff.GetOutline(cff.FindUnicode(scalar.Value));
+                    if (outline is null) return null;
+                    double advance = Enumerable.Range(0, glyphNames.Length)
+                        .Where(index => simpleText.GetValueOrDefault((uint)index) == scalar.ToString())
+                        .Select(index => widths.GetValueOrDefault((uint)index, defaultWidth))
+                        .FirstOrDefault(defaultWidth);
+                    if (advance <= 0) return null;
+                    components.Add((outline, advance));
+                }
+                double naturalWidth = components.Sum(component => component.Advance);
+                double targetWidth = widths.GetValueOrDefault(code, defaultWidth);
+                if (naturalWidth <= 0 || targetWidth <= 0) return null;
+                double position = 0;
+                var contours = new List<PdfGlyphContour>();
+                foreach ((PdfGlyphOutline outline, double advance) in components)
+                {
+                    double offset = position * targetWidth / naturalWidth;
+                    contours.AddRange(outline.Contours.Select(contour => new PdfGlyphContour(
+                        Array.AsReadOnly([.. contour.Points.Select(point => point with
+                        {
+                            X = point.X + offset
+                        })]))));
+                    position += advance;
+                }
+                return new PdfGlyphOutline(contours.AsReadOnly());
+            }
             return new PdfExtractionFont(unicode, widths,
                 defaultWidth)
             {
@@ -245,6 +281,7 @@ public static class PdfFontResourceReader
                 },
                 OutlineReader = code => embeddedOutlines?.Outline(Glyph(code))
                     ?? cff?.GetOutline(CffGlyph(code))
+                    ?? CffCompatibilityOutline(code)
                     ?? (!composite && code < glyphNames.Length
                         ? type1?.GetOutline(glyphNames[code]) : null)
                     ?? (SubstituteGlyph(code) is ushort substituteGlyph && substituteGlyph != 0

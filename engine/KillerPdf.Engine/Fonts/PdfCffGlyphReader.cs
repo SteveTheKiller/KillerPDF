@@ -16,6 +16,7 @@ public sealed class PdfCffGlyphReader
     private readonly bool _cid;
     private readonly Dictionary<int, PdfGlyphBounds?> _cache = [];
     private readonly Dictionary<int, PdfGlyphOutline?> _outlineCache = [];
+    private readonly HashSet<int> _activeOutlines = [];
     private readonly Dictionary<string, int> _names = new(StringComparer.Ordinal);
     private readonly Dictionary<uint, int> _cids = [];
     private readonly Dictionary<int, int> _unicode = [];
@@ -57,19 +58,23 @@ public sealed class PdfCffGlyphReader
     {
         if (glyph < 0 || glyph >= _glyphs.Length) return null;
         if (_outlineCache.TryGetValue(glyph, out var cached)) return cached;
+        if (!_activeOutlines.Add(glyph)) return null;
         PdfGlyphOutline? result;
         try
         {
             PdfGlyphOutline outline = new Interpreter(
-                _global, _local[_fd[glyph]], _matrices[_fd[glyph]])
+                _global, _local[_fd[glyph]], _matrices[_fd[glyph]], ComponentOutline)
                 .ReadOutline(_glyphs[glyph]);
             result = glyph == 0 && outline.Contours.Count == 0 ? null : outline;
         }
         catch (Exception e) when (e is FormatException or NotSupportedException
             or OverflowException or ArgumentException)
         { result = null; }
+        finally { _activeOutlines.Remove(glyph); }
         _outlineCache[glyph] = result;
         return result;
+
+        PdfGlyphOutline? ComponentOutline(string name) => GetOutline(FindGlyph(name));
     }
 
     private PdfCffGlyphReader(ReadOnlyMemory<byte> source)
@@ -291,7 +296,8 @@ public sealed class PdfCffGlyphReader
 
     private static readonly string[] Standard = (".notdef space exclam quotedbl numbersign dollar percent ampersand quoteright parenleft parenright asterisk plus comma hyphen period slash zero one two three four five six seven eight nine colon semicolon less equal greater question at A B C D E F G H I J K L M N O P Q R S T U V W X Y Z bracketleft backslash bracketright asciicircum underscore quoteleft a b c d e f g h i j k l m n o p q r s t u v w x y z braceleft bar braceright asciitilde exclamdown cent sterling fraction yen florin section currency quotesingle quotedblleft guillemotleft guilsinglleft guilsinglright fi fl endash dagger daggerdbl periodcentered paragraph bullet quotesinglbase quotedblbase quotedblright guillemotright ellipsis perthousand questiondown grave acute circumflex tilde macron breve dotaccent dieresis ring cedilla hungarumlaut ogonek caron emdash AE ordfeminine Lslash Oslash OE ordmasculine ae dotlessi lslash oslash oe germandbls onesuperior logicalnot mu trademark Eth onehalf plusminus Thorn onequarter divide brokenbar degree thorn threequarters twosuperior registered minus eth multiply threesuperior copyright Aacute Acircumflex Adieresis Agrave Aring Atilde Ccedilla Eacute Ecircumflex Edieresis Egrave Iacute Icircumflex Idieresis Igrave Ntilde Oacute Ocircumflex Odieresis Ograve Otilde Scaron Uacute Ucircumflex Udieresis Ugrave Yacute Ydieresis Zcaron aacute acircumflex adieresis agrave aring atilde ccedilla eacute ecircumflex edieresis egrave iacute icircumflex idieresis igrave ntilde oacute ocircumflex odieresis ograve otilde scaron uacute ucircumflex udieresis ugrave yacute ydieresis zcaron").Split(' ');
 
-    private sealed class Interpreter(ReadOnlyMemory<byte>[] global, ReadOnlyMemory<byte>[] local, double[] matrix)
+    private sealed class Interpreter(ReadOnlyMemory<byte>[] global, ReadOnlyMemory<byte>[] local,
+        double[] matrix, Func<string, PdfGlyphOutline?>? componentOutline = null)
     {
         private readonly List<double> _stack = [];
         private readonly double[] _transient = new double[32];
@@ -374,12 +380,38 @@ public sealed class PdfCffGlyphReader
                     case 11: if (depth == 0) throw Bad(); return false;
                     case 14:
                         if (!_width && _stack.Count is 1 or 5) _stack.RemoveAt(0);
-                        if (_stack.Count != 0) throw new NotSupportedException("CFF seac outlines require component composition.");
+                        if (_stack.Count == 4)
+                        {
+                            int baseCode = Int(_stack[2]), accentCode = Int(_stack[3]);
+                            string[] encoding = PdfFontTables.EncodingNames("StandardEncoding")!;
+                            if (baseCode >= encoding.Length || accentCode >= encoding.Length
+                                || componentOutline is null
+                                || componentOutline(encoding[baseCode]) is not { } baseGlyph
+                                || componentOutline(encoding[accentCode]) is not { } accentGlyph)
+                                throw Bad();
+                            FinishContour();
+                            AddComponent(baseGlyph, 0, 0);
+                            AddComponent(accentGlyph, _stack[0], _stack[1]);
+                            _stack.Clear();
+                        }
+                        else if (_stack.Count != 0) throw Bad();
                         return true;
                     default: throw new NotSupportedException($"Unsupported Type 2 operator {op}.");
                 }
             }
             throw Bad();
+        }
+        private void AddComponent(PdfGlyphOutline outline, double dx, double dy)
+        {
+            double offsetX = (matrix[0] * dx + matrix[2] * dy) * 1000;
+            double offsetY = (matrix[1] * dx + matrix[3] * dy) * 1000;
+            foreach (PdfGlyphContour contour in outline.Contours)
+                _contours.Add(new PdfGlyphContour(Array.AsReadOnly([
+                    .. contour.Points.Select(point => point with
+                    {
+                        X = point.X + offsetX,
+                        Y = point.Y + offsetY
+                    })])));
         }
         private void Alternating(int op)
         {

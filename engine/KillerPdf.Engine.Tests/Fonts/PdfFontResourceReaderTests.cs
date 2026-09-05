@@ -236,6 +236,28 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void EmbeddedCffComposesOmittedCompatibilityLigatures()
+    {
+        byte[] letterF = [.. PdfCffGlyphReaderTests.Numbers(0, 0), 21,
+            .. PdfCffGlyphReaderTests.Numbers(200, 0, 0, 500), 5, 14];
+        byte[] letterI = [.. PdfCffGlyphReaderTests.Numbers(0, 0), 21,
+            .. PdfCffGlyphReaderTests.Numbers(100, 0, 0, 500), 5, 14];
+        var fontFile = new PdfStream(D(("Subtype", N("Type1C"))),
+            PdfCffGlyphReaderTests.BuildNamed(("f", letterF), ("i", letterI)));
+        var encoding = D(("Differences", new PdfArray([new PdfInteger(11), N("ff")])));
+        var descriptor = D(("FontFile3", fontFile), ("MissingWidth", new PdfInteger(300)));
+        var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("KillerTest")),
+            ("FirstChar", new PdfInteger(11)), ("LastChar", new PdfInteger(11)),
+            ("Widths", new PdfArray([new PdfInteger(570)])), ("Encoding", encoding),
+            ("FontDescriptor", descriptor)));
+
+        PdfGlyphOutline outline = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(11));
+        Assert.Equal(2, outline.Contours.Count);
+        Assert.Equal(new PdfGlyphPoint(0, 0, true), outline.Contours[0].Points[0]);
+        Assert.Equal(new PdfGlyphPoint(285, 0, true), outline.Contours[1].Points[0]);
+    }
+
+    [Fact]
     public void EmbeddedNameKeyedCffCompositeUsesItsUnicodeMap()
     {
         byte[] program = [.. PdfCffGlyphReaderTests.Numbers(10, 20), 21,
