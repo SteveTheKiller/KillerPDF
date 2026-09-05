@@ -38,6 +38,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Rendered the correct first page after opening or switching documents in Single, Two-Page, and Grid views (#378, #379, thanks @Ryokoxx).
 - Allowed Document Info changes when PDFs contain malformed language metadata (#384).
 - Allowed Transform to rasterize selected pages in tagged PDFs (#383).
 - Restored reliable title-bar dragging and double-clicking from maximized windows (#380).

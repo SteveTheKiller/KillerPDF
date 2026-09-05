@@ -1360,6 +1360,11 @@ namespace KillerPDF.Controls
                 if (isContinuous)
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
                         () => SetupContinuousView(page, fitDefault: autoFit, restoreVerticalOffset));
+                // RefreshPageList re-seats the sidebar under _syncingPageList, so the selection
+                // handler never renders the primary for a new document. Render it here, or the
+                // previous tab's page stays on screen in Single, Two-Page and Grid.
+                else
+                    RenderPage(_viewMode == ViewMode.Grid ? 0 : page);
                 // Fit / zoom once the first page has rendered and layout has settled.
                 // DispatcherPriority.Background is lower than Loaded, so this fires after
                 // all pending RenderPage / RefreshPageView callbacks have completed.
