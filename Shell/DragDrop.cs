@@ -485,7 +485,8 @@ namespace KillerPDF
                     return PdfiumInterop.TryPdfiumStripEncryption(path, p) ? p : null;
                 });
                 repaired ??= await System.Threading.Tasks.Task.Run(() => PdfImport.RepairViaImportToFile(path));
-                repaired ??= await System.Threading.Tasks.Task.Run(() => PdfImport.RepairViaDocnetRasterizeToFile(path));
+                repaired ??= await System.Threading.Tasks.Task.Run(
+                    () => PdfImport.RepairViaRasterizeToFile(path));
 
                 if (repaired is null)
                     KillerDialog.Show(this,

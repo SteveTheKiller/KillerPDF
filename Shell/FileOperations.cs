@@ -256,7 +256,8 @@ namespace KillerPDF
                 // Text won't be selectable in the result, but the file will open and print.
                 if (repairedPath is null)
                 {
-                    repairedPath = await System.Threading.Tasks.Task.Run(() => PdfImport.RepairViaDocnetRasterizeToFile(path));
+                    repairedPath = await System.Threading.Tasks.Task.Run(
+                        () => PdfImport.RepairViaRasterizeToFile(path));
                     raster = repairedPath is not null;
                 }
                 if (ct.IsCancellationRequested) { HideBusyOverlay(busy); _asyncOpenPending = false; SetStatus(Loc("Str_St_RepairCanceled")); return; }   // canceled during strategy 2
@@ -360,7 +361,7 @@ namespace KillerPDF
         }
 
         // The background-safe repair strategy workers (RepairViaImportToFile,
-        // RepairViaDocnetRasterizeToFile) live in Services/PdfImport.cs.
+        // RepairViaRasterizeToFile) live in Services/PdfImport.cs.
 
         // ============================================================
         // Close file (Ctrl+W) - returns to drop-zone state

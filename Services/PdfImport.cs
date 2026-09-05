@@ -1,6 +1,4 @@
 using System.IO;
-using Docnet.Core;
-using Docnet.Core.Models;
 using KillerPdf.Engine.Documents;
 
 namespace KillerPDF.Services
@@ -143,11 +141,11 @@ namespace KillerPDF.Services
         }
 
         /// <summary>
-        /// Strategy 2 worker (background-safe, no UI/_doc access): uses PDFium (Docnet) to render
-        /// each page to a bitmap, rebuilds a clean PdfSharpCore document from those bitmaps, and
-        /// returns its temp path. Mirrors the flatten path, which also encodes off the UI thread.
+        /// Strategy 2 worker (background-safe, no UI/_doc access): renders each page through the
+        /// engine-first boundary, rebuilds a clean document from those bitmaps, and returns its
+        /// temp path. Mirrors the flatten path, which also encodes off the UI thread.
         /// </summary>
-        internal static string? RepairViaDocnetRasterizeToFile(string path)
+        internal static string? RepairViaRasterizeToFile(string path)
         {
             // Returns null (never throws) so the caller can show a clean "repair failed" message
             // without a debugger break on the awaited Task.
@@ -155,7 +153,8 @@ namespace KillerPDF.Services
             {
                 const int RenderPx = 2048;
 
-                using var renderSession = PdfPageRenderSession.Open(path, RenderPx, RenderPx);
+                using var renderSession = PdfPageRenderSession.OpenEngineFirst(
+                    path, RenderPx, RenderPx);
                 int pageCount = renderSession.PageCount;
                 if (pageCount <= 0) return null;
 

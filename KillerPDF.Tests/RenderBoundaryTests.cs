@@ -167,6 +167,20 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void RasterRepairUsesTheEngineFirstRenderSession()
+    {
+        string root = FindRepositoryRoot();
+        string source = File.ReadAllText(Path.Combine(root, "Services", "PdfImport.cs"));
+
+        Assert.Contains("RepairViaRasterizeToFile", source, StringComparison.Ordinal);
+        Assert.Contains("PdfPageRenderSession.OpenEngineFirst(", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfPageRenderSession.Open(", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("using Docnet.", source, StringComparison.Ordinal);
+    }
+
     private static int Count(string source, string value)
     {
         int count = 0;
