@@ -154,14 +154,24 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
-    public void ToUnicodeStreamRejectsNamedDictionaryInheritance()
+    public void ToUnicodeStreamInheritsAdobeCollectionUnicodeMap()
     {
-        var derived = new PdfStream(D(("UseCMap", N("Adobe-Identity-UCS"))),
+        var derived = new PdfStream(D(("UseCMap", N("Adobe-Japan1-UCS2"))),
             Encoding.ASCII.GetBytes(
-                "1 begincodespacerange <00> <FF> endcodespacerange"));
+                "/Adobe-Japan1-UCS2 usecmap 1 beginbfchar <0001> <03A9> endbfchar"));
+        PdfExtractionFont font = Read(Type0(D(), N("Identity-H"), derived));
 
-        Assert.Throws<NotSupportedException>(() => Read(D(("Subtype", N("Type1")),
-            ("BaseFont", N("Helvetica")), ("ToUnicode", derived))));
+        Assert.Equal(["\u03A9", "!"], font.Decode(new byte[] { 0, 1, 0, 2 })
+            .Select(character => character.Text));
+    }
+
+    [Fact]
+    public void ToUnicodeStreamRejectsUnknownNamedDictionaryInheritance()
+    {
+        var derived = new PdfStream(D(("UseCMap", N("Unknown-UCS2"))),
+            Encoding.ASCII.GetBytes("/Unknown-UCS2 usecmap"));
+
+        Assert.Throws<NotSupportedException>(() => Read(Type0(D(), N("Identity-H"), derived)));
     }
 
     [Fact]

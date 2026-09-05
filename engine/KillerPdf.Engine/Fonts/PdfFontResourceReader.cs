@@ -337,8 +337,9 @@ public static class PdfFontResourceReader
             {
                 null => null,
                 PdfStream baseStream => ReadToUnicode(baseStream, simpleFont, seen, depth + 1),
-                PdfName => throw new NotSupportedException(
-                    "Named inherited ToUnicode maps are not supported."),
+                PdfName name => PdfPredefinedCMaps.FindUnicodeMap(name.ValueAsLatin1())
+                    ?? throw new NotSupportedException(
+                        $"Inherited ToUnicode map /{name.ValueAsLatin1()} is not supported."),
                 _ => throw new FormatException("Invalid inherited ToUnicode map reference.")
             };
             PdfToUnicodeMap map = PdfToUnicodeMap.ParseFont(Decode(stream), simpleFont,

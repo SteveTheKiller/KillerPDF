@@ -67,6 +67,7 @@ internal sealed class PdfPredefinedCMaps
     private readonly Range[] _ranges;
     private static readonly ConcurrentDictionary<string, PdfPredefinedCMaps> EncodingCache = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, Dictionary<uint, string>> UnicodeCache = new(StringComparer.Ordinal);
+    private static readonly ConcurrentDictionary<string, PdfToUnicodeMap> UnicodeMapCache = new(StringComparer.Ordinal);
 
     private PdfPredefinedCMaps(string encoded)
     {
@@ -83,6 +84,18 @@ internal sealed class PdfPredefinedCMaps
 
     internal static PdfPredefinedCMaps? Find(string name) => PdfPredefinedCMapData.Encodings.TryGetValue(name, out string? data)
         ? EncodingCache.GetOrAdd(name, _ => new PdfPredefinedCMaps(data)) : null;
+
+    internal static PdfToUnicodeMap? FindUnicodeMap(string name)
+    {
+        const string suffix = "-UCS2";
+        if (!name.EndsWith(suffix, StringComparison.Ordinal)) return null;
+        string collection = name[..^suffix.Length];
+        string dataName = collection + "-H";
+        if (!PdfPredefinedUnicodeData.Collections.TryGetValue(dataName, out string? encoded))
+            return null;
+        return UnicodeMapCache.GetOrAdd(name,
+            _ => PdfToUnicodeMap.Create(ReadUnicode(encoded), 2));
+    }
 
     internal uint Cid(uint code)
     {
