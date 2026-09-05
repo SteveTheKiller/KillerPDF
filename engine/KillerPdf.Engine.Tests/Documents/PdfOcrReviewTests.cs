@@ -205,6 +205,33 @@ public sealed class PdfOcrReviewTests
     }
 
     [Fact]
+    public void BatchRunnerBoundsParallelismAndPreservesInputOrder()
+    {
+        PdfOcrBatchPage[] pages = Enumerable.Range(0, 8)
+            .Select(index => new PdfOcrBatchPage(
+                $"page-{index}.pdf", index, new byte[] { (byte)index }))
+            .ToArray();
+        int running = 0, maximumRunning = 0;
+
+        IReadOnlyList<PdfOcrBatchResult> results = PdfOcrBatchRunner.Run(
+            pages, (page, _) =>
+            {
+                int current = Interlocked.Increment(ref running);
+                lock (pages) maximumRunning = Math.Max(maximumRunning, current);
+                Thread.Sleep(20);
+                Interlocked.Decrement(ref running);
+                return new PdfOcrReview([
+                    Word(page.SourceName, page.PageIndex, 0, "ok", 1)]);
+            }, maximumDegreeOfParallelism: 2);
+
+        Assert.Equal(Enumerable.Range(0, pages.Length),
+            results.Select(result => result.Input.PageIndex));
+        Assert.InRange(maximumRunning, 1, 2);
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfOcrBatchRunner.Run(
+            pages, (_, _) => new PdfOcrReview([]), maximumDegreeOfParallelism: 0));
+    }
+
+    [Fact]
     public void BatchRunnerRejectsProviderResultsForAnotherPageAndContinues()
     {
         PdfOcrBatchPage[] pages = [

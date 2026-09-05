@@ -637,6 +637,16 @@ public static class PdfOcrBatchRunner
         return RunReport(pages, options, provider.Recognize, cancellationToken);
     }
 
+    /// <summary>Recognizes a page batch with explicitly bounded provider concurrency.</summary>
+    public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
+        PdfOcrOptions options, IPdfOcrProvider provider, int maximumDegreeOfParallelism,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        return RunReport(pages, options, provider.Recognize,
+            maximumDegreeOfParallelism, cancellationToken);
+    }
+
     /// <summary>Recognizes a page batch and returns aggregate, data-safe outcomes.</summary>
     public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
         PdfOcrOptions options,
@@ -647,6 +657,18 @@ public static class PdfOcrBatchRunner
         PdfOcrBatchPage[] supplied = pages.ToArray();
         return new PdfOcrBatchReport(supplied.Length,
             Run(supplied, options, recognize, cancellationToken));
+    }
+
+    /// <summary>Recognizes a page batch with explicitly bounded concurrency.</summary>
+    public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
+        PdfOcrOptions options,
+        Func<PdfOcrBatchPage, PdfOcrOptions, CancellationToken, PdfOcrReview> recognize,
+        int maximumDegreeOfParallelism, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        PdfOcrBatchPage[] supplied = pages.ToArray();
+        return new PdfOcrBatchReport(supplied.Length,
+            Run(supplied, options, recognize, maximumDegreeOfParallelism, cancellationToken));
     }
 
     /// <summary>Recognizes a page batch and returns aggregate, data-safe outcomes.</summary>
@@ -660,6 +682,17 @@ public static class PdfOcrBatchRunner
             Run(supplied, recognize, cancellationToken));
     }
 
+    /// <summary>Recognizes a page batch with explicitly bounded concurrency.</summary>
+    public static PdfOcrBatchReport RunReport(IEnumerable<PdfOcrBatchPage> pages,
+        Func<PdfOcrBatchPage, CancellationToken, PdfOcrReview> recognize,
+        int maximumDegreeOfParallelism, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(pages);
+        PdfOcrBatchPage[] supplied = pages.ToArray();
+        return new PdfOcrBatchReport(supplied.Length,
+            Run(supplied, recognize, maximumDegreeOfParallelism, cancellationToken));
+    }
+
     /// <summary>Recognizes each page independently with shared provider options.</summary>
     public static IReadOnlyList<PdfOcrBatchResult> Run(IEnumerable<PdfOcrBatchPage> pages,
         PdfOcrOptions options,
@@ -671,19 +704,68 @@ public static class PdfOcrBatchRunner
         return Run(pages, (page, token) => recognize(page, options, token), cancellationToken);
     }
 
+    /// <summary>Recognizes each page with shared options and bounded concurrency.</summary>
+    public static IReadOnlyList<PdfOcrBatchResult> Run(IEnumerable<PdfOcrBatchPage> pages,
+        PdfOcrOptions options,
+        Func<PdfOcrBatchPage, PdfOcrOptions, CancellationToken, PdfOcrReview> recognize,
+        int maximumDegreeOfParallelism, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(recognize);
+        return Run(pages, (page, token) => recognize(page, options, token),
+            maximumDegreeOfParallelism, cancellationToken);
+    }
+
     /// <summary>Recognizes each page independently.</summary>
     public static IReadOnlyList<PdfOcrBatchResult> Run(IEnumerable<PdfOcrBatchPage> pages,
         Func<PdfOcrBatchPage, CancellationToken, PdfOcrReview> recognize,
         CancellationToken cancellationToken = default)
+        => Run(pages, recognize, 1, cancellationToken);
+
+    /// <summary>Recognizes each page independently with bounded concurrency.</summary>
+    public static IReadOnlyList<PdfOcrBatchResult> Run(IEnumerable<PdfOcrBatchPage> pages,
+        Func<PdfOcrBatchPage, CancellationToken, PdfOcrReview> recognize,
+        int maximumDegreeOfParallelism, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(pages);
         ArgumentNullException.ThrowIfNull(recognize);
-        var results = new List<PdfOcrBatchResult>();
-        foreach (PdfOcrBatchPage suppliedPage in pages)
+        if (maximumDegreeOfParallelism is < 1 or > 64)
+            throw new ArgumentOutOfRangeException(nameof(maximumDegreeOfParallelism));
+        PdfOcrBatchPage[] prepared = pages.Select(page => new PdfOcrBatchPage(
+            page.SourceName, page.PageIndex, page.Source)).ToArray();
+        if (maximumDegreeOfParallelism == 1)
         {
-            if (cancellationToken.IsCancellationRequested) break;
-            var page = new PdfOcrBatchPage(suppliedPage.SourceName, suppliedPage.PageIndex,
-                suppliedPage.Source);
+            var sequential = new List<PdfOcrBatchResult>();
+            foreach (PdfOcrBatchPage page in prepared)
+            {
+                if (cancellationToken.IsCancellationRequested) break;
+                PdfOcrBatchResult result = Recognize(page);
+                sequential.Add(result);
+                if (result.WasCanceled) break;
+            }
+            return Array.AsReadOnly(sequential.ToArray());
+        }
+
+        var parallel = new PdfOcrBatchResult?[prepared.Length];
+        Parallel.For(0, prepared.Length, new ParallelOptions
+        {
+            MaxDegreeOfParallelism = maximumDegreeOfParallelism
+        }, index =>
+        {
+            if (!cancellationToken.IsCancellationRequested)
+                parallel[index] = Recognize(prepared[index]);
+        });
+        var ordered = new List<PdfOcrBatchResult>(parallel.Length);
+        foreach (PdfOcrBatchResult? result in parallel)
+        {
+            if (result is null) break;
+            ordered.Add(result);
+            if (result.WasCanceled) break;
+        }
+        return Array.AsReadOnly(ordered.ToArray());
+
+        PdfOcrBatchResult Recognize(PdfOcrBatchPage page)
+        {
             try
             {
                 PdfOcrReview review = recognize(page, cancellationToken)
@@ -691,19 +773,17 @@ public static class PdfOcrBatchRunner
                 if (review.Words.Any(word => word.PageIndex != page.PageIndex))
                     throw new InvalidOperationException(
                         "The OCR provider returned words for a different source page.");
-                results.Add(new PdfOcrBatchResult(page, review, null, false));
+                return new PdfOcrBatchResult(page, review, null, false);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                results.Add(new PdfOcrBatchResult(page, null, null, true));
-                break;
+                return new PdfOcrBatchResult(page, null, null, true);
             }
             catch (Exception exception) when (exception is not OutOfMemoryException
                 and not StackOverflowException and not AccessViolationException)
             {
-                results.Add(new PdfOcrBatchResult(page, null, exception.Message, false));
+                return new PdfOcrBatchResult(page, null, exception.Message, false);
             }
         }
-        return Array.AsReadOnly(results.ToArray());
     }
 }
