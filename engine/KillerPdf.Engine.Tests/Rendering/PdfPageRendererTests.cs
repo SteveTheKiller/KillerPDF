@@ -47,6 +47,24 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_ReusesParsedPageAtDifferentOutputSizes()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, "1 0 0 rg 0 0 5 10 re f"u8.ToArray()).Build());
+        var renderer = new PdfPageRenderer(document);
+
+        PdfRenderedPage small = renderer.Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        PdfRenderedPage large = renderer.Render(0,
+            new PdfRenderOptions(20, 20, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(small, 2, 5));
+        Assert.Equal([255, 255, 255, 255], Pixel(small, 7, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(large, 4, 10));
+        Assert.Equal([255, 255, 255, 255], Pixel(large, 14, 10));
+    }
+
+    [Fact]
     public void OptionsRejectUnboundedPixelBuffers()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRenderOptions(0, 1));

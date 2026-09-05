@@ -4,6 +4,7 @@ using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Syntax;
+using System.Collections.Concurrent;
 
 namespace KillerPdf.Engine.Rendering;
 
@@ -16,6 +17,7 @@ public sealed class PdfPageRenderer
     private readonly IReadOnlyList<PdfPageBoxInformation> _boxes;
     private readonly PdfPageTree _tree;
     private readonly IPdfFontResolver? _fontResolver;
+    private readonly ConcurrentDictionary<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = [];
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
@@ -83,7 +85,7 @@ public sealed class PdfPageRenderer
             .Where(group => !group.IsInitiallyVisible)
             .Select(group => group.ObjectNumber).ToHashSet();
         PdfDictionary pageResources = PageResources(pageIndex);
-        Process(_content.ReadInstructions(pageIndex, cancellationToken),
+        Process(ReadInstructions(pageIndex, cancellationToken),
             pageResources, initialState, 0);
         RenderAppearances();
         return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
@@ -1100,6 +1102,15 @@ public sealed class PdfPageRenderer
                 appearance = selectedStream;
             return appearance is not null;
         }
+    }
+
+    private IReadOnlyList<PdfContentInstruction> ReadInstructions(
+        int pageIndex, CancellationToken cancellationToken)
+    {
+        if (_instructionCache.TryGetValue(pageIndex, out var cached)) return cached;
+        IReadOnlyList<PdfContentInstruction> parsed =
+            _content.ReadInstructions(pageIndex, cancellationToken);
+        return _instructionCache.GetOrAdd(pageIndex, parsed);
     }
 
     private bool EvaluateOptionalContent(PdfObject value,
