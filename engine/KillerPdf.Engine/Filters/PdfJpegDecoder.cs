@@ -320,9 +320,10 @@ internal static class PdfJpegDecoder
                             for (int vertical = 0; vertical < component.VerticalSampling; vertical++)
                                 for (int horizontal = 0;
                                     horizontal < component.HorizontalSampling; horizontal++)
-                                    DecodeProgressiveBlock(bits, component,
-                                        column * component.HorizontalSampling + horizontal,
-                                        row * component.VerticalSampling + vertical, ref eobRun);
+                                    if (DecodeProgressiveBlock(bits, component,
+                                            column * component.HorizontalSampling + horizontal,
+                                            row * component.VerticalSampling + vertical, ref eobRun))
+                                        goto RecoverScan;
                     }
             }
             else
@@ -332,9 +333,15 @@ internal static class PdfJpegDecoder
                     for (int column = 0; column < component.VisibleBlockColumns; column++, unit++)
                     {
                         RestartIfNeeded(bits, unit, ref eobRun);
-                        DecodeProgressiveBlock(bits, component, column, row, ref eobRun);
+                        if (DecodeProgressiveBlock(bits, component, column, row, ref eobRun))
+                            goto RecoverScan;
                     }
             }
+            _position = bits.Position;
+            return;
+
+        RecoverScan:
+            bits.SkipToMarker();
             _position = bits.Position;
 
             void RestartIfNeeded(BitReader reader, int index, ref int run)
@@ -378,7 +385,7 @@ internal static class PdfJpegDecoder
             return (maxHorizontal, maxVertical, mcuColumns, mcuRows);
         }
 
-        private void DecodeProgressiveBlock(
+        private bool DecodeProgressiveBlock(
             BitReader bits, Component component, int blockX, int blockY, ref int eobRun)
         {
             int offset = checked((blockY * component.BlockColumns + blockX) * 64);
@@ -399,12 +406,13 @@ internal static class PdfJpegDecoder
                     if ((Math.Abs(coefficients[0]) & bit) == 0)
                         coefficients[0] += coefficients[0] >= 0 ? bit : -bit;
                 }
-                return;
+                return false;
             }
             if (_successiveHigh == 0)
                 DecodeInitialAc(bits, component, coefficients, ref eobRun);
             else
-                DecodeRefinedAc(bits, component, coefficients, ref eobRun);
+                return DecodeRefinedAc(bits, component, coefficients, ref eobRun);
+            return false;
         }
 
         private void DecodeInitialAc(
@@ -434,7 +442,7 @@ internal static class PdfJpegDecoder
             }
         }
 
-        private void DecodeRefinedAc(
+        private bool DecodeRefinedAc(
             BitReader bits, Component component, Span<int> coefficients, ref int eobRun)
         {
             HuffmanTable table = _huffman[1, component.AcTable]!;
@@ -475,7 +483,7 @@ internal static class PdfJpegDecoder
                     if (newCoefficient != 0)
                     {
                         if (index > _spectralEnd)
-                            throw Error("A progressive JPEG AC refinement exceeds its band.");
+                            return true;
                         coefficients[ZigZag[index++]] = newCoefficient;
                     }
                 }
@@ -490,6 +498,7 @@ internal static class PdfJpegDecoder
                 }
                 eobRun--;
             }
+            return false;
         }
 
         private static void Refine(BitReader bits, Span<int> coefficients, int position, int bit)
@@ -709,6 +718,22 @@ internal static class PdfJpegDecoder
             if (_position >= source.Length || source[_position] is < 0xD0 or > 0xD7)
                 throw new PdfFilterException("The JPEG restart marker is missing.");
             _position++;
+        }
+
+        internal void SkipToMarker()
+        {
+            _bits = 0;
+            _buffer = 0;
+            while (_position + 1 < source.Length)
+            {
+                if (source[_position] != 0xFF) { _position++; continue; }
+                int marker = _position;
+                while (_position < source.Length && source[_position] == 0xFF) _position++;
+                if (_position >= source.Length) { _position = marker; return; }
+                if (source[_position] == 0) { _position++; continue; }
+                _position = marker;
+                return;
+            }
         }
     }
 }

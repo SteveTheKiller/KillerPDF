@@ -368,6 +368,16 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_RecoversProgressiveAcRefinementBeyondItsBand()
+    {
+        byte[] source = ProgressiveGrayJpeg();
+        source = [.. source.AsSpan(0, source.Length - 4), 0x40, 0xFF, 0xD9];
+        PdfStream stream = Stream(source, Pair("Filter", Name("DCTDecode")));
+
+        Assert.Equal(64, PdfStreamDecoder.Decode(stream, 64).Length);
+    }
+
+    [Fact]
     public void Decode_ReconstructsOneDimensionalCcittScanLines()
     {
         PdfStream stream = Stream([0x89, 0xC0],
