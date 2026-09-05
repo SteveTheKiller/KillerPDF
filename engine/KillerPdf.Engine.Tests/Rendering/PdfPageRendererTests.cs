@@ -908,6 +908,23 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_IdentifiesAStandardFontWithoutOutlines()
+    {
+        var content = new PdfContentStreamBuilder().BeginText()
+            .SetFont(PdfStandardFont.HelveticaBold, 10)
+            .ShowLatin1Text("A").EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, content).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Contains("Text outlines for font Helvetica-Bold are not available.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AppliesEmbeddedGlyphsToTheClippingPathAtEndText()
     {
         TrueTypeFont font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(

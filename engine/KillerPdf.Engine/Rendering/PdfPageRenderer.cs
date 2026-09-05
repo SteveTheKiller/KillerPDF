@@ -827,7 +827,11 @@ public sealed class PdfPageRenderer
                                 textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
                         }
                         else if (paintMode != 3 || clipsText)
+                        {
                             diagnostics.Add("A text glyph outline is not implemented.");
+                            diagnostics.Add($"Text outlines for font "
+                                + $"{extractionFont.FontName} are not available.");
+                        }
                         double spacing = characterSpacing
                             + (character.Code == 32 && character.ByteLength == 1 ? wordSpacing : 0);
                         if (extractionFont.IsVertical)
