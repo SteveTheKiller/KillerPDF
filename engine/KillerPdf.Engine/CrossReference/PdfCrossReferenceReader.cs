@@ -44,7 +44,7 @@ public static class PdfCrossReferenceReader
     private static (PdfToken Token, PdfTokenizer Tokenizer)? FindNearbyClassicTable(
         ReadOnlyMemory<byte> source, int offset)
     {
-        const int maximumDistance = 64;
+        const int maximumDistance = 1_048_576;
         for (int distance = 1; distance <= maximumDistance; distance++)
         {
             foreach (int candidate in new[] { offset + distance, offset - distance })

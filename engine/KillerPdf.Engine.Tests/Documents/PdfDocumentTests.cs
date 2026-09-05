@@ -38,6 +38,28 @@ public sealed class PdfDocumentTests
     }
 
     [Fact]
+    public void OpenWithCompatibilityRecoveryFindsObjectAtMalformedXrefOffset()
+    {
+        var source = new StringBuilder("%PDF-2.0\n");
+        int objectOffset = source.Length;
+        source.Append("1 0 obj << /Type /Catalog >> endobj\n");
+        source.Append(new string('x', 200)).Append('\n');
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 2\n0000000000 65535 f\n");
+        source.Append($"{objectOffset + 100:0000000000} 00000 n\n");
+        source.Append("trailer << /Size 2 /Root 1 0 R >>\n");
+        source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        PdfDocument strict = PdfDocument.Open(bytes);
+        Assert.Throws<PdfSyntaxException>(() => strict.Resolve(1));
+        PdfDocument recovered = PdfDocument.OpenWithCompatibilityRecovery(bytes);
+
+        Assert.Equal(Name("Catalog"),
+            Assert.IsType<PdfDictionary>(recovered.Resolve(1))[Name("Type")]);
+    }
+
+    [Fact]
     public void Open_ResolvesMultipleObjectsFromAnObjectStreamByXrefIndex()
     {
         PdfDocument document = PdfDocument.Open(ObjectStreamPdf(

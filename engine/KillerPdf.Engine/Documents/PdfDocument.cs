@@ -6,6 +6,7 @@ using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Syntax;
 using KillerPdf.Engine.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -220,9 +221,21 @@ public sealed class PdfDocument
 
     private PdfObject ReadIndirectObject(PdfCrossReferenceEntry entry)
     {
-        var parser = new PdfObjectParser(_source, checked((int)entry.Field1),
-            ResolveStreamLength, _compatibilityRecovery);
-        PdfIndirectObject indirect = parser.ParseIndirectObject();
+        int offset = checked((int)entry.Field1);
+        PdfIndirectObject indirect;
+        try
+        {
+            indirect = ParseIndirectObject(offset);
+        }
+        catch (PdfSyntaxException) when (_compatibilityRecovery
+            && FindNearbyIndirectObjectOffset(entry, offset) is int recoveredOffset)
+        {
+            indirect = ParseIndirectObject(recoveredOffset);
+        }
+        if (_compatibilityRecovery
+            && (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2)
+            && FindNearbyIndirectObjectOffset(entry, offset) is int matchingOffset)
+            indirect = ParseIndirectObject(matchingOffset);
         if (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2)
         {
             throw Error(
@@ -234,6 +247,36 @@ public sealed class PdfDocument
             ? _security.Decrypt(
                 indirect.Value, entry.ObjectNumber, entry.Field2, Resolve)
             : indirect.Value;
+
+        PdfIndirectObject ParseIndirectObject(int objectOffset) =>
+            new PdfObjectParser(_source, objectOffset,
+                ResolveStreamLength, _compatibilityRecovery).ParseIndirectObject();
+    }
+
+    private int? FindNearbyIndirectObjectOffset(PdfCrossReferenceEntry entry, int offset)
+    {
+        const int maximumDistance = 1_048_576;
+        byte[] header = Encoding.ASCII.GetBytes(
+            $"{entry.ObjectNumber} {entry.Field2} obj");
+        int maximum = Math.Min(maximumDistance, _source.Length);
+        for (int distance = 1; distance <= maximum; distance++)
+        {
+            foreach (int candidate in new[] { offset + distance, offset - distance })
+            {
+                if (candidate < 0 || candidate + header.Length > _source.Length
+                    || candidate > 0 && !IsBoundary(_source.Span[candidate - 1])
+                    || candidate + header.Length < _source.Length
+                        && !IsBoundary(_source.Span[candidate + header.Length])
+                    || !_source.Span.Slice(candidate, header.Length).SequenceEqual(header))
+                    continue;
+                return candidate;
+            }
+        }
+        return null;
+
+        static bool IsBoundary(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32
+            or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
+            or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
     }
 
     private long ResolveStreamLength(PdfIndirectReference reference)

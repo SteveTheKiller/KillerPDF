@@ -279,6 +279,21 @@ public sealed class PdfCrossReferenceReaderTests
     }
 
     [Fact]
+    public void ReadSection_CompatibilityRecoveryFindsDistantClassicTable()
+    {
+        byte[] prefix = Encoding.ASCII.GetBytes(new string('x', 2_048) + "\n");
+        byte[] table = "xref\n0 1\n0000000000 65535 f\ntrailer\n<< /Size 1 >>"u8.ToArray();
+        byte[] source = [.. prefix, .. table];
+
+        Assert.Throws<PdfSyntaxException>(() =>
+            PdfCrossReferenceReader.ReadSection(source, 0));
+        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true);
+
+        Assert.Equal(prefix.Length, section.Offset);
+    }
+
+    [Fact]
     public void ReadSection_AllowsAFreeEntryAtTheTrailerSizeBoundary()
     {
         byte[] source = Encoding.ASCII.GetBytes(
