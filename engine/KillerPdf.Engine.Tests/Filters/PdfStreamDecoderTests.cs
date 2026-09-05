@@ -66,6 +66,15 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_IgnoresDecodeParametersWithoutAFilter()
+    {
+        byte[] source = [0x00, 0xFF, 0x41];
+        PdfStream stream = Stream(source, Pair("DecodeParms", Dictionary()));
+
+        Assert.Equal(source, PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
     public void Decode_EnforcesOutputLimitForUnfilteredBytes()
     {
         PdfStream stream = Stream(new byte[101]);

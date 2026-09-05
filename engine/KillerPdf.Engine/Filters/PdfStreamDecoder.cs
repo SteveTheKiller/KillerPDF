@@ -79,13 +79,13 @@ public static class PdfStreamDecoder
             throw new PdfFilterException("Nested stream decoding is too deep.");
 
         List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
-        PdfDictionary?[] parameters = ReadParameters(
-            stream.Dictionary, filters.Count, resolve);
         if (filters.Count == 0)
         {
             EnsureWithinLimit(stream.EncodedData.Length, maximumDecodedBytes);
             return stream.EncodedData.ToArray();
         }
+        PdfDictionary?[] parameters = ReadParameters(
+            stream.Dictionary, filters.Count, resolve);
 
         byte[] current = stream.EncodedData.ToArray();
 
