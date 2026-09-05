@@ -3,6 +3,7 @@ using KillerPdf.Engine.Authoring;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -584,8 +585,16 @@ public sealed record PdfFormFieldProposal
 }
 
 /// <summary>An immutable review boundary between field detection and AcroForm authoring.</summary>
-public sealed class PdfFormRecognitionReview
+public sealed partial class PdfFormRecognitionReview
 {
+    private static readonly PdfFormRecognitionCompactJsonContext CompactJson = new(
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    private static readonly PdfFormRecognitionIndentedJsonContext IndentedJson = new(
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
     private readonly PdfFormFieldProposal[] _proposals;
 
     /// <summary>Creates a review from untrusted recognition proposals.</summary>
@@ -611,17 +620,10 @@ public sealed class PdfFormRecognitionReview
     /// <summary>Exports ordered proposals and review decisions as stable JSON.</summary>
     public string ToJson(bool indented = false)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        };
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            IsReadyToApply,
-            Proposals = _proposals
-        }, options);
+        var report = new PdfFormRecognitionJson(1, IsReadyToApply, _proposals);
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.PdfFormRecognitionJson
+            : CompactJson.PdfFormRecognitionJson);
     }
 
     /// <summary>Formats ordered form proposals and their review decisions.</summary>
@@ -1088,4 +1090,16 @@ public sealed class PdfFormRecognitionReview
             string.Equals(item.Id, id, StringComparison.Ordinal))
             ?? throw new KeyNotFoundException($"Form proposal '{id}' was not found.");
     }
+
+    private sealed record PdfFormRecognitionJson(
+        int Version, bool IsReadyToApply, PdfFormFieldProposal[] Proposals);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfFormRecognitionJson))]
+    private sealed partial class PdfFormRecognitionCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfFormRecognitionJson))]
+    private sealed partial class PdfFormRecognitionIndentedJsonContext : JsonSerializerContext;
 }
