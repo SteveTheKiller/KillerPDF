@@ -141,6 +141,7 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             PdfCrossReferenceSection primary = PdfCrossReferenceReader.ReadSection(
                 source, currentOffset.Value, compatibilityRecovery);
             if (primary.PreviousOffset > currentOffset.Value
+                && !compatibilityRecovery
                 && !IsLinearizedForwardPrevious(primary, linearization))
                 throw new PdfSyntaxException(
                     "Trailer /Prev must point to an earlier cross-reference section",
@@ -152,6 +153,7 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
                 if (!visitedOffsets.Add(hybridOffset))
                     throw new PdfSyntaxException("The hybrid cross-reference chain reuses an offset", (int)hybridOffset);
                 if (hybridOffset > currentOffset.Value
+                    && !compatibilityRecovery
                     && !IsLinearizedForwardHybrid(primary, linearization))
                     throw new PdfSyntaxException(
                         "Trailer /XRefStm must point to an earlier cross-reference stream",

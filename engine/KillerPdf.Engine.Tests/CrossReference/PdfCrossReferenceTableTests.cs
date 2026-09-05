@@ -71,6 +71,9 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("/Prev must point to an earlier", error.Message,
             StringComparison.Ordinal);
+        Assert.Equal(2, PdfCrossReferenceTable.Read(
+            Encoding.ASCII.GetBytes(source.ToString()), compatibilityRecovery: true)
+            .Sections.Count);
     }
 
     [Theory]
@@ -443,6 +446,9 @@ public sealed class PdfCrossReferenceTableTests
 
         Assert.Contains("/XRefStm must point to an earlier", error.Message,
             StringComparison.Ordinal);
+        Assert.Single(PdfCrossReferenceTable.Read(
+            Encoding.Latin1.GetBytes(source.ToString()), compatibilityRecovery: true)
+            .Sections);
     }
 
     [Fact]
