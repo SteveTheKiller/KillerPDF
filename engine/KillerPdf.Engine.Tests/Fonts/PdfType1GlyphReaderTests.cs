@@ -113,15 +113,26 @@ public sealed class PdfType1GlyphReaderTests
         Assert.Equal("\u03b6", Assert.Single(font.Decode(new byte[] { 16 })).Text);
     }
 
+    [Fact]
+    public void IgnoresPostScriptScientificNumbersOutsideCharstrings()
+    {
+        byte[] program = [.. Number(0), .. Number(600), 13, .. Number(10), .. Number(20), 21,
+            .. Number(100), .. Number(200), 5, 14];
+
+        Assert.Equal(new PdfGlyphBounds(10, 20, 110, 220),
+            Font(program, privatePrefix: "/BlueScale 1e-05 def ").GetGlyphBounds(65));
+    }
+
     private static PdfExtractionFont Font(byte[] program, int lenIv = -1,
         byte[]? subroutine = null, string reader = "RD", string encoding = "",
         string glyphName = "A",
-        IReadOnlyList<(string Name, byte[] Program)>? additionalGlyphs = null)
+        IReadOnlyList<(string Name, byte[] Program)>? additionalGlyphs = null,
+        string privatePrefix = "")
     {
         byte[] header = Encoding.ASCII.GetBytes($"%!PS\n/FontMatrix [0.001 0 0 0.001 0 0] def {encoding} currentfile eexec\n");
         using var plain = new MemoryStream();
         plain.Write(new byte[4]);
-        plain.Write(Encoding.ASCII.GetBytes($"/lenIV {lenIv} def /Subrs 1 array "));
+        plain.Write(Encoding.ASCII.GetBytes($"{privatePrefix}/lenIV {lenIv} def /Subrs 1 array "));
         if (subroutine is not null)
         {
             byte[] encoded = lenIv == -1 ? subroutine : Encrypt([.. new byte[lenIv], .. subroutine], 4330);

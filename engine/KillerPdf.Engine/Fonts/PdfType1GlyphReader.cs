@@ -186,7 +186,17 @@ internal sealed class PdfType1GlyphReader
                 token = new PdfToken(PdfTokenKind.Keyword, next, 2, source.AsMemory(next, 2));
                 tokens.SetRawPosition(next + 2);
             }
-            else token = tokens.Read();
+            else
+            {
+                try { token = tokens.Read(); }
+                catch (PdfSyntaxException)
+                {
+                    int end = tokens.Position;
+                    if (end <= next) throw;
+                    token = new PdfToken(PdfTokenKind.Keyword, next, end - next,
+                        source.AsMemory(next, end - next));
+                }
+            }
             if (token.Kind == PdfTokenKind.EndOfInput || token.ValueAsLatin1() == "closefile") return;
             if (++seen > 1_000_000) throw new FormatException("Type1 program token limit exceeded.");
             string value = token.ValueAsLatin1();
