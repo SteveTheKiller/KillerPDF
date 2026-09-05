@@ -764,6 +764,8 @@ public sealed class PdfPageRenderer
             {
                 if (textFont is null)
                 {
+                    if (textRenderingMode == 3)
+                        return;
                     diagnostics.Add("Text rendering is not implemented.");
                     return;
                 }

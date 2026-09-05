@@ -1580,6 +1580,21 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_IgnoresInvisibleTextWithAnUnresolvedFont()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, Encoding.ASCII.GetBytes(
+                "BT /Missing 12 Tf 3 Tr (hidden) Tj ET"))
+            .Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(100, 100,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AppliesEmbeddedGlyphsToTheClippingPathAtEndText()
     {
         TrueTypeFont font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(
