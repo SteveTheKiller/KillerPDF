@@ -34,8 +34,13 @@ public sealed record PdfAccessibilityTaggingProposalItem(
     bool RequiresReview);
 
 /// <summary>Produces conservative semantic proposals without changing the source document.</summary>
-public static class PdfAccessibilityTaggingProposal
+public static partial class PdfAccessibilityTaggingProposal
 {
+    private static readonly PdfTaggingProposalCompactJsonContext CompactJson = new(
+        JsonOptions(false));
+    private static readonly PdfTaggingProposalIndentedJsonContext IndentedJson = new(
+        JsonOptions(true));
+
     /// <summary>Infers review-required text and figure regions on untagged pages.</summary>
     public static IReadOnlyList<PdfAccessibilityTaggingProposalItem> Inspect(
         PdfDocument document)
@@ -109,17 +114,13 @@ public static class PdfAccessibilityTaggingProposal
     }
 
     /// <summary>Exports semantic proposals as stable data without changing the document.</summary>
-    public static string ToJson(PdfDocument document, bool indented = false) =>
-        JsonSerializer.Serialize(new
-        {
-            schemaVersion = 1,
-            proposals = Inspect(document)
-        }, new JsonSerializerOptions
-        {
-            WriteIndented = indented,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-        });
+    public static string ToJson(PdfDocument document, bool indented = false)
+    {
+        var report = new PdfAccessibilityTaggingProposalJson(1, Inspect(document));
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.PdfAccessibilityTaggingProposalJson
+            : CompactJson.PdfAccessibilityTaggingProposalJson);
+    }
 
     private static bool LooksLikeListItem(string text)
     {
@@ -142,4 +143,28 @@ public static class PdfAccessibilityTaggingProposal
         if (normalized.Length == 0 || !IsHeaderOrFooter(bounds, pageHeight)) return null;
         return (bounds.Top >= pageHeight * 0.9 ? "H:" : "F:") + normalized;
     }
+
+    private static JsonSerializerOptions JsonOptions(bool indented)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfAccessibilityProposedRole>(JsonNamingPolicy.CamelCase));
+        return options;
+    }
+
+    private sealed record PdfAccessibilityTaggingProposalJson(
+        int SchemaVersion, IReadOnlyList<PdfAccessibilityTaggingProposalItem> Proposals);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfAccessibilityTaggingProposalJson))]
+    private sealed partial class PdfTaggingProposalCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfAccessibilityTaggingProposalJson))]
+    private sealed partial class PdfTaggingProposalIndentedJsonContext : JsonSerializerContext;
 }

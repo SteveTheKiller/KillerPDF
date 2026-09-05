@@ -219,8 +219,13 @@ public sealed record PdfAccessibilityFinding(
     int? PageIndex = null, int? ObjectNumber = null);
 
 /// <summary>Accessibility findings produced for one document.</summary>
-public sealed class PdfAccessibilityReport
+public sealed partial class PdfAccessibilityReport
 {
+    private static readonly PdfAccessibilityCompactJsonContext CompactJson = new(
+        JsonOptions(false));
+    private static readonly PdfAccessibilityIndentedJsonContext IndentedJson = new(
+        JsonOptions(true));
+
     internal PdfAccessibilityReport(IEnumerable<PdfAccessibilityFinding> findings) =>
         Findings = Array.AsReadOnly(findings.ToArray());
 
@@ -253,12 +258,35 @@ public sealed class PdfAccessibilityReport
     /// <summary>Serializes the report with stable camel-case names and string enums.</summary>
     public string ToJson(bool indented = false)
     {
+        var report = new PdfAccessibilityReportJson(PassesImplementedChecks, Findings);
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.PdfAccessibilityReportJson
+            : CompactJson.PdfAccessibilityReportJson);
+    }
+
+    private static JsonSerializerOptions JsonOptions(bool indented)
+    {
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        return JsonSerializer.Serialize(new { PassesImplementedChecks, Findings }, options);
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfAccessibilityFindingCode>(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfDiagnosticSeverity>(JsonNamingPolicy.CamelCase));
+        return options;
     }
+
+    private sealed record PdfAccessibilityReportJson(
+        bool PassesImplementedChecks, IReadOnlyList<PdfAccessibilityFinding> Findings);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfAccessibilityReportJson))]
+    private sealed partial class PdfAccessibilityCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfAccessibilityReportJson))]
+    private sealed partial class PdfAccessibilityIndentedJsonContext : JsonSerializerContext;
 }

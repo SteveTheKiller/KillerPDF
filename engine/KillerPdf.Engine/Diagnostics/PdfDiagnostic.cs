@@ -49,6 +49,8 @@ public sealed record PdfDiagnostic(
 /// <summary>The non-throwing structural inspection result used to decide whether repair is needed.</summary>
 public sealed partial class PdfInspectionReport
 {
+    private static readonly PdfInspectionCompactJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfInspectionIndentedJsonContext IndentedJson = new(JsonOptions(true));
     private readonly PdfDiagnostic[] _diagnostics;
 
     internal PdfInspectionReport(
@@ -92,8 +94,22 @@ public sealed partial class PdfInspectionReport
             CrossReferenceEntryCount, InspectedObjectCount, RequiresAuthentication,
             IsStructurallyValid, RequiresRepair, Diagnostics);
         return JsonSerializer.Serialize(report, indented
-            ? PdfInspectionIndentedJsonContext.Default.PdfInspectionReportJson
-            : PdfInspectionCompactJsonContext.Default.PdfInspectionReportJson);
+            ? IndentedJson.PdfInspectionReportJson
+            : CompactJson.PdfInspectionReportJson);
+    }
+
+    private static JsonSerializerOptions JsonOptions(bool indented)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = indented
+        };
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfDiagnosticCode>(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfDiagnosticSeverity>(JsonNamingPolicy.CamelCase));
+        return options;
     }
 
     private sealed record PdfInspectionReportJson(
@@ -106,13 +122,12 @@ public sealed partial class PdfInspectionReport
         bool RequiresRepair,
         IReadOnlyList<PdfDiagnostic> Diagnostics);
 
-    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-        UseStringEnumConverter = true)]
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
     [JsonSerializable(typeof(PdfInspectionReportJson))]
     private sealed partial class PdfInspectionCompactJsonContext : JsonSerializerContext;
 
     [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
-        UseStringEnumConverter = true, WriteIndented = true)]
+        WriteIndented = true)]
     [JsonSerializable(typeof(PdfInspectionReportJson))]
     private sealed partial class PdfInspectionIndentedJsonContext : JsonSerializerContext;
 }

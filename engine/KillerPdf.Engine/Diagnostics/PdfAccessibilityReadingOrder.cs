@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Objects;
 
@@ -12,8 +13,17 @@ public sealed record PdfAccessibilityReadingOrderItem(
     string? AlternateDescription, string? ActualText);
 
 /// <summary>Inspectable logical reading order for a tagged PDF.</summary>
-public sealed class PdfAccessibilityReadingOrderReport
+public sealed partial class PdfAccessibilityReadingOrderReport
 {
+    private static readonly PdfReadingOrderCompactJsonContext CompactJson = new(
+        new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+    private static readonly PdfReadingOrderIndentedJsonContext IndentedJson = new(
+        new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
+
     internal PdfAccessibilityReadingOrderReport(
         IEnumerable<PdfAccessibilityReadingOrderItem> items) =>
         Items = Array.AsReadOnly(items.ToArray());
@@ -22,12 +32,13 @@ public sealed class PdfAccessibilityReadingOrderReport
     public IReadOnlyList<PdfAccessibilityReadingOrderItem> Items { get; }
 
     /// <summary>Serializes the reading order with stable camel-case names.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new { Items }, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+    public string ToJson(bool indented = false)
+    {
+        var report = new PdfAccessibilityReadingOrderJson(Items);
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.PdfAccessibilityReadingOrderJson
+            : CompactJson.PdfAccessibilityReadingOrderJson);
+    }
 
     /// <summary>Formats a compact reading-order report.</summary>
     public string ToText()
@@ -46,6 +57,18 @@ public sealed class PdfAccessibilityReadingOrderReport
         }
         return output.ToString();
     }
+
+    private sealed record PdfAccessibilityReadingOrderJson(
+        IReadOnlyList<PdfAccessibilityReadingOrderItem> Items);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfAccessibilityReadingOrderJson))]
+    private sealed partial class PdfReadingOrderCompactJsonContext : JsonSerializerContext;
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        WriteIndented = true)]
+    [JsonSerializable(typeof(PdfAccessibilityReadingOrderJson))]
+    private sealed partial class PdfReadingOrderIndentedJsonContext : JsonSerializerContext;
 }
 
 /// <summary>Reads the explicit logical sequence from a tagged PDF structure tree.</summary>
