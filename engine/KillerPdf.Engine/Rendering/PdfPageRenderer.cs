@@ -691,7 +691,7 @@ public sealed class PdfPageRenderer
                     ? Resolve(resourcesValue) as PdfDictionary
                         ?? throw new FormatException("Tiling pattern resources are not a dictionary.")
                     : parentResources;
-                byte[] content = PdfStreamDecoder.Decode(pattern, _document.Resolve,
+                byte[] content = _document.DecodeStream(pattern,
                     PdfContentStreamReader.MaximumSourceBytes);
                 PdfContentInstruction[] patternInstructions = [.. PdfContentStreamReader.Read(
                     content, cancellationToken: cancellationToken)];
@@ -805,7 +805,7 @@ public sealed class PdfPageRenderer
                             Transform = fontMatrix.Then(textScale).Then(textMatrix)
                                 .Then(state.Transform)
                         };
-                        byte[] bytes = PdfStreamDecoder.Decode(glyph, _document.Resolve,
+                        byte[] bytes = _document.DecodeStream(glyph,
                             PdfContentStreamReader.MaximumSourceBytes);
                         Process(PdfContentStreamReader.Read(bytes,
                             cancellationToken: cancellationToken), fontResources,
@@ -1012,7 +1012,7 @@ public sealed class PdfPageRenderer
                     ? Resolve(resourceValue) as PdfDictionary
                         ?? throw new FormatException("Form XObject resources are not a dictionary.")
                     : inheritedResources;
-                byte[] bytes = PdfStreamDecoder.Decode(form, _document.Resolve,
+                byte[] bytes = _document.DecodeStream(form,
                     PdfContentStreamReader.MaximumSourceBytes);
                 Process(PdfContentStreamReader.Read(bytes, cancellationToken: cancellationToken),
                     formResources, formState, depth + 1);
@@ -1390,7 +1390,7 @@ public sealed class PdfPageRenderer
                 int limit = _document.UsesCompatibilityRecovery
                     ? Math.Max(expected, PdfStreamDecoder.DefaultMaximumDecodedBytes)
                     : expected;
-                samples = PdfStreamDecoder.Decode(stream, _document.Resolve, limit);
+                samples = _document.DecodeStream(stream, limit);
                 if (_document.UsesCompatibilityRecovery && samples.Length > expected)
                     samples = samples[..expected];
                 else if (samples.Length != expected)
@@ -1707,8 +1707,7 @@ public sealed class PdfPageRenderer
         byte[] lookup = Resolve(array[3]) switch
         {
             PdfString text => text.Bytes.ToArray(),
-            PdfStream stream => PdfStreamDecoder.Decode(
-                stream, _document.Resolve, checked(expected + 1)),
+            PdfStream stream => _document.DecodeStream(stream, checked(expected + 1)),
             _ => throw new NotSupportedException()
         };
         if (lookup.Length < expected)
@@ -1915,7 +1914,7 @@ public sealed class PdfPageRenderer
             throw new FormatException($"A sampled {description} decoding array is invalid.");
         int sampleCount = checked(size * colorSpace.Components);
         int expectedBytes = checked((sampleCount * bits + 7) / 8);
-        byte[] samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expectedBytes);
+        byte[] samples = _document.DecodeStream(stream, expectedBytes);
         if (samples.Length != expectedBytes)
             throw new FormatException($"A sampled {description} stream is truncated.");
         uint maximum = bits == 32 ? uint.MaxValue : (1u << bits) - 1;
@@ -2018,7 +2017,7 @@ public sealed class PdfPageRenderer
             throw new FormatException($"A {description} mapping array is invalid.");
         int sampleCount = checked((int)points * colorSpace.Components);
         int expectedBytes = checked((sampleCount * bits + 7) / 8);
-        byte[] samples = PdfStreamDecoder.Decode(stream, _document.Resolve, expectedBytes);
+        byte[] samples = _document.DecodeStream(stream, expectedBytes);
         if (samples.Length != expectedBytes)
             throw new FormatException($"A {description} stream is truncated.");
         uint maximum = bits == 32 ? uint.MaxValue : (1u << bits) - 1;
@@ -2082,7 +2081,7 @@ public sealed class PdfPageRenderer
             || Enumerable.Range(0, colorSpace.Components).Any(index =>
                 range[index * 2] > range[index * 2 + 1]))
             throw new FormatException($"A {description} domain or range is invalid.");
-        byte[] program = PdfStreamDecoder.Decode(stream, _document.Resolve, 1024 * 1024);
+        byte[] program = _document.DecodeStream(stream, 1024 * 1024);
         var tokenizer = new PdfTokenizer(program);
         if (tokenizer.Read().Kind != PdfTokenKind.BraceStart)
             throw new FormatException($"A {description} program is invalid.");
@@ -2632,7 +2631,7 @@ public sealed class PdfPageRenderer
             4 + dataComponents * 2, required: true, defaultValues: []);
         if (decode.Any(value => !double.IsFinite(value)))
             throw new FormatException("A mesh shading decode array is invalid.");
-        return new MeshDecoder(PdfStreamDecoder.Decode(stream, _document.Resolve),
+        return new MeshDecoder(_document.DecodeStream(stream),
             coordinateBits, componentBits, flagBits, decode, dataComponents,
             colorSpace, function, transform);
     }
@@ -2707,7 +2706,7 @@ public sealed class PdfPageRenderer
             4 + dataComponents * 2, required: true, defaultValues: []);
         if (decode.Any(value => !double.IsFinite(value)))
             throw new FormatException("A patch mesh shading decode array is invalid.");
-        byte[] bytes = PdfStreamDecoder.Decode(stream, _document.Resolve);
+        byte[] bytes = _document.DecodeStream(stream);
         int bitOffset = 0;
         bool rendered = false;
         int pointCount = tensorProduct ? 16 : 12;
@@ -3046,7 +3045,7 @@ public sealed class PdfPageRenderer
         int height = PositiveInteger(stream.Dictionary, "Height");
         int rowBytes = checked((width * bits + 7) / 8);
         int expected = checked(rowBytes * height);
-        byte[] packed = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
+        byte[] packed = _document.DecodeStream(stream, expected);
         if (packed.Length != expected)
             throw new FormatException("Image soft-mask sample data has an invalid length.");
         double decodeStart = 0, decodeEnd = 1;
@@ -3082,7 +3081,7 @@ public sealed class PdfPageRenderer
         int height = PositiveInteger(stream.Dictionary, "Height");
         int rowBytes = checked((width + 7) / 8);
         int expected = checked(rowBytes * height);
-        byte[] packed = PdfStreamDecoder.Decode(stream, _document.Resolve, expected);
+        byte[] packed = _document.DecodeStream(stream, expected);
         if (packed.Length != expected)
             throw new FormatException("Image mask sample data has an invalid length.");
         bool paintsOne = StencilPaintsOne(stream.Dictionary);

@@ -49,6 +49,12 @@ public sealed class PdfDocument
     public PdfDictionary Trailer => CrossReferences.LatestTrailer;
     internal ReadOnlyMemory<byte> Source => _source;
     internal bool UsesCompatibilityRecovery => _compatibilityRecovery;
+    internal byte[] DecodeStream(PdfStream stream,
+        int maximumDecodedBytes = PdfStreamDecoder.DefaultMaximumDecodedBytes) =>
+        _compatibilityRecovery
+            ? PdfStreamDecoder.DecodeWithCompatibilityRecovery(
+                stream, Resolve, maximumDecodedBytes)
+            : PdfStreamDecoder.Decode(stream, Resolve, maximumDecodedBytes);
     /// <summary>Gets whether the document declares an encryption security handler.</summary>
     public bool IsEncrypted => CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out _);
     /// <summary>Gets whether encrypted objects are available in decrypted form.</summary>
@@ -382,7 +388,7 @@ public sealed class PdfDocument
                 $"An object stream cannot contain more than {MaximumObjectsPerObjectStream:N0} objects",
                 EntryOffset(entry));
         int firstObjectOffset = RequiredNonNegativeInt(stream.Dictionary, FirstObjectOffsetName, EntryOffset(entry));
-        byte[] decoded = PdfStreamDecoder.Decode(stream, Resolve);
+        byte[] decoded = DecodeStream(stream);
         if (firstObjectOffset > decoded.Length)
             throw Error("Object stream /First points beyond the decoded stream", EntryOffset(entry));
 

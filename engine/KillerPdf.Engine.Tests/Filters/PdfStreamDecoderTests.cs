@@ -86,6 +86,29 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_CompatibilityRecoveryIgnoresInvalidZlibChecksum()
+    {
+        byte[] expected = Encoding.ASCII.GetBytes("recover a broken Adler checksum");
+        byte[] encoded = Compress(expected);
+        encoded[^1] ^= 0x01;
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("FlateDecode")));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal(expected,
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value));
+    }
+
+    [Fact]
+    public void Decode_CompatibilityRecoveryStillRejectsInvalidDeflateData()
+    {
+        PdfStream stream = Stream([0x78, 0x9C, 0xFF, 0xFF, 0, 0, 0, 0],
+            Pair("Filter", Name("FlateDecode")));
+
+        Assert.Throws<PdfFilterException>(() =>
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value));
+    }
+
+    [Fact]
     public void Decode_ResolvesIndirectFilterParametersAndScalarValues()
     {
         byte[] expected = Encoding.ASCII.GetBytes("indirect stream metadata");

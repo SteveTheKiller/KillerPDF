@@ -41,8 +41,8 @@ public sealed class PdfPageContentReader
             if (Resolve(item) is PdfNull) continue;
             PdfStream stream = Resolve(item) as PdfStream
                 ?? throw new FormatException("Page content is not a stream.");
-            byte[] bytes = PdfStreamDecoder.Decode(stream, _document.Resolve,
-                PdfContentStreamReader.MaximumSourceBytes);
+            byte[] bytes = _document.DecodeStream(
+                stream, PdfContentStreamReader.MaximumSourceBytes);
             if (output.Length + bytes.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
                 throw new FormatException("Page content exceeds the extraction limit.");
             output.Write(bytes);
@@ -118,7 +118,8 @@ public sealed class PdfPageContentReader
         }
         byte[] Decode(PdfStream stream)
         {
-            byte[] bytes = PdfStreamDecoder.Decode(stream, _document.Resolve, PdfContentStreamReader.MaximumSourceBytes);
+            byte[] bytes = _document.DecodeStream(
+                stream, PdfContentStreamReader.MaximumSourceBytes);
             decodedBytes += bytes.Length;
             if (decodedBytes > PdfContentStreamReader.MaximumSourceBytes) throw new FormatException("Expanded page content exceeds the extraction limit.");
             return bytes;

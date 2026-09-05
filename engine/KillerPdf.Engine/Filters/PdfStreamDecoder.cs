@@ -22,7 +22,7 @@ public static class PdfStreamDecoder
 
     /// <summary>Decodes a stream whose filter metadata contains no indirect references.</summary>
     public static byte[] Decode(PdfStream stream, int maximumDecodedBytes = DefaultMaximumDecodedBytes)
-        => DecodeCore(stream, null, maximumDecodedBytes, 0);
+        => DecodeCore(stream, null, maximumDecodedBytes, 0, false);
 
     /// <summary>Decodes a stream while resolving indirect filter and predictor metadata.</summary>
     public static byte[] Decode(
@@ -31,14 +31,31 @@ public static class PdfStreamDecoder
         int maximumDecodedBytes = DefaultMaximumDecodedBytes)
     {
         ArgumentNullException.ThrowIfNull(resolve);
-        return DecodeCore(stream, resolve, maximumDecodedBytes, 0);
+        return DecodeCore(stream, resolve, maximumDecodedBytes, 0, false);
+    }
+
+    /// <summary>Decodes a malformed stream using bounded viewer-compatible recoveries.</summary>
+    public static byte[] DecodeWithCompatibilityRecovery(
+        PdfStream stream,
+        int maximumDecodedBytes = DefaultMaximumDecodedBytes)
+        => DecodeCore(stream, null, maximumDecodedBytes, 0, true);
+
+    /// <summary>Decodes a malformed stream while resolving indirect filter metadata.</summary>
+    public static byte[] DecodeWithCompatibilityRecovery(
+        PdfStream stream,
+        Func<PdfIndirectReference, PdfObject> resolve,
+        int maximumDecodedBytes = DefaultMaximumDecodedBytes)
+    {
+        ArgumentNullException.ThrowIfNull(resolve);
+        return DecodeCore(stream, resolve, maximumDecodedBytes, 0, true);
     }
 
     private static byte[] DecodeCore(
         PdfStream stream,
         Func<PdfIndirectReference, PdfObject>? resolve,
         int maximumDecodedBytes,
-        int nestedDepth)
+        int nestedDepth,
+        bool compatibilityRecovery)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentOutOfRangeException.ThrowIfNegative(maximumDecodedBytes);
@@ -67,7 +84,8 @@ public static class PdfStreamDecoder
                 : outputLimit;
             current = filter switch
             {
-                "FlateDecode" or "Fl" => DecodeFlate(current, filterLimit),
+                "FlateDecode" or "Fl" => DecodeFlate(
+                    current, filterLimit, compatibilityRecovery),
                 "ASCIIHexDecode" or "AHx" => DecodeAsciiHex(current, filterLimit),
                 "ASCII85Decode" or "A85" => DecodeAscii85(current, filterLimit),
                 "RunLengthDecode" or "RL" => DecodeRunLength(current, filterLimit),
@@ -79,7 +97,8 @@ public static class PdfStreamDecoder
                 "JBIG2Decode" => PdfJbig2Decoder.Decode(current,
                     GetJbig2Globals(parameters[i], resolve),
                     globalStream => DecodeCore(globalStream, resolve,
-                        DefaultMaximumDecodedBytes, nestedDepth + 1),
+                        DefaultMaximumDecodedBytes, nestedDepth + 1,
+                        compatibilityRecovery),
                     filterLimit,
                     GetImageDimension(stream.Dictionary, WidthName, resolve),
                     GetImageDimension(stream.Dictionary, HeightName, resolve)),
@@ -447,7 +466,8 @@ public static class PdfStreamDecoder
         return value;
     }
 
-    private static byte[] DecodeFlate(byte[] encoded, int maximumDecodedBytes)
+    private static byte[] DecodeFlate(
+        byte[] encoded, int maximumDecodedBytes, bool compatibilityRecovery)
     {
         try
         {
@@ -472,8 +492,45 @@ public static class PdfStreamDecoder
         }
         catch (InvalidDataException ex)
         {
+            if (compatibilityRecovery && HasZlibHeader(encoded))
+            {
+                try
+                {
+                    using var input = new MemoryStream(
+                        encoded, 2, encoded.Length - 6, writable: false);
+                    using var deflate = new DeflateStream(input, CompressionMode.Decompress);
+                    using var output = new MemoryStream();
+                    byte[] buffer = new byte[81_920];
+                    while (true)
+                    {
+                        int read = deflate.Read(buffer, 0, buffer.Length);
+                        if (read == 0) break;
+                        EnsureWithinLimit(output.Length + read, maximumDecodedBytes);
+                        output.Write(buffer, 0, read);
+                    }
+                    return output.ToArray();
+                }
+                catch (PdfFilterException)
+                {
+                    throw;
+                }
+                catch (InvalidDataException)
+                {
+                }
+            }
             throw new PdfFilterException("The FlateDecode stream contains invalid zlib data.", ex);
         }
+    }
+
+    private static bool HasZlibHeader(ReadOnlySpan<byte> encoded)
+    {
+        if (encoded.Length < 6) return false;
+        int compression = encoded[0];
+        int flags = encoded[1];
+        return (compression & 15) == 8
+            && compression >> 4 <= 7
+            && (flags & 32) == 0
+            && ((compression << 8) + flags) % 31 == 0;
     }
 
     private static byte[] ReversePredictor(

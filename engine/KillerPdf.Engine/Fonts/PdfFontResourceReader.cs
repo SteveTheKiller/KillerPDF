@@ -390,7 +390,8 @@ public static class PdfFontResourceReader
 
         private PdfObject? Get(PdfDictionary? dictionary, string key) => dictionary is not null
             && dictionary.TryGetValue(new PdfName(Encoding.ASCII.GetBytes(key)), out var value) ? Resolve(value) : null;
-        private byte[] Decode(PdfStream stream) => PdfStreamDecoder.Decode(stream, document.Resolve, 32 * 1024 * 1024);
+        private byte[] Decode(PdfStream stream) =>
+            document.DecodeStream(stream, 32 * 1024 * 1024);
     }
 
     private static string? Name(PdfObject? value) => (value as PdfName)?.ValueAsLatin1();

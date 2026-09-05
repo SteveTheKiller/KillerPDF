@@ -258,7 +258,9 @@ public static class PdfCrossReferenceReader
                 offset);
         long expectedLength = checked(rowCount * rowWidth);
         int decodeLimit = checked((int)expectedLength + 1);
-        byte[] decoded = PdfStreamDecoder.Decode(stream, decodeLimit);
+        byte[] decoded = compatibilityRecovery
+            ? PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, decodeLimit)
+            : PdfStreamDecoder.Decode(stream, decodeLimit);
         if (decoded.LongLength != expectedLength)
             throw Error("The decoded xref stream length does not match its /W and /Index entries", offset);
 
