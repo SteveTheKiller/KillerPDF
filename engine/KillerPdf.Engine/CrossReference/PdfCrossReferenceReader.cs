@@ -28,17 +28,33 @@ public static class PdfCrossReferenceReader
 
         var probe = new PdfTokenizer(source, (int)offset);
         PdfToken first = probe.Read();
-        (PdfToken Token, PdfTokenizer Tokenizer)? recovered = compatibilityRecovery
-            && !IsKeyword(first, "xref")
-            ? FindNearbyClassicTable(source, (int)offset) : null;
-        if (recovered.HasValue)
+        if (IsKeyword(first, "xref"))
+            return ReadClassic(source, first, probe, compatibilityRecovery);
+        if (!compatibilityRecovery)
+            return ReadStream(source, (int)offset, compatibilityRecovery: false);
+        if (first.Kind == PdfTokenKind.Integer)
         {
-            first = recovered.Value.Token;
-            probe = recovered.Value.Tokenizer;
+            try
+            {
+                return ReadStream(source, (int)offset, compatibilityRecovery: true);
+            }
+            catch (PdfSyntaxException)
+            {
+                (PdfToken Token, PdfTokenizer Tokenizer)? recovered =
+                    FindNearbyClassicTable(source, (int)offset);
+                if (!recovered.HasValue)
+                    throw;
+                return ReadClassic(source, recovered.Value.Token,
+                    recovered.Value.Tokenizer, compatibilityRecovery: true);
+            }
         }
-        return IsKeyword(first, "xref")
-            ? ReadClassic(source, first, probe, compatibilityRecovery)
-            : ReadStream(source, (int)offset, compatibilityRecovery);
+
+        (PdfToken Token, PdfTokenizer Tokenizer)? nearby =
+            FindNearbyClassicTable(source, (int)offset);
+        return nearby.HasValue
+            ? ReadClassic(source, nearby.Value.Token, nearby.Value.Tokenizer,
+                compatibilityRecovery: true)
+            : ReadStream(source, (int)offset, compatibilityRecovery: true);
     }
 
     private static (PdfToken Token, PdfTokenizer Tokenizer)? FindNearbyClassicTable(
