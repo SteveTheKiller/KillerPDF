@@ -65,6 +65,26 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_BoundsParsedPageCache()
+    {
+        var builder = new PdfDocumentBuilder();
+        for (int page = 0; page < 40; page++) builder.AddBlankPage(10, 10);
+        var renderer = new PdfPageRenderer(PdfDocument.Open(builder.Build()));
+
+        for (int page = 0; page < 40; page++)
+            renderer.Render(page, new PdfRenderOptions(1, 1,
+                includeAnnotations: false, includeFormFields: false));
+        object cache = typeof(PdfPageRenderer).GetField("_instructionCache",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(renderer)!;
+        int count = (int)cache.GetType().GetProperty("Count",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cache)!;
+
+        Assert.Equal(32, count);
+    }
+
+    [Fact]
     public void OptionsRejectUnboundedPixelBuffers()
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRenderOptions(0, 1));
@@ -1655,7 +1675,9 @@ public sealed class PdfPageRendererTests
         object cache = typeof(PdfPageRenderer).GetField("_fontCache",
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
             .GetValue(renderer)!;
-        int count = (int)cache.GetType().GetProperty("Count")!.GetValue(cache)!;
+        int count = (int)cache.GetType().GetProperty("Count",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cache)!;
 
         Assert.Equal(first.Pixels.ToArray(), second.Pixels.ToArray());
         Assert.Equal(1, count);

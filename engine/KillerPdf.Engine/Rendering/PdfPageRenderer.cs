@@ -4,7 +4,6 @@ using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Syntax;
-using System.Collections.Concurrent;
 
 namespace KillerPdf.Engine.Rendering;
 
@@ -17,9 +16,9 @@ public sealed class PdfPageRenderer
     private readonly IReadOnlyList<PdfPageBoxInformation> _boxes;
     private readonly PdfPageTree _tree;
     private readonly IPdfFontResolver? _fontResolver;
-    private readonly ConcurrentDictionary<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = [];
-    private readonly ConcurrentDictionary<PdfDictionary, PdfExtractionFont> _fontCache =
-        new(ReferenceEqualityComparer.Instance);
+    private readonly BoundedCache<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = new(32);
+    private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
+        new(256, ReferenceEqualityComparer.Instance);
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
@@ -1105,10 +1104,8 @@ public sealed class PdfPageRenderer
     private IReadOnlyList<PdfContentInstruction> ReadInstructions(
         int pageIndex, CancellationToken cancellationToken)
     {
-        if (_instructionCache.TryGetValue(pageIndex, out var cached)) return cached;
-        IReadOnlyList<PdfContentInstruction> parsed =
-            _content.ReadInstructions(pageIndex, cancellationToken);
-        return _instructionCache.GetOrAdd(pageIndex, parsed);
+        return _instructionCache.GetOrAdd(pageIndex,
+            index => _content.ReadInstructions(index, cancellationToken));
     }
 
     private PdfExtractionFont ReadFont(PdfDictionary font) =>
@@ -4209,6 +4206,47 @@ public sealed class PdfPageRenderer
         internal double DefaultValue(int component, double normalized) => DefaultDecode is null
             ? normalized : DefaultDecode[component * 2] + normalized
                 * (DefaultDecode[component * 2 + 1] - DefaultDecode[component * 2]);
+    }
+    private sealed class BoundedCache<TKey, TValue> where TKey : notnull
+    {
+        private readonly int _capacity;
+        private readonly Dictionary<TKey, LinkedListNode<(TKey Key, TValue Value)>> _entries;
+        private readonly LinkedList<(TKey Key, TValue Value)> _usage = [];
+        private readonly object _sync = new();
+
+        internal BoundedCache(int capacity, IEqualityComparer<TKey>? comparer = null)
+        {
+            _capacity = capacity > 0 ? capacity : throw new ArgumentOutOfRangeException(nameof(capacity));
+            _entries = new Dictionary<TKey, LinkedListNode<(TKey Key, TValue Value)>>(comparer);
+        }
+
+        internal int Count
+        {
+            get { lock (_sync) return _entries.Count; }
+        }
+
+        internal TValue GetOrAdd(TKey key, Func<TKey, TValue> factory)
+        {
+            lock (_sync)
+            {
+                if (_entries.TryGetValue(key, out var existing))
+                {
+                    _usage.Remove(existing);
+                    _usage.AddFirst(existing);
+                    return existing.Value.Value;
+                }
+                TValue value = factory(key);
+                var node = _usage.AddFirst((key, value));
+                _entries.Add(key, node);
+                if (_entries.Count > _capacity)
+                {
+                    LinkedListNode<(TKey Key, TValue Value)> oldest = _usage.Last!;
+                    _usage.RemoveLast();
+                    _entries.Remove(oldest.Value.Key);
+                }
+                return value;
+            }
+        }
     }
     private readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
