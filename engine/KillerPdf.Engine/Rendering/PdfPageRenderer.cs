@@ -2026,6 +2026,16 @@ public sealed class PdfPageRenderer
                     case "add": { double b = Pop(); Push(Pop() + b); break; }
                     case "ceiling": Push(Math.Ceiling(Pop())); break;
                     case "cos": Push(Math.Cos(Pop() * Math.PI / 180)); break;
+                    case "copy":
+                    {
+                        int count = PopInteger();
+                        if (count < 0 || count > stack.Count
+                            || stack.Count + count > 256)
+                            throw new FormatException($"A {description} calculator copy is invalid.");
+                        double[] values = stack.GetRange(stack.Count - count, count).ToArray();
+                        foreach (double value in values) Push(value);
+                        break;
+                    }
                     case "cvi": Push(Math.Truncate(Pop())); break;
                     case "cvr": break;
                     case "div": { double b = Pop(); Push(Pop() / b); break; }
