@@ -2077,6 +2077,39 @@ public sealed class PdfPageRenderer
         int bottom = Math.Clamp(targetHeight - (int)Math.Floor(corners.Min(p => p.Y) * scaleY), 0, targetHeight);
         if (!transform.TryInverse(out Matrix inverse)) return;
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
+        bool directRgb = !imageMask && bits == 8 && components == 3
+            && softMask is null && colorKeyMask is null && clips.Count == 0
+            && colorSpace.Palette is null && colorSpace.Converter is null
+            && colorSpace.MultiConverter is null
+            && decode is [0, 1, 0, 1, 0, 1]
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        if (directRgb)
+        {
+            double pageStepX = 1 / scaleX;
+            double unitStepX = inverse.A * pageStepX;
+            double unitStepY = inverse.B * pageStepX;
+            for (int y = top; y < bottom; y++)
+            {
+                double pageX = (left + 0.5) / scaleX;
+                double pageY = (targetHeight - y - 0.5) / scaleY;
+                Point first = inverse.Apply(pageX, pageY);
+                double unitX = first.X;
+                double unitY = first.Y;
+                for (int x = left; x < right; x++, unitX += unitStepX, unitY += unitStepY)
+                {
+                    if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
+                    int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
+                    int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
+                    int sourceOffset = sourceY * rowBytes + sourceX * 3;
+                    int targetOffset = (y * targetWidth + x) * 4;
+                    target[targetOffset] = samples[sourceOffset + 2];
+                    target[targetOffset + 1] = samples[sourceOffset + 1];
+                    target[targetOffset + 2] = samples[sourceOffset];
+                    target[targetOffset + 3] = 255;
+                }
+            }
+            return;
+        }
         var componentValues = new double[components];
         for (int y = top; y < bottom; y++)
             for (int x = left; x < right; x++)
