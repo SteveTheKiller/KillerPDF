@@ -305,8 +305,8 @@ internal static class PdfJpegDecoder
             int components = _components.Count;
             var output = new byte[outputLength];
             int transform = colorTransform ?? _adobeTransform ?? (components == 3 ? 1 : 0);
-            if (transform is < 0 or > 2 || components == 3 && transform == 2
-                || components == 4 && transform == 1)
+            if (transform is < 0 or > 2 || components == 1 && transform != 0
+                || components == 3 && transform == 2)
                 throw Error("The JPEG color transform is not supported.");
             for (int y = 0, offset = 0; y < outputHeight; y++)
                 for (int x = 0; x < outputWidth; x++)
@@ -331,12 +331,14 @@ internal static class PdfJpegDecoder
                     else
                     {
                         double cb = second - 128, cr = third - 128;
-                        output[offset++] = Clamp(first + 1.402 * cr);
-                        output[offset++] = Clamp(first - 0.344136 * cb - 0.714136 * cr);
-                        output[offset++] = Clamp(first + 1.772 * cb);
-                        if (components == 4)
-                            output[offset++] = Sample(_components[3], x, y,
-                                maxHorizontal, maxVertical);
+                        double red = first + 1.402 * cr;
+                        double green = first - 0.344136 * cb - 0.714136 * cr;
+                        double blue = first + 1.772 * cb;
+                        output[offset++] = Clamp(components == 4 ? 255 - red : red);
+                        output[offset++] = Clamp(components == 4 ? 255 - green : green);
+                        output[offset++] = Clamp(components == 4 ? 255 - blue : blue);
+                        if (components == 4) output[offset++] = Sample(
+                            _components[3], x, y, maxHorizontal, maxVertical);
                     }
                 }
             return new JpegDecodedImage(
