@@ -6,6 +6,15 @@ namespace KillerPdf.Engine.Tests.Fonts;
 public sealed class PdfCffGlyphReaderTests
 {
     [Fact]
+    public void ReturnsEmptyOutlineForValidBlankGlyph()
+    {
+        var font = Assert.IsType<PdfCffGlyphReader>(PdfCffGlyphReader.TryRead(Build([14])));
+
+        Assert.Empty(Assert.IsType<PdfGlyphOutline>(font.GetOutline(1)).Contours);
+        Assert.Null(font.GetOutline(0));
+    }
+
+    [Fact]
     public void ReadsNamedLineOutlineAndDoesNotIncludeUnusedMove()
     {
         byte[] program = [.. Numbers(10, 20), 21, .. Numbers(100, 0, 0, 200, -100, 0), 5,

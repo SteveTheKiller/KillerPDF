@@ -49,7 +49,7 @@ public sealed class PdfCffGlyphReader
         return result;
     }
 
-    /// <summary>Gets outline contours in thousandths of text space, or null for empty or unsupported outlines.</summary>
+    /// <summary>Gets outline contours in thousandths of text space, or null for missing or unsupported outlines.</summary>
     public PdfGlyphOutline? GetOutline(int glyph)
     {
         if (glyph < 0 || glyph >= _glyphs.Length) return null;
@@ -57,8 +57,10 @@ public sealed class PdfCffGlyphReader
         PdfGlyphOutline? result;
         try
         {
-            result = new Interpreter(_global, _local[_fd[glyph]], _matrices[_fd[glyph]])
+            PdfGlyphOutline outline = new Interpreter(
+                _global, _local[_fd[glyph]], _matrices[_fd[glyph]])
                 .ReadOutline(_glyphs[glyph]);
+            result = glyph == 0 && outline.Contours.Count == 0 ? null : outline;
         }
         catch (Exception e) when (e is FormatException or NotSupportedException
             or OverflowException or ArgumentException)
@@ -294,11 +296,11 @@ public sealed class PdfCffGlyphReader
             if (!Run(program, 0)) throw Bad();
             return double.IsFinite(_left) ? new(_left, _bottom, _right, _top) : null;
         }
-        internal PdfGlyphOutline? ReadOutline(ReadOnlyMemory<byte> program)
+        internal PdfGlyphOutline ReadOutline(ReadOnlyMemory<byte> program)
         {
             if (!Run(program, 0)) throw Bad();
             FinishContour();
-            return _contours.Count == 0 ? null : new PdfGlyphOutline(_contours.AsReadOnly());
+            return new PdfGlyphOutline(_contours.AsReadOnly());
         }
         private bool Run(ReadOnlyMemory<byte> program, int depth)
         {
