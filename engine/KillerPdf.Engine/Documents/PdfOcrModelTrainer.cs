@@ -282,13 +282,15 @@ public static class PdfOcrModelTrainer
         IReadOnlyList<PdfOcrImageRegion> components = layout.Components;
         int featureCount = checked(width * height);
         var labels = new List<(string Label, PdfOcrImageRegion Bounds)>();
+        var seenLabels = new HashSet<(string Label, PdfOcrImageRegion Bounds)>();
         foreach (PdfExtractedLetter letter in content.Letters)
         {
             string label = letter.Value.Trim();
             if (!IsValidLabel(label)) continue;
             PdfOcrImageRegion? bounds = MapToPixels(
                 letter.BoundingBox, page, rendered.Width, rendered.Height);
-            if (bounds is not null) labels.Add((label, bounds));
+            if (bounds is not null && seenLabels.Add((label, bounds)))
+                labels.Add((label, bounds));
         }
         IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> assignments =
             AssignComponentsToLabels(components,
@@ -388,8 +390,8 @@ public static class PdfOcrModelTrainer
         static int CenterY(PdfOcrImageRegion region) =>
             (region.Top + region.Bottom) / 2;
         static bool Contains(PdfOcrImageRegion region, int x, int y) =>
-            x >= region.Left && x <= region.Right
-            && y >= region.Top && y <= region.Bottom;
+            x >= region.Left && x < region.Right
+            && y >= region.Top && y < region.Bottom;
     }
 
     /// <summary>Evaluates a model against labeled normalized glyphs.</summary>

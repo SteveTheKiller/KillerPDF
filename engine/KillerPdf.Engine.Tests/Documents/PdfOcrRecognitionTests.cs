@@ -495,6 +495,30 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TextLayerTrainingDeduplicatesExactOverprintedLabels()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 40)
+            .SetTextMatrix(1, 0, 0, 1, 10, 20)
+            .ShowLatin1Text("A").EndText()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 40)
+            .SetTextMatrix(1, 0, 0, 1, 10, 20)
+            .ShowLatin1Text("A").EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 80, content).Build());
+        var options = new PdfOcrOptions(["en"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreatePageSamples(document, 0,
+                new PdfRenderOptions(200, 160, includeAnnotations: false,
+                    includeFormFields: false), options, 16, 16);
+
+        Assert.Equal("A", Assert.Single(samples).Label);
+    }
+
+    [Fact]
     public void TextLayerTrainingAssignsOverlapsToOneDeterministicOwner()
     {
         PdfOcrImageRegion component = new(16, 10, 19, 20);
@@ -539,6 +563,23 @@ public sealed class PdfOcrRecognitionTests
             PdfOcrModelTrainer.AssignComponentsToLabels([component], labels);
 
         Assert.All(assignments, Assert.Empty);
+    }
+
+    [Fact]
+    public void TextLayerTrainingDoesNotShareExclusiveRegionEdges()
+    {
+        PdfOcrImageRegion component = new(0, 0, 5, 10);
+        PdfOcrImageRegion[] labels =
+        [
+            new(0, 0, 5, 10),
+            new(4, 0, 6, 10)
+        ];
+
+        IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> assignments =
+            PdfOcrModelTrainer.AssignComponentsToLabels([component], labels);
+
+        Assert.Equal([component], assignments[0]);
+        Assert.Empty(assignments[1]);
     }
 
     [Fact]
