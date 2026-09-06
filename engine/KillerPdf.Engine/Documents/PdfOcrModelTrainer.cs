@@ -149,6 +149,7 @@ public static class PdfOcrModelTrainer
         string[] orderedLabels = [.. ordered.Select(item => item.Label)];
         var weights = new float[checked(orderedLabels.Length * featureCount)];
         var biases = new float[orderedLabels.Length];
+        var priors = new float[orderedLabels.Length];
         double scoreScale = Math.Sqrt(featureCount);
         for (int label = 0; label < orderedLabels.Length; label++)
         {
@@ -163,11 +164,11 @@ public static class PdfOcrModelTrainer
             }
             double prior = Math.Log((labelCounts[orderedLabels[label]] + 1d)
                 / (sampleCount + labelCounts.Count));
-            biases[label] = checked((float)(
-                -squaredLength / scoreScale + LabelPriorWeight * prior));
+            biases[label] = checked((float)(-squaredLength / scoreScale));
+            priors[label] = checked((float)(LabelPriorWeight * prior));
         }
-        return PdfOcrRecognitionModel.Create(
-            width, height, orderedLabels, weights, biases);
+        return PdfOcrRecognitionModel.CreatePrototype(
+            width, height, orderedLabels, weights, biases, priors);
     }
 
     /// <summary>Creates complete Latin-1 training coverage from bundled standard-font substitutes.</summary>

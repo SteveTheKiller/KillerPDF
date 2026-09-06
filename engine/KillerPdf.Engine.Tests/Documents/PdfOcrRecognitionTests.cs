@@ -337,6 +337,22 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerDoesNotLetFrequencyOverrideAClearerPrototype()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
+        [
+            .. Enumerable.Repeat(
+                new PdfOcrTrainingSample("common", new float[] { 0.5f }), 100),
+            new("rare", new float[] { 1 })
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("rare", new float[] { 1 })]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
     public void TrainerRejectsInvalidFeaturesAndHonorsCancellation()
     {
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
@@ -664,6 +680,22 @@ public sealed class PdfOcrRecognitionTests
         Assert.Throws<CryptographicException>(() => PdfOcrRecognitionModel.Load(bytes, new string('0', 64)));
         bytes[5] = (byte)'1';
         Assert.Throws<FormatException>(() => PdfOcrRecognitionModel.Load(bytes));
+    }
+
+    [Fact]
+    public void ModelLoadsLegacyFilesWithoutSeparatedPriors()
+    {
+        byte[] current = TinyModel("E").Save();
+        byte[] legacy = [.. current.AsSpan(0, 21).ToArray(),
+            .. current.AsSpan(25).ToArray()];
+        legacy[5] = (byte)'2';
+
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Load(legacy);
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("E", new float[] { 1 })]);
+
+        Assert.Equal(["E"], model.Labels);
+        Assert.Equal(1, evaluation.Accuracy);
     }
 
     [Fact]

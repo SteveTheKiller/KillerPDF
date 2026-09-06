@@ -10,8 +10,10 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>A bounded, versioned OCR glyph-classification model.</summary>
 public sealed class PdfOcrRecognitionModel
 {
-    private static readonly byte[] Magic = "KPOCR2\0"u8.ToArray();
+    private static readonly byte[] Magic = "KPOCR3\0"u8.ToArray();
+    private static readonly byte[] LegacyMagic = "KPOCR2\0"u8.ToArray();
     internal const int MaximumModelBytes = 256 * 1024 * 1024;
+    private const double PriorTieWindow = 0.1;
     private const double ShapeMismatchPenalty = 0.25;
     private const double CoarseGradientDistanceWeight = 24;
     private const double FineGradientDistanceWeight = 6;
@@ -25,23 +27,26 @@ public sealed class PdfOcrRecognitionModel
     private readonly string[] _labels;
     private readonly float[] _weights;
     private readonly float[] _biases;
+    private readonly float[] _priors;
     private readonly sbyte[] _shapeBuckets;
     private readonly float[] _rowProjections;
     private readonly float[] _columnProjections;
     private readonly float[] _coarseGradientDescriptors;
     private readonly float[] _fineGradientDescriptors;
     private readonly Dictionary<string, ulong> _labelShapeMasks;
+    private readonly Dictionary<string, float> _labelPriors;
     private readonly Dictionary<string, int[]> _prototypeIndexesByLabel;
     private readonly bool _usesPrototypeShapes;
 
     private PdfOcrRecognitionModel(int width, int height, string[] labels,
-        float[] weights, float[] biases)
+        float[] weights, float[] biases, float[] priors)
     {
         Width = width;
         Height = height;
         _labels = labels;
         _weights = weights;
         _biases = biases;
+        _priors = priors;
         _usesPrototypeShapes = !weights.AsSpan().ContainsAnyExceptInRange(0, float.MaxValue);
         int featureCount = checked(width * height);
         _shapeBuckets = new sbyte[labels.Length];
@@ -52,12 +57,16 @@ public sealed class PdfOcrRecognitionModel
         _fineGradientDescriptors = new float[
             checked(labels.Length * FineGradientDescriptorLength)];
         _labelShapeMasks = new Dictionary<string, ulong>(StringComparer.Ordinal);
+        _labelPriors = new Dictionary<string, float>(StringComparer.Ordinal);
         var prototypeIndexes = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         for (int label = 0; label < labels.Length; label++)
         {
             if (!prototypeIndexes.TryGetValue(labels[label], out List<int>? indexes))
                 prototypeIndexes.Add(labels[label], indexes = []);
             indexes.Add(label);
+            if (!_labelPriors.TryGetValue(labels[label], out float prior)
+                || priors[label] > prior)
+                _labelPriors[labels[label]] = priors[label];
             _shapeBuckets[label] = checked((sbyte)ShapeBucket(
                 weights.AsSpan(label * featureCount, featureCount), width, height));
             BuildProjections(weights.AsSpan(label * featureCount, featureCount),
@@ -97,24 +106,44 @@ public sealed class PdfOcrRecognitionModel
         IEnumerable<string> labels, ReadOnlyMemory<float> weights,
         ReadOnlyMemory<float> biases)
     {
-        if (width is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
         ArgumentNullException.ThrowIfNull(labels);
         string[] names = labels.ToArray();
+        return CreateCore(width, height, names, weights, biases,
+            new float[names.Length]);
+    }
+
+    internal static PdfOcrRecognitionModel CreatePrototype(int width, int height,
+        IEnumerable<string> labels, ReadOnlyMemory<float> weights,
+        ReadOnlyMemory<float> biases, ReadOnlyMemory<float> priors)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        return CreateCore(width, height, labels.ToArray(), weights, biases, priors);
+    }
+
+    private static PdfOcrRecognitionModel CreateCore(int width, int height,
+        string[] names, ReadOnlyMemory<float> weights,
+        ReadOnlyMemory<float> biases, ReadOnlyMemory<float> priors)
+    {
+        if (width is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
         if (names.Length is <= 0 or > 65_536 || names.Any(label =>
             string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64
             || label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar)))
-            throw new ArgumentException("OCR model labels are empty, oversized, or invalid.", nameof(labels));
+            throw new ArgumentException(
+                "OCR model labels are empty, oversized, or invalid.", "labels");
         int featureCount = checked(width * height);
         if (weights.Length != checked(featureCount * names.Length))
             throw new ArgumentException("OCR model weights do not match its dimensions.", nameof(weights));
         if (biases.Length != names.Length)
             throw new ArgumentException("OCR model biases do not match its labels.", nameof(biases));
+        if (priors.Length != names.Length)
+            throw new ArgumentException("OCR model priors do not match its labels.", nameof(priors));
         if (weights.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue)
-            || biases.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue))
+            || biases.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue)
+            || priors.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue))
             throw new ArgumentException("OCR model values must be finite.");
         return new PdfOcrRecognitionModel(width, height, names,
-            weights.ToArray(), biases.ToArray());
+            weights.ToArray(), biases.ToArray(), priors.ToArray());
     }
 
     /// <summary>Combines compatible language models without changing their prototypes.</summary>
@@ -136,15 +165,17 @@ public sealed class PdfOcrRecognitionModel
         var labels = new string[labelCount];
         var weights = new float[checked(labelCount * featureCount)];
         var biases = new float[labelCount];
+        var priors = new float[labelCount];
         int labelOffset = 0;
         foreach (PdfOcrRecognitionModel model in supplied)
         {
             model._labels.CopyTo(labels, labelOffset);
             model._biases.CopyTo(biases, labelOffset);
+            model._priors.CopyTo(priors, labelOffset);
             model._weights.CopyTo(weights, labelOffset * featureCount);
             labelOffset += model._labels.Length;
         }
-        return Create(first.Width, first.Height, labels, weights, biases);
+        return CreatePrototype(first.Width, first.Height, labels, weights, biases, priors);
     }
 
     /// <summary>Writes the stable model format used by the runtime.</summary>
@@ -152,7 +183,7 @@ public sealed class PdfOcrRecognitionModel
     {
         int labelBytes = _labels.Sum(label => 1 + Encoding.UTF8.GetByteCount(label));
         int length = checked(Magic.Length + sizeof(int) * 3 + labelBytes
-            + checked((_biases.Length + _weights.Length) * sizeof(float)));
+            + checked((_priors.Length + _biases.Length + _weights.Length) * sizeof(float)));
         var output = new byte[length];
         Span<byte> destination = output;
         Magic.CopyTo(destination);
@@ -166,6 +197,8 @@ public sealed class PdfOcrRecognitionModel
             destination[position++] = checked((byte)bytes);
             position += Encoding.UTF8.GetBytes(label, destination[position..]);
         }
+        foreach (float value in _priors)
+            WriteSingle(destination, ref position, value);
         foreach (float value in _biases)
             WriteSingle(destination, ref position, value);
         foreach (float value in _weights)
@@ -187,7 +220,10 @@ public sealed class PdfOcrRecognitionModel
         }
         ReadOnlySpan<byte> bytes = source.Span;
         int position = 0;
-        if (bytes.Length < Magic.Length || !bytes[..Magic.Length].SequenceEqual(Magic))
+        bool legacy = bytes.Length >= LegacyMagic.Length
+            && bytes[..LegacyMagic.Length].SequenceEqual(LegacyMagic);
+        if (bytes.Length < Magic.Length
+            || !legacy && !bytes[..Magic.Length].SequenceEqual(Magic))
             throw new FormatException("The OCR model header is invalid.");
         position += Magic.Length;
         int width = ReadInt32(bytes, ref position);
@@ -200,7 +236,7 @@ public sealed class PdfOcrRecognitionModel
         try
         {
             features = checked(width * height);
-            valueCount = checked(count * (features + 1));
+            valueCount = checked(count * (features + (legacy ? 1 : 2)));
         }
         catch (OverflowException exception)
         {
@@ -221,9 +257,10 @@ public sealed class PdfOcrRecognitionModel
         long remaining = bytes.Length - position;
         long required = (long)valueCount * sizeof(float);
         if (remaining != required) throw new FormatException("The OCR model payload length is invalid.");
+        float[] priors = legacy ? new float[count] : ReadFloats(bytes, ref position, count);
         float[] biases = ReadFloats(bytes, ref position, count);
         float[] weights = ReadFloats(bytes, ref position, checked(count * features));
-        try { return Create(width, height, labels, weights, biases); }
+        try { return CreatePrototype(width, height, labels, weights, biases, priors); }
         catch (ArgumentException exception) { throw new FormatException("The OCR model payload is invalid.", exception); }
     }
 
@@ -456,17 +493,38 @@ public sealed class PdfOcrRecognitionModel
         if (best < 0)
             throw new ArgumentException(
                 "The OCR character whitelist has no labels in this model.", nameof(allowedLabels));
-        string bestLabel = _labels[best];
-        double bestVote = PrototypeVote(bestLabel, scores);
+        string visualLabel = _labels[best];
+        double visualVote = PrototypeVote(visualLabel, scores);
         foreach (string label in Labels)
         {
             double vote = PrototypeVote(label, scores);
-            if (vote > bestVote)
+            if (vote > visualVote)
             {
-                bestLabel = label;
-                bestVote = vote;
+                visualLabel = label;
+                visualVote = vote;
             }
         }
+        float maximumPrior = float.NegativeInfinity;
+        foreach (string label in Labels)
+        {
+            double vote = PrototypeVote(label, scores);
+            if (visualVote - vote <= PriorTieWindow)
+                maximumPrior = Math.Max(maximumPrior, _labelPriors[label]);
+        }
+        string bestLabel = visualLabel;
+        double bestAdjustedVote = double.NegativeInfinity;
+        foreach (string label in Labels)
+        {
+            double vote = PrototypeVote(label, scores);
+            if (visualVote - vote > PriorTieWindow) continue;
+            double adjusted = vote + _labelPriors[label] - maximumPrior;
+            if (adjusted > bestAdjustedVote)
+            {
+                bestLabel = label;
+                bestAdjustedVote = adjusted;
+            }
+        }
+        double bestVote = PrototypeVote(bestLabel, scores);
         double runnerUpVote = double.NegativeInfinity;
         foreach (string label in Labels)
             if (!string.Equals(label, bestLabel, StringComparison.Ordinal))
