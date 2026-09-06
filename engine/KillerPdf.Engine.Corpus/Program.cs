@@ -341,7 +341,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int ocrTimeoutSeconds = 30;
     int holdoutPercent = 10, modelWidth = 32, modelHeight = 32;
     int minimumAccuracyPercent = 95, minimumHoldoutSamples = 1000;
+    int minimumScriptSamples = 100, minimumScriptCount = 2;
     int? maximumCalibrationErrorPercent = null;
+    int? minimumScriptAccuracyPercent = null;
     int? minimumCharacterAccuracyPercent = null;
     int? minimumWordAccuracyPercent = null;
     int? minimumWordBoxOverlapPercent = null;
@@ -400,6 +402,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             case "--maximum-calibration-error-percent" when value <= 100:
                 maximumCalibrationErrorPercent = value;
                 break;
+            case "--minimum-script-accuracy-percent" when value <= 100:
+                minimumScriptAccuracyPercent = value;
+                break;
+            case "--minimum-script-samples": minimumScriptSamples = value; break;
+            case "--minimum-script-count": minimumScriptCount = value; break;
             case "--minimum-character-accuracy-percent" when value <= 100:
                 minimumCharacterAccuracyPercent = value;
                 break;
@@ -500,6 +507,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                  .Where(item => item.Expected != item.Predicted)
                  .OrderByDescending(item => item.Count).Take(25))
         Console.WriteLine($"  {confusion.Count:N0} x {confusion.Expected} -> {confusion.Predicted}");
+    foreach (PdfOcrScriptAccuracy script in evaluation.Scripts)
+        Console.WriteLine($"  {script.Script}: {script.SampleCount:N0} samples, "
+            + $"{script.Accuracy:P2} accuracy.");
     PdfOcrTextMetrics? textMetrics = null;
     PdfOcrWordBoxMetrics? wordBoxMetrics = null;
     PdfOcrReadingOrderMetrics? readingOrderMetrics = null;
@@ -580,6 +590,29 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             + $"{evaluation.CalibrationError:P2} calibration error is above the "
             + $"{maximumCalibrationErrorPercent}% maximum.");
         return 1;
+    }
+    if (minimumScriptAccuracyPercent.HasValue)
+    {
+        PdfOcrScriptAccuracy[] eligibleScripts = [.. evaluation.Scripts
+            .Where(script => script.Script != "Common"
+                && script.SampleCount >= minimumScriptSamples)];
+        if (eligibleScripts.Length < minimumScriptCount)
+        {
+            Console.Error.WriteLine($"OCR model rejected: {eligibleScripts.Length:N0} scripts "
+                + $"have at least {minimumScriptSamples:N0} samples, below the "
+                + $"{minimumScriptCount:N0}-script minimum.");
+            return 1;
+        }
+        PdfOcrScriptAccuracy? failingScript = eligibleScripts
+            .FirstOrDefault(script => script.Accuracy
+                < minimumScriptAccuracyPercent.Value / 100d);
+        if (failingScript is not null)
+        {
+            Console.Error.WriteLine($"OCR model rejected: {failingScript.Script} accuracy "
+                + $"{failingScript.Accuracy:P2} is below the "
+                + $"{minimumScriptAccuracyPercent}% minimum.");
+            return 1;
+        }
     }
     if (minimumCharacterAccuracyPercent.HasValue
         && textMetrics!.CharacterAccuracy < minimumCharacterAccuracyPercent.Value / 100d)
@@ -3111,7 +3144,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");

@@ -333,11 +333,34 @@ public sealed class PdfOcrRecognitionTests
         Assert.InRange(evaluation.AverageConfidence, 0.78, 0.83);
         Assert.InRange(evaluation.CalibrationError, 0.13, 0.15);
         Assert.InRange(evaluation.BrierScore, 0.2, 0.3);
+        PdfOcrScriptAccuracy latin = Assert.Single(evaluation.Scripts);
+        Assert.Equal(("Latin", 3, 2),
+            (latin.Script, latin.SampleCount, latin.CorrectCount));
         Assert.Equal([
             new PdfOcrConfusion("A", "A", 1),
             new PdfOcrConfusion("B", "A", 1),
             new PdfOcrConfusion("B", "B", 1)
         ], evaluation.Confusion);
+    }
+
+    [Fact]
+    public void TrainerReportsAccuracyForEachExpectedUnicodeScript()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 1,
+        [
+            new("A", new float[] { 1, 0 }),
+            new("Α", new float[] { 0, 1 })
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+        [
+            new("A", new float[] { 1, 0 }),
+            new("Α", new float[] { 0, 1 }),
+            new("Α", new float[] { 1, 0 })
+        ]);
+
+        Assert.Equal([("Greek", 2, 1), ("Latin", 1, 1)], evaluation.Scripts
+            .Select(script => (script.Script, script.SampleCount, script.CorrectCount)));
     }
 
     [Fact]

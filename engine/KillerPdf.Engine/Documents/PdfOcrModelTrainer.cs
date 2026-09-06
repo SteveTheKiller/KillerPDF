@@ -16,6 +16,14 @@ public readonly record struct PdfOcrLabeledGlyph(
 /// <summary>One observed expected and predicted label pair.</summary>
 public sealed record PdfOcrConfusion(string Expected, string Predicted, int Count);
 
+/// <summary>Measured OCR accuracy for one Unicode script.</summary>
+public sealed record PdfOcrScriptAccuracy(
+    string Script, int SampleCount, int CorrectCount)
+{
+    /// <summary>Gets the correctly classified fraction for the script.</summary>
+    public double Accuracy => CorrectCount / (double)SampleCount;
+}
+
 /// <summary>Assigns complete source documents to deterministic OCR evaluation partitions.</summary>
 public static class PdfOcrTrainingPartition
 {
@@ -41,7 +49,8 @@ public sealed class PdfOcrModelEvaluation
 {
     internal PdfOcrModelEvaluation(int sampleCount, int correctCount,
         double averageConfidence, double calibrationError, double brierScore,
-        IEnumerable<PdfOcrConfusion> confusion)
+        IEnumerable<PdfOcrConfusion> confusion,
+        IEnumerable<PdfOcrScriptAccuracy> scripts)
     {
         SampleCount = sampleCount;
         CorrectCount = correctCount;
@@ -49,6 +58,7 @@ public sealed class PdfOcrModelEvaluation
         CalibrationError = calibrationError;
         BrierScore = brierScore;
         Confusion = Array.AsReadOnly(confusion.ToArray());
+        Scripts = Array.AsReadOnly(scripts.ToArray());
     }
 
     /// <summary>Gets the number of evaluated glyphs.</summary>
@@ -65,6 +75,8 @@ public sealed class PdfOcrModelEvaluation
     public double BrierScore { get; }
     /// <summary>Gets observed label pairs in stable ordinal order.</summary>
     public IReadOnlyList<PdfOcrConfusion> Confusion { get; }
+    /// <summary>Gets accuracy grouped by the expected label's Unicode script.</summary>
+    public IReadOnlyList<PdfOcrScriptAccuracy> Scripts { get; }
 }
 
 /// <summary>Builds deterministic engine OCR models without a native inference runtime.</summary>
@@ -364,6 +376,13 @@ public static class PdfOcrModelTrainer
             .ThenBy(item => item.Key.Predicted, StringComparer.Ordinal)
             .Select(item => new PdfOcrConfusion(
                 item.Key.Expected, item.Key.Predicted, item.Value))];
+        PdfOcrScriptAccuracy[] scripts = [.. entries
+            .GroupBy(item => ScriptForLabel(item.Expected), StringComparer.Ordinal)
+            .OrderBy(group => group.Key, StringComparer.Ordinal)
+            .Select(group => new PdfOcrScriptAccuracy(group.Key,
+                group.Sum(item => item.Count),
+                group.Where(item => string.Equals(item.Expected, item.Predicted,
+                    StringComparison.Ordinal)).Sum(item => item.Count)))];
         double calibrationError = 0;
         for (int bin = 0; bin < calibrationCounts.Length; bin++)
         {
@@ -375,7 +394,26 @@ public static class PdfOcrModelTrainer
         }
         return new PdfOcrModelEvaluation(sampleCount, correctCount,
             confidenceSum / sampleCount, calibrationError,
-            squaredConfidenceErrorSum / sampleCount, entries);
+            squaredConfidenceErrorSum / sampleCount, entries, scripts);
+    }
+
+    private static string ScriptForLabel(string label)
+    {
+        int value = Rune.GetRuneAt(label, 0).Value;
+        return value switch
+        {
+            >= 0x0041 and <= 0x024F or >= 0x1E00 and <= 0x1EFF => "Latin",
+            >= 0x0370 and <= 0x03FF or >= 0x1F00 and <= 0x1FFF => "Greek",
+            >= 0x0400 and <= 0x052F => "Cyrillic",
+            >= 0x0590 and <= 0x05FF => "Hebrew",
+            >= 0x0600 and <= 0x08FF => "Arabic",
+            >= 0x0900 and <= 0x0DFF => "Indic",
+            >= 0x3040 and <= 0x30FF => "Kana",
+            >= 0x3400 and <= 0x4DBF or >= 0x4E00 and <= 0x9FFF
+                or >= 0x20000 and <= 0x323AF => "Han",
+            >= 0xAC00 and <= 0xD7AF => "Hangul",
+            _ => "Common"
+        };
     }
 
     private static void ValidateLabel(string label,
