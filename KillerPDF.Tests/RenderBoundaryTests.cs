@@ -106,6 +106,20 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
+    public void ExactComparisonRenderingPassesCancellationIntoTheEngineBoundary()
+    {
+        string root = FindRepositoryRoot();
+        string boundary = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
+        string comparison = File.ReadAllText(
+            Path.Combine(root, "Shell", "PdfComparison.cs"));
+
+        Assert.Contains("includeFormFields), cancellationToken)", boundary,
+            StringComparison.Ordinal);
+        Assert.Equal(2, Count(comparison, "cancellationToken: token"));
+    }
+
+    [Fact]
     public void ImageExportUsesTheEngineFirstRenderSession()
     {
         string root = FindRepositoryRoot();

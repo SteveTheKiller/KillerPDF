@@ -162,8 +162,10 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     internal static byte[]? RenderExactPage(string path, int pageIndex, int width, int height,
-        bool transparentBackground = false, bool includeFormFields = true)
+        bool transparentBackground = false, bool includeFormFields = true,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         try
         {
             EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
@@ -171,15 +173,18 @@ internal sealed class PdfPageRenderSession : IDisposable
             var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
             KillerPdf.Engine.Rendering.PdfRenderedPage rendered = renderer.Render(
                 pageIndex, new EngineRenderOptions(width, height, transparentBackground,
-                    includeAnnotations: true, includeFormFields));
+                    includeAnnotations: true, includeFormFields), cancellationToken);
             if (rendered.Diagnostics.Count == 0) return rendered.Pixels.ToArray();
         }
-        catch (Exception exception) when (exception is not OutOfMemoryException)
+        catch (Exception exception) when (exception is not OutOfMemoryException
+            && exception is not OperationCanceledException)
         {
         }
 
-        return DocnetRenderFallback.RenderExactPage(
+        byte[]? pixels = DocnetRenderFallback.RenderExactPage(
             path, pageIndex, width, height, transparentBackground, includeFormFields);
+        cancellationToken.ThrowIfCancellationRequested();
+        return pixels;
     }
 
     public void Dispose() => _nativeFallback.Dispose();
