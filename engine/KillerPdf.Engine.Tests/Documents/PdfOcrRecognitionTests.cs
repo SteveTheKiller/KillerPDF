@@ -495,6 +495,19 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TextLayerTrainingIgnoresIncidentalNeighborOverlap()
+    {
+        var label = new PdfOcrImageRegion(10, 10, 30, 40);
+
+        Assert.True(PdfOcrModelTrainer.BelongsToLabel(
+            new PdfOcrImageRegion(12, 14, 28, 38), label));
+        Assert.True(PdfOcrModelTrainer.BelongsToLabel(
+            new PdfOcrImageRegion(0, 0, 40, 50), label));
+        Assert.False(PdfOcrModelTrainer.BelongsToLabel(
+            new PdfOcrImageRegion(29, 20, 45, 24), label));
+    }
+
+    [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
         PdfOcrRecognitionModel created = RecognitionModel();

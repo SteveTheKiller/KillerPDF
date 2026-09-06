@@ -294,12 +294,16 @@ public static class PdfOcrModelTrainer
         {
             cancellationToken.ThrowIfCancellationRequested();
             PdfOcrImageRegion labelBounds = labels[index].Bounds;
-            PdfOcrImageRegion[] glyph = [.. components.Select(component =>
-                new PdfOcrImageRegion(
-                    Math.Max(component.Left, labelBounds.Left),
-                    Math.Max(component.Top, labelBounds.Top),
-                    Math.Min(component.Right, labelBounds.Right),
-                    Math.Min(component.Bottom, labelBounds.Bottom)))
+            PdfOcrImageRegion[] glyph = [.. components.Where(component =>
+                BelongsToLabel(component, labelBounds))
+                .Select(component => labels.Where((label, candidateIndex) =>
+                    candidateIndex != index && BelongsToLabel(component, label.Bounds)).Any()
+                    ? new PdfOcrImageRegion(
+                        Math.Max(component.Left, labelBounds.Left),
+                        Math.Max(component.Top, labelBounds.Top),
+                        Math.Min(component.Right, labelBounds.Right),
+                        Math.Min(component.Bottom, labelBounds.Bottom))
+                    : component)
                 .Where(overlap => overlap.Width > 0 && overlap.Height > 0)];
             if (glyph.Length == 0) continue;
             var bounds = new PdfOcrImageRegion(
@@ -319,6 +323,19 @@ public static class PdfOcrModelTrainer
                     prepared, bounds, lineBounds, width, height, cancellationToken)));
         }
         return Array.AsReadOnly(samples.ToArray());
+    }
+
+    internal static bool BelongsToLabel(PdfOcrImageRegion component,
+        PdfOcrImageRegion labelBounds)
+    {
+        int componentCenterX = (component.Left + component.Right) / 2;
+        int componentCenterY = (component.Top + component.Bottom) / 2;
+        int labelCenterX = (labelBounds.Left + labelBounds.Right) / 2;
+        int labelCenterY = (labelBounds.Top + labelBounds.Bottom) / 2;
+        return componentCenterX >= labelBounds.Left && componentCenterX <= labelBounds.Right
+            && componentCenterY >= labelBounds.Top && componentCenterY <= labelBounds.Bottom
+            || labelCenterX >= component.Left && labelCenterX <= component.Right
+            && labelCenterY >= component.Top && labelCenterY <= component.Bottom;
     }
 
     /// <summary>Evaluates a model against labeled normalized glyphs.</summary>
