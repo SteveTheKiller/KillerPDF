@@ -1085,6 +1085,38 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsAxialShadingsWithIndexedColors()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
+            new PdfString(new byte[] { 255, 0, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)
+        });
+        var function = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function)]);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 0, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 9, 5));
+        Assert.DoesNotContain("The shading type or function is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsAndClipsShadingPatterns()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -1247,6 +1279,38 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsRadialShadingsWithIndexedColors()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
+            new PdfString(new byte[] { 255, 0, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)
+        });
+        var function = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(3)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(5, 5, 0, 5, 5, 5)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function)]);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 9, 5));
+        Assert.DoesNotContain("The shading type or function is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsFunctionShadingsWithTheirMatrixAndDomain()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -1270,6 +1334,36 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 255, 255, 255], Pixel(rendered, 1, 5));
         Assert.Equal([25, 25, 25, 255], Pixel(rendered, 2, 6));
         Assert.Equal([230, 230, 230, 255], Pixel(rendered, 6, 6));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_PaintsFunctionShadingsWithIndexedColors()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
+            new PdfString(new byte[] { 255, 0, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)
+        });
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1))]),
+            Encoding.ASCII.GetBytes("{ pop }"));
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), Reals(10, 0, 0, 10, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function)]);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 0, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 9, 5));
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -1368,6 +1462,40 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsPatchMeshesWithIndexedColors()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        byte[] boundary =
+        [
+            0, 0, 85, 0, 170, 0, 255, 0,
+            255, 85, 255, 170, 255, 255, 170, 255,
+            85, 255, 0, 255, 0, 170, 0, 85
+        ];
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
+            new PdfString(new byte[] { 255, 0, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)
+        });
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(6)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerComponent"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerFlag"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"),
+                Reals(0, 10, 0, 10, 0, 1))]),
+            new byte[] { 0 }.Concat(boundary).Concat(new byte[] { 255, 255, 255, 255 }).ToArray());
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_ContinuesTensorPatchMeshesAcrossSharedEdges()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -1433,6 +1561,40 @@ public sealed class PdfPageRendererTests
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
 
         Assert.Equal([64, 64, 128, 255], Pixel(rendered, 2, 7));
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 8, 1));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_PaintsFreeFormMeshesWithIndexedColors()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
+            new PdfString(new byte[] { 255, 0, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)
+        });
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerComponent"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerFlag"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"),
+                Reals(0, 10, 0, 10, 0, 1))]),
+            new byte[]
+            {
+                0, 0, 0, 0,
+                0, 255, 0, 255,
+                0, 0, 255, 255
+            });
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 2, 7));
         Assert.Equal([255, 255, 255, 255], Pixel(rendered, 8, 1));
         Assert.Empty(rendered.Diagnostics);
     }
@@ -1534,6 +1696,41 @@ public sealed class PdfPageRendererTests
         byte[] upperRight = Pixel(rendered, 9, 0);
         Assert.True(lowerLeft[2] > lowerLeft[1] && lowerLeft[2] > lowerLeft[0]);
         Assert.True(upperRight[0] > 200 && upperRight[1] > 200 && upperRight[2] > 200);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_PaintsLatticeMeshesWithIndexedColors()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var colorSpace = new PdfArray(new PdfObject[]
+        {
+            Name("Indexed"), Name("DeviceRGB"), new PdfInteger(1),
+            new PdfString(new byte[] { 255, 0, 0, 0, 0, 255 }, PdfStringForm.Hexadecimal)
+        });
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(5)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerComponent"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("VerticesPerRow"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"),
+                Reals(0, 10, 0, 10, 0, 1))]),
+            new byte[]
+            {
+                0, 0, 0,
+                255, 0, 255,
+                0, 255, 0,
+                255, 255, 255
+            });
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 0, 9));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 9, 0));
         Assert.Empty(rendered.Diagnostics);
     }
 

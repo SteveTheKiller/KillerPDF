@@ -2818,8 +2818,6 @@ public sealed class PdfPageRenderer
             if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
                 throw new FormatException("An axial shading color space is missing.");
             ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
-            if (colorSpace.Palette is not null)
-                throw new NotSupportedException();
             if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
                 throw new FormatException("An axial shading coordinate array is missing.");
             PdfArray coordinates = ResolveArray(coordinatesValue, 4,
@@ -2888,7 +2886,6 @@ public sealed class PdfPageRenderer
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A function shading color space is missing.");
         ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
-        if (colorSpace.Palette is not null) throw new NotSupportedException();
         if (!shading.TryGetValue(Name("Function"), out PdfObject? functionValue))
             throw new FormatException("A function shading function is missing.");
         Func<double[], Color> function = ReadMultidimensionalColorFunction(
@@ -3006,7 +3003,6 @@ public sealed class PdfPageRenderer
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A mesh shading color space is missing.");
         ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
-        if (colorSpace.Palette is not null) throw new NotSupportedException();
         int coordinateBits = PositiveInteger(shading, "BitsPerCoordinate");
         int componentBits = PositiveInteger(shading, "BitsPerComponent");
         int flagBits = hasFlags ? PositiveInteger(shading, "BitsPerFlag") : 0;
@@ -3081,7 +3077,6 @@ public sealed class PdfPageRenderer
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A patch mesh shading color space is missing.");
         ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
-        if (colorSpace.Palette is not null) throw new NotSupportedException();
         int coordinateBits = PositiveInteger(shading, "BitsPerCoordinate");
         int componentBits = PositiveInteger(shading, "BitsPerComponent");
         int flagBits = PositiveInteger(shading, "BitsPerFlag");
@@ -3394,7 +3389,6 @@ public sealed class PdfPageRenderer
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A radial shading color space is missing.");
         ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0);
-        if (colorSpace.Palette is not null) throw new NotSupportedException();
         if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
             throw new FormatException("A radial shading coordinate array is missing.");
         PdfArray coordinates = ResolveArray(coordinatesValue, 6,
@@ -4881,7 +4875,9 @@ public sealed class PdfPageRenderer
         double[]? DefaultDecode = null, Func<double[], Color>? MultiConverter = null)
     {
         internal Color Convert(double first, double second, double third, double fourth) =>
-            Converter?.Invoke(first, second, third, fourth) ?? Components switch
+            Palette is not null
+                ? Palette[Math.Clamp((int)Math.Round(first), 0, Palette.Length - 1)]
+                : Converter?.Invoke(first, second, third, fourth) ?? Components switch
             {
                 1 => Color.Gray(first),
                 3 => Color.Rgb(first, second, third),
