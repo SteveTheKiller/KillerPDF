@@ -7,7 +7,10 @@ namespace KillerPDF.Services
     /// </summary>
     internal sealed class OcrService : IDisposable
     {
-        private static readonly PdfOcrOptions RasterOptions = new(["und"],
+        private static readonly PdfOcrOptions EngineRasterOptions = new(["und"],
+            deskew: false, correctOrientation: false, removeBackground: true,
+            removeNoise: true, detectPageSegments: false);
+        private static readonly PdfOcrOptions FallbackRasterOptions = new(["und"],
             deskew: false, correctOrientation: false, detectPageSegments: false);
         private readonly string _dataPath;
         private readonly string _language;
@@ -43,15 +46,15 @@ namespace KillerPDF.Services
                     ? _engineLanguageModel is null
                         ? PdfOcrRecognizer.RecognizeBgra(
                             bgra, width, height, _engineModel,
-                            RasterOptions, cancellationToken)
+                            EngineRasterOptions, cancellationToken)
                         : PdfOcrRecognizer.RecognizeBgra(
                             bgra, width, height, _engineModel,
-                            _engineLanguageModel, RasterOptions, cancellationToken)
+                            _engineLanguageModel, EngineRasterOptions, cancellationToken)
                     : PdfOcrRecognizer.RecognizeBgra(
-                        bgra, width, height, _engineModel, RasterOptions,
+                        bgra, width, height, _engineModel, EngineRasterOptions,
                         characterWhitelist, cancellationToken);
             PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
-                bgra, width, height, RasterOptions, cancellationToken);
+                bgra, width, height, FallbackRasterOptions, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return NativeFallback().Recognize(
                 prepared, characterWhitelist, cancellationToken);

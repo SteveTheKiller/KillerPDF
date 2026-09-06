@@ -164,7 +164,7 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("Pix.Create(image.Width, image.Height, 8)", fallback,
             StringComparison.Ordinal);
-        Assert.Contains("RasterOptions, cancellationToken)", source,
+        Assert.Contains("FallbackRasterOptions, cancellationToken)", source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("Pix.Load", fallback, StringComparison.Ordinal);
         Assert.DoesNotContain("PngBitmapEncoder", source, StringComparison.Ordinal);
@@ -180,6 +180,10 @@ public sealed class RenderBoundaryTests
         Assert.Contains("PdfOcrRecognitionModelFiles.TryLoadCombined(", source,
             StringComparison.Ordinal);
         Assert.Contains("PdfOcrRecognizer.RecognizeBgra(", source, StringComparison.Ordinal);
+        Assert.Contains("removeBackground: true", source, StringComparison.Ordinal);
+        Assert.Contains("removeNoise: true", source, StringComparison.Ordinal);
+        Assert.Contains("EngineRasterOptions, cancellationToken", source,
+            StringComparison.Ordinal);
         Assert.Contains("characterWhitelist, cancellationToken", source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("_engineModel is not null && string.IsNullOrEmpty",
