@@ -114,6 +114,32 @@ public sealed class PdfOcrFormRecognizerTests
             (word.Left, word.Top, word.Right, word.Bottom));
     }
 
+    [Theory]
+    [InlineData(-1, 0, 10, 4, 1, false)]
+    [InlineData(0, 0, 13, 4, 1, false)]
+    [InlineData(0, 0, 10, 5, 1, false)]
+    [InlineData(0, 0, 10, 4, -1, false)]
+    [InlineData(0, 0, 10, 4, 0, true)]
+    [InlineData(0, 0, 10, 4, 11, true)]
+    public void FormRecognitionRejectsInvalidRegionsBeforeCallingTheBackend(
+        int left, int top, int right, int bottom, int maximumLength, bool isComb)
+    {
+        int calls = 0;
+        PdfOcrResult Recognize(ReadOnlyMemory<byte> pixels, int width, int height,
+            string? whitelist, CancellationToken cancellationToken)
+        {
+            calls++;
+            return new PdfOcrResult("", 0, []);
+        }
+        var region = new PdfOcrFormRegion(
+            left, top, right, bottom, null, maximumLength, [], isComb);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrFormRecognizer.Recognize(
+                Recognize, WhiteBgra(12, 4), 12, 4, [region]));
+        Assert.Equal(0, calls);
+    }
+
     private static byte[] WhiteBgra(int width, int height)
     {
         byte[] pixels = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();

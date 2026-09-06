@@ -30,6 +30,7 @@ public static class PdfOcrFormRecognizer
     {
         ArgumentNullException.ThrowIfNull(recognizer);
         ArgumentNullException.ThrowIfNull(regions);
+        ValidateRegions(regions, width, height);
         PdfOcrResult full = recognizer(
             bgra, width, height, null, cancellationToken);
         if (regions.Count == 0) return full;
@@ -108,4 +109,29 @@ public static class PdfOcrFormRecognizer
     private static bool Contains(PdfOcrFormRegion region, int x, int y) =>
         x >= region.Left && x <= region.Right
         && y >= region.Top && y <= region.Bottom;
+
+    private static void ValidateRegions(
+        IReadOnlyList<PdfOcrFormRegion> regions, int width, int height)
+    {
+        for (int index = 0; index < regions.Count; index++)
+        {
+            PdfOcrFormRegion region = regions[index]
+                ?? throw new ArgumentException("An OCR form region is null.", nameof(regions));
+            if (region.Left < 0 || region.Top < 0
+                || region.Right <= region.Left || region.Bottom <= region.Top
+                || region.Right > width || region.Bottom > height)
+                throw new ArgumentOutOfRangeException(nameof(regions),
+                    "OCR form regions must be contained by the source image.");
+            if (region.MaximumLength < 0)
+                throw new ArgumentOutOfRangeException(nameof(regions),
+                    "OCR form maximum lengths cannot be negative.");
+            if (region.ChoiceValues is null)
+                throw new ArgumentException(
+                    "OCR form choice values cannot be null.", nameof(regions));
+            if (region.IsComb && (region.MaximumLength == 0
+                || region.MaximumLength > region.Right - region.Left))
+                throw new ArgumentOutOfRangeException(nameof(regions),
+                    "OCR comb fields require one or more pixels for every character cell.");
+        }
+    }
 }
