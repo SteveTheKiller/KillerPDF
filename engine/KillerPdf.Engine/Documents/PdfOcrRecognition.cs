@@ -23,14 +23,14 @@ public sealed class PdfOcrRecognitionModel
         _labels = labels;
         _weights = weights;
         _biases = biases;
-        Labels = Array.AsReadOnly(labels);
+        Labels = Array.AsReadOnly(labels.Distinct(StringComparer.Ordinal).ToArray());
     }
 
     /// <summary>Gets the normalized glyph width expected by the model.</summary>
     public int Width { get; }
     /// <summary>Gets the normalized glyph height expected by the model.</summary>
     public int Height { get; }
-    /// <summary>Gets model labels in classifier order.</summary>
+    /// <summary>Gets unique model labels in classifier order.</summary>
     public IReadOnlyList<string> Labels { get; }
 
     /// <summary>Creates a model for offline training and deterministic packaging.</summary>
@@ -46,8 +46,6 @@ public sealed class PdfOcrRecognitionModel
             string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64
             || label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar)))
             throw new ArgumentException("OCR model labels are empty, oversized, or invalid.", nameof(labels));
-        if (names.Distinct(StringComparer.Ordinal).Count() != names.Length)
-            throw new ArgumentException("OCR model labels must be unique.", nameof(labels));
         int featureCount = checked(width * height);
         if (weights.Length != checked(featureCount * names.Length))
             throw new ArgumentException("OCR model weights do not match its dimensions.", nameof(weights));
@@ -205,8 +203,10 @@ public sealed class PdfOcrRecognitionModel
         if (scores.Length == 1) return (_labels[best], 1);
         double runnerUp = double.NegativeInfinity;
         for (int label = 0; label < scores.Length; label++)
-            if (label != best && scores[label] > runnerUp)
+            if (!string.Equals(_labels[label], _labels[best], StringComparison.Ordinal)
+                && scores[label] > runnerUp)
                 runnerUp = scores[label];
+        if (double.IsNegativeInfinity(runnerUp)) return (_labels[best], 1);
         return (_labels[best], 1 / (1 + Math.Exp(runnerUp - scores[best])));
     }
 

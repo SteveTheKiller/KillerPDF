@@ -65,7 +65,7 @@ public static class PdfOcrModelTrainer
     private const int MaximumSamples = 10_000_000;
     private const int MaximumModelValues = 16 * 1024 * 1024;
 
-    /// <summary>Trains a nearest-centroid linear classifier from normalized glyph samples.</summary>
+    /// <summary>Trains a shape-bucketed nearest-centroid classifier from normalized glyph samples.</summary>
     public static PdfOcrRecognitionModel Train(int width, int height,
         IEnumerable<PdfOcrTrainingSample> samples,
         CancellationToken cancellationToken = default)
@@ -74,7 +74,7 @@ public static class PdfOcrModelTrainer
         if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
         ArgumentNullException.ThrowIfNull(samples);
         int featureCount = checked(width * height);
-        var labels = new Dictionary<string, Accumulator>(StringComparer.Ordinal);
+        var prototypes = new Dictionary<(string Label, int Shape), Accumulator>();
         int sampleCount = 0;
         foreach (PdfOcrTrainingSample sample in samples)
         {
@@ -83,25 +83,20 @@ public static class PdfOcrModelTrainer
                 throw new ArgumentException("The OCR training set exceeds the sample limit.",
                     nameof(samples));
             ValidateLabel(sample.Label, samples);
-            if (sample.Features.Length != featureCount)
-                throw new ArgumentException(
-                    "An OCR training sample has the wrong feature count.", nameof(samples));
-            if (!labels.TryGetValue(sample.Label, out Accumulator? accumulator))
+            ValidateFeatures(sample.Features.Span, featureCount, samples);
+            var key = (sample.Label, ShapeBucket(sample.Features.Span, width, height));
+            if (!prototypes.TryGetValue(key, out Accumulator? accumulator))
             {
-                if (checked((labels.Count + 1L) * featureCount) > MaximumModelValues)
+                if (checked((prototypes.Count + 1L) * featureCount) > MaximumModelValues)
                     throw new ArgumentException(
                         "The OCR training set exceeds the model size limit.", nameof(samples));
                 accumulator = new Accumulator(featureCount);
-                labels.Add(sample.Label, accumulator);
+                prototypes.Add(key, accumulator);
             }
             ReadOnlySpan<float> features = sample.Features.Span;
             for (int feature = 0; feature < features.Length; feature++)
             {
                 float value = features[feature];
-                if (!float.IsFinite(value) || value is < 0 or > 1)
-                    throw new ArgumentException(
-                        "OCR training features must be finite values from zero through one.",
-                        nameof(samples));
                 accumulator.Sums[feature] += (decimal)value;
             }
             accumulator.Count++;
@@ -110,14 +105,17 @@ public static class PdfOcrModelTrainer
             throw new ArgumentException("At least one OCR training sample is required.",
                 nameof(samples));
 
-        string[] orderedLabels = [.. labels.Keys.Order(StringComparer.Ordinal)];
+        (string Label, int Shape)[] ordered = [.. prototypes.Keys
+            .OrderBy(key => key.Label, StringComparer.Ordinal)
+            .ThenBy(key => key.Shape)];
+        string[] orderedLabels = [.. ordered.Select(key => key.Label)];
         var weights = new float[checked(orderedLabels.Length * featureCount)];
         var biases = new float[orderedLabels.Length];
         double scoreScale = Math.Sqrt(featureCount);
         for (int label = 0; label < orderedLabels.Length; label++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Accumulator accumulator = labels[orderedLabels[label]];
+            Accumulator accumulator = prototypes[ordered[label]];
             double squaredLength = 0;
             int offset = label * featureCount;
             for (int feature = 0; feature < featureCount; feature++)
@@ -273,6 +271,23 @@ public static class PdfOcrModelTrainer
                 throw new ArgumentException(
                     "OCR sample features must be finite values from zero through one.",
                     nameof(samples));
+    }
+
+    private static int ShapeBucket(ReadOnlySpan<float> features, int width, int height)
+    {
+        int left = width, top = height, right = 0, bottom = 0;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                if (features[y * width + x] <= 0.125f) continue;
+                left = Math.Min(left, x);
+                top = Math.Min(top, y);
+                right = Math.Max(right, x + 1);
+                bottom = Math.Max(bottom, y + 1);
+            }
+        if (right <= left || bottom <= top) return 1;
+        double aspect = (right - left) / (double)(bottom - top);
+        return aspect < 0.5 ? 0 : aspect > 1 ? 2 : 1;
     }
 
     private static PdfOcrImageRegion? MapToPixels(PdfContentBounds bounds,

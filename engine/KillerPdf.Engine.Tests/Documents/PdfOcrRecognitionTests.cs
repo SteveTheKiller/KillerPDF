@@ -45,6 +45,46 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerKeepsDistinctShapePrototypesForOneLabel()
+    {
+        float[] narrow =
+        [
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0
+        ];
+        float[] wide =
+        [
+            0, 0, 0,
+            1, 1, 1,
+            0, 0, 0
+        ];
+        float[] diagonal =
+        [
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1
+        ];
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(3, 3,
+        [
+            new("A", narrow),
+            new("A", wide),
+            new("B", diagonal)
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+        [
+            new("A", narrow),
+            new("A", wide),
+            new("B", diagonal)
+        ]);
+
+        Assert.Equal(["A", "B"], model.Labels);
+        Assert.Equal(1, evaluation.Accuracy);
+        Assert.Equal(model.Save(), PdfOcrRecognitionModel.Load(model.Save()).Save());
+    }
+
+    [Fact]
     public void TrainerRejectsInvalidFeaturesAndHonorsCancellation()
     {
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
