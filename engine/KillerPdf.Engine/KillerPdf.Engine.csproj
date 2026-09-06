@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnableTrimAnalyzer>true</EnableTrimAnalyzer>
     <RootNamespace>KillerPdf.Engine</RootNamespace>
     <AssemblyName>KillerPdf.Engine</AssemblyName>
     <Version>1.9.0</Version>
