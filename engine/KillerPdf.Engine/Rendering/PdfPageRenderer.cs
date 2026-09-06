@@ -1111,10 +1111,31 @@ public sealed class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
                 IReadOnlyList<PdfContentInstruction> instructions =
                     ReadStreamInstructions(form, cancellationToken);
-                if (knockout && !isolated && instructions.Count(IsPaintingOperation) > 1)
+                bool multipleKnockoutObjects = knockout && !isolated
+                    && instructions.Count(IsPaintingOperation) > 1;
+                if (multipleKnockoutObjects
+                    && (parentState.FillAlpha != 1 || parentState.StrokeAlpha != 1
+                        || parentState.BlendMode is not (RendererBlendMode.Normal
+                            or RendererBlendMode.Compatible)
+                        || parentState.GraphicsSoftMask is not null
+                        || parentState.Knockout is not null))
                 {
                     diagnostics.Add(
                         "Non-isolated transparency knockout-group rendering is not implemented.");
+                    return;
+                }
+                if (multipleKnockoutObjects)
+                {
+                    Process(instructions, formResources,
+                        formState with
+                        {
+                            FillAlpha = 1,
+                            StrokeAlpha = 1,
+                            BlendMode = RendererBlendMode.Normal,
+                            GraphicsSoftMask = null,
+                            Knockout = new KnockoutState(
+                                options.Width, options.Height, pixels)
+                        }, depth + 1);
                     return;
                 }
                 if (!isolated)
@@ -4445,11 +4466,13 @@ public sealed class PdfPageRenderer
     private sealed class KnockoutState
     {
         private readonly int[] _objects;
+        private readonly byte[]? _backdrop;
         private int _currentObject;
 
-        internal KnockoutState(int width, int height)
+        internal KnockoutState(int width, int height, byte[]? backdrop = null)
         {
             _objects = new int[checked(width * height)];
+            _backdrop = backdrop?.ToArray();
         }
 
         internal void BeginObject()
@@ -4467,10 +4490,15 @@ public sealed class PdfPageRenderer
             int pixel = offset / 4;
             if (_objects[pixel] == _currentObject) return;
             _objects[pixel] = _currentObject;
-            target[offset] = 0;
-            target[offset + 1] = 0;
-            target[offset + 2] = 0;
-            target[offset + 3] = 0;
+            if (_backdrop is null)
+            {
+                target[offset] = 0;
+                target[offset + 1] = 0;
+                target[offset + 2] = 0;
+                target[offset + 3] = 0;
+            }
+            else
+                _backdrop.AsSpan(offset, 4).CopyTo(target.AsSpan(offset, 4));
         }
     }
     private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,
