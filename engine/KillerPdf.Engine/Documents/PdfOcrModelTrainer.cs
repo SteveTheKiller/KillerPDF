@@ -89,7 +89,7 @@ public static class PdfOcrModelTrainer
     private const int MaximumLabelsPerComponent = 4;
     private const double LabelPriorWeight = 0.25;
     private const double PrototypeSupportWeight = 0.0015;
-    private static readonly int[] StandardTrainingRenderScales = [1, 2, 3];
+    private static readonly int[] StandardTrainingRenderScales = [1, 2, 3, 4, 6];
 
     /// <summary>Trains a bounded nearest-prototype classifier from normalized glyph samples.</summary>
     public static PdfOcrRecognitionModel Train(int width, int height,

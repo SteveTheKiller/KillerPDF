@@ -704,7 +704,7 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, samples);
 
         Assert.Equal(labels, model.Labels.Order(StringComparer.Ordinal));
-        Assert.All(labels, label => Assert.Equal(36,
+        Assert.All(labels, label => Assert.Equal(60,
             samples.Count(sample => sample.Label == label)));
         Assert.True(PdfOcrModelTrainer.SupportsStandardFontLabel("Ж"));
         Assert.Throws<ArgumentException>(() =>
@@ -712,7 +712,7 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
-    public void EmbeddedFontTrainingCreatesUnicodeGlyphSamplesAtThreeScales()
+    public void EmbeddedFontTrainingCreatesUnicodeGlyphSamplesAtFiveScales()
     {
         TrueTypeFont font = TrueTypeFont.Load(
             TrueTypeFontTests.BuildTestFont(format12: true, includeOutlines: true));
@@ -721,7 +721,7 @@ public sealed class PdfOcrRecognitionTests
             PdfOcrModelTrainer.CreateEmbeddedFontSamples(font, ["😀"], 16, 16);
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, samples);
 
-        Assert.Equal(3, samples.Count);
+        Assert.Equal(5, samples.Count);
         Assert.All(samples, sample =>
         {
             Assert.Equal("😀", sample.Label);
@@ -752,11 +752,11 @@ public sealed class PdfOcrRecognitionTests
         string[] labels = ["!", "0", "1", "2", "5", "8", "A", "B", "E", "I", "O", "S"];
         IReadOnlyList<PdfOcrTrainingSample> samples =
             PdfOcrModelTrainer.CreateStandardFontSamples(labels, 16, 16);
-        Assert.Equal(labels.Length * 12 * 3, samples.Count);
+        Assert.Equal(labels.Length * 12 * 5, samples.Count);
         PdfOcrTrainingSample[] training = [.. samples.Where((_, index) =>
-            index / (labels.Length * 3) < 9)];
+            index / (labels.Length * 5) < 9)];
         PdfOcrTrainingSample[] holdout = [.. samples.Where((_, index) =>
-            index / (labels.Length * 3) >= 9)];
+            index / (labels.Length * 5) >= 9)];
 
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, training);
         PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model, holdout);
