@@ -76,7 +76,9 @@ public static class PdfOcrLayoutAnalyzer
                 left = Math.Min(left, x); right = Math.Max(right, x + 1);
                 top = Math.Min(top, y); bottom = Math.Max(bottom, y + 1);
                 count++;
-                Visit(x - 1, y); Visit(x + 1, y); Visit(x, y - 1); Visit(x, y + 1);
+                Visit(x - 1, y - 1); Visit(x, y - 1); Visit(x + 1, y - 1);
+                Visit(x - 1, y);                         Visit(x + 1, y);
+                Visit(x - 1, y + 1); Visit(x, y + 1); Visit(x + 1, y + 1);
             }
             if (count >= 2 && right - left <= width * 3 / 4 && bottom - top <= height * 3 / 4)
                 components.Add(new PdfOcrImageRegion(left, top, right, bottom));

@@ -715,7 +715,7 @@ public sealed class PdfOcrRecognitionTests
     {
         const int width = 41, height = 21;
         byte[] bgra = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();
-        for (int x = 0; x < width; x++)
+        for (int x = 0; x < 24; x++)
             foreach (int baseline in new[] { 5, 12 })
             {
                 int y = baseline + x / 10;
