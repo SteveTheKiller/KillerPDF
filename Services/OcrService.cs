@@ -1,6 +1,5 @@
 using KillerPdf.Engine.Documents;
 using System.IO;
-using Tesseract;
 
 namespace KillerPDF.Services
 {
@@ -16,7 +15,7 @@ namespace KillerPDF.Services
         private readonly string _language;
         private readonly bool _usesDefaultDataPath;
         private readonly PdfOcrRecognitionModel? _engineModel;
-        private TesseractEngine? _engine;
+        private TesseractOcrFallback? _fallback;
 
         /// <param name="tessDataPath">Folder holding installed OCR models. Defaults to the self-extracted cache (OcrNativeBootstrap).</param>
         /// <param name="language">Tesseract language code(s), e.g. "eng" or "eng+ben".</param>
@@ -43,75 +42,16 @@ namespace KillerPDF.Services
                     : PdfOcrRecognizer.RecognizeBgra(
                         bgra, width, height, _engineModel, RasterOptions,
                         characterWhitelist, cancellationToken);
-            TesseractEngine engine = NativeEngine();
-            if (!string.IsNullOrEmpty(characterWhitelist))
-                engine.SetVariable("tessedit_char_whitelist", characterWhitelist);
-            try
-            {
-                PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
-                    bgra, width, height, RasterOptions, cancellationToken);
-                cancellationToken.ThrowIfCancellationRequested();
-                using Pix pix = CreateGrayscalePix(prepared, cancellationToken);
-                return Run(pix);
-            }
-            finally
-            {
-                if (!string.IsNullOrEmpty(characterWhitelist))
-                    engine.SetVariable("tessedit_char_whitelist", string.Empty);
-            }
+            PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
+                bgra, width, height, RasterOptions, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return NativeFallback().Recognize(
+                prepared, characterWhitelist, cancellationToken);
         }
 
-        private PdfOcrResult Run(Pix pix)
-        {
-            using var page = NativeEngine().Process(pix);
-            string text = page.GetText() ?? "";
-            float confidence = page.GetMeanConfidence();
-            var words = new List<PdfOcrPixelWord>();
-
-            using var iter = page.GetIterator();
-            iter.Begin();
-            do
-            {
-                if (iter.TryGetBoundingBox(PageIteratorLevel.Word, out var r))
-                {
-                    string w = iter.GetText(PageIteratorLevel.Word) ?? "";
-                    if (!string.IsNullOrWhiteSpace(w))
-                    {
-                        words.Add(new PdfOcrPixelWord(w,
-                            iter.GetConfidence(PageIteratorLevel.Word),
-                            r.X1, r.Y1, r.X2, r.Y2));
-                    }
-                }
-            }
-            while (iter.Next(PageIteratorLevel.Word));
-
-            return new PdfOcrResult(text, confidence, words);
-        }
-
-        private static unsafe Pix CreateGrayscalePix(
-            PdfOcrPreparedImage image, CancellationToken cancellationToken)
-        {
-            Pix pix = Pix.Create(image.Width, image.Height, 8);
-            PixData data = pix.GetData();
-            uint* start = (uint*)data.Data.ToPointer();
-            ReadOnlySpan<byte> pixels = image.Pixels.Span;
-            for (int y = 0; y < image.Height; y++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                uint* row = start + y * data.WordsPerLine;
-                int source = y * image.Width;
-                for (int x = 0; x < image.Width; x++)
-                    PixData.SetDataByte(row, x, pixels[source + x]);
-            }
-            return pix;
-        }
-
-        private TesseractEngine NativeEngine()
-        {
-            if (_engine is not null) return _engine;
-            if (_usesDefaultDataPath) OcrNativeBootstrap.EnsureReady();
-            return _engine = new TesseractEngine(_dataPath, _language, EngineMode.Default);
-        }
+        private TesseractOcrFallback NativeFallback() =>
+            _fallback ??= new TesseractOcrFallback(
+                _dataPath, _language, _usesDefaultDataPath);
 
         private static PdfOcrRecognitionModel? LoadEngineModel(
             string dataPath, string language)
@@ -132,6 +72,6 @@ namespace KillerPDF.Services
             return models.Count == 1 ? models[0] : PdfOcrRecognitionModel.Combine(models);
         }
 
-        public void Dispose() => _engine?.Dispose();
+        public void Dispose() => _fallback?.Dispose();
     }
 }

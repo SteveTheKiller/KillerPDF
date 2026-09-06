@@ -151,14 +151,16 @@ public sealed class RenderBoundaryTests
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root, "Services", "OcrService.cs"));
+        string fallback = File.ReadAllText(
+            Path.Combine(root, "Services", "TesseractOcrFallback.cs"));
 
         Assert.Contains("PdfOcrImagePreprocessor.PrepareBgra(", source,
             StringComparison.Ordinal);
-        Assert.Contains("Pix.Create(image.Width, image.Height, 8)", source,
+        Assert.Contains("Pix.Create(image.Width, image.Height, 8)", fallback,
             StringComparison.Ordinal);
         Assert.Contains("RasterOptions, cancellationToken)", source,
             StringComparison.Ordinal);
-        Assert.DoesNotContain("Pix.Load", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("Pix.Load", fallback, StringComparison.Ordinal);
         Assert.DoesNotContain("PngBitmapEncoder", source, StringComparison.Ordinal);
         Assert.DoesNotContain("BitmapSource.Create", source, StringComparison.Ordinal);
     }
@@ -179,11 +181,37 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         Assert.DoesNotContain("language.Contains('+', StringComparison.Ordinal)",
             source, StringComparison.Ordinal);
-        Assert.Contains("private TesseractEngine NativeEngine()", source,
+        Assert.Contains("private TesseractOcrFallback NativeFallback()", source,
             StringComparison.Ordinal);
-        Assert.True(source.IndexOf("LoadEngineModel(_dataPath, language)",
-            StringComparison.Ordinal) < source.IndexOf("new TesseractEngine(",
-            StringComparison.Ordinal));
+        Assert.DoesNotContain("using Tesseract", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("TesseractEngine", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TesseractTypesStayInsideTheNativeOcrFallback()
+    {
+        string root = FindRepositoryRoot();
+        string fallback = Path.GetFullPath(
+            Path.Combine(root, "Services", "TesseractOcrFallback.cs"));
+        string thisTest = Path.GetFullPath(
+            Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
+
+        foreach (string file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+        {
+            string fullPath = Path.GetFullPath(file);
+            if (fullPath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}",
+                    StringComparison.OrdinalIgnoreCase)
+                || fullPath.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}",
+                    StringComparison.OrdinalIgnoreCase)
+                || fullPath.Equals(fallback, StringComparison.OrdinalIgnoreCase)
+                || fullPath.Equals(thisTest, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            string source = File.ReadAllText(fullPath);
+            Assert.DoesNotContain("using Tesseract", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("TesseractEngine", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("PageIteratorLevel", source, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
