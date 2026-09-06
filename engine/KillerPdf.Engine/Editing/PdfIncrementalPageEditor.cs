@@ -1675,6 +1675,22 @@ public sealed class PdfIncrementalPageEditor
         int pageIndex, double width, double height, PdfContentStreamBuilder content)
         => AppendTypedPageContent(pageIndex, width, height, content, artifact: false);
 
+    /// <summary>Appends typed content at an explicit destination-page rectangle.</summary>
+    public PdfIncrementalPageEditor AppendPageContent(
+        int pageIndex, PdfContentBounds destinationBounds,
+        PdfContentStreamBuilder content)
+    {
+        if (!double.IsFinite(destinationBounds.Left)
+            || !double.IsFinite(destinationBounds.Bottom)
+            || !double.IsFinite(destinationBounds.Right)
+            || !double.IsFinite(destinationBounds.Top)
+            || destinationBounds.Width <= 0 || destinationBounds.Height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(destinationBounds));
+        return AppendTypedPageContent(pageIndex, destinationBounds.Width,
+            destinationBounds.Height, content, artifact: false, marker: null,
+            destinationBounds.Left, destinationBounds.Bottom);
+    }
+
     /// <summary>
     /// Appends one source page as a Form XObject transformed into destination coordinates.
     /// Page annotations are not copied.
@@ -1751,7 +1767,7 @@ public sealed class PdfIncrementalPageEditor
 
     private PdfIncrementalPageEditor AppendTypedPageContent(
         int pageIndex, double width, double height, PdfContentStreamBuilder content, bool artifact,
-        string? marker = null)
+        string? marker = null, double x = 0, double y = 0)
     {
         ValidateIndex(pageIndex, nameof(pageIndex));
         ValidatePositiveFinite(width, nameof(width));
@@ -1766,7 +1782,7 @@ public sealed class PdfIncrementalPageEditor
                 "Typed content can only be appended to an existing destination page.");
         page.TypedOverlays.Add(new TypedOverlay(
             BuildTypedPage(width, height, content), 0, artifact, marker, PdfPageBox.Crop, null,
-            1, 0, 0, 1, 0, 0));
+            1, 0, 0, 1, x, y));
         _pagePresentationChanged = true;
         return this;
     }

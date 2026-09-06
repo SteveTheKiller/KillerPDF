@@ -6,6 +6,10 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Describes the effective display geometry of one PDF page.</summary>
 public sealed record PdfPageInformation
 {
+    /// <summary>Gets the left edge of the effective crop or media box.</summary>
+    public double Left { get; init; }
+    /// <summary>Gets the bottom edge of the effective crop or media box.</summary>
+    public double Bottom { get; init; }
     /// <summary>Gets the page width in PDF points before rotation.</summary>
     public required double Width { get; init; }
     /// <summary>Gets the page height in PDF points before rotation.</summary>
@@ -58,6 +62,8 @@ public sealed record PdfPageInformation
             }
             result[index] = new PdfPageInformation
             {
+                Left = Math.Min(x1, x2),
+                Bottom = Math.Min(y1, y2),
                 Width = width,
                 Height = height,
                 Rotation = rotation

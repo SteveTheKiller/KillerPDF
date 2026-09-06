@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Numerics;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Rendering;
 using KillerPdf.Engine.Tests.Fonts;
@@ -1479,8 +1480,11 @@ public sealed class PdfOcrRecognitionTests
             "#...##..",
             "........"
         ]);
-        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(8, 6, new PdfContentStreamBuilder().DrawImage(image, 0, 0, 8, 6)).Build());
+        PdfDocument uncropped = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(28, 36, new PdfContentStreamBuilder()
+                .DrawImage(image, 10, 20, 8, 6)).Build());
+        PdfDocument document = PdfDocument.Open(new PdfIncrementalPageEditor(uncropped)
+            .SetCropBox(0, 10, 20, 8, 6).Build());
         var recognizer = new PdfOcrPageRecognizer(document, model);
 
         PdfOcrPageRecognition result = recognizer.Recognize(0,

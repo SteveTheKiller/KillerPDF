@@ -1,5 +1,6 @@
 using System.Text.Json;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Tests.Fonts;
@@ -378,6 +379,25 @@ public sealed class PdfOcrReviewTests
         Assert.Equal("A", extracted.Text);
         Assert.Equal(20, extracted.Words[0].BoundingBox.Left, 6);
         Assert.Empty(new PdfPageContentReader(original).Read(0).Words);
+    }
+
+    [Fact]
+    public void SearchableTextUsesTheNonzeroCropBoxOrigin()
+    {
+        PdfDocument source = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+        PdfDocument cropped = PdfDocument.Open(new PdfIncrementalPageEditor(source)
+            .SetCropBox(0, 20, 30, 100, 50).Build());
+        var review = new PdfOcrReview([
+            new PdfOcrWord("a", 0, 0, "A", "A",
+                new PdfContentBounds(10, 10, 40, 25), 1)]);
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+
+        PdfPageContent extracted = new PdfPageContentReader(PdfDocument.Open(
+            review.WriteSearchableText(cropped, font))).Read(0);
+
+        Assert.Equal(10, Assert.Single(extracted.Words).BoundingBox.Left, 6);
     }
 
     [Theory]

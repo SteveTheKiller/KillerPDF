@@ -383,7 +383,8 @@ public sealed partial class PdfOcrReview
                         word.BoundingBox.Left, word.BoundingBox.Bottom)
                     .ShowUnicodeText(word.Text).EndText();
             }
-            editor.AppendPageContent(pageWords.Key, crop.Width, crop.Height, content);
+            editor.AppendPageContent(pageWords.Key,
+                new PdfContentBounds(crop.Left, crop.Bottom, crop.Right, crop.Top), content);
         }
         return editor.Build();
     }

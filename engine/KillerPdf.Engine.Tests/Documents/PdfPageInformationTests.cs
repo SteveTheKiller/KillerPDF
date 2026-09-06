@@ -23,6 +23,8 @@ public sealed class PdfPageInformationTests
             PdfPageInformation.Read(PdfDocument.Open(edited));
 
         Assert.Equal(2, pages.Count);
+        Assert.Equal(10, pages[0].Left);
+        Assert.Equal(20, pages[0].Bottom);
         Assert.Equal(100, pages[0].Width);
         Assert.Equal(150, pages[0].Height);
         Assert.Equal(270, pages[0].Rotation);

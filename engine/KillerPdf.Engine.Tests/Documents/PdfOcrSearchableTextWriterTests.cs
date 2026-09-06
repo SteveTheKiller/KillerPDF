@@ -56,6 +56,26 @@ public sealed class PdfOcrSearchableTextWriterTests
         Assert.Equal(first, second);
     }
 
+    [Fact]
+    public void WriterPlacesPixelWordsAtTheNonzeroCropBoxOrigin()
+    {
+        PdfDocument source = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+        PdfDocument cropped = PdfDocument.Open(new PdfIncrementalPageEditor(source)
+            .SetCropBox(0, 20, 30, 100, 50).Build());
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+        PdfOcrPixelPage[] pages =
+        [
+            new(100, 50, [new PdfOcrPixelWord("A", 1, 10, 10, 40, 25)])
+        ];
+
+        PdfPageContent extracted = new PdfPageContentReader(PdfDocument.Open(
+            PdfOcrSearchableTextWriter.Write(cropped, pages, _ => font).Document)).Read(0);
+
+        Assert.Equal(10, Assert.Single(extracted.Words).BoundingBox.Left, 6);
+    }
+
     [Theory]
     [InlineData(-1, 0, 10, 10)]
     [InlineData(0, -1, 10, 10)]

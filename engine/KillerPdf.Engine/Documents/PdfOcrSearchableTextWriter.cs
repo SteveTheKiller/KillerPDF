@@ -69,7 +69,9 @@ public static class PdfOcrSearchableTextWriter
             }
             content.EndText().RestoreState();
             if (pageWords == 0) continue;
-            editor.AppendPageContent(pageIndex, geometry.Width, geometry.Height, content);
+            editor.AppendPageContent(pageIndex, new PdfContentBounds(
+                geometry.Left, geometry.Bottom,
+                geometry.Left + geometry.Width, geometry.Bottom + geometry.Height), content);
             writtenWords += pageWords;
         }
         return new PdfOcrSearchableTextResult(editor.Build(), writtenWords);
