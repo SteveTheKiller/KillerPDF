@@ -544,7 +544,7 @@ public sealed class PdfEngineIntegrationTests
         string destinationPath = Path.Combine(Path.GetTempPath(), $"killerpdf-decrypted-{Guid.NewGuid():N}.pdf");
         try
         {
-            File.WriteAllBytes(sourcePath, new PdfDocumentBuilder()
+            byte[] source = new PdfDocumentBuilder()
                 .SetMetadata(new PdfDocumentMetadata { Title = "Preserved" })
                 .SetPasswordEncryption(new PdfPasswordEncryptionOptions
                 {
@@ -552,7 +552,11 @@ public sealed class PdfEngineIntegrationTests
                     OwnerPassword = "owner"
                 })
                 .AddBlankPage()
-                .Build());
+                .Build();
+            string malformed = System.Text.Encoding.Latin1.GetString(source)
+                .Replace("startxref", "startref ", StringComparison.Ordinal);
+            File.WriteAllBytes(sourcePath,
+                System.Text.Encoding.Latin1.GetBytes(malformed));
 
             PdfEngineIntegration.RemoveEncryption(sourcePath, destinationPath, "owner");
 
@@ -582,6 +586,9 @@ public sealed class PdfEngineIntegrationTests
                 .SetRotation(0, 90)
                 .SetRotation(1, 270)
                 .Build();
+            string malformed = System.Text.Encoding.Latin1.GetString(source)
+                .Replace("startxref", "startref ", StringComparison.Ordinal);
+            source = System.Text.Encoding.Latin1.GetBytes(malformed);
             File.WriteAllBytes(sourcePath, source);
 
             PdfEngineIntegration.CreateZeroRotationCopy(sourcePath, destinationPath);

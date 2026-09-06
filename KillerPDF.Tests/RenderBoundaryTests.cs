@@ -51,6 +51,12 @@ public sealed class RenderBoundaryTests
     {
         string root = FindRepositoryRoot();
         string interop = Path.GetFullPath(Path.Combine(root, "Services", "PdfiumInterop.cs"));
+        string interopSource = File.ReadAllText(interop);
+        Assert.DoesNotContain("FPDF_SaveWithVersion", interopSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("FPDFPage_SetRotation", interopSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("FPDFPage_GenerateContent", interopSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryPdfiumStripEncryption", interopSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("TryPdfiumSaveWithZeroRotations", interopSource, StringComparison.Ordinal);
         string thisTest = Path.GetFullPath(
             Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
 

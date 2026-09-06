@@ -262,7 +262,8 @@ internal static class PdfEngineIntegration
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
         ArgumentNullException.ThrowIfNull(password);
-        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(sourcePath), password);
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            File.ReadAllBytes(sourcePath), password);
         byte[] result = PdfDocumentWriter.Write(document,
             new PdfDocumentWriteOptions { RemoveEncryption = true });
         ReplaceWithBuiltResult(destinationPath, result);
@@ -745,7 +746,8 @@ internal static class PdfEngineIntegration
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
-        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(sourcePath));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            File.ReadAllBytes(sourcePath));
         var editor = new PdfIncrementalPageEditor(document);
         for (int pageIndex = 0; pageIndex < editor.PageCount; pageIndex++)
             editor.SetRotation(pageIndex, 0);

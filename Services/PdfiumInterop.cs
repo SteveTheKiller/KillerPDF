@@ -1,4 +1,3 @@
-using System.IO;
 using System.Runtime.InteropServices;
 using Docnet.Core;
 
@@ -62,16 +61,6 @@ namespace KillerPDF.Services
         private static extern void FPDF_ClosePageRaw(IntPtr page);
         internal static void FPDF_ClosePage(IntPtr page)
         { lock (PdfiumLock) FPDF_ClosePageRaw(page); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFPage_SetRotation", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void FPDFPage_SetRotationRaw(IntPtr page, int rotation);
-        private static void FPDFPage_SetRotation(IntPtr page, int rotation)
-        { lock (PdfiumLock) FPDFPage_SetRotationRaw(page, rotation); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFPage_GenerateContent", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool FPDFPage_GenerateContentRaw(IntPtr page);
-        private static bool FPDFPage_GenerateContent(IntPtr page)
-        { lock (PdfiumLock) return FPDFPage_GenerateContentRaw(page); }
 
         // ---- Page rendering ----------------------------------------------------------------
 
@@ -328,24 +317,6 @@ namespace KillerPDF.Services
 
         // ---- Save ---------------------------------------------------------------------------
 
-        [DllImport("pdfium.dll", EntryPoint = "FPDF_SaveWithVersion", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool FPDF_SaveWithVersionRaw(
-            IntPtr document, ref FPDF_FILEWRITE fileWrite, uint flags, int fileVersion);
-        private static bool FPDF_SaveWithVersion(IntPtr document, ref FPDF_FILEWRITE fileWrite, uint flags, int fileVersion)
-        { lock (PdfiumLock) return FPDF_SaveWithVersionRaw(document, ref fileWrite, flags, fileVersion); }
-
-        [StructLayout(LayoutKind.Sequential)]
-        private struct FPDF_FILEWRITE
-        {
-            public int version;          // must be 1
-            public IntPtr WriteBlock;    // cdecl: int WriteBlock(FPDF_FILEWRITE*, const void*, unsigned long)
-        }
-
-        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate int PdfWriteBlockDelegate(IntPtr pThis, IntPtr pData, uint size);
-
-        private const uint FPDF_REMOVE_SECURITY = 3;
-
         // ---- Link extraction entry points (fallback for object-stream PDFs) ------------------
         // PdfSharpCore silently drops link annotations stored in object streams (linearized /
         // PDF 1.5+); PDFium resolves them natively. Consumed by Links.cs' cached-handle pass.
@@ -403,9 +374,7 @@ namespace KillerPDF.Services
         internal static int FPDFDest_GetDestPageIndex(IntPtr document, IntPtr dest)
         { lock (PdfiumLock) return FPDFDest_GetDestPageIndexRaw(document, dest); }
 
-        // ---- The two direct-PDFium file operations -------------------------------------------
-
-        /// <summary>Removes owner-only encryption through the engine before native repair.</summary>
+        /// <summary>Removes owner-only encryption through the engine.</summary>
         internal static bool TryRemoveEncryptionWithoutPassword(
             string sourcePath, string destinationPath)
         {
@@ -417,11 +386,11 @@ namespace KillerPDF.Services
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                return TryPdfiumStripEncryption(sourcePath, destinationPath);
+                return false;
             }
         }
 
-        /// <summary>Creates a zero-rotation copy through the engine before native repair.</summary>
+        /// <summary>Creates a zero-rotation copy through the engine.</summary>
         internal static bool TryCreateZeroRotationCopy(
             string sourcePath, string destinationPath)
         {
@@ -432,125 +401,6 @@ namespace KillerPDF.Services
             }
             catch (Exception exception) when (exception is not OutOfMemoryException)
             {
-                return TryPdfiumSaveWithZeroRotations(sourcePath, destinationPath);
-            }
-        }
-
-        /// <summary>
-        /// Uses PDFium to save a copy of <paramref name="sourcePath"/> with all security/encryption
-        /// removed. Returns true on success. Falls back gracefully if PDFium is unavailable.
-        /// PDFium is already initialized by Docnet; no separate init call is needed.
-        /// </summary>
-        internal static bool TryPdfiumStripEncryption(string sourcePath, string destPath)
-        {
-            try
-            {
-                // Ensure PDFium is initialized - Docnet does this lazily on first use,
-                // so force it now before we call PDFium P/Invoke directly.
-                try { _ = DocLib.Instance; } catch { }
-
-                var doc = FPDF_LoadDocument(sourcePath, null);
-                if (doc == IntPtr.Zero) return false;
-                try
-                {
-                    using var ms = new MemoryStream();
-                    PdfWriteBlockDelegate cb = (_, pData, size) =>
-                    {
-                        var buf = new byte[size];
-                        Marshal.Copy(pData, buf, 0, (int)size);
-                        ms.Write(buf, 0, (int)size);
-                        return 1;
-                    };
-                    var gch = GCHandle.Alloc(cb);
-                    try
-                    {
-                        var fw = new FPDF_FILEWRITE
-                        {
-                            version = 1,
-                            WriteBlock = Marshal.GetFunctionPointerForDelegate(cb)
-                        };
-                        if (!FPDF_SaveWithVersion(doc, ref fw, FPDF_REMOVE_SECURITY, 0))
-                            return false;
-                    }
-                    finally { gch.Free(); }
-                    File.WriteAllBytes(destPath, ms.ToArray());
-                    return true;
-                }
-                finally { FPDF_CloseDocument(doc); }
-            }
-            catch { return false; }
-        }
-
-        /// <summary>
-        /// Uses PDFium to load <paramref name="sourcePath"/>, zero-out all page /Rotate values,
-        /// strip encryption, and save to <paramref name="destPath"/>. Returns true on success.
-        /// Called from SaveTempAndReload's xref-error fallback - PDFium is guaranteed to be
-        /// initialized by then because the page preview has already rendered via Docnet.
-        /// </summary>
-        internal static bool TryPdfiumSaveWithZeroRotations(string sourcePath, string destPath)
-        {
-            try
-            {
-                var doc = FPDF_LoadDocument(sourcePath, null);
-                if (doc == IntPtr.Zero)
-                {
-                    try { File.AppendAllText(System.IO.Path.Combine(System.IO.Path.GetTempPath(), "killerpdf_pdfium_debug.txt"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] FPDF_LoadDocument returned null for: {sourcePath}\n\n"); } catch { }
-                    return false;
-                }
-                try
-                {
-                    int pageCount = FPDF_GetPageCount(doc);
-                    for (int i = 0; i < pageCount; i++)
-                    {
-                        var page = FPDF_LoadPage(doc, i);
-                        if (page == IntPtr.Zero) continue;
-                        try
-                        {
-                            FPDFPage_SetRotation(page, 0);   // strip /Rotate so Docnet renders cleanly
-                            FPDFPage_GenerateContent(page);
-                        }
-                        finally { FPDF_ClosePage(page); }
-                    }
-
-                    using var ms = new MemoryStream();
-                    PdfWriteBlockDelegate cb = (_, pData, size) =>
-                    {
-                        var buf = new byte[size];
-                        Marshal.Copy(pData, buf, 0, (int)size);
-                        ms.Write(buf, 0, (int)size);
-                        return 1;
-                    };
-                    var gch = GCHandle.Alloc(cb);
-                    try
-                    {
-                        var fw = new FPDF_FILEWRITE
-                        {
-                            version = 1,
-                            WriteBlock = Marshal.GetFunctionPointerForDelegate(cb)
-                        };
-                        if (!FPDF_SaveWithVersion(doc, ref fw, FPDF_REMOVE_SECURITY, 0))
-                            return false;
-                    }
-                    finally { gch.Free(); }
-
-                    File.WriteAllBytes(destPath, ms.ToArray());
-                    return true;
-                }
-                finally { FPDF_CloseDocument(doc); }
-            }
-            catch (Exception ex)
-            {
-                try
-                {
-                    File.AppendAllText(
-                        System.IO.Path.Combine(System.IO.Path.GetTempPath(), "killerpdf_pdfium_debug.txt"),
-                        $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] TryPdfiumSaveWithZeroRotations failed\n" +
-                        $"  source: {sourcePath}\n" +
-                        $"  type:   {ex.GetType().FullName}\n" +
-                        $"  msg:    {ex.Message}\n" +
-                        $"  stack:  {ex.StackTrace}\n\n");
-                }
-                catch { /* log failure is non-fatal */ }
                 return false;
             }
         }
