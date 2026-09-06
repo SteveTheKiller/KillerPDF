@@ -353,6 +353,24 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerPrefersRepeatedSupportOverOneOffPrototypeNoise()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 1,
+        [
+            new("A", new float[] { 0, 1 }),
+            .. Enumerable.Repeat(
+                new PdfOcrTrainingSample("A", new float[] { 1, 0 }), 9),
+            .. Enumerable.Repeat(
+                new PdfOcrTrainingSample("B", new float[] { 0.01f, 0.99f }), 10)
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("B", new float[] { 0, 1 })]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
     public void TrainerDoesNotLetOneMislabeledPrototypeOverrideSupportedShape()
     {
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 1,

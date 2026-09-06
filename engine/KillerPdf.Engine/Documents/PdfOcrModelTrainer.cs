@@ -87,6 +87,7 @@ public static class PdfOcrModelTrainer
     private const int MaximumPrototypesPerShape = 96;
     private const int MaximumLabelsPerComponent = 4;
     private const double LabelPriorWeight = 0.25;
+    private const double PrototypeSupportWeight = 0.0015;
     private static readonly int[] StandardTrainingRenderScales = [1, 2, 3];
     private static readonly PdfStandardFont[] StandardTrainingFonts =
     [
@@ -139,11 +140,12 @@ public static class PdfOcrModelTrainer
             throw new ArgumentException("At least one OCR training sample is required.",
                 nameof(samples));
 
-        (string Label, int Shape, ulong Hash, float[] Features)[] ordered =
+        (string Label, int Shape, ulong Hash, float[] Features, int Count)[] ordered =
         [.. prototypes.OrderBy(entry => entry.Key.Label, StringComparer.Ordinal)
             .ThenBy(entry => entry.Key.Shape)
             .SelectMany(entry => entry.Value.Items.Select(item =>
-                (entry.Key.Label, entry.Key.Shape, item.Key, item.Value)))];
+                (entry.Key.Label, entry.Key.Shape,
+                    item.Hash, item.Features, item.Count)))];
         if (checked((long)ordered.Length * featureCount) > MaximumModelValues)
             throw new ArgumentException(
                 "The OCR training set exceeds the model size limit.", nameof(samples));
@@ -165,7 +167,8 @@ public static class PdfOcrModelTrainer
             }
             double prior = Math.Log((labelCounts[orderedLabels[label]] + 1d)
                 / (sampleCount + labelCounts.Count));
-            biases[label] = checked((float)(-squaredLength / scoreScale));
+            biases[label] = checked((float)(-squaredLength / scoreScale
+                + PrototypeSupportWeight * Math.Log(ordered[label].Count + 1d)));
             priors[label] = checked((float)(LabelPriorWeight * prior));
         }
         return PdfOcrRecognitionModel.CreatePrototype(
@@ -627,20 +630,24 @@ public static class PdfOcrModelTrainer
         private long[]? _quantizedSum;
         private int _sampleCount;
 
-        internal IReadOnlyList<KeyValuePair<ulong, float[]>> Items
+        internal IReadOnlyList<PrototypeItem> Items
         {
             get
             {
-                KeyValuePair<ulong, float[]>[] items = [.. _items.Select(item =>
-                    new KeyValuePair<ulong, float[]>(item.Key, item.Value.Features))];
+                PrototypeItem[] items = [.. _items.Select(item =>
+                    new PrototypeItem(item.Key,
+                        item.Value.Features, item.Value.Count))];
                 if (_sampleCount < 2) return items;
                 float[] centroid = [.. _quantizedSum!.Select(value =>
                     (float)(value / (65535d * _sampleCount)))];
                 ulong hash = Hash(centroid);
+                var supportedCentroid = new PrototypeItem(
+                    hash, centroid, _sampleCount);
                 return _items.ContainsKey(hash)
-                    ? items
-                    : [.. items.Append(new KeyValuePair<ulong, float[]>(hash, centroid))
-                        .OrderBy(item => item.Key)];
+                    ? [.. items.Select(item => item.Hash == hash
+                        ? supportedCentroid : item)]
+                    : [.. items.Append(supportedCentroid)
+                        .OrderBy(item => item.Hash)];
             }
         }
 
@@ -688,6 +695,7 @@ public static class PdfOcrModelTrainer
 
             internal float[] Features => [.. _sum.Select(value =>
                 (float)(value / (65535d * _count)))];
+            internal int Count => _count;
 
             internal void Add(ReadOnlySpan<float> features)
             {
@@ -697,5 +705,8 @@ public static class PdfOcrModelTrainer
                 _count++;
             }
         }
+
+        internal readonly record struct PrototypeItem(
+            ulong Hash, float[] Features, int Count);
     }
 }
