@@ -113,6 +113,26 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_OrdersThreeDetectedColumnsIndependently()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 42 * 14).ToArray();
+        foreach (int left in new[] { 1, 15, 29 })
+        {
+            Paint(pixels, 42, left, 1, 2, 3);
+            Paint(pixels, 42, left, 8, 2, 3);
+        }
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(42, 14, pixels), detectPageSegments: true);
+
+        Assert.Equal(3, layout.Segments.Count);
+        Assert.Equal([1, 1, 15, 15, 29, 29],
+            layout.Lines.Select(line => line.Bounds.Left));
+        Assert.Equal([1, 8, 1, 8, 1, 8],
+            layout.Lines.Select(line => line.Bounds.Top));
+    }
+
+    [Fact]
     public void Analyze_IgnoresSinglePixelNoiseAndHonorsCancellation()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 16).ToArray();

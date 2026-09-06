@@ -255,9 +255,10 @@ public static class PdfOcrLayoutAnalyzer
     }
 
     private static IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> SplitColumns(
-        IReadOnlyList<PdfOcrImageRegion> components)
+        IReadOnlyList<PdfOcrImageRegion> components, int depth = 0)
     {
-        if (components.Count < 4) return components.Count == 0 ? [] : [components];
+        if (components.Count < 4 || depth >= 16)
+            return components.Count == 0 ? [] : [components];
         PdfOcrImageRegion[] ordered = [.. components.OrderBy(item => item.Left)];
         int medianHeight = ordered.Select(item => item.Height).OrderBy(value => value)
             .ElementAt(ordered.Length / 2);
@@ -282,7 +283,8 @@ public static class PdfOcrLayoutAnalyzer
             right = Math.Max(right, ordered[index].Right);
         }
         if (split == 0 || bestGap < Math.Max(4, medianHeight)) return [components];
-        return [ordered[..split], ordered[split..]];
+        return Array.AsReadOnly(SplitColumns(ordered[..split], depth + 1)
+            .Concat(SplitColumns(ordered[split..], depth + 1)).ToArray());
     }
 
     private static PdfOcrPageSegment Segment(IReadOnlyList<PdfOcrTextLine> lines) =>
