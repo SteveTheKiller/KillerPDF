@@ -109,4 +109,21 @@ public sealed class PdfOcrLanguageModelTests
         Assert.All(decoded, label => Assert.Equal("A", label));
         Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 5_000_000);
     }
+
+    [Fact]
+    public void DecodeBoundsAllocationsForMaximumCandidateSets()
+    {
+        PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(["AB"]);
+        IReadOnlyList<PdfOcrLanguageCandidate> candidates = [.. Enumerable.Range(0, 64)
+            .Select(index => new PdfOcrLanguageCandidate($"L{index:D2}", -index))];
+        IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions =
+            Enumerable.Repeat(candidates, 256).ToArray();
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        IReadOnlyList<string> decoded = model.Decode(positions, languageWeight: 0);
+
+        Assert.Equal(256, decoded.Count);
+        Assert.All(decoded, label => Assert.Equal("L00", label));
+        Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 5_000_000);
+    }
 }

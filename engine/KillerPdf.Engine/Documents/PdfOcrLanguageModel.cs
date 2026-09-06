@@ -270,17 +270,25 @@ public sealed class PdfOcrLanguageModel
                     throw new ArgumentException(
                         "OCR language-model candidates require labels and finite scores.",
                         nameof(positions));
+                Path? bestPrevious = null;
+                double bestScore = double.NegativeInfinity;
                 foreach ((string previous, Path path) in paths)
                 {
                     double score = path.Score + candidate.Score
                         + languageWeight * TransitionScore(previous, candidate.Label);
-                    var proposed = new Path(
-                        score, candidate.Label, path, path.Length + 1);
-                    if (!next.TryGetValue(candidate.Label, out Path? best)
-                        || score > best.Score
-                        || score == best.Score && ComparePaths(proposed, best) < 0)
-                        next[candidate.Label] = proposed;
+                    if (bestPrevious is null || score > bestScore
+                        || score == bestScore && ComparePaths(path, bestPrevious) < 0)
+                    {
+                        bestPrevious = path;
+                        bestScore = score;
+                    }
                 }
+                var proposed = new Path(bestScore, candidate.Label,
+                    bestPrevious, bestPrevious!.Length + 1);
+                if (!next.TryGetValue(candidate.Label, out Path? best)
+                    || bestScore > best.Score
+                    || bestScore == best.Score && ComparePaths(proposed, best) < 0)
+                    next[candidate.Label] = proposed;
             }
             paths = next;
         }
