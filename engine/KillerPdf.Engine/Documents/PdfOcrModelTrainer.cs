@@ -332,17 +332,34 @@ public static class PdfOcrModelTrainer
     private sealed class PrototypeBucket
     {
         private readonly SortedDictionary<ulong, float[]> _items = [];
+        private long[]? _quantizedSum;
+        private int _sampleCount;
 
-        internal IReadOnlyDictionary<ulong, float[]> Items => _items;
+        internal IReadOnlyList<KeyValuePair<ulong, float[]>> Items
+        {
+            get
+            {
+                if (_sampleCount < 2) return [.. _items];
+                float[] centroid = [.. _quantizedSum!.Select(value =>
+                    (float)(value / (65535d * _sampleCount)))];
+                ulong hash = Hash(centroid);
+                return _items.ContainsKey(hash)
+                    ? [.. _items]
+                    : [.. _items.Append(new KeyValuePair<ulong, float[]>(hash, centroid))
+                        .OrderBy(item => item.Key)];
+            }
+        }
 
         internal void Add(ReadOnlySpan<float> features)
         {
-            ulong hash = 14695981039346656037UL;
-            foreach (float value in features)
+            _quantizedSum ??= new long[features.Length];
+            for (int index = 0; index < features.Length; index++)
             {
-                hash ^= (byte)Math.Clamp((int)Math.Round(value * 255), 0, 255);
-                hash *= 1099511628211UL;
+                _quantizedSum[index] += Math.Clamp(
+                    (int)Math.Round(features[index] * 65535), 0, 65535);
             }
+            _sampleCount++;
+            ulong hash = Hash(features);
             float[] candidate = features.ToArray();
             if (_items.TryGetValue(hash, out float[]? existing))
             {
@@ -352,6 +369,17 @@ public static class PdfOcrModelTrainer
             _items.Add(hash, candidate);
             if (_items.Count > MaximumPrototypesPerShape)
                 _items.Remove(_items.Keys.Last());
+        }
+
+        private static ulong Hash(ReadOnlySpan<float> features)
+        {
+            ulong hash = 14695981039346656037UL;
+            foreach (float value in features)
+            {
+                hash ^= (byte)Math.Clamp((int)Math.Round(value * 255), 0, 255);
+                hash *= 1099511628211UL;
+            }
+            return hash;
         }
 
         private static int Compare(float[] left, float[] right)

@@ -155,6 +155,28 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerCentroidGeneralizesBetweenVariants()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 2,
+        [
+            new("A", new float[] { 1, 0, 0, 0 }),
+            new("A", new float[] { 0, 0, 0, 1 }),
+            new("B", new float[] { 0.6f, 0, 0, 0.6f })
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("A", new float[] { 0.5f, 0, 0, 0.5f })]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+        Assert.Equal(model.Save(), PdfOcrModelTrainer.Train(2, 2,
+        [
+            new("B", new float[] { 0.6f, 0, 0, 0.6f }),
+            new("A", new float[] { 0, 0, 0, 1 }),
+            new("A", new float[] { 1, 0, 0, 0 })
+        ]).Save());
+    }
+
+    [Fact]
     public void TrainerUsesLabelFrequencyToResolveIdenticalShapes()
     {
         PdfOcrTrainingSample[] samples =
