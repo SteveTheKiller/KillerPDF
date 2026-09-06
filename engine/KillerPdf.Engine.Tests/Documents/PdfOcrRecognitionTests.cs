@@ -1347,9 +1347,12 @@ public sealed class PdfOcrRecognitionTests
 
         PdfOcrRecognitionModelSelection selection = catalog.SelectCombined(
             ["fr-FR", "en-US", "fr"]);
+        PdfOcrRecognitionModelSelection repeated = catalog.SelectCombined(
+            ["fr", "en"]);
 
         Assert.Equal("fr+en", selection.Language);
         Assert.Equal(["F", "E"], selection.Model.Labels);
+        Assert.Same(selection.Model, repeated.Model);
         Assert.Equal((1, 1, 0), (englishReads, frenchReads, germanReads));
     }
 

@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using System.Numerics;
@@ -757,6 +758,8 @@ public sealed record PdfOcrRecognitionModelSource(
 public sealed class PdfOcrRecognitionModelCatalog
 {
     private readonly Dictionary<string, Lazy<PdfOcrRecognitionModel>> _models;
+    private readonly ConcurrentDictionary<string,
+        Lazy<PdfOcrRecognitionModelSelection>> _combined = new(StringComparer.Ordinal);
 
     /// <summary>Creates a catalog from language and model pairs.</summary>
     public PdfOcrRecognitionModelCatalog(
@@ -839,9 +842,12 @@ public sealed class PdfOcrRecognitionModelCatalog
         if (selected.Count == 0)
             throw new NotSupportedException(
                 "No engine OCR recognition model matches the requested languages.");
-        return selected.Count == 1 ? selected[0] : new PdfOcrRecognitionModelSelection(
-            string.Join('+', selected.Select(item => item.Language)),
-            PdfOcrRecognitionModel.Combine(selected.Select(item => item.Model)));
+        if (selected.Count == 1) return selected[0];
+        string key = string.Join('+', selected.Select(item => item.Language));
+        return _combined.GetOrAdd(key, _ => new Lazy<PdfOcrRecognitionModelSelection>(
+            () => new PdfOcrRecognitionModelSelection(key,
+                PdfOcrRecognitionModel.Combine(selected.Select(item => item.Model))),
+            LazyThreadSafetyMode.ExecutionAndPublication)).Value;
     }
 
     private bool TrySelect(string normalized,
