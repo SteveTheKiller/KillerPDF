@@ -1048,6 +1048,7 @@ public static class PdfOcrRecognizer
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(model);
+        cancellationToken.ThrowIfCancellationRequested();
         var words = new List<PdfOcrRecognizedWord>(layout.Words.Count);
         double[] scores = ArrayPool<double>.Shared.Rent(model.LabelCount);
         int featureCount = checked(model.Width * model.Height);

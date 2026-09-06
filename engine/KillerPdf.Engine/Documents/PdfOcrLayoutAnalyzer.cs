@@ -58,6 +58,7 @@ public static class PdfOcrLayoutAnalyzer
         bool detectPageSegments, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(image);
+        cancellationToken.ThrowIfCancellationRequested();
         int width = image.Width, height = image.Height;
         ReadOnlyMemory<byte> pixels = image.Pixels;
         var visited = new byte[pixels.Length];
