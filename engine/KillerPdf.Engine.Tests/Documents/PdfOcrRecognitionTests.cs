@@ -372,6 +372,26 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerAveragesAntialiasVariantsWithTheSamePrototypeHash()
+    {
+        PdfOcrTrainingSample[] samples =
+        [
+            new("A", new float[] { 0.5001f, 0 }),
+            .. Enumerable.Repeat(new PdfOcrTrainingSample(
+                "A", new float[] { 0.5038f, 0 }), 9),
+            new("B", new float[] { 0.50343f, 0.00197f })
+        ];
+
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 1, samples);
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("A", new float[] { 0.50343f, 0 })]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+        Assert.Equal(model.Save(), PdfOcrModelTrainer.Train(
+            2, 1, samples.Reverse()).Save());
+    }
+
+    [Fact]
     public void TrainerUsesVisualEvidenceToResolveANearTie()
     {
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,

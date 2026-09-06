@@ -634,7 +634,7 @@ public static class PdfOcrModelTrainer
 
     private sealed class PrototypeBucket
     {
-        private readonly SortedDictionary<ulong, float[]> _items = [];
+        private readonly SortedDictionary<ulong, PrototypeAccumulator> _items = [];
         private long[]? _quantizedSum;
         private int _sampleCount;
 
@@ -642,13 +642,15 @@ public static class PdfOcrModelTrainer
         {
             get
             {
-                if (_sampleCount < 2) return [.. _items];
+                KeyValuePair<ulong, float[]>[] items = [.. _items.Select(item =>
+                    new KeyValuePair<ulong, float[]>(item.Key, item.Value.Features))];
+                if (_sampleCount < 2) return items;
                 float[] centroid = [.. _quantizedSum!.Select(value =>
                     (float)(value / (65535d * _sampleCount)))];
                 ulong hash = Hash(centroid);
                 return _items.ContainsKey(hash)
-                    ? [.. _items]
-                    : [.. _items.Append(new KeyValuePair<ulong, float[]>(hash, centroid))
+                    ? items
+                    : [.. items.Append(new KeyValuePair<ulong, float[]>(hash, centroid))
                         .OrderBy(item => item.Key)];
             }
         }
@@ -663,13 +665,12 @@ public static class PdfOcrModelTrainer
             }
             _sampleCount++;
             ulong hash = Hash(features);
-            float[] candidate = features.ToArray();
-            if (_items.TryGetValue(hash, out float[]? existing))
+            if (_items.TryGetValue(hash, out PrototypeAccumulator? existing))
             {
-                if (Compare(candidate, existing) < 0) _items[hash] = candidate;
+                existing.Add(features);
                 return;
             }
-            _items.Add(hash, candidate);
+            _items.Add(hash, new PrototypeAccumulator(features));
             if (_items.Count > MaximumPrototypesPerShape)
                 _items.Remove(_items.Keys.Last());
         }
@@ -685,14 +686,27 @@ public static class PdfOcrModelTrainer
             return hash;
         }
 
-        private static int Compare(float[] left, float[] right)
+        private sealed class PrototypeAccumulator
         {
-            for (int index = 0; index < left.Length; index++)
+            private readonly long[] _sum;
+            private int _count;
+
+            internal PrototypeAccumulator(ReadOnlySpan<float> features)
             {
-                int comparison = left[index].CompareTo(right[index]);
-                if (comparison != 0) return comparison;
+                _sum = new long[features.Length];
+                Add(features);
             }
-            return 0;
+
+            internal float[] Features => [.. _sum.Select(value =>
+                (float)(value / (65535d * _count)))];
+
+            internal void Add(ReadOnlySpan<float> features)
+            {
+                for (int index = 0; index < features.Length; index++)
+                    _sum[index] += Math.Clamp(
+                        (int)Math.Round(features[index] * 65535), 0, 65535);
+                _count++;
+            }
         }
     }
 }
