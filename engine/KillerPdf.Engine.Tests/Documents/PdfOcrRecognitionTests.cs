@@ -389,6 +389,41 @@ public sealed class PdfOcrRecognitionTests
             [new PdfOcrLabeledGlyph("I", new PdfOcrImageRegion(-1, 0, 1, 1))]));
     }
 
+    [Fact]
+    public void RecognizerUsesLanguageContextForAmbiguousGlyphs()
+    {
+        PdfOcrPreparedImage image = Prepared(8, 6,
+        [
+            "........",
+            "#...#...",
+            "#...#...",
+            "#...##..",
+            "#...##..",
+            "........"
+        ]);
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(image);
+        PdfOcrTextLine line = Assert.Single(layout.Lines);
+        IReadOnlyList<PdfOcrImageRegion> components = Assert.Single(line.Words).Components;
+        PdfOcrRecognitionModel recognition = PdfOcrModelTrainer.Train(4, 4,
+            components.SelectMany(component =>
+            {
+                float[] features = PdfOcrRecognizer.NormalizeGlyph(
+                    image, component, line.Bounds, 4, 4);
+                return new[]
+                {
+                    new PdfOcrTrainingSample("0", features),
+                    new PdfOcrTrainingSample("O", features)
+                };
+            }));
+        PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(
+            Enumerable.Repeat("OO", 20));
+
+        Assert.Equal("00", Assert.Single(PdfOcrRecognizer.Recognize(
+            image, layout, recognition)).Text);
+        Assert.Equal("OO", Assert.Single(PdfOcrRecognizer.Recognize(
+            image, layout, recognition, language)).Text);
+    }
+
     [Theory]
     [InlineData(0, 200, 160)]
     [InlineData(90, 160, 200)]

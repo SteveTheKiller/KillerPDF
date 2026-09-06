@@ -13,6 +13,7 @@ namespace KillerPDF.Services
         private readonly string _language;
         private readonly bool _usesDefaultDataPath;
         private readonly PdfOcrRecognitionModel? _engineModel;
+        private readonly PdfOcrLanguageModel? _engineLanguageModel;
         private TesseractOcrFallback? _fallback;
 
         /// <param name="tessDataPath">Folder holding installed OCR models. Defaults to the self-extracted cache (OcrNativeBootstrap).</param>
@@ -25,6 +26,9 @@ namespace KillerPDF.Services
             _language = language;
             PdfOcrRecognitionModelFiles.TryLoadCombined(
                 _dataPath, language, out _engineModel);
+            if (_engineModel is not null)
+                PdfOcrRecognitionModelFiles.TryLoadLanguageCombined(
+                    _dataPath, language, out _engineLanguageModel);
         }
 
         /// <summary>
@@ -36,8 +40,13 @@ namespace KillerPDF.Services
         {
             if (_engineModel is not null)
                 return string.IsNullOrEmpty(characterWhitelist)
-                    ? PdfOcrRecognizer.RecognizeBgra(
-                        bgra, width, height, _engineModel, RasterOptions, cancellationToken)
+                    ? _engineLanguageModel is null
+                        ? PdfOcrRecognizer.RecognizeBgra(
+                            bgra, width, height, _engineModel,
+                            RasterOptions, cancellationToken)
+                        : PdfOcrRecognizer.RecognizeBgra(
+                            bgra, width, height, _engineModel,
+                            _engineLanguageModel, RasterOptions, cancellationToken)
                     : PdfOcrRecognizer.RecognizeBgra(
                         bgra, width, height, _engineModel, RasterOptions,
                         characterWhitelist, cancellationToken);

@@ -45,6 +45,29 @@ public sealed class PdfOcrRecognitionModelFilesTests
         }
     }
 
+    [Fact]
+    public void TryLoadLanguageCombinedRequiresEveryContextModel()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            File.WriteAllBytes(Path.Combine(directory, "eng.kplm"),
+                PdfOcrLanguageModel.Train(["GOOD"]).Save());
+            File.WriteAllBytes(Path.Combine(directory, "spa.kplm"),
+                PdfOcrLanguageModel.Train(["BUENO"]).Save());
+
+            Assert.True(PdfOcrRecognitionModelFiles.TryLoadLanguageCombined(
+                directory, "eng+spa", out PdfOcrLanguageModel? combined));
+            Assert.Equal(combined!.Save(), PdfOcrLanguageModel.Load(combined.Save()).Save());
+            Assert.False(PdfOcrRecognitionModelFiles.TryLoadLanguageCombined(
+                directory, "eng+fra", out _));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static PdfOcrRecognitionModel TinyModel(string label) =>
         PdfOcrModelTrainer.Train(1, 1,
             [new PdfOcrTrainingSample(label, new float[] { 1 })]);

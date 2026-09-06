@@ -408,25 +408,44 @@ public sealed class PdfOcrRecognitionModel
                 runnerUpVote = Math.Max(runnerUpVote, PrototypeVote(label, scores));
         if (double.IsNegativeInfinity(runnerUpVote)) return (bestLabel, 1);
         return (bestLabel, 1 / (1 + Math.Exp(runnerUpVote - bestVote)));
+    }
 
-        double PrototypeVote(string label, ReadOnlySpan<double> prototypeScores)
+    internal IReadOnlyList<PdfOcrLanguageCandidate> RankCandidates(
+        ReadOnlySpan<double> prototypeScores, int maximumCandidates)
+    {
+        if (prototypeScores.Length < _labels.Length)
+            throw new ArgumentException("OCR prototype scores are incomplete.",
+                nameof(prototypeScores));
+        if (maximumCandidates <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maximumCandidates));
+        var candidates = new List<PdfOcrLanguageCandidate>(Labels.Count);
+        foreach (string label in Labels)
+            candidates.Add(new PdfOcrLanguageCandidate(
+                label, PrototypeVote(label, prototypeScores)));
+        return Array.AsReadOnly(candidates
+            .Where(candidate => double.IsFinite(candidate.Score))
+            .OrderByDescending(candidate => candidate.Score)
+            .ThenBy(candidate => candidate.Label, StringComparer.Ordinal)
+            .Take(maximumCandidates).ToArray());
+    }
+
+    private double PrototypeVote(string label, ReadOnlySpan<double> prototypeScores)
+    {
+        double first = double.NegativeInfinity;
+        double second = double.NegativeInfinity;
+        double third = double.NegativeInfinity;
+        for (int index = 0; index < prototypeScores.Length; index++)
         {
-            double first = double.NegativeInfinity;
-            double second = double.NegativeInfinity;
-            double third = double.NegativeInfinity;
-            for (int index = 0; index < prototypeScores.Length; index++)
-            {
-                if (!string.Equals(_labels[index], label, StringComparison.Ordinal)) continue;
-                double value = prototypeScores[index];
-                if (value > first) (first, second, third) = (value, first, second);
-                else if (value > second) (second, third) = (value, second);
-                else if (value > third) third = value;
-            }
-            double vote = first;
-            if (!double.IsNegativeInfinity(second)) vote += 0.25 * (second - first);
-            if (!double.IsNegativeInfinity(third)) vote += 0.1 * (third - first);
-            return vote;
+            if (!string.Equals(_labels[index], label, StringComparison.Ordinal)) continue;
+            double value = prototypeScores[index];
+            if (value > first) (first, second, third) = (value, first, second);
+            else if (value > second) (second, third) = (value, second);
+            else if (value > third) third = value;
         }
+        double vote = first;
+        if (!double.IsNegativeInfinity(second)) vote += 0.25 * (second - first);
+        if (!double.IsNegativeInfinity(third)) vote += 0.1 * (third - first);
+        return vote;
     }
 
     private static double GradientDistance(int label,
@@ -654,8 +673,15 @@ public static class PdfOcrRecognizer
     public static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
         PdfOcrRecognitionModel model, PdfOcrOptions options,
         CancellationToken cancellationToken = default) =>
+        RecognizeBgra(bgra, width, height, model, options, null, null, cancellationToken);
+
+    /// <summary>Runs complete recognition with a character language model.</summary>
+    public static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
+        PdfOcrRecognitionModel model, PdfOcrLanguageModel languageModel,
+        PdfOcrOptions options, CancellationToken cancellationToken = default) =>
         RecognizeBgra(bgra, width, height, model, options,
-            (IReadOnlySet<string>?)null, cancellationToken);
+            languageModel ?? throw new ArgumentNullException(nameof(languageModel)),
+            null, cancellationToken);
 
     /// <summary>Runs engine recognition while restricting results to supplied characters.</summary>
     public static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
@@ -671,12 +697,13 @@ public static class PdfOcrRecognizer
                 "The OCR character whitelist has no labels in this model.",
                 nameof(characterWhitelist));
         return RecognizeBgra(
-            bgra, width, height, model, options, allowedLabels, cancellationToken);
+            bgra, width, height, model, options, null, allowedLabels, cancellationToken);
     }
 
     private static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
         PdfOcrRecognitionModel model, PdfOcrOptions options,
-        IReadOnlySet<string>? allowedLabels, CancellationToken cancellationToken)
+        PdfOcrLanguageModel? languageModel, IReadOnlySet<string>? allowedLabels,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(options);
@@ -728,7 +755,7 @@ public static class PdfOcrRecognizer
             PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
                 prepared, pipelineOptions.DetectPageSegments, cancellationToken);
             IReadOnlyList<PdfOcrRecognizedWord> recognized = Recognize(
-                prepared, layout, model, allowedLabels, cancellationToken);
+                prepared, layout, model, languageModel, allowedLabels, cancellationToken);
             int characters = recognized.Sum(word => word.Text.Length);
             double score = characters == 0 ? -1
                 : recognized.Sum(word => word.Confidence * word.Text.Length) / characters;
@@ -761,11 +788,19 @@ public static class PdfOcrRecognizer
     public static IReadOnlyList<PdfOcrRecognizedWord> Recognize(PdfOcrPreparedImage image,
         PdfOcrPageLayout layout, PdfOcrRecognitionModel model,
         CancellationToken cancellationToken = default) =>
-        Recognize(image, layout, model, null, cancellationToken);
+        Recognize(image, layout, model, null, null, cancellationToken);
+
+    /// <summary>Recognizes words and resolves ambiguous glyphs with language context.</summary>
+    public static IReadOnlyList<PdfOcrRecognizedWord> Recognize(PdfOcrPreparedImage image,
+        PdfOcrPageLayout layout, PdfOcrRecognitionModel model,
+        PdfOcrLanguageModel languageModel,
+        CancellationToken cancellationToken = default) =>
+        Recognize(image, layout, model, languageModel, null, cancellationToken);
 
     private static IReadOnlyList<PdfOcrRecognizedWord> Recognize(
         PdfOcrPreparedImage image, PdfOcrPageLayout layout, PdfOcrRecognitionModel model,
-        IReadOnlySet<string>? allowedLabels, CancellationToken cancellationToken)
+        PdfOcrLanguageModel? languageModel, IReadOnlySet<string>? allowedLabels,
+        CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(layout);
@@ -781,6 +816,9 @@ public static class PdfOcrRecognizer
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var text = new StringBuilder();
+                List<IReadOnlyList<PdfOcrLanguageCandidate>>? candidates = languageModel is null
+                    ? null : new List<IReadOnlyList<PdfOcrLanguageCandidate>>(
+                        word.Components.Count);
                 double confidence = 0;
                 foreach (PdfOcrImageRegion component in word.Components)
                 {
@@ -790,9 +828,13 @@ public static class PdfOcrRecognizer
                     (string label, double score) = model.Classify(
                         glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
                     text.Append(label);
+                    candidates?.Add(model.RankCandidates(
+                        scores.AsSpan(0, model.LabelCount), maximumCandidates: 4));
                     confidence += score;
                 }
-                words.Add(new PdfOcrRecognizedWord(text.ToString(),
+                string recognizedText = candidates is null ? text.ToString()
+                    : string.Concat(languageModel!.Decode(candidates));
+                words.Add(new PdfOcrRecognizedWord(recognizedText,
                     word.Components.Count == 0 ? 0 : confidence / word.Components.Count, word.Bounds));
             }
         }
@@ -892,6 +934,7 @@ public sealed class PdfOcrPageRecognizer
 {
     private readonly PdfOcrRecognitionModel? _model;
     private readonly PdfOcrRecognitionModelCatalog? _models;
+    private readonly PdfOcrLanguageModel? _languageModel;
     private readonly PdfPageRenderer _renderer;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
 
@@ -904,6 +947,14 @@ public sealed class PdfOcrPageRecognizer
         _pages = PdfPageInformation.Read(document);
     }
 
+    /// <summary>Creates an engine-owned pipeline with character language context.</summary>
+    public PdfOcrPageRecognizer(PdfDocument document, PdfOcrRecognitionModel model,
+        PdfOcrLanguageModel languageModel) : this(document, model)
+    {
+        _languageModel = languageModel
+            ?? throw new ArgumentNullException(nameof(languageModel));
+    }
+
     /// <summary>Creates an engine-owned pipeline with language-specific models.</summary>
     public PdfOcrPageRecognizer(PdfDocument document, PdfOcrRecognitionModelCatalog models)
     {
@@ -911,6 +962,14 @@ public sealed class PdfOcrPageRecognizer
         _models = models ?? throw new ArgumentNullException(nameof(models));
         _renderer = new PdfPageRenderer(document);
         _pages = PdfPageInformation.Read(document);
+    }
+
+    /// <summary>Creates a language-specific pipeline with character language context.</summary>
+    public PdfOcrPageRecognizer(PdfDocument document, PdfOcrRecognitionModelCatalog models,
+        PdfOcrLanguageModel languageModel) : this(document, models)
+    {
+        _languageModel = languageModel
+            ?? throw new ArgumentNullException(nameof(languageModel));
     }
 
     /// <summary>Recognizes one page directly from its engine-rendered BGRA pixels.</summary>
@@ -974,8 +1033,11 @@ public sealed class PdfOcrPageRecognizer
                     pipelineOptions, cancellationToken);
             PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
                 prepared, pipelineOptions.DetectPageSegments, cancellationToken);
-            IReadOnlyList<PdfOcrRecognizedWord> recognized = PdfOcrRecognizer.Recognize(
-                prepared, layout, model, cancellationToken);
+            IReadOnlyList<PdfOcrRecognizedWord> recognized = _languageModel is null
+                ? PdfOcrRecognizer.Recognize(
+                    prepared, layout, model, cancellationToken)
+                : PdfOcrRecognizer.Recognize(
+                    prepared, layout, model, _languageModel, cancellationToken);
             int characters = recognized.Sum(word => word.Text.Length);
             double score = characters == 0 ? -1
                 : recognized.Sum(word => word.Confidence * word.Text.Length) / characters;

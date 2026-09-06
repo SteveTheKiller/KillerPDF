@@ -13,13 +13,7 @@ public static class PdfOcrRecognitionModelFiles
         out PdfOcrRecognitionModel? model)
     {
         model = null;
-        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(languages))
-            return false;
-        string[] requested = languages.Split('+');
-        if (requested.Length is < 1 or > 16 || requested.Any(language =>
-            language.Length is < 1 or > 35 || language.Any(character =>
-                !char.IsAsciiLetterOrDigit(character) && character is not '_' and not '-')))
-            return false;
+        if (!TryLanguages(directory, languages, out string[] requested)) return false;
         try
         {
             var loaded = new List<PdfOcrRecognitionModel>(requested.Length);
@@ -37,5 +31,42 @@ public static class PdfOcrRecognitionModelFiles
             model = null;
             return false;
         }
+    }
+
+    /// <summary>Attempts to load and combine every installed context model requested.</summary>
+    public static bool TryLoadLanguageCombined(string directory, string languages,
+        out PdfOcrLanguageModel? model)
+    {
+        model = null;
+        if (!TryLanguages(directory, languages, out string[] requested)) return false;
+        try
+        {
+            var loaded = new List<PdfOcrLanguageModel>(requested.Length);
+            foreach (string language in requested)
+            {
+                string path = Path.Combine(directory, language + ".kplm");
+                if (!File.Exists(path)) return false;
+                loaded.Add(PdfOcrLanguageModel.Load(File.ReadAllBytes(path)));
+            }
+            model = loaded.Count == 1 ? loaded[0] : PdfOcrLanguageModel.Combine(loaded);
+            return true;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            model = null;
+            return false;
+        }
+    }
+
+    private static bool TryLanguages(string directory, string languages,
+        out string[] requested)
+    {
+        requested = [];
+        if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(languages))
+            return false;
+        requested = languages.Split('+');
+        return requested.Length is >= 1 and <= 16 && !requested.Any(language =>
+            language.Length is < 1 or > 35 || language.Any(character =>
+                !char.IsAsciiLetterOrDigit(character) && character is not '_' and not '-'));
     }
 }
