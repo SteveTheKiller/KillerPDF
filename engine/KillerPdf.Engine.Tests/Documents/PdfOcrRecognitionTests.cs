@@ -635,6 +635,40 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TextLayerTrainingHonorsPageSegmentation()
+    {
+        var content = new PdfContentStreamBuilder()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 12)
+            .SetTextMatrix(1, 0, 0, 1, 10, 65).ShowLatin1Text("A")
+            .SetTextMatrix(1, 0, 0, 1, 10, 15).ShowLatin1Text("A").EndText()
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 30)
+            .SetTextMatrix(1, 0, 0, 1, 130, 55).ShowLatin1Text("B")
+            .SetTextMatrix(1, 0, 0, 1, 130, 5).ShowLatin1Text("B").EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(200, 100, content).Build());
+        var segmented = new PdfOcrOptions(["en"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: true);
+        var unsegmented = new PdfOcrOptions(["en"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        IReadOnlyList<PdfOcrTrainingSample> separated =
+            PdfOcrModelTrainer.CreatePageSamples(document, 0,
+                new PdfRenderOptions(400, 200, includeAnnotations: false,
+                    includeFormFields: false), segmented, 16, 16);
+        IReadOnlyList<PdfOcrTrainingSample> combined =
+            PdfOcrModelTrainer.CreatePageSamples(document, 0,
+                new PdfRenderOptions(400, 200, includeAnnotations: false,
+                    includeFormFields: false), unsegmented, 16, 16);
+
+        Assert.Equal(["A", "A", "B", "B"], separated.Select(sample => sample.Label));
+        Assert.Equal(separated.Select(sample => sample.Label),
+            combined.Select(sample => sample.Label));
+        Assert.NotEqual(separated[0].Features.ToArray(), combined[0].Features.ToArray());
+    }
+
+    [Fact]
     public void StandardFontTrainingCoversEveryRequestedLatinLabelAcrossBundledFaces()
     {
         string[] labels = ["!", "7", "A", "g"];

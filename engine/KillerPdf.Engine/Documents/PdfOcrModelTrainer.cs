@@ -350,7 +350,7 @@ public static class PdfOcrModelTrainer
         PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
             rendered.Pixels, rendered.Width, rendered.Height, ocrOptions, cancellationToken);
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
-            prepared, detectPageSegments: false, cancellationToken);
+            prepared, ocrOptions.DetectPageSegments, cancellationToken);
         IReadOnlyList<PdfOcrImageRegion> components = layout.Components;
         int featureCount = checked(width * height);
         var labels = new List<(string Label, PdfOcrImageRegion Bounds)>();
