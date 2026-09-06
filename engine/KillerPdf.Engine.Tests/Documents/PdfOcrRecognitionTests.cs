@@ -353,6 +353,22 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerUsesVisualEvidenceToResolveANearTie()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
+        [
+            .. Enumerable.Repeat(
+                new PdfOcrTrainingSample("common", new float[] { 0.9f }), 100),
+            new("rare", new float[] { 1 })
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("rare", new float[] { 1 })]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
     public void TrainerRejectsInvalidFeaturesAndHonorsCancellation()
     {
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
