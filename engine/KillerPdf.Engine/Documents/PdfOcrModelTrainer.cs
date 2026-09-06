@@ -367,7 +367,9 @@ public static class PdfOcrModelTrainer
         long labelArea = (long)label.Width * label.Height;
         return overlapArea * 2 >= sampleArea
             && sampleArea <= labelArea * 2
-            && sampleArea * 20 >= labelArea;
+            && sampleArea * 20 >= labelArea
+            && (long)sample.Width * 5 >= label.Width
+            && (long)sample.Height * 5 >= label.Height;
     }
 
     internal static IReadOnlySet<PdfOcrImageRegion> FindAmbiguousSampleBounds(
