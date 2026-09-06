@@ -402,9 +402,12 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine($"OCR training failed: {error.GetType().Name}: {error.Message}");
         return 1;
     }
+    PdfOcrModelEvaluation trainingEvaluation;
     PdfOcrModelEvaluation evaluation;
     try
     {
+        trainingEvaluation = PdfOcrModelTrainer.Evaluate(
+            ocrModel, Samples(selectHoldout: false, reportFailures: false));
         evaluation = PdfOcrModelTrainer.Evaluate(
             ocrModel, Samples(selectHoldout: true, reportFailures: false));
     }
@@ -428,7 +431,10 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         return 1;
     }
     Console.WriteLine($"OCR model: {ocrModel.Labels.Count:N0} labels, "
-        + $"{modelBytes.Length:N0} bytes, {evaluation.SampleCount:N0} holdout samples, "
+        + $"{modelBytes.Length:N0} bytes, "
+        + $"{trainingEvaluation.SampleCount:N0} training samples, "
+        + $"{trainingEvaluation.Accuracy:P2} training accuracy, "
+        + $"{evaluation.SampleCount:N0} holdout samples, "
         + $"{evaluation.Accuracy:P2} accuracy, "
         + $"{evaluation.AverageConfidence:P2} average confidence.");
     foreach (PdfOcrConfusion confusion in evaluation.Confusion

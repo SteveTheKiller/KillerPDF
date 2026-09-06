@@ -85,6 +85,32 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerKeepsRepresentativeVariantsWithinOneShapeBucket()
+    {
+        float[] left =
+        [
+            1, 0, 0,
+            1, 0, 0,
+            1, 0, 0
+        ];
+        float[] right =
+        [
+            0, 0, 1,
+            0, 0, 1,
+            0, 0, 1
+        ];
+
+        PdfOcrRecognitionModel one = PdfOcrModelTrainer.Train(3, 3,
+            [new("A", left)]);
+        PdfOcrRecognitionModel variants = PdfOcrModelTrainer.Train(3, 3,
+            [new("A", left), new("A", right)]);
+
+        Assert.True(variants.Save().Length > one.Save().Length);
+        Assert.Equal(variants.Save(), PdfOcrModelTrainer.Train(3, 3,
+            [new("A", right), new("A", left)]).Save());
+    }
+
+    [Fact]
     public void TrainerRejectsInvalidFeaturesAndHonorsCancellation()
     {
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,

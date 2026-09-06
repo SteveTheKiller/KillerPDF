@@ -91,9 +91,48 @@ public static class PdfOcrLayoutAnalyzer
             }
         }
 
+        components = MergeDetachedMarks(components);
         IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> columns = detectPageSegments
             ? SplitColumns(components) : components.Count == 0 ? [] : [components];
         return new PdfOcrPageLayout(columns.Select(column => Segment(BuildLines(column))));
+    }
+
+    private static List<PdfOcrImageRegion> MergeDetachedMarks(
+        IReadOnlyList<PdfOcrImageRegion> components)
+    {
+        var merged = new List<PdfOcrImageRegion>(components.Count);
+        var consumed = new bool[components.Count];
+        int[] order = [.. Enumerable.Range(0, components.Count)
+            .OrderByDescending(index => components[index].Width * components[index].Height)];
+        foreach (int baseIndex in order)
+        {
+            if (consumed[baseIndex]) continue;
+            PdfOcrImageRegion bounds = components[baseIndex];
+            int baseArea = bounds.Width * bounds.Height;
+            for (int markIndex = 0; markIndex < components.Count; markIndex++)
+            {
+                if (markIndex == baseIndex || consumed[markIndex]) continue;
+                PdfOcrImageRegion mark = components[markIndex];
+                int markArea = mark.Width * mark.Height;
+                if (markArea * 2 > baseArea) continue;
+                int horizontalOverlap = Math.Min(bounds.Right, mark.Right)
+                    - Math.Max(bounds.Left, mark.Left);
+                if (horizontalOverlap <= 0
+                    || horizontalOverlap * 2 < Math.Min(bounds.Width, mark.Width))
+                    continue;
+                int verticalGap = mark.Bottom <= bounds.Top
+                    ? bounds.Top - mark.Bottom
+                    : bounds.Bottom <= mark.Top ? mark.Top - bounds.Bottom : 0;
+                if (verticalGap > Math.Max(2, bounds.Height / 2)) continue;
+                bounds = new PdfOcrImageRegion(
+                    Math.Min(bounds.Left, mark.Left), Math.Min(bounds.Top, mark.Top),
+                    Math.Max(bounds.Right, mark.Right), Math.Max(bounds.Bottom, mark.Bottom));
+                consumed[markIndex] = true;
+            }
+            consumed[baseIndex] = true;
+            merged.Add(bounds);
+        }
+        return merged;
     }
 
     private static IReadOnlyList<PdfOcrTextLine> BuildLines(

@@ -64,8 +64,9 @@ public static class PdfOcrModelTrainer
 {
     private const int MaximumSamples = 10_000_000;
     private const int MaximumModelValues = 16 * 1024 * 1024;
+    private const int MaximumPrototypesPerShape = 12;
 
-    /// <summary>Trains a shape-bucketed nearest-centroid classifier from normalized glyph samples.</summary>
+    /// <summary>Trains a bounded nearest-prototype classifier from normalized glyph samples.</summary>
     public static PdfOcrRecognitionModel Train(int width, int height,
         IEnumerable<PdfOcrTrainingSample> samples,
         CancellationToken cancellationToken = default)
@@ -74,7 +75,7 @@ public static class PdfOcrModelTrainer
         if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
         ArgumentNullException.ThrowIfNull(samples);
         int featureCount = checked(width * height);
-        var prototypes = new Dictionary<(string Label, int Shape), Accumulator>();
+        var prototypes = new Dictionary<(string Label, int Shape), PrototypeBucket>();
         int sampleCount = 0;
         foreach (PdfOcrTrainingSample sample in samples)
         {
@@ -85,44 +86,39 @@ public static class PdfOcrModelTrainer
             ValidateLabel(sample.Label, samples);
             ValidateFeatures(sample.Features.Span, featureCount, samples);
             var key = (sample.Label, ShapeBucket(sample.Features.Span, width, height));
-            if (!prototypes.TryGetValue(key, out Accumulator? accumulator))
+            if (!prototypes.TryGetValue(key, out PrototypeBucket? bucket))
             {
-                if (checked((prototypes.Count + 1L) * featureCount) > MaximumModelValues)
-                    throw new ArgumentException(
-                        "The OCR training set exceeds the model size limit.", nameof(samples));
-                accumulator = new Accumulator(featureCount);
-                prototypes.Add(key, accumulator);
+                bucket = new PrototypeBucket();
+                prototypes.Add(key, bucket);
             }
-            ReadOnlySpan<float> features = sample.Features.Span;
-            for (int feature = 0; feature < features.Length; feature++)
-            {
-                float value = features[feature];
-                accumulator.Sums[feature] += (decimal)value;
-            }
-            accumulator.Count++;
+            bucket.Add(sample.Features.Span);
         }
         if (sampleCount == 0)
             throw new ArgumentException("At least one OCR training sample is required.",
                 nameof(samples));
 
-        (string Label, int Shape)[] ordered = [.. prototypes.Keys
-            .OrderBy(key => key.Label, StringComparer.Ordinal)
-            .ThenBy(key => key.Shape)];
-        string[] orderedLabels = [.. ordered.Select(key => key.Label)];
+        (string Label, int Shape, ulong Hash, float[] Features)[] ordered =
+        [.. prototypes.OrderBy(entry => entry.Key.Label, StringComparer.Ordinal)
+            .ThenBy(entry => entry.Key.Shape)
+            .SelectMany(entry => entry.Value.Items.Select(item =>
+                (entry.Key.Label, entry.Key.Shape, item.Key, item.Value)))];
+        if (checked((long)ordered.Length * featureCount) > MaximumModelValues)
+            throw new ArgumentException(
+                "The OCR training set exceeds the model size limit.", nameof(samples));
+        string[] orderedLabels = [.. ordered.Select(item => item.Label)];
         var weights = new float[checked(orderedLabels.Length * featureCount)];
         var biases = new float[orderedLabels.Length];
         double scoreScale = Math.Sqrt(featureCount);
         for (int label = 0; label < orderedLabels.Length; label++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Accumulator accumulator = prototypes[ordered[label]];
             double squaredLength = 0;
             int offset = label * featureCount;
             for (int feature = 0; feature < featureCount; feature++)
             {
-                double centroid = (double)(accumulator.Sums[feature] / accumulator.Count);
-                weights[offset + feature] = checked((float)(2 * centroid / scoreScale));
-                squaredLength += centroid * centroid;
+                double value = ordered[label].Features[feature];
+                weights[offset + feature] = checked((float)(2 * value / scoreScale));
+                squaredLength += value * value;
             }
             biases[label] = checked((float)(-squaredLength / scoreScale));
         }
@@ -180,20 +176,59 @@ public static class PdfOcrModelTrainer
             pageIndex, renderOptions, cancellationToken);
         PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
             rendered.Pixels, rendered.Width, rendered.Height, ocrOptions, cancellationToken);
+        IReadOnlyList<PdfOcrImageRegion> components = PdfOcrLayoutAnalyzer.Analyze(
+            prepared, detectPageSegments: false, cancellationToken).Components;
         int featureCount = checked(width * height);
-        var samples = new List<PdfOcrTrainingSample>();
+        var labels = new List<(string Label, PdfOcrImageRegion Bounds)>();
         foreach (PdfExtractedLetter letter in content.Letters)
         {
-            cancellationToken.ThrowIfCancellationRequested();
             string label = letter.Value.Trim();
             if (!IsValidLabel(label)) continue;
             PdfOcrImageRegion? bounds = MapToPixels(
                 letter.BoundingBox, page, rendered.Width, rendered.Height);
-            if (bounds is null) continue;
+            if (bounds is not null) labels.Add((label, bounds));
+        }
+        var assigned = new List<PdfOcrImageRegion>[labels.Count];
+        foreach (PdfOcrImageRegion component in components)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            double centerX = (component.Left + component.Right) / 2d;
+            double centerY = (component.Top + component.Bottom) / 2d;
+            int best = -1;
+            double bestDistance = double.PositiveInfinity;
+            for (int index = 0; index < labels.Count; index++)
+            {
+                PdfOcrImageRegion bounds = labels[index].Bounds;
+                if (centerX < bounds.Left || centerX > bounds.Right
+                    || centerY < bounds.Top || centerY > bounds.Bottom)
+                    continue;
+                double dx = (centerX - (bounds.Left + bounds.Right) / 2d)
+                    / Math.Max(1, bounds.Width);
+                double dy = (centerY - (bounds.Top + bounds.Bottom) / 2d)
+                    / Math.Max(1, bounds.Height);
+                double distance = dx * dx + dy * dy;
+                if (distance < bestDistance)
+                {
+                    best = index;
+                    bestDistance = distance;
+                }
+            }
+            if (best < 0) continue;
+            (assigned[best] ??= []).Add(component);
+        }
+        var samples = new List<PdfOcrTrainingSample>();
+        for (int index = 0; index < labels.Count; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            List<PdfOcrImageRegion>? glyph = assigned[index];
+            if (glyph is null) continue;
+            var bounds = new PdfOcrImageRegion(
+                glyph.Min(item => item.Left), glyph.Min(item => item.Top),
+                glyph.Max(item => item.Right), glyph.Max(item => item.Bottom));
             if (checked((samples.Count + 1L) * featureCount) > MaximumModelValues)
                 throw new ArgumentException(
                     "The PDF page has too many OCR training values.", nameof(document));
-            samples.Add(new PdfOcrTrainingSample(label,
+            samples.Add(new PdfOcrTrainingSample(labels[index].Label,
                 PdfOcrRecognizer.NormalizeGlyph(prepared, bounds, width, height)));
         }
         return Array.AsReadOnly(samples.ToArray());
@@ -324,9 +359,39 @@ public static class PdfOcrModelTrainer
         };
     }
 
-    private sealed class Accumulator(int featureCount)
+    private sealed class PrototypeBucket
     {
-        internal decimal[] Sums { get; } = new decimal[featureCount];
-        internal int Count { get; set; }
+        private readonly SortedDictionary<ulong, float[]> _items = [];
+
+        internal IReadOnlyDictionary<ulong, float[]> Items => _items;
+
+        internal void Add(ReadOnlySpan<float> features)
+        {
+            ulong hash = 14695981039346656037UL;
+            foreach (float value in features)
+            {
+                hash ^= (byte)Math.Clamp((int)Math.Round(value * 255), 0, 255);
+                hash *= 1099511628211UL;
+            }
+            float[] candidate = features.ToArray();
+            if (_items.TryGetValue(hash, out float[]? existing))
+            {
+                if (Compare(candidate, existing) < 0) _items[hash] = candidate;
+                return;
+            }
+            _items.Add(hash, candidate);
+            if (_items.Count > MaximumPrototypesPerShape)
+                _items.Remove(_items.Keys.Last());
+        }
+
+        private static int Compare(float[] left, float[] right)
+        {
+            for (int index = 0; index < left.Length; index++)
+            {
+                int comparison = left[index].CompareTo(right[index]);
+                if (comparison != 0) return comparison;
+            }
+            return 0;
+        }
     }
 }
