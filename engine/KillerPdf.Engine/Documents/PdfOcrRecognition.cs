@@ -526,42 +526,46 @@ public sealed class PdfOcrRecognitionModel
         if (best < 0)
             throw new ArgumentException(
                 "The OCR character whitelist has no labels in this model.", nameof(allowedLabels));
-        string visualLabel = _labels[best];
-        double visualVote = PrototypeVote(visualLabel, scores);
-        foreach (string label in Labels)
+        Span<double> labelVotes = Labels.Count <= 256
+            ? stackalloc double[Labels.Count] : new double[Labels.Count];
+        int visualIndex = 0;
+        double visualVote = double.NegativeInfinity;
+        for (int labelIndex = 0; labelIndex < Labels.Count; labelIndex++)
         {
-            double vote = PrototypeVote(label, scores);
+            double vote = PrototypeVote(Labels[labelIndex], scores);
+            labelVotes[labelIndex] = vote;
             if (vote > visualVote)
             {
-                visualLabel = label;
+                visualIndex = labelIndex;
                 visualVote = vote;
             }
         }
         float maximumPrior = float.NegativeInfinity;
-        foreach (string label in Labels)
+        for (int labelIndex = 0; labelIndex < Labels.Count; labelIndex++)
         {
-            double vote = PrototypeVote(label, scores);
-            if (visualVote - vote <= PriorTieWindow)
-                maximumPrior = Math.Max(maximumPrior, _labelPriors[label]);
+            if (visualVote - labelVotes[labelIndex] <= PriorTieWindow)
+                maximumPrior = Math.Max(
+                    maximumPrior, _labelPriors[Labels[labelIndex]]);
         }
-        string bestLabel = visualLabel;
+        int bestLabelIndex = visualIndex;
         double bestAdjustedVote = double.NegativeInfinity;
-        foreach (string label in Labels)
+        for (int labelIndex = 0; labelIndex < Labels.Count; labelIndex++)
         {
-            double vote = PrototypeVote(label, scores);
+            double vote = labelVotes[labelIndex];
             if (visualVote - vote > PriorTieWindow) continue;
-            double adjusted = vote + _labelPriors[label] - maximumPrior;
+            double adjusted = vote + _labelPriors[Labels[labelIndex]] - maximumPrior;
             if (adjusted > bestAdjustedVote)
             {
-                bestLabel = label;
+                bestLabelIndex = labelIndex;
                 bestAdjustedVote = adjusted;
             }
         }
-        double bestVote = PrototypeVote(bestLabel, scores);
+        string bestLabel = Labels[bestLabelIndex];
+        double bestVote = labelVotes[bestLabelIndex];
         double runnerUpVote = double.NegativeInfinity;
-        foreach (string label in Labels)
-            if (!string.Equals(label, bestLabel, StringComparison.Ordinal))
-                runnerUpVote = Math.Max(runnerUpVote, PrototypeVote(label, scores));
+        for (int labelIndex = 0; labelIndex < Labels.Count; labelIndex++)
+            if (labelIndex != bestLabelIndex)
+                runnerUpVote = Math.Max(runnerUpVote, labelVotes[labelIndex]);
         if (double.IsNegativeInfinity(runnerUpVote)) return (bestLabel, 1);
         return (bestLabel, 1 / (1 + Math.Exp(runnerUpVote - bestVote)));
     }
