@@ -194,6 +194,21 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_MergesColonDotsAcrossTheTextHeight()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 20 * 14).ToArray();
+        Paint(pixels, 20, 2, 1, 2, 2);
+        Paint(pixels, 20, 2, 8, 2, 2);
+        Paint(pixels, 20, 10, 1, 3, 10);
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(20, 14, pixels));
+
+        Assert.Equal(2, layout.Components.Count);
+        Assert.Contains(new PdfOcrImageRegion(2, 1, 4, 10), layout.Components);
+    }
+
+    [Fact]
     public void Analyze_IgnoresRuleLinesAndExtremeGraphicStrokes()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 80 * 80).ToArray();

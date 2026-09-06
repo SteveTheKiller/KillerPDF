@@ -280,7 +280,7 @@ public static class PdfOcrLayoutAnalyzer
                     : bounds.Bottom <= mark.Top ? mark.Top - bounds.Bottom : 0;
                 int maximumGap = subordinateMark
                     ? Math.Max(2, Math.Min(bounds.Height / 2, mark.Height * 2))
-                    : Math.Max(2, Math.Max(bounds.Width, mark.Width) * 2);
+                    : Math.Max(2, referenceHeight);
                 if (verticalGap > maximumGap) continue;
                 bounds = new PdfOcrImageRegion(
                     Math.Min(bounds.Left, mark.Left), Math.Min(bounds.Top, mark.Top),
