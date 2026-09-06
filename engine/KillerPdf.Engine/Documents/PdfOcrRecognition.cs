@@ -1109,7 +1109,9 @@ public static class PdfOcrRecognizer
     public static float[] NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
         int width, int height, CancellationToken cancellationToken = default)
     {
-        var result = new float[width * height];
+        ValidateNormalizationArguments(image, region, region, width, height);
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = new float[checked(width * height)];
         NormalizeGlyph(image, region, width, height, result, cancellationToken);
         return result;
     }
@@ -1119,10 +1121,31 @@ public static class PdfOcrRecognizer
         PdfOcrImageRegion region, PdfOcrImageRegion lineBounds,
         int width, int height, CancellationToken cancellationToken = default)
     {
-        var result = new float[width * height];
+        ValidateNormalizationArguments(image, region, lineBounds, width, height);
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = new float[checked(width * height)];
         NormalizeGlyph(image, region, lineBounds, width, height,
             result, cancellationToken);
         return result;
+    }
+
+    private static void ValidateNormalizationArguments(PdfOcrPreparedImage image,
+        PdfOcrImageRegion region, PdfOcrImageRegion lineBounds, int width, int height)
+    {
+        ArgumentNullException.ThrowIfNull(image);
+        ArgumentNullException.ThrowIfNull(region);
+        ArgumentNullException.ThrowIfNull(lineBounds);
+        if (width is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
+        if (region.Left < 0 || region.Top < 0 || region.Right > image.Width
+            || region.Bottom > image.Height || region.Width <= 0 || region.Height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(region));
+        if (lineBounds.Left < 0 || lineBounds.Top < 0 || lineBounds.Right > image.Width
+            || lineBounds.Bottom > image.Height || lineBounds.Width <= 0
+            || lineBounds.Height <= 0 || lineBounds.Left > region.Left
+            || lineBounds.Top > region.Top || lineBounds.Right < region.Right
+            || lineBounds.Bottom < region.Bottom)
+            throw new ArgumentOutOfRangeException(nameof(lineBounds));
     }
 
     internal static PdfOcrImageRegion NormalizationLineBounds(PdfOcrTextLine line)

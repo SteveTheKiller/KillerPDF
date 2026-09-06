@@ -1445,6 +1445,28 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void GlyphNormalizationRejectsUnboundedDimensionsAndRegions()
+    {
+        PdfOcrPreparedImage image = Prepared(4, 4,
+        [
+            "....",
+            ".##.",
+            ".##.",
+            "...."
+        ]);
+        var glyph = new PdfOcrImageRegion(1, 1, 3, 3);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrRecognizer.NormalizeGlyph(image, glyph, 129, 4));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrRecognizer.NormalizeGlyph(image,
+                new PdfOcrImageRegion(-1, 1, 3, 3), 4, 4));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrRecognizer.NormalizeGlyph(image, glyph,
+                new PdfOcrImageRegion(2, 1, 4, 3), 4, 4));
+    }
+
+    [Fact]
     public void PageRecognizerRunsDirectlyFromEngineRenderAndMapsPdfBounds()
     {
         PdfOcrRecognitionModel model = RecognitionModel();
