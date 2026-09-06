@@ -139,23 +139,11 @@ public static class PdfOcrModelTrainer
             throw new ArgumentException("At least one OCR training sample is required.",
                 nameof(samples));
 
-        (string Label, int Shape, ulong Hash, float[] Features)[] collected =
+        (string Label, int Shape, ulong Hash, float[] Features)[] ordered =
         [.. prototypes.OrderBy(entry => entry.Key.Label, StringComparer.Ordinal)
             .ThenBy(entry => entry.Key.Shape)
             .SelectMany(entry => entry.Value.Items.Select(item =>
                 (entry.Key.Label, entry.Key.Shape, item.Key, item.Value)))];
-        HashSet<(int Shape, ulong Hash)> conflicts = [.. collected
-            .GroupBy(item => (item.Shape, item.Hash))
-            .Where(group => group.Select(item => item.Label)
-                .Distinct(StringComparer.Ordinal).Skip(1).Any())
-            .Select(group => group.Key)];
-        HashSet<string> supportedLabels = [.. collected
-            .Where(item => !conflicts.Contains((item.Shape, item.Hash)))
-            .Select(item => item.Label)];
-        (string Label, int Shape, ulong Hash, float[] Features)[] ordered =
-        [.. collected.Where(item => supportedLabels.Contains(item.Label)
-            ? !conflicts.Contains((item.Shape, item.Hash))
-            : true)];
         if (checked((long)ordered.Length * featureCount) > MaximumModelValues)
             throw new ArgumentException(
                 "The OCR training set exceeds the model size limit.", nameof(samples));
@@ -409,7 +397,7 @@ public static class PdfOcrModelTrainer
                 long intersection = (long)overlapWidth * overlapHeight;
                 long union = (long)first.Width * first.Height
                     + (long)second.Width * second.Height - intersection;
-                if (intersection * 5 < union * 4) continue;
+                if (intersection * 10 < union * 9) continue;
                 ambiguous.Add(first);
                 ambiguous.Add(second);
             }
