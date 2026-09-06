@@ -152,9 +152,9 @@ public sealed class PdfOcrRecognitionModel
     {
         ArgumentNullException.ThrowIfNull(models);
         PdfOcrRecognitionModel[] supplied = models.ToArray();
-        if (supplied.Length == 0 || supplied.Any(model => model is null))
+        if (supplied.Length is < 1 or > 16 || supplied.Any(model => model is null))
             throw new ArgumentException(
-                "At least one OCR recognition model is required.", nameof(models));
+                "One through sixteen OCR recognition models are required.", nameof(models));
         PdfOcrRecognitionModel first = supplied[0];
         if (supplied.Any(model => model.Width != first.Width
             || model.Height != first.Height))
@@ -162,6 +162,16 @@ public sealed class PdfOcrRecognitionModel
                 "OCR recognition model dimensions do not match.", nameof(models));
         int labelCount = checked(supplied.Sum(model => model._labels.Length));
         int featureCount = checked(first.Width * first.Height);
+        long labelBytes = supplied.Sum(model => model._labels.Sum(
+            label => 1L + Encoding.UTF8.GetByteCount(label)));
+        long valueCount = supplied.Sum(model => (long)model._weights.Length
+            + model._biases.Length + model._priors.Length);
+        long serializedLength = Magic.Length + sizeof(int) * 3L
+            + labelBytes + valueCount * sizeof(float);
+        if (labelCount > 65_536 || serializedLength > MaximumModelBytes)
+            throw new ArgumentException(
+                "The combined OCR recognition model exceeds the size limit.",
+                nameof(models));
         var labels = new string[labelCount];
         var weights = new float[checked(labelCount * featureCount)];
         var biases = new float[labelCount];

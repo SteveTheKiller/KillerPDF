@@ -779,6 +779,23 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void CombiningModelsRejectsOversizedOutputBeforeAllocatingIt()
+    {
+        const int labelCount = 1_024;
+        string[] labels = [.. Enumerable.Range(0, labelCount)
+            .Select(index => $"L{index}")];
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
+            64, 64, labels, new float[labelCount * 64 * 64],
+            new float[labelCount]);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Throws<ArgumentException>(() =>
+            PdfOcrRecognitionModel.Combine(Enumerable.Repeat(model, 16)));
+
+        Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 2_000_000);
+    }
+
+    [Fact]
     public void RawBgraRecognitionRunsTheCompleteEnginePipeline()
     {
         string[] rows =
