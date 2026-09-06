@@ -82,6 +82,21 @@ public sealed class PdfOcrLanguageModelTests
     }
 
     [Fact]
+    public void DecodeConfidenceIncludesRunnerUpWithTheSameFinalLabel()
+    {
+        PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(["AX", "BX"]);
+
+        PdfOcrLanguageDecode decoded = model.DecodeWithConfidence(
+        [
+            [new("A", 0), new("B", -0.1)],
+            [new("X", 0)]
+        ], languageWeight: 0);
+
+        Assert.Equal(["A", "X"], decoded.Labels);
+        Assert.Equal(1 / (1 + Math.Exp(-0.1)), decoded.Confidence, 12);
+    }
+
+    [Fact]
     public void CombineMergesTransitionsDeterministically()
     {
         PdfOcrLanguageModel first = PdfOcrLanguageModel.Train(["AB"]);

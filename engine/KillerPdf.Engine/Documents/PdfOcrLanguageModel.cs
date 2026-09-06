@@ -290,9 +290,10 @@ public sealed class PdfOcrLanguageModel
                 "The OCR language-model sequence exceeds the position limit.",
                 nameof(positions));
 
-        var paths = new Dictionary<string, Path>(StringComparer.Ordinal)
+        var paths = new Dictionary<string, PathPair>(StringComparer.Ordinal)
         {
-            [string.Empty] = new Path(0, string.Empty, null, 0)
+            [string.Empty] = new PathPair(
+                new Path(0, string.Empty, null, 0), null)
         };
         foreach (IReadOnlyList<PdfOcrLanguageCandidate> supplied in positions)
         {
@@ -302,7 +303,7 @@ public sealed class PdfOcrLanguageModel
                 throw new ArgumentException(
                     "Every OCR language-model position requires a bounded candidate set.",
                     nameof(positions));
-            var next = new Dictionary<string, Path>(StringComparer.Ordinal);
+            var next = new Dictionary<string, PathPair>(StringComparer.Ordinal);
             foreach (PdfOcrLanguageCandidate candidate in supplied)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -310,45 +311,82 @@ public sealed class PdfOcrLanguageModel
                     throw new ArgumentException(
                         "OCR language-model candidates require labels and finite scores.",
                         nameof(positions));
-                Path? bestPrevious = null;
-                double bestScore = double.NegativeInfinity;
-                foreach ((string previous, Path path) in paths)
+                foreach ((string previous, PathPair pair) in paths)
                 {
-                    double score = path.Score + candidate.Score
+                    double transition = candidate.Score
                         + languageWeight * TransitionScore(previous, candidate.Label);
-                    if (bestPrevious is null || score > bestScore
-                        || score == bestScore && path.Rank < bestPrevious.Rank)
-                    {
-                        bestPrevious = path;
-                        bestScore = score;
-                    }
+                    AddBestPath(next, candidate.Label,
+                        pair.Best.Score + transition, pair.Best);
+                    if (pair.SecondScore.HasValue)
+                        AddAlternativeScore(next, candidate.Label,
+                            pair.SecondScore.Value + transition);
                 }
-                var proposed = new Path(bestScore, candidate.Label,
-                    bestPrevious, bestPrevious!.Length + 1);
-                if (!next.TryGetValue(candidate.Label, out Path? best)
-                    || bestScore > best.Score
-                    || bestScore == best.Score
-                    && bestPrevious.Rank < best.Previous!.Rank)
-                    next[candidate.Label] = proposed;
             }
             int rank = 0;
-            foreach (Path path in next.Values
+            foreach (Path path in next.Values.Select(pair => pair.Best)
                 .OrderBy(path => path.Previous!.Rank)
                 .ThenBy(path => path.Label, StringComparer.Ordinal))
                 path.Rank = rank++;
             paths = next;
         }
-        Path[] ranked = [.. paths.Values
+        Path[] ranked = [.. paths.Values.Select(pair => pair.Best)
             .OrderByDescending(FinalScore)
             .ThenBy(path => path.Rank)];
         Path selected = ranked[0];
-        double confidence = ranked.Length == 1 ? 1 : 1 / (1 + Math.Exp(
-            FinalScore(ranked[1]) - FinalScore(selected)));
+        double runnerUp = ranked.Length > 1
+            ? FinalScore(ranked[1]) : double.NegativeInfinity;
+        foreach ((string label, PathPair pair) in paths)
+            if (pair.SecondScore.HasValue)
+                runnerUp = Math.Max(runnerUp, pair.SecondScore.Value
+                    + (_usesEndTransitions
+                        ? languageWeight * TransitionScore(label, string.Empty) : 0));
+        double confidence = double.IsNegativeInfinity(runnerUp) ? 1
+            : 1 / (1 + Math.Exp(runnerUp - FinalScore(selected)));
         return new PdfOcrLanguageDecode(
             Array.AsReadOnly(ToLabels(selected)), confidence);
 
         double FinalScore(Path path) => path.Score + (_usesEndTransitions
             ? languageWeight * TransitionScore(path.Label, string.Empty) : 0);
+
+        static void AddBestPath(Dictionary<string, PathPair> target,
+            string label, double score, Path previous)
+        {
+            if (!target.TryGetValue(label, out PathPair? pair))
+            {
+                target.Add(label, new PathPair(
+                    new Path(score, label, previous, previous.Length + 1), null));
+                return;
+            }
+            if (ReferenceEquals(pair.Best.Previous, previous))
+            {
+                if (Better(score, previous, pair.Best))
+                    pair.Best = new Path(score, label, previous, previous.Length + 1);
+                return;
+            }
+            if (Better(score, previous, pair.Best))
+            {
+                pair.SecondScore = pair.SecondScore.HasValue
+                    ? Math.Max(pair.SecondScore.Value, pair.Best.Score)
+                    : pair.Best.Score;
+                pair.Best = new Path(score, label, previous, previous.Length + 1);
+            }
+            else
+                pair.SecondScore = pair.SecondScore.HasValue
+                    ? Math.Max(pair.SecondScore.Value, score) : score;
+
+            static bool Better(double candidateScore, Path candidatePrevious,
+                Path current) => candidateScore > current.Score
+                || candidateScore == current.Score
+                && candidatePrevious.Rank < current.Previous!.Rank;
+        }
+
+        static void AddAlternativeScore(Dictionary<string, PathPair> target,
+            string label, double score)
+        {
+            PathPair pair = target[label];
+            pair.SecondScore = pair.SecondScore.HasValue
+                ? Math.Max(pair.SecondScore.Value, score) : score;
+        }
     }
 
     private double TransitionScore(string previous, string current)
@@ -421,5 +459,11 @@ public sealed class PdfOcrLanguageModel
         double Score, string Label, Path? Previous, int Length)
     {
         internal int Rank { get; set; }
+    }
+
+    private sealed class PathPair(Path best, double? secondScore)
+    {
+        internal Path Best { get; set; } = best;
+        internal double? SecondScore { get; set; } = secondScore;
     }
 }
