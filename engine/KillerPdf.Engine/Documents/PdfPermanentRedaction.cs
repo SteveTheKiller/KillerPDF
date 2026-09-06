@@ -6,6 +6,7 @@ using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -35,21 +36,31 @@ public sealed record PdfRedactionVerificationFinding(
     string Code, string Message, int? PageIndex = null, int? ObjectNumber = null);
 
 /// <summary>The result of verifying a clean-raster redaction output.</summary>
-public sealed record PdfRedactionVerificationReport(IReadOnlyList<PdfRedactionVerificationFinding> Findings)
+public sealed partial record PdfRedactionVerificationReport(IReadOnlyList<PdfRedactionVerificationFinding> Findings)
 {
+    private static readonly PdfRedactionVerificationJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfRedactionVerificationJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Gets whether the output passed every redaction safety check.</summary>
     public bool Succeeded => Findings.Count == 0;
 
     /// <summary>Exports the verification result as stable machine-readable JSON.</summary>
     public string ToJson(bool indented = false)
+        => JsonSerializer.Serialize(new ReportFile(1, Succeeded, Findings),
+            indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int Version, bool Succeeded, IReadOnlyList<PdfRedactionVerificationFinding> Findings);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        };
-        return JsonSerializer.Serialize(new { Version = 1, Succeeded, Findings }, options);
-    }
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfRedactionVerificationJsonContext : JsonSerializerContext;
 
     /// <summary>Exports a readable verification result with page and object locations.</summary>
     public string ToText()
@@ -87,40 +98,58 @@ public sealed record PdfRedactionBatchResult(
     string? Error);
 
 /// <summary>The verified result of permanently removing reviewed comment annotations.</summary>
-public sealed record PdfCommentRedactionResult(
+public sealed partial record PdfCommentRedactionResult(
     ReadOnlyMemory<byte> Document, IReadOnlyList<string> RemovedIds, int RemainingComments)
 {
+    private static readonly PdfCommentRedactionJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfCommentRedactionJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Exports a data-safe result without document bytes or comment text.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        Version = 1,
-        RemovedCount = RemovedIds.Count,
-        RemovedIds,
-        RemainingComments
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(1, RemovedIds.Count, RemovedIds, RemainingComments),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int Version, int RemovedCount, IReadOnlyList<string> RemovedIds,
+        int RemainingComments);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
-    });
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfCommentRedactionJsonContext : JsonSerializerContext;
 }
 
 /// <summary>The verified result of permanently removing reviewed attachments.</summary>
-public sealed record PdfAttachmentRedactionResult(
+public sealed partial record PdfAttachmentRedactionResult(
     ReadOnlyMemory<byte> Document, IReadOnlyList<string> RemovedIds,
     IReadOnlyList<string> RemainingAttachmentNames)
 {
+    private static readonly PdfAttachmentRedactionJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfAttachmentRedactionJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Exports a data-safe result without document bytes or attachment payloads.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        Version = 1,
-        RemovedCount = RemovedIds.Count,
-        RemovedIds,
-        RemainingAttachmentNames
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(1, RemovedIds.Count, RemovedIds, RemainingAttachmentNames),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int Version, int RemovedCount, IReadOnlyList<string> RemovedIds,
+        IReadOnlyList<string> RemainingAttachmentNames);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
-    });
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfAttachmentRedactionJsonContext : JsonSerializerContext;
 }
 
 /// <summary>Creates and verifies PDFs that contain only sanitized page images.</summary>

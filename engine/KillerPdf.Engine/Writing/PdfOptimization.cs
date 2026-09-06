@@ -87,9 +87,12 @@ public sealed record PdfOptimizationOptions
 }
 
 /// <summary>A completed optimization and its measured size change.</summary>
-public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int OriginalSize,
+public sealed partial record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int OriginalSize,
     int OutputSize, IReadOnlyList<PdfOptimizationChangeKind> Changes)
 {
+    private static readonly PdfOptimizationResultJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfOptimizationResultJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Gets the signed output-size difference in bytes.</summary>
     public int SizeDifference => OutputSize - OriginalSize;
     /// <summary>Gets the original count of active cross-reference objects.</summary>
@@ -104,23 +107,33 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
     public IReadOnlyList<PdfSaveRepairChange> Repairs { get; init; } = [];
 
     /// <summary>Serializes measured results without embedding the output PDF bytes.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        OriginalSize,
-        OutputSize,
-        SizeDifference,
-        OriginalObjectCount,
-        OutputObjectCount,
-        ObjectCountDifference,
-        Changes,
-        VerifiedRemovals,
-        Repairs
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(OriginalSize, OutputSize, SizeDifference,
+            OriginalObjectCount, OutputObjectCount, ObjectCountDifference,
+            Changes, VerifiedRemovals, Repairs),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int OriginalSize, int OutputSize, int SizeDifference,
+        int OriginalObjectCount, int OutputObjectCount, int ObjectCountDifference,
+        IReadOnlyList<PdfOptimizationChangeKind> Changes,
+        IReadOnlyList<PdfOptimizationChangeKind> VerifiedRemovals,
+        IReadOnlyList<PdfSaveRepairChange> Repairs);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         WriteIndented = indented,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    });
+        Converters =
+        {
+            new JsonStringEnumConverter<PdfOptimizationChangeKind>(JsonNamingPolicy.CamelCase),
+            new JsonStringEnumConverter<PdfSaveRepairKind>(JsonNamingPolicy.CamelCase)
+        }
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfOptimizationResultJsonContext : JsonSerializerContext;
 
     /// <summary>Formats measured optimization results without output PDF data.</summary>
     public string ToText()
@@ -149,8 +162,11 @@ public sealed record PdfOptimizationResult(ReadOnlyMemory<byte> Data, int Origin
 }
 
 /// <summary>An immutable preview of a deterministic full-document optimization.</summary>
-public sealed class PdfOptimizationPlan
+public sealed partial class PdfOptimizationPlan
 {
+    private static readonly PdfOptimizationPlanJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfOptimizationPlanJsonContext IndentedJson = new(JsonOptions(true));
+
     private readonly PdfDocument _document;
     private readonly PdfOptimizationOptions _options;
     private readonly string[] _attachmentNames;
@@ -218,26 +234,41 @@ public sealed class PdfOptimizationPlan
     public IReadOnlyList<PdfSaveRepairChange> Repairs => Array.AsReadOnly(_repairs);
 
     /// <summary>Serializes the complete preview without changing the document.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        OriginalSize,
-        Changes,
-        AttachmentNames,
-        FormFieldNames,
-        CommentCount,
-        ResourcePageIndexes,
-        ThumbnailPageIndexes,
-        UnreachableObjectNumbers,
-        CompressedStreamObjectNumbers,
-        OptionalContentGroupNames,
-        HiddenOptionalContentGroupNames,
-        Repairs
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(OriginalSize, Changes, AttachmentNames, FormFieldNames,
+            CommentCount, ResourcePageIndexes, ThumbnailPageIndexes,
+            UnreachableObjectNumbers, CompressedStreamObjectNumbers,
+            OptionalContentGroupNames, HiddenOptionalContentGroupNames, Repairs),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int OriginalSize,
+        IReadOnlyList<PdfOptimizationChangeKind> Changes,
+        IReadOnlyList<string> AttachmentNames,
+        IReadOnlyList<string> FormFieldNames,
+        int CommentCount,
+        IReadOnlyList<int> ResourcePageIndexes,
+        IReadOnlyList<int> ThumbnailPageIndexes,
+        IReadOnlyList<int> UnreachableObjectNumbers,
+        IReadOnlyList<int> CompressedStreamObjectNumbers,
+        IReadOnlyList<string> OptionalContentGroupNames,
+        IReadOnlyList<string> HiddenOptionalContentGroupNames,
+        IReadOnlyList<PdfSaveRepairChange> Repairs);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         WriteIndented = indented,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    });
+        Converters =
+        {
+            new JsonStringEnumConverter<PdfOptimizationChangeKind>(JsonNamingPolicy.CamelCase),
+            new JsonStringEnumConverter<PdfSaveRepairKind>(JsonNamingPolicy.CamelCase)
+        }
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfOptimizationPlanJsonContext : JsonSerializerContext;
 
     /// <summary>Formats the complete optimization preview without changing the document.</summary>
     public string ToText()

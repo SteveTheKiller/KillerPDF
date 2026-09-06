@@ -1,12 +1,16 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>A calibrated conversion from PDF user-space points to drawing units.</summary>
-public sealed record PdfMeasurementProfile
+public sealed partial record PdfMeasurementProfile
 {
+    private static readonly PdfMeasurementProfileJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfMeasurementProfileJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Creates a named measurement profile.</summary>
     public PdfMeasurementProfile(string name, double unitsPerPoint, string unitSymbol, int precision = 2)
     {
@@ -32,18 +36,15 @@ public sealed record PdfMeasurementProfile
     /// <summary>Serializes the named calibration without document measurements.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new MeasurementProfileFile(1, Name, UnitsPerPoint, UnitSymbol, Precision),
-        new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+        indented ? IndentedJson.MeasurementProfileFile
+            : CompactJson.MeasurementProfileFile);
 
     /// <summary>Reads a saved named calibration.</summary>
     public static PdfMeasurementProfile FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        MeasurementProfileFile file = JsonSerializer.Deserialize<MeasurementProfileFile>(json,
-            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+        MeasurementProfileFile file = JsonSerializer.Deserialize(
+            json, CompactJson.MeasurementProfileFile)
             ?? throw new JsonException("The measurement profile is empty.");
         if (file.Version != 1)
             throw new NotSupportedException(
@@ -65,6 +66,17 @@ public sealed record PdfMeasurementProfile
 
     private sealed record MeasurementProfileFile(
         int Version, string Name, double UnitsPerPoint, string UnitSymbol, int Precision);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(MeasurementProfileFile))]
+    private sealed partial class PdfMeasurementProfileJsonContext : JsonSerializerContext;
 }
 
 /// <summary>A point in PDF user space.</summary>
@@ -400,8 +412,11 @@ public sealed record PdfMeasurementResult
 }
 
 /// <summary>Exports stable machine-readable measurement reports.</summary>
-public static class PdfMeasurementReport
+public static partial class PdfMeasurementReport
 {
+    private static readonly PdfMeasurementReportJsonContext Json = new(
+        new JsonSerializerOptions { WriteIndented = true });
+
     /// <summary>Writes a readable measurement report.</summary>
     public static string ToText(IEnumerable<PdfMeasurementResult> results)
     {
@@ -433,7 +448,10 @@ public static class PdfMeasurementReport
 
     /// <summary>Writes measurement results as JSON.</summary>
     public static string ToJson(IEnumerable<PdfMeasurementResult> results) =>
-        JsonSerializer.Serialize(Checked(results), new JsonSerializerOptions { WriteIndented = true });
+        JsonSerializer.Serialize(Checked(results), Json.PdfMeasurementResultArray);
+
+    [JsonSerializable(typeof(PdfMeasurementResult[]))]
+    private sealed partial class PdfMeasurementReportJsonContext : JsonSerializerContext;
 
     /// <summary>Writes measurement results as RFC 4180-compatible CSV.</summary>
     public static string ToCsv(IEnumerable<PdfMeasurementResult> results)
