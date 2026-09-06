@@ -340,6 +340,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int ocrMaximum = int.MaxValue, renderSize = 1600, pagesPerFile = 1;
     int ocrTimeoutSeconds = 30;
     int holdoutPercent = 10, modelWidth = 32, modelHeight = 32;
+    string? ocrFileListPath = null;
     string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
     string? ocrCertificateManifestPath = null;
@@ -363,6 +364,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         if (args[index] == "--label-file")
         {
             ocrLabelFilePath = Path.GetFullPath(args[index + 1]);
+            continue;
+        }
+        if (args[index] == "--file-list")
+        {
+            ocrFileListPath = Path.GetFullPath(args[index + 1]);
             continue;
         }
         if (!int.TryParse(args[index + 1], out int value) || value < 1)
@@ -391,9 +397,20 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         ReadCertificateManifest(ocrCertificateManifestPath);
     HashSet<string>? ocrLabels = ReadLabelFile(ocrLabelFilePath);
 
-    string[] ocrFiles = [.. Directory.EnumerateFiles(
-            ocrRoot, "*.pdf", SearchOption.AllDirectories)
-        .Order(StringComparer.OrdinalIgnoreCase).Take(ocrMaximum)];
+    string[] ocrFiles;
+    try
+    {
+        IEnumerable<string> candidates = ocrFileListPath is null
+            ? Directory.EnumerateFiles(ocrRoot, "*.pdf", SearchOption.AllDirectories)
+                .Order(StringComparer.OrdinalIgnoreCase)
+            : ReadOcrFileList(ocrFileListPath);
+        ocrFiles = [.. candidates.Take(ocrMaximum)];
+    }
+    catch (Exception error) when (error is not OutOfMemoryException)
+    {
+        Console.Error.WriteLine($"OCR file list failed: {error.Message}");
+        return 2;
+    }
     if (ocrFiles.Length == 0)
     {
         Console.Error.WriteLine("The OCR corpus contains no PDF files.");
@@ -624,6 +641,31 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         if (labels.Count == 0)
             throw new InvalidDataException("The OCR label file contains no labels.");
         return labels;
+    }
+
+    IEnumerable<string> ReadOcrFileList(string path)
+    {
+        if (!File.Exists(path))
+            throw new FileNotFoundException("The OCR file list was not found.", path);
+        string rootPrefix = Path.TrimEndingDirectorySeparator(ocrRoot)
+            + Path.DirectorySeparatorChar;
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string supplied in File.ReadLines(path))
+        {
+            string relative = supplied.Trim();
+            if (relative.Length == 0 || relative.StartsWith('#')) continue;
+            string normalized = relative.Replace('/', Path.DirectorySeparatorChar);
+            string fullPath = Path.GetFullPath(Path.Combine(ocrRoot, normalized));
+            if (Path.IsPathRooted(relative)
+                || !fullPath.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase)
+                || !string.Equals(Path.GetExtension(fullPath), ".pdf",
+                    StringComparison.OrdinalIgnoreCase)
+                || !File.Exists(fullPath)
+                || !seen.Add(fullPath))
+                throw new InvalidDataException(
+                    $"OCR file-list entry is invalid: {relative}");
+            yield return fullPath;
+        }
     }
 
     static Dictionary<string, CertificateCredential> ReadCertificateManifest(string? path)
@@ -2682,7 +2724,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
