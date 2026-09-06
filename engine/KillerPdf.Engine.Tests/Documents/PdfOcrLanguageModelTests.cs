@@ -53,6 +53,19 @@ public sealed class PdfOcrLanguageModelTests
     }
 
     [Fact]
+    public void DecodeUsesEndOfWordContextForFinalCharacter()
+    {
+        PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(
+            Enumerable.Repeat("AB ACD", 20));
+
+        Assert.Equal(["A", "B"], model.Decode(
+        [
+            [new("A", 1)],
+            [new("B", 1), new("C", 1)]
+        ]));
+    }
+
+    [Fact]
     public void CombineMergesTransitionsDeterministically()
     {
         PdfOcrLanguageModel first = PdfOcrLanguageModel.Train(["AB"]);

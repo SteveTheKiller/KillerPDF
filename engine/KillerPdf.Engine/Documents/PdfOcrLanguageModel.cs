@@ -9,8 +9,10 @@ public readonly record struct PdfOcrLanguageCandidate(string Label, double Score
 /// <summary>A bounded character-transition model for deterministic OCR sequence decoding.</summary>
 public sealed class PdfOcrLanguageModel
 {
-    private static readonly byte[] Magic = "KPLM1\0"u8.ToArray();
+    private static readonly byte[] Magic = "KPLM2\0"u8.ToArray();
+    private static readonly byte[] LegacyMagic = "KPLM1\0"u8.ToArray();
     private const int MaximumCharacters = 10_000_000;
+    private const int MaximumTransitionObservations = MaximumCharacters * 2;
     private const int MaximumLabels = 65_536;
     internal const int MaximumModelBytes = 64 * 1024 * 1024;
     private const int MaximumSequenceLength = 4_096;
@@ -19,13 +21,16 @@ public sealed class PdfOcrLanguageModel
     private readonly Dictionary<string, int> _labels;
     private readonly Dictionary<(int Previous, int Current), int> _counts;
     private readonly int[] _totals;
+    private readonly bool _usesEndTransitions;
 
     private PdfOcrLanguageModel(Dictionary<string, int> labels,
-        Dictionary<(int Previous, int Current), int> counts, int[] totals)
+        Dictionary<(int Previous, int Current), int> counts, int[] totals,
+        bool usesEndTransitions)
     {
         _labels = labels;
         _counts = counts;
         _totals = totals;
+        _usesEndTransitions = usesEndTransitions;
     }
 
     /// <summary>Trains a deterministic character-transition model from text.</summary>
@@ -47,6 +52,7 @@ public sealed class PdfOcrLanguageModel
                     cancellationToken.ThrowIfCancellationRequested();
                 if (Rune.IsControl(rune) || Rune.IsWhiteSpace(rune))
                 {
+                    FinishWord();
                     previous = string.Empty;
                     continue;
                 }
@@ -59,6 +65,15 @@ public sealed class PdfOcrLanguageModel
                 var transition = (previous, label);
                 observed[transition] = checked(observed.GetValueOrDefault(transition) + 1);
                 previous = label;
+            }
+            FinishWord();
+
+            void FinishWord()
+            {
+                if (previous.Length == 0) return;
+                var transition = (previous, string.Empty);
+                observed[transition] = checked(
+                    observed.GetValueOrDefault(transition) + 1);
             }
         }
         if (observed.Count == 0)
@@ -80,7 +95,8 @@ public sealed class PdfOcrLanguageModel
             counts.Add((previousIndex, currentIndex), count);
             totals[previousIndex] = checked(totals[previousIndex] + count);
         }
-        return new PdfOcrLanguageModel(indexes, counts, totals);
+        return new PdfOcrLanguageModel(indexes, counts, totals,
+            usesEndTransitions: true);
     }
 
     /// <summary>Combines compatible character-transition models deterministically.</summary>
@@ -94,6 +110,7 @@ public sealed class PdfOcrLanguageModel
         var labels = new SortedSet<string>(StringComparer.Ordinal) { string.Empty };
         var observed = new Dictionary<(string Previous, string Current), int>();
         int totalCount = 0;
+        bool usesEndTransitions = supplied.All(model => model._usesEndTransitions);
         foreach (PdfOcrLanguageModel model in supplied)
         {
             string[] modelLabels = [.. model._labels
@@ -101,8 +118,9 @@ public sealed class PdfOcrLanguageModel
             foreach (string label in modelLabels) labels.Add(label);
             foreach (((int previous, int current), int count) in model._counts)
             {
+                if (!usesEndTransitions && current == 0) continue;
                 totalCount = checked(totalCount + count);
-                if (totalCount > MaximumCharacters)
+                if (totalCount > MaximumTransitionObservations)
                     throw new ArgumentException(
                         "The combined OCR language models exceed the character limit.",
                         nameof(models));
@@ -126,7 +144,8 @@ public sealed class PdfOcrLanguageModel
             counts.Add((previousIndex, currentIndex), count);
             totals[previousIndex] = checked(totals[previousIndex] + count);
         }
-        return new PdfOcrLanguageModel(indexes, counts, totals);
+        return new PdfOcrLanguageModel(
+            indexes, counts, totals, usesEndTransitions);
     }
 
     /// <summary>Saves the model in a deterministic bounded binary format.</summary>
@@ -144,8 +163,9 @@ public sealed class PdfOcrLanguageModel
             throw new InvalidOperationException("The OCR language model exceeds the size limit.");
         var output = new byte[checked((int)length)];
         Span<byte> destination = output;
-        Magic.CopyTo(destination);
-        int position = Magic.Length;
+        byte[] magic = _usesEndTransitions ? Magic : LegacyMagic;
+        magic.CopyTo(destination);
+        int position = magic.Length;
         WriteInt32(destination, ref position, labels.Length);
         foreach (string label in labels)
         {
@@ -172,7 +192,9 @@ public sealed class PdfOcrLanguageModel
         {
             ReadOnlySpan<byte> input = source.Span;
             int position = 0;
-            if (!ReadBytes(input, ref position, Magic.Length).SequenceEqual(Magic))
+            ReadOnlySpan<byte> magic = ReadBytes(input, ref position, Magic.Length);
+            bool usesEndTransitions = magic.SequenceEqual(Magic);
+            if (!usesEndTransitions && !magic.SequenceEqual(LegacyMagic))
                 throw new InvalidDataException("The OCR language model header is invalid.");
             int labelCount = ReadInt32(input, ref position);
             if (labelCount is <= 1 or > MaximumLabels)
@@ -199,7 +221,8 @@ public sealed class PdfOcrLanguageModel
                 int previous = ReadInt32(input, ref position);
                 int current = ReadInt32(input, ref position);
                 int count = ReadInt32(input, ref position);
-                if ((uint)previous >= labelCount || current <= 0 || current >= labelCount
+                if ((uint)previous >= labelCount || current < 0 || current >= labelCount
+                    || current == 0 && !usesEndTransitions
                     || count <= 0 || !counts.TryAdd((previous, current), count))
                     throw new InvalidDataException(
                         "An OCR language-model transition is invalid.");
@@ -207,7 +230,8 @@ public sealed class PdfOcrLanguageModel
             }
             if (position != input.Length)
                 throw new InvalidDataException("The OCR language model has trailing data.");
-            return new PdfOcrLanguageModel(labels, counts, totals);
+            return new PdfOcrLanguageModel(
+                labels, counts, totals, usesEndTransitions);
         }
         catch (Exception error) when (error is EndOfStreamException
             or DecoderFallbackException or OverflowException)
@@ -303,16 +327,20 @@ public sealed class PdfOcrLanguageModel
         }
         Path selected = paths.Values.First();
         foreach (Path candidate in paths.Values.Skip(1))
-            if (candidate.Score > selected.Score
-                || candidate.Score == selected.Score
+            if (FinalScore(candidate) > FinalScore(selected)
+                || FinalScore(candidate) == FinalScore(selected)
                 && candidate.Rank < selected.Rank)
                 selected = candidate;
         return Array.AsReadOnly(ToLabels(selected));
+
+        double FinalScore(Path path) => path.Score + (_usesEndTransitions
+            ? languageWeight * TransitionScore(path.Label, string.Empty) : 0);
     }
 
     private double TransitionScore(string previous, string current)
     {
-        int vocabulary = Math.Max(1, _labels.Count - 1);
+        int vocabulary = Math.Max(1,
+            _labels.Count - (_usesEndTransitions ? 0 : 1));
         if (!_labels.TryGetValue(previous, out int previousIndex)) previousIndex = 0;
         if (!_labels.TryGetValue(current, out int currentIndex))
             return -Math.Log(_totals[previousIndex] + vocabulary);
