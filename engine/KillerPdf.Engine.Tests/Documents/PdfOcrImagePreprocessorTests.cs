@@ -106,7 +106,7 @@ public sealed class PdfOcrImagePreprocessorTests
     }
 
     [Fact]
-    public void PrepareBgra_AdaptiveThresholdMatchesBoundedNeighborhoodMeans()
+    public void PrepareBgra_AdaptiveThresholdMatchesBoundedSauvolaNeighborhoods()
     {
         const int width = 19, height = 13;
         var gray = new byte[width * height];
@@ -135,11 +135,54 @@ public sealed class PdfOcrImagePreprocessorTests
                 long sum = 0;
                 for (int yy = top; yy < bottom; yy++)
                     for (int xx = left; xx < right; xx++) sum += gray[yy * width + xx];
-                int mean = (int)(sum / ((right - left) * (bottom - top)));
-                expected[y * width + x] = gray[y * width + x] < mean - 12
+                long squaredSum = 0;
+                for (int yy = top; yy < bottom; yy++)
+                    for (int xx = left; xx < right; xx++)
+                        squaredSum += gray[yy * width + xx] * gray[yy * width + xx];
+                int count = (right - left) * (bottom - top);
+                double mean = sum / (double)count;
+                double variance = Math.Max(0,
+                    squaredSum / (double)count - mean * mean);
+                double threshold = mean * (0.75 + 0.25 * Math.Sqrt(variance) / 128);
+                expected[y * width + x] = gray[y * width + x] < threshold
                     ? (byte)0 : (byte)255;
             }
         Assert.Equal(expected, image.Pixels.ToArray());
+    }
+
+    [Fact]
+    public void PrepareBgra_AdaptiveThresholdSuppressesTexturedBackground()
+    {
+        const int width = 64, height = 32;
+        var bgra = new byte[width * height * 4];
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                byte value = (byte)(100 + (x * 7 + y * 11) % 31);
+                if (IsTextStroke(x, y)) value = 35;
+                int offset = (y * width + x) * 4;
+                bgra[offset] = bgra[offset + 1] = bgra[offset + 2] = value;
+                bgra[offset + 3] = 255;
+            }
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: true, removeNoise: false,
+            detectPageSegments: false);
+
+        PdfOcrPreparedImage image = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, width, height, options);
+
+        int backgroundInk = 0;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+                if (!IsTextStroke(x, y)
+                    && image.Pixels.Span[y * width + x] == 0)
+                    backgroundInk++;
+        Assert.InRange(backgroundInk, 0, 8);
+        Assert.Equal(0, image.Pixels.Span[16 * width + 32]);
+
+        static bool IsTextStroke(int x, int y) =>
+            x is >= 31 and <= 32 && y is >= 9 and <= 22
+            || y is >= 15 and <= 16 && x is >= 23 and <= 40;
     }
 
     [Fact]

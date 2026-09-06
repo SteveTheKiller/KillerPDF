@@ -296,10 +296,15 @@ public static class PdfOcrImagePreprocessor
         byte[] result = new byte[source.Length];
         int radius = Math.Clamp(Math.Min(width, height) / 32, 4, 32);
         var columns = new int[width];
+        var squaredColumns = new long[width];
         int initialBottom = Math.Min(height, radius + 1);
         for (int row = 0; row < initialBottom; row++)
             for (int x = 0; x < width; x++)
+            {
                 columns[x] += source[row * width + x];
+                squaredColumns[x] += source[row * width + x]
+                    * source[row * width + x];
+            }
         for (int y = 0; y < height; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -308,23 +313,48 @@ public static class PdfOcrImagePreprocessor
                 int removed = y - radius - 1;
                 if (removed >= 0)
                     for (int x = 0; x < width; x++)
+                    {
                         columns[x] -= source[removed * width + x];
+                        squaredColumns[x] -= source[removed * width + x]
+                            * source[removed * width + x];
+                    }
                 int added = y + radius;
                 if (added < height)
                     for (int x = 0; x < width; x++)
+                    {
                         columns[x] += source[added * width + x];
+                        squaredColumns[x] += source[added * width + x]
+                            * source[added * width + x];
+                    }
             }
             int top = Math.Max(0, y - radius), bottom = Math.Min(height, y + radius + 1);
             int right = Math.Min(width, radius + 1);
             long sum = 0;
-            for (int column = 0; column < right; column++) sum += columns[column];
+            long squaredSum = 0;
+            for (int column = 0; column < right; column++)
+            {
+                sum += columns[column];
+                squaredSum += squaredColumns[column];
+            }
             for (int x = 0; x < width; x++)
             {
                 int left = Math.Max(0, x - radius);
-                int mean = (int)(sum / ((right - left) * (bottom - top)));
-                result[y * width + x] = source[y * width + x] < mean - 12 ? (byte)0 : (byte)255;
-                if (x - radius >= 0) sum -= columns[x - radius];
-                if (right < width) sum += columns[right++];
+                int count = (right - left) * (bottom - top);
+                double mean = sum / (double)count;
+                double variance = Math.Max(0, squaredSum / (double)count - mean * mean);
+                double threshold = mean * (0.75 + 0.25 * Math.Sqrt(variance) / 128);
+                result[y * width + x] = source[y * width + x] < threshold
+                    ? (byte)0 : (byte)255;
+                if (x - radius >= 0)
+                {
+                    sum -= columns[x - radius];
+                    squaredSum -= squaredColumns[x - radius];
+                }
+                if (right < width)
+                {
+                    sum += columns[right];
+                    squaredSum += squaredColumns[right++];
+                }
             }
         }
         return result;
