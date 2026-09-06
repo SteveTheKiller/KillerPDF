@@ -495,12 +495,6 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             + $"{error.GetType().Name}: {error.Message}");
         return 2;
     }
-    if (ocrFonts.Length > 0 && ocrLabels is null)
-    {
-        Console.Error.WriteLine("OCR font input requires --label-file.");
-        return 2;
-    }
-
     string[] ocrFiles;
     try
     {
@@ -895,7 +889,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         }
         if (!selectHoldout)
         {
-            string[] seedLatinLabels = [.. (ocrLabels ?? observedTrainingLabels)
+            IReadOnlySet<string> seedLabels = ocrLabels ?? observedTrainingLabels;
+            string[] seedLatinLabels = [.. seedLabels
                 .Where(label => label.Length == 1 && label[0] <= byte.MaxValue)
                 .Order(StringComparer.Ordinal)];
             using var seedTimeout = new CancellationTokenSource(
@@ -912,7 +907,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             }
             foreach (TrueTypeFont font in ocrFonts)
             {
-                string[] supported = [.. ocrLabels!
+                string[] supported = [.. seedLabels
                     .Where(label => FontSupportsLabel(font, label))
                     .Order(StringComparer.Ordinal)];
                 if (supported.Length == 0) continue;
