@@ -1114,28 +1114,79 @@ public sealed class PdfPageRenderer
                 bool multipleKnockoutObjects = knockout && !isolated
                     && instructions.Count(IsPaintingOperation) > 1;
                 if (multipleKnockoutObjects
-                    && (parentState.FillAlpha != 1 || parentState.StrokeAlpha != 1
+                    && (parentState.FillAlpha != parentState.StrokeAlpha
                         || parentState.BlendMode is not (RendererBlendMode.Normal
                             or RendererBlendMode.Compatible)
                         || parentState.GraphicsSoftMask is not null
                         || parentState.Knockout is not null))
                 {
-                    diagnostics.Add(
-                        "Non-isolated transparency knockout-group rendering is not implemented.");
+                    string reason = parentState.Knockout is not null ? "nested knockout groups"
+                        : parentState.GraphicsSoftMask is not null ? "a soft mask"
+                        : parentState.FillAlpha != parentState.StrokeAlpha
+                            ? "different fill and stroke opacity"
+                            : "a non-normal blend mode";
+                    diagnostics.Add("Non-isolated transparency knockout-group rendering "
+                        + $"with {reason} is not implemented.");
                     return;
                 }
                 if (multipleKnockoutObjects)
                 {
-                    Process(instructions, formResources,
-                        formState with
+                    if (parentState.FillAlpha == 1)
+                    {
+                        Process(instructions, formResources,
+                            formState with
+                            {
+                                FillAlpha = 1,
+                                StrokeAlpha = 1,
+                                BlendMode = RendererBlendMode.Normal,
+                                GraphicsSoftMask = null,
+                                Knockout = new KnockoutState(
+                                    options.Width, options.Height, pixels)
+                            }, depth + 1);
+                        return;
+                    }
+
+                    byte[] nonisolatedPagePixels = pixels;
+                    byte[] nonisolatedGroupPixels = ArrayPool<byte>.Shared.Rent(
+                        nonisolatedPagePixels.Length);
+                    var groupKnockout = new KnockoutState(
+                        options.Width, options.Height, nonisolatedPagePixels);
+                    try
+                    {
+                        nonisolatedPagePixels.CopyTo(nonisolatedGroupPixels, 0);
+                        pixels = nonisolatedGroupPixels;
+                        Process(instructions, formResources,
+                            formState with
+                            {
+                                FillAlpha = 1,
+                                StrokeAlpha = 1,
+                                BlendMode = RendererBlendMode.Normal,
+                                GraphicsSoftMask = null,
+                                Knockout = groupKnockout
+                            }, depth + 1);
+                        pixels = nonisolatedPagePixels;
+                        for (int y = 0; y < options.Height; y++)
                         {
-                            FillAlpha = 1,
-                            StrokeAlpha = 1,
-                            BlendMode = RendererBlendMode.Normal,
-                            GraphicsSoftMask = null,
-                            Knockout = new KnockoutState(
-                                options.Width, options.Height, pixels)
-                        }, depth + 1);
+                            cancellationToken.ThrowIfCancellationRequested();
+                            for (int x = 0; x < options.Width; x++)
+                            {
+                                int offset = (y * options.Width + x) * 4;
+                                if (!groupKnockout.WasTouched(offset)) continue;
+                                SetPixel(nonisolatedPagePixels, options.Width, x, y,
+                                    new Color(nonisolatedGroupPixels[offset + 2],
+                                        nonisolatedGroupPixels[offset + 1],
+                                        nonisolatedGroupPixels[offset]),
+                                    nonisolatedGroupPixels[offset + 3] / 255d
+                                        * parentState.FillAlpha,
+                                    parentState.BlendMode, null, null);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        pixels = nonisolatedPagePixels;
+                        ArrayPool<byte>.Shared.Return(nonisolatedGroupPixels);
+                    }
                     return;
                 }
                 if (!isolated)
@@ -4484,6 +4535,8 @@ public sealed class PdfPageRenderer
             }
             _currentObject++;
         }
+
+        internal bool WasTouched(int offset) => _objects[offset / 4] != 0;
 
         internal void PreparePixel(byte[] target, int offset)
         {

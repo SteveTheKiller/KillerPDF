@@ -2427,7 +2427,7 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
-    public void Render_ReportsUnsupportedNonIsolatedKnockoutGroupOpacity()
+    public void Render_CompositesNonIsolatedKnockoutGroupOpacity()
     {
         var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
             .SetFillRgb(1, 0, 0)
@@ -2470,10 +2470,9 @@ public sealed class PdfPageRendererTests
             0, new PdfRenderOptions(10, 10,
                 includeAnnotations: false, includeFormFields: false));
 
-        Assert.Equal([0, 255, 0, 255], Pixel(rendered, 5, 5));
-        Assert.Contains(
-            "Non-isolated transparency knockout-group rendering is not implemented.",
-            rendered.Diagnostics);
+        Assert.Equal([0, 128, 128, 255], Pixel(rendered, 1, 5));
+        Assert.Equal([128, 128, 0, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
     }
 
     [Fact]
