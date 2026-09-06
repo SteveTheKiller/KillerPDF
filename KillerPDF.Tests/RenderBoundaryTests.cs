@@ -42,6 +42,8 @@ public sealed class RenderBoundaryTests
         Assert.DoesNotContain("using Docnet.", boundarySource, StringComparison.Ordinal);
         Assert.DoesNotContain("IDocReader", boundarySource, StringComparison.Ordinal);
         Assert.DoesNotContain("PdfiumInterop", boundarySource, StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfPageRenderSession Open(", boundarySource,
+            StringComparison.Ordinal);
     }
 
     [Fact]

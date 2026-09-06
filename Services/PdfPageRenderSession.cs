@@ -42,23 +42,6 @@ internal sealed class PdfPageRenderSession : IDisposable
         _allowNativeFallback = allowNativeFallback;
     }
 
-    internal static PdfPageRenderSession Open(string path, int maximumWidth, int maximumHeight)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        if (maximumWidth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
-        if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
-        return new PdfPageRenderSession(
-            new DocnetRenderFallback(path, maximumWidth, maximumHeight));
-    }
-
-    internal static PdfPageRenderSession Open(string path, double scale)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        if (!double.IsFinite(scale) || scale <= 0)
-            throw new ArgumentOutOfRangeException(nameof(scale));
-        return new PdfPageRenderSession(new DocnetRenderFallback(path, scale));
-    }
-
     internal static PdfPageRenderSession OpenEngineFirst(
         string path, int maximumWidth, int maximumHeight)
     {
@@ -75,7 +58,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            return Open(path, maximumWidth, maximumHeight);
+            return new PdfPageRenderSession(
+                new DocnetRenderFallback(path, maximumWidth, maximumHeight));
         }
     }
 
@@ -93,7 +77,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            return Open(path, scale);
+            return new PdfPageRenderSession(new DocnetRenderFallback(path, scale));
         }
     }
 
