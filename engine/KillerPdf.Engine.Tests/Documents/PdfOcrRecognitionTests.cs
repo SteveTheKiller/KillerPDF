@@ -567,6 +567,31 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void StandardFontTrainingGeneralizesToHeldOutFaces()
+    {
+        string[] labels = ["!", "0", "1", "2", "5", "8", "A", "B", "E", "I", "O", "S"];
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreateStandardFontSamples(labels, 16, 16);
+        Assert.Equal(labels.Length * 12 * 3, samples.Count);
+        PdfOcrTrainingSample[] training = [.. samples.Where((_, index) =>
+            index / (labels.Length * 3) < 9)];
+        PdfOcrTrainingSample[] holdout = [.. samples.Where((_, index) =>
+            index / (labels.Length * 3) >= 9)];
+
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, training);
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model, holdout);
+
+        Assert.True(evaluation.Accuracy >= 0.85,
+            $"Held-out standard-font accuracy was {evaluation.Accuracy:P2}: "
+            + string.Join(", ", evaluation.Confusion.Select(item =>
+                $"{item.Expected}->{item.Predicted} ({item.Count})")));
+        Assert.All(evaluation.Confusion.Where(item =>
+                !string.Equals(item.Expected, item.Predicted, StringComparison.Ordinal)),
+            item => Assert.Contains((item.Expected, item.Predicted),
+                new[] { ("I", "1"), ("O", "0"), ("0", "O") }));
+    }
+
+    [Fact]
     public void TextLayerTrainingKeepsLabelsWhoseRenderedGlyphsTouch()
     {
         var builder = new PdfDocumentBuilder()

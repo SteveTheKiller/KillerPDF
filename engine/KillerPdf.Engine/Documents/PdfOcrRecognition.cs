@@ -16,7 +16,7 @@ public sealed class PdfOcrRecognitionModel
     private const double PriorTieWindow = 1e-9;
     private const double ShapeMismatchPenalty = 0.25;
     private const double CoarseGradientDistanceWeight = 24;
-    private const double FineGradientDistanceWeight = 6;
+    private const double FineGradientDistanceWeight = 24;
     private const int CoarseGradientCellCount = 2;
     private const int FineGradientCellCount = 8;
     private const int GradientBinCount = 4;
