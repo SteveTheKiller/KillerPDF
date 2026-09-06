@@ -37,4 +37,22 @@ public sealed class PdfOcrSearchableTextWriterTests
         for (int index = 0; index < 4; index++)
             Assert.Contains("A", reader.Read(index).Text);
     }
+
+    [Fact]
+    public void WriterProducesIdenticalBytesForIdenticalInput()
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+        PdfOcrPixelPage[] pages =
+        [
+            new(200, 100, [new PdfOcrPixelWord("A", 1, 10, 10, 40, 30)])
+        ];
+
+        byte[] first = PdfOcrSearchableTextWriter.Write(document, pages, _ => font).Document;
+        byte[] second = PdfOcrSearchableTextWriter.Write(document, pages, _ => font).Document;
+
+        Assert.Equal(first, second);
+    }
 }

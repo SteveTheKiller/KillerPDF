@@ -351,6 +351,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int? minimumRotatedCharacterAccuracyPercent = null;
     int? minimumDeskewedCharacterAccuracyPercent = null;
     int? minimumFormCharacterAccuracyPercent = null;
+    int? maximumPageAllocationMegabytes = null;
     string? ocrFileListPath = null;
     string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
@@ -427,6 +428,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 break;
             case "--minimum-form-character-accuracy-percent" when value <= 100:
                 minimumFormCharacterAccuracyPercent = value;
+                break;
+            case "--maximum-page-allocation-megabytes":
+                maximumPageAllocationMegabytes = value;
                 break;
             case "--minimum-holdout-samples": minimumHoldoutSamples = value; break;
             default:
@@ -516,10 +520,12 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     PdfOcrTextMetrics? rotatedTextMetrics = null;
     PdfOcrTextMetrics? deskewedTextMetrics = null;
     PdfOcrFormMetrics? formMetrics = null;
+    long maximumPageAllocatedBytes = 0;
     if (minimumCharacterAccuracyPercent.HasValue
         || minimumWordAccuracyPercent.HasValue
         || minimumWordBoxOverlapPercent.HasValue
-        || minimumReadingOrderAccuracyPercent.HasValue)
+        || minimumReadingOrderAccuracyPercent.HasValue
+        || maximumPageAllocationMegabytes.HasValue)
     {
         try
         {
@@ -541,6 +547,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             + $"{wordBoxMetrics.RecallAtFiftyPercent:P2} recall at 50% overlap.");
         Console.WriteLine($"OCR reading order: {readingOrderMetrics.Accuracy:P2} accuracy "
             + $"across {readingOrderMetrics.ComparablePairCount:N0} matched pairs.");
+        if (maximumPageAllocationMegabytes.HasValue)
+            Console.WriteLine($"OCR maximum page allocation: "
+                + $"{maximumPageAllocatedBytes / 1024d / 1024d:N2} MiB.");
     }
     try
     {
@@ -672,6 +681,15 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine($"OCR model rejected: "
             + $"{formMetrics.Text.CharacterAccuracy:P2} form-field character accuracy "
             + $"is below the {minimumFormCharacterAccuracyPercent}% minimum.");
+        return 1;
+    }
+    if (maximumPageAllocationMegabytes.HasValue
+        && maximumPageAllocatedBytes
+            > checked((long)maximumPageAllocationMegabytes.Value * 1024 * 1024))
+    {
+        Console.Error.WriteLine($"OCR model rejected: "
+            + $"{maximumPageAllocatedBytes / 1024d / 1024d:N2} MiB maximum page "
+            + $"allocation exceeds the {maximumPageAllocationMegabytes} MiB limit.");
         return 1;
     }
     Directory.CreateDirectory(Path.GetDirectoryName(modelPath)!);
@@ -818,6 +836,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     double scale = renderSize / Math.Max(pageWidth, pageHeight);
                     int width = Math.Max(1, (int)Math.Round(pageWidth * scale));
                     int height = Math.Max(1, (int)Math.Round(pageHeight * scale));
+                    long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
                     PdfRenderedPage rendered = renderer.Render(pageIndex,
                         new PdfRenderOptions(width, height,
                             includeAnnotations: false, includeFormFields: false), timeout.Token);
@@ -854,6 +873,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         + pageOrder.ComparablePairCount);
                     readingOrderInversions = checked(readingOrderInversions
                         + pageOrder.InversionCount);
+                    maximumPageAllocatedBytes = Math.Max(maximumPageAllocatedBytes,
+                        GC.GetAllocatedBytesForCurrentThread() - allocatedBefore);
                     pageCount++;
                 }
             }
@@ -3144,7 +3165,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--maximum-page-allocation-megabytes <count>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");

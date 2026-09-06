@@ -137,6 +137,8 @@ public sealed class PdfOcrImagePreprocessorTests
         var options = new PdfOcrOptions(["eng"]);
         Assert.Throws<ArgumentException>(() =>
             PdfOcrImagePreprocessor.PrepareBgra(new byte[3], 1, 1, options));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrImagePreprocessor.PrepareBgra(new byte[4], 32_769, 1, options));
         using var canceled = new CancellationTokenSource();
         canceled.Cancel();
         Assert.Throws<OperationCanceledException>(() =>

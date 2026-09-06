@@ -540,6 +540,17 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RawBgraRecognitionHonorsCancellationAcrossTheCompletePipeline()
+    {
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfOcrRecognizer.RecognizeBgra(new byte[4], 1, 1, TinyModel("A"),
+                new PdfOcrOptions(["eng"]), canceled.Token));
+    }
+
+    [Fact]
     public void RawBgraRecognitionRestoresDeskewedBoundsToSourcePixels()
     {
         const int width = 41, height = 21;
