@@ -26,6 +26,8 @@ public sealed class PdfOcrWordBoxMetricsTests
         Assert.Equal((1 + 9d / 11) / 3,
             metrics.AverageIntersectionOverUnion, 12);
         Assert.Equal(2d / 3, metrics.RecallAtFiftyPercent, 12);
+        Assert.Equal([(0, 1), (1, 0)], metrics.Matches
+            .Select(match => (match.ExpectedIndex, match.RecognizedIndex)));
     }
 
     [Fact]

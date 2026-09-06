@@ -344,6 +344,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int? minimumCharacterAccuracyPercent = null;
     int? minimumWordAccuracyPercent = null;
     int? minimumWordBoxOverlapPercent = null;
+    int? minimumReadingOrderAccuracyPercent = null;
     string? ocrFileListPath = null;
     string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
@@ -400,6 +401,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 break;
             case "--minimum-word-box-overlap-percent" when value <= 100:
                 minimumWordBoxOverlapPercent = value;
+                break;
+            case "--minimum-reading-order-accuracy-percent" when value <= 100:
+                minimumReadingOrderAccuracyPercent = value;
                 break;
             case "--minimum-holdout-samples": minimumHoldoutSamples = value; break;
             default:
@@ -480,13 +484,15 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.WriteLine($"  {confusion.Count:N0} x {confusion.Expected} -> {confusion.Predicted}");
     PdfOcrTextMetrics? textMetrics = null;
     PdfOcrWordBoxMetrics? wordBoxMetrics = null;
+    PdfOcrReadingOrderMetrics? readingOrderMetrics = null;
     if (minimumCharacterAccuracyPercent.HasValue
         || minimumWordAccuracyPercent.HasValue
-        || minimumWordBoxOverlapPercent.HasValue)
+        || minimumWordBoxOverlapPercent.HasValue
+        || minimumReadingOrderAccuracyPercent.HasValue)
     {
         try
         {
-            (textMetrics, wordBoxMetrics) = EvaluateHoldoutText();
+            (textMetrics, wordBoxMetrics, readingOrderMetrics) = EvaluateHoldoutText();
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -501,6 +507,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.WriteLine($"OCR word boxes: "
             + $"{wordBoxMetrics.AverageIntersectionOverUnion:P2} average overlap, "
             + $"{wordBoxMetrics.RecallAtFiftyPercent:P2} recall at 50% overlap.");
+        Console.WriteLine($"OCR reading order: {readingOrderMetrics.Accuracy:P2} accuracy "
+            + $"across {readingOrderMetrics.ComparablePairCount:N0} matched pairs.");
     }
     if (evaluation.SampleCount < minimumHoldoutSamples)
     {
@@ -536,6 +544,15 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine($"OCR model rejected: "
             + $"{wordBoxMetrics.AverageIntersectionOverUnion:P2} average word-box overlap "
             + $"is below the {minimumWordBoxOverlapPercent}% minimum.");
+        return 1;
+    }
+    if (minimumReadingOrderAccuracyPercent.HasValue
+        && readingOrderMetrics!.Accuracy
+            < minimumReadingOrderAccuracyPercent.Value / 100d)
+    {
+        Console.Error.WriteLine($"OCR model rejected: "
+            + $"{readingOrderMetrics.Accuracy:P2} reading-order accuracy is below the "
+            + $"{minimumReadingOrderAccuracyPercent}% minimum.");
         return 1;
     }
     Directory.CreateDirectory(Path.GetDirectoryName(modelPath)!);
@@ -645,12 +662,14 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         }
     }
 
-    (PdfOcrTextMetrics Text, PdfOcrWordBoxMetrics Boxes) EvaluateHoldoutText()
+    (PdfOcrTextMetrics Text, PdfOcrWordBoxMetrics Boxes,
+        PdfOcrReadingOrderMetrics ReadingOrder) EvaluateHoldoutText()
     {
         int expectedCharacters = 0, recognizedCharacters = 0, characterEdits = 0;
         int expectedWords = 0, recognizedWords = 0, wordEdits = 0, pageCount = 0;
         int expectedBoxes = 0, recognizedBoxes = 0, matchedBoxes = 0;
         int matchedAtFiftyPercent = 0;
+        long comparableReadingOrderPairs = 0, readingOrderInversions = 0;
         double overlapSum = 0;
         var options = new PdfOcrOptions(["und"], deskew: false,
             correctOrientation: false, removeBackground: true, removeNoise: true,
@@ -694,6 +713,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         .Select(word => word!)];
                     PdfOcrWordBoxMetrics pageBoxes = PdfOcrWordBoxMetrics.Compare(
                         expectedPageWords, recognized.Words);
+                    PdfOcrReadingOrderMetrics pageOrder =
+                        PdfOcrReadingOrderMetrics.Compare(pageBoxes.Matches);
                     expectedCharacters = checked(expectedCharacters
                         + pageMetrics.ExpectedCharacterCount);
                     recognizedCharacters = checked(recognizedCharacters
@@ -708,6 +729,10 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     matchedAtFiftyPercent = checked(matchedAtFiftyPercent
                         + pageBoxes.MatchedAtFiftyPercentCount);
                     overlapSum += pageBoxes.IntersectionOverUnionSum;
+                    comparableReadingOrderPairs = checked(comparableReadingOrderPairs
+                        + pageOrder.ComparablePairCount);
+                    readingOrderInversions = checked(readingOrderInversions
+                        + pageOrder.InversionCount);
                     pageCount++;
                 }
             }
@@ -725,7 +750,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         return (new PdfOcrTextMetrics(expectedCharacters, recognizedCharacters,
                 characterEdits, expectedWords, recognizedWords, wordEdits),
             new PdfOcrWordBoxMetrics(expectedBoxes, recognizedBoxes, matchedBoxes,
-                matchedAtFiftyPercent, overlapSum));
+                matchedAtFiftyPercent, overlapSum),
+            new PdfOcrReadingOrderMetrics(comparableReadingOrderPairs,
+                readingOrderInversions));
 
         static PdfOcrPixelWord? MapExpectedWord(PdfExtractedWord word,
             PdfPageInformation page, int pixelWidth, int pixelHeight)
@@ -2916,7 +2943,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");

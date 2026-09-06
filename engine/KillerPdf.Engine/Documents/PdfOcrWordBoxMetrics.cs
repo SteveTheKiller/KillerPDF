@@ -10,6 +10,9 @@ public sealed record PdfOcrWordBoxMetrics(
 {
     private const int MaximumPairCount = 1_000_000;
 
+    /// <summary>Gets the selected expected-to-recognized word-box matches.</summary>
+    public IReadOnlyList<PdfOcrWordBoxMatch> Matches { get; init; } = [];
+
     /// <summary>Gets average intersection over union, including missing expected words as zero.</summary>
     public double AverageIntersectionOverUnion => ExpectedWordCount == 0
         ? RecognizedWordCount == 0 ? 1 : 0
@@ -46,6 +49,7 @@ public sealed record PdfOcrWordBoxMetrics(
         bool[] usedRecognized = new bool[recognized.Count];
         int matched = 0, matchedAtFiftyPercent = 0;
         double overlapSum = 0;
+        var matches = new List<PdfOcrWordBoxMatch>();
         foreach ((double overlap, int expectedIndex, int recognizedIndex) in candidates
             .OrderByDescending(candidate => candidate.Overlap)
             .ThenBy(candidate => candidate.Expected)
@@ -57,9 +61,14 @@ public sealed record PdfOcrWordBoxMetrics(
             matched++;
             if (overlap >= 0.5) matchedAtFiftyPercent++;
             overlapSum += overlap;
+            matches.Add(new PdfOcrWordBoxMatch(
+                expectedIndex, recognizedIndex, overlap));
         }
         return new PdfOcrWordBoxMetrics(expected.Count, recognized.Count,
-            matched, matchedAtFiftyPercent, overlapSum);
+            matched, matchedAtFiftyPercent, overlapSum)
+        {
+            Matches = matches
+        };
     }
 
     private static double IntersectionOverUnion(
@@ -86,3 +95,9 @@ public sealed record PdfOcrWordBoxMetrics(
                 "An OCR word box is invalid.", parameterName);
     }
 }
+
+/// <summary>Maps one expected OCR word box to one recognized word box.</summary>
+public sealed record PdfOcrWordBoxMatch(
+    int ExpectedIndex,
+    int RecognizedIndex,
+    double IntersectionOverUnion);
