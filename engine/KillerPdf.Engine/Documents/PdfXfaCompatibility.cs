@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -81,20 +82,31 @@ public static class PdfXfaCompatibility
 }
 
 /// <summary>A non-mutating XFA compatibility summary.</summary>
-public sealed record PdfXfaCompatibilityReport(
+public sealed partial record PdfXfaCompatibilityReport(
     bool IsSupported, IReadOnlyList<PdfXfaCompatibilityFinding> Findings)
 {
+    private static readonly PdfXfaCompatibilityJsonContext CompactJson = new(
+        JsonOptions(false));
+    private static readonly PdfXfaCompatibilityJsonContext IndentedJson = new(
+        JsonOptions(true));
+
     /// <summary>Exports compatibility findings as stable machine-readable JSON.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        Version = 1,
-        IsSupported,
-        Findings
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(1, IsSupported, Findings.ToArray()), indented
+            ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int Version, bool IsSupported, PdfXfaCompatibilityFinding[] Findings);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
-    });
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfXfaCompatibilityJsonContext : JsonSerializerContext;
 
     /// <summary>Formats XFA compatibility findings without exposing packet contents.</summary>
     public string ToText()

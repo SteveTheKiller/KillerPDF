@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -13,10 +14,15 @@ public sealed record PdfSeparationPreviewPage(
     int PageIndex, IReadOnlyList<string> PlateNames);
 
 /// <summary>A validated, deterministic plate selection for rendering separation previews.</summary>
-public sealed record PdfSeparationPreview(
+public sealed partial record PdfSeparationPreview(
     IReadOnlyList<PdfSeparationPreviewPlate> Plates,
     IReadOnlyList<PdfSeparationPreviewPage> Pages)
 {
+    private static readonly PdfSeparationPreviewJsonContext CompactJson = new(
+        JsonOptions(false));
+    private static readonly PdfSeparationPreviewJsonContext IndentedJson = new(
+        JsonOptions(true));
+
     /// <summary>Exports a readable summary of selected plates and page presence.</summary>
     public string ToText()
     {
@@ -41,16 +47,22 @@ public sealed record PdfSeparationPreview(
     }
 
     /// <summary>Exports the selected plates and per-page presence without document content.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        Version = 1,
-        Plates,
-        Pages
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(1, Plates.ToArray(), Pages.ToArray()), indented
+            ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(int Version,
+        PdfSeparationPreviewPlate[] Plates, PdfSeparationPreviewPage[] Pages);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
-    });
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfSeparationPreviewJsonContext : JsonSerializerContext;
 
     private static string PageList(IEnumerable<int> pageIndexes) => string.Join(", ",
         pageIndexes.Select(index => (index + 1).ToString(CultureInfo.InvariantCulture)));

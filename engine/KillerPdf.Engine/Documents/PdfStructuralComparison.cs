@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
 
@@ -38,8 +39,13 @@ public sealed record PdfStructuralChange(
     int ChangedCount);
 
 /// <summary>A structural comparison of interpreted page content.</summary>
-public sealed class PdfStructuralComparison
+public sealed partial class PdfStructuralComparison
 {
+    private static readonly PdfStructuralComparisonJsonContext CompactJson = new(
+        JsonOptions(false));
+    private static readonly PdfStructuralComparisonJsonContext IndentedJson = new(
+        JsonOptions(true));
+
     private PdfStructuralComparison(IEnumerable<PdfStructuralChange> changes)
     {
         Changes = Array.AsReadOnly(changes.ToArray());
@@ -73,22 +79,25 @@ public sealed class PdfStructuralComparison
     }
 
     /// <summary>Exports the comparison as stable machine-readable JSON.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        Version = 1,
-        HasChanges,
-        Changes = Changes.Select(change => new
-        {
-            change.PageIndex,
-            Kind = change.Kind.ToString(),
-            change.OriginalCount,
-            change.ChangedCount
-        })
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(1, HasChanges, [.. Changes.Select(change => new ReportChange(
+            change.PageIndex, change.Kind.ToString(),
+            change.OriginalCount, change.ChangedCount))]),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(int Version, bool HasChanges, ReportChange[] Changes);
+    private sealed record ReportChange(
+        int PageIndex, string Kind, int OriginalCount, int ChangedCount);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
-    });
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfStructuralComparisonJsonContext : JsonSerializerContext;
 
     /// <summary>Compares interpreted content, effective resources, and page geometry.</summary>
     public static PdfStructuralComparison Compare(PdfDocument original, PdfDocument changed,

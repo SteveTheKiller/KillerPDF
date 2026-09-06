@@ -1,15 +1,19 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Combines print-production geometry, separations, and color-management facts.</summary>
-public sealed record PdfPrintProductionReport(
+public sealed partial record PdfPrintProductionReport(
     IReadOnlyList<PdfPageBoxInformation> Pages,
     IReadOnlyList<PdfSeparationColorant> Colorants,
     IReadOnlyList<PdfOutputIntentInformation> OutputIntents)
 {
+    private static readonly PdfPrintProductionJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfPrintProductionJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Inspects the document without rendering or changing it.</summary>
     public static PdfPrintProductionReport Inspect(PdfDocument document)
     {
@@ -71,30 +75,31 @@ public sealed record PdfPrintProductionReport(
     }
 
     /// <summary>Exports stable JSON without embedding ICC profile bytes.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        Version = 1,
-        Pages,
-        Colorants,
-        OutputIntents = OutputIntents.Select(intent => new
-        {
-            intent.Subtype,
-            intent.OutputConditionIdentifier,
-            intent.OutputCondition,
-            intent.RegistryName,
-            intent.Information,
-            Profile = new
-            {
-                intent.Profile.ColorSpace,
-                intent.Profile.ComponentCount,
-                ByteCount = intent.Profile.Data.Length
-            }
-        })
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(1, Pages.ToArray(), Colorants.ToArray(),
+            [.. OutputIntents.Select(intent => new OutputIntentFile(
+                intent.Subtype, intent.OutputConditionIdentifier,
+                intent.OutputCondition, intent.RegistryName, intent.Information,
+                new ProfileFile(intent.Profile.ColorSpace,
+                    intent.Profile.ComponentCount, intent.Profile.Data.Length)))]),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(int Version, PdfPageBoxInformation[] Pages,
+        PdfSeparationColorant[] Colorants, OutputIntentFile[] OutputIntents);
+    private sealed record OutputIntentFile(string Subtype,
+        string OutputConditionIdentifier, string? OutputCondition,
+        string? RegistryName, string? Information, ProfileFile Profile);
+    private sealed record ProfileFile(string ColorSpace, int ComponentCount, int ByteCount);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
-    });
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfPrintProductionJsonContext : JsonSerializerContext;
 
     private static string Number(double value) =>
         value.ToString("G17", CultureInfo.InvariantCulture);
