@@ -853,8 +853,7 @@ public static class PdfOcrRecognizer
                 .Select(word => word.Text)));
             wordIndex += count;
         }
-        float confidence = words.Length == 0
-            ? 0 : (float)words.Average(word => word.Confidence);
+        float confidence = CalculateMeanConfidence(candidate.Words);
         return new PdfOcrResult(string.Join(Environment.NewLine, lines), confidence, words);
 
         RawOrientationCandidate RecognizeOrientation(int rotation)
@@ -874,6 +873,14 @@ public static class PdfOcrRecognizer
             return new RawOrientationCandidate(
                 rotation, prepared, layout, recognized, score);
         }
+    }
+
+    internal static float CalculateMeanConfidence(
+        IReadOnlyList<PdfOcrRecognizedWord> words)
+    {
+        int characters = words.Sum(word => word.Text.Length);
+        return characters == 0 ? 0 : (float)(words.Sum(
+            word => word.Confidence * word.Text.Length) / characters);
     }
 
     internal static PdfOcrImageRegion UnrotateImageBounds(

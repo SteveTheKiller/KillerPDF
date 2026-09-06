@@ -793,6 +793,19 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RawBgraConfidenceIsWeightedByRecognizedCharacters()
+    {
+        float confidence = PdfOcrRecognizer.CalculateMeanConfidence(
+        [
+            new PdfOcrRecognizedWord("A", 0.2, new PdfOcrImageRegion(0, 0, 1, 1)),
+            new PdfOcrRecognizedWord("BBBB", 0.8, new PdfOcrImageRegion(2, 0, 6, 1))
+        ]);
+
+        Assert.Equal(0.68f, confidence, 5);
+        Assert.Equal(0, PdfOcrRecognizer.CalculateMeanConfidence([]));
+    }
+
+    [Fact]
     public void RawBgraRecognitionHonorsCancellationAcrossTheCompletePipeline()
     {
         using var canceled = new CancellationTokenSource();
