@@ -998,7 +998,7 @@ public static class PdfOcrRecognizer
                             glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
                         text.Append(label);
                         candidates?.Add(model.RankCandidates(
-                            scores.AsSpan(0, model.LabelCount), maximumCandidates: 8));
+                            scores.AsSpan(0, model.LabelCount), maximumCandidates: 16));
                         confidence += score;
                     }
                     string recognizedText;

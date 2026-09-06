@@ -552,7 +552,7 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
-    public void RecognizerLetsLanguageContextRecoverAFifthVisualCandidate()
+    public void RecognizerLetsLanguageContextRecoverATwelfthVisualCandidate()
     {
         PdfOcrPreparedImage image = Prepared(8, 6,
         [
@@ -564,16 +564,19 @@ public sealed class PdfOcrRecognitionTests
             "........"
         ]);
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(image);
+        string[] labels = [.. Enumerable.Range(0, 12)
+            .Select(index => ((char)('A' + index)).ToString())];
+        float[] biases = [.. Enumerable.Range(0, 12)
+            .Select(index => (11 - index) / 20f)];
         PdfOcrRecognitionModel recognition = PdfOcrRecognitionModel.Create(4, 4,
-            ["A", "B", "C", "D", "E"], new float[80],
-            new float[] { 0.4f, 0.3f, 0.2f, 0.1f, 0 });
+            labels, new float[labels.Length * 16], biases);
         PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(
-            Enumerable.Repeat("EE", 20));
+            Enumerable.Repeat("LL", 20));
 
         PdfOcrRecognizedWord contextual = Assert.Single(PdfOcrRecognizer.Recognize(
             image, layout, recognition, language));
 
-        Assert.Equal("EE", contextual.Text);
+        Assert.Equal("LL", contextual.Text);
     }
 
     [Theory]
