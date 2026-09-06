@@ -841,8 +841,19 @@ public static class PdfOcrRecognizer
                         scores.AsSpan(0, model.LabelCount), maximumCandidates: 4));
                     confidence += score;
                 }
-                string recognizedText = candidates is null ? text.ToString()
-                    : string.Concat(languageModel!.Decode(candidates));
+                string recognizedText;
+                if (candidates is null)
+                {
+                    recognizedText = text.ToString();
+                }
+                else
+                {
+                    IReadOnlyList<string> decoded = languageModel!.Decode(candidates);
+                    recognizedText = string.Concat(decoded);
+                    confidence = 0;
+                    for (int index = 0; index < decoded.Count; index++)
+                        confidence += CandidateConfidence(decoded[index], candidates[index]);
+                }
                 words.Add(new PdfOcrRecognizedWord(recognizedText,
                     word.Components.Count == 0 ? 0 : confidence / word.Components.Count, word.Bounds));
             }
@@ -853,6 +864,19 @@ public static class PdfOcrRecognizer
             ArrayPool<double>.Shared.Return(scores);
         }
         return Array.AsReadOnly(words.ToArray());
+
+        static double CandidateConfidence(string selected,
+            IReadOnlyList<PdfOcrLanguageCandidate> candidates)
+        {
+            double selectedScore = candidates.First(candidate =>
+                string.Equals(candidate.Label, selected, StringComparison.Ordinal)).Score;
+            double runnerUp = candidates.Where(candidate =>
+                    !string.Equals(candidate.Label, selected, StringComparison.Ordinal))
+                .Select(candidate => candidate.Score)
+                .DefaultIfEmpty(double.NegativeInfinity).Max();
+            return double.IsNegativeInfinity(runnerUp)
+                ? 1 : 1 / (1 + Math.Exp(runnerUp - selectedScore));
+        }
     }
 
     /// <summary>Normalizes one glyph into a centered, aspect-preserving model feature grid.</summary>

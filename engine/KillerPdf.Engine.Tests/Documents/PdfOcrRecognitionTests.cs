@@ -421,26 +421,21 @@ public sealed class PdfOcrRecognitionTests
             "........"
         ]);
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(image);
-        PdfOcrTextLine line = Assert.Single(layout.Lines);
-        IReadOnlyList<PdfOcrImageRegion> components = Assert.Single(line.Words).Components;
-        PdfOcrRecognitionModel recognition = PdfOcrModelTrainer.Train(4, 4,
-            components.SelectMany(component =>
-            {
-                float[] features = PdfOcrRecognizer.NormalizeGlyph(
-                    image, component, line.Bounds, 4, 4);
-                return new[]
-                {
-                    new PdfOcrTrainingSample("0", features),
-                    new PdfOcrTrainingSample("O", features)
-                };
-            }));
+        Assert.Single(Assert.Single(layout.Lines).Words);
+        PdfOcrRecognitionModel recognition = PdfOcrRecognitionModel.Create(4, 4,
+            ["0", "O"], new float[32], new float[] { 0.1f, 0 });
         PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(
             Enumerable.Repeat("OO", 20));
 
-        Assert.Equal("00", Assert.Single(PdfOcrRecognizer.Recognize(
-            image, layout, recognition)).Text);
-        Assert.Equal("OO", Assert.Single(PdfOcrRecognizer.Recognize(
-            image, layout, recognition, language)).Text);
+        PdfOcrRecognizedWord visual = Assert.Single(PdfOcrRecognizer.Recognize(
+            image, layout, recognition));
+        PdfOcrRecognizedWord contextual = Assert.Single(PdfOcrRecognizer.Recognize(
+            image, layout, recognition, language));
+
+        Assert.Equal("00", visual.Text);
+        Assert.Equal("OO", contextual.Text);
+        Assert.True(contextual.Confidence < 0.5);
+        Assert.True(visual.Confidence > 0.5);
     }
 
     [Theory]
