@@ -87,6 +87,7 @@ public static class PdfOcrModelTrainer
     private const int MaximumPrototypesPerShape = 96;
     private const int MaximumLabelsPerComponent = 4;
     private const double LabelPriorWeight = 0.25;
+    private static readonly int[] StandardTrainingRenderScales = [1, 2, 3];
     private static readonly PdfStandardFont[] StandardTrainingFonts =
     [
         PdfStandardFont.Helvetica,
@@ -215,14 +216,18 @@ public static class PdfOcrModelTrainer
             correctOrientation: false, removeBackground: true, removeNoise: true,
             detectPageSegments: false);
         var samples = new List<PdfOcrTrainingSample>(
-            checked(requested.Length * StandardTrainingFonts.Length));
+            checked(requested.Length * StandardTrainingFonts.Length
+                * StandardTrainingRenderScales.Length));
         for (int pageIndex = 0; pageIndex < StandardTrainingFonts.Length; pageIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            samples.AddRange(CreatePageSamples(document, pageIndex,
-                new PdfRenderOptions(pageWidth * 2, pageHeight * 2,
-                    includeAnnotations: false, includeFormFields: false),
-                options, width, height, cancellationToken));
+            foreach (int scale in StandardTrainingRenderScales)
+            {
+                samples.AddRange(CreatePageSamples(document, pageIndex,
+                    new PdfRenderOptions(pageWidth * scale, pageHeight * scale,
+                        includeAnnotations: false, includeFormFields: false),
+                    options, width, height, cancellationToken));
+            }
         }
         return Array.AsReadOnly(samples.ToArray());
     }

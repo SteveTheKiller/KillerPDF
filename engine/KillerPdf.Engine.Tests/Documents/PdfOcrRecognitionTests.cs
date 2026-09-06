@@ -519,7 +519,7 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, samples);
 
         Assert.Equal(labels, model.Labels.Order(StringComparer.Ordinal));
-        Assert.All(labels, label => Assert.Equal(12,
+        Assert.All(labels, label => Assert.Equal(36,
             samples.Count(sample => sample.Label == label)));
         Assert.Throws<ArgumentException>(() =>
             PdfOcrModelTrainer.CreateStandardFontSamples(["AB"], 16, 16));
