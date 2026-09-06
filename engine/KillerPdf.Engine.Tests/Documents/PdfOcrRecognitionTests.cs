@@ -1068,6 +1068,51 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainingModelMergeDropsDuplicateCanonicalPrototypes()
+    {
+        PdfOcrRecognitionModel initial = PdfOcrModelTrainer.Train(2, 2,
+        [
+            new("A", new float[] { 1, 0.5f, 0.25f, 0 }),
+            new("B", new float[] { 0, 0.25f, 0.5f, 1 })
+        ]);
+        PdfOcrRecognitionModel restored = PdfOcrRecognitionModel.Load(initial.Save());
+
+        PdfOcrRecognitionModel merged = PdfOcrRecognitionModel.MergeTrainingModels(
+            [initial, restored]);
+
+        Assert.Equal(initial.LabelCount, merged.LabelCount);
+        Assert.Equal(1, PdfOcrModelTrainer.Evaluate(merged,
+        [
+            new("A", new float[] { 1, 0.5f, 0.25f, 0 }),
+            new("B", new float[] { 0, 0.25f, 0.5f, 1 })
+        ]).Accuracy);
+        Assert.Equal(merged.Save(), PdfOcrRecognitionModel.Load(merged.Save()).Save());
+    }
+
+    [Fact]
+    public void TrainingModelMergeRetainsNewPrototypeShapes()
+    {
+        PdfOcrRecognitionModel initial = PdfOcrModelTrainer.Train(2, 2,
+        [
+            new("A", new float[] { 1, 0, 0, 0 }),
+            new("B", new float[] { 0, 0, 0, 1 })
+        ]);
+        PdfOcrRecognitionModel update = PdfOcrModelTrainer.Train(2, 2,
+            [new("A", new float[] { 0, 1, 1, 0 })]);
+
+        PdfOcrRecognitionModel merged = PdfOcrRecognitionModel.MergeTrainingModels(
+            [initial, update]);
+
+        Assert.Equal(initial.LabelCount + update.LabelCount, merged.LabelCount);
+        Assert.Equal(1, PdfOcrModelTrainer.Evaluate(merged,
+        [
+            new("A", new float[] { 1, 0, 0, 0 }),
+            new("A", new float[] { 0, 1, 1, 0 }),
+            new("B", new float[] { 0, 0, 0, 1 })
+        ]).Accuracy);
+    }
+
+    [Fact]
     public void CombiningModelsRejectsOversizedOutputBeforeAllocatingIt()
     {
         const int labelCount = 1_024;

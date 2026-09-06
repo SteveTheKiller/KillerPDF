@@ -195,6 +195,101 @@ public sealed class PdfOcrRecognitionModel
         return CreatePrototype(first.Width, first.Height, labels, weights, biases, priors);
     }
 
+    /// <summary>Merges successive training models without retaining duplicate prototypes.</summary>
+    public static PdfOcrRecognitionModel MergeTrainingModels(
+        IEnumerable<PdfOcrRecognitionModel> models)
+    {
+        ArgumentNullException.ThrowIfNull(models);
+        PdfOcrRecognitionModel[] supplied = models.ToArray();
+        if (supplied.Length is < 1 or > 16 || supplied.Any(model => model is null))
+            throw new ArgumentException(
+                "One through sixteen OCR recognition models are required.", nameof(models));
+        PdfOcrRecognitionModel first = supplied[0];
+        if (supplied.Any(model => model.Width != first.Width
+            || model.Height != first.Height))
+            throw new ArgumentException(
+                "OCR recognition model dimensions do not match.", nameof(models));
+
+        int featureCount = checked(first.Width * first.Height);
+        var entries = new List<(PdfOcrRecognitionModel Model, int Index)>();
+        var entriesByLabel = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+        foreach (PdfOcrRecognitionModel model in supplied)
+            for (int index = 0; index < model._labels.Length; index++)
+            {
+                ReadOnlySpan<float> candidateWeights = model._weights.AsSpan(
+                    index * featureCount, featureCount);
+                int existing = -1;
+                string label = model._labels[index];
+                if (entriesByLabel.TryGetValue(label, out List<int>? sameLabelEntries))
+                    foreach (int entryIndex in sameLabelEntries)
+                    {
+                        (PdfOcrRecognitionModel Model, int Index) entry = entries[entryIndex];
+                        if (!SameCanonicalWeights(entry.Model._weights.AsSpan(
+                            entry.Index * featureCount, featureCount), candidateWeights))
+                            continue;
+                        existing = entryIndex;
+                        break;
+                    }
+                if (existing < 0)
+                {
+                    sameLabelEntries ??= [];
+                    entriesByLabel[label] = sameLabelEntries;
+                    sameLabelEntries.Add(entries.Count);
+                    entries.Add((model, index));
+                    continue;
+                }
+                (PdfOcrRecognitionModel Model, int Index) current = entries[existing];
+                if (model._biases[index] > current.Model._biases[current.Index])
+                    entries[existing] = (model, index);
+            }
+
+        int labelCount = entries.Count;
+        long labelBytes = entries.Sum(entry =>
+            1L + Encoding.UTF8.GetByteCount(entry.Model._labels[entry.Index]));
+        if (labelCount > 65_536
+            || !FitsSerializedSize(labelBytes, labelCount,
+                checked((long)labelCount * featureCount)))
+            throw new ArgumentException(
+                "The merged OCR recognition model exceeds the size limit.", nameof(models));
+
+        var labels = new string[labelCount];
+        var weights = new float[checked(labelCount * featureCount)];
+        var biases = new float[labelCount];
+        var priors = new float[labelCount];
+        for (int target = 0; target < entries.Count; target++)
+        {
+            (PdfOcrRecognitionModel model, int source) = entries[target];
+            labels[target] = model._labels[source];
+            model._weights.AsSpan(source * featureCount, featureCount).CopyTo(
+                weights.AsSpan(target * featureCount, featureCount));
+            biases[target] = model._biases[source];
+            priors[target] = model._priors[source];
+        }
+        return CreatePrototype(first.Width, first.Height, labels, weights, biases, priors);
+
+        static bool SameCanonicalWeights(ReadOnlySpan<float> left,
+            ReadOnlySpan<float> right)
+        {
+            if (left.Length != right.Length) return false;
+            for (int index = 0; index < left.Length; index++)
+            {
+                bool leftCompact = left[index] >= 0 && left[index] <= (float)Half.MaxValue;
+                bool rightCompact = right[index] >= 0 && right[index] <= (float)Half.MaxValue;
+                if (leftCompact != rightCompact) return false;
+                if (leftCompact)
+                {
+                    if (BitConverter.HalfToInt16Bits((Half)left[index])
+                        != BitConverter.HalfToInt16Bits((Half)right[index]))
+                        return false;
+                }
+                else if (BitConverter.SingleToInt32Bits(left[index])
+                    != BitConverter.SingleToInt32Bits(right[index]))
+                    return false;
+            }
+            return true;
+        }
+    }
+
     internal static bool FitsSerializedSize(long labelBytes, int labelCount,
         long weightCount)
     {

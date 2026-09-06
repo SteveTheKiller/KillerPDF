@@ -610,7 +610,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     throw new InvalidDataException("The OCR model merge input size is invalid.");
                 var bytes = new byte[checked((int)input.Length)];
                 input.ReadExactly(bytes);
-                ocrModel = PdfOcrRecognitionModel.Combine(
+                ocrModel = PdfOcrRecognitionModel.MergeTrainingModels(
                     [PdfOcrRecognitionModel.Load(bytes), ocrModel]);
             }
         }
@@ -640,7 +640,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             : $"{explicitHoldoutFiles.Count:N0}-file explicit holdout, ")
         + (ocrModelInputPath is not null ? $"loaded model {ocrModelInputPath}."
             : ocrModelMergeInputPath is not null
-                ? $"trained and combined model {ocrModelMergeInputPath}."
+                ? $"trained and merged model {ocrModelMergeInputPath}."
                 : "trained model."));
     string[] missingLabels = ocrLabels is null ? [] : [.. ocrLabels
         .Except(ocrModel.Labels, StringComparer.Ordinal)
@@ -1004,7 +1004,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         $"Sampled {phase} {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
             }
         }
-        if (!selectHoldout)
+        if (!selectHoldout && ocrModelMergeInputPath is null)
         {
             IReadOnlySet<string> seedLabels = ocrLabels ?? observedTrainingLabels;
             string[] seedStandardLabels = [.. seedLabels
