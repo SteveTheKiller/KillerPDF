@@ -52,6 +52,7 @@
     <!-- Data only, by design: OcrLanguages.cs itself reaches App and OcrNativeBootstrap, which a
          catalog check has no business dragging in. See OcrCatalogTests. -->
     <Compile Include="..\Services\OcrCatalog.cs" Link="Services\OcrCatalog.cs" />
+    <Compile Include="..\Services\OcrModelFiles.cs" Link="Services\OcrModelFiles.cs" />
     <!-- Data only, same reasoning as OcrCatalog: the shortcut table is deliberately free of WPF
          and of MainWindow so the invariants can be checked without standing up a window. -->
     <Compile Include="..\Services\ShortcutTable.cs" Link="Services\ShortcutTable.cs" />

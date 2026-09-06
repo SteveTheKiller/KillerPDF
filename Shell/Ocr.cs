@@ -12,7 +12,7 @@ namespace KillerPDF
     public partial class MainWindow : IOcrHost
     {
         // ============================================================
-        // OCR (Tesseract) - extract text from a rendered page
+        // OCR - extract text from a rendered page
         // ============================================================
 
         // Non-null only while a cancellable long-running operation (OCR, repair) is in flight. Esc (see
@@ -44,7 +44,7 @@ namespace KillerPDF
         // The catalog, install checks and traineddata downloads live in Services/OcrLanguages.cs.
 
         // The user's chosen OCR languages, persisted as a '+'-joined setting. Filtered to those actually
-        // installed (a deleted pack can't be passed to Tesseract) and never empty - English is the floor.
+        // installed and never empty - English is the floor.
         private static List<string> GetSelectedOcrLanguages()
         {
             var stored = (App.GetSetting("OcrLanguages") ?? "eng")
@@ -72,7 +72,7 @@ namespace KillerPDF
         // open menu; not-yet-installed ones offer a one-time download. At least one language stays selected.
         private MenuItem BuildLanguageMenu()
         {
-            string tessDir = OcrNativeBootstrap.EnsureLanguageData();   // make sure bundled English is present
+            OcrNativeBootstrap.EnsureLanguageData();
             var selected = GetSelectedOcrLanguages();
             bool hqPref = OcrHighQuality;
 
@@ -109,7 +109,7 @@ namespace KillerPDF
 
             foreach (var (code, name) in OcrLanguages.OcrLanguageCatalog)
             {
-                bool installed = File.Exists(Path.Combine(tessDir, code + ".traineddata"));
+                bool installed = OcrLanguages.IsLanguageInstalled(code);
                 if (installed)
                 {
                     var item = new MenuItem
@@ -222,12 +222,12 @@ namespace KillerPDF
             var hq = OcrLanguages.GetHqLanguages();
             var toDownload = new List<string>();
             foreach (var c in GetSelectedOcrLanguages())
-                if (OcrLanguages.IsLanguageInstalled(c) && !hq.Contains(c)) toDownload.Add(c);
+                if (OcrLanguages.IsTesseractLanguageInstalled(c) && !hq.Contains(c)) toDownload.Add(c);
 
             if (toDownload.Count == 0)
             {
                 bool anyInstalled = false;
-                foreach (var c in GetSelectedOcrLanguages()) if (OcrLanguages.IsLanguageInstalled(c)) { anyInstalled = true; break; }
+                foreach (var c in GetSelectedOcrLanguages()) if (OcrLanguages.IsTesseractLanguageInstalled(c)) { anyInstalled = true; break; }
                 SetStatus(anyInstalled
                     ? Loc("Str_St_HqAlready")
                     : Loc("Str_St_HqNextTime"));
@@ -286,8 +286,7 @@ namespace KillerPDF
                 (App.GetSetting("OcrLanguages") ?? "eng").Split(['+'], StringSplitOptions.RemoveEmptyEntries));
             if (desired.Count == 0) desired.Add("eng");
 
-            var missing = new List<string>();
-            foreach (var c in desired) if (!OcrLanguages.IsLanguageInstalled(c) && !missing.Contains(c)) missing.Add(c);
+            var missing = OcrLanguages.MissingLanguagesForOcr(desired).ToList();
             if (missing.Count == 0) return true;
 
             string names = string.Join(", ", missing.ConvertAll(OcrLanguages.NameForCode));
@@ -315,8 +314,7 @@ namespace KillerPDF
                     OcrLanguages.MarkLanguageHq(code, OcrHighQuality);
                     if (ct.IsCancellationRequested) return false;
                 }
-                foreach (var c in missing) if (!OcrLanguages.IsLanguageInstalled(c)) return false;
-                return true;
+                return OcrLanguages.MissingLanguagesForOcr(desired).Count == 0;
             }
             catch (OperationCanceledException)
             {

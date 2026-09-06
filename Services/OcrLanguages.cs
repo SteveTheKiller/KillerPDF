@@ -17,10 +17,15 @@ namespace KillerPDF.Services
         internal static readonly (string Code, string Name)[] OcrLanguageCatalog = OcrCatalog.Languages;
         internal static readonly (string Locale, string Code)[] LocaleToOcrCode = OcrCatalog.LocaleToCode;
 
-        // True if <code>.traineddata exists in the tessdata folder. Nothing is bundled now (not even English);
-        // models are downloaded on demand, so this is a pure file-presence check.
+        // Engine and Tesseract models share the language-data folder. Either format can satisfy OCR.
         internal static bool IsLanguageInstalled(string code) =>
-            File.Exists(Path.Combine(OcrNativeBootstrap.TessDataDir, code + ".traineddata"));
+            OcrModelFiles.IsLanguageInstalled(OcrNativeBootstrap.TessDataDir, code);
+
+        internal static bool IsTesseractLanguageInstalled(string code) =>
+            OcrModelFiles.HasTesseractModel(OcrNativeBootstrap.TessDataDir, code);
+
+        internal static IReadOnlyList<string> MissingLanguagesForOcr(IEnumerable<string> languages) =>
+            OcrModelFiles.MissingForCommonBackend(OcrNativeBootstrap.TessDataDir, languages);
 
         // Download URL for a language's traineddata, honoring the caller's high-quality preference.
         // Standard tier uses tessdata_fast: the same integer LSTM model as the full "tessdata" repo but without
