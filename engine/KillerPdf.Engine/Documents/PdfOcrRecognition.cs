@@ -23,6 +23,9 @@ public sealed class PdfOcrRecognitionModel
     private const int CoarseGradientCellCount = 2;
     private const int FineGradientCellCount = 8;
     private const int GradientBinCount = 4;
+    private const int ShapeBucketCount = 45;
+    private const int FastPathPrototypeThreshold = 1_024;
+    private const int FastPathPrototypesPerLabel = 2;
     private const int CoarseGradientDescriptorLength =
         CoarseGradientCellCount * CoarseGradientCellCount * GradientBinCount;
     private const int FineGradientDescriptorLength =
@@ -39,6 +42,7 @@ public sealed class PdfOcrRecognitionModel
     private readonly Dictionary<string, ulong> _labelShapeMasks;
     private readonly Dictionary<string, float> _labelPriors;
     private readonly Dictionary<string, int[]> _prototypeIndexesByLabel;
+    private readonly int[][] _candidateIndexesByShape;
     private readonly bool _usesPrototypeShapes;
 
     private PdfOcrRecognitionModel(int width, int height, string[] labels,
@@ -94,6 +98,13 @@ public sealed class PdfOcrRecognitionModel
         }
         _prototypeIndexesByLabel = prototypeIndexes.ToDictionary(
             item => item.Key, item => item.Value.ToArray(), StringComparer.Ordinal);
+        _candidateIndexesByShape = new int[ShapeBucketCount][];
+        for (int shape = 0; shape < ShapeBucketCount; shape++)
+            _candidateIndexesByShape[shape] = [.. Enumerable.Range(0, labels.Length)
+                .Where(index => !_usesPrototypeShapes
+                    || _shapeBuckets[index] < 0
+                    || _shapeBuckets[index] == shape
+                    || (_labelShapeMasks[labels[index]] & 1UL << shape) == 0)];
         Labels = Array.AsReadOnly(labels.Distinct(StringComparer.Ordinal).ToArray());
     }
 
@@ -654,22 +665,67 @@ public sealed class PdfOcrRecognitionModel
                 features, Width, Height, FineGradientCellCount,
                 fineGradientDescriptor);
         }
-        int best = -1;
-        for (int label = 0; label < _labels.Length; label++)
+        scores.Fill(double.NegativeInfinity);
+        ReadOnlySpan<int> candidates = [];
+        bool candidateSubset = false;
+        int[]? fastCandidateArray = _labels.Length > FastPathPrototypeThreshold
+            ? new int[checked(Labels.Count * FastPathPrototypesPerLabel)] : null;
+        Span<int> fastCandidates = fastCandidateArray is null ? [] : fastCandidateArray;
+        if (!fastCandidates.IsEmpty)
         {
-            if (allowedLabels is not null && !allowedLabels.Contains(_labels[label]))
+            int write = 0;
+            foreach (string labelName in Labels)
             {
-                scores[label] = double.NegativeInfinity;
-                continue;
+                if (allowedLabels is not null && !allowedLabels.Contains(labelName))
+                    continue;
+                int first = -1, second = -1;
+                double firstDistance = double.PositiveInfinity;
+                double secondDistance = double.PositiveInfinity;
+                foreach (int index in _prototypeIndexesByLabel[labelName])
+                {
+                    bool shapeMismatch = _usesPrototypeShapes && shape >= 0
+                        && _shapeBuckets[index] >= 0 && _shapeBuckets[index] != shape;
+                    if (shapeMismatch
+                        && (_labelShapeMasks[_labels[index]] & 1UL << shape) != 0)
+                        continue;
+                    double distance = ProjectionDistance(index, rowProjection, columnProjection);
+                    if (shapeMismatch) distance += ShapeMismatchPenalty;
+                    if (distance < firstDistance)
+                    {
+                        second = first;
+                        secondDistance = firstDistance;
+                        first = index;
+                        firstDistance = distance;
+                    }
+                    else if (distance < secondDistance)
+                    {
+                        second = index;
+                        secondDistance = distance;
+                    }
+                }
+                if (first >= 0) fastCandidates[write++] = first;
+                if (second >= 0) fastCandidates[write++] = second;
             }
+            candidates = fastCandidates[..write];
+            candidateSubset = true;
+        }
+        else if (shape is >= 0 and < ShapeBucketCount)
+        {
+            candidates = _candidateIndexesByShape[shape];
+            candidateSubset = true;
+        }
+        int candidateCount = candidateSubset ? candidates.Length : _labels.Length;
+        int best = -1;
+        for (int candidate = 0; candidate < candidateCount; candidate++)
+        {
+            int label = candidateSubset ? candidates[candidate] : candidate;
+            if (allowedLabels is not null && !allowedLabels.Contains(_labels[label]))
+                continue;
             bool shapeMismatch = _usesPrototypeShapes && shape >= 0
                 && _shapeBuckets[label] >= 0 && _shapeBuckets[label] != shape;
             if (shapeMismatch
                 && (_labelShapeMasks[_labels[label]] & 1UL << shape) != 0)
-            {
-                scores[label] = double.NegativeInfinity;
                 continue;
-            }
             double score = _biases[label];
             int offset = label * featureCount;
             int feature = 0;

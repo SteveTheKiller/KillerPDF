@@ -1405,6 +1405,25 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void LargePrototypeModelsUseTheProjectedCandidatePath()
+    {
+        const int width = 16, height = 16, count = 1_025;
+        string[] labels = [.. Enumerable.Range(0, count)
+            .Select(index => $"L{index:D4}")];
+        var weights = new float[count * width * height];
+        weights[(count - 1) * width * height] = 1;
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
+            width, height, labels, weights, new float[count]);
+        var target = new float[width * height];
+        target[0] = 1;
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new(labels[^1], target)]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
     public void ModelCatalogSelectsRequestedExactAndPrimaryLanguages()
     {
         PdfOcrRecognitionModel english = TinyModel("E");
