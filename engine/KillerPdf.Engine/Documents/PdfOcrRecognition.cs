@@ -14,6 +14,8 @@ public sealed class PdfOcrRecognitionModel
     private readonly string[] _labels;
     private readonly float[] _weights;
     private readonly float[] _biases;
+    private readonly sbyte[] _shapeBuckets;
+    private readonly bool _usesPrototypeShapes;
 
     private PdfOcrRecognitionModel(int width, int height, string[] labels,
         float[] weights, float[] biases)
@@ -23,6 +25,12 @@ public sealed class PdfOcrRecognitionModel
         _labels = labels;
         _weights = weights;
         _biases = biases;
+        _usesPrototypeShapes = !weights.AsSpan().ContainsAnyExceptInRange(0, float.MaxValue);
+        int featureCount = checked(width * height);
+        _shapeBuckets = new sbyte[labels.Length];
+        for (int label = 0; label < labels.Length; label++)
+            _shapeBuckets[label] = checked((sbyte)ShapeBucket(
+                weights.AsSpan(label * featureCount, featureCount), width, height));
         Labels = Array.AsReadOnly(labels.Distinct(StringComparer.Ordinal).ToArray());
     }
 
@@ -203,6 +211,29 @@ public sealed class PdfOcrRecognitionModel
 
     internal int LabelCount => _labels.Length;
 
+    internal static int ShapeBucket(ReadOnlySpan<float> features, int width, int height)
+    {
+        float maximum = 0;
+        foreach (float value in features)
+            maximum = Math.Max(maximum, value);
+        if (maximum <= 0) return -1;
+
+        float threshold = maximum * 0.125f;
+        int left = width, top = height, right = 0, bottom = 0;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                if (features[y * width + x] <= threshold) continue;
+                left = Math.Min(left, x);
+                top = Math.Min(top, y);
+                right = Math.Max(right, x + 1);
+                bottom = Math.Max(bottom, y + 1);
+            }
+        if (right <= left || bottom <= top) return -1;
+        double aspect = (right - left) / (double)(bottom - top);
+        return aspect < 0.5 ? 0 : aspect > 1 ? 2 : 1;
+    }
+
     internal (string Label, double Confidence) Classify(
         ReadOnlySpan<float> features, Span<double> scores,
         IReadOnlySet<string>? allowedLabels = null)
@@ -211,10 +242,16 @@ public sealed class PdfOcrRecognitionModel
         if (features.Length != featureCount) throw new ArgumentException("Glyph feature size mismatch.");
         if (scores.Length < _labels.Length) throw new ArgumentException("OCR score workspace is too small.");
         scores = scores[.._labels.Length];
+        int shape = ShapeBucket(features, Width, Height);
+        bool restrictShape = _usesPrototypeShapes && shape >= 0
+            && Enumerable.Range(0, _labels.Length).Any(label =>
+            _shapeBuckets[label] == shape
+            && (allowedLabels is null || allowedLabels.Contains(_labels[label])));
         int best = -1;
         for (int label = 0; label < _labels.Length; label++)
         {
-            if (allowedLabels is not null && !allowedLabels.Contains(_labels[label]))
+            if ((allowedLabels is not null && !allowedLabels.Contains(_labels[label]))
+                || (restrictShape && _shapeBuckets[label] != shape))
             {
                 scores[label] = double.NegativeInfinity;
                 continue;

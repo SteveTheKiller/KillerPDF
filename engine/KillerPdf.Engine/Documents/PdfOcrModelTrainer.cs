@@ -88,7 +88,9 @@ public static class PdfOcrModelTrainer
             ValidateLabel(sample.Label, samples);
             ValidateFeatures(sample.Features.Span, featureCount, samples);
             labelCounts[sample.Label] = labelCounts.GetValueOrDefault(sample.Label) + 1;
-            var key = (sample.Label, ShapeBucket(sample.Features.Span, width, height));
+            int shape = PdfOcrRecognitionModel.ShapeBucket(
+                sample.Features.Span, width, height);
+            var key = (sample.Label, shape < 0 ? 1 : shape);
             if (!prototypes.TryGetValue(key, out PrototypeBucket? bucket))
             {
                 bucket = new PrototypeBucket();
@@ -312,23 +314,6 @@ public static class PdfOcrModelTrainer
                 throw new ArgumentException(
                     "OCR sample features must be finite values from zero through one.",
                     nameof(samples));
-    }
-
-    private static int ShapeBucket(ReadOnlySpan<float> features, int width, int height)
-    {
-        int left = width, top = height, right = 0, bottom = 0;
-        for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
-            {
-                if (features[y * width + x] <= 0.125f) continue;
-                left = Math.Min(left, x);
-                top = Math.Min(top, y);
-                right = Math.Max(right, x + 1);
-                bottom = Math.Max(bottom, y + 1);
-            }
-        if (right <= left || bottom <= top) return 1;
-        double aspect = (right - left) / (double)(bottom - top);
-        return aspect < 0.5 ? 0 : aspect > 1 ? 2 : 1;
     }
 
     private static PdfOcrImageRegion? MapToPixels(PdfContentBounds bounds,

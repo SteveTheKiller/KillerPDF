@@ -85,6 +85,34 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void ClassifierComparesGlyphsWithMatchingPrototypeShapes()
+    {
+        float[] narrow =
+        [
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0
+        ];
+        float[] wide =
+        [
+            1, 1, 1,
+            1, 1, 1,
+            1, 1, 1
+        ];
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(3, 3,
+        [
+            new("narrow", narrow),
+            .. Enumerable.Repeat(new PdfOcrTrainingSample("wide", wide), 100)
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("narrow", narrow)]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+        Assert.Equal(model.Save(), PdfOcrRecognitionModel.Load(model.Save()).Save());
+    }
+
+    [Fact]
     public void TrainerKeepsRepresentativeVariantsWithinOneShapeBucket()
     {
         float[] left =
