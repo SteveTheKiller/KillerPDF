@@ -857,17 +857,53 @@ public sealed class PdfOcrRecognitionTests
     [Fact]
     public void ModelLoadsLegacyFilesWithoutSeparatedPriors()
     {
-        byte[] current = TinyModel("E").Save();
-        byte[] legacy = [.. current.AsSpan(0, 21).ToArray(),
-            .. current.AsSpan(25).ToArray()];
-        legacy[5] = (byte)'2';
-
-        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Load(legacy);
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Load(
+            PreviousModelBytes("KPOCR2\0", includePriors: false));
         PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
             [new("E", new float[] { 1 })]);
 
         Assert.Equal(["E"], model.Labels);
         Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
+    public void ModelLoadsPreviousFloatWeightFiles()
+    {
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Load(
+            PreviousModelBytes("KPOCR3\0", includePriors: true));
+
+        Assert.Equal(["E"], model.Labels);
+        Assert.Equal(1, PdfOcrModelTrainer.Evaluate(model,
+            [new("E", new float[] { 1 })]).Accuracy);
+    }
+
+    [Fact]
+    public void PrototypeModelsUseCompactWeightsWithoutChangingRecognition()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 2,
+            [new("A", new float[] { 1, 0.5f, 0.25f, 0 })]);
+        byte[] compact = model.Save();
+        int floatFormatLength = 7 + sizeof(int) * 3 + 2
+            + sizeof(float) * 6;
+
+        Assert.True(compact.Length < floatFormatLength);
+        Assert.Equal("A", Assert.Single(PdfOcrModelTrainer.Evaluate(
+            PdfOcrRecognitionModel.Load(compact),
+            [new("A", new float[] { 1, 0.5f, 0.25f, 0 })]).Confusion).Predicted);
+        Assert.Equal(compact, PdfOcrRecognitionModel.Load(compact).Save());
+    }
+
+    [Fact]
+    public void SignedLinearModelsRetainExactFloatWeights()
+    {
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
+            2, 1, ["A"], new float[] { -0.1234567f, 0.7654321f },
+            new float[] { 0.25f });
+        byte[] saved = model.Save();
+
+        Assert.Equal(saved, PdfOcrRecognitionModel.Load(saved).Save());
+        Assert.Equal(7 + sizeof(int) * 3 + 2 + 1 + sizeof(float) * 4,
+            saved.Length);
     }
 
     [Fact]
@@ -1459,6 +1495,22 @@ public sealed class PdfOcrRecognitionTests
 
     private static PdfOcrRecognitionModel TinyModel(string label) =>
         PdfOcrRecognitionModel.Create(1, 1, [label], new float[] { 1 }, new float[] { 0 });
+
+    private static byte[] PreviousModelBytes(string magic, bool includePriors)
+    {
+        using var output = new MemoryStream();
+        using var writer = new BinaryWriter(output);
+        writer.Write(magic.Select(character => (byte)character).ToArray());
+        writer.Write(1);
+        writer.Write(1);
+        writer.Write(1);
+        writer.Write((byte)1);
+        writer.Write((byte)'E');
+        if (includePriors) writer.Write(0f);
+        writer.Write(0f);
+        writer.Write(1f);
+        return output.ToArray();
+    }
 
     private static PdfImage RasterImage(string[] rows)
     {

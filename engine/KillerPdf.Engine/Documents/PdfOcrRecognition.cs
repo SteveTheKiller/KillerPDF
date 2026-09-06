@@ -10,7 +10,8 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>A bounded, versioned OCR glyph-classification model.</summary>
 public sealed class PdfOcrRecognitionModel
 {
-    private static readonly byte[] Magic = "KPOCR3\0"u8.ToArray();
+    private static readonly byte[] Magic = "KPOCR4\0"u8.ToArray();
+    private static readonly byte[] PreviousMagic = "KPOCR3\0"u8.ToArray();
     private static readonly byte[] LegacyMagic = "KPOCR2\0"u8.ToArray();
     internal const int MaximumModelBytes = 256 * 1024 * 1024;
     private const double PriorTieWindow = 1e-9;
@@ -215,8 +216,12 @@ public sealed class PdfOcrRecognitionModel
     public byte[] Save()
     {
         int labelBytes = _labels.Sum(label => 1 + Encoding.UTF8.GetByteCount(label));
-        int length = checked(Magic.Length + sizeof(int) * 3 + labelBytes
-            + checked((_priors.Length + _biases.Length + _weights.Length) * sizeof(float)));
+        bool compactWeights = _usesPrototypeShapes
+            && !_weights.AsSpan().ContainsAnyExceptInRange(0, (float)Half.MaxValue);
+        int weightBytes = compactWeights ? sizeof(ushort) : sizeof(float);
+        int length = checked(Magic.Length + sizeof(int) * 3 + labelBytes + 1
+            + checked((_priors.Length + _biases.Length) * sizeof(float))
+            + checked(_weights.Length * weightBytes));
         var output = new byte[length];
         Span<byte> destination = output;
         Magic.CopyTo(destination);
@@ -230,12 +235,16 @@ public sealed class PdfOcrRecognitionModel
             destination[position++] = checked((byte)bytes);
             position += Encoding.UTF8.GetBytes(label, destination[position..]);
         }
+        destination[position++] = compactWeights ? (byte)1 : (byte)0;
         foreach (float value in _priors)
             WriteSingle(destination, ref position, value);
         foreach (float value in _biases)
             WriteSingle(destination, ref position, value);
         foreach (float value in _weights)
-            WriteSingle(destination, ref position, value);
+            if (compactWeights)
+                WriteHalf(destination, ref position, (Half)value);
+            else
+                WriteSingle(destination, ref position, value);
         return output;
     }
 
@@ -255,8 +264,10 @@ public sealed class PdfOcrRecognitionModel
         int position = 0;
         bool legacy = bytes.Length >= LegacyMagic.Length
             && bytes[..LegacyMagic.Length].SequenceEqual(LegacyMagic);
+        bool previous = bytes.Length >= PreviousMagic.Length
+            && bytes[..PreviousMagic.Length].SequenceEqual(PreviousMagic);
         if (bytes.Length < Magic.Length
-            || !legacy && !bytes[..Magic.Length].SequenceEqual(Magic))
+            || !legacy && !previous && !bytes[..Magic.Length].SequenceEqual(Magic))
             throw new FormatException("The OCR model header is invalid.");
         position += Magic.Length;
         int width = ReadInt32(bytes, ref position);
@@ -265,11 +276,9 @@ public sealed class PdfOcrRecognitionModel
         if (width is <= 0 or > 128 || height is <= 0 or > 128 || count is <= 0 or > 65_536)
             throw new FormatException("The OCR model dimensions are invalid.");
         int features;
-        int valueCount;
         try
         {
             features = checked(width * height);
-            valueCount = checked(count * (features + (legacy ? 1 : 2)));
         }
         catch (OverflowException exception)
         {
@@ -287,12 +296,24 @@ public sealed class PdfOcrRecognitionModel
             labels[index] = utf8.GetString(bytes.Slice(position, length));
             position += length;
         }
+        bool compactWeights = false;
+        if (!legacy && !previous)
+        {
+            if (position >= bytes.Length || bytes[position] > 1)
+                throw new FormatException("The OCR model weight encoding is invalid.");
+            compactWeights = bytes[position++] == 1;
+        }
         long remaining = bytes.Length - position;
-        long required = (long)valueCount * sizeof(float);
+        long required = checked((long)count * (legacy ? 1 : 2) * sizeof(float)
+            + (long)count * features
+            * (compactWeights ? sizeof(ushort) : sizeof(float)));
         if (remaining != required) throw new FormatException("The OCR model payload length is invalid.");
         float[] priors = legacy ? new float[count] : ReadFloats(bytes, ref position, count);
         float[] biases = ReadFloats(bytes, ref position, count);
-        float[] weights = ReadFloats(bytes, ref position, checked(count * features));
+        int weightCount = checked(count * features);
+        float[] weights = compactWeights
+            ? ReadHalfs(bytes, ref position, weightCount)
+            : ReadFloats(bytes, ref position, weightCount);
         try { return CreatePrototype(width, height, labels, weights, biases, priors); }
         catch (ArgumentException exception) { throw new FormatException("The OCR model payload is invalid.", exception); }
     }
@@ -318,6 +339,12 @@ public sealed class PdfOcrRecognitionModel
         position += sizeof(float);
     }
 
+    private static void WriteHalf(Span<byte> destination, ref int position, Half value)
+    {
+        BinaryPrimitives.WriteHalfLittleEndian(destination[position..], value);
+        position += sizeof(ushort);
+    }
+
     private static float[] ReadFloats(
         ReadOnlySpan<byte> source, ref int position, int length)
     {
@@ -326,6 +353,18 @@ public sealed class PdfOcrRecognitionModel
         {
             values[index] = BinaryPrimitives.ReadSingleLittleEndian(source[position..]);
             position += sizeof(float);
+        }
+        return values;
+    }
+
+    private static float[] ReadHalfs(
+        ReadOnlySpan<byte> source, ref int position, int length)
+    {
+        var values = new float[length];
+        for (int index = 0; index < values.Length; index++)
+        {
+            values[index] = (float)BinaryPrimitives.ReadHalfLittleEndian(source[position..]);
+            position += sizeof(ushort);
         }
         return values;
     }
