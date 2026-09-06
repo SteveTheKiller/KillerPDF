@@ -10,6 +10,7 @@ public sealed class RenderBoundaryTests
     {
         string root = FindRepositoryRoot();
         string boundary = Path.GetFullPath(Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
+        string fallback = Path.GetFullPath(Path.Combine(root, "Services", "DocnetRenderFallback.cs"));
         string interop = Path.GetFullPath(Path.Combine(root, "Services", "PdfiumInterop.cs"));
         string thisTest = Path.GetFullPath(Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
         string[] forbidden =
@@ -27,7 +28,7 @@ public sealed class RenderBoundaryTests
                 || fullPath.StartsWith(Path.Combine(root, "obj"), StringComparison.OrdinalIgnoreCase)
                 || fullPath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
                 || fullPath.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
-                || fullPath.Equals(boundary, StringComparison.OrdinalIgnoreCase)
+                || fullPath.Equals(fallback, StringComparison.OrdinalIgnoreCase)
                 || fullPath.Equals(interop, StringComparison.OrdinalIgnoreCase)
                 || fullPath.Equals(thisTest, StringComparison.OrdinalIgnoreCase))
                 continue;
@@ -36,6 +37,11 @@ public sealed class RenderBoundaryTests
             foreach (string text in forbidden)
                 Assert.DoesNotContain(text, source, StringComparison.Ordinal);
         }
+
+        string boundarySource = File.ReadAllText(boundary);
+        Assert.DoesNotContain("using Docnet.", boundarySource, StringComparison.Ordinal);
+        Assert.DoesNotContain("IDocReader", boundarySource, StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfiumInterop", boundarySource, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -90,7 +96,7 @@ public sealed class RenderBoundaryTests
 
         int engineOpen = method.IndexOf("EngineDocument.OpenWithCompatibilityRecovery(",
             StringComparison.Ordinal);
-        int fallbackRender = method.IndexOf("PdfiumInterop.RenderPageWithAnnotations(",
+        int fallbackRender = method.IndexOf("DocnetRenderFallback.RenderExactPage(",
             StringComparison.Ordinal);
 
         Assert.True(engineOpen >= 0);
@@ -235,7 +241,7 @@ public sealed class RenderBoundaryTests
         Assert.Contains("includeAnnotations: false", method, StringComparison.Ordinal);
         Assert.Contains("includeFormFields: false", method, StringComparison.Ordinal);
         Assert.True(method.IndexOf("RenderEnginePage(", StringComparison.Ordinal)
-            < method.IndexOf("NativeReader()", StringComparison.Ordinal));
+            < method.IndexOf("_nativeFallback.RenderBasePage(", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -1,5 +1,3 @@
-using Docnet.Core;
-using Docnet.Core.Models;
 using System.IO;
 using EngineDocument = KillerPdf.Engine.Documents.PdfDocument;
 using EnginePageInformation = KillerPdf.Engine.Documents.PdfPageInformation;
@@ -15,8 +13,7 @@ namespace KillerPDF.Services;
 /// </summary>
 internal sealed class PdfPageRenderSession : IDisposable
 {
-    private readonly string _path;
-    private Docnet.Core.Readers.IDocReader? _reader;
+    private readonly DocnetRenderFallback _nativeFallback;
     private readonly EngineRenderer? _engineRenderer;
     private readonly IReadOnlyList<EnginePageInformation>? _enginePages;
     private readonly int _maximumWidth;
@@ -25,17 +22,18 @@ internal sealed class PdfPageRenderSession : IDisposable
     private readonly bool _allowNativeFallback;
     private readonly HashSet<EngineRenderProfile> _nativeFallbackProfiles = [];
 
-    private PdfPageRenderSession(string path, Docnet.Core.Readers.IDocReader reader)
+    private PdfPageRenderSession(DocnetRenderFallback nativeFallback)
     {
-        _path = path;
-        _reader = reader;
+        _nativeFallback = nativeFallback;
     }
 
     private PdfPageRenderSession(string path, EngineDocument document,
         IReadOnlyList<EnginePageInformation> pages, int maximumWidth, int maximumHeight,
         double scale, bool allowNativeFallback)
     {
-        _path = path;
+        _nativeFallback = scale > 0
+            ? new DocnetRenderFallback(path, scale)
+            : new DocnetRenderFallback(path, maximumWidth, maximumHeight);
         _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
         _enginePages = pages;
         _maximumWidth = maximumWidth;
@@ -49,8 +47,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (maximumWidth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
         if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
-        return new PdfPageRenderSession(path, DocLib.Instance.GetDocReader(
-            path, new PageDimensions(maximumWidth, maximumHeight)));
+        return new PdfPageRenderSession(
+            new DocnetRenderFallback(path, maximumWidth, maximumHeight));
     }
 
     internal static PdfPageRenderSession Open(string path, double scale)
@@ -58,8 +56,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (!double.IsFinite(scale) || scale <= 0)
             throw new ArgumentOutOfRangeException(nameof(scale));
-        return new PdfPageRenderSession(path, DocLib.Instance.GetDocReader(
-            path, new PageDimensions(scale)));
+        return new PdfPageRenderSession(new DocnetRenderFallback(path, scale));
     }
 
     internal static PdfPageRenderSession OpenEngineFirst(
@@ -100,7 +97,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         }
     }
 
-    internal int PageCount => _enginePages?.Count ?? _reader!.GetPageCount();
+    internal int PageCount => _enginePages?.Count ?? _nativeFallback.PageCount;
 
     internal PdfRenderedPage RenderBasePage(int pageIndex)
     {
@@ -121,8 +118,7 @@ internal sealed class PdfPageRenderSession : IDisposable
             }
         }
 
-        using var page = NativeReader().GetPageReader(pageIndex);
-        return new PdfRenderedPage(page.GetPageWidth(), page.GetPageHeight(), page.GetImage());
+        return _nativeFallback.RenderBasePage(pageIndex);
     }
 
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground = false,
@@ -145,15 +141,8 @@ internal sealed class PdfPageRenderSession : IDisposable
             }
         }
 
-        using var page = NativeReader().GetPageReader(pageIndex);
-        int width = page.GetPageWidth();
-        int height = page.GetPageHeight();
-        byte[] pixels = PdfiumInterop.RenderPageWithAnnotations(
-            _path, pageIndex, width, height, transparentBackground, includeFormFields)
-            ?? (removeTransparencyOnFallback
-                ? page.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover())
-                : page.GetImage());
-        return new PdfRenderedPage(width, height, pixels);
+        return _nativeFallback.RenderPage(pageIndex, transparentBackground,
+            includeFormFields, removeTransparencyOnFallback);
     }
 
     private PdfRenderedPage RenderEnginePage(int pageIndex, bool transparentBackground,
@@ -177,16 +166,6 @@ internal sealed class PdfPageRenderSession : IDisposable
         return new PdfRenderedPage(engineWidth, engineHeight, rendered.Pixels.ToArray());
     }
 
-    private Docnet.Core.Readers.IDocReader NativeReader()
-    {
-        if (_reader is not null) return _reader;
-        _reader = _scale > 0
-            ? DocLib.Instance.GetDocReader(_path, new PageDimensions(_scale))
-            : DocLib.Instance.GetDocReader(
-                _path, new PageDimensions(_maximumWidth, _maximumHeight));
-        return _reader;
-    }
-
     internal static byte[]? RenderExactPage(string path, int pageIndex, int width, int height,
         bool transparentBackground = false, bool includeFormFields = true)
     {
@@ -204,11 +183,11 @@ internal sealed class PdfPageRenderSession : IDisposable
         {
         }
 
-        return PdfiumInterop.RenderPageWithAnnotations(
+        return DocnetRenderFallback.RenderExactPage(
             path, pageIndex, width, height, transparentBackground, includeFormFields);
     }
 
-    public void Dispose() => _reader?.Dispose();
+    public void Dispose() => _nativeFallback.Dispose();
 
     private readonly record struct EngineRenderProfile(
         int PageIndex, bool IncludeAnnotations, bool IncludeFormFields);
