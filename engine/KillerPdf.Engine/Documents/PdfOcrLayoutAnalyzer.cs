@@ -297,29 +297,58 @@ public static class PdfOcrLayoutAnalyzer
     private static IReadOnlyList<PdfOcrTextLine> BuildLines(
         IReadOnlyList<PdfOcrImageRegion> components)
     {
-        var lines = new List<List<PdfOcrImageRegion>>();
+        var lines = new List<LineBuilder>();
         foreach (PdfOcrImageRegion component in components
             .OrderBy(item => item.Top).ThenBy(item => item.Left))
         {
-            List<PdfOcrImageRegion>? line = lines.FirstOrDefault(candidate =>
-            {
-                int top = candidate.Min(item => item.Top);
-                int bottom = candidate.Max(item => item.Bottom);
-                int overlap = Math.Min(bottom, component.Bottom) - Math.Max(top, component.Top);
-                return overlap > 0 && overlap * 2 >= Math.Min(bottom - top, component.Height);
-            });
-            if (line is null) lines.Add([component]);
+            LineBuilder? line = lines.FirstOrDefault(candidate =>
+                candidate.Accepts(component));
+            if (line is null) lines.Add(new LineBuilder(component));
             else line.Add(component);
         }
         return Array.AsReadOnly(lines.Select(line =>
         {
-            PdfOcrImageRegion[] ordered = [.. line.OrderBy(item => item.Left)];
+            PdfOcrImageRegion[] ordered = [.. line.Components.OrderBy(item => item.Left)];
             IReadOnlyList<PdfOcrWordRegion> words = GroupWords(ordered);
             return new PdfOcrTextLine(new PdfOcrImageRegion(
-                ordered.Min(item => item.Left), ordered.Min(item => item.Top),
-                ordered.Max(item => item.Right), ordered.Max(item => item.Bottom)),
+                line.Left, line.Top, line.Right, line.Bottom),
                 words, Array.AsReadOnly(ordered));
         }).OrderBy(line => line.Bounds.Top).ThenBy(line => line.Bounds.Left).ToArray());
+    }
+
+    private sealed class LineBuilder
+    {
+        internal LineBuilder(PdfOcrImageRegion component)
+        {
+            Components = [component];
+            Left = component.Left;
+            Top = component.Top;
+            Right = component.Right;
+            Bottom = component.Bottom;
+        }
+
+        internal List<PdfOcrImageRegion> Components { get; }
+        internal int Left { get; private set; }
+        internal int Top { get; private set; }
+        internal int Right { get; private set; }
+        internal int Bottom { get; private set; }
+
+        internal bool Accepts(PdfOcrImageRegion component)
+        {
+            int overlap = Math.Min(Bottom, component.Bottom)
+                - Math.Max(Top, component.Top);
+            return overlap > 0
+                && overlap * 2 >= Math.Min(Bottom - Top, component.Height);
+        }
+
+        internal void Add(PdfOcrImageRegion component)
+        {
+            Components.Add(component);
+            Left = Math.Min(Left, component.Left);
+            Top = Math.Min(Top, component.Top);
+            Right = Math.Max(Right, component.Right);
+            Bottom = Math.Max(Bottom, component.Bottom);
+        }
     }
 
     private static IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> SplitColumns(
