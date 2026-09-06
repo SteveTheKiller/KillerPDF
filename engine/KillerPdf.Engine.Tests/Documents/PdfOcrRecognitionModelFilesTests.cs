@@ -17,6 +17,9 @@ public sealed class PdfOcrRecognitionModelFilesTests
             Assert.True(PdfOcrRecognitionModelFiles.TryLoadCombined(
                 directory, "eng+spa", out PdfOcrRecognitionModel? combined));
             Assert.Equal(["E", "S"], combined!.Labels);
+            Assert.True(PdfOcrRecognitionModelFiles.TryLoadCombined(
+                directory, " ENG +eng+ SPA ", out PdfOcrRecognitionModel? normalized));
+            Assert.Equal(["E", "S"], normalized!.Labels);
             Assert.False(PdfOcrRecognitionModelFiles.TryLoadCombined(
                 directory, "eng+fra", out _));
         }

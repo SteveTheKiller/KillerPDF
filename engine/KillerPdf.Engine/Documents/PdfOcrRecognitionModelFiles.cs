@@ -78,7 +78,9 @@ public static class PdfOcrRecognitionModelFiles
         requested = [];
         if (string.IsNullOrWhiteSpace(directory) || string.IsNullOrWhiteSpace(languages))
             return false;
-        requested = languages.Split('+');
+        requested = [.. languages.Split('+')
+            .Select(language => language.Trim().ToLowerInvariant())
+            .Distinct(StringComparer.Ordinal)];
         return requested.Length is >= 1 and <= 16 && !requested.Any(language =>
             language.Length is < 1 or > 35 || language.Any(character =>
                 !char.IsAsciiLetterOrDigit(character) && character is not '_' and not '-'));
