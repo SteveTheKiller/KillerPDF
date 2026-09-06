@@ -520,6 +520,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.WriteLine($"OCR checkpoint font: {fontPath}");
     var trainingStarted = Stopwatch.StartNew();
     int trainingSampleCount = 0;
+    int corpusTrainingSampleCount = 0, seededTrainingSampleCount = 0;
+    int trainingDocumentCount = 0, holdoutDocumentCount = 0;
     PdfOcrRecognitionModel ocrModel;
     try
     {
@@ -574,12 +576,16 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     byte[] modelBytes = ocrModel.Save();
     Console.WriteLine($"OCR model: {ocrModel.Labels.Count:N0} labels, "
         + $"{modelBytes.Length:N0} bytes, "
-        + $"{trainingSampleCount:N0} training samples, "
+        + $"{trainingSampleCount:N0} training samples "
+        + $"({corpusTrainingSampleCount:N0} corpus, "
+        + $"{seededTrainingSampleCount:N0} seeded), "
         + $"{evaluation.SampleCount:N0} holdout samples, "
         + $"{evaluation.Accuracy:P2} accuracy, "
         + $"{evaluation.AverageConfidence:P2} average confidence, "
         + $"{evaluation.CalibrationError:P2} calibration error, "
         + $"{evaluation.BrierScore:N4} Brier score.");
+    Console.WriteLine($"OCR partition: {trainingDocumentCount:N0} training documents, "
+        + $"{holdoutDocumentCount:N0} holdout documents.");
     foreach (PdfOcrConfusion confusion in evaluation.Confusion
                  .Where(item => item.Expected != item.Predicted)
                  .OrderByDescending(item => item.Count).Take(25))
@@ -873,10 +879,13 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     if (!selectHoldout)
                     {
                         trainingSampleCount++;
+                        corpusTrainingSampleCount++;
                         observedTrainingLabels.Add(sample.Label);
                     }
                     yield return sample;
                 }
+            if (selectHoldout) holdoutDocumentCount++;
+            else trainingDocumentCount++;
             ReportProgress();
 
             void ReportProgress()
@@ -902,6 +911,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         seedLatinLabels, modelWidth, modelHeight, seedTimeout.Token))
                 {
                     trainingSampleCount++;
+                    seededTrainingSampleCount++;
                     yield return sample;
                 }
             }
@@ -916,6 +926,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         font, supported, modelWidth, modelHeight, seedTimeout.Token))
                 {
                     trainingSampleCount++;
+                    seededTrainingSampleCount++;
                     yield return sample;
                 }
             }
