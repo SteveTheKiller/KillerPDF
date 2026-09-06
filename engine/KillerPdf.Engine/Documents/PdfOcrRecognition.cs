@@ -25,7 +25,7 @@ public sealed class PdfOcrRecognitionModel
     private const int GradientBinCount = 4;
     private const int ShapeBucketCount = 45;
     private const int FastPathPrototypeThreshold = 1_024;
-    private const int FastPathPrototypesPerLabel = 2;
+    private const int FastPathPrototypesPerLabel = 4;
     private const int CoarseGradientDescriptorLength =
         CoarseGradientCellCount * CoarseGradientCellCount * GradientBinCount;
     private const int FineGradientDescriptorLength =
@@ -674,13 +674,13 @@ public sealed class PdfOcrRecognitionModel
         if (!fastCandidates.IsEmpty)
         {
             int write = 0;
+            Span<int> nearestIndexes = stackalloc int[FastPathPrototypesPerLabel];
+            Span<double> nearestDistances = stackalloc double[FastPathPrototypesPerLabel];
             foreach (string labelName in Labels)
             {
                 if (allowedLabels is not null && !allowedLabels.Contains(labelName))
                     continue;
-                int first = -1, second = -1;
-                double firstDistance = double.PositiveInfinity;
-                double secondDistance = double.PositiveInfinity;
+                int nearestCount = 0;
                 foreach (int index in _prototypeIndexesByLabel[labelName])
                 {
                     bool shapeMismatch = _usesPrototypeShapes && shape >= 0
@@ -690,21 +690,26 @@ public sealed class PdfOcrRecognitionModel
                         continue;
                     double distance = ProjectionDistance(index, rowProjection, columnProjection);
                     if (shapeMismatch) distance += ShapeMismatchPenalty;
-                    if (distance < firstDistance)
+                    int insertion = 0;
+                    while (insertion < nearestCount
+                        && nearestDistances[insertion] <= distance)
+                        insertion++;
+                    if (insertion == FastPathPrototypesPerLabel) continue;
+                    int move = Math.Min(nearestCount, FastPathPrototypesPerLabel - 1)
+                        - insertion;
+                    if (move > 0)
                     {
-                        second = first;
-                        secondDistance = firstDistance;
-                        first = index;
-                        firstDistance = distance;
+                        nearestIndexes.Slice(insertion, move).CopyTo(
+                            nearestIndexes[(insertion + 1)..]);
+                        nearestDistances.Slice(insertion, move).CopyTo(
+                            nearestDistances[(insertion + 1)..]);
                     }
-                    else if (distance < secondDistance)
-                    {
-                        second = index;
-                        secondDistance = distance;
-                    }
+                    nearestIndexes[insertion] = index;
+                    nearestDistances[insertion] = distance;
+                    if (nearestCount < FastPathPrototypesPerLabel) nearestCount++;
                 }
-                if (first >= 0) fastCandidates[write++] = first;
-                if (second >= 0) fastCandidates[write++] = second;
+                for (int index = 0; index < nearestCount; index++)
+                    fastCandidates[write++] = nearestIndexes[index];
             }
             candidates = fastCandidates[..write];
             candidateSubset = true;
