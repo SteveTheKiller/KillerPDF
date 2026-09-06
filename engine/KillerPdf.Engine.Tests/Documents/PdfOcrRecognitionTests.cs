@@ -53,6 +53,10 @@ public sealed class PdfOcrRecognitionTests
             [new PdfOcrTrainingSample("A", new float[] { 2 })]));
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
             [new PdfOcrTrainingSample("\uFFFD", new float[] { 1 })]));
+        Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
+            [new PdfOcrTrainingSample("A\n", new float[] { 1 })]));
+        Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
+            [new PdfOcrTrainingSample("A B", new float[] { 1 })]));
         using var canceled = new CancellationTokenSource();
         canceled.Cancel();
         Assert.Throws<OperationCanceledException>(() => PdfOcrModelTrainer.Train(1, 1,

@@ -339,10 +339,26 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     }
     int ocrMaximum = int.MaxValue, renderSize = 1600, pagesPerFile = 1;
     int holdoutPercent = 10, modelWidth = 32, modelHeight = 32;
+    string? ocrPasswordManifestPath = null;
+    string? ocrCertificateManifestPath = null;
     for (int index = 3; index < args.Length; index += 2)
     {
-        if (index + 1 >= args.Length
-            || !int.TryParse(args[index + 1], out int value) || value < 1)
+        if (index + 1 >= args.Length)
+        {
+            Console.Error.WriteLine($"OCR corpus option {args[index]} requires a value.");
+            return 2;
+        }
+        if (args[index] == "--password-manifest")
+        {
+            ocrPasswordManifestPath = Path.GetFullPath(args[index + 1]);
+            continue;
+        }
+        if (args[index] == "--certificate-manifest")
+        {
+            ocrCertificateManifestPath = Path.GetFullPath(args[index + 1]);
+            continue;
+        }
+        if (!int.TryParse(args[index + 1], out int value) || value < 1)
         {
             Console.Error.WriteLine("OCR corpus options require a positive integer value.");
             return 2;
@@ -360,6 +376,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 return 2;
         }
     }
+
+    Dictionary<string, string[]?> ocrPasswords = ReadPasswordManifest(
+        ocrPasswordManifestPath);
+    Dictionary<string, CertificateCredential> ocrCertificates =
+        ReadCertificateManifest(ocrCertificateManifestPath);
 
     string[] ocrFiles = [.. Directory.EnumerateFiles(
             ocrRoot, "*.pdf", SearchOption.AllDirectories)
@@ -430,8 +451,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             IReadOnlyList<PdfOcrTrainingSample>[] pages;
             try
             {
-                PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
-                    File.ReadAllBytes(file));
+                PdfDocument document = OpenOcrDocument(
+                    File.ReadAllBytes(file), relative);
                 IReadOnlyList<PdfPageInformation> information = PdfPageInformation.Read(document);
                 int pageCount = Math.Min(information.Count, pagesPerFile);
                 pages = new IReadOnlyList<PdfOcrTrainingSample>[pageCount];
@@ -470,6 +491,92 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             if (reportFailures && ((fileIndex + 1) % 100 == 0 || fileIndex + 1 == ocrFiles.Length))
                 Console.WriteLine($"Sampled {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
         }
+    }
+
+    PdfDocument OpenOcrDocument(byte[] source, string relative)
+    {
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(source);
+        if (!document.IsEncrypted) return document;
+        string normalized = relative.Replace('\\', '/');
+        if (ocrCertificates.TryGetValue(normalized,
+                out CertificateCredential? certificateCredential))
+        {
+            using X509Certificate2 certificate = X509CertificateLoader.LoadPkcs12FromFile(
+                certificateCredential.KeyStorePath, certificateCredential.Password,
+                X509KeyStorageFlags.EphemeralKeySet);
+            return PdfDocument.OpenWithCompatibilityRecovery(source, certificate);
+        }
+        if (!ocrPasswords.TryGetValue(normalized, out string[]? passwords)
+            || passwords is null)
+            throw new InvalidOperationException(
+                "No credential is registered for this encrypted OCR corpus file.");
+        Exception? lastError = null;
+        foreach (string password in passwords)
+        {
+            try { return PdfDocument.OpenWithCompatibilityRecovery(source, password); }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                lastError = error;
+            }
+        }
+        throw new InvalidOperationException(
+            "The registered OCR corpus credentials could not decrypt the PDF.", lastError);
+    }
+
+    static Dictionary<string, string[]?> ReadPasswordManifest(string? path)
+    {
+        var result = new Dictionary<string, string[]?>(StringComparer.OrdinalIgnoreCase);
+        if (path is null) return result;
+        if (!File.Exists(path)) throw new FileNotFoundException(
+            "The OCR corpus password manifest was not found.", path);
+        Dictionary<string, string[]?> manifest = JsonSerializer.Deserialize<
+            Dictionary<string, string[]?>>(File.ReadAllText(path))
+            ?? throw new InvalidDataException("The OCR corpus password manifest is invalid.");
+        foreach ((string relative, string[]? candidates) in manifest)
+        {
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(relative) || normalized.Split('/').Contains("..")
+                || candidates is { Length: 0 or > 32 }
+                || candidates?.Any(password => password is null
+                    || password.Length > 4096) == true
+                || !result.TryAdd(normalized, candidates))
+                throw new InvalidDataException(
+                    $"OCR corpus password credential is invalid: {relative}");
+        }
+        return result;
+    }
+
+    static Dictionary<string, CertificateCredential> ReadCertificateManifest(string? path)
+    {
+        var result = new Dictionary<string, CertificateCredential>(
+            StringComparer.OrdinalIgnoreCase);
+        if (path is null) return result;
+        if (!File.Exists(path)) throw new FileNotFoundException(
+            "The OCR corpus certificate manifest was not found.", path);
+        Dictionary<string, CertificateCredential> manifest = JsonSerializer.Deserialize<
+            Dictionary<string, CertificateCredential>>(File.ReadAllText(path))
+            ?? throw new InvalidDataException(
+                "The OCR corpus certificate manifest is invalid.");
+        string directory = Path.GetDirectoryName(path)
+            ?? throw new InvalidDataException(
+                "The OCR corpus certificate manifest directory is unavailable.");
+        foreach ((string relative, CertificateCredential credential) in manifest)
+        {
+            string normalized = relative.Replace('\\', '/');
+            if (Path.IsPathRooted(relative) || normalized.Split('/').Contains("..")
+                || credential is null || string.IsNullOrWhiteSpace(credential.KeyStorePath)
+                || credential.Password is null || credential.Password.Length > 4096)
+                throw new InvalidDataException(
+                    $"OCR corpus certificate credential is invalid: {relative}");
+            string keyStorePath = Path.GetFullPath(
+                Path.Combine(directory, credential.KeyStorePath));
+            if (!File.Exists(keyStorePath)
+                || !result.TryAdd(normalized,
+                    credential with { KeyStorePath = keyStorePath }))
+                throw new InvalidDataException(
+                    $"OCR corpus certificate credential is invalid: {relative}");
+        }
+        return result;
     }
 
 }
@@ -2495,7 +2602,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");

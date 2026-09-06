@@ -187,17 +187,15 @@ public static class PdfOcrModelTrainer
         foreach (PdfExtractedLetter letter in content.Letters)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(letter.Value)
-                || letter.Value.EnumerateRunes().Any(
-                    rune => rune == Rune.ReplacementChar))
-                continue;
+            string label = letter.Value.Trim();
+            if (!IsValidLabel(label)) continue;
             PdfOcrImageRegion? bounds = MapToPixels(
                 letter.BoundingBox, page, rendered.Width, rendered.Height);
             if (bounds is null) continue;
             if (checked((samples.Count + 1L) * featureCount) > MaximumModelValues)
                 throw new ArgumentException(
                     "The PDF page has too many OCR training values.", nameof(document));
-            samples.Add(new PdfOcrTrainingSample(letter.Value,
+            samples.Add(new PdfOcrTrainingSample(label,
                 PdfOcrRecognizer.NormalizeGlyph(prepared, bounds, width, height)));
         }
         return Array.AsReadOnly(samples.ToArray());
@@ -254,11 +252,15 @@ public static class PdfOcrModelTrainer
     private static void ValidateLabel(string label,
         IEnumerable<PdfOcrTrainingSample> samples)
     {
-        if (string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64
-            || label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar))
+        if (!IsValidLabel(label))
             throw new ArgumentException(
                 "OCR training labels are empty, oversized, or invalid.", nameof(samples));
     }
+
+    private static bool IsValidLabel(string label) =>
+        !string.IsNullOrEmpty(label) && Encoding.UTF8.GetByteCount(label) <= 64
+        && !label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar
+            || Rune.IsControl(rune) || Rune.IsWhiteSpace(rune));
 
     private static void ValidateFeatures(ReadOnlySpan<float> features, int featureCount,
         IEnumerable<PdfOcrTrainingSample> samples)
