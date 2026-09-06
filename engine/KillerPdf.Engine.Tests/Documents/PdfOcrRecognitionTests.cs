@@ -495,6 +495,31 @@ public sealed class PdfOcrRecognitionTests
         Assert.True(visual.Confidence > 0.5);
     }
 
+    [Fact]
+    public void RecognizerLetsLanguageContextRecoverAFifthVisualCandidate()
+    {
+        PdfOcrPreparedImage image = Prepared(8, 6,
+        [
+            "........",
+            "#...#...",
+            "#...#...",
+            "#...##..",
+            "#...##..",
+            "........"
+        ]);
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(image);
+        PdfOcrRecognitionModel recognition = PdfOcrRecognitionModel.Create(4, 4,
+            ["A", "B", "C", "D", "E"], new float[80],
+            new float[] { 0.4f, 0.3f, 0.2f, 0.1f, 0 });
+        PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(
+            Enumerable.Repeat("EE", 20));
+
+        PdfOcrRecognizedWord contextual = Assert.Single(PdfOcrRecognizer.Recognize(
+            image, layout, recognition, language));
+
+        Assert.Equal("EE", contextual.Text);
+    }
+
     [Theory]
     [InlineData(0, 200, 160)]
     [InlineData(90, 160, 200)]
