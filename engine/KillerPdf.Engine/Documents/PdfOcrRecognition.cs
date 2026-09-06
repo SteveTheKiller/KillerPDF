@@ -588,9 +588,21 @@ public sealed class PdfOcrRecognitionModel
     private double PrototypeVote(string label, ReadOnlySpan<double> prototypeScores)
     {
         double best = double.NegativeInfinity;
+        double second = double.NegativeInfinity;
         foreach (int index in _prototypeIndexesByLabel[label])
-            best = Math.Max(best, prototypeScores[index]);
-        return best;
+        {
+            double score = prototypeScores[index];
+            if (score > best)
+            {
+                second = best;
+                best = score;
+            }
+            else if (score > second)
+            {
+                second = score;
+            }
+        }
+        return double.IsNegativeInfinity(second) ? best : best * 0.99 + second * 0.01;
     }
 
     private static double GradientDistance(int label,
