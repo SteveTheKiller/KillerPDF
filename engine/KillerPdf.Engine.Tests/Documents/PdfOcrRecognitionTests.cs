@@ -368,6 +368,7 @@ public sealed class PdfOcrRecognitionTests
             [new("B", new float[] { 0, 1 })]);
 
         Assert.Equal(1, evaluation.Accuracy);
+        Assert.Equal(5, model.LabelCount);
     }
 
     [Fact]
