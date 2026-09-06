@@ -179,6 +179,10 @@ public sealed class RenderBoundaryTests
 
         Assert.Contains("PdfOcrRecognitionModelFiles.TryLoadCombined(", source,
             StringComparison.Ordinal);
+        Assert.Contains("tessDataPath ?? OcrNativeBootstrap.TessDataDir", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("tessDataPath ?? OcrNativeBootstrap.EnsureLanguageData()", source,
+            StringComparison.Ordinal);
         Assert.Contains("PdfOcrRecognizer.RecognizeBgra(", source, StringComparison.Ordinal);
         Assert.Contains("removeBackground: true", source, StringComparison.Ordinal);
         Assert.Contains("removeNoise: true", source, StringComparison.Ordinal);

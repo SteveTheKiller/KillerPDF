@@ -19,13 +19,13 @@ namespace KillerPDF.Services
         private readonly PdfOcrLanguageModel? _engineLanguageModel;
         private TesseractOcrFallback? _fallback;
 
-        /// <param name="tessDataPath">Folder holding installed OCR models. Defaults to the self-extracted cache (OcrNativeBootstrap).</param>
+        /// <param name="tessDataPath">Folder holding installed OCR models. Defaults to the persistent OCR model folder.</param>
         /// <param name="language">Tesseract language code(s), e.g. "eng" or "eng+ben".</param>
         public OcrService(string? tessDataPath = null, string language = "eng")
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(language);
             _usesDefaultDataPath = tessDataPath is null;
-            _dataPath = tessDataPath ?? OcrNativeBootstrap.EnsureLanguageData();
+            _dataPath = tessDataPath ?? OcrNativeBootstrap.TessDataDir;
             _language = language;
             PdfOcrRecognitionModelFiles.TryLoadCombined(
                 _dataPath, language, out _engineModel);
