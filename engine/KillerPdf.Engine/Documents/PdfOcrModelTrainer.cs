@@ -324,6 +324,9 @@ public static class PdfOcrModelTrainer
         var seenLabels = new HashSet<(string Label, PdfOcrImageRegion Bounds)>();
         foreach (PdfExtractedLetter letter in content.Letters)
         {
+            if (letter.WritingDirection is PdfWritingDirection.TopToBottom
+                or PdfWritingDirection.BottomToTop)
+                continue;
             string label = letter.Value.Trim();
             if (!IsValidLabel(label)) continue;
             PdfOcrImageRegion? bounds = MapToPixels(
