@@ -37,7 +37,8 @@ internal static class PdfJbig2Decoder
         }
         catch (Exception ex)
         {
-            throw new PdfFilterException("The JBIG2Decode stream contains invalid image data.", ex);
+            throw new PdfFilterException(
+                $"The JBIG2Decode stream contains invalid image data. {ex.Message}", ex);
         }
     }
 

@@ -76,8 +76,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         private void ReadPatternWidthAndHeight()
         {
-            HdpWidth = (sbyte)subInputStream.ReadByte();
-            HdpHeight = (sbyte)subInputStream.ReadByte();
+            HdpWidth = (short)subInputStream.ReadByte();
+            HdpHeight = (short)subInputStream.ReadByte();
         }
 
         private void ReadGrayMax()
@@ -118,7 +118,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 // 2)
                 GenericRegion genericRegion = new GenericRegion(subInputStream);
                 genericRegion.SetParameters(IsMMREncoded, dataOffset, dataLength, HdpHeight,
-                        (GrayMax + 1) * HdpWidth, HdTemplate, false, false, gbAtX, gbAtY);
+                        (GrayMax + 1) * HdpWidth, HdTemplate, false, false, null, gbAtX, gbAtY);
 
                 Jbig2Bitmap collectiveBitmap = genericRegion.GetRegionBitmap();
 

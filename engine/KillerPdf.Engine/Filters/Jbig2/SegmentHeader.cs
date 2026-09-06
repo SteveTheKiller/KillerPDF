@@ -289,7 +289,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 }
                 catch (Exception e)
                 {
-                    throw new InvalidOperationException("Can't instantiate segment class.", e);
+                    throw new InvalidOperationException(
+                        $"Can't instantiate segment class for type {SegmentType}. {e.Message}", e);
                 }
             }
 
@@ -325,4 +326,3 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
     }
 }
-

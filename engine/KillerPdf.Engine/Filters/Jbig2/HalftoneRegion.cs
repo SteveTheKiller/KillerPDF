@@ -142,21 +142,18 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 }
 
                 // 2)
-                // 6.6.5.1 Computing hSkip - At the moment SKIP is not used... we are not able to test it.
-                // Bitmap hSkip;
-                // if (hSkipEnabled) {
-                // int hPatternHeight = (int) hPats.get(0).getHeight();
-                // int hPatternWidth = (int) hPats.get(0).getWidth();
-                // Implementation could be achieved like this: Set or get pattern width and height from
-                // referred pattern segments. The method is called like this:
-                // hSkip = computeHSkip(hPatternHeight, hPatternWidth);
-                // }
+                Jbig2Bitmap hSkip = null;
+                if (HSkipEnabled)
+                {
+                    Jbig2Bitmap firstPattern = patterns[0];
+                    hSkip = ComputeHSkip(firstPattern.Width, firstPattern.Height);
+                }
 
                 // 3)
                 int bitsPerValue = (int)Math.Ceiling(Math.Log(patterns.Count) / log2);
 
                 // 4)
-                int[][] grayScaleValues = GrayScaleDecoding(bitsPerValue);
+                int[][] grayScaleValues = GrayScaleDecoding(bitsPerValue, hSkip);
 
                 // 5), rendering the pattern, described in 6.6.5.2
                 RenderPattern(grayScaleValues);
@@ -182,7 +179,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
                     // ii)
                     Jbig2Bitmap patternJbig2Bitmap = patterns[grayScaleValues[m][n]];
-                    Jbig2Bitmaps.Blit(patternJbig2Bitmap, halftoneRegionBitmap, x + HGridX, y + HGridY,
+                    Jbig2Bitmaps.Blit(patternJbig2Bitmap, halftoneRegionBitmap, x, y,
                             HCombinationOperator);
                 }
             }
@@ -206,7 +203,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// Gray-scale image decoding procedure is special for halftone region decoding
         /// and is described in Annex C.5 on page 98.
         /// </summary>
-        private int[][] GrayScaleDecoding(int bitsPerValue)
+        private int[][] GrayScaleDecoding(int bitsPerValue, Jbig2Bitmap hSkip)
         {
             short[] gbAtX = null;
             short[] gbAtY = null;
@@ -239,7 +236,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
             // 1)
             var genericRegion = new GenericRegion(subInputStream);
             genericRegion.SetParameters(IsMMREncoded, dataOffset, dataLength, HGridHeight, HGridWidth,
-                    HTemplate, false, HSkipEnabled, gbAtX, gbAtY);
+                    HTemplate, false, HSkipEnabled, hSkip, gbAtX, gbAtY);
 
             // 2)
             int j = bitsPerValue - 1;
@@ -321,6 +318,26 @@ namespace KillerPdf.Engine.Filters.Jbig2
             return ShiftAndFill(HGridY + m * HRegionX - n * HRegionY);
         }
 
+        private Jbig2Bitmap ComputeHSkip(int patternWidth, int patternHeight)
+        {
+            var hSkip = new Jbig2Bitmap(HGridWidth, HGridHeight);
+            for (int m = 0; m < HGridHeight; m++)
+            {
+                for (int n = 0; n < HGridWidth; n++)
+                {
+                    int x = ComputeX(m, n);
+                    int y = ComputeY(m, n);
+                    if (x + patternWidth <= 0 || x >= halftoneRegionBitmap.Width
+                        || y + patternHeight <= 0 || y >= halftoneRegionBitmap.Height)
+                    {
+                        hSkip.SetPixel(n, m, 1);
+                    }
+                }
+            }
+
+            return hSkip;
+        }
+
         private static int ShiftAndFill(int value)
         {
             // shift value by 8 and let the leftmost 8 bits be 0
@@ -350,4 +367,3 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
     }
 }
-

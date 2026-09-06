@@ -40,6 +40,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private CX cx;
 
         private MMRDecompressor mmrDecompressor;
+        private bool useSkip;
+        private Jbig2Bitmap hSkip;
 
         // Region segment information field, 7.4.1
         public RegionSegmentInformation RegionInfo { get; private set; }
@@ -184,18 +186,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         else
                         {
                             // 3 d)
-                            // NOT USED ATM - If corresponding pixel of SKIP bitmap is 0, set
-                            // current pixel to 0. Something like that:
-                            // if (useSkip) {
-                            // for (int i = 1; i < rowstride; i++) {
-                            // if (skip[pixel] == 1) {
-                            // gbReg[pixel] = 0;
-                            // }
-                            // pixel++;
-                            // }
-                            // } else {
                             DecodeLine(line, regionBitmap.Width, regionBitmap.RowStride, paddedWidth);
-                            // }
                         }
                     }
                 }
@@ -326,7 +317,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         cx.Index = context;
                     }
 
-                    int bit = arithDecoder.Decode(cx);
+                    int bit = DecodePixel(x + minorX, lineNumber);
 
                     result = (byte)(result | bit << toShift);
 
@@ -394,7 +385,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         cx.Index = context;
                     }
 
-                    int bit = arithDecoder.Decode(cx);
+                    int bit = DecodePixel(x + minorX, lineNumber);
 
                     result = (byte)(result | bit << toShift);
 
@@ -461,7 +452,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         cx.Index = context;
                     }
 
-                    int bit = arithDecoder.Decode(cx);
+                    int bit = DecodePixel(x + minorX, lineNumber);
 
                     result = (byte)(result | bit << 7 - minorX);
 
@@ -529,7 +520,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         cx.Index = context;
                     }
 
-                    int bit = arithDecoder.Decode(cx);
+                    int bit = DecodePixel(x + minorX, lineNumber);
 
                     result = (byte)(result | bit << 7 - minorX);
 
@@ -585,7 +576,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
                         cx.Index = context;
                     }
 
-                    int bit = arithDecoder.Decode(cx);
+                    int bit = DecodePixel(x + minorX, lineNumber);
 
                     result = (byte)(result | bit << 7 - minorX);
                     context = (context & 0x1f7) << 1 | bit | line1 >> 8 - minorX & 0x010;
@@ -723,6 +714,13 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
                     break;
             }
+        }
+
+        private int DecodePixel(int x, int y)
+        {
+            return useSkip && hSkip.GetPixel(x, y) == 1
+                ? 0
+                : arithDecoder.Decode(cx);
         }
 
         private void SetOverrideFlag(int index)
@@ -1014,6 +1012,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
             RegionInfo.BitmapHeight = gbh;
             RegionInfo.BitmapWidth = gbw;
             mmrDecompressor = null;
+            useSkip = false;
+            hSkip = null;
             ResetBitmap();
         }
 
@@ -1054,6 +1054,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
             }
 
             mmrDecompressor = null;
+            this.useSkip = useSkip;
+            hSkip = null;
             ResetBitmap();
         }
 
@@ -1068,11 +1070,13 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// <param name="gbTemplate">gb template</param>
         /// <param name="isTPGDon">is TPGDon</param>
         /// <param name="useSkip">use skip</param>
+        /// <param name="hSkip">skip bitmap</param>
         /// <param name="gbAtX">x values of gbA pixels</param>
         /// <param name="gbAtY">y values of gbA pixels</param>
         internal void SetParameters(bool isMMREncoded, long dataOffset,
                     long dataLength, int gbh, int gbw, byte gbTemplate,
-                    bool isTPGDon, bool useSkip, short[] gbAtX, short[] gbAtY)
+                    bool isTPGDon, bool useSkip, Jbig2Bitmap hSkip,
+                    short[] gbAtX, short[] gbAtY)
         {
             this.dataOffset = dataOffset;
             this.dataLength = dataLength;
@@ -1084,6 +1088,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
             IsTPGDon = isTPGDon;
             GbAtX = gbAtX;
             GbAtY = gbAtY;
+            this.useSkip = useSkip;
+            this.hSkip = hSkip;
         }
 
         /// <summary>
@@ -1102,4 +1108,3 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
     }
 }
-
