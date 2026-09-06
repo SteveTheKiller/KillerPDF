@@ -346,6 +346,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int? minimumWordAccuracyPercent = null;
     int? minimumWordBoxOverlapPercent = null;
     int? minimumReadingOrderAccuracyPercent = null;
+    int? minimumRotatedCharacterAccuracyPercent = null;
+    int? minimumDeskewedCharacterAccuracyPercent = null;
     string? ocrFileListPath = null;
     string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
@@ -408,6 +410,12 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 break;
             case "--minimum-reading-order-accuracy-percent" when value <= 100:
                 minimumReadingOrderAccuracyPercent = value;
+                break;
+            case "--minimum-rotated-character-accuracy-percent" when value <= 100:
+                minimumRotatedCharacterAccuracyPercent = value;
+                break;
+            case "--minimum-deskewed-character-accuracy-percent" when value <= 100:
+                minimumDeskewedCharacterAccuracyPercent = value;
                 break;
             case "--minimum-holdout-samples": minimumHoldoutSamples = value; break;
             default:
@@ -491,6 +499,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     PdfOcrTextMetrics? textMetrics = null;
     PdfOcrWordBoxMetrics? wordBoxMetrics = null;
     PdfOcrReadingOrderMetrics? readingOrderMetrics = null;
+    PdfOcrTextMetrics? rotatedTextMetrics = null;
+    PdfOcrTextMetrics? deskewedTextMetrics = null;
     if (minimumCharacterAccuracyPercent.HasValue
         || minimumWordAccuracyPercent.HasValue
         || minimumWordBoxOverlapPercent.HasValue
@@ -498,7 +508,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     {
         try
         {
-            (textMetrics, wordBoxMetrics, readingOrderMetrics) = EvaluateHoldoutText();
+            (textMetrics, wordBoxMetrics, readingOrderMetrics) = EvaluateHoldoutText(
+                deskew: false, correctOrientation: false, rotatedPagesOnly: false);
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -515,6 +526,29 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             + $"{wordBoxMetrics.RecallAtFiftyPercent:P2} recall at 50% overlap.");
         Console.WriteLine($"OCR reading order: {readingOrderMetrics.Accuracy:P2} accuracy "
             + $"across {readingOrderMetrics.ComparablePairCount:N0} matched pairs.");
+    }
+    try
+    {
+        if (minimumRotatedCharacterAccuracyPercent.HasValue)
+        {
+            (rotatedTextMetrics, _, _) = EvaluateHoldoutText(
+                deskew: false, correctOrientation: true, rotatedPagesOnly: true);
+            Console.WriteLine($"OCR rotated pages: "
+                + $"{rotatedTextMetrics.CharacterAccuracy:P2} character accuracy.");
+        }
+        if (minimumDeskewedCharacterAccuracyPercent.HasValue)
+        {
+            (deskewedTextMetrics, _, _) = EvaluateHoldoutText(
+                deskew: true, correctOrientation: false, rotatedPagesOnly: false);
+            Console.WriteLine($"OCR deskewed pages: "
+                + $"{deskewedTextMetrics.CharacterAccuracy:P2} character accuracy.");
+        }
+    }
+    catch (Exception error) when (error is not OutOfMemoryException)
+    {
+        Console.Error.WriteLine($"OCR robustness evaluation failed: "
+            + $"{error.GetType().Name}: {error.Message}");
+        return 1;
     }
     if (evaluation.SampleCount < minimumHoldoutSamples)
     {
@@ -567,6 +601,24 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine($"OCR model rejected: "
             + $"{readingOrderMetrics.Accuracy:P2} reading-order accuracy is below the "
             + $"{minimumReadingOrderAccuracyPercent}% minimum.");
+        return 1;
+    }
+    if (minimumRotatedCharacterAccuracyPercent.HasValue
+        && rotatedTextMetrics!.CharacterAccuracy
+            < minimumRotatedCharacterAccuracyPercent.Value / 100d)
+    {
+        Console.Error.WriteLine($"OCR model rejected: "
+            + $"{rotatedTextMetrics.CharacterAccuracy:P2} rotated-page character "
+            + $"accuracy is below the {minimumRotatedCharacterAccuracyPercent}% minimum.");
+        return 1;
+    }
+    if (minimumDeskewedCharacterAccuracyPercent.HasValue
+        && deskewedTextMetrics!.CharacterAccuracy
+            < minimumDeskewedCharacterAccuracyPercent.Value / 100d)
+    {
+        Console.Error.WriteLine($"OCR model rejected: "
+            + $"{deskewedTextMetrics.CharacterAccuracy:P2} deskewed-page character "
+            + $"accuracy is below the {minimumDeskewedCharacterAccuracyPercent}% minimum.");
         return 1;
     }
     Directory.CreateDirectory(Path.GetDirectoryName(modelPath)!);
@@ -677,7 +729,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     }
 
     (PdfOcrTextMetrics Text, PdfOcrWordBoxMetrics Boxes,
-        PdfOcrReadingOrderMetrics ReadingOrder) EvaluateHoldoutText()
+        PdfOcrReadingOrderMetrics ReadingOrder) EvaluateHoldoutText(
+        bool deskew, bool correctOrientation, bool rotatedPagesOnly)
     {
         int expectedCharacters = 0, recognizedCharacters = 0, characterEdits = 0;
         int expectedWords = 0, recognizedWords = 0, wordEdits = 0, pageCount = 0;
@@ -685,8 +738,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         int matchedAtFiftyPercent = 0;
         long comparableReadingOrderPairs = 0, readingOrderInversions = 0;
         double overlapSum = 0;
-        var options = new PdfOcrOptions(["und"], deskew: false,
-            correctOrientation: false, removeBackground: true, removeNoise: true,
+        var options = new PdfOcrOptions(["und"], deskew: deskew,
+            correctOrientation: correctOrientation, removeBackground: true, removeNoise: true,
             detectPageSegments: false);
         for (int fileIndex = 0; fileIndex < ocrFiles.Length; fileIndex++)
         {
@@ -705,6 +758,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     pageIndex < Math.Min(information.Count, pagesPerFile); pageIndex++)
                 {
                     PdfPageInformation page = information[pageIndex];
+                    if (rotatedPagesOnly && page.Rotation == 0) continue;
                     bool quarterTurn = page.Rotation is 90 or 270;
                     double pageWidth = quarterTurn ? page.Height : page.Width;
                     double pageHeight = quarterTurn ? page.Width : page.Height;
@@ -2957,7 +3011,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
