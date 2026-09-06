@@ -359,6 +359,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     string? ocrPasswordManifestPath = null;
     string? ocrCertificateManifestPath = null;
     string? ocrLanguageModelPath = null;
+    string? ocrLanguageModelInputPath = null;
     string? ocrModelInputPath = null;
     var ocrFontPaths = new List<string>();
     for (int index = 3; index < args.Length; index += 2)
@@ -396,6 +397,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         if (args[index] == "--language-model-output")
         {
             ocrLanguageModelPath = Path.GetFullPath(args[index + 1]);
+            continue;
+        }
+        if (args[index] == "--language-model-input")
+        {
+            ocrLanguageModelInputPath = Path.GetFullPath(args[index + 1]);
             continue;
         }
         if (args[index] == "--model-input")
@@ -483,6 +489,16 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine(!File.Exists(ocrModelInputPath)
             ? $"OCR model input not found: {ocrModelInputPath}"
             : "OCR model input and promoted output must be different files.");
+        return 2;
+    }
+    if (ocrLanguageModelInputPath is not null
+        && (!File.Exists(ocrLanguageModelInputPath)
+            || string.Equals(ocrLanguageModelPath, ocrLanguageModelInputPath,
+                StringComparison.OrdinalIgnoreCase)))
+    {
+        Console.Error.WriteLine(!File.Exists(ocrLanguageModelInputPath)
+            ? $"OCR language-model input not found: {ocrLanguageModelInputPath}"
+            : "OCR language-model input and output must be different files.");
         return 2;
     }
 
@@ -633,13 +649,29 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             + $"{script.Accuracy:P2} accuracy.");
     PdfOcrLanguageModel? ocrLanguageModel = null;
     byte[]? languageModelBytes = null;
-    if (ocrLanguageModelPath is not null)
+    if (ocrLanguageModelPath is not null || ocrLanguageModelInputPath is not null)
     {
         try
         {
-            ocrLanguageModel = PdfOcrLanguageModel.Train(LanguageTexts());
+            if (ocrLanguageModelInputPath is null)
+            {
+                ocrLanguageModel = PdfOcrLanguageModel.Train(LanguageTexts());
+            }
+            else
+            {
+                using var input = new FileStream(ocrLanguageModelInputPath,
+                    FileMode.Open, FileAccess.Read, FileShare.Read);
+                if (input.Length is <= 0 or > 64L * 1024 * 1024)
+                    throw new InvalidDataException(
+                        "The OCR language-model input size is invalid.");
+                var bytes = new byte[checked((int)input.Length)];
+                input.ReadExactly(bytes);
+                ocrLanguageModel = PdfOcrLanguageModel.Load(bytes);
+            }
             languageModelBytes = ocrLanguageModel.Save();
-            Console.WriteLine($"OCR language model: {languageModelBytes.Length:N0} bytes.");
+            Console.WriteLine($"OCR language model: {languageModelBytes.Length:N0} bytes, "
+                + (ocrLanguageModelInputPath is null
+                    ? "trained." : $"loaded from {ocrLanguageModelInputPath}."));
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -3419,7 +3451,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--model-input <existing.model>] [--language-model-output <output.kplm>] [--file-list <file.txt>] [--holdout-file-list <file.txt>] [--font-file <font.ttf>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--page-metrics <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--maximum-page-allocation-megabytes <count>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--model-input <existing.model>] [--language-model-input <existing.kplm>] [--language-model-output <output.kplm>] [--file-list <file.txt>] [--holdout-file-list <file.txt>] [--font-file <font.ttf>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--page-metrics <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--maximum-page-allocation-megabytes <count>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
