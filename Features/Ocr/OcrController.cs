@@ -75,8 +75,8 @@ namespace KillerPDF.Features
                         }
                         recognized.Add(!formAware
                             ? ocr.RecognizeBgra(bgra, w, h, cancellationToken: ct)
-                            : FormAwareOcr.Recognize(ocr, bgra, w, h,
-                                ReadFormHints(file, pages[i]), rot, ct));
+                            : PdfOcrFormRecognizer.Recognize(ocr.RecognizeBgra,
+                                bgra, w, h, ReadFormHints(file, pages[i]), rot, ct));
                     }
                     return recognized;
                 });
@@ -302,8 +302,8 @@ namespace KillerPDF.Features
                 }
 
                 PdfOcrResult result = formAware
-                    ? FormAwareOcr.Recognize(
-                        ocr, bgra, w, h, formPages[i], cancellationToken: ct)
+                    ? PdfOcrFormRecognizer.Recognize(ocr.RecognizeBgra,
+                        bgra, w, h, formPages[i], cancellationToken: ct)
                     : ocr.RecognizeBgra(bgra, w, h, cancellationToken: ct);
                 layers.Add(new PdfOcrPixelPage(w, h, result.Words));
             }
@@ -407,8 +407,8 @@ namespace KillerPDF.Features
                 string text = (bgra is null || bgra.Length == 0 || w <= 0 || h <= 0)
                     ? string.Empty
                     : (formAware
-                        ? FormAwareOcr.Recognize(
-                            ocr, bgra, w, h, formPages[i], cancellationToken: ct)
+                        ? PdfOcrFormRecognizer.Recognize(ocr.RecognizeBgra,
+                            bgra, w, h, formPages[i], cancellationToken: ct)
                         : ocr.RecognizeBgra(
                             bgra, w, h, cancellationToken: ct)).Text.TrimEnd();
                 pageTexts.Add(text);

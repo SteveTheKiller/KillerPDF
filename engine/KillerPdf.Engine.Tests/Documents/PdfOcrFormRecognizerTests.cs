@@ -63,6 +63,57 @@ public sealed class PdfOcrFormRecognizerTests
         Assert.Equal(0.75f, result.MeanConfidence);
     }
 
+    [Fact]
+    public void WidgetRecognitionMapsGeometryBeforeRecognizingFields()
+    {
+        byte[] bgra = WhiteBgra(200, 100);
+        var widget = new PdfFormWidgetInfo
+        {
+            PageIndex = 0,
+            AnnotationIndex = 0,
+            ObjectNumber = 1,
+            Generation = 0,
+            FieldName = "totalAmount",
+            FieldKind = PdfFormFieldKind.Text,
+            Flags = 0,
+            Value = "",
+            DefaultAppearance = "",
+            MaximumLength = 8,
+            OnValue = "",
+            HasAction = false,
+            HasAppearanceState = false,
+            Options = [],
+            PageBoxLeft = 0,
+            PageBoxBottom = 0,
+            PageBoxWidth = 100,
+            PageBoxHeight = 100,
+            PageRotation = 0,
+            Left = 10,
+            Bottom = 20,
+            Right = 60,
+            Top = 40
+        };
+        int calls = 0;
+        PdfOcrResult Recognize(ReadOnlyMemory<byte> pixels, int width, int height,
+            string? whitelist, CancellationToken cancellationToken)
+        {
+            calls++;
+            if (calls == 1) return new PdfOcrResult("", 0, []);
+            Assert.Equal((100, 20), (width, height));
+            Assert.Equal(PdfOcrFormLayout.NumericWhitelist, whitelist);
+            return new PdfOcrResult("42", 1,
+                [new PdfOcrPixelWord("42", 1, 0, 0, width, height)]);
+        }
+
+        PdfOcrResult result = PdfOcrFormRecognizer.Recognize(
+            Recognize, bgra, 200, 100, [widget]);
+
+        PdfOcrPixelWord word = Assert.Single(result.Words);
+        Assert.Equal("42", word.Text);
+        Assert.Equal((20, 60, 120, 80),
+            (word.Left, word.Top, word.Right, word.Bottom));
+    }
+
     private static byte[] WhiteBgra(int width, int height)
     {
         byte[] pixels = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();

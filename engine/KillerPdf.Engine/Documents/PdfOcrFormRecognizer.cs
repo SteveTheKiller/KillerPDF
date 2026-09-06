@@ -10,6 +10,18 @@ public delegate PdfOcrResult PdfOcrRasterRecognition(
 /// <summary>Coordinates page and field OCR without depending on a recognition backend.</summary>
 public static class PdfOcrFormRecognizer
 {
+    /// <summary>Recognizes a page using form widgets mapped to its rendered pixels.</summary>
+    public static PdfOcrResult Recognize(PdfOcrRasterRecognition recognizer,
+        ReadOnlyMemory<byte> bgra, int width, int height,
+        IReadOnlyList<PdfFormWidgetInfo> widgets, int additionalRotation = 0,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(widgets);
+        IReadOnlyList<PdfOcrFormRegion> regions = PdfOcrFormLayout.MapRegions(
+            widgets, width, height, additionalRotation);
+        return Recognize(recognizer, bgra, width, height, regions, cancellationToken);
+    }
+
     /// <summary>Recognizes a page while applying form-region constraints and normalization.</summary>
     public static PdfOcrResult Recognize(PdfOcrRasterRecognition recognizer,
         ReadOnlyMemory<byte> bgra, int width, int height,
