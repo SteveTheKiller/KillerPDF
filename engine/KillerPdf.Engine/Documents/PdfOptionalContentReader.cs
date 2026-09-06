@@ -223,8 +223,11 @@ public static class PdfOptionalContentReader
 }
 
 /// <summary>The layer definitions and configurations declared by a PDF.</summary>
-public sealed record PdfOptionalContentInfo
+public sealed partial record PdfOptionalContentInfo
 {
+    private static readonly PdfOptionalContentInfoJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfOptionalContentInfoJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Gets the registered optional-content groups.</summary>
     public IReadOnlyList<PdfOptionalContentGroupInfo> Groups { get; init; } = [];
     /// <summary>Gets the default and alternate optional-content configurations.</summary>
@@ -264,28 +267,47 @@ public sealed record PdfOptionalContentInfo
     /// <summary>Exports layer identities and effective configuration state as stable JSON.</summary>
     public string ToJson(bool indented = false)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            Groups,
-            Configurations = Configurations.Select(configuration => new
-            {
+        return JsonSerializer.Serialize(new ReportFile(
+            1,
+            [.. Groups],
+            [.. Configurations.Select(configuration => new ReportConfiguration(
                 configuration.Name,
                 configuration.Creator,
                 configuration.IsDefault,
                 configuration.BaseState,
-                VisibleGroupObjectNumbers = configuration.VisibleGroupObjectNumbers.Order(),
-                LockedGroupObjectNumbers = configuration.LockedGroupObjectNumbers.Order(),
-                configuration.DisplayOrderGroupObjectNumbers
-            })
-        }, options);
+                [.. configuration.VisibleGroupObjectNumbers.Order()],
+                [.. configuration.LockedGroupObjectNumbers.Order()],
+                configuration.DisplayOrderGroupObjectNumbers))]),
+            indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
     }
+
+    private sealed record ReportFile(
+        int Version,
+        PdfOptionalContentGroupInfo[] Groups,
+        ReportConfiguration[] Configurations);
+
+    private sealed record ReportConfiguration(
+        string? Name,
+        string? Creator,
+        bool IsDefault,
+        PdfOptionalContentBaseState BaseState,
+        int[] VisibleGroupObjectNumbers,
+        int[] LockedGroupObjectNumbers,
+        IReadOnlyList<int> DisplayOrderGroupObjectNumbers);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented,
+        Converters =
+        {
+            new JsonStringEnumConverter<PdfOptionalContentBaseState>(JsonNamingPolicy.CamelCase)
+        }
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfOptionalContentInfoJsonContext : JsonSerializerContext;
 
     private static string State(bool? value) => value switch
     {

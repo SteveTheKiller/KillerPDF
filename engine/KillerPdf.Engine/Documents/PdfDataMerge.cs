@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Parsing;
@@ -401,10 +402,13 @@ public sealed record PdfDataMergeTextMatch(string Placeholder, int OccurrenceCou
 }
 
 /// <summary>A data-free summary of one form-generation batch.</summary>
-public sealed record PdfDataMergeBatchReport(
+public sealed partial record PdfDataMergeBatchReport(
     int TotalRecords, int SucceededRecords, int FailedRecords,
     IReadOnlyList<PdfDataMergeBatchReportItem> Results)
 {
+    private static readonly PdfDataMergeBatchReportJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfDataMergeBatchReportJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Gets the count of records excluded by the reusable profile.</summary>
     public int SkippedRecords { get; init; }
     /// <summary>Creates a report without retaining generated PDF bytes.</summary>
@@ -426,12 +430,27 @@ public sealed record PdfDataMergeBatchReport(
 
     /// <summary>Exports the batch summary as machine-readable JSON.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new { Version = 1, TotalRecords, SucceededRecords, SkippedRecords, FailedRecords, Results },
-        new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+        new ReportFile(1, TotalRecords, SucceededRecords, SkippedRecords,
+            FailedRecords, Results),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int Version,
+        int TotalRecords,
+        int SucceededRecords,
+        int SkippedRecords,
+        int FailedRecords,
+        IReadOnlyList<PdfDataMergeBatchReportItem> Results);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfDataMergeBatchReportJsonContext : JsonSerializerContext;
 
     /// <summary>Exports a readable batch summary without record values or PDF data.</summary>
     public string ToText()
