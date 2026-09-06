@@ -116,6 +116,21 @@ public sealed class PdfFontResourceReaderTests
         Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
     }
 
+    [Fact]
+    public void MissingSimpleFontUsesInjectedPlatformNeutralFontBytes()
+    {
+        var resolver = new TestFontResolver(
+            TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+
+        PdfExtractionFont font = PdfFontResourceReader.Read(Document,
+            D(("Subtype", N("TrueType")), ("BaseFont", N("KillerSimple")),
+                ("Encoding", N("WinAnsiEncoding"))), resolver);
+
+        Assert.Equal(new PdfFontRequest("KillerSimple", "Adobe", "Standard", false),
+            Assert.Single(resolver.Requests));
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
     [Theory]
     [InlineData("WinAnsiEncoding", 128, "\u20AC")]
     [InlineData("MacRomanEncoding", 128, "\u00C4")]

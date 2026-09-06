@@ -45,15 +45,19 @@ public static class PdfFontResourceReader
                 ? Encoding.Latin1.GetString(orderingText.Bytes.Span) : "Identity";
             byte[]? embeddedData = (Get(descriptor, "FontFile2") ?? Get(descriptor, "FontFile3")) is PdfStream embeddedStream
                 ? Decode(embeddedStream) : null;
-            byte[]? resolvedData = embeddedData is null && composite
+            PdfStream? type1Stream = Get(descriptor, "FontFile") as PdfStream;
+            bool requestedVertical = Name(Get(font, "Encoding"))?.EndsWith(
+                "-V", StringComparison.Ordinal) == true;
+            byte[]? resolvedData = embeddedData is null && type1Stream is null
+                && subtype != "Type3"
                 ? fontResolver?.Resolve(new PdfFontRequest(
-                    metricsName, registry, ordering,
-                    Name(Get(font, "Encoding"))?.EndsWith("-V", StringComparison.Ordinal) == true))
+                    metricsName, composite ? registry : "Adobe",
+                    composite ? ordering : "Standard", requestedVertical))
                 : null;
             byte[]? outlineData = embeddedData ?? resolvedData;
             TrueTypeFont? embedded = ReadEmbedded(outlineData);
             PdfCffGlyphReader? cff = outlineData is null ? null : PdfCffGlyphReader.TryRead(outlineData);
-            PdfType1GlyphReader? type1 = Get(descriptor, "FontFile") is PdfStream type1Stream
+            PdfType1GlyphReader? type1 = type1Stream is not null
                 ? PdfType1GlyphReader.TryRead(Decode(type1Stream), checked((int)Number(Get(type1Stream.Dictionary, "Length1"), 0)),
                     checked((int)Number(Get(type1Stream.Dictionary, "Length2"), 0))) : null;
             TrueTypeFont? substitute = subtype is not null and not "Type3"
