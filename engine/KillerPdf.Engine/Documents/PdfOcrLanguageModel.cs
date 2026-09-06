@@ -6,6 +6,9 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>One visual OCR candidate for sequence decoding.</summary>
 public readonly record struct PdfOcrLanguageCandidate(string Label, double Score);
 
+internal readonly record struct PdfOcrLanguageDecode(
+    IReadOnlyList<string> Labels, double Confidence);
+
 /// <summary>A bounded character-transition model for deterministic OCR sequence decoding.</summary>
 public sealed class PdfOcrLanguageModel
 {
@@ -266,12 +269,19 @@ public sealed class PdfOcrLanguageModel
     public IReadOnlyList<string> Decode(
         IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions,
         double languageWeight = 1,
+        CancellationToken cancellationToken = default) =>
+        DecodeWithConfidence(positions, languageWeight, cancellationToken).Labels;
+
+    internal PdfOcrLanguageDecode DecodeWithConfidence(
+        IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions,
+        double languageWeight = 1,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(positions);
         if (!double.IsFinite(languageWeight) || languageWeight < 0)
             throw new ArgumentOutOfRangeException(nameof(languageWeight));
-        if (positions.Count == 0) return Array.Empty<string>();
+        if (positions.Count == 0)
+            return new PdfOcrLanguageDecode(Array.Empty<string>(), 0);
         if (positions.Count > MaximumSequenceLength)
             throw new ArgumentException(
                 "The OCR language-model sequence exceeds the position limit.",
@@ -325,13 +335,14 @@ public sealed class PdfOcrLanguageModel
                 path.Rank = rank++;
             paths = next;
         }
-        Path selected = paths.Values.First();
-        foreach (Path candidate in paths.Values.Skip(1))
-            if (FinalScore(candidate) > FinalScore(selected)
-                || FinalScore(candidate) == FinalScore(selected)
-                && candidate.Rank < selected.Rank)
-                selected = candidate;
-        return Array.AsReadOnly(ToLabels(selected));
+        Path[] ranked = [.. paths.Values
+            .OrderByDescending(FinalScore)
+            .ThenBy(path => path.Rank)];
+        Path selected = ranked[0];
+        double confidence = ranked.Length == 1 ? 1 : 1 / (1 + Math.Exp(
+            FinalScore(ranked[1]) - FinalScore(selected)));
+        return new PdfOcrLanguageDecode(
+            Array.AsReadOnly(ToLabels(selected)), confidence);
 
         double FinalScore(Path path) => path.Score + (_usesEndTransitions
             ? languageWeight * TransitionScore(path.Label, string.Empty) : 0);

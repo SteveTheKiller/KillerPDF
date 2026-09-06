@@ -66,6 +66,22 @@ public sealed class PdfOcrLanguageModelTests
     }
 
     [Fact]
+    public void DecodeReportsTheWinningContextualSequenceMargin()
+    {
+        PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(
+            Enumerable.Repeat("OO", 20));
+
+        PdfOcrLanguageDecode decoded = model.DecodeWithConfidence(
+        [
+            [new("0", 0.1), new("O", 0)],
+            [new("0", 0.1), new("O", 0)]
+        ]);
+
+        Assert.Equal(["O", "O"], decoded.Labels);
+        Assert.InRange(decoded.Confidence, 0.5, 1);
+    }
+
+    [Fact]
     public void CombineMergesTransitionsDeterministically()
     {
         PdfOcrLanguageModel first = PdfOcrLanguageModel.Train(["AB"]);

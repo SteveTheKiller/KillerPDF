@@ -547,7 +547,7 @@ public sealed class PdfOcrRecognitionTests
 
         Assert.Equal("00", visual.Text);
         Assert.Equal("OO", contextual.Text);
-        Assert.True(contextual.Confidence < 0.5);
+        Assert.True(contextual.Confidence > 0.5);
         Assert.True(visual.Confidence > 0.5);
     }
 
