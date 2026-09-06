@@ -412,6 +412,15 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine($"OCR training failed: {error.GetType().Name}: {error.Message}");
         return 1;
     }
+    string[] missingLabels = ocrLabels is null ? [] : [.. ocrLabels
+        .Except(ocrModel.Labels, StringComparer.Ordinal)
+        .Order(StringComparer.Ordinal)];
+    if (missingLabels.Length > 0)
+    {
+        Console.Error.WriteLine("OCR training did not cover every requested label: "
+            + string.Join(" ", missingLabels));
+        return 1;
+    }
     PdfOcrModelEvaluation evaluation;
     try
     {
