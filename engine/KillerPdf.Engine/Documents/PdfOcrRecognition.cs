@@ -138,6 +138,11 @@ public sealed class PdfOcrRecognitionModel
             throw new ArgumentException("OCR model biases do not match its labels.", nameof(biases));
         if (priors.Length != names.Length)
             throw new ArgumentException("OCR model priors do not match its labels.", nameof(priors));
+        long labelBytes = names.Sum(label =>
+            1L + Encoding.UTF8.GetByteCount(label));
+        if (!FitsSerializedSize(labelBytes, names.Length, weights.Length))
+            throw new ArgumentException(
+                "The OCR recognition model exceeds the size limit.", nameof(weights));
         if (weights.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue)
             || biases.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue)
             || priors.Span.ContainsAnyExceptInRange(float.MinValue, float.MaxValue))
@@ -166,9 +171,9 @@ public sealed class PdfOcrRecognitionModel
             label => 1L + Encoding.UTF8.GetByteCount(label)));
         long valueCount = supplied.Sum(model => (long)model._weights.Length
             + model._biases.Length + model._priors.Length);
-        long serializedLength = Magic.Length + sizeof(int) * 3L
-            + labelBytes + valueCount * sizeof(float);
-        if (labelCount > 65_536 || serializedLength > MaximumModelBytes)
+        if (labelCount > 65_536
+            || !FitsSerializedSize(labelBytes, labelCount,
+                valueCount - labelCount * 2L))
             throw new ArgumentException(
                 "The combined OCR recognition model exceeds the size limit.",
                 nameof(models));
@@ -186,6 +191,24 @@ public sealed class PdfOcrRecognitionModel
             labelOffset += model._labels.Length;
         }
         return CreatePrototype(first.Width, first.Height, labels, weights, biases, priors);
+    }
+
+    internal static bool FitsSerializedSize(long labelBytes, int labelCount,
+        long weightCount)
+    {
+        if (labelBytes < 0 || labelCount < 0 || weightCount < 0)
+            return false;
+        try
+        {
+            long valueCount = checked(weightCount + labelCount * 2L);
+            long length = checked(Magic.Length + sizeof(int) * 3L
+                + labelBytes + valueCount * sizeof(float));
+            return length <= MaximumModelBytes;
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Writes the stable model format used by the runtime.</summary>

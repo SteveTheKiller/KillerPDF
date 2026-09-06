@@ -796,6 +796,22 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RecognitionModelSizeCalculationIsBoundedWithoutAllocating()
+    {
+        const int labels = 4;
+        long fixedBytes = 7 + sizeof(int) * 3L + labels + labels * 2L * sizeof(float);
+        long maximumWeights = (PdfOcrRecognitionModel.MaximumModelBytes - fixedBytes)
+            / sizeof(float);
+
+        Assert.True(PdfOcrRecognitionModel.FitsSerializedSize(
+            labels, labels, maximumWeights));
+        Assert.False(PdfOcrRecognitionModel.FitsSerializedSize(
+            labels, labels, maximumWeights + 1));
+        Assert.False(PdfOcrRecognitionModel.FitsSerializedSize(
+            long.MaxValue, labels, maximumWeights));
+    }
+
+    [Fact]
     public void RawBgraRecognitionRunsTheCompleteEnginePipeline()
     {
         string[] rows =
