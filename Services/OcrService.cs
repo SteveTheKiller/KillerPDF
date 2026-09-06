@@ -1,6 +1,4 @@
 using KillerPdf.Engine.Documents;
-using System.IO;
-
 namespace KillerPDF.Services
 {
     /// <summary>
@@ -25,7 +23,8 @@ namespace KillerPDF.Services
             _usesDefaultDataPath = tessDataPath is null;
             _dataPath = tessDataPath ?? OcrNativeBootstrap.EnsureLanguageData();
             _language = language;
-            _engineModel = LoadEngineModel(_dataPath, language);
+            PdfOcrRecognitionModelFiles.TryLoadCombined(
+                _dataPath, language, out _engineModel);
         }
 
         /// <summary>
@@ -52,32 +51,6 @@ namespace KillerPDF.Services
         private TesseractOcrFallback NativeFallback() =>
             _fallback ??= new TesseractOcrFallback(
                 _dataPath, _language, _usesDefaultDataPath);
-
-        private static PdfOcrRecognitionModel? LoadEngineModel(
-            string dataPath, string language)
-        {
-            string[] languages = language.Split('+');
-            if (languages.Length is < 1 or > 16 || languages.Any(item =>
-                item.Length is < 1 or > 35
-                || item.Any(character => !char.IsAsciiLetterOrDigit(character)
-                    && character is not '_' and not '-')))
-                return null;
-            var models = new List<PdfOcrRecognitionModel>(languages.Length);
-            foreach (string item in languages)
-            {
-                string modelPath = Path.Combine(dataPath, item + ".kpocr");
-                if (!File.Exists(modelPath)) return null;
-                try
-                {
-                    models.Add(PdfOcrRecognitionModel.Load(File.ReadAllBytes(modelPath)));
-                }
-                catch (Exception error) when (error is not OutOfMemoryException)
-                {
-                    return null;
-                }
-            }
-            return models.Count == 1 ? models[0] : PdfOcrRecognitionModel.Combine(models);
-        }
 
         public void Dispose() => _fallback?.Dispose();
     }

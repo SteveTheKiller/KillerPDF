@@ -177,13 +177,16 @@ public sealed class RenderBoundaryTests
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root, "Services", "OcrService.cs"));
 
-        Assert.Contains("PdfOcrRecognitionModel.Load(", source, StringComparison.Ordinal);
+        Assert.Contains("PdfOcrRecognitionModelFiles.TryLoadCombined(", source,
+            StringComparison.Ordinal);
         Assert.Contains("PdfOcrRecognizer.RecognizeBgra(", source, StringComparison.Ordinal);
         Assert.Contains("characterWhitelist, cancellationToken", source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("_engineModel is not null && string.IsNullOrEmpty",
             source, StringComparison.Ordinal);
-        Assert.Contains("PdfOcrRecognitionModel.Combine(models)", source,
+        Assert.DoesNotContain("PdfOcrRecognitionModel.Load(", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfOcrRecognitionModel.Combine(", source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("language.Contains('+', StringComparison.Ordinal)",
             source, StringComparison.Ordinal);

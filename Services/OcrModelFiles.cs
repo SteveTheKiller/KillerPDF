@@ -10,17 +10,7 @@ namespace KillerPDF.Services
 
         internal static bool HasEngineModel(string directory, string code)
         {
-            string path = Path.Combine(directory, code + ".kpocr");
-            if (!File.Exists(path)) return false;
-            try
-            {
-                PdfOcrRecognitionModel.Load(File.ReadAllBytes(path));
-                return true;
-            }
-            catch (Exception error) when (error is not OutOfMemoryException)
-            {
-                return false;
-            }
+            return PdfOcrRecognitionModelFiles.TryLoad(directory, code, out _);
         }
 
         internal static bool HasTesseractModel(string directory, string code) =>
