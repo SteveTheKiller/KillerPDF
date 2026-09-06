@@ -65,11 +65,12 @@ public static class PdfOcrRecognitionModelFiles
     private static bool TryReadBounded(string path, int maximumBytes, out byte[] bytes)
     {
         bytes = [];
-        var file = new FileInfo(path);
-        if (!file.Exists || file.Length is <= 0 || file.Length > maximumBytes)
+        using var input = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        if (input.Length is <= 0 || input.Length > maximumBytes)
             return false;
-        bytes = File.ReadAllBytes(path);
-        return bytes.LongLength == file.Length;
+        bytes = new byte[checked((int)input.Length)];
+        input.ReadExactly(bytes);
+        return input.Position == input.Length;
     }
 
     private static bool TryLanguages(string directory, string languages,
