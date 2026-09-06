@@ -599,13 +599,13 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 long rdy = DecodeRdy();
 
                 // 5)
-                /* long symInRefSize = 0; */
+                long symInRefSize = 0;
                 if (isHuffmanEncoded)
                 {
-                    /* symInRefSize = */
-                    DecodeSymInRefSize();
+                    symInRefSize = DecodeSymInRefSize();
                     subInputStream.SkipBits();
                 }
+                long streamPosition0 = subInputStream.Position;
 
                 // 6)
                 Jbig2Bitmap ibo = symbols[(int)id];
@@ -629,7 +629,13 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 // 7
                 if (isHuffmanEncoded)
                 {
-                    subInputStream.SkipBits();
+                    if (subInputStream.Position > streamPosition0 + symInRefSize)
+                    {
+                        throw new InvalidOperationException(
+                            $"Refinement bitmap bytes expected: {symInRefSize}, bytes read: {subInputStream.Position - streamPosition0}.");
+                    }
+
+                    subInputStream.Seek(streamPosition0 + symInRefSize);
                 }
             }
             return ib;

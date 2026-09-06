@@ -572,6 +572,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
             int id;
             int rdx;
             int rdy;
+            long symInRefSize = 0;
+            long streamPosition0 = 0;
             if (isHuffmanEncoded)
             {
                 // 2) - 4)
@@ -580,11 +582,11 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 rdy = (int)StandardTables.GetTable(15).Decode(subInputStream);
 
                 // 5) a)
-                /* symInRefSize = */
-                StandardTables.GetTable(1).Decode(subInputStream);
+                symInRefSize = StandardTables.GetTable(1).Decode(subInputStream);
 
                 // 5) b) - Skip over remaining bits
                 subInputStream.SkipBits();
+                streamPosition0 = subInputStream.Position;
             }
             else
             {
@@ -602,8 +604,13 @@ namespace KillerPdf.Engine.Filters.Jbig2
             // 7)
             if (isHuffmanEncoded)
             {
-                subInputStream.SkipBits();
-                // Make sure that the processed bytes are equal to the value read in step 5 a)
+                if (subInputStream.Position > streamPosition0 + symInRefSize)
+                {
+                    throw new InvalidOperationException(
+                        $"Refinement bitmap bytes expected: {symInRefSize}, bytes read: {subInputStream.Position - streamPosition0}.");
+                }
+
+                subInputStream.Seek(streamPosition0 + symInRefSize);
             }
         }
 
@@ -903,4 +910,3 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
     }
 }
-

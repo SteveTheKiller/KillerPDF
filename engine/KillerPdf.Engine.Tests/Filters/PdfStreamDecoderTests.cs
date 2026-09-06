@@ -728,6 +728,20 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_DecodesJbig2HuffmanTextRefinement()
+    {
+        byte[] encoded = Convert.FromBase64String(
+            "AAAAADAAAQAAABMAAAGPAAABkAAAAAAAAAAAAQAAAAAAAQABAQAAAYQAAQAAAAQAAAAE8l5P+BTyGOEHCDp0/T9P//+17XtWoYUMKPD0Pnf4ZPJA4QcIOnT9P0///7Xte1ahhQwo//+SfTruu67ruv3X///2vatWoaj88b8AAAAM/ySA+UooQcIOnT9P0/Wtd1rX1p1p+E6wsJ1pwtacLCcLCdYRBtHcILrcJPCV0E9BXp6CvT0rwnwr16vCfCuwnwrtPhXYT2uGE3DC4t+37f9/f2va9q1DChhR//z4AAACV8AAAAW/1kD/KQcIhjdQQdB0Hh08Og973h73fd8O3bh4bkSDShuHtw9u3eG92/bvb97ft7t3t/d/b9u9933u+773fd9277t7t33fd7ft+3e3b9v2933fd7++73/37//d//93///////////////r66+q+uq6r60vS9LwlWl6Wq6rquq61QXpVpelBYWCULCULCUJQlC1pQtKsJQlCChBQgoQUgwUoQUEClAHEIKEFQVBapYVBa1hYWFhWFhWFhWQUbSMFDChkexccAEAAAAAAgcgAQEAAABbAAABjwAAAZAAAAAAAAAAAAAAFwAA/////wAAAAQAEAAAAAAAAAAAAAAAAAAAEASfIWhny6+jnawfwIKsIMCqHgRkEZF/PvIOzVgTvrDBkCLt7SnztUltP/+sQA==");
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("JBIG2Decode")));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, 20_000);
+
+        Assert.Equal(20_000, decoded.Length);
+        Assert.Equal("F195624B2FC5505FDBBD3473C58EAF6B22B4F376B57CED779A4357D8BD12BC4F",
+            Convert.ToHexString(SHA256.HashData(decoded)));
+    }
+
+    [Fact]
     public void Decode_DecodesJbig2ImageDataWithGlobalSegments()
     {
         byte[] globals = Convert.FromBase64String(
