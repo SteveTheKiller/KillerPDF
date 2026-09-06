@@ -13,9 +13,21 @@ public sealed class PdfOcrResult
     {
         ArgumentNullException.ThrowIfNull(text);
         ArgumentNullException.ThrowIfNull(words);
+        if (!float.IsFinite(meanConfidence) || meanConfidence is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(meanConfidence));
+        PdfOcrPixelWord[] copied = words.ToArray();
+        if (copied.Any(word => word is null))
+            throw new ArgumentException("An OCR result word is null.", nameof(words));
+        if (copied.Any(word => word.Text is null
+            || !float.IsFinite(word.Confidence) || word.Confidence is < 0 or > 1
+            || word.Left < 0 || word.Top < 0
+            || word.Right <= word.Left || word.Bottom <= word.Top))
+            throw new ArgumentException(
+                "OCR result words must have text, valid confidence, and positive pixel bounds.",
+                nameof(words));
         Text = text;
         MeanConfidence = meanConfidence;
-        Words = Array.AsReadOnly(words.ToArray());
+        Words = Array.AsReadOnly(copied);
     }
 
     /// <summary>Gets the recognized page text.</summary>

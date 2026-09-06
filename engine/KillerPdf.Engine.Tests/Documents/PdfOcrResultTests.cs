@@ -49,4 +49,26 @@ public sealed class PdfOcrResultTests
 
         Assert.Single(result.Words);
     }
+
+    [Theory]
+    [InlineData(float.NaN)]
+    [InlineData(float.NegativeInfinity)]
+    [InlineData(-0.01f)]
+    [InlineData(1.01f)]
+    public void ConstructorRejectsInvalidMeanConfidence(float confidence)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfOcrResult("", confidence, []));
+    }
+
+    [Fact]
+    public void ConstructorRejectsMalformedRecognizerWords()
+    {
+        Assert.Throws<ArgumentException>(() => new PdfOcrResult("", 0,
+            [new PdfOcrPixelWord("A", float.NaN, 0, 0, 1, 1)]));
+        Assert.Throws<ArgumentException>(() => new PdfOcrResult("", 0,
+            [new PdfOcrPixelWord("A", 1, -1, 0, 1, 1)]));
+        Assert.Throws<ArgumentException>(() => new PdfOcrResult("", 0,
+            [new PdfOcrPixelWord("A", 1, 0, 0, 0, 1)]));
+    }
 }
