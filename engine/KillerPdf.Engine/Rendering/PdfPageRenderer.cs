@@ -2240,7 +2240,7 @@ public sealed class PdfPageRenderer
             throw new NotSupportedException();
         int bits = (int)bitsInteger.Value;
         if (dictionary.TryGetValue(Name("Order"), out PdfObject? orderValue)
-            && Resolve(orderValue) is not PdfInteger { Value: 1 })
+            && Resolve(orderValue) is not PdfInteger { Value: 1 or 3 })
             throw new NotSupportedException();
         double[] range = ReadFunctionArray(dictionary, "Range",
             colorSpace.Components * 2, required: true, defaultValues: []);
@@ -2362,7 +2362,7 @@ public sealed class PdfPageRenderer
             throw new NotSupportedException();
         int bits = (int)bitsInteger.Value;
         if (dictionary.TryGetValue(Name("Order"), out PdfObject? orderValue)
-            && Resolve(orderValue) is not PdfInteger { Value: 1 })
+            && Resolve(orderValue) is not PdfInteger { Value: 1 or 3 })
             throw new NotSupportedException();
         double[] range = ReadFunctionArray(dictionary, "Range",
             colorSpace.Components * 2, required: true, defaultValues: []);

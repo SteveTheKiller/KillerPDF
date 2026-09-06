@@ -1562,6 +1562,31 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_AcceptsOrderThreeSampledShadings()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Size"),
+                new PdfArray(new PdfObject[] { new PdfInteger(2) })),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Order"), new PdfInteger(3))]),
+            new byte[] { 0, 0, 0, 255, 255, 255 });
+        PdfDocument document = AddSampledAxialShadingResource(source, function);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([13, 13, 13, 255], Pixel(rendered, 0, 5));
+        Assert.Equal([242, 242, 242, 255], Pixel(rendered, 9, 5));
+        Assert.DoesNotContain("The shading type or function is not implemented.",
+            rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AppliesSampledSeparationTintTransforms()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -1588,7 +1613,7 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
-    public void Render_AppliesMultidimensionalDeviceNTintTransforms()
+    public void Render_AppliesOrderThreeMultidimensionalDeviceNTintTransforms()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, new PdfContentStreamBuilder().DrawImage(
@@ -1600,7 +1625,8 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Size"),
                 new PdfArray(new PdfObject[] { new PdfInteger(2), new PdfInteger(2) })),
-            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8))]),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerSample"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Order"), new PdfInteger(3))]),
             new byte[]
             {
                 255, 255, 255, 255, 0, 0,
