@@ -670,9 +670,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 + $"{error.GetType().Name}: {error.Message}");
             return 1;
         }
-        Console.WriteLine($"OCR text: {textMetrics.ExpectedCharacterCount:N0} characters, "
+        Console.WriteLine($"OCR text: {textMetrics.ExpectedCharacterCount:N0} expected and "
+            + $"{textMetrics.RecognizedCharacterCount:N0} recognized characters, "
             + $"{textMetrics.CharacterAccuracy:P2} character accuracy, "
-            + $"{textMetrics.ExpectedWordCount:N0} words, "
+            + $"{textMetrics.ExpectedWordCount:N0} expected and "
+            + $"{textMetrics.RecognizedWordCount:N0} recognized words, "
             + $"{textMetrics.WordAccuracy:P2} word accuracy.");
         Console.WriteLine($"OCR word boxes: "
             + $"{wordBoxMetrics.AverageIntersectionOverUnion:P2} average overlap, "
