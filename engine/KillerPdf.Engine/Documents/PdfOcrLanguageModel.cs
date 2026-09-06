@@ -132,32 +132,35 @@ public sealed class PdfOcrLanguageModel
     /// <summary>Saves the model in a deterministic bounded binary format.</summary>
     public byte[] Save()
     {
-        using var output = new MemoryStream();
-        using var writer = new BinaryWriter(output, Utf8, leaveOpen: true);
-        writer.Write(Magic);
         string[] labels = [.. _labels.OrderBy(item => item.Value).Select(item => item.Key)];
-        writer.Write(labels.Length);
-        foreach (string label in labels)
-        {
-            byte[] encoded = Utf8.GetBytes(label);
-            writer.Write(encoded.Length);
-            writer.Write(encoded);
-        }
         (int Previous, int Current, int Count)[] transitions = [.. _counts
             .OrderBy(item => item.Key.Previous)
             .ThenBy(item => item.Key.Current)
             .Select(item => (item.Key.Previous, item.Key.Current, item.Value))];
-        writer.Write(transitions.Length);
+        long length = Magic.Length + sizeof(int) * 2L
+            + labels.Sum(label => sizeof(int) + (long)Utf8.GetByteCount(label))
+            + transitions.Length * sizeof(int) * 3L;
+        if (length > MaximumModelBytes)
+            throw new InvalidOperationException("The OCR language model exceeds the size limit.");
+        var output = new byte[checked((int)length)];
+        Span<byte> destination = output;
+        Magic.CopyTo(destination);
+        int position = Magic.Length;
+        WriteInt32(destination, ref position, labels.Length);
+        foreach (string label in labels)
+        {
+            int bytes = Utf8.GetByteCount(label);
+            WriteInt32(destination, ref position, bytes);
+            position += Utf8.GetBytes(label, destination[position..]);
+        }
+        WriteInt32(destination, ref position, transitions.Length);
         foreach ((int previous, int current, int count) in transitions)
         {
-            writer.Write(previous);
-            writer.Write(current);
-            writer.Write(count);
+            WriteInt32(destination, ref position, previous);
+            WriteInt32(destination, ref position, current);
+            WriteInt32(destination, ref position, count);
         }
-        writer.Flush();
-        if (output.Length > MaximumModelBytes)
-            throw new InvalidOperationException("The OCR language model exceeds the size limit.");
-        return output.ToArray();
+        return output;
     }
 
     /// <summary>Loads a bounded deterministic OCR language model.</summary>
@@ -217,6 +220,12 @@ public sealed class PdfOcrLanguageModel
     {
         ReadOnlySpan<byte> value = ReadBytes(source, ref position, sizeof(int));
         return BinaryPrimitives.ReadInt32LittleEndian(value);
+    }
+
+    private static void WriteInt32(Span<byte> destination, ref int position, int value)
+    {
+        BinaryPrimitives.WriteInt32LittleEndian(destination[position..], value);
+        position += sizeof(int);
     }
 
     private static ReadOnlySpan<byte> ReadBytes(ReadOnlySpan<byte> source,
