@@ -29,7 +29,7 @@ public sealed class PdfOcrRecognitionModel
     private readonly float[] _columnProjections;
     private readonly float[] _coarseGradientDescriptors;
     private readonly float[] _fineGradientDescriptors;
-    private readonly Dictionary<string, int> _labelShapeMasks;
+    private readonly Dictionary<string, ulong> _labelShapeMasks;
     private readonly Dictionary<string, int[]> _prototypeIndexesByLabel;
     private readonly bool _usesPrototypeShapes;
 
@@ -50,7 +50,7 @@ public sealed class PdfOcrRecognitionModel
             checked(labels.Length * CoarseGradientDescriptorLength)];
         _fineGradientDescriptors = new float[
             checked(labels.Length * FineGradientDescriptorLength)];
-        _labelShapeMasks = new Dictionary<string, int>(StringComparer.Ordinal);
+        _labelShapeMasks = new Dictionary<string, ulong>(StringComparer.Ordinal);
         var prototypeIndexes = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         for (int label = 0; label < labels.Length; label++)
         {
@@ -77,7 +77,7 @@ public sealed class PdfOcrRecognitionModel
             }
             if (_shapeBuckets[label] >= 0)
                 _labelShapeMasks[labels[label]] = _labelShapeMasks.GetValueOrDefault(labels[label])
-                    | 1 << _shapeBuckets[label];
+                    | 1UL << _shapeBuckets[label];
         }
         _prototypeIndexesByLabel = prototypeIndexes.ToDictionary(
             item => item.Key, item => item.Value.ToArray(), StringComparer.Ordinal);
@@ -287,7 +287,9 @@ public sealed class PdfOcrRecognitionModel
             : aspect < 1.5 ? 3 : 4;
         int componentBucket = Math.Min(CountInkComponents(
             features, width, height, threshold), 3) - 1;
-        return aspectBucket * 3 + componentBucket;
+        int holeBucket = Math.Min(CountInkHoles(
+            features, width, height, threshold), 2);
+        return (aspectBucket * 3 + componentBucket) * 3 + holeBucket;
     }
 
     private static int CountInkComponents(
@@ -329,6 +331,58 @@ public sealed class PdfOcrRecognitionModel
         return components;
     }
 
+    private static int CountInkHoles(
+        ReadOnlySpan<float> features, int width, int height, float threshold)
+    {
+        int featureCount = checked(width * height);
+        Span<byte> visited = featureCount <= 4096
+            ? stackalloc byte[featureCount] : new byte[featureCount];
+        Span<int> pending = featureCount <= 4096
+            ? stackalloc int[featureCount] : new int[featureCount];
+        int holes = 0;
+        for (int origin = 0; origin < featureCount; origin++)
+        {
+            if (visited[origin] != 0 || features[origin] > threshold) continue;
+            int read = 0, write = 0;
+            bool touchesEdge = false;
+            pending[write++] = origin;
+            visited[origin] = 1;
+            while (read < write)
+            {
+                int current = pending[read++];
+                int x = current % width;
+                int y = current / width;
+                if (x == 0 || x == width - 1 || y == 0 || y == height - 1)
+                    touchesEdge = true;
+                for (int direction = 0; direction < 4; direction++)
+                {
+                    int neighborX = direction switch
+                    {
+                        0 => x - 1,
+                        1 => x + 1,
+                        _ => x
+                    };
+                    int neighborY = direction switch
+                    {
+                        2 => y - 1,
+                        3 => y + 1,
+                        _ => y
+                    };
+                    if (neighborX < 0 || neighborX >= width
+                        || neighborY < 0 || neighborY >= height)
+                        continue;
+                    int neighbor = neighborY * width + neighborX;
+                    if (visited[neighbor] != 0 || features[neighbor] > threshold)
+                        continue;
+                    visited[neighbor] = 1;
+                    pending[write++] = neighbor;
+                }
+            }
+            if (!touchesEdge && ++holes >= 2) return holes;
+        }
+        return holes;
+    }
+
     internal (string Label, double Confidence) Classify(
         ReadOnlySpan<float> features, Span<double> scores,
         IReadOnlySet<string>? allowedLabels = null)
@@ -365,7 +419,7 @@ public sealed class PdfOcrRecognitionModel
             bool shapeMismatch = _usesPrototypeShapes && shape >= 0
                 && _shapeBuckets[label] >= 0 && _shapeBuckets[label] != shape;
             if (shapeMismatch
-                && (_labelShapeMasks[_labels[label]] & 1 << shape) != 0)
+                && (_labelShapeMasks[_labels[label]] & 1UL << shape) != 0)
             {
                 scores[label] = double.NegativeInfinity;
                 continue;

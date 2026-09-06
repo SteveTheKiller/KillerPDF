@@ -161,6 +161,31 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void ShapeBucketsDistinguishEnclosedCounters()
+    {
+        float[] closed =
+        [
+            1, 1, 1, 1, 1,
+            1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1,
+            1, 0, 0, 0, 1,
+            1, 1, 1, 1, 1
+        ];
+        float[] open =
+        [
+            1, 1, 1, 1, 1,
+            1, 0, 0, 0, 0,
+            1, 0, 0, 0, 0,
+            1, 0, 0, 0, 0,
+            1, 1, 1, 1, 1
+        ];
+
+        Assert.NotEqual(
+            PdfOcrRecognitionModel.ShapeBucket(closed, 5, 5),
+            PdfOcrRecognitionModel.ShapeBucket(open, 5, 5));
+    }
+
+    [Fact]
     public void VisualSimilarityCanOverrideAStrayPixelShapeMismatch()
     {
         float[] narrow =
