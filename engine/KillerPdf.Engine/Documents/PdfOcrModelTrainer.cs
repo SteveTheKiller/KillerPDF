@@ -643,14 +643,21 @@ public static class PdfOcrModelTrainer
         bool quarterTurn = page.Rotation is 90 or 270;
         double displayWidth = quarterTurn ? page.Height : page.Width;
         double displayHeight = quarterTurn ? page.Width : page.Height;
+        double minimumX = points.Min(point => point.X);
+        double maximumX = points.Max(point => point.X);
+        double minimumY = points.Min(point => point.Y);
+        double maximumY = points.Max(point => point.Y);
+        if (minimumX < 0 || maximumX > displayWidth
+            || minimumY < 0 || maximumY > displayHeight)
+            return null;
         int left = Math.Clamp((int)Math.Floor(
-            points.Min(point => point.X) * pixelWidth / displayWidth), 0, pixelWidth);
+            minimumX * pixelWidth / displayWidth), 0, pixelWidth);
         int right = Math.Clamp((int)Math.Ceiling(
-            points.Max(point => point.X) * pixelWidth / displayWidth), 0, pixelWidth);
-        int top = Math.Clamp((int)Math.Floor((displayHeight
-            - points.Max(point => point.Y)) * pixelHeight / displayHeight), 0, pixelHeight);
-        int bottom = Math.Clamp((int)Math.Ceiling((displayHeight
-            - points.Min(point => point.Y)) * pixelHeight / displayHeight), 0, pixelHeight);
+            maximumX * pixelWidth / displayWidth), 0, pixelWidth);
+        int top = Math.Clamp((int)Math.Floor((displayHeight - maximumY)
+            * pixelHeight / displayHeight), 0, pixelHeight);
+        int bottom = Math.Clamp((int)Math.Ceiling((displayHeight - minimumY)
+            * pixelHeight / displayHeight), 0, pixelHeight);
         return right > left && bottom > top
             ? new PdfOcrImageRegion(left, top, right, bottom) : null;
 

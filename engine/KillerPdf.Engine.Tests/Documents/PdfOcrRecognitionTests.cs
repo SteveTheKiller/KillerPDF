@@ -685,6 +685,26 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerSkipsTextGlyphsClippedByTheVisiblePage()
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 80, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 40)
+                .SetTextMatrix(1, 0, 0, 1, -20, 20)
+                .ShowLatin1Text("A").EndText()).Build());
+        var options = new PdfOcrOptions(["en"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreatePageSamples(document, 0,
+                new PdfRenderOptions(200, 160, includeAnnotations: false,
+                    includeFormFields: false), options, 16, 16);
+
+        Assert.Empty(samples);
+    }
+
+    [Fact]
     public void TextLayerTrainingHonorsPageSegmentation()
     {
         var content = new PdfContentStreamBuilder()
