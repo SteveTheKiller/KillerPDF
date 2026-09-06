@@ -27,6 +27,22 @@ public sealed class PdfOcrFormMetricsTests
         Assert.Equal(0.5, metrics.Text.WordAccuracy, 12);
     }
 
+    [Fact]
+    public void ChoiceNormalizationReusesEditDistanceRows()
+    {
+        string recognized = new('A', 512);
+        string choice = recognized[..^1] + "B";
+        PdfOcrFormLayout.NormalizeChoice("warmup", ["warmup"]);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        string normalized = PdfOcrFormLayout.NormalizeChoice(recognized, [choice]);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Same(choice, normalized);
+        Assert.True(allocated < 32 * 1024,
+            $"Choice normalization allocated {allocated:N0} bytes.");
+    }
+
     private static PdfOcrPixelWord Word(string text, PdfOcrFormRegion region) =>
         new(text, 1, region.Left, region.Top, region.Right, region.Bottom);
 
