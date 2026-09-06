@@ -113,6 +113,25 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void ShapeBucketsSeparateCommonGlyphProportions()
+    {
+        int[] buckets = new[] { 3, 5, 8, 12, 18 }
+            .Select(glyphWidth => PdfOcrRecognitionModel.ShapeBucket(
+                Glyph(glyphWidth), 20, 10)).ToArray();
+
+        Assert.Equal(5, buckets.Distinct().Count());
+
+        static float[] Glyph(int glyphWidth)
+        {
+            var features = new float[20 * 10];
+            for (int y = 0; y < 10; y++)
+                for (int x = 0; x < glyphWidth; x++)
+                    features[y * 20 + x] = 1;
+            return features;
+        }
+    }
+
+    [Fact]
     public void ShapeBucketsDistinguishDisconnectedGlyphParts()
     {
         float[] connected =

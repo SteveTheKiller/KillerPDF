@@ -281,7 +281,10 @@ public sealed class PdfOcrRecognitionModel
             }
         if (right <= left || bottom <= top) return -1;
         double aspect = (right - left) / (double)(bottom - top);
-        int aspectBucket = aspect < 0.5 ? 0 : aspect > 1 ? 2 : 1;
+        int aspectBucket = aspect < 0.35 ? 0
+            : aspect < 0.65 ? 1
+            : aspect < 1 ? 2
+            : aspect < 1.5 ? 3 : 4;
         int componentBucket = Math.Min(CountInkComponents(
             features, width, height, threshold), 3) - 1;
         return aspectBucket * 3 + componentBucket;
