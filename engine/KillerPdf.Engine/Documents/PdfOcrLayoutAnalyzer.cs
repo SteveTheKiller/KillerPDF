@@ -396,7 +396,8 @@ public static class PdfOcrLayoutAnalyzer
         if (components.Count == 0) return [];
         int[] widths = [.. components.Select(item => item.Width).OrderBy(value => value)];
         double medianWidth = widths[widths.Length / 2];
-        int wordGap = FindWordGap(components, medianWidth);
+        int wordGap = medianWidth <= 2 ? 3 : Math.Max(2, (int)Math.Round(
+            medianWidth * 0.35, MidpointRounding.AwayFromZero));
         var groups = new List<List<PdfOcrImageRegion>> { new() { components[0] } };
         for (int index = 1; index < components.Count; index++)
         {
@@ -413,38 +414,4 @@ public static class PdfOcrLayoutAnalyzer
             Array.AsReadOnly(group.ToArray()))).ToArray());
     }
 
-    private static int FindWordGap(
-        IReadOnlyList<PdfOcrImageRegion> components, double medianWidth)
-    {
-        int fallback = Math.Max(3, (int)Math.Ceiling(medianWidth * 0.5));
-        int[] gaps = [.. Enumerable.Range(1, components.Count - 1)
-            .Select(index => components[index].Left - components[index - 1].Right)
-            .Where(gap => gap > 0)
-            .OrderBy(gap => gap)];
-        if (gaps.Length < 2 || gaps[0] + 1 >= gaps[^1]) return fallback;
-        double low = gaps[0], high = gaps[^1];
-        for (int iteration = 0; iteration < 6; iteration++)
-        {
-            double midpoint = (low + high) / 2;
-            int lowCount = 0, highCount = 0;
-            long lowSum = 0, highSum = 0;
-            foreach (int gap in gaps)
-            {
-                if (gap <= midpoint)
-                {
-                    lowSum += gap;
-                    lowCount++;
-                }
-                else
-                {
-                    highSum += gap;
-                    highCount++;
-                }
-            }
-            if (lowCount == 0 || highCount == 0) return fallback;
-            low = lowSum / (double)lowCount;
-            high = highSum / (double)highCount;
-        }
-        return Math.Min(fallback, Math.Max(1, (int)Math.Floor((low + high) / 2)));
-    }
 }

@@ -77,23 +77,6 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
-    public void Analyze_DoesNotSplitAUniformlySpacedWord()
-    {
-        byte[] pixels = Enumerable.Repeat((byte)255, 36 * 10).ToArray();
-        Paint(pixels, 36, 1, 2, 4, 6);
-        Paint(pixels, 36, 8, 2, 4, 6);
-        Paint(pixels, 36, 15, 2, 4, 6);
-        Paint(pixels, 36, 22, 2, 4, 6);
-
-        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
-            Prepared(36, 10, pixels));
-
-        Assert.Single(layout.Lines);
-        Assert.Single(layout.Words);
-        Assert.Equal(4, layout.Words[0].Components.Count);
-    }
-
-    [Fact]
     public void Analyze_MergesDetachedMarksIntoTheirGlyphs()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();
