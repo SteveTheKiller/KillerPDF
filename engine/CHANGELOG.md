@@ -6,7 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.9.0] - Unreleased
 
-The 1.9.0 engine adds page-content extraction and begins engine-owned page rendering.
+The 1.9.0 engine adds page-content extraction and complete engine-owned page rendering.
 
 ### Added
 

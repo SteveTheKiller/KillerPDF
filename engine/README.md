@@ -123,11 +123,9 @@ Structural diagnostics, bounded parsing, explicit implementation limits, round-t
 
 ## Rendering status
 
-The engine has a bounded CPU-rendering foundation for transformed device-color paths and unmasked
-DeviceGray, DeviceRGB, DeviceCMYK, and one-bit image XObjects. Text, JPEG and inline images,
-clipping, transparency, annotations, and forms are not rendered yet, so KillerPDF continues using
-PDFium for complete application rendering while coverage expands. The engine does not provide UI
-controls.
+The engine owns bounded CPU rendering for paths, text, images, clipping, shadings, transparency,
+annotations, and forms. It returns platform-neutral BGRA32 pixel buffers and diagnostics without
+referencing a UI toolkit or native PDF renderer. The engine does not provide UI controls.
 
 ## Repository layout
 
@@ -180,7 +178,7 @@ The original architecture decision is recorded in [ADR-001](https://github.com/S
 
 ## KillerPDF integration
 
-KillerPDF directly references The KillerPDF.Engine for document parsing, text extraction, writing, and editing. The Windows application no longer references PdfPig or PdfSharpCore. Its rendering calls now pass through one replaceable boundary; PDFium remains the active complete renderer while engine coverage expands.
+KillerPDF directly references The KillerPDF.Engine for document parsing, text extraction, writing, editing, and rendering. The Windows application no longer references PDFium, Docnet.Core, PdfPig, or PdfSharpCore.
 
 See [The KillerPDF.Engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md) for detailed capability history.
 

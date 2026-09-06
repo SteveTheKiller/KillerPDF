@@ -49,8 +49,7 @@ namespace KillerPDF.Services
             FlattenOptions options, Action<int, int> progress, CancellationToken ct)
         {
             options.Validate();
-            // Rasterize pages across CPU cores. Docnet/PDFium is not thread-safe, so the
-            // PDFium rendering is serialized behind a lock. Pages are authored by the
+            // Rasterize pages across CPU cores. Pages are authored by the
             // engine afterwards in their original order.
             //
             // The source document is opened ONCE here. The old code re-opened it inside
@@ -94,7 +93,7 @@ namespace KillerPDF.Services
                 byte[] bgra; int rw, rh;
                 lock (docGate)
                 {
-                    // Composite over white (#148, Ryokoxx): PDFium leaves unpainted
+                    // Composite over white (#148, Ryokoxx): the engine leaves unpainted
                     // background as BGRA 0,0,0,0, which used to embed a full-page
                     // /SMask alpha channel in the flattened output.
                     // #141: WithAnnotations, or flattening an annotated PDF silently dropped the

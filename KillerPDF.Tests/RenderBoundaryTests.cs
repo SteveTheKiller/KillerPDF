@@ -6,19 +6,17 @@ namespace KillerPDF.Tests;
 public sealed class RenderBoundaryTests
 {
     [Fact]
-    public void RenderingBackendsAreOnlyUsedByTheRenderBoundary()
+    public void RenderingIsOwnedByTheEngineBoundary()
     {
         string root = FindRepositoryRoot();
         string boundary = Path.GetFullPath(Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
-        string fallback = Path.GetFullPath(Path.Combine(root, "Services", "DocnetRenderFallback.cs"));
-        string interop = Path.GetFullPath(Path.Combine(root, "Services", "PdfiumInterop.cs"));
         string thisTest = Path.GetFullPath(Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
         string[] forbidden =
         [
             "using Docnet.",
             "DocLib.Instance.GetDocReader",
-            ".GetPageReader(",
-            "PdfiumInterop.RenderPageWithAnnotations"
+            "DocnetRenderFallback",
+            "PdfiumInterop"
         ];
 
         foreach (string file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
@@ -28,8 +26,6 @@ public sealed class RenderBoundaryTests
                 || fullPath.StartsWith(Path.Combine(root, "obj"), StringComparison.OrdinalIgnoreCase)
                 || fullPath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
                 || fullPath.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
-                || fullPath.Equals(fallback, StringComparison.OrdinalIgnoreCase)
-                || fullPath.Equals(interop, StringComparison.OrdinalIgnoreCase)
                 || fullPath.Equals(thisTest, StringComparison.OrdinalIgnoreCase))
                 continue;
 
@@ -47,40 +43,21 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
-    public void NativePdfiumFileFallbacksStayInsideTheInteropBoundary()
+    public void NativePdfRenderingDependenciesAreRemoved()
     {
         string root = FindRepositoryRoot();
-        string interop = Path.GetFullPath(Path.Combine(root, "Services", "PdfiumInterop.cs"));
-        string interopSource = File.ReadAllText(interop);
-        Assert.DoesNotContain("FPDF_SaveWithVersion", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("FPDFPage_SetRotation", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("FPDFPage_GenerateContent", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("TryPdfiumStripEncryption", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("TryPdfiumSaveWithZeroRotations", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("FPDFLink_", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("FPDFAction_", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("FPDFDest_", interopSource, StringComparison.Ordinal);
-        Assert.DoesNotContain("PdfEngineIntegration", interopSource, StringComparison.Ordinal);
-        string thisTest = Path.GetFullPath(
-            Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
-
-        foreach (string file in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
-        {
-            string fullPath = Path.GetFullPath(file);
-            if (fullPath.StartsWith(Path.Combine(root, "bin"), StringComparison.OrdinalIgnoreCase)
-                || fullPath.StartsWith(Path.Combine(root, "obj"), StringComparison.OrdinalIgnoreCase)
-                || fullPath.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
-                || fullPath.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)
-                || fullPath.Equals(interop, StringComparison.OrdinalIgnoreCase)
-                || fullPath.Equals(thisTest, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            string source = File.ReadAllText(fullPath);
-            Assert.DoesNotContain("PdfiumInterop.TryPdfiumStripEncryption(", source,
-                StringComparison.Ordinal);
-            Assert.DoesNotContain("PdfiumInterop.TryPdfiumSaveWithZeroRotations(", source,
-                StringComparison.Ordinal);
-        }
+        Assert.False(File.Exists(Path.Combine(root, "Services", "DocnetRenderFallback.cs")));
+        Assert.False(File.Exists(Path.Combine(root, "Services", "PdfiumInterop.cs")));
+        Assert.DoesNotContain("Docnet.Core", File.ReadAllText(
+            Path.Combine(root, "KillerPDF.csproj")), StringComparison.Ordinal);
+        Assert.DoesNotContain("pdfium", File.ReadAllText(
+            Path.Combine(root, "FodyWeavers.xml")), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Docnet.Core.dll", File.ReadAllText(
+            Path.Combine(root, "build", "payload-files.txt")), StringComparison.Ordinal);
+        Assert.DoesNotContain("pdfium.dll", File.ReadAllText(
+            Path.Combine(root, "build", "payload-files.txt")), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("pdfium.dll", File.ReadAllText(
+            Path.Combine(root, "build", "build-portable.ps1")), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -96,7 +73,7 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
-    public void ExactComparisonPagesUseTheEngineBeforeTheNativeFallback()
+    public void ExactComparisonPagesUseTheEngine()
     {
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(
@@ -106,13 +83,10 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         string method = source[methodStart..methodEnd];
 
-        int engineOpen = method.IndexOf("EngineDocument.OpenWithCompatibilityRecovery(",
+        Assert.Contains("EngineDocument.OpenWithCompatibilityRecovery(", method,
             StringComparison.Ordinal);
-        int fallbackRender = method.IndexOf("DocnetRenderFallback.RenderExactPage(",
-            StringComparison.Ordinal);
-
-        Assert.True(engineOpen >= 0);
-        Assert.True(fallbackRender > engineOpen);
+        Assert.Contains("renderer.Render(", method, StringComparison.Ordinal);
+        Assert.DoesNotContain("Fallback", method, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -266,8 +240,7 @@ public sealed class RenderBoundaryTests
         Assert.Contains("RenderEnginePage(", method, StringComparison.Ordinal);
         Assert.Contains("includeAnnotations: false", method, StringComparison.Ordinal);
         Assert.Contains("includeFormFields: false", method, StringComparison.Ordinal);
-        Assert.True(method.IndexOf("RenderEnginePage(", StringComparison.Ordinal)
-            < method.IndexOf("_nativeFallback.RenderBasePage(", StringComparison.Ordinal));
+        Assert.DoesNotContain("NativeFallback", method, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -309,7 +282,7 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
-    public void LiveViewerUsesTheEngineFirstRenderSessionWithProfileSpecificFallback()
+    public void LiveViewerUsesTheEngineRenderSession()
     {
         string root = FindRepositoryRoot();
         string viewer = File.ReadAllText(
@@ -320,13 +293,10 @@ public sealed class RenderBoundaryTests
         Assert.Equal(4, Count(viewer, "PdfPageRenderSession.OpenEngineFirst("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", viewer,
             StringComparison.Ordinal);
-        Assert.Contains("_nativeFallbackProfiles[profile] = DescribeFailure(exception)", boundary,
+        Assert.DoesNotContain("NativeFallback", boundary, StringComparison.Ordinal);
+        Assert.Contains("includeAnnotations: false, includeFormFields: false", boundary,
             StringComparison.Ordinal);
-        Assert.Contains("!_nativeFallbackProfiles.ContainsKey(profile)", boundary,
-            StringComparison.Ordinal);
-        Assert.Contains("IncludeAnnotations: false, IncludeFormFields: false", boundary,
-            StringComparison.Ordinal);
-        Assert.Contains("IncludeAnnotations: true, IncludeFormFields: includeFormFields", boundary,
+        Assert.Contains("includeAnnotations: true, includeFormFields", boundary,
             StringComparison.Ordinal);
     }
 
@@ -355,22 +325,14 @@ public sealed class RenderBoundaryTests
     }
 
     [Fact]
-    public void RenderResultsIdentifyTheEngineOrNativeFallbackAndPreserveTheReason()
+    public void RenderResultsIdentifyTheEngineAndPreserveDiagnostics()
     {
         string root = FindRepositoryRoot();
         string boundary = File.ReadAllText(
             Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
-        string fallback = File.ReadAllText(
-            Path.Combine(root, "Services", "DocnetRenderFallback.cs"));
-
-        Assert.Contains("PdfRenderBackend.Engine, null", boundary,
+        Assert.Contains("PdfRenderBackend.Engine, Diagnostics(rendered.Diagnostics)", boundary,
             StringComparison.Ordinal);
-        Assert.Contains("EngineFailure = FallbackReason(profile)", boundary,
-            StringComparison.Ordinal);
-        Assert.Contains("PdfRenderBackend.NativeFallback, null", fallback,
-            StringComparison.Ordinal);
-        Assert.Contains("PdfRenderBackend.NativeFallback, engineFailure", boundary,
-            StringComparison.Ordinal);
+        Assert.DoesNotContain("NativeFallback", boundary, StringComparison.Ordinal);
         Assert.Contains("string? EngineFailure", boundary, StringComparison.Ordinal);
     }
 

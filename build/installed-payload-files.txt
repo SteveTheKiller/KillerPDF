@@ -1,5 +1,4 @@
 CommunityToolkit.Mvvm.dll
-Docnet.Core.dll
 KillerPDF.App.deps.json
 KillerPDF.App.dll
 KillerPDF.App.exe
@@ -8,7 +7,6 @@ KillerPdf.Engine.dll
 KillerPdf.Engine.xml
 LICENSE
 pdf-file.ico
-pdfium.dll
 SixLabors.Fonts.dll
 Tesseract.dll
 THIRD-PARTY-NOTICES.txt

@@ -1480,7 +1480,7 @@ namespace KillerPDF
         }
 
         // ============================================================
-        // Security - Authenticode verification + pdfium integrity
+        // Security - Authenticode verification
         // ============================================================
 
         // ── WinVerifyTrust P/Invoke ──────────────────────────────────────────

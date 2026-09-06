@@ -81,7 +81,7 @@ if ($payloadDifference.Count -gt 0) {
     $details = ($payloadDifference | ForEach-Object { "$($_.SideIndicator) $($_.InputObject)" }) -join [Environment]::NewLine
     throw "Payload file set changed. Review dependencies and update build\payload-files.txt deliberately:`n$details"
 }
-$requiredFiles = @('KillerPDF.App.exe', 'KillerPdf.Engine.dll', 'pdfium.dll')
+$requiredFiles = @('KillerPDF.App.exe', 'KillerPdf.Engine.dll')
 if (-not $isInstaller) { $requiredFiles += 'System.Text.Json.dll' }
 foreach ($required in $requiredFiles) {
     if ($actualPayloadNames -notcontains $required) {

@@ -28,7 +28,7 @@ namespace KillerPDF.Controls
         // The rendered canvas already incorporates the user-applied rotation stored
         // in _pageRotations.  These helpers invert / apply the same transforms that
         // the link-overlay code uses (lines ~1925-1957), so canvas<->PDF coords are
-        // consistent with how Docnet drew the bitmap.
+        // consistent with how the engine drew the bitmap.
         //
         //  rot=0:   canvas_x = native_x * cW/pW,  canvas_y = (pH - native_y) * cH/pH
         //  rot=90:  canvas_x = native_y * cW/pH,  canvas_y = native_x * cH/pW
@@ -608,7 +608,7 @@ namespace KillerPDF.Controls
             try
             {
                 // Convert canvas rect to PDF CropBox coords using the rotation-aware helper.
-                // This is the correct inversion of how Docnet renders the rotated bitmap.
+                // This is the correct inversion of how the engine renders the rotated bitmap.
                 _pageRotations.TryGetValue(currentPage, out int rot);
                 var refPage = engineSession.Pages[currentPage];
                 double refPdfW = refPage.Width;

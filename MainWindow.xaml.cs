@@ -66,8 +66,8 @@ namespace KillerPDF
         // open document keeps its own annotations, undo history, form values, and search hits.
         private Dictionary<int, List<PageAnnotation>> _annotations { get => ActiveViewer.AnnotationsRef; set => ActiveViewer.AnnotationsRef = value; }
         private Dictionary<int, (int w, int h)> _renderDims { get => ActiveViewer.RenderDimsRef; set => ActiveViewer.RenderDimsRef = value; }
-        // Stores the PDF /Rotate value for each page.  The temp file used by Docnet has
-        // rotation stripped to zero so FPDF_GetPageWidth/Height returns MediaBox dims and
+        // Stores the PDF /Rotate value for each page. The temporary working copy has
+        // rotation stripped to zero so page operations use stable MediaBox dimensions and
         // the content isn't clipped; RotateBitmap is applied at render time instead.
         private Dictionary<int, int> _pageRotations { get => ActiveViewer.PageRotationsRef; set => ActiveViewer.PageRotationsRef = value; }
 

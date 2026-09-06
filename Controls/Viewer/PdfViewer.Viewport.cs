@@ -896,7 +896,7 @@ namespace KillerPDF.Controls
                         try { BitmapHelpers.InvertBgraInPlaceExcept(rawBytes, width, height, ImageRectsFor(_currentFile, pageIndex, ref contentDoc)); }
                         finally { contentDoc?.Dispose(); }
                     }
-                    // The temp file has /Rotate stripped so Docnet renders unrotated (no clipping); rotate
+                    // The temp file has /Rotate stripped so the engine renders unrotated content; rotate
                     // the pixel buffer to match the visual.
                     if (pgRot != 0)
                         (rawBytes, width, height) = BitmapHelpers.RotateBitmap(rawBytes, width, height, pgRot);
@@ -1018,7 +1018,7 @@ namespace KillerPDF.Controls
 
         /// <summary>
         /// Renders secondary pages as a grid. Panel-width setup is synchronous so layout
-        /// is correct immediately; Docnet pixel rendering runs on a background thread so
+        /// is correct immediately; engine pixel rendering runs on a background thread so
         /// the UI stays responsive. WPF element creation returns to the UI thread.
         /// </summary>
         private async void RenderAdditionalPages(int primaryPageIdx)

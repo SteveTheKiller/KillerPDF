@@ -102,7 +102,6 @@
     </PackageReference>
     <ProjectReference Include="engine\KillerPdf.Engine\KillerPdf.Engine.csproj" />
     <Content Include="engine\THIRD-PARTY-NOTICES.txt" Link="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <PackageReference Include="Docnet.Core" Version="2.6.0" />
     <!-- We embed the x64 natives as resources and self-extract them at runtime (OcrNativeBootstrap), so the
          package's loose x86/x64 native copies in the output are dead weight. ExcludeAssets stops that copy
          while keeping the managed assembly (compile/runtime) and the GeneratePathProperty path for the embed. -->

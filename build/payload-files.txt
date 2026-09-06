@@ -32,7 +32,6 @@ de/UIAutomationProvider.resources.dll
 de/UIAutomationTypes.resources.dll
 de/WindowsBase.resources.dll
 DirectWriteForwarder.dll
-Docnet.Core.dll
 es/PresentationCore.resources.dll
 es/PresentationFramework.resources.dll
 es/PresentationUI.resources.dll
@@ -118,7 +117,6 @@ mscorrc.dll
 msquic.dll
 netstandard.dll
 pdf-file.ico
-pdfium.dll
 PenImc_cor3.dll
 pl/PresentationCore.resources.dll
 pl/PresentationFramework.resources.dll

@@ -61,10 +61,8 @@ namespace KillerPDF
             int selectedIdx = selectedPageAfterReload ?? PageList.SelectedIndex;
 
             // Capture page rotations, then strip them from the serialized working copy.
-            // Docnet uses FPDF_GetPageWidth/Height (MediaBox, no rotation) to size the bitmap,
-            // then renders with PDFium's page CTM which *does* include /Rotate.  For 90�/270�
-            // the rendered landscape content overflows the portrait-sized bitmap and gets clipped.
-            // Stripping /Rotate to 0 before saving means Docnet renders clean unrotated content
+            // The working copy uses unrotated MediaBox dimensions for page operations.
+            // Stripping /Rotate to 0 before saving means the engine renders unrotated content
             // that fits the bitmap; RotateBitmap is applied in each render path instead.
             EnsureEngineDocumentSession().CaptureRotations(_pageRotations);
             remapRotations?.Invoke(_pageRotations);
@@ -82,9 +80,8 @@ namespace KillerPDF
             {
                 // PdfSharpCore fails to re-save encrypted PDFs (e.g. owner-restricted RC4 files)
                 // because it encounters cross-reference tokens while serializing dirty objects.
-                // Primary fallback: use PDFium (already initialized for the page preview) to
-                // load the source, strip all /Rotate values, remove encryption, and save.
-                // Secondary fallback: PdfSharpCore Import mode (works on some non-encrypted xref
+                // Primary fallback: use the engine to load the source, strip all /Rotate values,
+                // remove encryption, and save. Secondary fallback: Import mode for some xref
                 // issues but fails on encrypted files; kept as a last resort).
                 doc.Close();
                 _doc = null;
@@ -103,8 +100,8 @@ namespace KillerPDF
             // xref table itself (object N offset = xref table position). When PdfSharp then tries
             // to re-open that file in Modify mode it seeks to the xref table, reads the keyword
             // "xref" as a token in an object context, and throws "Unexpected token 'xref'".
-            // Fix: catch the reopen failure, pipe the saved file through PDFium (which has
-            // robust error recovery and will rewrite a correct xref), then retry the open.
+            // Fix: catch the reopen failure, rewrite the saved file through engine compatibility
+            // recovery, then retry the open.
             try
             {
                 _doc = PdfWorkingDocument.Open(tempPath);
@@ -113,7 +110,7 @@ namespace KillerPDF
             {
                 var fixedPath = App.MakeTempFile("fixed");
                 if (!PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
-                    throw; // PDFium also failed - re-throw original reopen error
+                    throw; // Engine recovery also failed; rethrow the original reopen error.
                 tempPath = fixedPath;
                 _doc = PdfWorkingDocument.Open(tempPath);
             }
@@ -128,7 +125,7 @@ namespace KillerPDF
             }
 
             // Clear once more after the old workers have observed cancellation. This closes the race
-            // where a worker was already inside PDFium when the first clear happened and published its
+            // where a render worker was active when the first clear happened and published its
             // stale result while the edited document was being saved and reopened.
             Controls.PdfViewer.InvalidateRenderCacheExt(_active);
 

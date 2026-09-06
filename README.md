@@ -22,7 +22,7 @@ KillerPDF 1.8 introduced The KillerPDF.Engine, an independent and reusable .NET 
 
 ## Features
 
-- High-quality PDFium rendering with four view modes (Single, Continuous, Two-Page with a book layout option, Grid), tabbed documents, and a split pane for two documents side by side
+- Engine-owned CPU rendering with four view modes (Single, Continuous, Two-Page with a book layout option, Grid), tabbed documents, and a split pane for two documents side by side
 - Annotate with inline text editing and font matching, word-wrapping text boxes, drawing, lines, highlights, images, and page-number or watermark stamps. Highlights use the Multiply blend so the text underneath stays readable, and every tab has its own undo and redo history.
 - Built-in OCR (Tesseract bundled, no cloud): make searchable PDFs, OCR a page or region to the clipboard, extract all text; extra languages download on demand
 - Organize pages: merge, split, insert, rotate, crop, extract, delete, drag-and-drop reordering; drop a folder or `.zip` onto the window to merge its contents
@@ -100,7 +100,7 @@ Output lands in `bin/Release/net10.0-windows/publish/`. Normal publishing produc
 
 KillerPDF 1.9 requires the .NET 10 SDK. Both the reusable engine and the Windows application target .NET 10, with the application using `net10.0-windows`.
 
-The desktop document pipeline uses The KillerPDF.Engine for document parsing, text extraction, writing, editing, repair, forms, annotations, signatures, preservation-sensitive page operations, OCR foundations, and CPU rendering of paths, images, forms, and transparency. PDFium remains the production rendering backend while engine rendering reaches parity.
+The desktop document pipeline uses The KillerPDF.Engine for document parsing, text extraction, writing, editing, repair, forms, annotations, signatures, preservation-sensitive page operations, OCR foundations, and CPU rendering. KillerPDF no longer ships PDFium or Docnet.Core.
 
 ## Translations
 

@@ -211,8 +211,7 @@ namespace KillerPDF
         // Themed "Password Required" prompt (KillerDialog): family dialog chrome + themed PasswordBox.
         private string? PromptForPassword(string filename) => KillerDialog.PromptPassword(this, filename);
 
-        // ALL direct PDFium P/Invoke lives in Services/PdfiumInterop.cs (KillerUI refactor) -
-        // one class, one lock (Docnet's), so the thread-safety discipline stays auditable.
+        // PDF parsing, repair, and rendering are owned by The KillerPDF.Engine.
         // PdfFileHasEncryption and TryImportRepairToPath live in Services/PdfImport.cs.
 
         private async void TryRepairAndOpen(string path)
@@ -231,7 +230,7 @@ namespace KillerPDF
                 string? repairedPath = null;
                 bool raster = false;
 
-                // Strategy 0 (#103): lossless PDFium re-save. PDFium's tolerant parser recovers
+                // Strategy 0 (#103): lossless engine re-save. Compatibility recovery handles
                 // broken xref tables (including the dangling /Outlines entry older KillerPDF
                 // builds wrote) and rewrites a clean file preserving EVERYTHING - forms,
                 // bookmarks, text. The import-copy below drops the document-level AcroForm,
@@ -250,7 +249,7 @@ namespace KillerPDF
                 repairedPath ??= await System.Threading.Tasks.Task.Run(() => PdfImport.RepairViaImportToFile(path));
                 if (ct.IsCancellationRequested) { HideBusyOverlay(busy); _asyncOpenPending = false; SetStatus(Loc("Str_St_RepairCanceled")); return; }   // canceled during strategy 1
 
-                // Strategy 2: PDFium rasterize. PDFium's internal XRef recovery handles damage
+                // Strategy 2: engine rasterize. Compatibility recovery handles damage
                 // PdfSharpCore cannot; each page is rendered to a bitmap and rebuilt into a clean PDF.
                 // Text won't be selectable in the result, but the file will open and print.
                 if (repairedPath is null)

@@ -16,8 +16,8 @@ using System.Windows.Media.Imaging;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
-// The scrubs, bitmap helpers, import helpers and PDFium interop all live in Services
-// (BitmapHelpers.cs, PdfImport.cs, PdfiumInterop.cs; KillerUI refactor,
+// The scrubs, bitmap helpers, and import helpers all live in Services
+// (BitmapHelpers.cs and PdfImport.cs; KillerUI refactor,
 // 2026-07-31), called qualified below. No Features-to-Shell reaches remain in this file.
 // OpenBatchConsole and FlattenBatchDetail are shared with the batch runner.
 using static KillerPDF.Features.BatchRunner;
@@ -35,7 +35,7 @@ namespace KillerPDF.Features
     // classic "KillerPDF.exe file.pdf" file-association open).
     //
     // Each command reuses the same pipeline its GUI equivalent runs - the
-    // merge named-destination rewrite, the pre-save scrubs, the PDFium
+    // merge named-destination rewrite, the pre-save scrubs, the engine
     // decrypt, the rotation-safe rasterizer, the OCR text-layer builder - so
     // CLI output is byte-for-byte the kind of file the GUI would produce.
     //
@@ -342,7 +342,7 @@ namespace KillerPDF.Features
         // ============================================================
         // --decrypt <in.pdf> <out.pdf> [--password <p>]
         // ============================================================
-        // Without a password: the same lossless PDFium strip the GUI uses at
+        // Without a password: the same lossless engine rewrite the GUI uses at
         // open time (owner/permissions encryption), with the Import-rebuild
         // fallback. With a password, The KillerPDF.Engine authenticates and
         // fully rewrites the document without its encryption dictionary.
@@ -382,13 +382,13 @@ namespace KillerPDF.Features
         // ============================================================
         // Shared rasterization prep
         // ============================================================
-        // PDFium sizes its bitmap from the un-rotated MediaBox, so pages with
+        // The renderer sizes its bitmap from the unrotated MediaBox, so pages with
         // /Rotate 90/270 clip if rendered directly (same reason TempReload
         // strips rotations app-wide). Prep: decrypt if needed, capture per-page
         // /Rotate + point dims, strip rotations to a temp, and let callers
         // rotate the pixel buffers afterward (BitmapHelpers.RotateBitmap).
         // Falls back to rendering the file as-is when PdfSharpCore cannot open
-        // it (rare parser gaps PDFium tolerates); callers then derive
+        // it after compatibility recovery; callers then derive
         // dimensions from the rendered pixels.
         private static (string RenderPath, int[]? Rotations, (double WPt, double HPt)[]? Dims)
             CliPrepareRenderSource(string inPath, string? password, TextWriter con)
@@ -457,10 +457,10 @@ namespace KillerPDF.Features
         // ============================================================
         // --to-image <in.pdf> <outDir> [--dpi n] [--format png|jpg] [--pages range] [--transparent]
         // ============================================================
-        // PDFium leaves unpainted background pixels as BGRA 0,0,0,0. Encoders
+        // The engine leaves unpainted background pixels as BGRA 0,0,0,0. Encoders
         // that drop alpha (JPEG) then show them BLACK, and PNG/flatten output
         // carries a useless full-page alpha channel (issue #148, Ryokoxx).
-        // Default is now composite-over-white via Docnet's transparency
+        // Default is composite-over-white unless transparent PNG output is requested;
         // remover; --transparent keeps the raw alpha for PNG output.
         private static int CliToImage(List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
@@ -767,7 +767,7 @@ namespace KillerPDF.Features
         // --ocr <in.pdf> <out.pdf> [--lang code]
         // ============================================================
         // Reuses the GUI's searchable-PDF core (OcrController.BuildSearchablePdf):
-        // Docnet render, Tesseract per page, invisible text drawn over each
+        // Engine render, OCR per page, invisible text drawn over each
         // word. The GUI's model-download gate is dialog-driven, so the CLI
         // has its own silent equivalent honoring the OcrHighQuality setting.
         private static int CliOcr(List<string> pos, Dictionary<string, string> options, TextWriter con)

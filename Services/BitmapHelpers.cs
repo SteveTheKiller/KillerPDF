@@ -16,8 +16,7 @@ namespace KillerPDF.Services
     {
         /// <summary>
         /// Rotates a raw BGRA (4 bytes/pixel) bitmap clockwise by degrees.
-        /// Used because Docnet's FPDF_RenderPageBitmapWithMatrix uses a pure-scaling
-        /// matrix, so PDFium renders the page in its MediaBox orientation (no rotation).
+        /// Page rendering uses a pure-scaling matrix and the page's MediaBox orientation.
         /// We strip /Rotate from the temp file so content is never clipped, then rotate
         /// the pixel buffer here to match the intended visual orientation.
         /// </summary>
@@ -146,8 +145,8 @@ namespace KillerPDF.Services
         }
 
         /// <summary>
-        /// Encodes raw BGRA pixel data from pdfium to PNG without touching the UI thread.
-        /// GDI+ Format32bppArgb is BGRA in memory - matches pdfium output exactly.
+        /// Encodes raw engine BGRA pixel data to PNG without touching the UI thread.
+        /// GDI+ Format32bppArgb uses the same BGRA memory layout.
         /// </summary>
         internal static byte[] RenderToPng(byte[] bgra, int width, int height, double dpi = 96)
         {

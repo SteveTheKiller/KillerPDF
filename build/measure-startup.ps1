@@ -38,16 +38,10 @@ function Read-Trace([string]$Path) {
     }
 
     if (-not $marks.ContainsKey('MainWindow ready')) { throw "Trace has no ready marker: $Path" }
-    $pdfiumMs = if ($marks.ContainsKey('pdfium integrity check starting') -and
-                    $marks.ContainsKey('pdfium integrity check complete')) {
-        $marks['pdfium integrity check complete'] - $marks['pdfium integrity check starting']
-    } else { 0 }
-
     [pscustomobject]@{
         LoaderToOnStartupMs = [math]::Round($loaderMs, 1)
         OnStartupToReadyMs = [math]::Round($marks['MainWindow ready'], 1)
         ProcessToReadyMs = [math]::Round($loaderMs + $marks['MainWindow ready'], 1)
-        PdfiumIntegrityMs = [math]::Round($pdfiumMs, 1)
         MainWindowConstructMs = if ($marks.ContainsKey('Locale initialized') -and
                                       $marks.ContainsKey('MainWindow constructed')) {
             [math]::Round($marks['MainWindow constructed'] - $marks['Locale initialized'], 1)
@@ -91,7 +85,6 @@ try {
                 LoaderToOnStartupMs = $timing.LoaderToOnStartupMs
                 OnStartupToReadyMs = $timing.OnStartupToReadyMs
                 ProcessToReadyMs = [math]::Round($processToReady, 1)
-                PdfiumIntegrityMs = $timing.PdfiumIntegrityMs
                 MainWindowConstructMs = $timing.MainWindowConstructMs
             }
         }
@@ -122,6 +115,5 @@ $results | Format-Table -AutoSize
 $warm = @($results | Where-Object CacheState -eq 'warm')
 if ($warm.Count -gt 0) {
     Write-Host ("Warm mean process-to-ready: {0:N1} ms" -f (($warm | Measure-Object ProcessToReadyMs -Average).Average))
-    Write-Host ("Warm mean pdfium integrity: {0:N1} ms" -f (($warm | Measure-Object PdfiumIntegrityMs -Average).Average))
 }
 Write-Host "Results: $OutputCsv"

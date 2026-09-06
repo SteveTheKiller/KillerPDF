@@ -3,15 +3,14 @@
 .SYNOPSIS
     KillerPDF release script: build payload → sign inner app → pack launcher → sign launcher → verify → publish.
 .DESCRIPTION
-    1. Locates and hashes pdfium.dll for the published checksum summary.
-    2. Builds the ordinary multi-file KillerPDF.App payload without Costura/Fody weaving.
-    3. Signs KillerPDF.App.exe, regenerates its hash manifest, compresses that payload once,
+    1. Builds the ordinary multi-file KillerPDF.App payload without Costura/Fody weaving.
+    2. Signs KillerPDF.App.exe, regenerates its hash manifest, compresses that payload once,
        and embeds it in the public portable and installer executables.
-    4. Signs both public executables. Prefers CertThumbprint (exact match) over CertName (CN match)
+    3. Signs both public executables. Prefers CertThumbprint (exact match) over CertName (CN match)
        and retries the timestamp across three TSA endpoints.
-    5. Runs "signtool verify /pa /v" as a post-sign gate - aborts if either signature chain
+    4. Runs "signtool verify /pa /v" as a post-sign gate - aborts if either signature chain
        is not trusted to an accepted root.
-    6. Builds the GPL source archive, checksums, and publish summary.
+    5. Builds the GPL source archive, checksums, and publish summary.
 
 .PARAMETER CertThumbprint
     Preferred. SHA1 thumbprint of your code-signing certificate (40 hex chars, no spaces).
@@ -216,36 +215,7 @@ foreach ($localeFile in Get-ChildItem $stringsDir -Filter '*.xaml') {
 }
 Write-Host "    Translations OK: $($englishStrings.Count) keys across $((Get-ChildItem $stringsDir -Filter '*.xaml').Count) languages" -ForegroundColor Green
 
-# ── 1. Hash pdfium.dll for the published checksum summary ──────────────────
-Write-Host "`n==> Locating pdfium.dll for checksum reporting..." -ForegroundColor Cyan
-
-# Look in the NuGet package cache for Docnet.Core's pdfium
-$nugetCache = Join-Path $env:USERPROFILE ".nuget\packages"
-$pdfiumNuget = Get-ChildItem "$nugetCache\docnet.core\*\runtimes\win-x64\native\pdfium.dll" `
-                   -ErrorAction SilentlyContinue |
-               Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
-
-# Also check the build output as a fallback
-$pdfiumBuild = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\win-x64\pdfium.dll"
-
-$pdfiumPath = $null
-if ($pdfiumNuget -and (Test-Path $pdfiumNuget)) {
-    $pdfiumPath = $pdfiumNuget
-    Write-Host "    Using NuGet cache: $pdfiumPath"
-} elseif (Test-Path $pdfiumBuild) {
-    $pdfiumPath = $pdfiumBuild
-    Write-Host "    Using build output: $pdfiumPath"
-} else {
-    Write-Warning "    pdfium.dll not found - its checksum will be unavailable."
-}
-
-$pdfiumHash = "0000000000000000000000000000000000000000000000000000000000000000"
-if ($pdfiumPath) {
-    $pdfiumHash = (Get-FileHash $pdfiumPath -Algorithm SHA256).Hash
-    Write-Host "    pdfium SHA256: $pdfiumHash" -ForegroundColor Green
-}
-
-# ── 2. Build the portable and installed packages ─────────────────────────────
+# ── 1. Build the portable and installed packages ─────────────────────────────
 Write-Host "`n==> Building portable and installer packages..." -ForegroundColor Cyan
 & powershell -NoProfile -ExecutionPolicy Bypass -File $packageBuild -RequireSignature
 if ($LASTEXITCODE -ne 0) { throw "Package build failed." }
@@ -362,8 +332,6 @@ if ($LASTEXITCODE -ne 0) { throw "Source bundle failed." }
     foreach ($artifact in @($portableExe, $installerExe)) {
         if (-not (Test-Path $artifact)) { throw "PublishOnly: no built artifact at $artifact" }
     }
-    $pdfiumPath  = $null
-    $pdfiumHash  = ""
     $actualThumb = "(existing signature)"
     $actualCN    = "(existing signature)"
 }
@@ -374,9 +342,6 @@ $portableHash  = (Get-FileHash $portableExe -Algorithm SHA256).Hash
 $installerHash = (Get-FileHash $installerExe -Algorithm SHA256).Hash
 Write-Host "    KillerPDF-Portable.exe : $portableHash" -ForegroundColor Green
 Write-Host "    KillerPDF.exe          : $installerHash" -ForegroundColor Green
-if ($pdfiumPath) {
-    Write-Host "    pdfium.dll    : $pdfiumHash" -ForegroundColor Green
-}
 
 # ── 5. Source zip ────────────────────────────────────────────────────────────
 $srcZip = Get-ChildItem $publishDir -Filter "*-src.zip" -ErrorAction SilentlyContinue |
@@ -393,13 +358,12 @@ if ($srcZip) {
 # upload to the GitHub release is in one place. The updater reads this from the release assets.
 $sumsPath = Join-Path $publishDir "SHA256SUMS.txt"
 if ($PublishOnly -and (Test-Path $sumsPath)) {
-    # Keep the full-run file: rewriting here would drop the pdfium line (not recomputed).
+    # Keep the full-run file produced by the signed package build.
     Write-Host "`n==> PublishOnly: keeping existing SHA256SUMS.txt." -ForegroundColor Yellow
 } else {
 $lines    = [System.Collections.Generic.List[string]]::new()
 $lines.Add("KillerPDF.exe           $installerHash")
 $lines.Add("KillerPDF-Portable.exe  $portableHash")
-if ($pdfiumPath) { $lines.Add("pdfium.dll              $pdfiumHash") }
 if ($srcZip) {
     $srcHash = (Get-FileHash $srcZip.FullName -Algorithm SHA256).Hash
     $lines.Add("$($srcZip.Name.PadRight(24))$srcHash")
@@ -417,8 +381,6 @@ if ($srcZip) { Write-Host "  SRC  : $($srcZip.FullName)" }
 Write-Host   ""
 Write-Host   "  SHA256 (Setup)      : $installerHash" -ForegroundColor Green
 Write-Host   "  SHA256 (Portable)   : $portableHash" -ForegroundColor Green
-if ($pdfiumPath) {
-Write-Host   "  SHA256 (pdfium.dll): $pdfiumHash" -ForegroundColor Green }
 Write-Host   ""
 Write-Host   "  Signer : $actualCN"
 Write-Host   "  Thumbprint: $actualThumb"
