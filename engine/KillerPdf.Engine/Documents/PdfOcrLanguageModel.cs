@@ -241,7 +241,8 @@ public sealed class PdfOcrLanguageModel
     /// <summary>Chooses the highest-scoring label sequence with transition context.</summary>
     public IReadOnlyList<string> Decode(
         IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions,
-        double languageWeight = 1)
+        double languageWeight = 1,
+        CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(positions);
         if (!double.IsFinite(languageWeight) || languageWeight < 0)
@@ -258,6 +259,7 @@ public sealed class PdfOcrLanguageModel
         };
         foreach (IReadOnlyList<PdfOcrLanguageCandidate> supplied in positions)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (supplied is null || supplied.Count == 0
                 || supplied.Count > MaximumCandidatesPerPosition)
                 throw new ArgumentException(
@@ -266,6 +268,7 @@ public sealed class PdfOcrLanguageModel
             var next = new Dictionary<string, Path>(StringComparer.Ordinal);
             foreach (PdfOcrLanguageCandidate candidate in supplied)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(candidate.Label) || !double.IsFinite(candidate.Score))
                     throw new ArgumentException(
                         "OCR language-model candidates require labels and finite scores.",

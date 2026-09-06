@@ -80,6 +80,8 @@ public sealed class PdfOcrLanguageModelTests
         canceled.Cancel();
         Assert.Throws<OperationCanceledException>(() =>
             PdfOcrLanguageModel.Train(["AB"], canceled.Token));
+        Assert.Throws<OperationCanceledException>(() =>
+            model.Decode([[new("A", 1)]], cancellationToken: canceled.Token));
     }
 
     [Fact]

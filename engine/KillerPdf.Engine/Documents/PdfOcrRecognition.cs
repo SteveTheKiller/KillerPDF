@@ -990,7 +990,8 @@ public static class PdfOcrRecognizer
                 }
                 else
                 {
-                    IReadOnlyList<string> decoded = languageModel!.Decode(candidates);
+                    IReadOnlyList<string> decoded = languageModel!.Decode(
+                        candidates, cancellationToken: cancellationToken);
                     recognizedText = string.Concat(decoded);
                     confidence = 0;
                     for (int index = 0; index < decoded.Count; index++)
