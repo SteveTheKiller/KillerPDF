@@ -186,9 +186,10 @@ public static class PdfOcrLayoutAnalyzer
             .OrderBy(height => height)];
         int referenceHeight = heights[heights.Length / 2];
         return [.. components.Where(component =>
-            component.Height <= referenceHeight * 6
-            && (component.Width <= referenceHeight * 8
-                || component.Height * 2 > referenceHeight))];
+            !(component.Height > referenceHeight * 6
+                && component.Height > component.Width * 2)
+            && !(component.Width > referenceHeight * 8
+                && component.Width > component.Height * 4))];
     }
 
     private static List<PdfOcrImageRegion> MergeDetachedMarks(
@@ -228,7 +229,7 @@ public static class PdfOcrLayoutAnalyzer
                     ? bounds.Top - mark.Bottom
                     : bounds.Bottom <= mark.Top ? mark.Top - bounds.Bottom : 0;
                 int maximumGap = subordinateMark
-                    ? Math.Max(2, bounds.Height / 2)
+                    ? Math.Max(2, Math.Min(bounds.Height / 2, mark.Height * 2))
                     : Math.Max(2, Math.Max(bounds.Width, mark.Width) * 2);
                 if (verticalGap > maximumGap) continue;
                 bounds = new PdfOcrImageRegion(

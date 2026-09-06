@@ -134,13 +134,15 @@ public sealed class PdfOcrLayoutAnalyzerTests
             Paint(pixels, 80, x, 10, 3, 5);
         Paint(pixels, 80, 70, 10, 2, 50);
         Paint(pixels, 80, 10, 70, 50, 2);
+        Paint(pixels, 80, 30, 30, 20, 35);
 
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
             Prepared(80, 80, pixels));
 
-        Assert.Equal(7, layout.Components.Count);
+        Assert.Equal(8, layout.Components.Count);
         Assert.Contains(new PdfOcrImageRegion(2, 10, 5, 13), layout.Components);
         Assert.Contains(new PdfOcrImageRegion(2, 15, 5, 18), layout.Components);
+        Assert.Contains(new PdfOcrImageRegion(30, 30, 50, 65), layout.Components);
         Assert.DoesNotContain(new PdfOcrImageRegion(70, 10, 72, 60), layout.Components);
         Assert.DoesNotContain(new PdfOcrImageRegion(10, 70, 60, 72), layout.Components);
     }
