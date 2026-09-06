@@ -365,7 +365,7 @@ namespace KillerPDF.Features
                 return 0;
             }
 
-            if (PdfiumInterop.TryRemoveEncryptionWithoutPassword(inPath, outPath))
+            if (PdfEngineIntegration.TryRemoveEncryptionWithoutPassword(inPath, outPath))
             {
                 con.WriteLine($"Decrypted (lossless) -> {outPath}");
                 return 0;
@@ -401,7 +401,7 @@ namespace KillerPDF.Features
                 {
                     PdfEngineIntegration.RemoveEncryption(inPath, dec, password!);
                 }
-                else if (!PdfiumInterop.TryRemoveEncryptionWithoutPassword(inPath, dec)
+                else if (!PdfEngineIntegration.TryRemoveEncryptionWithoutPassword(inPath, dec)
                     && !PdfImport.TryImportRepairToPath(inPath, dec))
                 {
                     throw new InvalidOperationException(

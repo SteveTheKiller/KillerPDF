@@ -315,38 +315,6 @@ namespace KillerPDF.Services
             catch { return null; }
         }
 
-        // ---- Save ---------------------------------------------------------------------------
-
-        /// <summary>Removes owner-only encryption through the engine.</summary>
-        internal static bool TryRemoveEncryptionWithoutPassword(
-            string sourcePath, string destinationPath)
-        {
-            try
-            {
-                PdfEngineIntegration.RemoveEncryption(
-                    sourcePath, destinationPath, string.Empty);
-                return true;
-            }
-            catch (Exception exception) when (exception is not OutOfMemoryException)
-            {
-                return false;
-            }
-        }
-
-        /// <summary>Creates a zero-rotation copy through the engine.</summary>
-        internal static bool TryCreateZeroRotationCopy(
-            string sourcePath, string destinationPath)
-        {
-            try
-            {
-                PdfEngineIntegration.CreateZeroRotationCopy(sourcePath, destinationPath);
-                return true;
-            }
-            catch (Exception exception) when (exception is not OutOfMemoryException)
-            {
-                return false;
-            }
-        }
     }
 #pragma warning restore SYSLIB1054
 }

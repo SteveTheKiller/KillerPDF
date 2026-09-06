@@ -269,6 +269,36 @@ internal static class PdfEngineIntegration
         ReplaceWithBuiltResult(destinationPath, result);
     }
 
+    /// <summary>Attempts owner-only encryption removal through the engine.</summary>
+    internal static bool TryRemoveEncryptionWithoutPassword(
+        string sourcePath, string destinationPath)
+    {
+        try
+        {
+            RemoveEncryption(sourcePath, destinationPath, string.Empty);
+            return true;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Attempts a zero-rotation copy through the engine.</summary>
+    internal static bool TryCreateZeroRotationCopy(
+        string sourcePath, string destinationPath)
+    {
+        try
+        {
+            CreateZeroRotationCopy(sourcePath, destinationPath);
+            return true;
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Merges complete PDF documents while preserving the first document byte prefix.</summary>
     internal static byte[] MergeDocuments(IReadOnlyList<byte[]> sources)
     {

@@ -88,7 +88,7 @@ namespace KillerPDF
                 // issues but fails on encrypted files; kept as a last resort).
                 doc.Close();
                 _doc = null;
-                if (!PdfiumInterop.TryCreateZeroRotationCopy(
+                if (!PdfEngineIntegration.TryCreateZeroRotationCopy(
                         _currentFile!, tempPath) &&
                     !PdfImport.TryImportRepairToPath(_currentFile!, tempPath, stripRotations: true))
                     throw; // re-throw original if both fallbacks fail
@@ -112,7 +112,7 @@ namespace KillerPDF
             catch (Exception openEx) when (PdfImport.IsXRefException(openEx))
             {
                 var fixedPath = App.MakeTempFile("fixed");
-                if (!PdfiumInterop.TryCreateZeroRotationCopy(tempPath, fixedPath))
+                if (!PdfEngineIntegration.TryCreateZeroRotationCopy(tempPath, fixedPath))
                     throw; // PDFium also failed - re-throw original reopen error
                 tempPath = fixedPath;
                 _doc = PdfWorkingDocument.Open(tempPath);

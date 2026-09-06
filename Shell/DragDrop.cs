@@ -480,7 +480,7 @@ namespace KillerPDF
                 string? repaired = await System.Threading.Tasks.Task.Run(() =>
                 {
                     var p = App.MakeTempFile("repaired");
-                    return PdfiumInterop.TryRemoveEncryptionWithoutPassword(path, p)
+                    return PdfEngineIntegration.TryRemoveEncryptionWithoutPassword(path, p)
                         ? p : null;
                 });
                 repaired ??= await System.Threading.Tasks.Task.Run(() => PdfImport.RepairViaImportToFile(path));
