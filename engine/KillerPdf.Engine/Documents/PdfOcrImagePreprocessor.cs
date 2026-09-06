@@ -72,6 +72,7 @@ public static class PdfOcrImagePreprocessor
         ArgumentNullException.ThrowIfNull(options);
         ValidateBgra(bgra, width, height);
         degrees = NormalizeRotation(degrees);
+        cancellationToken.ThrowIfCancellationRequested();
         int preparedWidth = degrees is 90 or 270 ? height : width;
         int preparedHeight = degrees is 90 or 270 ? width : height;
 
@@ -234,6 +235,7 @@ public static class PdfOcrImagePreprocessor
         CancellationToken cancellationToken = default)
     {
         ValidateBgra(bgra, sourceWidth, sourceHeight);
+        cancellationToken.ThrowIfCancellationRequested();
         left = Math.Clamp(left, 0, sourceWidth - 1);
         top = Math.Clamp(top, 0, sourceHeight - 1);
         width = Math.Clamp(width, 1, sourceWidth - left);
@@ -255,6 +257,7 @@ public static class PdfOcrImagePreprocessor
     {
         ValidateBgra(bgra, width, height);
         degrees = NormalizeRotation(degrees);
+        cancellationToken.ThrowIfCancellationRequested();
         int rotatedWidth = degrees is 90 or 270 ? height : width;
         int rotatedHeight = degrees is 90 or 270 ? width : height;
         byte[] result = GC.AllocateUninitializedArray<byte>(bgra.Length);
