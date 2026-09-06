@@ -467,6 +467,33 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RawBgraRecognitionSelectsAndMapsRightAngleOrientation()
+    {
+        string[] upright =
+        [
+            "........",
+            "..#.....",
+            "..#.....",
+            "..#.....",
+            "..####..",
+            "........"
+        ];
+        PdfOcrRecognitionModel model = OrientationModel(upright);
+        string[] rotated = RotateRowsClockwise(upright);
+        byte[] bgra = BgraImage(rotated);
+
+        PdfOcrResult result = PdfOcrRecognizer.RecognizeBgra(
+            bgra, rotated[0].Length, rotated.Length, model,
+            new PdfOcrOptions(["eng"], deskew: false, correctOrientation: true,
+                removeBackground: false, removeNoise: false,
+                detectPageSegments: false));
+
+        PdfOcrPixelWord word = Assert.Single(result.Words);
+        Assert.Equal("L", word.Text);
+        Assert.Equal((1, 2, 5, 6), (word.Left, word.Top, word.Right, word.Bottom));
+    }
+
+    [Fact]
     public void RawBgraRecognitionRestrictsResultsToACharacterWhitelist()
     {
         PdfOcrPreparedImage image = Prepared(4, 4,
@@ -839,6 +866,21 @@ public sealed class PdfOcrRecognitionTests
                 rgb[offset] = rgb[offset + 1] = rgb[offset + 2] = value;
             }
         return PdfImage.FromRgb(width, rows.Length, rgb);
+    }
+
+    private static byte[] BgraImage(string[] rows)
+    {
+        int width = rows[0].Length;
+        byte[] bgra = new byte[width * rows.Length * 4];
+        for (int y = 0; y < rows.Length; y++)
+            for (int x = 0; x < width; x++)
+            {
+                byte value = rows[y][x] == '#' ? (byte)0 : (byte)255;
+                int offset = (y * width + x) * 4;
+                bgra[offset] = bgra[offset + 1] = bgra[offset + 2] = value;
+                bgra[offset + 3] = 255;
+            }
+        return bgra;
     }
 
     private static string[] RotateRowsClockwise(string[] rows)
