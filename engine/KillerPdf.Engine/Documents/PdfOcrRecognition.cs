@@ -578,15 +578,32 @@ public sealed class PdfOcrRecognitionModel
                 nameof(prototypeScores));
         if (maximumCandidates <= 0)
             throw new ArgumentOutOfRangeException(nameof(maximumCandidates));
-        var candidates = new List<PdfOcrLanguageCandidate>(Labels.Count);
+        int capacity = Math.Min(maximumCandidates, Labels.Count);
+        var candidates = new PdfOcrLanguageCandidate[capacity];
+        int count = 0;
         foreach (string label in Labels)
-            candidates.Add(new PdfOcrLanguageCandidate(
-                label, PrototypeVote(label, prototypeScores)));
-        return Array.AsReadOnly(candidates
-            .Where(candidate => double.IsFinite(candidate.Score))
-            .OrderByDescending(candidate => candidate.Score)
-            .ThenBy(candidate => candidate.Label, StringComparer.Ordinal)
-            .Take(maximumCandidates).ToArray());
+        {
+            var candidate = new PdfOcrLanguageCandidate(
+                label, PrototypeVote(label, prototypeScores));
+            if (!double.IsFinite(candidate.Score)) continue;
+            int insertion = 0;
+            while (insertion < count && ComesBefore(candidates[insertion], candidate))
+                insertion++;
+            if (insertion >= capacity) continue;
+            int move = Math.Min(count, capacity - 1) - insertion;
+            if (move > 0)
+                Array.Copy(candidates, insertion, candidates,
+                    insertion + 1, move);
+            candidates[insertion] = candidate;
+            if (count < capacity) count++;
+        }
+        if (count < capacity) Array.Resize(ref candidates, count);
+        return Array.AsReadOnly(candidates);
+
+        static bool ComesBefore(PdfOcrLanguageCandidate left,
+            PdfOcrLanguageCandidate right) => left.Score > right.Score
+            || left.Score == right.Score
+            && string.CompareOrdinal(left.Label, right.Label) <= 0;
     }
 
     private double PrototypeVote(string label, ReadOnlySpan<double> prototypeScores)

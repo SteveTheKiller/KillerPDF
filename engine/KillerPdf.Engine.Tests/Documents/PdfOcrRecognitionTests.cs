@@ -579,6 +579,29 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal("LL", contextual.Text);
     }
 
+    [Fact]
+    public void CandidateRankingKeepsBoundedDeterministicTopScores()
+    {
+        string[] labels = [.. Enumerable.Range(0, 100)
+            .Select(index => $"L{index:D2}")];
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
+            1, 1, labels, new float[labels.Length], new float[labels.Length]);
+        double[] scores = [.. Enumerable.Range(0, labels.Length)
+            .Select(index => index == 98 ? 99d : index)];
+        model.RankCandidates(scores, 16);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        IReadOnlyList<PdfOcrLanguageCandidate>? ranked = null;
+        for (int iteration = 0; iteration < 1_000; iteration++)
+            ranked = model.RankCandidates(scores, 16);
+
+        Assert.Equal(16, ranked!.Count);
+        Assert.Equal(["L98", "L99", "L97"], ranked.Take(3)
+            .Select(candidate => candidate.Label));
+        Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before,
+            0, 1_000_000);
+    }
+
     [Theory]
     [InlineData(0, 200, 160)]
     [InlineData(90, 160, 200)]
