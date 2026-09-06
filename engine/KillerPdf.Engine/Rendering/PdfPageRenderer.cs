@@ -2157,6 +2157,12 @@ public sealed class PdfPageRenderer
         PdfObject value, ImageColorSpace colorSpace, string description)
     {
         PdfObject resolved = Resolve(value);
+        if (resolved is PdfArray)
+        {
+            Func<double[], Color> components = ReadMultidimensionalColorFunction(
+                value, 1, colorSpace, description);
+            return input => components([input]);
+        }
         PdfDictionary dictionary = resolved switch
         {
             PdfDictionary direct => direct,
@@ -2262,6 +2268,25 @@ public sealed class PdfPageRenderer
         int inputCount, ImageColorSpace colorSpace, string description)
     {
         PdfObject resolved = Resolve(value);
+        if (resolved is PdfArray functions)
+        {
+            if (functions.Count != colorSpace.Components)
+                throw new FormatException(
+                    $"A {description} array has the wrong component count.");
+            Func<double[], double[]>[] components = functions.Select((item, index) =>
+            {
+                PdfObject component = Resolve(item);
+                if (component is not PdfStream calculator
+                    || !calculator.Dictionary.TryGetValue(Name("FunctionType"),
+                        out PdfObject? componentType)
+                    || Resolve(componentType) is not PdfInteger { Value: 4 })
+                    throw new NotSupportedException();
+                return ReadCalculatorFunctionValues(calculator, inputCount, 1,
+                    $"{description} component {index + 1}");
+            }).ToArray();
+            return inputs => colorSpace.Convert(
+                components.Select(component => component(inputs)[0]).ToArray());
+        }
         PdfDictionary dictionary = resolved switch
         {
             PdfDictionary direct => direct,
@@ -2382,16 +2407,24 @@ public sealed class PdfPageRenderer
     private Func<double[], Color> ReadCalculatorFunction(PdfStream stream,
         int inputCount, ImageColorSpace colorSpace, string description)
     {
+        Func<double[], double[]> values = ReadCalculatorFunctionValues(
+            stream, inputCount, colorSpace.Components, description);
+        return inputs => colorSpace.Convert(values(inputs));
+    }
+
+    private Func<double[], double[]> ReadCalculatorFunctionValues(PdfStream stream,
+        int inputCount, int outputCount, string description)
+    {
         PdfDictionary dictionary = stream.Dictionary;
         double[] domain = ReadFunctionArray(dictionary, "Domain", inputCount * 2,
             required: true, defaultValues: []);
-        double[] range = ReadFunctionArray(dictionary, "Range", colorSpace.Components * 2,
+        double[] range = ReadFunctionArray(dictionary, "Range", outputCount * 2,
             required: true, defaultValues: []);
         if (domain.Any(value => !double.IsFinite(value))
             || Enumerable.Range(0, inputCount).Any(index =>
                 domain[index * 2] >= domain[index * 2 + 1])
             || range.Any(value => !double.IsFinite(value))
-            || Enumerable.Range(0, colorSpace.Components).Any(index =>
+            || Enumerable.Range(0, outputCount).Any(index =>
                 range[index * 2] > range[index * 2 + 1]))
             throw new FormatException($"A {description} domain or range is invalid.");
         byte[] program = _document.DecodeStream(stream, 1024 * 1024);
@@ -2407,18 +2440,18 @@ public sealed class PdfPageRenderer
         {
             if (inputs.Length != inputCount)
                 throw new InvalidOperationException("A calculator function received the wrong input count.");
-            var stack = new List<object>(Math.Max(16, inputCount + colorSpace.Components));
+            var stack = new List<object>(Math.Max(16, inputCount + outputCount));
             for (int index = 0; index < inputCount; index++)
                 stack.Add(Math.Clamp(inputs[index], domain[index * 2], domain[index * 2 + 1]));
             ExecuteInstructions(instructions);
-            if (stack.Count < colorSpace.Components)
+            if (stack.Count < outputCount)
                 throw new FormatException($"A {description} program produced too few values.");
-            int outputStart = stack.Count - colorSpace.Components;
-            var outputs = new double[colorSpace.Components];
+            int outputStart = stack.Count - outputCount;
+            var outputs = new double[outputCount];
             for (int index = 0; index < outputs.Length; index++)
                 outputs[index] = Math.Clamp(NumberAt(outputStart + index),
                     range[index * 2], range[index * 2 + 1]);
-            return colorSpace.Convert(outputs);
+            return outputs;
 
             void ExecuteInstructions(IReadOnlyList<CalculatorInstruction> program)
             {

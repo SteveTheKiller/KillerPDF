@@ -1255,6 +1255,33 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_PaintsFunctionShadingsWithComponentFunctionArrays()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        PdfStream Component(string program) => new(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1))]),
+            Encoding.ASCII.GetBytes(program));
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), Reals(10, 0, 0, 10, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), new PdfArray(new PdfObject[]
+            {
+                Component("{ pop }"), Component("{ exch pop }"), Component("{ pop 0.5 }")
+            }))]);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([128, 115, 115, 255], Pixel(rendered, 4, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_PaintsAndClipsTensorPatchShadings()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
@@ -2948,6 +2975,15 @@ public sealed class PdfPageRendererTests
                 .Where(entry => !entry.Key.Equals(Name("Function")))
                 .Append(new KeyValuePair<PdfName, PdfObject>(
                     Name("Function"), functionReference)));
+        }
+        else if (shading is PdfDictionary arrayDictionary
+            && arrayDictionary.TryGetValue(Name("Function"), out PdfObject? arrayValue)
+            && arrayValue is PdfArray functions && functions.All(item => item is PdfStream))
+        {
+            var references = new PdfArray(functions.Select(update.AddObject));
+            preparedShading = new PdfDictionary(arrayDictionary
+                .Where(entry => !entry.Key.Equals(Name("Function")))
+                .Append(new KeyValuePair<PdfName, PdfObject>(Name("Function"), references)));
         }
         PdfIndirectReference shadingReference = update.AddObject(preparedShading);
         var shadings = new PdfDictionary([
