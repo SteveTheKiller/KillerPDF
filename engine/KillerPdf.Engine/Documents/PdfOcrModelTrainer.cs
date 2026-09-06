@@ -354,10 +354,32 @@ public static class PdfOcrModelTrainer
         IEnumerable<(string Label, PdfOcrImageRegion Bounds)> candidates)
     {
         ArgumentNullException.ThrowIfNull(candidates);
-        return candidates.GroupBy(candidate => candidate.Bounds)
-            .Where(group => group.Select(candidate => candidate.Label)
-                .Distinct(StringComparer.Ordinal).Skip(1).Any())
-            .Select(group => group.Key).ToHashSet();
+        (string Label, PdfOcrImageRegion Bounds)[] ordered = [.. candidates
+            .OrderBy(candidate => candidate.Bounds.Left)
+            .ThenBy(candidate => candidate.Bounds.Top)];
+        var ambiguous = new HashSet<PdfOcrImageRegion>();
+        for (int left = 0; left < ordered.Length; left++)
+            for (int right = left + 1; right < ordered.Length
+                && ordered[right].Bounds.Left < ordered[left].Bounds.Right; right++)
+            {
+                if (string.Equals(ordered[left].Label,
+                    ordered[right].Label, StringComparison.Ordinal))
+                    continue;
+                PdfOcrImageRegion first = ordered[left].Bounds;
+                PdfOcrImageRegion second = ordered[right].Bounds;
+                int overlapWidth = Math.Min(first.Right, second.Right)
+                    - Math.Max(first.Left, second.Left);
+                int overlapHeight = Math.Min(first.Bottom, second.Bottom)
+                    - Math.Max(first.Top, second.Top);
+                if (overlapWidth <= 0 || overlapHeight <= 0) continue;
+                long intersection = (long)overlapWidth * overlapHeight;
+                long union = (long)first.Width * first.Height
+                    + (long)second.Width * second.Height - intersection;
+                if (intersection * 10 < union * 9) continue;
+                ambiguous.Add(first);
+                ambiguous.Add(second);
+            }
+        return ambiguous;
     }
 
     internal static IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>>

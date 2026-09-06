@@ -683,6 +683,8 @@ public sealed class PdfOcrRecognitionTests
     {
         PdfOcrImageRegion shared = new(0, 0, 10, 10);
         PdfOcrImageRegion repeated = new(20, 0, 30, 10);
+        PdfOcrImageRegion offset = new(41, 40, 61, 60);
+        PdfOcrImageRegion nearOffset = new(42, 40, 62, 60);
 
         IReadOnlySet<PdfOcrImageRegion> ambiguous =
             PdfOcrModelTrainer.FindAmbiguousSampleBounds(
@@ -690,10 +692,13 @@ public sealed class PdfOcrRecognitionTests
                 ("A", shared),
                 ("B", shared),
                 ("C", repeated),
-                ("C", repeated)
+                ("C", repeated),
+                ("D", offset),
+                ("E", nearOffset)
             ]);
 
-        Assert.Equal([shared], ambiguous);
+        Assert.Equal([shared, offset, nearOffset], ambiguous
+            .OrderBy(bounds => bounds.Left));
     }
 
     [Fact]
