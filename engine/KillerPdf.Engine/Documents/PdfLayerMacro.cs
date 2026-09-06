@@ -1,18 +1,22 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Globalization;
 using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Creates and executes typed PDF layer macro steps.</summary>
-public static class PdfLayerMacro
+public static partial class PdfLayerMacro
 {
+    private static readonly PdfLayerMacroJsonContext LayerJson = new();
+
     /// <summary>Creates a step that registers a new layer.</summary>
     public static PdfMacroStep CreateStep(string layerName,
         bool initiallyVisible = true, bool locked = false,
         bool? printVisible = null, bool? exportVisible = null) =>
         EditStep("create", layerName, JsonSerializer.Serialize(
-            new CreateSettings(initiallyVisible, locked, printVisible, exportVisible)));
+            new CreateSettings(initiallyVisible, locked, printVisible, exportVisible),
+            LayerJson.CreateSettings));
 
     /// <summary>Creates a step that duplicates one layer under a new name.</summary>
     public static PdfMacroStep DuplicateStep(string layerName, string newName) =>
@@ -66,7 +70,8 @@ public static class PdfLayerMacro
         if (instructionCount <= 0)
             throw new ArgumentOutOfRangeException(nameof(instructionCount));
         return EditStep("instructionRange", layerName, JsonSerializer.Serialize(
-            new InstructionRangeSettings(pageIndex, instructionIndex, instructionCount)));
+            new InstructionRangeSettings(pageIndex, instructionIndex, instructionCount),
+            LayerJson.InstructionRangeSettings));
     }
 
     /// <summary>Creates a step that assigns a page annotation to a layer.</summary>
@@ -99,7 +104,8 @@ public static class PdfLayerMacro
             {
                 ["action"] = "configurationMetadata",
                 ["value"] = JsonSerializer.Serialize(
-                    new ConfigurationMetadataSettings(name, creator))
+                    new ConfigurationMetadataSettings(name, creator),
+                    LayerJson.ConfigurationMetadataSettings)
             });
 
     /// <summary>Creates a step that changes the default layer base state.</summary>
@@ -125,7 +131,7 @@ public static class PdfLayerMacro
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["action"] = "displayOrder",
-                ["value"] = JsonSerializer.Serialize(names)
+                ["value"] = JsonSerializer.Serialize(names, LayerJson.StringArray)
             });
     }
 
@@ -140,7 +146,7 @@ public static class PdfLayerMacro
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["action"] = "displayOrderTree",
-                ["value"] = JsonSerializer.Serialize(tree)
+                ["value"] = JsonSerializer.Serialize(tree, LayerJson.PdfLayerOrderItemArray)
             });
     }
 
@@ -159,7 +165,7 @@ public static class PdfLayerMacro
         return new PdfMacroStep(PdfMacroOperation.FlattenLayers,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                ["visibleLayers"] = JsonSerializer.Serialize(names)
+                ["visibleLayers"] = JsonSerializer.Serialize(names, LayerJson.StringArray)
             });
     }
 
@@ -195,7 +201,8 @@ public static class PdfLayerMacro
             ConfigurationMetadataSettings settings;
             try
             {
-                settings = JsonSerializer.Deserialize<ConfigurationMetadataSettings>(value)
+                settings = JsonSerializer.Deserialize(value,
+                    LayerJson.ConfigurationMetadataSettings)
                     ?? throw new JsonException();
             }
             catch (JsonException exception)
@@ -223,7 +230,7 @@ public static class PdfLayerMacro
             string[] names;
             try
             {
-                names = JsonSerializer.Deserialize<string[]>(value)
+                names = JsonSerializer.Deserialize(value, LayerJson.StringArray)
                     ?? throw new JsonException();
             }
             catch (JsonException exception)
@@ -242,7 +249,7 @@ public static class PdfLayerMacro
             PdfLayerOrderItem[] items;
             try
             {
-                items = JsonSerializer.Deserialize<PdfLayerOrderItem[]>(value)
+                items = JsonSerializer.Deserialize(value, LayerJson.PdfLayerOrderItemArray)
                     ?? throw new JsonException();
             }
             catch (JsonException exception)
@@ -270,7 +277,7 @@ public static class PdfLayerMacro
             CreateSettings settings;
             try
             {
-                settings = JsonSerializer.Deserialize<CreateSettings>(value)
+                settings = JsonSerializer.Deserialize(value, LayerJson.CreateSettings)
                     ?? throw new JsonException();
             }
             catch (JsonException exception)
@@ -327,13 +334,20 @@ public static class PdfLayerMacro
     private sealed record InstructionRangeSettings(
         int PageIndex, int InstructionIndex, int InstructionCount);
 
+    [JsonSerializable(typeof(CreateSettings))]
+    [JsonSerializable(typeof(ConfigurationMetadataSettings))]
+    [JsonSerializable(typeof(InstructionRangeSettings))]
+    [JsonSerializable(typeof(string[]))]
+    [JsonSerializable(typeof(PdfLayerOrderItem[]))]
+    private sealed partial class PdfLayerMacroJsonContext : JsonSerializerContext;
+
     private static byte[] ApplyInstructionRange(
         PdfDocument document, int objectNumber, string json, PdfMacroStep step)
     {
         InstructionRangeSettings settings;
         try
         {
-            settings = JsonSerializer.Deserialize<InstructionRangeSettings>(json)
+            settings = JsonSerializer.Deserialize(json, LayerJson.InstructionRangeSettings)
                 ?? throw new JsonException();
         }
         catch (JsonException exception)
@@ -423,7 +437,7 @@ public static class PdfLayerMacro
         string[] names;
         try
         {
-            names = JsonSerializer.Deserialize<string[]>(json)
+            names = JsonSerializer.Deserialize(json, LayerJson.StringArray)
                 ?? throw new JsonException("The visible layer list is empty.");
         }
         catch (JsonException error)

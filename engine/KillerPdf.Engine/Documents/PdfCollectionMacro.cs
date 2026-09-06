@@ -1,11 +1,14 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Creates and executes typed portfolio collection macro steps.</summary>
-public static class PdfCollectionMacro
+public static partial class PdfCollectionMacro
 {
+    private static readonly PdfCollectionMacroJsonContext CollectionJson = new();
+
     /// <summary>Creates a step that sets portfolio presentation metadata.</summary>
     public static PdfMacroStep PresentationStep(
         PdfCollectionView view, string? initialDocument = null)
@@ -33,7 +36,8 @@ public static class PdfCollectionMacro
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["action"] = "folders",
-                ["folders"] = JsonSerializer.Serialize(selected)
+                ["folders"] = JsonSerializer.Serialize(
+                    selected, CollectionJson.PdfCollectionFolderArray)
             });
     }
 
@@ -49,8 +53,10 @@ public static class PdfCollectionMacro
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["action"] = "schema",
-                ["fields"] = JsonSerializer.Serialize(selectedFields),
-                ["sort"] = JsonSerializer.Serialize(selectedSort)
+                ["fields"] = JsonSerializer.Serialize(
+                    selectedFields, CollectionJson.PdfCollectionFieldInfoArray),
+                ["sort"] = JsonSerializer.Serialize(
+                    selectedSort, CollectionJson.PdfCollectionSortInfoArray)
             });
     }
 
@@ -65,7 +71,8 @@ public static class PdfCollectionMacro
             {
                 ["action"] = "itemValues",
                 ["fileName"] = fileName,
-                ["values"] = JsonSerializer.Serialize(values.ToArray())
+                ["values"] = JsonSerializer.Serialize(
+                    values.ToArray(), CollectionJson.PdfCollectionItemValueArray)
             });
     }
 
@@ -120,7 +127,8 @@ public static class PdfCollectionMacro
                 "The portfolio folder settings are invalid.", nameof(step));
         try
         {
-            PdfCollectionFolder[] folders = JsonSerializer.Deserialize<PdfCollectionFolder[]>(json)
+            PdfCollectionFolder[] folders = JsonSerializer.Deserialize(
+                json, CollectionJson.PdfCollectionFolderArray)
                 ?? throw new JsonException("The portfolio folder list is empty.");
             return PdfCollectionEditor.SetFolders(document, folders);
         }
@@ -141,10 +149,12 @@ public static class PdfCollectionMacro
         try
         {
             PdfCollectionFieldInfo[] fields =
-                JsonSerializer.Deserialize<PdfCollectionFieldInfo[]>(fieldsJson)
+                JsonSerializer.Deserialize(
+                    fieldsJson, CollectionJson.PdfCollectionFieldInfoArray)
                 ?? throw new JsonException("The portfolio field list is empty.");
             PdfCollectionSortInfo[] sort =
-                JsonSerializer.Deserialize<PdfCollectionSortInfo[]>(sortJson)
+                JsonSerializer.Deserialize(
+                    sortJson, CollectionJson.PdfCollectionSortInfoArray)
                 ?? throw new JsonException("The portfolio sort list is empty.");
             return PdfCollectionEditor.SetSchema(document, fields, sort);
         }
@@ -166,7 +176,8 @@ public static class PdfCollectionMacro
         try
         {
             PdfCollectionItemValue[] values =
-                JsonSerializer.Deserialize<PdfCollectionItemValue[]>(valuesJson)
+                JsonSerializer.Deserialize(
+                    valuesJson, CollectionJson.PdfCollectionItemValueArray)
                 ?? throw new JsonException("The portfolio item value list is empty.");
             return PdfCollectionEditor.SetItemValues(document, fileName, values);
         }
@@ -176,4 +187,10 @@ public static class PdfCollectionMacro
                 "The portfolio item values are invalid.", nameof(step), error);
         }
     }
+
+    [JsonSerializable(typeof(PdfCollectionFolder[]))]
+    [JsonSerializable(typeof(PdfCollectionFieldInfo[]))]
+    [JsonSerializable(typeof(PdfCollectionSortInfo[]))]
+    [JsonSerializable(typeof(PdfCollectionItemValue[]))]
+    private sealed partial class PdfCollectionMacroJsonContext : JsonSerializerContext;
 }
