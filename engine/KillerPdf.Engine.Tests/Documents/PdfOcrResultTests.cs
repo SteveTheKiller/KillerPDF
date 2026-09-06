@@ -17,9 +17,23 @@ public sealed class PdfOcrResultTests
 
         Assert.Equal(["first", "second", "third"],
             result.Words.Select(word => word.Text));
-        Assert.Equal(string.Join(Environment.NewLine, "first", "second", "third"),
+        Assert.Equal(string.Join(Environment.NewLine, "first second", "third"),
             result.Text);
         Assert.Equal(0.6f, result.MeanConfidence, 5);
+    }
+
+    [Fact]
+    public void FromWords_UsesExactRowsWhenToleranceIsZero()
+    {
+        PdfOcrResult result = PdfOcrResult.FromWords(
+        [
+            new PdfOcrPixelWord("second", 1, 10, 4, 15, 8),
+            new PdfOcrPixelWord("first", 1, 1, 4, 6, 8),
+            new PdfOcrPixelWord("third", 1, 1, 5, 6, 9)
+        ], lineTolerance: 0);
+
+        Assert.Equal(string.Join(Environment.NewLine, "first second", "third"),
+            result.Text);
     }
 
     [Fact]

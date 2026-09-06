@@ -31,18 +31,22 @@ public sealed class PdfOcrResult
     {
         ArgumentNullException.ThrowIfNull(words);
         if (lineTolerance < 0) throw new ArgumentOutOfRangeException(nameof(lineTolerance));
-        PdfOcrPixelWord[] ordered = [.. words.OrderBy(word => word.Top)
-            .ThenBy(word => word.Left)];
-        Array.Sort(ordered, (left, right) =>
+        var lines = new List<(int Top, List<PdfOcrPixelWord> Words)>();
+        foreach (PdfOcrPixelWord word in words.OrderBy(word => word.Top)
+            .ThenBy(word => word.Left))
         {
-            if (Math.Abs(left.Top - right.Top) < lineTolerance)
-                return left.Left.CompareTo(right.Left);
-            int top = left.Top.CompareTo(right.Top);
-            return top != 0 ? top : left.Left.CompareTo(right.Left);
-        });
+            int line = lines.FindIndex(candidate =>
+                Math.Abs(candidate.Top - word.Top) <= lineTolerance);
+            if (line < 0) lines.Add((word.Top, [word]));
+            else lines[line].Words.Add(word);
+        }
+        foreach ((_, List<PdfOcrPixelWord> line) in lines)
+            line.Sort((left, right) => left.Left.CompareTo(right.Left));
+        PdfOcrPixelWord[] ordered = [.. lines.SelectMany(line => line.Words)];
         float confidence = ordered.Length == 0
             ? 0 : (float)ordered.Average(word => word.Confidence);
         return new PdfOcrResult(string.Join(Environment.NewLine,
-            ordered.Select(word => word.Text)), confidence, ordered);
+            lines.Select(line => string.Join(' ', line.Words.Select(word => word.Text)))),
+            confidence, ordered);
     }
 }
