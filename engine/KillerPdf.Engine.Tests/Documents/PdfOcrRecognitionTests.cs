@@ -272,6 +272,32 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RawBgraRecognitionRestrictsResultsToACharacterWhitelist()
+    {
+        PdfOcrPreparedImage image = Prepared(4, 4,
+        [
+            "....",
+            ".##.",
+            ".##.",
+            "...."
+        ]);
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
+            1, 1, ["A", "7"], new float[] { 1, -1 }, new float[] { 0, 0 });
+        byte[] bgra = image.Pixels.ToArray().SelectMany(value =>
+            new byte[] { value, value, value, 255 }).ToArray();
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        PdfOcrResult result = PdfOcrRecognizer.RecognizeBgra(
+            bgra, 4, 4, model, options, "0123456789");
+
+        Assert.Equal("7", Assert.Single(result.Words).Text);
+        Assert.Throws<ArgumentException>(() => PdfOcrRecognizer.RecognizeBgra(
+            bgra, 4, 4, model, options, "xyz"));
+    }
+
+    [Fact]
     public void ModelRejectsTruncatedAndNonFinitePayloads()
     {
         Assert.Throws<FormatException>(() => PdfOcrRecognitionModel.Load("bad"u8.ToArray()));

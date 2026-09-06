@@ -174,15 +174,21 @@ public sealed class PdfOcrRecognitionModel
     internal int LabelCount => _labels.Length;
 
     internal (string Label, double Confidence) Classify(
-        ReadOnlySpan<float> features, Span<double> scores)
+        ReadOnlySpan<float> features, Span<double> scores,
+        IReadOnlySet<string>? allowedLabels = null)
     {
         int featureCount = Width * Height;
         if (features.Length != featureCount) throw new ArgumentException("Glyph feature size mismatch.");
         if (scores.Length < _labels.Length) throw new ArgumentException("OCR score workspace is too small.");
         scores = scores[.._labels.Length];
-        int best = 0;
+        int best = -1;
         for (int label = 0; label < _labels.Length; label++)
         {
+            if (allowedLabels is not null && !allowedLabels.Contains(_labels[label]))
+            {
+                scores[label] = double.NegativeInfinity;
+                continue;
+            }
             double score = _biases[label];
             int offset = label * featureCount;
             int feature = 0;
@@ -198,9 +204,11 @@ public sealed class PdfOcrRecognitionModel
             for (; feature < featureCount; feature++)
                 score += _weights[offset + feature] * features[feature];
             scores[label] = score;
-            if (score > scores[best]) best = label;
+            if (best < 0 || score > scores[best]) best = label;
         }
-        if (scores.Length == 1) return (_labels[best], 1);
+        if (best < 0)
+            throw new ArgumentException(
+                "The OCR character whitelist has no labels in this model.", nameof(allowedLabels));
         double runnerUp = double.NegativeInfinity;
         for (int label = 0; label < scores.Length; label++)
             if (!string.Equals(_labels[label], _labels[best], StringComparison.Ordinal)
@@ -326,7 +334,30 @@ public static class PdfOcrRecognizer
     /// <summary>Runs the complete engine-owned recognition pipeline over raw BGRA pixels.</summary>
     public static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
         PdfOcrRecognitionModel model, PdfOcrOptions options,
+        CancellationToken cancellationToken = default) =>
+        RecognizeBgra(bgra, width, height, model, options,
+            (IReadOnlySet<string>?)null, cancellationToken);
+
+    /// <summary>Runs engine recognition while restricting results to supplied characters.</summary>
+    public static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
+        PdfOcrRecognitionModel model, PdfOcrOptions options, string characterWhitelist,
         CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(characterWhitelist);
+        var allowedLabels = new HashSet<string>(characterWhitelist.EnumerateRunes()
+            .Where(rune => !Rune.IsControl(rune) && !Rune.IsWhiteSpace(rune))
+            .Select(rune => rune.ToString()), StringComparer.Ordinal);
+        if (allowedLabels.Count == 0 || !model.Labels.Any(allowedLabels.Contains))
+            throw new ArgumentException(
+                "The OCR character whitelist has no labels in this model.",
+                nameof(characterWhitelist));
+        return RecognizeBgra(
+            bgra, width, height, model, options, allowedLabels, cancellationToken);
+    }
+
+    private static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
+        PdfOcrRecognitionModel model, PdfOcrOptions options,
+        IReadOnlySet<string>? allowedLabels, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(options);
@@ -335,7 +366,7 @@ public static class PdfOcrRecognizer
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
             prepared, options.DetectPageSegments, cancellationToken);
         IReadOnlyList<PdfOcrRecognizedWord> recognized = Recognize(
-            prepared, layout, model, cancellationToken);
+            prepared, layout, model, allowedLabels, cancellationToken);
         var words = recognized.Select(word => new PdfOcrPixelWord(
             word.Text, (float)word.Confidence, word.Bounds.Left, word.Bounds.Top,
             word.Bounds.Right, word.Bounds.Bottom)).ToArray();
@@ -356,7 +387,12 @@ public static class PdfOcrRecognizer
     /// <summary>Recognizes each component and assembles the labels into words.</summary>
     public static IReadOnlyList<PdfOcrRecognizedWord> Recognize(PdfOcrPreparedImage image,
         PdfOcrPageLayout layout, PdfOcrRecognitionModel model,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        Recognize(image, layout, model, null, cancellationToken);
+
+    private static IReadOnlyList<PdfOcrRecognizedWord> Recognize(
+        PdfOcrPreparedImage image, PdfOcrPageLayout layout, PdfOcrRecognitionModel model,
+        IReadOnlySet<string>? allowedLabels, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(image);
         ArgumentNullException.ThrowIfNull(layout);
@@ -377,7 +413,7 @@ public static class PdfOcrRecognizer
                     Span<float> glyph = features.AsSpan(0, featureCount);
                     NormalizeGlyph(image, component, model.Width, model.Height, glyph);
                     (string label, double score) = model.Classify(
-                        glyph, scores.AsSpan(0, model.LabelCount));
+                        glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
                     text.Append(label);
                     confidence += score;
                 }

@@ -36,9 +36,13 @@ namespace KillerPDF.Services
             string? characterWhitelist = null,
             CancellationToken cancellationToken = default)
         {
-            if (_engineModel is not null && string.IsNullOrEmpty(characterWhitelist))
-                return PdfOcrRecognizer.RecognizeBgra(
-                    bgra, width, height, _engineModel, RasterOptions, cancellationToken);
+            if (_engineModel is not null)
+                return string.IsNullOrEmpty(characterWhitelist)
+                    ? PdfOcrRecognizer.RecognizeBgra(
+                        bgra, width, height, _engineModel, RasterOptions, cancellationToken)
+                    : PdfOcrRecognizer.RecognizeBgra(
+                        bgra, width, height, _engineModel, RasterOptions,
+                        characterWhitelist, cancellationToken);
             TesseractEngine engine = NativeEngine();
             if (!string.IsNullOrEmpty(characterWhitelist))
                 engine.SetVariable("tessedit_char_whitelist", characterWhitelist);
