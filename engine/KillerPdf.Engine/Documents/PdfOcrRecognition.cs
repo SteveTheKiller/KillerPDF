@@ -610,18 +610,21 @@ public sealed class PdfOcrRecognitionModel
     }
 
     internal IReadOnlyList<PdfOcrLanguageCandidate> RankCandidates(
-        ReadOnlySpan<double> prototypeScores, int maximumCandidates)
+        ReadOnlySpan<double> prototypeScores, int maximumCandidates,
+        IReadOnlySet<string>? allowedLabels = null)
     {
         if (prototypeScores.Length < _labels.Length)
             throw new ArgumentException("OCR prototype scores are incomplete.",
                 nameof(prototypeScores));
         if (maximumCandidates <= 0)
             throw new ArgumentOutOfRangeException(nameof(maximumCandidates));
-        int capacity = Math.Min(maximumCandidates, Labels.Count);
+        int capacity = Math.Min(maximumCandidates, allowedLabels is null
+            ? Labels.Count : Labels.Count(allowedLabels.Contains));
         var candidates = new PdfOcrLanguageCandidate[capacity];
         int count = 0;
         foreach (string label in Labels)
         {
+            if (allowedLabels is not null && !allowedLabels.Contains(label)) continue;
             var candidate = new PdfOcrLanguageCandidate(
                 label, PrototypeVote(label, prototypeScores));
             if (!double.IsFinite(candidate.Score)) continue;
@@ -1071,7 +1074,8 @@ public static class PdfOcrRecognizer
                             glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
                         text.Append(label);
                         candidates?.Add(model.RankCandidates(
-                            scores.AsSpan(0, model.LabelCount), maximumCandidates: 16));
+                            scores.AsSpan(0, model.LabelCount), maximumCandidates: 16,
+                            allowedLabels));
                         confidence += score;
                     }
                     string recognizedText;
