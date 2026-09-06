@@ -90,21 +90,6 @@ public static class PdfOcrModelTrainer
     private const double LabelPriorWeight = 0.25;
     private const double PrototypeSupportWeight = 0.0015;
     private static readonly int[] StandardTrainingRenderScales = [1, 2, 3];
-    private static readonly PdfStandardFont[] StandardTrainingFonts =
-    [
-        PdfStandardFont.Helvetica,
-        PdfStandardFont.HelveticaBold,
-        PdfStandardFont.HelveticaOblique,
-        PdfStandardFont.HelveticaBoldOblique,
-        PdfStandardFont.TimesRoman,
-        PdfStandardFont.TimesBold,
-        PdfStandardFont.TimesItalic,
-        PdfStandardFont.TimesBoldItalic,
-        PdfStandardFont.Courier,
-        PdfStandardFont.CourierBold,
-        PdfStandardFont.CourierOblique,
-        PdfStandardFont.CourierBoldOblique
-    ];
 
     /// <summary>Trains a bounded nearest-prototype classifier from normalized glyph samples.</summary>
     public static PdfOcrRecognitionModel Train(int width, int height,
@@ -176,7 +161,15 @@ public static class PdfOcrModelTrainer
             width, height, orderedLabels, weights, biases, priors);
     }
 
-    /// <summary>Creates complete Latin-1 training coverage from bundled standard-font substitutes.</summary>
+    /// <summary>Returns whether the bundled training faces contain one requested glyph.</summary>
+    public static bool SupportsStandardFontLabel(string label)
+    {
+        if (!IsValidLabel(label)) return false;
+        return PdfStandardFontSubstitutes.OcrTrainingFonts().Any(
+            font => MapsOneGlyph(font, label));
+    }
+
+    /// <summary>Creates Unicode training coverage from bundled standard-font substitutes.</summary>
     public static IReadOnlyList<PdfOcrTrainingSample> CreateStandardFontSamples(
         IEnumerable<string> labels, int width, int height,
         CancellationToken cancellationToken = default)
@@ -186,54 +179,28 @@ public static class PdfOcrModelTrainer
         if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
         string[] requested = [.. labels.Distinct(StringComparer.Ordinal)
             .Order(StringComparer.Ordinal)];
-        if (requested.Length == 0 || requested.Any(label => !IsValidLabel(label)
-            || label.Length != 1 || label[0] > byte.MaxValue))
+        if (requested.Length == 0 || requested.Any(label =>
+            !SupportsStandardFontLabel(label)))
             throw new ArgumentException(
-                "Standard-font OCR labels must be single Latin-1 characters.", nameof(labels));
+                "Every standard-font OCR label must map to one bundled glyph.", nameof(labels));
 
-        const int columns = 10;
-        const int cellSize = 80;
-        const int margin = 40;
-        const int fontSize = 32;
-        int rows = (requested.Length + columns - 1) / columns;
-        int pageWidth = columns * cellSize + margin * 2;
-        int pageHeight = rows * cellSize + margin * 2;
-        var builder = new PdfDocumentBuilder();
-        foreach (PdfStandardFont font in StandardTrainingFonts)
+        IReadOnlyList<TrueTypeFont> fonts = PdfStandardFontSubstitutes.OcrTrainingFonts();
+        var samples = new List<PdfOcrTrainingSample>(checked(
+            requested.Length * fonts.Count * StandardTrainingRenderScales.Length));
+        foreach (TrueTypeFont font in fonts)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var content = new PdfContentStreamBuilder();
-            for (int index = 0; index < requested.Length; index++)
-            {
-                int column = index % columns;
-                int row = index / columns;
-                content.BeginText().SetFont(font, fontSize)
-                    .SetTextMatrix(1, 0, 0, 1,
-                        margin + column * cellSize,
-                        pageHeight - margin - (row + 1) * cellSize + 20)
-                    .ShowLatin1Text(requested[index]).EndText();
-            }
-            builder.AddPage(pageWidth, pageHeight, content);
-        }
-        PdfDocument document = PdfDocument.Open(builder.Build());
-        var options = new PdfOcrOptions(["und"], deskew: false,
-            correctOrientation: false, removeBackground: true, removeNoise: true,
-            detectPageSegments: false);
-        var samples = new List<PdfOcrTrainingSample>(
-            checked(requested.Length * StandardTrainingFonts.Length
-                * StandardTrainingRenderScales.Length));
-        for (int pageIndex = 0; pageIndex < StandardTrainingFonts.Length; pageIndex++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            foreach (int scale in StandardTrainingRenderScales)
-            {
-                samples.AddRange(CreatePageSamples(document, pageIndex,
-                    new PdfRenderOptions(pageWidth * scale, pageHeight * scale,
-                        includeAnnotations: false, includeFormFields: false),
-                    options, width, height, cancellationToken));
-            }
+            string[] supported = [.. requested.Where(label => MapsOneGlyph(font, label))];
+            if (supported.Length > 0)
+                samples.AddRange(CreateEmbeddedFontSamples(
+                    font, supported, width, height, cancellationToken));
         }
         return Array.AsReadOnly(samples.ToArray());
+    }
+
+    private static bool MapsOneGlyph(TrueTypeFont font, string label)
+    {
+        IReadOnlyList<FontGlyphMapping> mappings = font.MapText(label);
+        return mappings.Count == 1 && mappings[0].Glyph != 0;
     }
 
     /// <summary>Creates Unicode training samples from a supplied embeddable OpenType font.</summary>

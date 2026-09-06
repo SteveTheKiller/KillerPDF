@@ -669,9 +669,9 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
-    public void StandardFontTrainingCoversEveryRequestedLatinLabelAcrossBundledFaces()
+    public void StandardFontTrainingCoversEveryRequestedUnicodeLabelAcrossBundledFaces()
     {
-        string[] labels = ["!", "7", "A", "g"];
+        string[] labels = ["!", "7", "A", "g", "Ж"];
 
         IReadOnlyList<PdfOcrTrainingSample> samples =
             PdfOcrModelTrainer.CreateStandardFontSamples(labels, 16, 16);
@@ -680,6 +680,7 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(labels, model.Labels.Order(StringComparer.Ordinal));
         Assert.All(labels, label => Assert.Equal(36,
             samples.Count(sample => sample.Label == label)));
+        Assert.True(PdfOcrModelTrainer.SupportsStandardFontLabel("Ж"));
         Assert.Throws<ArgumentException>(() =>
             PdfOcrModelTrainer.CreateStandardFontSamples(["AB"], 16, 16));
     }

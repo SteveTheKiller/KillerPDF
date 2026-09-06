@@ -69,6 +69,22 @@ internal static class PdfStandardFontSubstitutes
         };
     }
 
+    internal static IReadOnlyList<TrueTypeFont> OcrTrainingFonts() =>
+    [
+        SansRegular.Value,
+        SansBold.Value,
+        SansItalic.Value,
+        SansBoldItalic.Value,
+        SerifRegular.Value,
+        SerifBold.Value,
+        SerifItalic.Value,
+        SerifBoldItalic.Value,
+        MonoRegular.Value,
+        MonoBold.Value,
+        MonoItalic.Value,
+        MonoBoldItalic.Value
+    ];
+
     internal static string CanonicalMetricsName(string fontName)
     {
         if (Fonts.ContainsKey(fontName) || fontName is "Symbol" or "ZapfDingbats")

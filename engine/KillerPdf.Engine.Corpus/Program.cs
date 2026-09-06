@@ -971,16 +971,16 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         if (!selectHoldout)
         {
             IReadOnlySet<string> seedLabels = ocrLabels ?? observedTrainingLabels;
-            string[] seedLatinLabels = [.. seedLabels
-                .Where(label => label.Length == 1 && label[0] <= byte.MaxValue)
+            string[] seedStandardLabels = [.. seedLabels
+                .Where(PdfOcrModelTrainer.SupportsStandardFontLabel)
                 .Order(StringComparer.Ordinal)];
             using var seedTimeout = new CancellationTokenSource(
                 TimeSpan.FromSeconds(Math.Max(ocrTimeoutSeconds, 30)));
-            if (seedLatinLabels.Length > 0)
+            if (seedStandardLabels.Length > 0)
             {
                 foreach (PdfOcrTrainingSample sample in
                     PdfOcrModelTrainer.CreateStandardFontSamples(
-                        seedLatinLabels, modelWidth, modelHeight, seedTimeout.Token))
+                        seedStandardLabels, modelWidth, modelHeight, seedTimeout.Token))
                 {
                     trainingSampleCount++;
                     seededTrainingSampleCount++;
