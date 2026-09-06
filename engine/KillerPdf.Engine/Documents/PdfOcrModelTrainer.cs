@@ -397,7 +397,7 @@ public static class PdfOcrModelTrainer
                 long intersection = (long)overlapWidth * overlapHeight;
                 long union = (long)first.Width * first.Height
                     + (long)second.Width * second.Height - intersection;
-                if (intersection * 10 < union * 9) continue;
+                if (intersection * 5 < union * 4) continue;
                 ambiguous.Add(first);
                 ambiguous.Add(second);
             }
