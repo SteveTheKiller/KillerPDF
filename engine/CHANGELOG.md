@@ -47,6 +47,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 - Recovered documents with malformed or missing final cross-reference declarations and empty tables through bounded indirect-object reconstruction.
 - Recovered malformed optional-content group registrations and cyclic visibility expressions without weakening strict layer inspection.
+- Reduced temporary allocations while decoding ordinary 8-bit JPEG 2000 images.
 - Large OCR models now preselect likely glyph prototypes before full comparison.
 
 ## [1.8.3] - 2026-09-02
