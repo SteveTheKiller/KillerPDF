@@ -19,8 +19,11 @@ public sealed record PdfDataMergeImageMapping(
     string? IncludeWhenValue = null);
 
 /// <summary>A reusable data-merge mapping that contains no source records.</summary>
-public sealed class PdfDataMergeProfile
+public sealed partial class PdfDataMergeProfile
 {
+    private static readonly PdfDataMergeProfileJsonContext CompactJson = new(Options(false));
+    private static readonly PdfDataMergeProfileJsonContext IndentedJson = new(Options(true));
+
     /// <summary>Creates a validated reusable mapping profile.</summary>
     public PdfDataMergeProfile(string name, IEnumerable<PdfDataMergeFieldMapping> mappings,
         string outputFileNameTemplate,
@@ -193,13 +196,13 @@ public sealed class PdfDataMergeProfile
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
         new ProfileFile(1, Name, Mappings.ToArray(), OutputFileNameTemplate, MissingValueBehavior,
             ImageMappings.ToArray(), IncludeWhenField, IncludeWhenValue),
-        Options(indented));
+        indented ? IndentedJson.ProfileFile : CompactJson.ProfileFile);
 
     /// <summary>Reads a reusable mapping profile.</summary>
     public static PdfDataMergeProfile FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        ProfileFile file = JsonSerializer.Deserialize<ProfileFile>(json, Options(false))
+        ProfileFile file = JsonSerializer.Deserialize(json, CompactJson.ProfileFile)
             ?? throw new JsonException("The data-merge profile is empty.");
         if (file.Version != 1)
             throw new NotSupportedException(
@@ -237,7 +240,12 @@ public sealed class PdfDataMergeProfile
             PropertyNameCaseInsensitive = true,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfMissingMergeValueBehavior>(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfDataMergeValueKind>(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfDataMergeTargetKind>(JsonNamingPolicy.CamelCase));
         return options;
     }
 
@@ -246,6 +254,10 @@ public sealed class PdfDataMergeProfile
         PdfMissingMergeValueBehavior MissingValueBehavior,
         PdfDataMergeImageMapping[]? ImageMappings,
         string? IncludeWhenField, string? IncludeWhenValue);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ProfileFile))]
+    private sealed partial class PdfDataMergeProfileJsonContext : JsonSerializerContext;
 }
 
 /// <summary>One mapped form-data record and its generated output filename.</summary>

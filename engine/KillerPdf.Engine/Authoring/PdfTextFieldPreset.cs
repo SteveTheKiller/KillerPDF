@@ -57,8 +57,10 @@ public sealed record PdfTextFieldPreset
 }
 
 /// <summary>A locally persisted ordered collection of text-field presets.</summary>
-public sealed class PdfTextFieldPresetCollection
+public sealed partial class PdfTextFieldPresetCollection
 {
+    private static readonly PdfTextFieldPresetJsonContext CompactJson = new(Options(false));
+    private static readonly PdfTextFieldPresetJsonContext IndentedJson = new(Options(true));
     private readonly PdfTextFieldPreset[] _presets;
 
     /// <summary>Creates a collection with unique preset names.</summary>
@@ -133,13 +135,14 @@ public sealed class PdfTextFieldPresetCollection
 
     /// <summary>Serializes the local preset collection.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new PresetFile(1, _presets), Options(indented));
+        new PresetFile(1, _presets),
+        indented ? IndentedJson.PresetFile : CompactJson.PresetFile);
 
     /// <summary>Reads and validates a local preset collection.</summary>
     public static PdfTextFieldPresetCollection FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        PresetFile file = JsonSerializer.Deserialize<PresetFile>(json, Options(false))
+        PresetFile file = JsonSerializer.Deserialize(json, CompactJson.PresetFile)
             ?? throw new JsonException("The text-field preset file is empty.");
         if (file.Version != 1)
             throw new NotSupportedException(
@@ -166,9 +169,14 @@ public sealed class PdfTextFieldPresetCollection
             PropertyNameCaseInsensitive = true,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfFormFieldBorderStyle>(JsonNamingPolicy.CamelCase));
         return options;
     }
 
     private sealed record PresetFile(int Version, PdfTextFieldPreset[]? Presets);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PresetFile))]
+    private sealed partial class PdfTextFieldPresetJsonContext : JsonSerializerContext;
 }
