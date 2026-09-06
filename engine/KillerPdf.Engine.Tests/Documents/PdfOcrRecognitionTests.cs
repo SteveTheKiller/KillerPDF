@@ -672,6 +672,8 @@ public sealed class PdfOcrRecognitionTests
             label, new PdfOcrImageRegion(0, 0, 40, 40)));
         Assert.False(PdfOcrModelTrainer.IsPlausibleSampleBounds(
             label, new PdfOcrImageRegion(19, 10, 29, 30)));
+        Assert.False(PdfOcrModelTrainer.IsPlausibleSampleBounds(
+            label, new PdfOcrImageRegion(14, 18, 16, 20)));
     }
 
     [Fact]
