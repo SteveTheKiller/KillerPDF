@@ -110,7 +110,7 @@ public sealed class PdfPageRenderer
             1, 1, 1, RendererLineCap.Butt, RendererLineJoin.Miter, 10,
             [], 0, RendererBlendMode.Normal, [],
             false, null, null, false, null, null,
-            new ImageColorSpace(1, null), new ImageColorSpace(1, null), null);
+            new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
@@ -121,7 +121,8 @@ public sealed class PdfPageRenderer
         return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
 
         void Process(IEnumerable<PdfContentInstruction> instructions,
-            PdfDictionary resources, GraphicsState initial, int depth)
+            PdfDictionary resources, GraphicsState initial, int depth,
+            bool beginKnockoutObjects = true)
         {
             if (depth > 32) throw new FormatException("Form XObject nesting limit exceeded.");
             GraphicsState state = initial;
@@ -158,6 +159,8 @@ public sealed class PdfPageRenderer
                     continue;
                 }
                 if (!contentVisible) continue;
+                if (beginKnockoutObjects && IsPaintingOperation(instruction))
+                    state.Knockout?.BeginObject();
                 switch (instruction.Operator)
                 {
                 case "q":
@@ -577,7 +580,8 @@ public sealed class PdfPageRenderer
                     {
                         if (!TryRenderImage(xObject, resources, state.Transform, state.Clips,
                             state.Fill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
-                            cancellationToken, pixels, options.Width, options.Height, scaleX, scaleY,
+                            state.Knockout, cancellationToken, pixels, options.Width,
+                            options.Height, scaleX, scaleY,
                             out string? imageDiagnostic))
                             diagnostics.Add(imageDiagnostic
                                 ?? "Image rendering is not implemented.");
@@ -591,7 +595,8 @@ public sealed class PdfPageRenderer
                         instruction.InlineImageData.Value.Span);
                     if (!TryRenderImage(inlineImage, resources, state.Transform, state.Clips,
                         state.Fill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
-                        cancellationToken, pixels, options.Width, options.Height, scaleX, scaleY,
+                        state.Knockout, cancellationToken, pixels, options.Width,
+                        options.Height, scaleX, scaleY,
                         out string? inlineDiagnostic))
                         diagnostics.Add(inlineDiagnostic
                             ?? "Inline-image rendering is not implemented.");
@@ -647,7 +652,8 @@ public sealed class PdfPageRenderer
                 {
                     FillPaths(pixels, options.Width, options.Height,
                         scaleX, scaleY, fillPath, state.Fill, state.FillAlpha, evenOdd,
-                        state.BlendMode, state.Clips, state.GraphicsSoftMask, cancellationToken);
+                        state.BlendMode, state.Clips, state.GraphicsSoftMask, state.Knockout,
+                        cancellationToken);
                     return;
                 }
                 var fillClip = new ClipRegion(
@@ -667,7 +673,8 @@ public sealed class PdfPageRenderer
                         scaleX, scaleY,
                         paintedPath, state.Stroke, state.StrokeAlpha, lineWidth,
                         state.LineCap, state.LineJoin, state.MiterLimit,
-                        state.BlendMode, state.Clips, state.GraphicsSoftMask, cancellationToken);
+                        state.BlendMode, state.Clips, state.GraphicsSoftMask, state.Knockout,
+                        cancellationToken);
                     return;
                 }
                 Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
@@ -771,7 +778,7 @@ public sealed class PdfPageRenderer
                                 Stroke = paint.BaseColor.Value
                             };
                         Process(patternInstructions, patternResources, cellState,
-                            patternDepth + 1);
+                            patternDepth + 1, beginKnockoutObjects: false);
                     }
             }
 
@@ -854,7 +861,8 @@ public sealed class PdfPageRenderer
                         IReadOnlyList<PdfContentInstruction> glyphInstructions =
                             ReadStreamInstructions(glyph, cancellationToken);
                         if (paintsType3)
-                            Process(glyphInstructions, fontResources, glyphState, depth + 1);
+                            Process(glyphInstructions, fontResources, glyphState, depth + 1,
+                                beginKnockoutObjects: false);
                         if (clipsType3)
                         {
                             textClipMask ??= new byte[pixels.Length];
@@ -867,8 +875,9 @@ public sealed class PdfPageRenderer
                                     FillAlpha = 1,
                                     StrokeAlpha = 1,
                                     BlendMode = RendererBlendMode.Normal,
-                                    GraphicsSoftMask = null
-                                }, depth + 1);
+                                    GraphicsSoftMask = null,
+                                    Knockout = null
+                                }, depth + 1, beginKnockoutObjects: false);
                             }
                             finally
                             {
@@ -922,6 +931,7 @@ public sealed class PdfPageRenderer
                                     options.Height, scaleX, scaleY,
                                     glyphPaths, state.Fill, state.FillAlpha, false,
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
+                                    state.Knockout,
                                     cancellationToken);
                             if (paintMode is 1 or 2)
                                 StrokePaths(pixels, options.Width,
@@ -930,6 +940,7 @@ public sealed class PdfPageRenderer
                                     state.LineWidth * state.Transform.StrokeScale,
                                     state.LineCap, state.LineJoin, state.MiterLimit,
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
+                                    state.Knockout,
                                     cancellationToken);
                             if (clipsText)
                                 textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
@@ -990,7 +1001,11 @@ public sealed class PdfPageRenderer
                     {
                         pixels = maskPixels;
                         RenderForm(group, inheritedResources,
-                            currentState with { GraphicsSoftMask = null }, currentDepth);
+                            currentState with
+                            {
+                                GraphicsSoftMask = null,
+                                Knockout = null
+                            }, currentDepth);
                     }
                     finally
                     {
@@ -1096,14 +1111,16 @@ public sealed class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
                 IReadOnlyList<PdfContentInstruction> instructions =
                     ReadStreamInstructions(form, cancellationToken);
-                if (knockout && instructions.Count(IsPaintingOperation) > 1)
+                if (knockout && !isolated && instructions.Count(IsPaintingOperation) > 1)
                 {
-                    diagnostics.Add("Transparency knockout-group rendering is not implemented.");
+                    diagnostics.Add(
+                        "Non-isolated transparency knockout-group rendering is not implemented.");
                     return;
                 }
                 if (!isolated)
                 {
-                    Process(instructions, formResources, formState, depth + 1);
+                    Process(instructions, formResources, formState, depth + 1,
+                        beginKnockoutObjects: parentState.Knockout is null);
                     return;
                 }
 
@@ -1119,7 +1136,9 @@ public sealed class PdfPageRenderer
                             FillAlpha = 1,
                             StrokeAlpha = 1,
                             BlendMode = RendererBlendMode.Normal,
-                            GraphicsSoftMask = null
+                            GraphicsSoftMask = null,
+                            Knockout = knockout
+                                ? new KnockoutState(options.Width, options.Height) : null
                         }, depth + 1);
                     pixels = pagePixels;
                     for (int y = 0; y < options.Height; y++)
@@ -1134,7 +1153,7 @@ public sealed class PdfPageRenderer
                                 new Color(groupPixels[offset + 2], groupPixels[offset + 1],
                                     groupPixels[offset]),
                                 alpha / 255d * parentState.FillAlpha, parentState.BlendMode,
-                                parentState.GraphicsSoftMask);
+                                parentState.GraphicsSoftMask, parentState.Knockout);
                         }
                     }
                 }
@@ -1148,12 +1167,12 @@ public sealed class PdfPageRenderer
             {
                 activeForms.Remove(form);
             }
-
-            static bool IsPaintingOperation(PdfContentInstruction instruction) =>
-                instruction.Operator is "S" or "s" or "f" or "F" or "f*"
-                    or "B" or "B*" or "b" or "b*" or "Do" or "sh" or "BI"
-                    or "Tj" or "TJ" or "'" or "\"";
         }
+
+        static bool IsPaintingOperation(PdfContentInstruction instruction) =>
+            instruction.Operator is "S" or "s" or "f" or "F" or "f*"
+                or "B" or "B*" or "b" or "b*" or "Do" or "sh" or "BI"
+                or "Tj" or "TJ" or "'" or "\"";
 
         void RenderAppearances()
         {
@@ -1441,7 +1460,7 @@ public sealed class PdfPageRenderer
     private bool TryRenderImage(PdfStream stream, PdfDictionary resources, Matrix transform,
         IReadOnlyList<ClipRegion> clips, Color stencilColor, double stencilAlpha,
         RendererBlendMode blendMode, GraphicsSoftMask? graphicsSoftMask,
-        CancellationToken cancellationToken,
+        KnockoutState? knockout, CancellationToken cancellationToken,
         byte[] target, int targetWidth, int targetHeight, double scaleX, double scaleY,
         out string? diagnostic)
     {
@@ -1612,7 +1631,7 @@ public sealed class PdfPageRenderer
             components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
-            cancellationToken, preblendMatte, graphicsSoftMask);
+            cancellationToken, preblendMatte, graphicsSoftMask, knockout);
         return true;
     }
 
@@ -2703,7 +2722,7 @@ public sealed class PdfPageRenderer
                     unit = Math.Clamp(unit, 0, 1);
                     double input = domain[0] + unit * (domain[1] - domain[0]);
                     SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha,
-                        state.BlendMode, state.GraphicsSoftMask);
+                        state.BlendMode, state.GraphicsSoftMask, state.Knockout);
                 }
             return true;
         }
@@ -2750,7 +2769,7 @@ public sealed class PdfPageRenderer
                 if (point.X < domain[0] || point.X > domain[1]
                     || point.Y < domain[2] || point.Y > domain[3]) continue;
                 SetPixel(target, targetWidth, x, y, function([point.X, point.Y]),
-                    state.FillAlpha, state.BlendMode, state.GraphicsSoftMask);
+                    state.FillAlpha, state.BlendMode, state.GraphicsSoftMask, state.Knockout);
             }
         return true;
     }
@@ -2892,7 +2911,7 @@ public sealed class PdfPageRenderer
                         + second.Values[component] * b + third.Values[component] * c;
                 Color color = mesh.Convert(values);
                 SetPixel(target, targetWidth, x, y, color, state.FillAlpha, state.BlendMode,
-                    state.GraphicsSoftMask);
+                    state.GraphicsSoftMask, state.Knockout);
             }
         }
 
@@ -3086,7 +3105,8 @@ public sealed class PdfPageRenderer
                         components[component] = firstValues[component] * a
                             + secondValues[component] * b + thirdValues[component] * c;
                     SetPixel(target, targetWidth, x, y, Convert(components),
-                        state.FillAlpha, state.BlendMode, state.GraphicsSoftMask);
+                        state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
+                        state.Knockout);
                 }
         }
         static double Edge(Point first, Point second, double x, double y) =>
@@ -3180,7 +3200,7 @@ public sealed class PdfPageRenderer
                 unit = Math.Clamp(unit, 0, 1);
                 double input = domain[0] + unit * (domain[1] - domain[0]);
                 SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha,
-                    state.BlendMode, state.GraphicsSoftMask);
+                    state.BlendMode, state.GraphicsSoftMask, state.Knockout);
             }
         return true;
     }
@@ -3366,7 +3386,8 @@ public sealed class PdfPageRenderer
         SoftMask? softMask, double[] decode, int[]? colorKeyMask,
         ImageColorSpace colorSpace, Color stencilColor, double stencilAlpha,
         RendererBlendMode blendMode, CancellationToken cancellationToken,
-        Color? preblendMatte, GraphicsSoftMask? graphicsSoftMask)
+        Color? preblendMatte, GraphicsSoftMask? graphicsSoftMask,
+        KnockoutState? knockout)
     {
         Point[] corners =
         [
@@ -3381,14 +3402,14 @@ public sealed class PdfPageRenderer
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
         bool directRgb = !imageMask && bits == 8 && components == 3
             && softMask is null && colorKeyMask is null && clips.Count == 0
-            && graphicsSoftMask is null
+            && graphicsSoftMask is null && knockout is null
             && colorSpace.Palette is null && colorSpace.Converter is null
             && colorSpace.MultiConverter is null
             && decode is [0, 1, 0, 1, 0, 1]
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         bool directGray = !imageMask && bits == 8 && components == 1
             && softMask is null && colorKeyMask is null && clips.Count == 0
-            && graphicsSoftMask is null
+            && graphicsSoftMask is null && knockout is null
             && colorSpace.Palette is null && colorSpace.Converter is null
             && colorSpace.MultiConverter is null
             && decode is [0, 1]
@@ -3506,7 +3527,7 @@ public sealed class PdfPageRenderer
                     alpha *= maskSample / 255d;
                 }
                 SetPixel(target, targetWidth, x, y, color, alpha, blendMode,
-                    graphicsSoftMask);
+                    graphicsSoftMask, knockout);
             }
         }
     }
@@ -3620,7 +3641,8 @@ public sealed class PdfPageRenderer
     private static void FillPaths(byte[] pixels, int width, int height, double scaleX,
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha, bool evenOdd,
         RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
-        GraphicsSoftMask? graphicsSoftMask, CancellationToken cancellationToken)
+        GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
+        CancellationToken cancellationToken)
     {
         var scaled = paths.Where(item => item.Count > 2).Select(item => item.Select(point =>
             new Point(point.X * scaleX, height - point.Y * scaleY)).ToArray()).ToArray();
@@ -3635,7 +3657,7 @@ public sealed class PdfPageRenderer
             scaled.Max(path => path.Max(point => point.Y))), 0, height);
         bool rectangle = scaled.Length == 1 && IsAxisAlignedRectangle(scaled[0]);
         bool directFill = clips.Count == 0 && alpha >= 1
-            && graphicsSoftMask is null
+            && graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         List<(double X, int Winding)>?[] scanlines = rectangle
             ? [] : BuildScanlines();
@@ -3731,7 +3753,7 @@ public sealed class PdfPageRenderer
                 double pageX = (x + 0.5) / scaleX;
                 if (InsideClips(clips, pageX, pageY))
                     SetPixel(pixels, width, x, y, color, alpha, blendMode,
-                        graphicsSoftMask);
+                        graphicsSoftMask, knockout);
             }
         }
 
@@ -3764,6 +3786,7 @@ public sealed class PdfPageRenderer
         double lineWidth, RendererLineCap lineCap, RendererLineJoin lineJoin,
         double miterLimit, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, GraphicsSoftMask? graphicsSoftMask,
+        KnockoutState? knockout,
         CancellationToken cancellationToken)
     {
         double pageRadius = Math.Max(lineWidth / 2,
@@ -3828,7 +3851,7 @@ public sealed class PdfPageRenderer
                     double pageX = (x + 0.5) / scaleX;
                     if (InsideClips(clips, pageX, pageY))
                         SetPixel(pixels, width, x, y, color, alpha, blendMode,
-                            graphicsSoftMask);
+                            graphicsSoftMask, knockout);
                 }
             }
         }
@@ -3994,9 +4017,10 @@ public sealed class PdfPageRenderer
 
     private static void SetPixel(byte[] pixels, int width, int x, int y,
         Color color, double opacity, RendererBlendMode blendMode,
-        GraphicsSoftMask? graphicsSoftMask = null)
+        GraphicsSoftMask? graphicsSoftMask = null, KnockoutState? knockout = null)
     {
         int offset = (y * width + x) * 4;
+        knockout?.PreparePixel(pixels, offset);
         double sourceAlpha = Math.Clamp(opacity, 0, 1);
         if (graphicsSoftMask is not null)
             sourceAlpha *= graphicsSoftMask.Samples[y * width + x] / 255d;
@@ -4399,7 +4423,8 @@ public sealed class PdfPageRenderer
         ImageColorSpace? FillPatternBase, PatternPaint? FillPattern,
         bool StrokePatternSpace, ImageColorSpace? StrokePatternBase,
         PatternPaint? StrokePattern, ImageColorSpace? FillColorSpace,
-        ImageColorSpace? StrokeColorSpace, GraphicsSoftMask? GraphicsSoftMask);
+        ImageColorSpace? StrokeColorSpace, GraphicsSoftMask? GraphicsSoftMask,
+        KnockoutState? Knockout);
     private enum RendererLineCap { Butt, Round, ProjectingSquare }
     private enum RendererLineJoin { Miter, Round, Bevel }
     private enum RendererBlendMode
@@ -4417,6 +4442,37 @@ public sealed class PdfPageRenderer
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height);
     private sealed record GraphicsSoftMask(byte[] Samples);
+    private sealed class KnockoutState
+    {
+        private readonly int[] _objects;
+        private int _currentObject;
+
+        internal KnockoutState(int width, int height)
+        {
+            _objects = new int[checked(width * height)];
+        }
+
+        internal void BeginObject()
+        {
+            if (_currentObject == int.MaxValue)
+            {
+                Array.Clear(_objects);
+                _currentObject = 0;
+            }
+            _currentObject++;
+        }
+
+        internal void PreparePixel(byte[] target, int offset)
+        {
+            int pixel = offset / 4;
+            if (_objects[pixel] == _currentObject) return;
+            _objects[pixel] = _currentObject;
+            target[offset] = 0;
+            target[offset + 1] = 0;
+            target[offset + 2] = 0;
+            target[offset + 3] = 0;
+        }
+    }
     private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,
         Matrix Matrix, Color? BaseColor);
     private readonly record struct MeshVertex(Point Point, double[] Values);

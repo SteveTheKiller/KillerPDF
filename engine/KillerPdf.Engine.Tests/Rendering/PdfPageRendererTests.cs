@@ -2333,6 +2333,51 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_KnocksOutEarlierObjectsInIsolatedTransparencyForm()
+    {
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetOpacity(0.5)
+            .SetFillRgb(1, 0, 0)
+            .Rectangle(0, 0, 7, 10)
+            .Fill()
+            .SetFillRgb(0, 0, 1)
+            .Rectangle(3, 0, 7, 10)
+            .Fill());
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder().DrawForm(form, 0, 0))
+            .Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference formReference = Assert.IsType<PdfIndirectReference>(
+            Assert.Single(xObjects).Value);
+        PdfStream formStream = Assert.IsType<PdfStream>(source.Resolve(formReference));
+        var group = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("S"), Name("Transparency")),
+            new KeyValuePair<PdfName, PdfObject>(Name("I"), new PdfBoolean(true)),
+            new KeyValuePair<PdfName, PdfObject>(Name("K"), new PdfBoolean(true))
+        ]);
+        var dictionary = new PdfDictionary(formStream.Dictionary.Append(
+            new KeyValuePair<PdfName, PdfObject>(Name("Group"), group)));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfDocument document = PdfDocument.Open(update.ReplaceObject(
+            formReference.ObjectNumber,
+            new PdfStream(dictionary, formStream.EncodedData.Span)).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([127, 127, 255, 255], Pixel(rendered, 1, 5));
+        Assert.Equal([255, 127, 127, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_SeparatesWidgetAppearanceInclusionFromPageContent()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
