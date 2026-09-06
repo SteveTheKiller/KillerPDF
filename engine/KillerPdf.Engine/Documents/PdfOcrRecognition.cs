@@ -11,6 +11,7 @@ namespace KillerPdf.Engine.Documents;
 public sealed class PdfOcrRecognitionModel
 {
     private static readonly byte[] Magic = "KPOCR2\0"u8.ToArray();
+    internal const int MaximumModelBytes = 256 * 1024 * 1024;
     private const double ShapeMismatchPenalty = 0.25;
     private const double CoarseGradientDistanceWeight = 24;
     private const double FineGradientDistanceWeight = 6;
@@ -176,7 +177,7 @@ public sealed class PdfOcrRecognitionModel
     public static PdfOcrRecognitionModel Load(ReadOnlyMemory<byte> source,
         string? expectedSha256 = null)
     {
-        if (source.Length is <= 0 or > 256 * 1024 * 1024)
+        if (source.Length is <= 0 or > MaximumModelBytes)
             throw new ArgumentException("The OCR model size is invalid.", nameof(source));
         if (expectedSha256 is not null)
         {

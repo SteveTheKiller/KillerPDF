@@ -68,6 +68,29 @@ public sealed class PdfOcrRecognitionModelFilesTests
         }
     }
 
+    [Fact]
+    public void TryLoadLanguageRejectsOversizedFilesBeforeAllocatingTheirContents()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            string path = Path.Combine(directory, "oversized.kplm");
+            using (var output = new FileStream(path, FileMode.CreateNew,
+                FileAccess.Write, FileShare.None))
+                output.SetLength(PdfOcrLanguageModel.MaximumModelBytes + 1L);
+            long before = GC.GetAllocatedBytesForCurrentThread();
+
+            Assert.False(PdfOcrRecognitionModelFiles.TryLoadLanguageCombined(
+                directory, "oversized", out _));
+
+            Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 1_000_000);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static PdfOcrRecognitionModel TinyModel(string label) =>
         PdfOcrModelTrainer.Train(1, 1,
             [new PdfOcrTrainingSample(label, new float[] { 1 })]);

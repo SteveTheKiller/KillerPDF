@@ -20,8 +20,10 @@ public static class PdfOcrRecognitionModelFiles
             foreach (string language in requested)
             {
                 string path = Path.Combine(directory, language + ".kpocr");
-                if (!File.Exists(path)) return false;
-                loaded.Add(PdfOcrRecognitionModel.Load(File.ReadAllBytes(path)));
+                if (!TryReadBounded(path, PdfOcrRecognitionModel.MaximumModelBytes,
+                    out byte[] bytes))
+                    return false;
+                loaded.Add(PdfOcrRecognitionModel.Load(bytes));
             }
             model = loaded.Count == 1 ? loaded[0] : PdfOcrRecognitionModel.Combine(loaded);
             return true;
@@ -45,8 +47,10 @@ public static class PdfOcrRecognitionModelFiles
             foreach (string language in requested)
             {
                 string path = Path.Combine(directory, language + ".kplm");
-                if (!File.Exists(path)) return false;
-                loaded.Add(PdfOcrLanguageModel.Load(File.ReadAllBytes(path)));
+                if (!TryReadBounded(path, PdfOcrLanguageModel.MaximumModelBytes,
+                    out byte[] bytes))
+                    return false;
+                loaded.Add(PdfOcrLanguageModel.Load(bytes));
             }
             model = loaded.Count == 1 ? loaded[0] : PdfOcrLanguageModel.Combine(loaded);
             return true;
@@ -56,6 +60,16 @@ public static class PdfOcrRecognitionModelFiles
             model = null;
             return false;
         }
+    }
+
+    private static bool TryReadBounded(string path, int maximumBytes, out byte[] bytes)
+    {
+        bytes = [];
+        var file = new FileInfo(path);
+        if (!file.Exists || file.Length is <= 0 || file.Length > maximumBytes)
+            return false;
+        bytes = File.ReadAllBytes(path);
+        return bytes.LongLength == file.Length;
     }
 
     private static bool TryLanguages(string directory, string languages,

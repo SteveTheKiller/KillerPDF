@@ -11,7 +11,7 @@ public sealed class PdfOcrLanguageModel
     private static readonly byte[] Magic = "KPLM1\0"u8.ToArray();
     private const int MaximumCharacters = 10_000_000;
     private const int MaximumLabels = 65_536;
-    private const int MaximumModelBytes = 64 * 1024 * 1024;
+    internal const int MaximumModelBytes = 64 * 1024 * 1024;
     private const int MaximumSequenceLength = 4_096;
     private const int MaximumCandidatesPerPosition = 64;
     private static readonly UTF8Encoding Utf8 = new(false, true);
