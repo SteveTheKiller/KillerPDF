@@ -55,4 +55,28 @@ public sealed class PdfOcrSearchableTextWriterTests
 
         Assert.Equal(first, second);
     }
+
+    [Theory]
+    [InlineData(-1, 0, 10, 10)]
+    [InlineData(0, -1, 10, 10)]
+    [InlineData(10, 0, 10, 10)]
+    [InlineData(0, 10, 10, 10)]
+    [InlineData(0, 0, 201, 10)]
+    [InlineData(0, 0, 10, 101)]
+    public void WriterRejectsWordBoundsOutsideThePixelPage(
+        int left, int top, int right, int bottom)
+    {
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddBlankPage(200, 100).Build());
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+        PdfOcrPixelPage[] pages =
+        [
+            new(200, 100, [new PdfOcrPixelWord(
+                "A", 1, left, top, right, bottom)])
+        ];
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfOcrSearchableTextWriter.Write(document, pages, _ => font));
+    }
 }

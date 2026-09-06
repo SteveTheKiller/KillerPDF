@@ -47,10 +47,15 @@ public static class PdfOcrSearchableTextWriter
             foreach (PdfOcrPixelWord word in page.Words)
             {
                 if (string.IsNullOrWhiteSpace(word.Text)) continue;
+                if (word.Left < 0 || word.Top < 0
+                    || word.Right <= word.Left || word.Bottom <= word.Top
+                    || word.Right > page.PixelWidth || word.Bottom > page.PixelHeight)
+                    throw new ArgumentOutOfRangeException(nameof(pages),
+                        "OCR word bounds must be positive and contained by the pixel page.");
                 TrueTypeFont? font = fontResolver(word.Text);
                 if (font is null) continue;
-                double height = Math.Max(1, (word.Bottom - word.Top) * scaleY);
-                double width = Math.Max(1, (word.Right - word.Left) * scaleX);
+                double height = (word.Bottom - (double)word.Top) * scaleY;
+                double width = (word.Right - (double)word.Left) * scaleX;
                 double naturalWidth = font.MapText(word.Text)
                     .Sum(mapping => font.GetPdfAdvanceWidth(mapping.Glyph))
                     * height / 1000;
