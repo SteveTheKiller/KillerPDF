@@ -3107,12 +3107,99 @@ public sealed class PdfPageRenderer
             var mask = new bool[checked(targetWidth * targetHeight)];
             for (int y = clipTop; y < clipBottom; y++)
                 for (int x = clipLeft; x < clipRight; x++)
-                {
-                    double pageX = (x + 0.5) / scaleX;
-                    double pageY = (targetHeight - y - 0.5) / scaleY;
-                    mask[y * targetWidth + x] = InsideClips(state.Clips, pageX, pageY);
-                }
+                    mask[y * targetWidth + x] = true;
+            foreach (ClipRegion clip in state.Clips)
+                IntersectClip(clip);
             return mask;
+
+            void IntersectClip(ClipRegion clip)
+            {
+                if (clip.Predicate is not null)
+                {
+                    for (int y = clipTop; y < clipBottom; y++)
+                    {
+                        double pageY = (targetHeight - y - 0.5) / scaleY;
+                        for (int x = clipLeft; x < clipRight; x++)
+                            if (mask[y * targetWidth + x]
+                                && !clip.Predicate((x + 0.5) / scaleX, pageY))
+                                mask[y * targetWidth + x] = false;
+                    }
+                    return;
+                }
+
+                var scanlines = new List<(double X, int Winding)>?[clipBottom - clipTop];
+                foreach (Point[] polygon in clip.Polygons)
+                {
+                    for (int current = 0, previous = polygon.Length - 1;
+                        current < polygon.Length; previous = current++)
+                        AddEdge(polygon[previous], polygon[current]);
+                }
+                for (int y = clipTop; y < clipBottom; y++)
+                {
+                    List<(double X, int Winding)>? intersections = scanlines[y - clipTop];
+                    if (intersections is null)
+                    {
+                        ClearRow(y);
+                        continue;
+                    }
+                    intersections.Sort((first, second) => first.X.CompareTo(second.X));
+                    int winding = 0;
+                    bool inside = false;
+                    int intersectionIndex = 0;
+                    for (int x = clipLeft; x < clipRight; x++)
+                    {
+                        double sampleX = x + 0.5;
+                        while (intersectionIndex < intersections.Count
+                            && intersections[intersectionIndex].X <= sampleX)
+                        {
+                            double intersectionX = intersections[intersectionIndex].X;
+                            int windingChange = 0;
+                            int crossingCount = 0;
+                            while (intersectionIndex < intersections.Count
+                                && intersections[intersectionIndex].X == intersectionX)
+                            {
+                                windingChange += intersections[intersectionIndex].Winding;
+                                crossingCount++;
+                                intersectionIndex++;
+                            }
+                            if (clip.EvenOdd)
+                                inside ^= crossingCount % 2 != 0;
+                            else
+                            {
+                                winding += windingChange;
+                                inside = winding != 0;
+                            }
+                        }
+                        if (!inside) mask[y * targetWidth + x] = false;
+                    }
+                }
+
+                void AddEdge(Point from, Point to)
+                {
+                    double fromY = targetHeight - from.Y * scaleY;
+                    double toY = targetHeight - to.Y * scaleY;
+                    if (fromY == toY) return;
+                    double fromX = from.X * scaleX;
+                    double toX = to.X * scaleX;
+                    int firstRow = Math.Max(clipTop,
+                        (int)Math.Ceiling(Math.Min(fromY, toY) - 0.5));
+                    int lastRow = Math.Min(clipBottom,
+                        (int)Math.Ceiling(Math.Max(fromY, toY) - 0.5));
+                    int windingChange = fromY > toY ? 1 : -1;
+                    double slope = (toX - fromX) / (toY - fromY);
+                    for (int row = firstRow; row < lastRow; row++)
+                    {
+                        double x = fromX + (row + 0.5 - fromY) * slope;
+                        (scanlines[row - clipTop] ??= []).Add((x, windingChange));
+                    }
+                }
+
+                void ClearRow(int y)
+                {
+                    for (int x = clipLeft; x < clipRight; x++)
+                        mask[y * targetWidth + x] = false;
+                }
+            }
         }
         static void AddCoonsInteriorPoints(Point[] source)
         {
@@ -4412,18 +4499,19 @@ public sealed class PdfPageRenderer
         int winding = 0;
         int crossings = 0;
         foreach (Point[] polygon in polygons)
+        {
             for (int current = 0, previous = polygon.Length - 1;
                 current < polygon.Length; previous = current++)
             {
                 Point from = polygon[previous], to = polygon[current];
-                if ((from.Y > y) != (to.Y > y)
-                    && x < (to.X - from.X) * (y - from.Y) / (to.Y - from.Y) + from.X)
-                    crossings++;
-                double side = (to.X - from.X) * (y - from.Y)
-                    - (x - from.X) * (to.Y - from.Y);
-                if (from.Y <= y && to.Y > y && side > 0) winding++;
-                else if (from.Y > y && to.Y <= y && side < 0) winding--;
+                if ((from.Y > y) == (to.Y > y)) continue;
+                double intersection = (to.X - from.X) * (y - from.Y)
+                    / (to.Y - from.Y) + from.X;
+                if (x >= intersection) continue;
+                crossings++;
+                winding += to.Y > from.Y ? 1 : -1;
             }
+        }
         return evenOdd ? crossings % 2 != 0 : winding != 0;
     }
 
