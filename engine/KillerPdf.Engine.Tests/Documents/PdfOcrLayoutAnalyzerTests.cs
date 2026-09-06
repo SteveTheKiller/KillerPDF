@@ -110,6 +110,23 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_RejectsExcessiveConnectedComponentNoise()
+    {
+        const int width = 384;
+        const int height = 387;
+        byte[] pixels = Enumerable.Repeat((byte)255, width * height).ToArray();
+        for (int y = 0; y < height; y += 3)
+            for (int x = 0; x + 1 < width; x += 3)
+            {
+                pixels[y * width + x] = 0;
+                pixels[y * width + x + 1] = 0;
+            }
+
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfOcrLayoutAnalyzer.Analyze(Prepared(width, height, pixels)));
+    }
+
+    [Fact]
     public void Analyze_KeepsDiagonalStrokesConnected()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 8 * 8).ToArray();

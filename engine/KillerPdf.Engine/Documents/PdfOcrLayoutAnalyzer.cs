@@ -46,6 +46,7 @@ public sealed class PdfOcrPageLayout
 public static class PdfOcrLayoutAnalyzer
 {
     private const int MaximumSinglePixelCandidates = 4_096;
+    private const int MaximumConnectedComponents = 16_384;
 
     /// <summary>Finds dark connected components and groups them into text lines.</summary>
     public static PdfOcrPageLayout Analyze(PdfOcrPreparedImage image,
@@ -76,6 +77,8 @@ public static class PdfOcrLayoutAnalyzer
             while (queue.Count > 0)
             {
                 int current = queue.Dequeue();
+                if ((count & 0x3FFF) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
                 int x = current % width, y = current / width;
                 left = Math.Min(left, x); right = Math.Max(right, x + 1);
                 top = Math.Min(top, y); bottom = Math.Max(bottom, y + 1);
@@ -88,7 +91,12 @@ public static class PdfOcrLayoutAnalyzer
             {
                 var component = new PdfOcrImageRegion(left, top, right, bottom);
                 if (count > 1)
+                {
+                    if (components.Count >= MaximumConnectedComponents)
+                        throw new InvalidOperationException(
+                            "The OCR image contains too many connected components.");
                     components.Add(component);
+                }
                 else if (!singlePixelLimitExceeded)
                 {
                     if (singlePixels.Count < MaximumSinglePixelCandidates)
