@@ -1086,8 +1086,6 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                             rendered.Pixels, rendered.Width, rendered.Height,
                             ocrModel, ocrLanguageModel, options, timeout.Token);
                     PdfPageContent pageContent = reader.Read(pageIndex, timeout.Token);
-                    PdfOcrTextMetrics pageMetrics = PdfOcrTextMetrics.Compare(
-                        pageContent.Text, recognized.Text);
                     PdfOcrPixelWord[] expectedPageWords = [.. pageContent.Words
                         .Select(word => MapExpectedWord(word, page,
                             rendered.Width, rendered.Height))
@@ -1095,6 +1093,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         .Select(word => word!)];
                     PdfOcrWordBoxMetrics pageBoxes = PdfOcrWordBoxMetrics.Compare(
                         expectedPageWords, recognized.Words);
+                    PdfOcrTextMetrics pageMetrics = PdfOcrTextMetrics.CompareMatchedWords(
+                        expectedPageWords, recognized.Words, pageBoxes.Matches);
                     PdfOcrReadingOrderMetrics pageOrder =
                         PdfOcrReadingOrderMetrics.Compare(pageBoxes.Matches);
                     if (pageCount < pageMetricLimit)

@@ -47,6 +47,63 @@ public sealed record PdfOcrTextMetrics(
             EditDistance(expectedWords, recognizedWords));
     }
 
+    /// <summary>Measures recognition independently of page reading order using word-box matches.</summary>
+    public static PdfOcrTextMetrics CompareMatchedWords(
+        IReadOnlyList<PdfOcrPixelWord> expected,
+        IReadOnlyList<PdfOcrPixelWord> recognized,
+        IReadOnlyList<PdfOcrWordBoxMatch> matches)
+    {
+        ArgumentNullException.ThrowIfNull(expected);
+        ArgumentNullException.ThrowIfNull(recognized);
+        ArgumentNullException.ThrowIfNull(matches);
+        var matchedExpected = new HashSet<int>();
+        var matchedRecognized = new HashSet<int>();
+        int expectedCharacters = 0, recognizedCharacters = 0;
+        int characterEdits = 0, expectedWords = 0, recognizedWords = 0, wordEdits = 0;
+        foreach (PdfOcrWordBoxMatch match in matches)
+        {
+            if ((uint)match.ExpectedIndex >= (uint)expected.Count
+                || (uint)match.RecognizedIndex >= (uint)recognized.Count
+                || !matchedExpected.Add(match.ExpectedIndex)
+                || !matchedRecognized.Add(match.RecognizedIndex))
+                throw new ArgumentException(
+                    "OCR word-box matches contain invalid or duplicate indexes.",
+                    nameof(matches));
+            PdfOcrTextMetrics comparison = Compare(
+                expected[match.ExpectedIndex].Text,
+                recognized[match.RecognizedIndex].Text);
+            expectedCharacters = checked(expectedCharacters
+                + comparison.ExpectedCharacterCount);
+            recognizedCharacters = checked(recognizedCharacters
+                + comparison.RecognizedCharacterCount);
+            characterEdits = checked(characterEdits + comparison.CharacterEditCount);
+            expectedWords = checked(expectedWords + comparison.ExpectedWordCount);
+            recognizedWords = checked(recognizedWords + comparison.RecognizedWordCount);
+            wordEdits = checked(wordEdits + comparison.WordEditCount);
+        }
+        for (int index = 0; index < expected.Count; index++)
+        {
+            if (matchedExpected.Contains(index)) continue;
+            PdfOcrTextMetrics missing = Compare(expected[index].Text, string.Empty);
+            expectedCharacters = checked(expectedCharacters + missing.ExpectedCharacterCount);
+            characterEdits = checked(characterEdits + missing.CharacterEditCount);
+            expectedWords = checked(expectedWords + missing.ExpectedWordCount);
+            wordEdits = checked(wordEdits + missing.WordEditCount);
+        }
+        for (int index = 0; index < recognized.Count; index++)
+        {
+            if (matchedRecognized.Contains(index)) continue;
+            PdfOcrTextMetrics extra = Compare(string.Empty, recognized[index].Text);
+            recognizedCharacters = checked(recognizedCharacters
+                + extra.RecognizedCharacterCount);
+            characterEdits = checked(characterEdits + extra.CharacterEditCount);
+            recognizedWords = checked(recognizedWords + extra.RecognizedWordCount);
+            wordEdits = checked(wordEdits + extra.WordEditCount);
+        }
+        return new PdfOcrTextMetrics(expectedCharacters, recognizedCharacters,
+            characterEdits, expectedWords, recognizedWords, wordEdits);
+    }
+
     private static double ErrorRate(int edits, int expected, int recognized) =>
         expected == 0 ? recognized == 0 ? 0 : 1 : edits / (double)expected;
 
