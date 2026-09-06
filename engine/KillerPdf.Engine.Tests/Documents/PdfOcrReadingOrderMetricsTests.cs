@@ -41,4 +41,21 @@ public sealed class PdfOcrReadingOrderMetricsTests
         Assert.Equal(1, PdfOcrReadingOrderMetrics.Compare([]).Accuracy);
         Assert.Equal(1, PdfOcrReadingOrderMetrics.Compare([new(0, 0, 1)]).Accuracy);
     }
+
+    [Fact]
+    public void CompareCountsLargeReversedOrdersWithoutQuadraticWork()
+    {
+        const int count = 100_000;
+        PdfOcrWordBoxMatch[] matches = [.. Enumerable.Range(0, count)
+            .Select(index => new PdfOcrWordBoxMatch(
+                index, count - index - 1, 1))];
+
+        PdfOcrReadingOrderMetrics metrics =
+            PdfOcrReadingOrderMetrics.Compare(matches);
+
+        long pairs = (long)count * (count - 1) / 2;
+        Assert.Equal(pairs, metrics.ComparablePairCount);
+        Assert.Equal(pairs, metrics.InversionCount);
+        Assert.Equal(0, metrics.Accuracy);
+    }
 }
