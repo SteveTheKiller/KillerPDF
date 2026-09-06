@@ -135,6 +135,15 @@ public sealed class PdfPageRendererTests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             new PdfRenderOptions(PdfRenderOptions.MaximumDimension + 1, 1));
         Assert.Throws<ArgumentException>(() => new PdfRenderOptions(20_000, 20_000));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfRenderOptions(1, 1, maximumPixelBytes: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfRenderOptions(
+            1, 1, maximumPixelBytes: PdfRenderOptions.MaximumPixelBytes + 1));
+        Assert.Throws<ArgumentException>(() =>
+            new PdfRenderOptions(100, 100, maximumPixelBytes: 39_999));
+
+        var bounded = new PdfRenderOptions(100, 100, maximumPixelBytes: 40_000);
+        Assert.Equal(40_000, bounded.PixelByteLimit);
     }
 
     [Fact]
@@ -143,13 +152,19 @@ public sealed class PdfPageRendererTests
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(100, 100, "0 0 100 100 re f"u8.ToArray()).Build());
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Task.Run(() =>
+        using var started = new ManualResetEventSlim();
+        Task render = Task.Factory.StartNew(() =>
+        {
+            started.Set();
             new PdfPageRenderer(document).Render(0,
                 new PdfRenderOptions(4096, 4096,
                     includeAnnotations: false, includeFormFields: false),
-                cancellation.Token)));
+                cancellation.Token);
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        started.Wait();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => render);
     }
 
     [Fact]
