@@ -380,6 +380,21 @@ public sealed class PdfOcrReviewTests
         Assert.Empty(new PdfPageContentReader(original).Read(0).Words);
     }
 
+    [Theory]
+    [InlineData(double.NaN, 0, 10, 10)]
+    [InlineData(0, double.NegativeInfinity, 10, 10)]
+    [InlineData(0, 0, double.PositiveInfinity, 10)]
+    [InlineData(0, 0, 10, double.NaN)]
+    [InlineData(10, 0, 10, 10)]
+    [InlineData(0, 10, 10, 10)]
+    public void OcrWordsRejectInvalidBounds(
+        double left, double bottom, double right, double top)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOcrWord(
+            "a", 0, 0, "A", "A", new PdfContentBounds(
+                left, bottom, right, top), 0.9));
+    }
+
     private static PdfOcrWord Word(string id, int page, int sequence, string text, double confidence) =>
         new(id, page, sequence, text, text, new PdfContentBounds(0, 0, 10, 10), confidence, "en-US");
 

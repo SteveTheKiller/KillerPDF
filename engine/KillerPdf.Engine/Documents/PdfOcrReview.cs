@@ -242,6 +242,11 @@ public sealed record PdfOcrWord
         if (sequence < 0) throw new ArgumentOutOfRangeException(nameof(sequence));
         ArgumentNullException.ThrowIfNull(originalText);
         ArgumentNullException.ThrowIfNull(text);
+        if (!double.IsFinite(boundingBox.Left) || !double.IsFinite(boundingBox.Bottom)
+            || !double.IsFinite(boundingBox.Right) || !double.IsFinite(boundingBox.Top)
+            || boundingBox.Right <= boundingBox.Left || boundingBox.Top <= boundingBox.Bottom)
+            throw new ArgumentOutOfRangeException(nameof(boundingBox),
+                "OCR word bounds must be finite and have positive dimensions.");
         if (!double.IsFinite(confidence) || confidence is < 0 or > 1)
             throw new ArgumentOutOfRangeException(nameof(confidence));
         if (!Enum.IsDefined(status)) throw new ArgumentOutOfRangeException(nameof(status));
