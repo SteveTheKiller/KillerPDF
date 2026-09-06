@@ -64,7 +64,7 @@ public static class PdfOcrModelTrainer
 {
     private const int MaximumSamples = 10_000_000;
     private const int MaximumModelValues = 16 * 1024 * 1024;
-    private const int MaximumPrototypesPerShape = 12;
+    private const int MaximumPrototypesPerShape = 48;
     private const double LabelPriorWeight = 0.25;
 
     /// <summary>Trains a bounded nearest-prototype classifier from normalized glyph samples.</summary>

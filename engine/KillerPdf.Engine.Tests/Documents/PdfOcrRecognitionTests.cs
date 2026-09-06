@@ -139,6 +139,22 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerRetainsMoreThanTwelveVariantsPerShape()
+    {
+        PdfOcrTrainingSample[] samples = [.. Enumerable.Range(0, 13).Select(index =>
+        {
+            var features = new float[16];
+            features[index] = 1;
+            return new PdfOcrTrainingSample("A", features);
+        })];
+
+        PdfOcrRecognitionModel twelve = PdfOcrModelTrainer.Train(4, 4, samples[..12]);
+        PdfOcrRecognitionModel thirteen = PdfOcrModelTrainer.Train(4, 4, samples);
+
+        Assert.True(thirteen.Save().Length > twelve.Save().Length);
+    }
+
+    [Fact]
     public void TrainerUsesLabelFrequencyToResolveIdenticalShapes()
     {
         PdfOcrTrainingSample[] samples =
