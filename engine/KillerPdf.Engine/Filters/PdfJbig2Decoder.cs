@@ -49,6 +49,7 @@ internal static class PdfJbig2Decoder
         int? expectedWidth,
         int? expectedHeight)
     {
+        using IDisposable allocationLimit = Jbig2Bitmap.BeginAllocationLimit(maximumDecodedBytes);
         using var document = new Jbig2Document(new ImageInputStream(encoded), globals);
         Jbig2Page page = document.GetPage(1)
             ?? throw new PdfFilterException("The JBIG2Decode stream has no image page.");

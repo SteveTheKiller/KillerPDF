@@ -9,6 +9,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
     /// </summary>
     internal sealed class Jbig2Bitmap
     {
+        private static readonly System.Threading.AsyncLocal<AllocationBudget> ActiveBudget = new();
+
         /// <summary>
         /// The height of the bitmap in pixels.
         /// </summary>
@@ -32,11 +34,94 @@ namespace KillerPdf.Engine.Filters.Jbig2
         /// </summary>
         public Jbig2Bitmap(int width, int height)
         {
+            if (width < 0 || height < 0)
+                throw new Jbig2Exception("The JBIG2 bitmap has invalid dimensions.");
+
+            long rowStride = ((long)width + 7) / 8;
+            long byteLength = checked(rowStride * height);
+            if (byteLength > int.MaxValue
+                || ActiveBudget.Value is not null && !ActiveBudget.Value.TryReserve(byteLength))
+                throw new Jbig2Exception("The JBIG2 bitmap exceeds the configured safety limit.");
+
             Height = height;
             Width = width;
-            RowStride = width + 7 >> 3;
+            RowStride = (int)rowStride;
 
-            ByteArray = new byte[Height * RowStride];
+            ByteArray = new byte[(int)byteLength];
+        }
+
+        internal static System.IDisposable BeginAllocationLimit(int maximumBytes)
+        {
+            long maximumTotalBytes = maximumBytes
+                + System.Math.Min((long)maximumBytes * 63, 64L * 1024 * 1024);
+            return BeginAllocationLimit(maximumBytes, maximumTotalBytes);
+        }
+
+        internal static System.IDisposable BeginAllocationLimit(
+            int maximumBitmapBytes, long maximumTotalBytes)
+        {
+            if (maximumBitmapBytes <= 0)
+                throw new System.ArgumentOutOfRangeException(nameof(maximumBitmapBytes));
+            if (maximumTotalBytes < maximumBitmapBytes)
+                throw new System.ArgumentOutOfRangeException(nameof(maximumTotalBytes));
+
+            AllocationBudget previousBudget = ActiveBudget.Value;
+            long availableTotalBytes = previousBudget is null
+                ? maximumTotalBytes
+                : System.Math.Min(previousBudget.RemainingBytes, maximumTotalBytes);
+            long availableBitmapBytes = previousBudget is null
+                ? maximumBitmapBytes
+                : System.Math.Min(previousBudget.MaximumBitmapBytes, maximumBitmapBytes);
+            var budget = new AllocationBudget(availableBitmapBytes, availableTotalBytes);
+            ActiveBudget.Value = budget;
+            return new AllocationLimitScope(previousBudget, budget);
+        }
+
+        private sealed class AllocationLimitScope : System.IDisposable
+        {
+            private readonly AllocationBudget previousBudget;
+            private readonly AllocationBudget budget;
+            private bool disposed;
+
+            public AllocationLimitScope(AllocationBudget previousBudget, AllocationBudget budget)
+            {
+                this.previousBudget = previousBudget;
+                this.budget = budget;
+            }
+
+            public void Dispose()
+            {
+                if (disposed)
+                    return;
+
+                if (previousBudget is not null)
+                    previousBudget.TryReserve(budget.AllocatedBytes);
+                ActiveBudget.Value = previousBudget;
+                disposed = true;
+            }
+        }
+
+        private sealed class AllocationBudget
+        {
+            public AllocationBudget(long maximumBitmapBytes, long maximumTotalBytes)
+            {
+                MaximumBitmapBytes = maximumBitmapBytes;
+                RemainingBytes = maximumTotalBytes;
+            }
+
+            public long AllocatedBytes { get; private set; }
+            public long MaximumBitmapBytes { get; }
+            public long RemainingBytes { get; private set; }
+
+            public bool TryReserve(long byteLength)
+            {
+                if (byteLength > MaximumBitmapBytes || byteLength > RemainingBytes)
+                    return false;
+
+                RemainingBytes -= byteLength;
+                AllocatedBytes += byteLength;
+                return true;
+            }
         }
 
         /// <summary>
