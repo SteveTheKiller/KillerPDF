@@ -2,7 +2,9 @@ using System.Security.Cryptography;
 using System.Numerics;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Rendering;
+using KillerPdf.Engine.Tests.Fonts;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Documents;
@@ -646,6 +648,41 @@ public sealed class PdfOcrRecognitionTests
             samples.Count(sample => sample.Label == label)));
         Assert.Throws<ArgumentException>(() =>
             PdfOcrModelTrainer.CreateStandardFontSamples(["AB"], 16, 16));
+    }
+
+    [Fact]
+    public void EmbeddedFontTrainingCreatesUnicodeGlyphSamplesAtThreeScales()
+    {
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: true, includeOutlines: true));
+
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreateEmbeddedFontSamples(font, ["😀"], 16, 16);
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, samples);
+
+        Assert.Equal(3, samples.Count);
+        Assert.All(samples, sample =>
+        {
+            Assert.Equal("😀", sample.Label);
+            Assert.Contains(sample.Features.ToArray(), value => value > 0);
+        });
+        Assert.Equal(["😀"], model.Labels);
+    }
+
+    [Fact]
+    public void EmbeddedFontTrainingRejectsMissingAndRestrictedGlyphs()
+    {
+        TrueTypeFont font = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false));
+        TrueTypeFont restricted = TrueTypeFont.Load(
+            TrueTypeFontTests.BuildTestFont(format12: false, embeddingFlags: 0x0002));
+
+        Assert.Throws<ArgumentException>(() =>
+            PdfOcrModelTrainer.CreateEmbeddedFontSamples(font, ["B"], 16, 16));
+        Assert.Throws<ArgumentException>(() =>
+            PdfOcrModelTrainer.CreateEmbeddedFontSamples(font, ["AA"], 16, 16));
+        Assert.Throws<ArgumentException>(() =>
+            PdfOcrModelTrainer.CreateEmbeddedFontSamples(restricted, ["A"], 16, 16));
     }
 
     [Fact]

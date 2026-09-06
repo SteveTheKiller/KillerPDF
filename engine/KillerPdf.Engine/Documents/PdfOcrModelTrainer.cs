@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Text;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Fonts;
 using KillerPdf.Engine.Rendering;
 
 namespace KillerPdf.Engine.Documents;
@@ -231,6 +232,68 @@ public static class PdfOcrModelTrainer
                         includeAnnotations: false, includeFormFields: false),
                     options, width, height, cancellationToken));
             }
+        }
+        return Array.AsReadOnly(samples.ToArray());
+    }
+
+    /// <summary>Creates Unicode training samples from a supplied embeddable OpenType font.</summary>
+    public static IReadOnlyList<PdfOcrTrainingSample> CreateEmbeddedFontSamples(
+        TrueTypeFont font, IEnumerable<string> labels, int width, int height,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(font);
+        ArgumentNullException.ThrowIfNull(labels);
+        if (width is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
+        if (!font.EmbeddingAllowed)
+            throw new ArgumentException(
+                "The OCR training font does not permit embedding.", nameof(font));
+        string[] requested = [.. labels.Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)];
+        if (requested.Length == 0 || requested.Any(label => !IsValidLabel(label)))
+            throw new ArgumentException(
+                "Embedded-font OCR labels must be valid Unicode text.", nameof(labels));
+        if (requested.Any(label =>
+            {
+                IReadOnlyList<FontGlyphMapping> mappings = font.MapText(label);
+                return mappings.Count != 1 || mappings[0].Glyph == 0;
+            }))
+            throw new ArgumentException(
+                "Every embedded-font OCR label must map to one font glyph.", nameof(labels));
+
+        const int columns = 10;
+        const int cellSize = 80;
+        const int margin = 40;
+        const int fontSize = 32;
+        int rows = (requested.Length + columns - 1) / columns;
+        int pageWidth = columns * cellSize + margin * 2;
+        int pageHeight = rows * cellSize + margin * 2;
+        var content = new PdfContentStreamBuilder();
+        for (int index = 0; index < requested.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int column = index % columns;
+            int row = index / columns;
+            content.BeginText().SetFont(font, fontSize)
+                .SetTextMatrix(1, 0, 0, 1,
+                    margin + column * cellSize,
+                    pageHeight - margin - (row + 1) * cellSize + 20)
+                .ShowUnicodeText(requested[index]).EndText();
+        }
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(pageWidth, pageHeight, content).Build());
+        var options = new PdfOcrOptions(["und"], deskew: false,
+            correctOrientation: false, removeBackground: true, removeNoise: true,
+            detectPageSegments: false);
+        var samples = new List<PdfOcrTrainingSample>(
+            checked(requested.Length * StandardTrainingRenderScales.Length));
+        foreach (int scale in StandardTrainingRenderScales)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            samples.AddRange(CreatePageSamples(document, 0,
+                new PdfRenderOptions(pageWidth * scale, pageHeight * scale,
+                    includeAnnotations: false, includeFormFields: false),
+                options, width, height, cancellationToken));
         }
         return Array.AsReadOnly(samples.ToArray());
     }
