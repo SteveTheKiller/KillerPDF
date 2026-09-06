@@ -650,6 +650,18 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void GlyphNormalizationHonorsCancellation()
+    {
+        PdfOcrPreparedImage image = Prepared(4, 1, ["####"]);
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfOcrRecognizer.NormalizeGlyph(image,
+                new PdfOcrImageRegion(0, 0, 4, 1), 4, 4, canceled.Token));
+    }
+
+    [Fact]
     public void PageRecognizerRunsDirectlyFromEngineRenderAndMapsPdfBounds()
     {
         PdfOcrRecognitionModel model = RecognitionModel();

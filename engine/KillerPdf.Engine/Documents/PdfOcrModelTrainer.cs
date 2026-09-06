@@ -156,7 +156,8 @@ public static class PdfOcrModelTrainer
                     throw new ArgumentException(
                         "An OCR training glyph lies outside its prepared image.", nameof(glyphs));
                 yield return new PdfOcrTrainingSample(glyph.Label,
-                    PdfOcrRecognizer.NormalizeGlyph(image, bounds, width, height));
+                    PdfOcrRecognizer.NormalizeGlyph(
+                        image, bounds, width, height, cancellationToken));
             }
         }
     }
@@ -216,7 +217,8 @@ public static class PdfOcrModelTrainer
                 throw new ArgumentException(
                     "The PDF page has too many OCR training values.", nameof(document));
             samples.Add(new PdfOcrTrainingSample(labels[index].Label,
-                PdfOcrRecognizer.NormalizeGlyph(prepared, bounds, width, height)));
+                PdfOcrRecognizer.NormalizeGlyph(
+                    prepared, bounds, width, height, cancellationToken)));
         }
         return Array.AsReadOnly(samples.ToArray());
     }

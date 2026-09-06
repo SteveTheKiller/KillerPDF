@@ -581,7 +581,8 @@ public static class PdfOcrRecognizer
                 foreach (PdfOcrImageRegion component in word.Components)
                 {
                     Span<float> glyph = features.AsSpan(0, featureCount);
-                    NormalizeGlyph(image, component, model.Width, model.Height, glyph);
+                    NormalizeGlyph(image, component, model.Width, model.Height,
+                        glyph, cancellationToken);
                     (string label, double score) = model.Classify(
                         glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
                     text.Append(label);
@@ -601,15 +602,15 @@ public static class PdfOcrRecognizer
 
     /// <summary>Normalizes one glyph into a centered, aspect-preserving model feature grid.</summary>
     public static float[] NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
-        int width, int height)
+        int width, int height, CancellationToken cancellationToken = default)
     {
         var result = new float[width * height];
-        NormalizeGlyph(image, region, width, height, result);
+        NormalizeGlyph(image, region, width, height, result, cancellationToken);
         return result;
     }
 
     private static void NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
-        int width, int height, Span<float> result)
+        int width, int height, Span<float> result, CancellationToken cancellationToken)
     {
         result.Clear();
         ReadOnlySpan<byte> source = image.Pixels.Span;
@@ -619,6 +620,8 @@ public static class PdfOcrRecognizer
         int offsetX = (width - scaledWidth) / 2;
         int offsetY = (height - scaledHeight) / 2;
         for (int y = 0; y < scaledHeight; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < scaledWidth; x++)
             {
                 double sourceLeft = x * region.Width / (double)scaledWidth;
@@ -647,6 +650,7 @@ public static class PdfOcrRecognizer
                 result[(offsetY + y) * width + offsetX + x] =
                     area <= 0 ? 0 : (float)(darkness / area);
             }
+        }
     }
 
     private sealed record RawOrientationCandidate(
