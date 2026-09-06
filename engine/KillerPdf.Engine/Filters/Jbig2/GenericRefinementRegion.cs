@@ -73,6 +73,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         // Variables for decoding
         private Jbig2Bitmap referenceBitmap;
+        private Jbig2Bitmap pageBitmap;
         private int referenceDX;
         private int referenceDY;
 
@@ -222,9 +223,27 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private Jbig2Bitmap GetGrReference()
         {
             SegmentHeader[] segments = segmentHeader.RtSegments;
+            if (segments is null)
+            {
+                if (RegionInfo.CombinationOperator != CombinationOperator.REPLACE)
+                {
+                    throw new InvalidHeaderValueException(
+                        "A page-buffer refinement region must use the REPLACE combination operator.");
+                }
+
+                var pageRegion = new Jbig2Rectangle(RegionInfo.X, RegionInfo.Y,
+                    RegionInfo.BitmapWidth, RegionInfo.BitmapHeight);
+                return Jbig2Bitmaps.Extract(pageRegion, pageBitmap);
+            }
+
             IRegion region = (IRegion)segments[0].GetSegmentData();
 
             return region.GetRegionBitmap();
+        }
+
+        internal void SetPageBitmap(Jbig2Bitmap bitmap)
+        {
+            pageBitmap = bitmap;
         }
 
         private void DecodeOptimized(int lineNumber, int width, int rowStride,
@@ -875,4 +894,3 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
     }
 }
-

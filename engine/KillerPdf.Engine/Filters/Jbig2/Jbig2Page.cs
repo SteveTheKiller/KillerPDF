@@ -135,6 +135,11 @@ namespace KillerPdf.Engine.Filters.Jbig2
                     case 43: // Immediate lossless generic refinement region
                         IRegion r = (IRegion)s.GetSegmentData();
 
+                        if (r is GenericRefinementRegion refinementRegion)
+                        {
+                            refinementRegion.SetPageBitmap(pageBitmap);
+                        }
+
                         Jbig2Bitmap regionBitmap = r.GetRegionBitmap();
 
                         if (FitsPage(pageInformation, regionBitmap))
@@ -356,4 +361,3 @@ namespace KillerPdf.Engine.Filters.Jbig2
         }
     }
 }
-

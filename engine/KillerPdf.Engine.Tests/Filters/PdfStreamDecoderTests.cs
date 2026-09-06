@@ -742,6 +742,20 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_DecodesJbig2PageBufferRefinement()
+    {
+        byte[] encoded = Convert.FromBase64String(
+            "AAAAADAAAQAAABMAAAGPAAABkAAAAAAAAAAAQAAAAAAAASYAAQAAAQkAAAGPAAABkAAAAAAAAAAAAAAD//3/Av7+/qv2Wy+9zc/CFqS+f45b79/ni/72XS78UDJyVeI4t3qXwvM6GPiBOv1m+k8CwTR9IzrFqHLqM9c6lVFIhFclmgqxv6OEbqzRNXYkbOhw5jH/Tc7HaYR4ZztDp9vY6oXPBfkZkPoQ9k6qbnd8thySWF9kDiGvHCZX0HksURbZZbW5IE4n5eRYhp6KKlGiDZT/Sfczf/T/UbA6F0XvbWC/bxQuLc92xajnjQbtV0xb8qmgnmuhLVRH7/A3GSVMKvY7dyrVL5IsTL7J9ualRI3DXFORCPvdRJ6bvydmghEYAs/GUmiX5ZhBkof1fw+Uf/+sAAAAAioAAQAAADgAAABuAAABfAAAAAoAAAAUBAD/////q/1ziOPJEUs5v+yHEImiMf9//3//TemKyXBFDwNy6HP/rA==");
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("JBIG2Decode")));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, 20_000);
+
+        Assert.Equal(20_000, decoded.Length);
+        Assert.Equal("F195624B2FC5505FDBBD3473C58EAF6B22B4F376B57CED779A4357D8BD12BC4F",
+            Convert.ToHexString(SHA256.HashData(decoded)));
+    }
+
+    [Fact]
     public void Decode_DecodesJbig2ImageDataWithGlobalSegments()
     {
         byte[] globals = Convert.FromBase64String(
