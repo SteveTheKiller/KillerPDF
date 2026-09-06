@@ -433,6 +433,26 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void ModelCatalogCombinesDistinctRequestedLanguagesLazily()
+    {
+        byte[] english = TinyModel("E").Save();
+        byte[] french = TinyModel("F").Save();
+        int englishReads = 0, frenchReads = 0, germanReads = 0;
+        var catalog = PdfOcrRecognitionModelCatalog.Create([
+            new("en", () => { englishReads++; return english; }),
+            new("fr", () => { frenchReads++; return french; }),
+            new("de", () => { germanReads++; return TinyModel("D").Save(); })
+        ]);
+
+        PdfOcrRecognitionModelSelection selection = catalog.SelectCombined(
+            ["fr-FR", "en-US", "fr"]);
+
+        Assert.Equal("fr+en", selection.Language);
+        Assert.Equal(["F", "E"], selection.Model.Labels);
+        Assert.Equal((1, 1, 0), (englishReads, frenchReads, germanReads));
+    }
+
+    [Fact]
     public void GlyphNormalizationPreservesAspectRatioAndCentersInk()
     {
         PdfOcrPreparedImage image = Prepared(4, 1, ["####"]);
@@ -500,6 +520,31 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrWord word = Assert.Single(result.Review.Words);
         Assert.Equal("E", word.Text);
         Assert.Equal("en", word.Language);
+    }
+
+    [Fact]
+    public void PageRecognizerCombinesEveryAvailableRequestedLanguageModel()
+    {
+        PdfImage image = RasterImage([
+            "....", ".##.", ".##.", "...."
+        ]);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 4, new PdfContentStreamBuilder()
+                .DrawImage(image, 0, 0, 4, 4)).Build());
+        var catalog = new PdfOcrRecognitionModelCatalog([
+            new("de", TinyModel("D")),
+            new("en", TinyModel("E"))
+        ]);
+        var recognizer = new PdfOcrPageRecognizer(document, catalog);
+
+        PdfOcrPageRecognition result = recognizer.Recognize(0,
+            new PdfRenderOptions(4, 4, includeAnnotations: false,
+                includeFormFields: false),
+            new PdfOcrOptions(["de-DE", "en-US"], deskew: false,
+                correctOrientation: false, removeBackground: false,
+                removeNoise: false, detectPageSegments: false));
+
+        Assert.Equal("de+en", Assert.Single(result.Review.Words).Language);
     }
 
     [Fact]

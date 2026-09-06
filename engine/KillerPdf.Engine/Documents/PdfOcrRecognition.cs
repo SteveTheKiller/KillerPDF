@@ -361,18 +361,54 @@ public sealed class PdfOcrRecognitionModelCatalog
         foreach (string language in languages)
         {
             string normalized = Normalize(language);
-            if (_models.TryGetValue(normalized, out Lazy<PdfOcrRecognitionModel>? exact))
-                return new PdfOcrRecognitionModelSelection(normalized, exact.Value);
-            int separator = normalized.IndexOf('-');
-            if (separator > 0)
-            {
-                string primary = normalized[..separator];
-                if (_models.TryGetValue(primary, out Lazy<PdfOcrRecognitionModel>? fallback))
-                    return new PdfOcrRecognitionModelSelection(primary, fallback.Value);
-            }
+            if (TrySelect(normalized, out PdfOcrRecognitionModelSelection selection))
+                return selection;
         }
         throw new NotSupportedException(
             "No engine OCR recognition model matches the requested languages.");
+    }
+
+    /// <summary>Selects and combines every distinct requested language model available.</summary>
+    public PdfOcrRecognitionModelSelection SelectCombined(IEnumerable<string> languages)
+    {
+        ArgumentNullException.ThrowIfNull(languages);
+        var selected = new List<PdfOcrRecognitionModelSelection>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string language in languages)
+        {
+            string normalized = Normalize(language);
+            if (TrySelect(normalized, out PdfOcrRecognitionModelSelection selection)
+                && seen.Add(selection.Language))
+                selected.Add(selection);
+        }
+        if (selected.Count == 0)
+            throw new NotSupportedException(
+                "No engine OCR recognition model matches the requested languages.");
+        return selected.Count == 1 ? selected[0] : new PdfOcrRecognitionModelSelection(
+            string.Join('+', selected.Select(item => item.Language)),
+            PdfOcrRecognitionModel.Combine(selected.Select(item => item.Model)));
+    }
+
+    private bool TrySelect(string normalized,
+        out PdfOcrRecognitionModelSelection selection)
+    {
+        if (_models.TryGetValue(normalized, out Lazy<PdfOcrRecognitionModel>? exact))
+        {
+            selection = new PdfOcrRecognitionModelSelection(normalized, exact.Value);
+            return true;
+        }
+        int separator = normalized.IndexOf('-');
+        if (separator > 0)
+        {
+            string primary = normalized[..separator];
+            if (_models.TryGetValue(primary, out Lazy<PdfOcrRecognitionModel>? fallback))
+            {
+                selection = new PdfOcrRecognitionModelSelection(primary, fallback.Value);
+                return true;
+            }
+        }
+        selection = null!;
+        return false;
     }
 
     private static IReadOnlyList<string> FinishConstruction(
@@ -569,7 +605,8 @@ public sealed class PdfOcrPageRecognizer
         cancellationToken.ThrowIfCancellationRequested();
 
         PdfRenderedPage rendered = _renderer.Render(pageIndex, renderOptions, cancellationToken);
-        PdfOcrRecognitionModelSelection? selection = _models?.Select(ocrOptions.Languages);
+        PdfOcrRecognitionModelSelection? selection =
+            _models?.SelectCombined(ocrOptions.Languages);
         PdfOcrRecognitionModel model = selection?.Model ?? _model!;
         PdfOcrOptions pipelineOptions = ocrOptions.CorrectOrientation
             ? new PdfOcrOptions(ocrOptions.Languages, ocrOptions.OutputMode,
