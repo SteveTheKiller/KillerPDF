@@ -126,7 +126,10 @@ public sealed class PdfPageRenderer
         {
             if (depth > 32) throw new FormatException("Form XObject nesting limit exceeded.");
             GraphicsState state = initial;
-            var stack = new Stack<GraphicsState>();
+            var stack = new Stack<(GraphicsState Graphics, PdfDictionary? Font,
+                PdfExtractionFont? ExtractionFont, double FontSize,
+                double CharacterSpacing, double WordSpacing, double HorizontalScale,
+                double Leading, double Rise, int RenderingMode)>();
             var path = new List<List<Point>>();
             List<Point>? subpath = null;
             var visibilityStack = new Stack<bool>();
@@ -164,10 +167,15 @@ public sealed class PdfPageRenderer
                 switch (instruction.Operator)
                 {
                 case "q":
-                    stack.Push(state);
+                    stack.Push((state, textFont, extractionFont, textSize,
+                        characterSpacing, wordSpacing, horizontalScale, textLeading,
+                        textRise, textRenderingMode));
                     break;
                 case "Q":
-                    state = stack.Count == 0 ? state : stack.Pop();
+                    if (stack.Count > 0)
+                        (state, textFont, extractionFont, textSize, characterSpacing,
+                            wordSpacing, horizontalScale, textLeading, textRise,
+                            textRenderingMode) = stack.Pop();
                     path.Clear();
                     subpath = null;
                     break;

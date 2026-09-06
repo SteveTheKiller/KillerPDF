@@ -1881,6 +1881,40 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_RestoresTextStateWithGraphicsState()
+    {
+        TrueTypeFont embedded = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(
+            format12: false, includeOutlines: true));
+        var content = new PdfContentStreamBuilder()
+            .BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 10)
+            .SetTextMatrix(1, 0, 0, 1, 0, 0)
+            .ShowLatin1Text("A")
+            .EndText()
+            .SaveState()
+            .BeginText()
+            .SetFont(embedded, 5)
+            .ShowUnicodeText("A")
+            .EndText()
+            .RestoreState()
+            .BeginText()
+            .SetTextMatrix(1, 0, 0, 1, 10, 0)
+            .ShowLatin1Text("AA")
+            .EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(30, 10, content).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(30, 10,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
+        Assert.DoesNotContain(rendered.Diagnostics,
+            diagnostic => diagnostic.StartsWith("Text outlines for font ",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Render_ReusesParsedFontsAcrossRepeatedRenders()
     {
         TrueTypeFont font = TrueTypeFont.Load(TrueTypeFontTests.BuildTestFont(
