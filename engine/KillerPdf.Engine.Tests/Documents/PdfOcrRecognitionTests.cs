@@ -234,6 +234,24 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerGeneralizesAcrossHeldOutStandardFontStyles()
+    {
+        string[] labels = [.. "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+            .Select(character => character.ToString())];
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreateStandardFontSamples(labels, 24, 24);
+        int samplesPerStyle = samples.Count / 12;
+        Assert.True(samplesPerStyle > 0);
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(24, 24,
+            samples.Take(samplesPerStyle * 8));
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            samples.Skip(samplesPerStyle * 8));
+
+        Assert.InRange(evaluation.Accuracy, 0.55, 1);
+    }
+
+    [Fact]
     public void TrainerCentroidGeneralizesBetweenVariants()
     {
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(2, 2,
