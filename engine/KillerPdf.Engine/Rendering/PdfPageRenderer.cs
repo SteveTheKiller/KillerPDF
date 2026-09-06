@@ -2733,7 +2733,7 @@ public sealed class PdfPageRenderer
                 throw new NotSupportedException();
             if (shadingType.Value == 1)
                 return RenderFunctionShading(shading, resources, state, target,
-                    targetWidth, targetHeight, scaleX, scaleY);
+                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
             if (shadingType.Value == 4)
                 return resolved is PdfStream freeForm
                     ? RenderFreeFormMeshShading(freeForm, resources, state, target,
@@ -2752,7 +2752,7 @@ public sealed class PdfPageRenderer
                     : throw new FormatException("A patch mesh shading must be a stream.");
             if (shadingType.Value == 3)
                 return RenderRadialShading(shading, resources, state, target,
-                    targetWidth, targetHeight, scaleX, scaleY);
+                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
             if (shadingType.Value != 2) throw new NotSupportedException();
             if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
                 throw new FormatException("An axial shading color space is missing.");
@@ -2793,6 +2793,8 @@ public sealed class PdfPageRenderer
             (int left, int top, int right, int bottom) = GetRasterBounds(
                 state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
             for (int y = top; y < bottom; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (int x = left; x < right; x++)
                 {
                     double pageX = (x + 0.5) / scaleX;
@@ -2808,6 +2810,7 @@ public sealed class PdfPageRenderer
                     SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha,
                         state.BlendMode, state.GraphicsSoftMask, state.Knockout);
                 }
+            }
             return true;
         }
         catch (NotSupportedException)
@@ -2819,7 +2822,7 @@ public sealed class PdfPageRenderer
 
     private bool RenderFunctionShading(PdfDictionary shading, PdfDictionary resources,
         GraphicsState state, byte[] target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY)
+        double scaleX, double scaleY, CancellationToken cancellationToken)
     {
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A function shading color space is missing.");
@@ -2845,6 +2848,8 @@ public sealed class PdfPageRenderer
         (int left, int top, int right, int bottom) = GetRasterBounds(
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
         for (int y = top; y < bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x < right; x++)
             {
                 double pageX = (x + 0.5) / scaleX;
@@ -2857,6 +2862,7 @@ public sealed class PdfPageRenderer
                 SetPixel(target, targetWidth, x, y, function([point.X, point.Y]),
                     state.FillAlpha, state.BlendMode, state.GraphicsSoftMask, state.Knockout);
             }
+        }
         return true;
     }
 
@@ -3235,7 +3241,7 @@ public sealed class PdfPageRenderer
 
     private bool RenderRadialShading(PdfDictionary shading, PdfDictionary resources,
         GraphicsState state, byte[] target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY)
+        double scaleX, double scaleY, CancellationToken cancellationToken)
     {
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A radial shading color space is missing.");
@@ -3277,6 +3283,8 @@ public sealed class PdfPageRenderer
         (int left, int top, int right, int bottom) = GetRasterBounds(
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
         for (int y = top; y < bottom; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             for (int x = left; x < right; x++)
             {
                 double pageX = (x + 0.5) / scaleX;
@@ -3295,6 +3303,7 @@ public sealed class PdfPageRenderer
                 SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha,
                     state.BlendMode, state.GraphicsSoftMask, state.Knockout);
             }
+        }
         return true;
     }
 
