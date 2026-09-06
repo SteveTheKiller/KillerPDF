@@ -80,7 +80,7 @@ public static class PdfOcrLayoutAnalyzer
                 Visit(x - 1, y);                         Visit(x + 1, y);
                 Visit(x - 1, y + 1); Visit(x, y + 1); Visit(x + 1, y + 1);
             }
-            if (count >= 2 && right - left <= width * 3 / 4 && bottom - top <= height * 3 / 4)
+            if (count >= 1 && right - left <= width * 3 / 4 && bottom - top <= height * 3 / 4)
                 components.Add(new PdfOcrImageRegion(left, top, right, bottom));
 
             void Visit(int x, int y)
@@ -93,12 +93,38 @@ public static class PdfOcrLayoutAnalyzer
             }
         }
 
+        components = FilterIsolatedSinglePixels(components);
         components = SplitTouchingGlyphs(components, pixels, width);
         components = FilterGraphicOutliers(components);
         components = MergeDetachedMarks(components);
         IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> columns = detectPageSegments
             ? SplitColumns(components) : components.Count == 0 ? [] : [components];
         return new PdfOcrPageLayout(columns.Select(column => Segment(BuildLines(column))));
+    }
+
+    private static List<PdfOcrImageRegion> FilterIsolatedSinglePixels(
+        IReadOnlyList<PdfOcrImageRegion> components)
+    {
+        int[] textHeights = [.. components
+            .Where(component => component.Width > 1 || component.Height > 1)
+            .Select(component => component.Height).OrderBy(value => value)];
+        if (textHeights.Length == 0) return [];
+        int referenceHeight = textHeights[textHeights.Length / 2];
+        int maximumHorizontalGap = Math.Max(2, referenceHeight / 2);
+        int maximumVerticalGap = Math.Max(2, referenceHeight);
+        return [.. components.Where(component => component.Width > 1
+            || component.Height > 1 || components.Any(neighbor =>
+                !ReferenceEquals(neighbor, component)
+                && (neighbor.Width > 1 || neighbor.Height > 1)
+                && AxisGap(component.Left, component.Right,
+                    neighbor.Left, neighbor.Right) <= maximumHorizontalGap
+                && AxisGap(component.Top, component.Bottom,
+                    neighbor.Top, neighbor.Bottom) <= maximumVerticalGap))];
+
+        static int AxisGap(int firstStart, int firstEnd,
+            int secondStart, int secondEnd) => firstEnd <= secondStart
+                ? secondStart - firstEnd
+                : secondEnd <= firstStart ? firstStart - secondEnd : 0;
     }
 
     private static List<PdfOcrImageRegion> SplitTouchingGlyphs(

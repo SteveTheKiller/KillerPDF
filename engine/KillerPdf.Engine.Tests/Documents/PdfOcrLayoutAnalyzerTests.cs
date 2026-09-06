@@ -76,6 +76,23 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_RetainsSinglePixelPunctuationNearText()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();
+        Paint(pixels, 14, 3, 3, 2, 5);
+        pixels[1 * 14 + 3] = 0;
+        Paint(pixels, 14, 9, 3, 3, 5);
+        pixels[7 * 14 + 13] = 0;
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(14, 9, pixels));
+
+        Assert.Equal(3, layout.Components.Count);
+        Assert.Contains(new PdfOcrImageRegion(3, 1, 5, 8), layout.Components);
+        Assert.Contains(new PdfOcrImageRegion(13, 7, 14, 8), layout.Components);
+    }
+
+    [Fact]
     public void Analyze_KeepsDiagonalStrokesConnected()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 8 * 8).ToArray();
