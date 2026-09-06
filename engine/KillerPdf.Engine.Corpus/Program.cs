@@ -481,6 +481,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine("The OCR corpus contains no PDF files.");
         return 2;
     }
+    Console.WriteLine($"OCR checkpoint: {ocrFiles.Length:N0} PDF files, "
+        + $"{pagesPerFile:N0} page(s) per file, {renderSize:N0}-pixel render, "
+        + $"{modelWidth}x{modelHeight} model, {holdoutPercent}% holdout.");
+    Console.WriteLine("OCR checkpoint source: "
+        + (ocrFileListPath ?? $"{ocrRoot} (directory enumeration)"));
     var trainingStarted = Stopwatch.StartNew();
     int trainingSampleCount = 0;
     PdfOcrRecognitionModel ocrModel;
