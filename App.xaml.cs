@@ -1896,6 +1896,20 @@ namespace KillerPDF
                 @"Software\Classes\KillerPDF.pdf\shell\open\command"))
                 k.SetValue("", $"\"{exePath}\" \"%1\"");
 
+            // Explorer identifies the installed payload by its internal executable name unless
+            // the application registration supplies a friendly product name.
+            using (var k = root.CreateSubKey(
+                @"Software\Classes\Applications\KillerPDF.App.exe"))
+                k.SetValue("FriendlyAppName", AppName);
+
+            using (var k = root.CreateSubKey(
+                @"Software\Classes\Applications\KillerPDF.App.exe\shell\open\command"))
+                k.SetValue("", $"\"{exePath}\" \"%1\"");
+
+            using (var k = root.CreateSubKey(
+                @"Software\Classes\Applications\KillerPDF.App.exe\SupportedTypes"))
+                k.SetValue(".pdf", "");
+
             // Associate .pdf extension - adds KillerPDF to the "Open with" list
             using (var k = root.CreateSubKey(
                 @"Software\Classes\.pdf\OpenWithProgids"))
@@ -1929,6 +1943,7 @@ namespace KillerPDF
         private static void UnregisterFileHandler(RegistryKey root)
         {
             try { root.DeleteSubKeyTree(@"Software\Classes\KillerPDF.pdf", false); } catch { }
+            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.App.exe", false); } catch { }
             try { root.DeleteSubKeyTree(@"Software\KillerPDF\Capabilities", false); } catch { }
             try
             {
