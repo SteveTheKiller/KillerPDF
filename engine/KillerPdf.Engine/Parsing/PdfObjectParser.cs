@@ -63,6 +63,13 @@ public sealed class PdfObjectParser(
     public PdfIndirectObject ParseIndirectObject() =>
         ParseIndirectObjectCore(out _);
 
+    internal PdfIndirectObject ParseIndirectObject(out int endOffset)
+    {
+        PdfIndirectObject result = ParseIndirectObjectCore(out _);
+        endOffset = _tokenizer.Position;
+        return result;
+    }
+
     internal PdfIndirectObject ParseIndirectDictionaryObject(
         out int dictionaryEndOffset)
     {

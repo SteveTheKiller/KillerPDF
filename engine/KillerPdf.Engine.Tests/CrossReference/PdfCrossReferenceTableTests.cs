@@ -9,6 +9,26 @@ namespace KillerPdf.Engine.Tests.CrossReference;
 public sealed class PdfCrossReferenceTableTests
 {
     [Fact]
+    public void Read_CompatibilityRecoveryRebuildsAnEmptyMalformedTable()
+    {
+        var source = new StringBuilder("%PDF-1.7\n");
+        int objectOffset = source.Length;
+        source.Append("1 0 obj\n<< /Type /Catalog >>\nendobj\n");
+        source.Append("xref\n0 \ntrailer\n<< /Size 0 /Root 1 0 R >>\n");
+        source.Append("startxref\n0\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Throws<PdfSyntaxException>(() => PdfCrossReferenceTable.Read(bytes));
+
+        PdfCrossReferenceTable recovered = PdfCrossReferenceTable.Read(
+            bytes, compatibilityRecovery: true);
+
+        Assert.Equal(PdfCrossReferenceEntryType.InUse, recovered[1].Type);
+        Assert.Equal(objectOffset, recovered[1].Field1);
+        Assert.IsType<PdfIndirectReference>(recovered.MergedTrailer[Name("Root")]);
+    }
+
+    [Fact]
     public void Read_MergesIncrementalRevisionsNewestFirstAndInheritsTrailerValues()
     {
         var source = new StringBuilder("%PDF-2.0\n");

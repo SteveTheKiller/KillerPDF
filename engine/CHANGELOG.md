@@ -43,6 +43,10 @@ The 1.9.0 engine adds page-content extraction and begins engine-owned page rende
 - Added unified print-production reports with complete page boxes, resource-aware nonzero process and spot-ink inspection, page-range preview planning, readable and data-safe JSON output, and validated output-intent ICC profile details (#264).
 - Added per-image CCITT Group 4, adaptive predictor, or plain Flate selection for smaller lossless raster pages, plus strict full-page JPEG passthrough detection (#366).
 
+### Fixed
+
+- Recovered documents whose malformed empty cross-reference tables require bounded indirect-object reconstruction.
+
 ## [1.8.3] - 2026-09-02
 
 The 1.8.3 engine package matches the engine source shipped with KillerPDF 1.8.3.

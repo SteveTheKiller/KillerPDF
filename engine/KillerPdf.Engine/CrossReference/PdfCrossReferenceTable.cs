@@ -203,6 +203,10 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
                 AddNewest(entries, revision.Hybrid.Values);
             AddNewest(entries, revision.Primary.Values);
         }
+        if (compatibilityRecovery && !entries.Values.Any(entry =>
+                entry.Type is PdfCrossReferenceEntryType.InUse
+                    or PdfCrossReferenceEntryType.Compressed))
+            RebuildEntries(source, header.Offset, startXref.MarkerOffset, entries);
         if (!entries.TryGetValue(0, out PdfCrossReferenceEntry objectZero)
             || objectZero.Type != PdfCrossReferenceEntryType.Free)
             entries[0] = new PdfCrossReferenceEntry(
@@ -210,6 +214,55 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         ValidateFreeList(entries, startXref.Offset);
 
         return new PdfCrossReferenceTable(header, startXref, revisions, entries);
+    }
+
+    private static void RebuildEntries(ReadOnlyMemory<byte> source, int start, int end,
+        Dictionary<int, PdfCrossReferenceEntry> entries)
+    {
+        ReadOnlySpan<byte> bytes = source.Span;
+        int position = Math.Clamp(start, 0, bytes.Length);
+        int limit = Math.Clamp(end, position, bytes.Length);
+        while (position < limit)
+        {
+            int candidate = position;
+            while (candidate < limit && bytes[candidate] is (byte)' ' or (byte)'\t')
+                candidate++;
+            if (candidate < limit && bytes[candidate] is >= (byte)'1' and <= (byte)'9')
+            {
+                PdfIndirectObject? indirect = null;
+                int objectEnd = 0;
+                try
+                {
+                    var parser = new PdfObjectParser(source, candidate,
+                        allowDuplicateDictionaryKeys: true);
+                    indirect = parser.ParseIndirectObject(out objectEnd);
+                }
+                catch (Exception error) when (error is PdfSyntaxException
+                    or FormatException or NotSupportedException or OverflowException)
+                {
+                }
+                if (indirect is not null && indirect.Offset == candidate
+                    && indirect.ObjectNumber > 0 && objectEnd > candidate
+                    && objectEnd <= limit)
+                {
+                    if (!entries.ContainsKey(indirect.ObjectNumber)
+                        && entries.Count >= PdfCrossReferenceReader.MaximumEntriesPerSection)
+                        throw new PdfSyntaxException(
+                            "The rebuilt cross-reference entry limit was exceeded", candidate);
+                    entries[indirect.ObjectNumber] = new PdfCrossReferenceEntry(
+                        indirect.ObjectNumber, PdfCrossReferenceEntryType.InUse,
+                        candidate, indirect.Generation);
+                    position = objectEnd;
+                    continue;
+                }
+            }
+            int lineEnd = bytes[position..limit].IndexOfAny((byte)'\r', (byte)'\n');
+            if (lineEnd < 0) break;
+            position += lineEnd + 1;
+            if (position < limit && bytes[position - 1] == (byte)'\r'
+                && bytes[position] == (byte)'\n')
+                position++;
+        }
     }
 
     private static LinearizationInfo? ReadLinearizationInfo(

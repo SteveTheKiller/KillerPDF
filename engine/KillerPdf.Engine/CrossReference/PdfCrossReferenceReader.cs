@@ -173,6 +173,19 @@ public static class PdfCrossReferenceReader
 
             long firstObject = ParseInteger(first, "An xref subsection must begin with an object number");
             PdfToken countToken = tokenizer.Read();
+            if (compatibilityRecovery && IsKeyword(countToken, "trailer"))
+            {
+                var parser = new PdfObjectParser(source, tokenizer.Position,
+                    allowDuplicateDictionaryKeys: true);
+                if (parser.ParseObject() is not PdfDictionary recoveredTrailer)
+                    throw Error("A classic xref trailer must be a dictionary", tokenizer.Position);
+                ValidateSize(recoveredTrailer, entries.Values, countToken.Offset,
+                    compatibilityRecovery: true);
+                ValidateTrailerOffsets(recoveredTrailer, source.Length, countToken.Offset,
+                    compatibilityRecovery: true);
+                return new PdfCrossReferenceSection(xrefToken.Offset, entries.Values,
+                    recoveredTrailer, isStream: false, compatibilityRecovery: true);
+            }
             long count = ParseInteger(countToken, "An xref subsection must include an entry count");
             if (firstObject < 0 || firstObject > int.MaxValue
                 || count < 0 || count > int.MaxValue - firstObject)
