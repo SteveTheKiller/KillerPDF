@@ -85,7 +85,8 @@ public static class PdfOcrModelTrainer
     private const int MaximumSamples = 10_000_000;
     private const int MaximumModelValues = 16 * 1024 * 1024;
     private const int MaximumPrototypesPerShape = 96;
-    private const double LabelPriorWeight = 0.000001;
+    private const int MaximumLabelsPerComponent = 4;
+    private const double LabelPriorWeight = 0.25;
     private static readonly PdfStandardFont[] StandardTrainingFonts =
     [
         PdfStandardFont.Helvetica,
@@ -289,15 +290,20 @@ public static class PdfOcrModelTrainer
                 letter.BoundingBox, page, rendered.Width, rendered.Height);
             if (bounds is not null) labels.Add((label, bounds));
         }
+        IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> assignments =
+            AssignComponentsToLabels(components,
+                [.. labels.Select(label => label.Bounds)], cancellationToken);
+        Dictionary<PdfOcrImageRegion, int> assignmentCounts = assignments
+            .SelectMany(assignment => assignment)
+            .GroupBy(component => component)
+            .ToDictionary(group => group.Key, group => group.Count());
         var samples = new List<PdfOcrTrainingSample>();
         for (int index = 0; index < labels.Count; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             PdfOcrImageRegion labelBounds = labels[index].Bounds;
-            PdfOcrImageRegion[] glyph = [.. components.Where(component =>
-                BelongsToLabel(component, labelBounds))
-                .Select(component => labels.Where((label, candidateIndex) =>
-                    candidateIndex != index && BelongsToLabel(component, label.Bounds)).Any()
+            PdfOcrImageRegion[] glyph = [.. assignments[index]
+                .Select(component => assignmentCounts[component] > 1
                     ? new PdfOcrImageRegion(
                         Math.Max(component.Left, labelBounds.Left),
                         Math.Max(component.Top, labelBounds.Top),
@@ -325,17 +331,65 @@ public static class PdfOcrModelTrainer
         return Array.AsReadOnly(samples.ToArray());
     }
 
-    internal static bool BelongsToLabel(PdfOcrImageRegion component,
-        PdfOcrImageRegion labelBounds)
+    internal static IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>>
+        AssignComponentsToLabels(IReadOnlyList<PdfOcrImageRegion> components,
+            IReadOnlyList<PdfOcrImageRegion> labels,
+            CancellationToken cancellationToken = default)
     {
-        int componentCenterX = (component.Left + component.Right) / 2;
-        int componentCenterY = (component.Top + component.Bottom) / 2;
-        int labelCenterX = (labelBounds.Left + labelBounds.Right) / 2;
-        int labelCenterY = (labelBounds.Top + labelBounds.Bottom) / 2;
-        return componentCenterX >= labelBounds.Left && componentCenterX <= labelBounds.Right
-            && componentCenterY >= labelBounds.Top && componentCenterY <= labelBounds.Bottom
-            || labelCenterX >= component.Left && labelCenterX <= component.Right
-            && labelCenterY >= component.Top && labelCenterY <= component.Bottom;
+        ArgumentNullException.ThrowIfNull(components);
+        ArgumentNullException.ThrowIfNull(labels);
+        var assignments = labels.Select(_ => new List<PdfOcrImageRegion>()).ToArray();
+        for (int componentIndex = 0; componentIndex < components.Count; componentIndex++)
+        {
+            if ((componentIndex & 0x3FF) == 0)
+                cancellationToken.ThrowIfCancellationRequested();
+            PdfOcrImageRegion component = components[componentIndex];
+            int[] centerOwners = [.. Enumerable.Range(0, labels.Count)
+                .Where(labelIndex => Contains(component, CenterX(labels[labelIndex]),
+                    CenterY(labels[labelIndex])))];
+            if (centerOwners.Length > MaximumLabelsPerComponent) continue;
+            if (centerOwners.Length > 0)
+            {
+                foreach (int sharedOwner in centerOwners)
+                    assignments[sharedOwner].Add(component);
+                continue;
+            }
+
+            int componentCenterX = CenterX(component);
+            int componentCenterY = CenterY(component);
+            int owner = -1;
+            int bestOverlap = -1;
+            long bestDistance = long.MaxValue;
+            for (int labelIndex = 0; labelIndex < labels.Count; labelIndex++)
+            {
+                PdfOcrImageRegion label = labels[labelIndex];
+                if (!Contains(label, componentCenterX, componentCenterY)) continue;
+                int overlap = Math.Max(0, Math.Min(component.Right, label.Right)
+                        - Math.Max(component.Left, label.Left))
+                    * Math.Max(0, Math.Min(component.Bottom, label.Bottom)
+                        - Math.Max(component.Top, label.Top));
+                long dx = componentCenterX - CenterX(label);
+                long dy = componentCenterY - CenterY(label);
+                long distance = dx * dx + dy * dy;
+                if (overlap > bestOverlap || overlap == bestOverlap && distance < bestDistance)
+                {
+                    owner = labelIndex;
+                    bestOverlap = overlap;
+                    bestDistance = distance;
+                }
+            }
+            if (owner >= 0) assignments[owner].Add(component);
+        }
+        return Array.AsReadOnly(assignments.Select(assignment =>
+            (IReadOnlyList<PdfOcrImageRegion>)Array.AsReadOnly(assignment.ToArray())).ToArray());
+
+        static int CenterX(PdfOcrImageRegion region) =>
+            (region.Left + region.Right) / 2;
+        static int CenterY(PdfOcrImageRegion region) =>
+            (region.Top + region.Bottom) / 2;
+        static bool Contains(PdfOcrImageRegion region, int x, int y) =>
+            x >= region.Left && x <= region.Right
+            && y >= region.Top && y <= region.Bottom;
     }
 
     /// <summary>Evaluates a model against labeled normalized glyphs.</summary>

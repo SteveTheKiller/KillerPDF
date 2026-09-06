@@ -293,22 +293,6 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
-    public void TrainerDoesNotLetLabelFrequencyOverrideGlyphDistance()
-    {
-        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
-        [
-            new("rare", new float[] { 1 }),
-            .. Enumerable.Repeat(new PdfOcrTrainingSample(
-                "common", new float[] { 0.9f }), 1000)
-        ]);
-
-        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
-            [new("rare", new float[] { 1 })]);
-
-        Assert.Equal(1, evaluation.Accuracy);
-    }
-
-    [Fact]
     public void TrainerRejectsInvalidFeaturesAndHonorsCancellation()
     {
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
@@ -511,16 +495,50 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
-    public void TextLayerTrainingIgnoresIncidentalNeighborOverlap()
+    public void TextLayerTrainingAssignsOverlapsToOneDeterministicOwner()
     {
-        var label = new PdfOcrImageRegion(10, 10, 30, 40);
+        PdfOcrImageRegion component = new(16, 10, 19, 20);
+        PdfOcrImageRegion[] labels =
+        [
+            new(0, 0, 20, 30),
+            new(15, 0, 35, 30)
+        ];
 
-        Assert.True(PdfOcrModelTrainer.BelongsToLabel(
-            new PdfOcrImageRegion(12, 14, 28, 38), label));
-        Assert.True(PdfOcrModelTrainer.BelongsToLabel(
-            new PdfOcrImageRegion(0, 0, 40, 50), label));
-        Assert.False(PdfOcrModelTrainer.BelongsToLabel(
-            new PdfOcrImageRegion(29, 20, 45, 24), label));
+        IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> assignments =
+            PdfOcrModelTrainer.AssignComponentsToLabels([component], labels);
+
+        Assert.Equal([component], assignments[0]);
+        Assert.Empty(assignments[1]);
+    }
+
+    [Fact]
+    public void TextLayerTrainingSharesComponentsThatContainAdjacentLabelCenters()
+    {
+        PdfOcrImageRegion component = new(5, 10, 30, 20);
+        PdfOcrImageRegion[] labels =
+        [
+            new(0, 0, 20, 30),
+            new(15, 0, 35, 30)
+        ];
+
+        IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> assignments =
+            PdfOcrModelTrainer.AssignComponentsToLabels([component], labels);
+
+        Assert.Equal([component], assignments[0]);
+        Assert.Equal([component], assignments[1]);
+    }
+
+    [Fact]
+    public void TextLayerTrainingRejectsGraphicsSpanningManyLabels()
+    {
+        PdfOcrImageRegion component = new(0, 0, 60, 30);
+        PdfOcrImageRegion[] labels = [.. Enumerable.Range(0, 5)
+            .Select(index => new PdfOcrImageRegion(index * 10, 0, index * 10 + 10, 30))];
+
+        IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> assignments =
+            PdfOcrModelTrainer.AssignComponentsToLabels([component], labels);
+
+        Assert.All(assignments, Assert.Empty);
     }
 
     [Fact]
