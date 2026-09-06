@@ -113,6 +113,39 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void VisualSimilarityCanOverrideAStrayPixelShapeMismatch()
+    {
+        float[] narrow =
+        [
+            0, 1, 0,
+            0, 1, 0,
+            0, 1, 0
+        ];
+        float[] normal =
+        [
+            1, 1, 0,
+            1, 0, 0,
+            0, 0, 0
+        ];
+        float[] noisyNarrow =
+        [
+            0, 1, 0,
+            0.2f, 1, 0,
+            0, 1, 0
+        ];
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(3, 3,
+        [
+            new("correct", narrow),
+            new("wrong", normal)
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("correct", noisyNarrow)]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
     public void TrainerKeepsRepresentativeVariantsWithinOneShapeBucket()
     {
         float[] left =

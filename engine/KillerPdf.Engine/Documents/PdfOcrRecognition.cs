@@ -11,10 +11,12 @@ namespace KillerPdf.Engine.Documents;
 public sealed class PdfOcrRecognitionModel
 {
     private static readonly byte[] Magic = "KPOCR1\0"u8.ToArray();
+    private const double ShapeMismatchPenalty = 0.25;
     private readonly string[] _labels;
     private readonly float[] _weights;
     private readonly float[] _biases;
     private readonly sbyte[] _shapeBuckets;
+    private readonly Dictionary<string, int> _labelShapeMasks;
     private readonly bool _usesPrototypeShapes;
 
     private PdfOcrRecognitionModel(int width, int height, string[] labels,
@@ -28,9 +30,15 @@ public sealed class PdfOcrRecognitionModel
         _usesPrototypeShapes = !weights.AsSpan().ContainsAnyExceptInRange(0, float.MaxValue);
         int featureCount = checked(width * height);
         _shapeBuckets = new sbyte[labels.Length];
+        _labelShapeMasks = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int label = 0; label < labels.Length; label++)
+        {
             _shapeBuckets[label] = checked((sbyte)ShapeBucket(
                 weights.AsSpan(label * featureCount, featureCount), width, height));
+            if (_shapeBuckets[label] >= 0)
+                _labelShapeMasks[labels[label]] = _labelShapeMasks.GetValueOrDefault(labels[label])
+                    | 1 << _shapeBuckets[label];
+        }
         Labels = Array.AsReadOnly(labels.Distinct(StringComparer.Ordinal).ToArray());
     }
 
@@ -243,15 +251,18 @@ public sealed class PdfOcrRecognitionModel
         if (scores.Length < _labels.Length) throw new ArgumentException("OCR score workspace is too small.");
         scores = scores[.._labels.Length];
         int shape = ShapeBucket(features, Width, Height);
-        bool restrictShape = _usesPrototypeShapes && shape >= 0
-            && Enumerable.Range(0, _labels.Length).Any(label =>
-            _shapeBuckets[label] == shape
-            && (allowedLabels is null || allowedLabels.Contains(_labels[label])));
         int best = -1;
         for (int label = 0; label < _labels.Length; label++)
         {
-            if ((allowedLabels is not null && !allowedLabels.Contains(_labels[label]))
-                || (restrictShape && _shapeBuckets[label] != shape))
+            if (allowedLabels is not null && !allowedLabels.Contains(_labels[label]))
+            {
+                scores[label] = double.NegativeInfinity;
+                continue;
+            }
+            bool shapeMismatch = _usesPrototypeShapes && shape >= 0
+                && _shapeBuckets[label] >= 0 && _shapeBuckets[label] != shape;
+            if (shapeMismatch
+                && (_labelShapeMasks[_labels[label]] & 1 << shape) != 0)
             {
                 scores[label] = double.NegativeInfinity;
                 continue;
@@ -270,6 +281,8 @@ public sealed class PdfOcrRecognitionModel
             }
             for (; feature < featureCount; feature++)
                 score += _weights[offset + feature] * features[feature];
+            if (shapeMismatch)
+                score -= ShapeMismatchPenalty;
             scores[label] = score;
             if (best < 0 || score > scores[best]) best = label;
         }
