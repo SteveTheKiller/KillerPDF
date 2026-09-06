@@ -1067,15 +1067,33 @@ public static class PdfOcrRecognizer
     {
         ArgumentNullException.ThrowIfNull(line);
         if (line.Components.Count == 0) return line.Bounds;
-        int[] heights = [.. line.Components.Select(component => component.Height)
-            .OrderBy(value => value)];
-        int[] bottoms = [.. line.Components.Select(component => component.Bottom)
-            .OrderBy(value => value)];
-        int height = heights[heights.Length / 2];
-        if (line.Bounds.Height <= height * 2) return line.Bounds;
-        int bottom = bottoms[bottoms.Length / 2];
-        return new PdfOcrImageRegion(
-            line.Bounds.Left, bottom - height, line.Bounds.Right, bottom);
+        int count = line.Components.Count;
+        int valueCount = checked(count * 2);
+        int[]? rented = null;
+        Span<int> values = valueCount <= 256
+            ? stackalloc int[valueCount]
+            : (rented = ArrayPool<int>.Shared.Rent(valueCount));
+        try
+        {
+            Span<int> heights = values[..count];
+            Span<int> bottoms = values.Slice(count, count);
+            for (int index = 0; index < count; index++)
+            {
+                heights[index] = line.Components[index].Height;
+                bottoms[index] = line.Components[index].Bottom;
+            }
+            heights.Sort();
+            bottoms.Sort();
+            int height = heights[count / 2];
+            if ((long)line.Bounds.Height <= (long)height * 2) return line.Bounds;
+            int bottom = bottoms[count / 2];
+            return new PdfOcrImageRegion(
+                line.Bounds.Left, bottom - height, line.Bounds.Right, bottom);
+        }
+        finally
+        {
+            if (rented is not null) ArrayPool<int>.Shared.Return(rented);
+        }
     }
 
     private static void NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
