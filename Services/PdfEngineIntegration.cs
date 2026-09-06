@@ -544,15 +544,9 @@ internal static class PdfEngineIntegration
         bool Bitonal = false,
         bool Grayscale = false);
 
-    internal sealed record SearchableWord(
-        string Text, int Left, int Top, int Right, int Bottom);
-
-    internal sealed record SearchablePage(
-        int PixelWidth, int PixelHeight, IReadOnlyList<SearchableWord> Words);
-
     /// <summary>Appends invisible, Unicode-mapped OCR text to every supplied page.</summary>
     internal static int AddSearchableTextLayers(
-        string sourcePath, string destinationPath, IReadOnlyList<SearchablePage> pages)
+        string sourcePath, string destinationPath, IReadOnlyList<PdfOcrPixelPage> pages)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sourcePath);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
@@ -572,12 +566,8 @@ internal static class PdfEngineIntegration
             }
             return CanMap(font, text) ? font : null;
         }
-        PdfOcrPixelPage[] enginePages = [.. pages.Select(page => new PdfOcrPixelPage(
-            page.PixelWidth, page.PixelHeight, [.. page.Words.Select(word =>
-                new PdfOcrPixelWord(word.Text, 0, word.Left, word.Top,
-                    word.Right, word.Bottom))]))];
         PdfOcrSearchableTextResult result = PdfOcrSearchableTextWriter.Write(
-            document, enginePages, ResolveFont);
+            document, pages, ResolveFont);
         ReplaceWithBuiltResult(destinationPath, result.Document);
         return result.WrittenWords;
     }

@@ -283,7 +283,7 @@ namespace KillerPDF.Features
                         (IReadOnlyList<KillerPdf.Engine.Documents.PdfFormWidgetInfo>)
                         [])
                 ];
-            var layers = new List<PdfEngineIntegration.SearchablePage>(pages);
+            var layers = new List<PdfOcrPixelPage>(pages);
             for (int i = 0; i < pages; i++)
             {
                 // Cooperative cancel: bail before the next page; the caller sees the canceled token and the
@@ -297,7 +297,7 @@ namespace KillerPDF.Features
                 byte[] bgra = page.Pixels;
                 if (bgra is null || bgra.Length == 0 || w <= 0 || h <= 0)
                 {
-                    layers.Add(new PdfEngineIntegration.SearchablePage(
+                    layers.Add(new PdfOcrPixelPage(
                         Math.Max(1, w), Math.Max(1, h), []));
                     continue;
                 }
@@ -306,9 +306,7 @@ namespace KillerPDF.Features
                     ? FormAwareOcr.Recognize(
                         ocr, bgra, w, h, formPages[i], cancellationToken: ct)
                     : ocr.RecognizeBgra(bgra, w, h, cancellationToken: ct);
-                layers.Add(new PdfEngineIntegration.SearchablePage(w, h,
-                    [.. result.Words.Select(word => new PdfEngineIntegration.SearchableWord(
-                        word.Text, word.Left, word.Top, word.Right, word.Bottom))]));
+                layers.Add(new PdfOcrPixelPage(w, h, result.Words));
             }
             if (ct.IsCancellationRequested) return (pages, 0);
             int totalWords = PdfEngineIntegration.AddSearchableTextLayers(

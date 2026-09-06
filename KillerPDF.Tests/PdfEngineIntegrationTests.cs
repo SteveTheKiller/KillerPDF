@@ -337,15 +337,15 @@ public sealed class PdfEngineIntegrationTests
             File.WriteAllBytes(input, source);
             var words = new[]
             {
-                new PdfEngineIntegration.SearchableWord("Hello", 10, 10, 80, 30),
-                new PdfEngineIntegration.SearchableWord("বাংলা", 10, 40, 100, 65),
-                new PdfEngineIntegration.SearchableWord("日本語", 10, 75, 100, 100),
-                new PdfEngineIntegration.SearchableWord("中文", 10, 110, 80, 135),
+                new PdfOcrPixelWord("Hello", 0, 10, 10, 80, 30),
+                new PdfOcrPixelWord("বাংলা", 0, 10, 40, 100, 65),
+                new PdfOcrPixelWord("日本語", 0, 10, 75, 100, 100),
+                new PdfOcrPixelWord("中文", 0, 10, 110, 80, 135),
             };
 
             int count = PdfEngineIntegration.AddSearchableTextLayers(
                 input, output,
-                [new PdfEngineIntegration.SearchablePage(300, 400, words)]);
+                [new PdfOcrPixelPage(300, 400, words)]);
 
             Assert.Equal(4, count);
             Assert.True(File.ReadAllBytes(output).AsSpan(0, source.Length).SequenceEqual(source));
@@ -380,11 +380,11 @@ public sealed class PdfEngineIntegrationTests
                 .SetRotation(2, 180).SetRotation(3, 270).Build();
             File.WriteAllBytes(input, source);
             var layers = Enumerable.Range(0, 4).Select(index =>
-                new PdfEngineIntegration.SearchablePage(
+                new PdfOcrPixelPage(
                     index % 2 == 0 ? 300 : 400,
                     index % 2 == 0 ? 400 : 300,
-                    [new PdfEngineIntegration.SearchableWord(
-                        $"Rotation{index}", 10, 10, 120, 35)])).ToArray();
+                    [new PdfOcrPixelWord(
+                        $"Rotation{index}", 0, 10, 10, 120, 35)])).ToArray();
 
             Assert.Equal(4, PdfEngineIntegration.AddSearchableTextLayers(
                 input, output, layers));
