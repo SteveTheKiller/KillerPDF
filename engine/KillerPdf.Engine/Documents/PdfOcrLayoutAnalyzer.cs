@@ -157,10 +157,14 @@ public static class PdfOcrLayoutAnalyzer
         int imageWidth)
     {
         var split = new List<PdfOcrImageRegion>(components.Count);
+        int referenceWidth = components.Count < 2 ? 0 : components
+            .Select(component => component.Width).OrderBy(width => width)
+            .ElementAt(components.Count / 2);
         foreach (PdfOcrImageRegion component in components)
         {
             if (component.Height < 3
-                || component.Width * 5 < component.Height * 6)
+                || component.Width * 5 < component.Height * 6
+                || referenceWidth > 0 && component.Width <= referenceWidth * 2)
             {
                 split.Add(component);
                 continue;

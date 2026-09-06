@@ -177,6 +177,24 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_DoesNotSplitWideGlyphsThatMatchThePageScale()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 24 * 7).ToArray();
+        Paint(pixels, 24, 1, 1, 2, 4);
+        Paint(pixels, 24, 5, 1, 2, 4);
+        pixels[2 * 24 + 3] = 0;
+        pixels[2 * 24 + 4] = 0;
+        Paint(pixels, 24, 12, 1, 3, 4);
+        Paint(pixels, 24, 18, 1, 3, 4);
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(24, 7, pixels));
+
+        Assert.Equal(3, layout.Components.Count);
+        Assert.Equal(new PdfOcrImageRegion(1, 1, 7, 5), layout.Components[0]);
+    }
+
+    [Fact]
     public void Analyze_MergesAlignedPunctuationStrokes()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();
