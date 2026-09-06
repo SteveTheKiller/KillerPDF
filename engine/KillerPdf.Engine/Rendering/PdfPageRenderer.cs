@@ -1353,7 +1353,8 @@ public sealed class PdfPageRenderer
             byte[] bytes = _document.DecodeStream(value,
                 PdfContentStreamReader.MaximumSourceBytes);
             return new ParsedStream(PdfContentStreamReader.Read(bytes,
-                cancellationToken: cancellationToken), bytes.Length);
+                cancellationToken: cancellationToken,
+                compatibilityRecovery: _document.UsesCompatibilityRecovery), bytes.Length);
         }).Instructions;
 
     private bool EvaluateOptionalContent(PdfObject value,

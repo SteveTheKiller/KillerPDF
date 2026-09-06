@@ -20,13 +20,15 @@ public static class PdfContentStreamReader
     /// <param name="maximumOperands">Maximum direct operands preceding any one operator.</param>
     /// <param name="resolveColorComponents">Resolves component counts for resource-named inline image color spaces.</param>
     /// <param name="cancellationToken">Cancellation checked between operands and instructions.</param>
+    /// <param name="compatibilityRecovery">Allows bounded recovery for malformed content accepted by common viewers.</param>
     /// <returns>Instructions in source order. No partial result is returned on failure.</returns>
     public static IReadOnlyList<PdfContentInstruction> Read(
         ReadOnlyMemory<byte> source,
         int maximumInstructions = 1_000_000,
         int maximumOperands = 4096,
         Func<PdfName, int?>? resolveColorComponents = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool compatibilityRecovery = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumInstructions);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOperands);
@@ -64,7 +66,8 @@ public static class PdfContentStreamReader
                 if (operands.Count != 0)
                     throw new PdfSyntaxException("BI cannot follow operands", token.Offset);
                 instructions.Add(PdfInlineImageReader.Read(parser, source, token.Offset,
-                    maximumOperands, resolveColorComponents, cancellationToken));
+                    maximumOperands, resolveColorComponents, cancellationToken,
+                    compatibilityRecovery));
                 continue;
             }
             if (operation is "R" or "obj" or "endobj" or "stream" or "endstream" or "ID" or "EI")

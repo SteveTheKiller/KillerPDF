@@ -51,7 +51,8 @@ public sealed class PdfPageContentReader
             output.WriteByte((byte)'\n');
         }
         return PdfContentStreamReader.Read(output.ToArray(), cancellationToken: cancellationToken,
-            resolveColorComponents: name => ColorComponents(name, resources, 0));
+            resolveColorComponents: name => ColorComponents(name, resources, 0),
+            compatibilityRecovery: _document.UsesCompatibilityRecovery);
 
         int? ColorComponents(PdfObject value, PdfDictionary current, int depth)
         {
@@ -176,7 +177,8 @@ public sealed class PdfPageContentReader
             var pathSegments = new List<PdfExtractedPathSegment>();
             bool pendingClip = false;
             foreach (var instruction in PdfContentStreamReader.Read(bytes, cancellationToken: cancellationToken,
-                resolveColorComponents: name => ColorComponents(Resource(current, "ColorSpace", name), current, 0)))
+                resolveColorComponents: name => ColorComponents(Resource(current, "ColorSpace", name), current, 0),
+                compatibilityRecovery: _document.UsesCompatibilityRecovery))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 interpretedInstructions.Add(instruction);

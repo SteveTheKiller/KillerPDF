@@ -8,7 +8,7 @@ internal static class PdfInlineImageReader
 {
     internal static PdfContentInstruction Read(PdfObjectParser parser, ReadOnlyMemory<byte> source,
         int offset, int maximumEntries, Func<PdfName, int?>? resolveColorComponents,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool compatibilityRecovery)
     {
         var entries = new Dictionary<PdfName, PdfObject>();
         while (true)
@@ -55,9 +55,16 @@ internal static class PdfInlineImageReader
         if (length > bytes.Length - start)
             throw new PdfSyntaxException("Truncated inline image data", start);
         int end = start + length;
-        if (end >= bytes.Length || !Whitespace(bytes[end]))
+        if (end >= bytes.Length)
             throw new PdfSyntaxException("Inline image data requires whitespace before EI", end);
-        while (end < bytes.Length && Whitespace(bytes[end])) end++;
+        if (Whitespace(bytes[end]))
+        {
+            while (end < bytes.Length && Whitespace(bytes[end])) end++;
+        }
+        else if (!compatibilityRecovery || !EndsInlineImage(bytes, end))
+        {
+            throw new PdfSyntaxException("Inline image data requires whitespace before EI", end);
+        }
         if (end + 2 > bytes.Length || bytes[end] != 'E' || bytes[end + 1] != 'I'
             || (end + 2 < bytes.Length && !Whitespace(bytes[end + 2]) && !Delimiter(bytes[end + 2])))
             throw new PdfSyntaxException("Inline image data must end with EI", end);
@@ -121,6 +128,9 @@ internal static class PdfInlineImageReader
     };
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     internal static bool Whitespace(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32;
+    private static bool EndsInlineImage(ReadOnlySpan<byte> bytes, int offset) =>
+        offset + 2 <= bytes.Length && bytes[offset] == 'E' && bytes[offset + 1] == 'I'
+        && (offset + 2 == bytes.Length || Whitespace(bytes[offset + 2]) || Delimiter(bytes[offset + 2]));
     private static bool Delimiter(byte value) => value is (byte)'/' or (byte)'<' or (byte)'>'
         or (byte)'[' or (byte)']' or (byte)'(' or (byte)')' or (byte)'%';
 }

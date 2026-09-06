@@ -30,6 +30,18 @@ public sealed class PdfInlineImageTests
         Assert.Equal("Q", result[1].Operator);
     }
 
+    [Fact]
+    public void CompatibilityRecoveryAcceptsEiImmediatelyAfterExactSamples()
+    {
+        byte[] content = "BI /W 1 /H 1 /IM true ID xEI Q"u8.ToArray();
+        Assert.Throws<PdfSyntaxException>(() => PdfContentStreamReader.Read(content));
+
+        var result = PdfContentStreamReader.Read(content, compatibilityRecovery: true);
+
+        Assert.Equal("x"u8.ToArray(), result[0].InlineImageData!.Value.ToArray());
+        Assert.Equal("Q", result[1].Operator);
+    }
+
     [Theory]
     [InlineData("/W 1 /Width 1 /H 1 /IM true ID x EI")]
     [InlineData("/W 1 /H 1 /IM true ID x EIx")]
