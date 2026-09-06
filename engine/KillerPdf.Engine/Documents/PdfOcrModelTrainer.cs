@@ -299,7 +299,8 @@ public static class PdfOcrModelTrainer
             .SelectMany(assignment => assignment)
             .GroupBy(component => component)
             .ToDictionary(group => group.Key, group => group.Count());
-        var samples = new List<PdfOcrTrainingSample>();
+        var candidates = new List<(string Label, PdfOcrImageRegion Bounds,
+            PdfOcrImageRegion LineBounds)>();
         for (int index = 0; index < labels.Count; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -320,17 +321,37 @@ public static class PdfOcrModelTrainer
             int centerX = (bounds.Left + bounds.Right) / 2;
             int centerY = (bounds.Top + bounds.Bottom) / 2;
             PdfOcrImageRegion lineBounds = layout.Lines.FirstOrDefault(line =>
-                centerX >= line.Bounds.Left && centerX <= line.Bounds.Right
-                && centerY >= line.Bounds.Top && centerY <= line.Bounds.Bottom)?.Bounds
+                centerX >= line.Bounds.Left && centerX < line.Bounds.Right
+                && centerY >= line.Bounds.Top && centerY < line.Bounds.Bottom)?.Bounds
                 ?? bounds;
+            candidates.Add((labels[index].Label, bounds, lineBounds));
+        }
+        IReadOnlySet<PdfOcrImageRegion> ambiguousBounds =
+            FindAmbiguousSampleBounds(candidates.Select(candidate =>
+                (candidate.Label, candidate.Bounds)));
+        var samples = new List<PdfOcrTrainingSample>(candidates.Count);
+        foreach ((string label, PdfOcrImageRegion bounds,
+            PdfOcrImageRegion lineBounds) in candidates)
+        {
+            if (ambiguousBounds.Contains(bounds)) continue;
             if (checked((samples.Count + 1L) * featureCount) > MaximumModelValues)
                 throw new ArgumentException(
                     "The PDF page has too many OCR training values.", nameof(document));
-            samples.Add(new PdfOcrTrainingSample(labels[index].Label,
+            samples.Add(new PdfOcrTrainingSample(label,
                 PdfOcrRecognizer.NormalizeGlyph(
                     prepared, bounds, lineBounds, width, height, cancellationToken)));
         }
         return Array.AsReadOnly(samples.ToArray());
+    }
+
+    internal static IReadOnlySet<PdfOcrImageRegion> FindAmbiguousSampleBounds(
+        IEnumerable<(string Label, PdfOcrImageRegion Bounds)> candidates)
+    {
+        ArgumentNullException.ThrowIfNull(candidates);
+        return candidates.GroupBy(candidate => candidate.Bounds)
+            .Where(group => group.Select(candidate => candidate.Label)
+                .Distinct(StringComparer.Ordinal).Skip(1).Any())
+            .Select(group => group.Key).ToHashSet();
     }
 
     internal static IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>>

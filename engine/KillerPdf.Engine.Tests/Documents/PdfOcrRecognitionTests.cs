@@ -583,6 +583,24 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TextLayerTrainingRejectsBoundsWithConflictingLabels()
+    {
+        PdfOcrImageRegion shared = new(0, 0, 10, 10);
+        PdfOcrImageRegion repeated = new(20, 0, 30, 10);
+
+        IReadOnlySet<PdfOcrImageRegion> ambiguous =
+            PdfOcrModelTrainer.FindAmbiguousSampleBounds(
+            [
+                ("A", shared),
+                ("B", shared),
+                ("C", repeated),
+                ("C", repeated)
+            ]);
+
+        Assert.Equal([shared], ambiguous);
+    }
+
+    [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
         PdfOcrRecognitionModel created = RecognitionModel();
