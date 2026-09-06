@@ -1113,6 +1113,27 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainingModelMergeKeepsACompactPrototypeBudget()
+    {
+        const int width = 128, height = 128, models = 16, labelsPerModel = 17;
+        PdfOcrRecognitionModel[] inputs = [.. Enumerable.Range(0, models)
+            .Select(model =>
+            {
+                string[] labels = [.. Enumerable.Range(0, labelsPerModel)
+                    .Select(label => $"L{model}_{label}")];
+                return PdfOcrRecognitionModel.Create(width, height, labels,
+                    new float[labels.Length * width * height],
+                    new float[labels.Length]);
+            })];
+
+        PdfOcrRecognitionModel merged = PdfOcrRecognitionModel.MergeTrainingModels(
+            inputs, PdfOcrRecognitionModel.MaximumTrainingModelValues);
+
+        Assert.Equal(PdfOcrRecognitionModel.MaximumTrainingModelValues
+            / (width * height), merged.LabelCount);
+    }
+
+    [Fact]
     public void CombiningModelsRejectsOversizedOutputBeforeAllocatingIt()
     {
         const int labelCount = 1_024;

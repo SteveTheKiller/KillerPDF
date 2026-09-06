@@ -15,6 +15,7 @@ public sealed class PdfOcrRecognitionModel
     private static readonly byte[] PreviousMagic = "KPOCR3\0"u8.ToArray();
     private static readonly byte[] LegacyMagic = "KPOCR2\0"u8.ToArray();
     internal const int MaximumModelBytes = 256 * 1024 * 1024;
+    internal const int MaximumTrainingModelValues = 4 * 1024 * 1024;
     private const double PriorTieWindow = 1e-9;
     private const double ShapeMismatchPenalty = 0.25;
     private const double CoarseGradientDistanceWeight = 24;
@@ -197,9 +198,11 @@ public sealed class PdfOcrRecognitionModel
 
     /// <summary>Merges successive training models without retaining duplicate prototypes.</summary>
     public static PdfOcrRecognitionModel MergeTrainingModels(
-        IEnumerable<PdfOcrRecognitionModel> models)
+        IEnumerable<PdfOcrRecognitionModel> models, int maximumModelValues = int.MaxValue)
     {
         ArgumentNullException.ThrowIfNull(models);
+        if (maximumModelValues <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maximumModelValues));
         PdfOcrRecognitionModel[] supplied = models.ToArray();
         if (supplied.Length is < 1 or > 16 || supplied.Any(model => model is null))
             throw new ArgumentException(
@@ -242,6 +245,25 @@ public sealed class PdfOcrRecognitionModel
                 if (model._biases[index] > current.Model._biases[current.Index])
                     entries[existing] = (model, index);
             }
+
+        int maximumEntries = Math.Max(1, maximumModelValues / featureCount);
+        if (entries.Count > maximumEntries)
+        {
+            IEnumerable<int[]> grouped = entries.Select((entry, index) =>
+                    (Entry: entry, Index: index))
+                .GroupBy(item => (item.Entry.Model._labels[item.Entry.Index],
+                    item.Entry.Model._shapeBuckets[item.Entry.Index]))
+                .OrderBy(group => group.Key.Item1, StringComparer.Ordinal)
+                .ThenBy(group => group.Key.Item2)
+                .Select(group => group.OrderByDescending(item =>
+                        Array.LastIndexOf(supplied, item.Entry.Model))
+                    .ThenByDescending(item =>
+                        item.Entry.Model._biases[item.Entry.Index])
+                    .ThenBy(item => item.Index)
+                    .Select(item => item.Index).ToArray());
+            int[] selected = [.. SelectManyRoundRobin(grouped, maximumEntries)];
+            entries = [.. selected.Select(index => entries[index])];
+        }
 
         int labelCount = entries.Count;
         long labelBytes = entries.Sum(entry =>
@@ -287,6 +309,24 @@ public sealed class PdfOcrRecognitionModel
                     return false;
             }
             return true;
+        }
+    }
+
+    private static IEnumerable<int> SelectManyRoundRobin(
+        IEnumerable<int[]> groups, int maximumCount)
+    {
+        int[][] ordered = groups.ToArray();
+        for (int offset = 0, count = 0; count < maximumCount; offset++)
+        {
+            bool found = false;
+            foreach (int[] group in ordered)
+            {
+                if (offset >= group.Length) continue;
+                yield return group[offset];
+                found = true;
+                if (++count == maximumCount) yield break;
+            }
+            if (!found) yield break;
         }
     }
 
