@@ -338,6 +338,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         return 2;
     }
     int ocrMaximum = int.MaxValue, renderSize = 1600, pagesPerFile = 1;
+    int ocrTimeoutSeconds = 30;
     int holdoutPercent = 10, modelWidth = 32, modelHeight = 32;
     string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
@@ -374,6 +375,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             case "--max": ocrMaximum = value; break;
             case "--size": renderSize = value; break;
             case "--pages-per-file": pagesPerFile = value; break;
+            case "--timeout-seconds": ocrTimeoutSeconds = value; break;
             case "--holdout-percent" when value < 100: holdoutPercent = value; break;
             case "--model-width" when value <= 128: modelWidth = value; break;
             case "--model-height" when value <= 128: modelHeight = value; break;
@@ -403,7 +405,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     try
     {
         ocrModel = PdfOcrModelTrainer.Train(
-            modelWidth, modelHeight, Samples(selectHoldout: false, reportFailures: true));
+            modelWidth, modelHeight, Samples("training", selectHoldout: false));
     }
     catch (Exception error) when (error is not OutOfMemoryException)
     {
@@ -414,7 +416,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     try
     {
         evaluation = PdfOcrModelTrainer.Evaluate(
-            ocrModel, Samples(selectHoldout: true, reportFailures: false));
+            ocrModel, Samples("holdout", selectHoldout: true));
     }
     catch (Exception error) when (error is not OutOfMemoryException)
     {
@@ -449,7 +451,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         + $"{trainingStarted.Elapsed.TotalSeconds:N1}s: {modelPath}");
     return 0;
 
-    IEnumerable<PdfOcrTrainingSample> Samples(bool selectHoldout, bool reportFailures)
+    IEnumerable<PdfOcrTrainingSample> Samples(string phase, bool selectHoldout)
     {
         var options = new PdfOcrOptions(["und"], deskew: false,
             correctOrientation: false, removeBackground: true, removeNoise: true,
@@ -467,6 +469,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             IReadOnlyList<PdfOcrTrainingSample>[] pages;
             try
             {
+                using var timeout = new CancellationTokenSource(
+                    TimeSpan.FromSeconds(ocrTimeoutSeconds));
                 PdfDocument document = OpenOcrDocument(
                     File.ReadAllBytes(file), relative);
                 IReadOnlyList<PdfPageInformation> information = PdfPageInformation.Read(document);
@@ -485,14 +489,15 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         document, pageIndex,
                         new PdfRenderOptions(width, height, includeAnnotations: false,
                             includeFormFields: false),
-                        options, modelWidth, modelHeight);
+                        options, modelWidth, modelHeight, timeout.Token);
                 }
             }
             catch (Exception error) when (error is not OutOfMemoryException)
             {
-                if (reportFailures)
-                    Console.WriteLine($"SKIP  {relative}: "
-                        + $"{error.GetType().Name}: {error.Message}");
+                string detail = error is OperationCanceledException
+                    ? $"exceeded {ocrTimeoutSeconds} seconds"
+                    : $"{error.GetType().Name}: {error.Message}";
+                Console.WriteLine($"SKIP  {phase} {relative}: {detail}");
                 continue;
             }
             for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++)
@@ -508,10 +513,10 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
 
             void ReportProgress()
             {
-                if (reportFailures && ((fileIndex + 1) % 100 == 0
+                if (((fileIndex + 1) % 25 == 0
                     || fileIndex + 1 == ocrFiles.Length))
                     Console.WriteLine(
-                        $"Sampled {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
+                        $"Sampled {phase} {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
             }
         }
     }
@@ -2647,7 +2652,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
