@@ -111,6 +111,7 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
     int parallelism = Math.Min(Environment.ProcessorCount, 8);
     string? passwordManifestPath = null;
     string? certificateManifestPath = null;
+    string? renderFileListPath = null;
     for (int index = 2; index < args.Length; index++)
     {
         if (index + 1 >= args.Length)
@@ -126,6 +127,11 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         if (args[index] == "--certificate-manifest")
         {
             certificateManifestPath = Path.GetFullPath(args[++index]);
+            continue;
+        }
+        if (args[index] == "--file-list")
+        {
+            renderFileListPath = Path.GetFullPath(args[++index]);
             continue;
         }
         if (!int.TryParse(args[index + 1], out int value) || value < 1)
@@ -212,15 +218,59 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
         }
     }
 
-    string[] renderFiles = [.. Directory.EnumerateFiles(
-            renderRoot, "*.pdf", SearchOption.AllDirectories)
-        .Order(StringComparer.OrdinalIgnoreCase).Take(renderMaximum)];
+    string[] renderFiles;
+    if (renderFileListPath is null)
+    {
+        renderFiles = [.. Directory.EnumerateFiles(
+                renderRoot, "*.pdf", SearchOption.AllDirectories)
+            .Order(StringComparer.OrdinalIgnoreCase).Take(renderMaximum)];
+    }
+    else
+    {
+        if (!File.Exists(renderFileListPath))
+        {
+            Console.Error.WriteLine($"Render file list not found: {renderFileListPath}");
+            return 2;
+        }
+        string rootPrefix = Path.EndsInDirectorySeparator(renderRoot)
+            ? renderRoot : renderRoot + Path.DirectorySeparatorChar;
+        var selected = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string listedPath in File.ReadLines(renderFileListPath))
+        {
+            string relative = listedPath.Trim();
+            if (relative.Length == 0) continue;
+            string normalized = relative.Replace('/', Path.DirectorySeparatorChar);
+            if (Path.IsPathRooted(normalized)
+                || normalized.Split(Path.DirectorySeparatorChar).Contains(".."))
+            {
+                Console.Error.WriteLine(
+                    $"Render file-list paths must be relative and contained: {relative}");
+                return 2;
+            }
+            string file = Path.GetFullPath(Path.Combine(renderRoot, normalized));
+            if (!file.StartsWith(rootPrefix, StringComparison.OrdinalIgnoreCase)
+                || !file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)
+                || !File.Exists(file))
+            {
+                Console.Error.WriteLine($"Render file-list entry is invalid: {relative}");
+                return 2;
+            }
+            if (seen.Add(file)) selected.Add(file);
+        }
+        renderFiles = [.. selected.Take(renderMaximum)];
+    }
     int clean = 0, diagnostic = 0, skipped = 0, failure = 0, timedOut = 0, processed = 0;
     var signatures = new Dictionary<string, (int Count, List<string> Examples)>(
         StringComparer.Ordinal);
     var renderStarted = Stopwatch.StartNew();
     string executable = Environment.ProcessPath
         ?? throw new InvalidOperationException("The corpus executable path is unavailable.");
+    string? workerAssembly = Path.GetFileNameWithoutExtension(executable).Equals(
+        "dotnet", StringComparison.OrdinalIgnoreCase)
+        ? System.Reflection.Assembly.GetExecutingAssembly().Location : null;
+    if (workerAssembly is { Length: 0 })
+        throw new InvalidOperationException("The corpus assembly path is unavailable.");
     await Parallel.ForEachAsync(renderFiles,
         new ParallelOptions { MaxDegreeOfParallelism = parallelism }, async (file, _) =>
     {
@@ -232,6 +282,7 @@ if (args.Length >= 2 && args[0] == "--render-corpus")
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        if (workerAssembly is not null) start.ArgumentList.Add(workerAssembly);
         start.ArgumentList.Add("--render-one");
         start.ArgumentList.Add(file);
         start.ArgumentList.Add(size.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -3500,7 +3551,7 @@ if (args.Length is 2 or 4 && args[0] == "--selected-page-import-corpus")
 if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--model-input <existing.model>] [--model-merge-input <existing.model>] [--language-model-input <existing.kplm>] [--language-model-output <output.kplm>] [--file-list <file.txt>] [--holdout-file-list <file.txt>] [--font-file <font.ttf>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--page-metrics <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--maximum-page-allocation-megabytes <count>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
