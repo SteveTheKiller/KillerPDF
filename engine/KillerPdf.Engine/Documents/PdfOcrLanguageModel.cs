@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Text;
 
 namespace KillerPdf.Engine.Documents;
@@ -166,25 +167,25 @@ public sealed class PdfOcrLanguageModel
             throw new InvalidDataException("The OCR language model exceeds the size limit.");
         try
         {
-            using var input = new MemoryStream(source.ToArray(), writable: false);
-            using var reader = new BinaryReader(input, Utf8, leaveOpen: true);
-            if (!reader.ReadBytes(Magic.Length).AsSpan().SequenceEqual(Magic))
+            ReadOnlySpan<byte> input = source.Span;
+            int position = 0;
+            if (!ReadBytes(input, ref position, Magic.Length).SequenceEqual(Magic))
                 throw new InvalidDataException("The OCR language model header is invalid.");
-            int labelCount = reader.ReadInt32();
+            int labelCount = ReadInt32(input, ref position);
             if (labelCount is <= 1 or > MaximumLabels)
                 throw new InvalidDataException("The OCR language model label count is invalid.");
             var labels = new Dictionary<string, int>(labelCount, StringComparer.Ordinal);
             for (int index = 0; index < labelCount; index++)
             {
-                int length = reader.ReadInt32();
+                int length = ReadInt32(input, ref position);
                 if (length is < 0 or > 64)
                     throw new InvalidDataException("An OCR language-model label is invalid.");
-                string label = Utf8.GetString(reader.ReadBytes(length));
+                string label = Utf8.GetString(ReadBytes(input, ref position, length));
                 if ((index == 0 && label.Length != 0)
                     || (index > 0 && label.Length == 0) || !labels.TryAdd(label, index))
                     throw new InvalidDataException("An OCR language-model label is invalid.");
             }
-            int transitionCount = reader.ReadInt32();
+            int transitionCount = ReadInt32(input, ref position);
             if (transitionCount is <= 0 or > MaximumCharacters)
                 throw new InvalidDataException(
                     "The OCR language model transition count is invalid.");
@@ -192,16 +193,16 @@ public sealed class PdfOcrLanguageModel
             var totals = new int[labelCount];
             for (int index = 0; index < transitionCount; index++)
             {
-                int previous = reader.ReadInt32();
-                int current = reader.ReadInt32();
-                int count = reader.ReadInt32();
+                int previous = ReadInt32(input, ref position);
+                int current = ReadInt32(input, ref position);
+                int count = ReadInt32(input, ref position);
                 if ((uint)previous >= labelCount || current <= 0 || current >= labelCount
                     || count <= 0 || !counts.TryAdd((previous, current), count))
                     throw new InvalidDataException(
                         "An OCR language-model transition is invalid.");
                 totals[previous] = checked(totals[previous] + count);
             }
-            if (input.Position != input.Length)
+            if (position != input.Length)
                 throw new InvalidDataException("The OCR language model has trailing data.");
             return new PdfOcrLanguageModel(labels, counts, totals);
         }
@@ -210,6 +211,22 @@ public sealed class PdfOcrLanguageModel
         {
             throw new InvalidDataException("The OCR language model is truncated or invalid.", error);
         }
+    }
+
+    private static int ReadInt32(ReadOnlySpan<byte> source, ref int position)
+    {
+        ReadOnlySpan<byte> value = ReadBytes(source, ref position, sizeof(int));
+        return BinaryPrimitives.ReadInt32LittleEndian(value);
+    }
+
+    private static ReadOnlySpan<byte> ReadBytes(ReadOnlySpan<byte> source,
+        ref int position, int length)
+    {
+        if (length < 0 || position > source.Length - length)
+            throw new EndOfStreamException();
+        ReadOnlySpan<byte> value = source.Slice(position, length);
+        position += length;
+        return value;
     }
 
     /// <summary>Chooses the highest-scoring label sequence with transition context.</summary>

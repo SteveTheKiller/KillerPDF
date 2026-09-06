@@ -81,4 +81,16 @@ public sealed class PdfOcrLanguageModelTests
         Assert.Throws<OperationCanceledException>(() =>
             PdfOcrLanguageModel.Train(["AB"], canceled.Token));
     }
+
+    [Fact]
+    public void LoadRejectsLargeInvalidInputWithoutCopyingIt()
+    {
+        var source = new byte[8 * 1024 * 1024];
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Throws<InvalidDataException>(() =>
+            PdfOcrLanguageModel.Load(source));
+
+        Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 1_000_000);
+    }
 }
