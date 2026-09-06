@@ -16,6 +16,8 @@ public sealed class PdfOcrRecognitionModel
     private readonly float[] _weights;
     private readonly float[] _biases;
     private readonly sbyte[] _shapeBuckets;
+    private readonly float[] _rowProjections;
+    private readonly float[] _columnProjections;
     private readonly Dictionary<string, int> _labelShapeMasks;
     private readonly bool _usesPrototypeShapes;
 
@@ -30,11 +32,16 @@ public sealed class PdfOcrRecognitionModel
         _usesPrototypeShapes = !weights.AsSpan().ContainsAnyExceptInRange(0, float.MaxValue);
         int featureCount = checked(width * height);
         _shapeBuckets = new sbyte[labels.Length];
+        _rowProjections = new float[checked(labels.Length * height)];
+        _columnProjections = new float[checked(labels.Length * width)];
         _labelShapeMasks = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int label = 0; label < labels.Length; label++)
         {
             _shapeBuckets[label] = checked((sbyte)ShapeBucket(
                 weights.AsSpan(label * featureCount, featureCount), width, height));
+            BuildProjections(weights.AsSpan(label * featureCount, featureCount),
+                width, height, _rowProjections.AsSpan(label * height, height),
+                _columnProjections.AsSpan(label * width, width));
             if (_shapeBuckets[label] >= 0)
                 _labelShapeMasks[labels[label]] = _labelShapeMasks.GetValueOrDefault(labels[label])
                     | 1 << _shapeBuckets[label];
@@ -293,6 +300,9 @@ public sealed class PdfOcrRecognitionModel
         if (scores.Length < _labels.Length) throw new ArgumentException("OCR score workspace is too small.");
         scores = scores[.._labels.Length];
         int shape = ShapeBucket(features, Width, Height);
+        Span<float> rowProjection = stackalloc float[Height];
+        Span<float> columnProjection = stackalloc float[Width];
+        BuildProjections(features, Width, Height, rowProjection, columnProjection);
         int best = -1;
         for (int label = 0; label < _labels.Length; label++)
         {
@@ -325,6 +335,9 @@ public sealed class PdfOcrRecognitionModel
                 score += _weights[offset + feature] * features[feature];
             if (shapeMismatch)
                 score -= ShapeMismatchPenalty;
+            if (_usesPrototypeShapes && featureCount >= 64)
+                score -= 0.25 * ProjectionDistance(
+                    label, rowProjection, columnProjection);
             scores[label] = score;
             if (best < 0 || score > scores[best]) best = label;
         }
@@ -367,6 +380,38 @@ public sealed class PdfOcrRecognitionModel
             if (!double.IsNegativeInfinity(third)) vote += 0.1 * (third - first);
             return vote;
         }
+    }
+
+    private double ProjectionDistance(int label, ReadOnlySpan<float> rows,
+        ReadOnlySpan<float> columns)
+    {
+        double distance = 0;
+        int rowOffset = label * Height;
+        for (int index = 0; index < Height; index++)
+            distance += Math.Abs(rows[index] - _rowProjections[rowOffset + index]);
+        int columnOffset = label * Width;
+        for (int index = 0; index < Width; index++)
+            distance += Math.Abs(columns[index] - _columnProjections[columnOffset + index]);
+        return distance;
+    }
+
+    private static void BuildProjections(ReadOnlySpan<float> features,
+        int width, int height, Span<float> rows, Span<float> columns)
+    {
+        rows.Clear();
+        columns.Clear();
+        float total = 0;
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                float value = features[y * width + x];
+                rows[y] += value;
+                columns[x] += value;
+                total += value;
+            }
+        if (total <= 0) return;
+        for (int index = 0; index < rows.Length; index++) rows[index] /= total;
+        for (int index = 0; index < columns.Length; index++) columns[index] /= total;
     }
 
 }
