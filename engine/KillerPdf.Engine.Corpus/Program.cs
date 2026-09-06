@@ -339,6 +339,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     }
     int ocrMaximum = int.MaxValue, renderSize = 1600, pagesPerFile = 1;
     int holdoutPercent = 10, modelWidth = 32, modelHeight = 32;
+    string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
     string? ocrCertificateManifestPath = null;
     for (int index = 3; index < args.Length; index += 2)
@@ -356,6 +357,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         if (args[index] == "--certificate-manifest")
         {
             ocrCertificateManifestPath = Path.GetFullPath(args[index + 1]);
+            continue;
+        }
+        if (args[index] == "--label-file")
+        {
+            ocrLabelFilePath = Path.GetFullPath(args[index + 1]);
             continue;
         }
         if (!int.TryParse(args[index + 1], out int value) || value < 1)
@@ -381,6 +387,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         ocrPasswordManifestPath);
     Dictionary<string, CertificateCredential> ocrCertificates =
         ReadCertificateManifest(ocrCertificateManifestPath);
+    HashSet<string>? ocrLabels = ReadLabelFile(ocrLabelFilePath);
 
     string[] ocrFiles = [.. Directory.EnumerateFiles(
             ocrRoot, "*.pdf", SearchOption.AllDirectories)
@@ -491,6 +498,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 {
                     PdfOcrTrainingSample sample = pages[pageIndex][sampleIndex];
                     if (Encoding.UTF8.GetByteCount(sample.Label) > 64) continue;
+                    if (ocrLabels is not null && !ocrLabels.Contains(sample.Label)) continue;
                     if (isHoldout == selectHoldout)
                         yield return sample;
                 }
@@ -550,6 +558,28 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     $"OCR corpus password credential is invalid: {relative}");
         }
         return result;
+    }
+
+    static HashSet<string>? ReadLabelFile(string? path)
+    {
+        if (path is null) return null;
+        if (!File.Exists(path)) throw new FileNotFoundException(
+            "The OCR label file was not found.", path);
+        var labels = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string supplied in File.ReadLines(path))
+        {
+            string label = supplied.Trim();
+            if (label.Length == 0) continue;
+            if (Encoding.UTF8.GetByteCount(label) > 64
+                || label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar
+                    || Rune.IsControl(rune) || Rune.IsWhiteSpace(rune))
+                || !labels.Add(label))
+                throw new InvalidDataException(
+                    $"OCR training label is invalid or duplicated: {label}");
+        }
+        if (labels.Count == 0)
+            throw new InvalidDataException("The OCR label file contains no labels.");
+        return labels;
     }
 
     static Dictionary<string, CertificateCredential> ReadCertificateManifest(string? path)
@@ -2608,7 +2638,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--max <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
