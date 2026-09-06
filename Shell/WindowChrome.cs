@@ -153,6 +153,11 @@ namespace KillerPDF
             int  mx = unchecked((short)(lp & 0xFFFF));
             int  my = unchecked((short)((lp >> 16) & 0xFFFF));
 
+            // Caption controls must be client input before the top resize grip is considered.
+            // Otherwise Windows consumes the whole custom title bar as non-client chrome.
+            bool isTitleBar = TryGetTitleBarHit(mx, my, out int titleBarHit);
+            if (isTitleBar && titleBarHit == HTCLIENT) return HTCLIENT;
+
             // The top edge lost its OS border with the caption, so give it a grip of the same width.
             if (WindowState != WindowState.Maximized && !_fullScreen && _osFrameWidth > 0
                 && GetWindowRect(hwnd, out RECT rc) && my < rc.top + _osFrameWidth)
@@ -164,7 +169,7 @@ namespace KillerPDF
 
             // The native frame still has an invisible caption. Classify the visible custom title
             // bar first so those stale native button and caption zones cannot override it.
-            if (TryGetTitleBarHit(mx, my, out int titleBarHit)) return titleBarHit;
+            if (isTitleBar) return titleBarHit;
 
             // Outside the custom title bar, let Windows answer for its real side and bottom borders.
             return DefWindowProc(hwnd, msg, wParam, lParam).ToInt32();
@@ -182,8 +187,8 @@ namespace KillerPDF
                                         .TransformBounds(new Rect(TitleBarBorder.RenderSize));
                 if (!bar.Contains(pt)) return false;
                 hitTest = HTCAPTION;
-                var res = VisualTreeHelper.HitTest(this, pt);
-                DependencyObject? hit = res?.VisualHit;
+                Point titlePoint = TranslatePoint(pt, TitleBarBorder);
+                DependencyObject? hit = TitleBarBorder.InputHitTest(titlePoint) as DependencyObject;
                 while (hit != null)
                 {
                     if (hit is Control && !ReferenceEquals(hit, this)) hitTest = HTCLIENT;
