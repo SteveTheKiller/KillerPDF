@@ -113,6 +113,7 @@ public static class PdfOcrModelTrainer
         string[] orderedLabels = [.. labels.Keys.Order(StringComparer.Ordinal)];
         var weights = new float[checked(orderedLabels.Length * featureCount)];
         var biases = new float[orderedLabels.Length];
+        double scoreScale = Math.Sqrt(featureCount);
         for (int label = 0; label < orderedLabels.Length; label++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -122,10 +123,10 @@ public static class PdfOcrModelTrainer
             for (int feature = 0; feature < featureCount; feature++)
             {
                 double centroid = (double)(accumulator.Sums[feature] / accumulator.Count);
-                weights[offset + feature] = checked((float)(2 * centroid / featureCount));
+                weights[offset + feature] = checked((float)(2 * centroid / scoreScale));
                 squaredLength += centroid * centroid;
             }
-            biases[label] = checked((float)(-squaredLength / featureCount));
+            biases[label] = checked((float)(-squaredLength / scoreScale));
         }
         return PdfOcrRecognitionModel.Create(
             width, height, orderedLabels, weights, biases);
@@ -186,7 +187,10 @@ public static class PdfOcrModelTrainer
         foreach (PdfExtractedLetter letter in content.Letters)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(letter.Value)) continue;
+            if (string.IsNullOrWhiteSpace(letter.Value)
+                || letter.Value.EnumerateRunes().Any(
+                    rune => rune == Rune.ReplacementChar))
+                continue;
             PdfOcrImageRegion? bounds = MapToPixels(
                 letter.BoundingBox, page, rendered.Width, rendered.Height);
             if (bounds is null) continue;
@@ -250,7 +254,8 @@ public static class PdfOcrModelTrainer
     private static void ValidateLabel(string label,
         IEnumerable<PdfOcrTrainingSample> samples)
     {
-        if (string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64)
+        if (string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64
+            || label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar))
             throw new ArgumentException(
                 "OCR training labels are empty, oversized, or invalid.", nameof(samples));
     }

@@ -51,6 +51,8 @@ public sealed class PdfOcrRecognitionTests
             [new PdfOcrTrainingSample("A", new float[] { float.NaN })]));
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
             [new PdfOcrTrainingSample("A", new float[] { 2 })]));
+        Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,
+            [new PdfOcrTrainingSample("\uFFFD", new float[] { 1 })]));
         using var canceled = new CancellationTokenSource();
         canceled.Cancel();
         Assert.Throws<OperationCanceledException>(() => PdfOcrModelTrainer.Train(1, 1,
@@ -76,7 +78,7 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(3, evaluation.SampleCount);
         Assert.Equal(2, evaluation.CorrectCount);
         Assert.Equal(2d / 3, evaluation.Accuracy, 12);
-        Assert.InRange(evaluation.AverageConfidence, 0.7, 0.8);
+        Assert.InRange(evaluation.AverageConfidence, 0.78, 0.83);
         Assert.Equal([
             new PdfOcrConfusion("A", "A", 1),
             new PdfOcrConfusion("B", "A", 1),
@@ -205,6 +207,8 @@ public sealed class PdfOcrRecognitionTests
         Assert.Throws<FormatException>(() => PdfOcrRecognitionModel.Load("bad"u8.ToArray()));
         Assert.Throws<ArgumentException>(() => PdfOcrRecognitionModel.Create(
             1, 1, ["x"], new float[] { float.NaN }, new float[] { 0 }));
+        Assert.Throws<ArgumentException>(() => PdfOcrRecognitionModel.Create(
+            1, 1, ["\uFFFD"], new float[] { 1 }, new float[] { 0 }));
     }
 
     [Fact]

@@ -43,7 +43,8 @@ public sealed class PdfOcrRecognitionModel
         ArgumentNullException.ThrowIfNull(labels);
         string[] names = labels.ToArray();
         if (names.Length is <= 0 or > 65_536 || names.Any(label =>
-            string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64))
+            string.IsNullOrEmpty(label) || Encoding.UTF8.GetByteCount(label) > 64
+            || label.EnumerateRunes().Any(rune => rune == Rune.ReplacementChar)))
             throw new ArgumentException("OCR model labels are empty, oversized, or invalid.", nameof(labels));
         if (names.Distinct(StringComparer.Ordinal).Count() != names.Length)
             throw new ArgumentException("OCR model labels must be unique.", nameof(labels));
@@ -201,15 +202,17 @@ public sealed class PdfOcrRecognitionModel
             scores[label] = score;
             if (score > scores[best]) best = label;
         }
-        double maximum = scores[best];
-        double denominator = 0;
-        foreach (double score in scores) denominator += Math.Exp(score - maximum);
-        return (_labels[best], 1 / denominator);
+        if (scores.Length == 1) return (_labels[best], 1);
+        double runnerUp = double.NegativeInfinity;
+        for (int label = 0; label < scores.Length; label++)
+            if (label != best && scores[label] > runnerUp)
+                runnerUp = scores[label];
+        return (_labels[best], 1 / (1 + Math.Exp(runnerUp - scores[best])));
     }
 
 }
 
-/// <summary>A recognized OCR word with pixel bounds and calibrated model confidence.</summary>
+/// <summary>A recognized OCR word with pixel bounds and model confidence.</summary>
 public sealed record PdfOcrRecognizedWord(string Text, double Confidence, PdfOcrImageRegion Bounds);
 
 /// <summary>A language-specific OCR recognition model selected from a catalog.</summary>
