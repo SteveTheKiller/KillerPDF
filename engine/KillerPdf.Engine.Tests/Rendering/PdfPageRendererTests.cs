@@ -1735,6 +1735,27 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_RejectsUnboundedLatticeMeshRowsBeforeAllocatingThem()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(5)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("BitsPerComponent"), new PdfInteger(8)),
+            new KeyValuePair<PdfName, PdfObject>(Name("VerticesPerRow"),
+                new PdfInteger(int.MaxValue)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Decode"),
+                Reals(0, 10, 0, 10, 0, 1, 0, 1, 0, 1))]), []);
+        PdfDocument document = AddShadingResource(source, shading);
+
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(10, 10,
+                includeAnnotations: false, includeFormFields: false)));
+    }
+
+    [Fact]
     public void Render_PaintsThirtyTwoBitSampledShadings()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

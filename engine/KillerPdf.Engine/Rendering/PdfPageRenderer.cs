@@ -14,6 +14,7 @@ public sealed class PdfPageRenderer
     private const long MaximumDecodedImageCacheBytes = 64L * 1024 * 1024;
     private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
     private const long MaximumRenderedPageCacheBytes = 64L * 1024 * 1024;
+    private const int MaximumMeshVerticesPerRow = 65_536;
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
     private readonly IReadOnlyList<PdfPageInformation> _pages;
@@ -2967,33 +2968,37 @@ public sealed class PdfPageRenderer
         double scaleX, double scaleY, CancellationToken cancellationToken)
     {
         int verticesPerRow = checked((int)AssertInteger(stream.Dictionary, "VerticesPerRow"));
-        if (verticesPerRow < 2)
+        if (verticesPerRow is < 2 or > MaximumMeshVerticesPerRow)
             throw new FormatException("A lattice mesh shading has an invalid row width.");
         MeshDecoder mesh = ReadMeshDecoder(
             stream, resources, hasFlags: false, state.Transform);
-        var rows = new List<MeshVertex[]>();
+        MeshVertex[]? previous = null;
+        int rowCount = 0;
         while (mesh.HasData)
         {
-            var row = new MeshVertex[verticesPerRow];
-            for (int column = 0; column < row.Length; column++)
+            var current = new MeshVertex[verticesPerRow];
+            for (int column = 0; column < current.Length; column++)
             {
+                if ((column & 0x3FFF) == 0)
+                    cancellationToken.ThrowIfCancellationRequested();
                 if (!mesh.HasData)
                     throw new FormatException("A lattice mesh shading has an incomplete row.");
-                row[column] = mesh.ReadVertex();
+                current[column] = mesh.ReadVertex();
             }
-            rows.Add(row);
+            if (previous is not null)
+                for (int column = 1; column < verticesPerRow; column++)
+                {
+                    PaintMeshTriangle(previous[column - 1], previous[column],
+                        current[column], mesh, state, target, targetWidth, targetHeight,
+                        scaleX, scaleY, cancellationToken);
+                    PaintMeshTriangle(previous[column - 1], current[column],
+                        current[column - 1], mesh, state, target, targetWidth, targetHeight,
+                        scaleX, scaleY, cancellationToken);
+                }
+            previous = current;
+            rowCount++;
         }
-        for (int row = 1; row < rows.Count; row++)
-            for (int column = 1; column < verticesPerRow; column++)
-            {
-                PaintMeshTriangle(rows[row - 1][column - 1], rows[row - 1][column],
-                    rows[row][column], mesh, state, target, targetWidth, targetHeight,
-                    scaleX, scaleY, cancellationToken);
-                PaintMeshTriangle(rows[row - 1][column - 1], rows[row][column],
-                    rows[row][column - 1], mesh, state, target, targetWidth, targetHeight,
-                    scaleX, scaleY, cancellationToken);
-            }
-        return rows.Count >= 2;
+        return rowCount >= 2;
     }
 
     private MeshDecoder ReadMeshDecoder(
