@@ -7,12 +7,13 @@ namespace KillerPdf.Engine.Documents;
 public sealed class PdfOcrPreparedImage
 {
     internal PdfOcrPreparedImage(int width, int height, byte[] pixels, bool binary,
-        IEnumerable<string> diagnostics)
+        double deskewDegrees, IEnumerable<string> diagnostics)
     {
         Width = width;
         Height = height;
         Pixels = new ReadOnlyMemory<byte>(pixels);
         IsBinary = binary;
+        DeskewDegrees = deskewDegrees;
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
     }
 
@@ -24,6 +25,8 @@ public sealed class PdfOcrPreparedImage
     public ReadOnlyMemory<byte> Pixels { get; }
     /// <summary>Gets whether every sample is black or white.</summary>
     public bool IsBinary { get; }
+    /// <summary>Gets the clockwise mapping from prepared coordinates back to source pixels.</summary>
+    public double DeskewDegrees { get; }
     /// <summary>Gets requested preprocessing operations that remain incomplete.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
 }
@@ -88,14 +91,16 @@ public static class PdfOcrImagePreprocessor
         }
         if (options.RemoveNoise)
             gray = Median3x3(gray, preparedWidth, preparedHeight, cancellationToken);
+        double deskewDegrees = 0;
         if (options.Deskew)
-            gray = Deskew(gray, preparedWidth, preparedHeight, cancellationToken);
+            (gray, deskewDegrees) = Deskew(
+                gray, preparedWidth, preparedHeight, cancellationToken);
 
         var diagnostics = new List<string>();
         if (options.CorrectOrientation)
             diagnostics.Add("OCR orientation detection is not implemented.");
         return new PdfOcrPreparedImage(
-            preparedWidth, preparedHeight, gray, binary, diagnostics);
+            preparedWidth, preparedHeight, gray, binary, deskewDegrees, diagnostics);
     }
 
     private static void ConvertBgraToGray(ReadOnlySpan<byte> source, Span<byte> gray,
@@ -184,6 +189,42 @@ public static class PdfOcrImagePreprocessor
         degrees = ((degrees % 360) + 360) % 360;
         return degrees is 0 or 90 or 180 or 270
             ? degrees : throw new ArgumentOutOfRangeException(nameof(degrees));
+    }
+
+    /// <summary>Maps a deskewed rectangle back into the original source pixel space.</summary>
+    public static PdfOcrImageRegion RestoreDeskewedBounds(
+        PdfOcrImageRegion bounds, double degrees, int width, int height)
+    {
+        if (!double.IsFinite(degrees) || degrees is < -10 or > 10)
+            throw new ArgumentOutOfRangeException(nameof(degrees));
+        if (width <= 0 || width > MaximumDimension)
+            throw new ArgumentOutOfRangeException(nameof(width));
+        if (height <= 0 || height > MaximumDimension)
+            throw new ArgumentOutOfRangeException(nameof(height));
+        if (bounds.Left < 0 || bounds.Top < 0 || bounds.Right > width
+            || bounds.Bottom > height || bounds.Width <= 0 || bounds.Height <= 0)
+            throw new ArgumentOutOfRangeException(nameof(bounds));
+        if (degrees == 0) return bounds;
+        double radians = degrees * Math.PI / 180;
+        double cosine = Math.Cos(radians), sine = Math.Sin(radians);
+        double centerX = (width - 1) / 2d, centerY = (height - 1) / 2d;
+        (double X, double Y)[] points =
+        [
+            Restore(bounds.Left, bounds.Top), Restore(bounds.Right, bounds.Top),
+            Restore(bounds.Left, bounds.Bottom), Restore(bounds.Right, bounds.Bottom)
+        ];
+        int left = Math.Clamp((int)Math.Floor(points.Min(point => point.X)), 0, width);
+        int top = Math.Clamp((int)Math.Floor(points.Min(point => point.Y)), 0, height);
+        int right = Math.Clamp((int)Math.Ceiling(points.Max(point => point.X)), 0, width);
+        int bottom = Math.Clamp((int)Math.Ceiling(points.Max(point => point.Y)), 0, height);
+        return new PdfOcrImageRegion(left, top, right, bottom);
+
+        (double X, double Y) Restore(double x, double y)
+        {
+            double dx = x - centerX, dy = y - centerY;
+            return (centerX + cosine * dx - sine * dy,
+                centerY + sine * dx + cosine * dy);
+        }
     }
 
     /// <summary>Crops a rendered BGRA32 image with bounds clamped to its source.</summary>
@@ -288,11 +329,12 @@ public static class PdfOcrImagePreprocessor
         return result;
     }
 
-    private static byte[] Deskew(byte[] source, int width, int height,
+    private static (byte[] Pixels, double Degrees) Deskew(
+        byte[] source, int width, int height,
         CancellationToken cancellationToken)
     {
         double angle = EstimateSkew(source, width, height, cancellationToken);
-        if (Math.Abs(angle) < 0.25) return source;
+        if (Math.Abs(angle) < 0.25) return (source, 0);
         double radians = angle * Math.PI / 180;
         double cosine = Math.Cos(radians), sine = Math.Sin(radians);
         double centerX = (width - 1) / 2d, centerY = (height - 1) / 2d;
@@ -310,7 +352,7 @@ public static class PdfOcrImagePreprocessor
                     result[y * width + x] = source[sourceY * width + sourceX];
             }
         }
-        return result;
+        return (result, angle);
     }
 
     private static double EstimateSkew(byte[] source, int width, int height,

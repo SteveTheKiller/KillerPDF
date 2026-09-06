@@ -660,8 +660,14 @@ public sealed class PdfOcrPageRecognizer
         for (int sequence = 0; sequence < candidate.Words.Count; sequence++)
         {
             PdfOcrRecognizedWord word = candidate.Words[sequence];
+            int preparedWidth = candidate.Rotation is 90 or 270
+                ? rendered.Height : rendered.Width;
+            int preparedHeight = candidate.Rotation is 90 or 270
+                ? rendered.Width : rendered.Height;
+            PdfOcrImageRegion restored = PdfOcrImagePreprocessor.RestoreDeskewedBounds(
+                word.Bounds, candidate.DeskewDegrees, preparedWidth, preparedHeight);
             PdfOcrImageRegion bounds = UnrotateImageBounds(
-                word.Bounds, candidate.Rotation, rendered.Width, rendered.Height);
+                restored, candidate.Rotation, rendered.Width, rendered.Height);
             PdfContentBounds pdfBounds = MapBounds(bounds, rendered.Width, rendered.Height, page);
             words[sequence] = new PdfOcrWord($"page-{pageIndex}-word-{sequence}",
                 pageIndex, sequence, word.Text, word.Text, pdfBounds, word.Confidence, language);
@@ -687,7 +693,8 @@ public sealed class PdfOcrPageRecognizer
             double score = characters == 0 ? -1
                 : recognized.Sum(word => word.Confidence * word.Text.Length) / characters;
             return new OrientationCandidate(
-                rotation, recognized, prepared.Diagnostics, score);
+                rotation, prepared.DeskewDegrees,
+                recognized, prepared.Diagnostics, score);
         }
     }
 
@@ -739,6 +746,6 @@ public sealed class PdfOcrPageRecognizer
     }
 
     private sealed record OrientationCandidate(
-        int Rotation, IReadOnlyList<PdfOcrRecognizedWord> Words,
+        int Rotation, double DeskewDegrees, IReadOnlyList<PdfOcrRecognizedWord> Words,
         IReadOnlyList<string> Diagnostics, double Score);
 }

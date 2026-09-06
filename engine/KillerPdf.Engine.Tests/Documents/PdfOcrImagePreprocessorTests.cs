@@ -127,6 +127,7 @@ public sealed class PdfOcrImagePreprocessorTests
             longestRow = Math.Max(longestRow, dark);
         }
         Assert.True(longestRow > 10, $"Longest corrected row was {longestRow} pixels.");
+        Assert.InRange(image.DeskewDegrees, 4.5, 6.5);
         Assert.Empty(image.Diagnostics);
     }
 

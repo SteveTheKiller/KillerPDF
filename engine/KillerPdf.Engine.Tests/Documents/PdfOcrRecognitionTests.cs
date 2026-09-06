@@ -699,6 +699,18 @@ public sealed class PdfOcrRecognitionTests
         Assert.Empty(result.Diagnostics);
     }
 
+    [Fact]
+    public void PageRecognizerRestoresDeskewedBoundsToSourcePixels()
+    {
+        PdfOcrImageRegion restored = PdfOcrImagePreprocessor.RestoreDeskewedBounds(
+            new PdfOcrImageRegion(40, 45, 60, 55), 10, 100, 100);
+
+        Assert.Equal(new PdfOcrImageRegion(39, 43, 61, 57), restored);
+        Assert.Equal(new PdfOcrImageRegion(40, 45, 60, 55),
+            PdfOcrImagePreprocessor.RestoreDeskewedBounds(
+                new PdfOcrImageRegion(40, 45, 60, 55), 0, 100, 100));
+    }
+
     private static PdfOcrPreparedImage Prepared(int width, int height, string[] rows)
     {
         byte[] bgra = new byte[width * height * 4];
