@@ -39,6 +39,18 @@ namespace KillerPdf.Engine.Filters.Jbig2
             mps = new byte[size];
         }
 
+        private CX(byte[] cx, byte[] mps, int index)
+        {
+            this.cx = cx;
+            this.mps = mps;
+            Index = index;
+        }
+
+        public CX Copy()
+        {
+            return new CX((byte[])cx.Clone(), (byte[])mps.Clone(), Index);
+        }
+
         /// <summary>
         /// Flips the bit in actual "more predictable symbol" array element.
         /// </summary>

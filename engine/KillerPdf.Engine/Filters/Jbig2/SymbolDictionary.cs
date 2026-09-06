@@ -77,6 +77,7 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
         internal CX cxIAID;
         private int sbSymCodeLen;
+        private SymbolDictionary lastSymbolDictionary;
 
         public SymbolDictionary()
         {
@@ -97,24 +98,30 @@ namespace KillerPdf.Engine.Filters.Jbig2
             ReadAmountOfNewSymbols();
             SetInSyms();
 
-            if (isCodingContextUsed)
+            bool isContextAvailable = false;
+            SegmentHeader[] rtSegments = segmentHeader.RtSegments;
+            if (rtSegments != null)
             {
-                SegmentHeader[] rtSegments = segmentHeader.RtSegments;
-
                 for (int i = rtSegments.Length - 1; i >= 0; i--)
                 {
                     if (rtSegments[i].SegmentType == 0)
                     {
-                        SymbolDictionary symbolDictionary = (SymbolDictionary)rtSegments[i].GetSegmentData();
-
-                        if (symbolDictionary.isCodingContextRetained)
+                        lastSymbolDictionary = (SymbolDictionary)rtSegments[i].GetSegmentData();
+                        if (isCodingContextUsed && lastSymbolDictionary.isCodingContextRetained)
                         {
-                            // 7.4.2.2 3)
-                            SetRetainedCodingContexts(symbolDictionary);
+                            ValidateContextValues(lastSymbolDictionary);
+                            isContextAvailable = true;
                         }
                         break;
                     }
                 }
+            }
+
+            if (isCodingContextUsed && !isContextAvailable)
+            {
+                throw new InvalidOperationException(lastSymbolDictionary is null
+                    ? "Coding context reuse requested without a referred symbol dictionary."
+                    : "Coding context reuse requested from a dictionary that did not retain it.");
             }
 
             CheckInput();
@@ -232,18 +239,47 @@ namespace KillerPdf.Engine.Filters.Jbig2
             }
         }
 
-        private void SetRetainedCodingContexts(SymbolDictionary sd)
+        private void AdoptRetainedCodingContexts(SymbolDictionary sd)
         {
-            arithmeticDecoder = sd.arithmeticDecoder;
-            isHuffmanEncoded = sd.isHuffmanEncoded;
-            useRefinementAggregation = sd.useRefinementAggregation;
-            sdTemplate = sd.sdTemplate;
-            sdrTemplate = sd.sdrTemplate;
-            sdATX = sd.sdATX;
-            sdATY = sd.sdATY;
-            sdrATX = sd.sdrATX;
-            sdrATY = sd.sdrATY;
-            cx = sd.cx;
+            cx = sd.cx.Copy();
+        }
+
+        private void ValidateContextValues(SymbolDictionary sd)
+        {
+            if (isHuffmanEncoded != sd.isHuffmanEncoded
+                || useRefinementAggregation != sd.useRefinementAggregation
+                || sdTemplate != sd.sdTemplate
+                || sdrTemplate != sd.sdrTemplate
+                || !ArraysEqual(sdATX, sd.sdATX)
+                || !ArraysEqual(sdATY, sd.sdATY)
+                || !ArraysEqual(sdrATX, sd.sdrATX)
+                || !ArraysEqual(sdrATY, sd.sdrATY))
+            {
+                throw new InvalidOperationException("Reused JBIG2 symbol dictionary contexts have incompatible settings.");
+            }
+        }
+
+        private static bool ArraysEqual(short[] left, short[] right)
+        {
+            if (ReferenceEquals(left, right))
+            {
+                return true;
+            }
+
+            if (left is null || right is null || left.Length != right.Length)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < left.Length; i++)
+            {
+                if (left[i] != right[i])
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void CheckInput()
@@ -296,6 +332,20 @@ namespace KillerPdf.Engine.Filters.Jbig2
                     sbSymCodeLen = GetSbSymCodeLen();
                 }
 
+                SetSymbolsArray();
+
+                if (!isHuffmanEncoded || useRefinementAggregation)
+                {
+                    if (isCodingContextUsed)
+                    {
+                        AdoptRetainedCodingContexts(lastSymbolDictionary);
+                    }
+                    else
+                    {
+                        cx = new CX(65536, 1);
+                    }
+                }
+
                 if (!isHuffmanEncoded)
                 {
                     SetCodingStatistics();
@@ -310,8 +360,6 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 {
                     newSymbolsWidths = new int[amountOfNewSymbols];
                 }
-
-                SetSymbolsArray();
 
                 // 6.5.5 3)
                 int heightClassHeight = 0;
@@ -440,20 +488,8 @@ namespace KillerPdf.Engine.Filters.Jbig2
                 cxIARDY = new CX(512, 1);
             }
 
-            if (cx is null)
-            {
-                cx = new CX(65536, 1);
-            }
-
-            if (arithmeticDecoder is null)
-            {
-                arithmeticDecoder = new ArithmeticDecoder(subInputStream);
-            }
-
-            if (iDecoder is null)
-            {
-                iDecoder = new ArithmeticIntegerDecoder(arithmeticDecoder);
-            }
+            arithmeticDecoder = new ArithmeticDecoder(subInputStream);
+            iDecoder = new ArithmeticIntegerDecoder(arithmeticDecoder);
         }
 
         private void DecodeHeightClassBitmap(Jbig2Bitmap heightClassCollectiveBitmap,
@@ -799,7 +835,12 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
                 if (exRunLength != 0)
                 {
-                    for (int index = exportIndex; index < exportIndex + exRunLength; index++)
+                    if (exRunLength < 0 || exRunLength > exportFlags.Length - exportIndex)
+                    {
+                        throw new InvalidOperationException("JBIG2 symbol export flags exceed the dictionary symbol count.");
+                    }
+
+                    for (int index = exportIndex; index < exportIndex + (int)exRunLength; index++)
                     {
                         exportFlags[index] = currentExportFlag;
                     }

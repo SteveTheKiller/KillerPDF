@@ -16,6 +16,21 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Fact]
+    public void Render_DecodesJbig2SymbolDictionaryContextReuse()
+    {
+        byte[] pdf = Convert.FromBase64String(
+            "JVBERi0xLjQKJbW2CgoxIDAgb2JqCjw8CiAgL1R5cGUgL0NhdGFsb2cKICAvUGFnZXMgMiAwIFIKPj4KZW5kb2JqCgoyIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2VzCiAgL0tpZHMgWzMgMCBSXQogIC9Db3VudCAxCj4+CmVuZG9iagoKMyAwIG9iago8PAogIC9UeXBlIC9QYWdlCiAgL1BhcmVudCAyIDAgUgogIC9NZWRpYUJveCBbMCAwIDM5OSA0MDBdCiAgL0NvbnRlbnRzIDQgMCBSCiAgL1Jlc291cmNlcyA8PAogICAgL1hPYmplY3QgPDwKICAgICAgL0ltIDUgMCBSCiAgICA+PgogID4+Cj4+CmVuZG9iagoKNCAwIG9iago8PC9MZW5ndGggMjU+PgpzdHJlYW0KMzk5IDAgMCA0MDAgMCAwIGNtCi9JbSBEbwplbmRzdHJlYW0KZW5kb2JqCgo1IDAgb2JqCjw8CiAgL0xlbmd0aCA0NTQKICAvVHlwZSAvWE9iamVjdAogIC9TdWJ0eXBlIC9JbWFnZQogIC9XaWR0aCAzOTkKICAvSGVpZ2h0IDQwMAogIC9Db2xvclNwYWNlIC9EZXZpY2VHcmF5CiAgL0ZpbHRlciAvSkJJRzJEZWNvZGUKICAvQml0c1BlckNvbXBvbmVudCAxCj4+CnN0cmVhbQoAAAAAMAABAAAAEwAAAY8AAAGQAAAAAAAAAAABAAAAAAABAAEBAAAAOAIAA//9/wL+/v4AAAABAAAAASeDXjClUJAwSe6SGT00AMVhNLTpjv5bXmz0gcy/fy0SLqcpV/+sAAAAAgAjAQEAAAAqAQAD//3/Av7+/gAAAAEAAAABJ4NRqghtsBLrYYOQULeuW74Xq8xWb/+sAAAAAwAjAQEAAABWAwAD//3/Av7+/gAAAAEAAAABFM+Ee8gfZcaqDEQ9NdMJ4/uRbgIm84ozZtY2tsZqanJ+8q0px+16fhNomknpCh/lTqgwEYn7SfMKNUL/Cv6GQ8SU/6wAAAAEAGEBAgMBAAAAjAEAA//9/wL+/v4AAAAEAAAAAQ6C6s2APeK0+6f8jziDL4ksCMa2hl28d1frZXNZHlqv4CboyxqjZpfmKvzrA/q4mRXvdIzvLac3/t72YqugosWGJEIrzvkK4/S5vzZ4Rq1tEsIyENTFABrE4agJ5fXiP/y7iVTVa6RfRvd7Wh53TwOnD4v6Lx51H/+sAAAABQcgBAEAAAAnAAABjwAAAZAAAAAAAAAAAAAAGAAAAASI+tjT5Giw9PsdtXqP9/+sCmVuZHN0cmVhbQplbmRvYmoKCnhyZWYKMCA2CjAwMDAwMDAwMDAgNjU1MzYgZiAKMDAwMDAwMDAxNCAwMDAwMCBuIAowMDAwMDAwMDY4IDAwMDAwIG4gCjAwMDAwMDAxMzIgMDAwMDAgbiAKMDAwMDAwMDI4OCAwMDAwMCBuIAowMDAwMDAwMzYyIDAwMDAwIG4gCgp0cmFpbGVyCjw8CiAgL1NpemUgNgogIC9Sb290IDEgMCBSCj4+CnN0YXJ0eHJlZgoxMDAzCiUlRU9GCg==");
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(pdf);
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(399, 400, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Empty(page.Diagnostics);
+        Assert.Contains(page.Pixels.ToArray().Chunk(4), pixel =>
+            pixel[0] != 255 || pixel[1] != 255 || pixel[2] != 255);
+    }
+
+    [Fact]
     public void Render_BlankPageProducesOpaqueWhiteBgra()
     {
         PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
