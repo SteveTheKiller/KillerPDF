@@ -306,6 +306,30 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void CancellableRenderWorkflowsPassTheirTokensIntoTheEngineBoundary()
+    {
+        string root = FindRepositoryRoot();
+        string boundary = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
+        string rasterize = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfRasterize.cs"));
+        string ocr = File.ReadAllText(
+            Path.Combine(root, "Features", "Ocr", "OcrController.cs"));
+        string viewer = File.ReadAllText(
+            Path.Combine(root, "Controls", "Viewer", "PdfViewer.Viewport.cs"));
+
+        Assert.Contains("includeFormFields), cancellationToken)", boundary,
+            StringComparison.Ordinal);
+        Assert.Contains("exception is not OperationCanceledException", boundary,
+            StringComparison.Ordinal);
+        Assert.Equal(2, Count(rasterize, "cancellationToken: ct"));
+        Assert.Contains("RenderBasePage(pages[i], ct)", ocr, StringComparison.Ordinal);
+        Assert.Contains("RenderBasePage(pageIdx, ct)", ocr, StringComparison.Ordinal);
+        Assert.Equal(2, Count(ocr, "RenderBasePage(i, ct)"));
+        Assert.Equal(3, Count(viewer, "cancellationToken: cts.Token"));
+    }
+
     private static int Count(string source, string value)
     {
         int count = 0;

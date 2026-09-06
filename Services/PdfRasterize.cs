@@ -100,7 +100,7 @@ namespace KillerPDF.Services
                     // #141: WithAnnotations, or flattening an annotated PDF silently dropped the
                     // markup the file carried - this path builds a NEW document from the pixels.
                     PdfRenderedPage rendered = renderSession.RenderPage(
-                        i, removeTransparencyOnFallback: true);
+                        i, removeTransparencyOnFallback: true, cancellationToken: ct);
                     rw = rendered.Width;
                     rh = rendered.Height;
                     bgra = rendered.Pixels;
@@ -160,7 +160,7 @@ namespace KillerPDF.Services
                     // #141: WithAnnotations - an exported image should show the markup the file
                     // carries, the same as the page does on screen.
                     PdfRenderedPage rendered = renderSession.RenderPage(
-                        idx, removeTransparencyOnFallback: true);
+                        idx, removeTransparencyOnFallback: true, cancellationToken: ct);
                     w = rendered.Width;
                     h = rendered.Height;
                     raw = rendered.Pixels;

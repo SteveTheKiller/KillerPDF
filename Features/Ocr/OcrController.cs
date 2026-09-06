@@ -61,7 +61,7 @@ namespace KillerPDF.Features
                         int progress = i;
                         _host.Window.Dispatcher.Invoke(() => _host.SetBusyMessage(
                             $"{_host.Loc("Str_Busy_Ocr")} {progress + 1}/{pages.Length}"));
-                        PdfRenderedPage page = renderSession.RenderBasePage(pages[i]);
+                        PdfRenderedPage page = renderSession.RenderBasePage(pages[i], ct);
                         int w = page.Width;
                         int h = page.Height;
                         ReadOnlyMemory<byte> bgra = page.Pixels;
@@ -142,7 +142,7 @@ namespace KillerPDF.Features
                 {
                     using var renderSession = PdfPageRenderSession.OpenEngineFirst(
                         file, OcrRenderMax, OcrRenderMax);
-                    PdfRenderedPage page = renderSession.RenderBasePage(pageIdx);
+                    PdfRenderedPage page = renderSession.RenderBasePage(pageIdx, ct);
                     int w = page.Width;
                     int h = page.Height;
                     ReadOnlyMemory<byte> bgra = page.Pixels;
@@ -291,7 +291,7 @@ namespace KillerPDF.Features
                 if (ct.IsCancellationRequested) return (i, 0);
                 report(i, pages);
 
-                PdfRenderedPage page = renderSession.RenderBasePage(i);
+                PdfRenderedPage page = renderSession.RenderBasePage(i, ct);
                 int w = page.Width;
                 int h = page.Height;
                 byte[] bgra = page.Pixels;
@@ -404,7 +404,7 @@ namespace KillerPDF.Features
                 if (ct.IsCancellationRequested) return 0;
                 report(i, pageCount);
 
-                PdfRenderedPage page = renderSession.RenderBasePage(i);
+                PdfRenderedPage page = renderSession.RenderBasePage(i, ct);
                 int w = page.Width;
                 int h = page.Height;
                 byte[] bgra = page.Pixels;

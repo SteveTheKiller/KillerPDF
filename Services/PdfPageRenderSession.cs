@@ -83,8 +83,10 @@ internal sealed class PdfPageRenderSession : IDisposable
 
     internal int PageCount => _enginePages?.Count ?? _nativeFallback.PageCount;
 
-    internal PdfRenderedPage RenderBasePage(int pageIndex)
+    internal PdfRenderedPage RenderBasePage(int pageIndex,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var profile = new EngineRenderProfile(pageIndex,
             IncludeAnnotations: false, IncludeFormFields: false);
         if (_engineRenderer is not null && _enginePages is not null
@@ -93,21 +95,26 @@ internal sealed class PdfPageRenderSession : IDisposable
             try
             {
                 return RenderEnginePage(pageIndex, transparentBackground: false,
-                    includeAnnotations: false, includeFormFields: false);
+                    includeAnnotations: false, includeFormFields: false, cancellationToken);
             }
             catch (Exception exception) when (_allowNativeFallback
-                && exception is not OutOfMemoryException)
+                && exception is not OutOfMemoryException
+                && exception is not OperationCanceledException)
             {
                 _nativeFallbackProfiles.Add(profile);
             }
         }
 
-        return _nativeFallback.RenderBasePage(pageIndex);
+        PdfRenderedPage page = _nativeFallback.RenderBasePage(pageIndex);
+        cancellationToken.ThrowIfCancellationRequested();
+        return page;
     }
 
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground = false,
-        bool includeFormFields = true, bool removeTransparencyOnFallback = false)
+        bool includeFormFields = true, bool removeTransparencyOnFallback = false,
+        CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var profile = new EngineRenderProfile(pageIndex,
             IncludeAnnotations: true, IncludeFormFields: includeFormFields);
         if (_engineRenderer is not null && _enginePages is not null
@@ -116,21 +123,25 @@ internal sealed class PdfPageRenderSession : IDisposable
             try
             {
                 return RenderEnginePage(pageIndex, transparentBackground,
-                    includeAnnotations: true, includeFormFields);
+                    includeAnnotations: true, includeFormFields, cancellationToken);
             }
             catch (Exception exception) when (_allowNativeFallback
-                && exception is not OutOfMemoryException)
+                && exception is not OutOfMemoryException
+                && exception is not OperationCanceledException)
             {
                 _nativeFallbackProfiles.Add(profile);
             }
         }
 
-        return _nativeFallback.RenderPage(pageIndex, transparentBackground,
+        PdfRenderedPage page = _nativeFallback.RenderPage(pageIndex, transparentBackground,
             includeFormFields, removeTransparencyOnFallback);
+        cancellationToken.ThrowIfCancellationRequested();
+        return page;
     }
 
     private PdfRenderedPage RenderEnginePage(int pageIndex, bool transparentBackground,
-        bool includeAnnotations, bool includeFormFields)
+        bool includeAnnotations, bool includeFormFields,
+        CancellationToken cancellationToken)
     {
         if (pageIndex < 0 || pageIndex >= _enginePages!.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -144,7 +155,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         int engineHeight = Math.Max(1, (int)Math.Round(pageHeight * renderScale));
         KillerPdf.Engine.Rendering.PdfRenderedPage rendered = _engineRenderer!.Render(
             pageIndex, new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
-                includeAnnotations, includeFormFields));
+                includeAnnotations, includeFormFields), cancellationToken);
         if (rendered.Diagnostics.Count > 0)
             throw new NotSupportedException(string.Join(" ", rendered.Diagnostics));
         return new PdfRenderedPage(engineWidth, engineHeight, rendered.Pixels.ToArray());

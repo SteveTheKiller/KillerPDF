@@ -557,7 +557,8 @@ namespace KillerPDF.Controls
 
                         renderSession ??= PdfPageRenderSession.OpenEngineFirst(
                             currentFile, renderW, renderW * 2);
-                        PdfRenderedPage rendered = renderSession.RenderPage(i, includeFormFields: false);
+                        PdfRenderedPage rendered = renderSession.RenderPage(i,
+                            includeFormFields: false, cancellationToken: cts.Token);
                         int w = rendered.Width;
                         int h = rendered.Height;
                         byte[] raw = rendered.Pixels;
@@ -790,7 +791,8 @@ namespace KillerPDF.Controls
                         if (cts.IsCancellationRequested) return;
                         renderSession ??= PdfPageRenderSession.OpenEngineFirst(
                             currentFile, hiW, hiW * 2);
-                        PdfRenderedPage rendered = renderSession.RenderPage(p, includeFormFields: false);
+                        PdfRenderedPage rendered = renderSession.RenderPage(p,
+                            includeFormFields: false, cancellationToken: cts.Token);
                         int w = rendered.Width, h = rendered.Height;
                         byte[] raw = rendered.Pixels;
                         if (w <= 0 || h <= 0 || raw is null) continue;
@@ -1183,7 +1185,8 @@ namespace KillerPDF.Controls
                             {
                                 renderSession ??= PdfPageRenderSession.OpenEngineFirst(
                                     currentFile, secondaryMax, secondaryMax);
-                                PdfRenderedPage rendered = renderSession.RenderPage(i, includeFormFields: false);
+                                PdfRenderedPage rendered = renderSession.RenderPage(i,
+                                    includeFormFields: false, cancellationToken: cts.Token);
                                 int w = rendered.Width;
                                 int h = rendered.Height;
                                 byte[] rawBytes = rendered.Pixels;
