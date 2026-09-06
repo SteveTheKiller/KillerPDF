@@ -1130,6 +1130,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     PdfOcrReadingOrderMetrics pageOrder =
                         PdfOcrReadingOrderMetrics.Compare(pageBoxes.Matches);
                     if (pageCount < pageMetricLimit)
+                    {
                         Console.WriteLine($"OCR page {relative}#{pageIndex + 1}: "
                             + $"{pageMetrics.ExpectedCharacterCount:N0} expected and "
                             + $"{pageMetrics.RecognizedCharacterCount:N0} recognized characters, "
@@ -1137,6 +1138,19 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                             + $"{pageMetrics.ExpectedWordCount:N0} expected and "
                             + $"{pageMetrics.RecognizedWordCount:N0} recognized words, "
                             + $"{pageBoxes.RecallAtFiftyPercent:P2} word-box recall.");
+                        foreach (PdfOcrWordBoxMatch match in pageBoxes.Matches
+                            .Where(match => match.IntersectionOverUnion >= 0.5
+                                && !string.Equals(
+                                    expectedPageWords[match.ExpectedIndex].Text,
+                                    recognized.Words[match.RecognizedIndex].Text,
+                                    StringComparison.Ordinal))
+                            .OrderByDescending(match => match.IntersectionOverUnion)
+                            .Take(12))
+                            Console.WriteLine($"  OCR mismatch "
+                                + $"{expectedPageWords[match.ExpectedIndex].Text} -> "
+                                + $"{recognized.Words[match.RecognizedIndex].Text} "
+                                + $"({match.IntersectionOverUnion:P0} overlap).");
+                    }
                     expectedCharacters = checked(expectedCharacters
                         + pageMetrics.ExpectedCharacterCount);
                     recognizedCharacters = checked(recognizedCharacters
