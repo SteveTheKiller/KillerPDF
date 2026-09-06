@@ -364,7 +364,7 @@ public static class PdfOcrModelTrainer
                 centerX >= line.Bounds.Left && centerX < line.Bounds.Right
                 && centerY >= line.Bounds.Top && centerY < line.Bounds.Bottom);
             PdfOcrImageRegion lineBounds = line is null
-                ? bounds : PdfOcrRecognizer.NormalizationLineBounds(line);
+                ? bounds : PdfOcrRecognizer.NormalizationLineBounds(line, bounds);
             candidates.Add((labels[index].Label, bounds, lineBounds));
         }
         IReadOnlySet<PdfOcrImageRegion> ambiguousBounds =

@@ -1188,6 +1188,15 @@ public static class PdfOcrRecognizer
         }
     }
 
+    internal static PdfOcrImageRegion NormalizationLineBounds(PdfOcrTextLine line,
+        PdfOcrImageRegion region)
+    {
+        PdfOcrImageRegion bounds = NormalizationLineBounds(line);
+        return new PdfOcrImageRegion(
+            Math.Min(bounds.Left, region.Left), Math.Min(bounds.Top, region.Top),
+            Math.Max(bounds.Right, region.Right), Math.Max(bounds.Bottom, region.Bottom));
+    }
+
     private static void NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
         int width, int height, Span<float> result, CancellationToken cancellationToken)
         => NormalizeGlyph(image, region, region, width, height, result, cancellationToken);
