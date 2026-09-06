@@ -357,6 +357,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     string? ocrPasswordManifestPath = null;
     string? ocrCertificateManifestPath = null;
     string? ocrLanguageModelPath = null;
+    string? ocrModelInputPath = null;
     for (int index = 3; index < args.Length; index += 2)
     {
         if (index + 1 >= args.Length)
@@ -387,6 +388,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         if (args[index] == "--language-model-output")
         {
             ocrLanguageModelPath = Path.GetFullPath(args[index + 1]);
+            continue;
+        }
+        if (args[index] == "--model-input")
+        {
+            ocrModelInputPath = Path.GetFullPath(args[index + 1]);
             continue;
         }
         if (!int.TryParse(args[index + 1], out int value) || value < 1)
@@ -455,6 +461,16 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             : $"Output already exists: {ocrLanguageModelPath}");
         return 2;
     }
+    if (ocrModelInputPath is not null
+        && (!File.Exists(ocrModelInputPath)
+            || string.Equals(modelPath, ocrModelInputPath,
+                StringComparison.OrdinalIgnoreCase)))
+    {
+        Console.Error.WriteLine(!File.Exists(ocrModelInputPath)
+            ? $"OCR model input not found: {ocrModelInputPath}"
+            : "OCR model input and promoted output must be different files.");
+        return 2;
+    }
 
     Dictionary<string, string[]?> ocrPasswords = ReadPasswordManifest(
         ocrPasswordManifestPath);
@@ -481,9 +497,6 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine("The OCR corpus contains no PDF files.");
         return 2;
     }
-    Console.WriteLine($"OCR checkpoint: {ocrFiles.Length:N0} PDF files, "
-        + $"{pagesPerFile:N0} page(s) per file, {renderSize:N0}-pixel render, "
-        + $"{modelWidth}x{modelHeight} model, {holdoutPercent}% holdout.");
     Console.WriteLine("OCR checkpoint source: "
         + (ocrFileListPath ?? $"{ocrRoot} (directory enumeration)"));
     var trainingStarted = Stopwatch.StartNew();
@@ -491,14 +504,33 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     PdfOcrRecognitionModel ocrModel;
     try
     {
-        ocrModel = PdfOcrModelTrainer.Train(
-            modelWidth, modelHeight, Samples("training", selectHoldout: false));
+        if (ocrModelInputPath is null)
+        {
+            ocrModel = PdfOcrModelTrainer.Train(
+                modelWidth, modelHeight, Samples("training", selectHoldout: false));
+        }
+        else
+        {
+            using var input = new FileStream(ocrModelInputPath,
+                FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (input.Length is <= 0 or > 256L * 1024 * 1024)
+                throw new InvalidDataException("The OCR model input size is invalid.");
+            var bytes = new byte[checked((int)input.Length)];
+            input.ReadExactly(bytes);
+            ocrModel = PdfOcrRecognitionModel.Load(bytes);
+        }
     }
     catch (Exception error) when (error is not OutOfMemoryException)
     {
-        Console.Error.WriteLine($"OCR training failed: {error.GetType().Name}: {error.Message}");
+        Console.Error.WriteLine("OCR "
+            + (ocrModelInputPath is null ? "training" : "model input")
+            + $" failed: {error.GetType().Name}: {error.Message}");
         return 1;
     }
+    Console.WriteLine($"OCR checkpoint: {ocrFiles.Length:N0} PDF files, "
+        + $"{pagesPerFile:N0} page(s) per file, {renderSize:N0}-pixel render, "
+        + $"{ocrModel.Width}x{ocrModel.Height} model, {holdoutPercent}% holdout, "
+        + (ocrModelInputPath is null ? "trained model." : $"loaded model {ocrModelInputPath}."));
     string[] missingLabels = ocrLabels is null ? [] : [.. ocrLabels
         .Except(ocrModel.Labels, StringComparer.Ordinal)
         .Order(StringComparer.Ordinal)];
@@ -758,7 +790,8 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             return 1;
         }
     }
-    Console.WriteLine($"OCR corpus training completed in "
+    Console.WriteLine($"OCR corpus "
+        + (ocrModelInputPath is null ? "training" : "evaluation") + " completed in "
         + $"{trainingStarted.Elapsed.TotalSeconds:N1}s: {modelPath}");
     return 0;
 
@@ -3262,7 +3295,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--language-model-output <output.kplm>] [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--maximum-page-allocation-megabytes <count>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--model-input <existing.model>] [--language-model-output <output.kplm>] [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-script-accuracy-percent <1-100>] [--minimum-script-samples <count>] [--minimum-script-count <count>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--maximum-page-allocation-megabytes <count>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
