@@ -260,6 +260,30 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TextLayerTrainingKeepsLabelsWhoseRenderedGlyphsTouch()
+    {
+        var builder = new PdfDocumentBuilder()
+            .AddPage(100, 80, new PdfContentStreamBuilder()
+                .BeginText().SetFont(PdfStandardFont.Helvetica, 40)
+                .SetCharacterSpacing(-20)
+                .SetTextMatrix(1, 0, 0, 1, 10, 20)
+                .ShowLatin1Text("AB").EndText());
+        PdfDocument document = PdfDocument.Open(builder.Build());
+        var options = new PdfOcrOptions(["en"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreatePageSamples(document, 0,
+                new PdfRenderOptions(200, 160, includeAnnotations: false,
+                    includeFormFields: false), options, 16, 16);
+
+        Assert.Equal(["A", "B"], samples.Select(sample => sample.Label));
+        Assert.All(samples, sample => Assert.Contains(
+            sample.Features.ToArray(), value => value > 0));
+    }
+
+    [Fact]
     public void ModelRoundTripsWithHashVerificationAndRecognizesGlyphs()
     {
         PdfOcrRecognitionModel created = RecognitionModel();

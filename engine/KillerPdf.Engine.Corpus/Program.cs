@@ -398,6 +398,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         return 2;
     }
     var trainingStarted = Stopwatch.StartNew();
+    int trainingSampleCount = 0;
     PdfOcrRecognitionModel ocrModel;
     try
     {
@@ -409,12 +410,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine($"OCR training failed: {error.GetType().Name}: {error.Message}");
         return 1;
     }
-    PdfOcrModelEvaluation trainingEvaluation;
     PdfOcrModelEvaluation evaluation;
     try
     {
-        trainingEvaluation = PdfOcrModelTrainer.Evaluate(
-            ocrModel, Samples(selectHoldout: false, reportFailures: false));
         evaluation = PdfOcrModelTrainer.Evaluate(
             ocrModel, Samples(selectHoldout: true, reportFailures: false));
     }
@@ -439,8 +437,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     }
     Console.WriteLine($"OCR model: {ocrModel.Labels.Count:N0} labels, "
         + $"{modelBytes.Length:N0} bytes, "
-        + $"{trainingEvaluation.SampleCount:N0} training samples, "
-        + $"{trainingEvaluation.Accuracy:P2} training accuracy, "
+        + $"{trainingSampleCount:N0} training samples, "
         + $"{evaluation.SampleCount:N0} holdout samples, "
         + $"{evaluation.Accuracy:P2} accuracy, "
         + $"{evaluation.AverageConfidence:P2} average confidence.");
@@ -461,6 +458,12 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         {
             string file = ocrFiles[fileIndex];
             string relative = Path.GetRelativePath(ocrRoot, file);
+            bool isHoldout = PdfOcrTrainingPartition.IsHoldout(relative, holdoutPercent);
+            if (isHoldout != selectHoldout)
+            {
+                ReportProgress();
+                continue;
+            }
             IReadOnlyList<PdfOcrTrainingSample>[] pages;
             try
             {
@@ -492,18 +495,24 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         + $"{error.GetType().Name}: {error.Message}");
                 continue;
             }
-            bool isHoldout = PdfOcrTrainingPartition.IsHoldout(relative, holdoutPercent);
             for (int pageIndex = 0; pageIndex < pages.Length; pageIndex++)
                 for (int sampleIndex = 0; sampleIndex < pages[pageIndex].Count; sampleIndex++)
                 {
                     PdfOcrTrainingSample sample = pages[pageIndex][sampleIndex];
                     if (Encoding.UTF8.GetByteCount(sample.Label) > 64) continue;
                     if (ocrLabels is not null && !ocrLabels.Contains(sample.Label)) continue;
-                    if (isHoldout == selectHoldout)
-                        yield return sample;
+                    if (!selectHoldout) trainingSampleCount++;
+                    yield return sample;
                 }
-            if (reportFailures && ((fileIndex + 1) % 100 == 0 || fileIndex + 1 == ocrFiles.Length))
-                Console.WriteLine($"Sampled {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
+            ReportProgress();
+
+            void ReportProgress()
+            {
+                if (reportFailures && ((fileIndex + 1) % 100 == 0
+                    || fileIndex + 1 == ocrFiles.Length))
+                    Console.WriteLine(
+                        $"Sampled {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
+            }
         }
     }
 

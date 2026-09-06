@@ -196,40 +196,19 @@ public static class PdfOcrModelTrainer
                 letter.BoundingBox, page, rendered.Width, rendered.Height);
             if (bounds is not null) labels.Add((label, bounds));
         }
-        var assigned = new List<PdfOcrImageRegion>[labels.Count];
-        foreach (PdfOcrImageRegion component in components)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            double centerX = (component.Left + component.Right) / 2d;
-            double centerY = (component.Top + component.Bottom) / 2d;
-            int best = -1;
-            double bestDistance = double.PositiveInfinity;
-            for (int index = 0; index < labels.Count; index++)
-            {
-                PdfOcrImageRegion bounds = labels[index].Bounds;
-                if (centerX < bounds.Left || centerX > bounds.Right
-                    || centerY < bounds.Top || centerY > bounds.Bottom)
-                    continue;
-                double dx = (centerX - (bounds.Left + bounds.Right) / 2d)
-                    / Math.Max(1, bounds.Width);
-                double dy = (centerY - (bounds.Top + bounds.Bottom) / 2d)
-                    / Math.Max(1, bounds.Height);
-                double distance = dx * dx + dy * dy;
-                if (distance < bestDistance)
-                {
-                    best = index;
-                    bestDistance = distance;
-                }
-            }
-            if (best < 0) continue;
-            (assigned[best] ??= []).Add(component);
-        }
         var samples = new List<PdfOcrTrainingSample>();
         for (int index = 0; index < labels.Count; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            List<PdfOcrImageRegion>? glyph = assigned[index];
-            if (glyph is null) continue;
+            PdfOcrImageRegion labelBounds = labels[index].Bounds;
+            PdfOcrImageRegion[] glyph = [.. components.Select(component =>
+                new PdfOcrImageRegion(
+                    Math.Max(component.Left, labelBounds.Left),
+                    Math.Max(component.Top, labelBounds.Top),
+                    Math.Min(component.Right, labelBounds.Right),
+                    Math.Min(component.Bottom, labelBounds.Bottom)))
+                .Where(overlap => overlap.Width > 0 && overlap.Height > 0)];
+            if (glyph.Length == 0) continue;
             var bounds = new PdfOcrImageRegion(
                 glyph.Min(item => item.Left), glyph.Min(item => item.Top),
                 glyph.Max(item => item.Right), glyph.Max(item => item.Bottom));
