@@ -94,6 +94,7 @@ public static class PdfOcrLayoutAnalyzer
         }
 
         components = SplitTouchingGlyphs(components, pixels, width);
+        components = FilterGraphicOutliers(components);
         components = MergeDetachedMarks(components);
         IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> columns = detectPageSegments
             ? SplitColumns(components) : components.Count == 0 ? [] : [components];
@@ -175,6 +176,19 @@ public static class PdfOcrLayoutAnalyzer
             }
         }
         return split;
+    }
+
+    private static List<PdfOcrImageRegion> FilterGraphicOutliers(
+        IReadOnlyList<PdfOcrImageRegion> components)
+    {
+        if (components.Count < 5) return [.. components];
+        int[] heights = [.. components.Select(component => component.Height)
+            .OrderBy(height => height)];
+        int referenceHeight = heights[heights.Length / 2];
+        return [.. components.Where(component =>
+            component.Height <= referenceHeight * 6
+            && (component.Width <= referenceHeight * 8
+                || component.Height * 2 > referenceHeight))];
     }
 
     private static List<PdfOcrImageRegion> MergeDetachedMarks(

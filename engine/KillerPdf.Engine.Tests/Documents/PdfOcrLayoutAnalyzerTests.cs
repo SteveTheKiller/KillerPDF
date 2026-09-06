@@ -125,7 +125,7 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
-    public void Analyze_DoesNotUseOneTallGraphicAsTheGlyphHeight()
+    public void Analyze_IgnoresRuleLinesAndExtremeGraphicStrokes()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 80 * 80).ToArray();
         Paint(pixels, 80, 2, 10, 3, 3);
@@ -133,13 +133,16 @@ public sealed class PdfOcrLayoutAnalyzerTests
         foreach (int x in new[] { 20, 28, 36, 44, 52 })
             Paint(pixels, 80, x, 10, 3, 5);
         Paint(pixels, 80, 70, 10, 2, 50);
+        Paint(pixels, 80, 10, 70, 50, 2);
 
         PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
             Prepared(80, 80, pixels));
 
-        Assert.Equal(8, layout.Components.Count);
+        Assert.Equal(7, layout.Components.Count);
         Assert.Contains(new PdfOcrImageRegion(2, 10, 5, 13), layout.Components);
         Assert.Contains(new PdfOcrImageRegion(2, 15, 5, 18), layout.Components);
+        Assert.DoesNotContain(new PdfOcrImageRegion(70, 10, 72, 60), layout.Components);
+        Assert.DoesNotContain(new PdfOcrImageRegion(10, 70, 60, 72), layout.Components);
     }
 
     [Fact]
