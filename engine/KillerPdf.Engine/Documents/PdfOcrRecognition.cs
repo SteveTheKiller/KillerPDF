@@ -567,12 +567,31 @@ public static class PdfOcrRecognizer
         for (int y = 0; y < scaledHeight; y++)
             for (int x = 0; x < scaledWidth; x++)
             {
-                int sx = region.Left
-                    + Math.Min(region.Width - 1, x * region.Width / scaledWidth);
-                int sy = region.Top
-                    + Math.Min(region.Height - 1, y * region.Height / scaledHeight);
+                double sourceLeft = x * region.Width / (double)scaledWidth;
+                double sourceRight = (x + 1) * region.Width / (double)scaledWidth;
+                double sourceTop = y * region.Height / (double)scaledHeight;
+                double sourceBottom = (y + 1) * region.Height / (double)scaledHeight;
+                int firstX = (int)Math.Floor(sourceLeft);
+                int lastX = Math.Min(region.Width - 1, (int)Math.Ceiling(sourceRight) - 1);
+                int firstY = (int)Math.Floor(sourceTop);
+                int lastY = Math.Min(region.Height - 1, (int)Math.Ceiling(sourceBottom) - 1);
+                double darkness = 0;
+                double area = 0;
+                for (int sy = firstY; sy <= lastY; sy++)
+                {
+                    double vertical = Math.Min(sourceBottom, sy + 1) - Math.Max(sourceTop, sy);
+                    for (int sx = firstX; sx <= lastX; sx++)
+                    {
+                        double horizontal = Math.Min(sourceRight, sx + 1)
+                            - Math.Max(sourceLeft, sx);
+                        double weight = horizontal * vertical;
+                        darkness += (1 - source[(region.Top + sy) * image.Width
+                            + region.Left + sx] / 255d) * weight;
+                        area += weight;
+                    }
+                }
                 result[(offsetY + y) * width + offsetX + x] =
-                    1 - source[sy * image.Width + sx] / 255f;
+                    area <= 0 ? 0 : (float)(darkness / area);
             }
     }
 }

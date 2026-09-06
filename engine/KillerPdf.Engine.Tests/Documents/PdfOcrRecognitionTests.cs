@@ -564,6 +564,31 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void GlyphNormalizationPreservesThinStrokeCoverageWhenDownsampling()
+    {
+        PdfOcrPreparedImage image = Prepared(8, 8,
+        [
+            ".#......",
+            ".#......",
+            ".#......",
+            ".#......",
+            ".#......",
+            ".#......",
+            ".#......",
+            ".#......"
+        ]);
+
+        float[] features = PdfOcrRecognizer.NormalizeGlyph(
+            image, new PdfOcrImageRegion(0, 0, 8, 8), 4, 4);
+
+        Assert.All(Enumerable.Range(0, 4), row =>
+            Assert.Equal(0.5f, features[row * 4], 5));
+        Assert.All(Enumerable.Range(0, 4), row =>
+            Assert.All(features.AsSpan(row * 4 + 1, 3).ToArray(),
+                value => Assert.Equal(0, value)));
+    }
+
+    [Fact]
     public void PageRecognizerRunsDirectlyFromEngineRenderAndMapsPdfBounds()
     {
         PdfOcrRecognitionModel model = RecognitionModel();
