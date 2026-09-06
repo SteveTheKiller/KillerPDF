@@ -79,9 +79,8 @@ public sealed class PdfOcrImagePreprocessorTests
         PdfOcrPreparedImage image = PdfOcrImagePreprocessor.PrepareBgra(
             bgra, 7, 7, options);
 
-        Assert.Equal(0, image.Pixels.Span[2 * 7 + 2]);
-        Assert.Equal(0, image.Pixels.Span[3 * 7 + 3]);
-        Assert.Equal(0, image.Pixels.Span[4 * 7 + 4]);
+        Assert.All(Enumerable.Range(1, 5), offset =>
+            Assert.Equal(0, image.Pixels.Span[offset * 7 + offset]));
     }
 
     [Fact]

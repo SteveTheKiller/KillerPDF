@@ -407,7 +407,7 @@ public static class PdfOcrImagePreprocessor
                         if ((xx != x || yy != y) && source[yy * width + xx] == 0)
                             darkNeighbors++;
                 int index = y * width + x;
-                if (source[index] == 0 && darkNeighbors < 2) result[index] = 255;
+                if (source[index] == 0 && darkNeighbors == 0) result[index] = 255;
                 else if (source[index] == 255 && darkNeighbors >= 7) result[index] = 0;
             }
         }
