@@ -327,10 +327,11 @@ public static class PdfOcrModelTrainer
             if (!IsPlausibleSampleBounds(labelBounds, bounds)) continue;
             int centerX = (bounds.Left + bounds.Right) / 2;
             int centerY = (bounds.Top + bounds.Bottom) / 2;
-            PdfOcrImageRegion lineBounds = layout.Lines.FirstOrDefault(line =>
+            PdfOcrTextLine? line = layout.Lines.FirstOrDefault(line =>
                 centerX >= line.Bounds.Left && centerX < line.Bounds.Right
-                && centerY >= line.Bounds.Top && centerY < line.Bounds.Bottom)?.Bounds
-                ?? bounds;
+                && centerY >= line.Bounds.Top && centerY < line.Bounds.Bottom);
+            PdfOcrImageRegion lineBounds = line is null
+                ? bounds : PdfOcrRecognizer.NormalizationLineBounds(line);
             candidates.Add((labels[index].Label, bounds, lineBounds));
         }
         IReadOnlySet<PdfOcrImageRegion> ambiguousBounds =

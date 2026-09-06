@@ -1159,6 +1159,22 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void GlyphNormalizationUsesTheMedianLineHeightAndBaseline()
+    {
+        var line = new PdfOcrTextLine(
+            new PdfOcrImageRegion(0, 0, 30, 30), [],
+            [
+                new PdfOcrImageRegion(0, 10, 5, 20),
+                new PdfOcrImageRegion(8, 11, 13, 20),
+                new PdfOcrImageRegion(16, 0, 21, 30)
+            ]);
+
+        PdfOcrImageRegion bounds = PdfOcrRecognizer.NormalizationLineBounds(line);
+
+        Assert.Equal(new PdfOcrImageRegion(0, 10, 30, 20), bounds);
+    }
+
+    [Fact]
     public void GlyphNormalizationPreservesThinStrokeCoverageWhenDownsampling()
     {
         PdfOcrPreparedImage image = Prepared(8, 8,

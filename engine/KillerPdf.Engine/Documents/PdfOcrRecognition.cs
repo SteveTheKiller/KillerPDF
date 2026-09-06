@@ -979,42 +979,47 @@ public static class PdfOcrRecognizer
         try
         {
             foreach (PdfOcrTextLine line in layout.Lines)
-            foreach (PdfOcrWordRegion word in line.Words)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var text = new StringBuilder();
-                List<IReadOnlyList<PdfOcrLanguageCandidate>>? candidates = languageModel is null
-                    ? null : new List<IReadOnlyList<PdfOcrLanguageCandidate>>(
-                        word.Components.Count);
-                double confidence = 0;
-                foreach (PdfOcrImageRegion component in word.Components)
+                PdfOcrImageRegion lineBounds = NormalizationLineBounds(line);
+                foreach (PdfOcrWordRegion word in line.Words)
                 {
-                    Span<float> glyph = features.AsSpan(0, featureCount);
-                    NormalizeGlyph(image, component, line.Bounds,
-                        model.Width, model.Height, glyph, cancellationToken);
-                    (string label, double score) = model.Classify(
-                        glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
-                    text.Append(label);
-                    candidates?.Add(model.RankCandidates(
-                        scores.AsSpan(0, model.LabelCount), maximumCandidates: 8));
-                    confidence += score;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var text = new StringBuilder();
+                    List<IReadOnlyList<PdfOcrLanguageCandidate>>? candidates = languageModel is null
+                        ? null : new List<IReadOnlyList<PdfOcrLanguageCandidate>>(
+                            word.Components.Count);
+                    double confidence = 0;
+                    foreach (PdfOcrImageRegion component in word.Components)
+                    {
+                        Span<float> glyph = features.AsSpan(0, featureCount);
+                        NormalizeGlyph(image, component, lineBounds,
+                            model.Width, model.Height, glyph, cancellationToken);
+                        (string label, double score) = model.Classify(
+                            glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
+                        text.Append(label);
+                        candidates?.Add(model.RankCandidates(
+                            scores.AsSpan(0, model.LabelCount), maximumCandidates: 8));
+                        confidence += score;
+                    }
+                    string recognizedText;
+                    if (candidates is null)
+                    {
+                        recognizedText = text.ToString();
+                    }
+                    else
+                    {
+                        IReadOnlyList<string> decoded = languageModel!.Decode(
+                            candidates, cancellationToken: cancellationToken);
+                        recognizedText = string.Concat(decoded);
+                        confidence = 0;
+                        for (int index = 0; index < decoded.Count; index++)
+                            confidence += CandidateConfidence(
+                                decoded[index], candidates[index]);
+                    }
+                    words.Add(new PdfOcrRecognizedWord(recognizedText,
+                        word.Components.Count == 0
+                            ? 0 : confidence / word.Components.Count, word.Bounds));
                 }
-                string recognizedText;
-                if (candidates is null)
-                {
-                    recognizedText = text.ToString();
-                }
-                else
-                {
-                    IReadOnlyList<string> decoded = languageModel!.Decode(
-                        candidates, cancellationToken: cancellationToken);
-                    recognizedText = string.Concat(decoded);
-                    confidence = 0;
-                    for (int index = 0; index < decoded.Count; index++)
-                        confidence += CandidateConfidence(decoded[index], candidates[index]);
-                }
-                words.Add(new PdfOcrRecognizedWord(recognizedText,
-                    word.Components.Count == 0 ? 0 : confidence / word.Components.Count, word.Bounds));
             }
         }
         finally
@@ -1056,6 +1061,21 @@ public static class PdfOcrRecognizer
         NormalizeGlyph(image, region, lineBounds, width, height,
             result, cancellationToken);
         return result;
+    }
+
+    internal static PdfOcrImageRegion NormalizationLineBounds(PdfOcrTextLine line)
+    {
+        ArgumentNullException.ThrowIfNull(line);
+        if (line.Components.Count == 0) return line.Bounds;
+        int[] heights = [.. line.Components.Select(component => component.Height)
+            .OrderBy(value => value)];
+        int[] bottoms = [.. line.Components.Select(component => component.Bottom)
+            .OrderBy(value => value)];
+        int height = heights[heights.Length / 2];
+        if (line.Bounds.Height <= height * 2) return line.Bounds;
+        int bottom = bottoms[bottoms.Length / 2];
+        return new PdfOcrImageRegion(
+            line.Bounds.Left, bottom - height, line.Bounds.Right, bottom);
     }
 
     private static void NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
