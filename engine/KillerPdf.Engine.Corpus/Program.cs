@@ -975,7 +975,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 .Where(PdfOcrModelTrainer.SupportsStandardFontLabel)
                 .Order(StringComparer.Ordinal)];
             using var seedTimeout = new CancellationTokenSource(
-                TimeSpan.FromSeconds(Math.Max(ocrTimeoutSeconds, 30)));
+                TimeSpan.FromSeconds(Math.Max(ocrTimeoutSeconds, 180)));
             if (seedStandardLabels.Length > 0)
             {
                 foreach (PdfOcrTrainingSample sample in
