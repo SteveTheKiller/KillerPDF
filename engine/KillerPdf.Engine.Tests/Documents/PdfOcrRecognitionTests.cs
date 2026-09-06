@@ -113,6 +113,35 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void ShapeBucketsDistinguishDisconnectedGlyphParts()
+    {
+        float[] connected =
+        [
+            1, 1, 1,
+            0, 1, 0,
+            0, 1, 0
+        ];
+        float[] disconnected =
+        [
+            1, 0, 1,
+            0, 0, 0,
+            1, 1, 1
+        ];
+
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(3, 3,
+        [
+            .. Enumerable.Repeat(
+                new PdfOcrTrainingSample("connected", connected), 100),
+            new("disconnected", disconnected)
+        ]);
+
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("disconnected", disconnected)]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
     public void VisualSimilarityCanOverrideAStrayPixelShapeMismatch()
     {
         float[] narrow =
@@ -328,6 +357,22 @@ public sealed class PdfOcrRecognitionTests
         Assert.All(samples, sample => Assert.Contains(
             sample.Features.ToArray(), value => value > 0));
         Assert.Equal(1, evaluation.Accuracy);
+    }
+
+    [Fact]
+    public void StandardFontTrainingCoversEveryRequestedLatinLabelAcrossBundledFaces()
+    {
+        string[] labels = ["!", "7", "A", "g"];
+
+        IReadOnlyList<PdfOcrTrainingSample> samples =
+            PdfOcrModelTrainer.CreateStandardFontSamples(labels, 16, 16);
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, samples);
+
+        Assert.Equal(labels, model.Labels.Order(StringComparer.Ordinal));
+        Assert.All(labels, label => Assert.Equal(12,
+            samples.Count(sample => sample.Label == label)));
+        Assert.Throws<ArgumentException>(() =>
+            PdfOcrModelTrainer.CreateStandardFontSamples(["AB"], 16, 16));
     }
 
     [Fact]

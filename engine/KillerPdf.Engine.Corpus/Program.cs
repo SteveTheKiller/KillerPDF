@@ -465,6 +465,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         var options = new PdfOcrOptions(["und"], deskew: false,
             correctOrientation: false, removeBackground: true, removeNoise: true,
             detectPageSegments: false);
+        var observedTrainingLabels = new HashSet<string>(StringComparer.Ordinal);
         for (int fileIndex = 0; fileIndex < ocrFiles.Length; fileIndex++)
         {
             string file = ocrFiles[fileIndex];
@@ -515,7 +516,11 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     PdfOcrTrainingSample sample = pages[pageIndex][sampleIndex];
                     if (Encoding.UTF8.GetByteCount(sample.Label) > 64) continue;
                     if (ocrLabels is not null && !ocrLabels.Contains(sample.Label)) continue;
-                    if (!selectHoldout) trainingSampleCount++;
+                    if (!selectHoldout)
+                    {
+                        trainingSampleCount++;
+                        observedTrainingLabels.Add(sample.Label);
+                    }
                     yield return sample;
                 }
             ReportProgress();
@@ -526,6 +531,22 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     || fileIndex + 1 == ocrFiles.Length))
                     Console.WriteLine(
                         $"Sampled {phase} {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
+            }
+        }
+        if (!selectHoldout && ocrLabels is not null)
+        {
+            string[] missingLatinLabels = [.. ocrLabels
+                .Except(observedTrainingLabels, StringComparer.Ordinal)
+                .Where(label => label.Length == 1 && label[0] <= byte.MaxValue)];
+            if (missingLatinLabels.Length == 0) yield break;
+            using var seedTimeout = new CancellationTokenSource(
+                TimeSpan.FromSeconds(Math.Max(ocrTimeoutSeconds, 30)));
+            foreach (PdfOcrTrainingSample sample in
+                PdfOcrModelTrainer.CreateStandardFontSamples(
+                    missingLatinLabels, modelWidth, modelHeight, seedTimeout.Token))
+            {
+                trainingSampleCount++;
+                yield return sample;
             }
         }
     }

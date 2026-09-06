@@ -239,7 +239,49 @@ public sealed class PdfOcrRecognitionModel
             }
         if (right <= left || bottom <= top) return -1;
         double aspect = (right - left) / (double)(bottom - top);
-        return aspect < 0.5 ? 0 : aspect > 1 ? 2 : 1;
+        int aspectBucket = aspect < 0.5 ? 0 : aspect > 1 ? 2 : 1;
+        int componentBucket = Math.Min(CountInkComponents(
+            features, width, height, threshold), 3) - 1;
+        return aspectBucket * 3 + componentBucket;
+    }
+
+    private static int CountInkComponents(
+        ReadOnlySpan<float> features, int width, int height, float threshold)
+    {
+        int featureCount = checked(width * height);
+        Span<byte> visited = featureCount <= 4096
+            ? stackalloc byte[featureCount] : new byte[featureCount];
+        Span<int> pending = featureCount <= 4096
+            ? stackalloc int[featureCount] : new int[featureCount];
+        int components = 0;
+        for (int origin = 0; origin < featureCount; origin++)
+        {
+            if (visited[origin] != 0 || features[origin] <= threshold) continue;
+            if (++components >= 3) return components;
+            int read = 0, write = 0;
+            pending[write++] = origin;
+            visited[origin] = 1;
+            while (read < write)
+            {
+                int current = pending[read++];
+                int x = current % width;
+                int y = current / width;
+                int left = Math.Max(0, x - 1);
+                int right = Math.Min(width - 1, x + 1);
+                int top = Math.Max(0, y - 1);
+                int bottom = Math.Min(height - 1, y + 1);
+                for (int neighborY = top; neighborY <= bottom; neighborY++)
+                    for (int neighborX = left; neighborX <= right; neighborX++)
+                    {
+                        int neighbor = neighborY * width + neighborX;
+                        if (visited[neighbor] != 0 || features[neighbor] <= threshold)
+                            continue;
+                        visited[neighbor] = 1;
+                        pending[write++] = neighbor;
+                    }
+            }
+        }
+        return components;
     }
 
     internal (string Label, double Confidence) Classify(

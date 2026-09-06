@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Rendering;
 
 namespace KillerPdf.Engine.Documents;
@@ -66,6 +67,21 @@ public static class PdfOcrModelTrainer
     private const int MaximumModelValues = 16 * 1024 * 1024;
     private const int MaximumPrototypesPerShape = 48;
     private const double LabelPriorWeight = 0.25;
+    private static readonly PdfStandardFont[] StandardTrainingFonts =
+    [
+        PdfStandardFont.Helvetica,
+        PdfStandardFont.HelveticaBold,
+        PdfStandardFont.HelveticaOblique,
+        PdfStandardFont.HelveticaBoldOblique,
+        PdfStandardFont.TimesRoman,
+        PdfStandardFont.TimesBold,
+        PdfStandardFont.TimesItalic,
+        PdfStandardFont.TimesBoldItalic,
+        PdfStandardFont.Courier,
+        PdfStandardFont.CourierBold,
+        PdfStandardFont.CourierOblique,
+        PdfStandardFont.CourierBoldOblique
+    ];
 
     /// <summary>Trains a bounded nearest-prototype classifier from normalized glyph samples.</summary>
     public static PdfOcrRecognitionModel Train(int width, int height,
@@ -132,6 +148,62 @@ public static class PdfOcrModelTrainer
         }
         return PdfOcrRecognitionModel.Create(
             width, height, orderedLabels, weights, biases);
+    }
+
+    /// <summary>Creates complete Latin-1 training coverage from bundled standard-font substitutes.</summary>
+    public static IReadOnlyList<PdfOcrTrainingSample> CreateStandardFontSamples(
+        IEnumerable<string> labels, int width, int height,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(labels);
+        if (width is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(width));
+        if (height is <= 0 or > 128) throw new ArgumentOutOfRangeException(nameof(height));
+        string[] requested = [.. labels.Distinct(StringComparer.Ordinal)
+            .Order(StringComparer.Ordinal)];
+        if (requested.Length == 0 || requested.Any(label => !IsValidLabel(label)
+            || label.Length != 1 || label[0] > byte.MaxValue))
+            throw new ArgumentException(
+                "Standard-font OCR labels must be single Latin-1 characters.", nameof(labels));
+
+        const int columns = 10;
+        const int cellSize = 80;
+        const int margin = 40;
+        const int fontSize = 32;
+        int rows = (requested.Length + columns - 1) / columns;
+        int pageWidth = columns * cellSize + margin * 2;
+        int pageHeight = rows * cellSize + margin * 2;
+        var builder = new PdfDocumentBuilder();
+        foreach (PdfStandardFont font in StandardTrainingFonts)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            var content = new PdfContentStreamBuilder();
+            for (int index = 0; index < requested.Length; index++)
+            {
+                int column = index % columns;
+                int row = index / columns;
+                content.BeginText().SetFont(font, fontSize)
+                    .SetTextMatrix(1, 0, 0, 1,
+                        margin + column * cellSize,
+                        pageHeight - margin - (row + 1) * cellSize + 20)
+                    .ShowLatin1Text(requested[index]).EndText();
+            }
+            builder.AddPage(pageWidth, pageHeight, content);
+        }
+        PdfDocument document = PdfDocument.Open(builder.Build());
+        var options = new PdfOcrOptions(["und"], deskew: false,
+            correctOrientation: false, removeBackground: true, removeNoise: true,
+            detectPageSegments: false);
+        var samples = new List<PdfOcrTrainingSample>(
+            checked(requested.Length * StandardTrainingFonts.Length));
+        for (int pageIndex = 0; pageIndex < StandardTrainingFonts.Length; pageIndex++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            samples.AddRange(CreatePageSamples(document, pageIndex,
+                new PdfRenderOptions(pageWidth * 2, pageHeight * 2,
+                    includeAnnotations: false, includeFormFields: false),
+                options, width, height, cancellationToken));
+        }
+        return Array.AsReadOnly(samples.ToArray());
     }
 
     /// <summary>Trains directly from labeled glyph rectangles in a prepared image.</summary>
