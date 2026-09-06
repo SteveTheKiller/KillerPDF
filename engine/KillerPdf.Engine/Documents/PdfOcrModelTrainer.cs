@@ -40,11 +40,14 @@ public static class PdfOcrTrainingPartition
 public sealed class PdfOcrModelEvaluation
 {
     internal PdfOcrModelEvaluation(int sampleCount, int correctCount,
-        double averageConfidence, IEnumerable<PdfOcrConfusion> confusion)
+        double averageConfidence, double calibrationError, double brierScore,
+        IEnumerable<PdfOcrConfusion> confusion)
     {
         SampleCount = sampleCount;
         CorrectCount = correctCount;
         AverageConfidence = averageConfidence;
+        CalibrationError = calibrationError;
+        BrierScore = brierScore;
         Confusion = Array.AsReadOnly(confusion.ToArray());
     }
 
@@ -56,6 +59,10 @@ public sealed class PdfOcrModelEvaluation
     public double Accuracy => CorrectCount / (double)SampleCount;
     /// <summary>Gets the mean winning-class confidence.</summary>
     public double AverageConfidence { get; }
+    /// <summary>Gets the ten-bin expected calibration error.</summary>
+    public double CalibrationError { get; }
+    /// <summary>Gets the mean squared confidence error.</summary>
+    public double BrierScore { get; }
     /// <summary>Gets observed label pairs in stable ordinal order.</summary>
     public IReadOnlyList<PdfOcrConfusion> Confusion { get; }
 }
@@ -313,7 +320,10 @@ public static class PdfOcrModelTrainer
         double[] scores = ArrayPool<double>.Shared.Rent(model.LabelCount);
         var confusion = new Dictionary<(string Expected, string Predicted), int>();
         int sampleCount = 0, correctCount = 0;
-        double confidenceSum = 0;
+        double confidenceSum = 0, squaredConfidenceErrorSum = 0;
+        int[] calibrationCounts = new int[10];
+        int[] calibrationCorrect = new int[10];
+        double[] calibrationConfidence = new double[10];
         try
         {
             foreach (PdfOcrTrainingSample sample in samples)
@@ -327,9 +337,17 @@ public static class PdfOcrModelTrainer
                 ValidateFeatures(sample.Features.Span, featureCount, samples);
                 (string predicted, double confidence) = model.Classify(
                     sample.Features.Span, scores.AsSpan(0, model.LabelCount));
-                if (string.Equals(sample.Label, predicted, StringComparison.Ordinal))
+                bool correct = string.Equals(
+                    sample.Label, predicted, StringComparison.Ordinal);
+                if (correct)
                     correctCount++;
                 confidenceSum += confidence;
+                double confidenceError = confidence - (correct ? 1 : 0);
+                squaredConfidenceErrorSum += confidenceError * confidenceError;
+                int calibrationBin = Math.Min(9, (int)(confidence * 10));
+                calibrationCounts[calibrationBin]++;
+                if (correct) calibrationCorrect[calibrationBin]++;
+                calibrationConfidence[calibrationBin] += confidence;
                 var pair = (sample.Label, predicted);
                 confusion[pair] = confusion.GetValueOrDefault(pair) + 1;
             }
@@ -346,8 +364,18 @@ public static class PdfOcrModelTrainer
             .ThenBy(item => item.Key.Predicted, StringComparer.Ordinal)
             .Select(item => new PdfOcrConfusion(
                 item.Key.Expected, item.Key.Predicted, item.Value))];
-        return new PdfOcrModelEvaluation(
-            sampleCount, correctCount, confidenceSum / sampleCount, entries);
+        double calibrationError = 0;
+        for (int bin = 0; bin < calibrationCounts.Length; bin++)
+        {
+            if (calibrationCounts[bin] == 0) continue;
+            double binAccuracy = calibrationCorrect[bin] / (double)calibrationCounts[bin];
+            double binConfidence = calibrationConfidence[bin] / calibrationCounts[bin];
+            calibrationError += calibrationCounts[bin] / (double)sampleCount
+                * Math.Abs(binAccuracy - binConfidence);
+        }
+        return new PdfOcrModelEvaluation(sampleCount, correctCount,
+            confidenceSum / sampleCount, calibrationError,
+            squaredConfidenceErrorSum / sampleCount, entries);
     }
 
     private static void ValidateLabel(string label,

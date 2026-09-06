@@ -341,6 +341,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int ocrTimeoutSeconds = 30;
     int holdoutPercent = 10, modelWidth = 32, modelHeight = 32;
     int minimumAccuracyPercent = 95, minimumHoldoutSamples = 1000;
+    int? maximumCalibrationErrorPercent = null;
     int? minimumCharacterAccuracyPercent = null;
     int? minimumWordAccuracyPercent = null;
     int? minimumWordBoxOverlapPercent = null;
@@ -392,6 +393,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             case "--model-height" when value <= 128: modelHeight = value; break;
             case "--minimum-accuracy-percent" when value <= 100:
                 minimumAccuracyPercent = value;
+                break;
+            case "--maximum-calibration-error-percent" when value <= 100:
+                maximumCalibrationErrorPercent = value;
                 break;
             case "--minimum-character-accuracy-percent" when value <= 100:
                 minimumCharacterAccuracyPercent = value;
@@ -477,7 +481,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         + $"{trainingSampleCount:N0} training samples, "
         + $"{evaluation.SampleCount:N0} holdout samples, "
         + $"{evaluation.Accuracy:P2} accuracy, "
-        + $"{evaluation.AverageConfidence:P2} average confidence.");
+        + $"{evaluation.AverageConfidence:P2} average confidence, "
+        + $"{evaluation.CalibrationError:P2} calibration error, "
+        + $"{evaluation.BrierScore:N4} Brier score.");
     foreach (PdfOcrConfusion confusion in evaluation.Confusion
                  .Where(item => item.Expected != item.Predicted)
                  .OrderByDescending(item => item.Count).Take(25))
@@ -520,6 +526,14 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     {
         Console.Error.WriteLine($"OCR model rejected: {evaluation.Accuracy:P2} accuracy "
             + $"is below the {minimumAccuracyPercent}% minimum.");
+        return 1;
+    }
+    if (maximumCalibrationErrorPercent.HasValue
+        && evaluation.CalibrationError > maximumCalibrationErrorPercent.Value / 100d)
+    {
+        Console.Error.WriteLine($"OCR model rejected: "
+            + $"{evaluation.CalibrationError:P2} calibration error is above the "
+            + $"{maximumCalibrationErrorPercent}% maximum.");
         return 1;
     }
     if (minimumCharacterAccuracyPercent.HasValue
@@ -2943,7 +2957,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");

@@ -331,6 +331,8 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(2, evaluation.CorrectCount);
         Assert.Equal(2d / 3, evaluation.Accuracy, 12);
         Assert.InRange(evaluation.AverageConfidence, 0.78, 0.83);
+        Assert.InRange(evaluation.CalibrationError, 0.13, 0.15);
+        Assert.InRange(evaluation.BrierScore, 0.2, 0.3);
         Assert.Equal([
             new PdfOcrConfusion("A", "A", 1),
             new PdfOcrConfusion("B", "A", 1),
