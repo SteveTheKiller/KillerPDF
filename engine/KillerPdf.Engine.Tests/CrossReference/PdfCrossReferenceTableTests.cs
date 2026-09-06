@@ -48,6 +48,29 @@ public sealed class PdfCrossReferenceTableTests
         Assert.Equal(objectOffset, recovered[1].Field1);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Read_CompatibilityRecoveryRebuildsWhenStartxrefPointsToZero(
+        bool includeXrefMarker)
+    {
+        var source = new StringBuilder("%PDF-1.7\n");
+        int objectOffset = source.Length;
+        source.Append("1 0 obj\n<< /Type /Catalog >>\nendobj\n");
+        if (includeXrefMarker) source.Append("xref\n");
+        source.Append("trailer\n<< /Size 0 /Root 1 0 R >>\n");
+        source.Append("startxref\n0\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Throws<PdfSyntaxException>(() => PdfCrossReferenceTable.Read(bytes));
+
+        PdfCrossReferenceTable recovered = PdfCrossReferenceTable.Read(
+            bytes, compatibilityRecovery: true);
+
+        Assert.Equal(objectOffset, recovered[1].Field1);
+        Assert.IsType<PdfIndirectReference>(recovered.MergedTrailer[Name("Root")]);
+    }
+
     [Fact]
     public void Read_MergesIncrementalRevisionsNewestFirstAndInheritsTrailerValues()
     {

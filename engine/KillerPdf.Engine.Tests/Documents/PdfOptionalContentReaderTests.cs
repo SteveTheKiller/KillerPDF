@@ -70,6 +70,24 @@ public sealed class PdfOptionalContentReaderTests
     }
 
     [Fact]
+    public void ReadCompatibilityRecoveryIgnoresMembershipDictionariesRegisteredAsGroups()
+    {
+        PdfDocument strict = MembershipDocument("/OCGs [5 0 R 6 0 R] /P /AllOn",
+            registerMembershipAsGroup: true);
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfOptionalContentReader.Read(strict));
+
+        PdfDocument recovered = MembershipDocument("/OCGs [5 0 R 6 0 R] /P /AllOn",
+            registerMembershipAsGroup: true, compatibilityRecovery: true);
+        PdfOptionalContentInfo info = PdfOptionalContentReader.Read(recovered);
+
+        Assert.Equal(2, info.Groups.Count);
+        Assert.DoesNotContain(7, info.Groups.Select(group => group.ObjectNumber));
+        Assert.DoesNotContain(7,
+            Assert.Single(info.Configurations).DisplayOrderGroupObjectNumbers);
+    }
+
+    [Fact]
     public void RenameGroupPreservesLayerStateAndOriginalDocument()
     {
         var layer = new PdfOptionalContentGroup("Original", initiallyVisible: false,
@@ -609,12 +627,15 @@ public sealed class PdfOptionalContentReaderTests
             .ContainsKey(new PdfName("OC"u8)));
     }
 
-    private static PdfDocument MembershipDocument(string membershipEntries)
+    private static PdfDocument MembershipDocument(string membershipEntries,
+        bool registerMembershipAsGroup = false, bool compatibilityRecovery = false)
     {
         const string content = "/OC /LayerSet BDC 0 0 10 10 re f EMC";
+        string registeredGroups = registerMembershipAsGroup
+            ? "5 0 R 6 0 R 7 0 R" : "5 0 R 6 0 R";
         string[] objects =
         [
-            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R 6 0 R] /D << /BaseState /OFF /ON [5 0 R] >> >> >>",
+            $"<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [{registeredGroups}] /D << /BaseState /OFF /ON [5 0 R] /Order [{registeredGroups}] >> >> >>",
             "<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 100 100] >>",
             "<< /Type /Page /Parent 2 0 R /Resources << /Properties << /LayerSet 7 0 R >> >> /Contents 4 0 R /Annots [8 0 R] >>",
             $"<< /Length {Encoding.ASCII.GetByteCount(content)} >>\nstream\n{content}\nendstream",
@@ -634,6 +655,9 @@ public sealed class PdfOptionalContentReaderTests
         pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
         foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
         pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
-        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+        byte[] bytes = Encoding.Latin1.GetBytes(pdf.ToString());
+        return compatibilityRecovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(bytes)
+            : PdfDocument.Open(bytes);
     }
 }

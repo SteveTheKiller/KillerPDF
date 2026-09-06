@@ -1358,49 +1358,68 @@ public sealed class PdfPageRenderer
         }).Instructions;
 
     private bool EvaluateOptionalContent(PdfObject value,
-        IReadOnlySet<int> hiddenOptionalContentGroups, int expressionDepth)
+        IReadOnlySet<int> hiddenOptionalContentGroups, int expressionDepth,
+        HashSet<(int ObjectNumber, int Generation)>? activeReferences = null)
     {
         if (expressionDepth > 32)
             throw new FormatException(
                 "An optional-content visibility expression is too deeply nested.");
-        PdfObject resolved = Resolve(value);
-        if (resolved is not PdfDictionary dictionary) return true;
-        string type = NameValue(dictionary, "Type");
-        if (type == "OCG")
-            return value is not PdfIndirectReference groupReference
-                || !hiddenOptionalContentGroups.Contains(groupReference.ObjectNumber);
-        if (type != "OCMD") return true;
-        if (dictionary.TryGetValue(Name("VE"), out PdfObject? expression))
-            return EvaluateVisibilityExpression(expression,
-                hiddenOptionalContentGroups, expressionDepth + 1);
-        if (!dictionary.TryGetValue(Name("OCGs"), out PdfObject? groupsValue))
-            throw new FormatException(
-                "An optional-content membership dictionary has no /OCGs or /VE value.");
-        PdfObject groups = Resolve(groupsValue);
-        bool[] states = groups is PdfArray array
-            ? [.. array.Select(group => EvaluateOptionalContent(group,
-                hiddenOptionalContentGroups, expressionDepth + 1))]
-            : [EvaluateOptionalContent(groupsValue,
-                hiddenOptionalContentGroups, expressionDepth + 1)];
-        if (states.Length == 0)
-            throw new FormatException(
-                "An optional-content membership dictionary has an empty /OCGs array.");
-        string policy = dictionary.TryGetValue(Name("P"), out PdfObject? policyValue)
-            && Resolve(policyValue) is PdfName policyName
-            ? policyName.ValueAsLatin1() : "AnyOn";
-        return policy switch
+        PdfIndirectReference? reference = value as PdfIndirectReference;
+        activeReferences ??= [];
+        if (reference is not null
+            && !activeReferences.Add((reference.ObjectNumber, reference.Generation)))
         {
-            "AllOn" => states.All(visible => visible),
-            "AnyOn" => states.Any(visible => visible),
-            "AnyOff" => states.Any(visible => !visible),
-            "AllOff" => states.All(visible => !visible),
-            _ => throw new FormatException(
-                $"Optional-content membership policy /{policy} is not defined.")
-        };
+            if (_document.UsesCompatibilityRecovery) return true;
+            throw new FormatException(
+                "An optional-content visibility expression contains a reference cycle.");
+        }
+        try
+        {
+            PdfObject resolved = Resolve(value);
+            if (resolved is not PdfDictionary dictionary) return true;
+            string type = NameValue(dictionary, "Type");
+            if (type == "OCG")
+                return reference is null
+                    || !hiddenOptionalContentGroups.Contains(reference.ObjectNumber);
+            if (type != "OCMD") return true;
+            if (dictionary.TryGetValue(Name("VE"), out PdfObject? expression))
+                return EvaluateVisibilityExpression(expression,
+                    hiddenOptionalContentGroups, expressionDepth + 1, activeReferences);
+            if (!dictionary.TryGetValue(Name("OCGs"), out PdfObject? groupsValue))
+                throw new FormatException(
+                    "An optional-content membership dictionary has no /OCGs or /VE value.");
+            PdfObject groups = Resolve(groupsValue);
+            bool[] states = groups is PdfArray array
+                ? [.. array.Select(group => EvaluateOptionalContent(group,
+                    hiddenOptionalContentGroups, expressionDepth + 1, activeReferences))]
+                : [EvaluateOptionalContent(groupsValue,
+                    hiddenOptionalContentGroups, expressionDepth + 1, activeReferences)];
+            if (states.Length == 0)
+                throw new FormatException(
+                    "An optional-content membership dictionary has an empty /OCGs array.");
+            string policy = dictionary.TryGetValue(Name("P"), out PdfObject? policyValue)
+                && Resolve(policyValue) is PdfName policyName
+                ? policyName.ValueAsLatin1() : "AnyOn";
+            return policy switch
+            {
+                "AllOn" => states.All(visible => visible),
+                "AnyOn" => states.Any(visible => visible),
+                "AnyOff" => states.Any(visible => !visible),
+                "AllOff" => states.All(visible => !visible),
+                _ => throw new FormatException(
+                    $"Optional-content membership policy /{policy} is not defined.")
+            };
+        }
+        finally
+        {
+            if (reference is not null)
+                activeReferences.Remove((reference.ObjectNumber, reference.Generation));
+        }
     }
 
     private bool EvaluateVisibilityExpression(PdfObject value,
-        IReadOnlySet<int> hiddenOptionalContentGroups, int expressionDepth)
+        IReadOnlySet<int> hiddenOptionalContentGroups, int expressionDepth,
+        HashSet<(int ObjectNumber, int Generation)> activeReferences)
     {
         if (expressionDepth > 32)
             throw new FormatException(
@@ -1414,9 +1433,9 @@ public sealed class PdfPageRenderer
         bool[] states = [.. expression.Skip(1).Select(item =>
             Resolve(item) is PdfArray
                 ? EvaluateVisibilityExpression(item,
-                    hiddenOptionalContentGroups, expressionDepth + 1)
+                    hiddenOptionalContentGroups, expressionDepth + 1, activeReferences)
                 : EvaluateOptionalContent(item,
-                    hiddenOptionalContentGroups, expressionDepth + 1))];
+                    hiddenOptionalContentGroups, expressionDepth + 1, activeReferences))];
         return operation.ValueAsLatin1() switch
         {
             "And" => states.All(visible => visible),

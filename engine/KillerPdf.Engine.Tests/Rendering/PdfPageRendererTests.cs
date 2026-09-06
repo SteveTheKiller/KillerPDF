@@ -406,6 +406,25 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_CompatibilityRecoveryBoundsCyclicVisibilityExpressions()
+    {
+        PdfDocument strict = OptionalContentMembershipDocument(
+            "/VE [/And 7 0 R 5 0 R]");
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(strict).Render(
+            0, new PdfRenderOptions(2, 1,
+                includeAnnotations: false, includeFormFields: false)));
+
+        PdfDocument recovered = OptionalContentMembershipDocument(
+            "/VE [/And 7 0 R 5 0 R]", compatibilityRecovery: true);
+        PdfRenderedPage rendered = new PdfPageRenderer(recovered).Render(
+            0, new PdfRenderOptions(2, 1,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 0, 255], Pixel(rendered, 0, 0));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
     public void Render_HonorsOptionalContentAttachedToXObjects()
     {
         PdfRenderedPage page = new PdfPageRenderer(OptionalContentXObjectDocument()).Render(
@@ -3153,7 +3172,8 @@ public sealed class PdfPageRendererTests
         return PdfDocument.Open(update.Build());
     }
 
-    private static PdfDocument OptionalContentMembershipDocument(string membershipEntries)
+    private static PdfDocument OptionalContentMembershipDocument(string membershipEntries,
+        bool compatibilityRecovery = false)
     {
         const string content = "/OC /LayerSet BDC 0 0 2 1 re f EMC";
         string[] objects =
@@ -3177,7 +3197,10 @@ public sealed class PdfPageRendererTests
         pdf.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f \n");
         foreach (int offset in offsets) pdf.Append($"{offset:0000000000} 00000 n \n");
         pdf.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n");
-        return PdfDocument.Open(Encoding.Latin1.GetBytes(pdf.ToString()));
+        byte[] bytes = Encoding.Latin1.GetBytes(pdf.ToString());
+        return compatibilityRecovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(bytes)
+            : PdfDocument.Open(bytes);
     }
 
     private static PdfDocument OptionalContentXObjectDocument()

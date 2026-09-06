@@ -126,14 +126,26 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
     {
         PdfHeader header = PdfHeader.Parse(source.Span);
         PdfStartXref startXref;
+        PdfCrossReferenceSection? recoveredFinalSection = null;
         try
         {
             startXref = PdfStartXref.Find(
                 source.Span, allowPastEndOffset: compatibilityRecovery);
+            if (compatibilityRecovery && startXref.Offset == 0
+                && !source.Span.StartsWith("xref"u8))
+            {
+                recoveredFinalSection = RecoverFinalSection(source);
+                startXref = new PdfStartXref(
+                    recoveredFinalSection.Offset,
+                    ClampOffset(recoveredFinalSection.Offset));
+            }
         }
         catch (PdfSyntaxException) when (compatibilityRecovery)
         {
-            startXref = RecoverFinalClassicTable(source.Span);
+            recoveredFinalSection = RecoverFinalSection(source);
+            startXref = new PdfStartXref(
+                recoveredFinalSection.Offset,
+                ClampOffset(recoveredFinalSection.Offset));
         }
         LinearizationInfo? linearization = ReadLinearizationInfo(source, header);
         var revisions = new List<Revision>();
@@ -147,8 +159,10 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             if (!visitedOffsets.Add(currentOffset.Value))
                 throw new PdfSyntaxException("The cross-reference revision chain contains a cycle", (int)currentOffset.Value);
 
-            PdfCrossReferenceSection primary = PdfCrossReferenceReader.ReadSection(
-                source, currentOffset.Value, compatibilityRecovery);
+            PdfCrossReferenceSection primary = recoveredFinalSection
+                ?? PdfCrossReferenceReader.ReadSection(
+                    source, currentOffset.Value, compatibilityRecovery);
+            recoveredFinalSection = null;
             long? previousOffset = primary.PreviousOffset;
             if (compatibilityRecovery
                 && (previousOffset == 0 && currentOffset.Value != 0
@@ -224,14 +238,49 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         return new PdfCrossReferenceTable(header, startXref, revisions, entries);
     }
 
-    private static PdfStartXref RecoverFinalClassicTable(ReadOnlySpan<byte> source)
+    private static PdfCrossReferenceSection RecoverFinalSection(
+        ReadOnlyMemory<byte> source)
     {
-        ReadOnlySpan<byte> marker = "xref"u8;
-        int searchEnd = source.Length;
+        ReadOnlySpan<byte> bytes = source.Span;
+        int searchEnd = bytes.Length;
+        while (TryFindFinalKeyword(bytes, "xref"u8, ref searchEnd, out int candidate))
+        {
+            try
+            {
+                return PdfCrossReferenceReader.ReadSection(
+                    source, candidate, compatibilityRecovery: true);
+            }
+            catch (PdfSyntaxException)
+            {
+            }
+        }
+
+        searchEnd = bytes.Length;
+        if (TryFindFinalKeyword(bytes, "trailer"u8, ref searchEnd, out int trailerOffset))
+        {
+            var tokenizer = new PdfTokenizer(source, trailerOffset);
+            PdfToken token = tokenizer.Read();
+            if (token.Kind == PdfTokenKind.Keyword)
+            {
+                var parser = new PdfObjectParser(source, tokenizer.Position,
+                    allowDuplicateDictionaryKeys: true);
+                if (parser.ParseObject() is PdfDictionary trailer)
+                    return new PdfCrossReferenceSection(trailerOffset, [], trailer,
+                        isStream: false, compatibilityRecovery: true);
+            }
+        }
+        throw new PdfSyntaxException(
+            "The PDF does not contain recoverable final cross-reference data", bytes.Length);
+    }
+
+    private static bool TryFindFinalKeyword(ReadOnlySpan<byte> source,
+        ReadOnlySpan<byte> marker, ref int searchEnd, out int offset)
+    {
         while (searchEnd >= marker.Length)
         {
             int candidate = source[..searchEnd].LastIndexOf(marker);
             if (candidate < 0) break;
+            searchEnd = candidate;
             int after = candidate + marker.Length;
             bool delimited = (candidate == 0 || IsRecoveryBoundary(source[candidate - 1]))
                 && (after == source.Length || IsRecoveryBoundary(source[after]));
@@ -239,13 +288,14 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             while (lineStart > 0
                 && source[lineStart - 1] is not ((byte)'\r') and not ((byte)'\n'))
                 lineStart--;
-            bool commented = source[lineStart..candidate].Contains((byte)'%');
-            if (delimited && !commented)
-                return new PdfStartXref(candidate, candidate);
-            searchEnd = candidate;
+            if (delimited && !source[lineStart..candidate].Contains((byte)'%'))
+            {
+                offset = candidate;
+                return true;
+            }
         }
-        throw new PdfSyntaxException(
-            "The PDF does not contain recoverable final cross-reference data", source.Length);
+        offset = -1;
+        return false;
     }
 
     private static bool IsRecoveryBoundary(byte value) =>

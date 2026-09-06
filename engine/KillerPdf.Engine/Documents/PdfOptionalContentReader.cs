@@ -25,16 +25,34 @@ public static class PdfOptionalContentReader
         var printVisibility = new List<bool?>(groupsArray.Count);
         var exportVisibility = new List<bool?>(groupsArray.Count);
         var seen = new HashSet<(int, int)>();
+        bool compatibilityRecovery = document.UsesCompatibilityRecovery;
         foreach (PdfObject value in groupsArray)
         {
-            PdfIndirectReference reference = value as PdfIndirectReference
-                ?? throw new InvalidOperationException("An /OCProperties /OCGs entry is not an indirect reference.");
+            if (value is not PdfIndirectReference reference)
+            {
+                if (compatibilityRecovery) continue;
+                throw new InvalidOperationException(
+                    "An /OCProperties /OCGs entry is not an indirect reference.");
+            }
             if (!seen.Add((reference.ObjectNumber, reference.Generation)))
-                throw new InvalidOperationException("The /OCProperties /OCGs array contains a duplicate reference.");
-            PdfDictionary group = Resolve(document, reference) as PdfDictionary
-                ?? throw new InvalidOperationException("An optional-content group is not a dictionary.");
-            string type = RequiredName(document, group, "Type");
-            if (type != "OCG") throw new InvalidOperationException("An optional-content group does not declare /Type /OCG.");
+            {
+                if (compatibilityRecovery) continue;
+                throw new InvalidOperationException(
+                    "The /OCProperties /OCGs array contains a duplicate reference.");
+            }
+            if (Resolve(document, reference) is not PdfDictionary group)
+            {
+                if (compatibilityRecovery) continue;
+                throw new InvalidOperationException(
+                    "An optional-content group is not a dictionary.");
+            }
+            string? type = OptionalName(document, group, "Type");
+            if (type != "OCG")
+            {
+                if (compatibilityRecovery) continue;
+                throw new InvalidOperationException(
+                    "An optional-content group does not declare /Type /OCG.");
+            }
             groupReferences.Add(reference);
             groupNames.Add(RequiredText(document, group, "Name"));
             printVisibility.Add(UsageState(document, group, "Print", "PrintState"));
@@ -117,7 +135,11 @@ public static class PdfOptionalContentReader
                     ?? throw new InvalidOperationException($"An optional-content configuration /{key} entry is not an indirect reference.");
                 if (!groups.Any(group => group.ObjectNumber == reference.ObjectNumber
                     && group.Generation == reference.Generation))
-                    throw new InvalidOperationException($"An optional-content configuration /{key} entry is not a registered group.");
+                {
+                    if (document.UsesCompatibilityRecovery) continue;
+                    throw new InvalidOperationException(
+                        $"An optional-content configuration /{key} entry is not a registered group.");
+                }
                 result.Add(reference.ObjectNumber);
             }
             return result;
@@ -152,8 +174,11 @@ public static class PdfOptionalContentReader
                         || resolved is not PdfDictionary
                         || !groups.Any(group => group.ObjectNumber == reference.ObjectNumber
                             && group.Generation == reference.Generation))
+                    {
+                        if (document.UsesCompatibilityRecovery) continue;
                         throw new InvalidOperationException(
                             "An optional-content configuration /Order entry is not a registered group or subgroup.");
+                    }
                     if (!result.Contains(reference.ObjectNumber))
                         result.Add(reference.ObjectNumber);
                 }
