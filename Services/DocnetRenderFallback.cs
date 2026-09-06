@@ -29,7 +29,8 @@ internal sealed class DocnetRenderFallback : IDisposable
     internal PdfRenderedPage RenderBasePage(int pageIndex)
     {
         using var page = Reader().GetPageReader(pageIndex);
-        return new PdfRenderedPage(page.GetPageWidth(), page.GetPageHeight(), page.GetImage());
+        return new PdfRenderedPage(page.GetPageWidth(), page.GetPageHeight(), page.GetImage(),
+            PdfRenderBackend.NativeFallback, null);
     }
 
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground,
@@ -43,7 +44,8 @@ internal sealed class DocnetRenderFallback : IDisposable
             ?? (removeTransparency
                 ? page.GetImage(new Docnet.Core.Converters.NaiveTransparencyRemover())
                 : page.GetImage());
-        return new PdfRenderedPage(width, height, pixels);
+        return new PdfRenderedPage(width, height, pixels,
+            PdfRenderBackend.NativeFallback, null);
     }
 
     internal static byte[]? RenderExactPage(string path, int pageIndex,

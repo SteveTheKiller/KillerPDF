@@ -310,9 +310,9 @@ public sealed class RenderBoundaryTests
         Assert.Equal(4, Count(viewer, "PdfPageRenderSession.OpenEngineFirst("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", viewer,
             StringComparison.Ordinal);
-        Assert.Contains("_nativeFallbackProfiles.Add(profile)", boundary,
+        Assert.Contains("_nativeFallbackProfiles[profile] = DescribeFailure(exception)", boundary,
             StringComparison.Ordinal);
-        Assert.Contains("!_nativeFallbackProfiles.Contains(profile)", boundary,
+        Assert.Contains("!_nativeFallbackProfiles.ContainsKey(profile)", boundary,
             StringComparison.Ordinal);
         Assert.Contains("IncludeAnnotations: false, IncludeFormFields: false", boundary,
             StringComparison.Ordinal);
@@ -342,6 +342,24 @@ public sealed class RenderBoundaryTests
         Assert.Contains("RenderBasePage(pageIdx, ct)", ocr, StringComparison.Ordinal);
         Assert.Equal(2, Count(ocr, "RenderBasePage(i, ct)"));
         Assert.Equal(3, Count(viewer, "cancellationToken: cts.Token"));
+    }
+
+    [Fact]
+    public void RenderResultsIdentifyTheEngineOrNativeFallbackAndPreserveTheReason()
+    {
+        string root = FindRepositoryRoot();
+        string boundary = File.ReadAllText(
+            Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
+        string fallback = File.ReadAllText(
+            Path.Combine(root, "Services", "DocnetRenderFallback.cs"));
+
+        Assert.Contains("PdfRenderBackend.Engine, null", boundary,
+            StringComparison.Ordinal);
+        Assert.Contains("EngineFailure = FallbackReason(profile)", boundary,
+            StringComparison.Ordinal);
+        Assert.Contains("PdfRenderBackend.NativeFallback, null", fallback,
+            StringComparison.Ordinal);
+        Assert.Contains("string? EngineFailure", boundary, StringComparison.Ordinal);
     }
 
     private static int Count(string source, string value)

@@ -20,11 +20,13 @@ internal sealed class PdfPageRenderSession : IDisposable
     private readonly int _maximumHeight;
     private readonly double _scale;
     private readonly bool _allowNativeFallback;
-    private readonly HashSet<EngineRenderProfile> _nativeFallbackProfiles = [];
+    private readonly string? _engineOpenFailure;
+    private readonly Dictionary<EngineRenderProfile, string> _nativeFallbackProfiles = [];
 
-    private PdfPageRenderSession(DocnetRenderFallback nativeFallback)
+    private PdfPageRenderSession(DocnetRenderFallback nativeFallback, Exception engineFailure)
     {
         _nativeFallback = nativeFallback;
+        _engineOpenFailure = DescribeFailure(engineFailure);
     }
 
     private PdfPageRenderSession(string path, EngineDocument document,
@@ -59,7 +61,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
             return new PdfPageRenderSession(
-                new DocnetRenderFallback(path, maximumWidth, maximumHeight));
+                new DocnetRenderFallback(path, maximumWidth, maximumHeight), exception);
         }
     }
 
@@ -77,7 +79,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            return new PdfPageRenderSession(new DocnetRenderFallback(path, scale));
+            return new PdfPageRenderSession(
+                new DocnetRenderFallback(path, scale), exception);
         }
     }
 
@@ -90,7 +93,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         var profile = new EngineRenderProfile(pageIndex,
             IncludeAnnotations: false, IncludeFormFields: false);
         if (_engineRenderer is not null && _enginePages is not null
-            && !_nativeFallbackProfiles.Contains(profile))
+            && !_nativeFallbackProfiles.ContainsKey(profile))
         {
             try
             {
@@ -101,13 +104,13 @@ internal sealed class PdfPageRenderSession : IDisposable
                 && exception is not OutOfMemoryException
                 && exception is not OperationCanceledException)
             {
-                _nativeFallbackProfiles.Add(profile);
+                _nativeFallbackProfiles[profile] = DescribeFailure(exception);
             }
         }
 
         PdfRenderedPage page = _nativeFallback.RenderBasePage(pageIndex);
         cancellationToken.ThrowIfCancellationRequested();
-        return page;
+        return page with { EngineFailure = FallbackReason(profile) };
     }
 
     internal PdfRenderedPage RenderPage(int pageIndex, bool transparentBackground = false,
@@ -118,7 +121,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         var profile = new EngineRenderProfile(pageIndex,
             IncludeAnnotations: true, IncludeFormFields: includeFormFields);
         if (_engineRenderer is not null && _enginePages is not null
-            && !_nativeFallbackProfiles.Contains(profile))
+            && !_nativeFallbackProfiles.ContainsKey(profile))
         {
             try
             {
@@ -129,14 +132,14 @@ internal sealed class PdfPageRenderSession : IDisposable
                 && exception is not OutOfMemoryException
                 && exception is not OperationCanceledException)
             {
-                _nativeFallbackProfiles.Add(profile);
+                _nativeFallbackProfiles[profile] = DescribeFailure(exception);
             }
         }
 
         PdfRenderedPage page = _nativeFallback.RenderPage(pageIndex, transparentBackground,
             includeFormFields, removeTransparencyOnFallback);
         cancellationToken.ThrowIfCancellationRequested();
-        return page;
+        return page with { EngineFailure = FallbackReason(profile) };
     }
 
     private PdfRenderedPage RenderEnginePage(int pageIndex, bool transparentBackground,
@@ -158,7 +161,8 @@ internal sealed class PdfPageRenderSession : IDisposable
                 includeAnnotations, includeFormFields), cancellationToken);
         if (rendered.Diagnostics.Count > 0)
             throw new NotSupportedException(string.Join(" ", rendered.Diagnostics));
-        return new PdfRenderedPage(engineWidth, engineHeight, rendered.Pixels.ToArray());
+        return new PdfRenderedPage(engineWidth, engineHeight, rendered.Pixels.ToArray(),
+            PdfRenderBackend.Engine, null);
     }
 
     internal static byte[]? RenderExactPage(string path, int pageIndex, int width, int height,
@@ -189,8 +193,17 @@ internal sealed class PdfPageRenderSession : IDisposable
 
     public void Dispose() => _nativeFallback.Dispose();
 
+    private string? FallbackReason(EngineRenderProfile profile) =>
+        _engineOpenFailure ?? _nativeFallbackProfiles.GetValueOrDefault(profile);
+
+    private static string DescribeFailure(Exception exception) =>
+        $"{exception.GetType().Name}: {exception.Message}";
+
     private readonly record struct EngineRenderProfile(
         int PageIndex, bool IncludeAnnotations, bool IncludeFormFields);
 }
 
-internal readonly record struct PdfRenderedPage(int Width, int Height, byte[] Pixels);
+internal enum PdfRenderBackend { Engine, NativeFallback }
+
+internal readonly record struct PdfRenderedPage(
+    int Width, int Height, byte[] Pixels, PdfRenderBackend Backend, string? EngineFailure);
