@@ -125,8 +125,16 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         ReadOnlyMemory<byte> source, bool compatibilityRecovery = false)
     {
         PdfHeader header = PdfHeader.Parse(source.Span);
-        PdfStartXref startXref = PdfStartXref.Find(
-            source.Span, allowPastEndOffset: compatibilityRecovery);
+        PdfStartXref startXref;
+        try
+        {
+            startXref = PdfStartXref.Find(
+                source.Span, allowPastEndOffset: compatibilityRecovery);
+        }
+        catch (PdfSyntaxException) when (compatibilityRecovery)
+        {
+            startXref = RecoverFinalClassicTable(source.Span);
+        }
         LinearizationInfo? linearization = ReadLinearizationInfo(source, header);
         var revisions = new List<Revision>();
         var visitedOffsets = new HashSet<long>();
@@ -215,6 +223,36 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
 
         return new PdfCrossReferenceTable(header, startXref, revisions, entries);
     }
+
+    private static PdfStartXref RecoverFinalClassicTable(ReadOnlySpan<byte> source)
+    {
+        ReadOnlySpan<byte> marker = "xref"u8;
+        int searchEnd = source.Length;
+        while (searchEnd >= marker.Length)
+        {
+            int candidate = source[..searchEnd].LastIndexOf(marker);
+            if (candidate < 0) break;
+            int after = candidate + marker.Length;
+            bool delimited = (candidate == 0 || IsRecoveryBoundary(source[candidate - 1]))
+                && (after == source.Length || IsRecoveryBoundary(source[after]));
+            int lineStart = candidate;
+            while (lineStart > 0
+                && source[lineStart - 1] is not ((byte)'\r') and not ((byte)'\n'))
+                lineStart--;
+            bool commented = source[lineStart..candidate].Contains((byte)'%');
+            if (delimited && !commented)
+                return new PdfStartXref(candidate, candidate);
+            searchEnd = candidate;
+        }
+        throw new PdfSyntaxException(
+            "The PDF does not contain recoverable final cross-reference data", source.Length);
+    }
+
+    private static bool IsRecoveryBoundary(byte value) =>
+        value is 0 or 9 or 10 or 12 or 13 or 32
+            or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>'
+            or (byte)'[' or (byte)']' or (byte)'{' or (byte)'}'
+            or (byte)'/' or (byte)'%';
 
     private static void RebuildEntries(ReadOnlyMemory<byte> source, int start, int end,
         Dictionary<int, PdfCrossReferenceEntry> entries)

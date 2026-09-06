@@ -29,6 +29,26 @@ public sealed class PdfCrossReferenceTableTests
     }
 
     [Fact]
+    public void Read_CompatibilityRecoveryFindsFinalTableWhenStartxrefIsMisspelled()
+    {
+        var source = new StringBuilder("%PDF-1.7\n");
+        int objectOffset = source.Length;
+        source.Append("1 0 obj\n<< /Type /Catalog >>\nendobj\n");
+        int xrefOffset = source.Length;
+        source.Append("xref\ntrailer\n<< /Size 0 /Root 1 0 R >>\n");
+        source.Append("startref\n0\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Throws<PdfSyntaxException>(() => PdfCrossReferenceTable.Read(bytes));
+
+        PdfCrossReferenceTable recovered = PdfCrossReferenceTable.Read(
+            bytes, compatibilityRecovery: true);
+
+        Assert.Equal(xrefOffset, recovered.StartXref.Offset);
+        Assert.Equal(objectOffset, recovered[1].Field1);
+    }
+
+    [Fact]
     public void Read_MergesIncrementalRevisionsNewestFirstAndInheritsTrailerValues()
     {
         var source = new StringBuilder("%PDF-2.0\n");

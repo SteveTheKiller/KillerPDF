@@ -45,7 +45,7 @@ The 1.9.0 engine adds page-content extraction and begins engine-owned page rende
 
 ### Fixed
 
-- Recovered documents whose malformed empty cross-reference tables require bounded indirect-object reconstruction.
+- Recovered documents with malformed or missing final cross-reference declarations and empty tables through bounded indirect-object reconstruction.
 
 ## [1.8.3] - 2026-09-02
 
