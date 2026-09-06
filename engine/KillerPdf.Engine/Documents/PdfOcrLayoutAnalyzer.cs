@@ -91,10 +91,88 @@ public static class PdfOcrLayoutAnalyzer
             }
         }
 
+        components = SplitTouchingGlyphs(components, pixels, width);
         components = MergeDetachedMarks(components);
         IReadOnlyList<IReadOnlyList<PdfOcrImageRegion>> columns = detectPageSegments
             ? SplitColumns(components) : components.Count == 0 ? [] : [components];
         return new PdfOcrPageLayout(columns.Select(column => Segment(BuildLines(column))));
+    }
+
+    private static List<PdfOcrImageRegion> SplitTouchingGlyphs(
+        IReadOnlyList<PdfOcrImageRegion> components, ReadOnlyMemory<byte> pixels,
+        int imageWidth)
+    {
+        var split = new List<PdfOcrImageRegion>(components.Count);
+        foreach (PdfOcrImageRegion component in components)
+        {
+            if (component.Height < 3
+                || component.Width * 5 < component.Height * 6)
+            {
+                split.Add(component);
+                continue;
+            }
+            int minimumPieceWidth = Math.Max(2, component.Height / 4);
+            int maximumValleyInk = Math.Max(1, component.Height / 6);
+            var cuts = new List<int>();
+            int x = component.Left + minimumPieceWidth;
+            while (x <= component.Right - minimumPieceWidth)
+            {
+                if (ColumnInk(x) > maximumValleyInk)
+                {
+                    x++;
+                    continue;
+                }
+                int valleyStart = x;
+                while (x < component.Right - minimumPieceWidth
+                    && ColumnInk(x + 1) <= maximumValleyInk)
+                    x++;
+                int cut = (valleyStart + x + 1) / 2;
+                int previous = cuts.Count == 0 ? component.Left : cuts[^1];
+                if (cut - previous >= minimumPieceWidth
+                    && component.Right - cut >= minimumPieceWidth)
+                    cuts.Add(cut);
+                x++;
+            }
+            if (cuts.Count == 0)
+            {
+                split.Add(component);
+                continue;
+            }
+            int left = component.Left;
+            foreach (int right in cuts.Append(component.Right))
+            {
+                PdfOcrImageRegion? piece = TightBounds(left, right);
+                if (piece is not null) split.Add(piece);
+                left = right;
+            }
+
+            int ColumnInk(int column)
+            {
+                int count = 0;
+                for (int row = component.Top; row < component.Bottom; row++)
+                    if (pixels.Span[row * imageWidth + column] < 128) count++;
+                return count;
+            }
+
+            PdfOcrImageRegion? TightBounds(int columnStart, int columnEnd)
+            {
+                int tightLeft = columnEnd, tightTop = component.Bottom;
+                int tightRight = columnStart, tightBottom = component.Top;
+                for (int row = component.Top; row < component.Bottom; row++)
+                    for (int column = columnStart; column < columnEnd; column++)
+                        if (pixels.Span[row * imageWidth + column] < 128)
+                        {
+                            tightLeft = Math.Min(tightLeft, column);
+                            tightTop = Math.Min(tightTop, row);
+                            tightRight = Math.Max(tightRight, column + 1);
+                            tightBottom = Math.Max(tightBottom, row + 1);
+                        }
+                return tightRight > tightLeft && tightBottom > tightTop
+                    ? new PdfOcrImageRegion(
+                        tightLeft, tightTop, tightRight, tightBottom) : null;
+            }
+        }
+        return split;
     }
 
     private static List<PdfOcrImageRegion> MergeDetachedMarks(

@@ -59,6 +59,24 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_SplitsTouchingWideGlyphsAtVerticalValleys()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 10 * 7).ToArray();
+        Paint(pixels, 10, 1, 1, 2, 4);
+        Paint(pixels, 10, 5, 1, 2, 4);
+        pixels[2 * 10 + 3] = 0;
+        pixels[2 * 10 + 4] = 0;
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(10, 7, pixels));
+
+        Assert.Single(layout.Lines);
+        Assert.Equal(2, layout.Components.Count);
+        Assert.Equal(new PdfOcrImageRegion(1, 1, 4, 5), layout.Components[0]);
+        Assert.Equal(new PdfOcrImageRegion(4, 1, 7, 5), layout.Components[1]);
+    }
+
+    [Fact]
     public void Analyze_OrdersDetectedColumnsBeforeMovingRight()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 30 * 14).ToArray();
