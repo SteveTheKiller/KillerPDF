@@ -45,6 +45,8 @@ public sealed class PdfOcrPageLayout
 /// <summary>Detects bounded text candidates in engine-prepared OCR rasters.</summary>
 public static class PdfOcrLayoutAnalyzer
 {
+    private const int MaximumSinglePixelCandidates = 4_096;
+
     /// <summary>Finds dark connected components and groups them into text lines.</summary>
     public static PdfOcrPageLayout Analyze(PdfOcrPreparedImage image,
         CancellationToken cancellationToken = default) =>
@@ -59,6 +61,8 @@ public static class PdfOcrLayoutAnalyzer
         ReadOnlyMemory<byte> pixels = image.Pixels;
         var visited = new byte[pixels.Length];
         var components = new List<PdfOcrImageRegion>();
+        var singlePixels = new List<PdfOcrImageRegion>();
+        bool singlePixelLimitExceeded = false;
         var queue = new Queue<int>();
         for (int index = 0; index < pixels.Length; index++)
         {
@@ -80,8 +84,22 @@ public static class PdfOcrLayoutAnalyzer
                 Visit(x - 1, y);                         Visit(x + 1, y);
                 Visit(x - 1, y + 1); Visit(x, y + 1); Visit(x + 1, y + 1);
             }
-            if (count >= 1 && right - left <= width * 3 / 4 && bottom - top <= height * 3 / 4)
-                components.Add(new PdfOcrImageRegion(left, top, right, bottom));
+            if (right - left <= width * 3 / 4 && bottom - top <= height * 3 / 4)
+            {
+                var component = new PdfOcrImageRegion(left, top, right, bottom);
+                if (count > 1)
+                    components.Add(component);
+                else if (!singlePixelLimitExceeded)
+                {
+                    if (singlePixels.Count < MaximumSinglePixelCandidates)
+                        singlePixels.Add(component);
+                    else
+                    {
+                        singlePixels.Clear();
+                        singlePixelLimitExceeded = true;
+                    }
+                }
+            }
 
             void Visit(int x, int y)
             {
@@ -93,7 +111,8 @@ public static class PdfOcrLayoutAnalyzer
             }
         }
 
-        components = FilterIsolatedSinglePixels(components);
+        if (!singlePixelLimitExceeded)
+            components.AddRange(FilterNearbySinglePixels(components, singlePixels));
         components = SplitTouchingGlyphs(components, pixels, width);
         components = FilterGraphicOutliers(components);
         components = MergeDetachedMarks(components);
@@ -102,21 +121,18 @@ public static class PdfOcrLayoutAnalyzer
         return new PdfOcrPageLayout(columns.Select(column => Segment(BuildLines(column))));
     }
 
-    private static List<PdfOcrImageRegion> FilterIsolatedSinglePixels(
-        IReadOnlyList<PdfOcrImageRegion> components)
+    private static List<PdfOcrImageRegion> FilterNearbySinglePixels(
+        IReadOnlyList<PdfOcrImageRegion> components,
+        IReadOnlyList<PdfOcrImageRegion> singlePixels)
     {
         int[] textHeights = [.. components
-            .Where(component => component.Width > 1 || component.Height > 1)
             .Select(component => component.Height).OrderBy(value => value)];
         if (textHeights.Length == 0) return [];
         int referenceHeight = textHeights[textHeights.Length / 2];
         int maximumHorizontalGap = Math.Max(2, referenceHeight / 2);
         int maximumVerticalGap = Math.Max(2, referenceHeight);
-        return [.. components.Where(component => component.Width > 1
-            || component.Height > 1 || components.Any(neighbor =>
-                !ReferenceEquals(neighbor, component)
-                && (neighbor.Width > 1 || neighbor.Height > 1)
-                && AxisGap(component.Left, component.Right,
+        return [.. singlePixels.Where(component => components.Any(neighbor =>
+                AxisGap(component.Left, component.Right,
                     neighbor.Left, neighbor.Right) <= maximumHorizontalGap
                 && AxisGap(component.Top, component.Bottom,
                     neighbor.Top, neighbor.Bottom) <= maximumVerticalGap))];

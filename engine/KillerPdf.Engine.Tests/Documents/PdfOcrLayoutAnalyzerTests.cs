@@ -93,6 +93,23 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_BoundsDenseSinglePixelNoise()
+    {
+        const int size = 210;
+        byte[] pixels = Enumerable.Repeat((byte)255, size * size).ToArray();
+        Paint(pixels, size, 1, 1, 2, 5);
+        for (int y = 10; y < size; y += 3)
+            for (int x = 0; x < size; x += 3)
+                pixels[y * size + x] = 0;
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(size, size, pixels));
+
+        Assert.Equal(new PdfOcrImageRegion(1, 1, 3, 6),
+            Assert.Single(layout.Components));
+    }
+
+    [Fact]
     public void Analyze_KeepsDiagonalStrokesConnected()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 8 * 8).ToArray();
