@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Fonts;
 
 namespace KillerPdf.Engine.Documents;
@@ -68,8 +69,11 @@ public sealed record PdfStructuredExportFinding(
     string Code, int PageIndex, int Count, string Message);
 
 /// <summary>A report of content that a structured export cannot fully represent.</summary>
-public sealed record PdfStructuredExportReport(IReadOnlyList<PdfStructuredExportFinding> Findings)
+public sealed partial record PdfStructuredExportReport(IReadOnlyList<PdfStructuredExportFinding> Findings)
 {
+    private static readonly PdfStructuredExportReportJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfStructuredExportReportJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Gets whether the selected pages can be represented without known loss.</summary>
     public bool IsLossless => Findings.Count == 0;
 
@@ -92,12 +96,21 @@ public sealed record PdfStructuredExportReport(IReadOnlyList<PdfStructuredExport
 
     /// <summary>Exports the report as machine-readable JSON.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(
-        new { Version = 1, IsLossless, Findings },
-        new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+        new ReportFile(1, IsLossless, Findings),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int Version, bool IsLossless, IReadOnlyList<PdfStructuredExportFinding> Findings);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfStructuredExportReportJsonContext : JsonSerializerContext;
 }
 
 /// <summary>One PDF supplied for isolated structured export.</summary>
@@ -145,8 +158,11 @@ public sealed record PdfStructuredExportBatchResult(
 }
 
 /// <summary>A data-safe aggregate report for a structured export batch.</summary>
-public sealed record PdfStructuredExportBatchReport
+public sealed partial record PdfStructuredExportBatchReport
 {
+    private static readonly PdfStructuredExportBatchReportJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfStructuredExportBatchReportJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Creates a report from an isolated batch result prefix.</summary>
     public PdfStructuredExportBatchReport(int totalDocumentCount,
         IEnumerable<PdfStructuredExportBatchResult> results)
@@ -198,35 +214,39 @@ public sealed record PdfStructuredExportBatchReport
     }
 
     /// <summary>Exports outcomes without source or generated document data.</summary>
-    public string ToJson(bool indented = false) => JsonSerializer.Serialize(new
-    {
-        Version = 1,
-        TotalDocumentCount,
-        SucceededCount,
-        FailedCount,
-        CanceledCount,
-        UnprocessedCount,
-        Results = Results.Select(result => new
-        {
-            result.Input.SourceName,
-            result.OutputName,
-            result.Succeeded,
-            result.WasCanceled,
-            result.Error,
-            OutputByteCount = result.Data?.Length,
-            IsLossless = result.LossReport?.IsLossless,
-            Losses = result.LossReport?.Findings.Select(finding => new
-            {
-                finding.Code,
-                finding.PageIndex,
-                finding.Count
-            })
-        })
-    }, new JsonSerializerOptions
+    public string ToJson(bool indented = false) => JsonSerializer.Serialize(
+        new ReportFile(1, TotalDocumentCount, SucceededCount, FailedCount,
+            CanceledCount, UnprocessedCount,
+            [.. Results.Select(result => new ReportResult(
+                result.Input.SourceName,
+                result.OutputName,
+                result.Succeeded,
+                result.WasCanceled,
+                result.Error,
+                result.Data?.Length,
+                result.LossReport?.IsLossless,
+                result.LossReport is null ? null
+                    : [.. result.LossReport.Findings.Select(finding => new ReportLoss(
+                        finding.Code, finding.PageIndex, finding.Count))]))]),
+        indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
+
+    private sealed record ReportFile(
+        int Version, int TotalDocumentCount, int SucceededCount, int FailedCount,
+        int CanceledCount, int UnprocessedCount, ReportResult[] Results);
+    private sealed record ReportResult(
+        string SourceName, string OutputName, bool Succeeded, bool WasCanceled,
+        string? Error, int? OutputByteCount, bool? IsLossless, ReportLoss[]? Losses);
+    private sealed record ReportLoss(string Code, int PageIndex, int Count);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = indented
-    });
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfStructuredExportBatchReportJsonContext : JsonSerializerContext;
 }
 
 /// <summary>Runs isolated structured exports with failure containment and cancellation.</summary>
@@ -317,8 +337,11 @@ public static class PdfStructuredExportBatchRunner
 }
 
 /// <summary>Exports engine-owned page extraction to editable text and web formats.</summary>
-public static class PdfStructuredExport
+public static partial class PdfStructuredExport
 {
+    private static readonly PdfStructuredExportJsonContext Json = new(
+        new JsonSerializerOptions { WriteIndented = true });
+
     /// <summary>
     /// Exports through one target-neutral API, optionally applying reviewed OCR text first.
     /// </summary>
@@ -509,52 +532,50 @@ public static class PdfStructuredExport
     public static string ToJson(PdfDocument document, IEnumerable<int>? pageIndices = null,
         CancellationToken cancellationToken = default)
     {
-        var pages = Read(document, pageIndices, cancellationToken).Select(page => new
-        {
-            page = page.Index + 1,
-            width = page.Content.Width,
-            height = page.Content.Height,
-            lines = page.Content.Lines.Select(line => new
-            {
-                text = line.Text,
-                bounds = line.BoundingBox,
-                direction = line.WritingDirection.ToString(),
-                runs = line.Runs.Select(run => new
-                {
-                    text = run.Text,
-                    font = run.FontName,
-                    size = run.PointSize,
-                    bounds = run.BoundingBox
-                })
-            }),
-            images = page.Content.Images.Select(image => new
-            {
-                resource = image.ResourceName,
-                inline = image.IsInline,
-                bounds = image.BoundingBox
-            }),
-            links = PdfLinkReader.ReadPage(document, page.Index).Select(link => new
-            {
-                annotationIndex = link.AnnotationIndex,
-                objectNumber = link.ObjectNumber,
-                generation = link.Generation,
-                bounds = new
-                {
-                    left = link.Left,
-                    bottom = link.Bottom,
-                    right = link.Right,
-                    top = link.Top
-                },
-                destinationPage = link.DestinationPageIndex.HasValue
-                    ? link.DestinationPageIndex.Value + 1 : (int?)null,
-                namedDestination = link.NamedDestination,
-                uri = link.Uri,
-                description = link.Description
-            }),
-            diagnostics = page.Content.Diagnostics
-        });
-        return JsonSerializer.Serialize(pages, new JsonSerializerOptions { WriteIndented = true });
+        ExportPage[] pages = [.. Read(document, pageIndices, cancellationToken).Select(page => new ExportPage(
+            page.Index + 1,
+            page.Content.Width,
+            page.Content.Height,
+            [.. page.Content.Lines.Select(line => new ExportLine(
+                line.Text,
+                line.BoundingBox,
+                line.WritingDirection.ToString(),
+                [.. line.Runs.Select(run => new ExportRun(
+                    run.Text, run.FontName, run.PointSize, run.BoundingBox))]))],
+            [.. page.Content.Images.Select(image => new ExportImage(
+                image.ResourceName, image.IsInline, image.BoundingBox))],
+            [.. PdfLinkReader.ReadPage(document, page.Index).Select(link => new ExportLink(
+                link.AnnotationIndex,
+                link.ObjectNumber,
+                link.Generation,
+                new ExportBounds(link.Left, link.Bottom, link.Right, link.Top),
+                link.DestinationPageIndex.HasValue
+                    ? link.DestinationPageIndex.Value + 1 : null,
+                link.NamedDestination,
+                link.Uri,
+                link.Description))],
+            page.Content.Diagnostics))];
+        return JsonSerializer.Serialize(pages, Json.ExportPageArray);
     }
+
+    private sealed record ExportPage(
+        int page, double width, double height, ExportLine[] lines,
+        ExportImage[] images, ExportLink[] links,
+        IReadOnlyList<string> diagnostics);
+    private sealed record ExportLine(
+        string text, PdfContentBounds bounds, string direction, ExportRun[] runs);
+    private sealed record ExportRun(
+        string text, string? font, double size, PdfContentBounds bounds);
+    private sealed record ExportImage(
+        string? resource, bool inline, PdfContentBounds bounds);
+    private sealed record ExportLink(
+        int annotationIndex, int? objectNumber, int? generation,
+        ExportBounds bounds, int? destinationPage, string? namedDestination,
+        string? uri, string? description);
+    private sealed record ExportBounds(double left, double bottom, double right, double top);
+
+    [JsonSerializable(typeof(ExportPage[]))]
+    private sealed partial class PdfStructuredExportJsonContext : JsonSerializerContext;
 
     /// <summary>Exports selected pages as an editable Office Open XML Word document.</summary>
     public static byte[] ToDocx(PdfDocument document, IEnumerable<int>? pageIndices = null,

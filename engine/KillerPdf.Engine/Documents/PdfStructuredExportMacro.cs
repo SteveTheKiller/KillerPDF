@@ -5,9 +5,10 @@ using System.Text.Json.Serialization;
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Creates and executes typed structured-export macro steps.</summary>
-public static class PdfStructuredExportMacro
+public static partial class PdfStructuredExportMacro
 {
     private const string OptionsKey = "options";
+    private static readonly PdfStructuredExportMacroJsonContext Json = new(JsonOptions());
 
     /// <summary>Creates an export step with an optional zero-based page selection.</summary>
     public static PdfMacroStep Step(PdfStructuredExportFormat format,
@@ -22,7 +23,7 @@ public static class PdfStructuredExportMacro
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [OptionsKey] = JsonSerializer.Serialize(new ExportOptions(1, format, pages),
-                    JsonOptions())
+                    Json.ExportOptions)
             });
     }
 
@@ -40,7 +41,7 @@ public static class PdfStructuredExportMacro
         ExportOptions options;
         try
         {
-            options = JsonSerializer.Deserialize<ExportOptions>(json, JsonOptions())
+            options = JsonSerializer.Deserialize(json, Json.ExportOptions)
                 ?? throw new JsonException("The export options are empty.");
             if (options.Version != 1)
                 throw new NotSupportedException(
@@ -81,9 +82,16 @@ public static class PdfStructuredExportMacro
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        Converters =
+        {
+            new JsonStringEnumConverter<PdfStructuredExportFormat>(JsonNamingPolicy.CamelCase)
+        }
     };
 
     private sealed record ExportOptions(int Version, PdfStructuredExportFormat Format,
         int[]? PageIndices);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ExportOptions))]
+    private sealed partial class PdfStructuredExportMacroJsonContext : JsonSerializerContext;
 }
