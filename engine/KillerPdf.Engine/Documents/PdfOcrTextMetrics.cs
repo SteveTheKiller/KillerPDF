@@ -17,9 +17,15 @@ public sealed record PdfOcrTextMetrics(
     public double CharacterErrorRate => ErrorRate(
         CharacterEditCount, ExpectedCharacterCount, RecognizedCharacterCount);
 
+    /// <summary>Gets character accuracy clamped from zero through one.</summary>
+    public double CharacterAccuracy => Math.Max(0, 1 - CharacterErrorRate);
+
     /// <summary>Gets the word edit count divided by the expected word count.</summary>
     public double WordErrorRate => ErrorRate(
         WordEditCount, ExpectedWordCount, RecognizedWordCount);
+
+    /// <summary>Gets word accuracy clamped from zero through one.</summary>
+    public double WordAccuracy => Math.Max(0, 1 - WordErrorRate);
 
     /// <summary>Compares expected text with OCR output after normalizing whitespace.</summary>
     public static PdfOcrTextMetrics Compare(string expected, string recognized)

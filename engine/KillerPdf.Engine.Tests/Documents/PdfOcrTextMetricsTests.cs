@@ -17,6 +17,8 @@ public sealed class PdfOcrTextMetricsTests
             metrics.RecognizedWordCount, metrics.WordEditCount));
         Assert.Equal(6d / 13, metrics.CharacterErrorRate, 12);
         Assert.Equal(2d / 3, metrics.WordErrorRate, 12);
+        Assert.Equal(7d / 13, metrics.CharacterAccuracy, 12);
+        Assert.Equal(1d / 3, metrics.WordAccuracy, 12);
     }
 
     [Fact]
@@ -31,6 +33,8 @@ public sealed class PdfOcrTextMetricsTests
         Assert.Equal(0, metrics.WordEditCount);
         Assert.Equal(0, metrics.CharacterErrorRate);
         Assert.Equal(0, metrics.WordErrorRate);
+        Assert.Equal(1, metrics.CharacterAccuracy);
+        Assert.Equal(1, metrics.WordAccuracy);
     }
 
     [Theory]
