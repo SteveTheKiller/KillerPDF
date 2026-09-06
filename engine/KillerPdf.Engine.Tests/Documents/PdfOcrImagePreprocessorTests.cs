@@ -84,6 +84,28 @@ public sealed class PdfOcrImagePreprocessorTests
     }
 
     [Fact]
+    public void PrepareBgra_BinaryDenoisePreservesSmallWhiteCounters()
+    {
+        byte[] bgra = Enumerable.Repeat((byte)255, 7 * 7 * 4).ToArray();
+        for (int pixel = 0; pixel < 49; pixel++) bgra[pixel * 4 + 3] = 255;
+        for (int y = 2; y <= 4; y++)
+            for (int x = 2; x <= 4; x++)
+                if (x != 3 || y != 3)
+                {
+                    int offset = (y * 7 + x) * 4;
+                    bgra[offset] = bgra[offset + 1] = bgra[offset + 2] = 0;
+                }
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: true, removeNoise: true,
+            detectPageSegments: false);
+
+        PdfOcrPreparedImage image = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, 7, 7, options);
+
+        Assert.Equal(255, image.Pixels.Span[3 * 7 + 3]);
+    }
+
+    [Fact]
     public void PrepareBgra_AdaptiveThresholdMatchesBoundedNeighborhoodMeans()
     {
         const int width = 19, height = 13;
