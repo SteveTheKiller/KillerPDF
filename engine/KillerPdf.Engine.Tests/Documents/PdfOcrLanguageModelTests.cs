@@ -117,7 +117,7 @@ public sealed class PdfOcrLanguageModelTests
     {
         PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(["AB"]);
         IReadOnlyList<PdfOcrLanguageCandidate> candidates = [.. Enumerable.Range(0, 64)
-            .Select(index => new PdfOcrLanguageCandidate($"L{index:D2}", -index))];
+            .Select(index => new PdfOcrLanguageCandidate($"L{index:D2}", 0))];
         IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions =
             Enumerable.Repeat(candidates, 256).ToArray();
         long before = GC.GetAllocatedBytesForCurrentThread();
