@@ -1,9 +1,10 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Creates and executes typed imposition macro steps.</summary>
-public static class PdfImpositionMacro
+public static partial class PdfImpositionMacro
 {
     private const string PresetKey = "preset";
     private const string SignaturePagesKey = "signaturePages";
@@ -11,6 +12,7 @@ public static class PdfImpositionMacro
     private const string CopyCountKey = "copyCount";
     private const string PageSequenceKey = "pageSequence";
     private const string OverlapKey = "overlap";
+    private static readonly PdfImpositionMacroJsonContext ImpositionJson = new();
 
     /// <summary>Creates an N-up imposition step from a reusable preset.</summary>
     public static PdfMacroStep NUpStep(PdfImpositionPreset preset)
@@ -80,7 +82,8 @@ public static class PdfImpositionMacro
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 [PresetKey] = preset.ToJson(),
-                [PageSequenceKey] = JsonSerializer.Serialize(pageSequence)
+                [PageSequenceKey] = JsonSerializer.Serialize(
+                    pageSequence.ToArray(), ImpositionJson.NullableInt32Array)
             });
     }
 
@@ -258,7 +261,7 @@ public static class PdfImpositionMacro
                 "The manual page sequence is invalid.", nameof(step));
         try
         {
-            return JsonSerializer.Deserialize<int?[]>(json)
+            return JsonSerializer.Deserialize(json, ImpositionJson.NullableInt32Array)
                 ?? throw new JsonException("The manual page sequence is empty.");
         }
         catch (Exception error) when (error is JsonException or NotSupportedException)
@@ -280,4 +283,7 @@ public static class PdfImpositionMacro
             || overlap >= tileWidth || overlap >= tileHeight)
             throw new ArgumentOutOfRangeException(nameof(overlap));
     }
+
+    [JsonSerializable(typeof(int?[]))]
+    private sealed partial class PdfImpositionMacroJsonContext : JsonSerializerContext;
 }

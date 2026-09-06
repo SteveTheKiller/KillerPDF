@@ -4,8 +4,11 @@ using System.Text.Json.Serialization;
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>A reusable ordered list of supported PDF operations.</summary>
-public sealed record PdfMacro
+public sealed partial record PdfMacro
 {
+    private static readonly PdfMacroJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfMacroJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Creates one editable built-in workflow without executable code.</summary>
     public static PdfMacro CreateStarter(PdfMacroStarterKind kind) => kind switch
     {
@@ -130,13 +133,13 @@ public sealed record PdfMacro
         new PdfMacroFile(1, Name, Steps.Select(step => new PdfMacroStepFile(
             step.Operation, step.Settings is null ? null
                 : new Dictionary<string, string>(step.Settings, StringComparer.Ordinal))).ToArray()),
-        JsonOptions(indented));
+        indented ? IndentedJson.PdfMacroFile : CompactJson.PdfMacroFile);
 
     /// <summary>Reads and validates a serialized macro.</summary>
     public static PdfMacro FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        PdfMacroFile file = JsonSerializer.Deserialize<PdfMacroFile>(json, JsonOptions(false))
+        PdfMacroFile file = JsonSerializer.Deserialize(json, CompactJson.PdfMacroFile)
             ?? throw new JsonException("The macro file is empty.");
         if (file.Version != 1)
             throw new NotSupportedException(
@@ -160,13 +163,19 @@ public sealed record PdfMacro
             PropertyNameCaseInsensitive = true,
             WriteIndented = indented
         };
-        options.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+        options.Converters.Add(
+            new JsonStringEnumConverter<PdfMacroOperation>(JsonNamingPolicy.CamelCase));
         return options;
     }
 
     private sealed record PdfMacroFile(int Version, string Name, PdfMacroStepFile[]? Steps);
     private sealed record PdfMacroStepFile(
         PdfMacroOperation Operation, Dictionary<string, string>? Settings);
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true)]
+    [JsonSerializable(typeof(PdfMacroFile))]
+    private sealed partial class PdfMacroJsonContext : JsonSerializerContext;
 }
 
 /// <summary>A built-in editable macro workflow.</summary>
@@ -488,8 +497,11 @@ public static class PdfMacroRunner
 }
 
 /// <summary>Aggregate and per-file outcomes from one macro batch.</summary>
-public sealed record PdfMacroRunReport
+public sealed partial record PdfMacroRunReport
 {
+    private static readonly PdfMacroRunReportJsonContext CompactJson = new(ReportOptions(false));
+    private static readonly PdfMacroRunReportJsonContext IndentedJson = new(ReportOptions(true));
+
     /// <summary>Creates a report for a bounded input batch.</summary>
     public PdfMacroRunReport(int totalInputCount, IEnumerable<PdfMacroFileResult> results)
     {
@@ -518,30 +530,30 @@ public sealed record PdfMacroRunReport
     /// <summary>Exports stable batch outcomes without embedding document data.</summary>
     public string ToJson(bool indented = false)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        };
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            TotalInputCount,
-            SucceededCount,
-            FailedCount,
-            CanceledCount,
-            UnprocessedCount,
-            Results = Results.Select(result => new
-            {
-                result.InputIndex,
-                result.Succeeded,
-                result.Error,
-                result.WasCanceled,
-                result.FailedStepIndex,
-                result.FailedOperation
-            })
-        }, options);
+        var report = new ReportFile(1, TotalInputCount, SucceededCount, FailedCount,
+            CanceledCount, UnprocessedCount, [.. Results.Select(result => new ResultFile(
+                result.InputIndex, result.Succeeded, result.Error, result.WasCanceled,
+                result.FailedStepIndex, result.FailedOperation))]);
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedJson.ReportFile : CompactJson.ReportFile);
     }
+
+    private sealed record ReportFile(int Version, int TotalInputCount,
+        int SucceededCount, int FailedCount, int CanceledCount, int UnprocessedCount,
+        ResultFile[] Results);
+
+    private sealed record ResultFile(int InputIndex, bool Succeeded, string? Error,
+        bool WasCanceled, int? FailedStepIndex, PdfMacroOperation? FailedOperation);
+
+    private static JsonSerializerOptions ReportOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfMacroRunReportJsonContext : JsonSerializerContext;
 }
 
 /// <summary>The isolated result for one macro input.</summary>
