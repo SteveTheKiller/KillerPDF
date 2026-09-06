@@ -9,7 +9,7 @@ namespace KillerPDF.Services
     {
         private static readonly PdfOcrOptions EngineRasterOptions = new(["und"],
             deskew: false, correctOrientation: false, removeBackground: true,
-            removeNoise: true, detectPageSegments: false);
+            removeNoise: true, detectPageSegments: true);
         private static readonly PdfOcrOptions FallbackRasterOptions = new(["und"],
             deskew: false, correctOrientation: false, detectPageSegments: false);
         private readonly string _dataPath;

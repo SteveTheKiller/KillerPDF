@@ -895,7 +895,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         double overlapSum = 0;
         var options = new PdfOcrOptions(["und"], deskew: deskew,
             correctOrientation: correctOrientation, removeBackground: true, removeNoise: true,
-            detectPageSegments: false);
+            detectPageSegments: true);
         for (int fileIndex = 0; fileIndex < ocrFiles.Length; fileIndex++)
         {
             string file = ocrFiles[fileIndex];

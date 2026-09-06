@@ -182,6 +182,8 @@ public sealed class RenderBoundaryTests
         Assert.Contains("PdfOcrRecognizer.RecognizeBgra(", source, StringComparison.Ordinal);
         Assert.Contains("removeBackground: true", source, StringComparison.Ordinal);
         Assert.Contains("removeNoise: true", source, StringComparison.Ordinal);
+        Assert.Contains("removeNoise: true, detectPageSegments: true", source,
+            StringComparison.Ordinal);
         Assert.Contains("EngineRasterOptions, cancellationToken", source,
             StringComparison.Ordinal);
         Assert.Contains("characterWhitelist, cancellationToken", source,
