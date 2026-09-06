@@ -152,6 +152,14 @@ public sealed class PdfToUnicodeMap
             map._spaces.Clear();
             map._spaces.Add((0, 255, 1));
         }
+        else if (map._spaces.Count == 0 && compatibilityRecovery
+            && map._characters.Count > 0)
+        {
+            foreach (IGrouping<int, KeyValuePair<(uint Code, int Length), string>> group
+                in map._characters.GroupBy(pair => pair.Key.Length))
+                map._spaces.Add((group.Min(pair => pair.Key.Code),
+                    group.Max(pair => pair.Key.Code), group.Key));
+        }
         if (map._spaces.Count == 0) throw new FormatException("ToUnicode map has no code space.");
         map.ValidateSpaces();
         foreach (var key in map._characters.Keys)

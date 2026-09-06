@@ -61,6 +61,20 @@ public sealed class PdfToUnicodeMapTests
         Assert.Equal(["A", "B"], map.Decode([0x41, 0x42]).Select(item => item.Text));
     }
 
+    [Fact]
+    public void ParseFont_CompatibilityRecoveryInfersMissingCodeSpaceFromMappings()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "2 beginbfchar <0041> <0041> <0042> <0042> endbfchar");
+
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        PdfToUnicodeMap map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+
+        Assert.Equal(["A", "B"], map.Decode([0, 0x41, 0, 0x42])
+            .Select(item => item.Text));
+        Assert.All(map.Decode([0, 0x41]), item => Assert.Equal(2, item.ByteLength));
+    }
+
     private const string Space = "1 begincodespacerange <0000> <FFFF> endcodespacerange ";
 
     [Fact]
