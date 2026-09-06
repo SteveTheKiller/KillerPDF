@@ -85,7 +85,7 @@ public static class PdfOcrModelTrainer
     private const int MaximumSamples = 10_000_000;
     private const int MaximumModelValues = 16 * 1024 * 1024;
     private const int MaximumPrototypesPerShape = 96;
-    private const double LabelPriorWeight = 0.25;
+    private const double LabelPriorWeight = 0.000001;
     private static readonly PdfStandardFont[] StandardTrainingFonts =
     [
         PdfStandardFont.Helvetica,
