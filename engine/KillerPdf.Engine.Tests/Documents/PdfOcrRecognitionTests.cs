@@ -248,7 +248,7 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
             samples.Skip(samplesPerStyle * 8));
 
-        Assert.InRange(evaluation.Accuracy, 0.70, 1);
+        Assert.InRange(evaluation.Accuracy, 0.83, 1);
     }
 
     [Fact]

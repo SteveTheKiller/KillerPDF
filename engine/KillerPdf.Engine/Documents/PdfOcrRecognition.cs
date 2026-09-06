@@ -12,12 +12,23 @@ public sealed class PdfOcrRecognitionModel
 {
     private static readonly byte[] Magic = "KPOCR2\0"u8.ToArray();
     private const double ShapeMismatchPenalty = 0.25;
+    private const double CoarseGradientDistanceWeight = 24;
+    private const double FineGradientDistanceWeight = 6;
+    private const int CoarseGradientCellCount = 2;
+    private const int FineGradientCellCount = 8;
+    private const int GradientBinCount = 4;
+    private const int CoarseGradientDescriptorLength =
+        CoarseGradientCellCount * CoarseGradientCellCount * GradientBinCount;
+    private const int FineGradientDescriptorLength =
+        FineGradientCellCount * FineGradientCellCount * GradientBinCount;
     private readonly string[] _labels;
     private readonly float[] _weights;
     private readonly float[] _biases;
     private readonly sbyte[] _shapeBuckets;
     private readonly float[] _rowProjections;
     private readonly float[] _columnProjections;
+    private readonly float[] _coarseGradientDescriptors;
+    private readonly float[] _fineGradientDescriptors;
     private readonly Dictionary<string, int> _labelShapeMasks;
     private readonly bool _usesPrototypeShapes;
 
@@ -34,6 +45,10 @@ public sealed class PdfOcrRecognitionModel
         _shapeBuckets = new sbyte[labels.Length];
         _rowProjections = new float[checked(labels.Length * height)];
         _columnProjections = new float[checked(labels.Length * width)];
+        _coarseGradientDescriptors = new float[
+            checked(labels.Length * CoarseGradientDescriptorLength)];
+        _fineGradientDescriptors = new float[
+            checked(labels.Length * FineGradientDescriptorLength)];
         _labelShapeMasks = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int label = 0; label < labels.Length; label++)
         {
@@ -42,6 +57,19 @@ public sealed class PdfOcrRecognitionModel
             BuildProjections(weights.AsSpan(label * featureCount, featureCount),
                 width, height, _rowProjections.AsSpan(label * height, height),
                 _columnProjections.AsSpan(label * width, width));
+            if (_usesPrototypeShapes && featureCount >= 64)
+            {
+                BuildGradientDescriptor(
+                    weights.AsSpan(label * featureCount, featureCount), width, height,
+                    CoarseGradientCellCount, _coarseGradientDescriptors.AsSpan(
+                        label * CoarseGradientDescriptorLength,
+                        CoarseGradientDescriptorLength));
+                BuildGradientDescriptor(
+                    weights.AsSpan(label * featureCount, featureCount), width, height,
+                    FineGradientCellCount, _fineGradientDescriptors.AsSpan(
+                        label * FineGradientDescriptorLength,
+                        FineGradientDescriptorLength));
+            }
             if (_shapeBuckets[label] >= 0)
                 _labelShapeMasks[labels[label]] = _labelShapeMasks.GetValueOrDefault(labels[label])
                     | 1 << _shapeBuckets[label];
@@ -303,6 +331,19 @@ public sealed class PdfOcrRecognitionModel
         Span<float> rowProjection = stackalloc float[Height];
         Span<float> columnProjection = stackalloc float[Width];
         BuildProjections(features, Width, Height, rowProjection, columnProjection);
+        Span<float> coarseGradientDescriptor =
+            stackalloc float[CoarseGradientDescriptorLength];
+        Span<float> fineGradientDescriptor =
+            stackalloc float[FineGradientDescriptorLength];
+        if (_usesPrototypeShapes && featureCount >= 64)
+        {
+            BuildGradientDescriptor(
+                features, Width, Height, CoarseGradientCellCount,
+                coarseGradientDescriptor);
+            BuildGradientDescriptor(
+                features, Width, Height, FineGradientCellCount,
+                fineGradientDescriptor);
+        }
         int best = -1;
         for (int label = 0; label < _labels.Length; label++)
         {
@@ -336,8 +377,14 @@ public sealed class PdfOcrRecognitionModel
             if (shapeMismatch)
                 score -= ShapeMismatchPenalty;
             if (_usesPrototypeShapes && featureCount >= 64)
+            {
                 score -= 0.25 * ProjectionDistance(
                     label, rowProjection, columnProjection);
+                score -= CoarseGradientDistanceWeight * GradientDistance(
+                    label, coarseGradientDescriptor, _coarseGradientDescriptors);
+                score -= FineGradientDistanceWeight * GradientDistance(
+                    label, fineGradientDescriptor, _fineGradientDescriptors);
+            }
             scores[label] = score;
             if (best < 0 || score > scores[best]) best = label;
         }
@@ -380,6 +427,46 @@ public sealed class PdfOcrRecognitionModel
             if (!double.IsNegativeInfinity(third)) vote += 0.1 * (third - first);
             return vote;
         }
+    }
+
+    private static double GradientDistance(int label,
+        ReadOnlySpan<float> descriptor, ReadOnlySpan<float> prototypes)
+    {
+        double distance = 0;
+        int offset = label * descriptor.Length;
+        for (int index = 0; index < descriptor.Length; index++)
+            distance += Math.Abs(descriptor[index] - prototypes[offset + index]);
+        return distance;
+    }
+
+    private static void BuildGradientDescriptor(ReadOnlySpan<float> features,
+        int width, int height, int cellCount, Span<float> descriptor)
+    {
+        descriptor.Clear();
+        float total = 0;
+        for (int y = 1; y < height - 1; y++)
+            for (int x = 1; x < width - 1; x++)
+            {
+                float horizontal = features[y * width + x + 1]
+                    - features[y * width + x - 1];
+                float vertical = features[(y + 1) * width + x]
+                    - features[(y - 1) * width + x];
+                float horizontalMagnitude = Math.Abs(horizontal);
+                float verticalMagnitude = Math.Abs(vertical);
+                float magnitude = horizontalMagnitude + verticalMagnitude;
+                if (magnitude <= 0) continue;
+                int bin = horizontalMagnitude > verticalMagnitude * 2 ? 0
+                    : verticalMagnitude > horizontalMagnitude * 2 ? 1
+                    : horizontal * vertical >= 0 ? 2 : 3;
+                int cellX = Math.Min(cellCount - 1, x * cellCount / width);
+                int cellY = Math.Min(cellCount - 1, y * cellCount / height);
+                descriptor[(cellY * cellCount + cellX)
+                    * GradientBinCount + bin] += magnitude;
+                total += magnitude;
+            }
+        if (total <= 0) return;
+        for (int index = 0; index < descriptor.Length; index++)
+            descriptor[index] /= total;
     }
 
     private double ProjectionDistance(int label, ReadOnlySpan<float> rows,
