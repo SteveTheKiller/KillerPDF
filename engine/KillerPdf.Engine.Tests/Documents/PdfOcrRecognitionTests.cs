@@ -662,6 +662,19 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TextLayerTrainingRejectsComponentsThatDwarfTheirLabels()
+    {
+        PdfOcrImageRegion label = new(10, 10, 20, 30);
+
+        Assert.True(PdfOcrModelTrainer.IsPlausibleSampleBounds(
+            label, new PdfOcrImageRegion(9, 9, 21, 31)));
+        Assert.False(PdfOcrModelTrainer.IsPlausibleSampleBounds(
+            label, new PdfOcrImageRegion(0, 0, 40, 40)));
+        Assert.False(PdfOcrModelTrainer.IsPlausibleSampleBounds(
+            label, new PdfOcrImageRegion(19, 10, 29, 30)));
+    }
+
+    [Fact]
     public void TextLayerTrainingDoesNotShareExclusiveRegionEdges()
     {
         PdfOcrImageRegion component = new(0, 0, 5, 10);

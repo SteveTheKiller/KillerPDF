@@ -324,6 +324,7 @@ public static class PdfOcrModelTrainer
             var bounds = new PdfOcrImageRegion(
                 glyph.Min(item => item.Left), glyph.Min(item => item.Top),
                 glyph.Max(item => item.Right), glyph.Max(item => item.Bottom));
+            if (!IsPlausibleSampleBounds(labelBounds, bounds)) continue;
             int centerX = (bounds.Left + bounds.Right) / 2;
             int centerY = (bounds.Top + bounds.Bottom) / 2;
             PdfOcrImageRegion lineBounds = layout.Lines.FirstOrDefault(line =>
@@ -348,6 +349,23 @@ public static class PdfOcrModelTrainer
                     prepared, bounds, lineBounds, width, height, cancellationToken)));
         }
         return Array.AsReadOnly(samples.ToArray());
+    }
+
+    internal static bool IsPlausibleSampleBounds(
+        PdfOcrImageRegion label, PdfOcrImageRegion sample)
+    {
+        if (label.Width <= 0 || label.Height <= 0
+            || sample.Width <= 0 || sample.Height <= 0)
+            return false;
+        int overlapWidth = Math.Min(label.Right, sample.Right)
+            - Math.Max(label.Left, sample.Left);
+        int overlapHeight = Math.Min(label.Bottom, sample.Bottom)
+            - Math.Max(label.Top, sample.Top);
+        if (overlapWidth <= 0 || overlapHeight <= 0) return false;
+        long overlapArea = (long)overlapWidth * overlapHeight;
+        long sampleArea = (long)sample.Width * sample.Height;
+        long labelArea = (long)label.Width * label.Height;
+        return overlapArea * 2 >= sampleArea && sampleArea <= labelArea * 2;
     }
 
     internal static IReadOnlySet<PdfOcrImageRegion> FindAmbiguousSampleBounds(
