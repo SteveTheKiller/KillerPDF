@@ -87,6 +87,7 @@ public static class PdfOcrModelTrainer
     private const int MaximumModelValues = 16 * 1024 * 1024;
     private const int MaximumPrototypesPerShape = 96;
     private const int MaximumLabelsPerComponent = 4;
+    private const int MaximumTrainingLabelsPerPage = 80;
     private const double LabelPriorWeight = 0.25;
     private const double PrototypeSupportWeight = 0.0015;
     private static readonly int[] StandardTrainingRenderScales = [1, 2, 3, 4, 6];
@@ -172,6 +173,15 @@ public static class PdfOcrModelTrainer
     /// <summary>Creates Unicode training coverage from bundled standard-font substitutes.</summary>
     public static IReadOnlyList<PdfOcrTrainingSample> CreateStandardFontSamples(
         IEnumerable<string> labels, int width, int height,
+        CancellationToken cancellationToken = default) =>
+        Array.AsReadOnly([.. StreamStandardFontSamples(
+            labels, width, height, cancellationToken)]);
+
+    /// <summary>
+    /// Streams Unicode training coverage from bundled standard-font substitutes.
+    /// </summary>
+    public static IEnumerable<PdfOcrTrainingSample> StreamStandardFontSamples(
+        IEnumerable<string> labels, int width, int height,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(labels);
@@ -184,17 +194,14 @@ public static class PdfOcrModelTrainer
             throw new ArgumentException(
                 "Every standard-font OCR label must map to one bundled glyph.", nameof(labels));
 
-        IReadOnlyList<TrueTypeFont> fonts = PdfStandardFontSubstitutes.OcrTrainingFonts();
-        var samples = new List<PdfOcrTrainingSample>(checked(
-            requested.Length * fonts.Count * StandardTrainingRenderScales.Length));
-        foreach (TrueTypeFont font in fonts)
+        foreach (TrueTypeFont font in PdfStandardFontSubstitutes.OcrTrainingFonts())
         {
             string[] supported = [.. requested.Where(label => MapsOneGlyph(font, label))];
-            if (supported.Length > 0)
-                samples.AddRange(CreateEmbeddedFontSamples(
-                    font, supported, width, height, cancellationToken));
+            if (supported.Length == 0) continue;
+            foreach (PdfOcrTrainingSample sample in StreamEmbeddedFontSamples(
+                font, supported, width, height, cancellationToken))
+                yield return sample;
         }
-        return Array.AsReadOnly(samples.ToArray());
     }
 
     private static bool MapsOneGlyph(TrueTypeFont font, string label)
@@ -205,6 +212,15 @@ public static class PdfOcrModelTrainer
 
     /// <summary>Creates Unicode training samples from a supplied embeddable OpenType font.</summary>
     public static IReadOnlyList<PdfOcrTrainingSample> CreateEmbeddedFontSamples(
+        TrueTypeFont font, IEnumerable<string> labels, int width, int height,
+        CancellationToken cancellationToken = default) =>
+        Array.AsReadOnly([.. StreamEmbeddedFontSamples(
+            font, labels, width, height, cancellationToken)]);
+
+    /// <summary>
+    /// Streams Unicode training samples from a supplied embeddable OpenType font.
+    /// </summary>
+    public static IEnumerable<PdfOcrTrainingSample> StreamEmbeddedFontSamples(
         TrueTypeFont font, IEnumerable<string> labels, int width, int height,
         CancellationToken cancellationToken = default)
     {
@@ -232,37 +248,38 @@ public static class PdfOcrModelTrainer
         const int cellSize = 80;
         const int margin = 40;
         const int fontSize = 32;
-        int rows = (requested.Length + columns - 1) / columns;
-        int pageWidth = columns * cellSize + margin * 2;
-        int pageHeight = rows * cellSize + margin * 2;
-        var content = new PdfContentStreamBuilder();
-        for (int index = 0; index < requested.Length; index++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            int column = index % columns;
-            int row = index / columns;
-            content.BeginText().SetFont(font, fontSize)
-                .SetTextMatrix(1, 0, 0, 1,
-                    margin + column * cellSize,
-                    pageHeight - margin - (row + 1) * cellSize + 20)
-                .ShowUnicodeText(requested[index]).EndText();
-        }
-        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(pageWidth, pageHeight, content).Build());
         var options = new PdfOcrOptions(["und"], deskew: false,
             correctOrientation: false, removeBackground: true, removeNoise: true,
             detectPageSegments: false);
-        var samples = new List<PdfOcrTrainingSample>(
-            checked(requested.Length * StandardTrainingRenderScales.Length));
-        foreach (int scale in StandardTrainingRenderScales)
+        foreach (string[] pageLabels in requested.Chunk(MaximumTrainingLabelsPerPage))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            samples.AddRange(CreatePageSamples(document, 0,
-                new PdfRenderOptions(pageWidth * scale, pageHeight * scale,
-                    includeAnnotations: false, includeFormFields: false),
-                options, width, height, cancellationToken));
+            int rows = (pageLabels.Length + columns - 1) / columns;
+            int pageWidth = columns * cellSize + margin * 2;
+            int pageHeight = rows * cellSize + margin * 2;
+            var content = new PdfContentStreamBuilder();
+            for (int index = 0; index < pageLabels.Length; index++)
+            {
+                int column = index % columns;
+                int row = index / columns;
+                content.BeginText().SetFont(font, fontSize)
+                    .SetTextMatrix(1, 0, 0, 1,
+                        margin + column * cellSize,
+                        pageHeight - margin - (row + 1) * cellSize + 20)
+                    .ShowUnicodeText(pageLabels[index]).EndText();
+            }
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddPage(pageWidth, pageHeight, content).Build());
+            foreach (int scale in StandardTrainingRenderScales)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                foreach (PdfOcrTrainingSample sample in CreatePageSamples(document, 0,
+                    new PdfRenderOptions(pageWidth * scale, pageHeight * scale,
+                        includeAnnotations: false, includeFormFields: false),
+                    options, width, height, cancellationToken))
+                    yield return sample;
+            }
         }
-        return Array.AsReadOnly(samples.ToArray());
     }
 
     /// <summary>Trains directly from labeled glyph rectangles in a prepared image.</summary>
@@ -730,25 +747,29 @@ public static class PdfOcrModelTrainer
 
         private sealed class PrototypeAccumulator
         {
-            private readonly long[] _sum;
+            private const int MaximumAccumulatedSamples = ushort.MaxValue;
+            private readonly uint[] _sum;
             private int _count;
+            private int _accumulatedCount;
 
             internal PrototypeAccumulator(ReadOnlySpan<float> features)
             {
-                _sum = new long[features.Length];
+                _sum = new uint[features.Length];
                 Add(features);
             }
 
             internal float[] Features => [.. _sum.Select(value =>
-                (float)(value / (65535d * _count)))];
+                (float)(value / (65535d * _accumulatedCount)))];
             internal int Count => _count;
 
             internal void Add(ReadOnlySpan<float> features)
             {
-                for (int index = 0; index < features.Length; index++)
-                    _sum[index] += Math.Clamp(
-                        (int)Math.Round(features[index] * 65535), 0, 65535);
                 _count++;
+                if (_accumulatedCount >= MaximumAccumulatedSamples) return;
+                for (int index = 0; index < features.Length; index++)
+                    _sum[index] += (uint)Math.Clamp(
+                        (int)Math.Round(features[index] * 65535), 0, 65535);
+                _accumulatedCount++;
             }
         }
 

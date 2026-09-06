@@ -420,8 +420,12 @@ public sealed class PdfOcrReviewTests
 
     private sealed class RecordingProvider : IPdfOcrProvider
     {
+        public PdfOcrProviderDescriptor Descriptor { get; } = new(
+            "recording", "Recording", new Version(1, 0), ["en-US"]);
         public PdfOcrOptions? Options { get; private set; }
         public (string Name, int Page, byte Value) Input { get; private set; }
+
+        public bool Supports(PdfOcrOptions options) => true;
 
         public PdfOcrReview Recognize(PdfOcrBatchPage page, PdfOcrOptions options,
             CancellationToken cancellationToken = default)

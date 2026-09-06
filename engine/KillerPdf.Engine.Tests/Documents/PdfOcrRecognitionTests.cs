@@ -743,8 +743,8 @@ public sealed class PdfOcrRecognitionTests
     {
         string[] labels = ["!", "7", "A", "g", "Ж"];
 
-        IReadOnlyList<PdfOcrTrainingSample> samples =
-            PdfOcrModelTrainer.CreateStandardFontSamples(labels, 16, 16);
+        PdfOcrTrainingSample[] samples = [..
+            PdfOcrModelTrainer.StreamStandardFontSamples(labels, 16, 16)];
         PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(16, 16, samples);
 
         Assert.Equal(labels, model.Labels.Order(StringComparer.Ordinal));

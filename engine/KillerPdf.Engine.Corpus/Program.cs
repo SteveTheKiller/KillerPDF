@@ -1061,12 +1061,14 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             string[] seedStandardLabels = [.. seedLabels
                 .Where(PdfOcrModelTrainer.SupportsStandardFontLabel)
                 .Order(StringComparer.Ordinal)];
+            int seedTimeoutSeconds = Math.Min(900, Math.Max(
+                Math.Max(ocrTimeoutSeconds, 180), seedStandardLabels.Length * 2));
             using var seedTimeout = new CancellationTokenSource(
-                TimeSpan.FromSeconds(Math.Max(ocrTimeoutSeconds, 180)));
+                TimeSpan.FromSeconds(seedTimeoutSeconds));
             if (seedStandardLabels.Length > 0)
             {
                 foreach (PdfOcrTrainingSample sample in
-                    PdfOcrModelTrainer.CreateStandardFontSamples(
+                    PdfOcrModelTrainer.StreamStandardFontSamples(
                         seedStandardLabels, modelWidth, modelHeight, seedTimeout.Token))
                 {
                     trainingSampleCount++;
@@ -1081,7 +1083,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     .Order(StringComparer.Ordinal)];
                 if (supported.Length == 0) continue;
                 foreach (PdfOcrTrainingSample sample in
-                    PdfOcrModelTrainer.CreateEmbeddedFontSamples(
+                    PdfOcrModelTrainer.StreamEmbeddedFontSamples(
                         font, supported, modelWidth, modelHeight, seedTimeout.Token))
                 {
                     trainingSampleCount++;

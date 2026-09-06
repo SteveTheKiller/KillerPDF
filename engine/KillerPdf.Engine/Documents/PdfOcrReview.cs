@@ -525,7 +525,7 @@ public sealed record PdfOcrBatchSourceSummary(
     string SourceName, int PageCount, int SucceededCount, int FailedCount, int CanceledCount);
 
 /// <summary>A bounded OCR provider used by direct, batch, and macro workflows.</summary>
-public interface IPdfOcrProvider
+public interface IPdfOcrProvider : IPdfOcrProviderMetadata
 {
     /// <summary>Recognizes one isolated page using validated provider options.</summary>
     PdfOcrReview Recognize(PdfOcrBatchPage page, PdfOcrOptions options,
