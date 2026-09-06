@@ -165,11 +165,13 @@ internal sealed class PdfPageRenderSession : IDisposable
             PdfRenderBackend.Engine, null);
     }
 
-    internal static byte[]? RenderExactPage(string path, int pageIndex, int width, int height,
+    internal static PdfRenderedPage? RenderExactPage(
+        string path, int pageIndex, int width, int height,
         bool transparentBackground = false, bool includeFormFields = true,
         CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        string? engineFailure = null;
         try
         {
             EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
@@ -178,17 +180,22 @@ internal sealed class PdfPageRenderSession : IDisposable
             KillerPdf.Engine.Rendering.PdfRenderedPage rendered = renderer.Render(
                 pageIndex, new EngineRenderOptions(width, height, transparentBackground,
                     includeAnnotations: true, includeFormFields), cancellationToken);
-            if (rendered.Diagnostics.Count == 0) return rendered.Pixels.ToArray();
+            if (rendered.Diagnostics.Count == 0)
+                return new PdfRenderedPage(width, height, rendered.Pixels.ToArray(),
+                    PdfRenderBackend.Engine, null);
+            engineFailure = string.Join(" ", rendered.Diagnostics);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException
             && exception is not OperationCanceledException)
         {
+            engineFailure = DescribeFailure(exception);
         }
 
         byte[]? pixels = DocnetRenderFallback.RenderExactPage(
             path, pageIndex, width, height, transparentBackground, includeFormFields);
         cancellationToken.ThrowIfCancellationRequested();
-        return pixels;
+        return pixels is null ? null : new PdfRenderedPage(width, height, pixels,
+            PdfRenderBackend.NativeFallback, engineFailure);
     }
 
     public void Dispose() => _nativeFallback.Dispose();

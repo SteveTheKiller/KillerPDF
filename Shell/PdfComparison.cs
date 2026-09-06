@@ -474,13 +474,14 @@ public partial class MainWindow
         (int lw, int lh) = ComparisonRenderSize(leftInfo[pageIndex]);
         (int rw, int rh) = ComparisonRenderSize(rightInfo[pageIndex]);
         bool pageDimensionsMatch = lw == rw && lh == rh;
-        byte[] left = PdfPageRenderSession.RenderExactPage(
+        PdfRenderedPage left = PdfPageRenderSession.RenderExactPage(
             leftPath, pageIndex, lw, lh, cancellationToken: token)
             ?? throw new InvalidOperationException("The original page could not be rendered.");
-        byte[] right = PdfPageRenderSession.RenderExactPage(
+        PdfRenderedPage right = PdfPageRenderSession.RenderExactPage(
             rightPath, pageIndex, lw, lh, cancellationToken: token)
             ?? throw new InvalidOperationException("The comparison page could not be rendered.");
-        return (PdfPageDifference.Compare(left, lw, lh, right, lw, lh), lw, lh,
+        return (PdfPageDifference.Compare(
+                left.Pixels, lw, lh, right.Pixels, lw, lh), lw, lh,
             true, true, pageDimensionsMatch);
     }
 

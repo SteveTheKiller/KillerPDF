@@ -359,6 +359,8 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("PdfRenderBackend.NativeFallback, null", fallback,
             StringComparison.Ordinal);
+        Assert.Contains("PdfRenderBackend.NativeFallback, engineFailure", boundary,
+            StringComparison.Ordinal);
         Assert.Contains("string? EngineFailure", boundary, StringComparison.Ordinal);
     }
 
