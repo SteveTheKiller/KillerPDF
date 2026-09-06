@@ -50,6 +50,26 @@ public sealed class PdfPageBoxInformationTests
         Assert.Throws<InvalidOperationException>(() => PdfPageBoxInformation.Read(document));
     }
 
+    [Fact]
+    public void Read_CompatibilityRecoveryUsesLetterPageForMissingMediaBox()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300).Build());
+        (PdfIndirectReference pageReference, PdfDictionary page) = Page(source);
+        PdfDictionary replacement = new(page.Where(entry =>
+            !entry.Key.Equals(Name("MediaBox"))));
+        PdfDocument strict = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(pageReference.ObjectNumber, replacement).Build());
+
+        Assert.Throws<InvalidOperationException>(() => PdfPageBoxInformation.Read(strict));
+
+        PdfPageBoxInformation pageInfo = Assert.Single(PdfPageBoxInformation.Read(
+            PdfDocument.OpenWithCompatibilityRecovery(strict.Source)));
+
+        Assert.Equal(new PdfPageBoxBounds(0, 0, 612, 792), pageInfo.MediaBox);
+        Assert.Equal(pageInfo.MediaBox, pageInfo.CropBox);
+    }
+
     private static PdfArray Box(long left, long bottom, long right, long top) =>
         new([new PdfInteger(left), new PdfInteger(bottom),
             new PdfInteger(right), new PdfInteger(top)]);

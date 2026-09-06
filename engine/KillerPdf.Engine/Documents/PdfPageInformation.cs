@@ -6,6 +6,9 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Describes the effective display geometry of one PDF page.</summary>
 public sealed record PdfPageInformation
 {
+    private static readonly PdfArray CompatibilityDefaultMediaBox = new(
+        [new PdfInteger(0), new PdfInteger(0), new PdfInteger(612), new PdfInteger(792)]);
+
     /// <summary>Gets the left edge of the effective crop or media box.</summary>
     public double Left { get; init; }
     /// <summary>Gets the bottom edge of the effective crop or media box.</summary>
@@ -26,13 +29,16 @@ public sealed record PdfPageInformation
         for (int index = 0; index < tree.Pages.Count; index++)
         {
             PdfPageTreeEntry page = tree.Pages[index];
-            PdfArray box = ResolveArray(document,
+            PdfObject pageBox =
                 page.InheritedValues.TryGetValue(Name("CropBox"), out PdfObject? crop)
                     ? crop
                     : page.InheritedValues.TryGetValue(Name("MediaBox"), out PdfObject? media)
                         ? media
-                        : throw new InvalidOperationException(
-                            $"Page {index + 1} has no effective media box."),
+                        : document.UsesCompatibilityRecovery
+                            ? CompatibilityDefaultMediaBox
+                            : throw new InvalidOperationException(
+                                $"Page {index + 1} has no effective media box.");
+            PdfArray box = ResolveArray(document, pageBox,
                 $"Page {index + 1} effective page box");
             if (box.Count != 4)
                 throw new InvalidOperationException(

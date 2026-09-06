@@ -15,6 +15,9 @@ public sealed record PdfPageBoxBounds(double Left, double Bottom, double Right, 
 /// <summary>Describes the complete effective box model for one PDF page.</summary>
 public sealed record PdfPageBoxInformation
 {
+    private static readonly PdfPageBoxBounds CompatibilityDefaultMediaBox =
+        new(0, 0, 612, 792);
+
     /// <summary>Gets the zero-based page index.</summary>
     public required int PageIndex { get; init; }
     /// <summary>Gets the required physical page boundary.</summary>
@@ -45,8 +48,10 @@ public sealed record PdfPageBoxInformation
         foreach (PdfPageTreeEntry page in tree.Pages)
         {
             PdfPageBoxBounds media = ReadInherited(document, page, "MediaBox")
-                ?? throw new InvalidOperationException(
-                    $"Page {page.Index + 1} has no effective media box.");
+                ?? (document.UsesCompatibilityRecovery
+                    ? CompatibilityDefaultMediaBox
+                    : throw new InvalidOperationException(
+                        $"Page {page.Index + 1} has no effective media box."));
             PdfPageBoxBounds crop = ReadInherited(document, page, "CropBox") ?? media;
             PdfPageBoxBounds bleed = ReadDirect(document, page, "BleedBox") ?? crop;
             PdfPageBoxBounds trim = ReadDirect(document, page, "TrimBox") ?? crop;
