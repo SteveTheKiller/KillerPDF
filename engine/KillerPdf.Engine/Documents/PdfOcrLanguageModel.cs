@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Text;
 
 namespace KillerPdf.Engine.Documents;
@@ -20,6 +21,8 @@ public sealed class PdfOcrLanguageModel
     internal const int MaximumModelBytes = 64 * 1024 * 1024;
     private const int MaximumSequenceLength = 4_096;
     private const int MaximumCandidatesPerPosition = 64;
+    private static readonly double UnobservedCaseSwitchPenalty = Math.Log(20);
+    private static readonly double UnobservedScriptSwitchPenalty = Math.Log(100);
     private static readonly UTF8Encoding Utf8 = new(false, true);
     private readonly Dictionary<string, int> _labels;
     private readonly Dictionary<(int Previous, int Current), int> _counts;
@@ -356,7 +359,51 @@ public sealed class PdfOcrLanguageModel
         if (!_labels.TryGetValue(current, out int currentIndex))
             return -Math.Log(_totals[previousIndex] + vocabulary);
         int count = _counts.GetValueOrDefault((previousIndex, currentIndex));
-        return Math.Log((count + 1d) / (_totals[previousIndex] + vocabulary));
+        double score = Math.Log((count + 1d) / (_totals[previousIndex] + vocabulary));
+        if (count == 0 && IsLatinCyrillicSwitch(previous, current))
+            score -= UnobservedScriptSwitchPenalty;
+        else if (count == 0 && IsUnexpectedUppercaseTransition(previous, current))
+            score -= UnobservedCaseSwitchPenalty;
+        return score;
+    }
+
+    private static bool IsUnexpectedUppercaseTransition(string previous, string current)
+    {
+        UnicodeCategory previousCategory = Category(previous);
+        UnicodeCategory currentCategory = Category(current);
+        return previousCategory == UnicodeCategory.LowercaseLetter
+            && currentCategory == UnicodeCategory.UppercaseLetter;
+
+        static UnicodeCategory Category(string label) => label.Length == 0
+            ? UnicodeCategory.OtherNotAssigned
+            : Rune.GetUnicodeCategory(label.EnumerateRunes().First());
+    }
+
+    private static bool IsLatinCyrillicSwitch(string previous, string current)
+    {
+        int previousScript = Script(previous);
+        int currentScript = Script(current);
+        return previousScript != 0 && currentScript != 0
+            && previousScript != currentScript;
+
+        static int Script(string label)
+        {
+            if (label.Length == 0) return 0;
+            int value = label.EnumerateRunes().First().Value;
+            if (value is >= 0x0041 and <= 0x005A
+                or >= 0x0061 and <= 0x007A
+                or >= 0x00C0 and <= 0x024F
+                or >= 0x1E00 and <= 0x1EFF
+                or >= 0xA720 and <= 0xA7FF
+                or >= 0xAB30 and <= 0xAB6F)
+                return 1;
+            if (value is >= 0x0400 and <= 0x052F
+                or >= 0x1C80 and <= 0x1C8F
+                or >= 0x2DE0 and <= 0x2DFF
+                or >= 0xA640 and <= 0xA69F)
+                return 2;
+            return 0;
+        }
     }
 
     private static string[] ToLabels(Path path)

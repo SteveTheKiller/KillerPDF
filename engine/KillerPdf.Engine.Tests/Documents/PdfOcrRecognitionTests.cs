@@ -554,6 +554,31 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void LanguageContextRejectsUnobservedLatinCyrillicMixingWithinAWord()
+    {
+        PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(["AA", "ББ"]);
+        IReadOnlyList<string> decoded = language.Decode([
+            [new PdfOcrLanguageCandidate("A", 4), new PdfOcrLanguageCandidate("Б", 0)],
+            [new PdfOcrLanguageCandidate("Б", 0)]
+        ]);
+
+        Assert.Equal(["Б", "Б"], decoded);
+    }
+
+    [Fact]
+    public void LanguageContextRejectsUnobservedCaseMixingWithinAWord()
+    {
+        PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(["AAA", "Ббб"]);
+        IReadOnlyList<string> decoded = language.Decode([
+            [new PdfOcrLanguageCandidate("Б", 0)],
+            [new PdfOcrLanguageCandidate("б", 0)],
+            [new PdfOcrLanguageCandidate("Б", 2), new PdfOcrLanguageCandidate("б", 0)]
+        ]);
+
+        Assert.Equal(["Б", "б", "б"], decoded);
+    }
+
+    [Fact]
     public void RecognizerLetsLanguageContextRecoverATwelfthVisualCandidate()
     {
         PdfOcrPreparedImage image = Prepared(8, 6,
