@@ -905,6 +905,24 @@ public static class PdfOcrRecognizer
         PdfOcrRecognitionModel model, PdfOcrOptions options, string characterWhitelist,
         CancellationToken cancellationToken = default)
     {
+        return RecognizeBgra(
+            bgra, width, height, model, options, null,
+            CreateAllowedLabels(model, characterWhitelist), cancellationToken);
+    }
+
+    /// <summary>Runs contextual recognition while restricting results to supplied characters.</summary>
+    public static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
+        PdfOcrRecognitionModel model, PdfOcrLanguageModel languageModel,
+        PdfOcrOptions options, string characterWhitelist,
+        CancellationToken cancellationToken = default) =>
+        RecognizeBgra(bgra, width, height, model, options,
+            languageModel ?? throw new ArgumentNullException(nameof(languageModel)),
+            CreateAllowedLabels(model, characterWhitelist), cancellationToken);
+
+    private static IReadOnlySet<string> CreateAllowedLabels(
+        PdfOcrRecognitionModel model, string characterWhitelist)
+    {
+        ArgumentNullException.ThrowIfNull(model);
         ArgumentException.ThrowIfNullOrWhiteSpace(characterWhitelist);
         var allowedLabels = new HashSet<string>(characterWhitelist.EnumerateRunes()
             .Where(rune => !Rune.IsControl(rune) && !Rune.IsWhiteSpace(rune))
@@ -913,8 +931,7 @@ public static class PdfOcrRecognizer
             throw new ArgumentException(
                 "The OCR character whitelist has no labels in this model.",
                 nameof(characterWhitelist));
-        return RecognizeBgra(
-            bgra, width, height, model, options, null, allowedLabels, cancellationToken);
+        return allowedLabels;
     }
 
     private static PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,

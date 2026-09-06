@@ -50,9 +50,14 @@ namespace KillerPDF.Services
                         : PdfOcrRecognizer.RecognizeBgra(
                             bgra, width, height, _engineModel,
                             _engineLanguageModel, EngineRasterOptions, cancellationToken)
-                    : PdfOcrRecognizer.RecognizeBgra(
-                        bgra, width, height, _engineModel, EngineRasterOptions,
-                        characterWhitelist, cancellationToken);
+                    : _engineLanguageModel is null
+                        ? PdfOcrRecognizer.RecognizeBgra(
+                            bgra, width, height, _engineModel, EngineRasterOptions,
+                            characterWhitelist, cancellationToken)
+                        : PdfOcrRecognizer.RecognizeBgra(
+                            bgra, width, height, _engineModel,
+                            _engineLanguageModel, EngineRasterOptions,
+                            characterWhitelist, cancellationToken);
             PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
                 bgra, width, height, FallbackRasterOptions, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();

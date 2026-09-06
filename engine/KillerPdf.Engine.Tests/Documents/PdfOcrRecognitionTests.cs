@@ -1182,6 +1182,34 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RawBgraWhitelistKeepsLanguageContext()
+    {
+        PdfOcrPreparedImage image = Prepared(8, 6,
+        [
+            "........",
+            "#...#...",
+            "#...#...",
+            "#...##..",
+            "#...##..",
+            "........"
+        ]);
+        PdfOcrRecognitionModel model = PdfOcrRecognitionModel.Create(
+            4, 4, ["0", "O", "X"], new float[48], new float[] { 0.1f, 0, 1 });
+        PdfOcrLanguageModel language = PdfOcrLanguageModel.Train(
+            Enumerable.Repeat("OO", 20));
+        byte[] bgra = image.Pixels.ToArray().SelectMany(value =>
+            new byte[] { value, value, value, 255 }).ToArray();
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+
+        PdfOcrResult result = PdfOcrRecognizer.RecognizeBgra(
+            bgra, 8, 6, model, language, options, "0O");
+
+        Assert.Equal("OO", Assert.Single(result.Words).Text);
+    }
+
+    [Fact]
     public void ModelRejectsTruncatedAndNonFinitePayloads()
     {
         Assert.Throws<FormatException>(() => PdfOcrRecognitionModel.Load("bad"u8.ToArray()));

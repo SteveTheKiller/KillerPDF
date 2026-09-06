@@ -188,6 +188,8 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         Assert.Contains("characterWhitelist, cancellationToken", source,
             StringComparison.Ordinal);
+        Assert.Contains("_engineLanguageModel, EngineRasterOptions,", source,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("_engineModel is not null && string.IsNullOrEmpty",
             source, StringComparison.Ordinal);
         Assert.DoesNotContain("PdfOcrRecognitionModel.Load(", source,
