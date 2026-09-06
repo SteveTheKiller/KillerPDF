@@ -483,9 +483,15 @@ public static class PdfOcrRecognizer
             prepared, options.DetectPageSegments, cancellationToken);
         IReadOnlyList<PdfOcrRecognizedWord> recognized = Recognize(
             prepared, layout, model, allowedLabels, cancellationToken);
-        var words = recognized.Select(word => new PdfOcrPixelWord(
-            word.Text, (float)word.Confidence, word.Bounds.Left, word.Bounds.Top,
-            word.Bounds.Right, word.Bounds.Bottom)).ToArray();
+        var words = new PdfOcrPixelWord[recognized.Count];
+        for (int index = 0; index < recognized.Count; index++)
+        {
+            PdfOcrRecognizedWord word = recognized[index];
+            PdfOcrImageRegion bounds = PdfOcrImagePreprocessor.RestoreDeskewedBounds(
+                word.Bounds, prepared.DeskewDegrees, width, height);
+            words[index] = new PdfOcrPixelWord(word.Text, (float)word.Confidence,
+                bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+        }
         var lines = new List<string>(layout.Lines.Count);
         int wordIndex = 0;
         foreach (PdfOcrTextLine line in layout.Lines)

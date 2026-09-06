@@ -433,6 +433,40 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void RawBgraRecognitionRestoresDeskewedBoundsToSourcePixels()
+    {
+        const int width = 41, height = 21;
+        byte[] bgra = Enumerable.Repeat(byte.MaxValue, width * height * 4).ToArray();
+        for (int x = 0; x < width; x++)
+            foreach (int baseline in new[] { 5, 12 })
+            {
+                int y = baseline + x / 10;
+                int offset = (y * width + x) * 4;
+                bgra[offset] = bgra[offset + 1] = bgra[offset + 2] = 0;
+            }
+        var options = new PdfOcrOptions(["eng"], deskew: true,
+            correctOrientation: false, removeBackground: false, removeNoise: false,
+            detectPageSegments: false);
+        PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, width, height, options);
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(prepared, false);
+        Assert.NotEmpty(layout.Words);
+        PdfOcrImageRegion[] expected = layout.Words.Select(word =>
+            PdfOcrImagePreprocessor.RestoreDeskewedBounds(
+                word.Bounds, prepared.DeskewDegrees, width, height)).ToArray();
+
+        PdfOcrResult result = PdfOcrRecognizer.RecognizeBgra(
+            bgra, width, height, TinyModel("E"), options);
+
+        Assert.Equal(expected.Length, result.Words.Count);
+        for (int index = 0; index < expected.Length; index++)
+            Assert.Equal((expected[index].Left, expected[index].Top,
+                expected[index].Right, expected[index].Bottom),
+                (result.Words[index].Left, result.Words[index].Top,
+                    result.Words[index].Right, result.Words[index].Bottom));
+    }
+
+    [Fact]
     public void RawBgraRecognitionRestrictsResultsToACharacterWhitelist()
     {
         PdfOcrPreparedImage image = Prepared(4, 4,
