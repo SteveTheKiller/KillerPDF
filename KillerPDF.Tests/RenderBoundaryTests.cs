@@ -57,6 +57,9 @@ public sealed class RenderBoundaryTests
         Assert.DoesNotContain("FPDFPage_GenerateContent", interopSource, StringComparison.Ordinal);
         Assert.DoesNotContain("TryPdfiumStripEncryption", interopSource, StringComparison.Ordinal);
         Assert.DoesNotContain("TryPdfiumSaveWithZeroRotations", interopSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("FPDFLink_", interopSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("FPDFAction_", interopSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("FPDFDest_", interopSource, StringComparison.Ordinal);
         string thisTest = Path.GetFullPath(
             Path.Combine(root, "KillerPDF.Tests", "RenderBoundaryTests.cs"));
 

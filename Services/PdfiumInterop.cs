@@ -317,63 +317,6 @@ namespace KillerPDF.Services
 
         // ---- Save ---------------------------------------------------------------------------
 
-        // ---- Link extraction entry points (fallback for object-stream PDFs) ------------------
-        // PdfSharpCore silently drops link annotations stored in object streams (linearized /
-        // PDF 1.5+); PDFium resolves them natively. Consumed by Links.cs' cached-handle pass.
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct FS_RECTF { public float left, top, right, bottom; }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDF_GetPageWidth", CallingConvention = CallingConvention.Cdecl)]
-        private static extern double FPDF_GetPageWidthRaw(IntPtr page);
-        internal static double FPDF_GetPageWidth(IntPtr page)
-        { lock (PdfiumLock) return FPDF_GetPageWidthRaw(page); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDF_GetPageHeight", CallingConvention = CallingConvention.Cdecl)]
-        private static extern double FPDF_GetPageHeightRaw(IntPtr page);
-        internal static double FPDF_GetPageHeight(IntPtr page)
-        { lock (PdfiumLock) return FPDF_GetPageHeightRaw(page); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFLink_Enumerate", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool FPDFLink_EnumerateRaw(IntPtr page, ref int startPos, out IntPtr linkAnnot);
-        internal static bool FPDFLink_Enumerate(IntPtr page, ref int startPos, out IntPtr linkAnnot)
-        { lock (PdfiumLock) return FPDFLink_EnumerateRaw(page, ref startPos, out linkAnnot); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFLink_GetAnnotRect", CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool FPDFLink_GetAnnotRectRaw(IntPtr linkAnnot, out FS_RECTF rect);
-        internal static bool FPDFLink_GetAnnotRect(IntPtr linkAnnot, out FS_RECTF rect)
-        { lock (PdfiumLock) return FPDFLink_GetAnnotRectRaw(linkAnnot, out rect); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFLink_GetDest", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr FPDFLink_GetDestRaw(IntPtr document, IntPtr link);
-        internal static IntPtr FPDFLink_GetDest(IntPtr document, IntPtr link)
-        { lock (PdfiumLock) return FPDFLink_GetDestRaw(document, link); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFLink_GetAction", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr FPDFLink_GetActionRaw(IntPtr link);
-        internal static IntPtr FPDFLink_GetAction(IntPtr link)
-        { lock (PdfiumLock) return FPDFLink_GetActionRaw(link); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFAction_GetType", CallingConvention = CallingConvention.Cdecl)]
-        private static extern uint FPDFAction_GetTypeRaw(IntPtr action);
-        internal static uint FPDFAction_GetType(IntPtr action)
-        { lock (PdfiumLock) return FPDFAction_GetTypeRaw(action); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFAction_GetDest", CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr FPDFAction_GetDestRaw(IntPtr document, IntPtr action);
-        internal static IntPtr FPDFAction_GetDest(IntPtr document, IntPtr action)
-        { lock (PdfiumLock) return FPDFAction_GetDestRaw(document, action); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFAction_GetURIPath", CallingConvention = CallingConvention.Cdecl)]
-        private static extern uint FPDFAction_GetURIPathRaw(IntPtr document, IntPtr action, byte[]? buffer, uint buflen);
-        internal static uint FPDFAction_GetURIPath(IntPtr document, IntPtr action, byte[]? buffer, uint buflen)
-        { lock (PdfiumLock) return FPDFAction_GetURIPathRaw(document, action, buffer, buflen); }
-
-        [DllImport("pdfium.dll", EntryPoint = "FPDFDest_GetDestPageIndex", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int FPDFDest_GetDestPageIndexRaw(IntPtr document, IntPtr dest);
-        internal static int FPDFDest_GetDestPageIndex(IntPtr document, IntPtr dest)
-        { lock (PdfiumLock) return FPDFDest_GetDestPageIndexRaw(document, dest); }
-
         /// <summary>Removes owner-only encryption through the engine.</summary>
         internal static bool TryRemoveEncryptionWithoutPassword(
             string sourcePath, string destinationPath)
