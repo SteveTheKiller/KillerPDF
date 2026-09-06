@@ -324,8 +324,7 @@ public static class PdfOcrModelTrainer
         var seenLabels = new HashSet<(string Label, PdfOcrImageRegion Bounds)>();
         foreach (PdfExtractedLetter letter in content.Letters)
         {
-            if (letter.WritingDirection is PdfWritingDirection.TopToBottom
-                or PdfWritingDirection.BottomToTop)
+            if (!HasUprightBaseline(letter))
                 continue;
             string label = letter.Value.Trim();
             if (!IsValidLabel(label)) continue;
@@ -407,6 +406,13 @@ public static class PdfOcrModelTrainer
             && sampleArea * 20 >= labelArea
             && (long)sample.Width * 5 >= label.Width
             && (long)sample.Height * 5 >= label.Height;
+    }
+
+    private static bool HasUprightBaseline(PdfExtractedLetter letter)
+    {
+        double horizontal = Math.Abs(letter.EndBaseLine.X - letter.StartBaseLine.X);
+        double vertical = Math.Abs(letter.EndBaseLine.Y - letter.StartBaseLine.Y);
+        return horizontal > 0 && vertical * 8 <= horizontal;
     }
 
     internal static IReadOnlySet<PdfOcrImageRegion> FindAmbiguousSampleBounds(

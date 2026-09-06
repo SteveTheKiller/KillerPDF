@@ -661,23 +661,27 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
-    public void TrainerSkipsVerticalTextUntilItsPixelsAreReoriented()
+    public void TrainerSkipsNonUprightTextUntilItsPixelsAreReoriented()
     {
-        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
-            .AddPage(100, 80, new PdfContentStreamBuilder()
-                .BeginText().SetFont(PdfStandardFont.Helvetica, 40)
-                .SetTextMatrix(0, 1, -1, 0, 50, 10)
-                .ShowLatin1Text("A").EndText()).Build());
-        var options = new PdfOcrOptions(["en"], deskew: false,
-            correctOrientation: false, removeBackground: false, removeNoise: false,
-            detectPageSegments: false);
+        foreach ((double a, double b, double c, double d) matrix in new[]
+                 { (0d, 1d, -1d, 0d), (0.8d, 0.6d, -0.6d, 0.8d) })
+        {
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddPage(100, 80, new PdfContentStreamBuilder()
+                    .BeginText().SetFont(PdfStandardFont.Helvetica, 40)
+                    .SetTextMatrix(matrix.a, matrix.b, matrix.c, matrix.d, 50, 10)
+                    .ShowLatin1Text("A").EndText()).Build());
+            var options = new PdfOcrOptions(["en"], deskew: false,
+                correctOrientation: false, removeBackground: false, removeNoise: false,
+                detectPageSegments: false);
 
-        IReadOnlyList<PdfOcrTrainingSample> samples =
-            PdfOcrModelTrainer.CreatePageSamples(document, 0,
-                new PdfRenderOptions(200, 160, includeAnnotations: false,
-                    includeFormFields: false), options, 16, 16);
+            IReadOnlyList<PdfOcrTrainingSample> samples =
+                PdfOcrModelTrainer.CreatePageSamples(document, 0,
+                    new PdfRenderOptions(200, 160, includeAnnotations: false,
+                        includeFormFields: false), options, 16, 16);
 
-        Assert.Empty(samples);
+            Assert.Empty(samples);
+        }
     }
 
     [Fact]
