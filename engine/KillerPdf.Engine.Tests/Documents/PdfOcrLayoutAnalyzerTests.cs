@@ -77,6 +77,23 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_MergesAlignedPunctuationStrokes()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();
+        Paint(pixels, 14, 2, 1, 2, 2);
+        Paint(pixels, 14, 2, 5, 2, 2);
+        Paint(pixels, 14, 9, 2, 3, 5);
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(14, 9, pixels));
+
+        Assert.Single(layout.Lines);
+        Assert.Equal(2, layout.Components.Count);
+        Assert.Equal(new PdfOcrImageRegion(2, 1, 4, 7), layout.Components[0]);
+        Assert.Equal(new PdfOcrImageRegion(9, 2, 12, 7), layout.Components[1]);
+    }
+
+    [Fact]
     public void Analyze_OrdersDetectedColumnsBeforeMovingRight()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 30 * 14).ToArray();

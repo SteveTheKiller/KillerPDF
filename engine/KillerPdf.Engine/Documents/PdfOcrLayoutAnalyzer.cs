@@ -180,6 +180,8 @@ public static class PdfOcrLayoutAnalyzer
     {
         var merged = new List<PdfOcrImageRegion>(components.Count);
         var consumed = new bool[components.Count];
+        int referenceHeight = components.Count == 0
+            ? 0 : components.Max(component => component.Height);
         int[] order = [.. Enumerable.Range(0, components.Count)
             .OrderByDescending(index => components[index].Width * components[index].Height)];
         foreach (int baseIndex in order)
@@ -192,7 +194,14 @@ public static class PdfOcrLayoutAnalyzer
                 if (markIndex == baseIndex || consumed[markIndex]) continue;
                 PdfOcrImageRegion mark = components[markIndex];
                 int markArea = mark.Width * mark.Height;
-                if (markArea * 2 > baseArea) continue;
+                bool subordinateMark = markArea * 2 <= baseArea;
+                bool pairedStrokes = markArea <= baseArea * 2
+                    && baseArea <= markArea * 2
+                    && bounds.Height * 2 <= referenceHeight
+                    && mark.Height * 2 <= referenceHeight
+                    && Math.Max(bounds.Height, mark.Height)
+                        <= Math.Max(bounds.Width, mark.Width);
+                if (!subordinateMark && !pairedStrokes) continue;
                 int horizontalOverlap = Math.Min(bounds.Right, mark.Right)
                     - Math.Max(bounds.Left, mark.Left);
                 if (horizontalOverlap <= 0
@@ -201,11 +210,15 @@ public static class PdfOcrLayoutAnalyzer
                 int verticalGap = mark.Bottom <= bounds.Top
                     ? bounds.Top - mark.Bottom
                     : bounds.Bottom <= mark.Top ? mark.Top - bounds.Bottom : 0;
-                if (verticalGap > Math.Max(2, bounds.Height / 2)) continue;
+                int maximumGap = subordinateMark
+                    ? Math.Max(2, bounds.Height / 2)
+                    : Math.Max(2, Math.Max(bounds.Width, mark.Width) * 2);
+                if (verticalGap > maximumGap) continue;
                 bounds = new PdfOcrImageRegion(
                     Math.Min(bounds.Left, mark.Left), Math.Min(bounds.Top, mark.Top),
                     Math.Max(bounds.Right, mark.Right), Math.Max(bounds.Bottom, mark.Bottom));
                 consumed[markIndex] = true;
+                baseArea = bounds.Width * bounds.Height;
             }
             consumed[baseIndex] = true;
             merged.Add(bounds);
