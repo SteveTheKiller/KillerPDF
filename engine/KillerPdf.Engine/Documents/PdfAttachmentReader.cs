@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
@@ -10,8 +11,11 @@ using KillerPdf.Engine.Parsing;
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Reads document-level embedded files without opening or executing them.</summary>
-public static class PdfAttachmentReader
+public static partial class PdfAttachmentReader
 {
+    private static readonly PdfAttachmentReaderJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfAttachmentReaderJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Formats attachment metadata and page placements without payload data.</summary>
     public static string ToText(PdfDocument document)
     {
@@ -51,13 +55,12 @@ public static class PdfAttachmentReader
         int pageCount = PdfPageTree.Read(document).Pages.Count;
         PdfAttachmentAnnotationInfo[] annotations = [.. Enumerable.Range(0, pageCount)
             .SelectMany(pageIndex => ReadPageAnnotations(document, pageIndex))];
-        object Describe(PdfAttachmentInfo attachment) => new
-        {
+        ReportAttachment Describe(PdfAttachmentInfo attachment) => new(
             attachment.FileName,
             attachment.Description,
             attachment.MimeType,
             attachment.Relationship,
-            ByteCount = attachment.Data.Length,
+            attachment.Data.Length,
             attachment.DeclaredSize,
             attachment.SizeMatches,
             attachment.CreationDate,
@@ -69,14 +72,11 @@ public static class PdfAttachmentReader
             attachment.HasUnsafeFileName,
             attachment.IsPotentiallyExecutable,
             attachment.HasExecutableContent,
-            attachment.HasEncryptedContent
-        };
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            Attachments = attachments.Select(Describe),
-            PageAnnotations = annotations.Select(annotation => new
-            {
+            attachment.HasEncryptedContent);
+        return JsonSerializer.Serialize(new ReportFile(
+            1,
+            [.. attachments.Select(Describe)],
+            [.. annotations.Select(annotation => new ReportPageAnnotation(
                 annotation.PageIndex,
                 annotation.AnnotationIndex,
                 annotation.ObjectNumber,
@@ -86,14 +86,53 @@ public static class PdfAttachmentReader
                 annotation.Top,
                 annotation.Icon,
                 annotation.Contents,
-                Attachment = Describe(annotation.Attachment)
-            })
-        }, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+                Describe(annotation.Attachment)))]),
+            indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
     }
+
+    private sealed record ReportFile(
+        int Version, ReportAttachment[] Attachments, ReportPageAnnotation[] PageAnnotations);
+
+    private sealed record ReportAttachment(
+        string FileName,
+        string? Description,
+        string MimeType,
+        PdfAssociatedFileRelationship Relationship,
+        int ByteCount,
+        long? DeclaredSize,
+        bool? SizeMatches,
+        DateTimeOffset? CreationDate,
+        DateTimeOffset? ModificationDate,
+        bool? ChecksumMatches,
+        IReadOnlyList<PdfCollectionItemValue> CollectionValues,
+        int? FileSpecificationObjectNumber,
+        int? EmbeddedFileObjectNumber,
+        bool HasUnsafeFileName,
+        bool IsPotentiallyExecutable,
+        bool HasExecutableContent,
+        bool HasEncryptedContent);
+
+    private sealed record ReportPageAnnotation(
+        int PageIndex,
+        int AnnotationIndex,
+        int? ObjectNumber,
+        double Left,
+        double Bottom,
+        double Right,
+        double Top,
+        string? Icon,
+        string? Contents,
+        ReportAttachment Attachment);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfAttachmentReaderJsonContext : JsonSerializerContext;
 
     private static void AppendAttachment(
         StringBuilder text, PdfAttachmentInfo attachment, string indent)

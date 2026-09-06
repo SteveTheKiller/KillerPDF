@@ -1,5 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text;
+using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 
 namespace KillerPdf.Engine.Signing;
@@ -12,8 +14,11 @@ public sealed record PdfSignatureInspectionEntry(
     PdfPadesProfile PadesProfile);
 
 /// <summary>A reusable report for every signature in a document.</summary>
-public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInspectionEntry> Entries)
+public sealed partial record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInspectionEntry> Entries)
 {
+    private static readonly PdfSignatureInspectionJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfSignatureInspectionJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Formats signature integrity, trust, evidence, and revision details for review.</summary>
     public string ToText()
     {
@@ -93,16 +98,8 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
     /// <summary>Exports inspection details without embedding CMS or signed document bytes.</summary>
     public string ToJson(bool indented = false)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        };
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            Signatures = Entries.Select(entry => new
-            {
+        return JsonSerializer.Serialize(new ReportFile(1,
+            [.. Entries.Select(entry => new ReportSignature(
                 entry.Signature.FieldName,
                 entry.Signature.IsSigned,
                 entry.Signature.IsCertificationSignature,
@@ -121,10 +118,42 @@ public sealed record PdfSignatureInspectionReport(IReadOnlyList<PdfSignatureInsp
                 entry.Signature.CoversWholeDocument,
                 entry.PadesProfile,
                 entry.Verification,
-                entry.Revision
-            })
-        }, options);
+                entry.Revision))]),
+            indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
     }
+
+    private sealed record ReportFile(int Version, ReportSignature[] Signatures);
+
+    private sealed record ReportSignature(
+        string FieldName,
+        bool IsSigned,
+        bool IsCertificationSignature,
+        bool IsDocumentTimestamp,
+        PdfSignatureCertificationPermission? CertificationPermission,
+        PdfSignatureLockAction? FieldLockAction,
+        PdfSignatureLockPermission? FieldLockPermission,
+        IReadOnlyList<string>? LockedFields,
+        string? SignerName,
+        string? Reason,
+        string? Location,
+        string? ContactInformation,
+        DateTimeOffset? SigningTime,
+        IReadOnlyList<long>? ByteRange,
+        bool HasValidByteRange,
+        bool CoversWholeDocument,
+        PdfPadesProfile PadesProfile,
+        PdfSignatureVerificationResult Verification,
+        PdfSignedRevisionAnalysis? Revision);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfSignatureInspectionJsonContext : JsonSerializerContext;
 }
 
 /// <summary>Inspects all document signatures through one reusable API.</summary>

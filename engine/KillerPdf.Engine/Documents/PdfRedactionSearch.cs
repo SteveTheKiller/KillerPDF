@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace KillerPdf.Engine.Documents;
 
@@ -77,8 +78,10 @@ public sealed record PdfRedactionSearchBatchResult(
 }
 
 /// <summary>An immutable preview whose matches must be explicitly excluded when retained.</summary>
-public sealed class PdfRedactionReview
+public sealed partial class PdfRedactionReview
 {
+    private static readonly PdfRedactionReviewJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfRedactionReviewJsonContext IndentedJson = new(JsonOptions(true));
     private readonly PdfRedactionMatch[] _matches;
     private readonly HashSet<string> _excluded;
 
@@ -206,31 +209,48 @@ public sealed class PdfRedactionReview
     /// <summary>Exports a stable review report without matched text unless explicitly requested.</summary>
     public string ToJson(bool includeMatchedText = false, bool indented = false)
     {
-        var options = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        };
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            MatchCount = _matches.Length,
-            IncludedCount = Included.Count,
-            Matches = _matches.Select(match => new
-            {
+        return JsonSerializer.Serialize(new ReportFile(
+            1,
+            _matches.Length,
+            Included.Count,
+            [.. _matches.Select(match => new ReportMatch(
                 match.Id,
                 match.PageIndex,
-                Text = includeMatchedText ? match.Text : null,
+                includeMatchedText ? match.Text : null,
                 match.Bounds,
                 match.FirstWordIndex,
                 match.WordCount,
                 match.ReasonCode,
                 match.OverlayText,
                 match.TargetKind,
-                Included = !_excluded.Contains(match.Id)
-            })
-        }, options);
+                !_excluded.Contains(match.Id)))]),
+            indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
     }
+
+    private sealed record ReportFile(
+        int Version, int MatchCount, int IncludedCount, ReportMatch[] Matches);
+
+    private sealed record ReportMatch(
+        string Id,
+        int PageIndex,
+        string? Text,
+        PdfContentBounds Bounds,
+        int FirstWordIndex,
+        int WordCount,
+        string? ReasonCode,
+        string? OverlayText,
+        PdfRedactionTargetKind TargetKind,
+        bool Included);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfRedactionReviewJsonContext : JsonSerializerContext;
 
     /// <summary>Exports a readable review without matched text unless explicitly requested.</summary>
     public string ToText(bool includeMatchedText = false)
