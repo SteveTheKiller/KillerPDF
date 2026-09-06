@@ -96,6 +96,8 @@ public static class PdfFontResourceReader
                 PdfObject? encoding = Get(font, "Encoding");
                 var encodingDictionary = encoding as PdfDictionary;
                 encodingName ??= encodingDictionary is null ? null : Name(Get(encodingDictionary, "BaseEncoding"));
+                if (document.UsesCompatibilityRecovery && encodingName == "WinAnsiEcoding")
+                    encodingName = "WinAnsiEncoding";
                 string[]? builtInEncoding = encodingName is null ? type1?.EncodingNames?.ToArray() : null;
                 encodingName ??= standardMetricsName is "Symbol" ? "SymbolEncoding"
                     : standardMetricsName is "ZapfDingbats" ? "ZapfDingbatsEncoding" : "StandardEncoding";

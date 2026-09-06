@@ -126,6 +126,20 @@ public sealed class PdfFontResourceReaderTests
         Assert.Equal(expected, Assert.Single(font.Decode(new byte[] { (byte)code })).Text);
     }
 
+    [Fact]
+    public void CompatibilityRecoveryAcceptsMisspelledWinAnsiEncoding()
+    {
+        PdfDictionary dictionary = D(("Subtype", N("Type1")),
+            ("BaseFont", N("Helvetica")), ("Encoding", N("WinAnsiEcoding")));
+        Assert.Throws<NotSupportedException>(() => Read(dictionary));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+
+        Assert.Equal("\u20AC", Assert.Single(font.Decode(new byte[] { 128 })).Text);
+    }
+
     [Theory]
     [InlineData("Symbol", 65, "\u0391")]
     [InlineData("ZapfDingbats", 33, "\u2701")]
