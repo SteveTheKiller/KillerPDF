@@ -4113,9 +4113,11 @@ public sealed class PdfPageRenderer
                 double pageY = (height - y - 0.5) / scaleY;
                 for (int x = candidateLeft; x < candidateRight; x++)
                 {
+                    int coverageIndex = (y - top) * regionWidth + x - left;
+                    if (coverage[coverageIndex]) continue;
                     double pageX = (x + 0.5) / scaleX;
                     if (contains(pageX, pageY))
-                        coverage[(y - top) * regionWidth + x - left] = true;
+                        coverage[coverageIndex] = true;
                 }
             }
         }
