@@ -1,4 +1,5 @@
 using System.IO;
+using KillerPdf.Engine.Documents;
 
 namespace KillerPDF.Services
 {
@@ -7,8 +8,20 @@ namespace KillerPDF.Services
         internal static bool IsLanguageInstalled(string directory, string code) =>
             HasEngineModel(directory, code) || HasTesseractModel(directory, code);
 
-        internal static bool HasEngineModel(string directory, string code) =>
-            File.Exists(Path.Combine(directory, code + ".kpocr"));
+        internal static bool HasEngineModel(string directory, string code)
+        {
+            string path = Path.Combine(directory, code + ".kpocr");
+            if (!File.Exists(path)) return false;
+            try
+            {
+                PdfOcrRecognitionModel.Load(File.ReadAllBytes(path));
+                return true;
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                return false;
+            }
+        }
 
         internal static bool HasTesseractModel(string directory, string code) =>
             File.Exists(Path.Combine(directory, code + ".traineddata"));

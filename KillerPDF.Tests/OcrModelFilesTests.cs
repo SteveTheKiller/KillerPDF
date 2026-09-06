@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using KillerPdf.Engine.Documents;
 using KillerPDF.Services;
 using Xunit;
 
@@ -7,17 +8,49 @@ namespace KillerPDF.Tests;
 
 public sealed class OcrModelFilesTests
 {
-    [Theory]
-    [InlineData("eng.kpocr")]
-    [InlineData("eng.traineddata")]
-    public void EitherModelFormatInstallsTheLanguage(string fileName)
+    [Fact]
+    public void ValidEngineModelInstallsTheLanguage()
     {
         string directory = CreateDirectory();
         try
         {
-            File.WriteAllBytes(Path.Combine(directory, fileName), []);
+            WriteEngineModel(directory, "eng");
 
             Assert.True(OcrModelFiles.IsLanguageInstalled(directory, "eng"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void TesseractModelInstallsTheLanguage()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            File.WriteAllBytes(Path.Combine(directory, "eng.traineddata"), []);
+
+            Assert.True(OcrModelFiles.IsLanguageInstalled(directory, "eng"));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CorruptEngineModelDoesNotInstallTheLanguage()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            File.WriteAllBytes(Path.Combine(directory, "eng.kpocr"), [1, 2, 3]);
+
+            Assert.False(OcrModelFiles.IsLanguageInstalled(directory, "eng"));
+            Assert.Equal(["eng"],
+                OcrModelFiles.MissingForCommonBackend(directory, ["eng"]));
         }
         finally
         {
@@ -48,7 +81,7 @@ public sealed class OcrModelFilesTests
         string directory = CreateDirectory();
         try
         {
-            File.WriteAllBytes(Path.Combine(directory, "eng.kpocr"), []);
+            WriteEngineModel(directory, "eng");
 
             Assert.True(OcrModelFiles.HasEngineModel(directory, "eng"));
             Assert.False(OcrModelFiles.HasTesseractModel(directory, "eng"));
@@ -65,8 +98,8 @@ public sealed class OcrModelFilesTests
         string directory = CreateDirectory();
         try
         {
-            File.WriteAllBytes(Path.Combine(directory, "eng.kpocr"), []);
-            File.WriteAllBytes(Path.Combine(directory, "spa.kpocr"), []);
+            WriteEngineModel(directory, "eng");
+            WriteEngineModel(directory, "spa");
 
             Assert.Empty(OcrModelFiles.MissingForCommonBackend(directory, ["eng", "spa"]));
         }
@@ -82,7 +115,7 @@ public sealed class OcrModelFilesTests
         string directory = CreateDirectory();
         try
         {
-            File.WriteAllBytes(Path.Combine(directory, "eng.kpocr"), []);
+            WriteEngineModel(directory, "eng");
             File.WriteAllBytes(Path.Combine(directory, "spa.traineddata"), []);
 
             Assert.Equal(["eng"],
@@ -116,5 +149,15 @@ public sealed class OcrModelFilesTests
         string directory = Path.Combine(Path.GetTempPath(), "KillerPDF.Tests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         return directory;
+    }
+
+    private static void WriteEngineModel(string directory, string code)
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
+        [
+            new PdfOcrTrainingSample("A", new float[] { 1f }),
+            new PdfOcrTrainingSample("B", new float[] { 0f })
+        ]);
+        File.WriteAllBytes(Path.Combine(directory, code + ".kpocr"), model.Save());
     }
 }

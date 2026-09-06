@@ -67,7 +67,14 @@ namespace KillerPDF.Services
             {
                 string modelPath = Path.Combine(dataPath, item + ".kpocr");
                 if (!File.Exists(modelPath)) return null;
-                models.Add(PdfOcrRecognitionModel.Load(File.ReadAllBytes(modelPath)));
+                try
+                {
+                    models.Add(PdfOcrRecognitionModel.Load(File.ReadAllBytes(modelPath)));
+                }
+                catch (Exception error) when (error is not OutOfMemoryException)
+                {
+                    return null;
+                }
             }
             return models.Count == 1 ? models[0] : PdfOcrRecognitionModel.Combine(models);
         }

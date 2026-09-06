@@ -39,6 +39,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Ignored invalid engine OCR models and kept the Tesseract migration fallback available.
 - Preserved visible pixels when pasted clipboard images contain an empty alpha channel (#389).
 - Preserved pasted images and other unsaved annotations when inserting blank pages (#388).
 - Rendered the correct first page after opening or switching documents in Single, Two-Page, and Grid views (#378, #379, thanks @Ryokoxx).
