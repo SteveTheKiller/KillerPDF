@@ -1,14 +1,18 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Reads portfolio collection settings without interpreting presentation data.</summary>
-public static class PdfCollectionReader
+public static partial class PdfCollectionReader
 {
+    private static readonly PdfCollectionReaderJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfCollectionReaderJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Formats portfolio presentation metadata for review.</summary>
     public static string ToText(PdfDocument document)
     {
@@ -51,25 +55,37 @@ public static class PdfCollectionReader
     public static string ToJson(PdfDocument document, bool indented = false)
     {
         PdfCollectionInfo? collection = Read(document);
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            HasCollection = collection is not null,
-            Collection = collection is null ? null : new
-            {
-                View = collection.View.ToString(),
-                collection.RawViewName,
-                collection.InitialDocument,
-                collection.Fields,
-                collection.Sort,
-                collection.Folders
-            }
-        }, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+        ReportCollection? report = collection is null ? null : new(
+            collection.View.ToString(),
+            collection.RawViewName,
+            collection.InitialDocument,
+            collection.Fields,
+            collection.Sort,
+            collection.Folders);
+        return JsonSerializer.Serialize(new ReportFile(1, report is not null, report),
+            indented ? IndentedJson.ReportFile : CompactJson.ReportFile);
     }
+
+    private sealed record ReportFile(
+        int Version, bool HasCollection, ReportCollection? Collection);
+
+    private sealed record ReportCollection(
+        string View,
+        string? RawViewName,
+        string? InitialDocument,
+        IReadOnlyList<PdfCollectionFieldInfo> Fields,
+        IReadOnlyList<PdfCollectionSortInfo> Sort,
+        IReadOnlyList<PdfCollectionFolderInfo> Folders);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(ReportFile))]
+    private sealed partial class PdfCollectionReaderJsonContext : JsonSerializerContext;
 
     /// <summary>Reads the document catalog's optional collection dictionary.</summary>
     public static PdfCollectionInfo? Read(PdfDocument document)

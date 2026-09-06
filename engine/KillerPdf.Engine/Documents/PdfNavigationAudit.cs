@@ -40,8 +40,11 @@ public sealed record PdfNavigationFinding(PdfNavigationFindingCode Code, string 
     PdfNavigationRepairKind SuggestedRepair, int? SourceObjectNumber = null);
 
 /// <summary>Validates resolved bookmark and link targets without executing document actions.</summary>
-public static class PdfNavigationAudit
+public static partial class PdfNavigationAudit
 {
+    private static readonly PdfNavigationAuditJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfNavigationAuditJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Removes links whose URI schemes are unsafe or invalid.</summary>
     public static byte[] RemoveUnsafeLinks(PdfDocument document)
     {
@@ -79,11 +82,22 @@ public static class PdfNavigationAudit
 
     /// <summary>Exports navigation findings as stable machine-readable JSON.</summary>
     public static string ExportJson(PdfDocument document, bool indented = true) =>
-        JsonSerializer.Serialize(Inspect(document), new JsonSerializerOptions
+        JsonSerializer.Serialize(Inspect(document).ToArray(),
+            indented ? IndentedJson.PdfNavigationFindingArray
+                : CompactJson.PdfNavigationFindingArray);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        WriteIndented = indented,
+        Converters =
         {
-            WriteIndented = indented,
-            Converters = { new JsonStringEnumConverter() }
-        });
+            new JsonStringEnumConverter<PdfNavigationFindingCode>(),
+            new JsonStringEnumConverter<PdfNavigationRepairKind>()
+        }
+    };
+
+    [JsonSerializable(typeof(PdfNavigationFinding[]))]
+    private sealed partial class PdfNavigationAuditJsonContext : JsonSerializerContext;
 
     /// <summary>Exports a readable navigation audit without executing document actions.</summary>
     public static string ExportText(PdfDocument document)

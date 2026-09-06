@@ -303,7 +303,7 @@ public sealed record PdfFormDataMatch
 }
 
 /// <summary>A value-free summary of a planned FDF or XFDF import.</summary>
-public sealed record PdfFormDataImportReport(
+public sealed partial record PdfFormDataImportReport(
     int TotalFieldCount,
     int ApplicableFieldCount,
     int BlockedFieldCount,
@@ -311,14 +311,28 @@ public sealed record PdfFormDataImportReport(
     int NoExportFieldCount,
     IReadOnlyList<PdfFormDataMatch> Fields)
 {
+    private static readonly PdfFormDataImportReportJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfFormDataImportReportJsonContext IndentedJson = new(JsonOptions(true));
+
     /// <summary>Serializes the report without exposing imported field values.</summary>
     public string ToJson(bool indented = false) => JsonSerializer.Serialize(this,
-        new JsonSerializerOptions
+        indented ? IndentedJson.PdfFormDataImportReport
+            : CompactJson.PdfFormDataImportReport);
+
+    private static JsonSerializerOptions JsonOptions(bool indented) => new()
+    {
+        WriteIndented = indented,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters =
         {
-            WriteIndented = indented,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-        });
+            new JsonStringEnumConverter<PdfFormDataMatchStatus>(JsonNamingPolicy.CamelCase),
+            new JsonStringEnumConverter<PdfFormFieldKind>(JsonNamingPolicy.CamelCase)
+        }
+    };
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PdfFormDataImportReport))]
+    private sealed partial class PdfFormDataImportReportJsonContext : JsonSerializerContext;
 
     /// <summary>Formats the value-free import review for people and command-line output.</summary>
     public string ToText()
