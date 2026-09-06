@@ -180,8 +180,9 @@ public static class PdfOcrLayoutAnalyzer
     {
         var merged = new List<PdfOcrImageRegion>(components.Count);
         var consumed = new bool[components.Count];
-        int referenceHeight = components.Count == 0
-            ? 0 : components.Max(component => component.Height);
+        int[] heights = [.. components.Select(component => component.Height)
+            .OrderBy(height => height)];
+        int referenceHeight = heights.Length == 0 ? 0 : heights[heights.Length * 3 / 4];
         int[] order = [.. Enumerable.Range(0, components.Count)
             .OrderByDescending(index => components[index].Width * components[index].Height)];
         foreach (int baseIndex in order)

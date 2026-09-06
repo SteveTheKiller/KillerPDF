@@ -111,6 +111,24 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_DoesNotUseOneTallGraphicAsTheGlyphHeight()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 80 * 80).ToArray();
+        Paint(pixels, 80, 2, 10, 3, 3);
+        Paint(pixels, 80, 2, 15, 3, 3);
+        foreach (int x in new[] { 20, 28, 36, 44, 52 })
+            Paint(pixels, 80, x, 10, 3, 5);
+        Paint(pixels, 80, 70, 10, 2, 50);
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            Prepared(80, 80, pixels));
+
+        Assert.Equal(8, layout.Components.Count);
+        Assert.Contains(new PdfOcrImageRegion(2, 10, 5, 13), layout.Components);
+        Assert.Contains(new PdfOcrImageRegion(2, 15, 5, 18), layout.Components);
+    }
+
+    [Fact]
     public void Analyze_OrdersDetectedColumnsBeforeMovingRight()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 30 * 14).ToArray();
