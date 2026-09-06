@@ -90,7 +90,8 @@ public static class PdfOcrImagePreprocessor
             binary = true;
         }
         if (options.RemoveNoise)
-            gray = Median3x3(gray, preparedWidth, preparedHeight, cancellationToken);
+            gray = Denoise3x3(
+                gray, preparedWidth, preparedHeight, binary, cancellationToken);
         double deskewDegrees = 0;
         if (options.Deskew)
             (gray, deskewDegrees) = Deskew(
@@ -388,6 +389,29 @@ public static class PdfOcrImagePreprocessor
             }
         }
         return bestAngle;
+    }
+
+    private static byte[] Denoise3x3(byte[] source, int width, int height,
+        bool binary, CancellationToken cancellationToken)
+    {
+        if (!binary) return Median3x3(source, width, height, cancellationToken);
+        byte[] result = source.ToArray();
+        for (int y = 0; y < height; y++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            for (int x = 0; x < width; x++)
+            {
+                int darkNeighbors = 0;
+                for (int yy = Math.Max(0, y - 1); yy <= Math.Min(height - 1, y + 1); yy++)
+                    for (int xx = Math.Max(0, x - 1); xx <= Math.Min(width - 1, x + 1); xx++)
+                        if ((xx != x || yy != y) && source[yy * width + xx] == 0)
+                            darkNeighbors++;
+                int index = y * width + x;
+                if (source[index] == 0 && darkNeighbors < 2) result[index] = 255;
+                else if (source[index] == 255 && darkNeighbors >= 7) result[index] = 0;
+            }
+        }
+        return result;
     }
 
     private static byte[] Median3x3(byte[] source, int width, int height,

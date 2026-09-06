@@ -46,7 +46,7 @@ public sealed class PdfOcrImagePreprocessorTests
     }
 
     [Fact]
-    public void PrepareBgra_AdaptiveThresholdAndMedianRemoveIsolatedNoise()
+    public void PrepareBgra_AdaptiveThresholdAndDenoiseRemoveIsolatedNoise()
     {
         byte[] bgra = Enumerable.Repeat((byte)255, 7 * 7 * 4).ToArray();
         for (int pixel = 0; pixel < 49; pixel++) bgra[pixel * 4 + 3] = 255;
@@ -60,6 +60,28 @@ public sealed class PdfOcrImagePreprocessorTests
 
         Assert.True(image.IsBinary);
         Assert.Equal(255, image.Pixels.Span[3 * 7 + 3]);
+    }
+
+    [Fact]
+    public void PrepareBgra_BinaryDenoisePreservesConnectedDiagonalStrokes()
+    {
+        byte[] bgra = Enumerable.Repeat((byte)255, 7 * 7 * 4).ToArray();
+        for (int pixel = 0; pixel < 49; pixel++) bgra[pixel * 4 + 3] = 255;
+        for (int offset = 1; offset <= 5; offset++)
+        {
+            int pixel = (offset * 7 + offset) * 4;
+            bgra[pixel] = bgra[pixel + 1] = bgra[pixel + 2] = 0;
+        }
+        var options = new PdfOcrOptions(["eng"], deskew: false,
+            correctOrientation: false, removeBackground: true, removeNoise: true,
+            detectPageSegments: false);
+
+        PdfOcrPreparedImage image = PdfOcrImagePreprocessor.PrepareBgra(
+            bgra, 7, 7, options);
+
+        Assert.Equal(0, image.Pixels.Span[2 * 7 + 2]);
+        Assert.Equal(0, image.Pixels.Span[3 * 7 + 3]);
+        Assert.Equal(0, image.Pixels.Span[4 * 7 + 4]);
     }
 
     [Fact]
