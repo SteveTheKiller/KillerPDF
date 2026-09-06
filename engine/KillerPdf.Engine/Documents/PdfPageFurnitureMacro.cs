@@ -76,10 +76,11 @@ public sealed record PdfBatesMacroOptions
 }
 
 /// <summary>Creates and executes typed page-numbering macro steps.</summary>
-public static class PdfPageFurnitureMacro
+public static partial class PdfPageFurnitureMacro
 {
     private const string OptionsKey = "options";
     private const string BatesOptionsKey = "batesOptions";
+    private static readonly PdfPageFurnitureMacroJsonContext FurnitureJson = new(JsonOptions());
 
     /// <summary>Creates a reusable page-numbering step.</summary>
     public static PdfMacroStep NumberPagesStep(PdfPageNumberMacroOptions options)
@@ -88,7 +89,8 @@ public static class PdfPageFurnitureMacro
         return new PdfMacroStep(PdfMacroOperation.NumberPages,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [OptionsKey] = JsonSerializer.Serialize(options, JsonOptions())
+                [OptionsKey] = JsonSerializer.Serialize(
+                    options, FurnitureJson.PdfPageNumberMacroOptions)
             });
     }
 
@@ -99,7 +101,8 @@ public static class PdfPageFurnitureMacro
         return new PdfMacroStep(PdfMacroOperation.NumberPages,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [BatesOptionsKey] = JsonSerializer.Serialize(options, JsonOptions())
+                [BatesOptionsKey] = JsonSerializer.Serialize(
+                    options, FurnitureJson.PdfBatesMacroOptions)
             });
     }
 
@@ -119,7 +122,7 @@ public static class PdfPageFurnitureMacro
         PdfBatesMacroOptions options;
         try
         {
-            options = JsonSerializer.Deserialize<PdfBatesMacroOptions>(json, JsonOptions())
+            options = JsonSerializer.Deserialize(json, FurnitureJson.PdfBatesMacroOptions)
                 ?? throw new JsonException("The Bates options are empty.");
             Validate(options);
         }
@@ -180,7 +183,7 @@ public static class PdfPageFurnitureMacro
         PdfPageNumberMacroOptions options;
         try
         {
-            options = JsonSerializer.Deserialize<PdfPageNumberMacroOptions>(json, JsonOptions())
+            options = JsonSerializer.Deserialize(json, FurnitureJson.PdfPageNumberMacroOptions)
                 ?? throw new JsonException("The page-numbering options are empty.");
             Validate(options);
         }
@@ -299,10 +302,27 @@ public static class PdfPageFurnitureMacro
             fontSize, color, opacity, rotationDegrees, font);
     }
 
-    private static JsonSerializerOptions JsonOptions() => new()
+    private static JsonSerializerOptions JsonOptions()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    };
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = true
+        };
+        options.Converters.Add(new JsonStringEnumConverter<PdfPageFurnitureEdge>(
+            JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new JsonStringEnumConverter<PdfPageFurnitureAlignment>(
+            JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new JsonStringEnumConverter<PdfPageNumberFormat>(
+            JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new JsonStringEnumConverter<PdfStandardFont>(
+            JsonNamingPolicy.CamelCase));
+        return options;
+    }
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true)]
+    [JsonSerializable(typeof(PdfPageNumberMacroOptions))]
+    [JsonSerializable(typeof(PdfBatesMacroOptions))]
+    private sealed partial class PdfPageFurnitureMacroJsonContext : JsonSerializerContext;
 }

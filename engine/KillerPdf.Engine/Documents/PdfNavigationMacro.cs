@@ -1,14 +1,16 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 
 namespace KillerPdf.Engine.Documents;
 
 /// <summary>Creates and executes typed navigation macro steps.</summary>
-public static class PdfNavigationMacro
+public static partial class PdfNavigationMacro
 {
     private const string PageLabelRangesKey = "ranges";
+    private static readonly PdfNavigationMacroJsonContext NavigationJson = new();
 
     /// <summary>Creates a navigation-audit macro step.</summary>
     public static PdfMacroStep AuditStep() => new(PdfMacroOperation.AuditNavigation);
@@ -36,7 +38,8 @@ public static class PdfNavigationMacro
         if (options.TitlePattern is not null)
             settings["titlePattern"] = options.TitlePattern;
         if (options.PageRegions is not null)
-            settings["pageRegions"] = JsonSerializer.Serialize(options.PageRegions);
+            settings["pageRegions"] = JsonSerializer.Serialize(
+                options.PageRegions, NavigationJson.IReadOnlyDictionaryInt32PdfContentBounds);
         return new PdfMacroStep(PdfMacroOperation.GenerateBookmarks,
             settings);
     }
@@ -59,7 +62,8 @@ public static class PdfNavigationMacro
         return new PdfMacroStep(PdfMacroOperation.SetPageLabels,
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
-                [PageLabelRangesKey] = JsonSerializer.Serialize(values)
+                [PageLabelRangesKey] = JsonSerializer.Serialize(
+                    values, NavigationJson.PdfPageLabelMacroRangeArray)
             });
     }
 
@@ -99,7 +103,7 @@ public static class PdfNavigationMacro
         PdfPageLabelMacroRange[] ranges;
         try
         {
-            ranges = JsonSerializer.Deserialize<PdfPageLabelMacroRange[]>(json)
+            ranges = JsonSerializer.Deserialize(json, NavigationJson.PdfPageLabelMacroRangeArray)
                 ?? throw new JsonException();
         }
         catch (JsonException exception)
@@ -184,7 +188,8 @@ public static class PdfNavigationMacro
             return null;
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<int, PdfContentBounds>>(json)
+            return JsonSerializer.Deserialize(
+                json, NavigationJson.DictionaryInt32PdfContentBounds)
                 ?? throw new JsonException();
         }
         catch (JsonException exception)
@@ -213,6 +218,11 @@ public static class PdfNavigationMacro
                 $"Navigation macro setting '{key}' is invalid.", nameof(step));
         return parsed;
     }
+
+    [JsonSerializable(typeof(IReadOnlyDictionary<int, PdfContentBounds>))]
+    [JsonSerializable(typeof(Dictionary<int, PdfContentBounds>))]
+    [JsonSerializable(typeof(PdfPageLabelMacroRange[]))]
+    private sealed partial class PdfNavigationMacroJsonContext : JsonSerializerContext;
 }
 
 /// <summary>One data-free page-label range saved in a navigation macro.</summary>
