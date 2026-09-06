@@ -331,13 +331,42 @@ public sealed class PdfOcrRecognitionModel
         if (best < 0)
             throw new ArgumentException(
                 "The OCR character whitelist has no labels in this model.", nameof(allowedLabels));
-        double runnerUp = double.NegativeInfinity;
-        for (int label = 0; label < scores.Length; label++)
-            if (!string.Equals(_labels[label], _labels[best], StringComparison.Ordinal)
-                && scores[label] > runnerUp)
-                runnerUp = scores[label];
-        if (double.IsNegativeInfinity(runnerUp)) return (_labels[best], 1);
-        return (_labels[best], 1 / (1 + Math.Exp(runnerUp - scores[best])));
+        string bestLabel = _labels[best];
+        double bestVote = PrototypeVote(bestLabel, scores);
+        foreach (string label in Labels)
+        {
+            double vote = PrototypeVote(label, scores);
+            if (vote > bestVote)
+            {
+                bestLabel = label;
+                bestVote = vote;
+            }
+        }
+        double runnerUpVote = double.NegativeInfinity;
+        foreach (string label in Labels)
+            if (!string.Equals(label, bestLabel, StringComparison.Ordinal))
+                runnerUpVote = Math.Max(runnerUpVote, PrototypeVote(label, scores));
+        if (double.IsNegativeInfinity(runnerUpVote)) return (bestLabel, 1);
+        return (bestLabel, 1 / (1 + Math.Exp(runnerUpVote - bestVote)));
+
+        double PrototypeVote(string label, ReadOnlySpan<double> prototypeScores)
+        {
+            double first = double.NegativeInfinity;
+            double second = double.NegativeInfinity;
+            double third = double.NegativeInfinity;
+            for (int index = 0; index < prototypeScores.Length; index++)
+            {
+                if (!string.Equals(_labels[index], label, StringComparison.Ordinal)) continue;
+                double value = prototypeScores[index];
+                if (value > first) (first, second, third) = (value, first, second);
+                else if (value > second) (second, third) = (value, second);
+                else if (value > third) third = value;
+            }
+            double vote = first;
+            if (!double.IsNegativeInfinity(second)) vote += 0.25 * (second - first);
+            if (!double.IsNegativeInfinity(third)) vote += 0.1 * (third - first);
+            return vote;
+        }
     }
 
 }
