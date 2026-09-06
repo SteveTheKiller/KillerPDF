@@ -42,6 +42,23 @@ public sealed class PdfOcrLayoutAnalyzerTests
     }
 
     [Fact]
+    public void Analyze_SplitsProportionalWordsAtOrdinarySpaceWidths()
+    {
+        byte[] pixels = Enumerable.Repeat((byte)255, 60 * 12).ToArray();
+        Paint(pixels, 60, 1, 2, 10, 6);
+        Paint(pixels, 60, 13, 2, 10, 6);
+        Paint(pixels, 60, 29, 2, 10, 6);
+        Paint(pixels, 60, 41, 2, 10, 6);
+
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(Prepared(60, 12, pixels));
+
+        Assert.Single(layout.Lines);
+        Assert.Equal(2, layout.Words.Count);
+        Assert.Equal(new PdfOcrImageRegion(1, 2, 23, 8), layout.Words[0].Bounds);
+        Assert.Equal(new PdfOcrImageRegion(29, 2, 51, 8), layout.Words[1].Bounds);
+    }
+
+    [Fact]
     public void Analyze_MergesDetachedMarksIntoTheirGlyphs()
     {
         byte[] pixels = Enumerable.Repeat((byte)255, 14 * 9).ToArray();

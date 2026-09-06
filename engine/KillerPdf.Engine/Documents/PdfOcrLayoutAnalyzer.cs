@@ -299,7 +299,7 @@ public static class PdfOcrLayoutAnalyzer
         if (components.Count == 0) return [];
         int[] widths = [.. components.Select(item => item.Width).OrderBy(value => value)];
         double medianWidth = widths[widths.Length / 2];
-        int wordGap = Math.Max(2, (int)Math.Ceiling(medianWidth * 1.5));
+        int wordGap = Math.Max(3, (int)Math.Ceiling(medianWidth * 0.5));
         var groups = new List<List<PdfOcrImageRegion>> { new() { components[0] } };
         for (int index = 1; index < components.Count; index++)
         {
