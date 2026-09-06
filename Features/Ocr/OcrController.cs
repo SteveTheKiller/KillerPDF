@@ -1,5 +1,4 @@
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -383,8 +382,7 @@ namespace KillerPDF.Features
             Action<int, int> report, string language, bool formAware,
             CancellationToken ct)
         {
-            string nl = Environment.NewLine;
-            var sb = new StringBuilder();
+            var pageTexts = new List<string>(pageCount);
             using var renderSession = PdfPageRenderSession.OpenEngineFirst(
                 src, OcrRenderMax, OcrRenderMax);
             using var ocr = new OcrService(language: language);
@@ -413,17 +411,12 @@ namespace KillerPDF.Features
                             ocr, bgra, w, h, formPages[i], cancellationToken: ct)
                         : ocr.RecognizeBgra(
                             bgra, w, h, cancellationToken: ct)).Text.TrimEnd();
-                // Normalize Tesseract's LF line breaks to the platform's so .txt opens cleanly everywhere.
-                text = text.Replace("\r\n", "\n").Replace("\n", nl);
-
-                if (markdown)
-                    sb.Append("## Page ").Append(i + 1).Append(nl).Append(nl).Append(text).Append(nl).Append(nl);
-                else
-                    sb.Append("----- Page ").Append(i + 1).Append(" -----").Append(nl).Append(text).Append(nl).Append(nl);
+                pageTexts.Add(text);
             }
 
             if (ct.IsCancellationRequested) return 0;
-            File.WriteAllText(outPath, sb.ToString());
+            File.WriteAllText(outPath, PdfOcrTextExporter.Format(pageTexts,
+                markdown ? PdfOcrTextFormat.Markdown : PdfOcrTextFormat.PlainText));
             return pageCount;
         }
 
