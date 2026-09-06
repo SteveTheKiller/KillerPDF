@@ -1077,6 +1077,7 @@ public sealed class PdfPageRenderer
                 {
                     Transform = matrix.Then(parentState.Transform)
                 };
+                Point[]? formBounds = null;
                 if (form.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boxValue))
                 {
                     PdfArray box = ResolveArray(boxValue, 4, "Form XObject bounding box");
@@ -1089,6 +1090,7 @@ public sealed class PdfPageRenderer
                         formState.Transform.Apply(right, top),
                         formState.Transform.Apply(left, top)
                     ];
+                    formBounds = polygon;
                     ClipRegion[] clips = [.. formState.Clips,
                         new ClipRegion([polygon], false)];
                     formState = formState with { Clips = Array.AsReadOnly(clips) };
@@ -1165,10 +1167,13 @@ public sealed class PdfPageRenderer
                                 Knockout = groupKnockout
                             }, depth + 1);
                         pixels = nonisolatedPagePixels;
-                        for (int y = 0; y < options.Height; y++)
+                        (int left, int top, int right, int bottom) = GetRasterBounds(
+                            formState.Clips, formBounds, options.Width, options.Height,
+                            scaleX, scaleY);
+                        for (int y = top; y < bottom; y++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
-                            for (int x = 0; x < options.Width; x++)
+                            for (int x = left; x < right; x++)
                             {
                                 int offset = (y * options.Width + x) * 4;
                                 if (!groupKnockout.WasTouched(offset)) continue;
@@ -1200,7 +1205,12 @@ public sealed class PdfPageRenderer
                 byte[] groupPixels = ArrayPool<byte>.Shared.Rent(pagePixels.Length);
                 try
                 {
-                    Array.Clear(groupPixels, 0, pagePixels.Length);
+                    (int left, int top, int right, int bottom) = GetRasterBounds(
+                        formState.Clips, formBounds, options.Width, options.Height,
+                        scaleX, scaleY);
+                    for (int y = top; y < bottom; y++)
+                        Array.Clear(groupPixels, (y * options.Width + left) * 4,
+                            (right - left) * 4);
                     pixels = groupPixels;
                     Process(instructions, formResources,
                         formState with
@@ -1213,10 +1223,10 @@ public sealed class PdfPageRenderer
                                 ? new KnockoutState(options.Width, options.Height) : null
                         }, depth + 1);
                     pixels = pagePixels;
-                    for (int y = 0; y < options.Height; y++)
+                    for (int y = top; y < bottom; y++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        for (int x = 0; x < options.Width; x++)
+                        for (int x = left; x < right; x++)
                         {
                             int offset = (y * options.Width + x) * 4;
                             byte alpha = groupPixels[offset + 3];
@@ -2780,8 +2790,10 @@ public sealed class PdfPageRenderer
             }
             Point[]? bounds = ReadShadingBounds(shading, state, "Axial");
             if (!state.Transform.TryInverse(out Matrix inverse)) return true;
-            for (int y = 0; y < targetHeight; y++)
-                for (int x = 0; x < targetWidth; x++)
+            (int left, int top, int right, int bottom) = GetRasterBounds(
+                state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+            for (int y = top; y < bottom; y++)
+                for (int x = left; x < right; x++)
                 {
                     double pageX = (x + 0.5) / scaleX;
                     double pageY = (targetHeight - y - 0.5) / scaleY;
@@ -2830,8 +2842,10 @@ public sealed class PdfPageRenderer
         if (!shadingToPage.TryInverse(out Matrix pageToShading)) return true;
         Point[]? bounds = ReadShadingBounds(shading,
             state with { Transform = shadingToPage }, "Function");
-        for (int y = 0; y < targetHeight; y++)
-            for (int x = 0; x < targetWidth; x++)
+        (int left, int top, int right, int bottom) = GetRasterBounds(
+            state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+        for (int y = top; y < bottom; y++)
+            for (int x = left; x < right; x++)
             {
                 double pageX = (x + 0.5) / scaleX;
                 double pageY = (targetHeight - y - 0.5) / scaleY;
@@ -2965,6 +2979,7 @@ public sealed class PdfPageRenderer
             0, targetHeight - 1);
         int bottom = Math.Clamp(targetHeight - (int)Math.Floor(minimumY * scaleY),
             0, targetHeight - 1);
+        var values = new double[first.Values.Length];
         for (int y = top; y <= bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -2977,7 +2992,6 @@ public sealed class PdfPageRenderer
                 double b = Edge(third.Point, first.Point, pageX, pageY) / area;
                 double c = 1 - a - b;
                 if (a < -1e-9 || b < -1e-9 || c < -1e-9) continue;
-                var values = new double[first.Values.Length];
                 for (int component = 0; component < values.Length; component++)
                     values[component] = first.Values[component] * a
                         + second.Values[component] * b + third.Values[component] * c;
@@ -3025,6 +3039,8 @@ public sealed class PdfPageRenderer
             + 2 * dataComponents * componentBits);
         var points = new Point[16];
         var values = new double[4][];
+        (int clipLeft, int clipTop, int clipRight, int clipBottom) = GetRasterBounds(
+            state.Clips, null, targetWidth, targetHeight, scaleX, scaleY);
         bool[]? clipMask = state.Clips.Count == 0 ? null : BuildClipMask();
         while (bytes.Length * 8 - bitOffset >= minimumRecordBits)
         {
@@ -3083,8 +3099,8 @@ public sealed class PdfPageRenderer
         bool[] BuildClipMask()
         {
             var mask = new bool[checked(targetWidth * targetHeight)];
-            for (int y = 0; y < targetHeight; y++)
-                for (int x = 0; x < targetWidth; x++)
+            for (int y = clipTop; y < clipBottom; y++)
+                for (int x = clipLeft; x < clipRight; x++)
                 {
                     double pageX = (x + 0.5) / scaleX;
                     double pageY = (targetHeight - y - 0.5) / scaleY;
@@ -3156,12 +3172,16 @@ public sealed class PdfPageRenderer
             double maximumY = Math.Max(first.Y, Math.Max(second.Y, third.Y));
             if (maximumX <= 0 || minimumX >= targetWidth / scaleX
                 || maximumY <= 0 || minimumY >= targetHeight / scaleY) return;
-            int left = Math.Clamp((int)Math.Floor(minimumX * scaleX), 0, targetWidth - 1);
-            int right = Math.Clamp((int)Math.Ceiling(maximumX * scaleX), 0, targetWidth - 1);
+            int left = Math.Clamp((int)Math.Floor(minimumX * scaleX),
+                clipLeft, Math.Max(clipLeft, clipRight - 1));
+            int right = Math.Clamp((int)Math.Ceiling(maximumX * scaleX),
+                clipLeft, Math.Max(clipLeft, clipRight - 1));
             int top = Math.Clamp(targetHeight - (int)Math.Ceiling(maximumY * scaleY),
-                0, targetHeight - 1);
+                clipTop, Math.Max(clipTop, clipBottom - 1));
             int bottom = Math.Clamp(targetHeight - (int)Math.Floor(minimumY * scaleY),
-                0, targetHeight - 1);
+                clipTop, Math.Max(clipTop, clipBottom - 1));
+            if (clipLeft >= clipRight || clipTop >= clipBottom) return;
+            var components = new double[firstValues.Length];
             for (int y = top; y <= bottom; y++)
                 for (int x = left; x <= right; x++)
                 {
@@ -3172,7 +3192,6 @@ public sealed class PdfPageRenderer
                     double b = Edge(third, first, pageX, pageY) / area;
                     double c = 1 - a - b;
                     if (a < -1e-9 || b < -1e-9 || c < -1e-9) continue;
-                    var components = new double[firstValues.Length];
                     for (int component = 0; component < components.Length; component++)
                         components[component] = firstValues[component] * a
                             + secondValues[component] * b + thirdValues[component] * c;
@@ -3255,8 +3274,10 @@ public sealed class PdfPageRenderer
         Point[]? bounds = ReadShadingBounds(shading, state, "Radial");
         if (!state.Transform.TryInverse(out Matrix inverse)) return true;
         double centerX = x1 - x0, centerY = y1 - y0, radius = r1 - r0;
-        for (int y = 0; y < targetHeight; y++)
-            for (int x = 0; x < targetWidth; x++)
+        (int left, int top, int right, int bottom) = GetRasterBounds(
+            state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+        for (int y = top; y < bottom; y++)
+            for (int x = left; x < right; x++)
             {
                 double pageX = (x + 0.5) / scaleX;
                 double pageY = (targetHeight - y - 0.5) / scaleY;
@@ -3709,6 +3730,57 @@ public sealed class PdfPageRenderer
     }
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
+
+    private static (int Left, int Top, int Right, int Bottom) GetRasterBounds(
+        IReadOnlyList<ClipRegion> clips, Point[]? explicitBounds,
+        int width, int height, double scaleX, double scaleY)
+    {
+        double minimumX = 0, minimumY = 0;
+        double maximumX = width / scaleX, maximumY = height / scaleY;
+        Intersect(explicitBounds);
+        foreach (ClipRegion clip in clips)
+        {
+            if (clip.Predicate is not null || clip.Polygons.Count == 0) continue;
+            bool found = false;
+            double clipMinimumX = double.PositiveInfinity;
+            double clipMinimumY = double.PositiveInfinity;
+            double clipMaximumX = double.NegativeInfinity;
+            double clipMaximumY = double.NegativeInfinity;
+            foreach (Point[] polygon in clip.Polygons)
+                foreach (Point point in polygon)
+                {
+                    found = true;
+                    clipMinimumX = Math.Min(clipMinimumX, point.X);
+                    clipMinimumY = Math.Min(clipMinimumY, point.Y);
+                    clipMaximumX = Math.Max(clipMaximumX, point.X);
+                    clipMaximumY = Math.Max(clipMaximumY, point.Y);
+                }
+            if (found)
+            {
+                minimumX = Math.Max(minimumX, clipMinimumX);
+                minimumY = Math.Max(minimumY, clipMinimumY);
+                maximumX = Math.Min(maximumX, clipMaximumX);
+                maximumY = Math.Min(maximumY, clipMaximumY);
+            }
+        }
+
+        if (minimumX >= maximumX || minimumY >= maximumY)
+            return (0, 0, 0, 0);
+        int left = (int)Math.Clamp(Math.Floor(minimumX * scaleX), 0, width);
+        int right = (int)Math.Clamp(Math.Ceiling(maximumX * scaleX), 0, width);
+        int top = (int)Math.Clamp(height - Math.Ceiling(maximumY * scaleY), 0, height);
+        int bottom = (int)Math.Clamp(height - Math.Floor(minimumY * scaleY), 0, height);
+        return (left, top, right, bottom);
+
+        void Intersect(Point[]? polygon)
+        {
+            if (polygon is null || polygon.Length == 0) return;
+            minimumX = Math.Max(minimumX, polygon.Min(point => point.X));
+            minimumY = Math.Max(minimumY, polygon.Min(point => point.Y));
+            maximumX = Math.Min(maximumX, polygon.Max(point => point.X));
+            maximumY = Math.Min(maximumY, polygon.Max(point => point.Y));
+        }
+    }
 
     private static void FillPaths(byte[] pixels, int width, int height, double scaleX,
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha, bool evenOdd,
@@ -4506,11 +4578,51 @@ public sealed class PdfPageRenderer
         Luminosity
     }
     private readonly record struct ColorVector(double Red, double Green, double Blue);
-    private sealed record ClipRegion(IReadOnlyList<Point[]> Polygons, bool EvenOdd,
-        Func<double, double, bool>? Predicate = null)
+    private sealed class ClipRegion
     {
+        private readonly bool _hasBounds;
+        private readonly double _minimumX;
+        private readonly double _minimumY;
+        private readonly double _maximumX;
+        private readonly double _maximumY;
+
+        internal ClipRegion(IReadOnlyList<Point[]> polygons, bool evenOdd,
+            Func<double, double, bool>? predicate = null)
+        {
+            Polygons = polygons;
+            EvenOdd = evenOdd;
+            Predicate = predicate;
+            if (predicate is not null) return;
+            foreach (Point[] polygon in polygons)
+                foreach (Point point in polygon)
+                {
+                    if (!_hasBounds)
+                    {
+                        _minimumX = _maximumX = point.X;
+                        _minimumY = _maximumY = point.Y;
+                        _hasBounds = true;
+                    }
+                    else
+                    {
+                        _minimumX = Math.Min(_minimumX, point.X);
+                        _minimumY = Math.Min(_minimumY, point.Y);
+                        _maximumX = Math.Max(_maximumX, point.X);
+                        _maximumY = Math.Max(_maximumY, point.Y);
+                    }
+                }
+        }
+
+        internal IReadOnlyList<Point[]> Polygons { get; }
+        internal bool EvenOdd { get; }
+        internal Func<double, double, bool>? Predicate { get; }
+
         internal bool Contains(double x, double y)
-            => Predicate?.Invoke(x, y) ?? PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
+        {
+            if (_hasBounds && (x < _minimumX || x > _maximumX
+                || y < _minimumY || y > _maximumY))
+                return false;
+            return Predicate?.Invoke(x, y) ?? PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
+        }
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height);
     private sealed record GraphicsSoftMask(byte[] Samples);
