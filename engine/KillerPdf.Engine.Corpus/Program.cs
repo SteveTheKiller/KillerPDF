@@ -830,17 +830,17 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                         $"Sampled {phase} {fileIndex + 1:N0}/{ocrFiles.Length:N0} PDF files.");
             }
         }
-        if (!selectHoldout && ocrLabels is not null)
+        if (!selectHoldout)
         {
-            string[] missingLatinLabels = [.. ocrLabels
-                .Except(observedTrainingLabels, StringComparer.Ordinal)
-                .Where(label => label.Length == 1 && label[0] <= byte.MaxValue)];
-            if (missingLatinLabels.Length == 0) yield break;
+            string[] seedLatinLabels = [.. (ocrLabels ?? observedTrainingLabels)
+                .Where(label => label.Length == 1 && label[0] <= byte.MaxValue)
+                .Order(StringComparer.Ordinal)];
+            if (seedLatinLabels.Length == 0) yield break;
             using var seedTimeout = new CancellationTokenSource(
                 TimeSpan.FromSeconds(Math.Max(ocrTimeoutSeconds, 30)));
             foreach (PdfOcrTrainingSample sample in
                 PdfOcrModelTrainer.CreateStandardFontSamples(
-                    missingLatinLabels, modelWidth, modelHeight, seedTimeout.Token))
+                    seedLatinLabels, modelWidth, modelHeight, seedTimeout.Token))
             {
                 trainingSampleCount++;
                 yield return sample;
