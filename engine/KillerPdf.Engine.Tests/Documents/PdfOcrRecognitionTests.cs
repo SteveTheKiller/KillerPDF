@@ -238,6 +238,25 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void CompatibleLanguageModelsCombineWithoutLosingPrototypes()
+    {
+        PdfOcrRecognitionModel english = PdfOcrRecognitionModel.Create(
+            2, 1, ["A"], new float[] { 1, 0 }, new float[] { 0 });
+        PdfOcrRecognitionModel spanish = PdfOcrRecognitionModel.Create(
+            2, 1, ["N", "Ñ"], new float[] { 0, 1, -1, 0 }, new float[] { 0, 0 });
+
+        PdfOcrRecognitionModel combined = PdfOcrRecognitionModel.Combine(
+            [english, spanish]);
+
+        Assert.Equal(["A", "N", "Ñ"], combined.Labels);
+        Assert.Equal((english.Width, english.Height), (combined.Width, combined.Height));
+        Assert.Equal(combined.Save(), PdfOcrRecognitionModel.Load(combined.Save()).Save());
+        Assert.Throws<ArgumentException>(() => PdfOcrRecognitionModel.Combine(
+            [english, TinyModel("X")]));
+        Assert.Throws<ArgumentException>(() => PdfOcrRecognitionModel.Combine([]));
+    }
+
+    [Fact]
     public void RawBgraRecognitionRunsTheCompleteEnginePipeline()
     {
         string[] rows =

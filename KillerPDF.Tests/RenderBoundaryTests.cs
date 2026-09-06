@@ -175,6 +175,10 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         Assert.DoesNotContain("_engineModel is not null && string.IsNullOrEmpty",
             source, StringComparison.Ordinal);
+        Assert.Contains("PdfOcrRecognitionModel.Combine(models)", source,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("language.Contains('+', StringComparison.Ordinal)",
+            source, StringComparison.Ordinal);
         Assert.Contains("private TesseractEngine NativeEngine()", source,
             StringComparison.Ordinal);
         Assert.True(source.IndexOf("LoadEngineModel(_dataPath, language)",

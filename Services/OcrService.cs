@@ -18,7 +18,7 @@ namespace KillerPDF.Services
         private readonly PdfOcrRecognitionModel? _engineModel;
         private TesseractEngine? _engine;
 
-        /// <param name="tessDataPath">Folder holding *.traineddata. Defaults to the self-extracted cache (OcrNativeBootstrap).</param>
+        /// <param name="tessDataPath">Folder holding installed OCR models. Defaults to the self-extracted cache (OcrNativeBootstrap).</param>
         /// <param name="language">Tesseract language code(s), e.g. "eng" or "eng+ben".</param>
         public OcrService(string? tessDataPath = null, string language = "eng")
         {
@@ -116,14 +116,20 @@ namespace KillerPDF.Services
         private static PdfOcrRecognitionModel? LoadEngineModel(
             string dataPath, string language)
         {
-            if (language.Contains('+', StringComparison.Ordinal)
-                || language.Length > 35
-                || language.Any(character => !char.IsAsciiLetterOrDigit(character)
-                    && character is not '_' and not '-'))
+            string[] languages = language.Split('+');
+            if (languages.Length is < 1 or > 16 || languages.Any(item =>
+                item.Length is < 1 or > 35
+                || item.Any(character => !char.IsAsciiLetterOrDigit(character)
+                    && character is not '_' and not '-')))
                 return null;
-            string modelPath = Path.Combine(dataPath, language + ".kpocr");
-            return File.Exists(modelPath)
-                ? PdfOcrRecognitionModel.Load(File.ReadAllBytes(modelPath)) : null;
+            var models = new List<PdfOcrRecognitionModel>(languages.Length);
+            foreach (string item in languages)
+            {
+                string modelPath = Path.Combine(dataPath, item + ".kpocr");
+                if (!File.Exists(modelPath)) return null;
+                models.Add(PdfOcrRecognitionModel.Load(File.ReadAllBytes(modelPath)));
+            }
+            return models.Count == 1 ? models[0] : PdfOcrRecognitionModel.Combine(models);
         }
 
         public void Dispose() => _engine?.Dispose();

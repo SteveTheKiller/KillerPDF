@@ -58,6 +58,36 @@ public sealed class PdfOcrRecognitionModel
             weights.ToArray(), biases.ToArray());
     }
 
+    /// <summary>Combines compatible language models without changing their prototypes.</summary>
+    public static PdfOcrRecognitionModel Combine(
+        IEnumerable<PdfOcrRecognitionModel> models)
+    {
+        ArgumentNullException.ThrowIfNull(models);
+        PdfOcrRecognitionModel[] supplied = models.ToArray();
+        if (supplied.Length == 0 || supplied.Any(model => model is null))
+            throw new ArgumentException(
+                "At least one OCR recognition model is required.", nameof(models));
+        PdfOcrRecognitionModel first = supplied[0];
+        if (supplied.Any(model => model.Width != first.Width
+            || model.Height != first.Height))
+            throw new ArgumentException(
+                "OCR recognition model dimensions do not match.", nameof(models));
+        int labelCount = checked(supplied.Sum(model => model._labels.Length));
+        int featureCount = checked(first.Width * first.Height);
+        var labels = new string[labelCount];
+        var weights = new float[checked(labelCount * featureCount)];
+        var biases = new float[labelCount];
+        int labelOffset = 0;
+        foreach (PdfOcrRecognitionModel model in supplied)
+        {
+            model._labels.CopyTo(labels, labelOffset);
+            model._biases.CopyTo(biases, labelOffset);
+            model._weights.CopyTo(weights, labelOffset * featureCount);
+            labelOffset += model._labels.Length;
+        }
+        return Create(first.Width, first.Height, labels, weights, biases);
+    }
+
     /// <summary>Writes the stable model format used by the runtime.</summary>
     public byte[] Save()
     {
