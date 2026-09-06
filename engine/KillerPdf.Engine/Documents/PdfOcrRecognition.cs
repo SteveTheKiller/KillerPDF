@@ -30,6 +30,7 @@ public sealed class PdfOcrRecognitionModel
     private readonly float[] _coarseGradientDescriptors;
     private readonly float[] _fineGradientDescriptors;
     private readonly Dictionary<string, int> _labelShapeMasks;
+    private readonly Dictionary<string, int[]> _prototypeIndexesByLabel;
     private readonly bool _usesPrototypeShapes;
 
     private PdfOcrRecognitionModel(int width, int height, string[] labels,
@@ -50,8 +51,12 @@ public sealed class PdfOcrRecognitionModel
         _fineGradientDescriptors = new float[
             checked(labels.Length * FineGradientDescriptorLength)];
         _labelShapeMasks = new Dictionary<string, int>(StringComparer.Ordinal);
+        var prototypeIndexes = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         for (int label = 0; label < labels.Length; label++)
         {
+            if (!prototypeIndexes.TryGetValue(labels[label], out List<int>? indexes))
+                prototypeIndexes.Add(labels[label], indexes = []);
+            indexes.Add(label);
             _shapeBuckets[label] = checked((sbyte)ShapeBucket(
                 weights.AsSpan(label * featureCount, featureCount), width, height));
             BuildProjections(weights.AsSpan(label * featureCount, featureCount),
@@ -74,6 +79,8 @@ public sealed class PdfOcrRecognitionModel
                 _labelShapeMasks[labels[label]] = _labelShapeMasks.GetValueOrDefault(labels[label])
                     | 1 << _shapeBuckets[label];
         }
+        _prototypeIndexesByLabel = prototypeIndexes.ToDictionary(
+            item => item.Key, item => item.Value.ToArray(), StringComparer.Ordinal);
         Labels = Array.AsReadOnly(labels.Distinct(StringComparer.Ordinal).ToArray());
     }
 
@@ -434,9 +441,8 @@ public sealed class PdfOcrRecognitionModel
         double first = double.NegativeInfinity;
         double second = double.NegativeInfinity;
         double third = double.NegativeInfinity;
-        for (int index = 0; index < prototypeScores.Length; index++)
+        foreach (int index in _prototypeIndexesByLabel[label])
         {
-            if (!string.Equals(_labels[index], label, StringComparison.Ordinal)) continue;
             double value = prototypeScores[index];
             if (value > first) (first, second, third) = (value, first, second);
             else if (value > second) (second, third) = (value, second);
