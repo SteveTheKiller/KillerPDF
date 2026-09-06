@@ -93,4 +93,20 @@ public sealed class PdfOcrLanguageModelTests
 
         Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 1_000_000);
     }
+
+    [Fact]
+    public void DecodeKeepsLongCandidateSequencesWithinLinearMemory()
+    {
+        PdfOcrLanguageModel model = PdfOcrLanguageModel.Train(["AB"]);
+        IReadOnlyList<IReadOnlyList<PdfOcrLanguageCandidate>> positions =
+            Enumerable.Repeat<IReadOnlyList<PdfOcrLanguageCandidate>>(
+                [new("A", 1), new("B", 0)], 1_024).ToArray();
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        IReadOnlyList<string> decoded = model.Decode(positions, languageWeight: 0);
+
+        Assert.Equal(1_024, decoded.Count);
+        Assert.All(decoded, label => Assert.Equal("A", label));
+        Assert.InRange(GC.GetAllocatedBytesForCurrentThread() - before, 0, 5_000_000);
+    }
 }

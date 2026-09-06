@@ -254,7 +254,7 @@ public sealed class PdfOcrLanguageModel
 
         var paths = new Dictionary<string, Path>(StringComparer.Ordinal)
         {
-            [string.Empty] = new Path(0, [])
+            [string.Empty] = new Path(0, string.Empty, null, 0)
         };
         foreach (IReadOnlyList<PdfOcrLanguageCandidate> supplied in positions)
         {
@@ -274,18 +274,23 @@ public sealed class PdfOcrLanguageModel
                 {
                     double score = path.Score + candidate.Score
                         + languageWeight * TransitionScore(previous, candidate.Label);
+                    var proposed = new Path(
+                        score, candidate.Label, path, path.Length + 1);
                     if (!next.TryGetValue(candidate.Label, out Path? best)
-                        || score > best.Score)
-                        next[candidate.Label] = new Path(score,
-                            [.. path.Labels, candidate.Label]);
+                        || score > best.Score
+                        || score == best.Score && ComparePaths(proposed, best) < 0)
+                        next[candidate.Label] = proposed;
                 }
             }
             paths = next;
         }
-        return Array.AsReadOnly(paths.Values
-            .OrderByDescending(path => path.Score)
-            .ThenBy(path => string.Concat(path.Labels), StringComparer.Ordinal)
-            .First().Labels);
+        Path selected = paths.Values.First();
+        foreach (Path candidate in paths.Values.Skip(1))
+            if (candidate.Score > selected.Score
+                || candidate.Score == selected.Score
+                && ComparePaths(candidate, selected) < 0)
+                selected = candidate;
+        return Array.AsReadOnly(ToLabels(selected));
     }
 
     private double TransitionScore(string previous, string current)
@@ -298,5 +303,29 @@ public sealed class PdfOcrLanguageModel
         return Math.Log((count + 1d) / (_totals[previousIndex] + vocabulary));
     }
 
-    private sealed record Path(double Score, string[] Labels);
+    private static int ComparePaths(Path left, Path right)
+    {
+        string[] leftLabels = ToLabels(left);
+        string[] rightLabels = ToLabels(right);
+        for (int index = 0; index < Math.Min(leftLabels.Length, rightLabels.Length); index++)
+        {
+            int comparison = string.CompareOrdinal(leftLabels[index], rightLabels[index]);
+            if (comparison != 0) return comparison;
+        }
+        return leftLabels.Length.CompareTo(rightLabels.Length);
+    }
+
+    private static string[] ToLabels(Path path)
+    {
+        var labels = new string[path.Length];
+        for (int index = labels.Length - 1; index >= 0; index--)
+        {
+            labels[index] = path.Label;
+            path = path.Previous!;
+        }
+        return labels;
+    }
+
+    private sealed record Path(
+        double Score, string Label, Path? Previous, int Length);
 }
