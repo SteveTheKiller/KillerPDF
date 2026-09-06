@@ -111,6 +111,25 @@ public sealed class PdfOcrRecognitionTests
     }
 
     [Fact]
+    public void TrainerUsesLabelFrequencyToResolveIdenticalShapes()
+    {
+        PdfOcrTrainingSample[] samples =
+        [
+            new("Arare", new float[] { 1 }),
+            .. Enumerable.Repeat(new PdfOcrTrainingSample(
+                "Zcommon", new float[] { 1 }), 9)
+        ];
+
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1, samples);
+        PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
+            [new("Zcommon", new float[] { 1 })]);
+
+        Assert.Equal(1, evaluation.Accuracy);
+        Assert.Equal(model.Save(), PdfOcrModelTrainer.Train(
+            1, 1, samples.Reverse()).Save());
+    }
+
+    [Fact]
     public void TrainerRejectsInvalidFeaturesAndHonorsCancellation()
     {
         Assert.Throws<ArgumentException>(() => PdfOcrModelTrainer.Train(1, 1,

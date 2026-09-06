@@ -65,6 +65,7 @@ public static class PdfOcrModelTrainer
     private const int MaximumSamples = 10_000_000;
     private const int MaximumModelValues = 16 * 1024 * 1024;
     private const int MaximumPrototypesPerShape = 12;
+    private const double LabelPriorWeight = 0.25;
 
     /// <summary>Trains a bounded nearest-prototype classifier from normalized glyph samples.</summary>
     public static PdfOcrRecognitionModel Train(int width, int height,
@@ -76,6 +77,7 @@ public static class PdfOcrModelTrainer
         ArgumentNullException.ThrowIfNull(samples);
         int featureCount = checked(width * height);
         var prototypes = new Dictionary<(string Label, int Shape), PrototypeBucket>();
+        var labelCounts = new Dictionary<string, int>(StringComparer.Ordinal);
         int sampleCount = 0;
         foreach (PdfOcrTrainingSample sample in samples)
         {
@@ -85,6 +87,7 @@ public static class PdfOcrModelTrainer
                     nameof(samples));
             ValidateLabel(sample.Label, samples);
             ValidateFeatures(sample.Features.Span, featureCount, samples);
+            labelCounts[sample.Label] = labelCounts.GetValueOrDefault(sample.Label) + 1;
             var key = (sample.Label, ShapeBucket(sample.Features.Span, width, height));
             if (!prototypes.TryGetValue(key, out PrototypeBucket? bucket))
             {
@@ -120,7 +123,10 @@ public static class PdfOcrModelTrainer
                 weights[offset + feature] = checked((float)(2 * value / scoreScale));
                 squaredLength += value * value;
             }
-            biases[label] = checked((float)(-squaredLength / scoreScale));
+            double prior = Math.Log((labelCounts[orderedLabels[label]] + 1d)
+                / (sampleCount + labelCounts.Count));
+            biases[label] = checked((float)(
+                -squaredLength / scoreScale + LabelPriorWeight * prior));
         }
         return PdfOcrRecognitionModel.Create(
             width, height, orderedLabels, weights, biases);
