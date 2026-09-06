@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
@@ -250,9 +251,14 @@ public sealed record PdfPageFurnitureReportEntry(
     PdfRgbColor? Color, double Opacity, double RotationDegrees, PdfStandardFont Font);
 
 /// <summary>Inspects versioned metadata attached to KillerPDF-created page furniture.</summary>
-public static class PdfPageFurnitureReport
+public static partial class PdfPageFurnitureReport
 {
     private static readonly PdfName MarkerName = new("KillerPDFPageFurniture"u8);
+    private static readonly PdfPageFurnitureJsonContext MarkerJson = new();
+    private static readonly PdfPageFurnitureJsonContext CompactReportJson = new(
+        ReportOptions(false));
+    private static readonly PdfPageFurnitureJsonContext IndentedReportJson = new(
+        ReportOptions(true));
 
     /// <summary>Reports recognized furniture without treating ordinary PDF artifacts as owned content.</summary>
     public static IReadOnlyList<PdfPageFurnitureReportEntry> Inspect(PdfDocument document)
@@ -276,7 +282,7 @@ public static class PdfPageFurnitureReport
                 try
                 {
                     byte[] json = Convert.FromBase64String(encoded[5..]);
-                    MarkerData? data = JsonSerializer.Deserialize<MarkerData>(json);
+                    MarkerData? data = JsonSerializer.Deserialize(json, MarkerJson.MarkerData);
                     if (data is null || string.IsNullOrEmpty(data.Text)) continue;
                     result.Add(new PdfPageFurnitureReportEntry(pageIndex, data.Text,
                         data.X, data.Baseline, data.FontSize,
@@ -295,16 +301,9 @@ public static class PdfPageFurnitureReport
     public static string ToJson(PdfDocument document, bool indented = false)
     {
         IReadOnlyList<PdfPageFurnitureReportEntry> entries = Inspect(document);
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            Count = entries.Count,
-            Entries = entries
-        }, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented
-        });
+        var report = new ReportFile(1, entries.Count, entries.ToArray());
+        return JsonSerializer.Serialize(report, indented
+            ? IndentedReportJson.ReportFile : CompactReportJson.ReportFile);
     }
 
     /// <summary>Exports recognized furniture as a readable page-by-page report.</summary>
@@ -318,7 +317,7 @@ public static class PdfPageFurnitureReport
         foreach (PdfPageFurnitureReportEntry entry in entries)
         {
             output.Append("Page ").Append(entry.PageIndex + 1)
-                .Append(" | ").Append(JsonSerializer.Serialize(entry.Text))
+                .Append(" | ").Append(JsonSerializer.Serialize(entry.Text, MarkerJson.String))
                 .Append(" | X ").Append(entry.X.ToString("0.###", CultureInfo.InvariantCulture))
                 .Append(" | Baseline ").Append(entry.Baseline.ToString("0.###", CultureInfo.InvariantCulture))
                 .Append(" | ").Append(entry.FontSize.ToString("0.###", CultureInfo.InvariantCulture))
@@ -351,7 +350,7 @@ public static class PdfPageFurnitureReport
             Opacity = mark.Opacity,
             RotationDegrees = mark.RotationDegrees,
             Font = mark.Font
-        }));
+        }, MarkerJson.MarkerData));
 
     internal static bool IsMarker(PdfContentInstruction instruction) =>
         instruction.Operator == "BDC" && instruction.Operands.Count == 2
@@ -381,6 +380,20 @@ public static class PdfPageFurnitureReport
         public double Green { get; set; }
         public double Blue { get; set; }
     }
+
+    private sealed record ReportFile(
+        int Version, int Count, PdfPageFurnitureReportEntry[] Entries);
+
+    private static JsonSerializerOptions ReportOptions(bool indented) => new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = indented
+    };
+
+    [JsonSerializable(typeof(MarkerData))]
+    [JsonSerializable(typeof(ReportFile))]
+    [JsonSerializable(typeof(string))]
+    private sealed partial class PdfPageFurnitureJsonContext : JsonSerializerContext;
 }
 
 /// <summary>Writes reviewed page-furniture marks as decorative page artifacts.</summary>

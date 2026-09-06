@@ -28,8 +28,13 @@ public enum PdfImpositionBindingEdge
 }
 
 /// <summary>Reusable sheet and grid settings for an N-up imposition job.</summary>
-public sealed record PdfImpositionPreset
+public sealed partial record PdfImpositionPreset
 {
+    private static readonly PdfImpositionPresetJsonContext CompactJson = new(JsonOptions(false));
+    private static readonly PdfImpositionPresetJsonContext IndentedJson = new(JsonOptions(true));
+    private static readonly PdfImpositionPresetJsonContext ReaderJson = new(
+        JsonOptions(false, caseInsensitive: true));
+
     /// <summary>Creates a validated reusable imposition preset.</summary>
     public PdfImpositionPreset(string name, int columns, int rows,
         double sheetWidth, double sheetHeight, double margin = 0, double gutter = 0,
@@ -137,27 +142,12 @@ public sealed record PdfImpositionPreset
     {
         ArgumentNullException.ThrowIfNull(sourcePageBounds);
         IReadOnlyList<PdfImposedSheetSide> sides = Plan(sourcePageBounds.Count);
-        return JsonSerializer.Serialize(new
-        {
-            Version = 1,
-            Preset = Name,
-            SheetWidth,
-            SheetHeight,
-            SourcePageCount = sourcePageBounds.Count,
-            Sides = sides.Select(side => new
-            {
-                side.SheetIndex,
-                side.Face,
-                side.CreepDepth,
-                Slots = side.SourcePageIndices,
-                Placements = Place(side, sourcePageBounds)
-            })
-        }, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-        });
+        var preview = new PreviewFile(1, Name, SheetWidth, SheetHeight,
+            sourcePageBounds.Count, [.. sides.Select(side => new PreviewSide(
+                side.SheetIndex, side.Face, side.CreepDepth,
+                side.SourcePageIndices.ToArray(), [.. Place(side, sourcePageBounds)]))]);
+        return JsonSerializer.Serialize(preview, indented
+            ? IndentedJson.PreviewFile : CompactJson.PreviewFile);
     }
 
     /// <summary>Formats a readable preview of sequential sheet sides and placements.</summary>
@@ -205,23 +195,13 @@ public sealed record PdfImpositionPreset
         new PresetFile(1, Name, Columns, Rows, SheetWidth, SheetHeight, Margin, Gutter,
             Duplex, RotateToFit, IncludeCropMarks, IncludeRegistrationMarks, CreepPerSheet,
             IncludeFoldMarks, IncludeColorBars, IncludePageInformation, SourceBox, BindingEdge),
-        new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = indented,
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-        });
+        indented ? IndentedJson.PresetFile : CompactJson.PresetFile);
 
     /// <summary>Reads and validates a saved preset.</summary>
     public static PdfImpositionPreset FromJson(string json)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
-        PresetFile file = JsonSerializer.Deserialize<PresetFile>(json,
-            new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-            })
+        PresetFile file = JsonSerializer.Deserialize(json, ReaderJson.PresetFile)
             ?? throw new JsonException("The imposition preset is empty.");
         if (file.Version != 1)
             throw new NotSupportedException(
@@ -239,6 +219,35 @@ public sealed record PdfImpositionPreset
         bool IncludeRegistrationMarks, double CreepPerSheet,
         bool IncludeFoldMarks, bool IncludeColorBars, bool IncludePageInformation,
         PdfImpositionSourceBox PageBox, PdfImpositionBindingEdge BindingEdge);
+
+    private sealed record PreviewFile(int Version, string Preset,
+        double SheetWidth, double SheetHeight, int SourcePageCount, PreviewSide[] Sides);
+
+    private sealed record PreviewSide(int SheetIndex, PdfImposedSheetFace Face,
+        int CreepDepth, int?[] Slots, PdfImposedPlacement[] Placements);
+
+    private static JsonSerializerOptions JsonOptions(
+        bool indented, bool caseInsensitive = false)
+    {
+        var options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            PropertyNameCaseInsensitive = caseInsensitive,
+            WriteIndented = indented
+        };
+        options.Converters.Add(new JsonStringEnumConverter<PdfImpositionSourceBox>(
+            JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new JsonStringEnumConverter<PdfImpositionBindingEdge>(
+            JsonNamingPolicy.CamelCase));
+        options.Converters.Add(new JsonStringEnumConverter<PdfImposedSheetFace>(
+            JsonNamingPolicy.CamelCase));
+        return options;
+    }
+
+    [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+    [JsonSerializable(typeof(PresetFile))]
+    [JsonSerializable(typeof(PreviewFile))]
+    private sealed partial class PdfImpositionPresetJsonContext : JsonSerializerContext;
 
     private static string Format(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 }
