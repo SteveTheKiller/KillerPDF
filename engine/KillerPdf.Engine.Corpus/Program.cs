@@ -348,6 +348,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int? minimumReadingOrderAccuracyPercent = null;
     int? minimumRotatedCharacterAccuracyPercent = null;
     int? minimumDeskewedCharacterAccuracyPercent = null;
+    int? minimumFormCharacterAccuracyPercent = null;
     string? ocrFileListPath = null;
     string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
@@ -416,6 +417,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 break;
             case "--minimum-deskewed-character-accuracy-percent" when value <= 100:
                 minimumDeskewedCharacterAccuracyPercent = value;
+                break;
+            case "--minimum-form-character-accuracy-percent" when value <= 100:
+                minimumFormCharacterAccuracyPercent = value;
                 break;
             case "--minimum-holdout-samples": minimumHoldoutSamples = value; break;
             default:
@@ -501,6 +505,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     PdfOcrReadingOrderMetrics? readingOrderMetrics = null;
     PdfOcrTextMetrics? rotatedTextMetrics = null;
     PdfOcrTextMetrics? deskewedTextMetrics = null;
+    PdfOcrFormMetrics? formMetrics = null;
     if (minimumCharacterAccuracyPercent.HasValue
         || minimumWordAccuracyPercent.HasValue
         || minimumWordBoxOverlapPercent.HasValue
@@ -542,6 +547,12 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 deskew: true, correctOrientation: false, rotatedPagesOnly: false);
             Console.WriteLine($"OCR deskewed pages: "
                 + $"{deskewedTextMetrics.CharacterAccuracy:P2} character accuracy.");
+        }
+        if (minimumFormCharacterAccuracyPercent.HasValue)
+        {
+            formMetrics = EvaluateHoldoutForms();
+            Console.WriteLine($"OCR forms: {formMetrics.ExpectedFieldCount:N0} populated "
+                + $"fields, {formMetrics.Text.CharacterAccuracy:P2} character accuracy.");
         }
     }
     catch (Exception error) when (error is not OutOfMemoryException)
@@ -619,6 +630,15 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         Console.Error.WriteLine($"OCR model rejected: "
             + $"{deskewedTextMetrics.CharacterAccuracy:P2} deskewed-page character "
             + $"accuracy is below the {minimumDeskewedCharacterAccuracyPercent}% minimum.");
+        return 1;
+    }
+    if (minimumFormCharacterAccuracyPercent.HasValue
+        && formMetrics!.Text.CharacterAccuracy
+            < minimumFormCharacterAccuracyPercent.Value / 100d)
+    {
+        Console.Error.WriteLine($"OCR model rejected: "
+            + $"{formMetrics.Text.CharacterAccuracy:P2} form-field character accuracy "
+            + $"is below the {minimumFormCharacterAccuracyPercent}% minimum.");
         return 1;
     }
     Directory.CreateDirectory(Path.GetDirectoryName(modelPath)!);
@@ -853,6 +873,86 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 _ => (x, y)
             };
         }
+    }
+
+    PdfOcrFormMetrics EvaluateHoldoutForms()
+    {
+        int expectedFields = 0, recognizedFields = 0;
+        int expectedCharacters = 0, recognizedCharacters = 0, characterEdits = 0;
+        int expectedWords = 0, recognizedWords = 0, wordEdits = 0;
+        var options = new PdfOcrOptions(["und"], deskew: true,
+            correctOrientation: true, removeBackground: true, removeNoise: true,
+            detectPageSegments: false);
+        foreach (string file in ocrFiles)
+        {
+            string relative = Path.GetRelativePath(ocrRoot, file);
+            if (!PdfOcrTrainingPartition.IsHoldout(relative, holdoutPercent)) continue;
+            try
+            {
+                using var timeout = new CancellationTokenSource(
+                    TimeSpan.FromSeconds(ocrTimeoutSeconds));
+                PdfDocument document = OpenOcrDocument(File.ReadAllBytes(file), relative);
+                IReadOnlyList<PdfPageInformation> information = PdfPageInformation.Read(document);
+                var renderer = new PdfPageRenderer(document);
+                for (int pageIndex = 0;
+                    pageIndex < Math.Min(information.Count, pagesPerFile); pageIndex++)
+                {
+                    IReadOnlyList<PdfFormWidgetInfo> widgets =
+                        PdfFormWidgetReader.ReadPage(document, pageIndex);
+                    if (!widgets.Any(widget => widget.FieldKind is
+                            PdfFormFieldKind.Text or PdfFormFieldKind.Choice
+                        && !string.IsNullOrWhiteSpace(widget.Value))) continue;
+                    PdfPageInformation page = information[pageIndex];
+                    bool quarterTurn = page.Rotation is 90 or 270;
+                    double pageWidth = quarterTurn ? page.Height : page.Width;
+                    double pageHeight = quarterTurn ? page.Width : page.Height;
+                    double scale = renderSize / Math.Max(pageWidth, pageHeight);
+                    int width = Math.Max(1, (int)Math.Round(pageWidth * scale));
+                    int height = Math.Max(1, (int)Math.Round(pageHeight * scale));
+                    PdfRenderedPage rendered = renderer.Render(pageIndex,
+                        new PdfRenderOptions(width, height,
+                            includeAnnotations: false, includeFormFields: true), timeout.Token);
+                    PdfOcrResult recognized = PdfOcrFormRecognizer.Recognize(
+                        RecognizeRaster, rendered.Pixels, rendered.Width, rendered.Height,
+                        widgets, cancellationToken: timeout.Token);
+                    PdfOcrFormMetrics pageMetrics = PdfOcrFormMetrics.Compare(
+                        widgets, recognized, rendered.Width, rendered.Height);
+                    expectedFields = checked(expectedFields + pageMetrics.ExpectedFieldCount);
+                    recognizedFields = checked(recognizedFields
+                        + pageMetrics.RecognizedFieldCount);
+                    expectedCharacters = checked(expectedCharacters
+                        + pageMetrics.Text.ExpectedCharacterCount);
+                    recognizedCharacters = checked(recognizedCharacters
+                        + pageMetrics.Text.RecognizedCharacterCount);
+                    characterEdits = checked(characterEdits
+                        + pageMetrics.Text.CharacterEditCount);
+                    expectedWords = checked(expectedWords + pageMetrics.Text.ExpectedWordCount);
+                    recognizedWords = checked(recognizedWords
+                        + pageMetrics.Text.RecognizedWordCount);
+                    wordEdits = checked(wordEdits + pageMetrics.Text.WordEditCount);
+                }
+            }
+            catch (Exception error) when (error is not OutOfMemoryException)
+            {
+                string detail = error is OperationCanceledException
+                    ? $"exceeded {ocrTimeoutSeconds} seconds"
+                    : $"{error.GetType().Name}: {error.Message}";
+                Console.WriteLine($"SKIP  forms {relative}: {detail}");
+            }
+        }
+        if (expectedFields == 0)
+            throw new InvalidOperationException(
+                "The OCR holdout contains no populated text or choice fields.");
+        return new PdfOcrFormMetrics(expectedFields, recognizedFields,
+            new PdfOcrTextMetrics(expectedCharacters, recognizedCharacters,
+                characterEdits, expectedWords, recognizedWords, wordEdits));
+
+        PdfOcrResult RecognizeRaster(ReadOnlyMemory<byte> pixels, int width, int height,
+            string? whitelist, CancellationToken cancellationToken) => whitelist is null
+            ? PdfOcrRecognizer.RecognizeBgra(
+                pixels, width, height, ocrModel, options, cancellationToken)
+            : PdfOcrRecognizer.RecognizeBgra(
+                pixels, width, height, ocrModel, options, whitelist, cancellationToken);
     }
 
     PdfDocument OpenOcrDocument(byte[] source, string relative)
@@ -3011,7 +3111,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--maximum-calibration-error-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--minimum-reading-order-accuracy-percent <1-100>] [--minimum-rotated-character-accuracy-percent <1-100>] [--minimum-deskewed-character-accuracy-percent <1-100>] [--minimum-form-character-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
