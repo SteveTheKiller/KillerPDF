@@ -10,7 +10,7 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>A bounded, versioned OCR glyph-classification model.</summary>
 public sealed class PdfOcrRecognitionModel
 {
-    private static readonly byte[] Magic = "KPOCR1\0"u8.ToArray();
+    private static readonly byte[] Magic = "KPOCR2\0"u8.ToArray();
     private const double ShapeMismatchPenalty = 0.25;
     private readonly string[] _labels;
     private readonly float[] _weights;
@@ -644,7 +644,8 @@ public static class PdfOcrRecognizer
         float[] features = ArrayPool<float>.Shared.Rent(featureCount);
         try
         {
-            foreach (PdfOcrWordRegion word in layout.Words)
+            foreach (PdfOcrTextLine line in layout.Lines)
+            foreach (PdfOcrWordRegion word in line.Words)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var text = new StringBuilder();
@@ -652,8 +653,8 @@ public static class PdfOcrRecognizer
                 foreach (PdfOcrImageRegion component in word.Components)
                 {
                     Span<float> glyph = features.AsSpan(0, featureCount);
-                    NormalizeGlyph(image, component, model.Width, model.Height,
-                        glyph, cancellationToken);
+                    NormalizeGlyph(image, component, line.Bounds,
+                        model.Width, model.Height, glyph, cancellationToken);
                     (string label, double score) = model.Classify(
                         glyph, scores.AsSpan(0, model.LabelCount), allowedLabels);
                     text.Append(label);
@@ -680,16 +681,37 @@ public static class PdfOcrRecognizer
         return result;
     }
 
+    /// <summary>Normalizes one glyph while preserving its size and baseline within a text line.</summary>
+    public static float[] NormalizeGlyph(PdfOcrPreparedImage image,
+        PdfOcrImageRegion region, PdfOcrImageRegion lineBounds,
+        int width, int height, CancellationToken cancellationToken = default)
+    {
+        var result = new float[width * height];
+        NormalizeGlyph(image, region, lineBounds, width, height,
+            result, cancellationToken);
+        return result;
+    }
+
     private static void NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
         int width, int height, Span<float> result, CancellationToken cancellationToken)
+        => NormalizeGlyph(image, region, region, width, height, result, cancellationToken);
+
+    private static void NormalizeGlyph(PdfOcrPreparedImage image, PdfOcrImageRegion region,
+        PdfOcrImageRegion lineBounds, int width, int height,
+        Span<float> result, CancellationToken cancellationToken)
     {
         result.Clear();
         ReadOnlySpan<byte> source = image.Pixels.Span;
-        double scale = Math.Min(width / (double)region.Width, height / (double)region.Height);
+        double scale = Math.Min(width / (double)region.Width,
+            height / (double)lineBounds.Height);
         int scaledWidth = Math.Clamp((int)Math.Round(region.Width * scale), 1, width);
         int scaledHeight = Math.Clamp((int)Math.Round(region.Height * scale), 1, height);
         int offsetX = (width - scaledWidth) / 2;
-        int offsetY = (height - scaledHeight) / 2;
+        int scaledLineHeight = Math.Clamp(
+            (int)Math.Round(lineBounds.Height * scale), 1, height);
+        int offsetY = (height - scaledLineHeight) / 2 + (int)Math.Round(
+            (region.Top - lineBounds.Top) * scale);
+        offsetY = Math.Clamp(offsetY, 0, height - scaledHeight);
         for (int y = 0; y < scaledHeight; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();

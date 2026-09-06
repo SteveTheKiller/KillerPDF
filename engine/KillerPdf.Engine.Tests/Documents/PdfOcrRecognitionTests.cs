@@ -248,7 +248,7 @@ public sealed class PdfOcrRecognitionTests
         PdfOcrModelEvaluation evaluation = PdfOcrModelTrainer.Evaluate(model,
             samples.Skip(samplesPerStyle * 8));
 
-        Assert.InRange(evaluation.Accuracy, 0.59, 1);
+        Assert.InRange(evaluation.Accuracy, 0.69, 1);
     }
 
     [Fact]
@@ -457,6 +457,8 @@ public sealed class PdfOcrRecognitionTests
         Assert.Equal(["IL"], words.Select(word => word.Text));
         Assert.All(words, word => Assert.InRange(word.Confidence, 0.5, 1));
         Assert.Throws<CryptographicException>(() => PdfOcrRecognitionModel.Load(bytes, new string('0', 64)));
+        bytes[5] = (byte)'1';
+        Assert.Throws<FormatException>(() => PdfOcrRecognitionModel.Load(bytes));
     }
 
     [Fact]
@@ -700,6 +702,29 @@ public sealed class PdfOcrRecognitionTests
             0, 0, 0, 0,
             1, 1, 1, 1,
             0, 0, 0, 0,
+            0, 0, 0, 0
+        ], features);
+    }
+
+    [Fact]
+    public void GlyphNormalizationPreservesHeightWithinItsTextLine()
+    {
+        PdfOcrPreparedImage image = Prepared(4, 4,
+        [
+            "....",
+            ".##.",
+            ".##.",
+            "...."
+        ]);
+
+        float[] features = PdfOcrRecognizer.NormalizeGlyph(image,
+            new PdfOcrImageRegion(1, 1, 3, 3),
+            new PdfOcrImageRegion(0, 0, 4, 4), 4, 4);
+
+        Assert.Equal([
+            0, 0, 0, 0,
+            0, 1, 1, 0,
+            0, 1, 1, 0,
             0, 0, 0, 0
         ], features);
     }

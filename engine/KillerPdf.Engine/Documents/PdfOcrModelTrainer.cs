@@ -257,8 +257,9 @@ public static class PdfOcrModelTrainer
             pageIndex, renderOptions, cancellationToken);
         PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
             rendered.Pixels, rendered.Width, rendered.Height, ocrOptions, cancellationToken);
-        IReadOnlyList<PdfOcrImageRegion> components = PdfOcrLayoutAnalyzer.Analyze(
-            prepared, detectPageSegments: false, cancellationToken).Components;
+        PdfOcrPageLayout layout = PdfOcrLayoutAnalyzer.Analyze(
+            prepared, detectPageSegments: false, cancellationToken);
+        IReadOnlyList<PdfOcrImageRegion> components = layout.Components;
         int featureCount = checked(width * height);
         var labels = new List<(string Label, PdfOcrImageRegion Bounds)>();
         foreach (PdfExtractedLetter letter in content.Letters)
@@ -285,12 +286,18 @@ public static class PdfOcrModelTrainer
             var bounds = new PdfOcrImageRegion(
                 glyph.Min(item => item.Left), glyph.Min(item => item.Top),
                 glyph.Max(item => item.Right), glyph.Max(item => item.Bottom));
+            int centerX = (bounds.Left + bounds.Right) / 2;
+            int centerY = (bounds.Top + bounds.Bottom) / 2;
+            PdfOcrImageRegion lineBounds = layout.Lines.FirstOrDefault(line =>
+                centerX >= line.Bounds.Left && centerX <= line.Bounds.Right
+                && centerY >= line.Bounds.Top && centerY <= line.Bounds.Bottom)?.Bounds
+                ?? bounds;
             if (checked((samples.Count + 1L) * featureCount) > MaximumModelValues)
                 throw new ArgumentException(
                     "The PDF page has too many OCR training values.", nameof(document));
             samples.Add(new PdfOcrTrainingSample(labels[index].Label,
                 PdfOcrRecognizer.NormalizeGlyph(
-                    prepared, bounds, width, height, cancellationToken)));
+                    prepared, bounds, lineBounds, width, height, cancellationToken)));
         }
         return Array.AsReadOnly(samples.ToArray());
     }
