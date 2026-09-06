@@ -343,6 +343,7 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     int minimumAccuracyPercent = 95, minimumHoldoutSamples = 1000;
     int? minimumCharacterAccuracyPercent = null;
     int? minimumWordAccuracyPercent = null;
+    int? minimumWordBoxOverlapPercent = null;
     string? ocrFileListPath = null;
     string? ocrLabelFilePath = null;
     string? ocrPasswordManifestPath = null;
@@ -396,6 +397,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                 break;
             case "--minimum-word-accuracy-percent" when value <= 100:
                 minimumWordAccuracyPercent = value;
+                break;
+            case "--minimum-word-box-overlap-percent" when value <= 100:
+                minimumWordBoxOverlapPercent = value;
                 break;
             case "--minimum-holdout-samples": minimumHoldoutSamples = value; break;
             default:
@@ -475,12 +479,14 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                  .OrderByDescending(item => item.Count).Take(25))
         Console.WriteLine($"  {confusion.Count:N0} x {confusion.Expected} -> {confusion.Predicted}");
     PdfOcrTextMetrics? textMetrics = null;
+    PdfOcrWordBoxMetrics? wordBoxMetrics = null;
     if (minimumCharacterAccuracyPercent.HasValue
-        || minimumWordAccuracyPercent.HasValue)
+        || minimumWordAccuracyPercent.HasValue
+        || minimumWordBoxOverlapPercent.HasValue)
     {
         try
         {
-            textMetrics = EvaluateHoldoutText();
+            (textMetrics, wordBoxMetrics) = EvaluateHoldoutText();
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
@@ -492,6 +498,9 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
             + $"{textMetrics.CharacterAccuracy:P2} character accuracy, "
             + $"{textMetrics.ExpectedWordCount:N0} words, "
             + $"{textMetrics.WordAccuracy:P2} word accuracy.");
+        Console.WriteLine($"OCR word boxes: "
+            + $"{wordBoxMetrics.AverageIntersectionOverUnion:P2} average overlap, "
+            + $"{wordBoxMetrics.RecallAtFiftyPercent:P2} recall at 50% overlap.");
     }
     if (evaluation.SampleCount < minimumHoldoutSamples)
     {
@@ -518,6 +527,15 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
     {
         Console.Error.WriteLine($"OCR model rejected: {textMetrics.WordAccuracy:P2} word "
             + $"accuracy is below the {minimumWordAccuracyPercent}% minimum.");
+        return 1;
+    }
+    if (minimumWordBoxOverlapPercent.HasValue
+        && wordBoxMetrics!.AverageIntersectionOverUnion
+            < minimumWordBoxOverlapPercent.Value / 100d)
+    {
+        Console.Error.WriteLine($"OCR model rejected: "
+            + $"{wordBoxMetrics.AverageIntersectionOverUnion:P2} average word-box overlap "
+            + $"is below the {minimumWordBoxOverlapPercent}% minimum.");
         return 1;
     }
     Directory.CreateDirectory(Path.GetDirectoryName(modelPath)!);
@@ -627,10 +645,13 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         }
     }
 
-    PdfOcrTextMetrics EvaluateHoldoutText()
+    (PdfOcrTextMetrics Text, PdfOcrWordBoxMetrics Boxes) EvaluateHoldoutText()
     {
         int expectedCharacters = 0, recognizedCharacters = 0, characterEdits = 0;
         int expectedWords = 0, recognizedWords = 0, wordEdits = 0, pageCount = 0;
+        int expectedBoxes = 0, recognizedBoxes = 0, matchedBoxes = 0;
+        int matchedAtFiftyPercent = 0;
+        double overlapSum = 0;
         var options = new PdfOcrOptions(["und"], deskew: false,
             correctOrientation: false, removeBackground: true, removeNoise: true,
             detectPageSegments: false);
@@ -663,8 +684,16 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     PdfOcrResult recognized = PdfOcrRecognizer.RecognizeBgra(
                         rendered.Pixels, rendered.Width, rendered.Height,
                         ocrModel, options, timeout.Token);
+                    PdfPageContent pageContent = reader.Read(pageIndex, timeout.Token);
                     PdfOcrTextMetrics pageMetrics = PdfOcrTextMetrics.Compare(
-                        reader.Read(pageIndex, timeout.Token).Text, recognized.Text);
+                        pageContent.Text, recognized.Text);
+                    PdfOcrPixelWord[] expectedPageWords = [.. pageContent.Words
+                        .Select(word => MapExpectedWord(word, page,
+                            rendered.Width, rendered.Height))
+                        .Where(word => word is not null)
+                        .Select(word => word!)];
+                    PdfOcrWordBoxMetrics pageBoxes = PdfOcrWordBoxMetrics.Compare(
+                        expectedPageWords, recognized.Words);
                     expectedCharacters = checked(expectedCharacters
                         + pageMetrics.ExpectedCharacterCount);
                     recognizedCharacters = checked(recognizedCharacters
@@ -673,6 +702,12 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
                     expectedWords = checked(expectedWords + pageMetrics.ExpectedWordCount);
                     recognizedWords = checked(recognizedWords + pageMetrics.RecognizedWordCount);
                     wordEdits = checked(wordEdits + pageMetrics.WordEditCount);
+                    expectedBoxes = checked(expectedBoxes + pageBoxes.ExpectedWordCount);
+                    recognizedBoxes = checked(recognizedBoxes + pageBoxes.RecognizedWordCount);
+                    matchedBoxes = checked(matchedBoxes + pageBoxes.MatchedWordCount);
+                    matchedAtFiftyPercent = checked(matchedAtFiftyPercent
+                        + pageBoxes.MatchedAtFiftyPercentCount);
+                    overlapSum += pageBoxes.IntersectionOverUnionSum;
                     pageCount++;
                 }
             }
@@ -687,8 +722,42 @@ if (args.Length >= 3 && args[0] == "--ocr-train-corpus")
         if (pageCount == 0)
             throw new InvalidOperationException(
                 "The OCR holdout contains no text-comparison pages.");
-        return new PdfOcrTextMetrics(expectedCharacters, recognizedCharacters,
-            characterEdits, expectedWords, recognizedWords, wordEdits);
+        return (new PdfOcrTextMetrics(expectedCharacters, recognizedCharacters,
+                characterEdits, expectedWords, recognizedWords, wordEdits),
+            new PdfOcrWordBoxMetrics(expectedBoxes, recognizedBoxes, matchedBoxes,
+                matchedAtFiftyPercent, overlapSum));
+
+        static PdfOcrPixelWord? MapExpectedWord(PdfExtractedWord word,
+            PdfPageInformation page, int pixelWidth, int pixelHeight)
+        {
+            PdfContentBounds bounds = word.BoundingBox;
+            (double X, double Y)[] points =
+            [
+                Rotate(bounds.Left, bounds.Bottom), Rotate(bounds.Right, bounds.Bottom),
+                Rotate(bounds.Left, bounds.Top), Rotate(bounds.Right, bounds.Top)
+            ];
+            bool quarterTurn = page.Rotation is 90 or 270;
+            double displayWidth = quarterTurn ? page.Height : page.Width;
+            double displayHeight = quarterTurn ? page.Width : page.Height;
+            int left = Math.Clamp((int)Math.Floor(
+                points.Min(point => point.X) * pixelWidth / displayWidth), 0, pixelWidth);
+            int right = Math.Clamp((int)Math.Ceiling(
+                points.Max(point => point.X) * pixelWidth / displayWidth), 0, pixelWidth);
+            int top = Math.Clamp((int)Math.Floor((displayHeight
+                - points.Max(point => point.Y)) * pixelHeight / displayHeight), 0, pixelHeight);
+            int bottom = Math.Clamp((int)Math.Ceiling((displayHeight
+                - points.Min(point => point.Y)) * pixelHeight / displayHeight), 0, pixelHeight);
+            return right > left && bottom > top
+                ? new PdfOcrPixelWord(word.Text, 1, left, top, right, bottom) : null;
+
+            (double X, double Y) Rotate(double x, double y) => page.Rotation switch
+            {
+                90 => (y, page.Width - x),
+                180 => (page.Width - x, page.Height - y),
+                270 => (page.Height - y, x),
+                _ => (x, y)
+            };
+        }
     }
 
     PdfDocument OpenOcrDocument(byte[] source, string relative)
@@ -2847,7 +2916,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 {
     Console.WriteLine("Usage: KillerPdf.Engine.Corpus <directory> [--max <count>] [--structural|--incremental-structural]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --render-corpus <directory> [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--parallel <count>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
-    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
+    Console.WriteLine("       KillerPdf.Engine.Corpus --ocr-train-corpus <directory> <output.model> [--file-list <file.txt>] [--max <count>] [--timeout-seconds <count>] [--size <pixels>] [--pages-per-file <count>] [--holdout-percent <1-99>] [--model-width <1-128>] [--model-height <1-128>] [--minimum-accuracy-percent <1-100>] [--minimum-holdout-samples <count>] [--minimum-character-accuracy-percent <1-100>] [--minimum-word-accuracy-percent <1-100>] [--minimum-word-box-overlap-percent <1-100>] [--label-file <file.txt>] [--password-manifest <file.json>] [--certificate-manifest <file.json>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --selected-page-import-corpus <directory> [--max <count>]");
     Console.WriteLine("       KillerPdf.Engine.Corpus --authoring-smoke <output.pdf>");
     Console.WriteLine("       KillerPdf.Engine.Corpus --tagged-smoke <output.pdf>");
