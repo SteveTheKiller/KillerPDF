@@ -406,6 +406,14 @@ public sealed class PdfStreamDecoderTests
 
         Assert.Equal(64, decoded.Length);
         Assert.All(decoded, sample => Assert.Equal(128, sample));
+
+        PdfStream malformed = Stream([.. jpeg],
+            Pair("Filter", Name("DCTDecode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("ColorTransform", new PdfInteger(1)))));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(malformed, 64));
+        Assert.Equal(decoded,
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(malformed, 64));
     }
 
     [Fact]

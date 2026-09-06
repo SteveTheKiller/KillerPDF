@@ -58,7 +58,7 @@ public sealed class PdfDocument
     internal JpegDecodedImage DecodeJpegImage(
         PdfStream stream, int maximumDecodedBytes, int reduction) =>
         PdfStreamDecoder.DecodeJpegImage(
-            stream, Resolve, maximumDecodedBytes, reduction);
+            stream, Resolve, maximumDecodedBytes, reduction, _compatibilityRecovery);
     /// <summary>Gets whether the document declares an encryption security handler.</summary>
     public bool IsEncrypted => CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out _);
     /// <summary>Gets whether encrypted objects are available in decrypted form.</summary>

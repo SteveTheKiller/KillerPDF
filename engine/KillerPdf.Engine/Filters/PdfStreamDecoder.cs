@@ -52,7 +52,7 @@ public static class PdfStreamDecoder
 
     internal static JpegDecodedImage DecodeJpegImage(
         PdfStream stream, Func<PdfIndirectReference, PdfObject> resolve,
-        int maximumDecodedBytes, int reduction)
+        int maximumDecodedBytes, int reduction, bool compatibilityRecovery = false)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(resolve);
@@ -63,7 +63,8 @@ public static class PdfStreamDecoder
         PdfDictionary? parameters = ReadParameters(
             stream.Dictionary, filters.Count, resolve)[0];
         return PdfJpegDecoder.DecodeImage(stream.EncodedData.Span,
-            maximumDecodedBytes, reduction, GetDctColorTransform(parameters, resolve));
+            maximumDecodedBytes, reduction, GetDctColorTransform(parameters, resolve),
+            compatibilityRecovery);
     }
 
     private static byte[] DecodeCore(
@@ -109,7 +110,7 @@ public static class PdfStreamDecoder
                 "LZWDecode" or "LZW" => DecodeLzw(
                     current, parameters[i], resolve, filterLimit),
                 "DCTDecode" or "DCT" => PdfJpegDecoder.Decode(current, filterLimit,
-                    GetDctColorTransform(parameters[i], resolve)),
+                    GetDctColorTransform(parameters[i], resolve), compatibilityRecovery),
                 "JPXDecode" or "JPX" => PdfJpeg2000Decoder.Decode(current, filterLimit),
                 "JBIG2Decode" => PdfJbig2Decoder.Decode(current,
                     GetJbig2Globals(parameters[i], resolve),

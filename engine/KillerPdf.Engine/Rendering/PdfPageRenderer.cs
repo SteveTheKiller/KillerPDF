@@ -1473,9 +1473,9 @@ public sealed class PdfPageRenderer
                     ? ReadImageColorSpace(stream.Dictionary, resources)
                     : InferJpeg2000ColorSpace(jpeg2000Shape, embeddedMaskMode);
         }
-        catch (PdfFilterException)
+        catch (PdfFilterException error)
         {
-            diagnostic = "The image compression filter is not implemented.";
+            diagnostic = CompressionDiagnostic(error);
             return false;
         }
         catch (NotSupportedException)
@@ -1595,9 +1595,9 @@ public sealed class PdfPageRenderer
             if (embeddedMaskMode == 2)
                 preblendMatte = ReadPreblendMatte(stream.Dictionary, colorSpace);
         }
-        catch (PdfFilterException)
+        catch (PdfFilterException error)
         {
-            diagnostic = "The image compression filter is not implemented.";
+            diagnostic = CompressionDiagnostic(error);
             return false;
         }
         catch (NotSupportedException)
@@ -1615,6 +1615,9 @@ public sealed class PdfPageRenderer
             cancellationToken, preblendMatte, graphicsSoftMask);
         return true;
     }
+
+    private static string CompressionDiagnostic(PdfFilterException error) =>
+        $"The image compression filter is not implemented. {error.Message}";
 
     private static int SelectJpeg2000ResolutionLevel(
         Jpeg2000Shape shape, Matrix transform, double scaleX, double scaleY)

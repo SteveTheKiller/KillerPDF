@@ -571,7 +571,8 @@ public sealed class PdfPageRendererTests
         Assert.InRange(pixel[1], 15, 25);
         Assert.InRange(pixel[0], 5, 15);
         Assert.Equal(255, pixel[3]);
-        Assert.DoesNotContain("The image compression filter is not implemented.", page.Diagnostics);
+        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.StartsWith(
+            "The image compression filter is not implemented.", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -610,7 +611,8 @@ public sealed class PdfPageRendererTests
         Assert.Equal([1, 2, 4, 8], decodedWidths);
         Assert.Equal([1, 2, 4, 8], decodedHeights);
         Assert.InRange(Pixel(page, 0, 0)[2], 235, 245);
-        Assert.DoesNotContain("The image compression filter is not implemented.", page.Diagnostics);
+        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.StartsWith(
+            "The image compression filter is not implemented.", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -630,7 +632,8 @@ public sealed class PdfPageRendererTests
         PdfDocument recoveredDocument = PdfDocument.OpenWithCompatibilityRecovery(malformedBytes);
         PdfRenderedPage recovered = new PdfPageRenderer(recoveredDocument).Render(0, options);
 
-        Assert.Contains("The image compression filter is not implemented.", strict.Diagnostics);
+        Assert.Contains(strict.Diagnostics, diagnostic => diagnostic.StartsWith(
+            "The image compression filter is not implemented.", StringComparison.Ordinal));
         Assert.Empty(recovered.Diagnostics);
         Assert.Equal([0, 0, 255, 128], Pixel(recovered, 0, 0));
         Assert.Equal([0, 255, 0, 255], Pixel(recovered, 1, 0));
@@ -654,7 +657,8 @@ public sealed class PdfPageRendererTests
         PdfRenderedPage recovered = new PdfPageRenderer(
             PdfDocument.OpenWithCompatibilityRecovery(malformedBytes)).Render(0, options);
 
-        Assert.Contains("The image compression filter is not implemented.", strict.Diagnostics);
+        Assert.Contains(strict.Diagnostics, diagnostic => diagnostic.StartsWith(
+            "The image compression filter is not implemented.", StringComparison.Ordinal));
         Assert.Empty(recovered.Diagnostics);
         Assert.Equal([0, 0, 255, 255], Pixel(recovered, 0, 0));
         Assert.Equal([0, 255, 0, 255], Pixel(recovered, 1, 0));
@@ -758,7 +762,8 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 255, 255, 255], Pixel(page, 1, 0));
         Assert.Equal([0, 0, 0, 255], Pixel(page, 3, 0));
         Assert.Equal([255, 255, 255, 255], Pixel(page, 6, 0));
-        Assert.DoesNotContain("The image compression filter is not implemented.", page.Diagnostics);
+        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.StartsWith(
+            "The image compression filter is not implemented.", StringComparison.Ordinal));
     }
 
     [Fact]

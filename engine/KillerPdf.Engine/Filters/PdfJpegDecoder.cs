@@ -15,19 +15,22 @@ internal static class PdfJpegDecoder
     private static readonly double[] Scales = [1 / Math.Sqrt(2), 1, 1, 1, 1, 1, 1, 1];
 
     internal static byte[] Decode(
-        ReadOnlySpan<byte> source, int maximumDecodedBytes, int? colorTransform = null)
-        => DecodeImage(source, maximumDecodedBytes, 1, colorTransform).Samples;
+        ReadOnlySpan<byte> source, int maximumDecodedBytes, int? colorTransform = null,
+        bool compatibilityRecovery = false)
+        => DecodeImage(source, maximumDecodedBytes, 1, colorTransform,
+            compatibilityRecovery).Samples;
 
     internal static JpegDecodedImage DecodeImage(
         ReadOnlySpan<byte> source, int maximumDecodedBytes, int reduction,
-        int? colorTransform = null)
+        int? colorTransform = null, bool compatibilityRecovery = false)
     {
         try
         {
             if (reduction is not (1 or 2 or 4 or 8))
                 throw new PdfFilterException("JPEG reduction must be 1, 2, 4, or 8.");
             return new Decoder(
-                source.ToArray(), maximumDecodedBytes, reduction, colorTransform).Decode();
+                source.ToArray(), maximumDecodedBytes, reduction, colorTransform,
+                compatibilityRecovery).Decode();
         }
         catch (PdfFilterException)
         {
@@ -41,7 +44,8 @@ internal static class PdfJpegDecoder
     }
 
     private sealed class Decoder(
-        byte[] source, int maximumDecodedBytes, int reduction, int? colorTransform)
+        byte[] source, int maximumDecodedBytes, int reduction, int? colorTransform,
+        bool compatibilityRecovery)
     {
         private readonly int[][] _quantization = new int[4][];
         private readonly HuffmanTable?[,] _huffman = new HuffmanTable?[2, 4];
@@ -305,6 +309,10 @@ internal static class PdfJpegDecoder
             int components = _components.Count;
             var output = new byte[outputLength];
             int transform = colorTransform ?? _adobeTransform ?? (components == 3 ? 1 : 0);
+            if (compatibilityRecovery && colorTransform is not null
+                && (components == 1 && transform != 0
+                    || components == 3 && transform == 2))
+                transform = _adobeTransform ?? (components == 3 ? 1 : 0);
             if (transform is < 0 or > 2 || components == 1 && transform != 0
                 || components == 3 && transform == 2)
                 throw Error("The JPEG color transform is not supported.");
