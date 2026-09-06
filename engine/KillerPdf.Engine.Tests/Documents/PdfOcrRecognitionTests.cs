@@ -802,6 +802,13 @@ public sealed class PdfOcrRecognitionTests
         ]);
 
         Assert.Equal(0.68f, confidence, 5);
+        Assert.Equal(0.6f, PdfOcrRecognizer.CalculateMeanConfidence(
+        [
+            new PdfOcrRecognizedWord("\U0001F600", 0.2,
+                new PdfOcrImageRegion(0, 0, 1, 1)),
+            new PdfOcrRecognizedWord("BB", 0.8,
+                new PdfOcrImageRegion(2, 0, 4, 1))
+        ]), 5);
         Assert.Equal(0, PdfOcrRecognizer.CalculateMeanConfidence([]));
     }
 

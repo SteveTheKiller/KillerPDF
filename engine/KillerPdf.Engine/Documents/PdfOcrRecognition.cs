@@ -867,9 +867,8 @@ public static class PdfOcrRecognizer
                 prepared, pipelineOptions.DetectPageSegments, cancellationToken);
             IReadOnlyList<PdfOcrRecognizedWord> recognized = Recognize(
                 prepared, layout, model, languageModel, allowedLabels, cancellationToken);
-            int characters = recognized.Sum(word => word.Text.Length);
-            double score = characters == 0 ? -1
-                : recognized.Sum(word => word.Confidence * word.Text.Length) / characters;
+            double score = recognized.Count == 0
+                ? -1 : CalculateMeanConfidence(recognized);
             return new RawOrientationCandidate(
                 rotation, prepared, layout, recognized, score);
         }
@@ -878,9 +877,9 @@ public static class PdfOcrRecognizer
     internal static float CalculateMeanConfidence(
         IReadOnlyList<PdfOcrRecognizedWord> words)
     {
-        int characters = words.Sum(word => word.Text.Length);
+        int characters = words.Sum(word => word.Text.EnumerateRunes().Count());
         return characters == 0 ? 0 : (float)(words.Sum(
-            word => word.Confidence * word.Text.Length) / characters);
+            word => word.Confidence * word.Text.EnumerateRunes().Count()) / characters);
     }
 
     internal static PdfOcrImageRegion UnrotateImageBounds(
@@ -1181,9 +1180,8 @@ public sealed class PdfOcrPageRecognizer
                     prepared, layout, model, cancellationToken)
                 : PdfOcrRecognizer.Recognize(
                     prepared, layout, model, _languageModel, cancellationToken);
-            int characters = recognized.Sum(word => word.Text.Length);
-            double score = characters == 0 ? -1
-                : recognized.Sum(word => word.Confidence * word.Text.Length) / characters;
+            double score = recognized.Count == 0
+                ? -1 : PdfOcrRecognizer.CalculateMeanConfidence(recognized);
             return new OrientationCandidate(
                 rotation, prepared.DeskewDegrees,
                 recognized, prepared.Diagnostics, score);
