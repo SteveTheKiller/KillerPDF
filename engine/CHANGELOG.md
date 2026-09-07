@@ -11,9 +11,10 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 ### Added
 
 - Added build-time AOT and trimming compatibility enforcement.
-- Added anti-aliased scanline rasterization for fills, strokes, text, and clip masks, faster image color conversion, and faster JPEG rendering, including constant-color blocks.
-- Added bounded BGRA32 page rendering with crop and page-rotation geometry, complete graphics and text-state restoration, nested clipping paths, nonzero and even-odd path painting, allocation-safe mesh shadings with calculator component-function arrays, bounded transparency-group compositing, graphics-state opacity, isolated and normal-blend non-isolated knockout groups, transformed device and calculator-function colors, recursive Form XObjects, JPEG with four-component transforms and malformed color-metadata recovery, JPEG 2000, JBIG2, and Brotli decoding, image XObjects, inline and stencil images with malformed separator recovery, and selectable annotation and form appearances.
-- Added direct engine-rendered OCR with bounded preprocessing, layout analysis, font-tolerant structural and language-context recognition, model training and validation, text, word-box, reading-order, confidence-calibration, mixed-script, rotated-page, deskewed-page, populated-form, and page-allocation gates, deterministic searchable text writing, and text export.
+- Added anti-aliased scanline rasterization for fills, strokes, text, and clip masks, faster image color conversion, and efficient JPEG and JPEG 2000 rendering.
+- Added bounded BGRA32 page rendering with crop and page-rotation geometry, complete graphics and text-state restoration, nested clipping paths, nonzero and even-odd path painting, tiling and shading patterns, allocation-safe mesh shadings with calculator component-function arrays, bounded transparency-group compositing, graphics-state opacity, isolated and normal-blend non-isolated knockout groups, transformed device and calculator-function colors, recursive Form XObjects, JPEG with four-component transforms and malformed color-metadata recovery, JPEG 2000, JBIG2, and Brotli decoding, image XObjects, inline and stencil images with malformed separator recovery, and selectable annotation and form appearances.
+- Added engine-rendered OCR with preprocessing, layout analysis, font-tolerant and mixed-script recognition, model training and validation, reading order, confidence calibration, and searchable PDF and text output. Supports rotated and skewed pages, forms, wide glyphs, and large models within renderer and memory limits.
+- Added bounded compatibility recovery for malformed headers, cross-references, compressed objects, streams, page geometry, optional-content data, image metadata, and content tokens. Strict parsing remains the default.
 - Added deterministic local OCR-provider selection with explicit or automatic choices, installed-language capabilities, an engine-owned raw-pixel provider with optional language context, stride-bearing contracts, isolated ONNX session adapters for Tesseract compatibility and future local engines, ONNX Runtime CPU sessions for described CTC line-recognition models with JSON model descriptions, engine line detection, bounded threading, and cancellation, and a desktop integration path that keeps Tesseract as a fallback.
 - Added page extraction with words, text runs, visual lines, writing direction, glyph bounds, font sizes, baselines, identified image placements, paths, shadings, and clipped bounds, including nested forms, inline images, vertical text, and ActualText replacements (#331).
 - Added font-resource decoding with Unicode maps, malformed encoding and code-space recovery, standard and embedded metrics, bundled and host-resolved outlines, and predefined CJK encodings. Parsing limits and cancellation bound extraction work.
@@ -44,17 +45,6 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Added rotation-aware vertical and horizontal scanned-spread division across selected pages (#382).
 - Added unified print-production reports with complete page boxes, resource-aware nonzero process and spot-ink inspection, page-range preview planning, readable and data-safe JSON output, and validated output-intent ICC profile details (#264).
 - Added per-image CCITT Group 4, adaptive predictor, or plain Flate selection for smaller lossless raster pages, plus strict full-page JPEG passthrough detection (#366).
-
-### Fixed
-
-- Restored missing text from graphics-state fonts, corrected pattern placement, and repaired corrupt JPEG 2000 image tiles.
-- Recovered documents with damaged cross-references, missing catalog roots, and readable compressed objects through bounded reconstruction.
-- Compatibility recovery now opens and renders files that mainstream viewers accept: malformed headers and versions, unusable cross-reference chains, wrong generation numbers, missing stream, endstream, or Length syntax, non-name dictionary keys, unknown filters, truncated or corrupt Flate data, oversized content, non-stream page content, invalid page boxes and rotations, page-tree nodes stored as streams, JPEG frames that disagree with their dictionaries, and malformed content-stream tokens.
-- Recovered malformed optional-content group registrations and cyclic visibility expressions without weakening strict layer inspection.
-- Avoided over-splitting wide glyphs during engine OCR layout analysis.
-- Kept broad engine OCR training within renderer and memory limits.
-- Reduced temporary allocations while decoding ordinary 8-bit JPEG 2000 images.
-- Large OCR models now preselect likely glyph prototypes before full comparison.
 
 ## [1.8.5] - Unreleased
 
