@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace KillerPdf.Engine.Filters;
 
 internal static class PdfJpegDecoder
@@ -12,6 +14,7 @@ internal static class PdfJpegDecoder
     ];
     private static readonly double[,] Cosines = CreateCosines();
     private static readonly double[,,] ReducedCosines = CreateReducedCosines();
+    private static readonly double[] VectorCosines = CreateVectorCosines();
     private static readonly double[] Scales = [1 / Math.Sqrt(2), 1, 1, 1, 1, 1, 1, 1];
 
     internal static byte[] Decode(
@@ -676,6 +679,11 @@ internal static class PdfJpegDecoder
                 component.Samples[top * component.Stride + left] = Clamp(128 + sum / 4);
                 return;
             }
+            if (Vector.IsHardwareAccelerated && blockSize >= Vector<double>.Count)
+            {
+                WriteVectorBlock(component, left, top, coefficients, quantization, blockSize, reductionIndex);
+                return;
+            }
             Span<double> horizontal = stackalloc double[64];
             Span<double> dequantized = stackalloc double[8];
             for (int v = 0; v < 8; v++)
@@ -701,6 +709,40 @@ internal static class PdfJpegDecoder
                     component.Samples[(top + y) * component.Stride + left + x]
                         = Clamp(128 + sum / 4);
                 }
+        }
+
+        private static void WriteVectorBlock(Component component, int left, int top,
+            ReadOnlySpan<int> coefficients, int[] quantization, int blockSize, int reductionIndex)
+        {
+            Span<double> horizontal = stackalloc double[64];
+            Span<double> dequantized = stackalloc double[8];
+            int lanes = Vector<double>.Count;
+            // Each lane is a separate output sample. Preserve coefficient order
+            // within every lane so vectorization does not change rounding.
+            for (int v = 0; v < 8; v++)
+            {
+                for (int u = 0; u < 8; u++)
+                    dequantized[u] = Scales[u] * coefficients[v * 8 + u] * quantization[v * 8 + u];
+                for (int x = 0; x < blockSize; x += lanes)
+                {
+                    Vector<double> sum = Vector<double>.Zero;
+                    for (int u = 0; u < 8; u++)
+                        sum += new Vector<double>(dequantized[u])
+                            * new Vector<double>(VectorCosines, reductionIndex * 64 + u * 8 + x);
+                    (new Vector<double>(Scales[v]) * sum).CopyTo(horizontal.Slice(v * blockSize + x, lanes));
+                }
+            }
+            for (int y = 0; y < blockSize; y++)
+            for (int x = 0; x < blockSize; x += lanes)
+            {
+                Vector<double> sum = Vector<double>.Zero;
+                for (int v = 0; v < 8; v++)
+                    sum += new Vector<double>(horizontal.Slice(v * blockSize + x, lanes))
+                        * new Vector<double>(ReducedCosines[reductionIndex, y, v]);
+                for (int lane = 0; lane < lanes; lane++)
+                    component.Samples[(top + y) * component.Stride + left + x + lane]
+                        = Clamp(128 + sum[lane] / 4);
+            }
         }
 
         private static int Receive(BitReader bits, int count)
@@ -750,6 +792,16 @@ internal static class PdfJpegDecoder
                 result[sample, frequency] = Math.Cos(
                     (2 * sample + 1) * frequency * Math.PI / 16);
         return result;
+    }
+
+    private static double[] CreateVectorCosines()
+    {
+        var values = new double[4 * 64];
+        for (int level = 0; level < 4; level++)
+        for (int frequency = 0; frequency < 8; frequency++)
+        for (int sample = 0; sample < 8; sample++)
+            values[level * 64 + frequency * 8 + sample] = ReducedCosines[level, sample, frequency];
+        return values;
     }
 
     private static double[,,] CreateReducedCosines()

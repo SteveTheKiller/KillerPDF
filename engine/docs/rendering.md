@@ -268,8 +268,13 @@ rounding. Reused scale and quantization products reduce transform arithmetic;
 the one-eighth path evaluates its single output sample directly. These paths
 preserve decoded samples rather than lowering image quality for speed.
 
+On supported CPUs, SIMD calculates neighboring output samples together while
+retaining the coefficient accumulation order within each sample. Blocks smaller
+than the hardware vector width and CPUs without SIMD use the scalar path. The
+decoder uses stack scratch space and a small shared cosine table for this path.
+
 Decoder timing depends on image content and reduction. The
-[JPEG transform record](../../validation/records/jpeg-idct-1.9.0.json) retains
+[JPEG SIMD record](../../validation/records/jpeg-simd-1.9.0.json) retains
 the measured sample set, all timing passes, and exact-output checks. These
 measurements do not establish performance or visual parity for every JPEG.
 

@@ -27,9 +27,9 @@ ratio of 1.2544. See [the measured results](PERFORMANCE.md).
 
 ## Next experiments
 
-1. Batch independent JPEG output samples with managed SIMD while retaining the
-   current coefficient accumulation order and scalar fallback. Verify every
-   existing decode reference and all four reductions before measuring page speed.
+1. Measure complete page throughput after the verified managed JPEG SIMD change.
+   The [focused record](records/jpeg-simd-1.9.0.json) confirms identical samples
+   and a selected decode improvement, but does not prove overall superiority.
 2. Evaluate multi-column JPEG 2000 synthesis, including odd origins, short edge
    tiles, integer and floating-point transforms, and bounded temporary storage.
 3. Profile the largest remaining non-codec gaps, including DeviceN shadings and

@@ -3,6 +3,33 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 managed JPEG SIMD
+
+Validation date: 2026-09-07. Batching independent JPEG output samples with SIMD
+reduces median decode time for the selected 40-stream set from 458.587 to
+365.466 ms at full size (20.3 percent) and 185.866 to 154.345 ms at half size
+(17.0 percent). Quarter and eighth size retain scalar processing on this host;
+their small timing differences do not establish an improvement.
+
+Five measured passes alternate before/after order after warmup. Tiered compilation
+is disabled in the isolated comparison harness. The set is concentrated in
+Altona and Ghent files and is not representative of every JPEG. All 160 decoded
+outputs match exactly, as do the 12 retained mixed-frequency reference cases.
+The measured prototype matches the production implementation apart from its
+namespace and comments.
+
+All 87 JPEG-related tests pass with four-lane SIMD, two-lane SIMD (AVX disabled),
+and scalar processing (hardware intrinsics disabled). The full 2,969 engine and
+338 app tests pass, and the Release build has zero warnings and errors. No new
+test expectations were introduced or relaxed. The conformance pass retains
+614 OK, 35 SKIP, zero FAIL, and all 614 identical PNGs. It is a coverage check,
+not a throughput result; a scratch hardware check overlapped part of that pass.
+
+This increment adds no dependency and preserves each sample's accumulation
+order. Complete page throughput, process memory, and cold startup still require
+separate measurement. See the [record](records/jpeg-simd-1.9.0.json) and
+[raw decode timings and conformance log](benchmarks/1.9.0-jpeg-simd).
+
 ## KillerPDF 1.9.0 paired throughput after column reconstruction
 
 Validation date: 2026-09-07. Product `de7564d` retains 614 OK, 35 SKIP, and zero

@@ -1,0 +1,132 @@
+{
+  "date": "2026-09-07",
+  "beforeCommit": "34458b4a1cb01632b583c56464f20cdd9035b6e3",
+  "afterEngineSha256": "0B687DFE3FB00112E1CC4817652A22B4E16CB8B25F3660DFEDFE23646B3AE6DC",
+  "afterAppSha256": "E521C620F6A81139B8F7D65C6E8255C32282D8E1BCC0F1C9E3B1CE379E8613B0",
+  "settings": {
+    "streams": 40,
+    "reductions": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "warmupPassesPerBuild": 1,
+    "measuredPasses": 5,
+    "alternating": true,
+    "tieredCompilation": false
+  },
+  "measurement": "Paired before/after implementations compiled in one isolated executable. Complete decoding timed, no concurrent heavy work. Samples extracted from the first forty accepted raw JPEG streams in sorted conformance inputs. Validation precedes warmup and timing. Source body equivalence to production verified except namespace/comments/whitespace.",
+  "results": [
+    {
+      "reduction": 1,
+      "beforeMilliseconds": [
+        453.5828,
+        467.0575,
+        473.996,
+        458.5869,
+        454.8251
+      ],
+      "afterMilliseconds": [
+        365.4662,
+        361.6106,
+        373.8229,
+        368.4244,
+        356.8277
+      ]
+    },
+    {
+      "reduction": 2,
+      "beforeMilliseconds": [
+        185.046,
+        184.5028,
+        185.8662,
+        187.2228,
+        186.4466
+      ],
+      "afterMilliseconds": [
+        153.9761,
+        153.2988,
+        155.3721,
+        154.3446,
+        154.6123
+      ]
+    },
+    {
+      "reduction": 4,
+      "beforeMilliseconds": [
+        123.0712,
+        115.6846,
+        111.8791,
+        110.1862,
+        110.4712
+      ],
+      "afterMilliseconds": [
+        119.4152,
+        113.5848,
+        113.0691,
+        111.607,
+        110.844
+      ]
+    },
+    {
+      "reduction": 8,
+      "beforeMilliseconds": [
+        81.7447,
+        82.4586,
+        82.893,
+        91.137,
+        83.4764
+      ],
+      "afterMilliseconds": [
+        83.2518,
+        82.7918,
+        82.2339,
+        83.6459,
+        83.1736
+      ]
+    }
+  ],
+  "identicalDecodedOutputs": 160,
+  "fixtureCases": 12,
+  "hardwareModes": [
+    {
+      "name": "default",
+      "vectorDoubleLanes": 4,
+      "accelerated": true,
+      "jpegTestsPassed": 87
+    },
+    {
+      "name": "DOTNET_EnableAVX=0",
+      "vectorDoubleLanes": 2,
+      "accelerated": true,
+      "jpegTestsPassed": 87
+    },
+    {
+      "name": "DOTNET_EnableHWIntrinsic=0",
+      "vectorDoubleLanes": 2,
+      "accelerated": false,
+      "jpegTestsPassed": 87
+    }
+  ],
+  "tests": {
+    "engine": 2969,
+    "app": 338,
+    "newCases": 0,
+    "expectationsChanged": 0,
+    "releaseWarnings": 0,
+    "releaseErrors": 0
+  },
+  "conformance": {
+    "inputs": 649,
+    "ok": 614,
+    "skip": 35,
+    "fail": 0,
+    "identicalPngs": 614,
+    "comparison": "conformance-jp2-columns-20260907",
+    "size": 1024,
+    "page": 1
+  },
+  "behavior": "Independent neighboring output samples occupy separate vector lanes; coefficient accumulation order is unchanged. Scalar fallback handles unsupported hardware and blocks narrower than a vector. Stack scratch storage and a shared 2048-byte cosine table avoid per-block heap allocations.",
+  "limitations": "Selected Altona/Ghent-heavy stream set is not representative. No quarter/eighth speed gain established. No updated paired PDFium page throughput, cold startup, peak memory, full PDFjs, or OCR evaluation. A scratch hardware-check build overlapped part of conformance, which is coverage-only."
+}
