@@ -65,6 +65,16 @@ two to four digits retain their normal decoding. A lone final digit, invalid
 characters, misplaced `z`, overflowing tuples, malformed explicit end markers,
 and output-size violations still fail. Strict decoding requires the end marker.
 
+When a later page-content stream fails filter decoding, compatibility extraction
+and rendering can retain the already decoded prefix and report
+`Page content was truncated because a stream could not be decoded.` This includes
+oversized decoded streams without raising their allocation limits. Processing
+stops at the failed stream because subsequent content may depend on missing
+graphics state. A failure before any prefix still rejects the page. The public
+`ReadInstructions` API and direct stream decoding retain the exception, including
+on recovery documents; editing cannot silently consume this partial prefix.
+Inspect result diagnostics before treating extracted or rendered content as complete.
+
 ## Memory ownership and concurrency
 
 Both opening methods copy the supplied bytes. The caller can reuse or modify its

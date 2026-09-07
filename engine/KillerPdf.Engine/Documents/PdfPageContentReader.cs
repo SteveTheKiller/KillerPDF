@@ -13,6 +13,8 @@ public sealed class PdfPageContentReader
 {
     internal const int MaximumRecoveredFormDepth = 16;
     internal const int MaximumRecoveredFormExpansions = 64;
+    internal const string TruncatedStreamDiagnostic =
+        "Page content was truncated because a stream could not be decoded.";
     private readonly PdfDocument _document;
     private readonly PdfPageTree _tree;
     private static readonly PdfDictionary Empty = new([]);
@@ -30,6 +32,10 @@ public sealed class PdfPageContentReader
     /// <summary>Reads the unexpanded instructions in a page's decoded content streams.</summary>
     public IReadOnlyList<PdfContentInstruction> ReadInstructions(
         int pageIndex, CancellationToken cancellationToken = default)
+        => ReadInstructions(pageIndex, cancellationToken, null);
+
+    internal IReadOnlyList<PdfContentInstruction> ReadInstructions(
+        int pageIndex, CancellationToken cancellationToken, ISet<string>? diagnostics)
     {
         if (pageIndex < 0 || pageIndex >= PageCount) throw new ArgumentOutOfRangeException(nameof(pageIndex));
         PdfPageTreeEntry page = _tree.Pages[pageIndex];
@@ -48,8 +54,18 @@ public sealed class PdfPageContentReader
                 if (_document.UsesCompatibilityRecovery) continue;
                 throw new FormatException("Page content is not a stream.");
             }
-            byte[] bytes = _document.DecodeStream(
-                stream, PdfContentStreamReader.MaximumSourceBytes);
+            byte[] bytes;
+            try
+            {
+                bytes = _document.DecodeStream(stream, PdfContentStreamReader.MaximumSourceBytes);
+            }
+            catch (PdfFilterException) when (_document.UsesCompatibilityRecovery
+                && diagnostics is not null && output.Length > 0)
+            {
+                // Later streams may depend on graphics state in the missing content.
+                diagnostics.Add(TruncatedStreamDiagnostic);
+                break;
+            }
             if (output.Length + bytes.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
             {
                 if (!_document.UsesCompatibilityRecovery)
@@ -167,7 +183,16 @@ public sealed class PdfPageContentReader
                     if (_document.UsesCompatibilityRecovery) continue;
                     throw new FormatException("Page content is not a stream.");
                 }
-                var bytes = Decode(stream);
+                byte[] bytes;
+                try
+                {
+                    bytes = Decode(stream);
+                }
+                catch (PdfFilterException) when (_document.UsesCompatibilityRecovery && output.Length > 0)
+                {
+                    diagnostics.Add(TruncatedStreamDiagnostic);
+                    break;
+                }
                 if (output.Length + bytes.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
                     throw new FormatException("Page content exceeds the extraction limit.");
                 output.Write(bytes);

@@ -24,7 +24,8 @@ public sealed partial class PdfPageRenderer
     private readonly IReadOnlyList<PdfDictionary> _pageResources;
     private readonly HashSet<int> _recoveredPageResources = [];
     private readonly IReadOnlySet<int> _hiddenOptionalContentGroups;
-    private readonly BoundedCache<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = new(32);
+    private readonly BoundedCache<int, (IReadOnlyList<PdfContentInstruction> Instructions,
+        IReadOnlySet<string> Diagnostics)> _instructionCache = new(32);
     private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
         new(256, ReferenceEqualityComparer.Instance);
     private readonly BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> _glyphPathCache = new(
@@ -122,7 +123,7 @@ public sealed partial class PdfPageRenderer
         int recoveredFormExpansions = 0;
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
         PdfDictionary pageResources = _pageResources[pageIndex];
-        Process(ReadInstructions(pageIndex, cancellationToken),
+        Process(ReadInstructions(pageIndex, cancellationToken, diagnostics),
             pageResources, initialState, 0);
         RenderAppearances();
         return new PdfRenderedPage(options.Width, options.Height, pixels, diagnostics);
@@ -1385,10 +1386,16 @@ public sealed partial class PdfPageRenderer
     }
 
     private IReadOnlyList<PdfContentInstruction> ReadInstructions(
-        int pageIndex, CancellationToken cancellationToken)
+        int pageIndex, CancellationToken cancellationToken, ISet<string> diagnostics)
     {
-        return _instructionCache.GetOrAdd(pageIndex,
-            index => _content.ReadInstructions(index, cancellationToken));
+        var parsed = _instructionCache.GetOrAdd(pageIndex, index =>
+        {
+            var recovered = new HashSet<string>();
+            var instructions = _content.ReadInstructions(index, cancellationToken, recovered);
+            return (instructions, recovered);
+        });
+        diagnostics.UnionWith(parsed.Diagnostics);
+        return parsed.Instructions;
     }
 
     private PdfExtractionFont ReadFont(PdfDictionary font) =>

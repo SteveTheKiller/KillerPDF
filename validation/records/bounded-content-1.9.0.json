@@ -1,0 +1,21 @@
+{
+  "engineApplicationSha256": "BD98494D214CD503045F2CE93B28AF3C7731FCDB0B63952DC2F26E66E351154D",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "file": "bomb_giant.pdf",
+  "inputSha256": "A33BC9FF49DF11644E5790ADD536DF87B702684B729999539DF32AE655FD6DD1",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "before": "FAIL: Decoded stream exceeds the configured safety limit.",
+  "after": "OK with incomplete-content diagnostic",
+  "renderMilliseconds": 269,
+  "dimensions": [791, 1024],
+  "baselineDimensions": [791, 1024],
+  "rgbMeanAbsoluteError": 0.2857686077749684,
+  "visualCheck": "Both text lines are present at the expected positions. Glyph rasterization differs from PDFium. The three 100000 by 100000 JBIG2 content streams remain undecoded; each would require 1250000000 bitmap bytes.",
+  "diagnostics": ["Page content was truncated because a stream could not be decoded."],
+  "baselineSource": "../benchmarks/1.9.0-pdfjs-object-index/render-comparison-summary.csv",
+  "tests": { "newCases": 2, "failedBefore": 1, "engine": 2840, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614, "comparison": "page-cycle-1.9.0.json" },
+  "behavior": "Display rendering and extraction retain previously decoded page content after a later filter failure in compatibility mode, stop subsequent streams, and report truncation. A failure before any prefix still propagates. Strict reading, public raw-instruction reading, direct stream decoding, and decoding limits remain unchanged.",
+  "limitations": "This is incomplete-content recovery, not successful decoding of the oversized streams. Full PDF.js totals have not been rerun. Single-file timing includes first-render warmup and is not throughput evidence."
+}

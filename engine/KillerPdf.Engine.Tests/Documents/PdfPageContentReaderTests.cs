@@ -8,6 +8,52 @@ namespace KillerPdf.Engine.Tests.Documents;
 public sealed class PdfPageContentReaderTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RecoveryPreservesPrefixBeforeOversizedJbig2Content(bool oversizedFirst)
+    {
+        // Page information alone declares a 1.25 GB bitmap. No bitmap should be allocated.
+        string encoded = Encoding.Latin1.GetString(Convert.FromHexString(
+            "0000000030000100000013000186A0000186A00000000000000000010000"));
+        string bomb = $"<< /Length {encoded.Length} /Filter /JBIG2Decode >>\nstream\n{encoded}\nendstream";
+        PdfDocument strict = Document("1 0 0 rg 0 0 20 20 re f BT /F1 12 Tf (Visible) Tj ET",
+            "", "", [bomb, Stream("0 0 1 rg 30 0 20 20 re f")],
+            oversizedFirst ? "[6 0 R 5 0 R 7 0 R]" : "[5 0 R 6 0 R 7 0 R]");
+        var options = new KillerPdf.Engine.Rendering.PdfRenderOptions(300, 400);
+        var failure = Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() =>
+            new PdfPageContentReader(strict).Read(0));
+        Assert.Contains("safety limit", failure.Message, StringComparison.Ordinal);
+        Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() =>
+            new KillerPdf.Engine.Rendering.PdfPageRenderer(strict).Render(0, options));
+        PdfDocument recovery = PdfDocument.OpenWithCompatibilityRecovery(strict.Source);
+        var oversized = Assert.IsType<KillerPdf.Engine.Objects.PdfStream>(recovery.Resolve(6));
+        Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() => recovery.DecodeStream(oversized));
+        var reader = new PdfPageContentReader(recovery);
+        // The raw instruction API used by editing paths must still reject incomplete content.
+        Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() => reader.ReadInstructions(0));
+        var renderer = new KillerPdf.Engine.Rendering.PdfPageRenderer(recovery);
+        if (oversizedFirst)
+        {
+            Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() => reader.Read(0));
+            Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() => renderer.Render(0, options));
+            return;
+        }
+        PdfPageContent content = reader.Read(0);
+        Assert.Equal("Visible", content.Text);
+        Assert.Contains("Page content was truncated because a stream could not be decoded.", content.Diagnostics);
+        foreach (int width in new[] { 300, 150 })
+        {
+            var rendered = renderer.Render(0, new KillerPdf.Engine.Rendering.PdfRenderOptions(width, 400));
+            Assert.Contains("Page content was truncated because a stream could not be decoded.", rendered.Diagnostics);
+            Assert.Equal(new byte[] { 0, 0, 255, 255 },
+                rendered.Pixels.Slice((390 * width + width / 30) * 4, 4).ToArray());
+            Assert.Equal(new byte[] { 255, 255, 255, 255 },
+                rendered.Pixels.Slice((390 * width + width * 2 / 15) * 4, 4).ToArray());
+        }
+        Assert.Throws<OperationCanceledException>(() => reader.Read(0, new CancellationToken(true)));
+    }
+
+    [Theory]
     [InlineData("/Height", "1")]
     [InlineData("1", "true")]
     [InlineData("null", "1")]
@@ -274,12 +320,13 @@ public sealed class PdfPageContentReaderTests
 
     private static string Stream(string content) => $"<< /Length {Encoding.Latin1.GetByteCount(content)} >>\nstream\n{content}\nendstream";
 
-    private static PdfDocument Document(string content, string crop, string extraResources, string[] extras)
+    private static PdfDocument Document(string content, string crop, string extraResources, string[] extras,
+        string contents = "5 0 R")
     {
         string fonts = extraResources.Contains("/Font") ? "" : "/Font << /F1 4 0 R >>";
         string[] objects = ["<< /Type /Catalog /Pages 2 0 R >>",
             $"<< /Type /Pages /Kids [3 0 R] /Count 1 /MediaBox [0 0 300 400] {crop} /Resources << {fonts} {extraResources} >> >>",
-            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            $"<< /Type /Page /Parent 2 0 R /Contents {contents} >>",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", Stream(content), .. extras];
         var pdf = new StringBuilder("%PDF-1.7\n");
         var offsets = new List<int>();
