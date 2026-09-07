@@ -294,7 +294,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Lbl_Crop">Ritaglia</sys:String>
     <sys:String x:Key="Str_Lbl_Measure">Misura</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">Trasforma</sys:String>
-    <sys:String x:Key="Str_Lbl_Stamp">Stampa</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Marcatura</sys:String>
     <sys:String x:Key="Str_Lbl_Image">Aggiungi immagine</sys:String>
     <sys:String x:Key="Str_Lbl_Signature">Firma</sys:String>
     <sys:String x:Key="Str_Lbl_Undo">Annulla</sys:String>
