@@ -9,6 +9,37 @@ namespace KillerPdf.Engine.Tests.Filters;
 
 public sealed class PdfJpeg2000TileTests
 {
+    [Theory]
+    [InlineData(33, 65, 1)]
+    [InlineData(65, 33, 1)]
+    [InlineData(129, 257, 1)]
+    [InlineData(257, 129, 1)]
+    [InlineData(33, 65, 3)]
+    [InlineData(65, 33, 3)]
+    [InlineData(129, 257, 3)]
+    [InlineData(257, 129, 3)]
+    public void LosslessRectangularTilesPreserveVaryingRowsAndColumns(int width, int height, int components)
+    {
+        int[][] samples = Enumerable.Range(0, components).Select(component =>
+            Enumerable.Range(0, width * height).Select(index =>
+                ((index % width * 17 + index / width * 29 + component * 53) & 255) - 128).ToArray()).ToArray();
+        var source = new InterleavedImageSource(width, height, components, 8, new bool[components], samples);
+        var parameters = new J2KEncoderConfiguration().WithLossless()
+            .WithTiles(tiles => tiles.SetSize(64, 128)).ToParameterList();
+        parameters["Wlev"] = "3";
+        byte[] encoded = J2kImage.ToBytes(source, parameters);
+
+        for (int repeat = 0; repeat < 2; repeat++)
+        {
+            Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(encoded, 1_000_000, -1);
+            Assert.Equal(width, decoded.Width);
+            Assert.Equal(height, decoded.Height);
+            Assert.Equal(width * height * components, decoded.Samples.Length);
+            for (int pixel = 0; pixel < width * height; pixel++)
+            for (int component = 0; component < components; component++)
+                Assert.Equal(samples[component][pixel] + 128, decoded.Samples[pixel * components + component]);
+        }
+    }
 
     [Theory]
     [InlineData(false)]

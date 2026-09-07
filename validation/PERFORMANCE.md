@@ -3,6 +3,32 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 JPEG 2000 column reconstruction
+
+Validation date: 2026-09-07. Contiguous column reconstruction reduced the focused
+`balloon_a1b_jp2k.pdf` warmed render median from 327.767 ms to 261.181 ms,
+about 20.3 percent. Three before/after processes each rendered page one 15 times
+at 752 by 1024 pixels with annotations and forms enabled. The first three
+iterations per process are retained but excluded from medians. Process order
+was before/after, after/before, before/after; no builds or tests overlapped.
+All 90 pixel hashes match and every render has zero diagnostics.
+
+Median render-thread allocations increased from 16,594,928 to 16,662,464 bytes.
+The extra column buffer counts toward the existing 256 MiB temporary sample
+limit. These are allocation counts, not peak or retained process memory.
+The first render is retained separately; it does not isolate cold startup or JIT.
+
+The 649-file conformance pass retains 614 OK, 35 SKIP, and zero FAIL, with all
+614 PNGs identical to the prior Courier build. Four additional PDF.js JPEG 2000
+pages, including `issue19517.pdf`, also retain identical pixels and input hashes.
+All 2,969 engine and 338 app tests
+pass, including eight new rectangular-tile cases and existing independent
+OpenJPEG references. The Release build has zero warnings and errors.
+This focused gain does not establish overall superiority to PDFium; a new paired
+throughput measurement remains necessary. See the
+[record](records/jp2-columns-1.9.0.json) and
+[raw measurements](benchmarks/1.9.0-jp2-columns).
+
 ## KillerPDF 1.9.0 combined Courier and comb-field audit
 
 Validation date: 2026-09-07. The isolated PDFjs audit covers all 979 files at

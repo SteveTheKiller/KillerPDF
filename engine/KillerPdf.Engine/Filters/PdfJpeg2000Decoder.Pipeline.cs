@@ -157,7 +157,7 @@ internal static partial class PdfJpeg2000Decoder
                 SubbandSyn tree = _source.GetSynSubbandTree(TileIdx, component);
                 int width = GetTileCompWidth(TileIdx, component), height = GetTileCompHeight(TileIdx, component);
                 long bytes = checked((long)width * height * sizeof(int));
-                long scratchBytes = (long)Math.Max(width, height) * sizeof(int);
+                long scratchBytes = ((long)Math.Max(width, height) + height) * sizeof(int);
                 if (width < 0 || height < 0 || bytes + scratchBytes > MaximumTemporarySampleBytes - _sampleBytes)
                     throw new PdfFilterException("JPEG 2000 temporary samples exceed the configured safety limit.");
                 bool integer = tree.HorWFilter is null || tree.HorWFilter.DataType == DataBlk.TYPE_INT;
@@ -180,7 +180,8 @@ internal static partial class PdfJpeg2000Decoder
                 frame.h = height;
                 frame.Data = samples;
                 Array scratch = integer ? new int[Math.Max(width, height)] : new float[Math.Max(width, height)];
-                Reconstruct(frame, tree, component, Level(TileIdx, component), scratch);
+                Array columnOutput = integer ? new int[height] : new float[height];
+                Reconstruct(frame, tree, component, Level(TileIdx, component), scratch, columnOutput);
                 _frames.Add(component, frame);
                 _sampleBytes += bytes;
             }
@@ -204,7 +205,8 @@ internal static partial class PdfJpeg2000Decoder
             return block;
         }
 
-        private void Reconstruct(DataBlk frame, SubbandSyn tree, int component, int level, Array scratch)
+        private void Reconstruct(DataBlk frame, SubbandSyn tree, int component, int level,
+            Array scratch, Array columnOutput)
         {
             if (tree.w == 0 || tree.h == 0) return;
             if (!tree.isNode)
@@ -220,11 +222,11 @@ internal static partial class PdfJpeg2000Decoder
                 }
                 return;
             }
-            Reconstruct(frame, (SubbandSyn)tree.LL, component, level, scratch);
+            Reconstruct(frame, (SubbandSyn)tree.LL, component, level, scratch, columnOutput);
             if (tree.resLvl > level) return;
-            Reconstruct(frame, (SubbandSyn)tree.HL, component, level, scratch);
-            Reconstruct(frame, (SubbandSyn)tree.LH, component, level, scratch);
-            Reconstruct(frame, (SubbandSyn)tree.HH, component, level, scratch);
+            Reconstruct(frame, (SubbandSyn)tree.HL, component, level, scratch, columnOutput);
+            Reconstruct(frame, (SubbandSyn)tree.LH, component, level, scratch, columnOutput);
+            Reconstruct(frame, (SubbandSyn)tree.HH, component, level, scratch, columnOutput);
             Array values = SampleArray(frame);
             for (int row = 0; row < tree.h; row++)
             {
@@ -246,7 +248,20 @@ internal static partial class PdfJpeg2000Decoder
                     var line = (float[])scratch;
                     for (int row = 0; row < tree.h; row++) line[row] = floats[offset + row * frame.w];
                 }
-                Synthesize(tree.vFilter, tree.ulcy, tree.h, scratch, values, offset, frame.w);
+                // Keep the lifting filter's repeated reads and writes contiguous.
+                // Only gathering and scattering traverse the tile's column stride.
+                Synthesize(tree.vFilter, tree.ulcy, tree.h, scratch, columnOutput, 0, 1);
+                if (values is int[] integerOutput)
+                {
+                    var line = (int[])columnOutput;
+                    for (int row = 0; row < tree.h; row++) integerOutput[offset + row * frame.w] = line[row];
+                }
+                else
+                {
+                    var floatOutput = (float[])values;
+                    var line = (float[])columnOutput;
+                    for (int row = 0; row < tree.h; row++) floatOutput[offset + row * frame.w] = line[row];
+                }
             }
         }
 

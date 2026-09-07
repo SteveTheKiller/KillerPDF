@@ -1,0 +1,108 @@
+{
+  "date": "2026-09-07",
+  "beforeCommit": "b468ec8caf9d7c753b995209145451ff74b9b7e2",
+  "beforeEngineSha256": "1413493CB2716C60DE5DE41D0584BF4A0642688E7EB2DF1ECA24FCCBC5066536",
+  "afterEngineSha256": "80EE1F4389E10497040467B6853090E62477B58FA42BBA1AA2E09559D22AA356",
+  "afterAppSha256": "1BDEC3D4DE7FBD605B9DB7FDE2227A9BD8859425A54C459EE1A24C522C7F9729",
+  "input": "preservation/openpreserve-format-corpus/pdfCabinetOfHorrors/balloon_a1b_jp2k.pdf",
+  "inputSha256": "7E5F457DBF1EE161E1377A29723C1F03B3C94BA3D2322A7BB972DD1CA0A87B79",
+  "settings": {
+    "page": 1,
+    "width": 752,
+    "height": 1024,
+    "annotations": true,
+    "forms": true,
+    "recovery": true,
+    "processesPerBuild": 3,
+    "iterations": 15,
+    "excludedWarmupIterations": 3
+  },
+  "measurement": "Before/after, after/before, before/after process order. Source loaded once per process. New document and renderer per iteration before timing Render. Hashing, opening, and file I/O excluded. Render options and Stopwatch allocations included. No overlapping builds, tests, or heavy jobs. Median of three process medians.",
+  "runs": {
+    "Before": [
+      {
+        "medianRenderMilliseconds": 340.781,
+        "medianThreadAllocatedBytes": 16594928,
+        "firstRenderMilliseconds": 597.053
+      },
+      {
+        "medianRenderMilliseconds": 327.7665,
+        "medianThreadAllocatedBytes": 16594928,
+        "firstRenderMilliseconds": 588.617
+      },
+      {
+        "medianRenderMilliseconds": 326.508,
+        "medianThreadAllocatedBytes": 16594928,
+        "firstRenderMilliseconds": 575.843
+      }
+    ],
+    "After": [
+      {
+        "medianRenderMilliseconds": 264.0635,
+        "medianThreadAllocatedBytes": 16662464,
+        "firstRenderMilliseconds": 676.034
+      },
+      {
+        "medianRenderMilliseconds": 261.18100000000004,
+        "medianThreadAllocatedBytes": 16662464,
+        "firstRenderMilliseconds": 527.192
+      },
+      {
+        "medianRenderMilliseconds": 257.658,
+        "medianThreadAllocatedBytes": 16662464,
+        "firstRenderMilliseconds": 536.563
+      }
+    ]
+  },
+  "ratio": 0.7968508069006441,
+  "identicalRenders": 90,
+  "pixelSha256": "7663D5160A6472B77434DA4E5ABD2C532C533B3E722B122DD8FFFB83B85572E2",
+  "conformance": {
+    "inputs": 649,
+    "ok": 614,
+    "skip": 35,
+    "fail": 0,
+    "identicalPngs": 614,
+    "comparison": "conformance-courier-postscript-20260907",
+    "settings": "1024 maximum dimension, page one"
+  },
+  "pdfjsFocused": {
+    "comparison": "pdfjs-full-courier-comb-20260907",
+    "files": [
+      {
+        "file": "test\\pdfs\\bug_jpx.pdf",
+        "inputSha256": "4010d808557a72278368c05518367735ed186cbdd04974b8506275f9ac40f999",
+        "pngSha256": "d1c3c2a8e5f7ecb45f0493f713932d1d73dcaf9486ffdbf566c8ed49218cb998",
+        "identical": true
+      },
+      {
+        "file": "test\\pdfs\\issue19517.pdf",
+        "inputSha256": "908c133880c7148864102eab517224d524cdd32769d2ae0f1e6d69e75a0471d6",
+        "pngSha256": "f1e863b4e53e7de99746830ac4ce615830ff8060ce20f5dee59c4b958ef938a6",
+        "identical": true
+      },
+      {
+        "file": "test\\pdfs\\jpx_smaskindata.pdf",
+        "inputSha256": "a82813559c74f074b0caf92c80875fc018acb737269a2af5508c7e083b2a5fd3",
+        "pngSha256": "e009eb0573323a5248cdde55c9dbde87b76e55a8272b7783e6f0de2539cad9ce",
+        "identical": true
+      },
+      {
+        "file": "test\\pdfs\\jp2k-resetprob.pdf",
+        "inputSha256": "582da92f1cad4fa47639e5df5c29ebba6e4ae432ba5e9283297ee6e5e88d7efa",
+        "pngSha256": "c5339619cc92dc7fe3d4a107d297fcfae9413676995f4caf13a74aec027a1b3f",
+        "identical": true
+      }
+    ]
+  },
+  "tests": {
+    "newCases": 8,
+    "jpeg2000": 35,
+    "engine": 2969,
+    "app": 338,
+    "releaseWarnings": 0,
+    "releaseErrors": 0
+  },
+  "behavior": "Vertical wavelet lifting writes contiguous column output before scattering to the tile. Filter arithmetic and sample order unchanged. The extra column buffer is included in the existing 256 MiB temporary sample bound.",
+  "limitations": "Selected single-file speedup is not general throughput evidence. No new PDFium comparison, peak process memory, cold startup isolation, full PDF.js audit, or OCR evaluation. Thread allocations increase by 67536 bytes in the focused warmed medians."
+}
