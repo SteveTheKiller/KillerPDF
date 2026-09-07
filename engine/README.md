@@ -166,6 +166,9 @@ page icons, extraction, replacement, comparison, and collection metadata.
 See [fonts, text codes, and outlines](docs/fonts.md) for resource inspection,
 standard-font coverage, host resolvers, embedding, and glyph geometry.
 
+See [annotations and review comments](docs/annotations.md) for threaded notes,
+source identities, exports, incremental edits, and appearance boundaries.
+
 ## Repository layout
 
 ```text
@@ -173,7 +176,7 @@ engine/
   KillerPdf.Engine/          Reusable library
   KillerPdf.Engine.Tests/    Unit and regression tests
   KillerPdf.Engine.Corpus/   Corpus gates and standards smoke generators
-  docs/                      Architecture records
+  docs/                      Integration guides and architecture records
   CHANGELOG.md               Engine-only release history
   README.md                  This developer entry point
 ```
