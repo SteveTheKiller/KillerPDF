@@ -3,6 +3,50 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 engine rendering compared with 1.8.5 PDFium rendering (informal)
+
+Benchmark date: 2026-09-06
+
+This is an informal development baseline, not a release benchmark. It compares the
+1.9.0 engine-owned page renderer against the PDFium renderer that 1.8.x ships, using the
+`--batch-render` command added to both lines and `Benchmark-Versions.ps1 -Mode Render`.
+Both builds were Release builds from source on the same day; neither was a packaged release.
+
+On the 649-file conformance collection, first page only, fitted inside 1024 px, three
+alternating measured runs after one warmup each:
+
+| Version | Median wall seconds | Pages rendered | Failed pages | Median ms per page |
+|---|---:|---:|---:|---:|
+| 1.8.5 (PDFium) | 30.365 | 600 | 8 | 7 |
+| 1.9.0 (engine) | 52.281 | 527 | 26 | 14 |
+
+Wall seconds include process startup, file enumeration, and PNG encoding for every
+file. Render-only time summed from the per-page log was 15 to 16 seconds per pass for
+PDFium and 30 to 36 seconds for the engine. Per-file status transitions from PDFium to
+the engine: 525 rendered by both, 49 rendered by PDFium but skipped by the engine (the
+engine refuses to open files with no PDF header, a non-dictionary catalog, invalid Flate
+data, page-tree cycles, or a password it was not given), 26 rendered by PDFium but failed
+by the engine, and 2 failed by PDFium but rendered by the engine.
+
+The slowest engine pages were the Altona technical test suites and the OpenPreserve
+poster and error-set files, at 1.1 to 2.3 seconds each against 0.5 to 0.9 seconds in
+PDFium. The engine took 1.05 seconds on `OverlappingGlyphClipping.pdf` where PDFium took
+13 milliseconds.
+
+The 16,696-file regression collection was started with the same settings. PDFium spent
+about five minutes on each of the pdfcpu Unifont SMP test files
+(`regression\pdfcpu\fonts\user`), which the engine renders in about 1.4 seconds, so that
+run was left to complete in the background and its results are not recorded here.
+
+### Test system
+
+| Component | Value |
+|---|---|
+| Operating system | Windows 11 Pro 10.0.26200 |
+| CPU | AMD Ryzen 5 3600 6-Core Processor |
+| Memory | 32 GB DDR4-3200 |
+| Storage | 2 TB SPCC M.2 PCIe NVMe SSD |
+
 ## KillerPDF 1.8.1 compared with 1.8.0
 
 Benchmark date: 2026-08-29
