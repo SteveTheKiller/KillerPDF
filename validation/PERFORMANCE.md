@@ -3,6 +3,21 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 bundled font metrics
+
+Validation date: 2026-09-07. Missing descriptor ascent and descent now follow
+the bundled TrueType font used for outlines. Explicit, embedded, and host font
+metrics retain precedence. Eight new cases bring the full suites to 2,923
+engine and 338 app tests, with a clean Release build.
+
+Seven focused files remain OK. Five images change and were visually reviewed:
+four have lower pixel error against PDFium and `bug1796741.pdf` has a small
+increase. Horizontal padding and font shape differences remain unresolved.
+Two outputs remain identical. All 614 accepted conformance PNGs remain identical,
+with 35 skips and no failures across 649 inputs. This is a layout correction,
+not a new throughput result. See the [record](records/fallback-metrics-1.9.0.json)
+and [raw logs](benchmarks/1.9.0-fallback-metrics).
+
 ## KillerPDF 1.9.0 missing widget appearances
 
 Validation date: 2026-09-07. Requested single-line appearances can now be

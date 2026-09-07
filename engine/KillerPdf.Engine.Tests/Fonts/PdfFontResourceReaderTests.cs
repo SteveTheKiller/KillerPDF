@@ -13,6 +13,45 @@ public sealed class PdfFontResourceReaderTests
     private static readonly PdfDocument Document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
 
     [Theory]
+    [InlineData("Helvetica", 1854, -434)]
+    [InlineData("Times-Roman", 1825, -443)]
+    [InlineData("Courier", 1705, -615)]
+    public void MissingDescriptorMetricsUseTheBundledOutlineFont(string name, int ascent, int descent)
+    {
+        PdfExtractionFont font = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name))));
+        // Independently read hhea metrics and the 2048-unit em from the bundled font files.
+        Assert.Equal(ascent * 1000d / 2048, font.Ascent);
+        Assert.Equal(descent * 1000d / 2048, font.Descent);
+    }
+
+    [Theory]
+    [InlineData("Helvetica")]
+    [InlineData("Times-Roman")]
+    [InlineData("Courier")]
+    public void ExplicitDescriptorMetricsOverrideBundledFontMetrics(string name)
+    {
+        PdfExtractionFont font = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name)),
+            ("FontDescriptor", D(("Ascent", new PdfInteger(750)), ("Descent", new PdfInteger(-180))))));
+        Assert.Equal(750, font.Ascent);
+        Assert.Equal(-180, font.Descent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EmbeddedAndHostMetricsKeepPrecedenceOverBundledMetrics(bool hosted)
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);
+        PdfDictionary resource = D(("Subtype", N("TrueType")), ("BaseFont", N("Helvetica")));
+        PdfExtractionFont font = hosted
+            ? PdfFontResourceReader.Read(Document, resource, new TestFontResolver(bytes))
+            : Read(D(("Subtype", N("TrueType")), ("BaseFont", N("Helvetica")),
+                ("FontDescriptor", D(("FontFile2", new PdfStream(D(), bytes))))));
+        Assert.Equal(800, font.Ascent);
+        Assert.Equal(-200, font.Descent);
+    }
+
+    [Theory]
     [InlineData("Symbol")]
     [InlineData("ZapfDingbats")]
     public void EmbeddedStandardSymbolProgramsKeepTheirOwnOutlines(string name)

@@ -255,8 +255,9 @@ public static class PdfFontResourceReader
             double originY = defaultVertical is { Count: >= 2 } ? Number(Resolve(defaultVertical[0])) : 880;
             double advanceY = defaultVertical is { Count: >= 2 } ? Number(Resolve(defaultVertical[1])) : -1000;
             double defaultWidth = composite ? Number(Get(metrics, "DW"), 1000) : Number(Get(descriptor, "MissingWidth"), 0);
-            double ascent = Number(Get(descriptor, "Ascent"), embedded is null ? 800 : embedded.Ascender * 1000d / embedded.UnitsPerEm);
-            double descent = Number(Get(descriptor, "Descent"), embedded is null ? -200 : embedded.Descender * 1000d / embedded.UnitsPerEm);
+            TrueTypeFont? metricFont = embedded ?? (cff is null && type1 is null ? substitute : null);
+            double ascent = Number(Get(descriptor, "Ascent"), metricFont is null ? 800 : metricFont.Ascender * 1000d / metricFont.UnitsPerEm);
+            double descent = Number(Get(descriptor, "Descent"), metricFont is null ? -200 : metricFont.Descender * 1000d / metricFont.UnitsPerEm);
             if (ascent <= descent)
             {
                 if (Get(descriptor, "FontBBox") is PdfArray { Count: 4 } box)

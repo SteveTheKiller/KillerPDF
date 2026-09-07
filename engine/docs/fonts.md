@@ -57,6 +57,13 @@ transforms before comparing them with rendered pixels. Contours contain on-curve
 points and quadratic or cubic control points; connecting every point with a
 straight line does not reproduce the glyph.
 
+Explicit descriptor ascent and descent take precedence. When either is absent,
+the engine uses the embedded or host-resolved TrueType metrics, or the bundled
+TrueType substitute's metrics when that font supplies the outlines. CFF, Type 1,
+and Type 3 resources without descriptor metrics retain the generic fallback.
+These values affect regenerated field centering and fallback text bounds; PDF
+advance widths and available glyph-specific bounds remain separate.
+
 ## Standard fonts and substitutions
 
 Unembedded ordinary standard fonts have bundled Liberation substitutes. The
