@@ -175,6 +175,9 @@ source identities, exports, incremental edits, and appearance boundaries.
 See [accessibility inspection and tagged content](docs/accessibility.md) for
 logical reading order, reviewed semantic proposals, and targeted repairs.
 
+See [structured text and Office export](docs/exporting.md) for output formats,
+representation losses, font maps, reviewed OCR, and batch outcomes.
+
 ## Repository layout
 
 ```text
