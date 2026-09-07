@@ -3,6 +3,35 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 translucent painting over opaque pixels
+
+Validation date: 2026-09-07. Reusing exact compositor results reduces the focused
+compact-syntax page's warmed median from 18.490 to 13.292 ms (28.1 percent).
+Three alternating before/after processes each render 15 times at 1024 by 724;
+the first three iterations are excluded. All 90 pixel hashes match. Render-thread
+allocations increase by 4,192 bytes per iteration for the small blend tables.
+
+Three paired conformance passes retain 614 OK, 35 SKIP, zero FAIL and identical
+engine PNGs, versus PDFium 1.8.5's 600 OK, 41 SKIP, eight FAIL. Shared-file median
+render totals are 14.435 versus 12.525 seconds, a ratio of 1.1525. Median wall
+times are 29.079 versus 23.296 seconds; sampled peak working sets are 1,089.5
+versus 641.3 MB. The engine remains slower and uses more memory. The compact
+page's collection median is still 130 ms versus PDFium's 4 ms, so the isolated
+warmed gain must not be presented as its collection performance.
+
+All 2,995 engine and 338 app tests pass with zero Release warnings or errors.
+Sixteen new cases verify all opaque backdrop byte values at four opacities and
+channel/transparent-border behavior. Six focused PDFjs transparency files retain
+their input and PNG hashes. No existing test expectations were relaxed.
+
+The table is 1 KiB per eligible paint and uses the original compositor, preserving
+rounding. Other blend modes, masks, knockout, transparent destinations, and edge
+coverage retain existing processing. Initial opaque-span experiments showed no
+gain on this translucent page and were removed. No heavy work overlapped the
+paired runs. Cold startup, broader coverage, and OCR remain separate work.
+See the [record](records/opaque-blend-1.9.0.json) and
+[all raw measurements](benchmarks/1.9.0-opaque-blend).
+
 ## KillerPDF 1.9.0 exact axial shading sample reuse
 
 Validation date: 2026-09-07. Reusing exact axial shading inputs reduces the focused

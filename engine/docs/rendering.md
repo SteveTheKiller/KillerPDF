@@ -287,6 +287,14 @@ functions without quantizing gradients. Clipping, opacity, masks, blending, and
 knockout still apply separately to every pixel. Other gradient directions keep
 the existing evaluation path.
 
+## Translucent painting over opaque pixels
+
+Large translucent fills and strokes can reuse a 1 KiB table for normal blending
+over opaque destination pixels. The existing compositor calculates every table
+entry, preserving its rounding. Reuse requires full shape and clip coverage,
+with no graphics soft mask or knockout. Edge coverage, transparent destinations,
+other blend modes, and smaller shapes keep the ordinary compositor.
+
 ## JPEG 2000 decoding and opacity channels
 
 Tile reconstruction reuses integer and floating-point sample arrays. Every rented

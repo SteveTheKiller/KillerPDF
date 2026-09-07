@@ -787,8 +787,12 @@ public sealed partial class PdfPageRenderer
             bottom = Math.Min(bottom, clip.Mask.Bottom);
         }
         if (right <= left || bottom <= top) return;
-        bool direct = alpha >= 1 && graphicsSoftMask is null && knockout is null
+        bool simpleBlend = graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        bool direct = alpha >= 1 && simpleBlend;
+        byte[]? opaqueBlend = simpleBlend && alpha > 0 && alpha < 1
+            && (long)(right - left) * (bottom - top) >= 4096
+            ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
         byte[]? coverage = mask.Coverage;
         for (int y = top; y < bottom; y++)
         {
@@ -824,10 +828,35 @@ public sealed partial class PdfPageRenderer
                         continue;
                     }
                 }
+                if (opaqueBlend is not null && cover == 255)
+                {
+                    int offset = (y * width + x) * 4;
+                    if (pixels[offset + 3] == 255)
+                    {
+                        pixels[offset] = opaqueBlend[pixels[offset] * 4];
+                        pixels[offset + 1] = opaqueBlend[pixels[offset + 1] * 4 + 1];
+                        pixels[offset + 2] = opaqueBlend[pixels[offset + 2] * 4 + 2];
+                        continue;
+                    }
+                }
                 SetPixel(pixels, width, x, y, color, alpha * cover / 255d, blendMode,
                     graphicsSoftMask, knockout);
             }
         }
+    }
+
+    private static byte[] CreateOpaqueBlendLookup(Color color, double alpha, RendererBlendMode blendMode)
+    {
+        var lookup = new byte[256 * 4];
+        for (int value = 0; value < 256; value++)
+        {
+            int offset = value * 4;
+            lookup[offset] = lookup[offset + 1] = lookup[offset + 2] = (byte)value;
+            lookup[offset + 3] = 255;
+            // Use the original compositor to preserve its floating-point rounding.
+            SetPixel(lookup, 256, value, 0, color, alpha, blendMode);
+        }
+        return lookup;
     }
 
     /// <summary>Unions two masks by taking the larger coverage.</summary>

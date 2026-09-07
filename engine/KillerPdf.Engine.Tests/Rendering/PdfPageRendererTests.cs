@@ -16,6 +16,67 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData(.1)]
+    [InlineData(.33)]
+    [InlineData(.5)]
+    [InlineData(.66)]
+    public void Render_TranslucentFillPreservesEveryOpaqueBackdropValue(double opacity)
+    {
+        var content = new PdfContentStreamBuilder();
+        for (int value = 0; value < 256; value++)
+            content.SetFillGray(value / 255d).Rectangle(value, 0, 1, 32).Fill();
+        content.SetOpacity(opacity).SetFillRgb(.2, .4, .8).Rectangle(0, 0, 256, 32).Fill();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(256, 32, content).Build());
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(256, 32, includeAnnotations: false, includeFormFields: false));
+        double alpha = opacity * 255 / 255d;
+        double outputAlpha = alpha + (1 - alpha);
+        for (int y = 0; y < 32; y++)
+        for (int value = 0; value < 256; value++)
+        {
+            byte Blend(byte source) => (byte)Math.Round(Math.Clamp(
+                ((1 - alpha) * (value / 255d) + alpha * (source / 255d)) / outputAlpha, 0, 1) * 255);
+            Assert.Equal([Blend(204), Blend(102), Blend(51), 255], Pixel(rendered, value, y));
+        }
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(7, false)]
+    [InlineData(8, false)]
+    [InlineData(9, false)]
+    [InlineData(31, false)]
+    [InlineData(32, false)]
+    [InlineData(33, false)]
+    [InlineData(7, true)]
+    [InlineData(8, true)]
+    [InlineData(9, true)]
+    [InlineData(31, true)]
+    [InlineData(32, true)]
+    [InlineData(33, true)]
+    public void Render_OpaqueRunsPreserveChannelsAndAdjacentTransparentPixels(int runLength, bool clipped)
+    {
+        int width = runLength + 6;
+        var content = new PdfContentStreamBuilder();
+        if (clipped) content.Rectangle(1, 0, width - 2, 4).Clip();
+        content.SetFillRgb(1, 0, .5).Rectangle(2, 1, runLength, 2).Fill()
+            .SetFillRgb(0, 1, 0).Rectangle(3, 1, 1, 1).Fill();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(width, 4, content).Build());
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(width, 4, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+        for (int y = 0; y < 4; y++)
+        for (int x = 0; x < width; x++)
+        {
+            byte[] expected = x == 3 && y == 2 ? [0, 255, 0, 255]
+                : x >= 2 && x < runLength + 2 && y is 1 or 2 ? [128, 0, 255, 255]
+                : [255, 255, 255, 0];
+            Assert.Equal(expected, Pixel(rendered, x, y));
+        }
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
