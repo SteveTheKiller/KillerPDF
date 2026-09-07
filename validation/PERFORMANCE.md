@@ -13,25 +13,34 @@ This is an informal development baseline, not a release benchmark. It compares t
 Both builds were Release builds from source on the same day; neither was a packaged release.
 
 On the 649-file conformance collection, first page only, fitted inside 1024 px, three
-alternating measured runs after one warmup each:
+alternating measured runs after one warmup each. The first pass was measured before the
+engine's anti-aliased rasterizer, one-pass image conversion, and viewer-style file
+recovery landed; the second pass was measured after them on the same day.
 
-| Version | Median wall seconds | Pages rendered | Failed pages | Median ms per page |
-|---|---:|---:|---:|---:|
-| 1.8.5 (PDFium) | 30.365 | 600 | 8 | 7 |
-| 1.9.0 (engine) | 52.281 | 527 | 26 | 14 |
+| Version | Median wall seconds | Pages rendered | Skipped | Failed | Median ms per page |
+|---|---:|---:|---:|---:|---:|
+| 1.8.5 (PDFium) | 23.192 | 600 | 41 | 8 | 5 |
+| 1.9.0 (engine), before | 52.281 | 527 | 96 | 26 | 14 |
+| 1.9.0 (engine), after | 29.248 | 609 | 40 | 0 | 7 |
 
-Wall seconds include process startup, file enumeration, and PNG encoding for every
-file. Render-only time summed from the per-page log was 15 to 16 seconds per pass for
-PDFium and 30 to 36 seconds for the engine. Per-file status transitions from PDFium to
-the engine: 525 rendered by both, 49 rendered by PDFium but skipped by the engine (the
-engine refuses to open files with no PDF header, a non-dictionary catalog, invalid Flate
-data, page-tree cycles, or a password it was not given), 26 rendered by PDFium but failed
-by the engine, and 2 failed by PDFium but rendered by the engine.
+Wall seconds include process startup, JIT warmup on the first file, file enumeration,
+and PNG encoding for every file. Render-only time summed from the per-page log was 11.5
+to 11.9 seconds per pass for PDFium and 15.4 seconds for the engine after the changes,
+down from 30 to 36 seconds before them. On the 597 files both renderers accept, the engine
+spends 15.4 seconds against PDFium's 11.5 seconds, about 1.3 times.
 
-The slowest engine pages were the Altona technical test suites and the OpenPreserve
-poster and error-set files, at 1.1 to 2.3 seconds each against 0.5 to 0.9 seconds in
-PDFium. The engine took 1.05 seconds on `OverlappingGlyphClipping.pdf` where PDFium took
-13 milliseconds.
+Per-file status transitions from PDFium to the engine after the changes: 597 rendered by
+both, 10 skipped by PDFium but rendered by the engine (headers with no version or no
+`%PDF`, trailers with missing keywords or brackets), 2 failed by PDFium but rendered by
+the engine, 31 skipped by both, 6 failed by PDFium and skipped by the engine, and 3
+rendered by PDFium but skipped by the engine (the `UnknownFilter` cross-reference and
+object-stream cases, whose essential objects sit behind an undecodable filter).
+
+Before the changes the engine took 1.05 seconds on `OverlappingGlyphClipping.pdf` where
+PDFium took 13 milliseconds, 329 milliseconds on `LargeMitreLimit.pdf` against 2, and 1.1
+to 2.3 seconds on the Altona and OpenPreserve posters against 0.5 to 0.9. After them
+those pages take 119, 11, and 0.4 to 0.7 seconds. The remaining gap is JPEG and JPEG 2000
+entropy decoding in managed code and first-page JIT warmup.
 
 The 16,696-file regression collection was started with the same settings. PDFium spent
 about five minutes on each of the pdfcpu Unifont SMP test files
