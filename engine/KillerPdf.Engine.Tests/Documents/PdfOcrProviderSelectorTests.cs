@@ -86,8 +86,13 @@ public sealed class PdfOcrProviderSelectorTests
             [new PdfOcrTrainingSample("A", new float[] { 1f })]);
         var catalog = new PdfOcrRecognitionModelCatalog(
             [new KeyValuePair<string, PdfOcrRecognitionModel>("eng", model)]);
-        var provider = new PdfEngineOcrProvider(catalog, new Version(1, 0));
         var options = new PdfOcrOptions(["eng-US"]);
+        bool resolvedLanguageModel = false;
+        var provider = new PdfEngineOcrProvider(catalog, new Version(1, 0), receivedOptions =>
+        {
+            resolvedLanguageModel = ReferenceEquals(options, receivedOptions);
+            return PdfOcrLanguageModel.Train(["A"]);
+        });
         var pixels = new byte[32 * 132];
         for (int row = 0; row < 32; row++)
             for (int column = 0; column < 32 * 4; column++)
@@ -97,6 +102,7 @@ public sealed class PdfOcrProviderSelectorTests
         PdfOcrResult result = selected.RecognizeBgra(pixels, 32, 32, 132, options);
 
         Assert.Same(provider, selected);
+        Assert.True(resolvedLanguageModel);
         Assert.Empty(result.Words);
     }
 

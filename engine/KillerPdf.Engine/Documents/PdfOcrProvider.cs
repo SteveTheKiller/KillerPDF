@@ -169,12 +169,21 @@ public sealed class PdfOnnxOcrProvider : IPdfOcrRasterProvider
 public sealed class PdfEngineOcrProvider : IPdfOcrRasterProvider
 {
     private readonly PdfOcrRecognitionModelCatalog _models;
+    private readonly Func<PdfOcrOptions, PdfOcrLanguageModel?>? _selectLanguageModel;
 
     /// <summary>Creates the built-in engine OCR provider from its installed model catalog.</summary>
     public PdfEngineOcrProvider(PdfOcrRecognitionModelCatalog models, Version modelVersion,
+        int automaticPriority = 10) : this(models, modelVersion, null, automaticPriority)
+    {
+    }
+
+    /// <summary>Creates the built-in provider with optional language-context model resolution.</summary>
+    public PdfEngineOcrProvider(PdfOcrRecognitionModelCatalog models, Version modelVersion,
+        Func<PdfOcrOptions, PdfOcrLanguageModel?>? selectLanguageModel,
         int automaticPriority = 10)
     {
         _models = models ?? throw new ArgumentNullException(nameof(models));
+        _selectLanguageModel = selectLanguageModel;
         ArgumentNullException.ThrowIfNull(modelVersion);
         Descriptor = new PdfOcrProviderDescriptor("engine", "KillerPDF Engine OCR",
             modelVersion, models.Languages, automaticPriority);
@@ -213,12 +222,19 @@ public sealed class PdfEngineOcrProvider : IPdfOcrRasterProvider
         ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         PdfOcrRecognitionModel model = _models.SelectCombined(options.Languages).Model;
+        PdfOcrLanguageModel? languageModel = _selectLanguageModel?.Invoke(options);
         ReadOnlyMemory<byte> tightlyPacked = stride == rowBytes ? bgra : CopyRows();
+        if (languageModel is null)
+            return characterWhitelist is null
+                ? PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, options,
+                    cancellationToken)
+                : PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, options,
+                    characterWhitelist, cancellationToken);
         return characterWhitelist is null
-            ? PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, options,
-                cancellationToken)
-            : PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, options,
-                characterWhitelist, cancellationToken);
+            ? PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, languageModel,
+                options, cancellationToken)
+            : PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, languageModel,
+                options, characterWhitelist, cancellationToken);
 
         byte[] CopyRows()
         {
