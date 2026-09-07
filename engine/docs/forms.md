@@ -99,6 +99,33 @@ field appearances into page content and remove the fields. Review the rendered
 result and retain the original file if future form editing matters. A preserved
 byte prefix does not by itself establish signature validity.
 
+## Values and rendered appearances
+
+A field's current value and its saved widget appearance are separate PDF data.
+`PdfFormWidgetReader` reports field values; the renderer paints saved normal
+appearances from `/AP /N`. A normal appearance can be a stream or a dictionary
+of states selected by the widget's `/AS` name. A missing appearance, or a state
+dictionary without a matching selected state, contributes no painted widget.
+
+Enable `PdfRenderOptions.IncludeFormFields` to include widget appearances.
+`IncludeAnnotations` independently controls non-widget annotations. These
+options select existing appearances; they do not create an interactive form UI
+or regenerate field content.
+
+The current renderer does not regenerate appearances when AcroForm
+`/NeedAppearances` is true. A field can therefore have a readable value while
+its saved appearance remains blank or stale. The corpus case `bug1883609.pdf`
+has this limitation for the values Man, 150, and Red. Successful rendering and
+an empty diagnostics collection do not prove that visible field text matches
+the values reported by the widget reader.
+
+For deliberate edits, `PdfIncrementalPageEditor` exposes `SetTextFieldValue`,
+`SetChoiceFieldValues`, `SetCheckBoxValue`, and `SetRadioButtonValue`; the
+interchange importer above uses the editing path for matched fields. Those
+operations change document data and must be saved explicitly. They are separate
+from read-only page rendering. Review both the reopened field values and the
+rendered appearances before accepting or flattening an edited form.
+
 ## Interchange boundaries
 
 `PdfXfdfFormData.Read` disables XML external resolution and prohibits DTDs,
@@ -117,4 +144,3 @@ The three functions were compiled and executed against the current engine.
 Validation covered widget counts, NoExport filtering, XFDF round-trip values,
 updated field values, preservation of the original PDF prefix, and rejection of
 an unknown destination field.
-
