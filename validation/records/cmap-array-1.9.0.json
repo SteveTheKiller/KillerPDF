@@ -1,0 +1,21 @@
+{
+  "engineApplicationSha256": "970EA980A561021004E5388764AC1A5065534AB8214D576B90A90A46094EEC8E",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue4875.pdf",
+    "inputSha256": "AF7509FA6526257E37EA0603844DAE7EE0E2CA7AA1EEE027FFA71B64C4FD2ADD",
+    "before": "FAIL",
+    "after": "OK",
+    "renderMilliseconds": 90,
+    "dimensions": [1024, 256],
+    "diagnostics": [],
+    "extractedText": "ABC",
+    "rgbMaeAgainstBaseline": 0.07309341430664062
+  },
+  "tests": { "newCases": 4, "failedBefore": 3, "engine": 2743, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limits": "Recovery retains supplied destinations only within the declared range. Missing mappings remain absent. Strict parsing still rejects mismatched arrays, and declared-range expansion limits remain enforced.",
+  "limitations": "Single-file render timing includes startup effects and is not a throughput comparison. Full PDF.js run at the previous build does not include this fix."
+}

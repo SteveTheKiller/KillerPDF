@@ -62,6 +62,11 @@ when followed by `def`, before the first mapping block. It does not apply that
 repair inside mapping data or to unrelated names. Strict font reading retains
 the original lexical validation.
 
+When a `ToUnicode` range's destination array has the wrong length, recovery uses
+only supplied entries within the declared range. Missing entries remain unmapped,
+and surplus entries do not create mappings beyond the range. The declared range
+still must fit the mapping limit. Strict parsing rejects the array-length mismatch.
+
 For non-pattern `sc`, `scn`, `SC`, and `SCN` color operations with an invalid
 component count, recovery consumes the required leading operands when extra
 values are present. An incomplete operation retains the current paint color.

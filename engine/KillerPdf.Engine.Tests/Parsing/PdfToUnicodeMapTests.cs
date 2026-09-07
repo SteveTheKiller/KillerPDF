@@ -77,6 +77,45 @@ public sealed class PdfToUnicodeMapTests
 
     private const string Space = "1 begincodespacerange <0000> <FFFF> endcodespacerange ";
 
+    [Theory]
+    [InlineData("<0041><0042><0043>", "ABC\uFFFD")]
+    [InlineData("", "\uFFFD\uFFFD\uFFFD\uFFFD")]
+    public void RecoveryRetainsOnlyAvailableRangeDestinations(string destinations, string expected)
+    {
+        byte[] source = Encoding.ASCII.GetBytes(Space
+            + $"1 beginbfrange <0000> <00ff> [{destinations}] endbfrange");
+
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        var map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+
+        Assert.Equal(expected, string.Concat(map.DecodeWithCompatibilityRecovery(
+            [0, 0, 0, 1, 0, 2, 0, 3]).Select(character => character.Text)));
+        Assert.Throws<NotSupportedException>(() => map.Decode([0, 3]));
+    }
+
+    [Fact]
+    public void RecoveryDoesNotMapArrayDestinationsBeyondTheDeclaredRange()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(Space
+            + "1 beginbfrange <0001> <0002> [<0041><0042><0043>] endbfrange");
+
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        var map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+
+        Assert.Equal("AB", string.Concat(map.Decode([0, 1, 0, 2]).Select(character => character.Text)));
+        Assert.Throws<NotSupportedException>(() => map.Decode([0, 3]));
+    }
+
+    [Fact]
+    public void RecoveryStillBoundsDeclaredRangesWithShortDestinationArrays()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(Space
+            + "1 beginbfrange <0000> <ffff> [<0041>] endbfrange");
+
+        Assert.Throws<FormatException>(() =>
+            PdfToUnicodeMap.ParseWithCompatibilityRecovery(source, maximumMappings: 10));
+    }
+
     [Fact]
     public void DecodesLigaturesAndSupplementaryCharacters()
     {
