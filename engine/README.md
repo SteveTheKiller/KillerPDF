@@ -154,6 +154,9 @@ coordinates, correction, searchable output, and held-out validation.
 See [AcroForm values and interchange](docs/forms.md) for widget reading,
 XFDF export, reviewed imports, incremental saves, and flattening boundaries.
 
+See [bookmarks, links, and opening destinations](docs/navigation.md) for navigation
+authoring, readers, host behavior, and initial-view edits.
+
 ## Repository layout
 
 ```text
