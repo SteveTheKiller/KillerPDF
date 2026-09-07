@@ -48,12 +48,13 @@ public sealed class PdfToUnicodeMap
         => ParseFont(source, true);
 
     internal static PdfToUnicodeMap ParseFont(ReadOnlyMemory<byte> source, bool simpleFont,
-        bool compatibilityRecovery = false, PdfToUnicodeMap? inherited = null)
+        bool compatibilityRecovery = false, PdfToUnicodeMap? inherited = null, bool identityFont = false)
         => ParseCore(PdfCMapMetadata.WithoutDictionaries(source, compatibilityRecovery), 65536, simpleFont,
-            compatibilityRecovery, inherited);
+            compatibilityRecovery, inherited, identityFont);
 
     private static PdfToUnicodeMap ParseCore(ReadOnlyMemory<byte> source, int maximumMappings,
-        bool simpleFont, bool compatibilityRecovery = false, PdfToUnicodeMap? inherited = null)
+        bool simpleFont, bool compatibilityRecovery = false, PdfToUnicodeMap? inherited = null,
+        bool identityFont = false)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumMappings);
         var map = new PdfToUnicodeMap();
@@ -156,6 +157,12 @@ public sealed class PdfToUnicodeMap
             foreach (var pair in normalized) map._characters[(pair.Key.Code, 1)] = pair.Value;
             map._spaces.Clear();
             map._spaces.Add((0, 255, 1));
+        }
+        else if (compatibilityRecovery && identityFont && map._characters.Count > 0
+            && map._characters.Keys.All(key => key.Length == 2))
+        {
+            map._spaces.Clear();
+            map._spaces.Add((0, 65535, 2));
         }
         else if (map._spaces.Count == 0 && compatibilityRecovery
             && map._characters.Count > 0)

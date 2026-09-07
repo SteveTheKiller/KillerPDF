@@ -134,8 +134,14 @@ still must fit the mapping limit. Strict parsing rejects the array-length mismat
 Recovery includes explicit mappings outside a declared code space by adding
 bounded ranges of the same byte width and merging overlapping ranges of that
 width. Unmapped codes still have no Unicode value. Existing or newly introduced
-ambiguity between character widths is rejected, and the 256-code-space limit
+ambiguity between character widths is rejected for standalone maps, and the 256-code-space limit
 remains in force. Strict parsing requires mappings to fit the declared spaces.
+
+For an Identity-H or Identity-V font, recovery uses the encoding's two-byte code
+space when every supplied Unicode mapping has a two-byte source and at least one
+mapping exists. This resolves conflicting code-space metadata without changing
+the source codes or Unicode destinations. Inherited maps use the same font
+context. Mixed mapping widths are not normalized, and strict parsing is unchanged.
 
 Recovery skips a `bfrange` entry whose source endpoints have different byte
 widths or descending values. Other entries remain available, and no Unicode

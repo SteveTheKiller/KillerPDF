@@ -12,6 +12,37 @@ public sealed class PdfFontResourceReaderTests
 {
     private static readonly PdfDocument Document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
 
+    [Theory]
+    [InlineData("Identity-H")]
+    [InlineData("Identity-V")]
+    public void RecoveryUsesIdentityEncodingForConflictingUnicodeCodeSpaces(string encoding)
+    {
+        const string source = "2 begincodespacerange <00> <ff> <0100> <ffff> endcodespacerange "
+            + "2 beginbfchar <0029> <0048> <0046> <0065> endbfchar";
+        PdfDictionary resource = Type0(D(), N(encoding), Stream(source));
+        Assert.Throws<FormatException>(() => Read(resource));
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.ParseWithCompatibilityRecovery(
+            Encoding.ASCII.GetBytes(source)));
+        var recovery = PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfExtractionFont font = PdfFontResourceReader.Read(recovery, resource);
+        var decoded = font.Decode(new byte[] { 0, 0x29, 0, 0x46 });
+        Assert.Equal("He", string.Concat(decoded.Select(character => character.Text)));
+        Assert.All(decoded, character => Assert.Equal(2, character.ByteLength));
+        Assert.Equal(new uint[] { 0x29, 0x46 }, decoded.Select(character => character.Code));
+    }
+
+    [Theory]
+    [InlineData("1 beginbfchar <29> <0048> endbfchar")]
+    [InlineData("1 beginbfchar <000029> <0048> endbfchar")]
+    [InlineData("0 beginbfchar endbfchar")]
+    public void RecoveryDoesNotGuessIdentityMappingWidths(string mappings)
+    {
+        PdfDictionary resource = Type0(D(), N("Identity-H"), Stream(
+            "2 begincodespacerange <00> <ff> <0100> <ffff> endcodespacerange " + mappings));
+        var recovery = PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build());
+        Assert.Throws<FormatException>(() => PdfFontResourceReader.Read(recovery, resource));
+    }
+
     [Fact]
     public void CompositeSubstitutionDoesNotTreatAnUnmappedGlyphIdAsUnicode()
     {
