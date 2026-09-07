@@ -110,6 +110,13 @@ broader fallback policy. Reuse resolver data and renderer instances when possibl
 repeated filesystem scans and font decoding can dominate a small page's render
 time. The example map is populated before use and does not mutate returned data.
 
+For an unembedded Adobe-Identity CIDFontType2 resource without a `ToUnicode` map,
+the engine applies `CIDToGIDMap` (or its identity default) to the supplied font.
+These values are glyph IDs, not Unicode scalars. Return the requested font with
+its original glyph ordering for this case. An unrelated substitute can place
+different characters at the same IDs. Extraction uses the supplied font's reverse
+character map when available; explicit PDF Unicode maps retain precedence.
+
 ## Embed text when authoring
 
 Supply font bytes whose license and embedding flags permit the intended use and

@@ -177,6 +177,11 @@ public static class PdfFontResourceReader
                     ? char.ConvertFromUtf32((int)cid) : null;
             }
             byte[]? cidToGid = Get(metrics, "CIDToGIDMap") is PdfStream gidStream ? Decode(gidStream) : null;
+            // An Identity CID without a Unicode map identifies a glyph in the requested font.
+            bool useHostCidGlyphs = resolvedData is not null && composite
+                && Name(Get(metrics, "Subtype")) == "CIDFontType2"
+                && registry == "Adobe" && ordering == "Identity"
+                && Get(font, "ToUnicode") is not PdfStream;
             bool useEncodedSymbol = embeddedData is not null
                 && embedded is { HasUnicodeCharacterMap: false }
                 && Get(font, "Encoding") is null
@@ -185,7 +190,7 @@ public static class PdfFontResourceReader
             {
                 if (composite)
                 {
-                    if (resolvedData is not null)
+                    if (resolvedData is not null && !useHostCidGlyphs)
                     {
                         string? mappedText = CharacterText(code);
                         return embedded is not null && !string.IsNullOrEmpty(mappedText)

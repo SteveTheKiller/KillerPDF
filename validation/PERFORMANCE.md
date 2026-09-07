@@ -3,6 +3,22 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 host Identity-font validation
+
+Validation date: 2026-09-07. Unembedded Adobe-Identity TrueType fonts without
+Unicode maps now use their glyph IDs in the requested host font. Five inspected
+samples recover the intended Latin, accented, and Cyrillic characters, including
+`VAT Code` and `Volumes`. Calibri glyph sizing and placement still differ from
+PDFium; one sample has higher aggregate pixel error despite corrected characters.
+This is a character-selection correction, with no general visual-parity claim.
+
+Conformance remains 614 OK, 35 SKIP, and zero failures. All 614 PNGs are identical
+to the portable Symbol run. Six regression cases failed before the correction;
+the complete suites now pass 2,875 engine and 338 app tests, with a clean Release
+build. [Evidence](records/host-identity-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-host-identity/) retain the measurements. Focused cold
+render timings do not establish throughput or a performance improvement.
+
 ## KillerPDF 1.9.0 portable Symbol and ZapfDingbats validation
 
 Validation date: 2026-09-07. Bundled standard-font outlines replace incorrect

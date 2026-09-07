@@ -317,6 +317,40 @@ public sealed class PdfFontResourceReaderTests
         Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
     }
 
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    [InlineData(false, 1)]
+    [InlineData(true, 1)]
+    [InlineData(false, 2)]
+    [InlineData(true, 2)]
+    public void HostIdentityFontWithoutUnicodeUsesGlyphIds(bool recovery, int mapKind)
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);
+        var entries = new List<(string Name, PdfObject Value)>
+        {
+            ("Subtype", N("CIDFontType2")),
+            ("CIDSystemInfo", D(("Registry", Text("Adobe")), ("Ordering", Text("Identity"))))
+        };
+        byte code = mapKind == 2 ? (byte)5 : (byte)1;
+        if (mapKind == 1) entries.Add(("CIDToGIDMap", N("Identity")));
+        if (mapKind == 2)
+        {
+            byte[] map = new byte[12];
+            map[11] = 1;
+            entries.Add(("CIDToGIDMap", new PdfStream(D(), map)));
+        }
+        PdfDocument document = recovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build())
+            : Document;
+        PdfExtractionFont font = PdfFontResourceReader.Read(document,
+            Type0(D(entries.ToArray()), N("Identity-H")), new TestFontResolver(bytes));
+
+        Assert.Single(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(code)).Contours);
+        Assert.Equal("A", Assert.Single(font.Decode(new byte[] { 0, code })).Text);
+        Assert.Null(font.GetGlyphOutline(65535));
+    }
+
     [Fact]
     public void MissingSimpleFontUsesInjectedPlatformNeutralFontBytes()
     {
