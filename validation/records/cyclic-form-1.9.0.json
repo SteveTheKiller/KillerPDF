@@ -1,0 +1,22 @@
+{
+  "engineApplicationSha256": "64C52642903A53FB0A2DC9918D838C168FC4336957DE843DEDC0B380436D29ED",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue19800.pdf",
+    "inputSha256": "0F1A00F85F3949DFBEC0B43347594F21728CE5D918329E9DC9315E39220B5D15",
+    "before": "FAIL: Cyclic Form XObject.",
+    "after": "OK",
+    "renderMilliseconds": 264,
+    "dimensions": [1024, 614],
+    "baselineDimensions": [1024, 614],
+    "diagnostics": ["Cyclic Form XObject expansion limit reached."],
+    "rgbMae": 0.32650587846091206,
+    "visualCheck": "Progressively shrinking Hello world text is visible, matching the baseline composition."
+  },
+  "tests": { "newCases": 2, "failedBefore": 2, "engine": 2769, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "behavior": "Recovery expands repeated Form calls below nesting depth 16, up to 64 repeated-call expansions per page. Calls exceeding either limit are skipped with a diagnostic. Surrounding content continues. Strict extraction and rendering still reject cycles.",
+  "limitations": "Truncated recursion is not complete content recovery. Single-file timing is not a throughput benchmark. Full PDF.js coverage has not been rerun at this build."
+}

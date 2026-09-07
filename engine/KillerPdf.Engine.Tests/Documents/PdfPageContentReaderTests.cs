@@ -170,6 +170,37 @@ public sealed class PdfPageContentReaderTests
         Assert.Single(page.Lines);
     }
 
+    [Theory]
+    [InlineData("/Loop Do", 16)]
+    [InlineData("/Loop Do /Loop Do", 65)]
+    public void RecoversCyclicFormsWithinBoundsAndContinuesPageContent(string recursiveCalls,
+        int expectedCopies)
+    {
+        string formContent = "1 0 0 rg 50 100 20 20 re f BT /F1 12 Tf (A) Tj ET " + recursiveCalls;
+        PdfDocument source = Document(
+            "/Loop Do BT /F1 12 Tf (END) Tj ET 0 0 1 rg 200 200 40 40 re f", "",
+            "/XObject << /Loop 6 0 R >>",
+            [$"<< /Subtype /Form /BBox [0 0 300 400] /Length {formContent.Length} >>\nstream\n{formContent}\nendstream"]);
+        Assert.Throws<FormatException>(() => new PdfPageContentReader(source).Read(0));
+        Assert.Throws<FormatException>(() => new KillerPdf.Engine.Rendering.PdfPageRenderer(source)
+            .Render(0, new KillerPdf.Engine.Rendering.PdfRenderOptions(30, 40)));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(source.Source);
+
+        PdfPageContent extracted = new PdfPageContentReader(document).Read(0);
+        Assert.EndsWith("END", extracted.Text.Trim());
+        Assert.Equal(expectedCopies, extracted.Letters.Count(letter => letter.Value == "A"));
+        Assert.Contains("Cyclic Form XObject expansion limit reached.", extracted.Diagnostics);
+        var rendered = new KillerPdf.Engine.Rendering.PdfPageRenderer(document)
+            .Render(0, new KillerPdf.Engine.Rendering.PdfRenderOptions(30, 40));
+        Assert.Contains("Cyclic Form XObject expansion limit reached.", rendered.Diagnostics);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 },
+            rendered.Pixels.Span.Slice((29 * 30 + 6) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 0, 0, 255 },
+            rendered.Pixels.Span.Slice((18 * 30 + 22) * 4, 4).ToArray());
+        Assert.Throws<OperationCanceledException>(() => new PdfPageContentReader(document)
+            .Read(0, new CancellationToken(true)));
+    }
+
     [Fact]
     public void RejectsCyclicFormsAndHonorsCancellation()
     {

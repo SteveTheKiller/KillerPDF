@@ -70,6 +70,13 @@ on these empty Forms do not prevent subsequent page content from rendering.
 Stream decoding limits still apply. Nonempty Forms and strict rendering retain
 their resource validation.
 
+Cyclic Forms can expand in recovery mode until a repeated call reaches nesting
+depth 16 or the page consumes 64 repeated-call expansions. Further recursive
+calls are skipped with a diagnostic while surrounding content continues.
+Extraction uses the same recovery bounds. This permits shrinking recursive
+artwork without unbounded recursion; truncated recursion is not complete content
+recovery. Strict extraction and rendering still reject the first cyclic call.
+
 An unfiltered `ToUnicode` stream with a valid zlib header can be inflated once
 in recovery mode. Authentication runs before this recovery. The decoder retains
 checksum validation and the 32 MiB font-stream output limit; corrupt or oversized

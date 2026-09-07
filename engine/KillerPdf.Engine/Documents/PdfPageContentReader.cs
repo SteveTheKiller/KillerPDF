@@ -11,6 +11,8 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Extracts text and image placements from document page resources and content streams.</summary>
 public sealed class PdfPageContentReader
 {
+    internal const int MaximumRecoveredFormDepth = 16;
+    internal const int MaximumRecoveredFormExpansions = 64;
     private readonly PdfDocument _document;
     private readonly PdfPageTree _tree;
     private static readonly PdfDictionary Empty = new([]);
@@ -120,6 +122,7 @@ public sealed class PdfPageContentReader
         var shadings = new List<PdfExtractedShading>();
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
+        int recoveredFormExpansions = 0;
         long decodedBytes = 0;
         int visitedInstructions = 0;
         var initial = new Matrix(1, 0, 0, 1, -box.Left, -box.Bottom);
@@ -237,7 +240,19 @@ public sealed class PdfPageContentReader
                             continue;
                         }
                         if (subtype?.ValueAsLatin1() != "Form") continue;
-                        if (!activeForms.Add(xobject)) throw new FormatException("Cyclic form XObject.");
+                        bool addedForm = activeForms.Add(xobject);
+                        if (!addedForm)
+                        {
+                            if (!_document.UsesCompatibilityRecovery)
+                                throw new FormatException("Cyclic form XObject.");
+                            if (depth >= MaximumRecoveredFormDepth
+                                || recoveredFormExpansions >= MaximumRecoveredFormExpansions)
+                            {
+                                diagnostics.Add("Cyclic Form XObject expansion limit reached.");
+                                continue;
+                            }
+                            recoveredFormExpansions++;
+                        }
                         try
                         {
                             Matrix formMatrix = Matrix.Identity;
@@ -256,7 +271,7 @@ public sealed class PdfPageContentReader
                             Walk(Decode(xobject), formResources, formCtm, formClip, depth + 1);
                             Add(Instruction("Q"));
                         }
-                        finally { activeForms.Remove(xobject); }
+                        finally { if (addedForm) activeForms.Remove(xobject); }
                         continue;
                     case "BI":
                         if (args.Count != 1 || args[0] is not PdfDictionary inlineImage)

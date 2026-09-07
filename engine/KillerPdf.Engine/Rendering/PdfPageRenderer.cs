@@ -115,6 +115,7 @@ public sealed partial class PdfPageRenderer
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
         var diagnostics = new HashSet<string>();
         var activeForms = new HashSet<PdfStream>();
+        int recoveredFormExpansions = 0;
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
         PdfDictionary pageResources = _pageResources[pageIndex];
         Process(ReadInstructions(pageIndex, cancellationToken),
@@ -1090,7 +1091,19 @@ public sealed partial class PdfPageRenderer
         void RenderForm(PdfStream form, PdfDictionary inheritedResources,
             GraphicsState parentState, int depth)
         {
-            if (!activeForms.Add(form)) throw new FormatException("Cyclic Form XObject.");
+            bool addedForm = activeForms.Add(form);
+            if (!addedForm)
+            {
+                if (!_document.UsesCompatibilityRecovery)
+                    throw new FormatException("Cyclic Form XObject.");
+                if (depth >= PdfPageContentReader.MaximumRecoveredFormDepth
+                    || recoveredFormExpansions >= PdfPageContentReader.MaximumRecoveredFormExpansions)
+                {
+                    diagnostics.Add("Cyclic Form XObject expansion limit reached.");
+                    return;
+                }
+                recoveredFormExpansions++;
+            }
             try
             {
                 IReadOnlyList<PdfContentInstruction> instructions =
@@ -1271,7 +1284,7 @@ public sealed partial class PdfPageRenderer
             }
             finally
             {
-                activeForms.Remove(form);
+                if (addedForm) activeForms.Remove(form);
             }
         }
 
