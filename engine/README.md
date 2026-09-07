@@ -172,6 +172,9 @@ standard-font coverage, host resolvers, embedding, and glyph geometry.
 See [annotations and review comments](docs/annotations.md) for threaded notes,
 source identities, exports, incremental edits, and appearance boundaries.
 
+See [accessibility inspection and tagged content](docs/accessibility.md) for
+logical reading order, reviewed semantic proposals, and targeted repairs.
+
 ## Repository layout
 
 ```text
