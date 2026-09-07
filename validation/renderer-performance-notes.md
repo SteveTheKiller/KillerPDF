@@ -2,7 +2,7 @@
 
 Research date: 2026-09-07. These are implementation leads, not measured promises.
 The current paired conformance comparison still favors PDFium 1.8.5 by a render
-ratio of 1.1235. See [the measured results](PERFORMANCE.md), including run variation.
+ratio of 1.1037. See [the measured results](PERFORMANCE.md), including run variation.
 
 ## Techniques in other implementations
 
@@ -82,8 +82,12 @@ as its bottleneck.
    a full rectangle, copies rows for rectangular crops, and uses direct row
    offsets for dense intersections. Three alternating focused comparisons fall
    from 108.003 to 77.506 ms with all 90 pixel hashes identical. Allocation is
-   essentially unchanged for this file. Exact integer SIMD multiplication remains
-   a separate experiment. Preserve `(a*b+127)/255` and never treat intersecting an
+   essentially unchanged for this file. A subsequent trace after CCITT changes
+   still assigns 7.98% exclusive samples to mask intersection. Exact integer SIMD
+   multiplication passes every byte pair and span-boundary checks. Isolated
+   1024-square dense masks improve by roughly tenfold, including opaque interiors,
+   but the three whole-page process medians overlap and establish no gain.
+   Preserve `(a*b+127)/255` and never treat intersecting an
    antialiased mask with itself as a no-op. Existing coverage consumers are
    read-only, allowing containment reuse without changing ownership behavior.
 2. **Decode CCITT runs with lookahead tables and paint whole bytes.**

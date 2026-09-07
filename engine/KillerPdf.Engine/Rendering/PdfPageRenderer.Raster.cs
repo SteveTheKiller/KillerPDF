@@ -1,9 +1,33 @@
 using System.Buffers;
+using System.Numerics;
 
 namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
+    internal static void MultiplyCoverage(ReadOnlySpan<byte> first, ReadOnlySpan<byte> second,
+        Span<byte> destination)
+    {
+        int x = 0;
+        if (Vector.IsHardwareAccelerated)
+        {
+            var rounding = new Vector<ushort>(127);
+            var one = Vector<ushort>.One;
+            for (; x <= destination.Length - Vector<byte>.Count; x += Vector<byte>.Count)
+            {
+                Vector.Widen(new Vector<byte>(first.Slice(x)), out Vector<ushort> a0, out Vector<ushort> a1);
+                Vector.Widen(new Vector<byte>(second.Slice(x)), out Vector<ushort> b0, out Vector<ushort> b1);
+                Vector<ushort> low = a0 * b0 + rounding, high = a1 * b1 + rounding;
+                // Exact division by 255 for products rounded within the byte-coverage range.
+                low = (low + one + (low >> 8)) >> 8;
+                high = (high + one + (high >> 8)) >> 8;
+                Vector.Narrow(low, high).CopyTo(destination.Slice(x));
+            }
+        }
+        for (; x < destination.Length; x++)
+            destination[x] = (byte)((first[x] * second[x] + 127) / 255);
+    }
+
     /// <summary>A rectangular coverage mask in device pixels. Null coverage means fully covered.</summary>
     private sealed class CoverageMask
     {
@@ -68,12 +92,8 @@ public sealed partial class PdfPageRenderer
                 int row = (y - top) * width;
                 int firstRow = (y - first.Top) * first.Width + left - first.Left;
                 int secondRow = (y - second.Top) * second.Width + left - second.Left;
-                for (int x = 0; x < width; x++)
-                {
-                    int a = first.Coverage[firstRow + x], b = second.Coverage[secondRow + x];
-                    coverage[row + x] = a == 255 ? (byte)b : b == 255 ? (byte)a
-                        : (byte)((a * b + 127) / 255);
-                }
+                MultiplyCoverage(first.Coverage.AsSpan(firstRow, width),
+                    second.Coverage.AsSpan(secondRow, width), coverage.AsSpan(row, width));
             }
             return new CoverageMask(left, top, right, bottom, coverage);
         }

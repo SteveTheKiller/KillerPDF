@@ -340,7 +340,10 @@ scanline rasterizer. Fill rules and anti-aliasing behavior are unchanged.
 Intersecting an existing coverage mask with a fully containing rectangle reuses
 the mask. A rectangular crop copies only the retained rows. Dense intersections
 use row offsets while preserving the same rounded coverage multiplication;
-repeated antialiased clipping still multiplies coverage.
+repeated antialiased clipping still multiplies coverage. Dense intersections use
+SIMD byte batches with exact rounded division by 255. Short tails and machines
+without hardware vectors keep scalar arithmetic; all 65,536 coverage pairs are
+checked at aligned and unaligned batch boundaries.
 
 The [validation history](../../validation/PERFORMANCE.md) and
 [machine-readable records](../../validation/records) retain measured coverage,

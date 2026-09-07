@@ -16,6 +16,39 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData(1)]
+    [InlineData(31)]
+    [InlineData(32)]
+    [InlineData(33)]
+    [InlineData(63)]
+    [InlineData(64)]
+    [InlineData(65)]
+    [InlineData(257)]
+    [InlineData(65536)]
+    public void MultiplyCoverage_PreservesEveryBytePairAndSpanBoundaries(int chunk)
+    {
+        var first = new byte[65536 + 3];
+        var second = new byte[65536 + 5];
+        var output = new byte[65536 + 7];
+        Array.Fill(output, (byte)173);
+        for (int i = 0; i < 65536; i++)
+        {
+            first[i + 1] = (byte)(i >> 8);
+            second[i + 2] = (byte)i;
+        }
+        for (int start = 0; start < 65536; start += chunk)
+        {
+            int count = Math.Min(chunk, 65536 - start);
+            PdfPageRenderer.MultiplyCoverage(first.AsSpan(start + 1, count),
+                second.AsSpan(start + 2, count), output.AsSpan(start + 3, count));
+        }
+        for (int i = 0; i < 65536; i++)
+            Assert.Equal((byte)Math.Round((i >> 8) * (i & 255) / 255.0), output[i + 3]);
+        Assert.All(output.Take(3), value => Assert.Equal((byte)173, value));
+        Assert.All(output.Skip(65536 + 3), value => Assert.Equal((byte)173, value));
+    }
+
+    [Theory]
     [InlineData(0, 0, 32, 32, false)]
     [InlineData(0, 0, 32, 32, true)]
     [InlineData(7, 4, 13, 19, false)]

@@ -3,6 +3,28 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 vector coverage multiplication
+
+Validation date: 2026-09-07. Dense clip intersections now process byte batches
+with exact rounded multiplication. Exhaustive checks cover all 65,536 input
+pairs, unaligned spans and scalar tails, including hardware acceleration disabled.
+Isolated 1024-square mixed, opaque and edge masks improve by roughly tenfold.
+The whole-page focused process medians overlap, so they establish no speedup.
+All 90 focused pixel hashes match and allocation remains about 48.3 MB.
+
+Three paired conformance passes retain 614 OK, 35 SKIP, zero FAIL versus
+PDFium 1.8.5's 600 OK, 41 SKIP, eight FAIL. All 614 engine PNGs match the
+preceding CCITT build in each measured pass. Shared-file median rendering is
+12.974 versus 11.755 seconds, a ratio of 1.1037. Median wall time is 26.724
+versus 22.269 seconds; sampled peak working set is 792.3 versus 639.5 MB.
+The preceding ratio was 1.1235; run variation limits attribution of this small
+aggregate change. The engine still trails PDFium on this workload.
+
+All 3,050 engine and 338 app tests pass with a clean Release build. The broader
+PDFjs audit predates this increment. See the
+[record](records/coverage-vector-1.9.0.json) and
+[raw runs](benchmarks/1.9.0-coverage-vector).
+
 ## KillerPDF 1.9.0 CCITT prefix decoding
 
 Validation date: 2026-09-07. Bounded code lookups and whole-byte run painting

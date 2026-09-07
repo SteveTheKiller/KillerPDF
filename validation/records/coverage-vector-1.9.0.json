@@ -1,0 +1,218 @@
+{
+  "date": "2026-09-07",
+  "beforeCommit": "3ff3217a70019080b2422e4e79d6d191dcc7ac91",
+  "beforeEngineSha256": "28631565841643BCB164AE918FE607103723AC6D5EEE0A81AF120E32B9E483F9",
+  "afterEngineSha256": "5C04DCB545687EE2834B66B372BD738F594AC4ACC6598F76E8150FD761908664",
+  "afterAppSha256": "854F4BC74EAB1091A0A990B76C18993EC17C23600F153DFD9410C08C471DC72A",
+  "embeddedEngineVerified": true,
+  "focus": {
+    "file": "pdf-differences/UnknownFilter/4387ba480c6f935b8e97749d40b3c001ad584b7bda66ca2c040be67337669497.pdf",
+    "maximumDimension": 1024,
+    "forms": true,
+    "annotations": true,
+    "fontResolver": "default",
+    "tieredCompilation": false,
+    "iterationsPerProcess": 15,
+    "excludedWarmupIterations": 3,
+    "processMedians": {
+      "before1": {
+        "render": 76.1135,
+        "allocated": 48285252
+      },
+      "after1": {
+        "render": 74.76050000000001,
+        "allocated": 48287824
+      },
+      "after2": {
+        "render": 65.749,
+        "allocated": 48289160
+      },
+      "before2": {
+        "render": 73.1595,
+        "allocated": 48285112
+      },
+      "before3": {
+        "render": 72.77350000000001,
+        "allocated": 48287740
+      },
+      "after3": {
+        "render": 74.3395,
+        "allocated": 48286812
+      }
+    },
+    "pixelSha256": "B02B4805C6718C7976AF022901AAA9609D28D785A030F7EE7F4DD97729B7D723",
+    "all90PixelHashesMatch": true
+  },
+  "maskMicrobenchmark": {
+    "size": [
+      1024,
+      1024
+    ],
+    "patterns": [
+      "mixed",
+      "opaque",
+      "edge"
+    ],
+    "passes": 8,
+    "intersectionsPerPass": 100,
+    "tieredCompilation": false,
+    "method": "Reflection invocation of actual CoverageMask.Intersect; includes result allocations; hashing outside timer",
+    "allPatternHashesMatch": true,
+    "limitations": "Single before/after process pair; this is not whole-page throughput."
+  },
+  "conformance": {
+    "files": 649,
+    "sharedCount": 600,
+    "page": 1,
+    "maximumDimension": 1024,
+    "warmupPassesPerBuild": 1,
+    "measuredPassesPerBuild": 3,
+    "tieredCompilation": "default app settings",
+    "baseline": [
+      {
+        "status": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "total": 11478,
+        "shared": 11478
+      },
+      {
+        "status": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "total": 11954,
+        "shared": 11954
+      },
+      {
+        "status": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "total": 11755,
+        "shared": 11755
+      }
+    ],
+    "engine": [
+      {
+        "status": {
+          "OK": 614,
+          "SKIP": 35,
+          "FAIL": 0
+        },
+        "total": 12908,
+        "shared": 12859
+      },
+      {
+        "status": {
+          "OK": 614,
+          "SKIP": 35,
+          "FAIL": 0
+        },
+        "total": 13026,
+        "shared": 12974
+      },
+      {
+        "status": {
+          "OK": 614,
+          "SKIP": 35,
+          "FAIL": 0
+        },
+        "total": 13539,
+        "shared": 13481
+      }
+    ],
+    "processes": [
+      {
+        "Run": "baseline-warmup",
+        "Build": "baseline",
+        "AppSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+        "ExitCode": "1",
+        "WallMilliseconds": "22030",
+        "PeakWorkingSetBytes": "641495040"
+      },
+      {
+        "Run": "engine-warmup",
+        "Build": "engine",
+        "AppSHA256": "854F4BC74EAB1091A0A990B76C18993EC17C23600F153DFD9410C08C471DC72A",
+        "ExitCode": "0",
+        "WallMilliseconds": "27540",
+        "PeakWorkingSetBytes": "791961600"
+      },
+      {
+        "Run": "baseline-1",
+        "Build": "baseline",
+        "AppSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+        "ExitCode": "1",
+        "WallMilliseconds": "21830",
+        "PeakWorkingSetBytes": "635199488"
+      },
+      {
+        "Run": "engine-1",
+        "Build": "engine",
+        "AppSHA256": "854F4BC74EAB1091A0A990B76C18993EC17C23600F153DFD9410C08C471DC72A",
+        "ExitCode": "0",
+        "WallMilliseconds": "26428",
+        "PeakWorkingSetBytes": "792264704"
+      },
+      {
+        "Run": "engine-2",
+        "Build": "engine",
+        "AppSHA256": "854F4BC74EAB1091A0A990B76C18993EC17C23600F153DFD9410C08C471DC72A",
+        "ExitCode": "0",
+        "WallMilliseconds": "26724",
+        "PeakWorkingSetBytes": "772153344"
+      },
+      {
+        "Run": "baseline-2",
+        "Build": "baseline",
+        "AppSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+        "ExitCode": "1",
+        "WallMilliseconds": "22435",
+        "PeakWorkingSetBytes": "641159168"
+      },
+      {
+        "Run": "baseline-3",
+        "Build": "baseline",
+        "AppSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+        "ExitCode": "1",
+        "WallMilliseconds": "22269",
+        "PeakWorkingSetBytes": "639463424"
+      },
+      {
+        "Run": "engine-3",
+        "Build": "engine",
+        "AppSHA256": "854F4BC74EAB1091A0A990B76C18993EC17C23600F153DFD9410C08C471DC72A",
+        "ExitCode": "0",
+        "WallMilliseconds": "27305",
+        "PeakWorkingSetBytes": "794079232"
+      }
+    ],
+    "ratio": 1.103700552956189,
+    "identicalPngsPerPass": [
+      614,
+      614,
+      614
+    ],
+    "pngComparison": "paired-conformance-ccitt-prefix-20260907/engine-1"
+  },
+  "verification": {
+    "engineTestsPassed": 3050,
+    "appTestsPassed": 338,
+    "exhaustiveCoverageTests": 9,
+    "hardwareDisabledCoverageTests": 9,
+    "bytePairsPerCase": 65536,
+    "releaseBuildWarnings": 0,
+    "releaseBuildErrors": 0
+  },
+  "limitations": [
+    "Whole-page focused medians overlap and demonstrate no speedup.",
+    "The paired ratio improved from 1.1235 to 1.1037, but run variation limits attribution.",
+    "The complete PDFjs audit predates clip, CCITT and vector coverage changes.",
+    "Cold startup, later pages, other resolutions and overall goal remain incomplete."
+  ]
+}
