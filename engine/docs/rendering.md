@@ -43,6 +43,12 @@ text. Fonts with Unicode character maps retain Unicode-based glyph lookup.
 
 ## Pixels and geometry
 
+Device color spaces accept both a name and a one-element array containing
+`DeviceGray`, `DeviceRGB`, or `DeviceCMYK`, including transparency-group blending
+spaces. Both forms use the same color conversion. Parameterized color spaces
+still require their defining entries. These forms follow section 8.6.3 of the
+[PDF reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf).
+
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels
 are tightly packed BGRA32, with a top-left origin and a row stride of `Width * 4`.
 The renderer applies page crop and rotation geometry. `PdfRenderOptions` specifies

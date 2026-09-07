@@ -1947,6 +1947,10 @@ public sealed partial class PdfPageRenderer
     {
         if (depth > 16) throw new FormatException("An image color-space reference is cyclic.");
         PdfObject resolved = Resolve(value);
+        if (resolved is PdfArray { Count: 1 } deviceArray
+            && Resolve(deviceArray[0]) is PdfName deviceName
+            && deviceName.ValueAsLatin1() is "DeviceGray" or "DeviceRGB" or "DeviceCMYK")
+            resolved = deviceName;
         if (resolved is PdfName name)
         {
             ImageColorSpace? standard = name.ValueAsLatin1() switch

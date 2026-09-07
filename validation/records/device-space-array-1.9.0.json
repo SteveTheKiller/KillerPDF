@@ -1,0 +1,22 @@
+{
+  "engineApplicationSha256": "4331E89D962AF3E84FBBEB9FA6B556A796514106F075EEEF3A7C332E6AB2899A",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue18529.pdf",
+    "inputSha256": "6EC9516A0E15A65D8A9547DA747EFE66AD0D4DD7D185D8624CFA6AE1A2847962",
+    "before": "FAIL",
+    "after": "OK",
+    "renderMilliseconds": 170,
+    "dimensions": [1024, 788],
+    "baselineDimensions": [1024, 787],
+    "diagnostics": [],
+    "topLeftOverlapRgbMae": 0.31862409333968655
+  },
+  "tests": { "newCases": 5, "failedBefore": 3, "engine": 2764, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "reference": "ISO 32000-1:2008 section 8.6.3, https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf",
+  "behavior": "DeviceGray, DeviceRGB, and DeviceCMYK accept one-element array forms in strict and recovery rendering. Color spaces requiring parameters still reject incomplete arrays.",
+  "limitations": "The page gradient is recovered, but a one-pixel height difference remains tracked. The reported pixel error covers only the common top-left extent without resizing. Single-file timing is not a throughput benchmark. Full PDF.js coverage has not been rerun at this build."
+}

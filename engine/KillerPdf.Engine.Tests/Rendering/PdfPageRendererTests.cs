@@ -2776,6 +2776,36 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("DeviceGray", new double[] { 1 })]
+    [InlineData("DeviceRGB", new double[] { 1, 1, 1 })]
+    [InlineData("DeviceCMYK", new double[] { 0, 0, 0, 0 })]
+    public void Render_DeviceColorSpaceArrayMatchesNameInSoftMask(string colorSpace, double[] backdrop)
+    {
+        PdfDocument named = AddGraphicsSoftMask("Luminosity", 0, 1, 1,
+            "0 g 0 0 5 10 re f", colorSpace, backdrop);
+        PdfDocument array = AddGraphicsSoftMask("Luminosity", 0, 1, 1,
+            "0 g 0 0 5 10 re f", colorSpace, backdrop, arrayColorSpace: true);
+        var options = new PdfRenderOptions(10, 10);
+        PdfRenderedPage expected = new PdfPageRenderer(named).Render(0, options);
+        PdfRenderedPage actual = new PdfPageRenderer(array).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Equal([255, 255, 255, 255], Pixel(actual, 2, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(actual, 7, 5));
+        Assert.Empty(actual.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("CalGray")]
+    [InlineData("DeviceN")]
+    public void Render_RejectsColorSpaceArraysWithoutRequiredParameters(string colorSpace)
+    {
+        PdfDocument document = AddGraphicsSoftMask("Luminosity", 0, 1, 1,
+            "", colorSpace, arrayColorSpace: true);
+        Assert.Throws<NotSupportedException>(() =>
+            new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10)));
+    }
+
     [Fact]
     public void Render_ExpandsNestedFormsWithScopedResourcesMatricesAndBounds()
     {
@@ -3373,7 +3403,8 @@ public sealed class PdfPageRendererTests
 
     private static PdfDocument AddGraphicsSoftMask(string subtype,
         double transferStart, double transferEnd, double backdrop, string maskContent,
-        string groupColorSpace = "DeviceGray", double[]? backdropComponents = null)
+        string groupColorSpace = "DeviceGray", double[]? backdropComponents = null,
+        bool arrayColorSpace = false)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes(
@@ -3395,7 +3426,7 @@ public sealed class PdfPageRendererTests
                 Entry("Group", new PdfDictionary([
                     Entry("Type", Name("Group")),
                     Entry("S", Name("Transparency")),
-                    Entry("CS", Name(groupColorSpace))
+                    Entry("CS", arrayColorSpace ? new PdfArray([Name(groupColorSpace)]) : Name(groupColorSpace))
                 ]))
             ]), Encoding.ASCII.GetBytes(maskContent)));
         var transfer = new PdfDictionary([
