@@ -46,7 +46,14 @@ internal static class PdfCMapMetadata
                 var probe = new PdfTokenizer(source, tokenizer.Position);
                 PdfToken name = probe.Read();
                 int delimiter = probe.Position;
-                if (name.Kind == PdfTokenKind.Name && delimiter + 1 < source.Length
+                if (name.Kind == PdfTokenKind.Name
+                    && TryNameDefinitionEnd(source.Span, delimiter, out int definitionEnd))
+                {
+                    cleaned ??= source.ToArray();
+                    cleaned.AsSpan(token.Offset, definitionEnd - token.Offset).Fill((byte)' ');
+                    tokenizer.SetRawPosition(definitionEnd);
+                }
+                else if (name.Kind == PdfTokenKind.Name && delimiter + 1 < source.Length
                     && source.Span[delimiter] == (byte)'>' && source.Span[delimiter + 1] != (byte)'>')
                 {
                     probe.SetRawPosition(delimiter + 1);
@@ -74,4 +81,33 @@ internal static class PdfCMapMetadata
         if (depth != 0) throw new FormatException("Unterminated CMap metadata dictionary.");
         return cleaned is null ? source : cleaned;
     }
+
+    private static bool TryNameDefinitionEnd(ReadOnlySpan<byte> source, int position, out int end)
+    {
+        end = position;
+        int limit = position + Math.Min(4096, source.Length - position);
+        while (position < limit)
+        {
+            if (source[position] is not ((byte)' ' or (byte)'\t')) return false;
+            while (position < limit && source[position] is (byte)' ' or (byte)'\t') position++;
+            int start = position;
+            while (position < limit && IsNameFragment(source[position])) position++;
+            if (position == start) return false;
+            ReadOnlySpan<byte> fragment = source[start..position];
+            if (fragment.SequenceEqual("def"u8)
+                && (position == source.Length || source[position] is (byte)' ' or (byte)'\t' or (byte)'\r' or (byte)'\n'))
+            {
+                end = position;
+                return true;
+            }
+            if (fragment.StartsWith("begin"u8) || fragment.StartsWith("end"u8)
+                || fragment.SequenceEqual("usecmap"u8)) return false;
+        }
+        return false;
+    }
+
+    private static bool IsNameFragment(byte value) => value is
+        >= (byte)'a' and <= (byte)'z' or >= (byte)'A' and <= (byte)'Z'
+        or >= (byte)'0' and <= (byte)'9' or (byte)'-' or (byte)'+' or (byte)'_'
+        or (byte)'.' or (byte)',';
 }

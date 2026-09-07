@@ -1,0 +1,43 @@
+{
+  "engineApplicationSha256": "C1E7E72469C9B3030BC460C5DD49E1B82293EB311A0AD3B74630D25F48BE2FF1",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "page": 1,
+    "maximumDimension": 1024,
+    "annotations": true,
+    "forms": true
+  },
+  "focused": {
+    "file": "issue7492.pdf",
+    "inputSha256": "720E995E98D92580F8F8484B07449C40E92CC8FFB04301BA036C9F051F351042",
+    "before": "FAIL: Malformed numeric token (byte offset 130).",
+    "after": "OK",
+    "renderMilliseconds": 83,
+    "dimensions": [
+      1024,
+      256
+    ],
+    "baselineDimensions": [
+      1024,
+      256
+    ],
+    "diagnostics": [],
+    "rgbMae": 0.11030197143554688,
+    "visualCheck": "Custom-font text and line layout closely agree with PDFium; small pixel differences remain."
+  },
+  "tests": {
+    "newCases": 8,
+    "failedBefore": 2,
+    "engine": 2789,
+    "app": 338
+  },
+  "conformance": {
+    "ok": 614,
+    "skip": 35,
+    "fail": 0,
+    "identicalImages": 614
+  },
+  "behavior": "Before mappings begin, recovery can discard CMapName definitions containing unescaped spaces and simple ASCII fragments after the initial name. A same-line def must occur within 4096 bytes. Delimiters, line breaks, mapping operators, and missing terminators prevent the repair. Strict parsing and character mappings are unchanged.",
+  "limitations": "Single-file timing is not a throughput benchmark. Full PDF.js coverage has not been rerun; the prior selected54 recheck predates this fix."
+}

@@ -379,12 +379,43 @@ public sealed class PdfFontResourceReaderTests
 
     [Theory]
     [InlineData("/OtherName /Broken> def")]
+    [InlineData("/OtherName /Broken Family - Panton.otf,000-UTF16 def")]
+    [InlineData("/CMapName /Broken Family - Panton.otf,000-UTF16")]
+    [InlineData("/CMapName /Broken Family -\nPanton.otf,000-UTF16 def")]
+    [InlineData("/CMapName /Broken 1 beginbfchar - def")]
+    [InlineData("1 begincodespacerange <00> <FF> endcodespacerange /CMapName /Broken Family - def")]
     [InlineData("/CMapName /Broken> beginbfchar")]
     [InlineData("1 begincodespacerange <00> <FF> endcodespacerange /CMapName /Broken> def")]
     public void RecoveryDoesNotDiscardMalformedMappingOrUnrelatedNames(string source)
     {
         var dictionary = D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
             ("ToUnicode", Stream(source)));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        Assert.ThrowsAny<FormatException>(() => PdfFontResourceReader.Read(document, dictionary));
+    }
+
+    [Theory]
+    [InlineData("Family-Fontfabric - Panton.otf,000-UTF16")]
+    [InlineData("Family .5bad")]
+    public void RecoveryDiscardsOnlySingleLineCMapNameFragments(string fragments)
+    {
+        var dictionary = D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
+            ("ToUnicode", Stream("/CMapName /Broken " + fragments + " def\n"
+                + "1 begincodespacerange <00> <FF> endcodespacerange "
+                + "1 beginbfchar <41> <03A9> endbfchar")));
+        Assert.ThrowsAny<FormatException>(() => Read(dictionary));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+        Assert.Equal("\u03A9", Assert.Single(font.Decode("A"u8.ToArray())).Text);
+    }
+
+    [Fact]
+    public void RecoveryKeepsTheCMapNameFragmentScanBounded()
+    {
+        var dictionary = D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
+            ("ToUnicode", Stream("/CMapName /Broken " + new string('A', 4096) + " - def")));
         PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
             new PdfDocumentBuilder().AddBlankPage().Build());
         Assert.ThrowsAny<FormatException>(() => PdfFontResourceReader.Read(document, dictionary));

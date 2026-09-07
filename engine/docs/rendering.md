@@ -93,6 +93,12 @@ when followed by `def`, before the first mapping block. It does not apply that
 repair inside mapping data or to unrelated names. Strict font reading retains
 the original lexical validation.
 
+Before mappings begin, recovery can also discard a `CMapName` definition whose
+name contains unescaped spaces and simple ASCII name fragments. The terminating
+`def` must occur on the same line, within 4,096 bytes after the initial name.
+Line breaks, delimiters, mapping operators, and missing terminators prevent this
+repair. Character mappings are still parsed normally; strict mode is unchanged.
+
 Before mapping blocks begin, recovery can discard a `CIDSystemInfo` definition
 whose value is a PDF indirect reference. It does not resolve that reference or
 alter CID and Unicode mappings. Only a positive object number, valid generation,
