@@ -982,19 +982,30 @@ public sealed partial class PdfPageRenderer
                         bool clipsText = textRenderingMode >= 4;
                         if ((paintMode != 3 || clipsText) && outline is not null)
                         {
-                            IReadOnlyList<List<Point>> glyphPaths =
-                                FlattenGlyphOutline(outline, glyphTransform);
+                            CoverageMask? cachedFill = paintMode is 0 or 2 || clipsText
+                                ? TryCachedGlyphFill(outline, glyphTransform, frame) : null;
+                            IReadOnlyList<List<Point>>? glyphPaths = null;
                             if (paintMode is 0 or 2)
-                                FillPaths(pixels, options.Width,
-                                    options.Height, scaleX, scaleY,
-                                    glyphPaths, state.Fill, state.FillAlpha, false,
-                                    state.BlendMode, state.Clips, state.GraphicsSoftMask,
-                                    state.Knockout,
-                                    cancellationToken);
+                            {
+                                if (cachedFill is not null)
+                                    PaintCoverage(pixels, options.Width, options.Height,
+                                        cachedFill, state.Fill, state.FillAlpha,
+                                        state.BlendMode, state.Clips, state.GraphicsSoftMask,
+                                        state.Knockout, cancellationToken);
+                                else
+                                    FillPaths(pixels, options.Width,
+                                        options.Height, scaleX, scaleY,
+                                        glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
+                                        state.Fill, state.FillAlpha, false,
+                                        state.BlendMode, state.Clips, state.GraphicsSoftMask,
+                                        state.Knockout,
+                                        cancellationToken);
+                            }
                             if (paintMode is 1 or 2)
                                 StrokePaths(pixels, options.Width,
                                     options.Height, scaleX, scaleY,
-                                    glyphPaths, state.Stroke, state.StrokeAlpha,
+                                    glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
+                                    state.Stroke, state.StrokeAlpha,
                                     state.LineWidth * state.Transform.StrokeScale,
                                     state.LineCap, state.LineJoin, state.MiterLimit,
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
@@ -1004,7 +1015,9 @@ public sealed partial class PdfPageRenderer
                             {
                                 textClipCoverage ??= new byte[options.Width * options.Height];
                                 UnionInto(textClipCoverage, options.Width,
-                                    RasterizeFill(glyphPaths, false, frame));
+                                    cachedFill ?? RasterizeFill(
+                                        glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
+                                        false, frame));
                             }
                         }
                         else if ((paintMode != 3 || clipsText)

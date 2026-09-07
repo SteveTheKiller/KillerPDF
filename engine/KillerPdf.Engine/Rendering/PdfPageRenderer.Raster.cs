@@ -1,5 +1,7 @@
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
+using KillerPdf.Engine.Fonts;
 
 namespace KillerPdf.Engine.Rendering;
 
@@ -60,6 +62,10 @@ public sealed partial class PdfPageRenderer
 
         internal static CoverageMask Rectangle(int left, int top, int right, int bottom) =>
             right <= left || bottom <= top ? Empty : new(left, top, right, bottom, null);
+
+        /// <summary>Moves the bounds by whole pixels, sharing the coverage array.</summary>
+        internal CoverageMask Translate(int dx, int dy) =>
+            IsEmpty ? Empty : new(Left + dx, Top + dy, Right + dx, Bottom + dy, Coverage);
 
         /// <summary>Intersects two masks by multiplying coverage.</summary>
         internal static CoverageMask Intersect(CoverageMask first, CoverageMask second)
@@ -172,8 +178,8 @@ public sealed partial class PdfPageRenderer
         private const int AreaShift = Shift * 2 + 1 - 8;
         private const int DeltaLimit = 16384 << Shift;
 
-        private readonly int _width;
-        private readonly int _height;
+        private int _width;
+        private int _height;
         private Cell[] _cells = new Cell[1024];
         private int _count;
         private int _currentX = int.MaxValue;
@@ -196,6 +202,14 @@ public sealed partial class PdfPageRenderer
 
         internal int Width => _width;
         internal int Height => _height;
+
+        /// <summary>Clears pending cells and adopts a new raster size.</summary>
+        internal void Reset(int width, int height)
+        {
+            _width = width;
+            _height = height;
+            Reset();
+        }
 
         internal void Reset()
         {
@@ -656,6 +670,134 @@ public sealed partial class PdfPageRenderer
         rasterizer.Reset();
         rasterizer.AddPolygons(pixelPolygons);
         return rasterizer.Sweep(evenOdd);
+    }
+
+    // Filled text glyphs repeat constantly at the same size, so their coverage masks are
+    // cached per outline, device matrix, and quarter-pixel origin offset. This is the approach
+    // FreeType-based viewers take; the quantized origin means a cached glyph can sit up to
+    // one eighth of a pixel from its exact position. Large glyphs bypass the cache.
+    private const int GlyphSubpixelSteps = 4;
+    private const int MaximumCachedGlyphPixels = 128 * 128;
+    private const long MaximumGlyphMaskCacheBytes = 8L * 1024 * 1024;
+
+    private readonly record struct GlyphMaskKey(PdfGlyphOutline Outline,
+        long A, long B, long C, long D, int SubX, int SubY);
+
+    /// <summary>A glyph mask whose bounds are relative to the glyph origin's pixel.</summary>
+    private sealed record GlyphMask(CoverageMask Mask);
+
+    private static readonly GlyphMask EmptyGlyphMask = new(CoverageMask.Empty);
+
+    private sealed class GlyphMaskKeyComparer : IEqualityComparer<GlyphMaskKey>
+    {
+        internal static GlyphMaskKeyComparer Instance { get; } = new();
+
+        public bool Equals(GlyphMaskKey x, GlyphMaskKey y) =>
+            ReferenceEquals(x.Outline, y.Outline) && x.A == y.A && x.B == y.B
+            && x.C == y.C && x.D == y.D && x.SubX == y.SubX && x.SubY == y.SubY;
+
+        public int GetHashCode(GlyphMaskKey key) => HashCode.Combine(
+            RuntimeHelpers.GetHashCode(key.Outline), key.A, key.B, key.C, key.D,
+            key.SubX, key.SubY);
+    }
+
+    // A null entry records a glyph that was too large to cache, so it is not re-measured.
+    private readonly BoundedCache<GlyphMaskKey, GlyphMask?> _glyphMaskCache = new(
+        8192, GlyphMaskKeyComparer.Instance, MaximumGlyphMaskCacheBytes,
+        glyph => glyph?.Mask.Coverage?.LongLength ?? 0);
+
+    [ThreadStatic]
+    private static CellRasterizer? _glyphRasterizer;
+
+    /// <summary>Lets tests compare cached glyph fills against the direct fill path.</summary>
+    internal bool UseGlyphMaskCache { get; set; } = true;
+
+    internal int GlyphMaskCacheCount => _glyphMaskCache.Count;
+
+    /// <summary>
+    /// Returns the filled coverage of a glyph in page pixels, from the cache when the glyph is
+    /// small enough. Returns null when the glyph must take the ordinary fill path.
+    /// </summary>
+    private CoverageMask? TryCachedGlyphFill(PdfGlyphOutline outline, Matrix glyphTransform,
+        RasterFrame frame)
+    {
+        if (!UseGlyphMaskCache) return null;
+        // Device matrix for text-space thousandths, including the frame's Y flip.
+        double a = glyphTransform.A * frame.ScaleX, b = -glyphTransform.B * frame.ScaleY;
+        double c = glyphTransform.C * frame.ScaleX, d = -glyphTransform.D * frame.ScaleY;
+        double originX = glyphTransform.E * frame.ScaleX;
+        double originY = frame.Height - glyphTransform.F * frame.ScaleY;
+        if (!double.IsFinite(a) || !double.IsFinite(b) || !double.IsFinite(c)
+            || !double.IsFinite(d) || !double.IsFinite(originX) || !double.IsFinite(originY))
+            return null;
+        // Round the origin to the nearest quarter pixel so whole-pixel and quarter-pixel
+        // positions are rasterized exactly and any other position moves at most one eighth.
+        double stepsX = Math.Round(originX * GlyphSubpixelSteps);
+        double stepsY = Math.Round(originY * GlyphSubpixelSteps);
+        double pixelX = Math.Floor(stepsX / GlyphSubpixelSteps);
+        double pixelY = Math.Floor(stepsY / GlyphSubpixelSteps);
+        if (pixelX < int.MinValue / 2 || pixelX > int.MaxValue / 2
+            || pixelY < int.MinValue / 2 || pixelY > int.MaxValue / 2)
+            return null;
+        int subX = (int)(stepsX - pixelX * GlyphSubpixelSteps);
+        int subY = (int)(stepsY - pixelY * GlyphSubpixelSteps);
+        var key = new GlyphMaskKey(outline, BitConverter.DoubleToInt64Bits(a),
+            BitConverter.DoubleToInt64Bits(b), BitConverter.DoubleToInt64Bits(c),
+            BitConverter.DoubleToInt64Bits(d), subX, subY);
+        GlyphMask? glyph = _glyphMaskCache.GetOrAdd(key, RasterizeGlyphMask);
+        if (glyph is null) return null;
+        if (glyph.Mask.IsEmpty) return CoverageMask.Empty;
+        CoverageMask placed = glyph.Mask.Translate((int)pixelX, (int)pixelY);
+        return CoverageMask.Intersect(
+            CoverageMask.Rectangle(0, 0, frame.Width, frame.Height), placed);
+    }
+
+    /// <summary>Rasterizes one glyph relative to its origin pixel, or returns null when too large.</summary>
+    private GlyphMask? RasterizeGlyphMask(GlyphMaskKey key)
+    {
+        double a = BitConverter.Int64BitsToDouble(key.A), b = BitConverter.Int64BitsToDouble(key.B);
+        double c = BitConverter.Int64BitsToDouble(key.C), d = BitConverter.Int64BitsToDouble(key.D);
+        double offsetX = (double)key.SubX / GlyphSubpixelSteps;
+        double offsetY = (double)key.SubY / GlyphSubpixelSteps;
+        IReadOnlyList<Point[]> source = _glyphPathCache.GetOrAdd(key.Outline, FlattenGlyphOutlineCore);
+        double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
+        double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
+        var polygons = new List<Point[]>(source.Count);
+        foreach (Point[] sourcePath in source)
+        {
+            if (sourcePath.Length < 3) continue;
+            var polygon = new Point[sourcePath.Length];
+            for (int index = 0; index < sourcePath.Length; index++)
+            {
+                Point point = sourcePath[index];
+                double x = point.X * a + point.Y * c + offsetX;
+                double y = point.X * b + point.Y * d + offsetY;
+                if (!double.IsFinite(x) || !double.IsFinite(y)) return null;
+                polygon[index] = new Point(x, y);
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+            polygons.Add(polygon);
+        }
+        if (polygons.Count == 0) return EmptyGlyphMask;
+        // One pixel of margin on every side keeps antialiased edges inside the local raster.
+        int shiftX = (int)Math.Floor(minX) - 1, shiftY = (int)Math.Floor(minY) - 1;
+        long width = (long)Math.Ceiling(maxX) + 2 - shiftX;
+        long height = (long)Math.Ceiling(maxY) + 2 - shiftY;
+        if (width <= 0 || height <= 0 || width * height > MaximumCachedGlyphPixels) return null;
+        for (int index = 0; index < polygons.Count; index++)
+        {
+            Point[] polygon = polygons[index];
+            for (int point = 0; point < polygon.Length; point++)
+                polygon[point] = new Point(polygon[point].X - shiftX, polygon[point].Y - shiftY);
+        }
+        CellRasterizer rasterizer = _glyphRasterizer ??= new CellRasterizer((int)width, (int)height);
+        rasterizer.Reset((int)width, (int)height);
+        rasterizer.AddPolygons(polygons);
+        CoverageMask local = rasterizer.Sweep(evenOdd: false);
+        return local.IsEmpty ? EmptyGlyphMask : new GlyphMask(local.Translate(shiftX, shiftY));
     }
 
     /// <summary>Rasterizes page-space paths into a coverage mask.</summary>
