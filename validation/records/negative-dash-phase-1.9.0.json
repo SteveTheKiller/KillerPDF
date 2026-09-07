@@ -1,0 +1,17 @@
+{
+  "file": "pdf-differences/Negative-DashPhase/CutHereExample.pdf",
+  "engineCodeCommit": "0ab3f45867a4a646f17807b760dc0e3b4457049e",
+  "engineApplicationSha256": "91E036DBDCC1079D10030B84A6004ED1806440318F7A679CCAE20A5529EA976F",
+  "baselineVersion": "1.8.5",
+  "classification": "Explained baseline difference for negative dash phase only",
+  "content": "[10 5 60 50] -20 d; red stroke from (0,40) to (300,40), width 6",
+  "expected": "PDF 2.0 clause 8.4.3.6 adds twice the dash-array sum until a negative phase reaches the nonnegative cycle. Here phase -20 is equivalent to 230, or 105 within the 125-unit repeating cycle. A positive phase of 20 is a different pattern.",
+  "evidence": [
+    "https://pdfa.org/why-pdf-2-0-is-the-new-pdf-bible/",
+    "https://pdfium.googlesource.com/pdfium/+/f91ca5a72358bb0b00b4da9481b21fe668157614/third_party/agg23/agg_vcgen_dash.cpp"
+  ],
+  "visualCheck": "The engine leaves the first 20 user-space units unpainted, then paints the ten-unit dash. The saved PDFium 1.8.5 output begins with a painted segment instead. Current upstream PDFium explicitly implements the PDF 2.0 normalization rule.",
+  "tests": "Four cases compare negative phase against phase 230 and check interior dash/gap pixels, covering direct d and ExtGState D in strict and compatibility recovery modes.",
+  "testResults": { "enginePassed": 2869, "appPassed": 338, "newCasesPassed": 4 },
+  "scope": "No renderer code or image-difference threshold changes. This explains dash placement for this fixture, not a general acceptance of differing page content. The earlier portable-symbol record retains the measured images and RGB errors."
+}

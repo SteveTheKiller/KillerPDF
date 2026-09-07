@@ -16,6 +16,36 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Render_NegativeDashPhaseUsesPdf20CycleInsteadOfAbsoluteValue(bool extended, bool recovery)
+    {
+        const string path = "2 w 0 50 m 100 50 l S";
+        PdfDocument actual;
+        if (extended)
+            actual = AddStrokeGraphicsState("/Test gs " + path, "D",
+                new PdfArray([new PdfArray([new PdfInteger(10), new PdfInteger(5),
+                    new PdfInteger(60), new PdfInteger(50)]), new PdfInteger(-20)]), recovery);
+        else
+        {
+            byte[] bytes = new PdfDocumentBuilder().AddPage(100, 100,
+                Encoding.ASCII.GetBytes("[10 5 60 50] -20 d " + path)).Build();
+            actual = recovery ? PdfDocument.OpenWithCompatibilityRecovery(bytes) : PdfDocument.Open(bytes);
+        }
+        PdfDocument expected = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes("[10 5 60 50] 230 d " + path)).Build());
+        var options = new PdfRenderOptions(100, 100, includeAnnotations: false, includeFormFields: false);
+        PdfRenderedPage page = new PdfPageRenderer(actual).Render(0, options);
+        Assert.Empty(page.Diagnostics);
+        Assert.Equal(new PdfPageRenderer(expected).Render(0, options).Pixels.ToArray(), page.Pixels.ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(page, 5, 50));
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, Pixel(page, 25, 50));
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, Pixel(page, 50, 50));
+    }
+
+    [Theory]
     [InlineData("LW", "2 w")]
     [InlineData("LC", "1 J")]
     [InlineData("LJ", "2 j")]

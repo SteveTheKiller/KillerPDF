@@ -15,6 +15,9 @@ Conformance remains 614 OK, 35 SKIP, and zero failures, with 612 byte-identical
 images. The two changed pages were visually inspected: `CutHereExample.pdf`
 now contains scissors and `585_1.pdf` uses the standard Symbol shapes. Both have
 lower aggregate error, but dash placement and other rendering differences remain.
+The [negative-phase audit](records/negative-dash-phase-1.9.0.json) establishes that
+the engine's dash placement follows PDF 2.0. The older baseline is not the correct
+reference for that specific feature; all other differences still require review.
 This is a correctness check, not a controlled performance result. See the
 [record](records/portable-symbol-1.9.0.json) and
 [raw results](benchmarks/1.9.0-portable-symbol/engine-conformance.csv).

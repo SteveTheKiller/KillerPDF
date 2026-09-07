@@ -212,6 +212,12 @@ Strict rendering rejects invalid stroke settings. Compatibility recovery ignores
 invalid settings individually and reports diagnostics; a finite miter limit below
 one is clamped to one. Other valid settings in the same dictionary still apply.
 
+Negative dash phases use the PDF 2.0 cycle rule in both strict and recovery modes.
+For example, `[10 5 60 50] -20` paints the same pattern as phase 230, rather than
+phase 20. Older renderers can differ on this case; a difference from their output
+does not establish an engine defect. See the
+[PDF Association explanation](https://pdfa.org/why-pdf-2-0-is-the-new-pdf-bible/).
+
 Inspect `Diagnostics` after rendering. They describe compatibility or incomplete
 rendering conditions and should remain available to the host for troubleshooting.
 An empty diagnostic list is not a visual correctness guarantee. Compare expected
