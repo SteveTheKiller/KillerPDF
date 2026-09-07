@@ -12,7 +12,7 @@ public static class PdfOptionalContentReader
     public static PdfOptionalContentInfo Read(PdfDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        if (!document.IsDecrypted)
+        if (!document.CanReadPageContent)
             throw new InvalidOperationException("Authenticate the document before reading layers.");
         PdfDictionary catalog = PdfPageTree.Read(document).Catalog;
         if (!TryValue(document, catalog, "OCProperties", out PdfObject? propertiesValue))

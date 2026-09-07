@@ -56,6 +56,38 @@ internal sealed class PdfStandardSecurityHandler
         AuthenticationRole = authenticationRole;
     }
 
+    internal static PdfStandardSecurityHandler? CreateUnencryptedPageGuard(PdfDictionary encryption)
+    {
+        RequireName(encryption, "Filter", "Standard");
+        long version = RequireInteger(encryption, "V");
+        long revision = RequireInteger(encryption, "R");
+        if ((version, revision) is not ((4, 4) or (5, 5) or (5, 6) or (6, 7)))
+            return null;
+        string? requiredMethod = version switch { 5 => "AESV3", 6 => "AESV4", _ => null };
+        CryptMethod strings = ReadModernCryptFilter(encryption, "StrF", requiredMethod);
+        CryptMethod streams = ReadModernCryptFilter(encryption, "StmF", requiredMethod);
+        if (strings != CryptMethod.Identity || streams != CryptMethod.Identity) return null;
+        CryptMethod embeddedFiles = encryption.ContainsKey(Name("EFF"))
+            ? ReadModernCryptFilter(encryption, "EFF", requiredMethod) : streams;
+        return new PdfStandardSecurityHandler([], strings, streams, embeddedFiles,
+            ReadEncryptMetadata(encryption), 0, revision, PdfPasswordAuthenticationRole.None,
+            ReadCryptFilters(encryption, requiredMethod));
+    }
+
+    internal void EnsureUnencryptedStream(PdfStream stream,
+        Func<PdfIndirectReference, PdfObject> resolve)
+    {
+        PdfName? type = stream.Dictionary.TryGetValue(TypeName, out PdfObject? value)
+            ? ResolveStreamValue(value, resolve, "stream /Type") as PdfName : null;
+        if (type?.Equals(CrossReferenceName) == true) return;
+        CryptMethod method = ExplicitStreamMethod(stream.Dictionary, resolve)
+            ?? (type?.Equals(EmbeddedFileName) == true ? _embeddedFileMethod : _streamMethod);
+        if (method != CryptMethod.Identity
+            && (_encryptMetadata || type?.Equals(MetadataName) != true))
+            throw new PdfPasswordAuthenticationException(
+                "Authenticate the document before reading this encrypted stream.");
+    }
+
     internal static PdfStandardSecurityHandler Create(
         PdfDictionary encryption, string password, ReadOnlyMemory<byte> permanentIdentifier,
         bool compatibilityRecovery = false)

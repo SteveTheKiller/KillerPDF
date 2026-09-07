@@ -44,7 +44,7 @@ public sealed partial class PdfPageRenderer
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
-        if (!document.IsDecrypted)
+        if (!document.CanReadPageContent)
             throw new InvalidOperationException("Authenticate the document before rendering pages.");
         _content = new PdfPageContentReader(document);
         _fontResolver = fontResolver;

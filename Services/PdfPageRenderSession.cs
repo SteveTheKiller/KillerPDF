@@ -48,7 +48,7 @@ internal sealed class PdfPageRenderSession : IDisposable
     {
         byte[] bytes = File.ReadAllBytes(path);
         EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(bytes);
-        if (!document.IsEncrypted || document.IsDecrypted) return document;
+        if (document.CanReadPageContent) return document;
         try
         {
             return EngineDocument.OpenWithCompatibilityRecovery(bytes, string.Empty);

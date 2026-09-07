@@ -30,6 +30,8 @@ public sealed class PdfDocument
     private readonly Dictionary<int, ObjectStreamContents> _objectStreams = [];
     private readonly HashSet<int> _resolving = [];
     private PdfStandardSecurityHandler? _security;
+    private PdfStandardSecurityHandler? _unencryptedPageGuard;
+    private bool _checkedPageEncryption;
     private int? _encryptionObjectNumber;
     private HashSet<int> _encryptionBootstrapObjectNumbers = [];
 
@@ -50,19 +52,53 @@ public sealed class PdfDocument
     internal ReadOnlyMemory<byte> Source => _source;
     internal bool UsesCompatibilityRecovery => _compatibilityRecovery;
     internal byte[] DecodeStream(PdfStream stream,
-        int maximumDecodedBytes = PdfStreamDecoder.DefaultMaximumDecodedBytes) =>
-        _compatibilityRecovery
+        int maximumDecodedBytes = PdfStreamDecoder.DefaultMaximumDecodedBytes)
+    {
+        _unencryptedPageGuard?.EnsureUnencryptedStream(stream, Resolve);
+        return _compatibilityRecovery
             ? PdfStreamDecoder.DecodeWithCompatibilityRecovery(
                 stream, Resolve, maximumDecodedBytes)
             : PdfStreamDecoder.Decode(stream, Resolve, maximumDecodedBytes);
+    }
     internal JpegDecodedImage DecodeJpegImage(
-        PdfStream stream, int maximumDecodedBytes, int reduction) =>
-        PdfStreamDecoder.DecodeJpegImage(
+        PdfStream stream, int maximumDecodedBytes, int reduction)
+    {
+        _unencryptedPageGuard?.EnsureUnencryptedStream(stream, Resolve);
+        return PdfStreamDecoder.DecodeJpegImage(
             stream, Resolve, maximumDecodedBytes, reduction, _compatibilityRecovery);
+    }
     /// <summary>Gets whether the document declares an encryption security handler.</summary>
     public bool IsEncrypted => CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out _);
     /// <summary>Gets whether encrypted objects are available in decrypted form.</summary>
     public bool IsDecrypted => !IsEncrypted || _security is not null;
+    /// <summary>
+    /// Gets whether the document is authenticated or its default page strings and streams
+    /// are unencrypted. Explicitly encrypted streams and embedded files can still require authentication.
+    /// </summary>
+    public bool CanReadPageContent
+    {
+        get
+        {
+            if (IsDecrypted) return true;
+            if (!_checkedPageEncryption)
+            {
+                _checkedPageEncryption = true;
+                try
+                {
+                    CrossReferences.TryGetTrailerValue(new PdfName("Encrypt"u8), out PdfObject? value);
+                    PdfDictionary encryption = ResolveEncryptionValue(value!, out _);
+                    _unencryptedPageGuard = PdfStandardSecurityHandler.CreateUnencryptedPageGuard(
+                        ResolveEncryptionDependencies(encryption));
+                }
+                catch (Exception exception) when (exception is InvalidOperationException
+                    or NotSupportedException or FormatException)
+                {
+                    return false;
+                }
+            }
+            return _unencryptedPageGuard is not null;
+        }
+    }
     /// <summary>
     /// The password role that authenticated this document, or <see cref="PdfPasswordAuthenticationRole.None"/>
     /// when the document is unencrypted or has not been authenticated.
@@ -323,7 +359,16 @@ public sealed class PdfDocument
         if (entry.Type is PdfCrossReferenceEntryType.Free or PdfCrossReferenceEntryType.Null)
             return PdfNull.Instance;
         if (_objects.TryGetValue(entry.ObjectNumber, out PdfObject? cached))
+        {
+            if (cached is PdfStream cachedStream && _unencryptedPageGuard is not null)
+            {
+                if (!_resolving.Add(entry.ObjectNumber))
+                    throw Error($"Resolving object {entry.ObjectNumber} forms a cycle", EntryOffset(entry));
+                try { _unencryptedPageGuard.EnsureUnencryptedStream(cachedStream, Resolve); }
+                finally { _resolving.Remove(entry.ObjectNumber); }
+            }
             return cached;
+        }
         if (!_resolving.Add(entry.ObjectNumber))
             throw Error($"Resolving object {entry.ObjectNumber} forms a cycle", EntryOffset(entry));
 
@@ -335,6 +380,8 @@ public sealed class PdfDocument
                 PdfCrossReferenceEntryType.Compressed => ReadCompressedObject(entry),
                 _ => PdfNull.Instance
             };
+            if (value is PdfStream stream)
+                _unencryptedPageGuard?.EnsureUnencryptedStream(stream, Resolve);
             _objects.Add(entry.ObjectNumber, value);
             return value;
         }

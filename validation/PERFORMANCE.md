@@ -3,6 +3,34 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 attachment-only encrypted pages
+
+Validation date: 2026-09-06. Page rendering and extraction can read unencrypted
+default strings and streams in Standard Security documents without authenticating
+their encrypted attachments. Explicit encrypted streams remain protected, including
+previously cached streams and streams reached through decoder dependencies.
+`IsDecrypted`, password role, permission reporting, attachment reads, and both writer
+guards retain their authenticated meanings.
+
+Five focused cases cover implicit/explicit Identity content, EFOpen attachments,
+cached protected streams, explicit named crypt filters, authenticated attachment
+decryption, writer rejection, and ordinary password-encrypted page rejection.
+All 81 encryption-focused tests pass. Full suites pass 2,686 engine and 338 app
+tests; the separate Release build has zero warnings or errors.
+
+`auth-event-ef-open.pdf` and `encrypted-attachment.pdf` both move from SKIP to OK.
+Both display the expected Example text with no diagnostics. Their 791 by 1024
+images are identical to each other and have mean absolute RGB error 0.062935
+against PDFium. Text-edge differences remain. Fresh-process render samples were
+232 and 211 ms; these are not throughput comparisons.
+
+The 649-file conformance check retains 614 OK, 35 SKIP, zero FAIL, with all 614
+PNGs byte-identical to the preceding shading build. The full PDF.js comparison
+uses the preceding fixed executable while this separate build is tested; its
+coverage record must not be mislabeled as including the attachment change.
+Raw records are in [benchmarks/1.9.0-attachment-access](benchmarks/1.9.0-attachment-access)
+and [attachment-access-1.9.0.json](../pdf-landing/attachment-access-1.9.0.json).
+
 ## KillerPDF 1.9.0 shading endpoints and DeviceN colors
 
 Validation date: 2026-09-06. Stitching functions accept endpoint stops and evaluate

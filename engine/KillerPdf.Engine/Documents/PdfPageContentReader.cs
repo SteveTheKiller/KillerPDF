@@ -19,7 +19,7 @@ public sealed class PdfPageContentReader
     public PdfPageContentReader(PdfDocument document)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
-        if (!document.IsDecrypted) throw new InvalidOperationException("Authenticate the document before extracting page content.");
+        if (!document.CanReadPageContent) throw new InvalidOperationException("Authenticate the document before extracting page content.");
         _tree = PdfPageTree.Read(document);
     }
     /// <summary>Gets the number of pages.</summary>
