@@ -113,10 +113,11 @@ Use `PdfIncrementalAnnotationEditor` to add or change page attachment placements
 their targets, and icons. Inspect both document registrations and page placements
 after an edit; they are distinct reference surfaces.
 
-Current limitation: replacing a registered attachment does not retarget existing
-page attachment icons. An icon can still expose the original payload. Inspect
-and update its target explicitly; a successful document-level replacement alone
-does not establish that every placement uses the new bytes.
+Replacement, renaming, description, and classification edits preserve the
+registered file specification's indirect identity and portfolio values. Existing
+page icons sharing that specification receive the updated payload and metadata.
+Independent file specifications, including inline page targets, remain separate
+even when their names match.
 
 `PdfAttachmentComparison.Compare(original, changed)` reports added, removed,
 payload, metadata, and placement differences through `Changes` and `HasChanges`.

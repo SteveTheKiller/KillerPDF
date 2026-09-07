@@ -1333,9 +1333,11 @@ public sealed class PdfIncrementalPageEditor
                 $"The document already has an attachment named '{newFileName}'.",
                 nameof(newFileName));
         RemoveAttachment(fileName);
-        return AddAttachment(newFileName, attachment.Data, attachment.MimeType,
+        AddAttachment(newFileName, attachment.Data, attachment.MimeType,
             attachment.Description, attachment.Relationship,
             attachment.ModificationDate, attachment.CreationDate);
+        _attachments[^1] = _attachments[^1] with { OriginalFileName = fileName };
+        return this;
     }
 
     /// <summary>Replaces an embedded file payload while preserving its name and metadata.</summary>
@@ -1352,9 +1354,11 @@ public sealed class PdfIncrementalPageEditor
                 $"The document has no attachment named '{fileName}'.", nameof(fileName));
 
         RemoveAttachment(fileName);
-        return AddAttachment(attachment.FileName, data, attachment.MimeType,
+        AddAttachment(attachment.FileName, data, attachment.MimeType,
             attachment.Description, attachment.Relationship,
             modificationDate ?? attachment.ModificationDate, attachment.CreationDate);
+        _attachments[^1] = _attachments[^1] with { OriginalFileName = fileName };
+        return this;
     }
 
     /// <summary>Changes an embedded file description while preserving its payload and metadata.</summary>
@@ -1370,9 +1374,11 @@ public sealed class PdfIncrementalPageEditor
                 $"The document has no attachment named '{fileName}'.", nameof(fileName));
 
         RemoveAttachment(fileName);
-        return AddAttachment(attachment.FileName, attachment.Data, attachment.MimeType,
+        AddAttachment(attachment.FileName, attachment.Data, attachment.MimeType,
             description, attachment.Relationship,
             attachment.ModificationDate, attachment.CreationDate);
+        _attachments[^1] = _attachments[^1] with { OriginalFileName = fileName };
+        return this;
     }
 
     /// <summary>Changes embedded-file type and relationship metadata while preserving its payload.</summary>
@@ -1389,9 +1395,11 @@ public sealed class PdfIncrementalPageEditor
 
         PdfAttachmentFactory.Validate(attachment.FileName, mimeType, relationship);
         RemoveAttachment(fileName);
-        return AddAttachment(attachment.FileName, attachment.Data, mimeType,
+        AddAttachment(attachment.FileName, attachment.Data, mimeType,
             attachment.Description, relationship,
             attachment.ModificationDate, attachment.CreationDate);
+        _attachments[^1] = _attachments[^1] with { OriginalFileName = fileName };
+        return this;
     }
 
     /// <summary>Adds a bookmark targeting a page in the edited document.</summary>
@@ -17725,6 +17733,8 @@ public sealed class PdfIncrementalPageEditor
             .ToList();
         var files = new List<PdfNameTreeEntry>();
         var removedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var originalSpecifications = new Dictionary<string,
+            (PdfDictionary Value, PdfIndirectReference? Reference)>(StringComparer.OrdinalIgnoreCase);
         var fileNames = new HashSet<string>(
             StringComparer.OrdinalIgnoreCase);
         var existingFileNames = new HashSet<string>(
@@ -17741,9 +17751,10 @@ public sealed class PdfIncrementalPageEditor
                         "The embedded-files name tree contains duplicate file names.");
                 if (_removedAttachments.Contains(name))
                 {
-                    PdfIndirectReference? reference = ResolveCatalogWithIdentity(
+                    var (specification, reference) = ResolveCatalogWithIdentity(
                         _document, entry.Value,
-                        $"Embedded file '{name}' specification").FinalReference;
+                        $"Embedded file '{name}' specification");
+                    originalSpecifications.Add(name, ((PdfDictionary)specification, reference));
                     if (reference is not null)
                         removedReferences.Add((reference.ObjectNumber,
                             reference.Generation));
@@ -17808,11 +17819,33 @@ public sealed class PdfIncrementalPageEditor
                     attachment.Data, attachment.MimeType,
                     attachment.ModificationDate,
                     attachment.CreationDate));
-            PdfIndirectReference fileReference = update.ReserveObject();
-            update.SetObject(fileReference,
-                PdfAttachmentFactory.FileSpecification(
-                    attachment.FileName, attachment.Description,
-                    attachment.Relationship, embeddedReference));
+            PdfDictionary specification = PdfAttachmentFactory.FileSpecification(
+                attachment.FileName, attachment.Description,
+                attachment.Relationship, embeddedReference);
+            PdfIndirectReference fileReference;
+            if (attachment.OriginalFileName is not null
+                && originalSpecifications.TryGetValue(attachment.OriginalFileName, out var original))
+            {
+                var entries = original.Value.ToDictionary(entry => entry.Key, entry => entry.Value);
+                entries.Remove(Name("Desc"));
+                foreach (var entry in specification) entries[entry.Key] = entry.Value;
+                specification = new PdfDictionary(entries);
+                if (original.Reference is not null)
+                {
+                    fileReference = original.Reference;
+                    update.ReplaceObject(fileReference.ObjectNumber, specification);
+                }
+                else
+                {
+                    fileReference = update.ReserveObject();
+                    update.SetObject(fileReference, specification);
+                }
+            }
+            else
+            {
+                fileReference = update.ReserveObject();
+                update.SetObject(fileReference, specification);
+            }
             files.Add(new PdfNameTreeEntry(
                 TextString(attachment.FileName), fileReference));
             associated.Add(fileReference);
@@ -18518,7 +18551,8 @@ public sealed class PdfIncrementalPageEditor
         string? Description,
         PdfAssociatedFileRelationship Relationship,
         DateTimeOffset? ModificationDate,
-        DateTimeOffset? CreationDate);
+        DateTimeOffset? CreationDate,
+        string? OriginalFileName = null);
     private sealed record PendingBookmark(
         string Title, PageState? Page, string? NamedDestination,
         int Level, PdfBookmarkOptions Options)

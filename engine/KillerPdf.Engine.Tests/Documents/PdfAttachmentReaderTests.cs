@@ -11,6 +11,67 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfAttachmentReaderTests
 {
+    [Theory]
+    [InlineData("replace")]
+    [InlineData("rename")]
+    [InlineData("description")]
+    [InlineData("classification")]
+    public void AttachmentEditsUpdateSharedPageIconTargets(string operation)
+    {
+        byte[] source = new PdfDocumentBuilder().AddBlankPage().AddBlankPage()
+            .AddAttachment("evidence.txt", "original"u8.ToArray(), "text/plain", "Evidence")
+            .AddAttachment("other.txt", "unrelated"u8.ToArray(), "text/plain")
+            .AddFileAttachmentAnnotation(0, 20, 30, 24, "evidence.txt")
+            .AddFileAttachmentAnnotation(1, 20, 30, 24, "evidence.txt")
+            .AddFileAttachmentAnnotation(1, 60, 30, 24, "other.txt")
+            .Build();
+        PdfDocument original = PdfDocument.Open(source);
+        PdfDictionary catalog = ResolveDictionary(original, original.Trailer[Name("Root")]);
+        PdfDictionary names = ResolveDictionary(original, catalog[Name("Names")]);
+        PdfDictionary tree = ResolveDictionary(original, names[Name("EmbeddedFiles")]);
+        PdfArray files = Assert.IsType<PdfArray>(tree[Name("Names")]);
+        PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(files[1]);
+        PdfDictionary specification = ResolveDictionary(original, reference);
+        var collectionItem = new PdfDictionary([new(Name("Department"), Text("Legal"))]);
+        specification = new PdfDictionary(specification.Concat([
+            new KeyValuePair<PdfName, PdfObject>(Name("CI"), collectionItem),
+            new KeyValuePair<PdfName, PdfObject>(Name("CustomValue"), Text("Preserved"))]));
+        source = new PdfIncrementalUpdateBuilder(original)
+            .ReplaceObject(reference.ObjectNumber, specification).Build();
+        original = PdfDocument.Open(source);
+        var editor = new PdfIncrementalPageEditor(original);
+        switch (operation)
+        {
+            case "replace": editor.ReplaceAttachment("EVIDENCE.TXT", "revised"u8.ToArray()); break;
+            case "rename": editor.RenameAttachment("evidence.txt", "renamed.txt"); break;
+            case "description": editor.SetAttachmentDescription("evidence.txt", null); break;
+            case "classification": editor.SetAttachmentClassification("evidence.txt",
+                "application/octet-stream", PdfAssociatedFileRelationship.Source); break;
+        }
+        byte[] bytes = editor.Build();
+        Assert.Equal(source, bytes.AsSpan(0, source.Length).ToArray());
+        PdfDocument changed = PdfDocument.Open(bytes);
+        PdfAttachmentInfo registered = PdfAttachmentReader.Read(changed)
+            .Single(item => item.FileName != "other.txt");
+        Assert.Equal([new PdfCollectionItemValue("Department", "Legal", null, null)],
+            registered.CollectionValues);
+        Assert.Equal("Preserved"u8.ToArray(), Assert.IsType<PdfString>(
+            ResolveDictionary(changed, reference)[Name("CustomValue")]).Bytes.ToArray());
+        for (int page = 0; page < 2; page++)
+        {
+            PdfAttachmentInfo target = PdfAttachmentReader.ReadPageAnnotations(changed, page)[0].Attachment;
+            Assert.Equal(registered.FileName, target.FileName);
+            Assert.Equal(registered.Data.ToArray(), target.Data.ToArray());
+            Assert.Equal(registered.Description, target.Description);
+            Assert.Equal(registered.MimeType, target.MimeType);
+            Assert.Equal(registered.Relationship, target.Relationship);
+        }
+        Assert.Equal("unrelated"u8.ToArray(),
+            PdfAttachmentReader.ReadPageAnnotations(changed, 1)[1].Attachment.Data.ToArray());
+        Assert.Equal("original"u8.ToArray(),
+            PdfAttachmentReader.ReadPageAnnotations(original, 0)[0].Attachment.Data.ToArray());
+    }
+
     [Fact]
     public void ReadReturnsAttachmentMetadataPayloadAndSourceObjects()
     {
