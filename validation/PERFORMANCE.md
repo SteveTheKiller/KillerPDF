@@ -3,6 +3,27 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 combined Courier and comb-field audit
+
+Validation date: 2026-09-07. The isolated PDFjs audit covers all 979 files at
+1024 pixels, page one, using product `63d8f4c`. The engine retains 960 OK,
+18 SKIP, and one FAIL; PDFium 1.8.5 retains 957 OK, 21 SKIP, and one FAIL.
+Every previous status is unchanged and no process times out. All paired input
+and build hashes match the recorded sources and prior full audit.
+
+Of 960 engine PNGs, 958 are identical to the full form-inset audit. Both changed
+pages were visually reviewed. `bug2055455.pdf` matches the reviewed focused
+Courier output exactly, restoring all comb digits and reducing mean absolute
+channel error from 1.862 to 0.017. `issue11915.pdf` changes only the Courier New
+specimen, whose thin glyphs now match PDFium. Its one-pixel height difference
+remains; no unaligned pixel-error metric is reported for that page.
+
+This is a coverage and visual-change audit, not throughput evidence. Documentation
+checks and engine/app tests overlapped these isolated processes. The tested
+product passed 2,953 engine and 338 app tests. The later page-numbering collision
+correction is outside this binary. See the [record](records/full-courier-comb-1.9.0.json)
+and [complete raw rows](benchmarks/1.9.0-full-courier-comb/render-comparison.csv).
+
 ## KillerPDF 1.9.0 paired conformance after JPEG and form updates
 
 Validation date: 2026-09-07. Product `63d8f4c` was compared with PDFium 1.8.5
