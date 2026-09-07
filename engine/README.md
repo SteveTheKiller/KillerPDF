@@ -130,6 +130,9 @@ referencing a UI toolkit or native PDF renderer. The engine does not provide UI 
 See the [rendering guide](docs/rendering.md) for integration, pixel layout, authentication,
 diagnostics, resource limits, and validation guidance.
 
+See [opening and extracting documents](docs/reading.md) for memory ownership,
+authentication, permissions, page coordinates, extraction results, and batch failures.
+
 ## Repository layout
 
 ```text
