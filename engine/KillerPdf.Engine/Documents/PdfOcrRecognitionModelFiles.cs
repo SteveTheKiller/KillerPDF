@@ -13,24 +13,44 @@ public static class PdfOcrRecognitionModelFiles
         out PdfOcrRecognitionModel? model)
     {
         model = null;
+        if (!TryCreateCatalog(directory, languages,
+            out PdfOcrRecognitionModelCatalog? catalog)) return false;
+        try
+        {
+            model = catalog!.SelectCombined(catalog.Languages).Model;
+            return true;
+        }
+        catch (Exception error) when (error is not OutOfMemoryException)
+        {
+            model = null;
+            return false;
+        }
+    }
+
+    /// <summary>Attempts to load every requested model into an engine-owned language catalog.</summary>
+    public static bool TryCreateCatalog(string directory, string languages,
+        out PdfOcrRecognitionModelCatalog? catalog)
+    {
+        catalog = null;
         if (!TryLanguages(directory, languages, out string[] requested)) return false;
         try
         {
-            var loaded = new List<PdfOcrRecognitionModel>(requested.Length);
+            var loaded = new List<KeyValuePair<string, PdfOcrRecognitionModel>>(requested.Length);
             foreach (string language in requested)
             {
                 string path = Path.Combine(directory, language + ".kpocr");
                 if (!TryReadBounded(path, PdfOcrRecognitionModel.MaximumModelBytes,
                     out byte[] bytes))
                     return false;
-                loaded.Add(PdfOcrRecognitionModel.Load(bytes));
+                loaded.Add(new KeyValuePair<string, PdfOcrRecognitionModel>(
+                    language, PdfOcrRecognitionModel.Load(bytes)));
             }
-            model = loaded.Count == 1 ? loaded[0] : PdfOcrRecognitionModel.Combine(loaded);
+            catalog = new PdfOcrRecognitionModelCatalog(loaded);
             return true;
         }
         catch (Exception error) when (error is not OutOfMemoryException)
         {
-            model = null;
+            catalog = null;
             return false;
         }
     }

@@ -7,16 +7,14 @@ namespace KillerPDF.Services
     /// </summary>
     internal sealed class OcrService : IDisposable
     {
-        private static readonly PdfOcrOptions EngineRasterOptions = new(["und"],
-            deskew: false, correctOrientation: false, removeBackground: true,
-            removeNoise: true, detectPageSegments: true);
         private static readonly PdfOcrOptions FallbackRasterOptions = new(["und"],
             deskew: false, correctOrientation: false, detectPageSegments: false);
         private readonly string _dataPath;
         private readonly string _language;
         private readonly bool _usesDefaultDataPath;
-        private readonly PdfOcrRecognitionModel? _engineModel;
+        private readonly PdfOcrRasterProvider? _engineProvider;
         private readonly PdfOcrLanguageModel? _engineLanguageModel;
+        private readonly PdfOcrOptions _engineRasterOptions;
         private TesseractOcrFallback? _fallback;
 
         /// <param name="tessDataPath">Folder holding installed OCR models. Defaults to the persistent OCR model folder.</param>
@@ -27,11 +25,19 @@ namespace KillerPDF.Services
             _usesDefaultDataPath = tessDataPath is null;
             _dataPath = tessDataPath ?? OcrNativeBootstrap.TessDataDir;
             _language = language;
-            PdfOcrRecognitionModelFiles.TryLoadCombined(
-                _dataPath, language, out _engineModel);
-            if (_engineModel is not null)
+            _engineRasterOptions = new PdfOcrOptions(language.Split('+',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                deskew: false, correctOrientation: false, removeBackground: true,
+                removeNoise: true, detectPageSegments: true);
+            if (PdfOcrRecognitionModelFiles.TryCreateCatalog(
+                _dataPath, language, out PdfOcrRecognitionModelCatalog? models))
+            {
                 PdfOcrRecognitionModelFiles.TryLoadLanguageCombined(
                     _dataPath, language, out _engineLanguageModel);
+                _engineProvider = new PdfEngineOcrProvider(models!,
+                    typeof(PdfOcrRecognitionModel).Assembly.GetName().Version ?? new Version(1, 0),
+                    _ => _engineLanguageModel);
+            }
         }
 
         /// <summary>
@@ -41,23 +47,9 @@ namespace KillerPDF.Services
             string? characterWhitelist = null,
             CancellationToken cancellationToken = default)
         {
-            if (_engineModel is not null)
-                return string.IsNullOrEmpty(characterWhitelist)
-                    ? _engineLanguageModel is null
-                        ? PdfOcrRecognizer.RecognizeBgra(
-                            bgra, width, height, _engineModel,
-                            EngineRasterOptions, cancellationToken)
-                        : PdfOcrRecognizer.RecognizeBgra(
-                            bgra, width, height, _engineModel,
-                            _engineLanguageModel, EngineRasterOptions, cancellationToken)
-                    : _engineLanguageModel is null
-                        ? PdfOcrRecognizer.RecognizeBgra(
-                            bgra, width, height, _engineModel, EngineRasterOptions,
-                            characterWhitelist, cancellationToken)
-                        : PdfOcrRecognizer.RecognizeBgra(
-                            bgra, width, height, _engineModel,
-                            _engineLanguageModel, EngineRasterOptions,
-                            characterWhitelist, cancellationToken);
+            if (_engineProvider is not null)
+                return _engineProvider.RecognizeBgra(bgra, width, height, checked(width * 4),
+                    _engineRasterOptions, characterWhitelist, cancellationToken);
             PdfOcrPreparedImage prepared = PdfOcrImagePreprocessor.PrepareBgra(
                 bgra, width, height, FallbackRasterOptions, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();

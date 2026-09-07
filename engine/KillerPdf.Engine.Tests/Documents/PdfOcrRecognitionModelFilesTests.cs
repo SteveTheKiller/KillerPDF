@@ -30,6 +30,28 @@ public sealed class PdfOcrRecognitionModelFilesTests
     }
 
     [Fact]
+    public void TryCreateCatalogRetainsIndividualInstalledLanguageModels()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            File.WriteAllBytes(Path.Combine(directory, "eng.kpocr"), TinyModel("E").Save());
+            File.WriteAllBytes(Path.Combine(directory, "spa.kpocr"), TinyModel("S").Save());
+
+            Assert.True(PdfOcrRecognitionModelFiles.TryCreateCatalog(
+                directory, "eng+spa", out PdfOcrRecognitionModelCatalog? catalog));
+
+            Assert.Equal(["eng", "spa"], catalog!.Languages);
+            Assert.Equal(["E"], catalog.SelectCombined(["eng"]).Model.Labels);
+            Assert.Equal(["S"], catalog.SelectCombined(["spa"]).Model.Labels);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void TryLoadRejectsCorruptAndUnsafeLanguageNames()
     {
         string directory = CreateDirectory();

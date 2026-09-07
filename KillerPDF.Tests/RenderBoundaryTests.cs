@@ -177,25 +177,22 @@ public sealed class RenderBoundaryTests
         string root = FindRepositoryRoot();
         string source = File.ReadAllText(Path.Combine(root, "Services", "OcrService.cs"));
 
-        Assert.Contains("PdfOcrRecognitionModelFiles.TryLoadCombined(", source,
+        Assert.Contains("PdfOcrRecognitionModelFiles.TryCreateCatalog(", source,
             StringComparison.Ordinal);
         Assert.Contains("tessDataPath ?? OcrNativeBootstrap.TessDataDir", source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("tessDataPath ?? OcrNativeBootstrap.EnsureLanguageData()", source,
             StringComparison.Ordinal);
-        Assert.Contains("PdfOcrRecognizer.RecognizeBgra(", source, StringComparison.Ordinal);
+        Assert.Contains("_engineProvider.RecognizeBgra(", source, StringComparison.Ordinal);
         Assert.Contains("removeBackground: true", source, StringComparison.Ordinal);
         Assert.Contains("removeNoise: true", source, StringComparison.Ordinal);
         Assert.Contains("removeNoise: true, detectPageSegments: true", source,
             StringComparison.Ordinal);
-        Assert.Contains("EngineRasterOptions, cancellationToken", source,
+        Assert.Contains("_engineRasterOptions, characterWhitelist, cancellationToken", source,
             StringComparison.Ordinal);
-        Assert.Contains("characterWhitelist, cancellationToken", source,
+        Assert.Contains("_ => _engineLanguageModel", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("PdfOcrRecognizer.RecognizeBgra(", source,
             StringComparison.Ordinal);
-        Assert.Contains("_engineLanguageModel, EngineRasterOptions,", source,
-            StringComparison.Ordinal);
-        Assert.DoesNotContain("_engineModel is not null && string.IsNullOrEmpty",
-            source, StringComparison.Ordinal);
         Assert.DoesNotContain("PdfOcrRecognitionModel.Load(", source,
             StringComparison.Ordinal);
         Assert.DoesNotContain("PdfOcrRecognitionModel.Combine(", source,
