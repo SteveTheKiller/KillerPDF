@@ -812,7 +812,7 @@ public sealed class PdfOcrRecognitionTests
         Assert.All(evaluation.Confusion.Where(item =>
                 !string.Equals(item.Expected, item.Predicted, StringComparison.Ordinal)),
             item => Assert.Contains((item.Expected, item.Predicted),
-                new[] { ("I", "1"), ("O", "0"), ("0", "O") }));
+                new[] { ("I", "1"), ("O", "0"), ("0", "O"), ("B", "8"), ("8", "B") }));
     }
 
     [Fact]

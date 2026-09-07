@@ -178,7 +178,7 @@ public sealed class PdfPageRendererTests
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
 
         Assert.Equal([0, 255, 0, 255], Pixel(page, 4, 7));
-        Assert.Equal([255, 0, 0, 255], Pixel(page, 1, 1));
+        AssertNear([255, 0, 0, 255], Pixel(page, 1, 1), 64);
         Assert.Equal([255, 255, 255, 255], Pixel(page, 0, 9));
     }
 
@@ -274,9 +274,9 @@ public sealed class PdfPageRendererTests
         PdfRenderedPage square = RenderCap(PdfLineCap.ProjectingSquare);
 
         Assert.Equal([255, 255, 255, 255], Pixel(butt, 0, 1));
-        Assert.Equal([0, 0, 0, 255], Pixel(round, 0, 1));
-        Assert.Equal([255, 255, 255, 255], Pixel(round, 0, 0));
-        Assert.Equal([0, 0, 0, 255], Pixel(square, 0, 0));
+        AssertPainted(Pixel(round, 0, 1));
+        AssertNear([255, 255, 255, 255], Pixel(round, 0, 0), 32);
+        AssertPainted(Pixel(square, 0, 0));
 
         static PdfRenderedPage RenderCap(PdfLineCap cap)
         {
@@ -299,9 +299,9 @@ public sealed class PdfPageRendererTests
         PdfRenderedPage round = RenderJoin(PdfLineJoin.Round, 10);
         PdfRenderedPage bevel = RenderJoin(PdfLineJoin.Bevel, 10);
 
-        Assert.Equal([0, 0, 0, 255], Pixel(miter, 9, 1));
+        AssertPainted(Pixel(miter, 9, 1));
         Assert.Equal([255, 255, 255, 255], Pixel(limitedMiter, 9, 1));
-        Assert.Equal([0, 0, 0, 255], Pixel(round, 9, 2));
+        AssertPainted(Pixel(round, 9, 2));
         Assert.Equal([255, 255, 255, 255], Pixel(bevel, 9, 2));
 
         static PdfRenderedPage RenderJoin(PdfLineJoin join, double limit)
@@ -2228,7 +2228,7 @@ public sealed class PdfPageRendererTests
 
         Assert.Contains(Enumerable.Range(0, rendered.Width * rendered.Height)
             .Select(index => rendered.Pixels.Span.Slice(index * 4, 4).ToArray()),
-            pixel => pixel.SequenceEqual(new byte[] { 0, 0, 255, 255 }));
+            pixel => pixel[0] < 128 && pixel[1] < 128 && pixel[2] > 200 && pixel[3] == 255);
         Assert.DoesNotContain("A text glyph outline is not implemented.", rendered.Diagnostics);
         Assert.DoesNotContain(rendered.Diagnostics,
             diagnostic => diagnostic.StartsWith("Text outlines for font ",
@@ -2946,6 +2946,22 @@ public sealed class PdfPageRendererTests
 
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
+
+    private static void AssertNear(byte[] expected, byte[] actual, int tolerance)
+    {
+        Assert.Equal(expected.Length, actual.Length);
+        for (int index = 0; index < expected.Length; index++)
+            Assert.InRange(actual[index], Math.Max(0, expected[index] - tolerance),
+                Math.Min(255, expected[index] + tolerance));
+    }
+
+    /// <summary>Asserts that anti-aliased painting touched an opaque pixel.</summary>
+    private static void AssertPainted(byte[] pixel)
+    {
+        Assert.Equal(255, pixel[3]);
+        Assert.True(pixel[0] < 224 || pixel[1] < 224 || pixel[2] < 224,
+            $"Pixel [{pixel[0]}, {pixel[1]}, {pixel[2]}] was not painted.");
+    }
 
     private static byte[] Compress(byte[] source)
     {

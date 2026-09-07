@@ -9,7 +9,7 @@ using KillerPdf.Engine.Syntax;
 namespace KillerPdf.Engine.Rendering;
 
 /// <summary>Renders PDF page content through the engine-owned CPU raster pipeline.</summary>
-public sealed class PdfPageRenderer
+public sealed partial class PdfPageRenderer
 {
     private const long MaximumDecodedImageCacheBytes = 64L * 1024 * 1024;
     private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
@@ -99,6 +99,7 @@ public sealed class PdfPageRenderer
         double displayHeight = quarterTurn ? page.Width : page.Height;
         double scaleX = options.Width / displayWidth;
         double scaleY = options.Height / displayHeight;
+        var frame = new RasterFrame(options.Width, options.Height, scaleX, scaleY);
         Matrix normalize = new(1, 0, 0, 1, -crop.Left, -crop.Bottom);
         Matrix rotate = page.Rotation switch
         {
@@ -136,7 +137,7 @@ public sealed class PdfPageRenderer
             var visibilityStack = new Stack<bool>();
             bool contentVisible = true;
             int compatibilityDepth = 0;
-            var textClipPaths = new List<List<Point>>();
+            byte[]? textClipCoverage = null;
             byte[]? textClipMask = null;
             bool? pendingClipEvenOdd = null;
             Matrix textMatrix = Matrix.Identity, textLineMatrix = Matrix.Identity;
@@ -454,14 +455,14 @@ public sealed class PdfPageRenderer
                     break;
                 case "f" or "F" or "f*" when path.Count > 0:
                     PaintFill(path, instruction.Operator == "f*");
-                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
                     path.Clear();
                     subpath = null;
                     break;
                 case "S" or "s" when path.Count > 0:
                     if (instruction.Operator == "s" && subpath is { Count: > 1 }) subpath.Add(subpath[0]);
                     PaintStroke(path);
-                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
                     path.Clear();
                     subpath = null;
                     break;
@@ -470,46 +471,42 @@ public sealed class PdfPageRenderer
                         subpath.Add(subpath[0]);
                     PaintFill(path, instruction.Operator.EndsWith('*'));
                     PaintStroke(path);
-                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
                     path.Clear();
                     subpath = null;
                     break;
                 case "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*":
-                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
                     path.Clear();
                     subpath = null;
                     break;
                 case "n":
-                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd);
+                    state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
                     path.Clear();
                     subpath = null;
                     break;
                 case "BT":
                     textMatrix = textLineMatrix = Matrix.Identity;
-                    textClipPaths.Clear();
+                    textClipCoverage = null;
                     textClipMask = null;
                     break;
                 case "ET":
-                    if (textClipPaths.Count > 0 || textClipMask is not null)
+                    if (textClipCoverage is not null || textClipMask is not null)
                     {
-                        Point[][] polygons = [.. textClipPaths.Select(item => item.ToArray())];
-                        byte[]? mask = textClipMask;
-                        ClipRegion[] clips = [.. state.Clips,
-                            new ClipRegion(polygons, false, mask is null ? null : ContainsTextMask)];
-                        state = state with { Clips = Array.AsReadOnly(clips) };
-                        textClipPaths.Clear();
-                        textClipMask = null;
-
-                        bool ContainsTextMask(double x, double y)
+                        CoverageMask mask = textClipCoverage is null
+                            ? CoverageMask.Empty
+                            : CoverageMask.FromPageBuffer(textClipCoverage, options.Width,
+                                options.Height);
+                        if (textClipMask is not null)
                         {
-                            if (polygons.Length > 0 && Contains(polygons, false, x, y))
-                                return true;
-                            int pixelX = (int)Math.Floor(x * scaleX);
-                            int pixelY = (int)Math.Floor(options.Height - y * scaleY);
-                            return pixelX >= 0 && pixelX < options.Width
-                                && pixelY >= 0 && pixelY < options.Height
-                                && mask![(pixelY * options.Width + pixelX) * 4 + 3] != 0;
+                            CoverageMask type3 = CoverageMask.FromPageBuffer(textClipMask,
+                                options.Width, options.Height, 4, 3);
+                            mask = mask.IsEmpty ? type3 : UnionMasks(mask, type3, options.Width,
+                                options.Height);
                         }
+                        state = state with { Clips = AddClip(state.Clips, mask) };
+                        textClipCoverage = null;
+                        textClipMask = null;
                     }
                     break;
                 case "Tf" when values.Count == 2 && values[0] is PdfName fontName:
@@ -665,8 +662,7 @@ public sealed class PdfPageRenderer
                         cancellationToken);
                     return;
                 }
-                var fillClip = new ClipRegion(
-                    [.. fillPath.Select(points => points.ToArray())], evenOdd);
+                var fillClip = new ClipRegion(RasterizeFill(fillPath, evenOdd, frame));
                 RenderPattern(state.FillPattern, fillPath, fillClip, resources, state, depth);
             }
 
@@ -686,12 +682,8 @@ public sealed class PdfPageRenderer
                         cancellationToken);
                     return;
                 }
-                Point[][] segments = [.. paintedPath.Select(points => points.ToArray())];
-                double radius = Math.Max(lineWidth / 2,
-                    Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
-                var strokeClip = new ClipRegion([], false,
-                    (x, y) => IsWithinStroke(segments, radius, x, y,
-                        state.LineCap, state.LineJoin, state.MiterLimit));
+                var strokeClip = new ClipRegion(RasterizeStroke(paintedPath, lineWidth,
+                    state.LineCap, state.LineJoin, state.MiterLimit, frame));
                 RenderPattern(state.StrokePattern, paintedPath, strokeClip,
                     resources, state, depth);
             }
@@ -702,11 +694,10 @@ public sealed class PdfPageRenderer
             {
                 if (paint.Shading is not null)
                 {
-                    ClipRegion[] clips = [.. parentState.Clips, paintClip];
                     GraphicsState shadingState = parentState with
                     {
                         Transform = paint.Matrix.Then(parentState.Transform),
-                        Clips = Array.AsReadOnly(clips),
+                        Clips = AddClip(parentState.Clips, paintClip.Mask),
                         FillPatternSpace = false,
                         FillPatternBase = null,
                         FillPattern = null,
@@ -756,6 +747,8 @@ public sealed class PdfPageRenderer
                     : parentResources;
                 IReadOnlyList<PdfContentInstruction> patternInstructions =
                     ReadStreamInstructions(pattern, cancellationToken);
+                IReadOnlyList<ClipRegion> paintClips = AddClip(parentState.Clips, paintClip.Mask);
+                if (paintClips[0].Mask.IsEmpty) return;
                 for (int cellY = firstY; cellY <= lastY; cellY++)
                     for (int cellX = firstX; cellX <= lastX; cellX++)
                     {
@@ -767,12 +760,13 @@ public sealed class PdfPageRenderer
                             cell.Apply(right, top), cell.Apply(left, top),
                             cell.Apply(left, bottom)
                         ];
-                        ClipRegion[] clips = [.. parentState.Clips, paintClip,
-                            new ClipRegion([cellBox], false)];
+                        CoverageMask cellMask = RasterizeFill([cellBox], false, frame);
+                        IReadOnlyList<ClipRegion> clips = AddClip(paintClips, cellMask);
+                        if (clips[0].Mask.IsEmpty) continue;
                         GraphicsState cellState = parentState with
                         {
                             Transform = cell,
-                            Clips = Array.AsReadOnly(clips),
+                            Clips = clips,
                             FillPatternSpace = false,
                             FillPatternBase = null,
                             FillPattern = null,
@@ -952,7 +946,11 @@ public sealed class PdfPageRenderer
                                     state.Knockout,
                                     cancellationToken);
                             if (clipsText)
-                                textClipPaths.AddRange(glyphPaths.Select(item => new List<Point>(item)));
+                            {
+                                textClipCoverage ??= new byte[options.Width * options.Height];
+                                UnionInto(textClipCoverage, options.Width,
+                                    RasterizeFill(glyphPaths, false, frame));
+                            }
                         }
                         else if ((paintMode != 3 || clipsText)
                             && extractionFont.GetWidth(character.Code) != 0)
@@ -1100,9 +1098,10 @@ public sealed class PdfPageRenderer
                         formState.Transform.Apply(left, top)
                     ];
                     formBounds = polygon;
-                    ClipRegion[] clips = [.. formState.Clips,
-                        new ClipRegion([polygon], false)];
-                    formState = formState with { Clips = Array.AsReadOnly(clips) };
+                    formState = formState with
+                    {
+                        Clips = AddClip(formState.Clips, RasterizeFill([polygon], false, frame))
+                    };
                 }
                 PdfDictionary formResources = form.Dictionary.TryGetValue(
                     Name("Resources"), out PdfObject? resourceValue)
@@ -2859,7 +2858,8 @@ public sealed class PdfPageRenderer
                 {
                     double pageX = (x + 0.5) / scaleX;
                     double pageY = (targetHeight - y - 0.5) / scaleY;
-                    if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                    double clipAlpha = ClipAlpha(state.Clips, x, y);
+                    if (clipAlpha <= 0) continue;
                     if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
                     Point point = inverse.Apply(pageX, pageY);
                     double unit = ((point.X - x0) * axisX + (point.Y - y0) * axisY)
@@ -2867,7 +2867,7 @@ public sealed class PdfPageRenderer
                     if (unit < 0 && !extendStart || unit > 1 && !extendEnd) continue;
                     unit = Math.Clamp(unit, 0, 1);
                     double input = domain[0] + unit * (domain[1] - domain[0]);
-                    SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha,
+                    SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha * clipAlpha,
                         state.BlendMode, state.GraphicsSoftMask, state.Knockout);
                 }
             }
@@ -2913,13 +2913,15 @@ public sealed class PdfPageRenderer
             {
                 double pageX = (x + 0.5) / scaleX;
                 double pageY = (targetHeight - y - 0.5) / scaleY;
-                if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                double clipAlpha = ClipAlpha(state.Clips, x, y);
+                if (clipAlpha <= 0) continue;
                 if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
                 Point point = pageToShading.Apply(pageX, pageY);
                 if (point.X < domain[0] || point.X > domain[1]
                     || point.Y < domain[2] || point.Y > domain[3]) continue;
                 SetPixel(target, targetWidth, x, y, function([point.X, point.Y]),
-                    state.FillAlpha, state.BlendMode, state.GraphicsSoftMask, state.Knockout);
+                    state.FillAlpha * clipAlpha, state.BlendMode, state.GraphicsSoftMask,
+                    state.Knockout);
             }
         }
         return true;
@@ -3055,7 +3057,8 @@ public sealed class PdfPageRenderer
             {
                 double pageX = (x + 0.5) / scaleX;
                 double pageY = (targetHeight - y - 0.5) / scaleY;
-                if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                double clipAlpha = ClipAlpha(state.Clips, x, y);
+                if (clipAlpha <= 0) continue;
                 double a = Edge(second.Point, third.Point, pageX, pageY) / area;
                 double b = Edge(third.Point, first.Point, pageX, pageY) / area;
                 double c = 1 - a - b;
@@ -3064,8 +3067,8 @@ public sealed class PdfPageRenderer
                     values[component] = first.Values[component] * a
                         + second.Values[component] * b + third.Values[component] * c;
                 Color color = mesh.Convert(values);
-                SetPixel(target, targetWidth, x, y, color, state.FillAlpha, state.BlendMode,
-                    state.GraphicsSoftMask, state.Knockout);
+                SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
+                    state.BlendMode, state.GraphicsSoftMask, state.Knockout);
             }
         }
 
@@ -3168,99 +3171,8 @@ public sealed class PdfPageRenderer
             var mask = new bool[checked(targetWidth * targetHeight)];
             for (int y = clipTop; y < clipBottom; y++)
                 for (int x = clipLeft; x < clipRight; x++)
-                    mask[y * targetWidth + x] = true;
-            foreach (ClipRegion clip in state.Clips)
-                IntersectClip(clip);
+                    mask[y * targetWidth + x] = ClipCoverage(state.Clips, x, y) >= 128;
             return mask;
-
-            void IntersectClip(ClipRegion clip)
-            {
-                if (clip.Predicate is not null)
-                {
-                    for (int y = clipTop; y < clipBottom; y++)
-                    {
-                        double pageY = (targetHeight - y - 0.5) / scaleY;
-                        for (int x = clipLeft; x < clipRight; x++)
-                            if (mask[y * targetWidth + x]
-                                && !clip.Predicate((x + 0.5) / scaleX, pageY))
-                                mask[y * targetWidth + x] = false;
-                    }
-                    return;
-                }
-
-                var scanlines = new List<(double X, int Winding)>?[clipBottom - clipTop];
-                foreach (Point[] polygon in clip.Polygons)
-                {
-                    for (int current = 0, previous = polygon.Length - 1;
-                        current < polygon.Length; previous = current++)
-                        AddEdge(polygon[previous], polygon[current]);
-                }
-                for (int y = clipTop; y < clipBottom; y++)
-                {
-                    List<(double X, int Winding)>? intersections = scanlines[y - clipTop];
-                    if (intersections is null)
-                    {
-                        ClearRow(y);
-                        continue;
-                    }
-                    intersections.Sort((first, second) => first.X.CompareTo(second.X));
-                    int winding = 0;
-                    bool inside = false;
-                    int intersectionIndex = 0;
-                    for (int x = clipLeft; x < clipRight; x++)
-                    {
-                        double sampleX = x + 0.5;
-                        while (intersectionIndex < intersections.Count
-                            && intersections[intersectionIndex].X <= sampleX)
-                        {
-                            double intersectionX = intersections[intersectionIndex].X;
-                            int windingChange = 0;
-                            int crossingCount = 0;
-                            while (intersectionIndex < intersections.Count
-                                && intersections[intersectionIndex].X == intersectionX)
-                            {
-                                windingChange += intersections[intersectionIndex].Winding;
-                                crossingCount++;
-                                intersectionIndex++;
-                            }
-                            if (clip.EvenOdd)
-                                inside ^= crossingCount % 2 != 0;
-                            else
-                            {
-                                winding += windingChange;
-                                inside = winding != 0;
-                            }
-                        }
-                        if (!inside) mask[y * targetWidth + x] = false;
-                    }
-                }
-
-                void AddEdge(Point from, Point to)
-                {
-                    double fromY = targetHeight - from.Y * scaleY;
-                    double toY = targetHeight - to.Y * scaleY;
-                    if (fromY == toY) return;
-                    double fromX = from.X * scaleX;
-                    double toX = to.X * scaleX;
-                    int firstRow = Math.Max(clipTop,
-                        (int)Math.Ceiling(Math.Min(fromY, toY) - 0.5));
-                    int lastRow = Math.Min(clipBottom,
-                        (int)Math.Ceiling(Math.Max(fromY, toY) - 0.5));
-                    int windingChange = fromY > toY ? 1 : -1;
-                    double slope = (toX - fromX) / (toY - fromY);
-                    for (int row = firstRow; row < lastRow; row++)
-                    {
-                        double x = fromX + (row + 0.5 - fromY) * slope;
-                        (scanlines[row - clipTop] ??= []).Add((x, windingChange));
-                    }
-                }
-
-                void ClearRow(int y)
-                {
-                    for (int x = clipLeft; x < clipRight; x++)
-                        mask[y * targetWidth + x] = false;
-                }
-            }
         }
         static void AddCoonsInteriorPoints(Point[] source)
         {
@@ -3436,7 +3348,8 @@ public sealed class PdfPageRenderer
             {
                 double pageX = (x + 0.5) / scaleX;
                 double pageY = (targetHeight - y - 0.5) / scaleY;
-                if (!InsideClips(state.Clips, pageX, pageY)) continue;
+                double clipAlpha = ClipAlpha(state.Clips, x, y);
+                if (clipAlpha <= 0) continue;
                 if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
                 Point point = inverse.Apply(pageX, pageY);
                 double relativeX = x0 - point.X, relativeY = y0 - point.Y;
@@ -3447,7 +3360,7 @@ public sealed class PdfPageRenderer
                     extendStart, extendEnd, out double unit)) continue;
                 unit = Math.Clamp(unit, 0, 1);
                 double input = domain[0] + unit * (domain[1] - domain[0]);
-                SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha,
+                SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha * clipAlpha,
                     state.BlendMode, state.GraphicsSoftMask, state.Knockout);
             }
         }
@@ -3710,20 +3623,20 @@ public sealed class PdfPageRenderer
                 Point unit = inverse.Apply((x + 0.5) / scaleX,
                     (targetHeight - y - 0.5) / scaleY);
                 if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
-                if (!InsideClips(clips, (x + 0.5) / scaleX,
-                    (targetHeight - y - 0.5) / scaleY)) continue;
+                double clipAlpha = ClipAlpha(clips, x, y);
+                if (clipAlpha <= 0) continue;
                 int sx = Math.Clamp((int)(unit.X * sourceWidth), 0, sourceWidth - 1);
                 int sy = Math.Clamp((int)((1 - unit.Y) * sourceHeight), 0, sourceHeight - 1);
                 sy = Math.Min(sy, sourceHeight - 1);
                 Color color;
-                double alpha = 1;
+                double alpha = clipAlpha;
                 if (imageMask)
                 {
                     int bit = sx;
                     bool one = (samples[sy * rowBytes + bit / 8] & (0x80 >> (bit & 7))) != 0;
                     if (one != stencilPaintsOne) continue;
                     color = stencilColor;
-                    alpha = stencilAlpha;
+                    alpha = stencilAlpha * clipAlpha;
                 }
                 else
                 {
@@ -3894,38 +3807,20 @@ public sealed class PdfPageRenderer
         double minimumX = 0, minimumY = 0;
         double maximumX = width / scaleX, maximumY = height / scaleY;
         Intersect(explicitBounds);
-        foreach (ClipRegion clip in clips)
-        {
-            if (clip.Predicate is not null || clip.Polygons.Count == 0) continue;
-            bool found = false;
-            double clipMinimumX = double.PositiveInfinity;
-            double clipMinimumY = double.PositiveInfinity;
-            double clipMaximumX = double.NegativeInfinity;
-            double clipMaximumY = double.NegativeInfinity;
-            foreach (Point[] polygon in clip.Polygons)
-                foreach (Point point in polygon)
-                {
-                    found = true;
-                    clipMinimumX = Math.Min(clipMinimumX, point.X);
-                    clipMinimumY = Math.Min(clipMinimumY, point.Y);
-                    clipMaximumX = Math.Max(clipMaximumX, point.X);
-                    clipMaximumY = Math.Max(clipMaximumY, point.Y);
-                }
-            if (found)
-            {
-                minimumX = Math.Max(minimumX, clipMinimumX);
-                minimumY = Math.Max(minimumY, clipMinimumY);
-                maximumX = Math.Min(maximumX, clipMaximumX);
-                maximumY = Math.Min(maximumY, clipMaximumY);
-            }
-        }
-
         if (minimumX >= maximumX || minimumY >= maximumY)
             return (0, 0, 0, 0);
         int left = (int)Math.Clamp(Math.Floor(minimumX * scaleX), 0, width);
         int right = (int)Math.Clamp(Math.Ceiling(maximumX * scaleX), 0, width);
         int top = (int)Math.Clamp(height - Math.Ceiling(maximumY * scaleY), 0, height);
         int bottom = (int)Math.Clamp(height - Math.Floor(minimumY * scaleY), 0, height);
+        foreach (ClipRegion clip in clips)
+        {
+            left = Math.Max(left, clip.Mask.Left);
+            top = Math.Max(top, clip.Mask.Top);
+            right = Math.Min(right, clip.Mask.Right);
+            bottom = Math.Min(bottom, clip.Mask.Bottom);
+        }
+        if (right <= left || bottom <= top) return (0, 0, 0, 0);
         return (left, top, right, bottom);
 
         void Intersect(Point[]? polygon)
@@ -3944,141 +3839,10 @@ public sealed class PdfPageRenderer
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
         CancellationToken cancellationToken)
     {
-        var scaled = paths.Where(item => item.Count > 2).Select(item => item.Select(point =>
-            new Point(point.X * scaleX, height - point.Y * scaleY)).ToArray()).ToArray();
-        if (scaled.Length == 0) return;
-        int left = (int)Math.Clamp(Math.Floor(
-            scaled.Min(path => path.Min(point => point.X))), 0, width);
-        int right = (int)Math.Clamp(Math.Ceiling(
-            scaled.Max(path => path.Max(point => point.X))), 0, width);
-        int top = (int)Math.Clamp(Math.Floor(
-            scaled.Min(path => path.Min(point => point.Y))), 0, height);
-        int bottom = (int)Math.Clamp(Math.Ceiling(
-            scaled.Max(path => path.Max(point => point.Y))), 0, height);
-        bool rectangle = scaled.Length == 1 && IsAxisAlignedRectangle(scaled[0]);
-        bool directFill = clips.Count == 0 && alpha >= 1
-            && graphicsSoftMask is null && knockout is null
-            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        List<(double X, int Winding)>?[] scanlines = rectangle
-            ? [] : BuildScanlines();
-        for (int y = top; y < bottom; y++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (rectangle)
-            {
-                FillSpan(left, right, y);
-                continue;
-            }
-            List<(double X, int Winding)>? intersections = scanlines[y - top];
-            if (intersections is null) continue;
-            intersections.Sort((first, second) => first.X.CompareTo(second.X));
-            int winding = 0;
-            bool inside = false;
-            double spanStart = 0;
-            for (int index = 0; index < intersections.Count;)
-            {
-                double x = intersections[index].X;
-                int windingChange = 0;
-                int crossingCount = 0;
-                while (index < intersections.Count && intersections[index].X == x)
-                {
-                    windingChange += intersections[index].Winding;
-                    crossingCount++;
-                    index++;
-                }
-                bool wasInside = inside;
-                if (evenOdd)
-                    inside ^= crossingCount % 2 != 0;
-                else
-                {
-                    winding += windingChange;
-                    inside = winding != 0;
-                }
-                if (!wasInside && inside) spanStart = x;
-                else if (wasInside && !inside)
-                {
-                    int spanLeft = Math.Max(left, (int)Math.Ceiling(spanStart - 0.5));
-                    int spanRight = Math.Min(right, (int)Math.Ceiling(x - 0.5));
-                    FillSpan(spanLeft, spanRight, y);
-                }
-            }
-        }
-
-        List<(double X, int Winding)>?[] BuildScanlines()
-        {
-            var result = new List<(double X, int Winding)>?[bottom - top];
-            foreach (Point[] polygon in scaled)
-            {
-                for (int index = 1; index < polygon.Length; index++)
-                    AddEdge(polygon[index - 1], polygon[index]);
-                if (polygon[0] != polygon[^1]) AddEdge(polygon[^1], polygon[0]);
-            }
-            return result;
-
-            void AddEdge(Point from, Point to)
-            {
-                if (from.Y == to.Y) return;
-                int firstRow = Math.Max(top,
-                    (int)Math.Ceiling(Math.Min(from.Y, to.Y) - 0.5));
-                int lastRow = Math.Min(bottom,
-                    (int)Math.Ceiling(Math.Max(from.Y, to.Y) - 0.5));
-                int winding = from.Y > to.Y ? 1 : -1;
-                double slope = (to.X - from.X) / (to.Y - from.Y);
-                for (int row = firstRow; row < lastRow; row++)
-                {
-                    double x = from.X + (row + 0.5 - from.Y) * slope;
-                    (result[row - top] ??= []).Add((x, winding));
-                }
-            }
-        }
-
-        void FillSpan(int spanLeft, int spanRight, int y)
-        {
-            if (directFill)
-            {
-                int rowOffset = (y * width + spanLeft) * 4;
-                int rowEnd = (y * width + spanRight) * 4;
-                for (int offset = rowOffset; offset < rowEnd; offset += 4)
-                {
-                    pixels[offset] = color.Blue;
-                    pixels[offset + 1] = color.Green;
-                    pixels[offset + 2] = color.Red;
-                    pixels[offset + 3] = 255;
-                }
-                return;
-            }
-            double pageY = (height - y - 0.5) / scaleY;
-            for (int x = spanLeft; x < spanRight; x++)
-            {
-                double pageX = (x + 0.5) / scaleX;
-                if (InsideClips(clips, pageX, pageY))
-                    SetPixel(pixels, width, x, y, color, alpha, blendMode,
-                        graphicsSoftMask, knockout);
-            }
-        }
-
-        static bool IsAxisAlignedRectangle(Point[] polygon)
-        {
-            if (polygon.Length != 5 || polygon[0] != polygon[^1]) return false;
-            double minimumX = polygon.Take(4).Min(point => point.X);
-            double maximumX = polygon.Take(4).Max(point => point.X);
-            double minimumY = polygon.Take(4).Min(point => point.Y);
-            double maximumY = polygon.Take(4).Max(point => point.Y);
-            if (maximumX <= minimumX || maximumY <= minimumY) return false;
-            for (int index = 1; index < polygon.Length; index++)
-            {
-                Point from = polygon[index - 1], to = polygon[index];
-                bool horizontal = from.Y == to.Y && from.X != to.X;
-                bool vertical = from.X == to.X && from.Y != to.Y;
-                if (!horizontal && !vertical) return false;
-            }
-            double twiceArea = 0;
-            for (int index = 0; index < 4; index++)
-                twiceArea += polygon[index].X * polygon[index + 1].Y
-                    - polygon[index + 1].X * polygon[index].Y;
-            double expected = 2 * (maximumX - minimumX) * (maximumY - minimumY);
-            return Math.Abs(Math.Abs(twiceArea) - expected) <= expected * 1e-12;
-        }
+        var frame = new RasterFrame(width, height, scaleX, scaleY);
+        CoverageMask mask = RasterizeFill(paths, evenOdd, frame);
+        PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
+            graphicsSoftMask, knockout, cancellationToken);
     }
 
     private static void StrokePaths(byte[] pixels, int width, int height, double scaleX,
@@ -4089,98 +3853,10 @@ public sealed class PdfPageRenderer
         KnockoutState? knockout,
         CancellationToken cancellationToken)
     {
-        double pageRadius = Math.Max(lineWidth / 2,
-            Math.Sqrt(0.5) / Math.Min(scaleX, scaleY));
-        Point[][] geometry = [.. paths.Where(path => path.Count > 1)
-            .Select(path => path.ToArray())];
-        if (geometry.Length == 0) return;
-        double expansion = pageRadius * (lineJoin == RendererLineJoin.Miter ? miterLimit : 1);
-        double minimumX = geometry.Min(path => path.Min(point => point.X)) - expansion;
-        double maximumX = geometry.Max(path => path.Max(point => point.X)) + expansion;
-        double minimumY = geometry.Min(path => path.Min(point => point.Y)) - expansion;
-        double maximumY = geometry.Max(path => path.Max(point => point.Y)) + expansion;
-        int left = (int)Math.Clamp(Math.Floor(minimumX * scaleX), 0, width);
-        int right = (int)Math.Clamp(Math.Ceiling(maximumX * scaleX), 0, width);
-        int top = (int)Math.Clamp(Math.Floor(height - maximumY * scaleY), 0, height);
-        int bottom = (int)Math.Clamp(Math.Ceiling(height - minimumY * scaleY), 0, height);
-        int regionWidth = right - left;
-        int regionHeight = bottom - top;
-        if (regionWidth <= 0 || regionHeight <= 0) return;
-        var coverage = new System.Collections.BitArray(checked(regionWidth * regionHeight));
-        foreach (Point[] path in geometry)
-        {
-            bool closed = path.Length > 2 && path[0] == path[^1];
-            for (int index = 1; index < path.Length; index++)
-            {
-                Point from = path[index - 1], to = path[index];
-                bool first = index == 1 && !closed;
-                bool last = index == path.Length - 1 && !closed;
-                double capExpansion = lineCap == RendererLineCap.ProjectingSquare
-                    && (first || last) ? pageRadius * Math.Sqrt(2) : pageRadius;
-                MarkBounds(Math.Min(from.X, to.X) - capExpansion,
-                    Math.Max(from.X, to.X) + capExpansion,
-                    Math.Min(from.Y, to.Y) - capExpansion,
-                    Math.Max(from.Y, to.Y) + capExpansion,
-                    (x, y) => IsWithinSegment(from, to, pageRadius, x, y,
-                        lineCap, first, last));
-            }
-            int vertexCount = closed ? path.Length - 1 : path.Length;
-            int firstVertex = closed ? 0 : 1;
-            int lastVertex = closed ? vertexCount - 1 : vertexCount - 2;
-            for (int vertexIndex = firstVertex; vertexIndex <= lastVertex; vertexIndex++)
-            {
-                int previousIndex = vertexIndex == 0 ? vertexCount - 1 : vertexIndex - 1;
-                int nextIndex = (vertexIndex + 1) % vertexCount;
-                Point vertex = path[vertexIndex];
-                double joinExpansion = JoinExpansion(path[previousIndex], vertex,
-                    path[nextIndex], pageRadius, lineJoin, miterLimit);
-                MarkBounds(vertex.X - joinExpansion, vertex.X + joinExpansion,
-                    vertex.Y - joinExpansion, vertex.Y + joinExpansion,
-                    (x, y) => IsInsideJoin(path[previousIndex], vertex,
-                        path[nextIndex], pageRadius, lineJoin, miterLimit, x, y));
-            }
-        }
-        for (int y = top; y < bottom; y++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            double pageY = (height - y - 0.5) / scaleY;
-            for (int x = left; x < right; x++)
-            {
-                if (coverage[(y - top) * regionWidth + x - left])
-                {
-                    double pageX = (x + 0.5) / scaleX;
-                    if (InsideClips(clips, pageX, pageY))
-                        SetPixel(pixels, width, x, y, color, alpha, blendMode,
-                            graphicsSoftMask, knockout);
-                }
-            }
-        }
-
-        void MarkBounds(double minimumPageX, double maximumPageX,
-            double minimumPageY, double maximumPageY, Func<double, double, bool> contains)
-        {
-            int candidateLeft = Math.Max(left,
-                (int)Math.Clamp(Math.Floor(minimumPageX * scaleX), 0, width));
-            int candidateRight = Math.Min(right,
-                (int)Math.Clamp(Math.Ceiling(maximumPageX * scaleX), 0, width));
-            int candidateTop = Math.Max(top,
-                (int)Math.Clamp(Math.Floor(height - maximumPageY * scaleY), 0, height));
-            int candidateBottom = Math.Min(bottom,
-                (int)Math.Clamp(Math.Ceiling(height - minimumPageY * scaleY), 0, height));
-            for (int y = candidateTop; y < candidateBottom; y++)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                double pageY = (height - y - 0.5) / scaleY;
-                for (int x = candidateLeft; x < candidateRight; x++)
-                {
-                    int coverageIndex = (y - top) * regionWidth + x - left;
-                    if (coverage[coverageIndex]) continue;
-                    double pageX = (x + 0.5) / scaleX;
-                    if (contains(pageX, pageY))
-                        coverage[coverageIndex] = true;
-                }
-            }
-        }
+        var frame = new RasterFrame(width, height, scaleX, scaleY);
+        CoverageMask mask = RasterizeStroke(paths, lineWidth, lineCap, lineJoin, miterLimit, frame);
+        PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
+            graphicsSoftMask, knockout, cancellationToken);
     }
 
     private static void AddCubic(List<Point> path, Point start, Point control1,
@@ -4455,15 +4131,12 @@ public sealed class PdfPageRenderer
     }
 
     private static GraphicsState ApplyPendingClip(GraphicsState state,
-        IReadOnlyList<List<Point>> path, ref bool? pendingClipEvenOdd)
+        IReadOnlyList<List<Point>> path, ref bool? pendingClipEvenOdd, RasterFrame frame)
     {
         if (!pendingClipEvenOdd.HasValue) return state;
-        Point[][] polygons = [.. path.Where(item => item.Count > 1)
-            .Select(item => item.ToArray())];
-        ClipRegion[] clips = [.. state.Clips,
-            new ClipRegion(polygons, pendingClipEvenOdd.Value)];
+        CoverageMask mask = RasterizeFill(path, pendingClipEvenOdd.Value, frame);
         pendingClipEvenOdd = null;
-        return state with { Clips = Array.AsReadOnly(clips) };
+        return state with { Clips = AddClip(state.Clips, mask) };
     }
 
     private static IReadOnlyList<List<Point>> CreateDashedPaths(
@@ -4552,9 +4225,6 @@ public sealed class PdfPageRenderer
             from.Y + (to.Y - from.Y) * amount);
     }
 
-    private static bool InsideClips(IReadOnlyList<ClipRegion> clips, double x, double y) =>
-        clips.All(clip => clip.Contains(x, y));
-
     private static bool Contains(IReadOnlyList<Point[]> polygons,
         bool evenOdd, double x, double y)
     {
@@ -4575,130 +4245,6 @@ public sealed class PdfPageRenderer
             }
         }
         return evenOdd ? crossings % 2 != 0 : winding != 0;
-    }
-
-    private static bool IsWithinStroke(IReadOnlyList<Point[]> paths, double radius,
-        double x, double y, RendererLineCap lineCap, RendererLineJoin lineJoin,
-        double miterLimit)
-    {
-        foreach (Point[] path in paths)
-        {
-            bool closed = path.Length > 2 && path[0] == path[^1];
-            for (int index = 1; index < path.Length; index++)
-                if (IsWithinSegment(path[index - 1], path[index], radius, x, y,
-                    lineCap, index == 1 && !closed,
-                    index == path.Length - 1 && !closed))
-                    return true;
-            int vertexCount = closed ? path.Length - 1 : path.Length;
-            int firstVertex = closed ? 0 : 1;
-            int lastVertex = closed ? vertexCount - 1 : vertexCount - 2;
-            for (int vertexIndex = firstVertex; vertexIndex <= lastVertex; vertexIndex++)
-            {
-                int previousIndex = vertexIndex == 0 ? vertexCount - 1 : vertexIndex - 1;
-                int nextIndex = (vertexIndex + 1) % vertexCount;
-                if (IsInsideJoin(path[previousIndex], path[vertexIndex], path[nextIndex],
-                    radius, lineJoin, miterLimit, x, y))
-                    return true;
-            }
-        }
-        return false;
-    }
-
-    private static bool IsWithinSegment(Point from, Point to, double radius,
-        double x, double y, RendererLineCap lineCap, bool first, bool last)
-    {
-        double squaredRadius = radius * radius;
-        double dx = to.X - from.X, dy = to.Y - from.Y;
-        double lengthSquared = dx * dx + dy * dy;
-        if (lengthSquared <= 1e-24) return false;
-        double raw = ((x - from.X) * dx + (y - from.Y) * dy) / lengthSquared;
-        double extension = radius / Math.Sqrt(lengthSquared);
-        if (raw < 0 && (!first || lineCap == RendererLineCap.Butt
-            || lineCap == RendererLineCap.ProjectingSquare && raw < -extension))
-            return false;
-        if (raw > 1 && (!last || lineCap == RendererLineCap.Butt
-            || lineCap == RendererLineCap.ProjectingSquare && raw > 1 + extension))
-            return false;
-        double parameter = lineCap == RendererLineCap.ProjectingSquare
-            ? Math.Clamp(raw, first ? -extension : 0, last ? 1 + extension : 1)
-            : Math.Clamp(raw, 0, 1);
-        double offsetX = x - (from.X + parameter * dx);
-        double offsetY = y - (from.Y + parameter * dy);
-        return offsetX * offsetX + offsetY * offsetY <= squaredRadius;
-    }
-
-    private static bool IsInsideJoin(Point previous, Point vertex, Point next,
-        double radius, RendererLineJoin lineJoin, double miterLimit, double x, double y)
-    {
-        double squaredRadius = radius * radius;
-        double incomingX = vertex.X - previous.X;
-        double incomingY = vertex.Y - previous.Y;
-        double outgoingX = next.X - vertex.X;
-        double outgoingY = next.Y - vertex.Y;
-        double incomingLength = Math.Sqrt(
-            incomingX * incomingX + incomingY * incomingY);
-        double outgoingLength = Math.Sqrt(
-            outgoingX * outgoingX + outgoingY * outgoingY);
-        if (incomingLength <= 1e-12 || outgoingLength <= 1e-12) return false;
-        incomingX /= incomingLength;
-        incomingY /= incomingLength;
-        outgoingX /= outgoingLength;
-        outgoingY /= outgoingLength;
-        double turn = Cross(incomingX, incomingY, outgoingX, outgoingY);
-        double dot = incomingX * outgoingX + incomingY * outgoingY;
-        if (Math.Abs(turn) <= 1e-12)
-            return dot < 0 && lineJoin == RendererLineJoin.Round
-                && SquaredDistance(vertex, x, y) <= squaredRadius;
-        if (lineJoin == RendererLineJoin.Round)
-            return SquaredDistance(vertex, x, y) <= squaredRadius;
-
-        double side = turn > 0 ? 1 : -1;
-        Point firstOuter = new(vertex.X + side * incomingY * radius,
-            vertex.Y - side * incomingX * radius);
-        Point secondOuter = new(vertex.X + side * outgoingY * radius,
-            vertex.Y - side * outgoingX * radius);
-        Point[] bevel = [vertex, firstOuter, secondOuter];
-        if (lineJoin == RendererLineJoin.Bevel) return Contains([bevel], false, x, y);
-
-        double denominator = Cross(incomingX, incomingY, outgoingX, outgoingY);
-        double deltaX = secondOuter.X - firstOuter.X;
-        double deltaY = secondOuter.Y - firstOuter.Y;
-        double distance = Cross(deltaX, deltaY, outgoingX, outgoingY) / denominator;
-        Point miter = new(firstOuter.X + distance * incomingX,
-            firstOuter.Y + distance * incomingY);
-        double miterRatio = Math.Sqrt(SquaredDistance(vertex, miter.X, miter.Y)) / radius;
-        return miterRatio <= miterLimit
-            ? Contains([[vertex, firstOuter, miter, secondOuter]], false, x, y)
-            : Contains([bevel], false, x, y);
-
-        static double Cross(double firstX, double firstY, double secondX, double secondY) =>
-            firstX * secondY - firstY * secondX;
-
-        static double SquaredDistance(Point point, double otherX, double otherY)
-        {
-            double dx = otherX - point.X;
-            double dy = otherY - point.Y;
-            return dx * dx + dy * dy;
-        }
-    }
-
-    private static double JoinExpansion(Point previous, Point vertex, Point next,
-        double radius, RendererLineJoin lineJoin, double miterLimit)
-    {
-        if (lineJoin != RendererLineJoin.Miter) return radius;
-        double incomingX = vertex.X - previous.X;
-        double incomingY = vertex.Y - previous.Y;
-        double outgoingX = next.X - vertex.X;
-        double outgoingY = next.Y - vertex.Y;
-        double incomingLength = Math.Sqrt(incomingX * incomingX + incomingY * incomingY);
-        double outgoingLength = Math.Sqrt(outgoingX * outgoingX + outgoingY * outgoingY);
-        if (incomingLength <= 1e-12 || outgoingLength <= 1e-12) return radius;
-        double dot = (incomingX * outgoingX + incomingY * outgoingY)
-            / (incomingLength * outgoingLength);
-        double denominator = 1 + Math.Clamp(dot, -1, 1);
-        if (denominator <= 1e-12) return radius;
-        double ratio = Math.Sqrt(2 / denominator);
-        return ratio <= miterLimit ? radius * ratio : radius;
     }
 
     private static double Number(PdfObject value) => value switch
@@ -4737,51 +4283,25 @@ public sealed class PdfPageRenderer
         Luminosity
     }
     private readonly record struct ColorVector(double Red, double Green, double Blue);
+    /// <summary>A device-space clip held as an anti-aliased coverage mask.</summary>
     private sealed class ClipRegion
     {
-        private readonly bool _hasBounds;
-        private readonly double _minimumX;
-        private readonly double _minimumY;
-        private readonly double _maximumX;
-        private readonly double _maximumY;
-
-        internal ClipRegion(IReadOnlyList<Point[]> polygons, bool evenOdd,
-            Func<double, double, bool>? predicate = null)
+        internal ClipRegion(CoverageMask mask)
         {
-            Polygons = polygons;
-            EvenOdd = evenOdd;
-            Predicate = predicate;
-            if (predicate is not null) return;
-            foreach (Point[] polygon in polygons)
-                foreach (Point point in polygon)
-                {
-                    if (!_hasBounds)
-                    {
-                        _minimumX = _maximumX = point.X;
-                        _minimumY = _maximumY = point.Y;
-                        _hasBounds = true;
-                    }
-                    else
-                    {
-                        _minimumX = Math.Min(_minimumX, point.X);
-                        _minimumY = Math.Min(_minimumY, point.Y);
-                        _maximumX = Math.Max(_maximumX, point.X);
-                        _maximumY = Math.Max(_maximumY, point.Y);
-                    }
-                }
+            Mask = mask;
         }
 
-        internal IReadOnlyList<Point[]> Polygons { get; }
-        internal bool EvenOdd { get; }
-        internal Func<double, double, bool>? Predicate { get; }
+        internal CoverageMask Mask { get; }
+    }
 
-        internal bool Contains(double x, double y)
-        {
-            if (_hasBounds && (x < _minimumX || x > _maximumX
-                || y < _minimumY || y > _maximumY))
-                return false;
-            return Predicate?.Invoke(x, y) ?? PdfPageRenderer.Contains(Polygons, EvenOdd, x, y);
-        }
+    /// <summary>Intersects a new clip mask with the active clips into one region.</summary>
+    private static IReadOnlyList<ClipRegion> AddClip(IReadOnlyList<ClipRegion> clips,
+        CoverageMask mask)
+    {
+        CoverageMask combined = mask;
+        foreach (ClipRegion clip in clips)
+            combined = CoverageMask.Intersect(combined, clip.Mask);
+        return [new ClipRegion(combined)];
     }
     private sealed record SoftMask(byte[] Samples, int Width, int Height);
     private sealed record GraphicsSoftMask(byte[] Samples);
