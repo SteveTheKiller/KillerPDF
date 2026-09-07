@@ -79,6 +79,27 @@ public sealed class PdfOcrProviderSelectorTests
         Assert.True(session.WasDisposed);
     }
 
+    [Fact]
+    public void EngineProviderSelectsPrimaryLanguageAndAcceptsPaddedRows()
+    {
+        PdfOcrRecognitionModel model = PdfOcrModelTrainer.Train(1, 1,
+            [new PdfOcrTrainingSample("A", new float[] { 1f })]);
+        var catalog = new PdfOcrRecognitionModelCatalog(
+            [new KeyValuePair<string, PdfOcrRecognitionModel>("eng", model)]);
+        var provider = new PdfEngineOcrProvider(catalog, new Version(1, 0));
+        var options = new PdfOcrOptions(["eng-US"]);
+        var pixels = new byte[32 * 132];
+        for (int row = 0; row < 32; row++)
+            for (int column = 0; column < 32 * 4; column++)
+                pixels[row * 132 + column] = 255;
+
+        IPdfOcrRasterProvider selected = PdfOcrProviderSelector.Select([provider], options);
+        PdfOcrResult result = selected.RecognizeBgra(pixels, 32, 32, 132, options);
+
+        Assert.Same(provider, selected);
+        Assert.Empty(result.Words);
+    }
+
     private sealed class StubProvider(string id, int priority, string[] languages) : IPdfOcrProvider
     {
         public PdfOcrProviderDescriptor Descriptor { get; } = new(

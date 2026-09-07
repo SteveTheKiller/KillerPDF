@@ -53,8 +53,19 @@ public sealed class PdfOcrProviderDescriptor
     public bool SupportsLanguages(IEnumerable<string> languages)
     {
         ArgumentNullException.ThrowIfNull(languages);
-        return languages.All(language => language is not null
-            && _languages.Contains(language, StringComparer.OrdinalIgnoreCase));
+        return languages.All(SupportsLanguage);
+    }
+
+    private bool SupportsLanguage(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language)) return false;
+        string requested = language.Trim().Replace('_', '-');
+        return _languages.Any(installed =>
+        {
+            string available = installed.Replace('_', '-');
+            return string.Equals(available, requested, StringComparison.OrdinalIgnoreCase)
+                || requested.StartsWith(available + "-", StringComparison.OrdinalIgnoreCase);
+        });
     }
 }
 
@@ -151,6 +162,73 @@ public sealed class PdfOnnxOcrProvider : IPdfOcrRasterProvider
             ?? throw new InvalidOperationException("The ONNX OCR session factory returned null.");
         return session.RecognizeBgra(bgra, width, height, stride, options,
             characterWhitelist, cancellationToken);
+    }
+}
+
+/// <summary>Adapts the engine-owned OCR model catalog to the raw-pixel provider contract.</summary>
+public sealed class PdfEngineOcrProvider : IPdfOcrRasterProvider
+{
+    private readonly PdfOcrRecognitionModelCatalog _models;
+
+    /// <summary>Creates the built-in engine OCR provider from its installed model catalog.</summary>
+    public PdfEngineOcrProvider(PdfOcrRecognitionModelCatalog models, Version modelVersion,
+        int automaticPriority = 10)
+    {
+        _models = models ?? throw new ArgumentNullException(nameof(models));
+        ArgumentNullException.ThrowIfNull(modelVersion);
+        Descriptor = new PdfOcrProviderDescriptor("engine", "KillerPDF Engine OCR",
+            modelVersion, models.Languages, automaticPriority);
+    }
+
+    /// <inheritdoc />
+    public PdfOcrProviderDescriptor Descriptor { get; }
+
+    /// <inheritdoc />
+    public bool Supports(PdfOcrOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (!Descriptor.SupportsLanguages(options.Languages)) return false;
+        try
+        {
+            _models.SelectCombined(options.Languages);
+            return true;
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+    }
+
+    /// <inheritdoc />
+    public PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height, int stride,
+        PdfOcrOptions options, string? characterWhitelist = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        int rowBytes = checked(width * 4);
+        if (stride < rowBytes) throw new ArgumentOutOfRangeException(nameof(stride));
+        if (bgra.Length < checked(stride * height))
+            throw new ArgumentException("The BGRA buffer is shorter than the requested image.", nameof(bgra));
+        ArgumentNullException.ThrowIfNull(options);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfOcrRecognitionModel model = _models.SelectCombined(options.Languages).Model;
+        ReadOnlyMemory<byte> tightlyPacked = stride == rowBytes ? bgra : CopyRows();
+        return characterWhitelist is null
+            ? PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, options,
+                cancellationToken)
+            : PdfOcrRecognizer.RecognizeBgra(tightlyPacked, width, height, model, options,
+                characterWhitelist, cancellationToken);
+
+        byte[] CopyRows()
+        {
+            var pixels = new byte[checked(rowBytes * height)];
+            ReadOnlySpan<byte> source = bgra.Span;
+            Span<byte> destination = pixels;
+            for (int row = 0; row < height; row++)
+                source.Slice(row * stride, rowBytes).CopyTo(destination.Slice(row * rowBytes, rowBytes));
+            return pixels;
+        }
     }
 }
 
