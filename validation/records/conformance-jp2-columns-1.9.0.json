@@ -1,0 +1,108 @@
+{
+  "date": "2026-09-07",
+  "engineCommit": "de7564d4c201af3a53c4824b9d7b5265538cb146",
+  "engineApplicationSha256": "1BDEC3D4DE7FBD605B9DB7FDE2227A9BD8859425A54C459EE1A24C522C7F9729",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "files": 649,
+    "page": 1,
+    "maximumDimension": 1024,
+    "warmupsPerBuild": 1,
+    "measuredPasses": 3,
+    "timeoutSeconds": 180,
+    "workingSetPollingMilliseconds": 100,
+    "processOrder": [
+      "baseline-warmup",
+      "engine-warmup",
+      "baseline-1",
+      "engine-1",
+      "engine-2",
+      "baseline-2",
+      "baseline-3",
+      "engine-3"
+    ]
+  },
+  "results": {
+    "sharedCount": 600,
+    "builds": {
+      "baseline": {
+        "statuses": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "totalRenderMilliseconds": [
+          12543,
+          12892,
+          12610
+        ],
+        "sharedRenderMilliseconds": [
+          12543,
+          12892,
+          12610
+        ],
+        "sharedMedianPageMilliseconds": [
+          5,
+          5,
+          5
+        ],
+        "wallMilliseconds": [
+          23336,
+          23858,
+          23469
+        ],
+        "peakWorkingSetBytes": [
+          643743744,
+          641339392,
+          649912320
+        ]
+      },
+      "engine": {
+        "statuses": {
+          "OK": 614,
+          "SKIP": 35
+        },
+        "totalRenderMilliseconds": [
+          15880,
+          15179,
+          15975
+        ],
+        "sharedRenderMilliseconds": [
+          15818,
+          15111,
+          15906
+        ],
+        "sharedMedianPageMilliseconds": [
+          7,
+          7,
+          8
+        ],
+        "wallMilliseconds": [
+          30391,
+          29706,
+          30729
+        ],
+        "peakWorkingSetBytes": [
+          1078870016,
+          1090977792,
+          1102598144
+        ]
+      }
+    },
+    "identicalPngs": {
+      "1": 614,
+      "2": 614,
+      "3": 614
+    },
+    "ratio": 1.2544012688342585
+  },
+  "verification": "All eight runs contain the same 649 files and retain each build's acceptance counts. All 614 engine PNGs per measured pass are byte-identical to conformance-jp2-columns-20260907. App DLL hashes verified around every pass and after completion. No builds or heavy local checks overlapped. Read-only source inspection and web research occurred during the final passes.",
+  "tests": {
+    "engine": 2969,
+    "app": 338,
+    "releaseWarnings": 0,
+    "releaseErrors": 0
+  },
+  "limitations": "Speed target remains unmet. Shared render ratio 1.2544 is worse than the previous 1.2111; this run does not establish overall benefit or attribute the difference to a particular change. Single-file warmed improvement is separate evidence. Cold startup/JIT not isolated. Sampled working set can miss terminal peak. PDFium exit1 matches eight recorded failures. Warmup logs retained but excluded from medians."
+}

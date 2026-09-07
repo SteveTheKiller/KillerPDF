@@ -3,6 +3,28 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 paired throughput after column reconstruction
+
+Validation date: 2026-09-07. Product `de7564d` retains 614 OK, 35 SKIP, and zero
+FAIL on 649 conformance inputs. PDFium 1.8.5 retains 600 OK, 41 SKIP, and eight
+FAIL. Each build runs one warmup and three measured collection passes, alternating
+order, at 1024 pixels on page one. Every measured engine PNG matches the
+preceding conformance pass exactly.
+
+On the 600 shared files, median render totals are 15.818 seconds for the engine
+and 12.610 seconds for PDFium, a ratio of 1.2544. Median wall times are 30.391
+and 23.469 seconds; median sampled peak working sets are 1,091.0 and 643.7 MB.
+Shared per-page medians are 7, 7, and 8 ms for the engine, versus 5 ms in all
+three PDFium passes.
+
+This run does not demonstrate an overall gain from the focused optimization;
+the prior paired ratio was 1.2111. The speed target remains unmet. Cold startup
+is not isolated, and working-set sampling may miss the terminal peak. No builds
+or heavy local checks overlapped timing; read-only source inspection and web
+research occurred during the final passes. See the
+[record](records/conformance-jp2-columns-1.9.0.json) and
+[all raw logs](benchmarks/1.9.0-conformance-jp2-columns).
+
 ## KillerPDF 1.9.0 JPEG 2000 column reconstruction
 
 Validation date: 2026-09-07. Contiguous column reconstruction reduced the focused
