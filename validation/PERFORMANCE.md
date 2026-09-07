@@ -29,7 +29,7 @@ PNGs byte-identical to the preceding shading build. The full PDF.js comparison
 uses the preceding fixed executable while this separate build is tested; its
 coverage record must not be mislabeled as including the attachment change.
 Raw records are in [benchmarks/1.9.0-attachment-access](benchmarks/1.9.0-attachment-access)
-and [attachment-access-1.9.0.json](../pdf-landing/attachment-access-1.9.0.json).
+and [attachment-access-1.9.0.json](records/attachment-access-1.9.0.json).
 
 ## KillerPDF 1.9.0 shading endpoints and DeviceN colors
 
@@ -58,7 +58,7 @@ The corrected page took 734 ms in one fresh process. This includes JIT and is no
 a speed comparison. The three-pass JPEG timings below describe the preceding
 build; throughput has not been remeasured for the shading changes.
 Raw CSVs are in [benchmarks/1.9.0-shading](benchmarks/1.9.0-shading), with hashes and
-pixel measurements in [shading-1.9.0.json](../pdf-landing/shading-1.9.0.json).
+pixel measurements in [shading-1.9.0.json](records/shading-1.9.0.json).
 
 ## KillerPDF 1.9.0 constant-block JPEG optimization
 
@@ -92,7 +92,7 @@ classified by a wildcard-aware hash lookup; its image bytes were unchanged.
 
 Raw measured CSVs are in [benchmarks/1.9.0-jpeg-dc](benchmarks/1.9.0-jpeg-dc).
 Build hashes and individual timings are in
-[jpeg-dc-1.9.0.json](../pdf-landing/jpeg-dc-1.9.0.json).
+[jpeg-dc-1.9.0.json](records/jpeg-dc-1.9.0.json).
 
 ## KillerPDF 1.9.0 pattern coordinates and PDF.js regression sample
 
@@ -128,7 +128,7 @@ claim is made for this increment.
 Raw comparisons and conformance outcomes are in
 [benchmarks/1.9.0-pattern-space](benchmarks/1.9.0-pattern-space).
 Build identities and validation totals are in
-[pattern-space-1.9.0.json](../pdf-landing/pattern-space-1.9.0.json).
+[pattern-space-1.9.0.json](records/pattern-space-1.9.0.json).
 
 ## KillerPDF 1.9.0 JPEG 2000 tile correction
 
@@ -161,7 +161,7 @@ tests pass, and the Release build has no warnings or errors.
 
 Per-page CSVs are in [benchmarks/1.9.0-jpeg2000](benchmarks/1.9.0-jpeg2000).
 Build identities, individual pass totals, and the repeated image hash are in
-[jpeg2000-1.9.0.json](../pdf-landing/jpeg2000-1.9.0.json). Earlier results remain below.
+[jpeg2000-1.9.0.json](records/jpeg2000-1.9.0.json). Earlier results remain below.
 
 ## KillerPDF 1.9.0 graphics-state font rendering
 
@@ -183,7 +183,7 @@ including before this font change and on an isolated repeat. It reports no diagn
 and was an open visual-correctness problem at this checkpoint, corrected in the
 JPEG 2000 increment above. The other 612 PNGs were byte-identical between these passes.
 
-See [font-rendering-1.9.0.json](../pdf-landing/font-rendering-1.9.0.json) for identities
+See [font-rendering-1.9.0.json](records/font-rendering-1.9.0.json) for identities
 and [the coverage log](benchmarks/1.9.0-gs-font/engine.csv) for every outcome.
 
 ## KillerPDF 1.9.0 cross-reference recovery comparison
@@ -220,7 +220,7 @@ pass retained 614 rendered, 35 skipped, and zero failures. All 2,653 engine test
 
 Per-page measured CSVs are in [benchmarks/1.9.0-recovery](benchmarks/1.9.0-recovery).
 Build hashes and wall measurements are in
-[render-recovery-1.9.0.json](../pdf-landing/render-recovery-1.9.0.json).
+[render-recovery-1.9.0.json](records/render-recovery-1.9.0.json).
 Earlier benchmarks below are retained as historical measurements.
 
 ## KillerPDF 1.9.0 JPEG Huffman lookup improvement
@@ -247,7 +247,7 @@ Ryzen 5 3600 system described below. SDK: 10.0.400.
 | 8 | 176.987 | 110.463 | 37.6% |
 
 All measured passes are preserved in
-[`jpeg-1.9.0-huffman.json`](../pdf-landing/jpeg-1.9.0-huffman.json).
+[`jpeg-1.9.0-huffman.json`](records/jpeg-1.9.0-huffman.json).
 This measures decoding only. The earlier 649-file render comparison below has not
 been rerun after this change, and its timings remain the earlier measurements.
 

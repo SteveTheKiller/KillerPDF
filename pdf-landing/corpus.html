@@ -51,9 +51,6 @@
 </div>
 <ul class="method"><li><strong>Timing versus v1.8.2:</strong> regression took 8.5% longer, stress 2.0% longer, and standards/color was unchanged after rounding.</li><li><strong>Coverage:</strong> batch opening and saving. Rendering and PDF conformance require separate checks.</li></ul><p><a href="https://github.com/SteveTheKiller/KillerPDF/tree/main/validation/benchmarks/1.8.3" target="_blank" rel="noopener">Read the full benchmark report, failure details, and test method.</a></p>
 <a class="corpus-dl secondary" href="corpus-results.html">View all benchmark results</a>
-<p><strong>1.9.0 development checks:</strong> extraction was compared on 162 PDFs. A separate 2,907-file structural check matched 1.8.3 exactly: 2,894 passes and the same 13 rejected inputs. <a href="corpus-results.html#v190-development">See the development results.</a></p>
-<p>A focused 1.9.0 JPEG decoder comparison preserved identical samples for 40 streams at four resolutions. Median decoding time fell by 8% at full resolution and 38% at one-eighth resolution. <a href="corpus-results.html#v190-jpeg">Read the method and limits.</a></p>
-<p>The latest 649-file check retains 614 renders, 35 skips, and zero failures, with unchanged images after adding page access for attachment-only encrypted documents. Two PDF.js files now render their expected text while attachments and writing remain protected. Broad coverage, color, stream-limit, and fine-detail work continues. The earlier JPEG benchmark measured 14.014 seconds versus PDFium's 12.779 on shared files; newer throughput has not been measured. <a href="corpus-results.html#v190-attachment-access">See the latest results and limitations.</a></p>
 </section>
 
 <section class="corpus-sec" id="coverage"><h2>Where the PDFs came from</h2><p>The full run includes 17,328 downloadable inputs and 29,696 locally held PDFs. The local files cannot be redistributed; their sources and counts are listed below.</p>

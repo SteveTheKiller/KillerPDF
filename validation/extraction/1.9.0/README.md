@@ -2,6 +2,9 @@
 
 Validation date: September 2, 2026 (Pacific time). Development branch: `dev/1.9-overkill`.
 
+The [machine-readable summary](../../records/extraction-1.9.0-summary.json) preserves
+the aggregate measurements.
+
 The app and engine no longer depend on PdfPig. The replacement passes 1,572 engine tests
 and 291 app tests. The Release app payload and engine NuGet package build successfully;
 neither contains a PdfPig assembly or package dependency. Required font-data notices ship in both.

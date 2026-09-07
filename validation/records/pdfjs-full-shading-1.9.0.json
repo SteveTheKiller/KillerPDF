@@ -1,0 +1,27 @@
+{
+  "purpose": "Development coverage diagnostic, not a throughput benchmark or visual parity gate",
+  "files": 977,
+  "page": 1,
+  "maximumDimensionPixels": 1024,
+  "timeoutSecondsPerBuildAndFile": 15,
+  "freshProcessPerBuildAndFile": true,
+  "annotationsAndForms": true,
+  "engineCommit": "1f258bfd00666d650c11b86a942a4e7430dfe2b2",
+  "engineApplicationSha256": "6368AA7AEAB6F43DDE475112F49B61F8BF9783F69BE0C0128FD7FC97F65C5F3F",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "engine": { "ok": 923, "skip": 27, "fail": 26, "timeout": 1 },
+  "baseline": { "ok": 955, "skip": 21, "fail": 1, "timeout": 0 },
+  "commonSuccesses": 917,
+  "engineOnlySuccesses": 6,
+  "baselineOnlySuccesses": 38,
+  "neitherSucceeded": 16,
+  "timeoutFile": "test/pdfs/issue16263.pdf",
+  "timeoutInputSha256": "99548E25DA254ED0114C31B84F92CF3DC71D458DA66648A777B8FD21FF14F062",
+  "rawLocalRecord": "C:/Users/steve/kp-bench-render/pdfjs-full-shading-20260907/render-comparison-summary.csv",
+  "limitations": [
+    "Other builds and tests ran during this comparison. Do not use its timing totals for comparative performance claims.",
+    "Only page 1 was rendered. Success does not establish complete or correct page content.",
+    "The subsequent attachment-access fix in 68fd4ee is not included in these counts."
+  ]
+}
