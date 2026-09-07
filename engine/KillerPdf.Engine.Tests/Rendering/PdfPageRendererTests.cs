@@ -15,6 +15,77 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPageRendererTests
 {
+    [Theory]
+    [InlineData("LW", "2 w")]
+    [InlineData("LC", "1 J")]
+    [InlineData("LJ", "2 j")]
+    [InlineData("ML", "1 M")]
+    [InlineData("D", "[2 6] -3 d")]
+    public void Render_GraphicsStateStrokeSettingsMatchDirectOperators(string key, string direct)
+    {
+        const string path = "20 20 m 50 80 l 55 20 l S";
+        PdfObject value = key switch
+        {
+            "LW" or "LJ" => new PdfInteger(2),
+            "D" => new PdfArray([new PdfArray([new PdfInteger(2), new PdfInteger(6)]),
+                new PdfInteger(-3)]),
+            _ => new PdfInteger(1)
+        };
+        PdfDocument actual = AddStrokeGraphicsState(
+            $"q 10 w /Test gs {path} Q 10 10 m 90 10 l S", key, value);
+        PdfDocument expected = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes($"q 10 w {direct} {path} Q 10 10 m 90 10 l S")).Build());
+        var options = new PdfRenderOptions(200, 200, includeAnnotations: false, includeFormFields: false);
+        PdfRenderedPage rendered = new PdfPageRenderer(actual).Render(0, options);
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(new PdfPageRenderer(expected).Render(0, options).Pixels.ToArray(),
+            rendered.Pixels.ToArray());
+    }
+
+    [Theory]
+    [InlineData("LW")]
+    [InlineData("LC")]
+    [InlineData("LJ")]
+    [InlineData("ML")]
+    [InlineData("D")]
+    public void Render_InvalidGraphicsStateStrokeSettingsKeepStrictValidation(string key)
+    {
+        const string content = "10 w /Test gs 20 20 m 50 80 l 55 20 l S";
+        PdfObject invalid = key switch
+        {
+            "D" => new PdfArray([new PdfArray([new PdfInteger(0)]), new PdfInteger(0)]),
+            "ML" => new PdfReal(0.3),
+            _ => new PdfInteger(-1)
+        };
+        PdfDocument strict = AddStrokeGraphicsState(content, key, invalid);
+        var options = new PdfRenderOptions(200, 200, includeAnnotations: false, includeFormFields: false);
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(strict).Render(0, options));
+        PdfDocument recovered = AddStrokeGraphicsState(content, key, invalid, recovery: true);
+        PdfRenderedPage actual = new PdfPageRenderer(recovered).Render(0, options);
+        Assert.NotEmpty(actual.Diagnostics);
+        string expectedContent = content.Replace("/Test gs", key == "ML" ? "1 M" : "");
+        PdfDocument expected = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes(expectedContent)).Build());
+        Assert.Equal(new PdfPageRenderer(expected).Render(0, options).Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    private static PdfDocument AddStrokeGraphicsState(string content, string key, PdfObject value,
+        bool recovery = false)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes(content)).Build());
+        PdfPageTree tree = PdfPageTree.Read(source);
+        var reference = tree.Pages[0].Reference;
+        PdfDictionary page = ResolveDictionary(source, reference);
+        var resources = new PdfDictionary([new(Name("ExtGState"),
+            new PdfDictionary([new(Name("Test"), new PdfDictionary([new(Name(key), value)]))]))]);
+        var changed = new PdfDictionary(page.Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), resources)));
+        byte[] bytes = new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber, changed).Build();
+        return recovery ? PdfDocument.OpenWithCompatibilityRecovery(bytes) : PdfDocument.Open(bytes);
+    }
+
     [Fact]
     public void Render_DecodesJbig2SymbolDictionaryContextReuse()
     {

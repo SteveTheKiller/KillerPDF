@@ -1,0 +1,24 @@
+{
+  "engineApplicationSha256": "72A8282DAB90363274FE028CAA16E21C2985E6D4AAA75435495F31C9511E4A5B",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "file": "extgstate.pdf",
+  "inputSha256": "D347D818730F1F5B04E033B4B1C2AC815351934AD904BE89C8923A3E834889A4",
+  "settings": { "pages": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "status": "OK", "renderMilliseconds": 194, "dimensions": [791, 1024],
+    "rgbMaeBefore": 1.750071606352718, "rgbMaeAfter": 1.5060112298514539,
+    "diagnostic": "An invalid graphics-state miter limit was clamped to one.",
+    "visualCheck": "The thin solid line is replaced by two round dots. Courier text remains; PDFium uses a different font, so this is not full visual parity."
+  },
+  "conformance": {
+    "ok": 614, "skip": 35, "fail": 0, "identicalImages": 613, "changedImages": 1,
+    "comparison": "host-glyph-fallback-1.9.0.json",
+    "changedFile": "pdf-differences/PDF-version/PDF-versions3.pdf",
+    "rgbMaeBefore": 16.260421752929688, "rgbMaeAfter": 0.0036563873291015625,
+    "visualCheck": "New, previous, and PDFium images inspected. The thick blue rounded border now matches the baseline geometry."
+  },
+  "tests": { "newCases": 10, "failedBefore": 5, "engine": 2857, "app": 338, "releaseBuildWarnings": 0, "releaseBuildErrors": 0 },
+  "behavior": "ExtGState LW, LC, LJ, ML, and D settings apply to strokes and participate in q/Q restoration. Five cases compare exact pixels against direct operators. Five cases verify strict rejection and bounded recovery with diagnostics.",
+  "limitations": "Baseline images reuse the immutable PDF.js and conformance runs recorded in pdfjs-courier-1.9.0.json and courier-alias-1.9.0.json. Full PDF.js coverage was not rerun. Single-file timing is not a throughput or cold-start benchmark."
+}

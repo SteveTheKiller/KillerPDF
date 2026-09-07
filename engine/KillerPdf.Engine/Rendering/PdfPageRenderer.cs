@@ -402,8 +402,9 @@ public sealed partial class PdfPageRenderer
                     if (TryGetGraphicsState(resources, stateName, out double? fillAlpha,
                         out double? strokeAlpha, out RendererBlendMode? blendMode,
                         out bool unsupportedBlend, out PdfObject? softMaskValue,
-                        out PdfObject? graphicsFontValue))
+                        out PdfObject? graphicsFontValue, out PdfDictionary? strokeSettings))
                     {
+                        state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);
                         state = state with
                         {
                             FillAlpha = fillAlpha ?? state.FillAlpha,
@@ -3981,18 +3982,21 @@ public sealed partial class PdfPageRenderer
 
     private bool TryGetGraphicsState(PdfDictionary resources, PdfName resourceName,
         out double? fillAlpha, out double? strokeAlpha, out RendererBlendMode? blendMode,
-        out bool unsupportedBlend, out PdfObject? softMaskValue, out PdfObject? fontValue)
+        out bool unsupportedBlend, out PdfObject? softMaskValue, out PdfObject? fontValue,
+        out PdfDictionary? strokeSettings)
     {
         fillAlpha = strokeAlpha = null;
         blendMode = null;
         unsupportedBlend = false;
         softMaskValue = null;
         fontValue = null;
+        strokeSettings = null;
         if (!resources.TryGetValue(Name("ExtGState"), out PdfObject? statesValue)
             || Resolve(statesValue) is not PdfDictionary states
             || !states.TryGetValue(resourceName, out PdfObject? stateValue)
             || Resolve(stateValue) is not PdfDictionary dictionary)
             return false;
+        strokeSettings = dictionary;
         fillAlpha = Alpha(dictionary, "ca");
         strokeAlpha = Alpha(dictionary, "CA");
         dictionary.TryGetValue(Name("SMask"), out softMaskValue);
@@ -4027,6 +4031,68 @@ public sealed partial class PdfPageRenderer
             double alpha = Number(Resolve(value));
             return double.IsFinite(alpha) ? Math.Clamp(alpha, 0, 1) : 1;
         }
+    }
+
+    private GraphicsState ApplyGraphicsStrokeSettings(GraphicsState state,
+        PdfDictionary dictionary, ISet<string> diagnostics)
+    {
+        foreach (string key in new[] { "LW", "LC", "LJ", "ML", "D" })
+        {
+            if (!dictionary.TryGetValue(Name(key), out PdfObject? value)) continue;
+            try
+            {
+                if (key == "D")
+                {
+                    PdfArray dash = ResolveArray(value, 2, "A graphics-state dash pattern");
+                    if (Resolve(dash[0]) is not PdfArray array)
+                        throw new FormatException("A graphics-state dash array is invalid.");
+                    double[] pattern = array.Select(item => Number(Resolve(item))).ToArray();
+                    double phase = Number(Resolve(dash[1]));
+                    double cycle = pattern.Sum() * (pattern.Length % 2 == 0 ? 1 : 2);
+                    if (pattern.Any(length => !double.IsFinite(length) || length < 0)
+                        || pattern.Length > 0 && cycle == 0
+                        || !double.IsFinite(cycle) || !double.IsFinite(phase))
+                        throw new FormatException("A graphics-state dash pattern is invalid.");
+                    if (phase < 0 && pattern.Length > 0)
+                        phase = (phase % cycle + cycle) % cycle;
+                    state = state with { DashPattern = Array.AsReadOnly(pattern), DashPhase = phase };
+                    continue;
+                }
+                double number = Number(Resolve(value));
+                if (!double.IsFinite(number))
+                    throw new FormatException("A graphics-state stroke value is invalid.");
+                switch (key)
+                {
+                    case "LW":
+                        if (number < 0) throw new FormatException("A graphics-state line width is invalid.");
+                        state = state with { LineWidth = number };
+                        break;
+                    case "LC":
+                    case "LJ":
+                        if (number != Math.Truncate(number) || number is < 0 or > 2)
+                            throw new FormatException("A graphics-state line style is invalid.");
+                        state = key == "LC"
+                            ? state with { LineCap = (RendererLineCap)(int)number }
+                            : state with { LineJoin = (RendererLineJoin)(int)number };
+                        break;
+                    case "ML":
+                        if (number < 1)
+                        {
+                            if (!_document.UsesCompatibilityRecovery)
+                                throw new FormatException("A graphics-state miter limit is invalid.");
+                            diagnostics.Add("An invalid graphics-state miter limit was clamped to one.");
+                            number = 1;
+                        }
+                        state = state with { MiterLimit = number };
+                        break;
+                }
+            }
+            catch (FormatException) when (_document.UsesCompatibilityRecovery)
+            {
+                diagnostics.Add($"An invalid graphics-state /{key} stroke setting was ignored.");
+            }
+        }
+        return state;
     }
 
     private static bool TryReadBlendMode(PdfName name, out RendererBlendMode mode) =>

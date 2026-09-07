@@ -197,6 +197,12 @@ or permission to rewrite the document.
 
 ## Diagnostics and failures
 
+Extended graphics states apply stroke width, cap, join, miter limit, and dash
+pattern, including dash phase. Saved graphics states restore these settings.
+Strict rendering rejects invalid stroke settings. Compatibility recovery ignores
+invalid settings individually and reports diagnostics; a finite miter limit below
+one is clamped to one. Other valid settings in the same dictionary still apply.
+
 Inspect `Diagnostics` after rendering. They describe compatibility or incomplete
 rendering conditions and should remain available to the host for troubleshooting.
 An empty diagnostic list is not a visual correctness guarantee. Compare expected

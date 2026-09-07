@@ -3,6 +3,20 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 graphics-state stroke validation
+
+Validation date: 2026-09-07. Extended graphics-state stroke settings now render
+the round dots in `extgstate.pdf`. Its invalid miter limit produces a recovery
+diagnostic. RGB mean absolute error against the saved PDFium 1.8.5 image falls
+from 1.75007 to 1.50601; the remaining font difference prevents a parity claim.
+
+Conformance stays at 614 OK, 35 SKIP, and zero failures. Of 614 images, 613 are
+byte-identical. The changed `PDF-versions3.pdf` now has the thick rounded border
+shown by PDFium; its RGB error falls from 16.26042 to 0.00366. Both changed pages
+were visually inspected. This checks correctness, not controlled throughput.
+See the [record](records/extgstate-stroke-1.9.0.json) and
+[raw conformance results](benchmarks/1.9.0-extgstate-stroke/engine-conformance.csv).
+
 ## KillerPDF 1.9.0 full PDF.js recovery and Courier recheck
 
 Validation date: 2026-09-07. At `24c3c71`, the same 979 inputs produce 960 engine
