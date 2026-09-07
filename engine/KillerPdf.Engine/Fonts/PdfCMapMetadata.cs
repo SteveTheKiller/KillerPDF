@@ -18,8 +18,28 @@ internal static class PdfCMapMetadata
             PdfToken token = tokenizer.Read();
             if (token.Kind == PdfTokenKind.EndOfInput) break;
             if (token.Kind == PdfTokenKind.Keyword && token.ValueAsLatin1() is
-                "begincodespacerange" or "beginbfchar" or "beginbfrange")
+                "begincodespacerange" or "beginbfchar" or "beginbfrange"
+                or "begincidchar" or "begincidrange")
                 mappingsStarted = true;
+            if (compatibilityRecovery && depth == 0 && !mappingsStarted
+                && token.Kind == PdfTokenKind.Name && token.Value.Span.SequenceEqual("CIDSystemInfo"u8))
+            {
+                var probe = new PdfTokenizer(source, tokenizer.Position);
+                PdfToken objectNumber = probe.Read(), generationNumber = probe.Read();
+                PdfToken reference = probe.Read(), definition = probe.Read();
+                if (objectNumber.Kind == PdfTokenKind.Integer
+                    && int.TryParse(objectNumber.Value.Span, out int number) && number > 0
+                    && generationNumber.Kind == PdfTokenKind.Integer
+                    && int.TryParse(generationNumber.Value.Span, out int generation)
+                    && generation is >= 0 and <= 65535
+                    && reference.Kind == PdfTokenKind.Keyword && reference.Value.Span.SequenceEqual("R"u8)
+                    && definition.Kind == PdfTokenKind.Keyword && definition.Value.Span.SequenceEqual("def"u8))
+                {
+                    cleaned ??= source.ToArray();
+                    cleaned.AsSpan(token.Offset, probe.Position - token.Offset).Fill((byte)' ');
+                    tokenizer.SetRawPosition(probe.Position);
+                }
+            }
             if (compatibilityRecovery && depth == 0 && !mappingsStarted
                 && token.Kind == PdfTokenKind.Name && token.Value.Span.SequenceEqual("CMapName"u8))
             {

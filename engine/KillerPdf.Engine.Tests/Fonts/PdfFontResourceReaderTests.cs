@@ -333,6 +333,36 @@ public sealed class PdfFontResourceReaderTests
         Assert.Equal("\u03A9", Assert.Single(font.Decode("A"u8.ToArray())).Text);
     }
 
+    [Theory]
+    [InlineData("/CIDSystemInfo 21 0 R def ", true)]
+    [InlineData("/CIDSystemInfo 21 % reference\n 0 R def ", true)]
+    [InlineData("/OtherInfo 21 0 R def ", false)]
+    [InlineData("/CIDSystemInfo 21 0 R pop ", false)]
+    [InlineData("1 begincidchar <0041> 5 endcidchar /CIDSystemInfo 21 0 R def ", false)]
+    [InlineData("/CIDSystemInfo 21 65536 R def ", false)]
+    public void RecoverySkipsOnlyPreMappingCidSystemInfoReferences(string metadata,
+        bool recoverable)
+    {
+        var descendant = D(("W", new PdfArray([
+            new PdfInteger(5), new PdfInteger(5), new PdfInteger(321)])));
+        PdfDictionary dictionary = Type0(descendant,
+            Stream(metadata + "1 begincodespacerange <0000> <FFFF> endcodespacerange "
+                + "1 begincidchar <0041> 5 endcidchar"),
+            Stream("1 begincodespacerange <0000> <FFFF> endcodespacerange "
+                + "1 beginbfchar <0041> <03A9> endbfchar"));
+        Assert.ThrowsAny<FormatException>(() => Read(dictionary));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        if (!recoverable)
+        {
+            Assert.ThrowsAny<FormatException>(() => PdfFontResourceReader.Read(document, dictionary));
+            return;
+        }
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+        Assert.Equal("\u03A9", Assert.Single(font.Decode(new byte[] { 0, 65 })).Text);
+        Assert.Equal(321, font.GetWidth(65));
+    }
+
     [Fact]
     public void RecoveryIgnoresStrayDelimiterInCMapNameButPreservesMappings()
     {

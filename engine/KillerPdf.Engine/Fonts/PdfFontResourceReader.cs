@@ -418,7 +418,7 @@ public static class PdfFontResourceReader
                             $"Inherited font encoding CMap /{name.ValueAsLatin1()} is not supported."),
                     _ => throw new FormatException("Invalid inherited font encoding CMap reference.")
                 };
-            var result = ParseCidMap(Decode(stream), inherited);
+            var result = ParseCidMap(Decode(stream), inherited, document.UsesCompatibilityRecovery);
             seen.Remove(stream);
             return result;
         }
@@ -508,7 +508,8 @@ public static class PdfFontResourceReader
     private static (Dictionary<uint, uint> Map, List<(uint Low, uint High, int Length)> Spaces,
         bool Vertical, PdfPredefinedCMaps? Base) ParseCidMap(
         byte[] data, (Dictionary<uint, uint> Map,
-            List<(uint Low, uint High, int Length)> Spaces, bool Vertical, PdfPredefinedCMaps? Base)? inherited)
+            List<(uint Low, uint High, int Length)> Spaces, bool Vertical, PdfPredefinedCMaps? Base)? inherited,
+        bool compatibilityRecovery)
     {
         var map = inherited is null
             ? new Dictionary<uint, uint>() : new Dictionary<uint, uint>(inherited.Value.Map);
@@ -517,7 +518,8 @@ public static class PdfFontResourceReader
         long expanded = 0;
         bool vertical = inherited?.Vertical ?? false;
         PdfPredefinedCMaps? baseMap = inherited?.Base;
-        foreach (var instruction in PdfContentStreamReader.Read(PdfCMapMetadata.WithoutDictionaries(data)))
+        foreach (var instruction in PdfContentStreamReader.Read(
+            PdfCMapMetadata.WithoutDictionaries(data, compatibilityRecovery)))
         {
             var values = instruction.Operands;
             if (instruction.Operator == "usecmap")

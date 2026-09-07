@@ -1,0 +1,23 @@
+{
+  "engineApplicationSha256": "766AB2A1BF09EB63AC3BF36A7693F76089C7144E76A002A6BC5BF0A6CF62E7DB",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue3323.pdf",
+    "inputSha256": "E27B6AF9ECBCE8CC68588B8AE7F4AF4F5214BC80DCBB479BDB928010B4DEC26B",
+    "before": "FAIL: Object or inline-image syntax is invalid here (byte offset 96).",
+    "after": "OK",
+    "renderMilliseconds": 212,
+    "dimensions": [1024, 256],
+    "baselineDimensions": [1024, 256],
+    "diagnostics": [],
+    "rgbMae": 0.004993438720703125,
+    "extractedText": "THAN N",
+    "visualCheck": "All visible letters render with nearly identical pixels to the baseline."
+  },
+  "tests": { "newCases": 6, "failedBefore": 2, "engine": 2775, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "behavior": "Recovery discards only a pre-mapping CIDSystemInfo indirect-reference definition with a positive object number, valid generation, R, and def. No reference resolution or mapping changes occur. Strict parsing retains rejection.",
+  "limitations": "Single-file timing is not a throughput benchmark. Full PDF.js coverage has not been rerun at this build. Rendering agreement does not establish full text-extraction parity."
+}

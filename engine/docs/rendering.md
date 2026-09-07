@@ -87,6 +87,13 @@ when followed by `def`, before the first mapping block. It does not apply that
 repair inside mapping data or to unrelated names. Strict font reading retains
 the original lexical validation.
 
+Before mapping blocks begin, recovery can discard a `CIDSystemInfo` definition
+whose value is a PDF indirect reference. It does not resolve that reference or
+alter CID and Unicode mappings. Only a positive object number, valid generation,
+`R`, and terminating `def` qualify. Other names, malformed definitions, and
+references inside mapping data retain their validation. Strict mode rejects the
+indirect reference in the CMap program.
+
 When a `ToUnicode` range's destination array has the wrong length, recovery uses
 only supplied entries within the declared range. Missing entries remain unmapped,
 and surplus entries do not create mappings beyond the range. The declared range
