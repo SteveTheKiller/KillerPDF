@@ -3,6 +3,28 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 CCITT prefix decoding
+
+Validation date: 2026-09-07. Bounded code lookups and whole-byte run painting
+reduce focused CCITT decoding from 9.422 to 4.532 ms (51.9 percent). Whole-page
+rendering on the same file falls from 76.865 to 72.961 ms (5.1 percent).
+Three alternating before/after processes run 15 iterations each, excluding the
+first three with tiered compilation disabled. All 90 decoded hashes and all
+90 rendered pixel hashes match. Whole-page allocation remains about 48.3 MB.
+
+Three normal app conformance passes retain 614 OK, 35 SKIP, zero FAIL versus
+PDFium 1.8.5's 600 OK, 41 SKIP, eight FAIL. All 614 engine PNGs match the
+preceding clip-intersection build in each pass. Shared-file median rendering
+is 13.313 versus 11.850 seconds, a ratio of 1.1235. Median wall time is 27.139
+versus 22.424 seconds; sampled peak working set is 795.3 versus 642.1 MB.
+The preceding ratio was 1.1111, so this focused codec improvement does not
+demonstrate a collection-wide speedup. Raw variation is retained.
+
+All 3,041 engine and 338 app tests pass with a clean Release build. Eight new
+cases cover partial bytes, both polarities, long runs and unaligned rows.
+The broader PDFjs audit predates this increment. See the
+[record](records/ccitt-prefix-1.9.0.json) and [raw runs](benchmarks/1.9.0-ccitt-prefix).
+
 ## KillerPDF 1.9.0 clip intersection fast paths
 
 Validation date: 2026-09-07. A source-guided profile identified dense clip-mask

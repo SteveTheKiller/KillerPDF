@@ -2,7 +2,7 @@
 
 Research date: 2026-09-07. These are implementation leads, not measured promises.
 The current paired conformance comparison still favors PDFium 1.8.5 by a render
-ratio of 1.1111. See [the measured results](PERFORMANCE.md), including run variation.
+ratio of 1.1235. See [the measured results](PERFORMANCE.md), including run variation.
 
 ## Techniques in other implementations
 
@@ -88,12 +88,13 @@ as its bottleneck.
    read-only, allowing containment reuse without changing ownership behavior.
 2. **Decode CCITT runs with lookahead tables and paint whole bytes.**
    [libtiff's fax tables](https://github.com/libsdl-org/libtiff/blob/master/libtiff/tif_fax3.h)
-   provide a reference for table-driven fax decoding. Our `CodeTable.Read` and
-   two-dimensional mode reader deserve a focused comparison against a bounded
-   peek/consume reader. Partial final bytes, invalid prefixes, fill bits, both
-   polarities, and Group 3/4 modes must retain existing behavior. Measure decoded
-   byte identity before page rendering. This is a stronger immediate lead than
-   another broad JPEG transform change for the traced file.
+   provide a reference for table-driven fax decoding. The first original
+   implementation uses bounded run-code prefix lookups and whole-byte painting,
+   retaining the old reader for short tails and invalid prefixes. Object 8 of
+   the profiled file falls from 9.422 to 4.532 ms with all 90 decoded hashes
+   identical. Whole-page medians fall from 76.865 to 72.961 ms in the separate
+   focused comparison, also with all 90 hashes identical. The two-dimensional
+   mode reader and line-transition allocation remain further experiments.
 3. **Cache glyph coverage, not only flattened outlines.**
    [PDFium](https://pdfium.googlesource.com/pdfium/+/refs/heads/main/core/fxge/cfx_glyphcache.cpp)
    has separate glyph path and bitmap caches.

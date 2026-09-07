@@ -220,10 +220,23 @@ internal static class PdfCcittFaxDecoder
     private static void PaintBlack(
         Span<byte> output, int rowOffset, int start, int length, bool blackIs1)
     {
-        for (int column = start; column < start + length; column++)
+        if (length <= 0) return;
+        int end = start + length;
+        while (start < end && (start & 7) != 0)
         {
-            int index = rowOffset + column / 8;
-            byte mask = (byte)(1 << (7 - column % 8));
+            int index = rowOffset + start / 8;
+            byte mask = (byte)(1 << (7 - start % 8));
+            if (blackIs1) output[index] |= mask;
+            else output[index] &= (byte)~mask;
+            start++;
+        }
+        int wholeBytes = (end - start) / 8;
+        output.Slice(rowOffset + start / 8, wholeBytes).Fill(blackIs1 ? (byte)255 : (byte)0);
+        start += wholeBytes * 8;
+        if (start < end)
+        {
+            int index = rowOffset + start / 8;
+            byte mask = (byte)(255 << (8 - (end - start)));
             if (blackIs1) output[index] |= mask;
             else output[index] &= (byte)~mask;
         }
@@ -233,6 +246,7 @@ internal static class PdfCcittFaxDecoder
     {
         private readonly Dictionary<(int Length, int Code), int> _codes = [];
         private readonly int _maximumLength;
+        private readonly int[] _prefixes;
 
         internal CodeTable(string specification)
         {
@@ -244,10 +258,26 @@ internal static class PdfCcittFaxDecoder
                 _codes.Add((parts[0].Length, code), int.Parse(parts[1]));
                 _maximumLength = Math.Max(_maximumLength, parts[0].Length);
             }
+            _prefixes = new int[1 << _maximumLength];
+            foreach (var entry in _codes)
+            {
+                int suffixBits = _maximumLength - entry.Key.Length;
+                _prefixes.AsSpan(entry.Key.Code << suffixBits, 1 << suffixBits)
+                    .Fill(entry.Value << 4 | entry.Key.Length);
+            }
         }
 
         internal int Read(ref BitReader bits)
         {
+            if (bits.TryPeek(_maximumLength, out int prefix))
+            {
+                int entry = _prefixes[prefix];
+                if (entry != 0)
+                {
+                    bits.Skip(entry & 15);
+                    return entry >> 4;
+                }
+            }
             int code = 0;
             for (int length = 1; length <= _maximumLength; length++)
             {
@@ -264,6 +294,20 @@ internal static class PdfCcittFaxDecoder
         private int _position;
 
         internal BitReader(ReadOnlySpan<byte> source) => _source = source;
+
+        internal bool TryPeek(int count, out int value)
+        {
+            value = 0;
+            if ((long)_position + count > (long)_source.Length * 8) return false;
+            int index = _position / 8;
+            int window = _source[index] << 16;
+            if (index + 1 < _source.Length) window |= _source[index + 1] << 8;
+            if (index + 2 < _source.Length) window |= _source[index + 2];
+            value = window >> (24 - count - (_position & 7)) & ((1 << count) - 1);
+            return true;
+        }
+
+        internal void Skip(int count) => _position += count;
 
         internal int Read()
         {

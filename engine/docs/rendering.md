@@ -325,6 +325,11 @@ sample depth when it differs from the PDF dictionary. Strict rendering retains
 the sample-depth mismatch check. Image dimensions, component counts, supported
 sample depths, and decoder allocation limits remain checked in both modes.
 
+CCITT run codes use bounded prefix lookups when enough input remains. The
+original bit reader handles short tails and invalid prefixes, preserving
+truncation and invalid-code behavior. Black runs fill complete bytes between
+partial boundary bytes while retaining padding and either bit polarity.
+
 ## Validation and remaining work
 
 Single rectangular polygons whose edges land on whole pixels after the existing

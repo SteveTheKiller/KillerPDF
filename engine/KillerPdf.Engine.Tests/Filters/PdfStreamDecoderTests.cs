@@ -10,6 +10,45 @@ namespace KillerPdf.Engine.Tests.Filters;
 public sealed class PdfStreamDecoderTests
 {
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    public void Decode_CcittRunsPreservePartialBytesAndBothPolarities(int start)
+    {
+        string[] white = ["00110101", "000111", "0111", "1000", "1011", "1100", "1110", "1111"];
+        (int Length, string Code)[] runs = [(0, "0000110111"), (1, "010"), (2, "11"),
+            (7, "00011"), (8, "000101"), (9, "000100"), (16, "0000010111"),
+            (63, "000001100111"), (64, "00000011110000110111"),
+            (1728, "00000011001010000110111")];
+        foreach ((int length, string code) in runs)
+        foreach (bool blackIs1 in new[] { false, true })
+        {
+            int columns = start + length + 5;
+            string line = white[start] + code + white[5];
+            string bits = string.Concat(Enumerable.Repeat(line, 3));
+            byte[] encoded = new byte[(bits.Length + 7) / 8];
+            for (int bit = 0; bit < bits.Length; bit++)
+                if (bits[bit] == '1') encoded[bit / 8] |= (byte)(128 >> (bit % 8));
+            int stride = (columns + 7) / 8;
+            byte[] expected = Enumerable.Repeat(blackIs1 ? (byte)0 : (byte)255, stride * 3).ToArray();
+            for (int row = 0; row < 3; row++)
+            for (int column = start; column < start + length; column++)
+            {
+                byte mask = (byte)(128 >> (column % 8));
+                if (blackIs1) expected[row * stride + column / 8] |= mask;
+                else expected[row * stride + column / 8] &= (byte)~mask;
+            }
+            Assert.Equal(expected, PdfCcittFaxDecoder.Decode(encoded,
+                new PdfCcittFaxOptions(0, columns, 3, false, false, blackIs1), expected.Length));
+        }
+    }
+
+    [Theory]
     [InlineData(1048575)]
     [InlineData(1048576)]
     [InlineData(1048577)]
