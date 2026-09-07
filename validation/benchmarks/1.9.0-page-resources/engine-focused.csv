@@ -1,2 +1,0 @@
-File,Page,Status,Milliseconds,Width,Height,Detail
-issue15150.pdf,1,OK,32,1024,1024,Invalid page resources were treated as empty.

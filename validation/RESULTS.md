@@ -1,4 +1,18 @@
-# Standards-conformance validation results: KillerPDF 1.8.1
+# Validation results
+
+## Release records
+
+- **1.8.3:** [Corpus benchmark and release comparison](benchmarks/1.8.3/CORPUS.md),
+  including five measured passes and the comparison with 1.8.2.
+- **1.8.2:** [Corpus release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md),
+  including complete per-file logs and five measured passes.
+- **1.8.1:** The standards-conformance run is preserved below.
+
+The 1.8.4 release tag contains the earlier records but no separate 1.8.4 corpus
+benchmark. These open/save benchmarks and the standards checks below measure
+different things; results must not be relabeled as a newer release's run.
+
+## Standards-conformance validation: KillerPDF 1.8.1
 
 Validation date: 2026-08-29
 

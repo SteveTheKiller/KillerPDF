@@ -285,10 +285,8 @@ retaining the coefficient accumulation order within each sample. Blocks smaller
 than the hardware vector width and CPUs without SIMD use the scalar path. The
 decoder uses stack scratch space and a small shared cosine table for this path.
 
-Decoder timing depends on image content and reduction. The
-[JPEG SIMD record](../../validation/records/jpeg-simd-1.9.0.json) retains
-the measured sample set, all timing passes, and exact-output checks. These
-measurements do not establish performance or visual parity for every JPEG.
+Decoder timing depends on image content and reduction. Focused exact-output
+checks do not establish performance or visual parity for every JPEG.
 
 ## Repeated axial shading samples
 
@@ -357,9 +355,8 @@ SIMD byte batches with exact rounded division by 255. Short tails and machines
 without hardware vectors keep scalar arithmetic; all 65,536 coverage pairs are
 checked at aligned and unaligned batch boundaries.
 
-The [validation history](../../validation/PERFORMANCE.md) and
-[machine-readable records](../../validation/records) retain measured coverage,
-build identities, and known differences. Compare identical inputs, pages, output
+The [results summary](../../validation/PERFORMANCE.md) records measured coverage,
+build identity, and known limitations. Compare identical inputs, pages, output
 dimensions, and appearance settings. Track render time, total wall time, cold
 startup, and memory separately. Fresh-process measurements include JIT costs;
 concurrent builds can invalidate performance comparisons.

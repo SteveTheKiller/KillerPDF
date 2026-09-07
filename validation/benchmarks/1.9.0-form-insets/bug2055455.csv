@@ -1,2 +1,0 @@
-File,Page,Status,Milliseconds,Width,Height,Detail
-bug2055455.pdf,1,OK,200,1024,731,"A requested form-field text appearance was regenerated. Requested form-field appearance regeneration is not implemented for multiline, comb, or list-box layout."

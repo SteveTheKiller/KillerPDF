@@ -76,9 +76,8 @@ library host controls its own installed-font policy.
 Unembedded Symbol and ZapfDingbats use fixed bundled CFF programs before host
 lookup. Their 189 and 202 standard encoding names, respectively, include space.
 Encoding differences select glyph names from these programs. Embedded font
-programs retain precedence. The source revision, font-data hashes, and license
-are recorded in the [validation record](../../validation/records/portable-symbol-1.9.0.json)
-and [third-party notices](../THIRD-PARTY-NOTICES.txt).
+programs retain precedence. The source revision and license are recorded in the
+[third-party notices](../THIRD-PARTY-NOTICES.txt).
 
 Substitution can preserve readable text while changing shape or spacing. Inspect
 the rendered result when a document depends on a specific typeface. A missing

@@ -2,7 +2,7 @@
 
 Validation date: September 2, 2026 (Pacific time). Development branch: `dev/1.9-overkill`.
 
-The [machine-readable summary](../../records/extraction-1.9.0-summary.json) preserves
+The [machine-readable summary](summary.json) preserves
 the aggregate measurements.
 
 The app and engine no longer depend on PdfPig. The replacement passes 1,572 engine tests

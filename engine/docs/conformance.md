@@ -116,5 +116,5 @@ a process timeout. Report timeouts and unavailable checks separately from passes
 Keep conformance results separate from visual comparisons and performance
 measurements. A render can succeed with missing content, a structurally valid
 file can fail a selected profile, and a profile pass can leave visual differences.
-The repository's [validation records](../../validation/records) preserve the
+The [results summary](../../validation/PERFORMANCE.md) describes the
 scope and limits of corpus measurements.
