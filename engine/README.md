@@ -187,6 +187,9 @@ manual ordering, poster tiles, marks, and output boundaries.
 See [headers, footers, and Bates numbering](docs/page-furniture.md) for templates,
 placement review, recognized marks, replacement, and continuous numbering.
 
+See [data merge and template generation](docs/data-merge.md) for record mapping,
+previews, text and image targets, batch outcomes, and combined output.
+
 ## Repository layout
 
 ```text
