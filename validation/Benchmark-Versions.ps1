@@ -20,7 +20,18 @@ param(
 
     [string] $BaselineLabel = 'Baseline',
 
-    [string] $CandidateLabel = 'Candidate'
+    [string] $CandidateLabel = 'Candidate',
+
+    # Resave times --batch-resave (open/save pipeline). Render times --batch-render
+    # (first pages of every file to PNG at RenderSize).
+    [ValidateSet('Resave', 'Render')]
+    [string] $Mode = 'Resave',
+
+    [ValidateRange(16, 8192)]
+    [int] $RenderSize = 1024,
+
+    [ValidateRange(1, 1000)]
+    [int] $RenderPages = 1
 )
 
 $ErrorActionPreference = 'Stop'
@@ -68,28 +79,35 @@ function Invoke-BenchmarkRun {
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
 
+    if ($Mode -eq 'Render') {
+        $arguments = @(
+            '--batch-render', $InputDirectory, $runOutput,
+            '--size', $RenderSize, '--pages', $RenderPages,
+            '--log', $runLog, '--quiet'
+        )
+    }
+    else {
+        $arguments = @('--batch-resave', $InputDirectory, $runOutput, '--log', $runLog)
+    }
+
     $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-    $process = Start-Process -FilePath $Executable -ArgumentList @(
-        '--batch-resave',
-        $InputDirectory,
-        $runOutput,
-        '--log',
-        $runLog
-    ) -PassThru -Wait
+    $process = Start-Process -FilePath $Executable -ArgumentList $arguments -PassThru -Wait
     $stopwatch.Stop()
 
     if (-not (Test-Path -LiteralPath $runLog)) {
-        throw "$Label did not create its batch-resave log: $runLog"
+        throw "$Label did not create its batch log: $runLog"
     }
 
     $rows = Import-Csv -LiteralPath $runLog
     $saved = @($rows | Where-Object Status -eq 'OK').Count
+    $failed = @($rows | Where-Object Status -eq 'FAIL').Count
     $result = [pscustomobject]@{
         Version = $Label
         Run = $RunName
         Measured = $Measured
         Seconds = [math]::Round($stopwatch.Elapsed.TotalSeconds, 3)
         Files = $saved
+        Failed = $failed
         FilesPerSecond = [math]::Round($saved / $stopwatch.Elapsed.TotalSeconds, 2)
         ExitCode = $process.ExitCode
     }
