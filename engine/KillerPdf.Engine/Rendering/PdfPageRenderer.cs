@@ -903,8 +903,13 @@ public sealed partial class PdfPageRenderer
                             Transform = fontMatrix.Then(textScale).Then(textMatrix)
                                 .Then(state.Transform)
                         };
-                        IReadOnlyList<PdfContentInstruction> glyphInstructions =
-                            ReadStreamInstructions(glyph, cancellationToken);
+                        IReadOnlyList<PdfContentInstruction> glyphInstructions;
+                        try { glyphInstructions = ReadStreamInstructions(glyph, cancellationToken); }
+                        catch (PdfFilterException) when (_document.UsesCompatibilityRecovery)
+                        {
+                            diagnostics.Add("An undecodable Type 3 glyph was omitted.");
+                            glyphInstructions = [];
+                        }
                         if (paintsType3)
                             Process(glyphInstructions, fontResources, glyphState, depth + 1,
                                 beginKnockoutObjects: false);

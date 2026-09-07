@@ -145,6 +145,12 @@ painting until the graphics state is restored. Other page content can continue.
 Strict rendering and direct outline reads retain the exception; unrelated font
 errors and outline limits are not relaxed. Missing glyph shapes are not rebuilt.
 
+A Type 3 glyph whose stream filter cannot decode is omitted in compatibility
+rendering with a diagnostic. Its declared advance and the empty clipping
+contribution are preserved, allowing healthy glyphs and later content to run.
+The filter decoder and strict renderer still reject the stream. Output limits
+remain enforced; recovery does not enlarge the decode budget or invent a shape.
+
 For embedded Type 1 fonts with invalid segment lengths, recovery can locate the
 `currentfile eexec` token pair within the first 1 MiB of decoded font data. It
 requires a following line ending and uses the existing charstring decoder, which

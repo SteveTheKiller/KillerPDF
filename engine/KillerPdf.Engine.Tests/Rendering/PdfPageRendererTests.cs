@@ -16,6 +16,54 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData(PdfTextRenderingMode.Fill, "B")]
+    [InlineData(PdfTextRenderingMode.Fill, "BA")]
+    [InlineData(PdfTextRenderingMode.Clip, "B")]
+    [InlineData(PdfTextRenderingMode.Clip, "BA")]
+    public void Render_RecoveryIsolatesUndecodableType3Glyphs(PdfTextRenderingMode mode, string text)
+    {
+        var content = new PdfContentStreamBuilder().SaveState().SetFillRgb(1, 0, 0)
+            .BeginText().SetFont(PdfStandardFont.Helvetica, 10)
+            .SetTextRenderingMode(mode).ShowLatin1Text(text).EndText();
+        if (mode == PdfTextRenderingMode.Clip) content.Rectangle(0, 0, 30, 10).Fill();
+        content.RestoreState().SetFillRgb(0, 0, 1).Rectangle(25, 0, 5, 10).Fill();
+        PdfDocument source = AddType3TriangleFont(PdfDocument.Open(
+            new PdfDocumentBuilder().AddPage(30, 10, content).Build()));
+        PdfPageTree tree = PdfPageTree.Read(source);
+        PdfDictionary page = ResolveDictionary(source, tree.Pages[0].Reference);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary fonts = Assert.IsType<PdfDictionary>(resources[Name("Font")]);
+        PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(Assert.Single(fonts).Value);
+        PdfDictionary font = ResolveDictionary(source, reference);
+        PdfDictionary procs = Assert.IsType<PdfDictionary>(font[Name("CharProcs")]);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference bad = update.AddObject(new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Filter"), Name("ASCII85Decode"))]), "v~>"u8));
+        var replacements = new Dictionary<PdfName, PdfObject>
+        {
+            [Name("CharProcs")] = new PdfDictionary(procs.Append(new(Name("B"), bad))),
+            [Name("Encoding")] = new PdfDictionary([new(Name("Differences"),
+                new PdfArray([new PdfInteger(65), Name("A"), Name("B")]))]),
+            [Name("LastChar")] = new PdfInteger(66),
+            [Name("Widths")] = Reals(1000, 1000)
+        };
+        var changed = new PdfDictionary(font.Where(entry => !replacements.ContainsKey(entry.Key))
+            .Concat(replacements));
+        byte[] bytes = update.ReplaceObject(reference.ObjectNumber, changed).Build();
+        var options = new PdfRenderOptions(30, 10, includeAnnotations: false, includeFormFields: false);
+        Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() =>
+            new PdfPageRenderer(PdfDocument.Open(bytes)).Render(0, options));
+        var renderer = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(bytes));
+        PdfRenderedPage result = renderer.Render(0, options);
+        Assert.Equal([255, 255, 255, 255], Pixel(result, 5, 5));
+        Assert.Equal(text == "BA" ? new byte[] { 0, 0, 255, 255 } : [255, 255, 255, 255],
+            Pixel(result, 15, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(result, 27, 5));
+        Assert.Contains("An undecodable Type 3 glyph was omitted.", result.Diagnostics);
+        Assert.Equal(result.Pixels.ToArray(), renderer.Render(0, options).Pixels.ToArray());
+    }
+
+    [Theory]
     [InlineData("/bad j")]
     [InlineData("null j")]
     [InlineData("(1) j")]

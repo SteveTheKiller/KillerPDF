@@ -3,6 +3,20 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 Type3 glyph filter isolation
+
+Validation date: 2026-09-07. Recovery isolates undecodable Type3 glyphs while
+preserving advance, clipping, later content and strict rejection. Four new cases
+pass with all 3,068 engine and 338 app tests. All 614 successful conformance PNGs
+remain identical, with 35 SKIP and zero FAIL across 649 inputs.
+
+The damaged 16-page probe increases from six to nine accepted pages, and all nine
+app outputs match the engine probe. The newly accepted pages contain only edge
+fragments, so this is not demonstrated usable content recovery or visual parity.
+Seven pages still fail. No new throughput gain is claimed. See the
+[record](records/glyph-filter-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-glyph-filter).
+
 ## KillerPDF 1.9.0 nonnumeric rendering operands
 
 Validation date: 2026-09-07. Recovery ignores nonnumeric line-join and text-position
