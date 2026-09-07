@@ -53,6 +53,19 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Reduced temporary allocations while decoding ordinary 8-bit JPEG 2000 images.
 - Large OCR models now preselect likely glyph prototypes before full comparison.
 
+## [1.8.5] - Unreleased
+
+The 1.8.5 engine package matches the engine source shipped with KillerPDF 1.8.5.
+
+## [1.8.4] - 2026-09-06
+
+The 1.8.4 engine supports the application maintenance fixes.
+
+### Fixed
+
+- Added localized round-trip failures with stable codes and numeric details in all 15 supported languages (#227).
+- Added explicit artifact overlays for temporary rasterization of tagged PDFs, preserving existing structure and ordinary content-editing guards (#356).
+
 ## [1.8.3] - 2026-09-02
 
 The 1.8.3 engine package matches the engine source shipped with KillerPDF 1.8.3.

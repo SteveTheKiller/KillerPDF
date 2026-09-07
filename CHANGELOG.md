@@ -63,7 +63,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Localized the remaining validation messages and audited interface text across all 15 languages. The localization gate now rejects hardcoded UI labels and tooltips (#227).
 - Added installer file details and the installed size in Windows' program list (#361).
 
-## [1.8.4] - Unreleased
+## [1.8.5] - Unreleased
+
+1.8.5 adds a headless page-render benchmark command.
+
+### Added
+
+- Added a `--batch-render` command that renders pages of a file or tree to PNG with a per-page timing log.
+
+## [1.8.4] - 2026-09-06
 
 1.8.4 addresses document closing, text editing, saving, footer behavior, and remaining diagnostic translations.
 
@@ -74,8 +82,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Restored title-bar controls, including the close button and logo zoom control.
+- Registered the PDF handler as KillerPDF instead of the internal KillerPDF.App executable name.
 - Preserved visible pixels when pasted clipboard images contain an empty alpha channel (#389).
 - Preserved pasted images and other unsaved annotations when inserting blank pages (#388).
+- Rendered the correct first page after opening or switching documents in Single, Two-Page, and Grid views (#378, #379, thanks @Ryokoxx).
+- Allowed Document Info changes when PDFs contain malformed language metadata (#384).
 - Allowed Transform to rasterize selected pages in tagged PDFs (#383).
 - Restored reliable title-bar dragging and double-clicking from maximized windows (#380).
 - Kept native window resize borders, preserved the visible Continuous position during resizing, and retained the custom caption (#372, #373, thanks @Ryokoxx).
