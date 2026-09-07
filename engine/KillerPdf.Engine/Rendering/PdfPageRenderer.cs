@@ -2987,6 +2987,12 @@ public sealed partial class PdfPageRenderer
             if (!state.Transform.TryInverse(out Matrix inverse)) return true;
             (int left, int top, int right, int bottom) = GetRasterBounds(
                 state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+            bool cacheColumns = (axisX == 0 || inverse.C == 0) && (axisY == 0 || inverse.D == 0);
+            bool cacheRow = (axisX == 0 || inverse.A == 0) && (axisY == 0 || inverse.B == 0);
+            // Only exact repeated inputs are reused; no gradient quantization is applied.
+            (long Bits, Color Color, bool Valid)[]? colors = cacheColumns
+                ? new (long, Color, bool)[Math.Max(0, right - left)]
+                : cacheRow ? new (long, Color, bool)[1] : null;
             for (int y = top; y < bottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -3003,7 +3009,17 @@ public sealed partial class PdfPageRenderer
                     if (unit < 0 && !extendStart || unit > 1 && !extendEnd) continue;
                     unit = Math.Clamp(unit, 0, 1);
                     double input = domain[0] + unit * (domain[1] - domain[0]);
-                    SetPixel(target, targetWidth, x, y, function(input), state.FillAlpha * clipAlpha,
+                    Color color;
+                    if (colors is null) color = function(input);
+                    else
+                    {
+                        ref var sample = ref colors[cacheColumns ? x - left : 0];
+                        long bits = BitConverter.DoubleToInt64Bits(input);
+                        if (!sample.Valid || sample.Bits != bits)
+                            sample = (bits, function(input), true);
+                        color = sample.Color;
+                    }
+                    SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
                         state.BlendMode, state.GraphicsSoftMask, state.Knockout);
                 }
             }

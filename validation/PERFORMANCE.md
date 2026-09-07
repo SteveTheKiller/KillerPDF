@@ -3,6 +3,35 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 exact axial shading sample reuse
+
+Validation date: 2026-09-07. Reusing exact axial shading inputs reduces the focused
+DeviceN six-color page's warmed render median from 224.494 to 61.445 ms (72.6
+percent). Median render-thread allocations fall from about 288.3 to 18.7 MB.
+Three alternating before/after processes each render 15 times at 1024 by 724;
+the first three iterations per process are excluded. All 90 pixel hashes match.
+This test uses a fixed page size and is separate from collection rendering.
+
+On the aspect-preserving 1024-pixel conformance workload, the page now takes
+27 ms in the median engine pass, versus PDFium's 18 ms. Shared-file median
+render totals are 14.608 versus 12.655 seconds, a ratio of 1.1543. Median wall
+times are 29.299 versus 23.699 seconds; sampled peak working sets are 1,107.7
+versus 644.0 MB. The engine remains slower overall, and the allocation reduction
+on one page does not establish lower peak process memory.
+
+One collection warmup precedes three alternating measured passes per build, with
+no overlapping builds or heavy checks. All passes retain 614 OK, 35 SKIP, zero
+FAIL for the engine versus 600 OK, 41 SKIP, eight FAIL for PDFium 1.8.5. Every
+measured engine PNG matches the preceding codec SIMD pass. Six focused PDFjs
+gradient/shading files also retain their input and PNG hashes.
+
+All 2,979 engine and 338 app tests pass; Release has zero warnings and errors.
+Six new cases verify every pixel across gradient directions, clipping and rotation.
+Cache entries require matching input bits; no approximation or relaxed quality
+gate is used. Cold startup, full-corpus coverage, and OCR remain separate work.
+See the [record](records/axial-sample-reuse-1.9.0.json) and
+[focused and paired raw logs](benchmarks/1.9.0-axial-sample-reuse).
+
 ## KillerPDF 1.9.0 paired throughput with codec SIMD
 
 Validation date: 2026-09-07. JPEG 2000 floating-point column reconstruction now

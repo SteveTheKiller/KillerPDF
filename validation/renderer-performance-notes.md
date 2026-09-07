@@ -2,7 +2,7 @@
 
 Research date: 2026-09-07. These are implementation leads, not measured promises.
 The current paired conformance comparison still favors PDFium 1.8.5 by a render
-ratio of 1.1591. See [the measured results](PERFORMANCE.md).
+ratio of 1.1543. See [the measured results](PERFORMANCE.md).
 
 ## Techniques in other implementations
 
@@ -32,8 +32,8 @@ ratio of 1.1591. See [the measured results](PERFORMANCE.md).
 2. Separate startup and first-use compilation from warmed JPEG 2000 rendering.
    Grouped column synthesis is verified, but the larger isolated warmed gain
    does not appear in the balloon collection timing.
-3. Profile the largest remaining non-codec gaps, including DeviceN shadings and
-   compact syntax pages, before choosing a broader rendering change.
+3. Extend profiling beyond the repeated axial DeviceN samples addressed by exact
+   color reuse. Compact syntax pages and other shading types remain candidates.
 
 Track decode time, complete render time, allocation, process memory, and startup
 separately. A local improvement must survive representative paired workloads.

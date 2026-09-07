@@ -278,6 +278,15 @@ Decoder timing depends on image content and reduction. The
 the measured sample set, all timing passes, and exact-output checks. These
 measurements do not establish performance or visual parity for every JPEG.
 
+## Repeated axial shading samples
+
+Axial gradients whose transformed input is constant across a row or column reuse
+the color for exactly matching input bits. Column storage is bounded by the
+painted width; row reuse needs one entry. This avoids repeating expensive tint
+functions without quantizing gradients. Clipping, opacity, masks, blending, and
+knockout still apply separately to every pixel. Other gradient directions keep
+the existing evaluation path.
+
 ## JPEG 2000 decoding and opacity channels
 
 Tile reconstruction reuses integer and floating-point sample arrays. Every rented

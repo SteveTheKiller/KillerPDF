@@ -1353,6 +1353,41 @@ public sealed class PdfPageRendererTests
             rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(16, 0, false)]
+    [InlineData(0, 16, false)]
+    [InlineData(16, 16, false)]
+    [InlineData(16, 0, true)]
+    [InlineData(0, 16, true)]
+    [InlineData(16, 16, true)]
+    public void Render_AxialSamplesPreserveEveryPixelAcrossClippingAndRotation(
+        double endX, double endY, bool rotate)
+    {
+        var shading = new PdfAxialGradient(0, 0, endX, endY,
+        [
+            new PdfGradientStop(0, new PdfRgbColor(0, 0, 0)),
+            new PdfGradientStop(1, new PdfRgbColor(1, 1, 1))
+        ]);
+        var content = new PdfContentStreamBuilder().Rectangle(2, 3, 12, 10).Clip();
+        if (rotate) content.Transform(0, 1, -1, 0, 16, 0);
+        content.PaintShading(shading);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(16, 16, content).Build());
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(16, 16, includeAnnotations: false, includeFormFields: false));
+        for (int y = 0; y < 16; y++)
+        for (int x = 0; x < 16; x++)
+        {
+            double pageX = x + .5, pageY = 15.5 - y;
+            double sourceX = rotate ? pageY : pageX;
+            double sourceY = rotate ? 16 - pageX : pageY;
+            double unit = (sourceX * endX + sourceY * endY) / (endX * endX + endY * endY);
+            byte expected = x >= 2 && x < 14 && pageY >= 3 && pageY < 13
+                ? (byte)Math.Round(unit * 255) : (byte)255;
+            Assert.Equal([expected, expected, expected, 255], Pixel(rendered, x, y));
+        }
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_PaintsAxialShadingsWithIndexedColors()
     {
