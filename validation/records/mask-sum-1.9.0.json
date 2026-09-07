@@ -1,0 +1,12 @@
+{
+  "engineApplicationSha256": "FF5D56ABAE6145E115439739081F61E3852D60F38849BCD2AFBEE93DF820A87D",
+  "beforeApplicationSha256": "69E3CEA9D80E61D1E1F31C4ECE92C5D4361CF9424FE09E4527C788396A388B1A",
+  "beforeRecord": "run-length-1.9.0.json",
+  "settings": { "file": "issue19517.pdf", "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true, "freshProcessPerRun": true, "workingSetSampleIntervalMilliseconds": 100 },
+  "before": { "renderMilliseconds": [1374, 1361, 1340], "wallMilliseconds": [2803, 1847, 1798], "sampledPeakWorkingSetBytes": [482033664, 480710656, 480583680] },
+  "after": { "renderMilliseconds": [770, 760, 761], "wallMilliseconds": [2214, 1221, 1216], "sampledPeakWorkingSetBytes": [482095104, 480874496, 480620544] },
+  "focusedPngIdentical": true,
+  "tests": { "newCases": 6, "engine": 2739, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limitations": "One-file comparison against the preceding engine build. No corpus-wide PDFium speed claim. Working-set sampling may miss brief peaks. First wall sample retained; builds and test suites idle during timing."
+}

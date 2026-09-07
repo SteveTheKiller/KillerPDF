@@ -3,6 +3,29 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 eight-bit soft-mask averaging
+
+Validation date: 2026-09-06. Default-range eight-bit soft masks use grouped integer
+sums during reduction, preserving the exact previous averages and rounding.
+Other depths and custom decode ranges retain their existing conversions.
+
+On `issue19517.pdf`, three fresh-process runs reduce median render time from
+1,361 to 761 ms (44.1%) after the preceding run-length allocation change. Compared
+with the original 1,874 ms median, both improvements together reduce rendering
+by 59.4%. Median wall time is 1,221 ms, with a 2,214 ms first sample retained.
+Median sampled peak working set is 480,874,496 bytes, essentially unchanged from
+the allocation fix. Sampling remains at 100 ms and may miss short-lived peaks.
+
+The focused PNG is byte-identical. Six regression cases exercise full groups,
+partial tails, and high sample values. All 2,739 engine and 338 app tests pass;
+Release builds cleanly. Conformance retains 614 OK, 35 SKIP, zero FAIL, and all
+614 PNGs are identical. These measurements concern one file and do not establish
+corpus-wide parity with PDFium.
+
+See the [record](records/mask-sum-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-mask-sum); the preceding section's
+[run-length record](records/run-length-1.9.0.json) supplies the before samples.
+
 ## KillerPDF 1.9.0 run-length decoding allocation
 
 Validation date: 2026-09-06. Run-length decoding validates and counts the output

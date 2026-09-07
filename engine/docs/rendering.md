@@ -109,6 +109,10 @@ reduction, area averages preserve thin features that a single source sample can
 miss. Reduced masks share the image cache and are limited to four million samples.
 These bounds do not relax stream-length validation or authentication checks.
 
+Eight-bit masks with the default decode range use grouped integer sums during
+reduction. The averages and rounding match the scalar sample path exactly;
+custom decode ranges and other sample depths retain their existing conversions.
+
 ## JPEG 2000 opacity channels
 
 The renderer reads a single global opacity channel from the JP2 channel-definition

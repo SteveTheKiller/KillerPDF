@@ -4536,6 +4536,23 @@ public sealed partial class PdfPageRenderer
         internal long SumRow(int start, int end, int y)
         {
             long sum = 0;
+            if (Bits == 8 && DecodeStart == 0 && DecodeEnd == 1)
+            {
+                ReadOnlySpan<byte> row = Samples.AsSpan(checked(y * Width + start), end - start);
+                while (row.Length >= 8)
+                {
+                    ulong values = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(row);
+                    // Sum adjacent byte pairs in wider lanes so carries cannot cross samples.
+                    values = (values & 0x00FF00FF00FF00FFUL)
+                        + ((values >> 8) & 0x00FF00FF00FF00FFUL);
+                    values = (values & 0x0000FFFF0000FFFFUL)
+                        + ((values >> 16) & 0x0000FFFF0000FFFFUL);
+                    sum += (long)((values & uint.MaxValue) + (values >> 32));
+                    row = row[8..];
+                }
+                foreach (byte value in row) sum += value;
+                return sum;
+            }
             if (Bits == 1 && DecodeStart == 0 && DecodeEnd == 1)
             {
                 int row = checked(y * ((Width + 7) / 8));

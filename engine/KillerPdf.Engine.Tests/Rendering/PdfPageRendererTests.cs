@@ -897,6 +897,32 @@ public sealed class PdfPageRendererTests
         Assert.Empty(page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(7)]
+    [InlineData(8)]
+    [InlineData(9)]
+    [InlineData(15)]
+    [InlineData(16)]
+    [InlineData(17)]
+    public void Render_AveragesEightBitMaskRunsWithoutOverflow(int samplesPerCell)
+    {
+        byte[] samples = Enumerable.Range(0, samplesPerCell * 2)
+            .Select(index => (byte)(index % 3 == 0 ? 255 : index * 17 % 256)).ToArray();
+        int sum = samples.Skip(samplesPerCell).Sum(value => (int)value);
+        byte expectedAlpha = (byte)((sum + samplesPerCell / 2) / samplesPerCell);
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(1, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgba(1, 1, new byte[] { 255, 0, 0, 128 }), 0, 0, 1, 1))
+            .Build());
+        PdfDocument document = ReplaceImageSoftMask(source, 8, Compress(samples), samples.Length);
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(1, 1, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, expectedAlpha], Pixel(page, 0, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
     [Fact]
     public void Render_DecodesCcittFaxImageXObjects()
     {
