@@ -171,7 +171,15 @@ Eight-bit masks with the default decode range use grouped integer sums during
 reduction. The averages and rounding match the scalar sample path exactly;
 custom decode ranges and other sample depths retain their existing conversions.
 
-## JPEG 2000 opacity channels
+## JPEG 2000 decoding and opacity channels
+
+Tile reconstruction reuses integer and floating-point sample arrays. Every rented
+array is cleared before decoding so incomplete code blocks cannot reuse samples
+from an earlier image. Buffers are returned at tile changes and decoder cleanup,
+including failures. Actual rented lengths count toward the 256 MiB temporary
+sample limit; exact-sized allocations are used when pool rounding would exceed
+the remaining allowance. This limit excludes other decoder state and buffers
+retained by the shared array pool, so it is not a process memory cap.
 
 The renderer reads a single global opacity channel from the JP2 channel-definition
 box and separates it from the color samples. `SMaskInData` controls its use: absent

@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Numerics;
 using CoreJ2K.Configuration;
 using CoreJ2K.j2k.codestream;
 using CoreJ2K.j2k.codestream.reader;
@@ -110,7 +112,11 @@ internal static partial class PdfJpeg2000Decoder
         }
         finally
         {
-            try { inverse.Close(); }
+            try
+            {
+                try { inverse.ReleaseFrames(); }
+                finally { inverse.Close(); }
+            }
             finally { access.Close(); }
         }
     }
@@ -122,6 +128,7 @@ internal static partial class PdfJpeg2000Decoder
     {
         private readonly CBlkWTDataSrcDec _source;
         private readonly Dictionary<int, DataBlk> _frames = [];
+        private readonly List<Array> _rentedFrames = [];
         private long _sampleBytes;
 
         internal ImageInverseTransform(CBlkWTDataSrcDec source, DecoderSpecs specifications)
@@ -129,9 +136,18 @@ internal static partial class PdfJpeg2000Decoder
 
         public override void SetTile(int x, int y)
         {
+            ReleaseFrames();
+            base.SetTile(x, y);
+        }
+
+        internal void ReleaseFrames()
+        {
+            foreach (Array samples in _rentedFrames)
+                if (samples is int[] integers) ArrayPool<int>.Shared.Return(integers);
+                else ArrayPool<float>.Shared.Return((float[])samples);
+            _rentedFrames.Clear();
             _frames.Clear();
             _sampleBytes = 0;
-            base.SetTile(x, y);
         }
 
         public override DataBlk GetInternCompData(DataBlk block, int component)
@@ -145,7 +161,24 @@ internal static partial class PdfJpeg2000Decoder
                 if (width < 0 || height < 0 || bytes + scratchBytes > MaximumTemporarySampleBytes - _sampleBytes)
                     throw new PdfFilterException("JPEG 2000 temporary samples exceed the configured safety limit.");
                 bool integer = tree.HorWFilter is null || tree.HorWFilter.DataType == DataBlk.TYPE_INT;
-                frame = integer ? new DataBlkInt(0, 0, width, height) : new DataBlkFloat(0, 0, width, height);
+                int count = checked(width * height);
+                long pooledBytes = (long)BitOperations.RoundUpToPowerOf2((uint)Math.Max(16, count)) * sizeof(int);
+                bool pooled = pooledBytes + scratchBytes <= MaximumTemporarySampleBytes - _sampleBytes;
+                Array samples = integer
+                    ? pooled ? ArrayPool<int>.Shared.Rent(count) : new int[count]
+                    : pooled ? ArrayPool<float>.Shared.Rent(count) : new float[count];
+                if (pooled)
+                {
+                    _rentedFrames.Add(samples);
+                    Array.Clear(samples);
+                    bytes = (long)samples.Length * sizeof(int);
+                    if (bytes + scratchBytes > MaximumTemporarySampleBytes - _sampleBytes)
+                        throw new PdfFilterException("JPEG 2000 temporary samples exceed the configured safety limit.");
+                }
+                frame = integer ? new DataBlkInt() : new DataBlkFloat();
+                frame.w = frame.scanw = width;
+                frame.h = height;
+                frame.Data = samples;
                 Array scratch = integer ? new int[Math.Max(width, height)] : new float[Math.Max(width, height)];
                 Reconstruct(frame, tree, component, Level(TileIdx, component), scratch);
                 _frames.Add(component, frame);
@@ -155,9 +188,15 @@ internal static partial class PdfJpeg2000Decoder
                 || (long)block.ulx + block.w > frame.w || (long)block.uly + block.h > frame.h)
                 throw new PdfFilterException("JPEG 2000 requested samples outside the tile.");
             if (block.DataType != frame.DataType)
-                block = frame.DataType == DataBlk.TYPE_INT
-                    ? new DataBlkInt(block.ulx, block.uly, block.w, block.h)
-                    : new DataBlkFloat(block.ulx, block.uly, block.w, block.h);
+            {
+                DataBlk converted = frame.DataType == DataBlk.TYPE_INT
+                    ? new DataBlkInt() : new DataBlkFloat();
+                converted.ulx = block.ulx;
+                converted.uly = block.uly;
+                converted.w = block.w;
+                converted.h = block.h;
+                block = converted;
+            }
             block.Data = frame.Data;
             block.offset = block.uly * frame.w + block.ulx;
             block.scanw = frame.w;

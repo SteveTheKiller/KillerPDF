@@ -3,6 +3,26 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 JPEG 2000 allocation check
+
+Validation date: 2026-09-07. Reusing cleared tile sample buffers reduced warmed
+render allocations for `balloon_a1b_jp2k.pdf` from 46,792,488 to 16,594,552 bytes
+(about 65 percent). Median render time was 333.764 ms before and 331.885 ms after;
+this small difference does not establish a speed improvement.
+
+Each build ran 15 renders in a separate process with a new document and renderer
+per iteration, page one at 752 by 1024 pixels, and annotation/form appearances
+enabled. The first three iterations were excluded from medians. All 30 pixel
+hashes match. The 649-file conformance check remains 614 OK, 35 SKIP, and zero
+FAIL, with all 614 PNGs identical to the prior build. Engine 2,775 and app 338
+tests pass, including independent JPEG 2000 tile references.
+
+Allocation counts measure the render thread, not peak or retained process memory.
+The shared pool can retain returned arrays. This focused check does not replace
+the paired PDFium throughput measurement below. See the
+[record](records/jp2-frame-pool-1.9.0.json) and
+[raw measurements](benchmarks/1.9.0-jp2-frame-pool).
+
 ## KillerPDF 1.9.0 focused PDF.js font recheck
 
 Validation date: 2026-09-07. After the Unicode-map, missing descendant, and emoji
