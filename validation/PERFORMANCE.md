@@ -3,6 +3,43 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 cross-reference recovery comparison
+
+Benchmark date: 2026-09-06. Same 649 conformance files, page 1 fitted inside
+1024 pixels, annotation/form rendering enabled. One unmeasured warmup per build
+preceded three measured passes, alternating build order. PNGs were retained.
+
+| Build | Rendered | Skipped | Failed | Median render seconds | Median wall seconds |
+|---|---:|---:|---:|---:|---:|
+| 1.8.5 PDFium | 600 | 41 | 8 | 12.353 | 23.287 |
+| 1.9.0 engine | 614 | 35 | 0 | 16.497 | 31.497 |
+
+All 600 PDFium successes now render in the engine, with 14 additional successes.
+On the common set, median render time is 16.433 seconds for the engine and 12.353
+for PDFium, a 1.33 ratio. These measurements do not establish the performance goal.
+Thirty engine successes retain incomplete-render diagnostics and need visual review.
+Wall time includes process startup, opening, JIT, rendering, PNG encoding, and exit.
+Render totals exclude failed and skipped rows. These are source Release builds, not
+packaged startup measurements. Test system is the Ryzen 5 3600 machine below.
+
+Compared with the prior 609-file engine result, the newly rendered files are
+UnknownFilter-Linearized, UnknownFilter-xrefstm, UnknownFilter-OutlineObjStm, and
+two corpus copies of T04_011_trailer-no-root-key-value-pair. The three UnknownFilter
+pages were visually compared with PDFium: expected text, images, and shapes are
+present, with the existing one-pixel fitted-width rounding difference.
+
+The tested recovery code rebuilds readable object-stream registrations and recovers
+a catalog when the selected cross-reference companion has no Root. Unknown compressed
+payloads remain undecodable. An aggregate registration limit was added after timing;
+the measured build hashes identify the exact pre-limit binaries. A final-build coverage
+pass retained 614 rendered, 35 skipped, and zero failures. All 2,653 engine tests and
+338 app tests passed, and the Release app build had no warnings or errors.
+
+Per-page measured CSVs are in [benchmarks/1.9.0-recovery](benchmarks/1.9.0-recovery).
+Build hashes and wall measurements are in
+[render-recovery-1.9.0.json](../pdf-landing/render-recovery-1.9.0.json).
+Earlier benchmarks below are retained as historical measurements.
+
 ## KillerPDF 1.9.0 JPEG Huffman lookup improvement
 
 Benchmark date: 2026-09-06

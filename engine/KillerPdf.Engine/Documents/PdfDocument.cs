@@ -554,7 +554,7 @@ public sealed class PdfDocument
         return contents;
     }
 
-    private static List<ObjectHeader> ReadObjectHeaders(
+    internal static List<ObjectHeader> ReadObjectHeaders(
         byte[] decoded,
         int objectCount,
         int firstObjectOffset,
@@ -627,7 +627,7 @@ public sealed class PdfDocument
 
     private static PdfSyntaxException Error(string message, int offset) => new(message, Math.Max(offset, 0));
 
-    private readonly record struct ObjectHeader(int ObjectNumber, int RelativeOffset);
+    internal readonly record struct ObjectHeader(int ObjectNumber, int RelativeOffset);
     private sealed record ObjectStreamItem(int ObjectNumber, PdfObject Value);
     private sealed record ObjectStreamContents(IReadOnlyList<ObjectStreamItem> OrderedObjects);
 }

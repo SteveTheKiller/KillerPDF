@@ -1,0 +1,55 @@
+{
+  "version": "1.9.0",
+  "baseline": "1.8.5",
+  "date": "2026-09-06",
+  "files": 649,
+  "page": 1,
+  "size": 1024,
+  "warmupsPerBuild": 1,
+  "engineAppDllSHA256": "C540F48FB56E55067CFBD8CC78738CB4E5420640B6A84C79B7B7C6D924A2F50A",
+  "baselineAppDllSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "engineBuildNote": "ab05a70 plus cross-reference recovery changes, measured before aggregate recovered-header guard",
+  "commonFiles": 600,
+  "engineOnly": 14,
+  "pdfiumOnly": 0,
+  "engineDiagnosticPages": 30,
+  "engineCounts": {
+    "rendered": 614,
+    "skipped": 35,
+    "failed": 0
+  },
+  "baselineCounts": {
+    "rendered": 600,
+    "skipped": 41,
+    "failed": 8
+  },
+  "runs": [
+    {
+      "run": 1,
+      "engineWallSeconds": 31.4965675,
+      "baselineWallSeconds": 23.2871225,
+      "engineRenderMs": 16497,
+      "baselineRenderMs": 12320,
+      "engineCommonMs": 16433,
+      "baselineCommonMs": 12320
+    },
+    {
+      "run": 2,
+      "engineWallSeconds": 31.584039,
+      "baselineWallSeconds": 23.3788393,
+      "engineRenderMs": 16655,
+      "baselineRenderMs": 12450,
+      "engineCommonMs": 16597,
+      "baselineCommonMs": 12450
+    },
+    {
+      "run": 3,
+      "engineWallSeconds": 30.4936222,
+      "baselineWallSeconds": 23.1359655,
+      "engineRenderMs": 16201,
+      "baselineRenderMs": 12353,
+      "engineCommonMs": 16137,
+      "baselineCommonMs": 12353
+    }
+  ]
+}

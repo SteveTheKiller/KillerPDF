@@ -1,4 +1,5 @@
 using System.Collections;
+using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Parsing;
@@ -29,6 +30,7 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
 
     private readonly Dictionary<int, PdfCrossReferenceEntry> _entries;
     private readonly List<Revision> _revisions;
+    private readonly Dictionary<int, HashSet<(int ObjectNumber, int Index)>> _recoveredHeaders = [];
 
     private PdfCrossReferenceTable(
         PdfHeader header,
@@ -56,6 +58,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
     internal HashSet<(int ObjectNumber, int Index)> RegisteredHeadersForCurrentObjectStream(
         int streamNumber)
     {
+        if (_recoveredHeaders.TryGetValue(streamNumber, out var recovered))
+            return new HashSet<(int ObjectNumber, int Index)>(recovered);
         if (!_entries.TryGetValue(streamNumber, out PdfCrossReferenceEntry current)
             || current.Type != PdfCrossReferenceEntryType.InUse)
             return [];
@@ -149,6 +153,7 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         RebuildEntries(source, header.Offset, source.Length, entries);
         if (entries.Count == 0) throw new PdfSyntaxException(
             "The PDF contains no recoverable indirect objects", header.Offset);
+        var recoveredHeaders = RecoverObjectStreamEntries(source, entries);
 
         PdfDictionary? trailer = null;
         try
@@ -163,7 +168,9 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
             var found = new Dictionary<PdfName, PdfObject>();
             foreach (var entry in trailer ?? new PdfDictionary(new Dictionary<PdfName, PdfObject>()))
                 found[entry.Key] = entry.Value;
-            foreach (PdfCrossReferenceEntry entry in entries.Values.OrderBy(entry => entry.Field1))
+            foreach (PdfCrossReferenceEntry entry in entries.Values
+                .Where(entry => entry.Type == PdfCrossReferenceEntryType.InUse)
+                .OrderBy(entry => entry.Field1))
             {
                 try
                 {
@@ -203,8 +210,70 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
         var section = new PdfCrossReferenceSection(header.Offset, entries.Values, trailer,
             isStream: false, compatibilityRecovery: true);
         var startXref = new PdfStartXref(header.Offset, header.Offset);
-        return new PdfCrossReferenceTable(header, startXref,
+        var table = new PdfCrossReferenceTable(header, startXref,
             [new Revision(section, null)], entries);
+        foreach (var pair in recoveredHeaders)
+            table._recoveredHeaders.Add(pair.Key, pair.Value);
+        return table;
+    }
+
+    private static Dictionary<int, HashSet<(int ObjectNumber, int Index)>> RecoverObjectStreamEntries(
+        ReadOnlyMemory<byte> source, Dictionary<int, PdfCrossReferenceEntry> entries)
+    {
+        var registrations = new Dictionary<int, HashSet<(int ObjectNumber, int Index)>>();
+        int remainingHeaders = PdfCrossReferenceReader.MaximumEntriesPerSection;
+        // Physical offsets retain the newest definition even when its predecessor was compressed.
+        var offsets = entries.ToDictionary(pair => pair.Key, pair => pair.Value.Field1);
+        foreach (PdfCrossReferenceEntry entry in entries.Values.OrderBy(item => item.Field1).ToArray())
+        {
+            try
+            {
+                if (entry.Field2 != 0) continue;
+                int offset = checked((int)entry.Field1);
+                PdfIndirectObject indirect = new PdfObjectParser(source, offset,
+                    allowDuplicateDictionaryKeys: true).ParseIndirectObject();
+                if (indirect.Value is not PdfStream stream
+                    || !stream.Dictionary.TryGetValue(TypeName, out PdfObject type)
+                    || type is not PdfName name || name.ValueAsLatin1() != "ObjStm"
+                    || !stream.Dictionary.TryGetValue(new PdfName("N"u8), out PdfObject countValue)
+                    || countValue is not PdfInteger { Value: >= 0 and <= PdfDocument.MaximumObjectsPerObjectStream } count
+                    || count.Value > remainingHeaders
+                    || !stream.Dictionary.TryGetValue(new PdfName("First"u8), out PdfObject firstValue)
+                    || firstValue is not PdfInteger { Value: >= 0 and <= int.MaxValue } first)
+                    continue;
+
+                byte[] decoded = PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream);
+                if (first.Value > decoded.Length) continue;
+                var headers = PdfDocument.ReadObjectHeaders(decoded, (int)count.Value, (int)first.Value, offset);
+                var numbers = new HashSet<int>();
+                foreach (var member in headers)
+                    if (member.ObjectNumber == entry.ObjectNumber || !numbers.Add(member.ObjectNumber))
+                        throw new PdfSyntaxException("The recovered object stream repeats an object number", offset);
+                if (numbers.Count(number => !entries.ContainsKey(number))
+                    > PdfCrossReferenceReader.MaximumEntriesPerSection - entries.Count)
+                    throw new PdfSyntaxException("The rebuilt cross-reference entry limit was exceeded", offset);
+
+                var registered = new HashSet<(int ObjectNumber, int Index)>();
+                for (int index = 0; index < headers.Count; index++)
+                {
+                    int number = headers[index].ObjectNumber;
+                    registered.Add((number, index));
+                    if (offsets.TryGetValue(number, out long newerOffset) && newerOffset > entry.Field1)
+                        continue;
+                    entries[number] = new PdfCrossReferenceEntry(number,
+                        PdfCrossReferenceEntryType.Compressed, entry.ObjectNumber, index);
+                    offsets[number] = entry.Field1;
+                }
+                registrations.Add(entry.ObjectNumber, registered);
+                remainingHeaders -= headers.Count;
+            }
+            catch (Exception error) when (error is PdfSyntaxException or PdfFilterException
+                or FormatException or NotSupportedException or OverflowException)
+            {
+                // Unreadable members stay unresolved; other recoverable streams remain usable.
+            }
+        }
+        return registrations;
     }
 
     private static PdfCrossReferenceTable ReadChain(
@@ -313,17 +382,40 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
                 AddNewest(entries, revision.Hybrid.Values);
             AddNewest(entries, revision.Primary.Values);
         }
+        Dictionary<int, HashSet<(int ObjectNumber, int Index)>>? recoveredHeaders = null;
         if (compatibilityRecovery && !entries.Values.Any(entry =>
                 entry.Type is PdfCrossReferenceEntryType.InUse
                     or PdfCrossReferenceEntryType.Compressed))
+        {
             RebuildEntries(source, header.Offset, startXref.MarkerOffset, entries);
+            recoveredHeaders = RecoverObjectStreamEntries(source, entries);
+        }
         if (!entries.TryGetValue(0, out PdfCrossReferenceEntry objectZero)
             || objectZero.Type != PdfCrossReferenceEntryType.Free)
             entries[0] = new PdfCrossReferenceEntry(
                 0, PdfCrossReferenceEntryType.Free, 0, 65_535);
         ValidateFreeList(entries, startXref.Offset);
 
-        return new PdfCrossReferenceTable(header, startXref, revisions, entries);
+        if (compatibilityRecovery && !revisions.Any(revision =>
+                revision.Primary.Trailer.ContainsKey(RootName)
+                || revision.Hybrid?.Trailer.ContainsKey(RootName) == true))
+        {
+            try
+            {
+                return ReconstructFromScan(source,
+                    new PdfSyntaxException("The recovered cross-reference chain has no catalog root", 0));
+            }
+            catch (PdfSyntaxException)
+            {
+                // A partial cross-reference table remains useful even without a recoverable catalog.
+            }
+        }
+
+        var table = new PdfCrossReferenceTable(header, startXref, revisions, entries);
+        if (recoveredHeaders is not null)
+            foreach (var pair in recoveredHeaders)
+                table._recoveredHeaders.Add(pair.Key, pair.Value);
+        return table;
     }
 
     private static PdfCrossReferenceSection RecoverFinalSection(
