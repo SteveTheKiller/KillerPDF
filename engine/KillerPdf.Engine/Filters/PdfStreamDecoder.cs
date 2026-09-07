@@ -104,7 +104,7 @@ public static class PdfStreamDecoder
                 "FlateDecode" or "Fl" => DecodeFlate(
                     current, filterLimit, compatibilityRecovery),
                 "BrotliDecode" => DecodeBrotli(current, filterLimit),
-                "ASCIIHexDecode" or "AHx" => DecodeAsciiHex(current, filterLimit),
+                "ASCIIHexDecode" or "AHx" => DecodeAsciiHex(current, filterLimit, compatibilityRecovery),
                 "ASCII85Decode" or "A85" => DecodeAscii85(current, filterLimit, compatibilityRecovery),
                 "RunLengthDecode" or "RL" => DecodeRunLength(current, filterLimit),
                 "LZWDecode" or "LZW" => DecodeLzw(
@@ -187,7 +187,8 @@ public static class PdfStreamDecoder
         }
     }
 
-    private static byte[] DecodeAsciiHex(ReadOnlySpan<byte> encoded, int maximumDecodedBytes)
+    private static byte[] DecodeAsciiHex(ReadOnlySpan<byte> encoded, int maximumDecodedBytes,
+        bool compatibilityRecovery)
     {
         var output = new List<byte>();
         int high = -1;
@@ -201,12 +202,15 @@ public static class PdfStreamDecoder
                 >= (byte)'0' and <= (byte)'9' => value - '0',
                 >= (byte)'A' and <= (byte)'F' => value - 'A' + 10,
                 >= (byte)'a' and <= (byte)'f' => value - 'a' + 10,
+                _ when compatibilityRecovery => -1,
                 _ => throw new PdfFilterException("ASCIIHex data contains a non-hexadecimal byte.")
             };
+            if (digit < 0) continue;
             if (high < 0) high = digit;
             else { AddBounded(output, (byte)((high << 4) | digit), maximumDecodedBytes); high = -1; }
         }
-        if (!ended) throw new PdfFilterException("ASCIIHex data has no end marker.");
+        if (!ended && !compatibilityRecovery)
+            throw new PdfFilterException("ASCIIHex data has no end marker.");
         if (high >= 0) AddBounded(output, (byte)(high << 4), maximumDecodedBytes);
         return [.. output];
     }

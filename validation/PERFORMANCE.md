@@ -3,6 +3,24 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 bounded ASCIIHex recovery
+
+Validation date: 2026-09-07. Recovery ignores non-hex bytes and tolerates a
+missing ASCIIHex terminator, retaining the output limit and strict rejection.
+On `poppler-90-0-fuzzed.pdf`, successful pages increase from three to six of
+16. Pages 10 and 14 recover partial text; the third newly accepted page is
+blank. Existing successful pages retain their pixels. Ten pages still fail on
+other malformed instructions or ASCII85 data. Visual comparison shows remaining
+glyph and placement differences, so this is partial recovery rather than parity.
+
+All 3,057 engine and 338 app tests pass with a clean Release build. Seven new
+cases check recovery, strict rejection, odd nibbles, termination and output
+limits. The app reproduces all six successful probe outputs exactly. A 649-file
+conformance check retains 614 OK, 35 SKIP, zero FAIL and all 614 prior PNGs.
+No throughput improvement is claimed. See the
+[record](records/asciihex-recovery-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-asciihex-recovery).
+
 ## KillerPDF 1.9.0 PDFjs audit after clip and codec changes
 
 Validation date: 2026-09-07. All 979 PDFjs inputs retain their prior statuses:

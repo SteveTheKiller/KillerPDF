@@ -285,6 +285,31 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_RecoveryAcceptsEmptyAsciiHexWithoutEndMarker()
+    {
+        PdfStream stream = Stream([], Pair("Filter", Name("AHx")));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Empty(PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, 0));
+    }
+
+    [Theory]
+    [InlineData("6162", "6162")]
+    [InlineData("61 62 6", "616260")]
+    [InlineData("6!1z6?2>", "6162")]
+    [InlineData("6!1z6?2", "6162")]
+    [InlineData("6!1>6263", "61")]
+    [InlineData("xA?b!C", "ABC0")]
+    public void Decode_RecoveryPreservesAsciiHexDigitsAndOutputLimit(string encoded, string hex)
+    {
+        PdfStream stream = Stream(Encoding.ASCII.GetBytes(encoded), Pair("Filter", Name("ASCIIHexDecode")));
+        byte[] expected = Convert.FromHexString(hex);
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal(expected, PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, expected.Length));
+        Assert.Throws<PdfFilterException>(() =>
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, expected.Length - 1));
+    }
+
+    [Fact]
     public void Decode_DecodesAscii85ZeroTuple()
     {
         PdfStream stream = Stream("z~>"u8.ToArray(),

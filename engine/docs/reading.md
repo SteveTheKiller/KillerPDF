@@ -74,6 +74,13 @@ within the input. Encoded bytes are preserved for the filter decoder; this does
 not relax numeric or string syntax elsewhere. Strict parsing retains its lexical
 errors at the declared boundary.
 
+ASCIIHex compatibility decoding ignores non-hexadecimal bytes and accepts input
+exhaustion in place of the end marker. A final unmatched hex digit is padded with
+a zero low nibble. The first end marker still stops decoding, and every emitted
+byte remains subject to the output limit. Strict decoding rejects malformed
+bytes and missing markers. Recovery preserves available bytes; it cannot repair
+corruption inside the decoded page instructions or glyph programs.
+
 ASCII85 compatibility decoding also accepts the end of a stream in place of a
 missing `~>` marker, including empty streams. Complete tuples and final groups of
 two to four digits retain their normal decoding. A lone final digit, invalid
