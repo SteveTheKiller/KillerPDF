@@ -19,6 +19,24 @@ build. [Evidence](records/host-identity-1.9.0.json) and
 [raw logs](benchmarks/1.9.0-host-identity/) retain the measurements. Focused cold
 render timings do not establish throughput or a performance improvement.
 
+## KillerPDF 1.9.0 full portable-font corpus audit
+
+Validation date: 2026-09-07. The 979-file PDF.js comparison before the host
+Identity correction finished with 960 OK, 18 SKIP, and one failure for the
+engine, versus 957 OK, 21 SKIP, and one failure for PDFium 1.8.5. There were no
+timeouts. All input hashes were verified; 954 files rendered in both builds.
+
+Compared with the preceding full run, 938 engine PNGs are identical and 22
+changed. Visual inspection confirms restored mathematical symbols, checkmarks,
+and playing-card suits. It also exposes incorrect Identity-font characters and
+missing form values in otherwise successful renders. The subsequent host-font
+correction is documented above; form appearance regeneration remains open.
+These counts do not establish visual parity or throughput.
+
+[Audit and per-image observations](records/full-portable-symbol-1.9.0.json)
+and [raw comparison](benchmarks/1.9.0-full-portable-symbol/render-comparison.csv)
+preserve this historical run, including higher-error pages and known gaps.
+
 ## KillerPDF 1.9.0 portable Symbol and ZapfDingbats validation
 
 Validation date: 2026-09-07. Bundled standard-font outlines replace incorrect

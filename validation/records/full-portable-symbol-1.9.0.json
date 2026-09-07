@@ -1,0 +1,188 @@
+{
+  "date": "2026-09-07",
+  "productCommit": "0ab3f45867a4a646f17807b760dc0e3b4457049e",
+  "engineApplicationSha256": "91E036DBDCC1079D10030B84A6004ED1806440318F7A679CCAE20A5529EA976F",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "inputs": 979,
+    "page": 1,
+    "maximumDimension": 1024,
+    "timeoutSecondsPerFileAndBuild": 15,
+    "alternatingBuildOrder": true
+  },
+  "verification": "All 1958 rows pair by relative path with equal input hashes; all 979 hashes were verified against source files.",
+  "coverage": {
+    "engine": {
+      "ok": 960,
+      "skip": 18,
+      "fail": 1
+    },
+    "baseline": {
+      "ok": 957,
+      "skip": 21,
+      "fail": 1
+    },
+    "commonOk": 954,
+    "engineOnly": 6,
+    "baselineOnly": 3,
+    "neither": 16,
+    "timeouts": 0
+  },
+  "imageAudit": {
+    "comparisonRun": "pdfjs-full-courier-20260907",
+    "identicalPngs": 938,
+    "changedPngs": 22,
+    "changed": [
+      {
+        "file": "bug1365930.pdf",
+        "directory": "000175",
+        "rgbMaeBefore": 0.2339910417983565,
+        "rgbMaeAfter": 0.21778454883059417,
+        "visualCheck": "The last digit is missing in this build. The subsequent host Identity fix restores 2017; its new full-run image was inspected."
+      },
+      {
+        "file": "bug1675139.pdf",
+        "directory": "000191",
+        "rgbMaeBefore": 0.228985181600295,
+        "rgbMaeAfter": 0.21190089351559208,
+        "visualCheck": "The checked box now uses a checkmark; form content and rotation remain present."
+      },
+      {
+        "file": "bug1802506.pdf",
+        "directory": "000207",
+        "rgbMaeBefore": 13.018668853979317,
+        "rgbMaeAfter": 0.3090802748426259,
+        "visualCheck": "The large checkmark now matches the reference shape."
+      },
+      {
+        "file": "bug1883609.pdf",
+        "directory": "000225",
+        "limitation": "Reference dimensions differ; no unaligned MAE.",
+        "visualCheck": "The checked box shape changes. Current field values Man, 150, and Red are missing; NeedAppearances is true. This remains actionable."
+      },
+      {
+        "file": "extgstate.pdf",
+        "directory": "000319",
+        "rgbMaeBefore": 1.750071606352718,
+        "rgbMaeAfter": 1.5060112298514539,
+        "visualCheck": "Full-run PNG is byte-identical to the previously inspected focused stroke validation."
+      },
+      {
+        "file": "issue11045.pdf",
+        "directory": "000375",
+        "rgbMaeBefore": 0.18849878516118837,
+        "rgbMaeAfter": 0.20750286425410872,
+        "visualCheck": "Diagram stroke pixels change slightly and MAE increases. No missing diagram content was observed; text rasterization still differs."
+      },
+      {
+        "file": "issue11242_reduced.pdf",
+        "directory": "000380",
+        "rgbMaeBefore": 10.549957275390625,
+        "rgbMaeAfter": 9.019947052001953,
+        "visualCheck": "Incorrect character selection remains in this build; subsequent bffb65e restores 0106211 and VAT Code."
+      },
+      {
+        "file": "issue11578_reduced.pdf",
+        "directory": "000390",
+        "rgbMaeBefore": 9.96053695678711,
+        "rgbMaeAfter": 9.642837524414062,
+        "visualCheck": "Incorrect character selection remains in this build; subsequent bffb65e restores Volumes."
+      },
+      {
+        "file": "issue13916.pdf",
+        "directory": "000441",
+        "limitation": "Reference dimensions differ; no unaligned MAE.",
+        "visualCheck": "Accented character selection is incorrect. Unembedded Identity fonts lack Unicode maps; verify the subsequent host Identity run."
+      },
+      {
+        "file": "issue15441.pdf",
+        "directory": "000483",
+        "limitation": "Reference dimensions differ; no unaligned MAE.",
+        "visualCheck": "Quotation marks and letters are incorrect. Unembedded Identity font lacks a Unicode map; verify the subsequent host Identity run."
+      },
+      {
+        "file": "issue15443.pdf",
+        "directory": "000484",
+        "rgbMaeBefore": 16.763099670410156,
+        "rgbMaeAfter": 13.140373229980469,
+        "visualCheck": "Incorrect accented characters remain in this build. Subsequent bffb65e restores characters; glyph sizing and placement remain actionable."
+      },
+      {
+        "file": "issue15594_reduced.pdf",
+        "directory": "000488",
+        "rgbMaeBefore": 12.17044448852539,
+        "rgbMaeAfter": 11.292449951171875,
+        "visualCheck": "Incorrect umlauts remain in this build. Subsequent bffb65e restores characters, with remaining sizing differences and higher aggregate error."
+      },
+      {
+        "file": "issue15716.pdf",
+        "directory": "000492",
+        "rgbMaeBefore": 39.39404424031576,
+        "rgbMaeAfter": 0.09312693277994792,
+        "visualCheck": "Playing-card suits now match the reference shapes."
+      },
+      {
+        "file": "issue17492.pdf",
+        "directory": "000527",
+        "limitation": "Reference dimensions differ; no unaligned MAE.",
+        "visualCheck": "Checkbox and radio outlines change. The Other Job Experience multiline value is missing and remains actionable."
+      },
+      {
+        "file": "issue19182.pdf",
+        "directory": "000570",
+        "limitation": "Reference dimensions differ; no unaligned MAE.",
+        "visualCheck": "The Chinese field value remains readable. Border and page-dimension differences remain."
+      },
+      {
+        "file": "issue19550.pdf",
+        "directory": "000583",
+        "rgbMaeBefore": 20.264198303222656,
+        "rgbMaeAfter": 19.694805145263672,
+        "visualCheck": "Incorrect Cyrillic character selection remains in this build; subsequent bffb65e restores the reference phrase."
+      },
+      {
+        "file": "issue19971.pdf",
+        "directory": "000591",
+        "rgbMaeBefore": 2.4380683239833543,
+        "rgbMaeAfter": 2.1790607386483356,
+        "visualCheck": "The page retains the image, table, annotations, and mathematical symbols. Font and rasterization differences remain."
+      },
+      {
+        "file": "issue20453.pdf",
+        "directory": "000602",
+        "rgbMaeBefore": 0.2484342937756498,
+        "rgbMaeAfter": 0.2453122328146375,
+        "visualCheck": "The Cyrillic phrase has incorrect character selection. Verify the subsequent host Identity run."
+      },
+      {
+        "file": "issue5238.pdf",
+        "directory": "000685",
+        "rgbMaeBefore": 9.099956512451172,
+        "rgbMaeAfter": 0.031482696533203125,
+        "visualCheck": "Mathematical symbols replace missing-glyph boxes and closely match the reference."
+      },
+      {
+        "file": "issue7835.pdf",
+        "directory": "000781",
+        "rgbMaeBefore": 2.751995086669922,
+        "rgbMaeAfter": 2.8337135314941406,
+        "visualCheck": "The final digit is missing and MAE increases. Verify the subsequent host Identity run."
+      },
+      {
+        "file": "standard_fonts.pdf",
+        "directory": "000940",
+        "rgbMaeBefore": 1.355405354368094,
+        "rgbMaeAfter": 1.2121109936118784,
+        "visualCheck": "Page-one PNG is byte-identical to the previously inspected focused portable-font run."
+      },
+      {
+        "file": "ZapfDingbats.pdf",
+        "directory": "000976",
+        "limitation": "Reference dimensions differ; no unaligned MAE.",
+        "visualCheck": "PNG is byte-identical to the previously inspected focused portable-font run; reference width differs."
+      }
+    ]
+  },
+  "limitations": "This is a historical coverage run before bffb65e, not current throughput evidence. Each file used a cold process; documentation verification overlapped part of the run. Successful rendering does not establish correct content. Form-value gaps, remaining font sizing and character-selection differences are not accepted parity exceptions. No general quality gate was changed."
+}
