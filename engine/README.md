@@ -139,6 +139,9 @@ interactive objects, resource ownership, and output validation.
 See [encryption and signature integration](docs/security.md) for protected
 authoring, authenticated rewrites, permission checks, and signature trust policy.
 
+See [editing and saving documents](docs/editing.md) for page edits, typed overlays,
+imports, incremental preservation, and output validation.
+
 ## Repository layout
 
 ```text
