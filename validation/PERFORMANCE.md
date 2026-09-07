@@ -3,6 +3,32 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 JPEG 2000 channel definitions
+
+Validation date: 2026-09-06. The renderer separates a declared global JP2 opacity
+channel from color samples and honors the PDF `SMaskInData` setting. An absent
+or zero setting ignores that channel, as required by the PDF specification.
+
+PDF.js `issue19517.pdf` moves from FAIL to OK without diagnostics. Its 768 by
+1024 output visually matches PDFium's orange-red image, with RGB MAE 0.054336.
+The fresh-process render sample took 1,947 ms; the prior PDFium sample took
+425 ms. These isolated samples show remaining decoder cost, not a throughput win.
+`issue19326.pdf` still has a separate PDF/codestream sample-depth mismatch.
+
+Thirteen new cases cover ignored opacity, color inference, declared channel
+positions, and malformed definitions or box lengths. All 2,723 engine and 338
+app tests pass; Release builds cleanly. Conformance retains 614 OK, 35 SKIP,
+zero FAIL, and all 614 PNGs are byte-identical to the preceding build.
+
+Before this change, the focused recheck of all 54 prior non-OK PDF.js files
+completed with eight engine OK, 25 SKIP, 21 FAIL, and no timeout. PDFium had
+38 OK, 15 SKIP, and one FAIL. This diagnostic subset is not a new full-corpus
+aggregate. The complete comparison log retains input and build hashes.
+
+See the [record](records/jpx-opacity-1.9.0.json),
+[raw logs](benchmarks/1.9.0-jpx-opacity), and
+[opacity specification](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.6.pdf).
+
 ## KillerPDF 1.9.0 CMap-name metadata recovery
 
 Validation date: 2026-09-06. Compatibility font reading tolerates a stray closing

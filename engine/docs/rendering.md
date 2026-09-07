@@ -104,6 +104,18 @@ reduction, area averages preserve thin features that a single source sample can
 miss. Reduced masks share the image cache and are limited to four million samples.
 These bounds do not relax stream-length validation or authentication checks.
 
+## JPEG 2000 opacity channels
+
+The renderer reads a single global opacity channel from the JP2 channel-definition
+box and separates it from the color samples. `SMaskInData` controls its use: absent
+or zero ignores opacity, one applies it, and two applies it with preblended-color
+recovery. Color-space inference excludes the declared opacity channel. Explicit
+PDF soft masks can still apply when embedded opacity is ignored.
+
+Channel indices and box lengths are checked. Multiple or component-specific
+opacity channels are unsupported. A mismatched PDF sample depth or image size
+still fails validation. These checks apply independently of compatibility recovery.
+
 ## Validation and remaining work
 
 The [validation history](../../validation/PERFORMANCE.md) and

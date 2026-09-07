@@ -1604,6 +1604,10 @@ public sealed partial class PdfPageRenderer
             ? EmbeddedJpeg2000MaskMode(stream.Dictionary) : 0;
         Jpeg2000Shape? jpeg2000Shape = jpeg2000
             ? PdfJpeg2000Decoder.ReadShape(stream.EncodedData.Span) : null;
+        int opacityChannel = jpeg2000Shape is Jpeg2000Shape channelShape
+            ? PdfJpeg2000Decoder.ReadOpacityChannel(stream.EncodedData.Span, channelShape.Components) : -1;
+        if (opacityChannel < 0 && embeddedMaskMode != 0)
+            opacityChannel = jpeg2000Shape!.Value.Components - 1;
         int bits = imageMask ? 1
             : stream.Dictionary.ContainsKey(Name("BitsPerComponent"))
                 ? PositiveInteger(stream.Dictionary, "BitsPerComponent")
@@ -1615,7 +1619,7 @@ public sealed partial class PdfPageRenderer
             colorSpace = imageMask ? new ImageColorSpace(1, null)
                 : stream.Dictionary.ContainsKey(Name("ColorSpace"))
                     ? ReadImageColorSpace(stream.Dictionary, resources)
-                    : InferJpeg2000ColorSpace(jpeg2000Shape, embeddedMaskMode);
+                    : InferJpeg2000ColorSpace(jpeg2000Shape, opacityChannel);
         }
         catch (PdfFilterException error)
         {
@@ -1660,7 +1664,7 @@ public sealed partial class PdfPageRenderer
         }
         try
         {
-            int encodedComponents = checked(components + (embeddedMaskMode == 0 ? 0 : 1));
+            int encodedComponents = checked(components + (opacityChannel < 0 ? 0 : 1));
             if (jpeg2000Shape is Jpeg2000Shape shape
                 && (shape.Width != width || shape.Height != height
                     || shape.Components != encodedComponents || shape.Bits != bits))
@@ -1743,10 +1747,10 @@ public sealed partial class PdfPageRenderer
                     throw new FormatException("Image sample data has an invalid length.");
                 return new DecodedImage(decodedSamples, width, decodedHeight);
             }
-            if (!recoveredPng)
-                softMask = embeddedMaskMode == 0 ? null
-                    : SeparateEmbeddedJpeg2000Alpha(
-                        ref samples, sampleWidth, sampleHeight, components, bits);
+            if (opacityChannel >= 0)
+                softMask = SeparateEmbeddedJpeg2000Alpha(
+                    ref samples, sampleWidth, sampleHeight, components, bits,
+                    opacityChannel, embeddedMaskMode != 0);
             if (softMask is null) softMask = ReadSoftMask(stream.Dictionary,
                 transform, scaleX, scaleY, cancellationToken);
             if (softMask is null && explicitMask is not null)
@@ -1849,9 +1853,9 @@ public sealed partial class PdfPageRenderer
     }
 
     private static ImageColorSpace InferJpeg2000ColorSpace(
-        Jpeg2000Shape? shape, int embeddedMaskMode)
+        Jpeg2000Shape? shape, int opacityChannel)
     {
-        int components = shape?.Components - (embeddedMaskMode == 0 ? 0 : 1) ?? 0;
+        int components = shape?.Components - (opacityChannel < 0 ? 0 : 1) ?? 0;
         return components switch
         {
             1 => new ImageColorSpace(1, null),
@@ -1861,14 +1865,15 @@ public sealed partial class PdfPageRenderer
         };
     }
 
-    private static SoftMask SeparateEmbeddedJpeg2000Alpha(
-        ref byte[] samples, int width, int height, int components, int bits)
+    private static SoftMask? SeparateEmbeddedJpeg2000Alpha(
+        ref byte[] samples, int width, int height, int components, int bits,
+        int opacityChannel, bool useOpacity)
     {
         int encodedComponents = checked(components + 1);
         int sourceRowBytes = checked((width * encodedComponents * bits + 7) / 8);
         int colorRowBytes = checked((width * components * bits + 7) / 8);
         var colors = new byte[checked(colorRowBytes * height)];
-        var alpha = new byte[checked(width * height)];
+        byte[]? alpha = useOpacity ? new byte[checked(width * height)] : null;
         uint maximum = (1u << bits) - 1;
         for (int y = 0; y < height; y++)
             for (int x = 0; x < width; x++)
@@ -1878,13 +1883,17 @@ public sealed partial class PdfPageRenderer
                 int colorPixel = checked(y * colorRowBytes * 8 + x * components * bits);
                 for (int component = 0; component < components; component++)
                     WritePackedSample(colors, colorPixel + component * bits,
-                        bits, ReadPackedSample(samples, sourcePixel + component * bits, bits));
-                uint opacity = ReadPackedSample(
-                    samples, sourcePixel + components * bits, bits);
-                alpha[y * width + x] = (byte)Math.Round(opacity / (double)maximum * 255);
+                        bits, ReadPackedSample(samples, sourcePixel
+                            + (component < opacityChannel ? component : component + 1) * bits, bits));
+                if (alpha is not null)
+                {
+                    uint opacity = ReadPackedSample(
+                        samples, sourcePixel + opacityChannel * bits, bits);
+                    alpha[y * width + x] = (byte)Math.Round(opacity / (double)maximum * 255);
+                }
             }
         samples = colors;
-        return new SoftMask(alpha, width, height);
+        return alpha is null ? null : new SoftMask(alpha, width, height);
     }
 
     private Color ReadPreblendMatte(PdfDictionary dictionary, ImageColorSpace colorSpace)

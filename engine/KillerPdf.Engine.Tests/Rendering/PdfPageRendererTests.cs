@@ -3064,6 +3064,33 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Render_IgnoresJpeg2000OpacityUnlessRequested(bool explicitZero, bool inferColorSpace)
+    {
+        const string encoded =
+            "AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAABPanAyaAAAABZpaGRyAAAAAQAAAAIABAcHAAAAAAAPY29scgEAAAAAABAAAAAiY2RlZgAEAAAAAAABAAEAAAACAAIAAAADAAMAAQAAAAAAoGpwMmP/T/9RADIAAAAAAAIAAAABAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAQHAQEHAQEHAQEHAQH/UgAMAAAAAQAABAQAAf9cAARAQP9kACUAAUNyZWF0ZWQgYnkgT3BlbkpQRUcgdmVyc2lvbiAyLjUuNP+QAAoAAAAAACUAAf+T34AgC7KKf9+AGAWi3d+AEAk/z7QICxf/2Q==";
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(20, 10, new PdfContentStreamBuilder()
+                .DrawImage(PdfImage.FromRgb(2, 1, new byte[6]), 0, 0, 20, 10))
+            .Build());
+        PdfDocument document = AddImageDictionaryEntry(source, "Filter", Name("JPXDecode"),
+            Convert.FromBase64String(encoded));
+        if (explicitZero)
+            document = AddImageDictionaryEntry(document, "SMaskInData", new PdfInteger(0));
+        if (inferColorSpace) document = RemoveImageDictionaryEntry(document, "ColorSpace");
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([0, 255, 0, 255], Pixel(rendered, 15, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_InfersJpeg2000ColorSpaceWithEmbeddedAlpha()
     {

@@ -1,0 +1,17 @@
+{
+  "engineApplicationSha256": "A329DC39627CC2A58A9F08F7A9ACCE82D6476627DD89DD27DC080704D348815B",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": { "file": "issue19517.pdf", "inputSha256": "908C133880C7148864102EAB517224D524CDD32769D2AE0F1E6D69E75A0471D6", "before": "FAIL", "after": "OK", "renderMilliseconds": 1947, "priorBaselineRenderMilliseconds": 425, "dimensions": [768, 1024], "rgbMae": 0.05433612399631076, "diagnostics": [] },
+  "tests": { "newCases": 13, "engine": 2723, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "priorNonOkRecheck": {
+    "files": 54,
+    "engineApplicationSha256": "6D9192D5C179A3568C8A19F55D1F788FA35DBA77FDD3D62EBEE71EEFECDE9D7C",
+    "engine": { "ok": 8, "skip": 25, "fail": 21, "timeout": 0 },
+    "baseline": { "ok": 38, "skip": 15, "fail": 1, "timeout": 0 },
+    "timeoutSecondsPerFile": 15
+  },
+  "limitations": "Focused recheck is not a full-corpus aggregate. Isolated fresh-process samples are not throughput measurements; managed JPEG 2000 decoding remains slower on this file. Sample-depth and dimension mismatches still reject; issue19326 remains open. Multiple or local opacity channels are unsupported."
+}
