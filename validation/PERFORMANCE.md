@@ -3,6 +3,33 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 PDF.js coverage recheck
+
+Validation date: 2026-09-07. The complete current PDF.js source tree contains
+979 PDFs. Each build rendered page one at a maximum dimension of 1024 px in a
+separate process, with a 15-second limit per file. Neither build timed out.
+The engine executable corresponds to `05544b1`.
+
+| Result | PDFium through KillerPDF 1.8.5 | KillerPDF 1.9.0 |
+| --- | ---: | ---: |
+| Rendered | 957 | 935 |
+| Skipped | 21 | 25 |
+| Failed | 1 | 19 |
+
+Both builds rendered 929 files; six were engine-only, 28 were PDFium-only, and
+16 were accepted by neither. All 977 inputs from the previous comparison retain
+their hashes. On that unchanged subset, engine acceptance rose from 923 to 933;
+PDFium remains at 955. The two additional files are `test/pdfs/empty#hash.pdf`
+and `web/compressed.tracemonkey-pldi-09.pdf`, accepted by both builds.
+
+These are coverage results. Documentation example checks and engine tests ran
+concurrently, so timings are diagnostic and do not support a throughput claim.
+Page-one success does not establish visual correctness or all-page coverage.
+The subsequent Unicode destination-array fix is excluded from these counts.
+
+See the [record](records/pdfjs-1.9.0-mask-sum.json) and
+[per-file results](benchmarks/1.9.0-pdfjs-mask-sum/render-comparison-summary.csv).
+
 ## KillerPDF 1.9.0 paired conformance recheck
 
 Validation date: 2026-09-07. Three measured passes used the same 649 conformance
