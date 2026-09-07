@@ -49,7 +49,7 @@ public sealed class PdfToUnicodeMap
 
     internal static PdfToUnicodeMap ParseFont(ReadOnlyMemory<byte> source, bool simpleFont,
         bool compatibilityRecovery = false, PdfToUnicodeMap? inherited = null)
-        => ParseCore(PdfCMapMetadata.WithoutDictionaries(source), 65536, simpleFont,
+        => ParseCore(PdfCMapMetadata.WithoutDictionaries(source, compatibilityRecovery), 65536, simpleFont,
             compatibilityRecovery, inherited);
 
     private static PdfToUnicodeMap ParseCore(ReadOnlyMemory<byte> source, int maximumMappings,

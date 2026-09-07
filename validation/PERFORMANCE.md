@@ -3,6 +3,26 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 CMap-name metadata recovery
+
+Validation date: 2026-09-06. Compatibility font reading tolerates a stray closing
+angle delimiter in a CMapName definition before the first mapping block. The
+following def token is required. Unrelated names, mapping data, and strict font
+reading retain their validation.
+
+PDF.js `issue11651.pdf` moves from FAIL to OK. Its Hello world and Test text and
+red rectangles now render without diagnostics. At matching 1024 by 1024 pixels,
+mean absolute RGB error against PDFium is 0.246198, with small edge differences.
+The isolated fresh-process render sample is 80 ms, not a paired speed measurement.
+
+Four new cases cover recovered mapping, strict rejection, and rejection outside
+the narrowly defined metadata case. All 2,710 engine and 338 app tests pass;
+Release builds without warnings or errors. Conformance retains 614 OK, 35 SKIP,
+zero FAIL, and all 614 PNGs are byte-identical to the preceding build.
+
+See the [record](records/cmap-name-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-cmap-name).
+
 ## KillerPDF 1.9.0 undeclared Unicode-map compression
 
 Validation date: 2026-09-06. Compatibility font reading can inflate an unfiltered

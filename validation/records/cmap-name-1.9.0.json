@@ -1,0 +1,9 @@
+{
+  "engineApplicationSha256": "6D9192D5C179A3568C8A19F55D1F788FA35DBA77FDD3D62EBEE71EEFECDE9D7C",
+  "baselineVersion": "1.8.5",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": { "file": "issue11651.pdf", "before": "FAIL", "after": "OK", "renderMilliseconds": 80, "dimensions": [1024, 1024], "rgbMae": 0.24619770050048828, "diagnostics": [] },
+  "tests": { "newCases": 4, "engine": 2710, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limitations": "Small raster-edge differences remain. Fresh-process timing includes JIT and is not a paired speed comparison. Metadata recovery does not apply to mapping blocks or strict font reads."
+}

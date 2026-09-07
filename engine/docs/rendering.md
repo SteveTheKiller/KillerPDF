@@ -57,6 +57,11 @@ in recovery mode. Authentication runs before this recovery. The decoder retains
 checksum validation and the 32 MiB font-stream output limit; corrupt or oversized
 data is rejected. Strict font reading does not infer the missing compression filter.
 
+Recovery also tolerates a stray closing angle delimiter after a `CMapName` name
+when followed by `def`, before the first mapping block. It does not apply that
+repair inside mapping data or to unrelated names. Strict font reading retains
+the original lexical validation.
+
 For non-pattern `sc`, `scn`, `SC`, and `SCN` color operations with an invalid
 component count, recovery consumes the required leading operands when extra
 values are present. An incomplete operation retains the current paint color.

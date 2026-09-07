@@ -279,6 +279,33 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void RecoveryIgnoresStrayDelimiterInCMapNameButPreservesMappings()
+    {
+        var dictionary = D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
+            ("ToUnicode", Stream("/CMapName /Adobe-Identity-UC> def "
+                + "1 begincodespacerange <00> <FF> endcodespacerange "
+                + "1 beginbfchar <41> <03A9> endbfchar")));
+        Assert.Throws<KillerPdf.Engine.Syntax.PdfSyntaxException>(() => Read(dictionary));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+        Assert.Equal("\u03A9", Assert.Single(font.Decode("A"u8.ToArray())).Text);
+    }
+
+    [Theory]
+    [InlineData("/OtherName /Broken> def")]
+    [InlineData("/CMapName /Broken> beginbfchar")]
+    [InlineData("1 begincodespacerange <00> <FF> endcodespacerange /CMapName /Broken> def")]
+    public void RecoveryDoesNotDiscardMalformedMappingOrUnrelatedNames(string source)
+    {
+        var dictionary = D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
+            ("ToUnicode", Stream(source)));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        Assert.ThrowsAny<FormatException>(() => PdfFontResourceReader.Read(document, dictionary));
+    }
+
+    [Fact]
     public void RecoveryDecodesUnfilteredZlibUnicodeMapWithoutChangingStrictRead()
     {
         byte[] source = Encoding.ASCII.GetBytes(
