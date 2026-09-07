@@ -121,6 +121,9 @@ even when their names match.
 
 `PdfAttachmentComparison.Compare(original, changed)` reports added, removed,
 payload, metadata, and placement differences through `Changes` and `HasChanges`.
+Payload and metadata changes are reported for each affected page annotation,
+including attachments that have no document-level registration. Each page change
+identifies its page and annotation index.
 `PdfAttachmentMacro` creates typed audit, removal, rename, description, and
 classification steps and executes them against supplied bytes without external
 actions. Review macro results and reopen outputs before saving.

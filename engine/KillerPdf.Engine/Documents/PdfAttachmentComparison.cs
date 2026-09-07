@@ -119,6 +119,14 @@ public sealed class PdfAttachmentComparison
                 }
                 PdfAttachmentAnnotationInfo left = before[index];
                 PdfAttachmentAnnotationInfo right = after[index];
+                if (!left.Attachment.Data.Span.SequenceEqual(right.Attachment.Data.Span))
+                    changes.Add(new(PdfAttachmentChangeScope.PageAnnotation,
+                        PdfAttachmentChangeKind.Payload, right.Attachment.FileName,
+                        pageIndex, right.AnnotationIndex));
+                if (!MetadataEquals(left.Attachment, right.Attachment))
+                    changes.Add(new(PdfAttachmentChangeScope.PageAnnotation,
+                        PdfAttachmentChangeKind.Metadata, right.Attachment.FileName,
+                        pageIndex, right.AnnotationIndex));
                 if (!string.Equals(left.Attachment.FileName, right.Attachment.FileName,
                         StringComparison.OrdinalIgnoreCase)
                     || left.Left != right.Left || left.Bottom != right.Bottom
