@@ -264,7 +264,7 @@ public sealed partial class PdfPageRenderer
                     && state.FillColorSpace is not null:
                     state = state with
                     {
-                        Fill = ReadPaintColor(state.FillColorSpace, values)
+                        Fill = ReadPaintColor(state.FillColorSpace, values, state.Fill, diagnostics)
                     };
                     break;
                 case "G" when values.Count == 1:
@@ -325,7 +325,7 @@ public sealed partial class PdfPageRenderer
                     && state.StrokeColorSpace is not null:
                     state = state with
                     {
-                        Stroke = ReadPaintColor(state.StrokeColorSpace, values)
+                        Stroke = ReadPaintColor(state.StrokeColorSpace, values, state.Stroke, diagnostics)
                     };
                     break;
                 case "SCN" when state.StrokePatternSpace && values.Count > 0
@@ -4462,11 +4462,19 @@ public sealed partial class PdfPageRenderer
     };
 
     private Color ReadPaintColor(ImageColorSpace colorSpace,
-        IReadOnlyList<PdfObject> operands)
+        IReadOnlyList<PdfObject> operands, Color current, ICollection<string> diagnostics)
     {
         if (operands.Count != colorSpace.Components)
-            throw new FormatException("A color operator has the wrong component count.");
-        return colorSpace.Convert(operands.Select(value => Number(Resolve(value))).ToArray());
+        {
+            if (!_document.UsesCompatibilityRecovery)
+                throw new FormatException("A color operator has the wrong component count.");
+            diagnostics.Add("A color operator with an invalid component count was recovered.");
+            if (operands.Count < colorSpace.Components) return current;
+        }
+        var components = new double[colorSpace.Components];
+        for (int index = 0; index < components.Length; index++)
+            components[index] = Number(Resolve(operands[index]));
+        return colorSpace.Convert(components);
     }
 
     private readonly record struct GraphicsState(

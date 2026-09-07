@@ -30,6 +30,32 @@ public sealed class PdfPageRendererTests
             pixel[0] != 255 || pixel[1] != 255 || pixel[2] != 255);
     }
 
+    [Theory]
+    [InlineData("0.25 0 0 sc", 64)]
+    [InlineData("0.25 0 0 scn", 64)]
+    [InlineData("sc", 128)]
+    [InlineData("scn", 128)]
+    [InlineData("0.25 0 0 SC", 64)]
+    [InlineData("0.25 0 0 SCN", 64)]
+    [InlineData("SC", 128)]
+    [InlineData("SCN", 128)]
+    public void Render_RecoversColorOperandCountWithoutChangingStrictRendering(string operation, byte gray)
+    {
+        bool stroke = operation.Contains('S');
+        string content = stroke
+            ? $"0.5 G 4 w {operation} 0 2 m 4 2 l S"
+            : $"0.5 g {operation} 0 0 4 4 re f";
+        byte[] bytes = new PdfDocumentBuilder().AddPage(4, 4,
+            Encoding.ASCII.GetBytes(content)).Build();
+        var options = new PdfRenderOptions(4, 4, includeAnnotations: false, includeFormFields: false);
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(PdfDocument.Open(bytes)).Render(0, options));
+
+        PdfRenderedPage page = new PdfPageRenderer(
+            PdfDocument.OpenWithCompatibilityRecovery(bytes)).Render(0, options);
+        Assert.Equal(new byte[] { gray, gray, gray, 255 }, Pixel(page, 2, 2));
+        Assert.NotEmpty(page.Diagnostics);
+    }
+
     [Fact]
     public void Render_BlankPageProducesOpaqueWhiteBgra()
     {

@@ -52,6 +52,12 @@ be selected independently through the options.
 inputs, explicitly choose `PdfDocument.OpenWithCompatibilityRecovery`. Recovery
 is bounded and does not change the strict default or authorize unsafe writing.
 
+For non-pattern `sc`, `scn`, `SC`, and `SCN` color operations with an invalid
+component count, recovery consumes the required leading operands when extra
+values are present. An incomplete operation retains the current paint color.
+The renderer records a diagnostic in either case. Strict rendering rejects the
+same component-count mismatch.
+
 Check `CanReadPageContent` before creating a renderer. Password-encrypted pages
 require authentication. Standard Security documents whose default strings and
 streams are unencrypted can expose pages while encrypted attachments remain

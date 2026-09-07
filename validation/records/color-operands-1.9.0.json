@@ -1,0 +1,14 @@
+{
+  "engineApplicationSha256": "9EF74C2B57E48732287A38EC5C97649D1E9CCBDE6534FB7A17CDAD5F6752B351",
+  "baselineVersion": "1.8.5",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "tests": { "newCases": 8, "engine": 2703, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "recoveredFiles": [
+    { "file": "clippath.pdf", "before": "FAIL", "after": "OK", "renderMilliseconds": 38, "rgbMae": 0.476409912109375, "dimensionsMatch": true },
+    { "file": "issue18894.pdf", "before": "FAIL", "after": "OK", "renderMilliseconds": 81, "rgbMae": 0.0038766197850821746, "dimensionsMatch": true },
+    { "file": "issue21570.pdf", "before": "FAIL", "after": "OK", "renderMilliseconds": 98, "rgbMae": 0.10601533684877824, "dimensionsMatch": false }
+  ],
+  "diagnostic": "A color operator with an invalid component count was recovered.",
+  "limitations": "Fresh-process timings include JIT and are not paired speed comparisons. RGB error uses shared top-left image area for differing dimensions. Strict rendering still rejects invalid component counts."
+}

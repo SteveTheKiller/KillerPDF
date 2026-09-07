@@ -1,0 +1,2 @@
+File,Page,Status,Milliseconds,Width,Height,Detail
+issue18894.pdf,1,OK,81,791,1024,A color operator with an invalid component count was recovered.

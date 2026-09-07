@@ -3,6 +3,29 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 color-operand recovery
+
+Validation date: 2026-09-06. Compatibility rendering consumes the required leading
+color operands when extra values are supplied and preserves the current paint
+color when an operation is incomplete. A diagnostic records the recovery.
+Strict rendering continues to reject the same count mismatches.
+
+PDF.js `clippath.pdf`, `issue18894.pdf`, and `issue21570.pdf` move from FAIL to OK.
+The gray fill in issue18894 matches PDFium's use of the first operand; it is not
+reinterpreted as RGB. RGB mean absolute errors are 0.476410, 0.003877, and 0.106015
+respectively. The last measurement uses shared image area because fitted heights
+differ by one pixel. These are diagnostic comparisons, not pixel-parity gates.
+Final fresh-process render samples are 38, 81, and 98 ms; no paired speed claim
+is made.
+
+Eight fill/stroke cases verify strict rejection and recovered pixels for extra
+and missing operands. All 2,703 engine and 338 app tests pass. The Release build
+has zero warnings or errors. Conformance retains 614 OK, 35 SKIP, zero FAIL,
+with all 614 PNGs byte-identical to the preceding symbolic-font build.
+
+See the [record](records/color-operands-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-color-operands).
+
 ## KillerPDF 1.9.0 symbolic TrueType glyph selection
 
 Validation date: 2026-09-06. Embedded symbolic TrueType fonts without a PDF
