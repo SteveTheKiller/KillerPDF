@@ -1,0 +1,80 @@
+{
+  "codeCommit": "f9e3ba0713d47f2dc268a0d6648dd699048b6ef2",
+  "engineApplicationSha256": "E2BAF09D7367F989A77965E4A1AB77848D6FC9478CF83D0ED551ED20320D3264",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "files": 979,
+    "page": 1,
+    "maximumDimension": 1024,
+    "annotations": true,
+    "forms": true,
+    "timeoutSecondsPerFile": 15,
+    "isolatedProcessPerFile": true
+  },
+  "inputs": {
+    "samePathsAsPrior": true,
+    "all979HashesMatchPrior": true
+  },
+  "engine": {
+    "ok": 952,
+    "skip": 25,
+    "fail": 2,
+    "timeouts": 0
+  },
+  "baseline": {
+    "ok": 957,
+    "skip": 21,
+    "fail": 1,
+    "timeouts": 0
+  },
+  "overlap": {
+    "both": 946,
+    "engineOnly": 6,
+    "baselineOnly": 11,
+    "neither": 16
+  },
+  "previousEngine": {
+    "codeCommit": "05544b117a526bb0957e0a60e15fed1f81e653fb",
+    "ok": 935,
+    "skip": 25,
+    "fail": 19
+  },
+  "newlyRendered": [
+    "issue11922_reduced.pdf",
+    "issue12823.pdf",
+    "issue18529.pdf",
+    "issue19800.pdf",
+    "issue19848.pdf",
+    "issue3323.pdf",
+    "issue3928.pdf",
+    "issue4575.pdf",
+    "issue4875.pdf",
+    "issue5244.pdf",
+    "issue6108.pdf",
+    "issue7492.pdf",
+    "issue8061.pdf",
+    "outlines_se.pdf",
+    "PDFBOX-3148-2-fuzzed.pdf",
+    "recursiveCompositGlyf.pdf",
+    "secHandler.pdf"
+  ],
+  "priorEngineImages": {
+    "common": 935,
+    "identical": 934,
+    "changed": [
+      {
+        "file": "bug1028735.pdf",
+        "before": "Blank",
+        "after": "Visible equals sign matching PDFium",
+        "rgbMaeBefore": 0.7970809936523438,
+        "rgbMaeAfter": 0.00052642822265625
+      }
+    ]
+  },
+  "remainingFailures": {
+    "bomb_giant.pdf": "Decoded stream exceeds the configured safety limit.",
+    "poppler-90-0-fuzzed.pdf": "ASCIIHex data contains a non-hexadecimal byte. PDFium page one is blank; source content is extensively corrupted."
+  },
+  "limitations": "Isolated page-one coverage is not collection throughput or proof of all-page visual parity. Documentation example compilation overlapped this run. Known visual differences in individual recovered files remain in focused records and the shared backlog. The controlled performance target remains unmet."
+}

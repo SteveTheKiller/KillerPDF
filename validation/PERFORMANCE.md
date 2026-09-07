@@ -3,6 +3,28 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 full PDF.js recovery recheck
+
+Validation date: 2026-09-07. All 979 PDF.js inputs have the same paths and SHA256
+hashes as the previous full run. At `f9e3ba0`, the engine returns 952 OK, 25 SKIP,
+and two FAIL, improving from 935 OK, 25 SKIP, and 19 FAIL. PDFium 1.8.5 returns
+957 OK, 21 SKIP, and one FAIL. Neither build timed out with a 15-second limit
+per file and build. Both render 946 files; six are engine-only and 11 PDFium-only.
+
+Of the 935 pages the engine rendered previously, 934 PNGs are byte-identical.
+The changed page, `bug1028735.pdf`, now displays the equals sign that was missing
+before. RGB mean absolute error against PDFium falls from 0.797081 to 0.000526.
+The remaining failures are the decoded-size limit in `bomb_giant.pdf` and corrupt
+ASCIIHex data in `poppler-90-0-fuzzed.pdf`; PDFium renders the latter page blank.
+
+This run uses page one at a 1024 px maximum dimension, with annotation and form
+appearances enabled and a fresh process per file. It measures coverage, not
+collection throughput. Documentation example compilation overlapped the run.
+Successful rendering does not establish all-page visual parity; focused records
+retain known differences. The controlled performance target remains open.
+See the [record](records/pdfjs-aes-empty-1.9.0.json) and
+[all per-file results](benchmarks/1.9.0-pdfjs-aes-empty/render-comparison-summary.csv).
+
 ## KillerPDF 1.9.0 focused PDF.js recovery recheck
 
 Validation date: 2026-09-07. The same 54 previously non-OK PDF.js files were
