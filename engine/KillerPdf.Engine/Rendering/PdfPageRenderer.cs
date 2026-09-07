@@ -28,6 +28,7 @@ public sealed partial class PdfPageRenderer
         IReadOnlySet<string> Diagnostics)> _instructionCache = new(32);
     private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
         new(256, ReferenceEqualityComparer.Instance);
+    private readonly BoundedCache<PdfName, PdfDictionary> _recoveredFontCache = new(14);
     private readonly BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> _glyphPathCache = new(
         4096, ReferenceEqualityComparer.Instance,
         MaximumFlattenedGlyphCacheBytes,
@@ -533,6 +534,12 @@ public sealed partial class PdfPageRenderer
                     break;
                 case "Tf" when values.Count == 2 && values[0] is PdfName fontName:
                     textFont = ResolveFont(resources, fontName);
+                    if (textFont is null)
+                    {
+                        textFont = RecoverStandardFont(fontName);
+                        if (textFont is not null)
+                            diagnostics.Add($"Missing standard font resource /{fontName.ValueAsLatin1()} was recovered.");
+                    }
                     extractionFont = null;
                     textSize = Number(values[1]);
                     break;
@@ -1520,6 +1527,22 @@ public sealed partial class PdfPageRenderer
         && Resolve(fontsValue) is PdfDictionary fonts
         && fonts.TryGetValue(resourceName, out PdfObject? fontValue)
         ? Resolve(fontValue) as PdfDictionary : null;
+
+    private PdfDictionary? RecoverStandardFont(PdfName resourceName)
+    {
+        if (!_document.UsesCompatibilityRecovery
+            || resourceName.ValueAsLatin1() is not ("Helvetica" or "Helvetica-Bold"
+                or "Helvetica-Oblique" or "Helvetica-BoldOblique"
+                or "Times-Roman" or "Times-Bold" or "Times-Italic" or "Times-BoldItalic"
+                or "Courier" or "Courier-Bold" or "Courier-Oblique" or "Courier-BoldOblique"
+                or "Symbol" or "ZapfDingbats"))
+            return null;
+        return _recoveredFontCache.GetOrAdd(resourceName, name => new PdfDictionary([
+            new(Name("Type"), Name("Font")),
+            new(Name("Subtype"), Name("Type1")),
+            new(Name("BaseFont"), name)
+        ]));
+    }
 
     private string[] ReadType3Encoding(PdfDictionary font)
     {

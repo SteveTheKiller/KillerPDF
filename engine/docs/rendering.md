@@ -7,8 +7,11 @@ visual parity with another viewer.
 
 In compatibility recovery, a page `/Resources` value that resolves to something
 other than a dictionary is treated as empty, with a page diagnostic. Drawing that
-does not require named resources can survive; missing fonts and images are not
-reconstructed. Strict rendering still rejects the invalid value, and failures
+does not require named resources can survive. A missing font resource whose name
+exactly matches one of the 14 standard PDF fonts uses that standard font, with a
+diagnostic. This also applies inside existing form appearances. Declared fonts
+retain precedence; unknown font names and missing images are not reconstructed.
+Strict rendering still rejects the invalid resource value, and failures
 while resolving the resource reference retain their existing limits.
 
 ## Render a page

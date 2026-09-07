@@ -155,6 +155,13 @@ malformations and reports diagnostics; it does not manufacture missing glyphs.
 Type 3 fonts use PDF drawing procedures and must be evaluated through page
 rendering for their appearance.
 
+During page rendering only, compatibility recovery can supply a missing font
+resource whose name exactly matches a standard PDF font, such as `/Helvetica`.
+This restores text in appearances that omit the corresponding resource entry.
+The page reports the recovery. Arbitrary resource names such as `/F1` are not
+guessed, and existing font dictionaries retain precedence. This does not
+regenerate stale form appearances from field values.
+
 `PdfCffGlyphReader.TryRead` accepts standalone CFF1 or supported OpenType CFF
 tables and returns null for unsupported or malformed data. Its name, CID, and
 Unicode lookup methods return -1 when absent. A readable program can still have

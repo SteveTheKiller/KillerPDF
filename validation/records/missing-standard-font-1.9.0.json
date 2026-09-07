@@ -1,0 +1,17 @@
+{
+  "date": "2026-09-07",
+  "engineApplicationSha256": "60FE72E5450520591EE7C8AFAE84AF8D08A4732020F7861C1CCA373AA19E3F37",
+  "previousApplicationSha256": "5002BB72B6B6A51183B4F7D2529FAFBA4576461DBB527F3C7B279824B9BA64AA",
+  "settings": { "maximumDimension": 1024, "page": 1 },
+  "sample": {
+    "file": "issue17492.pdf",
+    "inputSha256": "80a2ab5bcf4c6df52880d7e73a996d5fdf89511e0cdfaddcb74067470aaad745",
+    "status": "OK", "dimensions": [724, 1024], "renderMilliseconds": 258,
+    "diagnostics": ["Missing standard font resource /Helvetica was recovered."],
+    "sourceEvidence": "The saved multiline appearance contains Several, an empty line, Other, and Jobs but has an empty Resources dictionary. NeedAppearances is absent.",
+    "visualCheck": "The intended multiline text is visible in the existing field rectangle and was compared with the earlier PDFium reference. Page dimensions differ from the reference, so no unaligned MAE is claimed."
+  },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614, "changedImages": 0, "comparison": "conformance-host-identity-20260907" },
+  "tests": { "newCases": 10, "failedBefore": 7, "engine": 2885, "app": 338, "releaseBuildWarnings": 0, "releaseBuildErrors": 0 },
+  "limitations": "Only exact standard-font resource names are recovered during compatibility rendering. Unknown names remain unresolved, existing font dictionaries retain precedence, and strict behavior is unchanged. This does not regenerate stale form appearances. Full corpus and controlled throughput were not rerun for this change."
+}

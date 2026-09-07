@@ -3,6 +3,21 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 missing standard-font resource recovery
+
+Validation date: 2026-09-07. Compatibility rendering now supplies an omitted
+resource only when its name exactly matches one of the 14 standard PDF fonts.
+The multiline Other Job Experience appearance in `issue17492.pdf` now shows its
+stored text, including the blank line. The page reports the recovered Helvetica
+resource. Existing fonts and strict rendering retain their previous behavior.
+
+All 614 conformance PNGs are byte-identical, with 614 OK, 35 SKIP, and zero
+failures. Seven new cases reproduced the omission before the fix; all ten new
+tests and the full suites pass (2,885 engine, 338 app), with a clean Release build.
+The [record](records/missing-standard-font-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-missing-standard-font/) retain the focused and
+conformance evidence. Stale appearances that require regeneration remain open.
+
 ## KillerPDF 1.9.0 full host Identity-font audit
 
 Validation date: 2026-09-07. The complete 979-file PDF.js comparison keeps coverage
