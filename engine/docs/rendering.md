@@ -47,6 +47,11 @@ then installed Courier New with the requested regular, bold, italic, or bold-ita
 style. If neither is installed, the engine retains its bundled fallback. This
 host mapping does not change library-only rendering or embedded font outlines.
 
+If an installed TrueType font has no glyph for a requested character, rendering
+continues to the bundled outline fallback instead of painting the host font's
+missing-glyph box. An embedded font retains its own glyph-zero behavior. A glyph
+absent from every available mapping can still remain unpainted or be diagnosed.
+
 Text extraction and glyph selection use distinct mappings. For an embedded symbolic
 TrueType font without a PDF encoding, a non-Unicode font character map is addressed
 with the original character code. Its `ToUnicode` map still supplies extracted

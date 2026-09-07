@@ -13,6 +13,34 @@ public sealed class PdfFontResourceReaderTests
     private static readonly PdfDocument Document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HostMissingGlyphDoesNotPaintItsNotdefOutline(bool embedded)
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);
+        // Give glyph zero the visible triangle; the cmap still maps only A to glyph one.
+        BinaryPrimitives.WriteUInt32BigEndian(bytes.AsSpan(FindTable(bytes, "loca") + 4), 24);
+        PdfDictionary resource = D(("Subtype", N("TrueType")), ("BaseFont", N("Courier")),
+            ("Encoding", N("WinAnsiEncoding")));
+        PdfExtractionFont font = embedded
+            ? Read(D(("Subtype", N("TrueType")), ("BaseFont", N("Courier")),
+                ("Encoding", N("WinAnsiEncoding")),
+                ("FontDescriptor", D(("FontFile2", new PdfStream(D(), bytes))))))
+            : PdfFontResourceReader.Read(Document, resource, new TestFontResolver(bytes));
+
+        if (embedded)
+        {
+            Assert.Single(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(0)).Contours);
+            return;
+        }
+        Assert.Null(font.GetGlyphOutline(0));
+        PdfGlyphOutline expected = Assert.IsType<PdfGlyphOutline>(Read(resource).GetGlyphOutline(66));
+        PdfGlyphOutline actual = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(66));
+        Assert.Equal(expected.Contours.SelectMany(contour => contour.Points),
+            actual.Contours.SelectMany(contour => contour.Points));
+    }
+
+    [Theory]
     [InlineData("Identity-H")]
     [InlineData("Identity-V")]
     public void RecoveryUsesIdentityEncodingForConflictingUnicodeCodeSpaces(string encoding)

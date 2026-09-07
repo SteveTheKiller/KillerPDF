@@ -303,6 +303,12 @@ public static class PdfFontResourceReader
                 }
                 return new PdfGlyphOutline(contours.AsReadOnly());
             }
+            PdfGlyphOutline? TrueTypeOutline(uint code)
+            {
+                ushort glyph = Glyph(code);
+                // A missing host glyph must allow the bundled font fallback, not paint .notdef.
+                return glyph == 0 && resolvedData is not null ? null : embeddedOutlines?.Outline(glyph);
+            }
             PdfGlyphOutline? BlankOutline(uint code) => !composite
                 && code < glyphNames.Length && glyphNames[code] == "space"
                     ? new PdfGlyphOutline(Array.Empty<PdfGlyphContour>()) : null;
@@ -339,7 +345,7 @@ public static class PdfFontResourceReader
                         ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(standardMetricsName, glyphNames[code]) : null);
                     return box is { } b && b.Right > b.Left && b.Top > b.Bottom ? box : null;
                 },
-                OutlineReader = code => embeddedOutlines?.Outline(Glyph(code))
+                OutlineReader = code => TrueTypeOutline(code)
                     ?? cff?.GetOutline(CffGlyph(code))
                     ?? CompatibilityOutline(code)
                     ?? (!composite && code < glyphNames.Length

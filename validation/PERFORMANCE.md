@@ -18,6 +18,11 @@ missing-glyph box regression despite lower aggregate pixel error. The audit also
 confirms existing stroke-state and ZapfDingbats differences. Render success and
 lower average error do not establish visual parity.
 
+The subsequent [host-glyph fallback check](records/host-glyph-fallback-1.9.0.json)
+removes those boxes from the Courier table while preserving embedded-font behavior.
+It renders all 14 font-table pages and leaves all 614 conformance images unchanged;
+it does not update this full run's build identity or counts.
+
 Settings remain page one at maximum 1024 px, with annotations and forms, fresh
 processes, and a 15-second per-file/build limit. Input paths and hashes match the
 previous full run. Documentation checks and a short diagnostic probe overlapped
