@@ -1226,8 +1226,13 @@ public sealed class PdfPageRendererTests
             rendered.Diagnostics);
     }
 
-    [Fact]
-    public void Render_AcceptsRepeatedStitchingFunctionBoundaries()
+    [Theory]
+    [InlineData(0.5, 0.5, true)]
+    [InlineData(0, 1, true)]
+    [InlineData(-0.1, 0.5, false)]
+    [InlineData(0.5, 1.1, false)]
+    public void Render_ValidatesStitchingFunctionBoundaries(
+        double firstBound, double secondBound, bool valid)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
@@ -1242,23 +1247,75 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Functions"),
                 new PdfArray(new PdfObject[] { Segment(0), Segment(0.5), Segment(1) })),
-            new KeyValuePair<PdfName, PdfObject>(Name("Bounds"), Reals(0.5, 0.5)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Bounds"), Reals(firstBound, secondBound)),
             new KeyValuePair<PdfName, PdfObject>(Name("Encode"), Reals(0, 1, 0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]);
         var shading = new PdfStream(new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
             new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
-            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0, 0, 10, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0.5, 0, 9.5, 0)),
             new KeyValuePair<PdfName, PdfObject>(Name("Function"), function),
             new KeyValuePair<PdfName, PdfObject>(Name("Extend"),
                 new PdfArray(new PdfObject[] { new PdfBoolean(true), new PdfBoolean(true) }))]), []);
         PdfDocument document = AddShadingResource(source, shading);
 
+        if (!valid)
+        {
+            Assert.Throws<FormatException>(() => new PdfPageRenderer(document).Render(
+                0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false)));
+            return;
+        }
+
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
 
-        Assert.Equal([0, 0, 0, 255], Pixel(rendered, 4, 5));
-        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 5, 5));
+        Assert.Equal(firstBound == 0 ? new byte[] { 0, 0, 128, 255 }
+            : new byte[] { 0, 0, 0, 255 }, Pixel(rendered, 4, 5));
+        Assert.Equal(firstBound == 0 ? new byte[] { 0, 0, 128, 255 }
+            : new byte[] { 0, 0, 255, 255 }, Pixel(rendered, 5, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 9, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(9)]
+    public void Render_AppliesDeviceNTintsToExponentialShadings(int channels)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var tint = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"),
+                Reals(Enumerable.Repeat(new double[] { 0, 1 }, channels).SelectMany(pair => pair).ToArray())),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1))]),
+            Encoding.ASCII.GetBytes("{ " + channels + " 1 roll "
+                + string.Concat(Enumerable.Repeat("pop ", channels - 1)) + "1 exch sub }"));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference tintReference = update.AddObject(tint);
+        source = PdfDocument.Open(update.Build());
+        var colorSpace = new PdfArray(new PdfObject[] {
+            Name("DeviceN"), new PdfArray(Enumerable.Range(0, channels)
+                .Select(index => (PdfObject)Name("Ink" + index)).ToArray()),
+            Name("DeviceGray"), tintReference });
+        var function = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("C0"), Reals(new double[channels])),
+            new KeyValuePair<PdfName, PdfObject>(Name("C1"), Reals(Enumerable.Repeat(1d, channels).ToArray())),
+            new KeyValuePair<PdfName, PdfObject>(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(2)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), colorSpace),
+            new KeyValuePair<PdfName, PdfObject>(Name("Coords"), Reals(0.5, 0, 9.5, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function)]), []);
+        PdfRenderedPage rendered = new PdfPageRenderer(AddShadingResource(source, shading)).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 255], Pixel(rendered, 0, 5));
+        Assert.Equal([170, 170, 170, 255], Pixel(rendered, 3, 5));
+        Assert.Equal([0, 0, 0, 255], Pixel(rendered, 9, 5));
         Assert.Empty(rendered.Diagnostics);
     }
 

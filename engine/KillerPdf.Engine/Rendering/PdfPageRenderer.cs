@@ -2205,6 +2205,13 @@ public sealed partial class PdfPageRenderer
                 return range is null ? component
                     : Math.Clamp(component, range[index * 2], range[index * 2 + 1]);
             }
+            if (alternate.MultiConverter is not null)
+            {
+                var components = new double[outputCount];
+                for (int index = 0; index < components.Length; index++)
+                    components[index] = Component(index);
+                return alternate.Convert(components);
+            }
             return alternate.Convert(Component(0), outputCount > 1 ? Component(1) : 0,
                 outputCount > 2 ? Component(2) : 0, outputCount > 3 ? Component(3) : 0);
         };
@@ -2761,7 +2768,7 @@ public sealed partial class PdfPageRenderer
         double previous = domain[0];
         foreach (double bound in bounds)
         {
-            if (!double.IsFinite(bound) || bound < previous || bound >= domain[1])
+            if (!double.IsFinite(bound) || bound < previous || bound > domain[1])
                 throw new FormatException($"A {description} boundary array is invalid.");
             previous = bound;
         }
@@ -2776,7 +2783,7 @@ public sealed partial class PdfPageRenderer
             while (segment < bounds.Length && clipped >= bounds[segment]) segment++;
             double start = segment == 0 ? domain[0] : bounds[segment - 1];
             double end = segment == bounds.Length ? domain[1] : bounds[segment];
-            double fraction = (clipped - start) / (end - start);
+            double fraction = end == start ? 0 : (clipped - start) / (end - start);
             double mapped = encode[segment * 2] + fraction
                 * (encode[segment * 2 + 1] - encode[segment * 2]);
             return functions[segment](mapped);

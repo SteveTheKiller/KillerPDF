@@ -3,6 +3,35 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 shading endpoints and DeviceN colors
+
+Validation date: 2026-09-06. Stitching functions accept endpoint stops and evaluate
+zero-width segments without division by zero. Exponential shading functions now
+apply DeviceN tint transforms to every output channel instead of treating the
+components as device gray, RGB, or CMYK. Seven focused cases pass, including
+one-, three-, and nine-channel gradients and invalid boundary rejection. Full
+suites pass 2,681 engine and 338 app tests; Release builds without warnings or errors.
+
+PDF.js `bug1703683_page2_reduced.pdf` now renders without diagnostics. Its dark
+adapter illustrations are restored. Against the existing 1.8.5 image at identical
+791 by 1024 dimensions, mean absolute RGB error falls from 3.6804 after the endpoint
+fix alone to 0.8703 after the tint fix. The lower-device rectangle (x 130..399,
+y 700..979) improves from 35.7501 to 6.9482. Remaining color differences are visible;
+this is not complete visual parity.
+
+The 649-file conformance pass retains 614 renders, 35 skips, and zero failures.
+Compared with the endpoint-only build, 604 PNGs are unchanged and ten Ghent color
+pages change. All ten have lower RGB error over their shared top-left image area
+against PDFium. These pages differ by one pixel in width or height between engines,
+so those overlap measurements are diagnostic, not an aligned visual-quality gate.
+GWG060 was visually checked against its embedded reference images and PDFium.
+
+The corrected page took 734 ms in one fresh process. This includes JIT and is not
+a speed comparison. The three-pass JPEG timings below describe the preceding
+build; throughput has not been remeasured for the shading changes.
+Raw CSVs are in [benchmarks/1.9.0-shading](benchmarks/1.9.0-shading), with hashes and
+pixel measurements in [shading-1.9.0.json](../pdf-landing/shading-1.9.0.json).
+
 ## KillerPDF 1.9.0 constant-block JPEG optimization
 
 Benchmark date: 2026-09-06. Constant-color JPEG blocks bypass the general inverse
