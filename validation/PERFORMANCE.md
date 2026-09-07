@@ -3,6 +3,22 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 portable Symbol and ZapfDingbats validation
+
+Validation date: 2026-09-07. Bundled standard-font outlines replace incorrect
+substitute characters in both the app and standalone engine. All 189 Symbol and
+202 ZapfDingbats encoding names resolve to readable outlines. The two font-table
+pages render without outline diagnostics; RGB error against PDFium 1.8.5 falls
+from 2.37798 to 1.30497 for Symbol and from 6.22068 to 1.42512 for ZapfDingbats.
+
+Conformance remains 614 OK, 35 SKIP, and zero failures, with 612 byte-identical
+images. The two changed pages were visually inspected: `CutHereExample.pdf`
+now contains scissors and `585_1.pdf` uses the standard Symbol shapes. Both have
+lower aggregate error, but dash placement and other rendering differences remain.
+This is a correctness check, not a controlled performance result. See the
+[record](records/portable-symbol-1.9.0.json) and
+[raw results](benchmarks/1.9.0-portable-symbol/engine-conformance.csv).
+
 ## KillerPDF 1.9.0 graphics-state stroke validation
 
 Validation date: 2026-09-07. Extended graphics-state stroke settings now render

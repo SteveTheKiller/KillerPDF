@@ -47,10 +47,19 @@ then installed Courier New with the requested regular, bold, italic, or bold-ita
 style. If neither is installed, the engine retains its bundled fallback. This
 host mapping does not change library-only rendering or embedded font outlines.
 
+Unembedded standard Symbol and ZapfDingbats use bundled CFF outlines in both the
+library and app. These cover all 189 Symbol and 202 ZapfDingbats encoding names,
+including space, without consulting installed fonts. PDF encoding differences
+select the corresponding glyph names. Embedded font programs retain precedence.
+The fixed upstream revision and redistribution notice are recorded in
+[third-party notices](../THIRD-PARTY-NOTICES.txt).
+
 If an installed TrueType font has no glyph for a requested character, rendering
 continues to the bundled outline fallback instead of painting the host font's
 missing-glyph box. An embedded font retains its own glyph-zero behavior. A glyph
 absent from every available mapping can still remain unpainted or be diagnosed.
+Undefined simple-font codes do not borrow unrelated installed glyphs at the same
+numeric position.
 
 Text extraction and glyph selection use distinct mappings. For an embedded symbolic
 TrueType font without a PDF encoding, a non-Unicode font character map is addressed

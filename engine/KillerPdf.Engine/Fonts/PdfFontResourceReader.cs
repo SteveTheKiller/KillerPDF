@@ -60,17 +60,20 @@ public static class PdfFontResourceReader
             byte[]? embeddedData = (Get(descriptor, "FontFile2") ?? Get(descriptor, "FontFile3")) is PdfStream embeddedStream
                 ? Decode(embeddedStream) : null;
             PdfStream? type1Stream = Get(descriptor, "FontFile") as PdfStream;
+            PdfCffGlyphReader? standardSymbols = !composite && subtype != "Type3"
+                && embeddedData is null && type1Stream is null
+                ? PdfStandardSymbolFonts.Create(standardMetricsName) : null;
             bool requestedVertical = Name(Get(font, "Encoding"))?.EndsWith(
                 "-V", StringComparison.Ordinal) == true;
             byte[]? resolvedData = embeddedData is null && type1Stream is null
-                && subtype != "Type3"
+                && subtype != "Type3" && standardSymbols is null
                 ? fontResolver?.Resolve(new PdfFontRequest(
                     metricsName, composite ? registry : "Adobe",
                     composite ? ordering : "Standard", requestedVertical))
                 : null;
             byte[]? outlineData = embeddedData ?? resolvedData;
             TrueTypeFont? embedded = ReadEmbedded(outlineData);
-            PdfCffGlyphReader? cff = outlineData is null ? null : PdfCffGlyphReader.TryRead(outlineData);
+            PdfCffGlyphReader? cff = outlineData is null ? standardSymbols : PdfCffGlyphReader.TryRead(outlineData);
             PdfType1GlyphReader? type1 = type1Stream is not null
                 ? ReadType1(type1Stream) : null;
             TrueTypeFont? substitute = subtype is not null and not "Type3"
@@ -195,6 +198,7 @@ public static class PdfFontResourceReader
                 }
                 string? text = CharacterText(code);
                 if (embedded is null) return 0;
+                if (resolvedData is not null && string.IsNullOrEmpty(text)) return 0;
                 if (useEncodedSymbol && code < 256)
                 {
                     ushort encodedGlyph = embedded.GetGlyphId((int)code);

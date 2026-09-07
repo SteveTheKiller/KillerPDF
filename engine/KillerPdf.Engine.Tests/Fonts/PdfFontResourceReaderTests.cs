@@ -13,6 +13,68 @@ public sealed class PdfFontResourceReaderTests
     private static readonly PdfDocument Document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
 
     [Theory]
+    [InlineData("Symbol")]
+    [InlineData("ZapfDingbats")]
+    public void EmbeddedStandardSymbolProgramsKeepTheirOwnOutlines(string name)
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);
+        PdfExtractionFont font = Read(D(("Subtype", N("TrueType")), ("BaseFont", N(name)),
+            ("Encoding", N("WinAnsiEncoding")),
+            ("FontDescriptor", D(("FontFile2", new PdfStream(D(), bytes))))));
+        Assert.Single(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+    }
+
+    [Theory]
+    [InlineData("Symbol", "universal", 34)]
+    [InlineData("ZapfDingbats", "a1", 33)]
+    public void StandardSymbolOutlinesFollowEncodingDifferences(string name, string glyphName, uint originalCode)
+    {
+        PdfExtractionFont original = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name))));
+        PdfExtractionFont remapped = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name)),
+            ("Encoding", D(("Differences", new PdfArray([new PdfInteger(65), N(glyphName)]))))));
+        Assert.Equal(Assert.IsType<PdfGlyphOutline>(original.GetGlyphOutline(originalCode))
+                .Contours.SelectMany(contour => contour.Points),
+            Assert.IsType<PdfGlyphOutline>(remapped.GetGlyphOutline(65))
+                .Contours.SelectMany(contour => contour.Points));
+    }
+
+    [Theory]
+    [InlineData("Symbol", 34, 681)]
+    [InlineData("ZapfDingbats", 33, 961)]
+    public void StandardSymbolFontsHavePortableOutlines(string name, uint code, double expectedRight)
+    {
+        PdfDictionary resource = D(("Subtype", N("Type1")), ("BaseFont", N(name)));
+        PdfGlyphOutline outline = Assert.IsType<PdfGlyphOutline>(Read(resource).GetGlyphOutline(code));
+        Assert.Equal(expectedRight,
+            outline.Contours.SelectMany(contour => contour.Points).Max(point => point.X), 3);
+        PdfGlyphOutline hosted = Assert.IsType<PdfGlyphOutline>(PdfFontResourceReader.Read(
+            Document, resource, new TestFontResolver(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true)))
+            .GetGlyphOutline(code));
+        Assert.Equal(outline.Contours.SelectMany(contour => contour.Points),
+            hosted.Contours.SelectMany(contour => contour.Points));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UndefinedSimpleCodesDoNotUseUnrelatedHostGlyphs(bool embedded)
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);
+        PdfDictionary encoding = D(("BaseEncoding", N("WinAnsiEncoding")),
+            ("Differences", new PdfArray([new PdfInteger(65), N(".notdef")])));
+        PdfExtractionFont font = embedded
+            ? Read(D(("Subtype", N("TrueType")), ("BaseFont", N("Courier")),
+                ("Encoding", encoding), ("FontDescriptor", D(("FontFile2", new PdfStream(D(), bytes))))))
+            : PdfFontResourceReader.Read(Document,
+                D(("Subtype", N("TrueType")), ("BaseFont", N("Courier")), ("Encoding", encoding)),
+                new TestFontResolver(bytes));
+        if (embedded)
+            Assert.Single(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+        else
+            Assert.Null(font.GetGlyphOutline(65));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void HostMissingGlyphDoesNotPaintItsNotdefOutline(bool embedded)
