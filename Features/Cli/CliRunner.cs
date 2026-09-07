@@ -70,6 +70,8 @@ namespace KillerPDF.Features
             // The validation resave keeps its dedicated runner in BatchMode.cs.
             if (args.Any(a => Eq(a, "--batch-resave")))
                 return BatchRunner.TryRunBatch(args, out exitCode);
+            if (args.Any(a => Eq(a, "--batch-render")))
+                return BatchRenderRunner.TryRunBatchRender(args, out exitCode);
 
             string? command = args.FirstOrDefault(a =>
                 Eq(a, "--help") || Eq(a, "-h") || Eq(a, "/?") ||
@@ -167,6 +169,9 @@ namespace KillerPDF.Features
             "  --batch-resave <in> <out> [--log <f.csv>] [--quiet]",
             "                                           resave a file or tree through the standard",
             "                                           open/save pipeline (validation harness)",
+            "  --batch-render <in> <outDir> [--size <px>] [--pages <n>] [--log <f.csv>] [--quiet]",
+            "                                           render the first pages of a file or tree to PNG",
+            "                                           with per-page timings (render benchmark)",
             "",
             "Exit codes: 0 success, 1 operation failed, 2 bad usage.",
             "Runs headless and works while the KillerPDF window is open.",
