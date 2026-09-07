@@ -37,6 +37,12 @@ retain their order and inherited geometry. Strict readers still reject empty
 intermediate branches and validate the declared count. Tree cycle, repeated-node,
 nesting-depth, and maximum-page limits remain enforced in recovery mode.
 
+If the declared root resolves to a dictionary with neither a catalog declaration
+nor a page tree, page-tree readers can select one unambiguous uncompressed catalog.
+This fallback inspects only documents with at most 4,096 cross-reference entries;
+larger documents and multiple candidates retain the failure. The original trailer
+is unchanged, so strict readers and writer root validation still reject the damage.
+
 For compressed objects, recovery can match the requested object number to its
 validated object-stream header when the cross-reference index is incorrect or
 wrapped. Only streams with mismatched indexes allocate the additional lookup.

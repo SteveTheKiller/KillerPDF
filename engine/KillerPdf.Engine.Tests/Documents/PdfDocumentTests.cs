@@ -97,6 +97,41 @@ public sealed class PdfDocumentTests
             recovered.Resolve(new PdfIndirectReference(1, 0)))[Name("Type")]);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RecoveryUsesOnlyAnUnambiguousCatalogWithoutChangingWriterRoot(bool ambiguous)
+    {
+        string[] objects =
+        [
+            "<< /Producer (broken root) >>",
+            "<< /Type /Catalog /Pages 3 0 R >>",
+            "<< /Type /Pages /Kids [4 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 3 0 R /MediaBox [0 0 30 40] >>",
+            ambiguous ? "<< /Type /Catalog /Pages 3 0 R >>" : "null"
+        ];
+        var source = new StringBuilder("%PDF-2.0\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(source.Length);
+            source.Append($"{index + 1} 0 obj {objects[index]} endobj\n");
+        }
+        int xrefOffset = source.Length;
+        source.Append("xref\n0 6\n0000000000 65535 f\n");
+        foreach (int offset in offsets) source.Append($"{offset:0000000000} 00000 n\n");
+        source.Append($"trailer << /Size 6 /Root 1 0 R >>\nstartxref\n{xrefOffset}\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+        Assert.Throws<InvalidOperationException>(() => PdfPageInformation.Read(PdfDocument.Open(bytes)));
+        PdfDocument recovered = PdfDocument.OpenWithCompatibilityRecovery(bytes);
+        if (ambiguous)
+            Assert.Throws<InvalidOperationException>(() => PdfPageInformation.Read(recovered));
+        else
+            Assert.Equal(30, Assert.Single(PdfPageInformation.Read(recovered)).Width);
+        Assert.Equal(1, Assert.IsType<PdfIndirectReference>(recovered.Trailer[Name("Root")]).ObjectNumber);
+        Assert.Throws<InvalidOperationException>(() => PdfDocumentWriter.Write(recovered));
+    }
+
     [Fact]
     public void OpenWithCompatibilityRecoveryAllowsCatalogWithoutType()
     {

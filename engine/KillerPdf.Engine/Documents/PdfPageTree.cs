@@ -48,6 +48,14 @@ internal sealed class PdfPageTree
         PdfDictionary catalog = resolvedCatalog as PdfDictionary
             ?? throw new InvalidOperationException("The document catalog is not a dictionary.");
         catalogReference = resolvedCatalogReference;
+        if (document.UsesCompatibilityRecovery && !catalog.ContainsKey(PagesName)
+            && (!catalog.TryGetValue(TypeName, out PdfObject? declaredType)
+                || declaredType is not PdfName declaredName || !declaredName.Equals(CatalogName))
+            && FindRecoveryCatalog(document) is { } recoveredCatalog)
+        {
+            catalogReference = recoveredCatalog.Reference;
+            catalog = recoveredCatalog.Dictionary;
+        }
         if (!catalog.TryGetValue(TypeName, out PdfObject? catalogTypeValue)
             || Resolve(catalogTypeValue) is not PdfName catalogType
             || !catalogType.Equals(CatalogName))
@@ -222,6 +230,36 @@ internal sealed class PdfPageTree
             }
             return (value, finalReference);
         }
+    }
+
+    private static (PdfIndirectReference Reference, PdfDictionary Dictionary)? FindRecoveryCatalog(
+        PdfDocument document)
+    {
+        const int maximumCandidates = 4096;
+        if (document.CrossReferences.Count > maximumCandidates) return null;
+        (PdfIndirectReference Reference, PdfDictionary Dictionary)? result = null;
+        foreach (var entry in document.CrossReferences.Values)
+        {
+            if (entry.Type != CrossReference.PdfCrossReferenceEntryType.InUse) continue;
+            PdfDictionary? candidate;
+            try
+            {
+                candidate = document.Resolve(entry.ObjectNumber) as PdfDictionary;
+            }
+            catch (Exception error) when (error is FormatException or InvalidOperationException
+                or NotSupportedException or OverflowException)
+            {
+                continue;
+            }
+            if (candidate is null
+                || !candidate.TryGetValue(TypeName, out PdfObject? type)
+                || type is not PdfName name || !name.Equals(CatalogName)
+                || !candidate.TryGetValue(PagesName, out PdfObject? pages)
+                || pages is not PdfIndirectReference) continue;
+            if (result is not null) return null;
+            result = (new PdfIndirectReference(entry.ObjectNumber, entry.Field2), candidate);
+        }
+        return result;
     }
 
     internal static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
