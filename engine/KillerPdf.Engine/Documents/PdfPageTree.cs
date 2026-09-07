@@ -156,11 +156,11 @@ internal sealed class PdfPageTree
                     : throw new InvalidOperationException("A page-tree node has neither /Type /Page nor /Kids.");
                 if (depth > 0 && kids.Count == 0)
                     throw new InvalidOperationException("A non-root page-tree /Kids array is empty.");
-                PdfInteger? count = node.TryGetValue(CountName, out PdfObject? countValue)
+                PdfInteger? count = document.UsesCompatibilityRecovery ? null
+                    : node.TryGetValue(CountName, out PdfObject? countValue)
                     ? Resolve(countValue) as PdfInteger
                         ?? throw new InvalidOperationException("A page-tree /Count value is not an integer.")
-                    : document.UsesCompatibilityRecovery ? null
-                        : throw new InvalidOperationException("A /Type /Pages node has no /Count value.");
+                    : throw new InvalidOperationException("A /Type /Pages node has no /Count value.");
                 if (count?.Value < 0)
                     throw new InvalidOperationException("A page-tree /Count value is negative.");
                 int actualCount = 0;

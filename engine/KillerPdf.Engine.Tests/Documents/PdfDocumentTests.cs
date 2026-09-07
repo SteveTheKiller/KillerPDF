@@ -158,6 +158,12 @@ public sealed class PdfDocumentTests
     [InlineData("", " /Count 1", " /Type /Page")]
     [InlineData(" /Type /Pages", "", " /Type /Page")]
     [InlineData(" /Type /Pages", " /Count 7", " /Type /Page")]
+    [InlineData(" /Type /Pages", " /Count -1", " /Type /Page")]
+    [InlineData(" /Type /Pages", " /Count (1)", " /Type /Page")]
+    [InlineData(" /Type /Pages", " /Count null", " /Type /Page")]
+    [InlineData(" /Type /Pages", " /Count 99 0 R", " /Type /Page")]
+    [InlineData(" /Type /Pages", " /Count 2 0 R", " /Type /Page")]
+    [InlineData(" /Type /Pages", " /Count 4 0 R", " /Type /Page")]
     [InlineData(" /Type /Pages", " /Count 1", "")]
     [InlineData(" /Type /Page", " /Count 1", " /Type /Page")]
     [InlineData(" /Type /Pages", " /Count 1", " /Type /Pages")]
@@ -171,17 +177,24 @@ public sealed class PdfDocumentTests
         source.Append($"2 0 obj <<{pagesType} /Kids [3 0 R]{count} >> endobj\n");
         int pageOffset = source.Length;
         source.Append($"3 0 obj <<{pageType} /Parent 2 0 R /MediaBox [0 0 10 10] >> endobj\n");
+        int countOffset = source.Length;
+        source.Append("4 0 obj << /Length 4 0 R >> stream\n2\nendstream endobj\n");
         int xrefOffset = source.Length;
-        source.Append("xref\n0 4\n0000000000 65535 f\n");
+        source.Append("xref\n0 5\n0000000000 65535 f\n");
         source.Append($"{catalogOffset:0000000000} 00000 n\n");
         source.Append($"{pagesOffset:0000000000} 00000 n\n");
         source.Append($"{pageOffset:0000000000} 00000 n\n");
-        source.Append("trailer << /Size 4 /Root 1 0 R >>\n");
+        source.Append($"{countOffset:0000000000} 00000 n\n");
+        source.Append("trailer << /Size 5 /Root 1 0 R >>\n");
         source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
         byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
 
-        Assert.Throws<InvalidOperationException>(() =>
-            new PdfPageContentReader(PdfDocument.Open(bytes)));
+        if (count == " /Count 4 0 R")
+            Assert.Throws<PdfSyntaxException>(() =>
+                new PdfPageContentReader(PdfDocument.Open(bytes)));
+        else
+            Assert.Throws<InvalidOperationException>(() =>
+                new PdfPageContentReader(PdfDocument.Open(bytes)));
         Assert.Equal(1, new PdfPageContentReader(
             PdfDocument.OpenWithCompatibilityRecovery(bytes)).PageCount);
     }

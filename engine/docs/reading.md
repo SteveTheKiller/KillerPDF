@@ -30,6 +30,11 @@ selected malformed structures; it is not a guarantee of complete visible content
 or permission to write a damaged file. The [rendering guide](rendering.md) explains
 image and font recovery details and their remaining limits.
 
+Recovery derives page counts from the actual page-tree children without resolving
+`/Count` metadata, including invalid values or references to damaged streams.
+Strict readers still validate the declared count. Tree cycle, repeated-node,
+nesting-depth, and maximum-page limits remain enforced in recovery mode.
+
 If a stream's declared length ends inside encoded data, compatibility parsing can
 use the existing bounded end-marker search even when those remaining bytes are
 not valid PDF tokens. The search extends at most 1 MiB beyond the declared end,
