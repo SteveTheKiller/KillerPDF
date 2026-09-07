@@ -106,6 +106,14 @@ alter CID and Unicode mappings. Only a positive object number, valid generation,
 references inside mapping data retain their validation. Strict mode rejects the
 indirect reference in the CMap program.
 
+If a TrueType compound glyph is cyclic or exceeds the outline nesting limit,
+compatibility rendering omits that glyph and reports a diagnostic. Its text
+advance is preserved. An omitted clipping glyph contributes an empty outline,
+so a text object containing only damaged clipping glyphs still clips away later
+painting until the graphics state is restored. Other page content can continue.
+Strict rendering and direct outline reads retain the exception; unrelated font
+errors and outline limits are not relaxed. Missing glyph shapes are not rebuilt.
+
 For embedded Type 1 fonts with invalid segment lengths, recovery can locate the
 `currentfile eexec` token pair within the first 1 MiB of decoded font data. It
 requires a following line ending and uses the existing charstring decoder, which

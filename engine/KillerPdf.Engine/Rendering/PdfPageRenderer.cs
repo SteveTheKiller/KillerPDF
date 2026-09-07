@@ -939,7 +939,14 @@ public sealed partial class PdfPageRenderer
                         Matrix textScale = new(textSize * horizontalScale / 1000, 0, 0,
                             textSize / 1000, originX, originY + textRise);
                         Matrix glyphTransform = textScale.Then(textMatrix).Then(state.Transform);
-                        PdfGlyphOutline? outline = extractionFont.GetGlyphOutline(character.Code);
+                        PdfGlyphOutline? outline;
+                        try { outline = extractionFont.GetGlyphOutline(character.Code); }
+                        catch (PdfFontResourceReader.GlyphRecursionException)
+                            when (_document.UsesCompatibilityRecovery)
+                        {
+                            diagnostics.Add("A cyclic or excessively nested text glyph was omitted.");
+                            outline = new PdfGlyphOutline([]);
+                        }
                         int paintMode = textRenderingMode % 4;
                         bool clipsText = textRenderingMode >= 4;
                         if ((paintMode != 3 || clipsText) && outline is not null)

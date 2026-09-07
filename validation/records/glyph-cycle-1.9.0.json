@@ -1,0 +1,47 @@
+{
+  "engineApplicationSha256": "D815B4BBAC2FB4EDB41AB4B90FA0F7CE7B0A4820D6E52C3CA3D5CE61617D7906",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "page": 1,
+    "maximumDimension": 1024,
+    "annotations": true,
+    "forms": true
+  },
+  "focused": {
+    "file": "recursiveCompositGlyf.pdf",
+    "inputSha256": "AC0D0AF644681F2CCB8C89D5FA0541F1AAECA071EB9772CCBA0BD7175877701D",
+    "before": "FAIL: A compound TrueType glyph is cyclic or too deeply nested.",
+    "after": "OK",
+    "renderMilliseconds": 82,
+    "dimensions": [
+      791,
+      1024
+    ],
+    "baselineDimensions": [
+      791,
+      1024
+    ],
+    "rgbMae": 0,
+    "extractedText": "hello world",
+    "diagnostics": [
+      "A cyclic or excessively nested text glyph was omitted."
+    ],
+    "visualCheck": "Blank page matches PDFium pixel-for-pixel. The cyclic text forms a clipping mask; the later red fill remains hidden."
+  },
+  "tests": {
+    "newCases": 2,
+    "failedBefore": 1,
+    "engine": 2817,
+    "app": 338
+  },
+  "conformance": {
+    "ok": 614,
+    "skip": 35,
+    "fail": 0,
+    "identicalImages": 614
+  },
+  "behavior": "Compatibility rendering catches only the dedicated TrueType glyph recursion/depth exception, substitutes an empty outline, reports a diagnostic, and preserves text advance. Empty clipping coverage prevents later fills from leaking. Regression cases check clipping, ordinary text, restored graphics state, and repeat rendering.",
+  "preservedChecks": "Strict rendering and direct outline reads still throw a FormatException subtype. Other font exceptions and outline limits remain unchanged.",
+  "limitations": "Damaged glyph shapes are omitted, not reconstructed. Single-file timing is not throughput; full corpus totals have not been rerun."
+}

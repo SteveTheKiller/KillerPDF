@@ -2292,6 +2292,54 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Text rendering is not implemented.", rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(PdfTextRenderingMode.Clip)]
+    [InlineData(PdfTextRenderingMode.Fill)]
+    public void Render_RecoveryPreservesClippingAndLaterContentWithCyclicGlyphs(PdfTextRenderingMode mode)
+    {
+        byte[] fontData = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true, includeCompound: true);
+        int tableCount = BinaryPrimitives.ReadUInt16BigEndian(fontData.AsSpan(4));
+        for (int index = 0; index < tableCount; index++)
+        {
+            int entry = 12 + index * 16;
+            if (!fontData.AsSpan(entry, 4).SequenceEqual("glyf"u8)) continue;
+            int offset = checked((int)BinaryPrimitives.ReadUInt32BigEndian(fontData.AsSpan(entry + 8)));
+            BinaryPrimitives.WriteUInt16BigEndian(fontData.AsSpan(offset + 12), 1);
+        }
+        var content = new PdfContentStreamBuilder().SaveState().BeginText()
+            .SetFont(PdfStandardFont.Helvetica, 10)
+            .SetTextRenderingMode(mode)
+            .ShowLatin1Text("AA").EndText()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 20, 10).Fill().RestoreState()
+            .SetFillRgb(0, 0, 1).Rectangle(15, 0, 5, 10).Fill();
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(20, 10, content).Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source, Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary fonts = Assert.IsType<PdfDictionary>(resources[Name("Font")]);
+        PdfIndirectReference reference = Assert.IsType<PdfIndirectReference>(Assert.Single(fonts).Value);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference file = update.AddObject(new PdfStream(new PdfDictionary([]), fontData));
+        var descriptor = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FontFile2"), file)]);
+        var font = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Subtype"), Name("TrueType")),
+            new KeyValuePair<PdfName, PdfObject>(Name("BaseFont"), Name("Test")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Encoding"), Name("WinAnsiEncoding")),
+            new KeyValuePair<PdfName, PdfObject>(Name("FontDescriptor"), descriptor)]);
+        byte[] pdf = update.ReplaceObject(reference.ObjectNumber, font).Build();
+        var options = new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false);
+        Assert.ThrowsAny<FormatException>(() => new PdfPageRenderer(PdfDocument.Open(pdf)).Render(0, options));
+        var renderer = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(pdf));
+        PdfRenderedPage result = renderer.Render(0, options);
+        Assert.Equal(mode == PdfTextRenderingMode.Clip
+            ? new byte[] { 255, 255, 255, 255 } : [0, 0, 255, 255], Pixel(result, 5, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(result, 17, 5));
+        Assert.Contains("A cyclic or excessively nested text glyph was omitted.", result.Diagnostics);
+        Assert.Equal(result.Pixels.ToArray(), renderer.Render(0, options).Pixels.ToArray());
+    }
+
     [Fact]
     public void Render_FillsEmbeddedTrueTypeGlyphContours()
     {

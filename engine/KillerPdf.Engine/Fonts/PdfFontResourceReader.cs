@@ -10,6 +10,9 @@ namespace KillerPdf.Engine.Fonts;
 /// <summary>Resolves PDF font encodings, embedded metrics, and character widths for extraction.</summary>
 public static class PdfFontResourceReader
 {
+    internal sealed class GlyphRecursionException() : FormatException(
+        "A compound TrueType glyph is cyclic or too deeply nested.");
+
     /// <summary>Reads a page font resource without loading a platform font or rendering library.</summary>
     public static PdfExtractionFont Read(PdfDocument document, PdfDictionary font,
         IPdfFontResolver? fontResolver = null)
@@ -683,7 +686,7 @@ public static class PdfFontResourceReader
         private PdfGlyphOutline? Outline(ushort glyph, HashSet<ushort> active, int depth)
         {
             if (depth > 32 || !active.Add(glyph))
-                throw new FormatException("A compound TrueType glyph is cyclic or too deeply nested.");
+                throw new GlyphRecursionException();
             try
             {
                 if (!TryGlyphRange(glyph, out ReadOnlySpan<byte> data)) return null;
