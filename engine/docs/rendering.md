@@ -30,6 +30,12 @@ Supply a `CancellationToken` from the host application. Reuse the renderer for a
 immutable document to benefit from its instruction, font, image, and page caches.
 An optional `IPdfFontResolver` constructor argument lets the host resolve fonts.
 
+The Windows app tries the requested emoji font first, then installed Segoe UI
+Emoji when the requested family is unavailable. The engine uses its monochrome
+outlines with the page's text paint settings; this does not enable color-font
+layer rendering. Library hosts must provide their own resolver for installed
+fonts. Missing fonts or glyphs can still produce outline diagnostics.
+
 Text extraction and glyph selection use distinct mappings. For an embedded symbolic
 TrueType font without a PDF encoding, a non-Unicode font character map is addressed
 with the original character code. Its `ToUnicode` map still supplies extracted
