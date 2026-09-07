@@ -30,6 +30,11 @@ Supply a `CancellationToken` from the host application. Reuse the renderer for a
 immutable document to benefit from its instruction, font, image, and page caches.
 An optional `IPdfFontResolver` constructor argument lets the host resolve fonts.
 
+Text extraction and glyph selection use distinct mappings. For an embedded symbolic
+TrueType font without a PDF encoding, a non-Unicode font character map is addressed
+with the original character code. Its `ToUnicode` map still supplies extracted
+text. Fonts with Unicode character maps retain Unicode-based glyph lookup.
+
 ## Pixels and geometry
 
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels

@@ -157,6 +157,10 @@ public static class PdfFontResourceReader
                     ? char.ConvertFromUtf32((int)cid) : null;
             }
             byte[]? cidToGid = Get(metrics, "CIDToGIDMap") is PdfStream gidStream ? Decode(gidStream) : null;
+            bool useEncodedSymbol = embeddedData is not null
+                && embedded is { HasUnicodeCharacterMap: false }
+                && Get(font, "Encoding") is null
+                && Get(descriptor, "Flags") is PdfInteger flags && (flags.Value & 4) != 0;
             ushort Glyph(uint code)
             {
                 if (composite)
@@ -174,6 +178,12 @@ public static class PdfFontResourceReader
                 }
                 string? text = CharacterText(code);
                 if (embedded is null) return 0;
+                if (useEncodedSymbol && code < 256)
+                {
+                    ushort encodedGlyph = embedded.GetGlyphId((int)code);
+                    if (encodedGlyph == 0) encodedGlyph = embedded.GetGlyphId((int)code + 0xF000);
+                    if (encodedGlyph != 0) return encodedGlyph;
+                }
                 ushort glyph = string.IsNullOrEmpty(text)
                     ? (ushort)0 : embedded.GetGlyphId(char.ConvertToUtf32(text, 0));
                 if (glyph == 0 && code < 256) glyph = embedded.GetGlyphId((int)code);

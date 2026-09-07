@@ -70,6 +70,31 @@ public sealed class PdfFontResourceReaderTests
         Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(31)).Contours);
     }
 
+    [Theory]
+    [InlineData(1, 100)]
+    [InlineData(0, 0)]
+    public void SymbolicFontDistinguishesEncodedAndUnicodeCharacterMaps(int platform, int expectedLeft)
+    {
+        var cmap = new byte[274];
+        BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(2), 1);
+        BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(4), (ushort)platform);
+        BinaryPrimitives.WriteUInt32BigEndian(cmap.AsSpan(8), 12);
+        BinaryPrimitives.WriteUInt16BigEndian(cmap.AsSpan(14), 262);
+        cmap[18 + 33] = 1;
+        cmap[18 + 75] = 2;
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true,
+            includeCompound: true, cmap: cmap);
+        PdfExtractionFont font = Read(D(("Subtype", N("TrueType")),
+            ("BaseFont", N("SubsetSymbol")),
+            ("FontDescriptor", D(("Flags", new PdfInteger(4)),
+                ("FontFile2", new PdfStream(D(), bytes)))),
+            ("ToUnicode", Stream("1 begincodespacerange <00> <FF> endcodespacerange "
+                + "1 beginbfchar <21> <004B> endbfchar"))));
+
+        Assert.Equal("K", Assert.Single(font.Decode(new byte[] { 33 })).Text);
+        Assert.Equal(expectedLeft, font.GetGlyphBounds(33)!.Value.Left);
+    }
+
     [Fact]
     public void MissingCompositeFontUsesItsUnicodeMapWithBundledOutlines()
     {

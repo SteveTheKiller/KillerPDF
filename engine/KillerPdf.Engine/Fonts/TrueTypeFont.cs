@@ -14,6 +14,8 @@ public sealed class TrueTypeFont
     private readonly VariationCmap? _variationCmap;
     private readonly ushort[] _advanceWidths;
 
+    internal bool HasUnicodeCharacterMap { get; private set; }
+
     private TrueTypeFont(byte[] data, Dictionary<uint, Table> tables, bool hasCffOutlines, bool extraction = false)
     {
         _data = data;
@@ -195,7 +197,7 @@ public sealed class TrueTypeFont
         if (4L + count * 8L > cmap.Length)
             throw Error("The cmap encoding records are truncated");
 
-        (int Score, int Offset, int Format)? best = null;
+        (int Score, int Offset, int Format, bool Unicode)? best = null;
         for (int index = 0; index < count; index++)
         {
             int record = 4 + index * 8;
@@ -228,11 +230,12 @@ public sealed class TrueTypeFont
                 _ => 0
             };
             if (score > 0 && (!best.HasValue || score > best.Value.Score))
-                best = (score, subtable, format);
+                best = (score, subtable, format, platform == 0 || platform == 3 && encoding is 1 or 10);
         }
         if (!best.HasValue)
             throw new NotSupportedException(
                 "The font has no supported Unicode cmap format 0, 2, 4, 6, 8, 10, 12, or 13 subtable.");
+        HasUnicodeCharacterMap = best.Value.Unicode;
         return best.Value.Format switch
         {
             0 => ReadFormat0(best.Value.Offset, cmap),

@@ -3,6 +3,33 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 symbolic TrueType glyph selection
+
+Validation date: 2026-09-06. Embedded symbolic TrueType fonts without a PDF
+encoding now use encoded character codes when their selected font character map
+is non-Unicode. This avoids collisions between Unicode values and unrelated
+encoded glyphs. Unicode extraction and Unicode font maps retain their behavior.
+
+The author and affiliation in `kateking_presentation_WN23.pdf` now render correctly.
+Its page RGB mean absolute error against PDFium improves from 1.3666 to 1.1428;
+the author/affiliation rectangle (x 90..939, y 410..489) improves from 5.8705 to
+3.9296. Remaining edge and image differences are not treated as pixel parity.
+
+The regression's Macintosh-map case failed before the fix, while its Unicode-map
+control passed. All 59 font-resource tests, 2,695 engine tests, and 338 app tests
+pass afterward. The Release build has zero warnings or errors.
+
+Conformance retains 614 OK, 35 SKIP, zero FAIL. Of the images, 610 are byte-identical
+to the preceding mask build. Four change, all with lower RGB error against PDFium:
+the presentation, `EngHonorsCapstoneReport-Final.pdf`, and the two OpenOffice 3.2
+lorem-ipsum exports. The latter differ by one pixel in width from PDFium, so their
+shared-area errors are diagnostic rather than aligned visual-quality gates.
+
+The isolated presentation render took 281 ms in a fresh process. This includes JIT
+and is not a comparative performance measurement. See the
+[validation record](records/symbolic-font-1.9.0.json) and
+[raw coverage log](benchmarks/1.9.0-symbolic-font/conformance-engine.csv).
+
 ## KillerPDF 1.9.0 packed soft masks and independent sampling
 
 Validation date: 2026-09-06. Image soft masks retain packed samples and use cached
