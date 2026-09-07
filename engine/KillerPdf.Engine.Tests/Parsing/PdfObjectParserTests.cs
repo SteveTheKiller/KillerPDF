@@ -121,6 +121,9 @@ public sealed class PdfObjectParserTests
     [InlineData("1 0 obj\n<< /Filter /Nope >>\nstream\nhello\nendstream\nendobj", "hello")]
     [InlineData("1 0 obj\n<< /Length 5 >>\nstream\nhello\nendobj", "hello")]
     [InlineData("1 0 obj\n<< /Length 5 >>\nstream\nhello\nendstream\n junk here\nendobj", "hello")]
+    [InlineData("1 0 obj\n<< /Length 1 >>\nstream\nA1x\nendstream\nendobj", "A1x")]
+    [InlineData("1 0 obj\n<< /Length 1 >>\nstream\nA)\nendstream\nendobj", "A)")]
+    [InlineData("1 0 obj\n<< /Length 1 >>\nstream\nA<GG>\nendstream\nendobj", "A<GG>")]
     public void ParseIndirectObject_CompatibilityRecoveryRepairsMalformedStreams(
         string source, string expected)
     {

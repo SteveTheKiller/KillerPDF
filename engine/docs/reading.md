@@ -30,6 +30,13 @@ selected malformed structures; it is not a guarantee of complete visible content
 or permission to write a damaged file. The [rendering guide](rendering.md) explains
 image and font recovery details and their remaining limits.
 
+If a stream's declared length ends inside encoded data, compatibility parsing can
+use the existing bounded end-marker search even when those remaining bytes are
+not valid PDF tokens. The search extends at most 1 MiB beyond the declared end,
+within the input. Encoded bytes are preserved for the filter decoder; this does
+not relax numeric or string syntax elsewhere. Strict parsing retains its lexical
+errors at the declared boundary.
+
 ## Memory ownership and concurrency
 
 Both opening methods copy the supplied bytes. The caller can reuse or modify its

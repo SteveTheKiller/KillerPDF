@@ -1,0 +1,44 @@
+{
+  "engineApplicationSha256": "C78F3C135C1A4A527BF8ACE4220E7D7C18B8863EDE521751BF665BF260269F7B",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "page": 1,
+    "maximumDimension": 1024,
+    "annotations": true,
+    "forms": true
+  },
+  "focused": {
+    "file": "issue6108.pdf",
+    "inputSha256": "F9846B2BEEC7D75BEC4C9DD0F1A9FF8F81915F87C1D122C551E7FE4F066D94BC",
+    "before": "FAIL: Malformed numeric token (byte offset 314).",
+    "after": "OK",
+    "renderMilliseconds": 184,
+    "dimensions": [
+      1024,
+      128
+    ],
+    "baselineDimensions": [
+      1024,
+      128
+    ],
+    "diagnostics": [],
+    "rgbMae": 1.6809844970703125,
+    "visualCheck": "Complete visible sentence agrees with the PDFium composition. Pixels differ, so this is not exact rendering parity."
+  },
+  "tests": {
+    "newCases": 3,
+    "failedBefore": 3,
+    "engine": 2781,
+    "app": 338
+  },
+  "conformance": {
+    "ok": 614,
+    "skip": 35,
+    "fail": 0,
+    "identicalImages": 614
+  },
+  "behavior": "Compatibility parsing routes lexical failure at the declared stream end through the existing bounded stream recovery. Strict mode retains lexical rejection. No token rules or filter validation changed.",
+  "limits": "Existing recovery searches within input up to one MiB beyond declared payload end. Encoded bytes are not interpreted as page tokens at this boundary.",
+  "limitations": "Single-file timing is not a throughput benchmark. Full PDF.js counts have not been rerun at this build."
+}

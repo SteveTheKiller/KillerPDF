@@ -271,7 +271,16 @@ public sealed class PdfObjectParser(
         ReadOnlyMemory<byte> encodedData = _tokenizer.ReadRawBytes(length);
         ConsumeStreamClosingLineEnding(dataOffset + length);
 
-        PdfToken endStream = Take();
+        PdfToken endStream;
+        try
+        {
+            endStream = Take();
+        }
+        catch (PdfSyntaxException) when (_allowDuplicateDictionaryKeys)
+        {
+            // An incorrect Length can leave the tokenizer inside encoded data.
+            return RecoverStream(dictionary, dataOffset, length, streamKeywordOffset);
+        }
         if (!IsKeyword(endStream, "endstream"))
             return RecoverStream(dictionary, dataOffset, length, streamKeywordOffset);
         return new PdfStream(dictionary, encodedData.Span);
