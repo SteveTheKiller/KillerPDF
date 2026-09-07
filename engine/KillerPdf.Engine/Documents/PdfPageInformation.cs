@@ -38,20 +38,34 @@ public sealed record PdfPageInformation
                             ? CompatibilityDefaultMediaBox
                             : throw new InvalidOperationException(
                                 $"Page {index + 1} has no effective media box.");
-            PdfArray box = ResolveArray(document, pageBox,
-                $"Page {index + 1} effective page box");
-            if (box.Count != 4)
-                throw new InvalidOperationException(
-                    $"Page {index + 1} effective page box does not contain four numbers.");
-            double x1 = Number(document, box[0], index);
-            double y1 = Number(document, box[1], index);
-            double x2 = Number(document, box[2], index);
-            double y2 = Number(document, box[3], index);
-            double width = Math.Abs(x2 - x1);
-            double height = Math.Abs(y2 - y1);
-            if (!double.IsFinite(width) || !double.IsFinite(height) || width <= 0 || height <= 0)
-                throw new InvalidOperationException(
-                    $"Page {index + 1} effective page box is degenerate.");
+            double x1, y1, x2, y2, width, height;
+            try
+            {
+                PdfArray box = ResolveArray(document, pageBox,
+                    $"Page {index + 1} effective page box");
+                if (box.Count != 4)
+                    throw new InvalidOperationException(
+                        $"Page {index + 1} effective page box does not contain four numbers.");
+                x1 = Number(document, box[0], index);
+                y1 = Number(document, box[1], index);
+                x2 = Number(document, box[2], index);
+                y2 = Number(document, box[3], index);
+                width = Math.Abs(x2 - x1);
+                height = Math.Abs(y2 - y1);
+                if (!double.IsFinite(width) || !double.IsFinite(height) || width <= 0 || height <= 0)
+                    throw new InvalidOperationException(
+                        $"Page {index + 1} effective page box is degenerate.");
+            }
+            catch (InvalidOperationException) when (document.UsesCompatibilityRecovery)
+            {
+                // Mainstream viewers fall back to US Letter for an unusable page box.
+                x1 = 0;
+                y1 = 0;
+                x2 = 612;
+                y2 = 792;
+                width = 612;
+                height = 792;
+            }
             int rotation = 0;
             if (page.InheritedValues.TryGetValue(Name("Rotate"), out PdfObject? rotationValue))
             {
@@ -63,8 +77,12 @@ public sealed record PdfPageInformation
                         $"Page {index + 1} rotation is not an integer.");
                 rotation = (int)(((rawRotation % 360) + 360) % 360);
                 if (rotation % 90 != 0)
-                    throw new InvalidOperationException(
-                        $"Page {index + 1} rotation is not a multiple of 90 degrees.");
+                {
+                    if (!document.UsesCompatibilityRecovery)
+                        throw new InvalidOperationException(
+                            $"Page {index + 1} rotation is not a multiple of 90 degrees.");
+                    rotation = (int)Math.Round(rotation / 90.0) * 90 % 360;
+                }
             }
             result[index] = new PdfPageInformation
             {

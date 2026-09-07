@@ -114,6 +114,38 @@ public sealed class PdfObjectParserTests
             Assert.IsType<PdfName>(dictionary[Name("PageMode")]).ValueAsLatin1());
     }
 
+    [Theory]
+    [InlineData("1 0 obj\n<< /Length 5 >>\nhello\nendstream\nendobj", "hello")]
+    [InlineData("1 0 obj\n<< /Length 999 >>\nstream\nhello\nendstream\nendobj", "hello")]
+    [InlineData("1 0 obj\n<< /Length /Bad >>\nstream\nhello\nendstream\nendobj", "hello")]
+    [InlineData("1 0 obj\n<< /Filter /Nope >>\nstream\nhello\nendstream\nendobj", "hello")]
+    [InlineData("1 0 obj\n<< /Length 5 >>\nstream\nhello\nendobj", "hello")]
+    [InlineData("1 0 obj\n<< /Length 5 >>\nstream\nhello\nendstream\n junk here\nendobj", "hello")]
+    public void ParseIndirectObject_CompatibilityRecoveryRepairsMalformedStreams(
+        string source, string expected)
+    {
+        var strict = new PdfObjectParser(Encoding.ASCII.GetBytes(source));
+        var lenient = new PdfObjectParser(Encoding.ASCII.GetBytes(source),
+            allowDuplicateDictionaryKeys: true);
+
+        Assert.ThrowsAny<FormatException>(() => strict.ParseIndirectObject());
+        PdfStream stream = Assert.IsType<PdfStream>(lenient.ParseIndirectObject().Value);
+
+        Assert.Equal(expected, Encoding.ASCII.GetString(stream.EncodedData.Span));
+    }
+
+    [Fact]
+    public void ParseObject_CompatibilityRecoverySkipsNonNameDictionaryKeys()
+    {
+        var parser = new PdfObjectParser(
+            Encoding.ASCII.GetBytes("<< /A 1 0 R 7 /B 2 >>"), allowDuplicateDictionaryKeys: true);
+
+        PdfDictionary dictionary = Assert.IsType<PdfDictionary>(parser.ParseObject());
+
+        Assert.Equal(2, dictionary.Count);
+        Assert.Equal(2, Assert.IsType<PdfInteger>(dictionary[Name("B")]).Value);
+    }
+
     [Fact]
     public void ParseObject_EnforcesNestingLimit()
     {

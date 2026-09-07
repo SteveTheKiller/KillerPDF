@@ -52,7 +52,7 @@ internal sealed class PdfPageTree
             || Resolve(catalogTypeValue) is not PdfName catalogType
             || !catalogType.Equals(CatalogName))
         {
-            if (!document.UsesCompatibilityRecovery || catalog.ContainsKey(TypeName))
+            if (!document.UsesCompatibilityRecovery)
                 throw new InvalidOperationException(
                     "The trailer /Root dictionary does not declare /Type /Catalog.");
         }
@@ -92,8 +92,12 @@ internal sealed class PdfPageTree
             }
             try
             {
-                PdfDictionary node = resolvedNode as PdfDictionary
-                    ?? throw new InvalidOperationException("A page-tree reference is not a dictionary.");
+                PdfDictionary node = resolvedNode switch
+                {
+                    PdfDictionary dictionary => dictionary,
+                    PdfStream stream when document.UsesCompatibilityRecovery => stream.Dictionary,
+                    _ => throw new InvalidOperationException("A page-tree reference is not a dictionary.")
+                };
                 if (expectedParent is null)
                 {
                     if (node.ContainsKey(ParentName) && !document.UsesCompatibilityRecovery)
@@ -134,7 +138,8 @@ internal sealed class PdfPageTree
                         : throw new InvalidOperationException("A page-tree node has no /Type value.");
                 if (type is PdfName typeName && typeName.Equals(PageName))
                 {
-                    if (node.ContainsKey(KidsName) || node.ContainsKey(CountName))
+                    if ((node.ContainsKey(KidsName) || node.ContainsKey(CountName))
+                        && !document.UsesCompatibilityRecovery)
                         throw new InvalidOperationException(
                             "A /Type /Page leaf contains page-tree /Kids or /Count entries.");
                     if (pages.Count >= MaximumPageCount)

@@ -111,6 +111,25 @@ public sealed class PdfContentStreamReaderTests
     private static IReadOnlyList<PdfContentInstruction> Read(string content) =>
         PdfContentStreamReader.Read(Encoding.Latin1.GetBytes(content));
 
+    [Theory]
+    [InlineData("BT /F1 12..5 Tf (a) Tj ET", "ET")]
+    [InlineData("BT /F1 12 Tf Hello) Tj ET 1 0 0 rg", "rg")]
+    [InlineData("BT /F1 12 Tf (Hello Tj ET 0 g", "g")]
+    [InlineData("1 0 0 RG 5 0 R 0 g", "g")]
+    [InlineData("0 g 1 2 3", "g")]
+    public void CompatibilityRecoverySkipsMalformedTokensAndKeepsReading(
+        string content, string lastOperator)
+    {
+        byte[] bytes = Encoding.Latin1.GetBytes(content);
+
+        Assert.Throws<PdfSyntaxException>(() => PdfContentStreamReader.Read(bytes));
+        IReadOnlyList<PdfContentInstruction> instructions =
+            PdfContentStreamReader.Read(bytes, compatibilityRecovery: true);
+
+        Assert.NotEmpty(instructions);
+        Assert.Equal(lastOperator, instructions[^1].Operator);
+    }
+
     private static string Text(PdfObject value) =>
         Encoding.Latin1.GetString(Assert.IsType<PdfString>(value).Bytes.Span);
 }

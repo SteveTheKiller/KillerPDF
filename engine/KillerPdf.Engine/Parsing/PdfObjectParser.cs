@@ -16,16 +16,21 @@ public sealed class PdfObjectParser(
     public const int MaximumNestingDepth = 256;
 
     private static readonly PdfName LengthName = new("Length"u8);
+    private static readonly PdfName FilterName = new("Filter"u8);
 
     private readonly ReadOnlyMemory<byte> _source = source;
-    private readonly PdfTokenizer _tokenizer = new(source, startOffset);
+    private readonly PdfTokenizer _tokenizer = new(source, startOffset)
+    {
+        CompatibilityRecovery = allowDuplicateDictionaryKeys
+    };
     private readonly Func<PdfIndirectReference, long>? _streamLengthResolver = streamLengthResolver;
     private readonly bool _allowDuplicateDictionaryKeys = allowDuplicateDictionaryKeys;
     private readonly List<PdfToken> _lookahead = [];
     private bool _allowIndirectReferences = true;
 
-    internal static PdfObjectParser ForContent(ReadOnlyMemory<byte> source) =>
-        new(source) { _allowIndirectReferences = false };
+    internal static PdfObjectParser ForContent(ReadOnlyMemory<byte> source,
+        bool compatibilityRecovery = false) =>
+        new(source, null, compatibilityRecovery) { _allowIndirectReferences = false };
 
     internal PdfToken PeekContentToken() => Peek();
     internal PdfToken TakeContentToken() => Take();
@@ -101,10 +106,43 @@ public sealed class PdfObjectParser(
             value = ParseStream(dictionary, endToken.Offset);
             endToken = Take();
         }
+        else if (_allowDuplicateDictionaryKeys && !IsKeyword(endToken, "endobj")
+            && value is PdfDictionary streamDictionary
+            && (streamDictionary.ContainsKey(LengthName) || streamDictionary.ContainsKey(FilterName)))
+        {
+            // The stream keyword is missing. Common viewers treat a dictionary with stream
+            // entries followed by data as the stream itself.
+            _lookahead.Clear();
+            _tokenizer.SetRawPosition(valueEndOffset);
+            value = ParseStream(streamDictionary, valueEndOffset);
+            endToken = Take();
+        }
 
+        if (_allowDuplicateDictionaryKeys && !IsKeyword(endToken, "endobj"))
+            endToken = SkipToEndObject(endToken);
         RequireKeyword(endToken, "endobj", "An indirect object must end with the endobj keyword");
 
         return new PdfIndirectObject((int)objectNumber, (int)generation, value, objectNumberToken.Offset);
+    }
+
+    private PdfToken SkipToEndObject(PdfToken current)
+    {
+        // Skip stray bytes between a value and its endobj keyword, but never run into the next
+        // object header. An unterminated object ends where the next object begins.
+        ReadOnlySpan<byte> source = _source.Span;
+        int start = Math.Min(current.Offset, source.Length);
+        int limit = Math.Min(source.Length, start + 4096);
+        int relative = source[start..limit].IndexOf("endobj"u8);
+        int nextObject = source[start..limit].IndexOf(" obj"u8);
+        if (relative >= 0 && (nextObject < 0 || relative < nextObject))
+        {
+            _lookahead.Clear();
+            _tokenizer.SetRawPosition(start + relative);
+            return Take();
+        }
+        _lookahead.Clear();
+        _tokenizer.SetRawPosition(start);
+        return new PdfToken(PdfTokenKind.Keyword, start, 0, "endobj"u8.ToArray());
     }
 
     private PdfObject ParseObject(int depth)
@@ -183,9 +221,20 @@ public sealed class PdfObjectParser(
             if (keyToken.Kind == PdfTokenKind.EndOfInput)
                 throw Error("Unterminated PDF dictionary", start);
             if (keyToken.Kind != PdfTokenKind.Name)
+            {
+                if (_allowDuplicateDictionaryKeys && keyToken.Kind
+                    is not (PdfTokenKind.ArrayEnd or PdfTokenKind.ArrayStart
+                        or PdfTokenKind.DictionaryStart))
+                    continue;
                 throw Error("A PDF dictionary key must be a name", keyToken.Offset);
+            }
 
             var key = new PdfName(keyToken.Value.Span);
+            if (_allowDuplicateDictionaryKeys && Peek().Kind == PdfTokenKind.DictionaryEnd)
+            {
+                // A trailing key with no value is dropped, as mainstream viewers do.
+                continue;
+            }
             PdfObject value = ParseObject(depth);
             if (!entries.TryAdd(key, value) && !_allowDuplicateDictionaryKeys)
                 throw Error($"The PDF dictionary contains the duplicate key {key}", keyToken.Offset);
@@ -203,9 +252,21 @@ public sealed class PdfObjectParser(
 
         ConsumeStreamOpeningLineEnding(streamKeywordOffset);
         int dataOffset = _tokenizer.Position;
-        int length = ResolveStreamLength(dictionary, streamKeywordOffset);
+        int length;
+        try
+        {
+            length = ResolveStreamLength(dictionary, streamKeywordOffset);
+        }
+        catch (FormatException) when (_allowDuplicateDictionaryKeys)
+        {
+            return RecoverStream(dictionary, dataOffset, -1, streamKeywordOffset);
+        }
         if (_tokenizer.RemainingByteCount < length)
+        {
+            if (_allowDuplicateDictionaryKeys)
+                return RecoverStream(dictionary, dataOffset, -1, streamKeywordOffset);
             throw Error("The stream payload is shorter than its Length entry", dataOffset);
+        }
 
         ReadOnlyMemory<byte> encodedData = _tokenizer.ReadRawBytes(length);
         ConsumeStreamClosingLineEnding(dataOffset + length);
@@ -253,6 +314,27 @@ public sealed class PdfObjectParser(
             searchStart = candidate + 1;
         }
 
+        if (best < 0 && _allowDuplicateDictionaryKeys)
+        {
+            // No endstream at all. Common viewers end the payload at the object's endobj, or
+            // trust the declared length when it fits.
+            int endObject = source[dataOffset..searchEnd].IndexOf("endobj"u8);
+            if (endObject >= 0)
+            {
+                int payloadEnd = dataOffset + endObject;
+                if (payloadEnd > dataOffset && source[payloadEnd - 1] == (byte)'\n') payloadEnd--;
+                if (payloadEnd > dataOffset && source[payloadEnd - 1] == (byte)'\r') payloadEnd--;
+                _lookahead.Clear();
+                _tokenizer.SetRawPosition(dataOffset + endObject);
+                return new PdfStream(dictionary, source[dataOffset..payloadEnd]);
+            }
+            if (declaredLength >= 0 && dataOffset + declaredLength <= source.Length)
+            {
+                _lookahead.Clear();
+                _tokenizer.SetRawPosition(dataOffset + declaredLength);
+                return new PdfStream(dictionary, source[dataOffset..(dataOffset + declaredLength)]);
+            }
+        }
         if (best < 0)
             throw Error("A stream payload must end with the endstream keyword", streamKeywordOffset);
 

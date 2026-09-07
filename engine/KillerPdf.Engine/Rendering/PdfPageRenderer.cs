@@ -1690,9 +1690,15 @@ public sealed partial class PdfPageRenderer
                         stream, PdfStreamDecoder.DefaultMaximumDecodedBytes, jpegReduction);
                     int expectedWidth = checked((width + jpegReduction - 1) / jpegReduction);
                     int expectedHeight = checked((height + jpegReduction - 1) / jpegReduction);
-                    if (decoded.SourceWidth != width || decoded.SourceHeight != height
-                        || decoded.Width != expectedWidth || decoded.Height != expectedHeight
-                        || decoded.Components != encodedComponents || bits != 8)
+                    bool sizeMismatch = decoded.SourceWidth != width || decoded.SourceHeight != height
+                        || decoded.Width != expectedWidth || decoded.Height != expectedHeight;
+                    if (sizeMismatch && _document.UsesCompatibilityRecovery
+                        && decoded.Components == encodedComponents && bits == 8)
+                    {
+                        // Common viewers trust the JPEG frame header over the image dictionary.
+                        return new DecodedImage(decoded.Samples, decoded.Width, decoded.Height);
+                    }
+                    if (sizeMismatch || decoded.Components != encodedComponents || bits != 8)
                         throw new FormatException(
                             "JPEG image metadata does not match its PDF dictionary.");
                     return new DecodedImage(decoded.Samples, decoded.Width, decoded.Height);
@@ -1709,6 +1715,15 @@ public sealed partial class PdfPageRenderer
                 else if (_document.UsesCompatibilityRecovery && decodedSamples.Length > 0
                     && decodedSamples.Length < expected && decodedSamples.Length % rowBytes == 0)
                     decodedHeight = decodedSamples.Length / rowBytes;
+                else if (_document.UsesCompatibilityRecovery && decodedSamples.Length > 0
+                    && decodedSamples.Length < expected)
+                {
+                    // Truncated sample data: keep the whole rows that arrived and zero the rest,
+                    // the way common viewers show a partially decoded image.
+                    var padded = new byte[expected];
+                    decodedSamples.CopyTo(padded, 0);
+                    decodedSamples = padded;
+                }
                 else if (decodedSamples.Length != expected)
                     throw new FormatException("Image sample data has an invalid length.");
                 return new DecodedImage(decodedSamples, width, decodedHeight);

@@ -83,7 +83,8 @@ public sealed class RenderBoundaryTests
             StringComparison.Ordinal);
         string method = source[methodStart..methodEnd];
 
-        Assert.Contains("EngineDocument.OpenWithCompatibilityRecovery(", method,
+        Assert.Contains("OpenDocument(path)", method, StringComparison.Ordinal);
+        Assert.Contains("EngineDocument.OpenWithCompatibilityRecovery(", source,
             StringComparison.Ordinal);
         Assert.Contains("renderer.Render(", method, StringComparison.Ordinal);
         Assert.DoesNotContain("Fallback", method, StringComparison.Ordinal);

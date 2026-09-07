@@ -35,10 +35,28 @@ internal sealed class PdfPageRenderSession : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (maximumWidth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
         if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
-        EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
-            File.ReadAllBytes(path));
+        EngineDocument document = OpenDocument(path);
         IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
         return new PdfPageRenderSession(document, pages, maximumWidth, maximumHeight, 0);
+    }
+
+    /// <summary>
+    /// Opens a file for rendering. Files encrypted with only an owner password open with the
+    /// empty user password, the same as every mainstream viewer.
+    /// </summary>
+    internal static EngineDocument OpenDocument(string path)
+    {
+        byte[] bytes = File.ReadAllBytes(path);
+        EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(bytes);
+        if (!document.IsEncrypted || document.IsDecrypted) return document;
+        try
+        {
+            return EngineDocument.OpenWithCompatibilityRecovery(bytes, string.Empty);
+        }
+        catch (Exception exception) when (exception is not OutOfMemoryException)
+        {
+            return document;
+        }
     }
 
     internal static PdfPageRenderSession OpenEngineFirst(string path, double scale)
@@ -46,8 +64,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         if (!double.IsFinite(scale) || scale <= 0)
             throw new ArgumentOutOfRangeException(nameof(scale));
-        EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
-            File.ReadAllBytes(path));
+        EngineDocument document = OpenDocument(path);
         IReadOnlyList<EnginePageInformation> pages = EnginePageInformation.Read(document);
         return new PdfPageRenderSession(document, pages, 0, 0, scale);
     }
@@ -100,8 +117,7 @@ internal sealed class PdfPageRenderSession : IDisposable
         cancellationToken.ThrowIfCancellationRequested();
         try
         {
-            EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(
-                File.ReadAllBytes(path));
+            EngineDocument document = OpenDocument(path);
             var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
             KillerPdf.Engine.Rendering.PdfRenderedPage rendered = renderer.Render(
                 pageIndex, new EngineRenderOptions(width, height, transparentBackground,

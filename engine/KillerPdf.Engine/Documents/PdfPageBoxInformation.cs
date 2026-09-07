@@ -76,12 +76,26 @@ public sealed record PdfPageBoxInformation
     private static PdfPageBoxBounds? ReadInherited(
         PdfDocument document, PdfPageTreeEntry page, string key) =>
         page.InheritedValues.TryGetValue(Name(key), out PdfObject? value)
-            ? ReadBox(document, value, page.Index, key) : null;
+            ? ReadBoxOrIgnore(document, value, page.Index, key) : null;
 
     private static PdfPageBoxBounds? ReadDirect(
         PdfDocument document, PdfPageTreeEntry page, string key) =>
         page.Dictionary.TryGetValue(Name(key), out PdfObject? value)
-            ? ReadBox(document, value, page.Index, key) : null;
+            ? ReadBoxOrIgnore(document, value, page.Index, key) : null;
+
+    private static PdfPageBoxBounds? ReadBoxOrIgnore(
+        PdfDocument document, PdfObject value, int pageIndex, string key)
+    {
+        try
+        {
+            return ReadBox(document, value, pageIndex, key);
+        }
+        catch (InvalidOperationException) when (document.UsesCompatibilityRecovery)
+        {
+            // Mainstream viewers ignore an unusable box and fall back to the next one.
+            return null;
+        }
+    }
 
     private static PdfPageBoxBounds ReadBox(
         PdfDocument document, PdfObject value, int pageIndex, string key)

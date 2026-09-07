@@ -273,9 +273,17 @@ public sealed class PdfTokenizer
             _position++;
             return Token(PdfTokenKind.DictionaryEnd, start, 2);
         }
+        if (CompatibilityRecovery)
+            return Token(PdfTokenKind.DictionaryEnd, start, 1);
 
         throw Error("A single greater-than sign is not a valid PDF token", start);
     }
+
+    /// <summary>
+    /// Gets or sets whether a lone greater-than sign closes a dictionary, as mainstream
+    /// viewers accept.
+    /// </summary>
+    internal bool CompatibilityRecovery { get; set; }
 
     private PdfToken ReadRegular(int start)
     {

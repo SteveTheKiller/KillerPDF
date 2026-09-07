@@ -124,6 +124,9 @@ public static class PdfStreamDecoder
                     GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit,
                     compatibilityRecovery),
                 "Crypt" => current,
+                // Mainstream viewers pass data through an unknown filter unchanged rather
+                // than abandoning the document.
+                _ when compatibilityRecovery => current,
                 _ => throw new PdfFilterException($"The PDF stream filter /{filter} is not supported yet.")
             };
 
@@ -504,57 +507,71 @@ public static class PdfStreamDecoder
     private static byte[] DecodeFlate(
         byte[] encoded, int maximumDecodedBytes, bool compatibilityRecovery)
     {
+        byte[] complete = Inflate(encoded, 0, zlibHeader: true, maximumDecodedBytes,
+            out InvalidDataException? failure, truncateAtLimit: compatibilityRecovery);
+        if (failure is null) return complete;
+        if (!compatibilityRecovery)
+            throw new PdfFilterException("The FlateDecode stream contains invalid zlib data.", failure);
+
+        // Common viewers keep whatever inflated before the corruption, skip leading garbage
+        // before the zlib header, and accept raw deflate data without a header.
+        // The inflater discards the output of the read that hits the corruption, so retry
+        // with small reads to keep everything before the damaged bytes.
+        const int salvageBufferSize = 64;
+        byte[] best = complete;
+        int start = 0;
+        while (start < encoded.Length && encoded[start] is 0 or 9 or 10 or 12 or 13 or 32) start++;
+        Consider(Inflate(encoded, start, zlibHeader: true, maximumDecodedBytes, out _,
+            salvageBufferSize, truncateAtLimit: true));
+        Consider(Inflate(encoded, start, zlibHeader: false, maximumDecodedBytes, out _,
+            salvageBufferSize, truncateAtLimit: true));
+        if (HasZlibHeader(encoded.AsSpan(start)))
+            Consider(Inflate(encoded, start + 2, zlibHeader: false, maximumDecodedBytes, out _,
+                salvageBufferSize, truncateAtLimit: true));
+        // Nothing could be inflated. Common viewers treat the stream as empty rather than
+        // abandoning the page.
+        return best;
+
+        void Consider(byte[] candidate)
+        {
+            if (candidate.Length > best.Length) best = candidate;
+        }
+    }
+
+    private static byte[] Inflate(byte[] encoded, int start, bool zlibHeader,
+        int maximumDecodedBytes, out InvalidDataException? failure, int bufferSize = 81_920,
+        bool truncateAtLimit = false)
+    {
+        failure = null;
+        using var output = new MemoryStream();
+        if (start >= encoded.Length) return [];
         try
         {
-            using var input = new MemoryStream(encoded, writable: false);
-            using var zlib = new ZLibStream(input, CompressionMode.Decompress);
-            using var output = new MemoryStream();
-            byte[] buffer = new byte[81_920];
+            using var input = new MemoryStream(encoded, start, encoded.Length - start, writable: false);
+            using Stream inflater = zlibHeader
+                ? new ZLibStream(input, CompressionMode.Decompress)
+                : new DeflateStream(input, CompressionMode.Decompress);
+            byte[] buffer = new byte[bufferSize];
             while (true)
             {
-                int read = zlib.Read(buffer, 0, buffer.Length);
-                if (read == 0)
+                int read = inflater.Read(buffer, 0, buffer.Length);
+                if (read == 0) break;
+                if (truncateAtLimit && output.Length + read > maximumDecodedBytes)
+                {
+                    // Keep the bounded prefix; the rest of an oversized stream is dropped
+                    // rather than failing the whole page.
+                    output.Write(buffer, 0, (int)Math.Max(0, maximumDecodedBytes - output.Length));
                     break;
-
+                }
                 EnsureWithinLimit(output.Length + read, maximumDecodedBytes);
                 output.Write(buffer, 0, read);
             }
-            return output.ToArray();
-        }
-        catch (PdfFilterException)
-        {
-            throw;
         }
         catch (InvalidDataException ex)
         {
-            if (compatibilityRecovery && HasZlibHeader(encoded))
-            {
-                try
-                {
-                    using var input = new MemoryStream(
-                        encoded, 2, encoded.Length - 6, writable: false);
-                    using var deflate = new DeflateStream(input, CompressionMode.Decompress);
-                    using var output = new MemoryStream();
-                    byte[] buffer = new byte[81_920];
-                    while (true)
-                    {
-                        int read = deflate.Read(buffer, 0, buffer.Length);
-                        if (read == 0) break;
-                        EnsureWithinLimit(output.Length + read, maximumDecodedBytes);
-                        output.Write(buffer, 0, read);
-                    }
-                    return output.ToArray();
-                }
-                catch (PdfFilterException)
-                {
-                    throw;
-                }
-                catch (InvalidDataException)
-                {
-                }
-            }
-            throw new PdfFilterException("The FlateDecode stream contains invalid zlib data.", ex);
+            failure = ex;
         }
+        return output.ToArray();
     }
 
     private static bool HasZlibHeader(ReadOnlySpan<byte> encoded)

@@ -269,7 +269,13 @@ public sealed class PdfDocument
         int currentGeneration = entry.Type == PdfCrossReferenceEntryType.InUse ? entry.Field2 : 0;
         if (entry.Type is PdfCrossReferenceEntryType.InUse or PdfCrossReferenceEntryType.Compressed
             && reference.Generation != currentGeneration)
-            return PdfNull.Instance;
+        {
+            if (!_compatibilityRecovery) return PdfNull.Instance;
+            // Mainstream viewers resolve by object number when the generation disagrees,
+            // preferring an object whose header matches the reference exactly.
+            PdfObject exact = ResolveMissingReference(reference);
+            if (exact is not PdfNull) return exact;
+        }
         return ResolveEntry(entry);
     }
 
@@ -356,7 +362,17 @@ public sealed class PdfDocument
             && (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2))
         {
             int? matchingOffset = FindIndirectObjectOffset(entry, offset);
-            if (matchingOffset is null) return PdfNull.Instance;
+            if (matchingOffset is null)
+            {
+                // The object number matches but the generation does not. Mainstream viewers
+                // use the object that is actually at the offset.
+                if (indirect.ObjectNumber == entry.ObjectNumber)
+                    return _security is not null && entry.ObjectNumber != _encryptionObjectNumber
+                        ? _security.Decrypt(indirect.Value, entry.ObjectNumber,
+                            indirect.Generation, Resolve)
+                        : indirect.Value;
+                return PdfNull.Instance;
+            }
             indirect = ParseIndirectObject(matchingOffset.Value);
         }
         if (indirect.ObjectNumber != entry.ObjectNumber || indirect.Generation != entry.Field2)
@@ -434,7 +450,18 @@ public sealed class PdfDocument
     private PdfObject ReadCompressedObject(PdfCrossReferenceEntry entry)
     {
         int streamNumber = checked((int)entry.Field1);
-        ObjectStreamContents contents = ReadObjectStream(streamNumber);
+        ObjectStreamContents contents;
+        try
+        {
+            contents = ReadObjectStream(streamNumber);
+        }
+        catch (Exception exception) when (_compatibilityRecovery
+            && exception is PdfSyntaxException or FormatException or PdfFilterException)
+        {
+            // An unreadable object stream loses its objects, as in mainstream viewers, rather
+            // than making the whole document unusable.
+            return PdfNull.Instance;
+        }
         if (entry.Field2 < 0 || entry.Field2 >= contents.OrderedObjects.Count)
             throw Error($"Compressed object {entry.ObjectNumber} has an invalid object-stream index", streamNumber);
 

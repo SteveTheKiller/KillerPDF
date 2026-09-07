@@ -41,12 +41,23 @@ public sealed class PdfPageContentReader
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (Resolve(item) is PdfNull) continue;
-            PdfStream stream = Resolve(item) as PdfStream
-                ?? throw new FormatException("Page content is not a stream.");
+            if (Resolve(item) is not PdfStream stream)
+            {
+                if (_document.UsesCompatibilityRecovery) continue;
+                throw new FormatException("Page content is not a stream.");
+            }
             byte[] bytes = _document.DecodeStream(
                 stream, PdfContentStreamReader.MaximumSourceBytes);
             if (output.Length + bytes.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
-                throw new FormatException("Page content exceeds the extraction limit.");
+            {
+                if (!_document.UsesCompatibilityRecovery)
+                    throw new FormatException("Page content exceeds the extraction limit.");
+                // Keep the bounded prefix of oversized content instead of abandoning the page.
+                int room = (int)(PdfContentStreamReader.MaximumSourceBytes - output.Length - 1);
+                if (room > 0) output.Write(bytes, 0, room);
+                output.WriteByte((byte)'\n');
+                break;
+            }
             output.Write(bytes);
             output.WriteByte((byte)'\n');
         }
@@ -146,7 +157,11 @@ public sealed class PdfPageContentReader
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (Resolve(item) is PdfNull) continue;
-                var stream = Resolve(item) as PdfStream ?? throw new FormatException("Page content is not a stream.");
+                if (Resolve(item) is not PdfStream stream)
+                {
+                    if (_document.UsesCompatibilityRecovery) continue;
+                    throw new FormatException("Page content is not a stream.");
+                }
                 var bytes = Decode(stream);
                 if (output.Length + bytes.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
                     throw new FormatException("Page content exceeds the extraction limit.");

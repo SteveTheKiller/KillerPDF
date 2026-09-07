@@ -137,13 +137,32 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
-    public void Decode_CompatibilityRecoveryStillRejectsInvalidDeflateData()
+    public void Decode_CompatibilityRecoveryTreatsUnrecoverableDeflateDataAsEmpty()
     {
         PdfStream stream = Stream([0x78, 0x9C, 0xFF, 0xFF, 0, 0, 0, 0],
             Pair("Filter", Name("FlateDecode")));
 
         Assert.Throws<PdfFilterException>(() =>
-            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value));
+            PdfStreamDecoder.Decode(stream, value => value));
+        Assert.Empty(PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value));
+    }
+
+    [Fact]
+    public void Decode_CompatibilityRecoveryKeepsDataInflatedBeforeCorruption()
+    {
+        byte[] plain = Encoding.ASCII.GetBytes(string.Join(' ',
+            Enumerable.Range(0, 6000).Select(index => (index * 7919 % 10007).ToString())));
+        byte[] encoded = Compress(plain);
+        // Corrupt the middle so inflation fails part-way through.
+        int corruptStart = encoded.Length * 6 / 10;
+        for (int index = corruptStart; index < corruptStart + 32; index++) encoded[index] ^= 0x5A;
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("FlateDecode")));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream, value => value));
+        byte[] recovered = PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value);
+
+        Assert.True(recovered.Length >= 500, $"Recovered only {recovered.Length} bytes.");
+        Assert.Equal(plain.Take(500), recovered.Take(500));
     }
 
     [Fact]

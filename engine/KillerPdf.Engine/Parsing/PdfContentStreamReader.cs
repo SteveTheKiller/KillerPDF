@@ -35,28 +35,48 @@ public static class PdfContentStreamReader
         if (source.Length > MaximumSourceBytes)
             throw new ArgumentOutOfRangeException(nameof(source), "Decoded content exceeds the size limit.");
 
-        var parser = PdfObjectParser.ForContent(source);
+        var parser = PdfObjectParser.ForContent(source, compatibilityRecovery);
         var instructions = new List<PdfContentInstruction>();
         var operands = new List<PdfObject>();
+        int recoveries = 0;
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            PdfToken token = parser.PeekContentToken();
+            PdfToken token;
+            try
+            {
+                token = parser.PeekContentToken();
+            }
+            catch (PdfSyntaxException error) when (compatibilityRecovery)
+            {
+                Resynchronize(error.Offset);
+                continue;
+            }
             if (token.Kind == PdfTokenKind.EndOfInput)
             {
-                if (operands.Count != 0)
+                if (operands.Count != 0 && !compatibilityRecovery)
                     throw new PdfSyntaxException("Content ends with operands but no operator", token.Offset);
                 return instructions.AsReadOnly();
             }
 
             if (instructions.Count >= maximumInstructions)
+            {
+                if (compatibilityRecovery) return instructions.AsReadOnly();
                 throw new PdfSyntaxException("Content instruction limit exceeded", token.Offset);
+            }
 
             if (token.Kind != PdfTokenKind.Keyword)
             {
                 if (operands.Count >= maximumOperands)
                     throw new PdfSyntaxException("Content operand limit exceeded", token.Offset);
-                operands.Add(parser.ParseObject());
+                try
+                {
+                    operands.Add(parser.ParseObject());
+                }
+                catch (PdfSyntaxException error) when (compatibilityRecovery)
+                {
+                    Resynchronize(Math.Max(error.Offset, token.Offset));
+                }
                 continue;
             }
 
@@ -64,17 +84,52 @@ public static class PdfContentStreamReader
             if (operation == "BI")
             {
                 if (operands.Count != 0)
-                    throw new PdfSyntaxException("BI cannot follow operands", token.Offset);
-                instructions.Add(PdfInlineImageReader.Read(parser, source, token.Offset,
-                    maximumOperands, resolveColorComponents, cancellationToken,
-                    compatibilityRecovery));
+                {
+                    if (!compatibilityRecovery)
+                        throw new PdfSyntaxException("BI cannot follow operands", token.Offset);
+                    operands.Clear();
+                }
+                try
+                {
+                    instructions.Add(PdfInlineImageReader.Read(parser, source, token.Offset,
+                        maximumOperands, resolveColorComponents, cancellationToken,
+                        compatibilityRecovery));
+                }
+                catch (PdfSyntaxException error) when (compatibilityRecovery)
+                {
+                    Resynchronize(Math.Max(error.Offset, token.Offset));
+                }
                 continue;
             }
             if (operation is "R" or "obj" or "endobj" or "stream" or "endstream" or "ID" or "EI")
-                throw new PdfSyntaxException("Object or inline-image syntax is invalid here", token.Offset);
+            {
+                if (!compatibilityRecovery)
+                    throw new PdfSyntaxException("Object or inline-image syntax is invalid here", token.Offset);
+                continue;
+            }
 
             instructions.Add(new PdfContentInstruction(operation, token.Offset, operands));
             operands.Clear();
         }
+
+        // Common viewers skip a malformed token and keep interpreting the rest of the
+        // content. Drop the pending operands and continue after the next delimiter.
+        void Resynchronize(int failureOffset)
+        {
+            if (++recoveries > 10_000)
+                throw new PdfSyntaxException("Content recovery limit exceeded", failureOffset);
+            ReadOnlySpan<byte> bytes = source.Span;
+            int position = Math.Clamp(failureOffset, 0, bytes.Length);
+            if (position < bytes.Length) position++;
+            while (position < bytes.Length && !IsDelimiterOrWhitespace(bytes[position]))
+                position++;
+            operands.Clear();
+            parser.SetContentPosition(position);
+        }
+
+        static bool IsDelimiterOrWhitespace(byte value) =>
+            value is 0 or 9 or 10 or 12 or 13 or 32
+                or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
+                or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
     }
 }
