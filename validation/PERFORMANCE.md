@@ -3,6 +3,35 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 paired throughput with codec SIMD
+
+Validation date: 2026-09-07. JPEG 2000 floating-point column reconstruction now
+uses SIMD alongside the previously verified JPEG transform change. On 649
+conformance inputs at 1024 pixels, page one, three measured passes retain
+614 OK, 35 SKIP, and zero FAIL. PDFium 1.8.5 retains 600 OK, 41 SKIP, and eight
+FAIL. All 614 engine PNGs match the preceding conformance output in every pass.
+
+Median render totals on the 600 shared files are 15.014 seconds for the engine
+and 12.953 seconds for PDFium, a ratio of 1.1591. The preceding paired ratio
+was 1.2544. Median wall times are 29.710 and 23.943 seconds; median sampled peak
+working sets are 1,102.0 and 647.9 MB. The engine remains slower and uses more
+memory. A collection warmup precedes three alternating measured passes per build;
+no builds or heavy checks overlapped. Cold startup is not isolated.
+
+The full 2,973 engine and 338 app tests pass, with zero Release warnings or
+errors. Four new exact-float cases check odd and even origins across column
+lengths 1 through 257. Selected decoder tests pass with AVX and then all hardware
+intrinsics disabled. Four focused PDFjs JPEG 2000 pages retain their input and
+PNG hashes. Optional vector scratch buffers stay within the existing sample
+budget; unsupported cases use scalar processing.
+
+The app's embedded engine hash matches the independently built engine. An initial
+scratch comparison loaded an older DLL and was excluded. The larger warmed
+standalone balloon improvement is not reproduced by collection timings, so it
+does not support a general page-speed claim. Full-corpus, multipage, OCR, and
+separate startup evaluation remain open. See the
+[record](records/codec-simd-1.9.0.json) and [all raw logs](benchmarks/1.9.0-codec-simd).
+
 ## KillerPDF 1.9.0 managed JPEG SIMD
 
 Validation date: 2026-09-07. Batching independent JPEG output samples with SIMD

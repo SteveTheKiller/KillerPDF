@@ -180,8 +180,14 @@ internal static partial class PdfJpeg2000Decoder
                 frame.h = height;
                 frame.Data = samples;
                 Array scratch = integer ? new int[Math.Max(width, height)] : new float[Math.Max(width, height)];
-                Array columnOutput = integer ? new int[height] : new float[height];
-                Reconstruct(frame, tree, component, Level(TileIdx, component), scratch, columnOutput);
+                int lanes = Vector<float>.Count;
+                long vectorExtraBytes = (long)height * (2 * lanes - 1) * sizeof(float);
+                bool vectorColumns = !integer && Vector.IsHardwareAccelerated && width >= lanes
+                    && vectorExtraBytes <= MaximumTemporarySampleBytes - _sampleBytes - bytes - scratchBytes;
+                float[]? columnInput = vectorColumns ? new float[checked(height * lanes)] : null;
+                Array columnOutput = integer ? new int[height]
+                    : new float[vectorColumns ? checked(height * lanes) : height];
+                Reconstruct(frame, tree, component, Level(TileIdx, component), scratch, columnOutput, columnInput);
                 _frames.Add(component, frame);
                 _sampleBytes += bytes;
             }
@@ -206,7 +212,7 @@ internal static partial class PdfJpeg2000Decoder
         }
 
         private void Reconstruct(DataBlk frame, SubbandSyn tree, int component, int level,
-            Array scratch, Array columnOutput)
+            Array scratch, Array columnOutput, float[]? columnInput)
         {
             if (tree.w == 0 || tree.h == 0) return;
             if (!tree.isNode)
@@ -222,11 +228,11 @@ internal static partial class PdfJpeg2000Decoder
                 }
                 return;
             }
-            Reconstruct(frame, (SubbandSyn)tree.LL, component, level, scratch, columnOutput);
+            Reconstruct(frame, (SubbandSyn)tree.LL, component, level, scratch, columnOutput, columnInput);
             if (tree.resLvl > level) return;
-            Reconstruct(frame, (SubbandSyn)tree.HL, component, level, scratch, columnOutput);
-            Reconstruct(frame, (SubbandSyn)tree.LH, component, level, scratch, columnOutput);
-            Reconstruct(frame, (SubbandSyn)tree.HH, component, level, scratch, columnOutput);
+            Reconstruct(frame, (SubbandSyn)tree.HL, component, level, scratch, columnOutput, columnInput);
+            Reconstruct(frame, (SubbandSyn)tree.LH, component, level, scratch, columnOutput, columnInput);
+            Reconstruct(frame, (SubbandSyn)tree.HH, component, level, scratch, columnOutput, columnInput);
             Array values = SampleArray(frame);
             for (int row = 0; row < tree.h; row++)
             {
@@ -234,7 +240,25 @@ internal static partial class PdfJpeg2000Decoder
                 Array.Copy(values, offset, scratch, 0, tree.w);
                 Synthesize(tree.hFilter, tree.ulcx, tree.w, scratch, values, offset, 1);
             }
-            for (int column = 0; column < tree.w; column++)
+            int column = 0;
+            if (columnInput is not null && values is float[] floatSamples
+                && tree.vFilter is SynWTFilterFloatLift9x7)
+            {
+                int lanes = Vector<float>.Count;
+                var output = (float[])columnOutput;
+                for (; column <= tree.w - lanes; column += lanes)
+                {
+                    int offset = checked(tree.uly * frame.w + tree.ulx + column);
+                    for (int row = 0; row < tree.h; row++)
+                        floatSamples.AsSpan(offset + row * frame.w, lanes)
+                            .CopyTo(columnInput.AsSpan(row * lanes));
+                    SynthesizeFloatColumns(columnInput, output, tree.h, (tree.ulcy & 1) == 0);
+                    for (int row = 0; row < tree.h; row++)
+                        output.AsSpan(row * lanes, lanes)
+                            .CopyTo(floatSamples.AsSpan(offset + row * frame.w));
+                }
+            }
+            for (; column < tree.w; column++)
             {
                 int offset = checked(tree.uly * frame.w + tree.ulx + column);
                 if (values is int[] integers)

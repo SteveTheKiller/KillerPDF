@@ -1,0 +1,140 @@
+{
+  "date": "2026-09-07",
+  "baseCommit": "ae29bb26a5f85a667ecd26c1e673f75e6cbebce8",
+  "increment": "Grouped floating-point JPEG 2000 column synthesis, on top of JPEG SIMD.",
+  "appSha256": "EC4BB48708F8C264DD6DDC40F9582355532430267CD60CEE633DDD161401DC57",
+  "engineSha256": "1F617348E3282DBFF97C22C820516A1C2E8C8FAE7D225F339B1AC578D967F410",
+  "embeddedEngineHashVerified": true,
+  "baselineVersion": "1.8.5",
+  "baselineAppSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "inputs": 649,
+    "page": 1,
+    "maximumDimension": 1024,
+    "warmupsPerBuild": 1,
+    "measuredPasses": 3,
+    "timeoutSeconds": 180,
+    "workingSetPollingMilliseconds": 100,
+    "processOrder": [
+      "baseline-warmup",
+      "engine-warmup",
+      "baseline-1",
+      "engine-1",
+      "engine-2",
+      "baseline-2",
+      "baseline-3",
+      "engine-3"
+    ]
+  },
+  "results": {
+    "sharedCount": 600,
+    "builds": {
+      "baseline": {
+        "statuses": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "totalRenderMilliseconds": [
+          13173,
+          12571,
+          12953
+        ],
+        "sharedRenderMilliseconds": [
+          13173,
+          12571,
+          12953
+        ],
+        "sharedPageMedianMilliseconds": [
+          5,
+          5,
+          5
+        ],
+        "wallMilliseconds": [
+          24017,
+          23463,
+          23943
+        ],
+        "peakWorkingSetBytes": [
+          648364032,
+          647884800,
+          643051520
+        ],
+        "identicalPngs": []
+      },
+      "engine": {
+        "statuses": {
+          "OK": 614,
+          "SKIP": 35,
+          "FAIL": 0
+        },
+        "totalRenderMilliseconds": [
+          15086,
+          15017,
+          15202
+        ],
+        "sharedRenderMilliseconds": [
+          15014,
+          14963,
+          15137
+        ],
+        "sharedPageMedianMilliseconds": [
+          7,
+          7,
+          7.5
+        ],
+        "wallMilliseconds": [
+          29937,
+          29498,
+          29710
+        ],
+        "peakWorkingSetBytes": [
+          1107595264,
+          1101967360,
+          1087483904
+        ],
+        "identicalPngs": [
+          614,
+          614,
+          614
+        ]
+      }
+    },
+    "ratio": 1.1591137188296148,
+    "balloon": {
+      "engine": [
+        421,
+        424,
+        419
+      ],
+      "baseline": [
+        172,
+        158,
+        177
+      ]
+    }
+  },
+  "tests": {
+    "engine": 2973,
+    "app": 338,
+    "newCases": 4,
+    "expectationsRelaxed": 0,
+    "releaseWarnings": 0,
+    "releaseErrors": 0,
+    "selectedJpeg2000Normal": 39,
+    "selectedJpeg2000AvxDisabled": 26,
+    "selectedJpeg2000IntrinsicsDisabled": 26
+  },
+  "pdfjsFocused": {
+    "files": [
+      "bug_jpx.pdf",
+      "issue19517.pdf",
+      "jpx_smaskindata.pdf",
+      "jp2k-resetprob.pdf"
+    ],
+    "identicalInputAndPngHashesTo": "jp2-columns-1.9.0.json"
+  },
+  "behavior": "Each vector lane reconstructs one independent floating-point 9/7 column. Scalar operation order, symmetric boundaries, and odd-origin normalization are preserved. Optional grouped buffers fit the existing temporary-sample bound; integer filters, short remainders, unsupported hardware, and insufficient headroom retain scalar synthesis.",
+  "measurement": "No builds, tests, or heavy jobs overlapped paired throughput. Read-only inspections and documentation preparation occurred during measurement. Build hashes checked before/after every pass; embedded engine resource inflated in memory and verified against the standalone DLL after measurement. All 614 engine PNGs in each measured pass match conformance-jpeg-simd-20260907.",
+  "limitations": "One conformance set at page one is not representative of the full corpus. The engine remains slower and uses more sampled peak memory. Cold startup is included but not isolated; sampled working sets may miss terminal peaks. Balloon collection timings do not demonstrate the larger gain seen in an exploratory warmed standalone test. An initial scratch comparison loaded an older DLL and was excluded after hash verification. No new full PDFjs or OCR evaluation."
+}

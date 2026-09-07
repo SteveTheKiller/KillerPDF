@@ -290,6 +290,12 @@ pool rounding would exceed the remaining allowance. This limit excludes other
 decoder state and buffers retained by the shared array pool, so it is not a
 process memory cap.
 
+On supported CPUs, floating-point 9/7 synthesis processes adjacent columns in
+SIMD lanes, preserving the scalar filter's arithmetic order and boundary rules.
+The optional grouped input and output buffers count toward the same sample
+budget. Insufficient headroom, unsupported hardware, integer transforms, and
+remainder columns use scalar synthesis. No image-quality setting changes.
+
 The renderer reads a single global opacity channel from the JP2 channel-definition
 box and separates it from the color samples. `SMaskInData` controls its use: absent
 or zero ignores opacity, one applies it, and two applies it with preblended-color

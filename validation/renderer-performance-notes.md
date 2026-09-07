@@ -2,7 +2,7 @@
 
 Research date: 2026-09-07. These are implementation leads, not measured promises.
 The current paired conformance comparison still favors PDFium 1.8.5 by a render
-ratio of 1.2544. See [the measured results](PERFORMANCE.md).
+ratio of 1.1591. See [the measured results](PERFORMANCE.md).
 
 ## Techniques in other implementations
 
@@ -12,8 +12,8 @@ ratio of 1.2544. See [the measured results](PERFORMANCE.md).
   locality. The engine's balloon profile identified 9/7 synthesis as a major cost.
 - [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) uses SIMD for
   JPEG compression and decompression and optimized Huffman coding. Our managed
-  JPEG transform still calculates output samples individually, making batched
-  arithmetic a useful experiment without changing the reconstruction formula.
+  JPEG transform now batches independent output samples without changing the
+  reconstruction formula. The focused record below measures this change.
 - [PDFium's image decoder](https://pdfium.googlesource.com/pdfium/+/refs/heads/main/core/fpdfapi/page/cpdf_dib.cpp)
   selects a decode resolution from the required output size. Our renderer already
   selects JPEG reductions and JPEG 2000 resolution levels. More aggressive
@@ -27,11 +27,11 @@ ratio of 1.2544. See [the measured results](PERFORMANCE.md).
 
 ## Next experiments
 
-1. Measure complete page throughput after the verified managed JPEG SIMD change.
-   The [focused record](records/jpeg-simd-1.9.0.json) confirms identical samples
-   and a selected decode improvement, but does not prove overall superiority.
-2. Evaluate multi-column JPEG 2000 synthesis, including odd origins, short edge
-   tiles, integer and floating-point transforms, and bounded temporary storage.
+1. Extend the [paired codec SIMD comparison](records/codec-simd-1.9.0.json)
+   beyond the conformance set. The engine remains slower than PDFium overall.
+2. Separate startup and first-use compilation from warmed JPEG 2000 rendering.
+   Grouped column synthesis is verified, but the larger isolated warmed gain
+   does not appear in the balloon collection timing.
 3. Profile the largest remaining non-codec gaps, including DeviceN shadings and
    compact syntax pages, before choosing a broader rendering change.
 
