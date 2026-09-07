@@ -99,6 +99,37 @@ field appearances into page content and remove the fields. Review the rendered
 result and retain the original file if future form editing matters. A preserved
 byte prefix does not by itself establish signature validity.
 
+## Direct field edits
+
+For host-owned editing without interchange data, create a
+`KillerPdf.Engine.Editing.PdfIncrementalPageEditor` from the opened document.
+Use fully qualified field names from the widget reader and queue the intended
+changes before calling `Build()` once. The returned PDF bytes contain the
+incremental revision; the host chooses where to save them.
+
+| Method | Value contract |
+| --- | --- |
+| `SetTextFieldValue` | Sets text and regenerates widget appearances. Optional embedded font and positive font-size arguments control the generated text. |
+| `SetChoiceFieldValue` | Sets one combo-box or single-select list-box export value. |
+| `SetChoiceFieldValues` | Supplies distinct export values for a multiselect list box. |
+| `SetCheckBoxValue` | Selects the existing on or off state using a Boolean. |
+| `SetRadioButtonValue` | Selects a group value; null requests a cleared selection. An empty string is not a clear operation. |
+| `ResetFormField` | Restores the field's default value and matching appearance. |
+
+Choice values are export values, not display labels. A noneditable choice
+requires a declared option; an editable combo box can accept another value.
+Single-select fields require exactly one selected value. The multiselect API
+rejects duplicate or null values. Empty selections and defaults are subject to
+the field's type and reset rules.
+
+The setters queue changes, so validation is not finished when a setter returns.
+`Build()` checks the document and field constraints, enforces password
+permissions, and currently rejects documents with a certification permission.
+It also rejects an empty update. Handle failures before writing the destination
+file. After a successful build, reopen the returned bytes and inspect both field
+values and rendered appearances. The original `PdfDocument` still represents
+the original input.
+
 ## Values and rendered appearances
 
 A field's current value and its saved widget appearance are separate PDF data.
