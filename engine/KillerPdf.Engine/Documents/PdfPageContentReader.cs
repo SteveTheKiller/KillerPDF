@@ -22,7 +22,7 @@ public sealed class PdfPageContentReader
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
         if (!document.CanReadPageContent) throw new InvalidOperationException("Authenticate the document before extracting page content.");
-        _tree = PdfPageTree.Read(document);
+        _tree = PdfPageTree.Read(document, allowCycleRecovery: true);
     }
     /// <summary>Gets the number of pages.</summary>
     public int PageCount => _tree.Pages.Count;
@@ -121,6 +121,7 @@ public sealed class PdfPageContentReader
         var paths = new List<PdfExtractedPath>();
         var shadings = new List<PdfExtractedShading>();
         var diagnostics = new HashSet<string>();
+        if (_tree.RecoveredCycle) diagnostics.Add("A cyclic page-tree reference was omitted.");
         var activeForms = new HashSet<PdfStream>();
         int recoveredFormExpansions = 0;
         long decodedBytes = 0;

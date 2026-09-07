@@ -238,13 +238,16 @@ public sealed class PdfDocumentTests
     [InlineData("3 0 R 4 0 R 5 0 R")]
     [InlineData("4 0 R 3 0 R 5 0 R")]
     [InlineData("4 0 R 5 0 R 3 0 R")]
-    public void OpenWithCompatibilityRecoverySkipsEmptyPageTreeBranches(string kids)
+    [InlineData("3 0 R 4 0 R 5 0 R", true)]
+    [InlineData("4 0 R 3 0 R 5 0 R", true)]
+    [InlineData("4 0 R 5 0 R 3 0 R", true)]
+    public void OpenWithCompatibilityRecoverySkipsEmptyPageTreeBranches(string kids, bool cycle = false)
     {
         string[] objects =
         [
             "<< /Type /Catalog /Pages 2 0 R >>",
             $"<< /Type /Pages /Kids [{kids}] /Count 2 /MediaBox [0 0 30 40] >>",
-            "<< /Type /Pages /Parent 2 0 R /Kids [] /Count 0 /MediaBox [0 0 99 99] >>",
+            $"<< /Type /Pages /Parent 2 0 R /Kids [{(cycle ? "3 0 R" : "")}] /Count 0 /MediaBox [0 0 99 99] >>",
             "<< /Type /Page /Parent 2 0 R >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 50 60] >>"
         ];
@@ -262,13 +265,20 @@ public sealed class PdfDocumentTests
         source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
         byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
 
-        Assert.Contains("Kids array is empty", Assert.Throws<InvalidOperationException>(() =>
+        Assert.Contains(cycle ? "cycle" : "Kids array is empty", Assert.Throws<InvalidOperationException>(() =>
             PdfPageInformation.Read(PdfDocument.Open(bytes))).Message, StringComparison.Ordinal);
         IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(
             PdfDocument.OpenWithCompatibilityRecovery(bytes));
         Assert.Collection(pages,
             page => { Assert.Equal(30, page.Width); Assert.Equal(40, page.Height); },
             page => { Assert.Equal(50, page.Width); Assert.Equal(60, page.Height); });
+        if (cycle)
+        {
+            PdfDocument recovered = PdfDocument.OpenWithCompatibilityRecovery(bytes);
+            Assert.Throws<InvalidOperationException>(() => new PdfIncrementalPageEditor(recovered));
+            Assert.Contains("A cyclic page-tree reference was omitted.",
+                new PdfPageContentReader(recovered).Read(0).Diagnostics);
+        }
     }
 
     [Fact]

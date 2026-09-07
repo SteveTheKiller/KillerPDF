@@ -14,7 +14,7 @@ public static class PdfOptionalContentReader
         ArgumentNullException.ThrowIfNull(document);
         if (!document.CanReadPageContent)
             throw new InvalidOperationException("Authenticate the document before reading layers.");
-        PdfDictionary catalog = PdfPageTree.Read(document).Catalog;
+        PdfDictionary catalog = PdfPageTree.Read(document, allowCycleRecovery: true).Catalog;
         if (!TryValue(document, catalog, "OCProperties", out PdfObject? propertiesValue))
             return new PdfOptionalContentInfo();
         PdfDictionary properties = propertiesValue as PdfDictionary

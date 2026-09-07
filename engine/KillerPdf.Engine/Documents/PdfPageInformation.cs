@@ -24,7 +24,7 @@ public sealed record PdfPageInformation
     public static IReadOnlyList<PdfPageInformation> Read(PdfDocument document)
     {
         ArgumentNullException.ThrowIfNull(document);
-        PdfPageTree tree = PdfPageTree.Read(document);
+        PdfPageTree tree = PdfPageTree.Read(document, allowCycleRecovery: true);
         var result = new PdfPageInformation[tree.Pages.Count];
         for (int index = 0; index < tree.Pages.Count; index++)
         {

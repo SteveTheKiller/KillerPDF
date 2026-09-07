@@ -49,7 +49,7 @@ public sealed partial class PdfPageRenderer
             throw new InvalidOperationException("Authenticate the document before rendering pages.");
         _content = new PdfPageContentReader(document);
         _fontResolver = fontResolver;
-        _tree = PdfPageTree.Read(document);
+        _tree = PdfPageTree.Read(document, allowCycleRecovery: true);
         _pages = PdfPageInformation.Read(document);
         _boxes = PdfPageBoxInformation.Read(document);
         _pageResources = Enumerable.Range(0, _pages.Count)
@@ -115,6 +115,7 @@ public sealed partial class PdfPageRenderer
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
         var diagnostics = new HashSet<string>();
+        if (_tree.RecoveredCycle) diagnostics.Add("A cyclic page-tree reference was omitted.");
         if (_recoveredPageResources.Contains(pageIndex))
             diagnostics.Add("Invalid page resources were treated as empty.");
         var activeForms = new HashSet<PdfStream>();

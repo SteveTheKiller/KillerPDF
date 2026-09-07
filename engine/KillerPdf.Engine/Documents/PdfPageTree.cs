@@ -35,7 +35,9 @@ internal sealed class PdfPageTree
     internal PdfIndirectReference RootReference { get; }
     internal IReadOnlyList<PdfPageTreeEntry> Pages { get; }
 
-    internal static PdfPageTree Read(PdfDocument document)
+    internal bool RecoveredCycle { get; private init; }
+
+    internal static PdfPageTree Read(PdfDocument document, bool allowCycleRecovery = false)
     {
         ArgumentNullException.ThrowIfNull(document);
         PdfIndirectReference catalogReference = document.CrossReferences.TryGetTrailerValue(
@@ -77,8 +79,12 @@ internal sealed class PdfPageTree
         var pages = new List<PdfPageTreeEntry>();
         var active = new HashSet<(int ObjectNumber, int Generation)>();
         var visitedNodes = new HashSet<(int ObjectNumber, int Generation)>();
+        bool recoveredCycle = false;
         Visit(rootReference, null, 0, new Dictionary<PdfName, PdfObject>());
-        return new PdfPageTree(catalogReference, catalog, rootReference, pages);
+        return new PdfPageTree(catalogReference, catalog, rootReference, pages)
+        {
+            RecoveredCycle = recoveredCycle
+        };
 
         int Visit(
             PdfIndirectReference reference, PdfIndirectReference? expectedParent, int depth,
@@ -91,7 +97,14 @@ internal sealed class PdfPageTree
             reference = resolvedReference;
             var key = (reference.ObjectNumber, reference.Generation);
             if (!active.Add(key))
+            {
+                if (allowCycleRecovery && document.UsesCompatibilityRecovery)
+                {
+                    recoveredCycle = true;
+                    return 0;
+                }
                 throw new InvalidOperationException("The page tree contains a cycle.");
+            }
             if (!visitedNodes.Add(key))
             {
                 active.Remove(key);

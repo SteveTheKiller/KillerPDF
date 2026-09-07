@@ -34,8 +34,11 @@ Recovery derives page counts from the actual page-tree children without resolvin
 `/Count` metadata, including invalid values or references to damaged streams.
 Empty intermediate branches contribute no pages in recovery; neighboring pages
 retain their order and inherited geometry. Strict readers still reject empty
-intermediate branches and validate the declared count. Tree cycle, repeated-node,
-nesting-depth, and maximum-page limits remain enforced in recovery mode.
+intermediate branches and validate the declared count. Display geometry, content
+extraction, rendering, and optional-content reading can stop a cyclic back-reference
+in recovery mode while retaining valid siblings. Extraction and rendering report
+`A cyclic page-tree reference was omitted.` Editors and other tree consumers keep
+cycle rejection. Repeated-node, nesting-depth, and maximum-page limits still apply.
 
 If the declared root resolves to a dictionary with neither a catalog declaration
 nor a page tree, page-tree readers can select one unambiguous uncompressed catalog.
