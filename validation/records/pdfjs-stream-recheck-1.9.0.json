@@ -1,0 +1,34 @@
+{
+  "date": "2026-09-07",
+  "engineCodeCommit": "13cdcb135300dae39aea8ef8c552f30dbaf3ff72",
+  "engineApplicationSha256": "C78F3C135C1A4A527BF8ACE4220E7D7C18B8863EDE521751BF665BF260269F7B",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "files": 54,
+    "page": 1,
+    "maximumDimension": 1024,
+    "timeoutSecondsPerBuildAndFile": 15
+  },
+  "selection": "Same previously non-OK PDF.js files as the font recheck, staged in pdfjs-remaining-input-20260907.",
+  "changedInputHashesFromPriorRecheck": 0,
+  "engine": {
+    "ok": 20,
+    "skip": 25,
+    "fail": 9,
+    "timeout": 0
+  },
+  "baseline": {
+    "ok": 38,
+    "skip": 15,
+    "fail": 1,
+    "timeout": 0
+  },
+  "priorEngine": {
+    "ok": 14,
+    "skip": 25,
+    "fail": 15,
+    "timeout": 0
+  },
+  "limitations": "Selected failure subset, not a full corpus run or throughput benchmark. Render success does not establish visual parity. Previously accepted files are excluded."
+}

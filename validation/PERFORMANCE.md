@@ -3,6 +3,18 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 focused PDF.js recovery recheck
+
+Validation date: 2026-09-07. The same 54 previously non-OK PDF.js files were
+rerun at `13cdcb1`, with page one, 1024 px maximum dimension, and a 15-second
+per-build/file limit. Engine results improved from 14 OK, 25 SKIP, and 15 FAIL
+to 20 OK, 25 SKIP, and nine FAIL. PDFium 1.8.5 remains at 38 OK, 15 SKIP,
+and one FAIL. Neither build timed out; all input hashes match the prior recheck.
+
+This selected failure subset does not update full-corpus totals or establish
+throughput or visual parity. See the [record](records/pdfjs-stream-recheck-1.9.0.json)
+and [per-file results](benchmarks/1.9.0-pdfjs-stream-recheck/render-comparison-summary.csv).
+
 ## KillerPDF 1.9.0 JPEG 2000 allocation check
 
 Validation date: 2026-09-07. Reusing cleared tile sample buffers reduced warmed
