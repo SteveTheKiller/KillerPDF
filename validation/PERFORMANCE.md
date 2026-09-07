@@ -3,6 +3,20 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 full host Identity-font audit
+
+Validation date: 2026-09-07. The complete 979-file PDF.js comparison keeps coverage
+at 960 OK, 18 SKIP, and one failure for the engine versus 957 OK, 21 SKIP, and
+one failure for PDFium 1.8.5, with no timeouts. All paired source hashes were
+verified. Of 960 engine PNGs, 948 are unchanged and 12 restore intended text,
+including missing final digits, accented letters, Cyrillic, and a pound sign.
+
+All 12 changed images were visually reviewed. Font sizing differences remain,
+including higher aggregate error on one Calibri sample, and form-content gaps
+remain open. [Per-image evidence](records/full-host-identity-1.9.0.json) and
+[raw comparison](benchmarks/1.9.0-full-host-identity/render-comparison.csv) retain
+the limitations. These cold per-file measurements do not establish throughput.
+
 ## KillerPDF 1.9.0 host Identity-font validation
 
 Validation date: 2026-09-07. Unembedded Adobe-Identity TrueType fonts without
