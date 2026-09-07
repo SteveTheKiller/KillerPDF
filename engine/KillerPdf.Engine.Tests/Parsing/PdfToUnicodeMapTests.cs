@@ -77,6 +77,27 @@ public sealed class PdfToUnicodeMapTests
 
     private const string Space = "1 begincodespacerange <0000> <FFFF> endcodespacerange ";
 
+    [Theory]
+    [InlineData("<0000> <ffffffff> <>")]
+    [InlineData("<0003> <0001> <0042>")]
+    public void RecoverySkipsInvalidMappingRangesAndRetainsValidEntries(string range)
+    {
+        byte[] source = Encoding.ASCII.GetBytes(Space
+            + $"2 beginbfrange {range} <0041> <0042> <0041> endbfrange");
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        var map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+        Assert.Equal(["A", "B"], map.Decode([0, 0x41, 0, 0x42]).Select(c => c.Text));
+        Assert.Throws<NotSupportedException>(() => map.Decode([0, 3]));
+    }
+
+    [Theory]
+    [InlineData("1 begincodespacerange <0000> <ffffffff> endcodespacerange")]
+    [InlineData("1 begincodespacerange <0003> <0001> endcodespacerange")]
+    [InlineData("1 begincodespacerange <00000000> <ffffffff> endcodespacerange 1 beginbfrange <00000000> <ffffffff> <> endbfrange")]
+    public void RecoveryStillRejectsInvalidCodeSpacesAndOversizedValidRanges(string source)
+        => Assert.Throws<FormatException>(() => PdfToUnicodeMap.ParseWithCompatibilityRecovery(
+            Encoding.ASCII.GetBytes(source)));
+
     [Fact]
     public void RecoveryIncludesExplicitMappingsOutsideDeclaredCodeSpace()
     {

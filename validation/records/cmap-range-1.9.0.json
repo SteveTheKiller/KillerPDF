@@ -1,0 +1,22 @@
+{
+  "engineApplicationSha256": "D7FFEAA220C2FC1E83D8B62CA266707F10C0E69E237CBF714F5F62FBB8067BD5",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue11922_reduced.pdf",
+    "inputSha256": "BC87B83B28BF4201B8A34C6EFA27ACE31B850CAEFFC45EECA896BEC9E2FAA444",
+    "before": "FAIL",
+    "after": "OK",
+    "renderMilliseconds": 212,
+    "dimensions": [1024, 256],
+    "diagnostics": [],
+    "rgbMaeAgainstBaseline": 0,
+    "nonwhitePixels": 0,
+    "independentGlyphCheck": "The page paints CID3 ten times. CIDToGIDMap maps CID3 to glyph3. The embedded TrueType font uses long loca offsets, with glyph3 offsets108 and108, confirming an empty glyph outline."
+  },
+  "tests": { "newCases": 5, "failedBefore": 2, "engine": 2752, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limits": "Recovery skips bfrange entries with unequal source widths or descending endpoints. Strict parsing, code-space validation, and expansion limits on valid ranges remain unchanged.",
+  "limitations": "Blank rendering is supported by the embedded glyph evidence; it is not a general empty-page recovery policy. Invalid mappings do not provide reliable Unicode extraction. Single-file timing is not a throughput comparison. Full PDF.js coverage has not been rerun at this build."
+}

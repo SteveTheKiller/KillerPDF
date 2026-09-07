@@ -73,6 +73,12 @@ width. Unmapped codes still have no Unicode value. Existing or newly introduced
 ambiguity between character widths is rejected, and the 256-code-space limit
 remains in force. Strict parsing requires mappings to fit the declared spaces.
 
+Recovery skips a `bfrange` entry whose source endpoints have different byte
+widths or descending values. Other entries remain available, and no Unicode
+mapping is invented for the rejected entry. Invalid code-space declarations and
+otherwise valid ranges exceeding the expansion limit still fail. Strict parsing
+rejects invalid mapping ranges.
+
 For non-pattern `sc`, `scn`, `SC`, and `SCN` color operations with an invalid
 component count, recovery consumes the required leading operands when extra
 values are present. An incomplete operation retains the current paint color.

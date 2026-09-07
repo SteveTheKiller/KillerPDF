@@ -110,7 +110,10 @@ public sealed class PdfToUnicodeMap
                 }
                 var high = Code(operands[i + 1]);
                 if (low.Length != high.Length || high.Code < low.Code)
+                {
+                    if (compatibilityRecovery && block == "beginbfrange") continue;
                     throw new FormatException("Invalid ToUnicode source range.");
+                }
                 if (block == "begincodespacerange")
                 {
                     if (map._spaces.Count >= 256) throw new FormatException("Too many ToUnicode code spaces.");
