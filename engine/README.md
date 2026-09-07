@@ -184,6 +184,9 @@ host callbacks, previews, cancellation, contextual values, and resuming runs.
 See [imposition plans and sheet PDFs](docs/imposition.md) for N-up, booklet,
 manual ordering, poster tiles, marks, and output boundaries.
 
+See [headers, footers, and Bates numbering](docs/page-furniture.md) for templates,
+placement review, recognized marks, replacement, and continuous numbering.
+
 ## Repository layout
 
 ```text
