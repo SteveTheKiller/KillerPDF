@@ -1,0 +1,63 @@
+{
+  "date": "2026-09-07",
+  "productCommit": "bf4d0f68bfc4ba4ab7612778242252580f461f15",
+  "engineAppSha256": "854F4BC74EAB1091A0A990B76C18993EC17C23600F153DFD9410C08C471DC72A",
+  "engineSha256": "5C04DCB545687EE2834B66B372BD738F594AC4ACC6598F76E8150FD761908664",
+  "baselineVersion": "1.8.5",
+  "baselineAppSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "input": "KillerPDF-Corpus/sources/pdfjs",
+    "files": 979,
+    "size": 1024,
+    "pages": 1,
+    "timeoutSeconds": 30,
+    "isolation": "Fresh process per file and build"
+  },
+  "rows": 1958,
+  "engine": {
+    "OK": 960,
+    "SKIP": 18,
+    "FAIL": 1
+  },
+  "baseline": {
+    "OK": 957,
+    "SKIP": 21,
+    "FAIL": 1
+  },
+  "timeouts": 0,
+  "comparison": {
+    "previousAudit": "pdfjs-full-rect-mask-20260907",
+    "inputHashesMatch": true,
+    "currentInputHashesVerified": 979,
+    "allStatusesRetained": true,
+    "identicalEnginePngs": 960,
+    "changedEnginePngs": 0
+  },
+  "remainingFailures": [
+    {
+      "file": "test/pdfs/poppler-90-0-fuzzed.pdf",
+      "build": "engine",
+      "detail": "ASCIIHex data contains a non-hexadecimal byte.",
+      "note": "Prior PDFium page-one output is entirely white (791 by 1024). The source has 16 pages. An accepted blank render would not establish content recovery."
+    },
+    {
+      "file": "test/pdfs/poppler-85140-0.pdf",
+      "build": "baseline",
+      "detail": "failed to create a bitmap object"
+    }
+  ],
+  "tests": {
+    "engine": 3050,
+    "app": 338,
+    "source": "Verified for unchanged product commit; not rerun for this records-only increment"
+  },
+  "rawLog": "benchmarks/1.9.0-pdfjs-coverage-vector/render-comparison-summary.csv",
+  "limitations": [
+    "Page one only at the measured size.",
+    "PNG equality proves preservation relative to the previous engine, not universal agreement with PDFium.",
+    "Fresh-process timings include startup and are not collection-throughput measurements.",
+    "Broader corpus, multipage rendering, OCR and the overall speed target remain incomplete.",
+    "The pending ASCIIHex recovery source change is not present in this audited app.",
+    "Engine-only tests and scratch probes ran during part of this audit; isolated wall times are not throughput evidence."
+  ]
+}

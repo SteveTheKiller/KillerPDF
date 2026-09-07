@@ -3,6 +3,22 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 PDFjs audit after clip and codec changes
+
+Validation date: 2026-09-07. All 979 PDFjs inputs retain their prior statuses:
+960 OK, 18 SKIP, one FAIL for the engine; 957 OK, 21 SKIP, one FAIL for
+PDFium 1.8.5. All 960 engine PNGs match the preceding rectangle-mask audit.
+All current input hashes and 1,958 unique file/build rows were verified, with
+zero timeouts. This covers the clip intersection, CCITT and vector coverage
+changes at page one and 1024 pixels; it does not include pending ASCIIHex recovery.
+
+The audited product has 3,050 engine and 338 app tests passing. Isolated timings
+include cold startup, and engine tests and scratch probes overlapped part of the
+audit, so these times are not throughput evidence. Later pages, other sizes and
+remaining visual differences require separate checks. See the
+[record](records/pdfjs-coverage-vector-1.9.0.json) and
+[complete raw log](benchmarks/1.9.0-pdfjs-coverage-vector/render-comparison-summary.csv).
+
 ## KillerPDF 1.9.0 vector coverage multiplication
 
 Validation date: 2026-09-07. Dense clip intersections now process byte batches
