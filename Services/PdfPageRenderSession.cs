@@ -46,12 +46,13 @@ internal sealed class PdfPageRenderSession : IDisposable
     /// </summary>
     internal static EngineDocument OpenDocument(string path)
     {
-        byte[] bytes = File.ReadAllBytes(path);
-        EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(bytes);
+        using FileStream source = File.OpenRead(path);
+        EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(source);
         if (document.CanReadPageContent) return document;
         try
         {
-            return EngineDocument.OpenWithCompatibilityRecovery(bytes, string.Empty);
+            source.Position = 0;
+            return EngineDocument.OpenWithCompatibilityRecovery(source, string.Empty);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {

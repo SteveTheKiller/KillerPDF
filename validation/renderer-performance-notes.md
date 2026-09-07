@@ -2,7 +2,7 @@
 
 Research date: 2026-09-07. These are implementation leads, not measured promises.
 The current paired conformance comparison still favors PDFium 1.8.5 by a render
-ratio of 1.1524. See [the measured results](PERFORMANCE.md).
+ratio of 1.1514. See [the measured results](PERFORMANCE.md).
 
 ## Techniques in other implementations
 
@@ -32,11 +32,10 @@ ratio of 1.1524. See [the measured results](PERFORMANCE.md).
 2. Separate startup and first-use compilation from warmed JPEG 2000 rendering.
    Grouped column synthesis is verified, but the larger isolated warmed gain
    does not appear in the balloon collection timing.
-3. Reduce duplicate source-file allocations while preserving ownership and lazy
-   parsing safety. Block-buffered Flate decoding reduces median conformance peak
-   memory from 1,089.5 to 947.0 MB, but the engine still retains a complete decoded
-   array and defensively copies input memory. See the
-   [Flate allocation record](records/flate-blocks-1.9.0.json).
+3. Profile remaining source and decoded-image retention. Block-buffered Flate
+   decoding and document-owned stream input reduce median conformance peak
+   memory from 1,089.5 to 766.1 MB; complete source and decoded arrays remain.
+   See the [stream input record](records/stream-open-1.9.0.json).
 4. Profile remaining paint costs after exact axial color and normal alpha-blend
    reuse. Compact syntax still has a large first-use gap.
 

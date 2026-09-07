@@ -160,6 +160,65 @@ public sealed class PdfDocument
         return AuthenticatePassword(document, password);
     }
 
+    /// <summary>
+    /// Opens the remaining bytes of a readable stream into document-owned memory.
+    /// The stream remains open and is consumed from its current position.
+    /// </summary>
+    public static PdfDocument Open(Stream source)
+    {
+        byte[] ownedSource = ReadSource(source);
+        return new PdfDocument(ownedSource, PdfCrossReferenceTable.Read(ownedSource));
+    }
+
+    /// <summary>
+    /// Opens the remaining stream bytes using bounded compatibility recovery.
+    /// The document owns its bytes; the caller retains ownership of the stream.
+    /// </summary>
+    public static PdfDocument OpenWithCompatibilityRecovery(Stream source)
+    {
+        byte[] ownedSource = ReadSource(source);
+        return new PdfDocument(ownedSource,
+            PdfCrossReferenceTable.Read(ownedSource, compatibilityRecovery: true),
+            compatibilityRecovery: true);
+    }
+
+    /// <summary>Opens and authenticates the remaining stream bytes, leaving the stream open.</summary>
+    public static PdfDocument Open(Stream source, string password) =>
+        AuthenticatePassword(Open(source), password);
+
+    /// <summary>
+    /// Opens and authenticates the remaining stream bytes using compatibility recovery,
+    /// leaving the stream open.
+    /// </summary>
+    public static PdfDocument OpenWithCompatibilityRecovery(Stream source, string password) =>
+        AuthenticatePassword(OpenWithCompatibilityRecovery(source), password);
+
+    private static byte[] ReadSource(Stream source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (!source.CanRead) throw new ArgumentException("The PDF source must be readable.", nameof(source));
+        if (source.CanSeek)
+        {
+            long remaining = source.Length - source.Position;
+            if (remaining < 0 || remaining > Array.MaxLength)
+                throw new IOException("The PDF source length is outside the supported in-memory range.");
+            byte[] bytes = new byte[(int)remaining];
+            source.ReadExactly(bytes);
+            return bytes;
+        }
+
+        using var output = new MemoryStream();
+        byte[] buffer = new byte[81_920];
+        int read;
+        while ((read = source.Read(buffer)) != 0)
+        {
+            if (output.Length + read > Array.MaxLength)
+                throw new IOException("The PDF source length is outside the supported in-memory range.");
+            output.Write(buffer, 0, read);
+        }
+        return output.ToArray();
+    }
+
     private static PdfDocument AuthenticatePassword(PdfDocument document, string password)
     {
         if (!document.CrossReferences.TryGetTrailerValue(

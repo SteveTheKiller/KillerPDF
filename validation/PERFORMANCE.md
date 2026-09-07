@@ -3,6 +3,32 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 document-owned stream input
+
+Validation date: 2026-09-07. Seekable stream opens read directly into the
+document's private source array. The app uses this path instead of reading a
+temporary file array that the engine then copies. Password retries rewind the
+same open file. Memory-based opens retain their defensive copies.
+
+Three paired conformance passes retain 614 OK, 35 SKIP, zero FAIL, and identical
+engine PNGs, versus PDFium 1.8.5's 600 OK, 41 SKIP, eight FAIL. Median engine peak
+working set falls from the preceding increment's 947.0 to 766.1 MB (19.1 percent),
+versus PDFium's 643.5 MB. Together with block-buffered Flate decoding, this is
+29.7 percent below the earlier 1,089.5 MB peak. All values are sampled process
+working sets, not live managed heap measurements.
+
+Shared-file median render totals are 14.551 versus 12.638 seconds, a ratio of
+1.1514. Median wall times are 29.065 versus 23.504 seconds. The overall speed
+gap remains; these runs establish lower memory use, not a cold-start gain.
+
+All 3,015 engine and 338 app tests pass with a clean Release build. Twelve new
+cases cover source ownership, current positions, non-seekable short reads,
+truncated and oversized lengths, password retries, and empty user passwords.
+Streams remain caller-owned. Non-seekable input still uses temporary buffering,
+and the complete source remains in memory. No heavy work overlapped the runs.
+See the [record](records/stream-open-1.9.0.json) and
+[raw measurements](benchmarks/1.9.0-stream-open).
+
 ## KillerPDF 1.9.0 block-buffered Flate decoding
 
 Validation date: 2026-09-07. Large Flate output now accumulates in bounded blocks

@@ -19,6 +19,21 @@ Console.WriteLine($"Pages: {pages.Count}");
 ```
 
 `Open` validates the cross-reference structure and resolves other objects lazily.
+For a file, use the stream overload to avoid creating a separate caller buffer:
+
+```csharp
+using FileStream source = File.OpenRead("input.pdf");
+PdfDocument document = PdfDocument.Open(source);
+```
+
+Stream overloads read from the current position and leave the source open, even
+if parsing or authentication fails. Seekable sources are read directly into
+document-owned memory; non-seekable sources use temporary buffering. The document
+does not retain the stream and remains usable after it is disposed. Password
+overloads and `OpenWithCompatibilityRecovery` also accept streams. Rewind or
+replace a consumed source before retrying. Memory overloads still copy their
+input so later caller mutations cannot affect lazy object resolution.
+
 A successful open does not establish that every page, font, image, signature, or
 conformance requirement is valid. An operation can discover a problem later when
 it resolves the relevant objects.

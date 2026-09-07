@@ -15,6 +15,35 @@ namespace KillerPdf.Engine.Tests.Security;
 
 public sealed class PdfEncryptionTests
 {
+    [Theory]
+    [InlineData(false, "")]
+    [InlineData(true, "")]
+    [InlineData(false, "user")]
+    [InlineData(true, "user")]
+    public void StreamOpenAuthenticatesWithoutTakingOwnershipOfSource(bool recovery, string password)
+    {
+        byte[] bytes = new PdfDocumentBuilder()
+            .SetPasswordEncryption(new PdfPasswordEncryptionOptions
+            {
+                UserPassword = password,
+                OwnerPassword = "owner"
+            })
+            .AddBlankPage().Build();
+        using var source = new MemoryStream(bytes);
+        Assert.ThrowsAny<CryptographicException>(() => Open("wrong"));
+        Assert.True(source.CanRead);
+        source.Position = 0;
+        PdfDocument document = Open(password);
+        Assert.True(document.IsDecrypted);
+        Assert.True(source.CanRead);
+        Array.Clear(bytes);
+        Assert.Single(PdfPageInformation.Read(document));
+
+        PdfDocument Open(string candidate) => recovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(source, candidate)
+            : PdfDocument.Open(source, candidate);
+    }
+
     [Fact]
     public void RecoveryReadsIvOnlyAesStreamAsEmptyWithoutRelaxingStringsOrWrites()
     {

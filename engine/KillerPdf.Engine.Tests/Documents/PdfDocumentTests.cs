@@ -10,6 +10,69 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfDocumentTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Open_NonseekableShortReadsLeaveSourceOpen(bool recovery)
+    {
+        using var source = new ShortReadSource(ObjectStreamPdf());
+        PdfDocument document = recovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(source, string.Empty)
+            : PdfDocument.Open(source, string.Empty);
+        Assert.True(source.CanRead);
+        source.Dispose();
+        Assert.Equal("hello", Text(Assert.IsType<PdfString>(document.Resolve(1))));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Open_RejectsTruncatedOrOversizedSeekableSource(bool recovery)
+    {
+        using var truncated = new ReportedLengthSource(ObjectStreamPdf(), 10000);
+        using var oversized = new ReportedLengthSource([], (long)Array.MaxLength + 1);
+        Assert.Throws<EndOfStreamException>(() => OpenSource(truncated));
+        Assert.Throws<IOException>(() => OpenSource(oversized));
+        Assert.True(truncated.CanRead);
+        Assert.True(oversized.CanRead);
+
+        PdfDocument OpenSource(Stream source) => recovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(source)
+            : PdfDocument.Open(source);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Open_StreamReadsFromCurrentPositionAndOwnsLazyObjectBytes(bool recovery)
+    {
+        byte[] pdf = ObjectStreamPdf();
+        byte[] input = [1, 2, 3, .. pdf];
+        using var source = new MemoryStream(input, writable: true);
+        source.Position = 3;
+        PdfDocument document = recovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(source)
+            : PdfDocument.Open(source);
+
+        Assert.True(source.CanRead);
+        Assert.Equal(source.Length, source.Position);
+        Array.Clear(input);
+        Assert.Equal("hello", Text(Assert.IsType<PdfString>(document.Resolve(1))));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Open_MemoryStillOwnsLazyObjectBytes(bool recovery)
+    {
+        byte[] input = ObjectStreamPdf();
+        PdfDocument document = recovery
+            ? PdfDocument.OpenWithCompatibilityRecovery(input)
+            : PdfDocument.Open(input);
+        Array.Clear(input);
+        Assert.Equal("hello", Text(Assert.IsType<PdfString>(document.Resolve(1))));
+    }
+
     [Fact]
     public void Open_ResolvesClassicObjectsAndIndirectStreamLengths()
     {
@@ -683,4 +746,15 @@ public sealed class PdfDocumentTests
 
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static string Text(PdfString value) => Encoding.ASCII.GetString(value.Bytes.Span);
+
+    private sealed class ShortReadSource(byte[] bytes) : MemoryStream(bytes)
+    {
+        public override bool CanSeek => false;
+        public override int Read(Span<byte> buffer) => base.Read(buffer[..Math.Min(7, buffer.Length)]);
+    }
+
+    private sealed class ReportedLengthSource(byte[] bytes, long length) : MemoryStream(bytes)
+    {
+        public override long Length => length;
+    }
 }

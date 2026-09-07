@@ -1,0 +1,121 @@
+{
+  "date": "2026-09-07",
+  "beforeCommit": "ecd5fdcdcc8aeaed314414e8a7da95dd0350d161",
+  "afterEngineSha256": "C2C4683E44AC60171F6A9944612B6E9EE24BF7055AFFFA36528676E3DF3808E5",
+  "afterAppSha256": "C54B3CADFC7BD970F0D56752F66919F898E5BF9270FCA575170EDD4F6203254E",
+  "embeddedEngineVerified": true,
+  "settings": {
+    "size": 1024,
+    "pages": 1,
+    "inputs": 649,
+    "warmupPassesPerBuild": 1,
+    "measuredPassesPerBuild": 3,
+    "timeoutSeconds": 180
+  },
+  "conformance": {
+    "sharedCount": 600,
+    "builds": {
+      "baseline": {
+        "statuses": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "totalRenderMilliseconds": [
+          12638,
+          12583,
+          12741
+        ],
+        "sharedRenderMilliseconds": [
+          12638,
+          12583,
+          12741
+        ],
+        "sharedPageMedianMilliseconds": [
+          5,
+          5,
+          5
+        ],
+        "wallMilliseconds": [
+          23431,
+          23504,
+          23723
+        ],
+        "peakWorkingSetBytes": [
+          641605632,
+          654192640,
+          643502080
+        ],
+        "identicalPngs": []
+      },
+      "engine": {
+        "statuses": {
+          "OK": 614,
+          "SKIP": 35,
+          "FAIL": 0
+        },
+        "totalRenderMilliseconds": [
+          14613,
+          14420,
+          14814
+        ],
+        "sharedRenderMilliseconds": [
+          14551,
+          14350,
+          14747
+        ],
+        "sharedPageMedianMilliseconds": [
+          7,
+          7,
+          8
+        ],
+        "wallMilliseconds": [
+          29281,
+          28795,
+          29065
+        ],
+        "peakWorkingSetBytes": [
+          766468096,
+          764919808,
+          766083072
+        ],
+        "identicalPngs": [
+          614,
+          614,
+          614
+        ]
+      }
+    },
+    "ratio": 1.1513688874821966,
+    "compactSyntax": {
+      "engine": [
+        120,
+        127,
+        126
+      ],
+      "baseline": [
+        4,
+        4,
+        4
+      ]
+    }
+  },
+  "previousEngineMedianPeakWorkingSetBytes": 946954240,
+  "preFlateMedianPeakWorkingSetBytes": 1089515520,
+  "tests": {
+    "engine": 3015,
+    "app": 338,
+    "newCases": 12,
+    "releaseWarnings": 0,
+    "releaseErrors": 0
+  },
+  "noHeavyWorkOverlapped": true,
+  "limitations": [
+    "Complete source bytes are still retained by the document.",
+    "Non-seekable streams use temporary buffering.",
+    "Memory overloads still defensively copy caller input.",
+    "No overall throughput or cold-start improvement is established.",
+    "Broad corpus, multipage and OCR work remain incomplete."
+  ],
+  "rawMeasurements": "benchmarks/1.9.0-stream-open"
+}
