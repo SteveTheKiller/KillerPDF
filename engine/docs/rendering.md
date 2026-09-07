@@ -98,6 +98,11 @@ Decoded images and masks share a cache with a 64 MiB weight limit. Rendered page
 have a separate 64 MiB cache, and flattened glyph outlines have a 16 MiB cache.
 Oversized entries can be used without being retained in a cache.
 
+Run-length decoding validates the encoded runs and total output size before
+allocating one exact-sized sample buffer. It does not grow a second output
+buffer while expanding repetitions. Truncated runs, missing end markers, and
+output above the configured stream limit still fail.
+
 Image soft masks retain packed samples at 1, 2, 4, 8, or 16 bits per component.
 Mask detail is sampled independently of the color image dimensions. During
 reduction, area averages preserve thin features that a single source sample can

@@ -3,6 +3,33 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 run-length decoding allocation
+
+Validation date: 2026-09-06. Run-length decoding validates and counts the output
+before one exact allocation, then copies or fills complete runs. Output limits,
+truncated-run checks, and the required end marker are preserved.
+
+Profiling `issue19517.pdf` refined the earlier attribution: its external soft
+mask is 12,608 by 16,806 eight-bit samples. Run-length expansion consumed 19.81%
+of sampled exclusive CPU time and mask averaging another 29.76%; JPEG 2000
+decoding was a smaller part of the total than the initial timing suggested.
+
+Three fresh-process runs before and after this change used page one at 1024 px.
+Median render time fell from 1,874 to 1,361 ms (27.4%). Median wall time fell from
+2,349 to 1,847 ms. Median sampled peak working set fell from 891,113,472 to
+480,710,656 bytes (849.8 to 458.4 MiB). Peaks were sampled every 100 ms and may
+miss short-lived peaks. The first after-run wall time was 2,803 ms and remains
+in the record. Builds and test suites were idle during these samples.
+
+The focused PNG is byte-identical. All 2,733 engine and 338 app tests pass,
+including seven new run-length boundary and malformed-input cases. Release
+builds cleanly. Conformance retains 614 OK, 35 SKIP, zero FAIL, and all 614 PNGs
+are identical to the previous build. The remaining mask-averaging and decoder
+costs still need work; this is a focused improvement, not corpus-wide speed parity.
+
+See the [record](records/run-length-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-run-length).
+
 ## KillerPDF 1.9.0 JPEG 2000 sample-depth recovery
 
 Validation date: 2026-09-06. Compatibility rendering trusts the JPX codestream's

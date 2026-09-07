@@ -228,6 +228,36 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_RunLengthPreservesMaximumRunsAndIgnoresDataAfterEnd()
+    {
+        byte[] literal = Enumerable.Range(0, 128).Select(value => (byte)value).ToArray();
+        PdfStream stream = Stream([127, .. literal, 129, 211, 128, 129],
+            Pair("Filter", Name("RunLengthDecode")));
+        Assert.Equal([.. literal, .. Enumerable.Repeat((byte)211, 128)],
+            PdfStreamDecoder.Decode(stream, 256));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream, 255));
+    }
+
+    [Theory]
+    [InlineData(new byte[] { })]
+    [InlineData(new byte[] { 0 })]
+    [InlineData(new byte[] { 129 })]
+    [InlineData(new byte[] { 0, 42 })]
+    [InlineData(new byte[] { 129, 42 })]
+    public void Decode_RunLengthRejectsTruncatedRunsOrMissingEnd(byte[] encoded)
+    {
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("RunLengthDecode")));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
+    public void Decode_RunLengthAcceptsEmptyDataWithEndMarker()
+    {
+        PdfStream stream = Stream([128], Pair("Filter", Name("RunLengthDecode")));
+        Assert.Empty(PdfStreamDecoder.Decode(stream));
+    }
+
+    [Fact]
     public void Decode_DecodesLzwCodesWithClearAndEndMarkers()
     {
         PdfStream stream = Stream(PackNineBitCodes(256, 'A', 'B', 'C', 257),

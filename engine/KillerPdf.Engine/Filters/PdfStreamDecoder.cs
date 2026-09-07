@@ -263,30 +263,46 @@ public static class PdfStreamDecoder
 
     private static byte[] DecodeRunLength(ReadOnlySpan<byte> encoded, int maximumDecodedBytes)
     {
-        var output = new List<byte>();
-        int offset = 0;
+        int offset = 0, decodedLength = 0;
+        bool ended = false;
         while (offset < encoded.Length)
         {
             int length = encoded[offset++];
-            if (length == 128) return [.. output];
-            if (length <= 127)
+            if (length == 128)
             {
-                int count = length + 1;
-                if (offset + count > encoded.Length)
-                    throw new PdfFilterException("RunLength literal run exceeds the encoded data.");
-                for (int index = 0; index < count; index++)
-                    AddBounded(output, encoded[offset++], maximumDecodedBytes);
+                ended = true;
+                break;
             }
-            else
-            {
-                if (offset >= encoded.Length)
-                    throw new PdfFilterException("RunLength repeat run has no source byte.");
-                byte value = encoded[offset++];
-                for (int index = 0; index < 257 - length; index++)
-                    AddBounded(output, value, maximumDecodedBytes);
-            }
+            int count = length < 128 ? length + 1 : 257 - length;
+            int encodedCount = length < 128 ? count : 1;
+            if (encodedCount > encoded.Length - offset)
+                throw new PdfFilterException(length < 128
+                    ? "RunLength literal run exceeds the encoded data."
+                    : "RunLength repeat run has no source byte.");
+            if (count > maximumDecodedBytes - decodedLength)
+                throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
+            decodedLength += count;
+            offset += encodedCount;
         }
-        throw new PdfFilterException("RunLength data has no end marker.");
+        if (!ended) throw new PdfFilterException("RunLength data has no end marker.");
+
+        var output = new byte[decodedLength];
+        offset = 0;
+        int destination = 0;
+        while (encoded[offset] != 128)
+        {
+            int length = encoded[offset++];
+            int count = length < 128 ? length + 1 : 257 - length;
+            Span<byte> run = output.AsSpan(destination, count);
+            if (length < 128)
+            {
+                encoded.Slice(offset, count).CopyTo(run);
+                offset += count;
+            }
+            else run.Fill(encoded[offset++]);
+            destination += count;
+        }
+        return output;
     }
 
     private static byte[] DecodeLzw(

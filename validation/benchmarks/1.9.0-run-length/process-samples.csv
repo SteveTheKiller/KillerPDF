@@ -1,0 +1,7 @@
+Build,Run,WallMilliseconds,SampledPeakWorkingSetBytes
+before,1,2440,893517824
+before,2,2349,887484416
+before,3,2346,891113472
+after,1,2803,482033664
+after,2,1847,480710656
+after,3,1798,480583680
