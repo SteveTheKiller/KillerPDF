@@ -154,6 +154,9 @@ coordinates, correction, searchable output, and held-out validation.
 See [AcroForm values and interchange](docs/forms.md) for widget reading,
 XFDF export, reviewed imports, incremental saves, and flattening boundaries.
 
+See [XFA inspection, data, and conversion](docs/xfa.md) for packets, repeated
+values, restricted behavior evaluation, layout plans, and conversion limits.
+
 See [bookmarks, links, and opening destinations](docs/navigation.md) for navigation
 authoring, readers, host behavior, and initial-view edits.
 
