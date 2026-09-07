@@ -219,6 +219,40 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_RecoveryAcceptsEmptyAscii85WithoutEndMarker()
+    {
+        PdfStream stream = Stream([], Pair("Filter", Name("A85")));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Empty(PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, 0));
+    }
+
+    [Theory]
+    [InlineData("z", "00000000")]
+    [InlineData("!!!!!", "00000000")]
+    [InlineData("03!0=6;", "2F54782042")]
+    public void Decode_RecoveryAcceptsAscii85TuplesWithoutEndMarker(string encoded, string hex)
+    {
+        PdfStream stream = Stream(Encoding.ASCII.GetBytes(encoded), Pair("Filter", Name("A85")));
+        byte[] expected = Convert.FromHexString(hex);
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal(expected, PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, expected.Length));
+        Assert.Throws<PdfFilterException>(() =>
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, expected.Length - 1));
+    }
+
+    [Theory]
+    [InlineData("!")]
+    [InlineData("!z")]
+    [InlineData("v")]
+    [InlineData("uuuuu")]
+    [InlineData("z~")]
+    public void Decode_RecoveryPreservesAscii85TupleValidation(string encoded)
+    {
+        PdfStream stream = Stream(Encoding.ASCII.GetBytes(encoded), Pair("Filter", Name("A85")));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
+    }
+
+    [Fact]
     public void Decode_DecodesRunLengthLiteralAndRepeatRuns()
     {
         PdfStream stream = Stream([2, (byte)'A', (byte)'B', (byte)'C', 254, (byte)'Z', 128],

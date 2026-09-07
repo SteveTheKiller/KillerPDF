@@ -105,7 +105,7 @@ public static class PdfStreamDecoder
                     current, filterLimit, compatibilityRecovery),
                 "BrotliDecode" => DecodeBrotli(current, filterLimit),
                 "ASCIIHexDecode" or "AHx" => DecodeAsciiHex(current, filterLimit),
-                "ASCII85Decode" or "A85" => DecodeAscii85(current, filterLimit),
+                "ASCII85Decode" or "A85" => DecodeAscii85(current, filterLimit, compatibilityRecovery),
                 "RunLengthDecode" or "RL" => DecodeRunLength(current, filterLimit),
                 "LZWDecode" or "LZW" => DecodeLzw(
                     current, parameters[i], resolve, filterLimit),
@@ -211,7 +211,8 @@ public static class PdfStreamDecoder
         return [.. output];
     }
 
-    private static byte[] DecodeAscii85(ReadOnlySpan<byte> encoded, int maximumDecodedBytes)
+    private static byte[] DecodeAscii85(ReadOnlySpan<byte> encoded, int maximumDecodedBytes,
+        bool compatibilityRecovery)
     {
         var output = new List<byte>();
         Span<byte> tuple = stackalloc byte[5];
@@ -241,7 +242,8 @@ public static class PdfStreamDecoder
             tuple[count++] = value;
             if (count == 5) { WriteAscii85Tuple(tuple, 4, output, maximumDecodedBytes); count = 0; }
         }
-        if (!ended) throw new PdfFilterException("ASCII85 data has no end marker.");
+        if (!ended && !compatibilityRecovery)
+            throw new PdfFilterException("ASCII85 data has no end marker.");
         if (count == 1) throw new PdfFilterException("ASCII85 data ends with an incomplete tuple.");
         if (count > 1)
         {

@@ -37,6 +37,12 @@ within the input. Encoded bytes are preserved for the filter decoder; this does
 not relax numeric or string syntax elsewhere. Strict parsing retains its lexical
 errors at the declared boundary.
 
+ASCII85 compatibility decoding also accepts the end of a stream in place of a
+missing `~>` marker, including empty streams. Complete tuples and final groups of
+two to four digits retain their normal decoding. A lone final digit, invalid
+characters, misplaced `z`, overflowing tuples, malformed explicit end markers,
+and output-size violations still fail. Strict decoding requires the end marker.
+
 ## Memory ownership and concurrency
 
 Both opening methods copy the supplied bytes. The caller can reuse or modify its
