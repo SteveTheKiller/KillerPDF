@@ -3,6 +3,25 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 full PDF.js structural recovery recheck
+
+Validation date: 2026-09-07. At `bb071dc`, all 979 PDF.js inputs match the prior
+run by path and SHA256. The engine renders 957, skips 20, and fails two; PDFium
+1.8.5 renders 957, skips 21, and fails one. Both render 951 files, with six unique
+to each build and 16 accepted by neither. Neither build timed out.
+
+All five status changes are engine SKIP to OK: `bug1978317.pdf`, `issue15150.pdf`,
+`issue8088.pdf`, and `poppler-91414-0-53.pdf` / `poppler-91414-0-54.pdf`.
+All 952 previously rendered engine PNGs are byte-identical. Focused records retain
+the known text-shape, tiny-text darkness, and one-pixel sizing differences.
+
+Settings remain page one, maximum dimension 1024 px, annotation and form appearances
+enabled, fresh processes, and a 15-second limit per file and build. This is a
+coverage comparison, not collection throughput or proof of all-page visual parity.
+The controlled performance target remains open. See the
+[record](records/pdfjs-object-index-1.9.0.json) and
+[per-file results](benchmarks/1.9.0-pdfjs-object-index/render-comparison-summary.csv).
+
 ## KillerPDF 1.9.0 full PDF.js recovery recheck
 
 Validation date: 2026-09-07. All 979 PDF.js inputs have the same paths and SHA256

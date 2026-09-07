@@ -1,0 +1,21 @@
+{
+  "commit": "bb071dcfff6e3ee82db2061a0d439696f18b51ba",
+  "engineApplicationSha256": "D4F12F20B5A28D31B3BA3A8CCD8B52DD0645FD9F533D44AC5C1FAB9D1B001C08",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "files": 979, "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true, "timeoutSeconds": 15, "freshProcessPerFile": true },
+  "engine": { "ok": 957, "skip": 20, "fail": 2, "timeout": 0 },
+  "baseline": { "ok": 957, "skip": 21, "fail": 1, "timeout": 0 },
+  "both": 951,
+  "engineOnly": 6,
+  "baselineOnly": ["PDFBOX-4352-0.pdf", "Pages-tree-refs.pdf", "bomb_giant.pdf", "issue9418.pdf", "poppler-90-0-fuzzed.pdf", "poppler-937-0-fuzzed.pdf"],
+  "neither": 16,
+  "comparison": "pdfjs-aes-empty-1.9.0.json",
+  "sameInputPathsAndHashes": 979,
+  "verifiedRows": 1958,
+  "recoveredFromSkip": ["bug1978317.pdf", "issue15150.pdf", "issue8088.pdf", "poppler-91414-0-53.pdf", "poppler-91414-0-54.pdf"],
+  "statusRegressions": 0,
+  "previouslyRenderedEngineImages": 952,
+  "identicalEngineImages": 952,
+  "limitations": "Page-one coverage is not all-page visual parity or throughput evidence. Focused records retain text-shape, tiny-text darkness and dimension differences. The performance target is not yet met."
+}
