@@ -19,10 +19,8 @@ public static class PdfXfaCompatibility
     public static PdfXfaCompatibilityReport Analyze(PdfXfaInfo info)
     {
         ArgumentNullException.ThrowIfNull(info);
+        info = PdfXfaAcroFormConverter.ExpandCombinedXdp(info);
         var findings = new List<PdfXfaCompatibilityFinding>();
-        if (!info.IsPacketArray)
-            findings.Add(new("combined-xdp", null,
-                "Combined XDP streams cannot yet be edited or converted safely."));
         if (info.FormType == PdfXfaFormType.Dynamic && !HasSupportedDynamicLayout(info))
             findings.Add(new("dynamic-layout", null,
                 "The dynamic XFA form does not use a supported flowed layout."));

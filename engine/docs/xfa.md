@@ -134,11 +134,12 @@ behavior results are not a guarantee of rejection. It does not execute general
 JavaScript or preserve interactive XFA behavior.
 
 `PdfXfaCompatibility.Analyze` reports known unsupported constructs without
-changing data. Its current combined-XDP finding is conservative: dataset edits
-and conversion can accept supported combined streams even when the report flags
-them. Conversely, `IsSupported` does not prove every expression, binding, page,
-or conversion mode is supported. Review findings, behavior results, and the
-actual output together.
+changing data. For combined XDP, it uses the converter's bounded packet expansion
+before inspecting declared layout, controls, and script languages. Supported
+combined streams are not rejected merely for their container format. Empty or
+duplicate packets are rejected, and malformed XML or prohibited DTDs throw.
+`IsSupported` does not prove every expression, binding, page, or conversion mode
+is supported. Review findings, behavior results, and the actual output together.
 
 Conversion can reopen intermediate PDFs without a password callback. This is
 not a general authenticated conversion recipe. For the unencrypted workflow,

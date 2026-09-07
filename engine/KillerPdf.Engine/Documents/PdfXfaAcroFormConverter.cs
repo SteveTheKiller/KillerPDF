@@ -128,7 +128,7 @@ public static class PdfXfaAcroFormConverter
         return Finish(editor, mode);
     }
 
-    private static PdfXfaInfo ExpandCombinedXdp(PdfXfaInfo info)
+    internal static PdfXfaInfo ExpandCombinedXdp(PdfXfaInfo info)
     {
         if (info.IsPacketArray) return info;
         PdfXfaPacket packet = info.Packets.Count == 1 ? info.Packets[0]
