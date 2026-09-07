@@ -145,6 +145,9 @@ imports, incremental preservation, and output validation.
 See [preflight and conformance checks](docs/conformance.md) for profiles,
 report interpretation, supported boundaries, and previewed corrections.
 
+See [OCR integration and review](docs/ocr.md) for models, provider selection,
+coordinates, correction, searchable output, and held-out validation.
+
 ## Repository layout
 
 ```text
