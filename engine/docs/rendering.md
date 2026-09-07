@@ -113,8 +113,10 @@ recovery. Color-space inference excludes the declared opacity channel. Explicit
 PDF soft masks can still apply when embedded opacity is ignored.
 
 Channel indices and box lengths are checked. Multiple or component-specific
-opacity channels are unsupported. A mismatched PDF sample depth or image size
-still fails validation. These checks apply independently of compatibility recovery.
+opacity channels are unsupported. Compatibility rendering uses the codestream's
+sample depth when it differs from the PDF dictionary. Strict rendering retains
+the sample-depth mismatch check. Image dimensions, component counts, supported
+sample depths, and decoder allocation limits remain checked in both modes.
 
 ## Validation and remaining work
 

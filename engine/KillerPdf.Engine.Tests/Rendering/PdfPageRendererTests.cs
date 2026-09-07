@@ -3091,6 +3091,34 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4)]
+    [InlineData(16)]
+    public void Render_RecoversJpeg2000DictionarySampleDepth(int dictionaryBits)
+    {
+        const string encoded =
+            "AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAABPanAyaAAAABZpaGRyAAAAAQAAAAIABAcHAAAAAAAPY29scgEAAAAAABAAAAAiY2RlZgAEAAAAAAABAAEAAAACAAIAAAADAAMAAQAAAAAAoGpwMmP/T/9RADIAAAAAAAIAAAABAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAQHAQEHAQEHAQEHAQH/UgAMAAAAAQAABAQAAf9cAARAQP9kACUAAUNyZWF0ZWQgYnkgT3BlbkpQRUcgdmVyc2lvbiAyLjUuNP+QAAoAAAAAACUAAf+T34AgC7KKf9+AGAWi3d+AEAk/z7QICxf/2Q==";
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(20, 10, new PdfContentStreamBuilder()
+                .DrawImage(PdfImage.FromRgb(2, 1, new byte[6]), 0, 0, 20, 10))
+            .Build());
+        PdfDocument filtered = AddImageDictionaryEntry(source, "Filter", Name("JPXDecode"),
+            Convert.FromBase64String(encoded));
+        PdfDocument strict = AddImageDictionaryEntry(filtered, "BitsPerComponent", new PdfInteger(dictionaryBits));
+        var options = new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false);
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(strict).Render(0, options));
+
+        PdfDocument recovered = PdfDocument.OpenWithCompatibilityRecovery(PdfDocumentWriter.Write(strict));
+        PdfRenderedPage rendered = new PdfPageRenderer(recovered).Render(0, options);
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([0, 255, 0, 255], Pixel(rendered, 15, 5));
+        PdfDocument wrongSize = AddImageDictionaryEntry(strict, "Width", new PdfInteger(3));
+        PdfDocument recoveredWrongSize = PdfDocument.OpenWithCompatibilityRecovery(
+            PdfDocumentWriter.Write(wrongSize));
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(recoveredWrongSize).Render(0, options));
+    }
+
     [Fact]
     public void Render_InfersJpeg2000ColorSpaceWithEmbeddedAlpha()
     {

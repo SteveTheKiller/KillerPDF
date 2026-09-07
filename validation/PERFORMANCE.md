@@ -3,6 +3,33 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 JPEG 2000 sample-depth recovery
+
+Validation date: 2026-09-06. Compatibility rendering trusts the JPX codestream's
+sample depth when the PDF dictionary disagrees. Strict rendering keeps rejecting
+the mismatch; dimensions, component counts, supported depths, and allocation
+limits remain checked.
+
+PDF.js `issue19326.pdf` moves from FAIL to OK without diagnostics. It renders
+visible JPX lettering at 1024 by 626 pixels in a fresh-process 383 ms sample.
+The 1.8.5 PDFium baseline produces an entirely white image, so its 19 ms sample
+does not represent equivalent visible output. The RGB difference from that blank
+baseline is 46.220890 and is retained rather than treated as a fidelity regression.
+
+An independent check with PDFium 153.0.7999.0 through the installed pypdfium2
+runtime renders the lettering. At the source image's 551 by 337 dimensions, the
+engine's mean absolute grayscale difference from that reference is 0.007426.
+No dependency was added to the engine or application for this verification.
+
+Three new tests failed on the prior code and now pass. They check recovered
+colors, strict rejection, and retained dimension validation. All 2,726 engine
+and 338 app tests pass; Release builds cleanly. Conformance retains 614 OK,
+35 SKIP, zero FAIL, and all 614 PNGs are identical to the preceding build.
+
+See the [record](records/jpx-depth-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-jpx-depth). These focused samples are not a throughput
+comparison or a new full-corpus aggregate.
+
 ## KillerPDF 1.9.0 JPEG 2000 channel definitions
 
 Validation date: 2026-09-06. The renderer separates a declared global JP2 opacity

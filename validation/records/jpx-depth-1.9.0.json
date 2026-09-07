@@ -1,0 +1,11 @@
+{
+  "engineApplicationSha256": "133D96E66FBE6D97C8D705B7B16F445C09568060849B6A0B9844224519107D57",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": { "file": "issue19326.pdf", "inputSha256": "FD41067A652C07786412D9FE40E275C2EDDF30493E3083EDCDE297900F9748ED", "before": "FAIL", "after": "OK", "renderMilliseconds": 383, "dimensions": [1024, 626], "diagnostics": [], "baselineNonwhitePixels": 0, "engineNonwhitePixels": 120838, "nonwhiteThreshold": 250, "rgbMaeAgainstBlankBaseline": 46.22089032547923 },
+  "independentReference": { "provider": "installed pypdfium2", "pdfiumVersion": "153.0.7999.0", "dimensions": [551, 337], "grayMae": 0.007426475736050451, "referenceNonwhitePixels": 34984, "engineRenderMilliseconds": 359 },
+  "tests": { "newCases": 3, "engine": 2726, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limitations": "The old PDFium baseline is blank, so its timing is not equivalent visible work. Independent newer PDFium agrees with visible content; small edge differences remain. No aggregate throughput claim. Strict sample-depth rejection and both modes' dimension, component and allocation checks remain."
+}

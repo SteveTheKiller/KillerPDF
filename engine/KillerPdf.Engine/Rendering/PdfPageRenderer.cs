@@ -1613,6 +1613,9 @@ public sealed partial class PdfPageRenderer
                 ? PositiveInteger(stream.Dictionary, "BitsPerComponent")
                 : jpeg2000Shape?.Bits
                     ?? PositiveInteger(stream.Dictionary, "BitsPerComponent");
+        if (!imageMask && _document.UsesCompatibilityRecovery
+            && jpeg2000Shape is Jpeg2000Shape sampleShape)
+            bits = sampleShape.Bits;
         ImageColorSpace colorSpace;
         try
         {
