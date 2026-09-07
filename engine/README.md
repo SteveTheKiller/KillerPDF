@@ -142,6 +142,9 @@ authoring, authenticated rewrites, permission checks, and signature trust policy
 See [editing and saving documents](docs/editing.md) for page edits, typed overlays,
 imports, incremental preservation, and output validation.
 
+See [repair and optimization](docs/optimization.md) for inspectable plans,
+compression, selective removal, measured results, and preservation limits.
+
 See [preflight and conformance checks](docs/conformance.md) for profiles,
 report interpretation, supported boundaries, and previewed corrections.
 
