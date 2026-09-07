@@ -1604,6 +1604,15 @@ public sealed partial class PdfPageRenderer
         out string? diagnostic)
     {
         diagnostic = null;
+        if (_document.UsesCompatibilityRecovery
+            && (!stream.Dictionary.TryGetValue(Name("Width"), out PdfObject? widthValue)
+                || Resolve(widthValue) is not PdfInteger { Value: > 0 and <= int.MaxValue }
+                || !stream.Dictionary.TryGetValue(Name("Height"), out PdfObject? heightValue)
+                || Resolve(heightValue) is not PdfInteger { Value: > 0 and <= int.MaxValue }))
+        {
+            diagnostic = "An image with invalid pixel dimensions was skipped.";
+            return false;
+        }
         bool imageMask = stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
             && Resolve(maskValue) is PdfBoolean { Value: true };
         int width = PositiveInteger(stream.Dictionary, "Width");

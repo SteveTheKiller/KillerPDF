@@ -372,6 +372,11 @@ public sealed class PdfPageContentReader
         int ImageDimension(PdfDictionary dictionary, string key)
         {
             if (!dictionary.TryGetValue(Name(key), out var value)) return 0;
+            if (_document.UsesCompatibilityRecovery && Resolve(value) is not (PdfInteger or PdfReal))
+            {
+                diagnostics.Add("An image has invalid pixel dimensions.");
+                return 0;
+            }
             double number = Number(value);
             return number > 0 && number <= int.MaxValue && number == Math.Truncate(number) ? (int)number : 0;
         }

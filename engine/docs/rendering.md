@@ -64,6 +64,12 @@ be selected independently through the options.
 inputs, explicitly choose `PdfDocument.OpenWithCompatibilityRecovery`. Recovery
 is bounded and does not change the strict default or authorize unsafe writing.
 
+Recovery skips an image whose declared width or height is missing or is not a
+positive supported integer, and reports a diagnostic. Surrounding page content
+continues. Extraction records zero for a nonnumeric pixel dimension with its own
+diagnostic, retaining the image's placement geometry. This does not reconstruct
+the missing image or weaken strict rendering and extraction checks.
+
 Recovery skips Form XObjects whose decoded content contains no instructions,
 including whitespace-only and comment-only streams. Invalid unused resources
 on these empty Forms do not prevent subsequent page content from rendering.

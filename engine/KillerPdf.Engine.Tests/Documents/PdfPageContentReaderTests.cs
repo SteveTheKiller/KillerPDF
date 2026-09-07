@@ -7,6 +7,31 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfPageContentReaderTests
 {
+    [Theory]
+    [InlineData("/Height", "1")]
+    [InlineData("1", "true")]
+    [InlineData("null", "1")]
+    public void RecoveryPreservesContentAroundImagesWithNonnumericDimensions(string width, string height)
+    {
+        PdfDocument strict = Document(
+            "1 0 0 rg 0 0 20 20 re f /Im Do " +
+            "0 0 1 rg 30 0 20 20 re f BT /F1 12 Tf 10 60 Td (Visible) Tj ET",
+            "", "/XObject << /Im 6 0 R >>",
+            [$"<< /Type /XObject /Subtype /Image /Width {width} /Height {height} " +
+                "/BitsPerComponent 8 /ColorSpace /DeviceGray /Length 1 >>\nstream\nx\nendstream"]);
+        Assert.Throws<FormatException>(() => new PdfPageContentReader(strict).Read(0));
+        var options = new KillerPdf.Engine.Rendering.PdfRenderOptions(300, 400);
+        Assert.Throws<FormatException>(() => new KillerPdf.Engine.Rendering.PdfPageRenderer(strict).Render(0, options));
+        PdfDocument recovery = PdfDocument.OpenWithCompatibilityRecovery(strict.Source);
+        PdfPageContent content = new PdfPageContentReader(recovery).Read(0);
+        Assert.Equal("Visible", content.Text);
+        Assert.Contains("An image has invalid pixel dimensions.", content.Diagnostics);
+        var rendered = new KillerPdf.Engine.Rendering.PdfPageRenderer(recovery).Render(0, options);
+        Assert.Contains("An image with invalid pixel dimensions was skipped.", rendered.Diagnostics);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, rendered.Pixels.Slice((390 * 300 + 10) * 4, 4).ToArray());
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, rendered.Pixels.Slice((390 * 300 + 40) * 4, 4).ToArray());
+    }
+
     [Fact]
     public void ResolvesInheritedResourcesAndCropOrigin()
     {
