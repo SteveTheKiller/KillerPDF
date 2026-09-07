@@ -62,6 +62,23 @@ public sealed class PdfOcrProviderSelectorTests
         Assert.Same(tesseract, selected);
     }
 
+    [Fact]
+    public void OnnxProviderPassesRawPixelsAndDisposesItsIsolatedSession()
+    {
+        var session = new RecordingOnnxSession();
+        var provider = new PdfOnnxOcrProvider(new PdfOcrProviderDescriptor(
+            "onnx", "ONNX", new Version(1, 0), ["eng"]), () => session);
+        byte[] bgra = [1, 2, 3, 4, 5, 6, 7, 8];
+
+        PdfOcrResult result = provider.RecognizeBgra(bgra, 1, 2, 4,
+            new PdfOcrOptions(["eng"]));
+
+        Assert.Equal("ONNX", result.Text);
+        Assert.Equal(bgra, session.Pixels.ToArray());
+        Assert.Equal((1, 2, 4), session.Dimensions);
+        Assert.True(session.WasDisposed);
+    }
+
     private sealed class StubProvider(string id, int priority, string[] languages) : IPdfOcrProvider
     {
         public PdfOcrProviderDescriptor Descriptor { get; } = new(
@@ -81,8 +98,26 @@ public sealed class PdfOcrProviderSelectorTests
 
         public bool Supports(PdfOcrOptions options) => true;
 
-        public PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
+        public PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height, int stride,
             PdfOcrOptions options, string? characterWhitelist = null,
             CancellationToken cancellationToken = default) => new("", 0, []);
+    }
+
+    private sealed class RecordingOnnxSession : IPdfOnnxOcrSession
+    {
+        public ReadOnlyMemory<byte> Pixels { get; private set; }
+        public (int Width, int Height, int Stride) Dimensions { get; private set; }
+        public bool WasDisposed { get; private set; }
+
+        public PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height, int stride,
+            PdfOcrOptions options, string? characterWhitelist = null,
+            CancellationToken cancellationToken = default)
+        {
+            Pixels = bgra.ToArray();
+            Dimensions = (width, height, stride);
+            return new PdfOcrResult("ONNX", 1, []);
+        }
+
+        public void Dispose() => WasDisposed = true;
     }
 }

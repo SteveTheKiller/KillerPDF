@@ -96,9 +96,62 @@ public interface IPdfOcrProviderMetadata
 public interface IPdfOcrRasterProvider : IPdfOcrProviderMetadata
 {
     /// <summary>Recognizes one raw BGRA page without a temporary image file.</summary>
-    PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height,
+    PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height, int stride,
         PdfOcrOptions options, string? characterWhitelist = null,
         CancellationToken cancellationToken = default);
+}
+
+/// <summary>Runs an OCR-capable ONNX session without exposing a runtime-specific session type.</summary>
+public interface IPdfOnnxOcrSession : IDisposable
+{
+    /// <summary>Recognizes a raw BGRA image using the loaded ONNX model.</summary>
+    PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height, int stride,
+        PdfOcrOptions options, string? characterWhitelist = null,
+        CancellationToken cancellationToken = default);
+}
+
+/// <summary>Adapts a local ONNX OCR session factory to the engine's provider contract.</summary>
+public sealed class PdfOnnxOcrProvider : IPdfOcrRasterProvider
+{
+    private readonly Func<IPdfOnnxOcrSession> _createSession;
+    private readonly Func<PdfOcrOptions, bool> _supports;
+
+    /// <summary>Creates an ONNX provider with isolated sessions for individual recognition calls.</summary>
+    public PdfOnnxOcrProvider(PdfOcrProviderDescriptor descriptor,
+        Func<IPdfOnnxOcrSession> createSession, Func<PdfOcrOptions, bool>? supports = null)
+    {
+        Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
+        if (!string.Equals(descriptor.Id, "onnx", StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("ONNX providers must use the stable 'onnx' identifier.",
+                nameof(descriptor));
+        _createSession = createSession ?? throw new ArgumentNullException(nameof(createSession));
+        _supports = supports ?? (_ => true);
+    }
+
+    /// <inheritdoc />
+    public PdfOcrProviderDescriptor Descriptor { get; }
+
+    /// <inheritdoc />
+    public bool Supports(PdfOcrOptions options) => _supports(options ?? throw new ArgumentNullException(nameof(options)));
+
+    /// <inheritdoc />
+    public PdfOcrResult RecognizeBgra(ReadOnlyMemory<byte> bgra, int width, int height, int stride,
+        PdfOcrOptions options, string? characterWhitelist = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        if (stride < checked(width * 4))
+            throw new ArgumentOutOfRangeException(nameof(stride));
+        if (bgra.Length < checked(stride * height))
+            throw new ArgumentException("The BGRA buffer is shorter than the requested image.", nameof(bgra));
+        ArgumentNullException.ThrowIfNull(options);
+        cancellationToken.ThrowIfCancellationRequested();
+        using IPdfOnnxOcrSession session = _createSession()
+            ?? throw new InvalidOperationException("The ONNX OCR session factory returned null.");
+        return session.RecognizeBgra(bgra, width, height, stride, options,
+            characterWhitelist, cancellationToken);
+    }
 }
 
 /// <summary>Resolves local OCR providers without exposing one provider's model details to another.</summary>
