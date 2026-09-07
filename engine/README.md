@@ -133,6 +133,9 @@ diagnostics, resource limits, and validation guidance.
 See [opening and extracting documents](docs/reading.md) for memory ownership,
 authentication, permissions, page coordinates, extraction results, and batch failures.
 
+See [authoring documents](docs/authoring.md) for typed page content, fonts, images,
+interactive objects, resource ownership, and output validation.
+
 ## Repository layout
 
 ```text
