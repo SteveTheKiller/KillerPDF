@@ -1,0 +1,22 @@
+{
+  "engineApplicationSha256": "E062F7A5FE7B4FC6E8D6C2E50F3160B197C6CA91D5C892A0274E45F520EC4932",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue12823.pdf",
+    "inputSha256": "56E73C75D84623F0326DB93A6A891C16FEB32184BC4DDB350AFC58E6DB3E1428",
+    "before": "FAIL",
+    "after": "OK",
+    "renderMilliseconds": 223,
+    "dimensions": [791, 1024],
+    "diagnostics": ["A text glyph outline is not implemented.", "Text outlines for font NUKKLY+NotoColorEmoji are not available."],
+    "extractedEmojiScalars": ["U+26F3", "U+2B50"],
+    "rgbMaeAgainstBaseline": 0.4856145306573957,
+    "nonwhitePixels": 12837
+  },
+  "tests": { "newCases": 7, "failedBefore": 5, "engine": 2759, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limits": "Missing descendant recovery requires Identity-H or Identity-V and a readable ToUnicode stream. Strict reading still requires one descendant dictionary. Existing font substitution uses mapped Unicode, not an unrelated raw CID, for composite fonts.",
+  "limitations": "The main page content renders and extraction retains both emoji, but their outlines remain unavailable and are reported. Default descendant metrics are estimates. PDFium also omits these symbols in this baseline. This is recovery progress, not complete rendering fidelity or a throughput comparison. Full PDF.js coverage has not been rerun at this build."
+}

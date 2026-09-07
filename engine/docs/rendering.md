@@ -79,6 +79,15 @@ mapping is invented for the rejected entry. Invalid code-space declarations and
 otherwise valid ranges exceeding the expansion limit still fail. Strict parsing
 rejects invalid mapping ranges.
 
+A Type0 font with missing, null, or empty descendant data can use fallback
+metrics in recovery mode when it has an Identity-H or Identity-V encoding and
+a readable `ToUnicode` stream. The default advance is 1000 units; original
+descendant metrics cannot be reconstructed. Unicode mappings and the existing
+font resolver or bundled substitutes supply available glyphs. Composite font
+substitution does not reinterpret a source CID as an unrelated Unicode value
+when its mapped character has no glyph. Unavailable painted outlines remain
+render diagnostics. Strict reading still requires one descendant dictionary.
+
 For non-pattern `sc`, `scn`, `SC`, and `SCN` color operations with an invalid
 component count, recovery consumes the required leading operands when extra
 values are present. An incomplete operation retains the current paint color.

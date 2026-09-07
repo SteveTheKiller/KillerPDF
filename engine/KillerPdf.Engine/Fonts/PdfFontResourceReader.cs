@@ -32,10 +32,18 @@ public static class PdfFontResourceReader
             PdfDictionary metrics = font;
             if (composite)
             {
-                if (Get(font, "DescendantFonts") is not PdfArray descendants || descendants.Count != 1
-                    || Resolve(descendants[0]) is not PdfDictionary descendant)
+                PdfObject? descendants = Get(font, "DescendantFonts");
+                PdfObject? descendant = descendants is PdfArray { Count: 1 } array
+                    ? Resolve(array[0]) : null;
+                if (descendant is PdfDictionary dictionary) metrics = dictionary;
+                else if (document.UsesCompatibilityRecovery
+                    && (descendants is null or PdfNull or PdfArray { Count: 0 }
+                        || descendants is PdfArray { Count: 1 } && descendant is PdfNull)
+                    && Name(Get(font, "Encoding")) is "Identity-H" or "Identity-V"
+                    && Get(font, "ToUnicode") is PdfStream)
+                    metrics = new PdfDictionary([]);
+                else
                     throw new FormatException("A Type0 font must have one descendant font.");
-                metrics = descendant;
             }
             var descriptor = Get(metrics, "FontDescriptor") as PdfDictionary;
             var systemInfo = Get(metrics, "CIDSystemInfo") as PdfDictionary;
@@ -196,7 +204,7 @@ public static class PdfFontResourceReader
                 if (substitute is null || string.IsNullOrEmpty(text)) return 0;
                 int scalar = char.ConvertToUtf32(text, 0);
                 ushort glyph = substitute.GetGlyphId(scalar);
-                if (glyph == 0 && code < 256) glyph = substitute.GetGlyphId((int)code);
+                if (glyph == 0 && !composite && code < 256) glyph = substitute.GetGlyphId((int)code);
                 return glyph;
             }
             if (!composite && embedded is not null)

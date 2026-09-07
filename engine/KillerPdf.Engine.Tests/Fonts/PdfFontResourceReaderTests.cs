@@ -13,6 +13,61 @@ public sealed class PdfFontResourceReaderTests
     private static readonly PdfDocument Document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
 
     [Fact]
+    public void CompositeSubstitutionDoesNotTreatAnUnmappedGlyphIdAsUnicode()
+    {
+        PdfStream unicode = Stream("1 begincodespacerange <0000> <ffff> endcodespacerange "
+            + "1 beginbfchar <0041> <dbffdfff> endbfchar");
+        var font = Read(Type0(D(), N("Identity-H"), unicode));
+        Assert.Equal(char.ConvertFromUtf32(0x10ffff), Assert.Single(font.Decode(new byte[] { 0, 65 })).Text);
+        Assert.Null(font.GetGlyphOutline(65));
+    }
+
+    [Theory]
+    [InlineData(0, "Identity-H")]
+    [InlineData(1, "Identity-H")]
+    [InlineData(2, "Identity-H")]
+    [InlineData(3, "Identity-V")]
+    public void RecoveryUsesUnicodeAndFallbackOutlinesWhenDescendantIsMissing(int shape, string encoding)
+    {
+        var entries = new List<(string Name, PdfObject Value)>
+        {
+            ("Subtype", N("Type0")), ("BaseFont", N("TestCID")), ("Encoding", N(encoding)),
+            ("ToUnicode", Stream("1 begincodespacerange <0000> <ffff> endcodespacerange "
+                + "1 beginbfchar <0041> <0041> endbfchar"))
+        };
+        if (shape > 0) entries.Add(("DescendantFonts", shape switch
+        {
+            1 => PdfNull.Instance,
+            2 => new PdfArray([]),
+            _ => new PdfArray([PdfNull.Instance])
+        }));
+        var resource = D(entries.ToArray());
+        Assert.Throws<FormatException>(() => Read(resource));
+        var recovery = PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build());
+        var resolver = new TestFontResolver(TrueTypeFontTests.BuildTestFont(false, includeOutlines: true));
+        PdfExtractionFont font = PdfFontResourceReader.Read(recovery, resource, resolver);
+        Assert.Equal("A", Assert.Single(font.Decode(new byte[] { 0, 65 })).Text);
+        Assert.Equal(1000, font.GetWidth(65));
+        Assert.Equal(encoding == "Identity-V", font.IsVertical);
+        Assert.NotEmpty(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+        Assert.Single(resolver.Requests);
+    }
+
+    [Theory]
+    [InlineData(false, "Identity-H")]
+    [InlineData(true, "UnknownEncoding")]
+    public void RecoveryRequiresUnicodeAndIdentityEncodingForMissingDescendant(bool unicode, string encoding)
+    {
+        var entries = new List<(string Name, PdfObject Value)>
+        {
+            ("Subtype", N("Type0")), ("Encoding", N(encoding))
+        };
+        if (unicode) entries.Add(("ToUnicode", Stream("1 begincodespacerange <0000> <ffff> endcodespacerange")));
+        var recovery = PdfDocument.OpenWithCompatibilityRecovery(new PdfDocumentBuilder().AddBlankPage().Build());
+        Assert.Throws<FormatException>(() => PdfFontResourceReader.Read(recovery, D(entries.ToArray())));
+    }
+
+    [Fact]
     public void StandardHelveticaUsesStandardEncodingAndExactWidths()
     {
         var font = Read(D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica"))));
