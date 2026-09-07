@@ -42,7 +42,7 @@ namespace KillerPDF.Services
                         if (!string.IsNullOrWhiteSpace(word))
                         {
                             words.Add(new PdfOcrPixelWord(word,
-                                iter.GetConfidence(PageIteratorLevel.Word),
+                                iter.GetConfidence(PageIteratorLevel.Word) / 100f,
                                 bounds.X1, bounds.Y1, bounds.X2, bounds.Y2));
                         }
                     }
