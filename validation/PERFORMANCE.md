@@ -3,6 +3,36 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 paired conformance recheck
+
+Validation date: 2026-09-07. Three measured passes used the same 649 conformance
+inputs, page one, 1024 px maximum dimension, and enabled annotation/form
+appearances. Build order alternated, with a fresh process per collection pass.
+No builds or tests ran during measurement. Each pass had a 120-second limit;
+none timed out. The engine executable corresponds to `05544b1`.
+
+| Measurement | PDFium through KillerPDF 1.8.5 | KillerPDF 1.9.0 |
+| --- | ---: | ---: |
+| Rendered / skipped / failed per pass | 600 / 41 / 8 | 614 / 35 / 0 |
+| Median logged render time, all accepted pages | 11.820 s | 14.751 s |
+| Median logged render time, 600 shared pages | 11.820 s | 14.696 s |
+| Median collection wall time | 22.317 s | 28.673 s |
+
+The engine is at 1.24 times PDFium's logged render time on the shared set.
+The target of outperforming 1.8.x is not yet demonstrated. This fresh comparison
+supersedes the earlier 1.10 ratio as the current conformance timing checkpoint;
+historical runs remain below. First-page JIT and cold startup have not been
+isolated into their own measurements. Successful rendering also remains distinct
+from visual parity across the corpus.
+
+The largest first-pass time gaps include `balloon_a1b_jp2k.pdf` (459 versus
+148 ms), `altona_technical_1v2_x3.pdf` (341 versus 153 ms), and
+`42828.0001.001.pdf` (366 versus 201 ms). These are profiling leads, not proof
+that any one decoder accounts for the complete gap.
+
+See the [record](records/conformance-1.9.0-mask-sum.json) and
+[all six raw logs](benchmarks/1.9.0-conformance-mask-sum).
+
 ## KillerPDF 1.9.0 eight-bit soft-mask averaging
 
 Validation date: 2026-09-06. Default-range eight-bit soft masks use grouped integer
