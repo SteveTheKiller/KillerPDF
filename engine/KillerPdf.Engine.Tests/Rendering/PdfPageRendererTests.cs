@@ -56,6 +56,41 @@ public sealed class PdfPageRendererTests
         Assert.NotEmpty(page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("stream")]
+    [InlineData("null")]
+    [InlineData("integer")]
+    [InlineData("array")]
+    public void Render_RecoversInvalidPageResourcesForIndependentContent(string kind)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, "1 0 0 rg 2 2 4 4 re f"u8.ToArray()).Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        var reference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary page = ResolveDictionary(source, reference);
+        PdfObject resources = kind switch
+        {
+            "stream" => page[Name("Contents")],
+            "null" => PdfNull.Instance,
+            "integer" => new PdfInteger(1),
+            _ => new PdfArray([])
+        };
+        var changed = new PdfDictionary(page.Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), resources)));
+        byte[] bytes = new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(reference.ObjectNumber, changed).Build();
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(PdfDocument.Open(bytes)));
+        var renderer = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(bytes));
+        var options = new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false);
+        PdfRenderedPage rendered = renderer.Render(0, options);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(rendered, 4, 6));
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(rendered, 0, 0));
+        Assert.Contains("Invalid page resources were treated as empty.", rendered.Diagnostics);
+        Assert.Equal(rendered.Pixels.ToArray(), renderer.Render(0, options).Pixels.ToArray());
+    }
+
     [Fact]
     public void Render_BlankPageProducesOpaqueWhiteBgra()
     {

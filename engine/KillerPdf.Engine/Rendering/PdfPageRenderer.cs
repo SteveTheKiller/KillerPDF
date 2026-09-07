@@ -22,6 +22,7 @@ public sealed partial class PdfPageRenderer
     private readonly PdfPageTree _tree;
     private readonly IPdfFontResolver? _fontResolver;
     private readonly IReadOnlyList<PdfDictionary> _pageResources;
+    private readonly HashSet<int> _recoveredPageResources = [];
     private readonly IReadOnlySet<int> _hiddenOptionalContentGroups;
     private readonly BoundedCache<int, IReadOnlyList<PdfContentInstruction>> _instructionCache = new(32);
     private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
@@ -114,6 +115,8 @@ public sealed partial class PdfPageRenderer
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
         var diagnostics = new HashSet<string>();
+        if (_recoveredPageResources.Contains(pageIndex))
+            diagnostics.Add("Invalid page resources were treated as empty.");
         var activeForms = new HashSet<PdfStream>();
         int recoveredFormExpansions = 0;
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
@@ -1494,10 +1497,13 @@ public sealed partial class PdfPageRenderer
     private PdfDictionary PageResources(int pageIndex)
     {
         PdfPageTreeEntry page = _tree.Pages[pageIndex];
-        return page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? value)
-            ? Resolve(value) as PdfDictionary
-                ?? throw new FormatException("Page resources are not a dictionary.")
-            : new PdfDictionary([]);
+        if (!page.InheritedValues.TryGetValue(Name("Resources"), out PdfObject? value))
+            return new PdfDictionary([]);
+        if (Resolve(value) is PdfDictionary resources) return resources;
+        if (!_document.UsesCompatibilityRecovery)
+            throw new FormatException("Page resources are not a dictionary.");
+        _recoveredPageResources.Add(pageIndex);
+        return new PdfDictionary([]);
     }
 
     private PdfDictionary? ResolveFont(PdfDictionary resources, PdfName resourceName) =>

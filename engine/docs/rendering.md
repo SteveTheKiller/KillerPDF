@@ -5,6 +5,12 @@ owns display, image encoding, scheduling, and the choice of output dimensions.
 The 1.9 implementation is under development. Successful rendering does not establish
 visual parity with another viewer.
 
+In compatibility recovery, a page `/Resources` value that resolves to something
+other than a dictionary is treated as empty, with a page diagnostic. Drawing that
+does not require named resources can survive; missing fonts and images are not
+reconstructed. Strict rendering still rejects the invalid value, and failures
+while resolving the resource reference retain their existing limits.
+
 ## Render a page
 
 This example requests an exact output size. Choose dimensions with the displayed
