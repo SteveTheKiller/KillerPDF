@@ -290,9 +290,7 @@ public static partial class PdfPageFurnitureMacro
         double width = Math.Max(fontSize * 0.55, text.Length * fontSize * 0.55);
         PdfPageFurniturePlacement placement = PdfPageFurniturePlacementPlanner.Plan(
             crop.Width, crop.Height, width, fontSize, horizontalMargin, verticalMargin,
-            edge, alignment, occupied.Select(bounds => new PdfContentBounds(
-                bounds.Left - crop.Left, bounds.Bottom - crop.Bottom,
-                bounds.Right - crop.Left, bounds.Top - crop.Bottom)));
+            edge, alignment, occupied);
         if (placement.HasCollision && !allowCollisions)
             throw new InvalidOperationException(
                 $"Page-numbering placement collides with content on page {pageIndex + 1}.");

@@ -85,11 +85,11 @@ static byte[] NumberPages(byte[] source)
 ```
 
 The macro formats selected pages, estimates width from character count and font
-size, checks extracted content rectangles, and writes the marks. Null page
+size, checks crop-relative extracted content rectangles, and writes the marks. Null page
 selection means all pages; physical numbering does not restart for a selection.
 By default, detected collisions prevent writing. `AllowCollisions` should reflect
 a reviewed placement decision. The estimate is not exact font measurement or a
-complete visual collision check; inspect nonzero crop origins and rotated text
+complete visual collision check; inspect rotated text and actual glyph extents
 in particular. An empty selection or a template producing empty text cannot be
 applied through this writer.
 

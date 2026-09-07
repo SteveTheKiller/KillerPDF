@@ -6,6 +6,51 @@ namespace KillerPdf.Engine.Tests.Documents;
 
 public sealed class PdfPageFurnitureMacroTests
 {
+    [Theory]
+    [InlineData(0, 0, true, false)]
+    [InlineData(50, 70, true, false)]
+    [InlineData(100, 30, true, false)]
+    [InlineData(50, 70, false, false)]
+    [InlineData(0, 0, true, true)]
+    [InlineData(50, 70, true, true)]
+    [InlineData(100, 30, true, true)]
+    [InlineData(50, 70, false, true)]
+    public void NumberingChecksCollisionsInCropRelativeCoordinates(
+        int cropLeft, int cropBottom, bool collision, bool bates)
+    {
+        double textX = collision ? 70 : 120;
+        double textY = collision ? 18 : 88;
+        byte[] source = new PdfDocumentBuilder().AddPage(400, 400,
+            new PdfContentStreamBuilder().BeginText()
+                .SetFont(PdfStandardFont.Helvetica, 12)
+                .MoveText(cropLeft + textX, cropBottom + textY)
+                .ShowLatin1Text("Existing").EndText())
+            .SetPageBox(0, PdfPageBox.Crop, cropLeft, cropBottom, 200, 200).Build();
+
+        byte[] Execute()
+        {
+            if (bates)
+            {
+                var step = PdfPageFurnitureMacro.BatesBatchStep(new PdfBatesMacroOptions
+                {
+                    DigitCount = 1, FontSize = 12, VerticalMargin = 10,
+                    Alignment = PdfPageFurnitureAlignment.Center
+                });
+                return PdfPageFurnitureMacro.ExecuteBatesBatch(step, [source]).Single();
+            }
+            var numbering = PdfPageFurnitureMacro.NumberPagesStep(new PdfPageNumberMacroOptions
+            {
+                Date = new DateOnly(2026, 9, 7), FontSize = 12, VerticalMargin = 10
+            });
+            return PdfPageFurnitureMacro.Execute(numbering, source).ToArray();
+        }
+
+        if (collision)
+            Assert.Throws<InvalidOperationException>(() => Execute());
+        else
+            Assert.Single(PdfPageFurnitureReport.Inspect(PdfDocument.Open(Execute())));
+    }
+
     [Fact]
     public void NumberingStepRoundTripsAndWritesSelectedFormattedPages()
     {
