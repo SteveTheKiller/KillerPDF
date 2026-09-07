@@ -67,6 +67,12 @@ only supplied entries within the declared range. Missing entries remain unmapped
 and surplus entries do not create mappings beyond the range. The declared range
 still must fit the mapping limit. Strict parsing rejects the array-length mismatch.
 
+Recovery includes explicit mappings outside a declared code space by adding
+bounded ranges of the same byte width and merging overlapping ranges of that
+width. Unmapped codes still have no Unicode value. Existing or newly introduced
+ambiguity between character widths is rejected, and the 256-code-space limit
+remains in force. Strict parsing requires mappings to fit the declared spaces.
+
 For non-pattern `sc`, `scn`, `SC`, and `SCN` color operations with an invalid
 component count, recovery consumes the required leading operands when extra
 values are present. An incomplete operation retains the current paint color.

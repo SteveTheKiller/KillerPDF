@@ -1,0 +1,21 @@
+{
+  "engineApplicationSha256": "F44A6F8279BDBB734075C64748082D4F4C820E9ACFA7E89F321A4FCB261441FC",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue5244.pdf",
+    "inputSha256": "C58E678695D2E987491236C17E8152F403D885DA27F0992F4F4B6A5202B3261C",
+    "before": "FAIL",
+    "after": "OK",
+    "renderMilliseconds": 189,
+    "dimensions": [1024, 256],
+    "diagnostics": [],
+    "extractedText": "ĄŁąłężśćźńĘ",
+    "rgbMaeAgainstBaseline": 4.774341583251953
+  },
+  "tests": { "newCases": 4, "failedBefore": 2, "engine": 2747, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limits": "Recovery includes explicit mappings in bounded ranges of their original byte widths. Strict parsing, ambiguous-width rejection, mapping limits, and the 256-code-space limit remain enforced.",
+  "limitations": "Visible characters and extraction are recovered, but font shapes differ from PDFium and remain a backlog item. This is not visual parity or a throughput measurement. Full PDF.js coverage has not been rerun at this build."
+}

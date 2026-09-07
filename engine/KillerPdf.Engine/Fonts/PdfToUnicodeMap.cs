@@ -164,6 +164,7 @@ public sealed class PdfToUnicodeMap
         }
         if (map._spaces.Count == 0) throw new FormatException("ToUnicode map has no code space.");
         map.ValidateSpaces();
+        if (compatibilityRecovery) map.IncludeMappedCodeSpaces();
         foreach (var key in map._characters.Keys)
             if (!map._spaces.Any(s => s.Length == key.Length && key.Code >= s.Low && key.Code <= s.High))
                 throw new FormatException("ToUnicode mapping lies outside its code space.");
@@ -220,6 +221,32 @@ public sealed class PdfToUnicodeMap
             }
         }
         return result;
+    }
+
+    private void IncludeMappedCodeSpaces()
+    {
+        var additions = _characters.Keys
+            .Where(key => !_spaces.Any(s => s.Length == key.Length
+                && key.Code >= s.Low && key.Code <= s.High))
+            .GroupBy(key => key.Length)
+            .Select(group => (Low: group.Min(key => key.Code),
+                High: group.Max(key => key.Code), Length: group.Key)).ToArray();
+        if (additions.Length == 0) return;
+
+        var spaces = _spaces.Concat(additions).OrderBy(s => s.Length).ThenBy(s => s.Low).ToArray();
+        _spaces.Clear();
+        foreach (var space in spaces)
+        {
+            if (_spaces.Count > 0 && _spaces[^1].Length == space.Length
+                && space.Low <= _spaces[^1].High)
+            {
+                var previous = _spaces[^1];
+                _spaces[^1] = (previous.Low, Math.Max(previous.High, space.High), space.Length);
+            }
+            else _spaces.Add(space);
+        }
+        if (_spaces.Count > 256) throw new FormatException("Too many ToUnicode code spaces.");
+        ValidateSpaces();
     }
 
     private void ValidateSpaces()

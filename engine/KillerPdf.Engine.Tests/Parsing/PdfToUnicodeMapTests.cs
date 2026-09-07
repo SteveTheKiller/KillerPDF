@@ -77,6 +77,40 @@ public sealed class PdfToUnicodeMapTests
 
     private const string Space = "1 begincodespacerange <0000> <FFFF> endcodespacerange ";
 
+    [Fact]
+    public void RecoveryIncludesExplicitMappingsOutsideDeclaredCodeSpace()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "1 begincodespacerange <0104> <012a> endcodespacerange "
+            + "3 beginbfchar <00fc> <0107> <0104> <0104> <0130> <0041> endbfchar");
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        var map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+        var decoded = map.Decode([0, 0xfc, 1, 4, 1, 0x30]);
+        Assert.Equal(["\u0107", "\u0104", "A"], decoded.Select(c => c.Text));
+        Assert.All(decoded, c => Assert.Equal(2, c.ByteLength));
+        Assert.Throws<NotSupportedException>(() => map.Decode([1, 5]));
+    }
+
+    [Fact]
+    public void RecoveryPreservesUnambiguousVariableLengthCodes()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "2 begincodespacerange <00> <7f> <8100> <81ff> endcodespacerange "
+            + "2 beginbfchar <41> <0041> <8001> <4e2d> endbfchar");
+        Assert.Throws<FormatException>(() => PdfToUnicodeMap.Parse(source));
+        var map = PdfToUnicodeMap.ParseWithCompatibilityRecovery(source);
+        var decoded = map.Decode([0x41, 0x80, 1]);
+        Assert.Equal(["A", "\u4e2d"], decoded.Select(c => c.Text));
+        Assert.Equal([1, 2], decoded.Select(c => c.ByteLength));
+    }
+
+    [Theory]
+    [InlineData("2 begincodespacerange <00> <ff> <8100> <81ff> endcodespacerange")]
+    [InlineData("2 begincodespacerange <00> <7f> <8100> <81ff> endcodespacerange 1 beginbfchar <0041> <0041> endbfchar")]
+    public void RecoveryRejectsAmbiguousCharacterWidths(string source)
+        => Assert.Throws<FormatException>(() => PdfToUnicodeMap.ParseWithCompatibilityRecovery(
+            Encoding.ASCII.GetBytes(source)));
+
     [Theory]
     [InlineData("<0041><0042><0043>", "ABC\uFFFD")]
     [InlineData("", "\uFFFD\uFFFD\uFFFD\uFFFD")]
