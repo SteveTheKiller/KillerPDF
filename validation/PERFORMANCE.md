@@ -3,6 +3,29 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 graphics-state font rendering
+
+On 2026-09-06, NegativeFontSize.pdf was rendered before and after the graphics-state
+font fix and compared with 1.8.5, using page 1 fitted inside 1024 pixels. The missing
+lower text is now present and its incomplete-text diagnostic is gone. Seven focused
+tests compare graphics-state font selection with equivalent Tf instructions, covering
+positive, negative, and zero sizes, indirect arrays, font changes, and q/Q restoration.
+All 2,660 engine tests and 338 app tests pass; the Release build is warning-free.
+
+A full conformance coverage pass retained 614 rendered, 35 skipped, and zero failures.
+Diagnostic pages fell from 30 to 29. This was a coverage check, not a new timing study.
+PDFium uses different glyph shapes for the lower Times-Roman run; the engine follows
+the file's explicit Times-Roman dictionary. The one-pixel fitted-height difference
+also remains. This is a content fix, not a claim of pixel parity.
+
+The PNG comparison also exposed variable corrupt tiles in balloon_a1b_jp2k.pdf,
+including before this font change and on an isolated repeat. It reports no diagnostic
+and remains an open visual-correctness problem. All other PNGs except NegativeFontSize
+were byte-identical between the before/after conformance passes.
+
+See [font-rendering-1.9.0.json](../pdf-landing/font-rendering-1.9.0.json) for identities
+and [the coverage log](benchmarks/1.9.0-gs-font/engine.csv) for every outcome.
+
 ## KillerPDF 1.9.0 cross-reference recovery comparison
 
 Benchmark date: 2026-09-06. Same 649 conformance files, page 1 fitted inside

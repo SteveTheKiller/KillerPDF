@@ -1,0 +1,19 @@
+{
+  "version": "1.9.0",
+  "baseline": "1.8.5",
+  "date": "2026-09-06",
+  "kind": "content and coverage check, not a timing benchmark",
+  "file": "pdf-differences/NegativeFontSize/NegativeFontSize.pdf",
+  "inputSHA256": "7886E7942DE1C5A215CAF3F98507C66A4FE32A7E8C2FF862BC9431958A31B0D8",
+  "beforeEngineAppDllSHA256": "69480BF8695B14603D5D496BB6002F50B36D0845F1673001EBBFA9B694B7CC52",
+  "afterEngineAppDllSHA256": "361EA115D54D1371DF62EE06B3E9E729EAE7C9272FB9D4726B050B2897F94627",
+  "baselineAppDllSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "page": 1,
+  "size": 1024,
+  "conformance": { "files": 649, "rendered": 614, "skipped": 35, "failed": 0, "diagnosticPages": 29 },
+  "tests": { "engine": 2660, "app": 338, "focused": 7 },
+  "remainingVisualDifferences": [
+    "NegativeFontSize has different lower Times-Roman glyph shapes from PDFium and a one-pixel fitted-height difference.",
+    "balloon_a1b_jp2k has variable corrupt tiles without diagnostics, reproduced before the font change and in an isolated repeat."
+  ]
+}

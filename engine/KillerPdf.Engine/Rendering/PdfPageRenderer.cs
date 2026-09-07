@@ -395,7 +395,9 @@ public sealed partial class PdfPageRenderer
                 case "gs" when values.Count == 1 && values[0] is PdfName stateName:
                     if (TryGetGraphicsState(resources, stateName, out double? fillAlpha,
                         out double? strokeAlpha, out RendererBlendMode? blendMode,
-                        out bool unsupportedBlend, out PdfObject? softMaskValue))
+                        out bool unsupportedBlend, out PdfObject? softMaskValue,
+                        out PdfObject? graphicsFontValue))
+                    {
                         state = state with
                         {
                             FillAlpha = fillAlpha ?? state.FillAlpha,
@@ -405,6 +407,19 @@ public sealed partial class PdfPageRenderer
                                 ? state.GraphicsSoftMask
                                 : ReadGraphicsSoftMask(softMaskValue, resources, state, depth)
                         };
+                        if (graphicsFontValue is not null)
+                        {
+                            PdfArray font = ResolveArray(graphicsFontValue, 2, "A graphics-state font");
+                            PdfDictionary dictionary = Resolve(font[0]) as PdfDictionary
+                                ?? throw new FormatException("A graphics-state font dictionary is invalid.");
+                            double size = Number(Resolve(font[1]));
+                            if (!double.IsFinite(size))
+                                throw new FormatException("A graphics-state font size is invalid.");
+                            textFont = dictionary;
+                            textSize = size;
+                            extractionFont = null;
+                        }
+                    }
                     if (unsupportedBlend)
                         diagnostics.Add("Transparency blend-mode rendering is not implemented.");
                     break;
@@ -3894,12 +3909,13 @@ public sealed partial class PdfPageRenderer
 
     private bool TryGetGraphicsState(PdfDictionary resources, PdfName resourceName,
         out double? fillAlpha, out double? strokeAlpha, out RendererBlendMode? blendMode,
-        out bool unsupportedBlend, out PdfObject? softMaskValue)
+        out bool unsupportedBlend, out PdfObject? softMaskValue, out PdfObject? fontValue)
     {
         fillAlpha = strokeAlpha = null;
         blendMode = null;
         unsupportedBlend = false;
         softMaskValue = null;
+        fontValue = null;
         if (!resources.TryGetValue(Name("ExtGState"), out PdfObject? statesValue)
             || Resolve(statesValue) is not PdfDictionary states
             || !states.TryGetValue(resourceName, out PdfObject? stateValue)
@@ -3908,6 +3924,7 @@ public sealed partial class PdfPageRenderer
         fillAlpha = Alpha(dictionary, "ca");
         strokeAlpha = Alpha(dictionary, "CA");
         dictionary.TryGetValue(Name("SMask"), out softMaskValue);
+        dictionary.TryGetValue(Name("Font"), out fontValue);
         if (dictionary.TryGetValue(Name("BM"), out PdfObject? blendValue))
         {
             PdfObject blend = Resolve(blendValue);
