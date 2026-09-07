@@ -12,7 +12,7 @@ namespace KillerPDF.Services
         private readonly string _dataPath;
         private readonly string _language;
         private readonly bool _usesDefaultDataPath;
-        private readonly PdfOcrRasterProvider? _engineProvider;
+        private readonly IPdfOcrRasterProvider? _engineProvider;
         private readonly PdfOcrLanguageModel? _engineLanguageModel;
         private readonly PdfOcrOptions _engineRasterOptions;
         private TesseractOcrFallback? _fallback;
