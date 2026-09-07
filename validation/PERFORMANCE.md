@@ -3,6 +3,33 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 paired conformance after JPEG and form updates
+
+Validation date: 2026-09-07. Product `63d8f4c` was compared with PDFium 1.8.5
+on the same 649 inputs at 1024 pixels, page one. Each build received a warmup
+and three measured passes with alternating order. No builds or heavy checks
+overlapped measurement.
+
+| Measure | PDFium 1.8.5 | Engine 1.9.0 |
+| --- | --- | --- |
+| OK / SKIP / FAIL per pass | 600 / 41 / 8 | 614 / 35 / 0 |
+| Median shared-file render time | 12.676 s | 15.352 s |
+| Median total render time | 12.676 s | 15.411 s |
+| Median wall time | 23.699 s | 29.899 s |
+| Median sampled peak working set | 645.0 MB | 1,097.0 MB |
+
+On the 600 shared accepted files, the ratio of median render times is 1.211.
+All 614 engine PNGs in every measured pass are identical to the reviewed Courier
+alias conformance output. Full suites pass 2,953 engine and 338 app tests.
+
+The engine is still slower and uses more memory. Both builds have higher absolute
+times than the previous paired run; the ratio change does not isolate any one
+fix or establish a statistically reliable improvement. Cold startup and JIT
+remain included in collection wall time rather than measured separately.
+Sampled working set includes runtime and caches and can miss a terminal peak.
+See the [record](records/conformance-forms-1.9.0.json) and
+[raw warmup, measured, and process logs](benchmarks/1.9.0-conformance-forms).
+
 ## KillerPDF 1.9.0 Courier PostScript aliases
 
 Validation date: 2026-09-07. The Windows font resolver now recognizes CourierNew

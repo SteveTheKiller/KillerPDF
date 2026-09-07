@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-07",
+  "engineCommit": "63d8f4cfbaa3e8b57119ca87d54e9b7b0f297fb4",
+  "engineApplicationSha256": "26EFD8ABD2C29EEEA646484802D5814639A7CDDB109F437BF7E8BFAFA38E095D",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "files": 649, "page": 1, "maximumDimension": 1024, "warmupsPerBuild": 1, "measuredPasses": 3, "freshProcessPerCollectionPass": true, "alternatingOrder": true, "timeoutSecondsPerPass": 180, "workingSetPollingMilliseconds": 100 },
+  "baseline": { "ok": 600, "skip": 41, "fail": 8, "renderMilliseconds": [12782, 12676, 12555], "wallMilliseconds": [23849, 23699, 23469], "peakWorkingSetBytes": [639164416, 645615616, 644964352], "sharedPageMedianMilliseconds": [5.5, 5, 5] },
+  "engine": { "ok": 614, "skip": 35, "fail": 0, "renderMilliseconds": [15485, 15411, 15362], "wallMilliseconds": [30095, 29828, 29899], "peakWorkingSetBytes": [1112641536, 1097043968, 1081733120], "sharedPageMedianMilliseconds": [7, 7, 8] },
+  "shared": { "files": 600, "baselineRenderMilliseconds": [12782, 12676, 12555], "engineRenderMilliseconds": [15424, 15352, 15302], "ratioOfMedianRenderTimes": 1.2111076049226885 },
+  "tests": { "engine": 2953, "app": 338, "releaseWarnings": 0, "releaseErrors": 0 },
+  "verification": "All passes have identical file sets. All 614 engine PNGs in each measured pass are byte-identical to conformance-courier-postscript-20260907. Build hashes were checked before and after each pass and the engine hash again after completion. No builds or heavy checks overlapped timing.",
+  "limitations": "Speed target remains unmet. Both builds ran slower in absolute time than the previous paired comparison, so the ratio change does not isolate a fix or establish statistical significance. Cold startup and JIT are not isolated. Sampled working set includes runtime and caches and can omit a terminal sample. PDFium exit1 corresponds to eight recorded render failures; engine exits0. An earlier wrapper stopped after the baseline warmup because it treated exit1 as fatal; that attempt is excluded. Warmups are retained but excluded from measured medians."
+}
