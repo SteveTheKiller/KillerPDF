@@ -28,25 +28,30 @@ parity. Broader multipage coverage, color and font differences, OCR accuracy,
 memory use and performance remain ongoing work. Internal run logs and
 investigation notes are maintained outside the application repository.
 
-## KillerPDF 1.8.2 and 1.8.3 release benchmarks
+## KillerPDF 1.8.2 through 1.8.4 release benchmarks
 
 Five measured open/save passes were recorded for each release. These are separate
 release sessions, not an alternating same-session comparison.
 
-| Collection | Inputs | 1.8.2 median seconds | 1.8.3 median seconds |
-| --- | ---: | ---: | ---: |
-| Public regression | 16,696 | 167.891 | 182.093 |
-| Standards and color | 649 | 5.695 | 5.666 |
-| Private stress | 29,599 | 512.967 | 523.400 |
+| Collection | Inputs | 1.8.2 median seconds | 1.8.3 median seconds | 1.8.4 median seconds |
+| --- | ---: | ---: | ---: | ---: |
+| Public regression | 16,696 | 167.891 | 182.093 | 207.099 |
+| Standards and color | 649 | 5.695 | 5.666 | 5.635 |
+| Private stress | 29,599 | 512.967 | 523.400 | 556.740 |
 
 Version 1.8.3 saved 1,485 additional files without losing any previously successful
-input. Both releases recorded zero crashes and timeouts in the separate damaged-file
-safety collection. See the
+input. Version 1.8.4 reproduced every 1.8.3 outcome and diagnostic detail. All three
+releases recorded zero crashes and timeouts in the separate damaged-file safety
+collection. See the
 [1.8.2 release record](https://github.com/SteveTheKiller/KillerPDF-Corpus/blob/main/benchmarks/killerpdf-v1.8.2.md)
-and [1.8.3 report and measured runs](benchmarks/1.8.3/CORPUS.md).
+and the reports and measured runs for [1.8.3](benchmarks/1.8.3/CORPUS.md) and
+[1.8.4](benchmarks/1.8.4/CORPUS.md).
 
-The 1.8.4 release tag preserves these earlier records; it contains no separate
-1.8.4 benchmark. No 1.8.4 timing is inferred from an earlier release.
+The 1.8.4 regression median was 13.7% longer than the separately recorded 1.8.3
+session, while standards was 0.5% shorter and stress was 6.4% longer. The 1.8.3
+record used a framework-dependent payload and the official 1.8.4 portable release
+contains a self-contained .NET 10.0.11 payload. The two releases were not rerun in
+alternating passes, so the difference is not isolated to application code.
 
 ## KillerPDF 1.8.1 compared with 1.8.0
 
