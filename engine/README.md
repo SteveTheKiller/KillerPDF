@@ -160,6 +160,9 @@ authoring, readers, host behavior, and initial-view edits.
 See [PDF layers and optional content](docs/layers.md) for layer authoring,
 saved visibility, content assignment, configuration metadata, and flattening limits.
 
+See [attachments and PDF portfolios](docs/attachments.md) for embedded files,
+page icons, extraction, replacement, comparison, and collection metadata.
+
 ## Repository layout
 
 ```text
