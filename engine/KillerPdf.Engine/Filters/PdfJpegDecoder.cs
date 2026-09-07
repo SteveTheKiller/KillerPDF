@@ -766,29 +766,54 @@ internal static class PdfJpegDecoder
 
     private sealed class HuffmanTable
     {
-        private readonly Dictionary<int, byte> _symbols = [];
+        private readonly ushort[] _lookahead = new ushort[256];
+        private readonly int[] _firstCode = new int[17];
+        private readonly int[] _counts = new int[17];
+        private readonly int[] _firstSymbol = new int[17];
+        private readonly byte[] _symbols;
 
         internal HuffmanTable(IReadOnlyList<int> counts, ReadOnlySpan<byte> symbols)
         {
+            _symbols = symbols.ToArray();
             int code = 0;
             int symbol = 0;
             for (int length = 1; length <= 16; length++)
             {
                 if (code + counts[length - 1] > 1 << length)
                     throw new PdfFilterException("The JPEG Huffman table is oversubscribed.");
-                for (int index = 0; index < counts[length - 1]; index++)
-                    _symbols.Add(length << 16 | code++, symbols[symbol++]);
+                _firstCode[length] = code;
+                _counts[length] = counts[length - 1];
+                _firstSymbol[length] = symbol;
+                for (int index = 0; index < counts[length - 1]; index++, code++, symbol++)
+                {
+                    if (length > 8) continue;
+                    int suffixBits = 8 - length;
+                    Array.Fill(_lookahead, (ushort)(length << 8 | symbols[symbol]),
+                        code << suffixBits, 1 << suffixBits);
+                }
                 code <<= 1;
             }
         }
 
         internal int Decode(BitReader bits)
         {
+            // Lookahead must not consume a marker when a short code ends the scan.
+            if (bits.TryPeekBits(8, out int prefix))
+            {
+                int entry = _lookahead[prefix];
+                if (entry != 0)
+                {
+                    bits.SkipBits(entry >> 8);
+                    return entry & 255;
+                }
+            }
             int code = 0;
             for (int length = 1; length <= 16; length++)
             {
                 code = code << 1 | bits.ReadBits(1);
-                if (_symbols.TryGetValue(length << 16 | code, out byte symbol)) return symbol;
+                int offset = code - _firstCode[length];
+                if ((uint)offset < (uint)_counts[length])
+                    return _symbols[_firstSymbol[length] + offset];
             }
             throw new PdfFilterException("The JPEG scan contains an invalid Huffman code.");
         }
@@ -804,10 +829,22 @@ internal static class PdfJpegDecoder
 
         internal int ReadBits(int count)
         {
+            if (!TryPeekBits(count, out int result))
+                throw new PdfFilterException(_position >= source.Length
+                    ? "The JPEG scan data is truncated."
+                    : "A JPEG marker interrupted scan data.");
+            SkipBits(count);
+            return result;
+        }
+
+        internal void SkipBits(int count) => _bits -= count;
+
+        internal bool TryPeekBits(int count, out int result)
+        {
+            result = 0;
             while (_bits < count)
             {
-                if (_position >= source.Length)
-                    throw new PdfFilterException("The JPEG scan data is truncated.");
+                if (_position >= source.Length) return false;
                 int value = source[_position++];
                 if (value == 0xFF)
                 {
@@ -816,15 +853,14 @@ internal static class PdfJpegDecoder
                     if (_position >= source.Length || source[_position++] != 0)
                     {
                         _position = markerPosition;
-                        throw new PdfFilterException("A JPEG marker interrupted scan data.");
+                        return false;
                     }
                 }
                 _buffer = _buffer << 8 | value;
                 _bits += 8;
             }
-            int result = _buffer >> (_bits - count) & ((1 << count) - 1);
-            _bits -= count;
-            return result;
+            result = _buffer >> (_bits - count) & ((1 << count) - 1);
+            return true;
         }
 
         internal void ConsumeRestart()

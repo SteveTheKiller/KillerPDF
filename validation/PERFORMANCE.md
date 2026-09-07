@@ -3,6 +3,34 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 JPEG Huffman lookup improvement
+
+Benchmark date: 2026-09-06
+
+Compared the JPEG decoder at `3e40eb7` with the Huffman lookup change in this commit.
+Both source revisions were compiled into one .NET 10 Release process under separate
+internal class names, with `DOTNET_TieredCompilation=0`. Decoded samples matched exactly
+for all 40 streams at reductions 1, 2, 4, and 8. These streams include 38 unique inputs.
+
+Selection used the first 40 decodable JPEG streams of at least 1,000 bytes found by
+SOI/EOI scanning of the local conformance PDFs in directory enumeration order, with a
+64 MiB decoded-output limit. This is a convenience sample, not a representative corpus
+claim. Each resolution had an untimed equality pass, a discarded warmup timing pass,
+then five measured passes alternating which decoder ran first. The machine is the
+Ryzen 5 3600 system described below. SDK: 10.0.400.
+
+| Reduction | Before median ms | After median ms | Time reduction |
+|---|---:|---:|---:|
+| 1 | 829.759 | 765.311 | 7.8% |
+| 2 | 370.825 | 307.179 | 17.2% |
+| 4 | 226.317 | 162.636 | 28.1% |
+| 8 | 176.987 | 110.463 | 37.6% |
+
+All measured passes are preserved in
+[`jpeg-1.9.0-huffman.json`](../pdf-landing/jpeg-1.9.0-huffman.json).
+This measures decoding only. The earlier 649-file render comparison below has not
+been rerun after this change, and its timings remain the earlier measurements.
+
 ## KillerPDF 1.9.0 engine rendering compared with 1.8.5 PDFium rendering (informal)
 
 Benchmark date: 2026-09-06

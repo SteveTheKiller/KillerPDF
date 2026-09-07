@@ -1,0 +1,82 @@
+{
+  "version": "1.9.0",
+  "date": "2026-09-06",
+  "baselineCommit": "3e40eb7",
+  "decoderSha256": "D736DB79D227542D6B33B1D33045281982FF36513B31E36A97101C4A0DDB1217",
+  "streams": 40,
+  "uniqueStreams": 38,
+  "samplesIdentical": true,
+  "scope": "JPEG decoding only; not whole-page rendering or a full-corpus visual comparison.",
+  "method": "First 40 decodable JPEG streams >=1000 bytes found by SOI/EOI scanning of local conformance PDFs in directory enumeration order. Both source revisions compiled into one .NET 10 Release process. Tiered compilation disabled. One equality pass and one timing warmup followed by five measured passes in alternating order.",
+  "sdk": "10.0.400",
+  "runs": [
+    {
+      "reduction": 1,
+      "beforeMs": [
+        827.955,
+        829.447,
+        841.727,
+        829.759,
+        831.007
+      ],
+      "afterMs": [
+        773.934,
+        765.311,
+        752.607,
+        766.179,
+        762.292
+      ]
+    },
+    {
+      "reduction": 2,
+      "beforeMs": [
+        392.721,
+        375.682,
+        368.644,
+        368.209,
+        370.825
+      ],
+      "afterMs": [
+        315.021,
+        307.179,
+        307.022,
+        303.696,
+        313.046
+      ]
+    },
+    {
+      "reduction": 4,
+      "beforeMs": [
+        223.827,
+        226.776,
+        227.104,
+        225.55,
+        226.317
+      ],
+      "afterMs": [
+        159.353,
+        161.858,
+        162.679,
+        164.524,
+        162.636
+      ]
+    },
+    {
+      "reduction": 8,
+      "beforeMs": [
+        176.987,
+        178.777,
+        177.134,
+        175.33,
+        174.896
+      ],
+      "afterMs": [
+        109.514,
+        110.629,
+        110.463,
+        113.753,
+        108.906
+      ]
+    }
+  ]
+}
