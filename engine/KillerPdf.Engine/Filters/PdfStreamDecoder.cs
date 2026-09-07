@@ -561,7 +561,7 @@ public static class PdfStreamDecoder
         bool truncateAtLimit = false)
     {
         failure = null;
-        using var output = new MemoryStream();
+        using var output = new FlateOutputBuffer(maximumDecodedBytes);
         if (start >= encoded.Length) return [];
         try
         {
@@ -590,6 +590,61 @@ public static class PdfStreamDecoder
             failure = ex;
         }
         return output.ToArray();
+    }
+
+    private sealed class FlateOutputBuffer(int maximumBytes) : IDisposable
+    {
+        private const int BlockSize = 1024 * 1024;
+        private readonly MemoryStream _small = new();
+        private List<(byte[] Bytes, int Count)>? _blocks;
+        public long Length { get; private set; }
+
+        public void Write(byte[] source, int offset, int count)
+        {
+            EnsureWithinLimit(Length + count, maximumBytes);
+            if (_blocks is null && Length + count <= BlockSize)
+            {
+                _small.Write(source, offset, count);
+                Length += count;
+                return;
+            }
+
+            // Keep completed blocks instead of repeatedly copying a growing large array.
+            // Small streams retain MemoryStream's compact allocation behavior.
+            if (_blocks is null)
+            {
+                _blocks = [];
+                if (_small.Length != 0)
+                    _blocks.Add((_small.GetBuffer(), (int)_small.Length));
+            }
+            while (count > 0)
+            {
+                if (_blocks.Count == 0 || _blocks[^1].Count == _blocks[^1].Bytes.Length)
+                    _blocks.Add((new byte[(int)Math.Min(BlockSize, maximumBytes - Length)], 0));
+                var block = _blocks[^1];
+                int take = Math.Min(count, block.Bytes.Length - block.Count);
+                source.AsSpan(offset, take).CopyTo(block.Bytes.AsSpan(block.Count));
+                _blocks[^1] = (block.Bytes, block.Count + take);
+                Length += take;
+                offset += take;
+                count -= take;
+            }
+        }
+
+        public byte[] ToArray()
+        {
+            if (_blocks is null) return _small.ToArray();
+            byte[] result = new byte[(int)Length];
+            int offset = 0;
+            foreach (var block in _blocks)
+            {
+                block.Bytes.AsSpan(0, block.Count).CopyTo(result.AsSpan(offset));
+                offset += block.Count;
+            }
+            return result;
+        }
+
+        public void Dispose() => _small.Dispose();
     }
 
     private static bool HasZlibHeader(ReadOnlySpan<byte> encoded)

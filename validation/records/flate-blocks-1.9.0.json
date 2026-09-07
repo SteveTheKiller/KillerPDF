@@ -1,0 +1,168 @@
+{
+  "date": "2026-09-07",
+  "beforeCommit": "7f87e3a70439e0d2a06554088f6686b375a78e49",
+  "beforeEngineSha256": "E422112E356C5DE0D7EEA6AED3CDCC526C5E59234EEBA5E719D47E04730971F2",
+  "afterEngineSha256": "DF04B5F89ED71B2A51FF945C713D36EE7093C4B29655AF6767FB07BA78DF8D85",
+  "afterAppSha256": "FC8086856458E4ED0E62AC0C0E17A391B07CCD191BB286149029878B2DB291DA",
+  "embeddedEngineVerified": true,
+  "focus": {
+    "file": "color/altona/eci_altona-test-suite-v2_technical2_one-patch-per-page_x4.pdf",
+    "objectNumber": 1239,
+    "encodedBytes": 13298894,
+    "encodedSha256": "9D49DA0B5A50122A3D91F865D2AC3C05F00358C2BD549005B3796325419EBA88",
+    "decodedBytes": 92045312,
+    "decodedSha256": "FFB79104A8CF6AFDDB84EA96BE4A9A49D113B888403702491103010DCBA99272",
+    "iterationsPerProcess": 10,
+    "excludedWarmupIterations": 3,
+    "order": [
+      "before1",
+      "after1",
+      "after2",
+      "before2",
+      "before3",
+      "after3"
+    ],
+    "before": [
+      {
+        "ms": 175.726,
+        "allocated": 440889488
+      },
+      {
+        "ms": 174.451,
+        "allocated": 440889488
+      },
+      {
+        "ms": 179.307,
+        "allocated": 440889488
+      }
+    ],
+    "after": [
+      {
+        "ms": 155.362,
+        "allocated": 199198896
+      },
+      {
+        "ms": 152.663,
+        "allocated": 199198896
+      },
+      {
+        "ms": 148.315,
+        "allocated": 199198896
+      }
+    ],
+    "all60DecodedHashesMatch": true
+  },
+  "tests": {
+    "engine": 3003,
+    "app": 338,
+    "focusedStreamDecoder": 85,
+    "newCases": 8,
+    "releaseWarnings": 0,
+    "releaseErrors": 0
+  },
+  "limitations": [
+    "Focused decode timings exclude file opening and rendering.",
+    "Complete decoded arrays are still materialized.",
+    "Source memory remains defensively copied.",
+    "Cold startup, broad corpus coverage and OCR remain separate work."
+  ],
+  "conformance": {
+    "sharedCount": 600,
+    "builds": {
+      "baseline": {
+        "statuses": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "totalRenderMilliseconds": [
+          12754,
+          12690,
+          12562
+        ],
+        "sharedRenderMilliseconds": [
+          12754,
+          12690,
+          12562
+        ],
+        "sharedPageMedianMilliseconds": [
+          5,
+          5,
+          5
+        ],
+        "wallMilliseconds": [
+          23664,
+          23621,
+          23443
+        ],
+        "peakWorkingSetBytes": [
+          643137536,
+          643432448,
+          645201920
+        ],
+        "identicalPngs": []
+      },
+      "engine": {
+        "statuses": {
+          "OK": 614,
+          "SKIP": 35,
+          "FAIL": 0
+        },
+        "totalRenderMilliseconds": [
+          14727,
+          14685,
+          14409
+        ],
+        "sharedRenderMilliseconds": [
+          14659,
+          14624,
+          14343
+        ],
+        "sharedPageMedianMilliseconds": [
+          8,
+          7,
+          7
+        ],
+        "wallMilliseconds": [
+          29305,
+          29390,
+          29000
+        ],
+        "peakWorkingSetBytes": [
+          946954240,
+          943575040,
+          953864192
+        ],
+        "identicalPngs": [
+          614,
+          614,
+          614
+        ]
+      }
+    },
+    "ratio": 1.1524034672970844,
+    "compactSyntax": {
+      "engine": [
+        125,
+        120,
+        120
+      ],
+      "baseline": [
+        5,
+        4,
+        4
+      ]
+    },
+    "previousEngineMedianPeakWorkingSetBytes": 1089515520,
+    "noHeavyWorkOverlapped": true,
+    "settings": {
+      "size": 1024,
+      "pages": 1,
+      "inputs": 649,
+      "warmupPassesPerBuild": 1,
+      "measuredPassesPerBuild": 3,
+      "perPassTimeoutSeconds": 180
+    }
+  },
+  "rawMeasurements": "benchmarks/1.9.0-flate-blocks"
+}

@@ -9,6 +9,42 @@ namespace KillerPdf.Engine.Tests.Filters;
 
 public sealed class PdfStreamDecoderTests
 {
+    [Theory]
+    [InlineData(1048575)]
+    [InlineData(1048576)]
+    [InlineData(1048577)]
+    [InlineData(2359295)]
+    [InlineData(2359296)]
+    [InlineData(2359297)]
+    public void Decode_LargeFlatePreservesBytesAndEnforcesExactLimit(int length)
+    {
+        byte[] expected = new byte[length];
+        new Random(357).NextBytes(expected);
+        PdfStream stream = Stream(Compress(expected), Pair("Filter", Name("FlateDecode")));
+
+        Assert.Equal(expected, PdfStreamDecoder.Decode(stream, length));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream, length - 1));
+        Assert.Equal(expected.AsSpan(0, length - 1).ToArray(),
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value, length - 1));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Decode_LargeFlateRecoveryPreservesPayloadWithMissingOrInvalidChecksum(bool missing)
+    {
+        byte[] expected = new byte[2 * 1024 * 1024 + 73];
+        new Random(190).NextBytes(expected);
+        byte[] encoded = Compress(expected);
+        if (missing) encoded = encoded[..^4];
+        else encoded[^1] ^= 1;
+        PdfStream stream = Stream(encoded, Pair("Filter", Name("FlateDecode")));
+
+        if (!missing) Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal(expected,
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, value => value));
+    }
+
     [Fact]
     public void Decode_AllowsBoundedPngPredictorRowBytesBeforeReconstruction()
     {

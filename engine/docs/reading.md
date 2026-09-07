@@ -217,6 +217,12 @@ that every low-level operation returns immediately.
 
 ## Writing and further reference
 
+Large Flate streams accumulate decoded output in blocks before producing the
+final byte array. This avoids repeated copies into an expanding large buffer;
+small streams retain compact buffering. Decoded-size limits, strict errors, and
+compatibility recovery prefixes remain the same. The complete decoded array is
+still materialized, so this does not make stream decoding constant-memory.
+
 Opening and reading do not alter the source file. Writers and editors produce new
 bytes, which the host decides where to save. A full rewrite and an incremental
 update have different preservation and signature implications; choose the writer

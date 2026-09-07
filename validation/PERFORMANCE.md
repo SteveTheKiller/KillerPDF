@@ -3,6 +3,31 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 block-buffered Flate decoding
+
+Validation date: 2026-09-07. Large Flate output now accumulates in bounded blocks
+instead of repeatedly copying a growing array. The Altona technical2 page-one
+CMYK image decodes to 92,045,312 bytes. Three alternating before/after processes,
+ten iterations each with the first three excluded, reduce median thread
+allocations from 440,889,488 to 199,198,896 bytes and median decode time from
+175.726 to 152.663 ms. All 60 decoded hashes match. These timings exclude opening
+the document, rendering, and startup.
+
+Three paired conformance passes retain 614 OK, 35 SKIP, zero FAIL and identical
+engine PNGs, versus PDFium 1.8.5's 600 OK, 41 SKIP, eight FAIL. Median engine peak
+working set is 947.0 MB, down from the preceding increment's 1,089.5 MB (13.1
+percent); PDFium uses 643.4 MB. Shared-file median render totals are 14.624 versus
+12.690 seconds, a ratio of 1.1524. Median wall times are 29.305 versus 23.621
+seconds. This establishes lower memory use, not an overall throughput gain.
+
+All 3,003 engine and 338 app tests pass with a clean Release build. Eight new
+cases cover block boundaries, exact decoded limits, recovery truncation, and
+missing or invalid checksums. Read granularity and strict/recovery semantics
+remain unchanged. Small streams keep compact buffering; large streams still
+materialize a complete decoded array. No heavy work overlapped the paired runs.
+See the [record](records/flate-blocks-1.9.0.json) and
+[raw measurements](benchmarks/1.9.0-flate-blocks).
+
 ## KillerPDF 1.9.0 translucent painting over opaque pixels
 
 Validation date: 2026-09-07. Reusing exact compositor results reduces the focused
