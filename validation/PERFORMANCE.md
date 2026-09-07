@@ -3,6 +3,27 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 combined form appearance audit
+
+Validation date: 2026-09-07. The isolated PDFjs audit covers all 979 files at
+1024 pixels, page one, against PDFium 1.8.5. The engine retains 960 OK, 18 SKIP,
+and one FAIL; PDFium retains 957 OK, 21 SKIP, and one FAIL. Every prior status
+is unchanged, and no process times out. All paired input hashes and build hashes
+were verified against the recorded sources.
+
+Compared with the previous full appearance audit, 950 engine PNGs are identical
+and ten change. Nine match previously reviewed focused images exactly. The
+remaining field in `issue12750.pdf` was reviewed separately; its pixel error
+decreases from 0.074 to 0.049 relative to the prior focused correction. Missing
+field text and borders are restored, and corrected font metrics and padding
+improve placement. Font shape differences and the unsupported comb field remain.
+
+This audits the product in `8e11b30`, validated by 2,936 engine and 338 app tests.
+It is not a refreshed throughput comparison: the isolated processes include
+cold startup, and lightweight documentation checks ran during the audit.
+See the [record](records/full-form-insets-1.9.0.json) and
+[complete raw rows](benchmarks/1.9.0-full-form-insets/render-comparison.csv).
+
 ## KillerPDF 1.9.0 form text insets
 
 Validation date: 2026-09-07. Regenerated text now aligns and clips inside the
