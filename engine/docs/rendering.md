@@ -332,6 +332,10 @@ subpixel rounding use compact bounds instead of a coverage array. This avoids
 repeated full-page mask allocation for common rectangular clips. Fractional
 edges, multiple polygons, and shapes requiring geometric clipping keep the
 scanline rasterizer. Fill rules and anti-aliasing behavior are unchanged.
+Intersecting an existing coverage mask with a fully containing rectangle reuses
+the mask. A rectangular crop copies only the retained rows. Dense intersections
+use row offsets while preserving the same rounded coverage multiplication;
+repeated antialiased clipping still multiplies coverage.
 
 The [validation history](../../validation/PERFORMANCE.md) and
 [machine-readable records](../../validation/records) retain measured coverage,

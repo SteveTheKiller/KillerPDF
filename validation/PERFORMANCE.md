@@ -3,6 +3,30 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 clip intersection fast paths
+
+Validation date: 2026-09-07. A source-guided profile identified dense clip-mask
+intersection as a major cost on `UnknownFilter/4387ba48...pdf`. Rectangle
+containment reuse, row copies for rectangular crops, and direct dense row
+offsets reduce focused median rendering from 108.003 to 77.506 ms (28.2 percent).
+Three alternating before/after processes render 15 times each, excluding the
+first three iterations with tiered compilation disabled. All 90 pixel hashes
+match; thread allocation remains about 48.3 MB.
+
+The normal app configuration retains 614 OK, 35 SKIP, zero FAIL across all three
+conformance passes, versus 600 OK, 41 SKIP, eight FAIL for PDFium 1.8.5. Every
+engine PNG matches the preceding rectangle-mask build in each measured pass.
+On the 600 shared files, median render time is 13.252 versus 11.927 seconds,
+a ratio of 1.1111. Median wall time is 27.220 versus 22.496 seconds; median
+sampled peak working set is 770.5 versus 641.7 MB. Both builds ran faster than
+the preceding measurement, so absolute cross-run gains need caution.
+
+Verification includes 250 renderer tests, all 3,033 engine tests and 338 app
+tests, and a clean Release build. The earlier complete PDFjs audit predates
+this increment. See the [record](records/clip-intersect-1.9.0.json),
+[raw runs](benchmarks/1.9.0-clip-intersect), and
+[source study](renderer-performance-notes.md).
+
 ## KillerPDF 1.9.0 PDFjs audit after renderer optimizations
 
 Validation date: 2026-09-07. The complete 979-file PDFjs comparison retains

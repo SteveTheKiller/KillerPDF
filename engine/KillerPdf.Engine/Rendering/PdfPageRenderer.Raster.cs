@@ -47,15 +47,31 @@ public sealed partial class PdfPageRenderer
             if (right <= left || bottom <= top) return Empty;
             if (first.Coverage is null && second.Coverage is null)
                 return new CoverageMask(left, top, right, bottom, null);
+            if (first.Coverage is null && left == second.Left && top == second.Top
+                && right == second.Right && bottom == second.Bottom)
+                return second;
+            if (second.Coverage is null && left == first.Left && top == first.Top
+                && right == first.Right && bottom == first.Bottom)
+                return first;
             int width = right - left;
             var coverage = new byte[checked(width * (bottom - top))];
+            if (first.Coverage is null || second.Coverage is null)
+            {
+                CoverageMask source = first.Coverage is null ? second : first;
+                for (int y = top; y < bottom; y++)
+                    source.Coverage!.AsSpan((y - source.Top) * source.Width + left - source.Left,
+                        width).CopyTo(coverage.AsSpan((y - top) * width, width));
+                return new CoverageMask(left, top, right, bottom, coverage);
+            }
             for (int y = top; y < bottom; y++)
             {
                 int row = (y - top) * width;
-                for (int x = left; x < right; x++)
+                int firstRow = (y - first.Top) * first.Width + left - first.Left;
+                int secondRow = (y - second.Top) * second.Width + left - second.Left;
+                for (int x = 0; x < width; x++)
                 {
-                    int a = first.At(x, y), b = second.At(x, y);
-                    coverage[row + x - left] = a == 255 ? (byte)b : b == 255 ? (byte)a
+                    int a = first.Coverage[firstRow + x], b = second.Coverage[secondRow + x];
+                    coverage[row + x] = a == 255 ? (byte)b : b == 255 ? (byte)a
                         : (byte)((a * b + 127) / 255);
                 }
             }

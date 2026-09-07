@@ -16,6 +16,43 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData(0, 0, 32, 32, false)]
+    [InlineData(0, 0, 32, 32, true)]
+    [InlineData(7, 4, 13, 19, false)]
+    [InlineData(7, 4, 13, 19, true)]
+    [InlineData(-1, 6, 10, 12, false)]
+    [InlineData(-1, 6, 10, 12, true)]
+    [InlineData(29, 29, 2, 2, false)]
+    [InlineData(29, 29, 2, 2, true)]
+    public void Render_RectangularClipCropsAntialiasedCoverageExactly(
+        int left, int bottom, int width, int height, bool rectangleFirst)
+    {
+        PdfRenderedPage Render(bool rectangularClip)
+        {
+            var content = new PdfContentStreamBuilder();
+            void RectangleClip() => content.Rectangle(left, bottom, width, height).Clip().EndPath();
+            if (rectangularClip && rectangleFirst) RectangleClip();
+            content.MoveTo(2.25, 3.5).LineTo(27.75, 8.25)
+                .LineTo(11.5, 28.75).ClosePath().Clip().EndPath();
+            if (rectangularClip && !rectangleFirst) RectangleClip();
+            content.SetFillRgb(.2, .4, .8).Rectangle(0, 0, 32, 32).Fill();
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(32, 32, content).Build());
+            return new PdfPageRenderer(document).Render(0, new PdfRenderOptions(32, 32));
+        }
+        PdfRenderedPage original = Render(false), cropped = Render(true);
+        for (int y = 0; y < 32; y++)
+        for (int x = 0; x < 32; x++)
+        {
+            bool inside = x >= left && x < left + width
+                && y >= 32 - bottom - height && y < 32 - bottom;
+            Assert.Equal(inside ? Pixel(original, x, y) : [255, 255, 255, 255],
+                Pixel(cropped, x, y));
+        }
+        Assert.Empty(original.Diagnostics);
+        Assert.Empty(cropped.Diagnostics);
+    }
+
+    [Theory]
     [InlineData(0, false)]
     [InlineData(0, true)]
     [InlineData(.00001, false)]

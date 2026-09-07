@@ -2,7 +2,7 @@
 
 Research date: 2026-09-07. These are implementation leads, not measured promises.
 The current paired conformance comparison still favors PDFium 1.8.5 by a render
-ratio of 1.1352. See [the measured results](PERFORMANCE.md), including run variation.
+ratio of 1.1111. See [the measured results](PERFORMANCE.md), including run variation.
 
 ## Techniques in other implementations
 
@@ -78,13 +78,14 @@ as its bottleneck.
    [Splash clipping](https://github.com/innodatalabs/poppler/blob/master/splash/SplashClip.cc)
    distinguishes fully inside, fully outside, and partially clipped spans, and
    represents rectangular clipping separately. Our rectangle rasterization fast
-   path already exists, but `CoverageMask.Intersect` still allocates and loops
-   over pixels whenever either operand has dense coverage. First test containment
-   by a fully covered rectangle, row copies for rectangular crops, and exact
-   integer SIMD multiplication for two dense masks. Preserve `(a*b+127)/255` and
-   never treat intersecting an antialiased mask with itself as a no-op. Check
-   ownership before sharing any coverage array. The new trace directly supports
-   this experiment.
+   path already exists. The first experiment now reuses coverage contained by
+   a full rectangle, copies rows for rectangular crops, and uses direct row
+   offsets for dense intersections. Three alternating focused comparisons fall
+   from 108.003 to 77.506 ms with all 90 pixel hashes identical. Allocation is
+   essentially unchanged for this file. Exact integer SIMD multiplication remains
+   a separate experiment. Preserve `(a*b+127)/255` and never treat intersecting an
+   antialiased mask with itself as a no-op. Existing coverage consumers are
+   read-only, allowing containment reuse without changing ownership behavior.
 2. **Decode CCITT runs with lookahead tables and paint whole bytes.**
    [libtiff's fax tables](https://github.com/libsdl-org/libtiff/blob/master/libtiff/tif_fax3.h)
    provide a reference for table-driven fax decoding. Our `CodeTable.Read` and
@@ -167,11 +168,34 @@ review. The Poppler mirror is historical evidence, not a claim about its latest
 release. Pin upstream revisions before an implementation experiment relies on
 source-specific details.
 
-Further targeted reading from the supplied inventory remains for xpdf,
-Ghostscript banding, Vello CPU internals, Krilla, resvg, zlib-ng, fpng/fpnge,
-SharpZipLib, ab_glyph, skrifa/fontations, HarfBuzz, OpenType.js, fonttools,
-stb_truetype, font-rs, Cairo/pixman, and the remaining codec hot loops. These are
-not being credited with measured benefits until linked to an engine workload.
+The second pass also inspected entry points for Ghostscript banding, Vello CPU,
+Krilla, resvg, zlib-ng, fpng/fpnge, SharpZipLib, ab_glyph, skrifa/fontations,
+HarfBuzz, OpenType.js, fonttools, stb_truetype, font-rs, and historical
+Cairo/pixman mirrors. These supply additional leads, not benchmark results:
+
+- [Ghostscript command-list reading](https://github.com/ArtifexSoftware/ghostpdl/blob/master/base/gxclread.c)
+  filters commands to the active bands. Banding can bound working memory, but
+  PDF transparency groups and repeated image decoding complicate the tradeoff.
+- [Vello CPU](https://github.com/linebender/vello/blob/main/sparse_strips/vello_cpu/src/lib.rs)
+  exposes different integer and floating-point pipelines. As with tiny-skia,
+  choosing the faster precision is a separate fidelity decision.
+- [Krilla](https://github.com/LaurenzV/krilla) creates PDFs. Its authoring
+  throughput is not evidence about rendering existing documents.
+  [resvg](https://github.com/linebender/resvg/blob/main/crates/resvg/src/path.rs)
+  prepares paint and delegates path rasterization to tiny-skia.
+- [skrifa](https://github.com/googlefonts/fontations/blob/main/skrifa/src/outline/mod.rs)
+  lets callers supply temporary glyph-drawing memory with a queried required
+  size. This suggests measuring reusable outline scratch buffers in addition
+  to caching final glyph coverage.
+- [SharpZipLib's Huffman reader](https://github.com/icsharpcode/SharpZipLib/blob/master/src/ICSharpCode.SharpZipLib/Zip/Compression/InflaterHuffmanTree.cs)
+  provides a C# reference for a primary lookup table and secondary tables.
+  [zlib-ng's fast loop](https://github.com/zlib-ng/zlib-ng/blob/develop/inffast_tpl.h)
+  separates a sufficiently buffered fast path from boundary handling. Both
+  reinforce the CCITT lookahead experiment without requiring a Flate rewrite.
+
+The xpdf source landing page could not be retrieved in this pass. Deeper
+hot-loop reviews remain for the entry-point-only projects, especially JPEG
+entropy decoders and PNG predictors if subsequent profiles rank them highly.
 
 ## Other ongoing experiments
 
