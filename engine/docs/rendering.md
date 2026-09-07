@@ -257,6 +257,19 @@ Eight-bit masks with the default decode range use grouped integer sums during
 reduction. The averages and rounding match the scalar sample path exactly;
 custom decode ranges and other sample depths retain their existing conversions.
 
+## JPEG decoding
+
+The managed JPEG decoder supports full-size decoding and reduction factors of
+two, four, and eight. Reduced output retains the existing transform samples and
+rounding. Reused scale and quantization products reduce transform arithmetic;
+the one-eighth path evaluates its single output sample directly. These paths
+preserve decoded samples rather than lowering image quality for speed.
+
+Decoder timing depends on image content and reduction. The
+[JPEG transform record](../../validation/records/jpeg-idct-1.9.0.json) retains
+the measured sample set, all timing passes, and exact-output checks. These
+measurements do not establish performance or visual parity for every JPEG.
+
 ## JPEG 2000 decoding and opacity channels
 
 Tile reconstruction reuses integer and floating-point sample arrays. Every rented

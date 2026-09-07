@@ -662,23 +662,41 @@ internal static class PdfJpegDecoder
                 return;
             }
             int reductionIndex = reduction switch { 1 => 0, 2 => 1, 4 => 2, _ => 3 };
+            if (blockSize == 1)
+            {
+                double sum = 0;
+                for (int v = 0; v < 8; v++)
+                {
+                    double row = 0;
+                    for (int u = 0; u < 8; u++)
+                        row += Scales[u] * coefficients[v * 8 + u]
+                            * quantization[v * 8 + u] * ReducedCosines[reductionIndex, 0, u];
+                    sum += Scales[v] * row * ReducedCosines[reductionIndex, 0, v];
+                }
+                component.Samples[top * component.Stride + left] = Clamp(128 + sum / 4);
+                return;
+            }
             Span<double> horizontal = stackalloc double[64];
+            Span<double> dequantized = stackalloc double[8];
             for (int v = 0; v < 8; v++)
+            {
+                for (int u = 0; u < 8; u++)
+                    dequantized[u] = Scales[u] * coefficients[v * 8 + u]
+                        * quantization[v * 8 + u];
                 for (int x = 0; x < blockSize; x++)
                 {
                     double sum = 0;
                     for (int u = 0; u < 8; u++)
-                        sum += Scales[u] * coefficients[v * 8 + u]
-                            * quantization[v * 8 + u]
-                            * ReducedCosines[reductionIndex, x, u];
-                    horizontal[v * blockSize + x] = sum;
+                        sum += dequantized[u] * ReducedCosines[reductionIndex, x, u];
+                    horizontal[v * blockSize + x] = Scales[v] * sum;
                 }
+            }
             for (int y = 0; y < blockSize; y++)
                 for (int x = 0; x < blockSize; x++)
                 {
                     double sum = 0;
                     for (int v = 0; v < 8; v++)
-                        sum += Scales[v] * horizontal[v * blockSize + x]
+                        sum += horizontal[v * blockSize + x]
                             * ReducedCosines[reductionIndex, y, v];
                     component.Samples[(top + y) * component.Stride + left + x]
                         = Clamp(128 + sum / 4);

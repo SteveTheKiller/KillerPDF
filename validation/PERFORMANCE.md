@@ -3,6 +3,26 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 JPEG transform arithmetic
+
+Validation date: 2026-09-07. Reusing JPEG transform scale and quantization
+products preserves all decoded samples across 40 extracted JPEG streams at
+reductions of one, two, four, and eight. Five alternating decoder passes show
+median improvements of approximately 6.5%, 5.1%, 1.6%, and 3.9%, respectively.
+The bounded sample is concentrated in Altona and Ghent files and is not a
+representative JPEG corpus. All passes, including timing outliers, are retained.
+
+For `22060_A1_01_Plans.pdf`, three fresh-process renders at 1024 pixels, page
+one, reduce median logged render time from 1,335 to 1,275 ms. Median wall time
+changes from 1,786 to 1,753 ms; the first new process takes 3,018 ms. Startup
+has not been isolated. Every before/after PNG is byte-identical. A conformance
+pass retains 614 OK, 35 SKIP, zero failures, and all 614 unchanged PNGs.
+
+The [record](records/jpeg-idct-1.9.0.json) retains build identities and timing
+samples; the [raw conformance log](benchmarks/1.9.0-jpeg-idct/conformance.csv)
+retains all 649 rows. This focused improvement does not replace the paired
+PDFium throughput measurement below or demonstrate the overall speed target.
+
 ## KillerPDF 1.9.0 paired conformance timing after font corrections
 
 Validation date: 2026-09-07. One warmup per build preceded three measured passes
