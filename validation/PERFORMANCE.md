@@ -3,6 +3,28 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 full PDF.js recovery and Courier recheck
+
+Validation date: 2026-09-07. At `24c3c71`, the same 979 inputs produce 960 engine
+OK, 18 SKIP, and one FAIL, versus PDFium 1.8.5 at 957 OK, 21 SKIP, and one FAIL.
+Neither build times out. Both render 954 files; six are engine-only and three
+are PDFium-only. Catalog and page-tree recovery add `issue9418.pdf` and
+`Pages-tree-refs.pdf`; `bomb_giant.pdf` retains readable text with a truncation
+diagnostic rather than decoding its oversized streams.
+
+Of 957 prior engine PNGs, 949 are byte-identical. All eight changed pages were
+visually reviewed. Courier shapes improve, but `standard_fonts.pdf` exposes a
+missing-glyph box regression despite lower aggregate pixel error. The audit also
+confirms existing stroke-state and ZapfDingbats differences. Render success and
+lower average error do not establish visual parity.
+
+Settings remain page one at maximum 1024 px, with annotations and forms, fresh
+processes, and a 15-second per-file/build limit. Input paths and hashes match the
+previous full run. Documentation checks and a short diagnostic probe overlapped
+this coverage run; these timings do not replace controlled throughput results.
+See the [record](records/pdfjs-courier-1.9.0.json) and
+[per-file results](benchmarks/1.9.0-pdfjs-courier/render-comparison-summary.csv).
+
 ## KillerPDF 1.9.0 full PDF.js structural recovery recheck
 
 Validation date: 2026-09-07. At `bb071dc`, all 979 PDF.js inputs match the prior
