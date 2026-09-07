@@ -163,6 +163,9 @@ saved visibility, content assignment, configuration metadata, and flattening lim
 See [attachments and PDF portfolios](docs/attachments.md) for embedded files,
 page icons, extraction, replacement, comparison, and collection metadata.
 
+See [fonts, text codes, and outlines](docs/fonts.md) for resource inspection,
+standard-font coverage, host resolvers, embedding, and glyph geometry.
+
 ## Repository layout
 
 ```text

@@ -56,10 +56,10 @@ public sealed class PdfExtractionFont
         ReadOnlyMemory<byte> source) => CharacterDecoder?.Invoke(source)
             ?? Unicode.DecodeWithCompatibilityRecovery(source.Span, UnicodeFallback);
 
-    /// <summary>Returns the embedded outline bounds when available.</summary>
+    /// <summary>Returns available outline or standard-metric bounds for a source character code.</summary>
     public PdfGlyphBounds? GetGlyphBounds(uint code) => BoundsReader?.Invoke(code);
 
-    /// <summary>Returns an embedded glyph outline when available.</summary>
+    /// <summary>Returns available embedded, bundled, or host-resolved contours for a source character code.</summary>
     public PdfGlyphOutline? GetGlyphOutline(uint code) => OutlineReader?.Invoke(code);
 
     /// <summary>Returns a resolved width, or the font's configured missing width.</summary>
