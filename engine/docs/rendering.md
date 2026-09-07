@@ -106,6 +106,18 @@ alter CID and Unicode mappings. Only a positive object number, valid generation,
 references inside mapping data retain their validation. Strict mode rejects the
 indirect reference in the CMap program.
 
+An Identity-H or Identity-V composite font with an embedded TrueType Unicode
+character map can recover from a lexically unreadable `ToUnicode` stream that
+contains no `begin`, `end`, or `usecmap` markers. Glyph selection still uses the
+font's CID-to-glyph mapping; extraction uses the existing embedded-font reverse
+mapping. Unmapped glyphs remain replacement characters. This does not reconstruct
+the damaged Unicode map or guarantee complete text semantics.
+
+The recovery appears in `PdfExtractionFont.Diagnostics`, page extraction
+diagnostics, and rendered-page diagnostics. It does not suppress filter decoding
+failures, map inheritance errors, mapping validation, or allocation limits.
+Strict mode continues to reject the unreadable map.
+
 When a `ToUnicode` range's destination array has the wrong length, recovery uses
 only supplied entries within the declared range. Missing entries remain unmapped,
 and surplus entries do not create mappings beyond the range. The declared range

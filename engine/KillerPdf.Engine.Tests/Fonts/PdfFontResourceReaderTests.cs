@@ -541,6 +541,36 @@ public sealed class PdfFontResourceReaderTests
         Assert.Equal(new PdfGlyphBounds(25, -50, 575, 700), font.GetGlyphBounds(65));
     }
 
+    [Theory]
+    [InlineData(")", true, true)]
+    [InlineData("\u0080)", true, true)]
+    [InlineData(")", false, false)]
+    [InlineData("1 beginbfchar <0001> ) endbfchar", true, false)]
+    [InlineData("1 begincodespacerange <0000> ) endcodespacerange", true, false)]
+    public void UnreadableUnicodeMapRecoveryRequiresEmbeddedIdentityFont(
+        string map, bool embedded, bool recoverable)
+    {
+        var descriptor = embedded
+            ? D(("FontFile2", new PdfStream(D(), TrueTypeFontTests.BuildTestFont(false, includeOutlines: true))))
+            : D();
+        var baseFont = Type0(D(("Subtype", N("CIDFontType2")), ("FontDescriptor", descriptor)), N("Identity-H"));
+        var dictionary = new PdfDictionary(baseFont.Append(new KeyValuePair<PdfName, PdfObject>(N("ToUnicode"), Stream(map))));
+        Assert.ThrowsAny<FormatException>(() => Read(dictionary));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        if (!recoverable)
+        {
+            Assert.ThrowsAny<FormatException>(() => PdfFontResourceReader.Read(document, dictionary));
+            return;
+        }
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+        Assert.Equal("A", Assert.Single(font.Decode(new byte[] { 0, 1 })).Text);
+        Assert.NotNull(font.GetGlyphOutline(1));
+        Assert.Equal("\uFFFD", Assert.Single(font.Decode(new byte[] { 0, 0 })).Text);
+        Assert.Equal("An unreadable ToUnicode map was ignored; embedded font mappings were used.",
+            Assert.Single(font.Diagnostics));
+    }
+
     [Fact]
     public void EmbeddedCffGlyphOutlineUsesSimpleFontEncoding()
     {

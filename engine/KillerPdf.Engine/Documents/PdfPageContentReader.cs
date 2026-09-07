@@ -142,6 +142,7 @@ public sealed class PdfPageContentReader
             {
                 key = "ExtractedFont" + fonts.Count;
                 fonts.Add(key, PdfFontResourceReader.Read(_document, dictionary));
+                diagnostics.UnionWith(fonts[key].Diagnostics);
                 fontNames.Add(dictionary, key);
             }
             return key;

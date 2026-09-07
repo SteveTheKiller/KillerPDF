@@ -25,6 +25,9 @@ public sealed class PdfExtractionFont
     /// <summary>Gets the PostScript font name from the PDF resource.</summary>
     public string FontName { get; internal init; } = string.Empty;
 
+    /// <summary>Gets compatibility recovery diagnostics for the font resource.</summary>
+    public IReadOnlyList<string> Diagnostics { get; internal init; } = Array.Empty<string>();
+
     /// <summary>Gets the ascender in thousandths of text space.</summary>
     public double Ascent { get; internal init; } = 800;
 

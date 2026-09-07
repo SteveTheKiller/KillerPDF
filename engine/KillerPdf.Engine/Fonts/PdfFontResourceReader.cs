@@ -22,6 +22,8 @@ public static class PdfFontResourceReader
 
     private sealed class Reader(PdfDocument document, IPdfFontResolver? fontResolver)
     {
+        private bool _ignoredUnicodeMap;
+
         internal PdfExtractionFont Read(PdfDictionary font)
         {
             string fontName = Name(Get(font, "BaseFont")) ?? "Unknown";
@@ -144,7 +146,10 @@ public static class PdfFontResourceReader
             }
 
             PdfToUnicodeMap unicode = Get(font, "ToUnicode") is PdfStream unicodeStream
-                ? ReadToUnicode(unicodeStream, !composite)
+                ? ReadToUnicode(unicodeStream, !composite,
+                    document.UsesCompatibilityRecovery && composite && embeddedData is not null
+                    && embedded is { HasUnicodeCharacterMap: true }
+                    && encodingName is "Identity-H" or "Identity-V")
                 : encodingSpaces ?? PdfToUnicodeMap.Create(simpleText, codeLength);
             string? UnicodeText(uint code) => unicode.Lookup(code, codeLength)
                 ?? Enumerable.Range(1, 4).Where(length => length != codeLength)
@@ -301,6 +306,9 @@ public static class PdfFontResourceReader
                 defaultWidth)
             {
                 FontName = fontName,
+                Diagnostics = _ignoredUnicodeMap
+                    ? Array.AsReadOnly(new[] { "An unreadable ToUnicode map was ignored; embedded font mappings were used." })
+                    : Array.Empty<string>(),
                 Ascent = ascent,
                 Descent = descent,
                 IsVertical = vertical,
@@ -356,14 +364,14 @@ public static class PdfFontResourceReader
             catch (FormatException) { return null; } // CFF-only programs do not contain sfnt tables.
         }
 
-        private PdfToUnicodeMap ReadToUnicode(PdfStream stream, bool simpleFont)
+        private PdfToUnicodeMap ReadToUnicode(PdfStream stream, bool simpleFont, bool allowUnreadableMap)
         {
             var seen = new HashSet<PdfStream>(ReferenceEqualityComparer.Instance);
-            return ReadToUnicode(stream, simpleFont, seen, 0);
+            return ReadToUnicode(stream, simpleFont, seen, 0, allowUnreadableMap);
         }
 
         private PdfToUnicodeMap ReadToUnicode(PdfStream stream, bool simpleFont,
-            HashSet<PdfStream> seen, int depth)
+            HashSet<PdfStream> seen, int depth, bool allowUnreadableMap = false)
         {
             if (depth >= 32 || !seen.Add(stream))
                 throw new FormatException("ToUnicode map inheritance cycle.");
@@ -386,8 +394,20 @@ public static class PdfFontResourceReader
                 ]), decoded);
                 decoded = PdfStreamDecoder.Decode(compressed, 32 * 1024 * 1024);
             }
-            PdfToUnicodeMap map = PdfToUnicodeMap.ParseFont(decoded, simpleFont,
-                document.UsesCompatibilityRecovery, inherited);
+            PdfToUnicodeMap map;
+            try
+            {
+                map = PdfToUnicodeMap.ParseFont(decoded, simpleFont,
+                    document.UsesCompatibilityRecovery, inherited);
+            }
+            catch (KillerPdf.Engine.Syntax.PdfSyntaxException) when (allowUnreadableMap
+                && inherited is null && decoded.AsSpan().IndexOf("begin"u8) < 0
+                && decoded.AsSpan().IndexOf("end"u8) < 0
+                && decoded.AsSpan().IndexOf("usecmap"u8) < 0)
+            {
+                _ignoredUnicodeMap = true;
+                map = PdfToUnicodeMap.Create(new Dictionary<uint, string>(), 2);
+            }
             seen.Remove(stream);
             return map;
         }

@@ -918,6 +918,7 @@ public sealed partial class PdfPageRenderer
                 try
                 {
                     extractionFont ??= ReadFont(textFont!);
+                    diagnostics.UnionWith(extractionFont.Diagnostics);
                     if (textRenderingMode is < 0 or > 7)
                     {
                         diagnostics.Add("Text rendering is not implemented.");
