@@ -68,8 +68,10 @@ advance widths and available glyph-specific bounds remain separate.
 
 Unembedded ordinary standard fonts have bundled Liberation substitutes. The
 Windows app can supply installed fonts through its resolver, including matching
-Courier New faces for unavailable Courier. A standalone library host controls
-its own installed-font policy.
+Courier New faces for unavailable Courier and CourierNew PostScript aliases.
+The app recognizes subset prefixes and regular, bold, italic, and bold-italic
+aliases while retaining precedence for an exact installed family. A standalone
+library host controls its own installed-font policy.
 
 Unembedded Symbol and ZapfDingbats use fixed bundled CFF programs before host
 lookup. Their 189 and 202 standard encoding names, respectively, include space.

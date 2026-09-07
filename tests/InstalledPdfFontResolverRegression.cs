@@ -21,6 +21,27 @@ Check("Installed Courier takes precedence over Courier New", () =>
     Require(new InstalledPdfFontResolver().Resolve(Request("Courier"))?[0] == 4);
     Require(InstalledFontCatalog.Calls.SequenceEqual(["Courier"]));
 });
+foreach (var (name, bold, italic) in new[]
+{
+    ("CourierNew", false, false), ("CourierNewPSMT", false, false),
+    ("CourierNewPS-BoldMT", true, false), ("CourierNewPS-ItalicMT", false, true),
+    ("CourierNewPS-BoldItalicMT", true, true), ("couriernew", false, false),
+    ("CourierNewPS-BdMT", true, false), ("ABCDEF+CourierNew", false, false)
+})
+    Check($"PostScript alias {name} resolves to the matching Courier New face", () =>
+    {
+        InstalledFontCatalog.Faces["Courier New"] = [3];
+        Require(new InstalledPdfFontResolver().Resolve(Request(name))?[0] == 3);
+        Require(InstalledFontCatalog.Calls.Last() == "Courier New");
+        Require(InstalledFontCatalog.Styles.Last() == (bold, italic));
+    });
+Check("An installed CourierNew family retains precedence", () =>
+{
+    InstalledFontCatalog.Faces["CourierNew"] = [4];
+    InstalledFontCatalog.Faces["Courier New"] = [3];
+    Require(new InstalledPdfFontResolver().Resolve(Request("CourierNew"))?[0] == 4);
+    Require(InstalledFontCatalog.Calls.SequenceEqual(["CourierNew"]));
+});
 Check("Missing Courier and Courier New retain bundled fallback", () =>
 {
     Require(new InstalledPdfFontResolver().Resolve(Request("Courier")) is null);

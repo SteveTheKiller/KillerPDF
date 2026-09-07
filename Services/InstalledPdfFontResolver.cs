@@ -16,9 +16,11 @@ internal sealed class InstalledPdfFontResolver : IPdfFontResolver
         lock (_gate)
         {
             if (_cache.TryGetValue(request, out byte[]? cached)) return cached;
-            bool bold = IsBold(request.PostScriptName);
-            bool italic = IsItalic(request.PostScriptName);
-            byte[]? resolved = Candidates(request)
+            DetectedPdfFontStyle style = PdfFontStyle.FromPdfName(request.PostScriptName);
+            bool courierAlias = style.Family.Equals("Courier New", StringComparison.OrdinalIgnoreCase);
+            bool bold = courierAlias ? style.Bold : IsBold(request.PostScriptName);
+            bool italic = courierAlias ? style.Italic : IsItalic(request.PostScriptName);
+            byte[]? resolved = Candidates(request, courierAlias)
                 .Select(family => FaceBytes(family, bold, italic))
                 .FirstOrDefault(bytes => bytes is not null);
             _cache[request] = resolved;
@@ -37,11 +39,11 @@ internal sealed class InstalledPdfFontResolver : IPdfFontResolver
         return bytes;
     }
 
-    private static IEnumerable<string> Candidates(PdfFontRequest request)
+    private static IEnumerable<string> Candidates(PdfFontRequest request, bool courierAlias)
     {
         string name = NormalizeFamily(request.PostScriptName);
         if (name.Length > 0) yield return name;
-        if (name.Equals("Courier", StringComparison.OrdinalIgnoreCase))
+        if (courierAlias && !name.Equals("Courier New", StringComparison.OrdinalIgnoreCase))
             yield return "Courier New";
         if (Contains(name, "emoji") && !name.Equals("Segoe UI Emoji", StringComparison.OrdinalIgnoreCase))
             yield return "Segoe UI Emoji";

@@ -1,8 +1,9 @@
 # Standalone desktop font resolver regression
 
 `InstalledPdfFontResolverRegression.cs` compiles the production resolver with a
-deterministic installed-font catalog substitute. Its five checks cover requested
-font precedence, emoji fallback, unrelated fonts, unavailable fonts, and caching.
+deterministic installed-font catalog substitute. Its checks cover requested
+font precedence, Courier PostScript aliases and styles, emoji fallback, unrelated
+fonts, unavailable fonts, and caching.
 It needs .NET 10 and no installed fonts or additional packages. It is separate
 from the app test suite and is excluded from the application build.
 
@@ -22,6 +23,7 @@ save this as `Check.csproj`:
       <HintPath>$(RepositoryRoot)/engine/KillerPdf.Engine/bin/Release/net10.0/KillerPdf.Engine.dll</HintPath>
     </Reference>
     <Compile Include="$(RepositoryRoot)/Services/InstalledPdfFontResolver.cs" />
+    <Compile Include="$(RepositoryRoot)/Services/PdfFontStyle.cs" />
     <Compile Include="$(RepositoryRoot)/tests/InstalledPdfFontResolverRegression.cs" />
   </ItemGroup>
 </Project>
@@ -33,4 +35,4 @@ Supply the absolute checkout path when running it from that temporary folder:
 dotnet run --project Check.csproj -c Release -p:RepositoryRoot="C:\path\to\KillerPDF"
 ```
 
-All five checks must print `PASS`, and the process must exit with code zero.
+Every check must print `PASS`, and the process must exit with code zero.

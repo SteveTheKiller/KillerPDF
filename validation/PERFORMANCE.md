@@ -3,6 +3,25 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 Courier PostScript aliases
+
+Validation date: 2026-09-07. The Windows font resolver now recognizes CourierNew
+PostScript aliases and styles. In `bug2055455.pdf`, the installed font restores
+the thin glyphs seen in PDFium while retaining all four comb-field digits.
+Mean absolute channel error falls from 2.301 to 0.017. This is a focused visual
+improvement, not a claim of complete rendering parity.
+
+Conformance retains 614 OK, 35 SKIP, and no failures. Of 614 PNGs, 613 are
+identical. The remaining AIAA page changes 291 pixels near the bottom; visual
+review confirms improved font substitution, with error falling from 4.881 to
+4.859. Other visible text discrepancies on that page remain unresolved.
+
+All 21 standalone resolver checks pass, including nine new alias and precedence
+cases. The full suites pass 2,946 engine and 338 app tests, and Release builds
+without warnings or errors. See the [record](records/courier-postscript-1.9.0.json)
+and [raw logs](benchmarks/1.9.0-courier-postscript). No throughput refresh is
+included in this increment.
+
 ## KillerPDF 1.9.0 comb field appearances
 
 Validation date: 2026-09-07. Requested comb fields now place each simple-font
