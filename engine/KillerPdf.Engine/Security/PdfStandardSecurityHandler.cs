@@ -36,6 +36,7 @@ internal sealed class PdfStandardSecurityHandler
     private readonly CryptMethod _embeddedFileMethod;
     private readonly IReadOnlyDictionary<string, CryptMethod> _cryptFilters;
     private readonly bool _encryptMetadata;
+    private readonly bool _recoverIvOnlyStreams;
 
     internal PdfPasswordAuthenticationRole AuthenticationRole { get; }
     internal PdfDocumentPermissions Permissions { get; }
@@ -44,7 +45,7 @@ internal sealed class PdfStandardSecurityHandler
         byte[] fileKey, CryptMethod stringMethod, CryptMethod streamMethod,
         CryptMethod embeddedFileMethod, bool encryptMetadata,
         int permissions, long revision, PdfPasswordAuthenticationRole authenticationRole,
-        IReadOnlyDictionary<string, CryptMethod>? cryptFilters = null)
+        IReadOnlyDictionary<string, CryptMethod>? cryptFilters = null, bool recoverIvOnlyStreams = false)
     {
         _fileKey = fileKey;
         _stringMethod = stringMethod;
@@ -52,6 +53,7 @@ internal sealed class PdfStandardSecurityHandler
         _embeddedFileMethod = embeddedFileMethod;
         _cryptFilters = cryptFilters ?? new Dictionary<string, CryptMethod>();
         _encryptMetadata = encryptMetadata;
+        _recoverIvOnlyStreams = recoverIvOnlyStreams;
         Permissions = PdfDocumentPermissions.FromFlags(permissions, revision);
         AuthenticationRole = authenticationRole;
     }
@@ -144,7 +146,7 @@ internal sealed class PdfStandardSecurityHandler
         return new PdfStandardSecurityHandler(
             fileKey, stringMethod, streamMethod, embeddedFileMethod, encryptMetadata,
             declaredPermissions, revision, authenticationRole,
-            ReadCryptFilters(encryption, requiredMethod));
+            ReadCryptFilters(encryption, requiredMethod), compatibilityRecovery);
     }
 
     internal static PdfStandardSecurityHandler CreateCertificate(
@@ -439,6 +441,9 @@ internal sealed class PdfStandardSecurityHandler
         CryptMethod method = ExplicitStreamMethod(stream.Dictionary, resolve)
             ?? (isEmbeddedFile ? _embeddedFileMethod : _streamMethod);
         ReadOnlySpan<byte> data = stream.EncodedData.Span;
+        if (_recoverIvOnlyStreams && method == CryptMethod.Aes256 && data.Length == 16
+            && (_encryptMetadata || !isMetadata))
+            return new PdfStream(dictionary, ReadOnlySpan<byte>.Empty);
         return new PdfStream(dictionary,
             method != CryptMethod.Identity && (_encryptMetadata || !isMetadata)
                 ? DecryptBytes(data, method, objectNumber, generation) : data);

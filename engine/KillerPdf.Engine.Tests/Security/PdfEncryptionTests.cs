@@ -16,6 +16,29 @@ namespace KillerPdf.Engine.Tests.Security;
 public sealed class PdfEncryptionTests
 {
     [Fact]
+    public void RecoveryReadsIvOnlyAesStreamAsEmptyWithoutRelaxingStringsOrWrites()
+    {
+        var (writer, dictionary) = PdfStandardSecurityHandler.CreateModernPassword(
+            new PdfPasswordEncryptionOptions { UserPassword = "user", OwnerPassword = "owner" });
+        var strict = PdfStandardSecurityHandler.Create(dictionary, "user", ReadOnlyMemory<byte>.Empty);
+        var recovery = PdfStandardSecurityHandler.Create(dictionary, "user", ReadOnlyMemory<byte>.Empty, true);
+        var stream = new PdfStream(new PdfDictionary([]), new byte[16]);
+        Assert.Throws<CryptographicException>(() => strict.Decrypt(stream, 1, 0));
+        Assert.Empty(Assert.IsType<PdfStream>(recovery.Decrypt(stream, 1, 0)).EncodedData.ToArray());
+        Assert.Throws<CryptographicException>(() => recovery.Decrypt(
+            new PdfString(new byte[16], PdfStringForm.Hexadecimal), 1, 0));
+        foreach (int length in new[] { 0, 1, 15, 17, 31, 33 })
+            Assert.Throws<CryptographicException>(() => recovery.Decrypt(
+                new PdfStream(new PdfDictionary([]), new byte[length]), 1, 0));
+        PdfStream encrypted = Assert.IsType<PdfStream>(writer.Encrypt(
+            new PdfStream(new PdfDictionary([]), Array.Empty<byte>()), 1, 0));
+        Assert.Equal(32, encrypted.EncodedData.Length);
+        Assert.Empty(Assert.IsType<PdfStream>(strict.Decrypt(encrypted, 1, 0)).EncodedData.ToArray());
+        Assert.ThrowsAny<CryptographicException>(() => PdfStandardSecurityHandler.Create(
+            dictionary, "wrong", ReadOnlyMemory<byte>.Empty, true));
+    }
+
+    [Fact]
     public void IncrementalEncryption_ResolvesIndirectMetadataTypeBeforeApplyingExemption()
     {
         byte[] source = new PdfDocumentBuilder()

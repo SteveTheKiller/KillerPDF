@@ -5,6 +5,13 @@ APIs independently of the desktop app. The host supplies passwords, certificates
 signing services, trust policy, and the user's choice of output file.
 These examples describe the current 1.9 development source.
 
+Password-authenticated compatibility recovery treats an AES-256-CBC stream
+containing only its 16-byte initialization vector as empty. This accommodates
+producers that omit the encrypted padding block for empty content. It applies
+only to streams, not strings, AES-GCM, or other truncated ciphertext lengths.
+Password and permission authentication still run first. Strict reads reject the
+malformed stream, and writers continue emitting the required padding block.
+
 ## Author a password-encrypted document
 
 Pass passwords from the host's credential flow. The user password opens the file
