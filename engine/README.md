@@ -136,6 +136,9 @@ authentication, permissions, page coordinates, extraction results, and batch fai
 See [authoring documents](docs/authoring.md) for typed page content, fonts, images,
 interactive objects, resource ownership, and output validation.
 
+See [encryption and signature integration](docs/security.md) for protected
+authoring, authenticated rewrites, permission checks, and signature trust policy.
+
 ## Repository layout
 
 ```text
