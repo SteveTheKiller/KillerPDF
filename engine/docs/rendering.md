@@ -327,6 +327,12 @@ sample depths, and decoder allocation limits remain checked in both modes.
 
 ## Validation and remaining work
 
+Single rectangular polygons whose edges land on whole pixels after the existing
+subpixel rounding use compact bounds instead of a coverage array. This avoids
+repeated full-page mask allocation for common rectangular clips. Fractional
+edges, multiple polygons, and shapes requiring geometric clipping keep the
+scanline rasterizer. Fill rules and anti-aliasing behavior are unchanged.
+
 The [validation history](../../validation/PERFORMANCE.md) and
 [machine-readable records](../../validation/records) retain measured coverage,
 build identities, and known differences. Compare identical inputs, pages, output

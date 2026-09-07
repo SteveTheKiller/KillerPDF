@@ -197,6 +197,35 @@ public sealed partial class PdfPageRenderer
 
         private static int Fixed(double value) => (int)Math.Round(value * Scale);
 
+        internal static CoverageMask? TryRectangle(Point[] polygon, int width, int height)
+        {
+            if (polygon.Length != 4 && (polygon.Length != 5 || polygon[0] != polygon[4]))
+                return null;
+            Span<(int X, int Y)> corners = stackalloc (int, int)[4];
+            for (int i = 0; i < 4; i++)
+            {
+                Point point = polygon[i];
+                if (!double.IsFinite(point.X) || !double.IsFinite(point.Y)
+                    || point.X < -1 || point.X > width + 1
+                    || point.Y < -1 || point.Y > height + 1)
+                    return null;
+                int x = Fixed(point.X), y = Fixed(point.Y);
+                if ((x & (Scale - 1)) != 0 || (y & (Scale - 1)) != 0) return null;
+                corners[i] = (x >> Shift, y >> Shift);
+            }
+            var a = corners[0];
+            var b = corners[1];
+            var c = corners[2];
+            var d = corners[3];
+            if (!(a.X == b.X && b.Y == c.Y && c.X == d.X && d.Y == a.Y)
+                && !(a.Y == b.Y && b.X == c.X && c.Y == d.Y && d.X == a.X))
+                return null;
+            // The normal rasterizer produces full coverage for these fixed-point edges.
+            return CoverageMask.Rectangle(Math.Max(0, Math.Min(a.X, c.X)),
+                Math.Max(0, Math.Min(a.Y, c.Y)), Math.Min(width, Math.Max(a.X, c.X)),
+                Math.Min(height, Math.Max(a.Y, c.Y)));
+        }
+
         private Point[] ClipToRaster(Point[] polygon)
         {
             const double margin = 1;
@@ -582,6 +611,9 @@ public sealed partial class PdfPageRenderer
     private static CoverageMask RasterizePolygons(IEnumerable<Point[]> pixelPolygons, bool evenOdd,
         int width, int height)
     {
+        if (pixelPolygons is IReadOnlyList<Point[]> { Count: 1 } polygons
+            && CellRasterizer.TryRectangle(polygons[0], width, height) is { } rectangle)
+            return rectangle;
         CellRasterizer? rasterizer = _sharedRasterizer;
         if (rasterizer is null || rasterizer.Width != width || rasterizer.Height != height)
             _sharedRasterizer = rasterizer = new CellRasterizer(width, height);

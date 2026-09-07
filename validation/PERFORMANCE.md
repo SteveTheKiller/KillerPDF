@@ -3,6 +3,34 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 compact rectangular coverage
+
+Validation date: 2026-09-07. Pixel-aligned rectangular polygons now use coverage
+bounds without allocating a dense mask. The compact-syntax matrix repeats a
+full-page rectangular clip 144 times. Three alternating before/after processes
+render 15 times each, excluding the first three iterations and disabling tiered
+compilation for a stable focused comparison. Median render time falls from
+104.367 to 76.906 ms (26.3 percent); median thread allocations for opening,
+page discovery, and rendering fall from 174.2 to 58.0 MB. All 90 pixel hashes
+match at the aspect-preserving 1024-pixel size with the default font resolver.
+
+Three paired app conformance passes retain 614 OK, 35 SKIP, zero FAIL and
+identical engine PNGs, versus PDFium 1.8.5's 600 OK, 41 SKIP, eight FAIL.
+Shared-file median render totals are 14.501 versus 12.774 seconds, a ratio of
+1.1352. Median wall times are 28.939 versus 23.661 seconds. The pass-to-pass
+variation exceeds the small total-render change from the preceding increment;
+the focused gain is stronger evidence than the aggregate speed change.
+Median peak working sets are 771.6 versus 643.8 MB, with no reduction relative
+to the preceding engine build. No heavy work overlapped the paired runs.
+
+All 3,025 engine and 338 app tests pass with a clean Release build. Ten new
+cases compare rectangle fills and clips to subdivided polygons using the old
+raster path, for both fill rules, fractional edges, and out-of-page coordinates.
+Only whole-pixel edges after the existing fixed-point rounding qualify. Other
+geometry keeps the rasterizer. Cold startup, broader coverage and OCR remain
+separate work. See the [record](records/rect-mask-1.9.0.json) and
+[raw measurements](benchmarks/1.9.0-rect-mask).
+
 ## KillerPDF 1.9.0 document-owned stream input
 
 Validation date: 2026-09-07. Seekable stream opens read directly into the

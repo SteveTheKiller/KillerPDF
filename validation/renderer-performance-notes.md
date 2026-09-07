@@ -2,7 +2,7 @@
 
 Research date: 2026-09-07. These are implementation leads, not measured promises.
 The current paired conformance comparison still favors PDFium 1.8.5 by a render
-ratio of 1.1514. See [the measured results](PERFORMANCE.md).
+ratio of 1.1352. See [the measured results](PERFORMANCE.md), including run variation.
 
 ## Techniques in other implementations
 
@@ -37,7 +37,9 @@ ratio of 1.1514. See [the measured results](PERFORMANCE.md).
    memory from 1,089.5 to 766.1 MB; complete source and decoded arrays remain.
    See the [stream input record](records/stream-open-1.9.0.json).
 4. Profile remaining paint costs after exact axial color and normal alpha-blend
-   reuse. Compact syntax still has a large first-use gap.
+   reuse and compact rectangular masks. The matrix page's focused allocations
+   fall from 174.2 to 58.0 MB, but compact syntax still has a large first-use gap.
+   See the [rectangle-mask record](records/rect-mask-1.9.0.json).
 
 Track decode time, complete render time, allocation, process memory, and startup
 separately. A local improvement must survive representative paired workloads.

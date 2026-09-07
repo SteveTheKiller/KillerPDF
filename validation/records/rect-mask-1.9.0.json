@@ -1,0 +1,161 @@
+{
+  "date": "2026-09-07",
+  "beforeCommit": "4797543e1accdfee19cfa45303b74d4957730e4b",
+  "beforeEngineSha256": "C2C4683E44AC60171F6A9944612B6E9EE24BF7055AFFFA36528676E3DF3808E5",
+  "afterEngineSha256": "C7D9701371C9F77F15A06E6269D0F25E9330ADF269ECFEA21BC0EC72135C8AD2",
+  "afterAppSha256": "7B6941206F5C63AD413A3EA33D521106D174D6AD0EF61859AE29056790742E71",
+  "embeddedEngineVerified": true,
+  "focus": {
+    "file": "safedocs/CompactedSyntax/CompactedPDFSyntaxMatrix.pdf",
+    "inputSha256": "E6D3CE17CE4EA3CA93E3C6AB3A852F356209D32E3A00920CB490461BE0120AEC",
+    "pixelSha256": "925C230EEC49BAF92B5BB72B9B9186AF2036F3DFB5AFDCC4E2B358CF24F264B2",
+    "all90PixelHashesMatch": true,
+    "maximumDimension": 1024,
+    "forms": true,
+    "annotations": true,
+    "fontResolver": "default",
+    "tieredCompilation": false,
+    "iterationsPerProcess": 15,
+    "excludedWarmupIterations": 3,
+    "processOrder": [
+      "before1",
+      "after1",
+      "after2",
+      "before2",
+      "before3",
+      "after3"
+    ],
+    "beforeRenderMedians": [
+      104.758,
+      104.3665,
+      101.5015
+    ],
+    "afterRenderMedians": [
+      76.9055,
+      77.025,
+      76.717
+    ],
+    "beforeAllocatedMedians": [
+      174206472,
+      174210412,
+      174205544
+    ],
+    "afterAllocatedMedians": [
+      57978708,
+      57980096,
+      57978964
+    ],
+    "allocationScope": "Open, page discovery and render on current thread"
+  },
+  "conformance": {
+    "sharedCount": 600,
+    "builds": {
+      "baseline": {
+        "statuses": {
+          "OK": 600,
+          "SKIP": 41,
+          "FAIL": 8
+        },
+        "totalRenderMilliseconds": [
+          12775,
+          12774,
+          12670
+        ],
+        "sharedRenderMilliseconds": [
+          12775,
+          12774,
+          12670
+        ],
+        "sharedPageMedianMilliseconds": [
+          5,
+          5,
+          5
+        ],
+        "wallMilliseconds": [
+          23661,
+          23776,
+          23629
+        ],
+        "peakWorkingSetBytes": [
+          643809280,
+          647503872,
+          642875392
+        ],
+        "identicalPngs": []
+      },
+      "engine": {
+        "statuses": {
+          "OK": 614,
+          "SKIP": 35,
+          "FAIL": 0
+        },
+        "totalRenderMilliseconds": [
+          14568,
+          14197,
+          14912
+        ],
+        "sharedRenderMilliseconds": [
+          14501,
+          14134,
+          14845
+        ],
+        "sharedPageMedianMilliseconds": [
+          7,
+          7,
+          7
+        ],
+        "wallMilliseconds": [
+          28939,
+          28575,
+          29267
+        ],
+        "peakWorkingSetBytes": [
+          776212480,
+          771559424,
+          766844928
+        ],
+        "identicalPngs": [
+          614,
+          614,
+          614
+        ]
+      }
+    },
+    "ratio": 1.1351964928761547,
+    "compactSyntax": {
+      "engine": [
+        122,
+        123,
+        210
+      ],
+      "baseline": [
+        4,
+        3,
+        3
+      ]
+    }
+  },
+  "conformanceSettings": {
+    "size": 1024,
+    "pages": 1,
+    "inputs": 649,
+    "warmupPassesPerBuild": 1,
+    "measuredPassesPerBuild": 3,
+    "timeoutSeconds": 180
+  },
+  "tests": {
+    "engine": 3025,
+    "app": 338,
+    "selectedRenderer": 242,
+    "newCases": 10,
+    "warnings": 0,
+    "errors": 0
+  },
+  "noHeavyWorkOverlapped": true,
+  "rawMeasurements": "benchmarks/1.9.0-rect-mask",
+  "limitations": [
+    "Collection variation exceeds the small total-render change; do not claim a firm overall speed gain.",
+    "Peak process memory is not reduced versus the preceding increment.",
+    "Broad corpus, multipage, cold startup and OCR remain separate work."
+  ]
+}

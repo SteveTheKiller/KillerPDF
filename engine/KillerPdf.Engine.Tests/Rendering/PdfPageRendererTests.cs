@@ -16,6 +16,49 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData(0, false)]
+    [InlineData(0, true)]
+    [InlineData(.00001, false)]
+    [InlineData(.00001, true)]
+    [InlineData(.25, false)]
+    [InlineData(.25, true)]
+    [InlineData(-1, false)]
+    [InlineData(-1, true)]
+    [InlineData(-2, false)]
+    [InlineData(-2, true)]
+    public void Render_RectangleCoverageMatchesSubdividedPolygon(double offset, bool clip)
+    {
+        foreach (bool evenOdd in new[] { false, true })
+        {
+            PdfRenderedPage Render(bool subdivided)
+            {
+                var content = new PdfContentStreamBuilder().SetFillRgb(.2, .4, .8);
+                if (!subdivided) content.Rectangle(offset, offset, 32, 32);
+                else
+                {
+                    content.MoveTo(offset, offset).LineTo(offset + 16, offset)
+                        .LineTo(offset + 32, offset).LineTo(offset + 32, offset + 32)
+                        .LineTo(offset, offset + 32).ClosePath();
+                }
+                if (clip)
+                {
+                    if (evenOdd) content.ClipEvenOdd();
+                    else content.Clip();
+                    content.Rectangle(0, 0, 32, 32).Fill();
+                }
+                else if (evenOdd) content.FillEvenOdd();
+                else content.Fill();
+                PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(32, 32, content).Build());
+                return new PdfPageRenderer(document).Render(0, new PdfRenderOptions(32, 32));
+            }
+            PdfRenderedPage fast = Render(false), reference = Render(true);
+            Assert.Equal(reference.Pixels.ToArray(), fast.Pixels.ToArray());
+            Assert.Empty(fast.Diagnostics);
+            Assert.Empty(reference.Diagnostics);
+        }
+    }
+
+    [Theory]
     [InlineData(.1)]
     [InlineData(.33)]
     [InlineData(.5)]
