@@ -3,6 +3,22 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 requested form text appearances
+
+Validation date: 2026-09-07. `bug1883609.pdf` requests new appearances but saves
+empty text sections for values Man, 150, and Red. The renderer now displays
+those values using the inherited defaults and AcroForm font resource, while
+retaining the saved background artwork. The page was visually compared with
+PDFium 1.8.5; synthesized combo-box arrows remain different.
+
+The conformance pass retains 614 OK, 35 SKIP, zero failures, and all 614
+unchanged PNGs. The full engine and app suites pass 2,906 and 338 tests,
+including nine new form cases. The [record](records/need-appearances-1.9.0.json)
+and [raw logs](benchmarks/1.9.0-need-appearances) retain the evidence. This is
+a focused content correction, not a new throughput comparison or full form
+parity claim. Broader PDFjs image auditing and additional field layouts remain
+required; see the [form integration limits](../engine/docs/forms.md).
+
 ## KillerPDF 1.9.0 JPEG transform arithmetic
 
 Validation date: 2026-09-07. Reusing JPEG transform scale and quantization

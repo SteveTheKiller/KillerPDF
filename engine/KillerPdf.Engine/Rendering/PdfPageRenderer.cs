@@ -1329,8 +1329,21 @@ public sealed partial class PdfPageRenderer
                         hiddenOptionalContentGroups, 0)) continue;
                 bool widget = IsName(annotation, "Subtype", "Widget");
                 if (widget ? !options.IncludeFormFields : !options.IncludeAnnotations) continue;
-                if (!TryGetAppearance(annotation, out PdfStream? appearance)
-                    || appearance is null) continue;
+                TryGetAppearance(annotation, out PdfStream? appearance);
+                if (widget)
+                {
+                    try
+                    {
+                        appearance = RequestedFieldAppearance(annotation, appearance,
+                            pageResources, diagnostics, cancellationToken);
+                    }
+                    catch (Exception error) when (_document.UsesCompatibilityRecovery
+                        && error is FormatException or InvalidOperationException or NotSupportedException)
+                    {
+                        diagnostics.Add("Invalid form-field regeneration data retained the saved appearance.");
+                    }
+                }
+                if (appearance is null) continue;
                 if (!annotation.TryGetValue(Name("Rect"), out PdfObject? rectangleValue)) continue;
                 PdfArray rectangle = ResolveArray(rectangleValue, 4, "Annotation rectangle");
                 double rectangleLeft = Number(Resolve(rectangle[0]));

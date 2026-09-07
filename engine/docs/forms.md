@@ -109,15 +109,30 @@ dictionary without a matching selected state, contributes no painted widget.
 
 Enable `PdfRenderOptions.IncludeFormFields` to include widget appearances.
 `IncludeAnnotations` independently controls non-widget annotations. These
-options select existing appearances; they do not create an interactive form UI
-or regenerate field content.
+options do not create an interactive form UI.
 
-The current renderer does not regenerate appearances when AcroForm
-`/NeedAppearances` is true. A field can therefore have a readable value while
-its saved appearance remains blank or stale. The corpus case `bug1883609.pdf`
-has this limitation for the values Man, 150, and Red. Successful rendering and
-an empty diagnostics collection do not prove that visible field text matches
-the values reported by the widget reader.
+When AcroForm `/NeedAppearances` is true, the renderer regenerates single-line
+text and combo-box text in a saved `/Tx` marked-content section. It reads
+inherited values and defaults, uses the AcroForm font resource, maps choice
+exports to display labels, and clips text to the field interior. Existing
+appearance geometry and artwork outside the text section remain in place.
+The generated stream is temporary; rendering does not edit the document.
+The corpus case `bug1883609.pdf` now displays Man, 150, and Red.
+
+This path requires an existing appearance with valid bounds and a balanced
+text section, and a simple font that can encode every displayed character.
+Field text is limited to 32,768 UTF-16 code units, default appearance data to
+65,536 bytes, and field inheritance to 256 dictionaries. Cancellation remains
+available during inheritance, font encoding, and instruction processing.
+Unsupported cases retain their saved appearances with a diagnostic. Recovery
+mode also retains the saved appearance when regeneration data is malformed;
+strict mode keeps validation failures.
+
+Multiline and comb fields, list-box layout, composite-font encoding, missing
+appearance geometry or text sections, and synthesized combo-box arrows remain
+work in progress. Successful rendering does not establish that every visible
+field matches its value. Check diagnostics and compare reopened values with
+the rendered page before accepting or flattening a form.
 
 For deliberate edits, `PdfIncrementalPageEditor` exposes `SetTextFieldValue`,
 `SetChoiceFieldValues`, `SetCheckBoxValue`, and `SetRadioButtonValue`; the

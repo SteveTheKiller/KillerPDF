@@ -14,6 +14,9 @@ retain precedence; unknown font names and missing images are not reconstructed.
 Strict rendering still rejects the invalid resource value, and failures
 while resolving the resource reference retain their existing limits.
 
+Requested single-line form appearance regeneration and its current limits are
+described in the [forms guide](forms.md#values-and-rendered-appearances).
+
 ## Render a page
 
 This example requests an exact output size. Choose dimensions with the displayed
