@@ -3,6 +3,21 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 focused PDF.js font recheck
+
+Validation date: 2026-09-07. After the Unicode-map, missing descendant, and emoji
+fallback changes, the 54 previously non-OK files were rerun at `79c0325` with
+page one, 1024 px maximum dimension, and a 15-second per-build/file limit.
+The engine returned 14 OK, 25 SKIP, and 15 FAIL; PDFium 1.8.5 returned 38 OK,
+15 SKIP, and one FAIL. Neither build timed out, and every input hash matches
+the full comparison below.
+
+This is a selected failure recheck, not an updated full-corpus total or a
+throughput benchmark. The emoji sample now renders both symbols as monochrome
+outlines without diagnostics. See the [focused record](records/pdfjs-font-recheck-1.9.0.json),
+[raw results](benchmarks/1.9.0-pdfjs-font-recheck/render-comparison-summary.csv),
+and [emoji validation](records/emoji-fallback-1.9.0.json).
+
 ## KillerPDF 1.9.0 PDF.js coverage recheck
 
 Validation date: 2026-09-07. The complete current PDF.js source tree contains
