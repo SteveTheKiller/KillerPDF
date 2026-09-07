@@ -1,0 +1,22 @@
+{
+  "engineApplicationSha256": "D14F474FD7ED208442F18D125F4D405D8879411E51F4D373329E75D45D0228C1",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": {
+    "file": "issue19848.pdf",
+    "inputSha256": "BA6DFA6ECC665B1F2A40018F499DDB3714B6AAEEFCA35B9AAB21021671A7841F",
+    "before": "FAIL: Form XObject resources are not a dictionary.",
+    "after": "OK",
+    "renderMilliseconds": 187,
+    "dimensions": [724, 1024],
+    "baselineDimensions": [724, 1024],
+    "diagnostics": [],
+    "rgbMae": 0.07965054169544199,
+    "visualCheck": "Visible text and red border render after an empty Form with invalid resources."
+  },
+  "tests": { "newCases": 3, "engine": 2767, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "behavior": "Compatibility rendering skips Forms whose decoded content has no instructions before resolving unused resources. Strict rendering and nonempty Forms retain resource validation. Stream decoding limits remain active.",
+  "limitations": "Single-file timing is not a throughput benchmark. Full PDF.js coverage has not been rerun at this build."
+}

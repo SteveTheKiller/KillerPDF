@@ -64,6 +64,12 @@ be selected independently through the options.
 inputs, explicitly choose `PdfDocument.OpenWithCompatibilityRecovery`. Recovery
 is bounded and does not change the strict default or authorize unsafe writing.
 
+Recovery skips Form XObjects whose decoded content contains no instructions,
+including whitespace-only and comment-only streams. Invalid unused resources
+on these empty Forms do not prevent subsequent page content from rendering.
+Stream decoding limits still apply. Nonempty Forms and strict rendering retain
+their resource validation.
+
 An unfiltered `ToUnicode` stream with a valid zlib header can be inflated once
 in recovery mode. Authentication runs before this recovery. The decoder retains
 checksum validation and the 32 MiB font-stream output limit; corrupt or oversized

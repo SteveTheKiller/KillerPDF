@@ -2828,6 +2828,55 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Form XObject rendering is not implemented.", page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("", true)]
+    [InlineData(" % empty form\n ", true)]
+    [InlineData("0 0 5 5 re f", false)]
+    public void Render_RecoversInvalidResourcesOnlyForEmptyForms(string formContent,
+        bool recoverable)
+    {
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder());
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, new PdfContentStreamBuilder()
+                .SetFillRgb(1, 0, 0).Rectangle(0, 0, 10, 10).Fill()
+                .DrawForm(form, 0, 0)
+                .SetFillRgb(0, 0, 1).Rectangle(0, 0, 5, 10).Fill())
+            .Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        PdfDictionary page = ResolveDictionary(source,
+            Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        PdfIndirectReference formReference = Assert.IsType<PdfIndirectReference>(
+            Assert.Single(xObjects).Value);
+        PdfStream formStream = Assert.IsType<PdfStream>(source.Resolve(formReference));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference invalidResources = update.AddObject(
+            new PdfStream(new PdfDictionary([]), Array.Empty<byte>()));
+        var dictionary = new PdfDictionary(formStream.Dictionary
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), invalidResources)));
+        byte[] bytes = update.ReplaceObject(formReference.ObjectNumber,
+            new PdfStream(dictionary, Encoding.ASCII.GetBytes(formContent))).Build();
+        var options = new PdfRenderOptions(10, 10,
+            includeAnnotations: false, includeFormFields: false);
+
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(PdfDocument.Open(bytes))
+            .Render(0, options));
+        var renderer = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(bytes));
+        if (!recoverable)
+        {
+            Assert.Throws<FormatException>(() => renderer.Render(0, options));
+            return;
+        }
+
+        PdfRenderedPage rendered = renderer.Render(0, options);
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 2, 5));
+        Assert.Equal([0, 0, 255, 255], Pixel(rendered, 7, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_CompositesIsolatedTransparencyFormAsOneGroup()
     {

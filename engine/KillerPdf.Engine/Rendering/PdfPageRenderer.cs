@@ -1093,6 +1093,9 @@ public sealed partial class PdfPageRenderer
             if (!activeForms.Add(form)) throw new FormatException("Cyclic Form XObject.");
             try
             {
+                IReadOnlyList<PdfContentInstruction> instructions =
+                    ReadStreamInstructions(form, cancellationToken);
+                if (_document.UsesCompatibilityRecovery && instructions.Count == 0) return;
                 Matrix matrix = form.Dictionary.TryGetValue(Name("Matrix"), out PdfObject? value)
                     ? Matrix.From(ResolveArray(value, 6, "Form XObject matrix")) : Matrix.Identity;
                 GraphicsState formState = parentState with
@@ -1134,8 +1137,6 @@ public sealed partial class PdfPageRenderer
                 bool knockout = transparencyGroup
                     && group!.TryGetValue(Name("K"), out PdfObject? knockoutValue)
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
-                IReadOnlyList<PdfContentInstruction> instructions =
-                    ReadStreamInstructions(form, cancellationToken);
                 bool multipleKnockoutObjects = knockout && !isolated
                     && instructions.Count(IsPaintingOperation) > 1;
                 if (multipleKnockoutObjects
