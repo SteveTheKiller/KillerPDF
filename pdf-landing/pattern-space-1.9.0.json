@@ -6,7 +6,7 @@
   "size": 1024,
   "engineAppDllSHA256": "1D6B163FBB2679E4AA6CDDDC31A9B0FE7620123459FCBFB3BD0C7F7592356FBC",
   "baselineAppDllSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
-  "conformance": { "files": 649, "rendered": 614, "skipped": 35, "failed": 0, "unchangedPngs": 611, "changedPngs": 3 },
+  "conformance": { "files": 649, "rendered": 614, "skipped": 35, "failed": 0, "unchangedPngs": 612, "changedPngs": 2 },
   "pdfjs": {
     "files": 200,
     "timeoutSecondsPerProcess": 15,

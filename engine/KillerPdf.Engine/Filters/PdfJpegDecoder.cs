@@ -651,6 +651,16 @@ internal static class PdfJpegDecoder
         {
             int[] quantization = _quantization[component.QuantizationTable];
             int blockSize = 8 / reduction;
+            if (coefficients[1..].IndexOfAnyExcept(0) < 0)
+            {
+                // Retain the full transform's operation order at rounding boundaries.
+                double dc = Scales[0] * coefficients[0] * quantization[0];
+                byte sample = Clamp(128 + Scales[0] * dc / 4);
+                for (int y = 0; y < blockSize; y++)
+                    component.Samples.AsSpan((top + y) * component.Stride + left, blockSize)
+                        .Fill(sample);
+                return;
+            }
             int reductionIndex = reduction switch { 1 => 0, 2 => 1, 4 => 2, _ => 3 };
             Span<double> horizontal = stackalloc double[64];
             for (int v = 0; v < 8; v++)

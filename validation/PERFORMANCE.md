@@ -3,6 +3,40 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 constant-block JPEG optimization
+
+Benchmark date: 2026-09-06. Constant-color JPEG blocks bypass the general inverse
+transform while retaining its rounding order. Eight independent baseline/progressive
+JPEG test cases cover reductions of 1, 2, 4, and 8. Full suites pass 2,675 engine
+and 338 app tests; the Release build has zero warnings or errors.
+
+The same 649 conformance PDFs were rendered at page 1 inside 1024 pixels, with
+annotations/forms enabled, one warmup per build, and three measured passes in
+alternating build order. All 614 engine PNGs are byte-identical to the pattern fix.
+
+| Build | Rendered | Skipped | Failed | Median render seconds | Median wall seconds |
+|---|---:|---:|---:|---:|---:|
+| 1.8.5 PDFium | 600 | 41 | 8 | 12.779 | 23.802 |
+| 1.9.0 engine | 614 | 35 | 0 | 14.070 | 28.203 |
+
+On the shared 600 files, engine median render time is 14.014 seconds, a 1.10 ratio
+to PDFium's 12.779 seconds. Individual pass totals are retained below the aggregate
+in the JSON record because timings vary. This still falls short of the speed target.
+Wall time includes startup, opening, rendering, PNG writing, and exit; packaged
+cold startup and memory remain separate work.
+
+The plans page renders in 1,254, 1,246, and 1,245 ms in three fresh processes,
+compared with 1,894 ms in the preceding isolated sample. Its PNG is byte-identical.
+This focused comparison includes first-process JIT and is not a throughput claim.
+
+The pattern checkpoint's image count below was corrected after checking literal
+filenames: two images changed, not three. A bracketed filename had been incorrectly
+classified by a wildcard-aware hash lookup; its image bytes were unchanged.
+
+Raw measured CSVs are in [benchmarks/1.9.0-jpeg-dc](benchmarks/1.9.0-jpeg-dc).
+Build hashes and individual timings are in
+[jpeg-dc-1.9.0.json](../pdf-landing/jpeg-dc-1.9.0.json).
+
 ## KillerPDF 1.9.0 pattern coordinates and PDF.js regression sample
 
 Validation date: 2026-09-06. Tiling and shading patterns now use the initial
@@ -12,8 +46,8 @@ the floor plans now occupy their intended positions. Fine image detail still dif
 from PDFium, so this is a placement correction, not visual parity.
 
 The 649-file conformance check retained 614 OK, 35 SKIP, zero FAIL. Of the 614 PNGs,
-611 are byte-identical to the preceding JPEG 2000 build. Three changed: the MICOM
-lighthouse poster, mipeng_poster_w24, and response-to-fiber-concerns[1]. The RecovAir
+612 are byte-identical to the preceding JPEG 2000 build. Two changed: the MICOM
+lighthouse poster and mipeng_poster_w24. The RecovAir
 poster gradient is closer to PDFium (RGB mean absolute difference 2.7420 before,
 1.2726 after, on a 0 to 255 scale). This metric is diagnostic, not a quality gate.
 Two additional pattern cases pass; full suites pass 2,667 engine and 338 app tests,
