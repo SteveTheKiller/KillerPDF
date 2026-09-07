@@ -369,7 +369,13 @@ public sealed partial class PdfPageRenderer
                     state = state with { LineCap = (RendererLineCap)(int)capValue };
                     break;
                 case "j" when values.Count == 1:
-                    double joinValue = Number(Resolve(values[0]));
+                    PdfObject joinOperand = Resolve(values[0]);
+                    if (_document.UsesCompatibilityRecovery && joinOperand is not (PdfInteger or PdfReal))
+                    {
+                        diagnostics.Add("An invalid line-join operation was ignored.");
+                        break;
+                    }
+                    double joinValue = Number(joinOperand);
                     if (joinValue != Math.Truncate(joinValue) || joinValue is < 0 or > 2)
                         throw new FormatException("A line join style is invalid.");
                     state = state with { LineJoin = (RendererLineJoin)(int)joinValue };
@@ -547,6 +553,13 @@ public sealed partial class PdfPageRenderer
                     textMatrix = textLineMatrix = Matrix.From(values);
                     break;
                 case "Td" or "TD" when values.Count == 2:
+                    if (_document.UsesCompatibilityRecovery
+                        && (values[0] is not (PdfInteger or PdfReal)
+                            || values[1] is not (PdfInteger or PdfReal)))
+                    {
+                        diagnostics.Add("An invalid text-position operation was ignored.");
+                        break;
+                    }
                     double textX = Number(values[0]), textY = Number(values[1]);
                     if (instruction.Operator == "TD") textLeading = -textY;
                     textLineMatrix = new Matrix(1, 0, 0, 1, textX, textY)

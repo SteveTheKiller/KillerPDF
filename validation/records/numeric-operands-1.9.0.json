@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-07",
+  "beforeCommit": "6ec818d36931460dbc2b9ef3f9c0e0077bd9f904",
+  "engineSha256": "B988541FB38CD3260B84C4FC2947A768BE010CB4BF12CD1F52238CDDB51A147F",
+  "appSha256": "0EA55EA1ABF5A551CE242721572E003240C320826F9EE2A269B5F2C48CF5A94B",
+  "embeddedEngineVerified": true,
+  "change": "Recovery ignores nonnumeric j, Td and TD without mutating line join, text matrices or leading. Strict rejection and numeric join-range validation remain unchanged.",
+  "tests": {
+    "focused": 7,
+    "engine": 3064,
+    "app": 338,
+    "buildWarnings": 0,
+    "buildErrors": 0
+  },
+  "conformance": {
+    "files": 649,
+    "OK": 614,
+    "SKIP": 35,
+    "FAIL": 0,
+    "identicalPngs": 614,
+    "comparison": "asciihex-app-conformance-20260907",
+    "size": 1024,
+    "pages": 1
+  },
+  "focusedFile": {
+    "file": "test/pdfs/poppler-90-0-fuzzed.pdf",
+    "inputSha256": "233C39DC16ED862911668784739D07DC9A27AE844D63188DE7019DA4F012F942",
+    "pages": 16,
+    "beforeOK": 6,
+    "afterOK": 6,
+    "unchangedSuccessfulPages": [
+      3,
+      9,
+      10,
+      12,
+      14,
+      16
+    ],
+    "page1RemainingError": "ASCII85 data contains an invalid byte.",
+    "page5RemainingError": "ASCII85 data has an invalid end marker.",
+    "note": "Nonnumeric operand failures are removed, but later decode failures prevent additional successful pages."
+  },
+  "limitations": [
+    "No corpus coverage or performance gain is claimed for this increment.",
+    "Synthetic pixel comparisons verify preserved state and strict rejection.",
+    "Remaining ASCII85 decoding failures require separate investigation."
+  ]
+}

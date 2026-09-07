@@ -3,6 +3,20 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 nonnumeric rendering operands
+
+Validation date: 2026-09-07. Recovery ignores nonnumeric line-join and text-position
+operands before mutating state. Seven pixel-comparison cases verify preservation
+of the prior join, both text matrices and leading, with strict rejection retained.
+All 3,064 engine and 338 app tests pass with a clean Release build. Conformance
+retains 614 OK, 35 SKIP, zero FAIL and identical PNGs on all successful files.
+
+On the 16-page malformed ASCIIHex probe, the six previously successful pages
+remain unchanged. Pages 1 and 5 pass their former numeric failures but still fail
+later ASCII85 decoding. This increment demonstrates no coverage or speed gain.
+See the [record](records/numeric-operands-1.9.0.json) and
+[raw evidence](benchmarks/1.9.0-numeric-operands).
+
 ## KillerPDF 1.9.0 bounded ASCIIHex recovery
 
 Validation date: 2026-09-07. Recovery ignores non-hex bytes and tolerates a

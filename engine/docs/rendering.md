@@ -203,6 +203,12 @@ values are present. An incomplete operation retains the current paint color.
 The renderer records a diagnostic in either case. Strict rendering rejects the
 same component-count mismatch.
 
+Recovery ignores a `j` operation with a nonnumeric operand, preserving the prior
+line join. It also ignores `Td` and `TD` when either position operand is
+nonnumeric, preserving both text matrices and text leading. Each case reports a
+diagnostic. Strict rendering still rejects these operands; numeric line-join
+range checks remain unchanged.
+
 Check `CanReadPageContent` before creating a renderer. Password-encrypted pages
 require authentication. Standard Security documents whose default strings and
 streams are unencrypted can expose pages while encrypted attachments remain

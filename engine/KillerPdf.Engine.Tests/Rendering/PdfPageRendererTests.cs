@@ -16,6 +16,49 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData("/bad j")]
+    [InlineData("null j")]
+    [InlineData("(1) j")]
+    public void Render_RecoveryPreservesJoinAfterNonnumericOperand(string operation)
+    {
+        const string prefix = "1 j 8 w ";
+        const string suffix = "10 10 m 40 80 l 45 10 l S";
+        byte[] Make(string middle) => new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes(prefix + middle + " " + suffix)).Build();
+        var options = new PdfRenderOptions(200, 200);
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(PdfDocument.Open(Make(operation)))
+            .Render(0, options));
+        var actual = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(Make(operation)))
+            .Render(0, options);
+        var expected = new PdfPageRenderer(PdfDocument.Open(Make(""))).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Contains("An invalid line-join operation was ignored.", actual.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData("/bad 3 Td")]
+    [InlineData("3 /bad Td")]
+    [InlineData("/bad 3 TD")]
+    [InlineData("3 /bad TD")]
+    public void Render_RecoveryPreservesTextPositionAndLeadingAfterNonnumericOperand(string operation)
+    {
+        const string prefix = "BT /Helvetica 12 Tf 1 0 0 1 10 60 Tm 8 TL ";
+        const string suffix = " (A) Tj T* (B) Tj ET";
+        byte[] Make(string middle) => new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes(prefix + middle + suffix)).Build();
+        var options = new PdfRenderOptions(200, 200);
+        Assert.Throws<FormatException>(() => new PdfPageRenderer(PdfDocument.Open(Make(operation)))
+            .Render(0, options));
+        var actual = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(Make(operation)))
+            .Render(0, options);
+        var expected = new PdfPageRenderer(PdfDocument.OpenWithCompatibilityRecovery(Make("")))
+            .Render(0, options);
+        Assert.Contains((byte)0, expected.Pixels.ToArray());
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Contains("An invalid text-position operation was ignored.", actual.Diagnostics);
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(31)]
     [InlineData(32)]
