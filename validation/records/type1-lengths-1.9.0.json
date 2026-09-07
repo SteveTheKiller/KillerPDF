@@ -1,0 +1,47 @@
+{
+  "engineApplicationSha256": "7BBB5F0A058C886A8DF3A35579C031654ED4B707DE26210FDDA28B68F5D6A104",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": {
+    "page": 1,
+    "maximumDimension": 1024,
+    "annotations": true,
+    "forms": true
+  },
+  "focused": {
+    "file": "issue3928.pdf",
+    "inputSha256": "32F66C48D16D5B44A1BE2922B2DB2D68C0931197B38F35825E22DD94343267A1",
+    "before": "FAIL: OverflowException converting embedded Type 1 segment lengths.",
+    "after": "OK",
+    "renderMilliseconds": 93,
+    "dimensions": [
+      1024,
+      171
+    ],
+    "baselineDimensions": [
+      1024,
+      170
+    ],
+    "diagnostics": [
+      "Invalid Type 1 font lengths were recovered from the embedded program."
+    ],
+    "extractedText": "1. INTRODUCTION",
+    "visualCheck": "Embedded lettering and placement closely match PDFium. The one-pixel page-height difference remains unresolved.",
+    "rgbMae": null
+  },
+  "tests": {
+    "newCases": 7,
+    "failedBefore": 3,
+    "engine": 2801,
+    "app": 338
+  },
+  "conformance": {
+    "ok": 614,
+    "skip": 35,
+    "fail": 0,
+    "identicalImages": 614
+  },
+  "behavior": "Recovery locates currentfile eexec tokens within the first 1 MiB of decoded Type 1 font data when declared segment lengths are invalid. A following line ending is required; comments and quoted strings do not establish the boundary. Existing decoding preserves embedded outlines and stops at closefile.",
+  "preservedChecks": "Strict behavior, stream size limits, and charstring execution limits are unchanged.",
+  "limitations": "Missing boundaries and unusable programs are not reconstructed. Single-file timing is not throughput. No updated full PDF.js count is claimed."
+}

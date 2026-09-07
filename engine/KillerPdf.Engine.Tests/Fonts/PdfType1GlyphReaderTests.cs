@@ -123,11 +123,45 @@ public sealed class PdfType1GlyphReaderTests
             Font(program, privatePrefix: "/BlueScale 1e-05 def ").GetGlyphBounds(65));
     }
 
+    [Theory]
+    [InlineData(long.MaxValue, null)]
+    [InlineData(null, long.MaxValue)]
+    [InlineData(0L, long.MaxValue)]
+    public void RecoveryFindsEncryptedFontBoundaryWithInvalidLengths(long? length1, long? length2)
+    {
+        byte[] program = [.. Number(0), .. Number(600), 13, .. Number(20), .. Number(0), 21,
+            .. Number(0), .. Number(700), 5, .. Number(500), .. Number(0), 5, 14];
+        Assert.Throws<OverflowException>(() => Font(program, length1: length1, length2: length2));
+        PdfExtractionFont recovered = Font(program, length1: length1, length2: length2, recovery: true,
+            encoding: "% currentfile eexec\n(currentfile eexec) pop");
+        Assert.Equal(new PdfGlyphBounds(20, 0, 520, 700), recovered.GetGlyphBounds(65));
+        Assert.NotNull(recovered.GetGlyphOutline(65));
+        Assert.Equal("Invalid Type 1 font lengths were recovered from the embedded program.",
+            Assert.Single(recovered.Diagnostics));
+    }
+
+    [Theory]
+    [InlineData("currentfile eexec binary")]
+    [InlineData("% currentfile eexec\nnot-a-font")]
+    [InlineData("(currentfile eexec)\nnot-a-font")]
+    public void LengthRecoveryRejectsUnusableFontBoundaries(string source)
+    {
+        Assert.Null(PdfType1GlyphReader.TryReadWithRecoveredLengths(Encoding.ASCII.GetBytes(source)));
+    }
+
+    [Fact]
+    public void LengthRecoveryBoundsItsHeaderScan()
+    {
+        byte[] source = Encoding.ASCII.GetBytes("%" + new string('x', 1_048_576)
+            + "\ncurrentfile eexec\nnot-a-font");
+        Assert.Null(PdfType1GlyphReader.TryReadWithRecoveredLengths(source));
+    }
+
     private static PdfExtractionFont Font(byte[] program, int lenIv = -1,
         byte[]? subroutine = null, string reader = "RD", string encoding = "",
         string glyphName = "A",
         IReadOnlyList<(string Name, byte[] Program)>? additionalGlyphs = null,
-        string privatePrefix = "")
+        string privatePrefix = "", long? length1 = null, long? length2 = null, bool recovery = false)
     {
         byte[] header = Encoding.ASCII.GetBytes($"%!PS\n/FontMatrix [0.001 0 0 0.001 0 0] def {encoding} currentfile eexec\n");
         using var plain = new MemoryStream();
@@ -152,10 +186,13 @@ public sealed class PdfType1GlyphReaderTests
         }
         plain.Write("end currentfile closefile"u8);
         byte[] cipher = Encrypt(plain.ToArray(), 55665);
-        var file = new PdfStream(D(("Length1", new PdfInteger(header.Length)), ("Length2", new PdfInteger(cipher.Length))), [.. header, .. cipher]);
+        var file = new PdfStream(D(("Length1", new PdfInteger(length1 ?? header.Length)),
+            ("Length2", new PdfInteger(length2 ?? cipher.Length))), [.. header, .. cipher]);
         var dictionary = D(("Subtype", new PdfName("Type1"u8)), ("BaseFont", new PdfName("Test"u8)),
             ("FontDescriptor", D(("FontFile", file))));
-        return PdfFontResourceReader.Read(PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build()), dictionary);
+        byte[] pdf = new PdfDocumentBuilder().AddBlankPage().Build();
+        return PdfFontResourceReader.Read(recovery ? PdfDocument.OpenWithCompatibilityRecovery(pdf)
+            : PdfDocument.Open(pdf), dictionary);
     }
 
     private static byte[] Encrypt(byte[] source, int seed)

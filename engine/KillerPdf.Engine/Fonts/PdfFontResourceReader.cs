@@ -23,6 +23,7 @@ public static class PdfFontResourceReader
     private sealed class Reader(PdfDocument document, IPdfFontResolver? fontResolver)
     {
         private bool _ignoredUnicodeMap;
+        private bool _recoveredType1Lengths;
 
         internal PdfExtractionFont Read(PdfDictionary font)
         {
@@ -68,8 +69,7 @@ public static class PdfFontResourceReader
             TrueTypeFont? embedded = ReadEmbedded(outlineData);
             PdfCffGlyphReader? cff = outlineData is null ? null : PdfCffGlyphReader.TryRead(outlineData);
             PdfType1GlyphReader? type1 = type1Stream is not null
-                ? PdfType1GlyphReader.TryRead(Decode(type1Stream), checked((int)Number(Get(type1Stream.Dictionary, "Length1"), 0)),
-                    checked((int)Number(Get(type1Stream.Dictionary, "Length2"), 0))) : null;
+                ? ReadType1(type1Stream) : null;
             TrueTypeFont? substitute = subtype is not null and not "Type3"
                 ? PdfStandardFontSubstitutes.Find(metricsName) : null;
             var embeddedOutlines = embedded is null ? null : new OutlineReader(embedded);
@@ -306,7 +306,9 @@ public static class PdfFontResourceReader
                 defaultWidth)
             {
                 FontName = fontName,
-                Diagnostics = _ignoredUnicodeMap
+                Diagnostics = _recoveredType1Lengths
+                    ? Array.AsReadOnly(new[] { "Invalid Type 1 font lengths were recovered from the embedded program." })
+                    : _ignoredUnicodeMap
                     ? Array.AsReadOnly(new[] { "An unreadable ToUnicode map was ignored; embedded font mappings were used." })
                     : Array.Empty<string>(),
                 Ascent = ascent,
@@ -355,6 +357,22 @@ public static class PdfFontResourceReader
                 if (glyph != 0) result.TryAdd(glyph, char.ConvertFromUtf32(scalar));
             }
             return result;
+        }
+
+        private PdfType1GlyphReader? ReadType1(PdfStream stream)
+        {
+            byte[] data = Decode(stream);
+            double length1 = Number(Get(stream.Dictionary, "Length1"), 0);
+            double length2 = Number(Get(stream.Dictionary, "Length2"), 0);
+            if (document.UsesCompatibilityRecovery
+                && (length1 <= 0 || length1 >= data.Length || length1 != Math.Truncate(length1)
+                    || length2 < 0 || length2 > data.Length - length1 || length2 != Math.Truncate(length2)))
+            {
+                PdfType1GlyphReader? recovered = PdfType1GlyphReader.TryReadWithRecoveredLengths(data);
+                _recoveredType1Lengths = recovered is not null;
+                return recovered;
+            }
+            return PdfType1GlyphReader.TryRead(data, checked((int)length1), checked((int)length2));
         }
 
         private static TrueTypeFont? ReadEmbedded(byte[]? data)

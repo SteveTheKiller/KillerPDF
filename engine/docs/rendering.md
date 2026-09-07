@@ -106,6 +106,14 @@ alter CID and Unicode mappings. Only a positive object number, valid generation,
 references inside mapping data retain their validation. Strict mode rejects the
 indirect reference in the CMap program.
 
+For embedded Type 1 fonts with invalid segment lengths, recovery can locate the
+`currentfile eexec` token pair within the first 1 MiB of decoded font data. It
+requires a following line ending and uses the existing charstring decoder, which
+stops at `closefile`. Comments and quoted strings do not supply that boundary.
+Successful recovery retains the embedded outlines and reports a font diagnostic.
+Strict parsing retains its original length checks; stream and program limits
+remain in force. A missing boundary or unusable program is not reconstructed.
+
 An Identity-H or Identity-V composite font with an embedded TrueType Unicode
 character map can recover from a lexically unreadable `ToUnicode` stream that
 contains no `begin`, `end`, or `usecmap` markers. Glyph selection still uses the

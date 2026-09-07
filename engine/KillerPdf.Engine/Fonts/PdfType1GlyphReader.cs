@@ -18,6 +18,33 @@ internal sealed class PdfType1GlyphReader
     private double _xx = 1, _xy, _yx, _yy = 1, _tx, _ty;
     internal string[]? EncodingNames { get; private set; }
 
+    internal static PdfType1GlyphReader? TryReadWithRecoveredLengths(byte[] data)
+    {
+        int limit = Math.Min(data.Length, 1_048_576);
+        var tokens = new PdfTokenizer(data.AsMemory(0, limit));
+        bool currentFile = false;
+        try
+        {
+            while (true)
+            {
+                PdfToken token = tokens.Read();
+                if (token.Kind == PdfTokenKind.EndOfInput) return null;
+                if (currentFile && token.Kind == PdfTokenKind.Keyword
+                    && token.Value.Span.SequenceEqual("eexec"u8))
+                {
+                    int start = tokens.Position;
+                    while (start < limit && data[start] is (byte)' ' or (byte)'\t') start++;
+                    if (start >= limit || data[start] is not ((byte)'\r' or (byte)'\n')) return null;
+                    if (data[start++] == (byte)'\r' && start < limit && data[start] == (byte)'\n') start++;
+                    return TryRead(data, start, data.Length - start);
+                }
+                currentFile = token.Kind == PdfTokenKind.Keyword
+                    && token.Value.Span.SequenceEqual("currentfile"u8);
+            }
+        }
+        catch (PdfSyntaxException) { return null; }
+    }
+
     internal static PdfType1GlyphReader? TryRead(byte[] data, int length1, int length2)
     {
         try
