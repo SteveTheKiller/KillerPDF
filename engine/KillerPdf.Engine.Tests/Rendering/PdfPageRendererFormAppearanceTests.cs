@@ -86,9 +86,66 @@ public sealed class PdfPageRendererFormAppearanceTests
         Assert.DoesNotContain(actual.Diagnostics, text => text.Contains("not implemented"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MissingAppearanceUsesWidgetGeometryAndBackground(bool recovery)
+    {
+        var options = new PdfRenderOptions(120, 40);
+        var expected = new PdfPageRenderer(Create(true, "", recovery, false)).Render(0, options);
+        PdfDocument source = Create(true, "", recovery, false, missingAppearance: true);
+        byte[] original = PdfDocumentWriter.Write(source);
+        var actual = new PdfPageRenderer(source).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Equal(original, PdfDocumentWriter.Write(source));
+        Assert.Contains("A requested form-field text appearance was regenerated.", actual.Diagnostics);
+        Assert.All(new PdfPageRenderer(Create(false, "", recovery, false, missingAppearance: true))
+            .Render(0, options).Pixels.ToArray(), value => Assert.Equal(255, value));
+    }
+
+    [Theory]
+    [InlineData("S")]
+    [InlineData("D")]
+    [InlineData("U")]
+    public void MissingAppearanceMatchesExplicitBorderArtwork(string borderStyle)
+    {
+        var options = new PdfRenderOptions(120, 40);
+        var expected = new PdfPageRenderer(Create(true, "", false, false,
+            borderStyle: borderStyle)).Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, "", false, false,
+            missingAppearance: true, borderStyle: borderStyle)).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(32)]
+    public void MissingAppearanceDoesNotExposeHiddenWidget(int annotationFlags)
+    {
+        var renderer = new PdfPageRenderer(Create(true, "", false, false,
+            missingAppearance: true, annotationFlags: annotationFlags));
+        Assert.All(renderer.Render(0, new PdfRenderOptions(120, 40)).Pixels.ToArray(),
+            value => Assert.Equal(255, value));
+    }
+
+    [Fact]
+    public void EmptyMissingAppearanceDoesNotRequireTextDefaultsToPaintItsBorder()
+    {
+        var options = new PdfRenderOptions(120, 40);
+        var expected = new PdfPageRenderer(Create(false, "", false, false,
+            borderStyle: "S", textValue: "")).Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, "", false, false,
+            defaultAppearance: "", missingAppearance: true, borderStyle: "S", textValue: ""))
+            .Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Contains("A requested empty form-field appearance was regenerated.", actual.Diagnostics);
+    }
+
     private static PdfDocument Create(bool requested, string previousText, bool recovery,
         bool choice, int flags = 0, string defaultAppearance = "0 g /F1 11 Tf",
-        bool artwork = false, bool inheritedResources = false)
+        bool artwork = false, bool inheritedResources = false, bool missingAppearance = false,
+        string? borderStyle = null, int annotationFlags = 0, string textValue = "Man")
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(120, 40).Build());
         PdfPageTree tree = PdfPageTree.Read(source);
@@ -103,14 +160,34 @@ public sealed class PdfPageRendererFormAppearanceTests
             ? D(("Subtype", N("Form")), ("BBox", box))
             : D(("Subtype", N("Form")), ("BBox", box), ("Resources", artworkResources));
         string outsideText = artwork ? "0 g BT /F1 4 Tf 90 34 Td (Art) Tj ET" : "";
+        string borderContent = borderStyle switch
+        {
+            "S" => "q 0 G 2 w 1 1 118 38 re S Q",
+            "D" => "q 0 G 2 w [3 2] 0 d 1 1 118 38 re S Q",
+            "U" => "q 0 G 2 w 0 1 m 120 1 l S Q",
+            _ => ""
+        };
         var appearance = update.AddObject(new PdfStream(appearanceDictionary, Encoding.ASCII.GetBytes(
-            $"1 1 0 rg 0 0 120 40 re f {outsideText} /Tx BMC {previousText} EMC")));
+            $"1 1 0 rg 0 0 120 40 re f {borderContent} {outsideText} /Tx BMC {previousText} EMC")));
         var parent = update.AddObject(D(("FT", N(choice ? "Ch" : "Tx")),
-            ("V", S(choice ? "export" : "Man")), ("DA", S(defaultAppearance)),
+            ("V", S(choice ? "export" : textValue)), ("DA", S(defaultAppearance)),
             ("Ff", new PdfInteger(choice ? 131072 : flags)),
             ("Opt", new PdfArray([new PdfArray([S("export"), S("Man")])]))));
-        var widget = update.AddObject(D(("Subtype", N("Widget")), ("Parent", parent),
-            ("Rect", box), ("AP", D(("N", appearance)))));
+        var characteristics = D(("BG", new PdfArray([new PdfInteger(1),
+            new PdfInteger(1), new PdfInteger(0)])));
+        if (borderStyle is not null)
+            characteristics = new PdfDictionary(characteristics.Append(
+                new KeyValuePair<PdfName, PdfObject>(N("BC"), new PdfArray([new PdfInteger(0)]))));
+        var widgetDictionary = D(("Subtype", N("Widget")), ("Parent", parent),
+            ("Rect", box), ("MK", characteristics), ("F", new PdfInteger(annotationFlags)));
+        if (borderStyle is not null)
+            widgetDictionary = new PdfDictionary(widgetDictionary.Append(
+                new KeyValuePair<PdfName, PdfObject>(N("BS"), D(("S", N(borderStyle)),
+                    ("W", new PdfInteger(2)), ("D", new PdfArray([new PdfInteger(3), new PdfInteger(2)]))))));
+        if (!missingAppearance)
+            widgetDictionary = new PdfDictionary(widgetDictionary.Append(
+                new KeyValuePair<PdfName, PdfObject>(N("AP"), D(("N", appearance)))));
+        var widget = update.AddObject(widgetDictionary);
         var page = tree.Pages[0];
         update.ReplaceObject(page.Reference.ObjectNumber, new PdfDictionary(page.Dictionary
             .Where(entry => !entry.Key.Equals(N("Resources")))

@@ -3,6 +3,27 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 missing widget appearances
+
+Validation date: 2026-09-07. Requested single-line appearances can now be
+created from widget geometry when no appearance stream is saved. Five focused
+PDFjs files were visually compared with the prior engine and PDFium output.
+`annotation-tx.pdf` now displays its field text, `bug2055455.pdf` restores its
+single-line digit, and the other three cases restore missing field borders or
+values. Empty fields retain declared styling without requiring text defaults.
+
+All five remain OK. Pixel error decreases in `issue12504.pdf`, `issue12750.pdf`,
+and `issue17540.pdf`, but increases in `annotation-tx.pdf` and `bug2055455.pdf`.
+Text placement and font shape remain different; the comb field in
+`bug2055455.pdf` remains unsupported. These are not accepted parity exceptions.
+
+Conformance retains 614 OK, 35 SKIP, zero failures, and 614 byte-identical PNGs.
+The full suites pass 2,915 engine and 338 app tests, including nine new cases
+for missing appearances, border styles, hidden widgets, and empty fields.
+The [record](records/missing-appearances-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-missing-appearances) retain the measurements.
+This is not a refreshed full-corpus or throughput result.
+
 ## KillerPDF 1.9.0 full PDFjs form appearance audit
 
 Validation date: 2026-09-07. All 979 inputs retain their paired SHA-256 identities

@@ -150,8 +150,15 @@ appearance geometry and artwork outside the text section remain in place.
 The generated stream is temporary; rendering does not edit the document.
 The corpus case `bug1883609.pdf` now displays Man, 150, and Red.
 
-This path requires an existing appearance with valid bounds and a balanced
-text section, and a simple font that can encode every displayed character.
+An existing appearance requires valid bounds and a balanced text section.
+When the appearance is absent, the renderer creates temporary geometry from
+the widget rectangle and quarter-turn rotation. It paints declared background
+colors and solid, dashed, or underline borders from appearance characteristics
+and border-style settings. New appearances respect invisible, hidden, and
+NoView widget flags. Empty fields can paint their border and background without
+a default text appearance.
+
+Nonempty text requires a simple font that can encode every displayed character.
 Field text is limited to 32,768 UTF-16 code units, default appearance data to
 65,536 bytes, and field inheritance to 256 dictionaries. Cancellation remains
 available during inheritance, font encoding, and instruction processing.
@@ -160,8 +167,10 @@ mode also retains the saved appearance when regeneration data is malformed;
 strict mode keeps validation failures.
 
 Multiline and comb fields, list-box layout, composite-font encoding, missing
-appearance geometry or text sections, and synthesized combo-box arrows remain
-work in progress. Successful rendering does not establish that every visible
+text sections in existing appearances, beveled and inset borders, legacy border
+array settings, and synthesized combo-box arrows remain work in progress.
+Regenerated text placement and fallback font metrics also need further corpus
+validation. Successful rendering does not establish that every visible
 field matches its value. Check diagnostics and compare reopened values with
 the rendered page before accepting or flattening a form.
 

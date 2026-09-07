@@ -10,6 +10,7 @@ public sealed partial class PdfPageRenderer
     private PdfStream? RequestedFieldAppearance(PdfDictionary widget, PdfStream? saved,
         PdfDictionary pageResources, ISet<string> diagnostics, CancellationToken cancellationToken)
     {
+        PdfStream? originalSaved = saved;
         if (!_tree.Catalog.TryGetValue(Name("AcroForm"), out PdfObject? formValue)
             || Resolve(formValue) is not PdfDictionary form
             || !form.TryGetValue(Name("NeedAppearances"), out PdfObject? needValue)
@@ -35,7 +36,14 @@ public sealed partial class PdfPageRenderer
         if ((flags & ((1L << 12) | (1L << 24))) != 0
             || (kind == "/Ch" && (flags & (1L << 17)) == 0))
             return Unsupported("multiline, comb, or list-box layout");
-        if (saved is null) return Unsupported("missing saved appearance geometry");
+        if (saved is null)
+        {
+            if (widget.TryGetValue(Name("F"), out PdfObject? visibility)
+                && Resolve(visibility) is PdfInteger annotationFlags
+                && (annotationFlags.Value & 35) != 0) return null;
+            saved = MissingFieldAppearance(widget);
+            if (saved is null) return Unsupported("missing or unsupported appearance geometry");
+        }
         if (Field("V") is not PdfString textValue) return saved;
         string text = PdfUnicodeEncoding.DecodeTextString(textValue.Bytes.Span, "A form field value");
         if (text.Length > 32768) return Unsupported("field text limit");
@@ -57,6 +65,11 @@ public sealed partial class PdfPageRenderer
         if (text.Length > 32768) return Unsupported("field text limit");
         if ((flags & (1L << 13)) != 0) text = new string('*', text.EnumerateRunes().Count());
         text = text.Replace('\r', ' ').Replace('\n', ' ');
+        if (text.Length == 0 && originalSaved is null)
+        {
+            diagnostics.Add("A requested empty form-field appearance was regenerated.");
+            return saved;
+        }
         PdfObject? defaultAppearance = Field("DA");
         if (defaultAppearance is null && form.TryGetValue(Name("DA"), out PdfObject? formAppearance))
             defaultAppearance = Resolve(formAppearance);
@@ -179,7 +192,100 @@ public sealed partial class PdfPageRenderer
         PdfStream? Unsupported(string reason)
         {
             diagnostics.Add($"Requested form-field appearance regeneration is not implemented for {reason}.");
-            return saved;
+            return originalSaved;
         }
+    }
+
+    private PdfStream? MissingFieldAppearance(PdfDictionary widget)
+    {
+        if (!widget.TryGetValue(Name("Rect"), out PdfObject? rectangleValue)) return null;
+        PdfArray rectangle = ResolveArray(rectangleValue, 4, "Widget rectangle");
+        double width = Number(Resolve(rectangle[2])) - Number(Resolve(rectangle[0]));
+        double height = Number(Resolve(rectangle[3])) - Number(Resolve(rectangle[1]));
+        if (width <= 0 || height <= 0) return null;
+        PdfDictionary? characteristics = widget.TryGetValue(Name("MK"), out PdfObject? mk)
+            ? Resolve(mk) as PdfDictionary : null;
+        long rotation = characteristics is not null
+            && characteristics.TryGetValue(Name("R"), out PdfObject? rotationValue)
+            && Resolve(rotationValue) is PdfInteger angle ? angle.Value % 360 : 0;
+        rotation = (rotation + 360) % 360;
+        if (rotation % 90 != 0) return null;
+        double fieldWidth = rotation is 90 or 270 ? height : width;
+        double fieldHeight = rotation is 90 or 270 ? width : height;
+        PdfReal R(double value) => new(value);
+        PdfArray A(params double[] values) => new(values.Select(value => (PdfObject)R(value)));
+        PdfContentInstruction I(string op, params PdfObject[] values) => new(op, 0, values);
+        var instructions = new List<PdfContentInstruction>();
+        PdfArray? ColorArray(string key) => characteristics is not null
+            && characteristics.TryGetValue(Name(key), out PdfObject? color)
+            ? Resolve(color) as PdfArray : null;
+        PdfContentInstruction? ColorInstruction(PdfArray? color, bool stroke)
+        {
+            if (color is null || color.Count == 0) return null;
+            string op = color.Count switch
+            {
+                1 => stroke ? "G" : "g",
+                3 => stroke ? "RG" : "rg",
+                4 => stroke ? "K" : "k",
+                _ => throw new FormatException("Widget appearance color is invalid.")
+            };
+            return new PdfContentInstruction(op, 0,
+                color.Select(value => (PdfObject)R(Number(Resolve(value)))));
+        }
+        if (ColorInstruction(ColorArray("BG"), false) is PdfContentInstruction background)
+        {
+            instructions.Add(I("q"));
+            instructions.Add(background);
+            instructions.Add(I("re", R(0), R(0), R(fieldWidth), R(fieldHeight)));
+            instructions.Add(I("f"));
+            instructions.Add(I("Q"));
+        }
+        if (ColorInstruction(ColorArray("BC"), true) is PdfContentInstruction borderColor)
+        {
+            PdfDictionary? border = widget.TryGetValue(Name("BS"), out PdfObject? bs)
+                ? Resolve(bs) as PdfDictionary : null;
+            double borderWidth = border is not null && border.TryGetValue(Name("W"), out PdfObject? bw)
+                ? Number(Resolve(bw)) : 1;
+            string style = border is null ? "S" : NameValue(border, "S") ?? "S";
+            if (borderWidth < 0 || style is not "S" and not "D" and not "U") return null;
+            if (borderWidth > 0)
+            {
+                instructions.Add(I("q"));
+                instructions.Add(borderColor);
+                instructions.Add(I("w", R(borderWidth)));
+                if (style == "D")
+                {
+                    PdfObject pattern = border is not null
+                        && border.TryGetValue(Name("D"), out PdfObject? dash) ? Resolve(dash) : A(3);
+                    instructions.Add(I("d", pattern, R(0)));
+                }
+                double inset = borderWidth / 2;
+                if (style == "U")
+                {
+                    instructions.Add(I("m", R(0), R(inset)));
+                    instructions.Add(I("l", R(fieldWidth), R(inset)));
+                }
+                else
+                    instructions.Add(I("re", R(inset), R(inset),
+                        R(Math.Max(0, fieldWidth - borderWidth)), R(Math.Max(0, fieldHeight - borderWidth))));
+                instructions.Add(I("S"));
+                instructions.Add(I("Q"));
+            }
+        }
+        instructions.Add(I("BMC", Name("Tx")));
+        instructions.Add(I("EMC"));
+        PdfArray matrix = rotation switch
+        {
+            90 => A(0, 1, -1, 0, width, 0),
+            180 => A(-1, 0, 0, -1, width, height),
+            270 => A(0, -1, 1, 0, 0, height),
+            _ => A(1, 0, 0, 1, 0, 0)
+        };
+        return new PdfStream(new PdfDictionary(new Dictionary<PdfName, PdfObject>
+        {
+            [Name("Subtype")] = Name("Form"),
+            [Name("BBox")] = A(0, 0, fieldWidth, fieldHeight),
+            [Name("Matrix")] = matrix
+        }), PdfContentStreamWriter.Write(instructions));
     }
 }
