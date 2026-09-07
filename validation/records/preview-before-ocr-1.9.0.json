@@ -1,0 +1,110 @@
+{
+  "date": "2026-09-07",
+  "productCommit": "9c33c30b84379642c3c7763df4e990b0079a1df3",
+  "appSha256": "9CA34E9810039C73119B626E2DA351AC2F10D8D6C4E4FCFC29539404B6D5957F",
+  "engineSha256": "ED7050288361889515E2B4A269E070F433DC2FF033F2BB6998727C0707098184",
+  "embeddedEngineVerified": true,
+  "tests": {
+    "engine": 3068,
+    "app": 338,
+    "session": "96061 terminal 0"
+  },
+  "settings": {
+    "inputs": 649,
+    "shared": 600,
+    "page": 1,
+    "maximumDimension": 1024,
+    "warmupsPerBuild": 1,
+    "measuredRunsPerBuild": 3
+  },
+  "runs": {
+    "baseline-1": {
+      "status": {
+        "OK": 600,
+        "SKIP": 41,
+        "FAIL": 8
+      },
+      "renderMilliseconds": 12770,
+      "sharedRenderMilliseconds": 12770,
+      "wallMilliseconds": 23746,
+      "peakWorkingSetBytes": 643977216
+    },
+    "baseline-2": {
+      "status": {
+        "OK": 600,
+        "SKIP": 41,
+        "FAIL": 8
+      },
+      "renderMilliseconds": 11783,
+      "sharedRenderMilliseconds": 11783,
+      "wallMilliseconds": 22194,
+      "peakWorkingSetBytes": 644677632
+    },
+    "baseline-3": {
+      "status": {
+        "OK": 600,
+        "SKIP": 41,
+        "FAIL": 8
+      },
+      "renderMilliseconds": 11777,
+      "sharedRenderMilliseconds": 11777,
+      "wallMilliseconds": 22241,
+      "peakWorkingSetBytes": 639127552
+    },
+    "engine-1": {
+      "status": {
+        "OK": 614,
+        "SKIP": 35,
+        "FAIL": 0
+      },
+      "renderMilliseconds": 13709,
+      "sharedRenderMilliseconds": 13647,
+      "wallMilliseconds": 27812,
+      "peakWorkingSetBytes": 770793472
+    },
+    "engine-2": {
+      "status": {
+        "OK": 614,
+        "SKIP": 35,
+        "FAIL": 0
+      },
+      "renderMilliseconds": 13789,
+      "sharedRenderMilliseconds": 13733,
+      "wallMilliseconds": 27711,
+      "peakWorkingSetBytes": 797356032
+    },
+    "engine-3": {
+      "status": {
+        "OK": 614,
+        "SKIP": 35,
+        "FAIL": 0
+      },
+      "renderMilliseconds": 13298,
+      "sharedRenderMilliseconds": 13240,
+      "wallMilliseconds": 27139,
+      "peakWorkingSetBytes": 770674688
+    }
+  },
+  "medians": {
+    "baseline": {
+      "renderMilliseconds": 11783,
+      "sharedRenderMilliseconds": 11783,
+      "wallMilliseconds": 22241,
+      "peakWorkingSetBytes": 643977216
+    },
+    "engine": {
+      "renderMilliseconds": 13709,
+      "sharedRenderMilliseconds": 13647,
+      "wallMilliseconds": 27711,
+      "peakWorkingSetBytes": 770793472
+    }
+  },
+  "allEnginePassPngsIdenticalToPrior": 614,
+  "limitations": [
+    "Page-one conformance workload only.",
+    "Whole-process wall time includes startup and image encoding; cold startup is not isolated.",
+    "Peak working set is sampled every 100 ms.",
+    "Interactive window smoke checks remain separate."
+  ],
+  "sharedRenderRatio": 1.158194008317067
+}

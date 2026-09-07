@@ -3,6 +3,38 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 testing preview
+
+Validation date: 2026-09-07. The corrected preview build passes all 3,068 engine
+and 338 app tests with a clean Release build. Three alternating measured passes
+follow one warmup per build, using the same 649 inputs, page one and 1024 pixels.
+
+| Measurement | PDFium 1.8.5 | Engine 1.9.0 |
+| --- | ---: | ---: |
+| Rendered / skipped / failed | 600 / 41 / 8 | 614 / 35 / 0 |
+| Median render time on 600 shared files | 11.707 s | 13.260 s |
+| Median whole-pass wall time | 22.241 s | 27.176 s |
+| Median sampled peak working set | 641.7 MB | 790.3 MB |
+
+The shared render ratio is 1.1327. All 614 engine PNGs match the prior recovery
+build in every pass. An earlier preview run measured 1.1582 before the OCR-only
+correction; both runs are retained. Their difference is not evidence that the OCR
+change accelerated rendering. Cold startup is not isolated from whole-pass wall
+time, and working set is sampled every 100 ms.
+
+The app smoke checks caught a native OCR confidence conversion failure, corrected
+in `a5e4c07`. The six command-line checks now pass: form resave, original and
+resaved rendering, raster flattening, OCR and output reopening. Form value and
+pixels remain identical, and PDFium extracts `Engine example` from the OCR output.
+Live-window scrolling, zooming and editing still require manual verification.
+This is an early testing milestone, not achievement of the performance target.
+
+See the [preview record](records/preview-1.9.0.json),
+[earlier run](records/preview-before-ocr-1.9.0.json),
+[raw logs](benchmarks/1.9.0-preview-ocr-fixed),
+[OCR regression record](records/ocr-fallback-confidence-1.9.0.json), and
+[testing guide](ENGINE-PREVIEW.md).
+
 ## KillerPDF 1.9.0 Type3 glyph filter isolation
 
 Validation date: 2026-09-07. Recovery isolates undecodable Type3 glyphs while
