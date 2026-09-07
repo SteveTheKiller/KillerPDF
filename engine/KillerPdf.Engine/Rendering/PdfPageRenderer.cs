@@ -3476,6 +3476,33 @@ public sealed partial class PdfPageRenderer
                 decodeEnd = Number(Resolve(decode[1]));
             }
             uint maximum = (1u << bits) - 1;
+            if (bits == 8 && decodeStart == 0 && decodeEnd == 1)
+                return new DecodedImage(packed, width, height);
+            if (bits <= 8)
+            {
+                var lookup = new byte[1 << bits];
+                for (int value = 0; value < lookup.Length; value++)
+                    lookup[value] = (byte)Math.Round(Math.Clamp(decodeStart + value / (double)maximum
+                        * (decodeEnd - decodeStart), 0, 1) * 255);
+                var mapped = new byte[checked(width * height)];
+                if (bits == 8)
+                {
+                    for (int index = 0; index < mapped.Length; index++) mapped[index] = lookup[packed[index]];
+                    return new DecodedImage(mapped, width, height);
+                }
+                int perByte = 8 / bits;
+                int mask = (1 << bits) - 1;
+                for (int y = 0; y < height; y++)
+                {
+                    int rowOffset = y * rowBytes;
+                    for (int x = 0; x < width; x++)
+                    {
+                        int shift = 8 - bits * (x % perByte + 1);
+                        mapped[y * width + x] = lookup[(packed[rowOffset + x / perByte] >> shift) & mask];
+                    }
+                }
+                return new DecodedImage(mapped, width, height);
+            }
             var samples = new byte[checked(width * height)];
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++)
@@ -3614,83 +3641,220 @@ public sealed partial class PdfPageRenderer
             }
             return;
         }
-        var componentValues = new double[components];
-        for (int y = top; y < bottom; y++)
+        int destinationWidth = right - left, destinationHeight = bottom - top;
+        if (destinationWidth <= 0 || destinationHeight <= 0) return;
+
+        // Convert the image once into a device-ready BGRA plane at no more than about the
+        // destination resolution, so color conversion runs per source sample instead of per
+        // painted pixel, then paint by nearest lookup.
+        int factor = Math.Max(1, (int)Math.Floor(Math.Min(
+            sourceWidth / (double)destinationWidth, sourceHeight / (double)destinationHeight)));
+        while ((long)((sourceWidth + factor - 1) / factor) * ((sourceHeight + factor - 1) / factor)
+            > 4_000_000L) factor++;
+        int planeWidth = (sourceWidth + factor - 1) / factor;
+        int planeHeight = (sourceHeight + factor - 1) / factor;
+        byte[] plane = ArrayPool<byte>.Shared.Rent(checked(planeWidth * planeHeight * 4));
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            for (int x = left; x < right; x++)
+            var converter = new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
+                bits, decode, colorSpace);
+            byte stencilAlphaByte = (byte)Math.Round(Math.Clamp(stencilAlpha, 0, 1) * 255);
+            for (int py = 0; py < planeHeight; py++)
             {
-                Point unit = inverse.Apply((x + 0.5) / scaleX,
-                    (targetHeight - y - 0.5) / scaleY);
-                if (unit.X < 0 || unit.X >= 1 || unit.Y < 0 || unit.Y >= 1) continue;
-                double clipAlpha = ClipAlpha(clips, x, y);
-                if (clipAlpha <= 0) continue;
-                int sx = Math.Clamp((int)(unit.X * sourceWidth), 0, sourceWidth - 1);
-                int sy = Math.Clamp((int)((1 - unit.Y) * sourceHeight), 0, sourceHeight - 1);
-                sy = Math.Min(sy, sourceHeight - 1);
-                Color color;
-                double alpha = clipAlpha;
-                if (imageMask)
+                cancellationToken.ThrowIfCancellationRequested();
+                int sy = Math.Min(py * factor, sourceHeight - 1);
+                for (int px = 0; px < planeWidth; px++)
                 {
-                    int bit = sx;
-                    bool one = (samples[sy * rowBytes + bit / 8] & (0x80 >> (bit & 7))) != 0;
-                    if (one != stencilPaintsOne) continue;
-                    color = stencilColor;
-                    alpha = stencilAlpha * clipAlpha;
-                }
-                else
-                {
-                    color = colorSpace.Palette is not null
-                        ? colorSpace.Palette[Math.Min(RawSample(0), colorSpace.Palette.Length - 1)]
-                        : ConvertSamples();
-                    if (colorKeyMask is not null)
+                    int sx = Math.Min(px * factor, sourceWidth - 1);
+                    int offset = (py * planeWidth + px) * 4;
+                    Color color;
+                    int alpha = 255;
+                    if (imageMask)
                     {
-                        bool matches = true;
-                        for (int component = 0; component < components && matches; component++)
+                        bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
+                        if (one != stencilPaintsOne)
                         {
-                            int sample = RawSample(component);
-                            matches = sample >= colorKeyMask[component * 2]
-                                && sample <= colorKeyMask[component * 2 + 1];
+                            plane[offset + 3] = 0;
+                            continue;
                         }
-                        if (matches) alpha = 0;
+                        color = stencilColor;
+                        alpha = stencilAlphaByte;
                     }
-
-                    double SampleValue(int component)
+                    else
                     {
-                        int sample = RawSample(component);
-                        double normalized = sample / (double)((1 << bits) - 1);
-                        return decode[component * 2] + normalized
-                            * (decode[component * 2 + 1] - decode[component * 2]);
+                        color = converter.Convert(sx, sy);
+                        if (colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask))
+                            alpha = 0;
                     }
-
-                    int RawSample(int component)
+                    if (softMask is not null && alpha != 0)
                     {
-                        int bitOffset = checked(sy * rowBytes * 8
-                            + (sx * components + component) * bits);
-                        return checked((int)ReadPackedSample(samples, bitOffset, bits));
+                        int maskX = Math.Min((int)((long)sx * softMask.Width / sourceWidth),
+                            softMask.Width - 1);
+                        int maskY = Math.Min((int)((long)sy * softMask.Height / sourceHeight),
+                            softMask.Height - 1);
+                        byte maskSample = softMask.Samples[maskY * softMask.Width + maskX];
+                        if (preblendMatte.HasValue)
+                            color = UndoPreblend(color, preblendMatte.Value, maskSample);
+                        alpha = (alpha * maskSample + 127) / 255;
                     }
-
-                    Color ConvertSamples()
-                    {
-                        for (int component = 0; component < components; component++)
-                            componentValues[component] = SampleValue(component);
-                        return colorSpace.Convert(componentValues);
-                    }
+                    plane[offset] = color.Blue;
+                    plane[offset + 1] = color.Green;
+                    plane[offset + 2] = color.Red;
+                    plane[offset + 3] = (byte)alpha;
                 }
-                if (softMask is not null)
-                {
-                    int maskX = Math.Min((int)((long)sx * softMask.Width / sourceWidth),
-                        softMask.Width - 1);
-                    int maskY = Math.Min((int)((long)sy * softMask.Height / sourceHeight),
-                        softMask.Height - 1);
-                    byte maskSample = softMask.Samples[maskY * softMask.Width + maskX];
-                    if (preblendMatte.HasValue)
-                        color = UndoPreblend(color, preblendMatte.Value, maskSample);
-                    alpha *= maskSample / 255d;
-                }
-                SetPixel(target, targetWidth, x, y, color, alpha, blendMode,
-                    graphicsSoftMask, knockout);
             }
+
+            bool direct = clips.Count == 0 && graphicsSoftMask is null && knockout is null
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+            double pageStepX = 1 / scaleX;
+            double unitStepX = inverse.A * pageStepX;
+            double unitStepY = inverse.B * pageStepX;
+            for (int y = top; y < bottom; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                Point first = inverse.Apply((left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
+                double unitX = first.X, unitY = first.Y;
+                for (int x = left; x < right; x++, unitX += unitStepX, unitY += unitStepY)
+                {
+                    if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
+                    int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
+                    int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
+                    int planeOffset = (py * planeWidth + px) * 4;
+                    int alpha = plane[planeOffset + 3];
+                    if (alpha == 0) continue;
+                    if (direct && alpha == 255)
+                    {
+                        int targetOffset = (y * targetWidth + x) * 4;
+                        target[targetOffset] = plane[planeOffset];
+                        target[targetOffset + 1] = plane[planeOffset + 1];
+                        target[targetOffset + 2] = plane[planeOffset + 2];
+                        target[targetOffset + 3] = 255;
+                        continue;
+                    }
+                    double clipAlpha = ClipAlpha(clips, x, y);
+                    if (clipAlpha <= 0) continue;
+                    SetPixel(target, targetWidth, x, y,
+                        new Color(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]),
+                        alpha / 255d * clipAlpha, blendMode, graphicsSoftMask, knockout);
+                }
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(plane);
+        }
+    }
+
+    /// <summary>Reads packed image samples and converts them to device colors with a small cache.</summary>
+    private sealed class ImageSampleConverter
+    {
+        private const int CacheSize = 4096;
+        private readonly byte[] _samples;
+        private readonly int _rowBytes;
+        private readonly int _components;
+        private readonly int _bits;
+        private readonly double[] _decode;
+        private readonly ImageColorSpace _colorSpace;
+        private readonly double[] _values;
+        private readonly Color[]? _lookup;
+        private readonly bool[]? _lookupSet;
+        private readonly uint[]? _cacheKeys;
+        private readonly Color[]? _cacheValues;
+        private readonly bool[]? _cacheValid;
+        private readonly int _maximum;
+
+        internal ImageSampleConverter(byte[] samples, int sourceWidth, int rowBytes,
+            int components, int bits, double[] decode, ImageColorSpace colorSpace)
+        {
+            _samples = samples;
+            _rowBytes = rowBytes;
+            _components = components;
+            _bits = bits;
+            _decode = decode;
+            _colorSpace = colorSpace;
+            _values = new double[components];
+            _maximum = bits >= 31 ? int.MaxValue : (1 << bits) - 1;
+            if (components == 1 && bits <= 8)
+            {
+                _lookup = new Color[1 << bits];
+                _lookupSet = new bool[1 << bits];
+            }
+            else if (bits <= 8 && components <= 4)
+            {
+                _cacheKeys = new uint[CacheSize];
+                _cacheValues = new Color[CacheSize];
+                _cacheValid = new bool[CacheSize];
+            }
+        }
+
+        internal int Raw(int x, int y, int component)
+        {
+            if (_bits == 8) return _samples[y * _rowBytes + x * _components + component];
+            long bitOffset = (long)y * _rowBytes * 8 + ((long)x * _components + component) * _bits;
+            return checked((int)ReadPackedSample(_samples, checked((int)bitOffset), _bits));
+        }
+
+        internal bool MatchesColorKey(int x, int y, int[] colorKeyMask)
+        {
+            for (int component = 0; component < _components; component++)
+            {
+                int sample = Raw(x, y, component);
+                if (sample < colorKeyMask[component * 2] || sample > colorKeyMask[component * 2 + 1])
+                    return false;
+            }
+            return true;
+        }
+
+        internal Color Convert(int x, int y)
+        {
+            if (_lookup is not null)
+            {
+                int sample = Math.Min(Raw(x, y, 0), _lookup.Length - 1);
+                if (!_lookupSet![sample])
+                {
+                    _lookup[sample] = ConvertRaw(sample, 0, 0, 0);
+                    _lookupSet[sample] = true;
+                }
+                return _lookup[sample];
+            }
+            if (_cacheKeys is not null)
+            {
+                uint key = 0;
+                for (int component = 0; component < _components; component++)
+                    key = (key << 8) | (uint)Raw(x, y, component);
+                int slot = (int)((key * 2654435761u) >> 20) & (CacheSize - 1);
+                if (_cacheValid![slot] && _cacheKeys[slot] == key) return _cacheValues![slot];
+                Color color = ConvertRaw((int)(key >> (8 * (_components - 1))) & 255,
+                    _components > 1 ? (int)(key >> (8 * (_components - 2))) & 255 : 0,
+                    _components > 2 ? (int)(key >> (8 * (_components - 3))) & 255 : 0,
+                    _components > 3 ? (int)key & 255 : 0);
+                _cacheKeys[slot] = key;
+                _cacheValues![slot] = color;
+                _cacheValid[slot] = true;
+                return color;
+            }
+            if (_colorSpace.Palette is not null)
+                return _colorSpace.Palette[Math.Min(Raw(x, y, 0), _colorSpace.Palette.Length - 1)];
+            for (int component = 0; component < _components; component++)
+                _values[component] = Decode(component, Raw(x, y, component));
+            return _colorSpace.Convert(_values);
+        }
+
+        private Color ConvertRaw(int first, int second, int third, int fourth)
+        {
+            if (_colorSpace.Palette is not null)
+                return _colorSpace.Palette[Math.Min(first, _colorSpace.Palette.Length - 1)];
+            ReadOnlySpan<int> raw = [first, second, third, fourth];
+            for (int component = 0; component < _components; component++)
+                _values[component] = Decode(component, raw[component]);
+            return _colorSpace.Convert(_values);
+        }
+
+        private double Decode(int component, int sample)
+        {
+            double normalized = sample / (double)_maximum;
+            return _decode[component * 2] + normalized
+                * (_decode[component * 2 + 1] - _decode[component * 2]);
         }
     }
 
