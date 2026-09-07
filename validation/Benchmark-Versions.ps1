@@ -162,4 +162,83 @@ $summary | Export-Csv -LiteralPath $summaryPath -NoTypeInformation
 
 Write-Host "Results: $resultsPath"
 Write-Host "Summary: $summaryPath"
-$summary | Format-Table -AutoSize
+Write-Host ($summary | Format-Table -AutoSize | Out-String)
+
+# Per-file comparison (Render mode only: the resave log carries no timing).
+# For every file, take the median per-run milliseconds of each build over the
+# measured runs, then rank by the candidate's added time so the worst offenders
+# surface without a full-corpus profile. Open time is included when the build
+# logs an OpenMilliseconds column; older builds without it report render time only.
+if ($Mode -eq 'Render') {
+    $perFile = @{}
+    foreach ($result in $results) {
+        if (-not $result.Measured) { continue }
+        $runLog = Join-Path $resolvedOutput "$($result.Run).csv"
+        if (-not (Test-Path -LiteralPath $runLog)) { continue }
+        $hasOpen = $false
+        $rows = Import-Csv -LiteralPath $runLog
+        if ($rows.Count -gt 0) {
+            $hasOpen = $null -ne ($rows[0].PSObject.Properties['OpenMilliseconds'])
+        }
+        $byFile = @{}
+        foreach ($row in $rows) {
+            $ms = [double]$row.Milliseconds
+            if ($hasOpen -and $row.OpenMilliseconds -ne '') { $ms += [double]$row.OpenMilliseconds }
+            if (-not $byFile.ContainsKey($row.File)) {
+                $byFile[$row.File] = @{ Ms = 0.0; Status = $row.Status }
+            }
+            $byFile[$row.File].Ms += $ms
+            if ($row.Status -ne 'OK') { $byFile[$row.File].Status = $row.Status }
+        }
+        foreach ($file in $byFile.Keys) {
+            if (-not $perFile.ContainsKey($file)) { $perFile[$file] = @{} }
+            if (-not $perFile[$file].ContainsKey($result.Version)) {
+                $perFile[$file][$result.Version] = @{ Times = [System.Collections.Generic.List[double]]::new(); Status = $byFile[$file].Status }
+            }
+            $perFile[$file][$result.Version].Times.Add($byFile[$file].Ms)
+        }
+    }
+
+    function Get-Median([System.Collections.Generic.List[double]] $values) {
+        if ($values.Count -eq 0) { return $null }
+        $sorted = @($values | Sort-Object)
+        return $sorted[[math]::Floor($sorted.Count / 2)]
+    }
+
+    $comparison = foreach ($file in $perFile.Keys) {
+        $baseline = $perFile[$file][$BaselineLabel]
+        $candidate = $perFile[$file][$CandidateLabel]
+        $baselineMs = if ($baseline) { Get-Median $baseline.Times } else { $null }
+        $candidateMs = if ($candidate) { Get-Median $candidate.Times } else { $null }
+        $delta = if ($null -ne $baselineMs -and $null -ne $candidateMs) { $candidateMs - $baselineMs } else { $null }
+        $ratio = if ($null -ne $delta -and $baselineMs -gt 0) { [math]::Round($candidateMs / $baselineMs, 3) } else { $null }
+        [pscustomobject]@{
+            File = $file
+            BaselineStatus = if ($baseline) { $baseline.Status } else { 'MISSING' }
+            CandidateStatus = if ($candidate) { $candidate.Status } else { 'MISSING' }
+            BaselineMedianMs = $baselineMs
+            CandidateMedianMs = $candidateMs
+            DeltaMs = $delta
+            Ratio = $ratio
+        }
+    }
+
+    $comparisonPath = Join-Path $resolvedOutput 'per-file-comparison.csv'
+    $comparison | Sort-Object { if ($null -eq $_.DeltaMs) { [double]::MinValue } else { $_.DeltaMs } } -Descending |
+        Export-Csv -LiteralPath $comparisonPath -NoTypeInformation
+    Write-Host "Per-file comparison: $comparisonPath"
+
+    $shared = @($comparison | Where-Object { $_.BaselineStatus -eq 'OK' -and $_.CandidateStatus -eq 'OK' })
+    if ($shared.Count -gt 0) {
+        $sharedBaseline = ($shared | Measure-Object BaselineMedianMs -Sum).Sum
+        $sharedCandidate = ($shared | Measure-Object CandidateMedianMs -Sum).Sum
+        Write-Host ("Shared OK files: {0}, baseline {1:N0} ms, candidate {2:N0} ms, ratio {3:N4}" -f `
+            $shared.Count, $sharedBaseline, $sharedCandidate, ($sharedCandidate / $sharedBaseline))
+        Write-Host 'Worst 20 by added milliseconds:'
+        Write-Host ($shared | Sort-Object DeltaMs -Descending | Select-Object -First 20 |
+            Format-Table File, BaselineMedianMs, CandidateMedianMs, DeltaMs, Ratio -AutoSize | Out-String)
+        Write-Host 'Best 10 by saved milliseconds:'
+        Write-Host ($shared | Sort-Object DeltaMs | Select-Object -First 10 |
+            Format-Table File, BaselineMedianMs, CandidateMedianMs, DeltaMs, Ratio -AutoSize | Out-String)
+    }
+}

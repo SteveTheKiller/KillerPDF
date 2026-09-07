@@ -110,7 +110,7 @@ namespace KillerPDF.Features
 
             string outRoot = Path.GetFullPath(output).TrimEnd('\\', '/');
             Directory.CreateDirectory(outRoot);
-            var log = new List<string> { "File,Page,Status,Milliseconds,Width,Height,Detail" };
+            var log = new List<string> { "File,Page,Status,Milliseconds,Width,Height,Detail,OpenMilliseconds" };
             int ok = 0, skip = 0, fail = 0;
             long totalMs = 0;
             var total = Stopwatch.StartNew();
@@ -133,7 +133,8 @@ namespace KillerPDF.Features
                     log.Add(string.Join(",", Csv(rel), (row.Page + 1).ToString(CultureInfo.InvariantCulture),
                         row.Status, row.Milliseconds.ToString(CultureInfo.InvariantCulture),
                         row.Width.ToString(CultureInfo.InvariantCulture),
-                        row.Height.ToString(CultureInfo.InvariantCulture), Csv(row.Detail)));
+                        row.Height.ToString(CultureInfo.InvariantCulture), Csv(row.Detail),
+                        row.OpenMilliseconds.ToString(CultureInfo.InvariantCulture)));
                 }
             }
 
@@ -159,6 +160,7 @@ namespace KillerPDF.Features
             public int Page;
             public string Status;
             public long Milliseconds;
+            public long OpenMilliseconds;
             public int Width;
             public int Height;
             public string Detail;
@@ -180,22 +182,28 @@ namespace KillerPDF.Features
             catch (Exception ex)
             {
                 rows.Add(new RenderRow { Page = 0, Status = "SKIP", Milliseconds = open.ElapsedMilliseconds,
+                    OpenMilliseconds = open.ElapsedMilliseconds,
                     Detail = "open failed: " + BatchRunner.FlattenBatchDetail(ex.Message) });
                 return rows;
             }
+
+            open.Stop();
+            long openMs = open.ElapsedMilliseconds;
 
             using (session)
             {
                 if (pageCount <= 0)
                 {
-                    rows.Add(new RenderRow { Page = 0, Status = "SKIP", Milliseconds = open.ElapsedMilliseconds,
-                        Detail = "no pages" });
+                    rows.Add(new RenderRow { Page = 0, Status = "SKIP", Milliseconds = openMs,
+                        OpenMilliseconds = openMs, Detail = "no pages" });
                     return rows;
                 }
                 int last = Math.Min(pageCount, pageLimit);
                 for (int idx = 0; idx < last; idx++)
                 {
-                    var row = new RenderRow { Page = idx, Status = "OK", Detail = string.Empty };
+                    // Open time is attributed to the first page so a per-file sum stays exact.
+                    var row = new RenderRow { Page = idx, Status = "OK", Detail = string.Empty,
+                        OpenMilliseconds = idx == 0 ? openMs : 0 };
                     var sw = Stopwatch.StartNew();
                     try
                     {
