@@ -3,6 +3,39 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 JPEG 2000 tile correction
+
+Benchmark date: 2026-09-06. The same 649 conformance PDFs were rendered at page 1
+fitted inside 1024 pixels with annotations and forms enabled. One warmup preceded
+three measured passes per build, alternating build order and retaining PNGs.
+
+| Build | Rendered | Skipped | Failed | Median render seconds | Median wall seconds |
+|---|---:|---:|---:|---:|---:|
+| 1.8.5 PDFium | 600 | 41 | 8 | 12.516 | 23.438 |
+| 1.9.0 engine | 614 | 35 | 0 | 15.870 | 30.385 |
+
+All 600 PDFium successes remain included, plus 14 engine-only successes. On the
+shared files, engine median render time is 15.814 seconds, a 1.26 ratio to PDFium.
+Twenty-nine engine pages retain diagnostics. Wall time includes startup, opening,
+rendering, PNG encoding, and exit; this is not a packaged cold-start measurement.
+
+The previously corrupt balloon_a1b_jp2k page now shows the complete image. Three
+isolated engine processes produced identical PNGs. Its measured render medians are
+478 ms for the engine and 167 ms for PDFium. Its fitted width and resampling still
+differ from PDFium, so this does not establish pixel parity. The other 613 conformance
+PNGs are byte-identical to the preceding graphics-state font build.
+
+The decoder now owns resolution-aware tile geometry and initialized wavelet storage.
+The existing CoreJ2K dependency still handles codestream decoding and component
+transforms. Five new tests cover reduced gray/RGB tiles, partial edges, exact 16-bit
+samples, and repeated lossy decoding against OpenJPEG 2.5.4 references. Lossy samples
+differ by at most one level; 16-bit samples match exactly. All 2,665 engine and 338 app
+tests pass, and the Release build has no warnings or errors.
+
+Per-page CSVs are in [benchmarks/1.9.0-jpeg2000](benchmarks/1.9.0-jpeg2000).
+Build identities, individual pass totals, and the repeated image hash are in
+[jpeg2000-1.9.0.json](../pdf-landing/jpeg2000-1.9.0.json). Earlier results remain below.
+
 ## KillerPDF 1.9.0 graphics-state font rendering
 
 On 2026-09-06, NegativeFontSize.pdf was rendered before and after the graphics-state
@@ -20,8 +53,8 @@ also remains. This is a content fix, not a claim of pixel parity.
 
 The PNG comparison also exposed variable corrupt tiles in balloon_a1b_jp2k.pdf,
 including before this font change and on an isolated repeat. It reports no diagnostic
-and remains an open visual-correctness problem. All other PNGs except NegativeFontSize
-were byte-identical between the before/after conformance passes.
+and was an open visual-correctness problem at this checkpoint, corrected in the
+JPEG 2000 increment above. The other 612 PNGs were byte-identical between these passes.
 
 See [font-rendering-1.9.0.json](../pdf-landing/font-rendering-1.9.0.json) for identities
 and [the coverage log](benchmarks/1.9.0-gs-font/engine.csv) for every outcome.

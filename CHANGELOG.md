@@ -40,7 +40,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
-- Restored missing page text selected through graphics-state font settings.
+- Restored missing page text from graphics-state fonts and missing or corrupt JPEG 2000 image tiles.
 - Restored title-bar controls, including the close button and logo zoom control.
 - Registered the PDF handler as KillerPDF instead of the internal KillerPDF.App executable name.
 - Ignored invalid engine OCR models and kept the Tesseract migration fallback available.

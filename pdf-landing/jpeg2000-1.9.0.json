@@ -1,0 +1,25 @@
+{
+  "version": "1.9.0",
+  "baseline": "1.8.5",
+  "date": "2026-09-06",
+  "files": 649,
+  "page": 1,
+  "size": 1024,
+  "warmupsPerBuild": 1,
+  "engineAppDllSHA256": "20F147405F0C251F5B499FC6AC8940F0953880600562F7FAE109F8B29BF31370",
+  "baselineAppDllSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "commonFiles": 600,
+  "engineOnly": 14,
+  "pdfiumOnly": 0,
+  "engineDiagnosticPages": 29,
+  "engineCounts": { "rendered": 614, "skipped": 35, "failed": 0 },
+  "baselineCounts": { "rendered": 600, "skipped": 41, "failed": 8 },
+  "balloonRepeatedImageSHA256": "724E89C06FAA9F3874AC0D3998587A397F5E21FCBDB89C325B9733571839402C",
+  "balloonIsolatedProcesses": 3,
+  "tests": { "engine": 2665, "app": 338, "new": 5 },
+  "runs": [
+    { "run": 1, "engineWallSeconds": 30.2178389, "baselineWallSeconds": 23.2505167, "engineRenderMs": 15726, "baselineRenderMs": 12312, "engineCommonMs": 15674, "baselineCommonMs": 12312, "engineBalloonMs": 480, "baselineBalloonMs": 148 },
+    { "run": 2, "engineWallSeconds": 30.3850962, "baselineWallSeconds": 23.6326994, "engineRenderMs": 15870, "baselineRenderMs": 12584, "engineCommonMs": 15814, "baselineCommonMs": 12584, "engineBalloonMs": 478, "baselineBalloonMs": 167 },
+    { "run": 3, "engineWallSeconds": 30.5516229, "baselineWallSeconds": 23.4378014, "engineRenderMs": 16024, "baselineRenderMs": 12516, "engineCommonMs": 15970, "baselineCommonMs": 12516, "engineBalloonMs": 466, "baselineBalloonMs": 173 }
+  ]
+}

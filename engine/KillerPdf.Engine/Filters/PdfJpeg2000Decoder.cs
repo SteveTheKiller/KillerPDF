@@ -1,20 +1,11 @@
-using CoreJ2K;
-using CoreJ2K.Configuration;
-using CoreJ2K.Util;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.Runtime.InteropServices;
 
 namespace KillerPdf.Engine.Filters;
 
-internal static class PdfJpeg2000Decoder
+internal static partial class PdfJpeg2000Decoder
 {
     private const long MaximumTemporarySampleBytes = 256L * 1024 * 1024;
-
-    static PdfJpeg2000Decoder()
-    {
-        ImageFactory.Register(new Jpeg2000FastImageCreator());
-    }
 
     internal static byte[] Decode(ReadOnlyMemory<byte> source, int maximumDecodedBytes)
         => DecodeImage(source, maximumDecodedBytes, -1).Samples;
@@ -25,94 +16,18 @@ internal static class PdfJpeg2000Decoder
         try
         {
             Jpeg2000Shape shape = ReadShape(source.Span);
-            (int expectedWidth, int expectedHeight, int expectedComponents, int expectedBits) =
-                (shape.Width, shape.Height, shape.Components, shape.Bits);
             if (resolutionLevel < -1 || resolutionLevel >= shape.ResolutionLevels)
                 throw new PdfFilterException("JPEG 2000 resolution level is invalid.");
             int selectedLevel = resolutionLevel < 0
                 ? shape.ResolutionLevels - 1 : resolutionLevel;
             int reduction = shape.ResolutionLevels - 1 - selectedLevel;
-            int decodedWidth = ReducedDimension(shape.XSize, shape.XOrigin, reduction);
-            int decodedHeight = ReducedDimension(shape.YSize, shape.YOrigin, reduction);
-            int expectedRowBytes = checked(
-                (decodedWidth * expectedComponents * expectedBits + 7) / 8);
-            int expectedLength = checked(expectedRowBytes * decodedHeight);
-            if (expectedLength > maximumDecodedBytes)
-                throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
-            var configuration = new J2KDecoderConfiguration
-            {
-                UseColorSpace = false,
-                Verbose = false,
-                ResolutionLevel = resolutionLevel
-            };
-
-            if (expectedBits == 8)
-                return DecodeEightBit(source, configuration, decodedWidth, decodedHeight,
-                    expectedComponents, maximumDecodedBytes);
-
-            long temporaryBytes = checked(
-                (long)decodedWidth * decodedHeight * expectedComponents * sizeof(int));
-            if (temporaryBytes > MaximumTemporarySampleBytes)
-                throw new PdfFilterException("JPEG 2000 temporary samples exceed the configured safety limit.");
-
-            using InterleavedImage image = J2kImage.FromBytes(source, configuration);
-            int components = image.NumberOfComponents;
-            if (image.Width != decodedWidth || image.Height != decodedHeight
-                || components != expectedComponents)
-                throw new PdfFilterException("JPEG 2000 decoded dimensions do not match its codestream header.");
-            if (image.BitDepths.Count != components || image.BitDepths.Any(bits => bits is < 1 or > 16)
-                || image.BitDepths.Any(bits => bits != image.BitDepths[0]))
-                throw new PdfFilterException("JPEG 2000 components must use one supported sample depth.");
-
-            int bits = image.BitDepths[0];
-            int rowBytes = checked((image.Width * components * bits + 7) / 8);
-            int length = checked(rowBytes * image.Height);
+            int width = ReducedDimension(shape.XSize, shape.XOrigin, reduction);
+            int height = ReducedDimension(shape.YSize, shape.YOrigin, reduction);
+            int rowBytes = checked((width * shape.Components * shape.Bits + 7) / 8);
+            int length = checked(rowBytes * height);
             if (length > maximumDecodedBytes)
                 throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
-
-            if (bits == 8)
-            {
-                var bytes = new byte[length];
-                byte[] component = ArrayPool<byte>.Shared.Rent(
-                    checked(image.Width * image.Height));
-                try
-                {
-                    Span<byte> samples = component.AsSpan(0, image.Width * image.Height);
-                    for (int channel = 0; channel < components; channel++)
-                    {
-                        image.ToComponentBytes(channel, samples);
-                        for (int index = 0; index < samples.Length; index++)
-                            bytes[index * components + channel] = samples[index];
-                    }
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(component);
-                }
-                return new Jpeg2000DecodedImage(
-                    bytes, image.Width, image.Height, components, bits);
-            }
-
-            int[] values = image.GetDataCopy();
-            var packed = new byte[length];
-            int maximum = (1 << bits) - 1;
-            int samplesPerRow = image.Width * components;
-            for (int row = 0; row < image.Height; row++)
-            {
-                int bitOffset = row * rowBytes * 8;
-                int valueOffset = row * samplesPerRow;
-                for (int sample = 0; sample < samplesPerRow; sample++)
-                {
-                    int value = values[valueOffset + sample];
-                    if ((uint)value > maximum)
-                        throw new PdfFilterException("JPEG 2000 data contains an out-of-range sample.");
-                    for (int bit = bits - 1; bit >= 0; bit--, bitOffset++)
-                        if ((value & (1 << bit)) != 0)
-                            packed[bitOffset / 8] |= (byte)(1 << (7 - bitOffset % 8));
-                }
-            }
-            return new Jpeg2000DecodedImage(
-                packed, image.Width, image.Height, components, bits);
+            return DecodePixels(source, shape, resolutionLevel, width, height, rowBytes, length);
         }
         catch (PdfFilterException)
         {
@@ -122,28 +37,6 @@ internal static class PdfJpeg2000Decoder
         {
             throw new PdfFilterException("JPEG 2000 data is malformed or unsupported.", ex);
         }
-    }
-
-    private static Jpeg2000DecodedImage DecodeEightBit(
-        ReadOnlyMemory<byte> source,
-        J2KDecoderConfiguration configuration,
-        int expectedWidth,
-        int expectedHeight,
-        int expectedComponents,
-        int maximumDecodedBytes)
-    {
-        using MemoryStream input = CreateReadStream(source);
-        Jpeg2000FastImage image = J2kImage.DecodeToImage<Jpeg2000FastImage>(
-            input, configuration.ToParameterList());
-        if (image.Width != expectedWidth || image.Height != expectedHeight
-            || image.Components != expectedComponents)
-        {
-            throw new PdfFilterException("JPEG 2000 decoded dimensions do not match its codestream header.");
-        }
-        if (image.Samples.Length > maximumDecodedBytes)
-            throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
-        return new Jpeg2000DecodedImage(
-            image.Samples, image.Width, image.Height, image.Components, 8);
     }
 
     private static MemoryStream CreateReadStream(ReadOnlyMemory<byte> source)
@@ -253,27 +146,6 @@ internal static class PdfJpeg2000Decoder
         throw new PdfFilterException("JPEG 2000 data has no codestream box.");
     }
 
-    private sealed class Jpeg2000FastImage(int width, int height, int components, byte[] samples)
-        : IImage
-    {
-        internal int Width { get; } = width;
-        internal int Height { get; } = height;
-        internal int Components { get; } = components;
-        internal byte[] Samples { get; } = samples;
-
-        public T As<T>() => (T)(object)this;
-    }
-
-    private sealed class Jpeg2000FastImageCreator : IImageCreator
-    {
-        public Type ImageType => typeof(Jpeg2000FastImage);
-
-        public IImage Create(int width, int height, int numComponents, byte[] bytes) =>
-            new Jpeg2000FastImage(width, height, numComponents, bytes);
-
-        public CoreJ2K.j2k.image.BlkImgDataSrc ToPortableImageSource(object imageObject) =>
-            throw new NotSupportedException("JPEG 2000 decoding does not expose an encoder image source.");
-    }
 }
 
 internal readonly record struct Jpeg2000Shape(
