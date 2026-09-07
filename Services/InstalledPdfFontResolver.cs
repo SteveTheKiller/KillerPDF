@@ -41,6 +41,8 @@ internal sealed class InstalledPdfFontResolver : IPdfFontResolver
     {
         string name = NormalizeFamily(request.PostScriptName);
         if (name.Length > 0) yield return name;
+        if (name.Equals("Courier", StringComparison.OrdinalIgnoreCase))
+            yield return "Courier New";
         if (Contains(name, "emoji") && !name.Equals("Segoe UI Emoji", StringComparison.OrdinalIgnoreCase))
             yield return "Segoe UI Emoji";
 

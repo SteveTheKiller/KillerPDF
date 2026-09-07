@@ -42,6 +42,11 @@ outlines with the page's text paint settings; this does not enable color-font
 layer rendering. Library hosts must provide their own resolver for installed
 fonts. Missing fonts or glyphs can still produce outline diagnostics.
 
+For unembedded Courier faces, the Windows app tries the requested family first,
+then installed Courier New with the requested regular, bold, italic, or bold-italic
+style. If neither is installed, the engine retains its bundled fallback. This
+host mapping does not change library-only rendering or embedded font outlines.
+
 Text extraction and glyph selection use distinct mappings. For an embedded symbolic
 TrueType font without a PDF encoding, a non-Unicode font character map is addressed
 with the original character code. Its `ToUnicode` map still supplies extracted
