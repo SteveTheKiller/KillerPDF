@@ -150,6 +150,13 @@ appearance geometry and artwork outside the text section remain in place.
 The generated stream is temporary; rendering does not edit the document.
 The corpus case `bug1883609.pdf` now displays Man, 150, and Red.
 
+Comb text fields with a simple font use `/MaxLen` equal-width character cells.
+The inherited alignment selects the starting cell, and each character is centered
+within its cell. The cell count must be between 1 and 32,768. Values longer than
+the declared cell count are clipped to that many characters for display with a
+diagnostic; the stored field value remains unchanged. Missing appearances use
+the same geometry and styling path as ordinary text fields.
+
 Text alignment, automatic width fitting, and clipping use the `/BS` border
 width as the interior inset, defaulting to one point. Beveled and inset styles
 reserve twice that width when replacing text in an existing appearance.
@@ -173,7 +180,7 @@ Unsupported cases retain their saved appearances with a diagnostic. Recovery
 mode also retains the saved appearance when regeneration data is malformed;
 strict mode keeps validation failures.
 
-Multiline and comb fields, list-box layout, composite-font encoding, missing
+Multiline fields, list-box layout, composite-font encoding, missing
 text sections in existing appearances, beveled and inset borders, legacy border
 array settings, and synthesized combo-box arrows remain work in progress.
 Remaining font shape and layout differences need further corpus validation.

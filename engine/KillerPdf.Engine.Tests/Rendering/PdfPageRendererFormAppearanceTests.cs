@@ -193,11 +193,63 @@ public sealed class PdfPageRendererFormAppearanceTests
         Assert.Contains(actual.Diagnostics, text => text.Contains("not implemented"));
     }
 
+    [Theory]
+    [InlineData(false, 0, 12.97, 42.47)]
+    [InlineData(true, 0, 12.97, 42.47)]
+    [InlineData(false, 1, 42.47, 71.97)]
+    [InlineData(true, 1, 42.47, 71.97)]
+    [InlineData(false, 2, 71.97, 101.47)]
+    [InlineData(true, 2, 71.97, 101.47)]
+    public void CombFieldsCenterCharactersInAlignedCells(bool missing, int alignment,
+        double firstX, double secondX)
+    {
+        var options = new PdfRenderOptions(120, 40);
+        string content = FormattableString.Invariant(
+            $"q 1 1 118 38 re W n BT 0 g /F1 10 Tf 1 0 0 1 {firstX} 16.533203125 Tm (1) Tj 1 0 0 1 {secondX} 16.533203125 Tm (2) Tj ET Q");
+        var expected = new PdfPageRenderer(Create(false, content, false, false)).Render(0, options);
+        var source = Create(true, "", false, false, flags: 1 << 24,
+            defaultAppearance: "0 g /F1 10 Tf", missingAppearance: missing,
+            textValue: "12", alignment: alignment, maximumLength: 4);
+        byte[] original = PdfDocumentWriter.Write(source);
+        var actual = new PdfPageRenderer(source).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Equal(original, PdfDocumentWriter.Write(source));
+    }
+
+    [Fact]
+    public void CombFieldDisplaysOnlyTheDeclaredNumberOfCellsWithoutEditingItsValue()
+    {
+        var options = new PdfRenderOptions(120, 40);
+        var expected = new PdfPageRenderer(Create(true, "", false, false,
+            flags: 1 << 24, textValue: "12", maximumLength: 2)).Render(0, options);
+        var source = Create(true, "", false, false,
+            flags: 1 << 24, textValue: "123", maximumLength: 2);
+        byte[] original = PdfDocumentWriter.Write(source);
+        var actual = new PdfPageRenderer(source).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Equal(original, PdfDocumentWriter.Write(source));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(32769)]
+    public void InvalidCombCellCountRetainsSavedAppearance(int maximumLength)
+    {
+        var options = new PdfRenderOptions(120, 40);
+        const string content = "BT 0 g /F1 10 Tf 3 3 Td (OLD) Tj ET";
+        var expected = new PdfPageRenderer(Create(false, content, false, false)).Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, content, false, false,
+            flags: 1 << 24, maximumLength: maximumLength)).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Contains(actual.Diagnostics, text => text.Contains("comb"));
+    }
+
     private static PdfDocument Create(bool requested, string previousText, bool recovery,
         bool choice, int flags = 0, string defaultAppearance = "0 g /F1 11 Tf",
         bool artwork = false, bool inheritedResources = false, bool missingAppearance = false,
         string? borderStyle = null, int annotationFlags = 0, string textValue = "Man",
-        double? widgetBorderWidth = null, int alignment = 0)
+        double? widgetBorderWidth = null, int alignment = 0, int? maximumLength = null)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(120, 40).Build());
         PdfPageTree tree = PdfPageTree.Read(source);
@@ -221,11 +273,15 @@ public sealed class PdfPageRendererFormAppearanceTests
         };
         var appearance = update.AddObject(new PdfStream(appearanceDictionary, Encoding.ASCII.GetBytes(
             $"1 1 0 rg 0 0 120 40 re f {borderContent} {outsideText} /Tx BMC {previousText} EMC")));
-        var parent = update.AddObject(D(("FT", N(choice ? "Ch" : "Tx")),
+        var parentDictionary = D(("FT", N(choice ? "Ch" : "Tx")),
             ("Q", new PdfInteger(alignment)),
             ("V", S(choice ? "export" : textValue)), ("DA", S(defaultAppearance)),
             ("Ff", new PdfInteger(choice ? 131072 : flags)),
-            ("Opt", new PdfArray([new PdfArray([S("export"), S("Man")])]))));
+            ("Opt", new PdfArray([new PdfArray([S("export"), S("Man")])])));
+        if (maximumLength.HasValue)
+            parentDictionary = new PdfDictionary(parentDictionary.Append(
+                new KeyValuePair<PdfName, PdfObject>(N("MaxLen"), new PdfInteger(maximumLength.Value))));
+        var parent = update.AddObject(parentDictionary);
         var characteristics = D(("BG", new PdfArray([new PdfInteger(1),
             new PdfInteger(1), new PdfInteger(0)])));
         if (borderStyle is not null)

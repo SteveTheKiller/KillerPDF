@@ -33,9 +33,16 @@ public sealed partial class PdfPageRenderer
         string? kind = Field("FT") is PdfName fieldType ? fieldType.ToString() : null;
         if (kind is not "/Tx" and not "/Ch") return saved;
         long flags = Field("Ff") is PdfInteger flagValue ? flagValue.Value : 0;
-        if ((flags & ((1L << 12) | (1L << 24))) != 0
+        if ((flags & (1L << 12)) != 0
             || (kind == "/Ch" && (flags & (1L << 17)) == 0))
-            return Unsupported("multiline, comb, or list-box layout");
+            return Unsupported("multiline or list-box layout");
+        int combCells = 0;
+        if (kind == "/Tx" && (flags & (1L << 24)) != 0)
+        {
+            if (Field("MaxLen") is not PdfInteger { Value: > 0 and <= 32768 } maximumLength)
+                return Unsupported("missing, invalid, or excessive comb cell count");
+            combCells = (int)maximumLength.Value;
+        }
         if (saved is null)
         {
             if (widget.TryGetValue(Name("F"), out PdfObject? visibility)
@@ -121,6 +128,11 @@ public sealed partial class PdfPageRenderer
         foreach (Rune rune in text.EnumerateRunes())
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (combCells > 0 && encoded.Count == combCells)
+            {
+                diagnostics.Add("A comb field value exceeded MaxLen; only the declared cells were rendered.");
+                break;
+            }
             if (!encoding.TryGetValue(rune.ToString(), out byte code))
                 return Unsupported("unmapped field character");
             encoded.Add(code);
@@ -140,7 +152,9 @@ public sealed partial class PdfPageRenderer
         double interiorWidth = width - 2 * inset, interiorHeight = height - 2 * inset;
         if (interiorWidth <= 0 || interiorHeight <= 0) return Unsupported("empty field interior");
         if (size == 0) size = Math.Min(interiorHeight,
-            advance > 0 ? interiorWidth / advance : interiorHeight);
+            combCells > 0 && encoded.Count > 0
+                ? interiorWidth / combCells / Math.Max(0.001, encoded.Max(code => extraction.GetWidth(code) / 1000))
+                : advance > 0 ? interiorWidth / advance : interiorHeight);
         int alignment = Field("Q") is PdfInteger q ? (int)q.Value : 0;
         double x = alignment switch
         {
@@ -160,8 +174,30 @@ public sealed partial class PdfPageRenderer
         replacement.AddRange(defaultInstructions.Where(item => item.Operator is
             "g" or "rg" or "k" or "Tc" or "Tw" or "Tz" or "TL" or "Tr" or "Ts"));
         replacement.Add(I("Tf", fontName, R(size)));
-        replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(left + x), R(bottom + y)));
-        replacement.Add(I("Tj", new PdfString(encoded.ToArray(), PdfStringForm.Hexadecimal)));
+        if (combCells > 0)
+        {
+            double cellWidth = interiorWidth / combCells;
+            int firstCell = alignment switch
+            {
+                1 => (combCells - encoded.Count) / 2,
+                2 => combCells - encoded.Count,
+                _ => 0
+            };
+            for (int index = 0; index < encoded.Count; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                byte code = encoded[index];
+                double glyphWidth = extraction.GetWidth(code) * size / 1000;
+                double cellX = left + inset + (firstCell + index + 0.5) * cellWidth - glyphWidth / 2;
+                replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(cellX), R(bottom + y)));
+                replacement.Add(I("Tj", new PdfString(new byte[] { code }, PdfStringForm.Hexadecimal)));
+            }
+        }
+        else
+        {
+            replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(left + x), R(bottom + y)));
+            replacement.Add(I("Tj", new PdfString(encoded.ToArray(), PdfStringForm.Hexadecimal)));
+        }
         replacement.Add(I("ET"));
         replacement.Add(I("Q"));
         IReadOnlyList<PdfContentInstruction> original = ReadStreamInstructions(saved, cancellationToken);

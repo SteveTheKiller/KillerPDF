@@ -3,6 +3,22 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 comb field appearances
+
+Validation date: 2026-09-07. Requested comb fields now place each simple-font
+character in its declared cell. `bug2055455.pdf` restores all four digits in its
+previously blank lower field. Only that region changes; the stored value remains
+untouched. The glyphs are heavier than PDFium's, so mean absolute channel error
+increases from 1.862 to 2.301. This font discrepancy remains unresolved, not an
+accepted parity exception.
+
+All 614 accepted conformance PNGs remain identical, with 35 skips and no failures.
+The full suites pass 2,946 engine and 338 app tests, including ten new cases for
+alignment, missing appearances, cell limits, and preservation. Release builds
+without warnings or errors. See the [record](records/comb-fields-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-comb-fields). This is not a full-corpus or throughput
+refresh.
+
 ## KillerPDF 1.9.0 combined form appearance audit
 
 Validation date: 2026-09-07. The isolated PDFjs audit covers all 979 files at

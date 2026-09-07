@@ -1,0 +1,49 @@
+{
+  "version": "1.9.0",
+  "date": "2026-09-07",
+  "beforeCommit": "1f6fd03fd763edb0c17f617bc7579f9ee5a40f2f",
+  "engineAppDllSHA256": "4D7ACF70F04B1E4A802EEAADEE7188414D4259F749C78D96B2B4BBEB86755822",
+  "baselineVersion": "1.8.5",
+  "baselineReference": "pdfjs-full-form-insets-20260907/000256/baseline",
+  "page": 1,
+  "size": 1024,
+  "focused": {
+    "file": "bug2055455.pdf",
+    "changedPixels": 9267,
+    "changedBounds": [
+      176,
+      457,
+      534,
+      536
+    ],
+    "beforeMAE": 1.862398202376881,
+    "afterMAE": 2.3007745703659372,
+    "inputSHA256": "84f1b0ca125e4bd295a8a0b8cdd36fbc102722a6eb72561926c89b21216cc7dc",
+    "outputSHA256": "7e3879d19072e5dda0db2ca49399c24f9f4fec00d18bc7d4eb99d6c5d1b2d06e"
+  },
+  "conformance": {
+    "inputs": 649,
+    "statuses": {
+      "OK": 614,
+      "SKIP": 35
+    },
+    "unchangedPngs": 614,
+    "changed": []
+  },
+  "tests": {
+    "engine": 2946,
+    "app": 338,
+    "new": 10,
+    "releaseWarnings": 0,
+    "releaseErrors": 0,
+    "beforeFix": "All six aligned-cell cases failed."
+  },
+  "visualReview": "Full page reviewed against PDFium. Four lower-field digits restored. Heavier CourierNew substitution increases pixel error and remains unresolved; this is not accepted as visual parity.",
+  "remaining": [
+    "CourierNew host lookup and font weight",
+    "Other unsupported form layouts",
+    "Broad/multipage visual coverage",
+    "Overall speed target",
+    "Held-out OCR validation and full API documentation"
+  ]
+}
