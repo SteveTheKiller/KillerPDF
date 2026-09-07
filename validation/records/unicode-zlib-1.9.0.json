@@ -1,0 +1,10 @@
+{
+  "engineApplicationSha256": "781249337420E52B6F49FD9A47BB74342F7A096780778386A93F6D14413AE394",
+  "baselineVersion": "1.8.5",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "focused": { "file": "issue19802.pdf", "before": "FAIL", "after": "OK", "renderMilliseconds": 141, "dimensions": [1024, 573], "rgbMae": 2.866166625763525, "diagnostics": [] },
+  "tests": { "newCases": 3, "engine": 2706, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614 },
+  "limits": { "maximumInflations": 1, "maximumDecodedBytes": 33554432, "requiresMissingFilter": true, "validatesZlibHeader": true, "validatesChecksum": true },
+  "limitations": "Text matches the reference with remaining raster-edge differences. One fresh-process render sample is not a paired performance result."
+}

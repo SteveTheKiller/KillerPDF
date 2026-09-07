@@ -279,6 +279,46 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Fact]
+    public void RecoveryDecodesUnfilteredZlibUnicodeMapWithoutChangingStrictRead()
+    {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "1 begincodespacerange <00> <FF> endcodespacerange "
+            + "1 beginbfchar <41> <03A9> endbfchar");
+        using var output = new MemoryStream();
+        using (var compressor = new System.IO.Compression.ZLibStream(output,
+            System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+            compressor.Write(source);
+        var dictionary = D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
+            ("ToUnicode", new PdfStream(D(), output.ToArray())));
+        Assert.Equal("A", Assert.Single(Read(dictionary).Decode("A"u8.ToArray())).Text);
+
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+        PdfExtractionFont font = PdfFontResourceReader.Read(document, dictionary);
+        Assert.Equal("\u03A9", Assert.Single(font.Decode("A"u8.ToArray())).Text);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RecoveryRejectsCorruptOrOversizedUnfilteredZlibUnicodeMap(bool oversized)
+    {
+        using var output = new MemoryStream();
+        using (var compressor = new System.IO.Compression.ZLibStream(output,
+            System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+            compressor.Write(new byte[oversized ? 32 * 1024 * 1024 + 1 : 64]);
+        byte[] encoded = output.ToArray();
+        if (!oversized) encoded[^1] ^= 0xFF;
+        var dictionary = D(("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
+            ("ToUnicode", new PdfStream(D(), encoded)));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(
+            new PdfDocumentBuilder().AddBlankPage().Build());
+
+        Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(
+            () => PdfFontResourceReader.Read(document, dictionary));
+    }
+
+    [Fact]
     public void MissingUnicodeCmapStillAllowsEmbeddedMetricExtraction()
     {
         byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);

@@ -3,6 +3,28 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 undeclared Unicode-map compression
+
+Validation date: 2026-09-06. Compatibility font reading can inflate an unfiltered
+ToUnicode stream once when its bytes have a valid zlib header. Authentication
+still precedes decoding, and the strict inflater retains checksum validation and
+the existing 32 MiB font-stream limit. Other streams and strict font reading do
+not infer this missing filter.
+
+PDF.js `issue19802.pdf` moves from FAIL to OK and renders its text without
+diagnostics. At matching 1024 by 573 dimensions, mean absolute RGB error against
+PDFium is 2.866167. Visual comparison confirms the text, including unusual source
+characters; raster edges remain different. The single fresh-process render sample
+is 141 ms and does not establish a comparative speed result.
+
+Three cases cover recovered mapping, unchanged strict fallback, corrupt checksums,
+and the decoded-size limit. All 2,706 engine and 338 app tests pass. Release builds
+without warnings or errors. Conformance retains 614 OK, 35 SKIP, zero FAIL, and
+all 614 images are byte-identical to the preceding color-operand build.
+
+See the [record](records/unicode-zlib-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-unicode-zlib).
+
 ## KillerPDF 1.9.0 color-operand recovery
 
 Validation date: 2026-09-06. Compatibility rendering consumes the required leading

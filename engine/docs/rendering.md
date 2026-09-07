@@ -52,6 +52,11 @@ be selected independently through the options.
 inputs, explicitly choose `PdfDocument.OpenWithCompatibilityRecovery`. Recovery
 is bounded and does not change the strict default or authorize unsafe writing.
 
+An unfiltered `ToUnicode` stream with a valid zlib header can be inflated once
+in recovery mode. Authentication runs before this recovery. The decoder retains
+checksum validation and the 32 MiB font-stream output limit; corrupt or oversized
+data is rejected. Strict font reading does not infer the missing compression filter.
+
 For non-pattern `sc`, `scn`, `SC`, and `SCN` color operations with an invalid
 component count, recovery consumes the required leading operands when extra
 values are present. An incomplete operation retains the current paint color.

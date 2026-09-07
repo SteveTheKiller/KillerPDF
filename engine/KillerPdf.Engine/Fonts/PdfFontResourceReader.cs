@@ -368,7 +368,17 @@ public static class PdfFontResourceReader
                         $"Inherited ToUnicode map /{name.ValueAsLatin1()} is not supported."),
                 _ => throw new FormatException("Invalid inherited ToUnicode map reference.")
             };
-            PdfToUnicodeMap map = PdfToUnicodeMap.ParseFont(Decode(stream), simpleFont,
+            byte[] decoded = Decode(stream);
+            if (document.UsesCompatibilityRecovery && Get(stream.Dictionary, "Filter") is null
+                && decoded.Length >= 2 && (decoded[0] & 15) == 8 && decoded[0] >> 4 <= 7
+                && ((decoded[0] << 8) + decoded[1]) % 31 == 0)
+            {
+                var compressed = new PdfStream(new PdfDictionary([
+                    new KeyValuePair<PdfName, PdfObject>(new PdfName("Filter"u8), new PdfName("FlateDecode"u8))
+                ]), decoded);
+                decoded = PdfStreamDecoder.Decode(compressed, 32 * 1024 * 1024);
+            }
+            PdfToUnicodeMap map = PdfToUnicodeMap.ParseFont(decoded, simpleFont,
                 document.UsesCompatibilityRecovery, inherited);
             seen.Remove(stream);
             return map;
