@@ -151,6 +151,9 @@ report interpretation, supported boundaries, and previewed corrections.
 See [OCR integration and review](docs/ocr.md) for models, provider selection,
 coordinates, correction, searchable output, and held-out validation.
 
+See [AcroForm values and interchange](docs/forms.md) for widget reading,
+XFDF export, reviewed imports, incremental saves, and flattening boundaries.
+
 ## Repository layout
 
 ```text
