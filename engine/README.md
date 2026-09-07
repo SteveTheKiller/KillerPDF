@@ -127,6 +127,9 @@ The engine owns bounded CPU rendering for paths, text, images, clipping, shading
 annotations, and forms. It returns platform-neutral BGRA32 pixel buffers and diagnostics without
 referencing a UI toolkit or native PDF renderer. The engine does not provide UI controls.
 
+See the [rendering guide](docs/rendering.md) for integration, pixel layout, authentication,
+diagnostics, resource limits, and validation guidance.
+
 ## Repository layout
 
 ```text

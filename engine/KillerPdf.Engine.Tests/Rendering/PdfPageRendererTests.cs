@@ -809,6 +809,68 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("The image soft mask is not implemented.", page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(1, new byte[] { 0x50 })]
+    [InlineData(2, new byte[] { 0x33 })]
+    [InlineData(4, new byte[] { 0x0F, 0x0F })]
+    [InlineData(8, new byte[] { 0, 255, 0, 255 })]
+    [InlineData(16, new byte[] { 0, 0, 255, 255, 0, 0, 255, 255 })]
+    public void Render_PreservesSoftMaskDetailBeyondImageResolution(int bits, byte[] samples)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgba(1, 1, new byte[] { 255, 0, 0, 128 }), 0, 0, 4, 1))
+            .Build());
+        PdfDocument document = ReplaceImageSoftMask(source, bits, Compress(samples), 4);
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(4, 1, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([255, 255, 255, 0], Pixel(page, 0, 0));
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 1, 0));
+        Assert.Equal([255, 255, 255, 0], Pixel(page, 2, 0));
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 3, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_AveragesThinSoftMaskLinesWhenReducing()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(1, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgba(1, 1, new byte[] { 255, 0, 0, 128 }), 0, 0, 1, 1))
+            .Build());
+        PdfDocument document = ReplaceImageSoftMask(source, 1, Compress([0x44]), 8);
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(1, 1, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 64], Pixel(page, 0, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_OpaqueSoftMaskDoesNotShiftColorSamples()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgba(3, 1, new byte[]
+                {
+                    255, 0, 0, 128, 0, 255, 0, 128, 0, 0, 255, 128
+                }), 0, 0, 4, 1))
+            .Build());
+        PdfDocument document = ReplaceImageSoftMask(source, 1, Compress([0xFF]), 8);
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(4, 1, includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 255], Pixel(page, 0, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(page, 1, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(page, 2, 0));
+        Assert.Equal([255, 0, 0, 255], Pixel(page, 3, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
     [Fact]
     public void Render_DecodesCcittFaxImageXObjects()
     {
@@ -3146,7 +3208,7 @@ public sealed class PdfPageRendererTests
     }
 
     private static PdfDocument ReplaceImageSoftMask(
-        PdfDocument source, int bits, byte[] encodedData)
+        PdfDocument source, int bits, byte[] encodedData, int? width = null)
     {
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
         PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
@@ -3160,9 +3222,13 @@ public sealed class PdfPageRendererTests
             image.Dictionary[Name("SMask")]);
         PdfStream mask = Assert.IsType<PdfStream>(source.Resolve(maskReference));
         var dictionary = new PdfDictionary(mask.Dictionary
-            .Where(entry => !entry.Key.Equals(Name("BitsPerComponent")))
+            .Where(entry => !entry.Key.Equals(Name("BitsPerComponent"))
+                && !(width.HasValue && entry.Key.Equals(Name("Width"))))
             .Append(new KeyValuePair<PdfName, PdfObject>(
                 Name("BitsPerComponent"), new PdfInteger(bits))));
+        if (width.HasValue)
+            dictionary = new PdfDictionary(dictionary.Append(new KeyValuePair<PdfName, PdfObject>(
+                Name("Width"), new PdfInteger(width.Value))));
         return PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
             .ReplaceObject(maskReference.ObjectNumber, new PdfStream(dictionary, encodedData))
             .Build());

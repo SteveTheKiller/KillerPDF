@@ -3,6 +3,37 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 packed soft masks and independent sampling
+
+Validation date: 2026-09-06. Image soft masks retain packed samples and use cached
+area reduction instead of expanding every source pixel to a byte. Masks are
+sampled independently of the color image at painting time. The existing 64 MiB
+image-cache budget includes packed and reduced masks; reduced masks are capped at
+four million samples. Strict parsing, stream validation, and authentication remain intact.
+
+PDF.js `issue16263.pdf` repeats a 34,862 by 4,332 one-bit mask forty times. Its
+151 MB expanded representation exceeded the cache budget and was repeatedly
+recreated. The prior build timed out at 20 seconds. The final build renders it in
+372, 357, and 361 ms in three fresh processes, with no diagnostics. Thin arrows
+are restored; text edges and sampling still differ from PDFium. The earlier PDFium
+sample was 3,623 ms, but these are not alternating paired throughput measurements.
+
+Seven new cases cover mask detail at all five supported bit depths, thin-line
+reduction, and color-sample stability under an opaque mask. All 2,693 engine and
+338 app tests pass, and the Release build has zero warnings or errors.
+
+Conformance retains 614 OK, 35 SKIP, and zero FAIL. Of the rendered images, 592
+are byte-identical and 22 change. Shared-area RGB error against PDFium improves
+on fourteen and worsens on eight. These overlap metrics are diagnostic, especially
+where dimensions differ. Visual checks covered the repaired PDF.js page, the
+presentation, and the fiber and GPS posters. Existing incorrect glyphs on
+`kateking_presentation_WN23.pdf` were confirmed in the preceding build and remain
+an open rendering issue. This increment does not establish corpus-wide visual parity.
+
+See the [raw conformance log](benchmarks/1.9.0-soft-mask/conformance-engine.csv),
+[build and pixel records](records/soft-mask-1.9.0.json), and
+[rendering guide](../engine/docs/rendering.md). No public landing-page update is included.
+
 ## KillerPDF 1.9.0 attachment-only encrypted pages
 
 Validation date: 2026-09-06. Page rendering and extraction can read unencrypted

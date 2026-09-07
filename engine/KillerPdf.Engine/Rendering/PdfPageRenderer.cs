@@ -1747,7 +1747,8 @@ public sealed partial class PdfPageRenderer
                 softMask = embeddedMaskMode == 0 ? null
                     : SeparateEmbeddedJpeg2000Alpha(
                         ref samples, sampleWidth, sampleHeight, components, bits);
-            if (softMask is null) softMask = ReadSoftMask(stream.Dictionary);
+            if (softMask is null) softMask = ReadSoftMask(stream.Dictionary,
+                transform, scaleX, scaleY, cancellationToken);
             if (softMask is null && explicitMask is not null)
                 softMask = ReadExplicitImageMask(explicitMask);
             decode = ReadImageDecode(stream.Dictionary, colorSpace, imageMask);
@@ -3479,7 +3480,8 @@ public sealed partial class PdfPageRenderer
         return array.Select(item => Number(Resolve(item))).ToArray();
     }
 
-    private SoftMask? ReadSoftMask(PdfDictionary dictionary)
+    private SoftMask? ReadSoftMask(PdfDictionary dictionary,
+        Matrix transform, double scaleX, double scaleY, CancellationToken cancellationToken)
     {
         if (!dictionary.TryGetValue(Name("SMask"), out PdfObject? value)) return null;
         PdfObject resolved = Resolve(value);
@@ -3496,7 +3498,45 @@ public sealed partial class PdfPageRenderer
         int height = PositiveInteger(stream.Dictionary, "Height");
         DecodedImage decodedImage = _imageCache.GetOrAdd(
             new ImageCacheKey(stream, -3), _ => DecodeMask());
-        return new SoftMask(decodedImage.Samples, decodedImage.Width, decodedImage.Height);
+        var mask = new SoftMask(decodedImage.Samples, decodedImage.Width, decodedImage.Height,
+            decodedImage.MaskBits, decodedImage.MaskDecodeStart, decodedImage.MaskDecodeEnd);
+        double deviceWidth = Math.Sqrt(Math.Pow(transform.A * scaleX, 2)
+            + Math.Pow(transform.B * scaleY, 2));
+        double deviceHeight = Math.Sqrt(Math.Pow(transform.C * scaleX, 2)
+            + Math.Pow(transform.D * scaleY, 2));
+        int reducedWidth = (int)Math.Clamp(Math.Ceiling(deviceWidth * 2), 1, width);
+        int reducedHeight = (int)Math.Clamp(Math.Ceiling(deviceHeight * 2), 1, height);
+        if (reducedWidth == width && reducedHeight == height) return mask;
+        while ((long)reducedWidth * reducedHeight > 4_000_000)
+        {
+            reducedWidth = Math.Max(1, reducedWidth / 2);
+            reducedHeight = Math.Max(1, reducedHeight / 2);
+        }
+        DecodedImage reduced = _imageCache.GetOrAdd(
+            new ImageCacheKey(stream, -5, reducedWidth, reducedHeight), _ => ReduceMask());
+        return new SoftMask(reduced.Samples, reduced.Width, reduced.Height);
+
+        DecodedImage ReduceMask()
+        {
+            var samples = new byte[checked(reducedWidth * reducedHeight)];
+            for (int y = 0; y < reducedHeight; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int startY = (int)((long)y * height / reducedHeight);
+                int endY = (int)((long)(y + 1) * height / reducedHeight);
+                for (int x = 0; x < reducedWidth; x++)
+                {
+                    int startX = (int)((long)x * width / reducedWidth);
+                    int endX = (int)((long)(x + 1) * width / reducedWidth);
+                    long sum = 0;
+                    for (int sourceY = startY; sourceY < endY; sourceY++)
+                        sum += mask.SumRow(startX, endX, sourceY);
+                    long count = (long)(endX - startX) * (endY - startY);
+                    samples[y * reducedWidth + x] = (byte)((sum + count / 2) / count);
+                }
+            }
+            return new DecodedImage(samples, reducedWidth, reducedHeight);
+        }
 
         DecodedImage DecodeMask()
         {
@@ -3512,45 +3552,8 @@ public sealed partial class PdfPageRenderer
                 decodeStart = Number(Resolve(decode[0]));
                 decodeEnd = Number(Resolve(decode[1]));
             }
-            uint maximum = (1u << bits) - 1;
-            if (bits == 8 && decodeStart == 0 && decodeEnd == 1)
-                return new DecodedImage(packed, width, height);
-            if (bits <= 8)
-            {
-                var lookup = new byte[1 << bits];
-                for (int value = 0; value < lookup.Length; value++)
-                    lookup[value] = (byte)Math.Round(Math.Clamp(decodeStart + value / (double)maximum
-                        * (decodeEnd - decodeStart), 0, 1) * 255);
-                var mapped = new byte[checked(width * height)];
-                if (bits == 8)
-                {
-                    for (int index = 0; index < mapped.Length; index++) mapped[index] = lookup[packed[index]];
-                    return new DecodedImage(mapped, width, height);
-                }
-                int perByte = 8 / bits;
-                int mask = (1 << bits) - 1;
-                for (int y = 0; y < height; y++)
-                {
-                    int rowOffset = y * rowBytes;
-                    for (int x = 0; x < width; x++)
-                    {
-                        int shift = 8 - bits * (x % perByte + 1);
-                        mapped[y * width + x] = lookup[(packed[rowOffset + x / perByte] >> shift) & mask];
-                    }
-                }
-                return new DecodedImage(mapped, width, height);
-            }
-            var samples = new byte[checked(width * height)];
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
-                {
-                    uint sample = ReadPackedSample(packed,
-                        checked(y * rowBytes * 8 + x * bits), bits);
-                    double decoded = decodeStart + sample / (double)maximum
-                        * (decodeEnd - decodeStart);
-                    samples[y * width + x] = (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
-                }
-            return new DecodedImage(samples, width, height);
+            return new DecodedImage(packed, width, height, MaskBits: bits,
+                MaskDecodeStart: decodeStart, MaskDecodeEnd: decodeEnd);
         }
     }
 
@@ -3684,12 +3687,14 @@ public sealed partial class PdfPageRenderer
         // Convert the image once into a device-ready BGRA plane at no more than about the
         // destination resolution, so color conversion runs per source sample instead of per
         // painted pixel, then paint by nearest lookup.
+        int samplingWidth = sourceWidth;
+        int samplingHeight = sourceHeight;
         int factor = Math.Max(1, (int)Math.Floor(Math.Min(
-            sourceWidth / (double)destinationWidth, sourceHeight / (double)destinationHeight)));
-        while ((long)((sourceWidth + factor - 1) / factor) * ((sourceHeight + factor - 1) / factor)
+            samplingWidth / (double)destinationWidth, samplingHeight / (double)destinationHeight)));
+        while ((long)((samplingWidth + factor - 1) / factor) * ((samplingHeight + factor - 1) / factor)
             > 4_000_000L) factor++;
-        int planeWidth = (sourceWidth + factor - 1) / factor;
-        int planeHeight = (sourceHeight + factor - 1) / factor;
+        int planeWidth = (samplingWidth + factor - 1) / factor;
+        int planeHeight = (samplingHeight + factor - 1) / factor;
         byte[] plane = ArrayPool<byte>.Shared.Rent(checked(planeWidth * planeHeight * 4));
         try
         {
@@ -3699,10 +3704,10 @@ public sealed partial class PdfPageRenderer
             for (int py = 0; py < planeHeight; py++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                int sy = Math.Min(py * factor, sourceHeight - 1);
+                int sy = Math.Min((int)((long)py * factor * sourceHeight / samplingHeight), sourceHeight - 1);
                 for (int px = 0; px < planeWidth; px++)
                 {
-                    int sx = Math.Min(px * factor, sourceWidth - 1);
+                    int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
                     int offset = (py * planeWidth + px) * 4;
                     Color color;
                     int alpha = 255;
@@ -3722,17 +3727,6 @@ public sealed partial class PdfPageRenderer
                         color = converter.Convert(sx, sy);
                         if (colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask))
                             alpha = 0;
-                    }
-                    if (softMask is not null && alpha != 0)
-                    {
-                        int maskX = Math.Min((int)((long)sx * softMask.Width / sourceWidth),
-                            softMask.Width - 1);
-                        int maskY = Math.Min((int)((long)sy * softMask.Height / sourceHeight),
-                            softMask.Height - 1);
-                        byte maskSample = softMask.Samples[maskY * softMask.Width + maskX];
-                        if (preblendMatte.HasValue)
-                            color = UndoPreblend(color, preblendMatte.Value, maskSample);
-                        alpha = (alpha * maskSample + 127) / 255;
                     }
                     plane[offset] = color.Blue;
                     plane[offset + 1] = color.Green;
@@ -3758,20 +3752,30 @@ public sealed partial class PdfPageRenderer
                     int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
                     int planeOffset = (py * planeWidth + px) * 4;
                     int alpha = plane[planeOffset + 3];
+                    Color color = new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]);
+                    if (softMask is not null && alpha != 0)
+                    {
+                        int maskX = Math.Min((int)(unitX * softMask.Width), softMask.Width - 1);
+                        int maskY = Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1);
+                        byte maskSample = softMask.Sample(maskX, maskY);
+                        if (preblendMatte.HasValue)
+                            color = UndoPreblend(color, preblendMatte.Value, maskSample);
+                        alpha = (alpha * maskSample + 127) / 255;
+                    }
                     if (alpha == 0) continue;
                     if (direct && alpha == 255)
                     {
                         int targetOffset = (y * targetWidth + x) * 4;
-                        target[targetOffset] = plane[planeOffset];
-                        target[targetOffset + 1] = plane[planeOffset + 1];
-                        target[targetOffset + 2] = plane[planeOffset + 2];
+                        target[targetOffset] = color.Blue;
+                        target[targetOffset + 1] = color.Green;
+                        target[targetOffset + 2] = color.Red;
                         target[targetOffset + 3] = 255;
                         continue;
                     }
                     double clipAlpha = ClipAlpha(clips, x, y);
                     if (clipAlpha <= 0) continue;
                     SetPixel(target, targetWidth, x, y,
-                        new Color(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]),
+                        color,
                         alpha / 255d * clipAlpha, blendMode, graphicsSoftMask, knockout);
                 }
             }
@@ -4506,7 +4510,43 @@ public sealed partial class PdfPageRenderer
             combined = CoverageMask.Intersect(combined, clip.Mask);
         return [new ClipRegion(combined)];
     }
-    private sealed record SoftMask(byte[] Samples, int Width, int Height);
+    private sealed record SoftMask(byte[] Samples, int Width, int Height,
+        int Bits = 8, double DecodeStart = 0, double DecodeEnd = 1)
+    {
+        internal long SumRow(int start, int end, int y)
+        {
+            long sum = 0;
+            if (Bits == 1 && DecodeStart == 0 && DecodeEnd == 1)
+            {
+                int row = checked(y * ((Width + 7) / 8));
+                while (start < end && (start & 7) != 0) sum += Sample(start++, y);
+                while (start + 8 <= end)
+                {
+                    sum += System.Numerics.BitOperations.PopCount((uint)Samples[row + start / 8]) * 255L;
+                    start += 8;
+                }
+            }
+            while (start < end) sum += Sample(start++, y);
+            return sum;
+        }
+
+        internal byte Sample(int x, int y)
+        {
+            int rowBytes = checked((Width * Bits + 7) / 8);
+            int byteOffset = checked(y * rowBytes + x * Bits / 8);
+            uint value = Bits switch
+            {
+                8 => Samples[byteOffset],
+                16 => (uint)(Samples[byteOffset] * 256 + Samples[byteOffset + 1]),
+                _ => (uint)(Samples[byteOffset] >> (8 - Bits - x * Bits % 8))
+                    & ((1u << Bits) - 1)
+            };
+            if (Bits == 8 && DecodeStart == 0 && DecodeEnd == 1) return (byte)value;
+            double decoded = DecodeStart + value / (double)((1u << Bits) - 1)
+                * (DecodeEnd - DecodeStart);
+            return (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
+        }
+    }
     private sealed record GraphicsSoftMask(byte[] Samples);
     private sealed class KnockoutState
     {
@@ -4692,8 +4732,10 @@ public sealed partial class PdfPageRenderer
     private readonly record struct RenderCacheKey(
         int PageIndex, int Width, int Height, bool TransparentBackground,
         bool IncludeAnnotations, bool IncludeFormFields);
-    private readonly record struct ImageCacheKey(PdfStream Stream, int ResolutionLevel);
-    private sealed record DecodedImage(byte[] Samples, int Width, int Height, byte[]? Alpha = null);
+    private readonly record struct ImageCacheKey(PdfStream Stream, int ResolutionLevel,
+        int MaskWidth = 0, int MaskHeight = 0);
+    private sealed record DecodedImage(byte[] Samples, int Width, int Height, byte[]? Alpha = null,
+        int MaskBits = 8, double MaskDecodeStart = 0, double MaskDecodeEnd = 1);
     private sealed record ParsedStream(
         IReadOnlyList<PdfContentInstruction> Instructions, int SourceBytes);
     private readonly record struct Point(double X, double Y);
