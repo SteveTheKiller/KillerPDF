@@ -157,6 +157,9 @@ XFDF export, reviewed imports, incremental saves, and flattening boundaries.
 See [bookmarks, links, and opening destinations](docs/navigation.md) for navigation
 authoring, readers, host behavior, and initial-view edits.
 
+See [PDF layers and optional content](docs/layers.md) for layer authoring,
+saved visibility, content assignment, configuration metadata, and flattening limits.
+
 ## Repository layout
 
 ```text
