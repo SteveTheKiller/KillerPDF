@@ -3,6 +3,27 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 PDFjs audit after renderer optimizations
+
+Validation date: 2026-09-07. The complete 979-file PDFjs comparison retains
+960 OK, 18 SKIP, one FAIL for the engine and 957 OK, 21 SKIP, one FAIL for
+PDFium 1.8.5. All 960 engine PNGs are byte-identical to the preceding Courier
+and comb-field audit. Every input hash and status is retained, with zero
+timeouts across 1,958 isolated runs. Current source-file hashes were rechecked.
+
+This validates the accumulated rendering optimizations at page one and a
+1024-pixel maximum dimension. It does not establish correctness at other page
+sizes or on later pages. Fresh-process timings include startup and should not
+be compared to collection throughput. The unchanged product build has 3,025
+engine and 338 app tests passing.
+
+The engine still rejects invalid ASCIIHex data in `poppler-90-0-fuzzed.pdf`.
+PDFium accepts its first page but produces an entirely white image, so matching
+that success would not prove useful content recovery. PDFium's remaining failure
+is a bitmap-creation error on `poppler-85140-0.pdf`. See the
+[record](records/pdfjs-rect-mask-1.9.0.json) and
+[complete raw comparison](benchmarks/1.9.0-pdfjs-rect-mask/render-comparison-summary.csv).
+
 ## KillerPDF 1.9.0 compact rectangular coverage
 
 Validation date: 2026-09-07. Pixel-aligned rectangular polygons now use coverage
