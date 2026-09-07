@@ -181,6 +181,9 @@ representation losses, font maps, reviewed OCR, and batch outcomes.
 See [reusable macros and batch execution](docs/macros.md) for typed steps,
 host callbacks, previews, cancellation, contextual values, and resuming runs.
 
+See [imposition plans and sheet PDFs](docs/imposition.md) for N-up, booklet,
+manual ordering, poster tiles, marks, and output boundaries.
+
 ## Repository layout
 
 ```text
