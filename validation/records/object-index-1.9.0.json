@@ -1,0 +1,22 @@
+{
+  "engineApplicationSha256": "D4F12F20B5A28D31B3BA3A8CCD8B52DD0645FD9F533D44AC5C1FAB9D1B001C08",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "file": "bug1978317.pdf",
+  "inputSha256": "2DA2307AFEFE14C163F0F57A794C5199E9302EEC3FDC154896A05976E08C2727",
+  "settings": { "page": 1, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "before": "SKIP: The document catalog is not a dictionary.",
+  "after": "OK",
+  "engineRenderMilliseconds": 794,
+  "dimensions": [791, 1024],
+  "baselineDimensions": [791, 1024],
+  "rgbMae": 3.670879095554151,
+  "visualCheck": "Dense blue text, header and footer are present at corresponding locations. Tiny blue text is visibly lighter than PDFium; this remains in the shared backlog.",
+  "diagnostics": [],
+  "baselineSource": "../benchmarks/1.9.0-pdfjs-aes-empty/render-comparison-summary.csv",
+  "cause": "Object stream 65547 contains 65542 objects. Catalog 65561 has header index 65541, but its two-byte cross-reference index wrapped to 5. The decoded object stream is 12981940 bytes with First 929528.",
+  "tests": { "newCases": 2, "failedBefore": 2, "engine": 2833, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614, "comparison": "page-resources-1.9.0.json" },
+  "behavior": "Recovery matches object numbers in validated headers when compressed indexes disagree. An extra lookup is allocated only for affected streams. Strict index validation, ownership, duplicate-number, offset, generation and size checks remain unchanged.",
+  "limitations": "Single-run timing includes cold initialization and is not throughput evidence. Full PDF.js totals have not been rerun. Tiny-text rendering differences remain unresolved."
+}

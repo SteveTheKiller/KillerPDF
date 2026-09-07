@@ -320,6 +320,20 @@ public sealed class PdfDocumentTests
             error.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(65535)]
+    public void Resolve_RecoveryMatchesCompressedObjectNumbersDespiteIncorrectIndexes(int index)
+    {
+        byte[] bytes = ObjectStreamPdf(firstCompressedIndex: index);
+        Assert.Throws<PdfSyntaxException>(() => PdfDocument.Open(bytes).Resolve(1));
+        PdfDocument document = PdfDocument.OpenWithCompatibilityRecovery(bytes);
+        Assert.Equal("hello", Text(Assert.IsType<PdfString>(document.Resolve(1))));
+        PdfDictionary other = Assert.IsType<PdfDictionary>(document.Resolve(2));
+        Assert.Equal(42, Assert.IsType<PdfInteger>(other[Name("Answer")]).Value);
+        Assert.Same(other, document.Resolve(2));
+    }
+
     [Fact]
     public void Resolve_AllowsSupersededMembersInAnOlderObjectStream()
     {

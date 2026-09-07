@@ -37,6 +37,12 @@ retain their order and inherited geometry. Strict readers still reject empty
 intermediate branches and validate the declared count. Tree cycle, repeated-node,
 nesting-depth, and maximum-page limits remain enforced in recovery mode.
 
+For compressed objects, recovery can match the requested object number to its
+validated object-stream header when the cross-reference index is incorrect or
+wrapped. Only streams with mismatched indexes allocate the additional lookup.
+Duplicate object numbers, invalid offsets, stream ownership, object-count limits,
+and strict index validation retain their existing checks.
+
 If a stream's declared length ends inside encoded data, compatibility parsing can
 use the existing bounded end-marker search even when those remaining bytes are
 not valid PDF tokens. The search extends at most 1 MiB beyond the declared end,

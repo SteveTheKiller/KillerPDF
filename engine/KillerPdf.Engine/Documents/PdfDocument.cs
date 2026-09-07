@@ -509,6 +509,9 @@ public sealed class PdfDocument
             // than making the whole document unusable.
             return PdfNull.Instance;
         }
+        if (_compatibilityRecovery && contents.ObjectsByNumber is not null
+            && contents.ObjectsByNumber.TryGetValue(entry.ObjectNumber, out PdfObject? recovered))
+            return recovered;
         if (entry.Field2 < 0 || entry.Field2 >= contents.OrderedObjects.Count)
             throw Error($"Compressed object {entry.ObjectNumber} has an invalid object-stream index", streamNumber);
 
@@ -552,6 +555,7 @@ public sealed class PdfDocument
             CrossReferences.RegisteredHeadersForCurrentObjectStream(streamNumber);
         var items = new List<ObjectStreamItem>(objectCount);
         var objectNumbers = new HashSet<int>();
+        bool recoveredIndexes = false;
         for (int index = 0; index < headers.Count; index++)
         {
             ObjectHeader header = headers[index];
@@ -569,7 +573,8 @@ public sealed class PdfDocument
                     EntryOffset(entry));
             bool isCurrent = compressedEntry.Type == PdfCrossReferenceEntryType.Compressed
                 && compressedEntry.Field1 == streamNumber;
-            if (isCurrent && compressedEntry.Field2 != index)
+            recoveredIndexes |= isCurrent && compressedEntry.Field2 != index;
+            if (isCurrent && compressedEntry.Field2 != index && !_compatibilityRecovery)
                 throw Error(
                     $"Object stream header entry {index} for object {header.ObjectNumber} " +
                     "does not match its compressed cross-reference entry",
@@ -596,7 +601,8 @@ public sealed class PdfDocument
             items.Add(new ObjectStreamItem(header.ObjectNumber, value));
         }
 
-        var contents = new ObjectStreamContents(items);
+        var contents = new ObjectStreamContents(items, recoveredIndexes
+            ? items.ToDictionary(item => item.ObjectNumber, item => item.Value) : null);
         _objectStreams.Add(streamNumber, contents);
         return contents;
     }
@@ -676,5 +682,7 @@ public sealed class PdfDocument
 
     internal readonly record struct ObjectHeader(int ObjectNumber, int RelativeOffset);
     private sealed record ObjectStreamItem(int ObjectNumber, PdfObject Value);
-    private sealed record ObjectStreamContents(IReadOnlyList<ObjectStreamItem> OrderedObjects);
+    private sealed record ObjectStreamContents(
+        IReadOnlyList<ObjectStreamItem> OrderedObjects,
+        IReadOnlyDictionary<int, PdfObject>? ObjectsByNumber);
 }
