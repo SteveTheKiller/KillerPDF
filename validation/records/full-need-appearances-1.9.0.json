@@ -1,0 +1,156 @@
+{
+  "version": "1.9.0",
+  "date": "2026-09-07",
+  "testedCommit": "85846fec065370e2c9e3124c5349a8b6373aa2d6",
+  "engineAppDllSHA256": "9308DBF930937CAB6704DE1B85CDE7394BF34A0C89DA3DCE2B28BED90D99D140",
+  "baselineVersion": "1.8.5",
+  "baselineAppDllSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "method": {
+    "source": "KillerPDF-Corpus/sources/pdfjs",
+    "page": 1,
+    "size": 1024,
+    "timeoutSeconds": 30,
+    "buildOrder": "Alternates per file",
+    "process": "Fresh isolated process per build and file",
+    "timingCaveat": "Includes startup, JIT, open, PNG output, and shutdown; not a throughput comparison."
+  },
+  "evidence": {
+    "inputs": 979,
+    "pairedRows": 1958,
+    "engine": {
+      "OK": 960,
+      "SKIP": 18,
+      "FAIL": 1
+    },
+    "baseline": {
+      "OK": 957,
+      "SKIP": 21,
+      "FAIL": 1
+    },
+    "unchangedPngs": 954,
+    "changed": [
+      {
+        "file": "test\\pdfs\\bug1796741.pdf",
+        "folder": "000205",
+        "name": "bug1796741.pdf-page-001.png"
+      },
+      {
+        "file": "test\\pdfs\\bug1844576.pdf",
+        "folder": "000215",
+        "name": "bug1844576.pdf-page-001.png"
+      },
+      {
+        "file": "test\\pdfs\\bug1844583.pdf",
+        "folder": "000216",
+        "name": "bug1844583.pdf-page-001.png"
+      },
+      {
+        "file": "test\\pdfs\\bug1883609.pdf",
+        "folder": "000225",
+        "name": "bug1883609.pdf-page-001.png"
+      },
+      {
+        "file": "test\\pdfs\\issue17492.pdf",
+        "folder": "000527",
+        "name": "issue17492.pdf-page-001.png"
+      },
+      {
+        "file": "test\\pdfs\\issue19389.pdf",
+        "folder": "000575",
+        "name": "issue19389.pdf-page-001.png"
+      }
+    ],
+    "regenerationDiagnostics": [
+      {
+        "file": "test\\pdfs\\annotation-tx.pdf",
+        "detail": "Requested form-field appearance regeneration is not implemented for missing saved appearance geometry."
+      },
+      {
+        "file": "test\\pdfs\\bug1669099.pdf",
+        "detail": "Requested form-field appearance regeneration is not implemented for unresolved default font. Text rendering is not implemented. Requested form-field appearance regeneration is not implemented for multiline, comb, or list-box layout."
+      },
+      {
+        "file": "test\\pdfs\\bug1796741.pdf",
+        "detail": "A requested form-field text appearance was regenerated."
+      },
+      {
+        "file": "test\\pdfs\\bug1844576.pdf",
+        "detail": "A requested form-field text appearance was regenerated."
+      },
+      {
+        "file": "test\\pdfs\\bug1844583.pdf",
+        "detail": "A requested form-field text appearance was regenerated."
+      },
+      {
+        "file": "test\\pdfs\\bug1883609.pdf",
+        "detail": "A requested form-field text appearance was regenerated."
+      },
+      {
+        "file": "test\\pdfs\\bug2055455.pdf",
+        "detail": "Requested form-field appearance regeneration is not implemented for missing saved appearance geometry. Requested form-field appearance regeneration is not implemented for multiline, comb, or list-box layout."
+      },
+      {
+        "file": "test\\pdfs\\issue12504.pdf",
+        "detail": "Requested form-field appearance regeneration is not implemented for missing saved appearance geometry."
+      },
+      {
+        "file": "test\\pdfs\\issue12750.pdf",
+        "detail": "Requested form-field appearance regeneration is not implemented for missing saved appearance geometry."
+      },
+      {
+        "file": "test\\pdfs\\issue17540.pdf",
+        "detail": "Requested form-field appearance regeneration is not implemented for missing saved appearance geometry."
+      },
+      {
+        "file": "test\\pdfs\\issue19389.pdf",
+        "detail": "A requested form-field text appearance was regenerated."
+      }
+    ]
+  },
+  "reviewedMetrics": [
+    {
+      "file": "bug1796741.pdf",
+      "changedPixels": 1186,
+      "sameDimensions": true,
+      "beforeMAE": 0.17626521017699115,
+      "afterMAE": 0.171452769437421
+    },
+    {
+      "file": "bug1844576.pdf",
+      "changedPixels": 5087,
+      "sameDimensions": true,
+      "beforeMAE": 7.169507478412829,
+      "afterMAE": 7.413227282072368
+    },
+    {
+      "file": "bug1844583.pdf",
+      "changedPixels": 8997,
+      "sameDimensions": true,
+      "beforeMAE": 6.077022834606109,
+      "afterMAE": 7.089941092242765
+    },
+    {
+      "file": "issue19389.pdf",
+      "changedPixels": 1412,
+      "sameDimensions": true,
+      "beforeMAE": 0.31993887042472374,
+      "afterMAE": 0.32193650725138123
+    }
+  ],
+  "visualReview": {
+    "bug1796741": "Current value Dlrow SJ.fdp Olleh replaces stale Hello PDF.js World, matching PDFium text.",
+    "bug1844576": "Hello World retained; placement differs and MAE increased.",
+    "bug1844583": "Current Hello World replaces stale DlrowOlleh. Placement differs and MAE increased despite corrected text.",
+    "bug1883609": "Man, 150, Red restored; matches previously reviewed focused PNG exactly.",
+    "issue17492": "Missing Helvetica text restored; matches previously reviewed focused PNG exactly.",
+    "issue19389": "Password remains masked and visible text retained; small placement difference and increased MAE."
+  },
+  "remaining": [
+    "Higher MAE cases are unresolved placement differences, not accepted parity exceptions.",
+    "Missing saved appearance geometry",
+    "Unresolved default fonts and additional field layouts",
+    "Full corpus beyond this source and pages beyond page one",
+    "Overall speed and memory targets"
+  ],
+  "rawLog": "../benchmarks/1.9.0-full-need-appearances/render-comparison.csv"
+}

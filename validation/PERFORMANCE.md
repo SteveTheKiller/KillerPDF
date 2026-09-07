@@ -3,6 +3,27 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 full PDFjs form appearance audit
+
+Validation date: 2026-09-07. All 979 inputs retain their paired SHA-256 identities
+and prior outcomes: engine 960 OK, 18 SKIP, one failure; PDFium 1.8.5 957 OK,
+21 SKIP, one failure. No process timed out. Each build ran in a separate process
+with page one at 1024 pixels, so these timings include startup and output work.
+
+Against the full host Identity-font audit, 954 engine PNGs are byte-identical
+and six changed. All six were visually reviewed or verified byte-identical to
+previously reviewed focused output. Current field values replace stale text in
+`bug1796741.pdf` and `bug1844583.pdf`; the earlier missing-text corrections in
+`bug1883609.pdf` and `issue17492.pdf` are retained. Password masking remains
+intact in `issue19389.pdf`.
+
+Text placement remains different in `bug1844576.pdf`, `bug1844583.pdf`, and
+`issue19389.pdf`, with increased pixel error. These are unresolved differences,
+not accepted parity exceptions. Missing appearances and additional layouts
+remain visible in the diagnostics. The [record](records/full-need-appearances-1.9.0.json)
+retains per-image review and metrics; the [raw log](benchmarks/1.9.0-full-need-appearances/render-comparison.csv)
+retains all 1,958 rows. This audit does not establish the speed target.
+
 ## KillerPDF 1.9.0 requested form text appearances
 
 Validation date: 2026-09-07. `bug1883609.pdf` requests new appearances but saves
