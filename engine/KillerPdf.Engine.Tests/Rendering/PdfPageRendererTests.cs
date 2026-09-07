@@ -469,6 +469,25 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_TilingPatternUsesInitialSpaceAfterContentTransform()
+    {
+        var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 1, 1).Fill());
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(8, 2, new PdfContentStreamBuilder()
+                .Transform(2, 0, 0, 2, 0, 0)
+                .SetFillPattern(pattern).Rectangle(0, 0, 4, 1).Fill())
+            .Build());
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(8, 2, includeAnnotations: false, includeFormFields: false));
+
+        for (int x = 0; x < 8; x++)
+            Assert.Equal(x % 2 == 0 ? new byte[] { 0, 0, 255, 255 }
+                : new byte[] { 255, 255, 255, 255 }, Pixel(page, x, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_FillsWithUncoloredTilingPatterns()
     {
         var pattern = new PdfTilingPattern(2, 1, new PdfContentStreamBuilder()
@@ -1116,12 +1135,16 @@ public sealed class PdfPageRendererTests
             rendered.Diagnostics);
     }
 
-    [Fact]
-    public void Render_PaintsAndClipsShadingPatterns()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Render_PaintsAndClipsShadingPatterns(bool transformContent)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
             .AddPage(10, 10, Encoding.ASCII.GetBytes(
-                "/Pattern cs /P1 scn 0 0 5 10 re f /Pattern CS /P1 SCN 1 w 7 1 2 8 re S"))
+                transformContent
+                    ? "2 0 0 2 0 0 cm /Pattern cs /P1 scn 0 0 2.5 5 re f /Pattern CS /P1 SCN 0.5 w 3.5 0.5 1 4 re S"
+                    : "/Pattern cs /P1 scn 0 0 5 10 re f /Pattern CS /P1 SCN 1 w 7 1 2 8 re S"))
             .Build());
         var function = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(2)),

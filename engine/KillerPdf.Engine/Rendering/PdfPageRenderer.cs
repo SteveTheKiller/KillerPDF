@@ -711,7 +711,7 @@ public sealed partial class PdfPageRenderer
                 {
                     GraphicsState shadingState = parentState with
                     {
-                        Transform = paint.Matrix.Then(parentState.Transform),
+                        Transform = paint.Matrix.Then(initial.Transform),
                         Clips = AddClip(parentState.Clips, paintClip.Mask),
                         FillPatternSpace = false,
                         FillPatternBase = null,
@@ -737,7 +737,7 @@ public sealed partial class PdfPageRenderer
                 double xStep = PatternStep(pattern.Dictionary, "XStep");
                 double yStep = PatternStep(pattern.Dictionary, "YStep");
                 Matrix patternMatrix = paint.Matrix;
-                Matrix patternToPage = patternMatrix.Then(parentState.Transform);
+                Matrix patternToPage = patternMatrix.Then(initial.Transform);
                 if (!patternToPage.TryInverse(out Matrix pageToPattern)) return;
                 Point[] patternBounds = paintPath.SelectMany(points => points)
                     .Select(point => pageToPattern.Apply(point.X, point.Y)).ToArray();

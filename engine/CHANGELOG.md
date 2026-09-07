@@ -47,7 +47,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
-- Restored missing text from graphics-state font settings and missing or corrupt JPEG 2000 image tiles.
+- Restored missing text from graphics-state fonts, corrected pattern placement, and repaired corrupt JPEG 2000 image tiles.
 - Recovered documents with damaged cross-references, missing catalog roots, and readable compressed objects through bounded reconstruction.
 - Compatibility recovery now opens and renders files that mainstream viewers accept: malformed headers and versions, unusable cross-reference chains, wrong generation numbers, missing stream, endstream, or Length syntax, non-name dictionary keys, unknown filters, truncated or corrupt Flate data, oversized content, non-stream page content, invalid page boxes and rotations, page-tree nodes stored as streams, JPEG frames that disagree with their dictionaries, and malformed content-stream tokens.
 - Recovered malformed optional-content group registrations and cyclic visibility expressions without weakening strict layer inspection.

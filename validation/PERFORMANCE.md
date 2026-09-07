@@ -3,6 +3,42 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 pattern coordinates and PDF.js regression sample
+
+Validation date: 2026-09-06. Tiling and shading patterns now use the initial
+coordinate space of their parent stream instead of the current content transform.
+The PDF.js 22060_A1_01_Plans page previously repeated small floor-plan fragments;
+the floor plans now occupy their intended positions. Fine image detail still differs
+from PDFium, so this is a placement correction, not visual parity.
+
+The 649-file conformance check retained 614 OK, 35 SKIP, zero FAIL. Of the 614 PNGs,
+611 are byte-identical to the preceding JPEG 2000 build. Three changed: the MICOM
+lighthouse poster, mipeng_poster_w24, and response-to-fiber-concerns[1]. The RecovAir
+poster gradient is closer to PDFium (RGB mean absolute difference 2.7420 before,
+1.2726 after, on a 0 to 255 scale). This metric is diagnostic, not a quality gate.
+Two additional pattern cases pass; full suites pass 2,667 engine and 338 app tests,
+and the Release build has zero warnings or errors.
+
+The first 200 PDF.js files were compared with a fresh process for each build and
+file, page 1 fitted inside 1024 pixels, annotations/forms enabled, and 15-second
+per-file timeouts. Both before and after the fix, the sample rendered 196 files
+in each build, with 193 shared successes and three unique to each. No process
+timed out. Engine
+results included two skips and two failures; PDFium had four skips. Remaining
+engine cases include attachment-only authentication, a shading boundary array,
+and a decoded-stream safety limit. None is treated as permission to relax safety.
+
+A CPU trace of the corrected plans page attributes 48.68% of exclusive samples
+to JPEG block reconstruction and 12.64% to JPEG output conversion. Trace overhead
+and cold processes make these diagnostic measurements, not throughput benchmarks.
+The earlier three-pass conformance timing remains below; no new aggregate speed
+claim is made for this increment.
+
+Raw comparisons and conformance outcomes are in
+[benchmarks/1.9.0-pattern-space](benchmarks/1.9.0-pattern-space).
+Build identities and validation totals are in
+[pattern-space-1.9.0.json](../pdf-landing/pattern-space-1.9.0.json).
+
 ## KillerPDF 1.9.0 JPEG 2000 tile correction
 
 Benchmark date: 2026-09-06. The same 649 conformance PDFs were rendered at page 1

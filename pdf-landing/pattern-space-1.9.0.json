@@ -1,0 +1,24 @@
+{
+  "version": "1.9.0",
+  "baseline": "1.8.5",
+  "date": "2026-09-06",
+  "page": 1,
+  "size": 1024,
+  "engineAppDllSHA256": "1D6B163FBB2679E4AA6CDDDC31A9B0FE7620123459FCBFB3BD0C7F7592356FBC",
+  "baselineAppDllSHA256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "conformance": { "files": 649, "rendered": 614, "skipped": 35, "failed": 0, "unchangedPngs": 611, "changedPngs": 3 },
+  "pdfjs": {
+    "files": 200,
+    "timeoutSecondsPerProcess": 15,
+    "timedOutProcesses": 0,
+    "commonFiles": 193,
+    "engineOnly": 3,
+    "baselineOnly": 3,
+    "before": { "engine": { "rendered": 196, "skipped": 2, "failed": 2 }, "baseline": { "rendered": 196, "skipped": 4, "failed": 0 } },
+    "after": { "engine": { "rendered": 196, "skipped": 2, "failed": 2 }, "baseline": { "rendered": 196, "skipped": 4, "failed": 0 } }
+  },
+  "tests": { "engine": 2667, "app": 338, "new": 2 },
+  "plansRemainingLimitations": ["fine image detail", "JPEG decode cost"],
+  "plansTraceExclusivePercent": { "jpegWriteBlock": 48.68, "jpegBuildOutput": 12.64 },
+  "timingInterpretation": "Per-file processes include cold startup. No new throughput claim."
+}
