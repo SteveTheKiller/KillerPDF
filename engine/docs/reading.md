@@ -32,7 +32,9 @@ image and font recovery details and their remaining limits.
 
 Recovery derives page counts from the actual page-tree children without resolving
 `/Count` metadata, including invalid values or references to damaged streams.
-Strict readers still validate the declared count. Tree cycle, repeated-node,
+Empty intermediate branches contribute no pages in recovery; neighboring pages
+retain their order and inherited geometry. Strict readers still reject empty
+intermediate branches and validate the declared count. Tree cycle, repeated-node,
 nesting-depth, and maximum-page limits remain enforced in recovery mode.
 
 If a stream's declared length ends inside encoded data, compatibility parsing can

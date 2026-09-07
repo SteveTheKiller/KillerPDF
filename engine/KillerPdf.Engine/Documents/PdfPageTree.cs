@@ -154,7 +154,7 @@ internal sealed class PdfPageTree
                     ? Resolve(kidsValue) as PdfArray
                         ?? throw new InvalidOperationException("A page-tree /Kids value is not an array.")
                     : throw new InvalidOperationException("A page-tree node has neither /Type /Page nor /Kids.");
-                if (depth > 0 && kids.Count == 0)
+                if (depth > 0 && kids.Count == 0 && !document.UsesCompatibilityRecovery)
                     throw new InvalidOperationException("A non-root page-tree /Kids array is empty.");
                 PdfInteger? count = document.UsesCompatibilityRecovery ? null
                     : node.TryGetValue(CountName, out PdfObject? countValue)

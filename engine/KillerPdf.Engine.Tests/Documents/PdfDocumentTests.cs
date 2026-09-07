@@ -199,6 +199,43 @@ public sealed class PdfDocumentTests
             PdfDocument.OpenWithCompatibilityRecovery(bytes)).PageCount);
     }
 
+    [Theory]
+    [InlineData("3 0 R 4 0 R 5 0 R")]
+    [InlineData("4 0 R 3 0 R 5 0 R")]
+    [InlineData("4 0 R 5 0 R 3 0 R")]
+    public void OpenWithCompatibilityRecoverySkipsEmptyPageTreeBranches(string kids)
+    {
+        string[] objects =
+        [
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            $"<< /Type /Pages /Kids [{kids}] /Count 2 /MediaBox [0 0 30 40] >>",
+            "<< /Type /Pages /Parent 2 0 R /Kids [] /Count 0 /MediaBox [0 0 99 99] >>",
+            "<< /Type /Page /Parent 2 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 50 60] >>"
+        ];
+        var source = new StringBuilder("%PDF-2.0\n");
+        var offsets = new List<int>();
+        for (int index = 0; index < objects.Length; index++)
+        {
+            offsets.Add(source.Length);
+            source.Append($"{index + 1} 0 obj {objects[index]} endobj\n");
+        }
+        int xrefOffset = source.Length;
+        source.Append($"xref\n0 {objects.Length + 1}\n0000000000 65535 f\n");
+        foreach (int offset in offsets) source.Append($"{offset:0000000000} 00000 n\n");
+        source.Append($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\n");
+        source.Append($"startxref\n{xrefOffset}\n%%EOF\n");
+        byte[] bytes = Encoding.ASCII.GetBytes(source.ToString());
+
+        Assert.Contains("Kids array is empty", Assert.Throws<InvalidOperationException>(() =>
+            PdfPageInformation.Read(PdfDocument.Open(bytes))).Message, StringComparison.Ordinal);
+        IReadOnlyList<PdfPageInformation> pages = PdfPageInformation.Read(
+            PdfDocument.OpenWithCompatibilityRecovery(bytes));
+        Assert.Collection(pages,
+            page => { Assert.Equal(30, page.Width); Assert.Equal(40, page.Height); },
+            page => { Assert.Equal(50, page.Width); Assert.Equal(60, page.Height); });
+    }
+
     [Fact]
     public void OpenWithCompatibilityRecoveryIgnoresNullPageTreeKids()
     {

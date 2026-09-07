@@ -1,0 +1,18 @@
+{
+  "engineApplicationSha256": "9CC6E0769943B0F9E808050AF8CF95D13D99E214760DAFD55229C1BEA48BF7AD",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "file": "issue8088.pdf",
+  "inputSha256": "8098C1026C7B711BBC842A14CAF5B3DF4BEE788DA0B9DBAB7B03B91C9B6E4A0A",
+  "settings": { "pages": 3, "maximumDimension": 1024, "annotations": true, "forms": true },
+  "before": "SKIP: A non-root page-tree /Kids array is empty.",
+  "after": "All three pages OK, in order, at 1024x256 in both builds.",
+  "engineRenderMilliseconds": [188, 2, 7],
+  "baselineRenderMilliseconds": [10, 2, 2],
+  "rgbMaeByPage": [5.15557861328125, 5.221752166748047, 5.575878143310547],
+  "visualCheck": "All three page labels are complete and in order. Times-Roman glyph shapes differ visibly, especially numerals; tracked with existing font differences in the shared backlog.",
+  "tests": { "newCases": 3, "failedBefore": 3, "engine": 2827, "app": 338 },
+  "conformance": { "ok": 614, "skip": 35, "fail": 0, "identicalImages": 614, "comparison": "page-count-1.9.0.json" },
+  "behavior": "Empty intermediate page-tree branches contribute zero pages in compatibility recovery. Sibling order and inherited geometry are preserved. Strict rejection and existing structural limits remain unchanged.",
+  "limitations": "Single-run timings include cold initialization and do not establish throughput. Full PDF.js totals have not been rerun. Font-shape differences remain unresolved."
+}
