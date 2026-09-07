@@ -142,10 +142,62 @@ public sealed class PdfPageRendererFormAppearanceTests
         Assert.Contains("A requested empty form-field appearance was regenerated.", actual.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(1, 0, 1)]
+    [InlineData(5, 0, 5)]
+    [InlineData(0, 1, 50.275)]
+    [InlineData(1, 1, 50.275)]
+    [InlineData(5, 1, 50.275)]
+    [InlineData(0, 2, 100.55)]
+    [InlineData(1, 2, 99.55)]
+    [InlineData(5, 2, 95.55)]
+    public void RequestedTextUsesBorderInteriorForAlignment(double inset, int alignment, double x)
+    {
+        var options = new PdfRenderOptions(120, 40);
+        string content = FormattableString.Invariant(
+            $"q {inset} {inset} {120 - 2 * inset} {40 - 2 * inset} re W n BT 0 g /F1 10 Tf 1 0 0 1 {x} 16.533203125 Tm (Man) Tj ET Q");
+        var expected = new PdfPageRenderer(Create(false, content, false, false,
+            widgetBorderWidth: inset, alignment: alignment)).Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, "", false, false,
+            defaultAppearance: "0 g /F1 10 Tf", widgetBorderWidth: inset,
+            alignment: alignment)).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Fact]
+    public void LargeTextIsClippedToTheBorderInterior()
+    {
+        var options = new PdfRenderOptions(120, 40);
+        const string expectedContent = "q 8 8 104 24 re W n BT 0 g /F1 40 Tf 1 0 0 1 8 6.1328125 Tm (Man) Tj ET Q";
+        var expected = new PdfPageRenderer(Create(false, expectedContent, false, false))
+            .Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, "", false, false,
+            defaultAppearance: "0 g /F1 40 Tf", widgetBorderWidth: 8)).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(20)]
+    [InlineData(60)]
+    public void InvalidBorderInteriorRetainsTheSavedAppearance(double width)
+    {
+        var options = new PdfRenderOptions(120, 40);
+        const string content = "BT 0 g /F1 10 Tf 3 3 Td (OLD) Tj ET";
+        var expected = new PdfPageRenderer(Create(false, content, false, false,
+            widgetBorderWidth: width)).Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, content, false, false,
+            widgetBorderWidth: width)).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Contains(actual.Diagnostics, text => text.Contains("not implemented"));
+    }
+
     private static PdfDocument Create(bool requested, string previousText, bool recovery,
         bool choice, int flags = 0, string defaultAppearance = "0 g /F1 11 Tf",
         bool artwork = false, bool inheritedResources = false, bool missingAppearance = false,
-        string? borderStyle = null, int annotationFlags = 0, string textValue = "Man")
+        string? borderStyle = null, int annotationFlags = 0, string textValue = "Man",
+        double? widgetBorderWidth = null, int alignment = 0)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(120, 40).Build());
         PdfPageTree tree = PdfPageTree.Read(source);
@@ -170,6 +222,7 @@ public sealed class PdfPageRendererFormAppearanceTests
         var appearance = update.AddObject(new PdfStream(appearanceDictionary, Encoding.ASCII.GetBytes(
             $"1 1 0 rg 0 0 120 40 re f {borderContent} {outsideText} /Tx BMC {previousText} EMC")));
         var parent = update.AddObject(D(("FT", N(choice ? "Ch" : "Tx")),
+            ("Q", new PdfInteger(alignment)),
             ("V", S(choice ? "export" : textValue)), ("DA", S(defaultAppearance)),
             ("Ff", new PdfInteger(choice ? 131072 : flags)),
             ("Opt", new PdfArray([new PdfArray([S("export"), S("Man")])]))));
@@ -180,10 +233,10 @@ public sealed class PdfPageRendererFormAppearanceTests
                 new KeyValuePair<PdfName, PdfObject>(N("BC"), new PdfArray([new PdfInteger(0)]))));
         var widgetDictionary = D(("Subtype", N("Widget")), ("Parent", parent),
             ("Rect", box), ("MK", characteristics), ("F", new PdfInteger(annotationFlags)));
-        if (borderStyle is not null)
+        if (borderStyle is not null || widgetBorderWidth.HasValue)
             widgetDictionary = new PdfDictionary(widgetDictionary.Append(
-                new KeyValuePair<PdfName, PdfObject>(N("BS"), D(("S", N(borderStyle)),
-                    ("W", new PdfInteger(2)), ("D", new PdfArray([new PdfInteger(3), new PdfInteger(2)]))))));
+                new KeyValuePair<PdfName, PdfObject>(N("BS"), D(("S", N(borderStyle ?? "S")),
+                    ("W", new PdfReal(widgetBorderWidth ?? 2)), ("D", new PdfArray([new PdfInteger(3), new PdfInteger(2)]))))));
         if (!missingAppearance)
             widgetDictionary = new PdfDictionary(widgetDictionary.Append(
                 new KeyValuePair<PdfName, PdfObject>(N("AP"), D(("N", appearance)))));

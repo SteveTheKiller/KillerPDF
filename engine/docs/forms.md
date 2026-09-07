@@ -150,6 +150,13 @@ appearance geometry and artwork outside the text section remain in place.
 The generated stream is temporary; rendering does not edit the document.
 The corpus case `bug1883609.pdf` now displays Man, 150, and Red.
 
+Text alignment, automatic width fitting, and clipping use the `/BS` border
+width as the interior inset, defaulting to one point. Beveled and inset styles
+reserve twice that width when replacing text in an existing appearance.
+Negative widths or borders that leave no interior retain the saved appearance
+with a diagnostic. Font descriptor values and selected fallback metrics govern
+vertical centering; see the [font guide](fonts.md).
+
 An existing appearance requires valid bounds and a balanced text section.
 When the appearance is absent, the renderer creates temporary geometry from
 the widget rectangle and quarter-turn rotation. It paints declared background
@@ -169,8 +176,8 @@ strict mode keeps validation failures.
 Multiline and comb fields, list-box layout, composite-font encoding, missing
 text sections in existing appearances, beveled and inset borders, legacy border
 array settings, and synthesized combo-box arrows remain work in progress.
-Regenerated text placement and fallback font metrics also need further corpus
-validation. Successful rendering does not establish that every visible
+Remaining font shape and layout differences need further corpus validation.
+Successful rendering does not establish that every visible
 field matches its value. Check diagnostics and compare reopened values with
 the rendered page before accepting or flattening a form.
 

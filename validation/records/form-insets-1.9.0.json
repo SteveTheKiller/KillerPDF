@@ -1,0 +1,101 @@
+{
+  "version": "1.9.0",
+  "date": "2026-09-07",
+  "beforeCommit": "f83215fe7bb4bd4686dcac38b77fbde5b37f75bf",
+  "engineAppDllSHA256": "A0032CB8A11ACB0FEB186C68774E61AC3CB559DBF87C57D071123E36310372DF",
+  "baselineVersion": "1.8.5",
+  "baselineReference": "pdfjs-full-need-appearances-20260907",
+  "priorReference": "fallback-metrics-20260907",
+  "page": 1,
+  "size": 1024,
+  "focused": [
+    {
+      "file": "annotation-tx.pdf",
+      "status": "OK",
+      "changedPixels": 756,
+      "beforeMAE": 0.11379977876106195,
+      "afterMAE": 0.031811739491150445,
+      "inputSHA256": "c7be52654eaede8a9f33757168957f938f56e73fcd4c53539db5672dee426208",
+      "outputSHA256": "aa19d0809d5ac9096d2e7b2d4f0c139d5c63dda97d0417b5d6dacede2f3fe793"
+    },
+    {
+      "file": "bug1796741.pdf",
+      "status": "OK",
+      "changedPixels": 1065,
+      "beforeMAE": 0.17158733999683945,
+      "afterMAE": 0.05962216537610619,
+      "inputSHA256": "c95e99349c4840302a2725d340f9d5d36713d1e8f1cd66d4fda18f27641d3d22",
+      "outputSHA256": "25d63ba8b74bce98f9752c4eacafce6bfccb0846f0db2895980bafc5d87b140b"
+    },
+    {
+      "file": "bug1844576.pdf",
+      "status": "OK",
+      "changedPixels": 9388,
+      "beforeMAE": 7.078664679276316,
+      "afterMAE": 1.4007889597039473,
+      "inputSHA256": "770174088e64373b3df6310fddb9e095f6c826a75f7de97978a85fc4d3138a8d",
+      "outputSHA256": "20f6279e04e0d10f71c15dc3c7ea6e9770be83ae952ebcbd78ded98e6b6c22b5"
+    },
+    {
+      "file": "bug1844583.pdf",
+      "status": "OK",
+      "changedPixels": 9731,
+      "beforeMAE": 6.742121558480707,
+      "afterMAE": 1.04586389670418,
+      "inputSHA256": "b4189db1f27bad678354137b1c13570ac0aa32cd474b9d85d51ee34f169634a9",
+      "outputSHA256": "1323a19476279c577374359af78891800bbc1ed08cafae721eff84e3431b150e"
+    },
+    {
+      "file": "bug1883609.pdf",
+      "status": "OK",
+      "changedPixels": 610,
+      "beforeMAE": null,
+      "afterMAE": null,
+      "inputSHA256": "d2f2cf1fd4985dea4671882fa3a31356b9075df49a511ba3105bd7dc5ed9a447",
+      "outputSHA256": "a6e36c8c53c4491b50a1c4719b2ca9cf24deae77106610bcf74dd2e32277592b"
+    },
+    {
+      "file": "issue19389.pdf",
+      "status": "OK",
+      "changedPixels": 1641,
+      "beforeMAE": 0.3180154199758287,
+      "afterMAE": 0.16654841807665746,
+      "inputSHA256": "e6ae8b5ad348bc6666822280efcd5c5f96ad21b886d2af785954a53dcfb93a2a",
+      "outputSHA256": "8aa6dc7d3b605bc2089cbc2d3002505373587f917ff1bdfa99c984d0d0e10c7d"
+    },
+    {
+      "file": "bug2055455.pdf",
+      "status": "OK",
+      "changedPixels": 0,
+      "beforeMAE": 1.862398202376881,
+      "afterMAE": 1.862398202376881,
+      "inputSHA256": "84f1b0ca125e4bd295a8a0b8cdd36fbc102722a6eb72561926c89b21216cc7dc",
+      "outputSHA256": "169c0b49893638d389219242eaf01a1a12c7e19624775dc14d6436a54c86e4b6"
+    }
+  ],
+  "conformance": {
+    "inputs": 649,
+    "ok": 614,
+    "skip": 35,
+    "fail": 0,
+    "unchangedPngs": 614,
+    "reference": "conformance-fallback-metrics-20260907"
+  },
+  "tests": {
+    "engine": 2936,
+    "app": 338,
+    "new": 13,
+    "releaseWarnings": 0,
+    "releaseErrors": 0,
+    "beforeFix": "Six alignment failures; three centered controls passed."
+  },
+  "visualReview": "All six changed regions reviewed against the prior engine and PDFium. All five dimension-matched changed files have lower MAE. bug1883609 has different dimensions and was reviewed visually. bug2055455 unchanged. Font shape differences, combo arrows and unsupported layouts remain unresolved.",
+  "referenceSource": "https://raw.githubusercontent.com/chromium/pdfium/main/core/fpdfdoc/cpdf_generateap.cpp",
+  "remaining": [
+    "Combined full PDFjs audit",
+    "Remaining font shapes and unsupported form layouts",
+    "Overall performance target",
+    "Held-out OCR validation",
+    "Full API documentation"
+  ]
+}

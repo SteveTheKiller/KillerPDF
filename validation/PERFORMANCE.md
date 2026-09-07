@@ -3,6 +3,23 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 form text insets
+
+Validation date: 2026-09-07. Regenerated text now aligns and clips inside the
+widget's declared border width. Seven focused files remain OK; six images change
+and were visually reviewed. All five changed samples with matching PDFium
+dimensions have lower pixel error. The two enlarged Hello World samples improve
+from 7.079 to 1.401 and 6.742 to 1.046 mean absolute channel error. The remaining
+dimension-mismatched sample was reviewed visually without an unaligned metric.
+Font shape differences and unsupported layouts remain unresolved.
+
+All 614 accepted conformance PNGs remain byte-identical, with 35 skips and no
+failures. The full suites pass 2,936 engine and 338 app tests, including 13 new
+alignment, clipping, and invalid-interior cases. Release builds without warnings
+or errors. The [record](records/form-insets-1.9.0.json) and
+[raw logs](benchmarks/1.9.0-form-insets) retain this focused validation; it is not
+a throughput measurement.
+
 ## KillerPDF 1.9.0 bundled font metrics
 
 Validation date: 2026-09-07. Missing descriptor ascent and descent now follow

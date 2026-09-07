@@ -131,21 +131,29 @@ public sealed partial class PdfPageRenderer
         PdfArray bounds = ResolveArray(boundsValue, 4, "Field appearance bounds");
         double left = Number(Resolve(bounds[0])), bottom = Number(Resolve(bounds[1]));
         double width = Number(Resolve(bounds[2])) - left, height = Number(Resolve(bounds[3])) - bottom;
-        if (width <= 4 || height <= 2) return Unsupported("empty field interior");
-        if (size == 0) size = Math.Min(height - 2, advance > 0 ? (width - 4) / advance : height - 2);
+        PdfDictionary? border = widget.TryGetValue(Name("BS"), out PdfObject? borderValue)
+            ? Resolve(borderValue) as PdfDictionary : null;
+        double inset = border is not null && border.TryGetValue(Name("W"), out PdfObject? borderWidth)
+            ? Number(Resolve(borderWidth)) : 1;
+        if (inset < 0) return Unsupported("negative border width");
+        if (border is not null && NameValue(border, "S") is "B" or "I") inset *= 2;
+        double interiorWidth = width - 2 * inset, interiorHeight = height - 2 * inset;
+        if (interiorWidth <= 0 || interiorHeight <= 0) return Unsupported("empty field interior");
+        if (size == 0) size = Math.Min(interiorHeight,
+            advance > 0 ? interiorWidth / advance : interiorHeight);
         int alignment = Field("Q") is PdfInteger q ? (int)q.Value : 0;
         double x = alignment switch
         {
-            1 => Math.Max(2, (width - advance * size) / 2),
-            2 => Math.Max(2, width - advance * size - 2),
-            _ => 2
+            1 => Math.Max(inset, (width - advance * size) / 2),
+            2 => Math.Max(inset, width - advance * size - inset),
+            _ => inset
         };
         double y = Math.Max(1, (height - (extraction.Ascent + extraction.Descent) * size / 1000) / 2);
         PdfContentInstruction I(string op, params PdfObject[] values) => new(op, 0, values);
         PdfReal R(double value) => new(value);
         var replacement = new List<PdfContentInstruction>
         {
-            I("q"), I("re", R(left + 1), R(bottom + 1), R(width - 2), R(height - 2)),
+            I("q"), I("re", R(left + inset), R(bottom + inset), R(interiorWidth), R(interiorHeight)),
             I("W"), I("n"), I("BT")
         };
         // Only text and color defaults belong inside the regenerated text object.
