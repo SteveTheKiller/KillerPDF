@@ -178,6 +178,9 @@ logical reading order, reviewed semantic proposals, and targeted repairs.
 See [structured text and Office export](docs/exporting.md) for output formats,
 representation losses, font maps, reviewed OCR, and batch outcomes.
 
+See [reusable macros and batch execution](docs/macros.md) for typed steps,
+host callbacks, previews, cancellation, contextual values, and resuming runs.
+
 ## Repository layout
 
 ```text

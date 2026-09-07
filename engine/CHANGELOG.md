@@ -45,7 +45,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Added rotation-aware vertical and horizontal scanned-spread division across selected pages (#382).
 - Added unified print-production reports with complete page boxes, resource-aware nonzero process and spot-ink inspection, page-range preview planning, readable and data-safe JSON output, and validated output-intent ICC profile details (#264).
 - Added per-image CCITT Group 4, adaptive predictor, or plain Flate selection for smaller lossless raster pages, plus strict full-page JPEG passthrough detection (#366).
-- Added integration guides for reading, rendering, fonts, authoring, editing, OCR, forms, XFA, annotations and review comments, accessibility, structured export, navigation, layers, attachments, optimization, preflight, encryption, and signature inspection.
+- Added integration guides for reading, rendering, fonts, authoring, editing, OCR, forms, XFA, annotations and review comments, accessibility, structured export, macros, navigation, layers, attachments, optimization, preflight, encryption, and signature inspection.
 
 ## [1.8.5] - Unreleased
 
