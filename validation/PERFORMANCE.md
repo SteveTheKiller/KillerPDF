@@ -3,6 +3,32 @@
 Results are listed newest first. Earlier release benchmarks remain here so changes
 between releases can be compared against their original measurements.
 
+## KillerPDF 1.9.0 paired conformance timing after font corrections
+
+Validation date: 2026-09-07. One warmup per build preceded three measured passes
+at 1024 pixels, page one, alternating build order. Every engine pass retains
+614 OK, 35 SKIP, zero failures, and the same 614 PNGs. PDFium 1.8.5 retains
+600 OK, 41 SKIP, and eight failures.
+
+| Median measurement | PDFium 1.8.5 | Engine 1.9.0 |
+| --- | ---: | ---: |
+| Logged render time on 600 shared files | 11.772 s | 14.794 s |
+| Collection wall time | 22.263 s | 29.167 s |
+| Sampled peak working set | 652,906,496 bytes | 1,112,776,704 bytes |
+
+The shared render-time ratio is 1.257. The engine has not met the speed target,
+and uses more peak process memory in this workload. This supersedes the earlier
+1.243 timing checkpoint without establishing a regression from the small ratio
+change. The largest median render gaps include `balloon_a1b_jp2k.pdf` (455 versus
+148 ms), `altona_technical_1v2_x3.pdf` (351 versus 159 ms), and
+`42828.0001.001.pdf` (374 versus 195 ms). These are profiling leads.
+
+Working set includes the runtime and caches; 100 ms polling can miss the final
+sample. Each collection pass uses a fresh process, so first-page JIT remains in
+the totals. [Full record](records/conformance-fonts-1.9.0.json) and
+[raw warmup, measured, and wall-time logs](benchmarks/1.9.0-conformance-fonts/)
+preserve the measurements.
+
 ## KillerPDF 1.9.0 missing standard-font resource recovery
 
 Validation date: 2026-09-07. Compatibility rendering now supplies an omitted

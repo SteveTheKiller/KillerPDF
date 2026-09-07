@@ -1,0 +1,13 @@
+{
+  "date": "2026-09-07",
+  "engineCommit": "f74b407fe613bdbcaea150750ffc3beecb121fb2",
+  "engineApplicationSha256": "60FE72E5450520591EE7C8AFAE84AF8D08A4732020F7861C1CCA373AA19E3F37",
+  "baselineVersion": "1.8.5",
+  "baselineApplicationSha256": "BDA8460C2AC194D705C1D3D06D36B29190FBC27F65B299E076741F9173E9E551",
+  "settings": { "files": 649, "page": 1, "maximumDimension": 1024, "warmupsPerBuild": 1, "measuredPasses": 3, "freshProcessPerCollectionPass": true, "alternatingOrder": true, "timeoutSecondsPerPass": 180, "workingSetPollingMilliseconds": 100 },
+  "baseline": { "ok": 600, "skip": 41, "fail": 8, "renderMilliseconds": [11772, 11755, 12008], "wallMilliseconds": [22249, 22263, 22532], "peakWorkingSetBytes": [652906496, 654692352, 652861440], "sharedPageMedianMilliseconds": [5, 5, 5] },
+  "engine": { "ok": 614, "skip": 35, "fail": 0, "renderMilliseconds": [14678, 15065, 14854], "wallMilliseconds": [28547, 29167, 29220], "peakWorkingSetBytes": [1112776704, 1114267648, 1106546688], "sharedPageMedianMilliseconds": [7, 7, 8] },
+  "shared": { "files": 600, "baselineRenderMilliseconds": [11772, 11755, 12008], "engineRenderMilliseconds": [14624, 15008, 14794], "ratioOfMedianRenderTimes": 1.2567108392796467 },
+  "verification": "All measured passes have identical file sets and status counts. All 614 engine PNGs in each measured pass are byte-identical to conformance-missing-standard-font-20260907. The app DLL hash was verified after completion. No heavy verification jobs or rebuilds overlapped measured passes.",
+  "limitations": "Not full-corpus visual parity or speed-target completion. Cold startup and first-page JIT are not isolated. Sampled peak working set includes runtime and caches and can omit a terminal sample. PDFium process exit1 corresponds to its eight recorded render failures; the engine exits0. Warmups are retained but excluded from measured medians."
+}
