@@ -345,14 +345,17 @@ internal static class PdfJpegDecoder
             if (transform is < 0 or > 2 || components == 1 && transform != 0
                 || components == 3 && transform == 2)
                 throw Error("The JPEG color transform is not supported.");
+            if (components == 1)
+            {
+                Component gray = _components[0];
+                for (int y = 0; y < outputHeight; y++)
+                    gray.Samples.AsSpan(y * gray.Stride, outputWidth)
+                        .CopyTo(output.Slice(y * outputWidth, outputWidth));
+                return;
+            }
             for (int y = 0, offset = 0; y < outputHeight; y++)
                 for (int x = 0; x < outputWidth; x++)
                 {
-                    if (components == 1)
-                    {
-                        output[offset++] = Sample(_components[0], x, y, maxHorizontal, maxVertical);
-                        continue;
-                    }
                     int first = Sample(_components[0], x, y, maxHorizontal, maxVertical);
                     int second = Sample(_components[1], x, y, maxHorizontal, maxVertical);
                     int third = Sample(_components[2], x, y, maxHorizontal, maxVertical);
