@@ -101,13 +101,16 @@ public static class PdfCrossReferenceReader
         ReadOnlyMemory<byte> source, int offset)
     {
         const int maximumDistance = 1_048_576;
+        ReadOnlySpan<byte> bytes = source.Span;
         for (int distance = 1; distance <= maximumDistance; distance++)
         {
-            foreach (int candidate in new[] { offset + distance, offset - distance })
+            for (int side = 0; side < 2; side++)
             {
+                int candidate = side == 0 ? offset + distance : offset - distance;
                 if (candidate < 0 || candidate >= source.Length
-                    || source.Span[candidate] is < (byte)'0' or > (byte)'9'
-                    || candidate > 0 && !IsBoundary(source.Span[candidate - 1]))
+                    || bytes[candidate] is < (byte)'0' or > (byte)'9'
+                    || candidate > 0 && !IsBoundary(bytes[candidate - 1])
+                    || !MayStartIndirectObject(bytes, candidate))
                     continue;
                 try
                 {
@@ -121,14 +124,46 @@ public static class PdfCrossReferenceReader
         return null;
     }
 
+    /// <summary>
+    /// Rejects a digit that cannot begin "number generation obj" so the recovery scan does
+    /// not parse and throw for every number in the file. Anything it is unsure about,
+    /// such as a comment or a signed generation, still goes to the full parser.
+    /// </summary>
+    private static bool MayStartIndirectObject(ReadOnlySpan<byte> bytes, int candidate)
+    {
+        int position = candidate;
+        while (position < bytes.Length && bytes[position] is >= (byte)'0' and <= (byte)'9')
+            position++;
+        position = SkipWhitespace(bytes, position);
+        if (position >= bytes.Length) return false;
+        if (bytes[position] is (byte)'%' or (byte)'+' or (byte)'-') return true;
+        if (bytes[position] is < (byte)'0' or > (byte)'9') return false;
+        while (position < bytes.Length && bytes[position] is >= (byte)'0' and <= (byte)'9')
+            position++;
+        position = SkipWhitespace(bytes, position);
+        if (position >= bytes.Length) return false;
+        if (bytes[position] == (byte)'%') return true;
+        return position + 3 <= bytes.Length
+            && bytes.Slice(position, 3).SequenceEqual("obj"u8)
+            && (position + 3 == bytes.Length || IsBoundary(bytes[position + 3]));
+    }
+
+    private static int SkipWhitespace(ReadOnlySpan<byte> bytes, int position)
+    {
+        while (position < bytes.Length && bytes[position] is 0 or 9 or 10 or 12 or 13 or 32)
+            position++;
+        return position;
+    }
+
     private static (PdfToken Token, PdfTokenizer Tokenizer)? FindNearbyClassicTable(
         ReadOnlyMemory<byte> source, int offset)
     {
         const int maximumDistance = 1_048_576;
         for (int distance = 1; distance <= maximumDistance; distance++)
         {
-            foreach (int candidate in new[] { offset + distance, offset - distance })
+            for (int side = 0; side < 2; side++)
             {
+                int candidate = side == 0 ? offset + distance : offset - distance;
                 if (candidate < 0 || candidate + 4 > source.Length
                     || !source.Span.Slice(candidate, 4).SequenceEqual("xref"u8)
                     || candidate > 0 && !IsBoundary(source.Span[candidate - 1])

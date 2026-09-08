@@ -148,6 +148,49 @@ public sealed class PdfCrossReferenceReaderTests
     }
 
     [Fact]
+    public void ReadSection_CompatibilityRecoveryScansPastNumbersThatAreNotObjectHeaders()
+    {
+        // Thousands of number tokens sit between the bad target and the stream. Each is a
+        // digit after a boundary, so the scan must reject them without parsing an object.
+        var filler = new StringBuilder("endobj\n");
+        for (int index = 0; index < 5000; index++)
+            filler.Append(index).Append(' ').Append(index * 3).Append(" m 12.5 7 l\n");
+        filler.Append("12 0 objx 12 0 ob 12x 0 obj 120 obj 12 1 obj\n");
+        byte[] prefix = Encoding.ASCII.GetBytes(filler.ToString());
+        byte[] stream = XrefStream(
+            [0, 0, 0, 255, 255],
+            "<< /Type /XRef /Size 1 /W [1 2 2] /Length 5 >>");
+        byte[] source = [.. prefix, .. stream];
+
+        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true);
+
+        Assert.True(section.IsStream);
+        Assert.Equal(prefix.Length, section.Offset);
+    }
+
+    [Theory]
+    [InlineData("9 %note\n0 obj")]
+    [InlineData("9 +0 obj")]
+    [InlineData("9\t0\r\nobj")]
+    [InlineData("9 0 obj")]
+    public void ReadSection_CompatibilityRecoveryAcceptsUnusualObjectHeaders(string header)
+    {
+        byte[] prefix = "endobj\n"u8.ToArray();
+        byte[] stream = Encoding.ASCII.GetBytes(header
+            + " << /Type /XRef /Size 1 /W [1 2 2] /Length 5 >> stream\n")
+            .Concat(new byte[] { 0, 0, 0, 255, 255 })
+            .Concat("\nendstream endobj"u8.ToArray()).ToArray();
+        byte[] source = [.. prefix, .. stream];
+
+        PdfCrossReferenceSection section = PdfCrossReferenceReader.ReadSection(
+            source, 0, compatibilityRecovery: true);
+
+        Assert.True(section.IsStream);
+        Assert.Equal(prefix.Length, section.Offset);
+    }
+
+    [Fact]
     public void ReadSection_CompatibilityRecoveryFindsClassicTableFromMalformedTarget()
     {
         byte[] table =
