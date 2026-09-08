@@ -1180,11 +1180,11 @@ public sealed partial class PdfPageRenderer
                         {
                             if ((index % maskWidth) == 0) cancellationToken.ThrowIfCancellationRequested();
                             int offset = index * 4;
-                            double sample = luminosity
-                                ? (0.3 * maskData[offset + 2] + 0.59 * maskData[offset + 1]
-                                    + 0.11 * maskData[offset]) / 255d
-                                : maskData[offset + 3] / 255d;
-                            byte converted = (byte)Math.Round(sample * 255);
+                            // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
+                            byte converted = luminosity
+                                ? (byte)Math.Round((0.3 * maskData[offset + 2] + 0.59 * maskData[offset + 1]
+                                    + 0.11 * maskData[offset]) / 255d * 255)
+                                : maskData[offset + 3];
                             if (index == 0) constant = converted;
                             if (samples is null && converted != constant)
                             {
@@ -1469,6 +1469,45 @@ public sealed partial class PdfPageRenderer
                         (int left, int top, int right, int bottom) = GetRasterBounds(
                             formState.Clips, formBounds, options.Width, options.Height,
                             scaleX, scaleY);
+                        if (backdropPixels.Ink is null && maskedGroupPixels.Ink is null)
+                        {
+                            // Same interpolation as the general loop below, reading the RGB
+                            // surfaces and the soft mask by row instead of per-pixel lookups.
+                            byte[] backdropData = backdropPixels.Data;
+                            byte[] groupData = maskedGroupPixels.Data;
+                            GraphicsSoftMask? softMask = parentState.GraphicsSoftMask;
+                            double fillAlpha = parentState.FillAlpha;
+                            for (int y = top; y < bottom; y++)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                int backdropRow = backdropPixels.Offset(left, y);
+                                int groupRow = maskedGroupPixels.Offset(left, y);
+                                bool maskRowInside = softMask is not null
+                                    && (uint)(y - softMask.Top) < (uint)softMask.Height;
+                                int maskRow = maskRowInside ? (y - softMask!.Top) * softMask.Width - softMask.Left : 0;
+                                for (int x = left; x < right; x++)
+                                {
+                                    int maskSample = softMask is null ? 255
+                                        : !maskRowInside || (uint)(x - softMask.Left) >= (uint)softMask.Width
+                                            ? softMask.Outside
+                                            : softMask.Samples is null ? softMask.Constant : softMask.Samples[maskRow + x];
+                                    double weight = fillAlpha * maskSample / 255d;
+                                    if (weight <= 0) continue;
+                                    int offset = backdropRow + (x - left) * 4;
+                                    int groupOffset = groupRow + (x - left) * 4;
+                                    double backdropAlpha = backdropData[offset + 3] * (1 - weight);
+                                    double groupAlpha = groupData[groupOffset + 3] * weight;
+                                    double alpha = backdropAlpha + groupAlpha;
+                                    if (alpha <= 0) continue;
+                                    for (int channel = 0; channel < 3; channel++)
+                                        backdropData[offset + channel] = (byte)Math.Round(
+                                            (backdropData[offset + channel] * backdropAlpha
+                                                + groupData[groupOffset + channel] * groupAlpha) / alpha);
+                                    backdropData[offset + 3] = (byte)Math.Round(alpha);
+                                }
+                            }
+                        }
+                        else
                         for (int y = top; y < bottom; y++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -1537,9 +1576,44 @@ public sealed partial class PdfPageRenderer
                                 ? new KnockoutState(options.Width, (left, top, right, bottom)) : null
                         }, depth + 1);
                     pixels = pagePixels;
+                    bool plainComposite = pagePixels.Ink is null && pagePixels.RgbProfile is null
+                        && pagePixels.GroupAlpha is null && groupPixels.Ink is null
+                        && groupPixels.RgbProfile is null && parentState.GraphicsSoftMask is null
+                        && parentState.Knockout is null
+                        && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
                     for (int y = top; y < bottom; y++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
+                        if (plainComposite)
+                        {
+                            // Same compositing as SetPixel for a plain RGB page: an opaque group
+                            // pixel at full outer opacity replaces the page pixel outright, and
+                            // every other pixel uses the ordinary RGB compositor directly.
+                            byte[] groupData = groupPixels.Data;
+                            byte[] pageData = pagePixels.Data;
+                            int groupRow = groupPixels.Offset(left, y);
+                            for (int x = left; x < right; x++)
+                            {
+                                int offset = groupRow + (x - left) * 4;
+                                byte alpha = groupData[offset + 3];
+                                if (alpha == 0 || !pagePixels.Contains(x, y)) continue;
+                                var color = new Color(groupData[offset + 2], groupData[offset + 1], groupData[offset]);
+                                if (color.DoesNotPaint) continue;
+                                int pageOffset = pagePixels.Offset(x, y);
+                                if (alpha == 255 && parentState.FillAlpha >= 1)
+                                {
+                                    pageData[pageOffset] = groupData[offset];
+                                    pageData[pageOffset + 1] = groupData[offset + 1];
+                                    pageData[pageOffset + 2] = groupData[offset + 2];
+                                    pageData[pageOffset + 3] = 255;
+                                    continue;
+                                }
+                                SetRgbPixel(pagePixels, pageOffset, color,
+                                    Math.Clamp(alpha / 255d * parentState.FillAlpha, 0, 1),
+                                    parentState.BlendMode);
+                            }
+                            continue;
+                        }
                         for (int x = left; x < right; x++)
                         {
                             int offset = groupPixels.Offset(x, y);
