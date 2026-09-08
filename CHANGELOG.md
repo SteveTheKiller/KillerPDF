@@ -6,7 +6,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.5] - Unreleased
 
-1.8.5 adds a headless page-render benchmark command.
+1.8.5 restores saving edits to tagged PDFs and adds a headless page-render benchmark command.
+
+### Fixed
+
+- Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 
 ### Added
 
