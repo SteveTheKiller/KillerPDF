@@ -143,7 +143,7 @@ public sealed partial class PdfPageRenderer
         _rowParallelism = Math.Max(1, options.MaximumParallelism);
         try
         {
-            ImageColorSpace initialGray = ReadColorSpace(Name("DeviceGray"), pageResources, 0).ForDestination(pixels);
+            ImageColorSpace initialGray = ReadColorSpace(Name("DeviceGray"), pageResources, 0, diagnostics: diagnostics).ForDestination(pixels);
             if (initialGray.IsDefault)
             {
                 Color initialColor = initialGray.InitialPaint(out double[]? initialComponents);
@@ -176,9 +176,9 @@ public sealed partial class PdfPageRenderer
             ImageColorSpace? deviceGray = null, deviceRgb = null, deviceCmyk = null;
             ImageColorSpace DeviceSpace(int components) => components switch
             {
-                1 => deviceGray ??= ReadColorSpace(Name("DeviceGray"), resources, 0).ForDestination(pixels),
-                3 => deviceRgb ??= ReadColorSpace(Name("DeviceRGB"), resources, 0).ForDestination(pixels),
-                _ => deviceCmyk ??= ReadColorSpace(Name("DeviceCMYK"), resources, 0).ForDestination(pixels)
+                1 => deviceGray ??= ReadColorSpace(Name("DeviceGray"), resources, 0, diagnostics: diagnostics).ForDestination(pixels),
+                3 => deviceRgb ??= ReadColorSpace(Name("DeviceRGB"), resources, 0, diagnostics: diagnostics).ForDestination(pixels),
+                _ => deviceCmyk ??= ReadColorSpace(Name("DeviceCMYK"), resources, 0, diagnostics: diagnostics).ForDestination(pixels)
             };
             var stack = new Stack<(GraphicsState Graphics, PdfDictionary? Font,
                 PdfExtractionFont? ExtractionFont, double FontSize,
@@ -278,7 +278,7 @@ public sealed partial class PdfPageRenderer
                     break;
                 case "cs" when values.Count == 1:
                     if (TryReadPatternColorSpace(values[0], resources,
-                        out ImageColorSpace? fillPatternBase))
+                        out ImageColorSpace? fillPatternBase, diagnostics: diagnostics))
                     {
                         state = state with
                         {
@@ -292,7 +292,7 @@ public sealed partial class PdfPageRenderer
                     }
                     else
                     {
-                        ImageColorSpace fillSpace = ReadColorSpace(values[0], resources, 0).ForDestination(pixels);
+                        ImageColorSpace fillSpace = ReadColorSpace(values[0], resources, 0, diagnostics: diagnostics).ForDestination(pixels);
                         state = state with
                         {
                             FillColorSpace = fillSpace,
@@ -329,7 +329,7 @@ public sealed partial class PdfPageRenderer
                     break;
                 case "CS" when values.Count == 1:
                     if (TryReadPatternColorSpace(values[0], resources,
-                        out ImageColorSpace? strokePatternBase))
+                        out ImageColorSpace? strokePatternBase, diagnostics: diagnostics))
                     {
                         state = state with
                         {
@@ -343,7 +343,7 @@ public sealed partial class PdfPageRenderer
                     }
                     else
                     {
-                        ImageColorSpace strokeSpace = ReadColorSpace(values[0], resources, 0).ForDestination(pixels);
+                        ImageColorSpace strokeSpace = ReadColorSpace(values[0], resources, 0, diagnostics: diagnostics).ForDestination(pixels);
                         state = state with
                         {
                             StrokeColorSpace = strokeSpace,
@@ -660,7 +660,7 @@ public sealed partial class PdfPageRenderer
                             state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                             state.Knockout, cancellationToken, pixels, options.Width,
                             options.Height, scaleX, scaleY,
-                            out string? imageDiagnostic, state.FillOverprint))
+                            out string? imageDiagnostic, state.FillOverprint, diagnostics))
                             diagnostics.Add(imageDiagnostic
                                 ?? "Image rendering is not implemented.");
                     }
@@ -675,14 +675,14 @@ public sealed partial class PdfPageRenderer
                         state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                         state.Knockout, cancellationToken, pixels, options.Width,
                         options.Height, scaleX, scaleY,
-                        out string? inlineDiagnostic, state.FillOverprint))
+                        out string? inlineDiagnostic, state.FillOverprint, diagnostics))
                         diagnostics.Add(inlineDiagnostic
                             ?? "Inline-image rendering is not implemented.");
                     break;
                 case "sh" when values.Count == 1 && values[0] is PdfName shadingName:
                     if (!TryRenderShading(resources, shadingName, state, pixels,
                         options.Width, options.Height, scaleX, scaleY, cancellationToken,
-                        out string? shadingDiagnostic))
+                        out string? shadingDiagnostic, diagnostics))
                         diagnostics.Add(shadingDiagnostic
                             ?? "Shading rendering is not implemented.");
                     break;
@@ -779,7 +779,7 @@ public sealed partial class PdfPageRenderer
                     };
                     if (!TryRenderResolvedShading(paint.Shading, parentResources,
                         shadingState, pixels, options.Width, options.Height, scaleX, scaleY,
-                        cancellationToken, out string? shadingDiagnostic)
+                        cancellationToken, out string? shadingDiagnostic, diagnostics)
                         && shadingDiagnostic is not null)
                         diagnostics.Add(shadingDiagnostic);
                     return;
@@ -1258,7 +1258,7 @@ public sealed partial class PdfPageRenderer
                             Name("Group"), out PdfObject? attributesValue)
                         && Resolve(attributesValue) is PdfDictionary attributes
                         && attributes.TryGetValue(Name("CS"), out PdfObject? colorSpaceValue)
-                            ? ReadColorSpace(colorSpaceValue, groupResources, 0)
+                            ? ReadColorSpace(colorSpaceValue, groupResources, 0, diagnostics: diagnostics)
                             : new ImageColorSpace(1, null);
                     device = !colorSpace.IsIccBased && colorSpace.Converter is null && colorSpace.MultiConverter is null;
                     if (!source.TryGetValue(Name("BC"), out PdfObject? backdropValue))
@@ -2010,7 +2010,7 @@ public sealed partial class PdfPageRenderer
         RendererBlendMode blendMode, GraphicsSoftMask? graphicsSoftMask,
         KnockoutState? knockout, CancellationToken cancellationToken,
         RasterSurface target, int targetWidth, int targetHeight, double scaleX, double scaleY,
-        out string? diagnostic, bool overprint = false)
+        out string? diagnostic, bool overprint = false, HashSet<string>? diagnostics = null)
     {
         diagnostic = null;
         if (_document.UsesCompatibilityRecovery
@@ -2053,7 +2053,7 @@ public sealed partial class PdfPageRenderer
         {
             colorSpace = imageMask ? new ImageColorSpace(1, null)
                 : stream.Dictionary.ContainsKey(Name("ColorSpace"))
-                    ? ReadImageColorSpace(stream.Dictionary, resources)
+                    ? ReadImageColorSpace(stream.Dictionary, resources, diagnostics)
                     : InferJpeg2000ColorSpace(jpeg2000Shape, opacityChannel);
         }
         catch (PdfFilterException error)
@@ -2345,15 +2345,15 @@ public sealed partial class PdfPageRenderer
     }
 
     private ImageColorSpace ReadImageColorSpace(
-        PdfDictionary dictionary, PdfDictionary resources)
+        PdfDictionary dictionary, PdfDictionary resources, HashSet<string>? diagnostics)
     {
         if (!dictionary.TryGetValue(Name("ColorSpace"), out PdfObject? value))
             throw new NotSupportedException();
-        return ReadColorSpace(value, resources, 0);
+        return ReadColorSpace(value, resources, 0, diagnostics: diagnostics);
     }
 
     private bool TryReadPatternColorSpace(PdfObject value, PdfDictionary resources,
-        out ImageColorSpace? baseSpace, int depth = 0)
+        out ImageColorSpace? baseSpace, int depth = 0, HashSet<string>? diagnostics = null)
     {
         if (depth > 16) throw new FormatException("A pattern color-space reference is cyclic.");
         PdfObject resolved = Resolve(value);
@@ -2367,13 +2367,13 @@ public sealed partial class PdfPageRenderer
             if (resources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
                 && Resolve(spacesValue) is PdfDictionary spaces
                 && spaces.TryGetValue(name, out PdfObject? namedValue))
-                return TryReadPatternColorSpace(namedValue, resources, out baseSpace, depth + 1);
+                return TryReadPatternColorSpace(namedValue, resources, out baseSpace, depth + 1, diagnostics);
         }
         else if (resolved is PdfArray { Count: 1 or 2 } array
             && Resolve(array[0]) is PdfName kind
             && kind.ValueAsLatin1() == "Pattern")
         {
-            baseSpace = array.Count == 2 ? ReadColorSpace(array[1], resources, depth + 1) : null;
+            baseSpace = array.Count == 2 ? ReadColorSpace(array[1], resources, depth + 1, diagnostics: diagnostics) : null;
             return true;
         }
         baseSpace = null;
@@ -2381,7 +2381,8 @@ public sealed partial class PdfPageRenderer
     }
 
     private ImageColorSpace ReadColorSpace(
-        PdfObject value, PdfDictionary resources, int depth, bool useDefaults = true)
+        PdfObject value, PdfDictionary resources, int depth, bool useDefaults = true,
+        HashSet<string>? diagnostics = null)
     {
         if (depth > 16) throw new FormatException("An image color-space reference is cyclic.");
         PdfObject resolved = Resolve(value);
@@ -2411,7 +2412,7 @@ public sealed partial class PdfPageRenderer
                 try
                 {
                     // A replacement's underlying device spaces do not reapply the defaults.
-                    ImageColorSpace mapped = ReadColorSpace(replacement, resources, depth + 1, false);
+                    ImageColorSpace mapped = ReadColorSpace(replacement, resources, depth + 1, false, diagnostics);
                     if (mapped.Components != standard.Components || mapped.Palette is not null || mapped.IsLab)
                         return standard;
                     // Device samples retain their original ranges and initial component values.
@@ -2426,7 +2427,7 @@ public sealed partial class PdfPageRenderer
                 || Resolve(spacesValue) is not PdfDictionary spaces
                 || !spaces.TryGetValue(name, out PdfObject? namedValue))
                 throw new NotSupportedException();
-            return ReadColorSpace(namedValue, resources, depth + 1, useDefaults);
+            return ReadColorSpace(namedValue, resources, depth + 1, useDefaults, diagnostics);
         }
         if (resolved is not PdfArray array || array.Count < 2
             || Resolve(array[0]) is not PdfName kind)
@@ -2462,7 +2463,7 @@ public sealed partial class PdfPageRenderer
             }
             ImageColorSpace alternate = profile.Dictionary.TryGetValue(
                 Name("Alternate"), out PdfObject? alternateValue)
-                ? ReadColorSpace(alternateValue, resources, depth + 1, useDefaults)
+                ? ReadColorSpace(alternateValue, resources, depth + 1, useDefaults, diagnostics)
                 : count.Value switch
                 {
                     1 => new ImageColorSpace(1, null),
@@ -2471,6 +2472,7 @@ public sealed partial class PdfPageRenderer
                 };
             if (alternate.Components != count.Value || alternate.Palette is not null)
                 throw new FormatException("An ICCBased image alternate has the wrong component count.");
+            diagnostics?.Add("A source ICC profile could not be used; its alternate color space was used.");
             double[]? effectiveRange = componentRange;
             if (alternate.ComponentRange is { } alternateRange)
             {
@@ -2558,7 +2560,7 @@ public sealed partial class PdfPageRenderer
         if (kind.ValueAsLatin1() == "Separation")
         {
             if (array.Count != 4 || Resolve(array[1]) is not PdfName colorant
-                || ReadColorSpace(array[2], resources, depth + 1, useDefaults) is not { Palette: null } alternate)
+                || ReadColorSpace(array[2], resources, depth + 1, useDefaults, diagnostics) is not { Palette: null } alternate)
                 throw new FormatException("A Separation image color space is invalid.");
             Func<double, Color> tintTransform = ReadColorFunction(
                 array[3], alternate, "Separation tint transform");
@@ -2577,7 +2579,7 @@ public sealed partial class PdfPageRenderer
                 || names.Count is < 1 or > 32
                 || names.Any(item => Resolve(item) is not PdfName))
                 throw new FormatException("A DeviceN image color space is invalid.");
-            ImageColorSpace alternate = ReadColorSpace(array[2], resources, depth + 1, useDefaults);
+            ImageColorSpace alternate = ReadColorSpace(array[2], resources, depth + 1, useDefaults, diagnostics);
             if (alternate.Palette is not null)
                 throw new FormatException("A DeviceN image alternate color space is invalid.");
             Func<double[], Color> tintTransform = ReadMultidimensionalColorFunction(
@@ -2594,7 +2596,7 @@ public sealed partial class PdfPageRenderer
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
             throw new NotSupportedException();
-        ImageColorSpace baseSpace = ReadColorSpace(array[1], resources, depth + 1, useDefaults);
+        ImageColorSpace baseSpace = ReadColorSpace(array[1], resources, depth + 1, useDefaults, diagnostics);
         if (baseSpace.Palette is not null) throw new NotSupportedException();
         int baseComponents = baseSpace.Components;
         int entryCount = (int)highValue.Value + 1;
@@ -3143,7 +3145,7 @@ public sealed partial class PdfPageRenderer
     private bool TryRenderShading(PdfDictionary resources, PdfName resourceName,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, CancellationToken cancellationToken,
-        out string? diagnostic)
+        out string? diagnostic, HashSet<string>? diagnostics = null)
     {
         diagnostic = null;
         try
@@ -3153,7 +3155,7 @@ public sealed partial class PdfPageRenderer
                 || !shadings.TryGetValue(resourceName, out PdfObject? shadingValue))
                 throw new FormatException("A shading resource could not be resolved.");
             return TryRenderResolvedShading(Resolve(shadingValue), resources, state, target,
-                targetWidth, targetHeight, scaleX, scaleY, cancellationToken, out diagnostic);
+                targetWidth, targetHeight, scaleX, scaleY, cancellationToken, out diagnostic, diagnostics);
         }
         catch (NotSupportedException)
         {
@@ -3165,7 +3167,7 @@ public sealed partial class PdfPageRenderer
     private bool TryRenderResolvedShading(PdfObject resolved, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, CancellationToken cancellationToken,
-        out string? diagnostic)
+        out string? diagnostic, HashSet<string>? diagnostics = null)
     {
         diagnostic = null;
         try
@@ -3181,30 +3183,30 @@ public sealed partial class PdfPageRenderer
                 throw new NotSupportedException();
             if (shadingType.Value == 1)
                 return RenderFunctionShading(shading, resources, state, target,
-                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
+                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics);
             if (shadingType.Value == 4)
                 return resolved is PdfStream freeForm
                     ? RenderFreeFormMeshShading(freeForm, resources, state, target,
-                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken)
+                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics)
                     : throw new FormatException("A free-form mesh shading must be a stream.");
             if (shadingType.Value == 5)
                 return resolved is PdfStream lattice
                     ? RenderLatticeMeshShading(lattice, resources, state, target,
-                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken)
+                        targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics)
                     : throw new FormatException("A lattice mesh shading must be a stream.");
             if (shadingType.Value is 6 or 7)
                 return resolved is PdfStream patch
                     ? RenderPatchMeshShading(patch, resources, state, target,
                         targetWidth, targetHeight, scaleX, scaleY,
-                        tensorProduct: shadingType.Value == 7, cancellationToken)
+                        tensorProduct: shadingType.Value == 7, cancellationToken, diagnostics)
                     : throw new FormatException("A patch mesh shading must be a stream.");
             if (shadingType.Value == 3)
                 return RenderRadialShading(shading, resources, state, target,
-                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken);
+                    targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics);
             if (shadingType.Value != 2) throw new NotSupportedException();
             if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
                 throw new FormatException("An axial shading color space is missing.");
-            ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0).ForDestination(target);
+            ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0, diagnostics: diagnostics).ForDestination(target);
             if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
                 throw new FormatException("An axial shading coordinate array is missing.");
             PdfArray coordinates = ResolveArray(coordinatesValue, 4,
@@ -3286,11 +3288,11 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderFunctionShading(PdfDictionary shading, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken)
+        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
     {
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A function shading color space is missing.");
-        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0).ForDestination(target);
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0, diagnostics: diagnostics).ForDestination(target);
         if (!shading.TryGetValue(Name("Function"), out PdfObject? functionValue))
             throw new FormatException("A function shading function is missing.");
         Func<double[], Color> function = ReadMultidimensionalColorFunction(
@@ -3335,10 +3337,10 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderFreeFormMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken)
+        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
     {
         MeshDecoder mesh = ReadMeshDecoder(
-            stream, resources, hasFlags: true, state.Transform, target);
+            stream, resources, hasFlags: true, state.Transform, target, diagnostics);
         var previous = new MeshVertex[3];
         bool rendered = false;
         while (mesh.HasData)
@@ -3373,13 +3375,13 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderLatticeMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken)
+        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
     {
         int verticesPerRow = checked((int)AssertInteger(stream.Dictionary, "VerticesPerRow"));
         if (verticesPerRow is < 2 or > MaximumMeshVerticesPerRow)
             throw new FormatException("A lattice mesh shading has an invalid row width.");
         MeshDecoder mesh = ReadMeshDecoder(
-            stream, resources, hasFlags: false, state.Transform, target);
+            stream, resources, hasFlags: false, state.Transform, target, diagnostics);
         MeshVertex[]? previous = null;
         int rowCount = 0;
         while (mesh.HasData)
@@ -3410,12 +3412,13 @@ public sealed partial class PdfPageRenderer
     }
 
     private MeshDecoder ReadMeshDecoder(
-        PdfStream stream, PdfDictionary resources, bool hasFlags, Matrix transform, RasterSurface target)
+        PdfStream stream, PdfDictionary resources, bool hasFlags, Matrix transform, RasterSurface target,
+        HashSet<string>? diagnostics)
     {
         PdfDictionary shading = stream.Dictionary;
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A mesh shading color space is missing.");
-        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0).ForDestination(target);
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0, diagnostics: diagnostics).ForDestination(target);
         int coordinateBits = PositiveInteger(shading, "BitsPerCoordinate");
         int componentBits = PositiveInteger(shading, "BitsPerComponent");
         int flagBits = hasFlags ? PositiveInteger(shading, "BitsPerFlag") : 0;
@@ -3486,12 +3489,12 @@ public sealed partial class PdfPageRenderer
     private bool RenderPatchMeshShading(PdfStream stream, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
         double scaleX, double scaleY, bool tensorProduct,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, HashSet<string>? diagnostics)
     {
         PdfDictionary shading = stream.Dictionary;
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A patch mesh shading color space is missing.");
-        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0).ForDestination(target);
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0, diagnostics: diagnostics).ForDestination(target);
         int coordinateBits = PositiveInteger(shading, "BitsPerCoordinate");
         int componentBits = PositiveInteger(shading, "BitsPerComponent");
         int flagBits = PositiveInteger(shading, "BitsPerFlag");
@@ -3710,11 +3713,11 @@ public sealed partial class PdfPageRenderer
 
     private bool RenderRadialShading(PdfDictionary shading, PdfDictionary resources,
         GraphicsState state, RasterSurface target, int targetWidth, int targetHeight,
-        double scaleX, double scaleY, CancellationToken cancellationToken)
+        double scaleX, double scaleY, CancellationToken cancellationToken, HashSet<string>? diagnostics)
     {
         if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
             throw new FormatException("A radial shading color space is missing.");
-        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0).ForDestination(target);
+        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, resources, 0, diagnostics: diagnostics).ForDestination(target);
         if (!shading.TryGetValue(Name("Coords"), out PdfObject? coordinatesValue))
             throw new FormatException("A radial shading coordinate array is missing.");
         PdfArray coordinates = ResolveArray(coordinatesValue, 6,

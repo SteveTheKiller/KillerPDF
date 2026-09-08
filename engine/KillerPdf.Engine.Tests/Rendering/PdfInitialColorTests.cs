@@ -65,7 +65,10 @@ public sealed class PdfInitialColorTests
         update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(page
             .Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))));
         var result = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
-        Assert.Empty(result.Diagnostics);
+        if (kind == "ICCBased")
+            Assert.Equal("A source ICC profile could not be used; its alternate color space was used.",
+                Assert.Single(result.Diagnostics));
+        else Assert.Empty(result.Diagnostics);
         return result.Pixels.ToArray();
     }
 

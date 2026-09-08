@@ -162,7 +162,10 @@ public sealed class PdfDefaultColorSpaceTests
             Entry("S", Name("Transparency")), Entry("CS", Name(selected))])));
         update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(pageEntries));
         var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
-        Assert.Empty(rendered.Diagnostics);
+        if (paint == "range")
+            Assert.Equal("A source ICC profile could not be used; its alternate color space was used.",
+                Assert.Single(rendered.Diagnostics));
+        else Assert.Empty(rendered.Diagnostics);
         return rendered.Pixels.ToArray();
     }
 

@@ -45,7 +45,7 @@ public sealed partial class PdfPageRenderer
         {
             if (name.ValueAsLatin1() is "DeviceCMYK" or "CMYK" or "DeviceRGB" or "RGB" or "DeviceGray" or "G")
             {
-                ImageColorSpace mapped = ReadColorSpace(name, resources, 0);
+                ImageColorSpace mapped = ReadColorSpace(name, resources, 0, diagnostics: diagnostics);
                 if (mapped.IsDefault && mapped.Profile is { } defaultProfile)
                 {
                     if (defaultProfile.SupportsBlending

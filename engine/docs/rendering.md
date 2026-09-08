@@ -128,9 +128,11 @@ An ordinary page group can declare its own space because it is treated as isolat
 
 Lab profiles are not used as transparency blending spaces.
 
-Color management remains incomplete. Content rendering-intent selection still
-requires work. Unsupported source profiles
-can fall back to their alternate space; fallback diagnostics are not yet complete.
+Unsupported source ICC profiles fall back to their alternate color space and
+report a diagnostic once per page, including when the profile result is cached.
+This applies to painted colors, images, patterns, and shadings.
+Color management remains incomplete: content rendering-intent selection and
+output-profile fallback diagnostics still require work.
 
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels
 are tightly packed BGRA32, with a top-left origin and a row stride of `Width * 4`.
