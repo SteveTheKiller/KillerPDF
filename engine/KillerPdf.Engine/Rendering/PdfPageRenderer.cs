@@ -1341,10 +1341,10 @@ public sealed partial class PdfPageRenderer
                 }
                 if (transparencyGroup && !isolated && !knockout
                     && parentState.Knockout is null
-                    && parentState.GraphicsSoftMask is not null
+                    && (parentState.GraphicsSoftMask is not null || parentState.FillAlpha != 1)
                     && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
                 {
-                    // The outer mask belongs to the completed group, not its individual objects.
+                    // Outer opacity and masks apply to the completed group, not its individual objects.
                     // Keep the backdrop for internal blends, then interpolate premultiplied
                     // results once. This also preserves partially transparent backdrops.
                     RasterSurface backdropPixels = pixels;
@@ -1371,7 +1371,7 @@ public sealed partial class PdfPageRenderer
                             for (int x = left; x < right; x++)
                             {
                                 double weight = parentState.FillAlpha
-                                    * parentState.GraphicsSoftMask.At(x, y) / 255d;
+                                    * (parentState.GraphicsSoftMask?.At(x, y) ?? 255) / 255d;
                                 if (weight <= 0) continue;
                                 int offset = backdropPixels.Offset(x, y);
                                 int groupOffset = maskedGroupPixels.Offset(x, y);

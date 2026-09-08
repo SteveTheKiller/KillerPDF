@@ -13,6 +13,22 @@ public sealed class PdfPageRendererGroupMaskTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void Render_NonIsolatedGroupAppliesOuterOpacityOnce(bool transparent)
+    {
+        PdfDocument document = Create("", "",
+            "1 0 0 rg 0 0 10 10 re f 0 0 1 rg 0 0 10 10 re f",
+            false, "Normal", 1, useMask: false, groupOpacity: 0.5);
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, transparentBackground: transparent));
+
+        Assert.Equal(transparent ? new byte[] { 255, 0, 0, 128 }
+            : new byte[] { 255, 128, 128, 255 }, Pixel(page, 2));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void Render_NonIsolatedGroupKeepsOuterMaskAcrossInnerReset(bool resetMask)
     {
         PdfDocument document = Create("", "1 g 0 0 5 10 re f",
@@ -52,7 +68,7 @@ public sealed class PdfPageRendererGroupMaskTests
         page.Pixels.Span.Slice((5 * page.Width + x) * 4, 4).ToArray();
 
     private static PdfDocument Create(string backdrop, string maskContent, string painting,
-        bool resetMask, string blendMode, double opacity)
+        bool resetMask, string blendMode, double opacity, bool useMask = true, double groupOpacity = 1)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
             Encoding.ASCII.GetBytes(backdrop + " q /Mask gs /Paint Do Q")).Build());
@@ -75,9 +91,10 @@ public sealed class PdfPageRendererGroupMaskTests
         ]), Encoding.ASCII.GetBytes("/Inner gs " + painting));
         var resources = new PdfDictionary([
             Entry("ExtGState", new PdfDictionary([Entry("Mask", new PdfDictionary([
-                Entry("SMask", new PdfDictionary([Entry("S", Name("Luminosity")),
+                Entry("ca", new PdfReal(groupOpacity)),
+                Entry("SMask", useMask ? new PdfDictionary([Entry("S", Name("Luminosity")),
                     Entry("BC", new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(0)])),
-                    Entry("G", update.AddObject(mask))]))]))])),
+                    Entry("G", update.AddObject(mask))]) : Name("None"))]))])),
             Entry("XObject", new PdfDictionary([Entry("Paint", update.AddObject(form))]))
         ]);
         return PdfDocument.Open(update.ReplaceObject(pageReference.ObjectNumber,

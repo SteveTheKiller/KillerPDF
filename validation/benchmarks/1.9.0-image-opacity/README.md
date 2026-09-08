@@ -22,3 +22,20 @@ Output PNGs and the per-page log remain in
 `C:\Users\steve\killerpdf-benchmark\image-opacity-20260907`.
 This is a correctness check, not a new performance or memory comparison.
 Remaining color, compositing, and difficult-page speed work is still open.
+
+## Non-isolated group opacity
+
+A subsequent fix applies outer opacity once to completed non-isolated groups
+under normal blending. Previously an internal opacity setting could replace the
+outer opacity. Two additional regressions verify overlapping objects on white
+and transparent backgrounds. Both failed before the change and pass afterward.
+Full suites pass 3,201 engine tests and 341 app tests; the app builds with zero
+warnings or errors.
+
+The same 74-page app comparison changes only Ghent suite page 2. Its zero-opacity
+patches lose the erroneous crosses, as intended and as shown by PDFium. The
+changed pixel bounds are (662, 441) through (732, 928), with 4,632 changed pixels
+in the 1542 by 2048 engine image. PDFium renders this page one pixel narrower,
+and CMYK and blend-mode differences remain elsewhere. This is not whole-page
+visual parity. The other 73 pages are exactly unchanged. PNGs and the per-page
+log remain in `C:\Users\steve\killerpdf-benchmark\group-opacity-20260907`.
