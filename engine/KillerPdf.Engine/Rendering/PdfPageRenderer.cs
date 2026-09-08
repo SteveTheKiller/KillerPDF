@@ -1990,7 +1990,12 @@ public sealed partial class PdfPageRenderer
                     Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(
                         stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes,
                         resolutionLevel);
-                    return new DecodedImage(decoded.Samples, decoded.Width, decoded.Height);
+                    byte[] colors = decoded.Samples;
+                    SoftMask? alpha = opacityChannel >= 0
+                        ? SeparateEmbeddedJpeg2000Alpha(ref colors, decoded.Width,
+                            decoded.Height, components, bits, opacityChannel, embeddedMaskMode != 0)
+                        : null;
+                    return new DecodedImage(colors, decoded.Width, decoded.Height, alpha?.Samples);
                 }
                 if (jpeg)
                 {
@@ -2036,10 +2041,6 @@ public sealed partial class PdfPageRenderer
                     throw new FormatException("Image sample data has an invalid length.");
                 return new DecodedImage(decodedSamples, width, decodedHeight);
             }
-            if (opacityChannel >= 0)
-                softMask = SeparateEmbeddedJpeg2000Alpha(
-                    ref samples, sampleWidth, sampleHeight, components, bits,
-                    opacityChannel, embeddedMaskMode != 0);
             if (softMask is null) softMask = ReadSoftMask(stream.Dictionary,
                 transform, scaleX, scaleY, cancellationToken);
             if (softMask is null && explicitMask is not null)

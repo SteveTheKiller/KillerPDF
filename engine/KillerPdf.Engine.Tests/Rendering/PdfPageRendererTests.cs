@@ -3645,12 +3645,55 @@ public sealed class PdfPageRendererTests
         PdfDocument document = AddImageDictionaryEntry(
             filtered, "SMaskInData", new PdfInteger(maskMode));
 
-        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
-            0, new PdfRenderOptions(20, 10, includeAnnotations: false, includeFormFields: false));
+        var renderer = new PdfPageRenderer(document);
+        var options = new PdfRenderOptions(20, 10,
+            includeAnnotations: false, includeFormFields: false) { CacheResult = false };
+        PdfRenderedPage rendered = renderer.Render(0, options);
+        PdfRenderedPage repeated = renderer.Render(0, options);
 
         Assert.Equal([64, 64, 192, 255], Pixel(rendered, 2, 5));
         Assert.Equal([blue, green, red, (byte)255], Pixel(rendered, 15, 5));
         Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(rendered.Pixels.ToArray(), repeated.Pixels.ToArray());
+        Assert.Empty(repeated.Diagnostics);
+    }
+
+    [Fact]
+    public void RenderInto_ReusesJpeg2000ColorAndAlphaPlanes()
+    {
+        const int size = 512;
+        int[][] channels = [
+            Enumerable.Repeat(127, size * size).ToArray(),
+            Enumerable.Repeat(-128, size * size).ToArray(),
+            Enumerable.Repeat(-128, size * size).ToArray(),
+            new int[size * size]];
+        var imageSource = new CoreJ2K.Util.InterleavedImageSource(
+            size, size, 4, 8, new bool[4], channels);
+        var parameters = new CoreJ2K.Configuration.J2KEncoderConfiguration()
+            .WithLossless().ToParameterList();
+        byte[] encoded = CoreJ2K.J2kImage.ToBytes(imageSource, parameters);
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(size, size, new PdfContentStreamBuilder()
+                .DrawImage(PdfImage.FromRgb(size, size, new byte[size * size * 3]),
+                    0, 0, size, size)).Build());
+        PdfDocument filtered = AddImageDictionaryEntry(source, "Filter", Name("JPXDecode"), encoded);
+        PdfDocument document = AddImageDictionaryEntry(filtered, "SMaskInData", new PdfInteger(1));
+        var renderer = new PdfPageRenderer(document);
+        var options = new PdfRenderOptions(size, size,
+            includeAnnotations: false, includeFormFields: false);
+        byte[] output = new byte[size * size * 4];
+        Assert.Empty(renderer.RenderInto(0, options, output));
+        byte[] expected = output.ToArray();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        renderer.RenderInto(0, options, output);
+        renderer.RenderInto(0, options, output);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(expected, output);
+        Assert.Equal(new byte[] { 127, 127, 255, 255 }, output[..4]);
+        Assert.True(allocated < size * size * 2,
+            $"Repeated cached image paints allocated {allocated} bytes.");
     }
 
     [Theory]
