@@ -10,6 +10,7 @@ public sealed partial class PdfPageRenderer
         internal PdfColorTransform? InkProfile { get; private set; }
         internal PdfColorTransform? RgbProfile { get; private set; }
         internal PdfColorTransform? BlendProfile => InkProfile ?? RgbProfile;
+        internal PdfColorTransform? InputProfile => _inputProfile ?? BlendProfile;
         private PdfColorTransform? _compositeProfile;
         private PdfColorTransform? _inputProfile;
         private Color _lastInkColor;
@@ -156,6 +157,23 @@ public sealed partial class PdfPageRenderer
                 surface._inputProfile = previous;
                 surface._hasInkColor = false;
             }
+        }
+
+        internal InputProfileScope PrepareInput(int intent)
+        {
+            if (BlendProfile is not PdfIccProfileTransform profile) return default;
+            PdfIccProfileTransform? mapped = profile.ForIntent(intent);
+            if (mapped is not { CanConvertFromXyz: true })
+            {
+                // Selecting a paint state does not itself require color conversion.
+                // Native component paints can use a forward-only blend profile.
+                mapped = profile;
+            }
+            if (ReferenceEquals(mapped, InputProfile)) return default;
+            var scope = new InputProfileScope(this, _inputProfile);
+            _inputProfile = mapped;
+            _hasInkColor = false;
+            return scope;
         }
 
         internal Color ReadColor(int offset, RasterSurface? destination = null) => Ink is null

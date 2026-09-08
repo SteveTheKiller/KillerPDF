@@ -12,9 +12,13 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfIccProfileTransformTests
 {
     [Theory]
-    [InlineData("Perceptual")]
-    [InlineData("Saturation")]
-    public void GroupConversionSelectsRgbDestinationIntentAndRestoresIt(string intent)
+    [InlineData("Perceptual", 0)]
+    [InlineData("Saturation", 0)]
+    [InlineData("Perceptual", 1)]
+    [InlineData("Saturation", 1)]
+    [InlineData("Perceptual", 2)]
+    [InlineData("Saturation", 2)]
+    public void PaintConversionSelectsRgbDestinationIntentAndRestoresIt(string intent, int kind)
     {
         byte[] reference = Render(true), actual = Render(false);
         Assert.Equal(reference[..4], actual[..4]);
@@ -26,8 +30,10 @@ public sealed class PdfIccProfileTransformTests
             PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
             KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
             PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
+            string paint = kind switch { 0 => "/F Do", 1 => "/Source cs 0 0 0 0 sc 0 0 1 1 re f",
+                _ => "/RelativeColorimetric ri /Image Do" };
             var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
-                Encoding.ASCII.GetBytes($"/{intent} ri /F Do /RelativeColorimetric ri 1 1 1 rg 1 0 1 1 re f")).Build());
+                Encoding.ASCII.GetBytes($"/{intent} ri {paint} /RelativeColorimetric ri 1 1 1 rg 1 0 1 1 re f")).Build());
             var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
             var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
             var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
@@ -48,8 +54,13 @@ public sealed class PdfIccProfileTransformTests
                 Entry("Resources", new PdfDictionary([])), Entry("Group", new PdfDictionary([
                     Entry("S", Name("Transparency")), Entry("I", new PdfBoolean(true)), Entry("CS", groupSpace)]))]),
                 "0 0 0 0 k 0 0 1 1 re f"u8));
+            var image = update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
+                Entry("BitsPerComponent", new PdfInteger(8)), Entry("ColorSpace", groupSpace),
+                Entry("Intent", Name(intent))]), new byte[4]));
             update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
-                .Concat([Entry("Resources", new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("F", form)]))])),
+                .Concat([Entry("Resources", new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("F", form), Entry("Image", image)])),
+                    Entry("ColorSpace", new PdfDictionary([Entry("Source", groupSpace)]))])),
                     Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", pageSpace)]))])));
             var result = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(2, 1));
             Assert.Empty(result.Diagnostics);

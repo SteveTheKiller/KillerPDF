@@ -127,6 +127,10 @@ Source and destination transforms share their profiles' encoded data and leave
 both blend spaces unchanged. The destination conversion is restored after the
 group, including on failure. Unavailable result intents retain the blend-profile
 conversion and report a diagnostic.
+Ordinary paints select the destination conversion from the graphics-state intent;
+images can override it with their own `Intent`. Selection is scoped to each paint
+operation, preserving the fixed blending profile and restoring the enclosing state.
+Profiles without a usable reverse table retain the existing blend conversion.
 ICC luminosity masks use connection-space luminance; device masks keep their
 uncalibrated device conversion. Image matte correction precedes color conversion.
 

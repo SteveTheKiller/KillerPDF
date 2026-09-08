@@ -211,6 +211,7 @@ public sealed partial class PdfPageRenderer
             foreach (PdfContentInstruction instruction in instructions)
             {
                 cancellationToken.ThrowIfCancellationRequested();
+                using var inputProfile = pixels.PrepareInput(state.RenderingIntent);
                 IReadOnlyList<PdfObject> values = instruction.Operands;
                 if (instruction.Operator is "BMC" or "BDC")
                 {
@@ -2055,6 +2056,8 @@ public sealed partial class PdfPageRenderer
         }
         bool imageMask = stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
             && Resolve(maskValue) is PdfBoolean { Value: true };
+        using var imageInputProfile = target.PrepareInput(imageMask ? renderingIntent
+            : ReadRenderingIntent(stream.Dictionary, renderingIntent));
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
         bool jpeg2000 = IsSoleJpeg2000Filter(stream.Dictionary);
@@ -4191,7 +4194,7 @@ public sealed partial class PdfPageRenderer
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         var matteConverter = preblendMatte is not null && !imageMask
             ? new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
-                bits, decode, colorSpace, target.Ink is not null, target.BlendProfile, matte: true) : null;
+                bits, decode, colorSpace, target.Ink is not null, target.InputProfile, matte: true) : null;
         byte[]? alphaPlane = null;
         try
         {
@@ -4206,7 +4209,7 @@ public sealed partial class PdfPageRenderer
                 byte[] planeData = plane;
                 byte[]? alphaPlaneData = alphaPlane;
                 bool targetInk = target.Ink is not null;
-                PdfColorTransform? blendProfile = target.BlendProfile;
+                PdfColorTransform? blendProfile = target.InputProfile;
                 // Every plane sample is a pure function of its source sample, so row ranges can
                 // convert independently. Each range owns its converter because the converter
                 // keeps a small color cache.

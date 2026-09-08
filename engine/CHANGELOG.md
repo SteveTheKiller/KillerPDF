@@ -60,7 +60,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 - Skipped decoding invisible images and masks, and stopped retaining full-resolution soft masks used only for reduced rendering.
 - Added described overlays that extend existing PDF structure trees when saving markup.
-- Honored the invoking rendering intent when converting isolated transparency-group results.
+- Honored destination rendering intents for ordinary paints, image overrides, and isolated transparency-group results.
 - Applied graphics-state opacity to ordinary images and honored image-mask precedence over page masks and overridden color-key masks.
 - Preserved outer blend modes, opacity, and soft masks when non-isolated transparency groups reset their internal graphics state, and prevented page opacity and blending from altering soft-mask creation.
 - Preserved original ink components and inherited source profiles across CMYK transparency groups, and shadow detail in unprofiled CMYK images and painted colors.
