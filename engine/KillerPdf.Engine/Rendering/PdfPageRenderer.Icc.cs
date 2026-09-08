@@ -31,10 +31,6 @@ public sealed partial class PdfPageRenderer
         return fallback;
     }
 
-    private Color DeviceCmyk(double cyan, double magenta, double yellow, double black) =>
-        _outputProfile.Value is { } profile ? ConvertProfileColor(profile, cyan, magenta, yellow, black)
-            : Color.Cmyk(cyan, magenta, yellow, black);
-
     private PdfColorTransform? ReadGroupProfile(PdfDictionary page, PdfDictionary resources,
         HashSet<string> diagnostics, PdfColorTransform? inherited = null)
     {
@@ -44,8 +40,20 @@ public sealed partial class PdfPageRenderer
         if (page.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
             && Resolve(resourcesValue) is PdfDictionary ownResources) resources = ownResources;
         PdfObject space = Resolve(spaceValue);
+        if (space is PdfArray { Count: 1 } deviceArray) space = Resolve(deviceArray[0]);
         for (int depth = 0; space is PdfName name && depth < 16; depth++)
         {
+            if (name.ValueAsLatin1() is "DeviceCMYK" or "CMYK" or "DeviceRGB" or "RGB" or "DeviceGray" or "G")
+            {
+                ImageColorSpace mapped = ReadColorSpace(name, resources, 0);
+                if (mapped.IsDefault && mapped.Profile is { } defaultProfile)
+                {
+                    if (defaultProfile.SupportsBlending
+                        && (defaultProfile.Components == 4 || defaultProfile.CanConvertFromXyz)) return defaultProfile;
+                    diagnostics.Add("The default color profile could not be used for group blending.");
+                    return null;
+                }
+            }
             if (name.ValueAsLatin1() is "DeviceCMYK" or "CMYK")
                 return inherited is { Components: 4 } ? inherited : _outputProfile.Value;
             if (name.ValueAsLatin1() is "DeviceRGB" or "RGB" or "DeviceGray" or "G") return null;

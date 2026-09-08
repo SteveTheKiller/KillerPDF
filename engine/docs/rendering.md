@@ -80,6 +80,15 @@ spaces. Both forms use the same color conversion. Parameterized color spaces
 still require their defining entries. These forms follow section 8.6.3 of the
 [PDF reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf).
 
+`DefaultGray`, `DefaultRGB`, and `DefaultCMYK` resources remap device colors for
+paths, images, shadings, and underlying indexed or pattern spaces. Forms use their
+current resources, and supported default profiles also define group blending.
+Device sample ranges and initial components stay unchanged; replacement ranges
+clip values instead of rescaling them. Defaults do not recursively remap their
+own underlying device spaces. Unsupported or incompatible replacements retain
+the original device space. See the default-color-space rules in section 4.5.4 of
+the [PDF reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.3.pdf).
+
 Unprofiled CMYK uses a subtractive approximation: each remaining color-channel
 intensity is multiplied by the remaining intensity after black ink. This preserves
 shadow detail where adding ink components would clip a channel to zero. It is not
@@ -119,8 +128,8 @@ An ordinary page group can declare its own space because it is treated as isolat
 
 Lab profiles are not used as transparency blending spaces.
 
-Color management remains incomplete. Default color-space remapping and content
-rendering-intent selection still require work. Unsupported source profiles
+Color management remains incomplete. Content rendering-intent selection still
+requires work. Unsupported source profiles
 can fall back to their alternate space; fallback diagnostics are not yet complete.
 
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels

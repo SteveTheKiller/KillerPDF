@@ -143,6 +143,17 @@ public sealed partial class PdfPageRenderer
         _rowParallelism = Math.Max(1, options.MaximumParallelism);
         try
         {
+            ImageColorSpace initialGray = ReadColorSpace(Name("DeviceGray"), pageResources, 0).ForDestination(pixels);
+            if (initialGray.IsDefault)
+            {
+                Color initialColor = initialGray.InitialPaint(out double[]? initialComponents);
+                initialState = initialState with
+                {
+                    Fill = initialColor, Stroke = initialColor,
+                    FillColorSpace = initialGray, StrokeColorSpace = initialGray,
+                    FillComponents = initialComponents, StrokeComponents = initialComponents
+                };
+            }
             Process(ReadInstructions(pageIndex, cancellationToken, diagnostics),
                 pageResources, initialState, 0);
             RenderAppearances();
@@ -162,6 +173,13 @@ public sealed partial class PdfPageRenderer
             if (depth > 32) throw new FormatException("Form XObject nesting limit exceeded.");
             using var clipScratch = new ClipScratchScope();
             GraphicsState state = RebindNamedColors(initial, pixels);
+            ImageColorSpace? deviceGray = null, deviceRgb = null, deviceCmyk = null;
+            ImageColorSpace DeviceSpace(int components) => components switch
+            {
+                1 => deviceGray ??= ReadColorSpace(Name("DeviceGray"), resources, 0).ForDestination(pixels),
+                3 => deviceRgb ??= ReadColorSpace(Name("DeviceRGB"), resources, 0).ForDestination(pixels),
+                _ => deviceCmyk ??= ReadColorSpace(Name("DeviceCMYK"), resources, 0).ForDestination(pixels)
+            };
             var stack = new Stack<(GraphicsState Graphics, PdfDictionary? Font,
                 PdfExtractionFont? ExtractionFont, double FontSize,
                 double CharacterSpacing, double WordSpacing, double HorizontalScale,
@@ -223,31 +241,14 @@ public sealed partial class PdfPageRenderer
                     state = state with { Transform = Matrix.From(values).Then(state.Transform) };
                     break;
                 case "g" when values.Count == 1:
-                    state = state with
-                    {
-                        Fill = Color.Gray(Number(values[0])),
-                        FillColorSpace = new ImageColorSpace(1, null),
-                        FillPatternSpace = false,
-                        FillPatternBase = null,
-                        FillPattern = null
-                    };
-                    break;
                 case "rg" when values.Count == 3:
-                    state = state with
-                    {
-                        Fill = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2])),
-                        FillColorSpace = new ImageColorSpace(3, null),
-                        FillPatternSpace = false,
-                        FillPatternBase = null,
-                        FillPattern = null
-                    };
-                    break;
                 case "k" when values.Count == 4:
+                    ImageColorSpace deviceFill = DeviceSpace(values.Count);
                     state = state with
                     {
-                        Fill = DeviceCmyk(Number(values[0]), Number(values[1]),
-                            Number(values[2]), Number(values[3])),
-                        FillColorSpace = new ImageColorSpace(4, null, Profile: _outputProfile.Value),
+                        Fill = ReadDevicePaint(deviceFill, values, out double[]? deviceFillComponents),
+                        FillColorSpace = deviceFill,
+                        FillComponents = deviceFillComponents,
                         FillPatternSpace = false,
                         FillPatternBase = null,
                         FillPattern = null
@@ -313,31 +314,14 @@ public sealed partial class PdfPageRenderer
                     };
                     break;
                 case "G" when values.Count == 1:
-                    state = state with
-                    {
-                        Stroke = Color.Gray(Number(values[0])),
-                        StrokeColorSpace = new ImageColorSpace(1, null),
-                        StrokePatternSpace = false,
-                        StrokePatternBase = null,
-                        StrokePattern = null
-                    };
-                    break;
                 case "RG" when values.Count == 3:
-                    state = state with
-                    {
-                        Stroke = Color.Rgb(Number(values[0]), Number(values[1]), Number(values[2])),
-                        StrokeColorSpace = new ImageColorSpace(3, null),
-                        StrokePatternSpace = false,
-                        StrokePatternBase = null,
-                        StrokePattern = null
-                    };
-                    break;
                 case "K" when values.Count == 4:
+                    ImageColorSpace deviceStroke = DeviceSpace(values.Count);
                     state = state with
                     {
-                        Stroke = DeviceCmyk(Number(values[0]), Number(values[1]),
-                            Number(values[2]), Number(values[3])),
-                        StrokeColorSpace = new ImageColorSpace(4, null, Profile: _outputProfile.Value),
+                        Stroke = ReadDevicePaint(deviceStroke, values, out double[]? deviceStrokeComponents),
+                        StrokeColorSpace = deviceStroke,
+                        StrokeComponents = deviceStrokeComponents,
                         StrokePatternSpace = false,
                         StrokePatternBase = null,
                         StrokePattern = null
@@ -2397,7 +2381,7 @@ public sealed partial class PdfPageRenderer
     }
 
     private ImageColorSpace ReadColorSpace(
-        PdfObject value, PdfDictionary resources, int depth)
+        PdfObject value, PdfDictionary resources, int depth, bool useDefaults = true)
     {
         if (depth > 16) throw new FormatException("An image color-space reference is cyclic.");
         PdfObject resolved = Resolve(value);
@@ -2415,12 +2399,34 @@ public sealed partial class PdfPageRenderer
                     Initial: InitialColor.BlackInk),
                 _ => null
             };
-            if (standard is not null) return standard;
+            if (standard is not null)
+            {
+                if (!useDefaults || !resources.TryGetValue(Name("ColorSpace"), out PdfObject? defaultsValue)
+                    || Resolve(defaultsValue) is not PdfDictionary defaults) return standard;
+                string defaultName = standard.Components switch
+                {
+                    1 => "DefaultGray", 3 => "DefaultRGB", _ => "DefaultCMYK"
+                };
+                if (!defaults.TryGetValue(Name(defaultName), out PdfObject? replacement)) return standard;
+                try
+                {
+                    // A replacement's underlying device spaces do not reapply the defaults.
+                    ImageColorSpace mapped = ReadColorSpace(replacement, resources, depth + 1, false);
+                    if (mapped.Components != standard.Components || mapped.Palette is not null || mapped.IsLab)
+                        return standard;
+                    // Device samples retain their original ranges and initial component values.
+                    return mapped with { DefaultDecode = null, Initial = standard.Initial, IsDefault = true };
+                }
+                catch (Exception exception) when (exception is NotSupportedException or FormatException)
+                {
+                    return standard;
+                }
+            }
             if (!resources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
                 || Resolve(spacesValue) is not PdfDictionary spaces
                 || !spaces.TryGetValue(name, out PdfObject? namedValue))
                 throw new NotSupportedException();
-            return ReadColorSpace(namedValue, resources, depth + 1);
+            return ReadColorSpace(namedValue, resources, depth + 1, useDefaults);
         }
         if (resolved is not PdfArray array || array.Count < 2
             || Resolve(array[0]) is not PdfName kind)
@@ -2456,7 +2462,7 @@ public sealed partial class PdfPageRenderer
             }
             ImageColorSpace alternate = profile.Dictionary.TryGetValue(
                 Name("Alternate"), out PdfObject? alternateValue)
-                ? ReadColorSpace(alternateValue, resources, depth + 1)
+                ? ReadColorSpace(alternateValue, resources, depth + 1, useDefaults)
                 : count.Value switch
                 {
                     1 => new ImageColorSpace(1, null),
@@ -2547,12 +2553,12 @@ public sealed partial class PdfPageRenderer
                 double fz = fy - b / 200;
                 return convertXyz(whitePoint[0] * LabInverse(fx),
                     whitePoint[1] * LabInverse(fy), whitePoint[2] * LabInverse(fz));
-            }, componentRange, ComponentRange: componentRange);
+            }, componentRange, ComponentRange: componentRange, IsLab: true);
         }
         if (kind.ValueAsLatin1() == "Separation")
         {
             if (array.Count != 4 || Resolve(array[1]) is not PdfName colorant
-                || ReadColorSpace(array[2], resources, depth + 1) is not { Palette: null } alternate)
+                || ReadColorSpace(array[2], resources, depth + 1, useDefaults) is not { Palette: null } alternate)
                 throw new FormatException("A Separation image color space is invalid.");
             Func<double, Color> tintTransform = ReadColorFunction(
                 array[3], alternate, "Separation tint transform");
@@ -2571,7 +2577,7 @@ public sealed partial class PdfPageRenderer
                 || names.Count is < 1 or > 32
                 || names.Any(item => Resolve(item) is not PdfName))
                 throw new FormatException("A DeviceN image color space is invalid.");
-            ImageColorSpace alternate = ReadColorSpace(array[2], resources, depth + 1);
+            ImageColorSpace alternate = ReadColorSpace(array[2], resources, depth + 1, useDefaults);
             if (alternate.Palette is not null)
                 throw new FormatException("A DeviceN image alternate color space is invalid.");
             Func<double[], Color> tintTransform = ReadMultidimensionalColorFunction(
@@ -2588,7 +2594,7 @@ public sealed partial class PdfPageRenderer
             || Resolve(array[2]) is not PdfInteger highValue
             || highValue.Value is < 0 or > 255)
             throw new NotSupportedException();
-        ImageColorSpace baseSpace = ReadColorSpace(array[1], resources, depth + 1);
+        ImageColorSpace baseSpace = ReadColorSpace(array[1], resources, depth + 1, useDefaults);
         if (baseSpace.Palette is not null) throw new NotSupportedException();
         int baseComponents = baseSpace.Components;
         int entryCount = (int)highValue.Value + 1;
@@ -5202,6 +5208,23 @@ public sealed partial class PdfPageRenderer
         _ => throw new FormatException("A rendering operand is not numeric.")
     };
 
+    private Color ReadDevicePaint(ImageColorSpace space, IReadOnlyList<PdfObject> operands,
+        out double[]? sourceComponents)
+    {
+        sourceComponents = null;
+        if (space.HasProcessColorants || space.MultiConverter is not null)
+        {
+            var values = new double[space.Components];
+            for (int index = 0; index < values.Length; index++) values[index] = Number(Resolve(operands[index]));
+            if (space.HasProcessColorants) sourceComponents = values;
+            return space.Convert(values);
+        }
+        return space.Convert(Number(Resolve(operands[0])),
+            operands.Count > 1 ? Number(Resolve(operands[1])) : 0,
+            operands.Count > 2 ? Number(Resolve(operands[2])) : 0,
+            operands.Count > 3 ? Number(Resolve(operands[3])) : 0);
+    }
+
     private Color ReadPaintColor(ImageColorSpace colorSpace,
         IReadOnlyList<PdfObject> operands, Color current, ICollection<string> diagnostics,
         double[]? currentComponents, out double[]? sourceComponents)
@@ -5495,7 +5518,8 @@ public sealed partial class PdfPageRenderer
         PdfColorTransform? Profile = null, ImageColorSpace? PaletteBase = null,
         byte[]? PaletteSamples = null, bool IsIccBased = false, double[]? ComponentRange = null,
         int[]? ProcessChannels = null, byte? NativeProcessMask = null, ImageColorSpace? SourceSpace = null,
-        bool SuppressPainting = false, bool RegistrationColor = false, InitialColor Initial = InitialColor.Zero)
+        bool SuppressPainting = false, bool RegistrationColor = false, InitialColor Initial = InitialColor.Zero,
+        bool IsLab = false, bool IsDefault = false)
     {
         internal bool DoesNotPaint => SuppressPainting || PaletteBase?.SuppressPainting == true;
         internal bool HasProcessColorants => RegistrationColor || ProcessChannels is not null
@@ -5509,6 +5533,7 @@ public sealed partial class PdfPageRenderer
             {
                 var values = new double[Components];
                 if (tint != 0) Array.Fill(values, tint);
+                if (Initial == InitialColor.BlackInk) values[3] = 1;
                 if (HasProcessColorants) components = values;
                 return Convert(values);
             }
