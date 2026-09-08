@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.IO;
 using EngineDocument = KillerPdf.Engine.Documents.PdfDocument;
 using EnginePageInformation = KillerPdf.Engine.Documents.PdfPageInformation;
@@ -14,8 +13,7 @@ namespace KillerPDF.Services;
 /// </summary>
 internal sealed class PdfPageRenderSession : IDisposable
 {
-    private static readonly ArrayPool<byte> EncodingBuffers =
-        ArrayPool<byte>.Create(maxArrayLength: 16 * 1024 * 1024, maxArraysPerBucket: 1);
+    private static readonly PdfEncodingBufferPool EncodingBuffers = new();
     private byte[]? _encodingBuffer;
     private EngineRenderer? _engineRenderer;
     private IReadOnlyList<EnginePageInformation> _enginePages;
