@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO.Compression;
 using KillerPdf.Engine.Objects;
 
@@ -567,16 +568,16 @@ public static class PdfStreamDecoder
         failure = null;
         using var output = new FlateOutputBuffer(maximumDecodedBytes);
         if (start >= encoded.Length) return [];
+        byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
         try
         {
             using var input = new MemoryStream(encoded, start, encoded.Length - start, writable: false);
             using Stream inflater = zlibHeader
                 ? new ZLibStream(input, CompressionMode.Decompress)
                 : new DeflateStream(input, CompressionMode.Decompress);
-            byte[] buffer = new byte[bufferSize];
             while (true)
             {
-                int read = inflater.Read(buffer, 0, buffer.Length);
+                int read = inflater.Read(buffer, 0, bufferSize);
                 if (read == 0) break;
                 if (truncateAtLimit && output.Length + read > maximumDecodedBytes)
                 {
@@ -593,38 +594,35 @@ public static class PdfStreamDecoder
         {
             failure = ex;
         }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(buffer);
+        }
         return output.ToArray();
     }
 
+    // Decoded bytes accumulate in pooled blocks that grow geometrically up to one megabyte,
+    // so only the final exact-size array is allocated per stream. The blocks go back to
+    // the pool when the buffer is disposed.
     private sealed class FlateOutputBuffer(int maximumBytes) : IDisposable
     {
         private const int BlockSize = 1024 * 1024;
-        private readonly MemoryStream _small = new();
-        private List<(byte[] Bytes, int Count)>? _blocks;
+        private const int FirstBlockSize = 4096;
+        private readonly List<(byte[] Bytes, int Count)> _blocks = [];
         public long Length { get; private set; }
 
         public void Write(byte[] source, int offset, int count)
         {
             EnsureWithinLimit(Length + count, maximumBytes);
-            if (_blocks is null && Length + count <= BlockSize)
-            {
-                _small.Write(source, offset, count);
-                Length += count;
-                return;
-            }
-
-            // Keep completed blocks instead of repeatedly copying a growing large array.
-            // Small streams retain MemoryStream's compact allocation behavior.
-            if (_blocks is null)
-            {
-                _blocks = [];
-                if (_small.Length != 0)
-                    _blocks.Add((_small.GetBuffer(), (int)_small.Length));
-            }
             while (count > 0)
             {
                 if (_blocks.Count == 0 || _blocks[^1].Count == _blocks[^1].Bytes.Length)
-                    _blocks.Add((new byte[(int)Math.Min(BlockSize, maximumBytes - Length)], 0));
+                {
+                    long remaining = Math.Max(1, maximumBytes - Length);
+                    int previous = _blocks.Count == 0 ? FirstBlockSize / 2 : _blocks[^1].Bytes.Length;
+                    int size = (int)Math.Min(remaining, Math.Min(BlockSize, Math.Max(previous * 2L, count)));
+                    _blocks.Add((ArrayPool<byte>.Shared.Rent(size), 0));
+                }
                 var block = _blocks[^1];
                 int take = Math.Min(count, block.Bytes.Length - block.Count);
                 source.AsSpan(offset, take).CopyTo(block.Bytes.AsSpan(block.Count));
@@ -637,7 +635,7 @@ public static class PdfStreamDecoder
 
         public byte[] ToArray()
         {
-            if (_blocks is null) return _small.ToArray();
+            if (Length == 0) return [];
             byte[] result = new byte[(int)Length];
             int offset = 0;
             foreach (var block in _blocks)
@@ -648,7 +646,12 @@ public static class PdfStreamDecoder
             return result;
         }
 
-        public void Dispose() => _small.Dispose();
+        public void Dispose()
+        {
+            foreach (var block in _blocks)
+                ArrayPool<byte>.Shared.Return(block.Bytes);
+            _blocks.Clear();
+        }
     }
 
     private static bool HasZlibHeader(ReadOnlySpan<byte> encoded)
