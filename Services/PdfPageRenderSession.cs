@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.IO;
 using EngineDocument = KillerPdf.Engine.Documents.PdfDocument;
 using EnginePageInformation = KillerPdf.Engine.Documents.PdfPageInformation;
@@ -13,6 +14,9 @@ namespace KillerPDF.Services;
 /// </summary>
 internal sealed class PdfPageRenderSession : IDisposable
 {
+    private static readonly ArrayPool<byte> EncodingBuffers =
+        ArrayPool<byte>.Create(maxArrayLength: 16 * 1024 * 1024, maxArraysPerBucket: 1);
+    private byte[]? _encodingBuffer;
     private readonly EngineRenderer _engineRenderer;
     private readonly IReadOnlyList<EnginePageInformation> _enginePages;
     private readonly int _maximumWidth;
@@ -99,13 +103,32 @@ internal sealed class PdfPageRenderSession : IDisposable
             PdfRenderBackend.Engine, Diagnostics(rendered.Diagnostics));
     }
 
-    internal KillerPdf.Engine.Rendering.PdfRenderedPage RenderPageForEncoding(int pageIndex,
-        CancellationToken cancellationToken = default) =>
-        RenderEnginePixels(pageIndex, false, true, true, cancellationToken);
+    // Pixels remain valid until the next encoding render or session disposal.
+    internal PdfPageForEncoding RenderPageForEncoding(int pageIndex,
+        CancellationToken cancellationToken = default)
+    {
+        EngineRenderOptions options = CreateRenderOptions(pageIndex, false, true, true);
+        int length = checked(options.Width * options.Height * 4);
+        if (_encodingBuffer is null || _encodingBuffer.Length < length)
+        {
+            if (_encodingBuffer is not null) EncodingBuffers.Return(_encodingBuffer);
+            _encodingBuffer = null;
+            _encodingBuffer = EncodingBuffers.Rent(length);
+        }
+        var diagnostics = _engineRenderer.RenderInto(pageIndex, options, _encodingBuffer, cancellationToken);
+        return new PdfPageForEncoding(options.Width, options.Height,
+            _encodingBuffer.AsMemory(0, length), diagnostics);
+    }
 
     private KillerPdf.Engine.Rendering.PdfRenderedPage RenderEnginePixels(int pageIndex,
         bool transparentBackground, bool includeAnnotations, bool includeFormFields,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken) =>
+        _engineRenderer.Render(pageIndex,
+            CreateRenderOptions(pageIndex, transparentBackground, includeAnnotations, includeFormFields),
+            cancellationToken);
+
+    private EngineRenderOptions CreateRenderOptions(int pageIndex, bool transparentBackground,
+        bool includeAnnotations, bool includeFormFields)
     {
         if (pageIndex < 0 || pageIndex >= _enginePages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
@@ -117,9 +140,8 @@ internal sealed class PdfPageRenderSession : IDisposable
             ? _scale : Math.Min(_maximumWidth / pageWidth, _maximumHeight / pageHeight);
         int engineWidth = Math.Max(1, (int)Math.Round(pageWidth * renderScale));
         int engineHeight = Math.Max(1, (int)Math.Round(pageHeight * renderScale));
-        return _engineRenderer.Render(
-            pageIndex, new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
-                includeAnnotations, includeFormFields), cancellationToken);
+        return new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
+            includeAnnotations, includeFormFields);
     }
 
     internal static PdfRenderedPage? RenderExactPage(
@@ -145,13 +167,21 @@ internal sealed class PdfPageRenderSession : IDisposable
         }
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+        if (_encodingBuffer is null) return;
+        EncodingBuffers.Return(_encodingBuffer);
+        _encodingBuffer = null;
+    }
 
     private static string? Diagnostics(IReadOnlyList<string> diagnostics) =>
         diagnostics.Count == 0 ? null : string.Join(" ", diagnostics);
 }
 
 internal enum PdfRenderBackend { Engine }
+
+internal readonly record struct PdfPageForEncoding(
+    int Width, int Height, ReadOnlyMemory<byte> Pixels, IReadOnlyList<string> Diagnostics);
 
 internal readonly record struct PdfRenderedPage(
     int Width, int Height, byte[] Pixels, PdfRenderBackend Backend, string? EngineFailure);

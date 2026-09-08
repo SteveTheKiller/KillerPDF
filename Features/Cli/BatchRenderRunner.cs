@@ -212,8 +212,8 @@ namespace KillerPDF.Features
                         row.Width = rendered.Width;
                         row.Height = rendered.Height;
                         row.Detail = string.Join(" ", rendered.Diagnostics);
-                        File.WriteAllBytes($"{dstBase}-page-{(idx + 1).ToString(CultureInfo.InvariantCulture).PadLeft(3, '0')}.png",
-                            BitmapHelpers.RenderToPng(rendered.Pixels, rendered.Width, rendered.Height));
+                        using var output = File.Create($"{dstBase}-page-{(idx + 1).ToString(CultureInfo.InvariantCulture).PadLeft(3, '0')}.png");
+                        BitmapHelpers.WritePng(output, rendered.Pixels, rendered.Width, rendered.Height);
                     }
                     catch (Exception ex)
                     {

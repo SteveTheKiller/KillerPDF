@@ -6,6 +6,17 @@ namespace KillerPDF.Tests;
 public sealed class PngEncodingTests
 {
     [Fact]
+    public void WritePng_PreservesPixelsAndLeavesDestinationOpen()
+    {
+        byte[] source = [9, 8, 7, 6, 30, 60, 90, 255, 120, 150, 180, 255];
+        using var output = new System.IO.MemoryStream();
+        BitmapHelpers.WritePng(output, source.AsMemory(4), 2, 1);
+        Assert.Equal(BitmapHelpers.RenderToPng(source.AsMemory(4), 2, 1), output.ToArray());
+        Assert.True(output.CanWrite);
+        Assert.Equal(30, source[4]);
+    }
+
+    [Fact]
     public void RenderToPng_ReadOnlySliceUsesItsOffsetAndPreservesSource()
     {
         byte[] source = [9, 8, 7, 6, 30, 60, 90, 255, 120, 150, 180, 255, 1, 2, 3, 4];

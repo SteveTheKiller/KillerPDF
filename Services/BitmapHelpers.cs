@@ -153,6 +153,15 @@ namespace KillerPDF.Services
 
         internal static byte[] RenderToPng(ReadOnlyMemory<byte> bgra, int width, int height, double dpi = 96)
         {
+            using var output = new MemoryStream();
+            WritePng(output, bgra, width, height, dpi);
+            return output.ToArray();
+        }
+
+        internal static void WritePng(Stream output, ReadOnlyMemory<byte> bgra,
+            int width, int height, double dpi = 96)
+        {
+            ArgumentNullException.ThrowIfNull(output);
             if (width <= 0 || height <= 0 || bgra.Length < checked(width * height * 4))
                 throw new ArgumentException("Pixel buffer does not contain the requested bitmap.", nameof(bgra));
             if (!MemoryMarshal.TryGetArray(bgra, out ArraySegment<byte> segment))
@@ -166,9 +175,7 @@ namespace KillerPDF.Services
                     IntPtr.Add(pin.AddrOfPinnedObject(), segment.Offset));
                 // #188: bake the render DPI into the file's metadata; GDI+ defaults to 96.
                 bmp.SetResolution((float)dpi, (float)dpi);
-                using var ms = new MemoryStream();
-                bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
-                return ms.ToArray();
+                bmp.Save(output, System.Drawing.Imaging.ImageFormat.Png);
             }
             finally { pin.Free(); }
         }
