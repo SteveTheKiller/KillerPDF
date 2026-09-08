@@ -54,12 +54,16 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 // SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+using System.Buffers;
 using System.Buffers.Binary;
+using System.Buffers.Text;
 using System.Collections.Concurrent;
 using System.IO.Compression;
 using System.Text;
 
 namespace KillerPdf.Engine.Fonts;
+
+internal delegate ReadOnlySpan<byte> EncodedCMap();
 
 internal sealed class PdfPredefinedCMaps
 {
@@ -69,7 +73,7 @@ internal sealed class PdfPredefinedCMaps
     private static readonly ConcurrentDictionary<string, Dictionary<uint, string>> UnicodeCache = new(StringComparer.Ordinal);
     private static readonly ConcurrentDictionary<string, PdfToUnicodeMap> UnicodeMapCache = new(StringComparer.Ordinal);
 
-    private PdfPredefinedCMaps(string encoded)
+    private PdfPredefinedCMaps(ReadOnlySpan<byte> encoded)
     {
         byte[] data = Decompress(encoded);
         if (data.Length % 13 != 0) throw new FormatException("Invalid predefined font mapping data.");
@@ -82,8 +86,8 @@ internal sealed class PdfPredefinedCMaps
         }
     }
 
-    internal static PdfPredefinedCMaps? Find(string name) => PdfPredefinedCMapData.Encodings.TryGetValue(name, out string? data)
-        ? EncodingCache.GetOrAdd(name, _ => new PdfPredefinedCMaps(data)) : null;
+    internal static PdfPredefinedCMaps? Find(string name) => PdfPredefinedCMapData.Encodings.TryGetValue(name, out EncodedCMap? data)
+        ? EncodingCache.GetOrAdd(name, _ => new PdfPredefinedCMaps(data())) : null;
 
     internal static PdfToUnicodeMap? FindUnicodeMap(string name)
     {
@@ -91,10 +95,10 @@ internal sealed class PdfPredefinedCMaps
         if (!name.EndsWith(suffix, StringComparison.Ordinal)) return null;
         string collection = name[..^suffix.Length];
         string dataName = collection + "-H";
-        if (!PdfPredefinedUnicodeData.Collections.TryGetValue(dataName, out string? encoded))
+        if (!PdfPredefinedUnicodeData.Collections.TryGetValue(dataName, out EncodedCMap? encoded))
             return null;
         return UnicodeMapCache.GetOrAdd(name,
-            _ => PdfToUnicodeMap.Create(ReadUnicode(encoded), 2));
+            _ => PdfToUnicodeMap.Create(ReadUnicode(encoded()), 2));
     }
 
     internal uint Cid(uint code)
@@ -154,11 +158,11 @@ internal sealed class PdfPredefinedCMaps
     internal static string? Unicode(string collection, bool vertical, uint cid)
     {
         string name = collection + (vertical ? "-V" : "-H");
-        if (!PdfPredefinedUnicodeData.Collections.TryGetValue(name, out string? encoded)) return null;
-        return UnicodeCache.GetOrAdd(name, _ => ReadUnicode(encoded)).GetValueOrDefault(cid);
+        if (!PdfPredefinedUnicodeData.Collections.TryGetValue(name, out EncodedCMap? encoded)) return null;
+        return UnicodeCache.GetOrAdd(name, _ => ReadUnicode(encoded())).GetValueOrDefault(cid);
     }
 
-    private static Dictionary<uint, string> ReadUnicode(string encoded)
+    private static Dictionary<uint, string> ReadUnicode(ReadOnlySpan<byte> encoded)
     {
         byte[] data = Decompress(encoded);
         var result = new Dictionary<uint, string>();
@@ -175,9 +179,13 @@ internal sealed class PdfPredefinedCMaps
         return result;
     }
 
-    private static byte[] Decompress(string encoded)
+    private static byte[] Decompress(ReadOnlySpan<byte> encoded)
     {
-        using var input = new MemoryStream(Convert.FromBase64String(encoded));
+        byte[] compressed = new byte[Base64.GetMaxDecodedFromUtf8Length(encoded.Length)];
+        if (Base64.DecodeFromUtf8(encoded, compressed, out int consumed, out int written) != OperationStatus.Done
+            || consumed != encoded.Length)
+            throw new FormatException("Invalid predefined mapping encoding.");
+        using var input = new MemoryStream(compressed, 0, written, writable: false);
         using var gzip = new GZipStream(input, CompressionMode.Decompress);
         using var output = new MemoryStream();
         gzip.CopyTo(output);
