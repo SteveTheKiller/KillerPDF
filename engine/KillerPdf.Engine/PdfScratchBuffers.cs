@@ -6,16 +6,21 @@ namespace KillerPdf.Engine;
 
 internal static class PdfScratchBuffers
 {
-    internal static readonly ArrayPool<byte> Bytes = new PdfScratchBufferPool<byte>(32 * 1024 * 1024);
+    // Raster callers size their work from the requested length, so an idle byte buffer up
+    // to four times the request serves it; the sample pools account by array length and
+    // keep exact buckets.
+    internal static readonly ArrayPool<byte> Bytes = new PdfScratchBufferPool<byte>(32 * 1024 * 1024, largerBucketSearch: 2);
     internal static readonly ArrayPool<int> Integers = new PdfScratchBufferPool<int>(16 * 1024 * 1024);
     internal static readonly ArrayPool<float> Floats = new PdfScratchBufferPool<float>(16 * 1024 * 1024);
 }
 
 // A byte budget allows several simultaneously used buffers of the same size to be
 // reused without retaining a fixed number in every possible size bucket.
-internal sealed class PdfScratchBufferPool<T>(int maximumBytes) : ArrayPool<T> where T : unmanaged
+internal sealed class PdfScratchBufferPool<T>(int maximumBytes, int largerBucketSearch = 0) : ArrayPool<T> where T : unmanaged
 {
     private const int MaximumIdleCount = 64;
+    private readonly int _largerBucketSearch = largerBucketSearch >= 0 ? largerBucketSearch
+        : throw new ArgumentOutOfRangeException(nameof(largerBucketSearch));
     // Idle buffers are bucketed by their power-of-two length so renting is a constant-time
     // pop instead of a scan. Over budget, the largest idle buffers are released first.
     private readonly Stack<T[]>[] _idle = new Stack<T[]>[32];
@@ -40,12 +45,18 @@ internal sealed class PdfScratchBufferPool<T>(int maximumBytes) : ArrayPool<T> w
         int length = (int)rounded;
         lock (_sync)
         {
-            Stack<T[]>? bucket = _idle[BitOperations.Log2((uint)length)];
-            if (bucket is { Count: > 0 })
+            // Where allowed, an idle buffer a few buckets larger serves the request rather
+            // than allocating a fresh one; page-sized surfaces vary in size from paint to
+            // paint, and a new large-object allocation per size costs more than the slack.
+            int index = BitOperations.Log2((uint)length);
+            int last = Math.Min(index + _largerBucketSearch, _idle.Length - 1);
+            for (int candidate = index; candidate <= last; candidate++)
             {
+                Stack<T[]>? bucket = _idle[candidate];
+                if (bucket is not { Count: > 0 }) continue;
                 T[] buffer = bucket.Pop();
                 _idleCount--;
-                _retainedBytes -= length * Unsafe.SizeOf<T>();
+                _retainedBytes -= buffer.Length * Unsafe.SizeOf<T>();
                 return buffer;
             }
         }
