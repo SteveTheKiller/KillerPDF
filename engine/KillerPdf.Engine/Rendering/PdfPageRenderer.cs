@@ -1177,10 +1177,14 @@ public sealed partial class PdfPageRenderer
                         ? (byte)0 : ConvertSample(luminosity
                             ? Luminosity(backdrop)
                             : 0);
-                    if (maskPixels.Ink is null && maskPixels.RgbProfile is null && transfer is null)
+                    bool plainRgbMask = maskPixels.Ink is null && maskPixels.RgbProfile is null;
+                    bool plainInkMask = maskPixels.Ink is not null && maskPixels.InkProfile is null
+                        && deviceLuminosity;
+                    if ((plainRgbMask || plainInkMask) && transfer is null)
                     {
-                        // Plain RGB mask surface: read the bytes directly. The arithmetic is
-                        // the same as the general loop below, without per-pixel color objects.
+                        // Plain RGB or unprofiled ink mask surface: read the bytes directly. The
+                        // arithmetic is the same as the general loop below, without per-pixel
+                        // color objects. Ink pixels convert with InkColor's integer math.
                         byte[] maskData = maskPixels.Data;
                         for (int row = 0; row < maskHeight; row++)
                         {
@@ -1190,11 +1194,25 @@ public sealed partial class PdfPageRenderer
                             {
                                 int index = rowIndex + column;
                                 int offset = index * 4;
-                                // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
-                                byte converted = luminosity
-                                    ? (byte)Math.Round((0.3 * maskData[offset + 2] + 0.59 * maskData[offset + 1]
-                                        + 0.11 * maskData[offset]) / 255d * 255)
-                                    : maskData[offset + 3];
+                                byte converted;
+                                if (!luminosity)
+                                {
+                                    // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
+                                    converted = plainRgbMask ? maskData[offset + 3] : maskPixels.Alpha(offset);
+                                }
+                                else if (plainRgbMask)
+                                {
+                                    converted = (byte)Math.Round((0.3 * maskData[offset + 2]
+                                        + 0.59 * maskData[offset + 1] + 0.11 * maskData[offset]) / 255d * 255);
+                                }
+                                else
+                                {
+                                    int light = 255 - maskData[offset + 3];
+                                    int red = ((255 - maskData[offset]) * light + 127) / 255;
+                                    int green = ((255 - maskData[offset + 1]) * light + 127) / 255;
+                                    int blue = ((255 - maskData[offset + 2]) * light + 127) / 255;
+                                    converted = (byte)Math.Round((0.3 * red + 0.59 * green + 0.11 * blue) / 255d * 255);
+                                }
                                 if (index == 0) constant = converted;
                                 if (samples is null && converted != constant)
                                 {
