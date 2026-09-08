@@ -5,30 +5,47 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
-    private readonly Lazy<PdfColorTransform?> _outputProfile;
+    private readonly Lazy<(PdfColorTransform? Transform, bool Unavailable)> _outputProfile;
     private readonly BoundedCache<PdfObject, (PdfColorTransform? Transform, int Bytes)> _colorProfiles =
         new(8, ReferenceEqualityComparer.Instance, 4 * 1024 * 1024, entry => entry.Bytes);
     private static readonly Func<double, double, double, Color> IccXyzToDisplay =
         CreateXyzConverter([0.9642, 1, 0.8249]);
 
-    private PdfColorTransform? ReadOutputProfile()
+    private (PdfColorTransform? Transform, bool Unavailable) ReadOutputProfile()
     {
         if (!_document.Trailer.TryGetValue(Name("Root"), out PdfObject? root)
             || Resolve(root) is not PdfDictionary catalog
             || !catalog.TryGetValue(Name("OutputIntents"), out PdfObject? intentsValue)
-            || Resolve(intentsValue) is not PdfArray intents) return null;
+            || Resolve(intentsValue) is not PdfArray intents) return (null, false);
         PdfColorTransform? fallback = null;
+        bool declared = false;
         foreach (PdfObject value in intents)
         {
             if (Resolve(value) is not PdfDictionary intent
-                || !intent.TryGetValue(Name("DestOutputProfile"), out PdfObject? profileValue)
-                || Resolve(profileValue) is not PdfStream stream
+                || !intent.TryGetValue(Name("DestOutputProfile"), out PdfObject? profileValue)) continue;
+            declared = true;
+            if (Resolve(profileValue) is not PdfStream stream
                 || ReadIccProfile(stream) is not { Components: 4 } profile) continue;
             if (intent.TryGetValue(Name("S"), out PdfObject? subtype)
-                && Resolve(subtype) is PdfName name && name.ValueAsLatin1() == "GTS_PDFX") return profile;
+                && Resolve(subtype) is PdfName name && name.ValueAsLatin1() == "GTS_PDFX") return (profile, false);
             fallback ??= profile;
         }
-        return fallback;
+        return (fallback, declared && fallback is null);
+    }
+
+    private PdfColorTransform? OutputProfile(HashSet<string>? diagnostics)
+    {
+        var profile = _outputProfile.Value;
+        if (profile.Unavailable)
+            diagnostics?.Add("The document output profile could not be used for DeviceCMYK color conversion.");
+        return profile.Transform;
+    }
+
+    private ImageColorSpace BindDeviceProfile(ImageColorSpace space, HashSet<string>? diagnostics)
+    {
+        if (space.Components != 4) return space;
+        PdfColorTransform? profile = OutputProfile(diagnostics);
+        return profile is null ? space : space with { Profile = profile };
     }
 
     private PdfColorTransform? ReadGroupProfile(PdfDictionary page, PdfDictionary resources,
@@ -55,7 +72,7 @@ public sealed partial class PdfPageRenderer
                 }
             }
             if (name.ValueAsLatin1() is "DeviceCMYK" or "CMYK")
-                return inherited is { Components: 4 } ? inherited : _outputProfile.Value;
+                return inherited is { Components: 4 } ? inherited : OutputProfile(diagnostics);
             if (name.ValueAsLatin1() is "DeviceRGB" or "RGB" or "DeviceGray" or "G") return null;
             if (!resources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
                 || Resolve(spacesValue) is not PdfDictionary spaces

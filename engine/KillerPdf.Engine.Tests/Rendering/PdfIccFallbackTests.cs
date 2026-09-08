@@ -88,6 +88,68 @@ public sealed class PdfIccFallbackTests
         return PdfDocument.Open(update.Build());
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void OutputFallbackReportsOnlyWhenDeviceCmykNeedsIt(bool cmyk, bool replacement)
+    {
+        PdfDocument Build(bool output, int profileBytes = 1)
+        {
+            string content = cmyk ? "0.1 0.2 0.3 0.4 k 0 0 8 8 re f" : "0.5 g 0 0 8 8 re f";
+            var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());
+            if (!output && !replacement) return source;
+            var root = (PdfIndirectReference)source.Trailer[Name("Root")];
+            var catalog = (PdfDictionary)source.Resolve(root);
+            var update = new PdfIncrementalUpdateBuilder(source);
+            if (output)
+            {
+                var profile = update.AddObject(new PdfStream(new PdfDictionary([]), new byte[profileBytes]));
+                update.ReplaceObject(root.ObjectNumber, new PdfDictionary(catalog.Append(Entry("OutputIntents",
+                    new PdfArray([new PdfDictionary([Entry("S", Name("GTS_PDFX")), Entry("DestOutputProfile", profile)])])))));
+            }
+            if (replacement)
+            {
+                var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+                var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+                var page = (PdfDictionary)source.Resolve(reference);
+                var function = update.AddObject(new PdfStream(new PdfDictionary([
+                    Entry("FunctionType", new PdfInteger(4)), Entry("Domain", Numbers(0, 1, 0, 1, 0, 1, 0, 1)),
+                    Entry("Range", Numbers(0, 1, 0, 1, 0, 1))]), Encoding.ASCII.GetBytes("{ pop pop pop pop 0.2 0.4 0.6 }")));
+                var space = new PdfArray([Name("DeviceN"), new PdfArray([Name("A"), Name("B"), Name("C"), Name("D")]),
+                    Name("DeviceRGB"), function]);
+                var resources = new PdfDictionary([Entry("ColorSpace", new PdfDictionary([Entry("DefaultCMYK", space)]))]);
+                update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                    .Append(Entry("Resources", resources))));
+            }
+            return PdfDocument.Open(update.Build());
+        }
+        var options = new PdfRenderOptions(8, 8);
+        byte[] expected = new PdfPageRenderer(Build(false)).Render(0, options).Pixels.ToArray();
+        var renderer = new PdfPageRenderer(Build(true));
+        for (int repeat = 0; repeat < 2; repeat++)
+        {
+            var pixels = new byte[expected.Length];
+            var diagnostics = renderer.RenderInto(0, options, pixels);
+            Assert.Equal(expected, pixels);
+            if (cmyk && !replacement)
+                Assert.Equal("The document output profile could not be used for DeviceCMYK color conversion.",
+                    Assert.Single(diagnostics));
+            else Assert.Empty(diagnostics);
+        }
+        if (replacement)
+        {
+            var unusedProfileRenderer = new PdfPageRenderer(Build(true, 4 * 1024 * 1024));
+            var pixels = new byte[expected.Length];
+            long start = GC.GetAllocatedBytesForCurrentThread();
+            var diagnostics = unusedProfileRenderer.RenderInto(0, options, pixels);
+            long allocated = GC.GetAllocatedBytesForCurrentThread() - start;
+            Assert.True(allocated < 131072, $"An unused output profile allocated {allocated} bytes.");
+            Assert.Empty(diagnostics);
+            Assert.Equal(expected, pixels);
+        }
+    }
+
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);
     private static PdfArray Numbers(params double[] values) => new(values.Select(value => (PdfObject)new PdfReal(value)));

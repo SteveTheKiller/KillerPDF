@@ -2396,31 +2396,31 @@ public sealed partial class PdfPageRenderer
             {
                 "DeviceGray" or "G" => new ImageColorSpace(1, null),
                 "DeviceRGB" or "RGB" => new ImageColorSpace(3, null),
-                "DeviceCMYK" or "CMYK" => new ImageColorSpace(4, null, Profile: _outputProfile.Value,
+                "DeviceCMYK" or "CMYK" => new ImageColorSpace(4, null,
                     Initial: InitialColor.BlackInk),
                 _ => null
             };
             if (standard is not null)
             {
                 if (!useDefaults || !resources.TryGetValue(Name("ColorSpace"), out PdfObject? defaultsValue)
-                    || Resolve(defaultsValue) is not PdfDictionary defaults) return standard;
+                    || Resolve(defaultsValue) is not PdfDictionary defaults) return BindDeviceProfile(standard, diagnostics);
                 string defaultName = standard.Components switch
                 {
                     1 => "DefaultGray", 3 => "DefaultRGB", _ => "DefaultCMYK"
                 };
-                if (!defaults.TryGetValue(Name(defaultName), out PdfObject? replacement)) return standard;
+                if (!defaults.TryGetValue(Name(defaultName), out PdfObject? replacement)) return BindDeviceProfile(standard, diagnostics);
                 try
                 {
                     // A replacement's underlying device spaces do not reapply the defaults.
                     ImageColorSpace mapped = ReadColorSpace(replacement, resources, depth + 1, false, diagnostics);
                     if (mapped.Components != standard.Components || mapped.Palette is not null || mapped.IsLab)
-                        return standard;
+                        return BindDeviceProfile(standard, diagnostics);
                     // Device samples retain their original ranges and initial component values.
                     return mapped with { DefaultDecode = null, Initial = standard.Initial, IsDefault = true };
                 }
                 catch (Exception exception) when (exception is NotSupportedException or FormatException)
                 {
-                    return standard;
+                    return BindDeviceProfile(standard, diagnostics);
                 }
             }
             if (!resources.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
@@ -2468,7 +2468,7 @@ public sealed partial class PdfPageRenderer
                 {
                     1 => new ImageColorSpace(1, null),
                     3 => new ImageColorSpace(3, null),
-                    _ => new ImageColorSpace(4, null, Profile: _outputProfile.Value)
+                    _ => new ImageColorSpace(4, null, Profile: OutputProfile(diagnostics))
                 };
             if (alternate.Components != count.Value || alternate.Palette is not null)
                 throw new FormatException("An ICCBased image alternate has the wrong component count.");

@@ -63,7 +63,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Preserved original ink components in CMYK transparency blending and shadow detail in unprofiled CMYK images and painted colors.
 - Corrected embedded CFF subfont scaling that could make glyphs effectively invisible.
 - Honored default color-space resources for painting and transparency blending, and reset fill and stroke colors to their specified initial values when selecting a color space.
-- Reported source ICC profile fallbacks in page-rendering diagnostics.
+- Reported source and output ICC profile fallbacks in page-rendering diagnostics and skipped unused output profiles when default color spaces replace them.
 
 ## [1.8.5] - Unreleased
 

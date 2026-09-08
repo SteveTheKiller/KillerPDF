@@ -131,8 +131,10 @@ Lab profiles are not used as transparency blending spaces.
 Unsupported source ICC profiles fall back to their alternate color space and
 report a diagnostic once per page, including when the profile result is cached.
 This applies to painted colors, images, patterns, and shadings.
-Color management remains incomplete: content rendering-intent selection and
-output-profile fallback diagnostics still require work.
+An unusable embedded document output profile also reports a diagnostic when
+DeviceCMYK conversion requests it. A default color-space replacement can avoid
+loading an unused output profile. Content rendering-intent selection still
+requires work.
 
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels
 are tightly packed BGRA32, with a top-left origin and a row stride of `Width * 4`.
