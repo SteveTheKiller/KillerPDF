@@ -50,6 +50,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 ### Changed
 
 - Faster rendering: cached quarter-pixel text glyph masks, calculator functions compiled to a typed stack machine, no per-pixel clip lookups under rectangular clips, and pooled coverage-mask and Flate buffers. Damaged cross-reference recovery screens candidates before parsing them, which removes most of the open-time cost on broken files.
+- Avoided allocating reference-cycle tracking for direct rendering operands.
 
 ### Fixed
 

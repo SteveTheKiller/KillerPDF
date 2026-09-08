@@ -4077,6 +4077,7 @@ public sealed partial class PdfPageRenderer
 
     private PdfObject Resolve(PdfObject value)
     {
+        if (value is not PdfIndirectReference) return value;
         var visited = new HashSet<(int, int)>();
         while (value is PdfIndirectReference reference)
         {
