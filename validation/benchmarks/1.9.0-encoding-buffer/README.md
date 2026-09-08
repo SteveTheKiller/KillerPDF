@@ -58,3 +58,22 @@ This check does not establish a further whole-app speed or peak-memory gain.
 
 Follow-up app DLL SHA-256:
 `09C4E84E5BB8BD7FD468A8FFD900F7E9BF004437E2BC477EF92062A9A6B528BF`.
+
+## Packed explicit image-mask follow-up
+
+Explicit one-bit image masks now retain packed rows in the image cache instead
+of expanding every bit to a byte. Default and reversed decoding, row padding,
+and cached repeated rendering are covered by tests. Standard one-bit sample
+decoding uses exact integer results for zero and full opacity.
+
+A 2049 by 1024 mask retains 263,168 sample bytes instead of 2,098,176.
+Its first-render allocation test failed before at 2,448,544 bytes and passes
+below 1,048,576 after the change. This is a targeted storage and allocation
+result, not a fresh whole-app peak-memory or speed comparison.
+
+All 3,232 engine tests and 341 app tests pass, the app builds cleanly, and all
+74 Broad outputs match `uniform-mask-final` exactly. New images and logs are
+in `packed-mask-final` under the same scratch root.
+
+Packed-mask app DLL SHA-256:
+`B7BF02008CAC15CC47B63B8C550EBE0BBF02DA9AECC06F57F2A4151F104FE208`.

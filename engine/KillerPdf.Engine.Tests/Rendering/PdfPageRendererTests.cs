@@ -1411,6 +1411,51 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Masked-image rendering is not implemented.", page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Render_ExplicitImageMaskPreservesRowPaddingAndDecode(bool inverted)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(9, 2, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(1, 1, new byte[] { 255, 0, 0 }), 0, 0, 9, 2)).Build());
+        PdfDocument document = AddExplicitImageMask(source,
+            [0b0101_0101, 0b0111_1111, 0b1010_1010, 0b1000_0000], 9, 2, inverted);
+        var renderer = new PdfPageRenderer(document);
+        var options = new PdfRenderOptions(9, 2, transparentBackground: true) { CacheResult = false };
+        PdfRenderedPage page = renderer.Render(0, options);
+        Assert.Empty(page.Diagnostics);
+        for (int y = 0; y < 2; y++)
+            for (int x = 0; x < 9; x++)
+            {
+                bool paints = ((x + y) % 2 == 0) != inverted;
+                Assert.Equal(paints ? new byte[] { 0, 0, 255, 255 }
+                    : [255, 255, 255, 0], Pixel(page, x, y));
+            }
+        Assert.Equal(page.Pixels.ToArray(), renderer.Render(0, options).Pixels.ToArray());
+    }
+
+    [Fact]
+    public void Render_LargeExplicitImageMaskDoesNotExpandEverySourcePixel()
+    {
+        const int maskWidth = 2049, maskHeight = 1024;
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(1, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(1, 1, new byte[] { 255, 0, 0 }), 0, 0, 1, 1)).Build());
+        PdfDocument document = AddExplicitImageMask(source,
+            new byte[((maskWidth + 7) / 8) * maskHeight], maskWidth, maskHeight);
+        var renderer = new PdfPageRenderer(document);
+        var options = new PdfRenderOptions(16, 16);
+        byte[] pixels = new byte[16 * 16 * 4];
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        var diagnostics = renderer.RenderInto(0, options, pixels);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < 1024 * 1024, $"Explicit image mask allocated {allocated} bytes.");
+        Assert.Empty(diagnostics);
+        for (int offset = 0; offset < pixels.Length; offset += 4)
+            Assert.Equal(new byte[] { 0, 0, 255, 255 }, pixels.AsSpan(offset, 4).ToArray());
+    }
+
     [Fact]
     public void Render_ResolvesIndexedImageColorSpaces()
     {
@@ -3986,7 +4031,8 @@ public sealed class PdfPageRendererTests
             .Build());
     }
 
-    private static PdfDocument AddExplicitImageMask(PdfDocument source, byte[] samples)
+    private static PdfDocument AddExplicitImageMask(PdfDocument source, byte[] samples,
+        int width = 2, int height = 1, bool? inverted = null)
     {
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
         PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
@@ -3998,13 +4044,18 @@ public sealed class PdfPageRendererTests
             xObjects[Name("Im1")]);
         PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
         var update = new PdfIncrementalUpdateBuilder(source);
-        PdfIndirectReference maskReference = update.AddObject(new PdfStream(new PdfDictionary([
+        var maskDictionary = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("Type"), Name("XObject")),
             new KeyValuePair<PdfName, PdfObject>(Name("Subtype"), Name("Image")),
-            new KeyValuePair<PdfName, PdfObject>(Name("Width"), new PdfInteger(2)),
-            new KeyValuePair<PdfName, PdfObject>(Name("Height"), new PdfInteger(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Width"), new PdfInteger(width)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Height"), new PdfInteger(height)),
             new KeyValuePair<PdfName, PdfObject>(Name("ImageMask"), new PdfBoolean(true))
-        ]), samples));
+        ]);
+        if (inverted is bool reverse)
+            maskDictionary = new PdfDictionary(maskDictionary.Append(
+                new KeyValuePair<PdfName, PdfObject>(Name("Decode"), new PdfArray([
+                    new PdfInteger(reverse ? 1 : 0), new PdfInteger(reverse ? 0 : 1)]))));
+        PdfIndirectReference maskReference = update.AddObject(new PdfStream(maskDictionary, samples));
         var dictionary = new PdfDictionary(image.Dictionary.Append(
             new KeyValuePair<PdfName, PdfObject>(Name("Mask"), maskReference)));
         return PdfDocument.Open(update.ReplaceObject(imageReference.ObjectNumber,

@@ -138,6 +138,10 @@ the constant outside value, including the transfer function. A uniform mask
 stores one inside value instead of a pixel plane. If samples differ, it retains
 every original byte; this does not add quantization or change the mask bounds.
 
+Explicit one-bit image masks keep their packed rows in the decoded-image cache.
+Sampling respects row padding and normal or reversed decoding without expanding
+the whole mask to one byte per source pixel.
+
 Complex clip masks use scoped scratch storage. Restoring graphics state returns
 the discarded masks; leaving a form or page returns its remaining masks. Saved
 and inherited clipping state keeps its storage until that scope ends.

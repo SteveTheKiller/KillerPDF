@@ -3724,7 +3724,8 @@ public sealed partial class PdfPageRenderer
         int height = PositiveInteger(stream.Dictionary, "Height");
         DecodedImage decodedImage = _imageCache.GetOrAdd(
             new ImageCacheKey(stream, -4), _ => DecodeMask());
-        return new SoftMask(decodedImage.Samples, decodedImage.Width, decodedImage.Height);
+        return new SoftMask(decodedImage.Samples, decodedImage.Width, decodedImage.Height,
+            decodedImage.MaskBits, decodedImage.MaskDecodeStart, decodedImage.MaskDecodeEnd);
 
         DecodedImage DecodeMask()
         {
@@ -3734,14 +3735,8 @@ public sealed partial class PdfPageRenderer
             if (packed.Length != expected)
                 throw new FormatException("Image mask sample data has an invalid length.");
             bool paintsOne = StencilPaintsOne(stream.Dictionary);
-            var samples = new byte[checked(width * height)];
-            for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
-                {
-                    bool one = ReadPackedSample(packed, y * rowBytes * 8 + x, 1) != 0;
-                    samples[y * width + x] = one == paintsOne ? byte.MaxValue : byte.MinValue;
-                }
-            return new DecodedImage(samples, width, height);
+            return new DecodedImage(packed, width, height, MaskBits: 1,
+                MaskDecodeStart: paintsOne ? 0 : 1, MaskDecodeEnd: paintsOne ? 1 : 0);
         }
     }
 
@@ -4883,6 +4878,11 @@ public sealed partial class PdfPageRenderer
                     & ((1u << Bits) - 1)
             };
             if (Bits == 8 && DecodeStart == 0 && DecodeEnd == 1) return (byte)value;
+            if (Bits == 1)
+            {
+                if (DecodeStart == 0 && DecodeEnd == 1) return value == 0 ? (byte)0 : (byte)255;
+                if (DecodeStart == 1 && DecodeEnd == 0) return value == 0 ? (byte)255 : (byte)0;
+            }
             double decoded = DecodeStart + value / (double)((1u << Bits) - 1)
                 * (DecodeEnd - DecodeStart);
             return (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);

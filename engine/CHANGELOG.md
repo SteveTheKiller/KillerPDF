@@ -51,7 +51,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 - Faster rendering: cached quarter-pixel text glyph masks, calculator functions compiled to a typed stack machine, no per-pixel clip lookups under rectangular clips, and pooled coverage-mask and Flate buffers. Damaged cross-reference recovery screens candidates before parsing them, which removes most of the open-time cost on broken files.
 - Removed per-sample calculator color arrays, temporary glyph point copies, repeated raster-sort delegates, and reference-cycle tracking for direct rendering operands.
-- Reduced transparency-group and mask storage, eliminated uniform soft-mask pixel planes, bounded retained scratch buffers, and added reusable caller-owned page output.
+- Reduced transparency-group and mask storage, eliminated uniform soft-mask pixel planes and expanded one-bit image masks, bounded retained scratch buffers, and added reusable caller-owned page output.
 - Removed redundant encoded-stream copies and full-image JPEG scratch planes during parsing and decoding, and reused JPEG 2000 color and transparency planes across repeated paints.
 
 ### Fixed
