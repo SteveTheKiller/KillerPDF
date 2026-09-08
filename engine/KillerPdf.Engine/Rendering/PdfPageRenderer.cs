@@ -3951,6 +3951,8 @@ public sealed partial class PdfPageRenderer
         KnockoutState? knockout, bool overprint)
     {
         if (imageMask ? stencilColor.DoesNotPaint : colorSpace.DoesNotPaint) return;
+        // Zero opacity on a plain RGB surface changes nothing outside a knockout group.
+        if (stencilAlpha <= 0 && knockout is null && target.Ink is null && target.RgbProfile is null) return;
         colorSpace = colorSpace.ForDestination(target);
         Point[] corners =
         [

@@ -1118,6 +1118,9 @@ public sealed partial class PdfPageRenderer
         CancellationToken cancellationToken)
     {
         if (mask.IsEmpty || color.DoesNotPaint) return;
+        // Zero opacity on a plain RGB surface leaves every pixel and group alpha unchanged;
+        // knockout groups still need the object recorded, so they keep the full path.
+        if (alpha <= 0 && knockout is null && pixels.Ink is null && pixels.RgbProfile is null) return;
         int left = Math.Max(mask.Left, pixels.Left), top = Math.Max(mask.Top, pixels.Top);
         int right = Math.Min(mask.Right, pixels.Right), bottom = Math.Min(mask.Bottom, pixels.Bottom);
         // Rectangular clips are fully applied by these bounds, so only antialiased clip
