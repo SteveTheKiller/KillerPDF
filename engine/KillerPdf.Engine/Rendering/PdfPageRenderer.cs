@@ -4099,7 +4099,14 @@ public sealed partial class PdfPageRenderer
             > 4_000_000L) factor++;
         int planeWidth = (samplingWidth + factor - 1) / factor;
         int planeHeight = (samplingHeight + factor - 1) / factor;
-        byte[]? plane = imageMask || preblendMatte is not null ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
+        bool directInkSamples = target.Ink is not null && !imageMask && preblendMatte is null
+            && colorKeyMask is null && bits == 8 && components == 4 && colorSpace.Components == 4
+            && !colorSpace.DoesNotPaint && colorSpace.Palette is null && colorSpace.Converter is null
+            && colorSpace.MultiConverter is null && colorSpace.ComponentRange is null
+            && (colorSpace.Profile is null || ReferenceEquals(colorSpace.Profile, target.BlendProfile))
+            && decode is [0, 1, 0, 1, 0, 1, 0, 1];
+        byte[]? plane = imageMask || preblendMatte is not null || directInkSamples
+            ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         var matteConverter = preblendMatte is not null && !imageMask
             ? new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
                 bits, decode, colorSpace, target.Ink is not null, target.BlendProfile, matte: true) : null;
@@ -4233,6 +4240,14 @@ public sealed partial class PdfPageRenderer
                         uint packed = matteConverter.ConvertMatte(sx, sy, preblendMatte!, maskSample);
                         color = target.Ink is not null ? InkColor(packed)
                             : target.ColorFromRgb(new Color((byte)(packed >> 16), (byte)(packed >> 8), (byte)packed));
+                        alpha = 255;
+                    }
+                    else if (directInkSamples)
+                    {
+                        // Preserve the reduced plane's sampling grid without copying its bytes.
+                        int sx = Math.Min(px * factor, sourceWidth - 1);
+                        int sy = Math.Min(py * factor, sourceHeight - 1);
+                        color = InkColor(ReadInk(samples, sy * rowBytes + sx * 4));
                         alpha = 255;
                     }
                     else if (plane is null)
