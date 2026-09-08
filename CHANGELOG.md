@@ -41,6 +41,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Refreshed legacy PDF file associations to open the installed app instead of the installer (#393).
 - Corrected Italian translations (#395). (Thanks @bovirus)
 - Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 - Restored missing page text, corrected pattern placement, and repaired missing or corrupt JPEG 2000 image tiles.
