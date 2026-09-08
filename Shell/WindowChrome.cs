@@ -128,8 +128,9 @@ namespace KillerPDF
             var orig = p.rgrc0;                                  // proposed window rect
             if (WindowState == WindowState.Maximized || _fullScreen)
             {
-                // Maximized: the OS hangs the border off screen, so clip the client to the work area.
-                IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                // Use the proposed destination rectangle. The HWND can still belong to the
+                // source monitor while Windows calculates a cross-monitor maximize.
+                IntPtr monitor = MonitorFromRect(ref orig, MONITOR_DEFAULTTONEAREST);
                 if (monitor == IntPtr.Zero) return true;
                 var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
                 if (!GetMonitorInfo(monitor, ref info)) return true;
@@ -238,6 +239,9 @@ namespace KillerPDF
 
         [LibraryImport("user32.dll", EntryPoint = "MonitorFromWindow")]
         private static partial IntPtr MonitorFromWindow(IntPtr handle, uint flags);
+
+        [LibraryImport("user32.dll", EntryPoint = "MonitorFromRect")]
+        private static partial IntPtr MonitorFromRect(ref RECT rect, uint flags);
 
         [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
         [return: MarshalAs(UnmanagedType.Bool)]
