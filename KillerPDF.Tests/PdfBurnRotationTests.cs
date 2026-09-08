@@ -21,8 +21,10 @@ namespace KillerPDF.Tests;
 //      it leaves the rect numbers right but the content turned 90 degrees on the page.
 public sealed class PdfBurnRotationTests
 {
-    [Fact]
-    public void EngineBurn_RasterPreparationAcceptsTaggedPagesWithoutRemovingTheirStructure()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EngineBurn_AcceptsTaggedPagesWithoutRemovingTheirStructure(bool forRasterization)
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-raster-{Guid.NewGuid():N}.pdf");
         try
@@ -39,18 +41,26 @@ public sealed class PdfBurnRotationTests
             File.WriteAllBytes(path, source);
             var annotations = new Dictionary<int, List<PageAnnotation>>
             {
-                [0] = [new HighlightAnnotation { PageIndex = 0, Bounds = new Rect(20, 30, 40, 12) }]
+                [0] =
+                [
+                    new HighlightAnnotation { PageIndex = 0, Bounds = new Rect(20, 30, 40, 12) },
+                    new TextAnnotation { PageIndex = 0, Position = new Point(10, 60), Width = 80, Height = 25,
+                        Content = "9/8/2026", FontName = "Segoe UI", FontSize = 10 },
+                    new SignatureAnnotation { PageIndex = 0, Position = new Point(10, 80), Scale = 1,
+                        Strokes = [[new Point(0, 0), new Point(20, 5), new Point(35, 0)]] }
+                ]
             };
             var dimensions = new Dictionary<int, (int w, int h)> { [0] = (100, 100) };
-            Assert.Throws<NotSupportedException>(() => PdfEngineBurn.Burn(path, annotations, dimensions));
-            PdfEngineBurn.Burn(path, annotations, dimensions, forRasterization: true);
+            PdfEngineBurn.Burn(path, annotations, dimensions, forRasterization: forRasterization);
             EngineDocument result = EngineDocument.Open(File.ReadAllBytes(path));
             var catalog = Assert.IsType<PdfDictionary>(result.Resolve(
                 Assert.IsType<PdfIndirectReference>(result.Trailer[new PdfName("Root"u8)])));
             Assert.True(catalog.ContainsKey(new PdfName("StructTreeRoot"u8)));
-            Assert.Contains("/Artifact BMC", AllDecodedStreams(path));
+            Assert.Contains(forRasterization ? "/Artifact BMC" : "/Figure <</MCID 0>> BDC", AllDecodedStreams(path));
             Assert.Contains("/MCID 0", AllDecodedStreams(path));
-            Assert.Single(annotations[0]);
+            Assert.Contains("1 J", AllDecodedStreams(path));
+            Assert.Contains("BT", AllDecodedStreams(path));
+            Assert.Equal(3, annotations[0].Count);
         }
         finally { if (File.Exists(path)) File.Delete(path); }
     }

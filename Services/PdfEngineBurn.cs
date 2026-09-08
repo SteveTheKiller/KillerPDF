@@ -76,7 +76,17 @@ internal static class PdfEngineBurn
             if (forRasterization)
                 editor.AppendPageArtifact(pageIndex, page.Width, page.Height, content);
             else
-                editor.AppendPageContent(pageIndex, page.Width, page.Height, content);
+            {
+                var descriptions = new List<string>();
+                if (hasAnnotations)
+                    foreach (PageAnnotation annotation in pageAnnotations!)
+                        descriptions.Add(annotation is TextAnnotation text && !string.IsNullOrWhiteSpace(text.Content)
+                            ? text.Content : annotation is SignatureAnnotation ? "Signature" : "Markup");
+                if (hasNumber) descriptions.Add("Page number");
+                if (hasWatermark) descriptions.Add("Watermark");
+                editor.AppendPageDescribedContent(pageIndex, page.Width, page.Height, content,
+                    string.Join("\n", descriptions));
+            }
         }
 
         Replace(path, editor.Build());

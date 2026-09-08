@@ -41,6 +41,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 - Restored missing page text, corrected pattern placement, and repaired missing or corrupt JPEG 2000 image tiles.
 - Restored title-bar controls, including the close button and logo zoom control.
 - Registered the PDF handler as KillerPDF instead of the internal KillerPDF.App executable name.

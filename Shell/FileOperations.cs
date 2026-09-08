@@ -876,20 +876,21 @@ namespace KillerPDF
                 Dictionary<int, int> finalRotations = SnapshotPageRotations();
                 if (hasAnnotations || HasActiveStamps)   // #147: stamps alone must still burn
                 {
-                    // Save a clean copy of the doc (without burned annotations), burn
-                    // annotations into the real file, then restore the in-memory doc
-                    // from the clean copy so future saves don't double-burn.
+                    // Finish the edited copy before touching the destination. Keep a clean
+                    // working copy so future saves do not burn the same markup twice.
                     var tempClean = App.MakeTempFile("clean");
                     _doc.Save(tempClean);
                     PdfEngineIntegration.RepairHarmlessSaveArtifacts(tempClean);
                     PdfEngineIntegration.StripLinkAppearances(tempClean);
-                    System.IO.File.Copy(tempClean, saveTarget, true);
-                    PdfEngineIntegration.ClearInvalidatedSignatures(saveTarget);
-                    PdfEngineBurn.Burn(saveTarget, _annotations, _renderDims,
+                    var tempEdited = App.MakeTempFile("edited");
+                    System.IO.File.Copy(tempClean, tempEdited, true);
+                    PdfEngineIntegration.ClearInvalidatedSignatures(tempEdited);
+                    PdfEngineBurn.Burn(tempEdited, _annotations, _renderDims,
                         _docStampSpec, null, _pageRotations);
-                    PdfEngineIntegration.StripLinkAppearances(saveTarget);
-                    WriteFormValuesToDocument(saveTarget);
-                    PdfEngineIntegration.ApplyPageRotations(saveTarget, finalRotations);
+                    PdfEngineIntegration.StripLinkAppearances(tempEdited);
+                    WriteFormValuesToDocument(tempEdited);
+                    PdfEngineIntegration.ApplyPageRotations(tempEdited, finalRotations);
+                    System.IO.File.Copy(tempEdited, saveTarget, true);
                     _doc.Close();
                     try
                     {
@@ -995,13 +996,15 @@ namespace KillerPDF
                     _doc.Save(tempClean);
                     PdfEngineIntegration.RepairHarmlessSaveArtifacts(tempClean);
                     PdfEngineIntegration.StripLinkAppearances(tempClean);
-                    System.IO.File.Copy(tempClean, dlg.FileName, true);
-                    PdfEngineIntegration.ClearInvalidatedSignatures(dlg.FileName);
-                    PdfEngineBurn.Burn(dlg.FileName, _annotations, _renderDims,
+                    var tempEdited = App.MakeTempFile("edited");
+                    System.IO.File.Copy(tempClean, tempEdited, true);
+                    PdfEngineIntegration.ClearInvalidatedSignatures(tempEdited);
+                    PdfEngineBurn.Burn(tempEdited, _annotations, _renderDims,
                         _docStampSpec, null, _pageRotations);
-                    PdfEngineIntegration.StripLinkAppearances(dlg.FileName);
-                    WriteFormValuesToDocument(dlg.FileName);
-                    PdfEngineIntegration.ApplyPageRotations(dlg.FileName, finalRotations);
+                    PdfEngineIntegration.StripLinkAppearances(tempEdited);
+                    WriteFormValuesToDocument(tempEdited);
+                    PdfEngineIntegration.ApplyPageRotations(tempEdited, finalRotations);
+                    System.IO.File.Copy(tempEdited, dlg.FileName, true);
                     _doc.Close();
                     try
                     {

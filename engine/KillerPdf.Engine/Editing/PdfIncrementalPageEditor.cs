@@ -143,6 +143,7 @@ public sealed class PdfIncrementalPageEditor
 
     private readonly PdfDocument _document;
     private List<AppearanceFontResource>? _reusableAppearanceFonts;
+    private readonly List<(PdfIndirectReference Form, PdfIndirectReference Page, string Description)> _taggedOverlays = [];
     private readonly PdfPageTree _tree;
     private readonly List<PageState> _pages;
     private bool _orderChanged;
@@ -1765,6 +1766,20 @@ public sealed class PdfIncrementalPageEditor
         int pageIndex, double width, double height, PdfContentStreamBuilder content)
         => AppendTypedPageContent(pageIndex, width, height, content, artifact: true, null);
 
+    /// <summary>Appends an overlay with an accessible description, extending an existing structure tree.</summary>
+    public PdfIncrementalPageEditor AppendPageDescribedContent(
+        int pageIndex, double width, double height, PdfContentStreamBuilder content, string description)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(description);
+        ArgumentNullException.ThrowIfNull(content);
+        if (content.MarkedContentIds.Count > 0)
+            throw new ArgumentException("A described overlay cannot contain existing marked-content identifiers.", nameof(content));
+        AppendTypedPageContent(pageIndex, width, height, content, artifact: false);
+        PageState page = _pages[pageIndex];
+        page.TypedOverlays[^1] = page.TypedOverlays[^1] with { Description = description };
+        return this;
+    }
+
     internal PdfIncrementalPageEditor AppendPageArtifact(
         int pageIndex, double width, double height, PdfContentStreamBuilder content,
         string marker)
@@ -2146,6 +2161,7 @@ public sealed class PdfIncrementalPageEditor
             throw new InvalidOperationException(
                 "The document certification signature prohibits page-tree changes.");
         ValidateExistingStructureTreePageSet();
+        _taggedOverlays.Clear();
         var update = new PdfIncrementalUpdateBuilder(_document);
         bool mergesFormFields = _authoredForms.Count != 0 || _pages.Any(page =>
             page.ImportedTree?.Catalog.ContainsKey(AcroFormName) == true);
@@ -2181,7 +2197,7 @@ public sealed class PdfIncrementalPageEditor
         byte[] result = update.Build(options);
         if (_removedTaggedWidgets.Count != 0)
             result = RemoveTaggedWidgetStructure(result, _removedTaggedWidgets);
-        if (_authoredForms.Count != 0 && _tree.Catalog.ContainsKey(StructTreeRootName))
+        if ((_authoredForms.Count != 0 || _taggedOverlays.Count != 0) && _tree.Catalog.ContainsKey(StructTreeRootName))
             result = AddAuthoredWidgetStructure(result);
         if (deferFormFieldChanges || deferFormFieldRemovals)
         {
@@ -2718,12 +2734,12 @@ public sealed class PdfIncrementalPageEditor
             _replacementAcroForm = replacements[AcroFormName];
     }
 
-    private static byte[] AddAuthoredWidgetStructure(byte[] source)
+    private byte[] AddAuthoredWidgetStructure(byte[] source)
     {
         PdfDocument document = PdfDocument.Open(source);
         PdfPageTree tree = PdfPageTree.Read(document);
         var widgets = new List<(PdfIndirectReference Reference,
-            PdfDictionary Dictionary, PdfIndirectReference Page)>();
+            PdfDictionary Dictionary, PdfIndirectReference Page, PdfStream? Stream, string? Description)>();
         foreach (PdfPageTreeEntry page in tree.Pages)
         {
             if (!page.Dictionary.TryGetValue(AnnotsName, out PdfObject? annotationsValue))
@@ -2739,8 +2755,14 @@ public sealed class PdfIncrementalPageEditor
                         "A tagged page annotation /Subtype value") is PdfName subtype
                     && subtype.Equals(Name("Widget"))
                     && !annotation.ContainsKey(StructureParentName))
-                    widgets.Add((reference, annotation, page.Reference));
+                    widgets.Add((reference, annotation, page.Reference, null, null));
             }
+        }
+        foreach (var overlay in _taggedOverlays)
+        {
+            PdfStream stream = document.Resolve(overlay.Form) as PdfStream
+                ?? throw new InvalidOperationException("The authored overlay is not a stream.");
+            widgets.Add((overlay.Form, stream.Dictionary, overlay.Page, stream, overlay.Description));
         }
         if (widgets.Count == 0) return source;
 
@@ -2821,35 +2843,39 @@ public sealed class PdfIncrementalPageEditor
                 .FinalReference;
         var structureReferences = new List<PdfIndirectReference>();
         foreach ((PdfIndirectReference widgetReference, PdfDictionary widget,
-                     PdfIndirectReference pageReference) in widgets)
+                     PdfIndirectReference pageReference, PdfStream? stream, string? overlayDescription) in widgets)
         {
             long key = nextKey++;
-            string description = FormWidgetDescription(document, widget);
+            string description = overlayDescription ?? FormWidgetDescription(document, widget);
             PdfIndirectReference structureReference = update.ReserveObject();
             structureReferences.Add(structureReference);
             var structureEntries = new List<KeyValuePair<PdfName, PdfObject>>
             {
                 new(TypeName, StructureElementName),
-                new(StructureTypeName, Name("Form")),
+                new(StructureTypeName, Name(stream is null ? "Form" : "Figure")),
                 new(StructureElementParentName, documentReference),
                 new(Name("Pg"), pageReference),
                 new(Name("Alt"), TextString(description)),
-                new(StructureKidsName, Dictionary(
+                new(StructureKidsName, stream is null ? Dictionary(
                     ("Type", Name("OBJR")),
                     ("Pg", pageReference),
-                    ("Obj", widgetReference)))
+                    ("Obj", widgetReference)) : Dictionary(
+                    ("Type", Name("MCR")), ("Pg", pageReference),
+                    ("Stm", widgetReference), ("MCID", new PdfInteger(0))))
             };
             if (namespaceReference is not null)
                 structureEntries.Add(new(Name("NS"), namespaceReference));
             update.SetObject(structureReference, new PdfDictionary(structureEntries));
-            parentEntries.Add(new PdfNumberTreeEntry(key, structureReference));
+            parentEntries.Add(new PdfNumberTreeEntry(key,
+                stream is null ? structureReference : new PdfArray([structureReference])));
             var widgetEntries = widget.ToDictionary(
                 entry => entry.Key, entry => entry.Value);
-            widgetEntries[StructureParentName] = new PdfInteger(key);
-            if (!widgetEntries.ContainsKey(Name("Contents")))
+            widgetEntries[stream is null ? StructureParentName : Name("StructParents")] = new PdfInteger(key);
+            if (stream is null && !widgetEntries.ContainsKey(Name("Contents")))
                 widgetEntries[Name("Contents")] = TextString(description);
             update.ReplaceObject(widgetReference.ObjectNumber,
-                new PdfDictionary(widgetEntries));
+                stream is null ? new PdfDictionary(widgetEntries)
+                    : new PdfStream(new PdfDictionary(widgetEntries), stream.EncodedData.Span));
         }
 
         var numbers = new List<PdfObject>();
@@ -4563,6 +4589,10 @@ public sealed class PdfIncrementalPageEditor
                 ? DecodePageContent(overlay, contentsValue)
                 : [];
 
+            bool tagged = pendingOverlay.Description is not null && _tree.Catalog.ContainsKey(StructTreeRootName);
+            if (tagged)
+                overlayContent = [.. "/Figure <</MCID 0>> BDC\n"u8, .. overlayContent, .. "\nEMC\n"u8];
+
             var form = new PdfStream(Dictionary(
                 ("Type", Name("XObject")),
                 ("Subtype", Name("Form")),
@@ -4575,6 +4605,8 @@ public sealed class PdfIncrementalPageEditor
                 overlayContent);
             var importer = new PdfObjectGraphImporter(overlay, update, []);
             PdfIndirectReference formReference = update.AddObject(importer.Import(form));
+            if (tagged)
+                _taggedOverlays.Add((formReference, state.Entry!.Reference, pendingOverlay.Description!));
 
             int suffix = 1;
             PdfName resourceName;
@@ -4622,7 +4654,7 @@ public sealed class PdfIncrementalPageEditor
         if (state.ContentUpdate != PageContentUpdate.Replace)
             state.ContentUpdate = (state.ContentUpdate is PageContentUpdate.None
                     or PageContentUpdate.ArtifactAppend)
-                && state.TypedOverlays.All(overlay => overlay.Artifact)
+                && state.TypedOverlays.All(overlay => overlay.Artifact || overlay.Description is not null)
                     ? PageContentUpdate.ArtifactAppend : PageContentUpdate.Append;
 
         static byte[] DecodePageContent(PdfDocument document, PdfObject value)
@@ -9217,7 +9249,7 @@ public sealed class PdfIncrementalPageEditor
     {
         if (!_tree.Catalog.ContainsKey(StructTreeRootName)) return;
         if (_pages.Any(page => page.ContentUpdate is not (PageContentUpdate.None or PageContentUpdate.ArtifactAppend)
-                || page.TypedOverlays.Any(overlay => !overlay.Artifact)))
+                || page.TypedOverlays.Any(overlay => !overlay.Artifact && overlay.Description is null)))
             throw new NotSupportedException(
                 "Content cannot be appended to or replace content in an existing tagged PDF without matching structure updates.");
         bool additionsAreSupported = _pages.Where(page => page.Entry is null)
@@ -18592,7 +18624,7 @@ public sealed class PdfIncrementalPageEditor
     private sealed record TypedOverlay(
         PdfDocument Document, int PageIndex, bool Artifact, string? Marker,
         PdfPageBox SourceBox, PdfContentBounds? SourceBounds,
-        double A, double B, double C, double D, double E, double F);
+        double A, double B, double C, double D, double E, double F, string? Description = null);
     private enum PageContentUpdate { None, Append, ArtifactAppend, Replace }
 
     private static PdfName PageTabOrderName(PdfPageTabOrder tabOrder) => tabOrder switch
