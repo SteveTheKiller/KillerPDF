@@ -105,6 +105,11 @@ be selected independently through the options.
 
 ## Masks on non-isolated groups
 
+Graphics soft-mask groups start with full fill and stroke opacity, Normal blending,
+and no inherited soft mask. Opacity and blending explicitly set inside the mask
+remain effective. The page's opacity and blend mode apply when painting with the
+completed mask, without being applied again while creating it.
+
 Normal-blend, non-knockout transparency groups retain an outer soft mask until
 the whole group has been painted. Internal blends use the original backdrop;
 an internal mask reset cannot remove the group's outer mask. The final group

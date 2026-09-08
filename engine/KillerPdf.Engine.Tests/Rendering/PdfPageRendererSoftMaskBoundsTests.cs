@@ -106,6 +106,50 @@ public sealed class PdfPageRendererSoftMaskBoundsTests
         }
     }
 
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public void Render_SoftMaskUsesItsOwnOpacityAndBlendState(bool luminosity, bool isolated,
+        bool innerOpacity)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 2,
+            Encoding.ASCII.GetBytes("/Outer gs /Mask gs 1 0 0 rg 0 0 2 2 re f")).Build());
+        var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+        var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(reference);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var groupResources = new PdfDictionary([Entry("ExtGState", new PdfDictionary([
+            Entry("Inner", new PdfDictionary([Entry("ca", new PdfReal(0.5))]))]))]);
+        var group = new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Form")), Entry("BBox", Array(0, 0, 2, 2)),
+            Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")),
+                Entry("CS", Name("DeviceGray")), Entry("I", new PdfBoolean(isolated))])),
+            Entry("Resources", groupResources)
+        ]), Encoding.ASCII.GetBytes((innerOpacity ? "/Inner gs " : "") + "1 g 0 0 2 2 re f"));
+        var mask = new PdfDictionary([Entry("S", Name(luminosity ? "Luminosity" : "Alpha")),
+            Entry("G", update.AddObject(group)), Entry("BC", Array(0))]);
+        var resources = new PdfDictionary([Entry("ExtGState", new PdfDictionary([
+            Entry("Outer", new PdfDictionary([Entry("ca", new PdfReal(0.5)),
+                Entry("CA", new PdfReal(0.25)), Entry("BM", Name("Multiply"))])),
+            Entry("Mask", new PdfDictionary([Entry("SMask", mask)]))]))]);
+        update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(page
+            .Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))));
+        PdfRenderedPage rendered = new PdfPageRenderer(PdfDocument.Open(update.Build()))
+            .Render(0, new PdfRenderOptions(2, 2));
+        Assert.Empty(rendered.Diagnostics);
+        byte faded = innerOpacity ? (byte)191 : (byte)128;
+        for (int offset = 0; offset < rendered.Pixels.Length; offset += 4)
+            Assert.Equal(new byte[] { faded, faded, 255, 255 },
+                rendered.Pixels.Slice(offset, 4).ToArray());
+    }
+
     private static PdfArray Array(params double[] values) => new(values.Select(value => (PdfObject)new PdfReal(value)));
     private static PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
     private static KeyValuePair<PdfName, PdfObject> Entry(string name, PdfObject value) => new(Name(name), value);

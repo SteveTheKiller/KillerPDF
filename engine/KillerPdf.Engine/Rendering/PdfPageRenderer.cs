@@ -1132,6 +1132,9 @@ public sealed partial class PdfPageRenderer
                         RenderForm(group, inheritedResources,
                             currentState with
                             {
+                                FillAlpha = 1,
+                                StrokeAlpha = 1,
+                                BlendMode = RendererBlendMode.Normal,
                                 GraphicsSoftMask = null,
                                 Knockout = null
                             }, currentDepth);
