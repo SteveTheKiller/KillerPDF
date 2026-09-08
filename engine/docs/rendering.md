@@ -134,7 +134,9 @@ mask. The existing rasterizer calculates the edge rows, and the interior row is
 reused without changing coverage rounding. Transparency-group working pixels,
 knockout bookkeeping, and backdrop copies use group bounds. Drawing coordinates
 stay in page space. Graphics-state soft masks store their bounded samples and
-the constant outside value, including the transfer function.
+the constant outside value, including the transfer function. A uniform mask
+stores one inside value instead of a pixel plane. If samples differ, it retains
+every original byte; this does not add quantization or change the mask bounds.
 
 Complex clip masks use scoped scratch storage. Restoring graphics state returns
 the discarded masks; leaving a form or page returns its remaining masks. Saved

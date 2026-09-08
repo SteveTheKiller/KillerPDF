@@ -1140,7 +1140,9 @@ public sealed partial class PdfPageRenderer
                     {
                         pixels = pagePixels;
                     }
-                    var samples = new byte[checked(maskWidth * maskHeight)];
+                    int sampleCount = checked(maskWidth * maskHeight);
+                    byte[]? samples = null;
+                    byte constant = 0;
                     Func<double, Color>? transfer = null;
                     if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
                     {
@@ -1166,10 +1168,19 @@ public sealed partial class PdfPageRenderer
                             double sample = luminosity
                                 ? (0.3 * color.Red + 0.59 * color.Green + 0.11 * color.Blue) / 255d
                                 : maskPixels.Alpha(offset) / 255d;
-                            samples[(y - maskTop) * maskWidth + x - maskLeft] = ConvertSample(sample);
+                            int index = (y - maskTop) * maskWidth + x - maskLeft;
+                            byte converted = ConvertSample(sample);
+                            if (index == 0) constant = converted;
+                            if (samples is null && converted != constant)
+                            {
+                                samples = new byte[sampleCount];
+                                samples.AsSpan(0, index).Fill(constant);
+                            }
+                            if (samples is not null) samples[index] = converted;
                         }
                     }
-                    return new GraphicsSoftMask(samples, maskLeft, maskTop, maskWidth, maskHeight, outside);
+                    return new GraphicsSoftMask(samples, maskLeft, maskTop, maskWidth, maskHeight,
+                        outside, constant);
                 }
                 finally
                 {
@@ -4877,11 +4888,11 @@ public sealed partial class PdfPageRenderer
             return (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
         }
     }
-    private sealed record GraphicsSoftMask(byte[] Samples, int Left, int Top, int Width, int Height,
-        byte Outside)
+    private sealed record GraphicsSoftMask(byte[]? Samples, int Left, int Top, int Width, int Height,
+        byte Outside, byte Constant)
     {
         internal byte At(int x, int y) => (uint)(x - Left) < (uint)Width && (uint)(y - Top) < (uint)Height
-            ? Samples[(y - Top) * Width + x - Left] : Outside;
+            ? Samples is null ? Constant : Samples[(y - Top) * Width + x - Left] : Outside;
     }
     private sealed class KnockoutState
     {

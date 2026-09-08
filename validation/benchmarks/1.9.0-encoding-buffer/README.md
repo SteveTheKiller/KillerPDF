@@ -40,3 +40,21 @@ Before app DLL SHA-256:
 `287842A9FB2923E0466EF54EC50A0EBCE09D0A4B7A43DE7E1C2DA35DBA425334`.
 After app DLL SHA-256:
 `55BC22178B4619F70AD55AAC260576D0ADE0309411990EAEDFD9E069409DFE5C`.
+
+## Uniform graphics soft-mask follow-up
+
+A subsequent engine change stores one exact value for uniform graphics soft
+masks instead of allocating a full pixel plane. Masks with differing samples
+retain all their original bytes. Bounds, outside values and transfer functions
+are preserved. Two 1024 by 1024 tests failed before at 1,055,104 and 1,054,416
+allocated bytes and pass below 65,536 bytes after the change.
+
+All 3,229 engine tests and 341 app tests pass, including partial-mask and
+inverted-transfer cases. Allocation tests run without other test collections
+evicting their warmed shared scratch buffers. The app build is clean, and
+all 74 Broad pages match `encoding-spare-3-After` pixel-for-pixel. The new
+outputs are in `uniform-mask-final` under the same scratch root.
+This check does not establish a further whole-app speed or peak-memory gain.
+
+Follow-up app DLL SHA-256:
+`09C4E84E5BB8BD7FD468A8FFD900F7E9BF004437E2BC477EF92062A9A6B528BF`.
