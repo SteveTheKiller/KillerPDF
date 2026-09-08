@@ -1,5 +1,44 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 difficult-page speed follow-up
+
+Measured September 8, 2026, on the 40-file, 74-page difficult set at 2048 pixels
+with three pages per file, three alternating runs per pair, using the app's
+`--batch-render` and the default memory-conservation policy.
+
+| Median of three runs | PDFium 1.8.5 | Engine, color work only | Engine, tuned |
+| --- | ---: | ---: | ---: |
+| Render time, 40 shared files | 4.913 s | 15.275 s | 13.281 s |
+| Process wall time | 11.102 s | 21.182 s | 19.163 s |
+
+The color work (`e15c9e7`) had moved difficult-set rendering from the 13.03 s in
+the memory record to 15.28 s. The tuning commits after it (`3ced1f5` through
+`31f140b`) bring it to 13.28 s, 13.1% below the color-only build and back to the
+pre-color figure, while keeping every color change. Against PDFium the render
+ratio is 2.71 and the wall ratio 1.73, so the difficult-page gate stays open.
+
+The tuning is row-based painting for opaque fills, images, transparency-group
+compositing, and soft-mask sampling, exact byte conversion for plain gray, RGB,
+and unprofiled CMYK image samples, skipped zero-opacity paints outside knockout
+groups, whole-row rectangular ink fills, and `Lock` for the cache gates. All 74
+pages are byte-identical to the color-only build in the engine harness after every
+step. The engine suite passes 3,510 tests, including new parallelism tests.
+
+`PdfRenderOptions.MaximumParallelism` (default 1) is new. With six threads the
+engine harness renders the set 7.5% faster on this machine because only the
+large image and fill paints split by rows; decoding stays sequential. The app
+does not set it. The per-file comparison shows where the remaining gap sits:
+scanned and photographic pages (064034, 42828, balloon) are decode and color
+conversion bound at 1.6 to 2.6 times PDFium, and CMYK pages with profiles and
+many soft masks (Ghent, altona, 363_Risk) are 2.2 to 4 times PDFium.
+
+Raw runs: [PDFium comparison](benchmarks/1.9.0-render-informal/2026-09-08-difficult-tuning/pdfium)
+and [color-only comparison](benchmarks/1.9.0-render-informal/2026-09-08-difficult-tuning/color-only).
+Tuned application DLL SHA256
+`5A75FC25DD412D69B2BCE8EB165A8A612B71234C1A45698A10616CF455CE4129`, color-only
+`5E6713D0A28EB874B7FE6465FBB092192F13E1AA82E557D1AD31A50A04AC96D1`. Memory was
+not sampled in these runs.
+
 ## KillerPDF 1.9.0 batch memory target
 
 Three rotating comparisons put median engine peak working set at 259.2 MiB

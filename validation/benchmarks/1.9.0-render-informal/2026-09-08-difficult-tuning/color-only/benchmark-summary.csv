@@ -1,0 +1,3 @@
+"Version","Runs","MedianSeconds","MinimumSeconds","MaximumSeconds","MedianFilesPerSecond"
+"color-only","3","21.182","20.175","21.183","3.49"
+"tuned","3","19.163","18.16","19.165","3.86"
