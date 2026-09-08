@@ -105,6 +105,41 @@ backdrops and applying the outer mask once to overlapping objects.
 This path applies when the parent is not a knockout group. Other group blend
 modes and knockout combinations retain their existing support boundaries.
 
+## Memory ownership
+
+Set `CacheResult = false` on `PdfRenderOptions` for a one-pass export. This bypasses
+the finished-bitmap cache while retaining reusable fonts, instructions, and decoded
+images. The default remains cached rendering for repeated page requests.
+
+For reusable output storage, call `RenderInto(pageIndex, options, destination)`.
+The caller owns the byte array, which must hold at least `Width * Height * 4`
+bytes. The method returns diagnostics and never caches that buffer. Encode or
+consume its pixels before reusing it. Cancellation can leave partial output.
+Ordinary `Render` results retain their immutable bitmap ownership.
+
+Fractional axis-aligned rectangles retain three coverage rows instead of a full
+mask. The existing rasterizer calculates the edge rows, and the interior row is
+reused without changing coverage rounding. Transparency-group working pixels,
+knockout bookkeeping, and backdrop copies use group bounds. Drawing coordinates
+stay in page space. Graphics-state soft masks store their bounded samples and
+the constant outside value, including the transfer function.
+
+Complex clip masks use scoped scratch storage. Restoring graphics state returns
+the discarded masks; leaving a form or page returns its remaining masks. Saved
+and inherited clipping state keeps its storage until that scope ends.
+
+Raster and Flate scratch arrays share a 32 MiB idle byte budget. JPEG 2000 integer
+and floating-point frames each have a 16 MiB idle budget. Pools reuse multiple
+buffers of the same size and evict the oldest returned arrays when full. This
+avoids repeated large allocations without reserving buffers in every size bucket.
+Active rentals can exceed these budgets. Oversized arrays are exact-sized and
+not retained. No forced collections or page-limit changes are involved.
+
+Parsed streams share immutable document-owned source slices. Keeping a parsed
+stream alive therefore also keeps its source storage alive. Public stream
+construction and standalone parsing still copy caller-owned payloads. Filter
+decoding reads encoded memory directly and returns independent writable output.
+
 ## Opening and authentication
 
 `PdfDocument.Open` uses strict parsing. For viewer compatibility with damaged

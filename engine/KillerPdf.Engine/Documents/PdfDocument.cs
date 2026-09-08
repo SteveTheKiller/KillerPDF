@@ -495,7 +495,8 @@ public sealed class PdfDocument
 
         PdfIndirectObject ParseIndirectObject(int objectOffset) =>
             new PdfObjectParser(_source, objectOffset,
-                ResolveStreamLength, _compatibilityRecovery).ParseIndirectObject();
+                ResolveStreamLength, _compatibilityRecovery)
+            { ShareOwnedStreamData = true }.ParseIndirectObject();
     }
 
     private int? FindIndirectObjectOffset(PdfCrossReferenceEntry entry, int offset)

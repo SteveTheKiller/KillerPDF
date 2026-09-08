@@ -18,13 +18,13 @@ internal static class PdfJpegDecoder
     private static readonly double[] Scales = [1 / Math.Sqrt(2), 1, 1, 1, 1, 1, 1, 1];
 
     internal static byte[] Decode(
-        ReadOnlySpan<byte> source, int maximumDecodedBytes, int? colorTransform = null,
+        ReadOnlyMemory<byte> source, int maximumDecodedBytes, int? colorTransform = null,
         bool compatibilityRecovery = false)
         => DecodeImage(source, maximumDecodedBytes, 1, colorTransform,
             compatibilityRecovery).Samples;
 
     internal static JpegDecodedImage DecodeImage(
-        ReadOnlySpan<byte> source, int maximumDecodedBytes, int reduction,
+        ReadOnlyMemory<byte> source, int maximumDecodedBytes, int reduction,
         int? colorTransform = null, bool compatibilityRecovery = false)
     {
         try
@@ -32,7 +32,7 @@ internal static class PdfJpegDecoder
             if (reduction is not (1 or 2 or 4 or 8))
                 throw new PdfFilterException("JPEG reduction must be 1, 2, 4, or 8.");
             return new Decoder(
-                source.ToArray(), maximumDecodedBytes, reduction, colorTransform,
+                source, maximumDecodedBytes, reduction, colorTransform,
                 compatibilityRecovery).Decode();
         }
         catch (PdfFilterException)
@@ -47,7 +47,7 @@ internal static class PdfJpegDecoder
     }
 
     private sealed class Decoder(
-        byte[] source, int maximumDecodedBytes, int reduction, int? colorTransform,
+        ReadOnlyMemory<byte> source, int maximumDecodedBytes, int reduction, int? colorTransform,
         bool compatibilityRecovery)
     {
         private readonly int[][] _quantization = new int[4][];
@@ -68,7 +68,7 @@ internal static class PdfJpegDecoder
 
         internal JpegDecodedImage Decode()
         {
-            if (source.Length < 4 || source[0] != 0xFF || source[1] != 0xD8)
+            if (source.Length < 4 || source.Span[0] != 0xFF || source.Span[1] != 0xD8)
                 throw Error("The DCTDecode stream has no JPEG SOI marker.");
             _position = 2;
             while (_position < source.Length)
@@ -118,22 +118,22 @@ internal static class PdfJpegDecoder
         {
             if (_components.Count != 0) throw Error("Multiple JPEG frames are not supported.");
             _progressive = progressive;
-            if (end - _position < 6 || source[_position++] != 8)
+            if (end - _position < 6 || source.Span[_position++] != 8)
                 throw Error("Only 8-bit baseline JPEG images are implemented.");
             _height = ReadUInt16();
             _width = ReadUInt16();
-            int count = source[_position++];
+            int count = source.Span[_position++];
             if (_width <= 0 || _height <= 0 || count is not (1 or 3 or 4))
                 throw Error("The JPEG frame dimensions or component count are not supported.");
             if (_position + count * 3 != end) throw Error("The JPEG frame table is malformed.");
             var identifiers = new HashSet<byte>();
             for (int index = 0; index < count; index++)
             {
-                byte id = source[_position++];
-                byte sampling = source[_position++];
+                byte id = source.Span[_position++];
+                byte sampling = source.Span[_position++];
                 int horizontal = sampling >> 4;
                 int vertical = sampling & 15;
-                int quantization = source[_position++];
+                int quantization = source.Span[_position++];
                 if (!identifiers.Add(id) || horizontal is < 1 or > 4 || vertical is < 1 or > 4
                     || quantization > 3)
                     throw Error("The JPEG frame component table is invalid.");
@@ -145,7 +145,7 @@ internal static class PdfJpegDecoder
         {
             while (_position < end)
             {
-                byte info = source[_position++];
+                byte info = source.Span[_position++];
                 int precision = info >> 4;
                 int identifier = info & 15;
                 if (precision != 0 || identifier > 3 || _position + 64 > end)
@@ -153,7 +153,7 @@ internal static class PdfJpegDecoder
                 var table = new int[64];
                 for (int index = 0; index < 64; index++)
                 {
-                    int value = source[_position++];
+                    int value = source.Span[_position++];
                     if (value == 0) throw Error("A JPEG quantization value is zero.");
                     table[ZigZag[index]] = value;
                 }
@@ -165,7 +165,7 @@ internal static class PdfJpegDecoder
         {
             while (_position < end)
             {
-                byte info = source[_position++];
+                byte info = source.Span[_position++];
                 int tableClass = info >> 4;
                 int identifier = info & 15;
                 if (tableClass > 1 || identifier > 3 || _position + 16 > end)
@@ -173,11 +173,11 @@ internal static class PdfJpegDecoder
                 int[] counts = new int[16];
                 int symbolCount = 0;
                 for (int index = 0; index < 16; index++)
-                    symbolCount += counts[index] = source[_position++];
+                    symbolCount += counts[index] = source.Span[_position++];
                 if (symbolCount > 256 || _position + symbolCount > end)
                     throw Error("The JPEG Huffman table is truncated.");
                 _huffman[tableClass, identifier] = new HuffmanTable(counts,
-                    source.AsSpan(_position, symbolCount));
+                    source.Span.Slice(_position, symbolCount));
                 _position += symbolCount;
             }
         }
@@ -185,15 +185,15 @@ internal static class PdfJpegDecoder
         private void ReadAdobeSegment(int end)
         {
             if (end - _position >= 12
-                && source.AsSpan(_position, 5).SequenceEqual("Adobe"u8))
-                _adobeTransform = source[_position + 11];
+                && source.Span.Slice(_position, 5).SequenceEqual("Adobe"u8))
+                _adobeTransform = source.Span[_position + 11];
         }
 
         private void ReadScanHeader(int end)
         {
             if (_components.Count == 0 || _position >= end)
                 throw Error("The JPEG scan precedes its frame.");
-            int count = source[_position++];
+            int count = source.Span[_position++];
             if (count < 1 || count > _components.Count || _position + count * 2 + 3 != end
                 || !_progressive && count != _components.Count)
                 throw Error("The JPEG scan component table is unsupported.");
@@ -201,19 +201,19 @@ internal static class PdfJpegDecoder
             foreach (Component component in _components) component.InScan = false;
             for (int index = 0; index < count; index++)
             {
-                byte identifier = source[_position++];
+                byte identifier = source.Span[_position++];
                 Component component = _components.SingleOrDefault(item => item.Identifier == identifier)
                     ?? throw Error("The JPEG scan references an undefined component.");
                 if (component.InScan) throw Error("The JPEG scan repeats a component.");
-                byte tables = source[_position++];
+                byte tables = source.Span[_position++];
                 component.DcTable = tables >> 4;
                 component.AcTable = tables & 15;
                 component.InScan = true;
                 _scanComponents.Add(component);
             }
-            _spectralStart = source[_position++];
-            _spectralEnd = source[_position++];
-            byte approximation = source[_position++];
+            _spectralStart = source.Span[_position++];
+            _spectralEnd = source.Span[_position++];
+            byte approximation = source.Span[_position++];
             _successiveHigh = approximation >> 4;
             _successiveLow = approximation & 15;
             if (!_progressive && (_spectralStart != 0 || _spectralEnd != 63
@@ -763,10 +763,10 @@ internal static class PdfJpegDecoder
 
         private byte ReadMarker()
         {
-            while (_position < source.Length && source[_position] != 0xFF) _position++;
-            while (_position < source.Length && source[_position] == 0xFF) _position++;
+            while (_position < source.Length && source.Span[_position] != 0xFF) _position++;
+            while (_position < source.Length && source.Span[_position] == 0xFF) _position++;
             if (_position >= source.Length) throw Error("A JPEG marker is truncated.");
-            byte marker = source[_position++];
+            byte marker = source.Span[_position++];
             if (marker == 0) throw Error("A stuffed byte appears outside JPEG scan data.");
             return marker;
         }
@@ -774,7 +774,7 @@ internal static class PdfJpegDecoder
         private int ReadUInt16()
         {
             if (_position + 2 > source.Length) throw Error("A JPEG value is truncated.");
-            int value = source[_position] << 8 | source[_position + 1];
+            int value = source.Span[_position] << 8 | source.Span[_position + 1];
             _position += 2;
             return value;
         }
@@ -899,7 +899,7 @@ internal static class PdfJpegDecoder
         }
     }
 
-    private sealed class BitReader(byte[] source, int position)
+    private sealed class BitReader(ReadOnlyMemory<byte> source, int position)
     {
         private int _position = position;
         private int _bits;
@@ -925,12 +925,12 @@ internal static class PdfJpegDecoder
             while (_bits < count)
             {
                 if (_position >= source.Length) return false;
-                int value = source[_position++];
+                int value = source.Span[_position++];
                 if (value == 0xFF)
                 {
                     int markerPosition = _position - 1;
-                    while (_position < source.Length && source[_position] == 0xFF) _position++;
-                    if (_position >= source.Length || source[_position++] != 0)
+                    while (_position < source.Length && source.Span[_position] == 0xFF) _position++;
+                    if (_position >= source.Length || source.Span[_position++] != 0)
                     {
                         _position = markerPosition;
                         return false;
@@ -947,8 +947,8 @@ internal static class PdfJpegDecoder
         {
             _bits = 0;
             _buffer = 0;
-            while (_position < source.Length && source[_position] == 0xFF) _position++;
-            if (_position >= source.Length || source[_position] is < 0xD0 or > 0xD7)
+            while (_position < source.Length && source.Span[_position] == 0xFF) _position++;
+            if (_position >= source.Length || source.Span[_position] is < 0xD0 or > 0xD7)
                 throw new PdfFilterException("The JPEG restart marker is missing.");
             _position++;
         }
@@ -959,11 +959,11 @@ internal static class PdfJpegDecoder
             _buffer = 0;
             while (_position + 1 < source.Length)
             {
-                if (source[_position] != 0xFF) { _position++; continue; }
+                if (source.Span[_position] != 0xFF) { _position++; continue; }
                 int marker = _position;
-                while (_position < source.Length && source[_position] == 0xFF) _position++;
+                while (_position < source.Length && source.Span[_position] == 0xFF) _position++;
                 if (_position >= source.Length) { _position = marker; return; }
-                if (source[_position] == 0) { _position++; continue; }
+                if (source.Span[_position] == 0) { _position++; continue; }
                 _position = marker;
                 return;
             }

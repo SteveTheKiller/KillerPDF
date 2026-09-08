@@ -17,6 +17,8 @@ namespace KillerPdf.Engine.Filters;
 
 internal static partial class PdfJpeg2000Decoder
 {
+    private static readonly ArrayPool<int> IntegerFrames = PdfScratchBuffers.Integers;
+    private static readonly ArrayPool<float> FloatFrames = PdfScratchBuffers.Floats;
     private static Jpeg2000DecodedImage DecodePixels(ReadOnlyMemory<byte> encoded,
         Jpeg2000Shape shape, int resolutionLevel, int width, int height, int rowBytes, int length)
     {
@@ -143,8 +145,8 @@ internal static partial class PdfJpeg2000Decoder
         internal void ReleaseFrames()
         {
             foreach (Array samples in _rentedFrames)
-                if (samples is int[] integers) ArrayPool<int>.Shared.Return(integers);
-                else ArrayPool<float>.Shared.Return((float[])samples);
+                if (samples is int[] integers) IntegerFrames.Return(integers);
+                else FloatFrames.Return((float[])samples);
             _rentedFrames.Clear();
             _frames.Clear();
             _sampleBytes = 0;
@@ -165,8 +167,8 @@ internal static partial class PdfJpeg2000Decoder
                 long pooledBytes = (long)BitOperations.RoundUpToPowerOf2((uint)Math.Max(16, count)) * sizeof(int);
                 bool pooled = pooledBytes + scratchBytes <= MaximumTemporarySampleBytes - _sampleBytes;
                 Array samples = integer
-                    ? pooled ? ArrayPool<int>.Shared.Rent(count) : new int[count]
-                    : pooled ? ArrayPool<float>.Shared.Rent(count) : new float[count];
+                    ? pooled ? IntegerFrames.Rent(count) : new int[count]
+                    : pooled ? FloatFrames.Rent(count) : new float[count];
                 if (pooled)
                 {
                     _rentedFrames.Add(samples);

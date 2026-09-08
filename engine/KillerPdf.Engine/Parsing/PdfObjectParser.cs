@@ -28,6 +28,8 @@ public sealed class PdfObjectParser(
     private readonly List<PdfToken> _lookahead = [];
     private bool _allowIndirectReferences = true;
 
+    internal bool ShareOwnedStreamData { get; init; }
+
     internal static PdfObjectParser ForContent(ReadOnlyMemory<byte> source,
         bool compatibilityRecovery = false) =>
         new(source, null, compatibilityRecovery) { _allowIndirectReferences = false };
@@ -283,8 +285,11 @@ public sealed class PdfObjectParser(
         }
         if (!IsKeyword(endStream, "endstream"))
             return RecoverStream(dictionary, dataOffset, length, streamKeywordOffset);
-        return new PdfStream(dictionary, encodedData.Span);
+        return CreateStream(dictionary, encodedData);
     }
+
+    private PdfStream CreateStream(PdfDictionary dictionary, ReadOnlyMemory<byte> data) =>
+        ShareOwnedStreamData ? PdfStream.FromOwnedData(dictionary, data) : new PdfStream(dictionary, data.Span);
 
     private PdfStream RecoverStream(
         PdfDictionary dictionary,
@@ -335,13 +340,13 @@ public sealed class PdfObjectParser(
                 if (payloadEnd > dataOffset && source[payloadEnd - 1] == (byte)'\r') payloadEnd--;
                 _lookahead.Clear();
                 _tokenizer.SetRawPosition(dataOffset + endObject);
-                return new PdfStream(dictionary, source[dataOffset..payloadEnd]);
+                return CreateStream(dictionary, _source[dataOffset..payloadEnd]);
             }
             if (declaredLength >= 0 && dataOffset + declaredLength <= source.Length)
             {
                 _lookahead.Clear();
                 _tokenizer.SetRawPosition(dataOffset + declaredLength);
-                return new PdfStream(dictionary, source[dataOffset..(dataOffset + declaredLength)]);
+                return CreateStream(dictionary, _source.Slice(dataOffset, declaredLength));
             }
         }
         if (best < 0)
@@ -355,7 +360,7 @@ public sealed class PdfObjectParser(
         PdfToken recoveredEnd = Take();
         RequireKeyword(recoveredEnd, "endstream",
             "A recovered stream payload must end with the endstream keyword");
-        return new PdfStream(dictionary, source[dataOffset..dataEnd]);
+        return CreateStream(dictionary, _source[dataOffset..dataEnd]);
     }
 
     private static bool IsPdfWhitespace(byte value) =>

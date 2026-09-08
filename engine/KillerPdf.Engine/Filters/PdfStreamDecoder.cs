@@ -1,5 +1,6 @@
 using System.Buffers;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Filters;
@@ -7,6 +8,7 @@ namespace KillerPdf.Engine.Filters;
 /// <summary>Decodes a stream's filter pipeline with a hard output-size limit.</summary>
 public static class PdfStreamDecoder
 {
+    private static readonly ArrayPool<byte> FlateBuffers = PdfScratchBuffers.Bytes;
     /// <summary>Default maximum number of decoded bytes produced by one stream.</summary>
     public const int DefaultMaximumDecodedBytes = 256 * 1024 * 1024;
 
@@ -63,7 +65,7 @@ public static class PdfStreamDecoder
             throw new PdfFilterException("Reduced JPEG decoding requires one DCTDecode filter.");
         PdfDictionary? parameters = ReadParameters(
             stream.Dictionary, filters.Count, resolve)[0];
-        return PdfJpegDecoder.DecodeImage(stream.EncodedData.Span,
+        return PdfJpegDecoder.DecodeImage(stream.EncodedData,
             maximumDecodedBytes, reduction, GetDctColorTransform(parameters, resolve),
             compatibilityRecovery);
     }
@@ -89,7 +91,8 @@ public static class PdfStreamDecoder
         PdfDictionary?[] parameters = ReadParameters(
             stream.Dictionary, filters.Count, resolve);
 
-        byte[] current = stream.EncodedData.ToArray();
+        ReadOnlyMemory<byte> current = stream.EncodedData;
+        byte[]? result = null;
 
         for (int i = 0; i < filters.Count; i++)
         {
@@ -100,20 +103,20 @@ public static class PdfStreamDecoder
             int filterLimit = filter is "FlateDecode" or "Fl" or "LZWDecode" or "LZW"
                 ? PredictorEncodedLimit(parameters[i], resolve, outputLimit)
                 : outputLimit;
-            current = filter switch
+            byte[]? decoded = filter switch
             {
                 "FlateDecode" or "Fl" => DecodeFlate(
                     current, filterLimit, compatibilityRecovery),
                 "BrotliDecode" => DecodeBrotli(current, filterLimit),
-                "ASCIIHexDecode" or "AHx" => DecodeAsciiHex(current, filterLimit, compatibilityRecovery),
-                "ASCII85Decode" or "A85" => DecodeAscii85(current, filterLimit, compatibilityRecovery),
-                "RunLengthDecode" or "RL" => DecodeRunLength(current, filterLimit),
+                "ASCIIHexDecode" or "AHx" => DecodeAsciiHex(current.Span, filterLimit, compatibilityRecovery),
+                "ASCII85Decode" or "A85" => DecodeAscii85(current.Span, filterLimit, compatibilityRecovery),
+                "RunLengthDecode" or "RL" => DecodeRunLength(current.Span, filterLimit),
                 "LZWDecode" or "LZW" => DecodeLzw(
-                    current, parameters[i], resolve, filterLimit),
+                    current.Span, parameters[i], resolve, filterLimit),
                 "DCTDecode" or "DCT" => PdfJpegDecoder.Decode(current, filterLimit,
                     GetDctColorTransform(parameters[i], resolve), compatibilityRecovery),
                 "JPXDecode" or "JPX" => PdfJpeg2000Decoder.Decode(current, filterLimit),
-                "JBIG2Decode" => PdfJbig2Decoder.Decode(current,
+                "JBIG2Decode" => PdfJbig2Decoder.Decode(current.Span,
                     GetJbig2Globals(parameters[i], resolve),
                     globalStream => DecodeCore(globalStream, resolve,
                         DefaultMaximumDecodedBytes, nestedDepth + 1,
@@ -121,27 +124,29 @@ public static class PdfStreamDecoder
                     filterLimit,
                     GetImageDimension(stream.Dictionary, WidthName, resolve),
                     GetImageDimension(stream.Dictionary, HeightName, resolve)),
-                "CCITTFaxDecode" or "CCF" => DecodeCcitt(current,
+                "CCITTFaxDecode" or "CCF" => DecodeCcitt(current.Span,
                     GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit,
                     compatibilityRecovery),
-                "Crypt" => current,
+                "Crypt" => null,
                 // Mainstream viewers pass data through an unknown filter unchanged rather
                 // than abandoning the document.
-                _ when compatibilityRecovery => current,
+                _ when compatibilityRecovery => null,
                 _ => throw new PdfFilterException($"The PDF stream filter /{filter} is not supported yet.")
             };
+
+            if (decoded is not null) current = result = decoded;
 
             // /Crypt is intentionally a no-op here because decryption belongs to the
             // security handler. It must still obey the same expansion boundary as
             // every decoding filter, including when it is the only filter.
             EnsureWithinLimit(current.Length, filterLimit);
             if (filter is "FlateDecode" or "Fl" or "LZWDecode" or "LZW")
-                current = ReversePredictor(
-                    current, parameters[i], resolve, outputLimit,
+                current = result = ReversePredictor(
+                    result!, parameters[i], resolve, outputLimit,
                     compatibilityRecovery);
         }
 
-        return current;
+        return result ?? current.ToArray();
     }
 
     private static byte[] DecodeCcitt(
@@ -528,7 +533,7 @@ public static class PdfStreamDecoder
     }
 
     private static byte[] DecodeFlate(
-        byte[] encoded, int maximumDecodedBytes, bool compatibilityRecovery)
+        ReadOnlyMemory<byte> encoded, int maximumDecodedBytes, bool compatibilityRecovery)
     {
         byte[] complete = Inflate(encoded, 0, zlibHeader: true, maximumDecodedBytes,
             out InvalidDataException? failure, truncateAtLimit: compatibilityRecovery);
@@ -543,12 +548,12 @@ public static class PdfStreamDecoder
         const int salvageBufferSize = 64;
         byte[] best = complete;
         int start = 0;
-        while (start < encoded.Length && encoded[start] is 0 or 9 or 10 or 12 or 13 or 32) start++;
+        while (start < encoded.Length && encoded.Span[start] is 0 or 9 or 10 or 12 or 13 or 32) start++;
         Consider(Inflate(encoded, start, zlibHeader: true, maximumDecodedBytes, out _,
             salvageBufferSize, truncateAtLimit: true));
         Consider(Inflate(encoded, start, zlibHeader: false, maximumDecodedBytes, out _,
             salvageBufferSize, truncateAtLimit: true));
-        if (HasZlibHeader(encoded.AsSpan(start)))
+        if (HasZlibHeader(encoded.Span[start..]))
             Consider(Inflate(encoded, start + 2, zlibHeader: false, maximumDecodedBytes, out _,
                 salvageBufferSize, truncateAtLimit: true));
         // Nothing could be inflated. Common viewers treat the stream as empty rather than
@@ -561,17 +566,17 @@ public static class PdfStreamDecoder
         }
     }
 
-    private static byte[] Inflate(byte[] encoded, int start, bool zlibHeader,
+    private static byte[] Inflate(ReadOnlyMemory<byte> encoded, int start, bool zlibHeader,
         int maximumDecodedBytes, out InvalidDataException? failure, int bufferSize = 81_920,
         bool truncateAtLimit = false)
     {
         failure = null;
         using var output = new FlateOutputBuffer(maximumDecodedBytes);
         if (start >= encoded.Length) return [];
-        byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+        byte[] buffer = FlateBuffers.Rent(bufferSize);
         try
         {
-            using var input = new MemoryStream(encoded, start, encoded.Length - start, writable: false);
+            using var input = ReadEncodedStream(encoded[start..]);
             using Stream inflater = zlibHeader
                 ? new ZLibStream(input, CompressionMode.Decompress)
                 : new DeflateStream(input, CompressionMode.Decompress);
@@ -596,7 +601,7 @@ public static class PdfStreamDecoder
         }
         finally
         {
-            ArrayPool<byte>.Shared.Return(buffer);
+            FlateBuffers.Return(buffer);
         }
         return output.ToArray();
     }
@@ -621,7 +626,7 @@ public static class PdfStreamDecoder
                     long remaining = Math.Max(1, maximumBytes - Length);
                     int previous = _blocks.Count == 0 ? FirstBlockSize / 2 : _blocks[^1].Bytes.Length;
                     int size = (int)Math.Min(remaining, Math.Min(BlockSize, Math.Max(previous * 2L, count)));
-                    _blocks.Add((ArrayPool<byte>.Shared.Rent(size), 0));
+                    _blocks.Add((FlateBuffers.Rent(size), 0));
                 }
                 var block = _blocks[^1];
                 int take = Math.Min(count, block.Bytes.Length - block.Count);
@@ -649,7 +654,7 @@ public static class PdfStreamDecoder
         public void Dispose()
         {
             foreach (var block in _blocks)
-                ArrayPool<byte>.Shared.Return(block.Bytes);
+                FlateBuffers.Return(block.Bytes);
             _blocks.Clear();
         }
     }
@@ -665,11 +670,19 @@ public static class PdfStreamDecoder
             && ((compression << 8) + flags) % 31 == 0;
     }
 
-    private static byte[] DecodeBrotli(byte[] encoded, int maximumDecodedBytes)
+    private static MemoryStream ReadEncodedStream(ReadOnlyMemory<byte> encoded)
+    {
+        if (MemoryMarshal.TryGetArray(encoded, out ArraySegment<byte> segment)
+            && segment.Array is not null)
+            return new MemoryStream(segment.Array, segment.Offset, segment.Count, writable: false);
+        return new MemoryStream(encoded.ToArray(), writable: false);
+    }
+
+    private static byte[] DecodeBrotli(ReadOnlyMemory<byte> encoded, int maximumDecodedBytes)
     {
         try
         {
-            using var input = new MemoryStream(encoded, writable: false);
+            using var input = ReadEncodedStream(encoded);
             using var brotli = new BrotliStream(input, CompressionMode.Decompress);
             using var output = new MemoryStream();
             byte[] buffer = new byte[81_920];

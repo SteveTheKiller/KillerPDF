@@ -41,4 +41,6 @@ public sealed record PdfRenderOptions
     public bool IncludeFormFields { get; }
     /// <summary>Gets the caller-supplied output pixel-buffer limit.</summary>
     public long PixelByteLimit { get; }
+    /// <summary>Gets whether the renderer may reuse and retain this finished bitmap.</summary>
+    public bool CacheResult { get; init; } = true;
 }

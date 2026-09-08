@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using KillerPdf.Engine.Fonts;
@@ -34,9 +33,10 @@ public sealed partial class PdfPageRenderer
     private sealed class CoverageMask
     {
         private bool _rented;
+        private readonly bool _repeatedMiddleRows;
 
         internal CoverageMask(int left, int top, int right, int bottom, byte[]? coverage,
-            bool rented = false)
+            bool rented = false, bool repeatedMiddleRows = false)
         {
             Left = left;
             Top = top;
@@ -44,21 +44,21 @@ public sealed partial class PdfPageRenderer
             Bottom = bottom;
             Coverage = coverage;
             _rented = rented && coverage is not null;
+            _repeatedMiddleRows = repeatedMiddleRows;
         }
 
         internal static CoverageMask Empty { get; } = new(0, 0, 0, 0, null);
 
         /// <summary>
-        /// Returns a pooled coverage buffer once the mask is painted and discarded. Only the
-        /// mask produced by the rasterizer owns its buffer; masks that share it through
-        /// translation or intersection, and masks retained as clips or cached glyphs, never
-        /// return it. The mask must not be read after this call.
+        /// Returns a pooled coverage buffer after painting or after its clip scope ends.
+        /// Translated masks borrow storage from their owner; cached glyphs are not pooled.
+        /// The mask and any borrowing views must not be read after this call.
         /// </summary>
         internal void Return()
         {
             if (!_rented) return;
             _rented = false;
-            ArrayPool<byte>.Shared.Return(Coverage!);
+            RasterBuffers.Return(Coverage!);
         }
 
         internal int Left { get; }
@@ -68,13 +68,17 @@ public sealed partial class PdfPageRenderer
         internal int Width => Right - Left;
         internal int Height => Bottom - Top;
         internal bool IsEmpty => Right <= Left || Bottom <= Top;
-        /// <summary>Row-major coverage inside the bounds, or null when every pixel is covered.</summary>
+        /// <summary>Coverage rows, or null when every pixel is covered.</summary>
         internal byte[]? Coverage { get; }
+
+        internal int RowOffset(int y) => (_repeatedMiddleRows
+            ? y == Top ? 0 : y == Bottom - 1 ? 2 : 1
+            : y - Top) * Width;
 
         internal byte At(int x, int y)
         {
             if (x < Left || x >= Right || y < Top || y >= Bottom) return 0;
-            return Coverage is null ? (byte)255 : Coverage[(y - Top) * Width + (x - Left)];
+            return Coverage is null ? (byte)255 : Coverage[RowOffset(y) + (x - Left)];
         }
 
         internal static CoverageMask Rectangle(int left, int top, int right, int bottom) =>
@@ -82,7 +86,8 @@ public sealed partial class PdfPageRenderer
 
         /// <summary>Moves the bounds by whole pixels, sharing the coverage array.</summary>
         internal CoverageMask Translate(int dx, int dy) =>
-            IsEmpty ? Empty : new(Left + dx, Top + dy, Right + dx, Bottom + dy, Coverage);
+            IsEmpty ? Empty : new(Left + dx, Top + dy, Right + dx, Bottom + dy, Coverage,
+                repeatedMiddleRows: _repeatedMiddleRows);
 
         /// <summary>Intersects two masks by multiplying coverage.</summary>
         internal static CoverageMask Intersect(CoverageMask first, CoverageMask second)
@@ -101,24 +106,37 @@ public sealed partial class PdfPageRenderer
                 && right == first.Right && bottom == first.Bottom)
                 return first;
             int width = right - left;
-            var coverage = new byte[checked(width * (bottom - top))];
+            bool repeated = bottom - top > 3
+                && (first.Coverage is null || first._repeatedMiddleRows)
+                && (second.Coverage is null || second._repeatedMiddleRows);
+            int rows = repeated ? 3 : bottom - top;
+            ClipScratchScope? scope = ClipScratchScope.Current;
+            int size = checked(width * rows);
+            byte[] coverage = scope is null ? new byte[size] : RasterBuffers.Rent(size);
+            var result = new CoverageMask(left, top, right, bottom, coverage,
+                rented: scope is not null, repeatedMiddleRows: repeated);
+            scope?.Track(result);
             if (first.Coverage is null || second.Coverage is null)
             {
                 CoverageMask source = first.Coverage is null ? second : first;
-                for (int y = top; y < bottom; y++)
-                    source.Coverage!.AsSpan((y - source.Top) * source.Width + left - source.Left,
-                        width).CopyTo(coverage.AsSpan((y - top) * width, width));
-                return new CoverageMask(left, top, right, bottom, coverage);
+                for (int row = 0; row < rows; row++)
+                {
+                    int y = repeated && row == 2 ? bottom - 1 : top + row;
+                    source.Coverage!.AsSpan(source.RowOffset(y) + left - source.Left,
+                        width).CopyTo(coverage.AsSpan(row * width, width));
+                }
+                return result;
             }
-            for (int y = top; y < bottom; y++)
+            for (int rowIndex = 0; rowIndex < rows; rowIndex++)
             {
-                int row = (y - top) * width;
-                int firstRow = (y - first.Top) * first.Width + left - first.Left;
-                int secondRow = (y - second.Top) * second.Width + left - second.Left;
+                int y = repeated && rowIndex == 2 ? bottom - 1 : top + rowIndex;
+                int row = rowIndex * width;
+                int firstRow = first.RowOffset(y) + left - first.Left;
+                int secondRow = second.RowOffset(y) + left - second.Left;
                 MultiplyCoverage(first.Coverage.AsSpan(firstRow, width),
                     second.Coverage.AsSpan(secondRow, width), coverage.AsSpan(row, width));
             }
-            return new CoverageMask(left, top, right, bottom, coverage);
+            return result;
         }
 
         /// <summary>Builds a mask from a page-sized coverage buffer, trimming to its nonzero bounds.</summary>
@@ -268,17 +286,25 @@ public sealed partial class PdfPageRenderer
         {
             if (polygon.Length != 4 && (polygon.Length != 5 || polygon[0] != polygon[4]))
                 return null;
+            bool axisAligned =
+                polygon[0].X == polygon[1].X && polygon[1].Y == polygon[2].Y
+                    && polygon[2].X == polygon[3].X && polygon[3].Y == polygon[0].Y
+                || polygon[0].Y == polygon[1].Y && polygon[1].X == polygon[2].X
+                    && polygon[2].Y == polygon[3].Y && polygon[3].X == polygon[0].X;
             Span<(int X, int Y)> corners = stackalloc (int, int)[4];
+            bool pixelAligned = true;
             for (int i = 0; i < 4; i++)
             {
                 Point point = polygon[i];
-                if (!double.IsFinite(point.X) || !double.IsFinite(point.Y)
-                    || point.X < -1 || point.X > width + 1
-                    || point.Y < -1 || point.Y > height + 1)
+                if (!double.IsFinite(point.X) || !double.IsFinite(point.Y))
                     return null;
-                int x = Fixed(point.X), y = Fixed(point.Y);
-                if ((x & (Scale - 1)) != 0 || (y & (Scale - 1)) != 0) return null;
-                corners[i] = (x >> Shift, y >> Shift);
+                if (!axisAligned && (point.X < -1 || point.X > width + 1
+                    || point.Y < -1 || point.Y > height + 1)) return null;
+                // Clamping an axis-aligned rectangle matches clipping its edges to the raster margin.
+                int x = Fixed(Math.Clamp(point.X, -1, width + 1));
+                int y = Fixed(Math.Clamp(point.Y, -1, height + 1));
+                pixelAligned &= (x & Mask) == 0 && (y & Mask) == 0;
+                corners[i] = (x, y);
             }
             var a = corners[0];
             var b = corners[1];
@@ -287,11 +313,38 @@ public sealed partial class PdfPageRenderer
             if (!(a.X == b.X && b.Y == c.Y && c.X == d.X && d.Y == a.Y)
                 && !(a.Y == b.Y && b.X == c.X && c.Y == d.Y && d.X == a.X))
                 return null;
-            // The normal rasterizer produces full coverage for these fixed-point edges.
-            return CoverageMask.Rectangle(Math.Max(0, Math.Min(a.X, c.X)),
-                Math.Max(0, Math.Min(a.Y, c.Y)), Math.Min(width, Math.Max(a.X, c.X)),
-                Math.Min(height, Math.Max(a.Y, c.Y)));
+            if (pixelAligned)
+                return CoverageMask.Rectangle(Math.Max(0, Math.Min(a.X, c.X) >> Shift),
+                    Math.Max(0, Math.Min(a.Y, c.Y) >> Shift), Math.Min(width, Math.Max(a.X, c.X) >> Shift),
+                    Math.Min(height, Math.Max(a.Y, c.Y) >> Shift));
+
+            int minimumY = Math.Min(a.Y, c.Y), maximumY = Math.Max(a.Y, c.Y);
+            int top = Math.Max(0, minimumY >> Shift);
+            int bottom = Math.Min(height, (maximumY + Mask) >> Shift);
+            if (bottom - top <= 3) return null;
+            // An axis-aligned rectangle has one top row, one repeated interior row,
+            // and one bottom row. Rasterize those rows with the same fixed-point
+            // sweep so corner rounding and winding stay identical to the full mask.
+            var compact = new Point[4];
+            for (int i = 0; i < compact.Length; i++)
+            {
+                int y = corners[i].Y;
+                double localY = y / (double)Scale - top;
+                if (y == maximumY) localY -= bottom - top - 3;
+                compact[i] = new Point(corners[i].X / (double)Scale, localY);
+            }
+            CellRasterizer rasterizer = _rectangleRasterizer ??= new CellRasterizer(width, 3);
+            rasterizer.Reset(width, 3);
+            rasterizer.AddPolygons([compact]);
+            CoverageMask local = rasterizer.Sweep(evenOdd: false);
+            if (local.IsEmpty) return CoverageMask.Empty;
+            if (local.Top != 0 || local.Bottom != 3) return null;
+            return new CoverageMask(local.Left, top, local.Right, bottom, local.Coverage,
+                repeatedMiddleRows: true);
         }
+
+        [ThreadStatic]
+        private static CellRasterizer? _rectangleRasterizer;
 
         private Point[] ClipToRaster(Point[] polygon)
         {
@@ -594,7 +647,7 @@ public sealed partial class PdfPageRenderer
             {
                 // Large fills would otherwise allocate a page-sized array on the large object
                 // heap for every paint; pooled buffers keep those out of gen2 collections.
-                coverage = ArrayPool<byte>.Shared.Rent(size);
+                coverage = RasterBuffers.Rent(size);
                 Array.Clear(coverage, 0, size);
             }
             else coverage = new byte[size];
@@ -1012,13 +1065,14 @@ public sealed partial class PdfPageRenderer
         clips.Count == 0 ? 1 : ClipCoverage(clips, x, y) / 255d;
 
     /// <summary>Paints one color through a coverage mask, honoring clips, masks, and blending.</summary>
-    private static void PaintCoverage(byte[] pixels, int width, int height, CoverageMask mask,
+    private static void PaintCoverage(RasterSurface pixels, int width, int height, CoverageMask mask,
         Color color, double alpha, RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
         CancellationToken cancellationToken)
     {
         if (mask.IsEmpty) return;
-        int left = mask.Left, top = mask.Top, right = mask.Right, bottom = mask.Bottom;
+        int left = Math.Max(mask.Left, pixels.Left), top = Math.Max(mask.Top, pixels.Top);
+        int right = Math.Min(mask.Right, pixels.Right), bottom = Math.Min(mask.Bottom, pixels.Bottom);
         // Rectangular clips are fully applied by these bounds, so only antialiased clip
         // masks need the per-pixel coverage lookup.
         bool rectangularClips = true;
@@ -1042,7 +1096,7 @@ public sealed partial class PdfPageRenderer
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            int maskRow = (y - mask.Top) * mask.Width - mask.Left;
+            int maskRow = mask.RowOffset(y) - mask.Left;
             for (int x = left; x < right; x++)
             {
                 int cover = coverage is null ? 255 : coverage[maskRow + x];
@@ -1055,7 +1109,7 @@ public sealed partial class PdfPageRenderer
                 }
                 if (direct)
                 {
-                    int offset = (y * width + x) * 4;
+                    int offset = pixels.Offset(x, y);
                     if (cover == 255)
                     {
                         pixels[offset] = color.Blue;
@@ -1075,7 +1129,7 @@ public sealed partial class PdfPageRenderer
                 }
                 if (opaqueBlend is not null && cover == 255)
                 {
-                    int offset = (y * width + x) * 4;
+                    int offset = pixels.Offset(x, y);
                     if (pixels[offset + 3] == 255)
                     {
                         pixels[offset] = opaqueBlend[pixels[offset] * 4];
@@ -1093,13 +1147,14 @@ public sealed partial class PdfPageRenderer
     private static byte[] CreateOpaqueBlendLookup(Color color, double alpha, RendererBlendMode blendMode)
     {
         var lookup = new byte[256 * 4];
+        var surface = new RasterSurface(lookup, 0, 0, 256, 1);
         for (int value = 0; value < 256; value++)
         {
             int offset = value * 4;
             lookup[offset] = lookup[offset + 1] = lookup[offset + 2] = (byte)value;
             lookup[offset + 3] = 255;
             // Use the original compositor to preserve its floating-point rounding.
-            SetPixel(lookup, 256, value, 0, color, alpha, blendMode);
+            SetPixel(surface, 256, value, 0, color, alpha, blendMode);
         }
         return lookup;
     }
@@ -1123,7 +1178,7 @@ public sealed partial class PdfPageRenderer
         for (int y = mask.Top; y < mask.Bottom; y++)
         {
             int row = y * width;
-            int maskRow = (y - mask.Top) * mask.Width;
+            int maskRow = mask.RowOffset(y);
             for (int x = mask.Left; x < mask.Right; x++)
             {
                 byte value = mask.Coverage is null ? (byte)255 : mask.Coverage[maskRow + x - mask.Left];

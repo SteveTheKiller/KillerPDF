@@ -175,7 +175,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
                 try
                 {
                     PdfIndirectObject indirect = new PdfObjectParser(source, checked((int)entry.Field1),
-                        allowDuplicateDictionaryKeys: true).ParseIndirectObject();
+                        allowDuplicateDictionaryKeys: true)
+                    { ShareOwnedStreamData = true }.ParseIndirectObject();
                     PdfDictionary? dictionary = indirect.Value switch
                     {
                         PdfDictionary direct => direct,
@@ -231,7 +232,8 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
                 if (entry.Field2 != 0) continue;
                 int offset = checked((int)entry.Field1);
                 PdfIndirectObject indirect = new PdfObjectParser(source, offset,
-                    allowDuplicateDictionaryKeys: true).ParseIndirectObject();
+                    allowDuplicateDictionaryKeys: true)
+                { ShareOwnedStreamData = true }.ParseIndirectObject();
                 if (indirect.Value is not PdfStream stream
                     || !stream.Dictionary.TryGetValue(TypeName, out PdfObject type)
                     || type is not PdfName name || name.ValueAsLatin1() != "ObjStm"
@@ -502,7 +504,7 @@ public sealed class PdfCrossReferenceTable : IReadOnlyDictionary<int, PdfCrossRe
                 try
                 {
                     var parser = new PdfObjectParser(source, candidate,
-                        allowDuplicateDictionaryKeys: true);
+                        allowDuplicateDictionaryKeys: true) { ShareOwnedStreamData = true };
                     indirect = parser.ParseIndirectObject(out objectEnd);
                 }
                 catch (Exception error) when (error is PdfSyntaxException
