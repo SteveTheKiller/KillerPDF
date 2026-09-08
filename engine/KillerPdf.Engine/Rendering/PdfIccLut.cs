@@ -15,6 +15,7 @@ internal sealed class PdfIccLut : PdfIccTable
     private readonly int _gridOffset;
     private readonly int _outputOffset;
     private readonly double[] _matrix;
+    private readonly int[] _cornerOffsets;
 
     internal override int InputChannels { get; }
     internal override int OutputChannels { get; }
@@ -49,6 +50,14 @@ internal sealed class PdfIccLut : PdfIccTable
         _gridOffset = (int)gridOffset;
         _outputOffset = (int)outputOffset;
         _data = data[..(int)end];
+        _cornerOffsets = new int[1 << InputChannels];
+        for (int corner = 0; corner < _cornerOffsets.Length; corner++)
+        {
+            int cell = 0;
+            for (int channel = 0; channel < InputChannels; channel++)
+                cell = cell * _grid + ((corner >> channel) & 1);
+            _cornerOffsets[corner] = cell * OutputChannels * _sampleBytes;
+        }
         _matrix = new double[9];
         for (int index = 0; index < _matrix.Length; index++)
             _matrix[index] = BinaryPrimitives.ReadInt32BigEndian(bytes[(12 + index * 4)..]) / 65536d;
@@ -74,29 +83,29 @@ internal sealed class PdfIccLut : PdfIccTable
                 values[row] = Math.Clamp(_matrix[row * 3] * x + _matrix[row * 3 + 1] * y
                     + _matrix[row * 3 + 2] * z, 0, 1);
         }
-        Span<int> lower = stackalloc int[4];
+        int baseCell = 0;
         Span<double> fraction = stackalloc double[4];
         for (int channel = 0; channel < InputChannels; channel++)
         {
             double value = Curve(_inputOffset + channel * _inputEntries * _sampleBytes,
                 _inputEntries, values[channel]) * (_grid - 1);
-            lower[channel] = Math.Min((int)value, _grid - 2);
-            fraction[channel] = value - lower[channel];
+            int lower = Math.Min((int)value, _grid - 2);
+            baseCell = baseCell * _grid + lower;
+            fraction[channel] = value - lower;
         }
         output.Clear();
+        int baseOffset = _gridOffset + baseCell * OutputChannels * _sampleBytes;
         int corners = 1 << InputChannels;
         for (int corner = 0; corner < corners; corner++)
         {
-            int cell = 0;
             double weight = 1;
             for (int channel = 0; channel < InputChannels; channel++)
             {
                 bool upper = (corner & (1 << channel)) != 0;
-                cell = cell * _grid + lower[channel] + (upper ? 1 : 0);
                 weight *= upper ? fraction[channel] : 1 - fraction[channel];
             }
             if (weight == 0) continue;
-            int offset = _gridOffset + cell * OutputChannels * _sampleBytes;
+            int offset = baseOffset + _cornerOffsets[corner];
             for (int channel = 0; channel < OutputChannels; channel++)
                 output[channel] += weight * Sample(offset + channel * _sampleBytes);
         }

@@ -11,6 +11,7 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
     private readonly double[]? _matrix;
     private readonly ReadOnlyMemory<byte> _clut;
     private readonly int[]? _grid;
+    private readonly int[]? _cornerOffsets;
     private readonly int _sampleBytes;
     internal override int InputChannels { get; }
     internal override int OutputChannels { get; }
@@ -76,6 +77,14 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
             long length = cells * OutputChannels * _sampleBytes;
             if (length > clut.Length - 20) throw new FormatException("An ICC processing CLUT is truncated.");
             _clut = clut.Slice(20, (int)length);
+            _cornerOffsets = new int[1 << InputChannels];
+            for (int corner = 0; corner < _cornerOffsets.Length; corner++)
+            {
+                int cell = 0;
+                for (int channel = 0; channel < InputChannels; channel++)
+                    cell = cell * _grid[channel] + ((corner >> channel) & 1);
+                _cornerOffsets[corner] = cell * OutputChannels * _sampleBytes;
+            }
         }
     }
 
@@ -138,29 +147,30 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
     private void Clut(Span<double> values)
     {
         if (_grid is null) return;
-        Span<int> lower = stackalloc int[4];
+        int baseCell = 0;
         Span<double> fraction = stackalloc double[4];
         for (int channel = 0; channel < InputChannels; channel++)
         {
             double position = values[channel] * (_grid[channel] - 1);
-            lower[channel] = Math.Min((int)position, _grid[channel] - 2);
-            fraction[channel] = position - lower[channel];
+            int lower = Math.Min((int)position, _grid[channel] - 2);
+            baseCell = baseCell * _grid[channel] + lower;
+            fraction[channel] = position - lower;
         }
         values.Clear();
+        int baseOffset = baseCell * OutputChannels * _sampleBytes;
         for (int corner = 0; corner < 1 << InputChannels; corner++)
         {
-            int cell = 0;
             double weight = 1;
             for (int channel = 0; channel < InputChannels; channel++)
             {
                 bool upper = (corner & (1 << channel)) != 0;
-                cell = cell * _grid[channel] + lower[channel] + (upper ? 1 : 0);
                 weight *= upper ? fraction[channel] : 1 - fraction[channel];
             }
             if (weight == 0) continue;
+            int cornerOffset = baseOffset + _cornerOffsets![corner];
             for (int channel = 0; channel < OutputChannels; channel++)
             {
-                int offset = (cell * OutputChannels + channel) * _sampleBytes;
+                int offset = cornerOffset + channel * _sampleBytes;
                 double sample = _sampleBytes == 1 ? _clut.Span[offset] / 255d
                     : BinaryPrimitives.ReadUInt16BigEndian(_clut.Span[offset..]) / 65535d;
                 values[channel] += weight * sample;
