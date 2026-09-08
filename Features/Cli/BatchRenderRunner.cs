@@ -207,11 +207,11 @@ namespace KillerPDF.Features
                     var sw = Stopwatch.StartNew();
                     try
                     {
-                        PdfRenderedPage rendered = session.RenderPage(idx, removeTransparencyOnFallback: true);
+                        var rendered = session.RenderPageForEncoding(idx);
                         sw.Stop();
                         row.Width = rendered.Width;
                         row.Height = rendered.Height;
-                        row.Detail = rendered.EngineFailure ?? string.Empty;
+                        row.Detail = string.Join(" ", rendered.Diagnostics);
                         File.WriteAllBytes($"{dstBase}-page-{(idx + 1).ToString(CultureInfo.InvariantCulture).PadLeft(3, '0')}.png",
                             BitmapHelpers.RenderToPng(rendered.Pixels, rendered.Width, rendered.Height));
                     }

@@ -149,14 +149,21 @@ namespace KillerPDF.Services
         /// GDI+ Format32bppArgb uses the same BGRA memory layout.
         /// </summary>
         internal static byte[] RenderToPng(byte[] bgra, int width, int height, double dpi = 96)
+            => RenderToPng((ReadOnlyMemory<byte>)bgra, width, height, dpi);
+
+        internal static byte[] RenderToPng(ReadOnlyMemory<byte> bgra, int width, int height, double dpi = 96)
         {
-            var pin = GCHandle.Alloc(bgra, GCHandleType.Pinned);
+            if (width <= 0 || height <= 0 || bgra.Length < checked(width * height * 4))
+                throw new ArgumentException("Pixel buffer does not contain the requested bitmap.", nameof(bgra));
+            if (!MemoryMarshal.TryGetArray(bgra, out ArraySegment<byte> segment))
+                segment = new ArraySegment<byte>(bgra.ToArray());
+            var pin = GCHandle.Alloc(segment.Array, GCHandleType.Pinned);
             try
             {
                 using var bmp = new System.Drawing.Bitmap(
                     width, height, width * 4,
                     System.Drawing.Imaging.PixelFormat.Format32bppArgb,
-                    pin.AddrOfPinnedObject());
+                    IntPtr.Add(pin.AddrOfPinnedObject(), segment.Offset));
                 // #188: bake the render DPI into the file's metadata; GDI+ defaults to 96.
                 bmp.SetResolution((float)dpi, (float)dpi);
                 using var ms = new MemoryStream();

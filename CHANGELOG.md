@@ -35,6 +35,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 - Replaced PdfPig with engine-owned extraction for search, selection, region copy, text editing, and dark-mode image preservation. Removed PdfPig from the app, tests, and packaged builds.
 - Replaced PDFium and Docnet.Core with engine-owned rendering, improved damaged cross-reference and missing-catalog recovery and JPEG image rendering speed, and removed native file-repair and link-extraction fallbacks.
+- Reduced batch-render memory allocations by encoding read-only engine pixels directly.
 - Click the footer page dimensions to cycle through pixel, inch, millimeter, and point dimensions (#364).
 - Transform and image export DPI previews show the output scale (#365).
 

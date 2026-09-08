@@ -93,6 +93,20 @@ internal sealed class PdfPageRenderSession : IDisposable
         bool includeAnnotations, bool includeFormFields,
         CancellationToken cancellationToken)
     {
+        var rendered = RenderEnginePixels(pageIndex, transparentBackground,
+            includeAnnotations, includeFormFields, cancellationToken);
+        return new PdfRenderedPage(rendered.Width, rendered.Height, rendered.Pixels.ToArray(),
+            PdfRenderBackend.Engine, Diagnostics(rendered.Diagnostics));
+    }
+
+    internal KillerPdf.Engine.Rendering.PdfRenderedPage RenderPageForEncoding(int pageIndex,
+        CancellationToken cancellationToken = default) =>
+        RenderEnginePixels(pageIndex, false, true, true, cancellationToken);
+
+    private KillerPdf.Engine.Rendering.PdfRenderedPage RenderEnginePixels(int pageIndex,
+        bool transparentBackground, bool includeAnnotations, bool includeFormFields,
+        CancellationToken cancellationToken)
+    {
         if (pageIndex < 0 || pageIndex >= _enginePages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         EnginePageInformation pageInformation = _enginePages[pageIndex];
@@ -103,11 +117,9 @@ internal sealed class PdfPageRenderSession : IDisposable
             ? _scale : Math.Min(_maximumWidth / pageWidth, _maximumHeight / pageHeight);
         int engineWidth = Math.Max(1, (int)Math.Round(pageWidth * renderScale));
         int engineHeight = Math.Max(1, (int)Math.Round(pageHeight * renderScale));
-        KillerPdf.Engine.Rendering.PdfRenderedPage rendered = _engineRenderer.Render(
+        return _engineRenderer.Render(
             pageIndex, new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
                 includeAnnotations, includeFormFields), cancellationToken);
-        return new PdfRenderedPage(engineWidth, engineHeight, rendered.Pixels.ToArray(),
-            PdfRenderBackend.Engine, Diagnostics(rendered.Diagnostics));
     }
 
     internal static PdfRenderedPage? RenderExactPage(
