@@ -1,0 +1,6 @@
+"Iteration","CacheState","Exe","ExeBytes","LoaderToOnStartupMs","OnStartupToReadyMs","ProcessToReadyMs","MainWindowConstructMs"
+"1","first","C:\Users\steve\code\KillerPDF\bin\Release\net10.0-windows\KillerPDF.exe","205824","210.5","2409.1","2619.7","619.3"
+"2","warm","C:\Users\steve\code\KillerPDF\bin\Release\net10.0-windows\KillerPDF.exe","205824","215.8","2168.8","2384.6","594.8"
+"3","warm","C:\Users\steve\code\KillerPDF\bin\Release\net10.0-windows\KillerPDF.exe","205824","215.1","2174.8","2389.8","584.3"
+"4","warm","C:\Users\steve\code\KillerPDF\bin\Release\net10.0-windows\KillerPDF.exe","205824","200.1","2277.2","2477.3","591.9"
+"5","warm","C:\Users\steve\code\KillerPDF\bin\Release\net10.0-windows\KillerPDF.exe","205824","216.3","2145.7","2362","580.3"

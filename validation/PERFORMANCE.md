@@ -1,5 +1,40 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 rendering validation follow-up
+
+Measured September 7, 2026, using the retained tuning payload and PDFium 1.8.5.
+The same 600 successful first-page inputs were supplied to both builds at 1024
+pixels, with one warmup and three alternating measured runs each.
+
+| Measurement | PDFium 1.8.5 | Engine 1.9.0 |
+| --- | ---: | ---: |
+| Successful pages in every run | 600 | 600 |
+| Median render time | 11.634 s | 11.593 s |
+| Median whole-pass wall time | 21.989 s | 22.650 s |
+| Median peak working set | 620.3 MiB | 808.0 MiB |
+
+Render time remains at parity. The identical-input whole-pass gap is 3.0%, and
+peak working set is 30.3% higher. This run does not isolate JIT, PNG encoding,
+document opening, or other contributors to the remaining wall-time difference.
+
+The full engine suite passes 3,113 tests and the full app suite passes 338 tests.
+All five previously unverified sidebar tests pass in this session without code
+changes. The earlier FontCache exception was not reproduced; its cause remains
+unconfirmed.
+
+A separate 40-file sample selected from the prior text, shading, and slow-file
+lists rendered 74 pages per build at both 512 and 2048 pixels with no failures.
+It is deliberately biased toward expensive content. At 2048 pixels its one-pass
+wall time was 18.566 s for the engine versus 10.101 s for PDFium. Visible soft-mask
+and color differences remain, including dark rectangles around Ghent text effects
+and distorted image colors. These were also visible in a retained earlier engine
+payload. Successful rendering does not establish visual equivalence.
+
+See the [complete follow-up record](benchmarks/1.9.0-render-validation/README.md)
+for raw timings, startup results, build hashes, visual findings, and limitations.
+The [band-parallel rendering plan](../engine/docs/band-parallel-rendering-plan.md)
+is a proposal only. Correctness and memory work take priority over enabling it.
+
 ## KillerPDF 1.9.0 engine tuning checkpoint
 
 Measured September 7, 2026, after the glyph mask cache, compiled calculator

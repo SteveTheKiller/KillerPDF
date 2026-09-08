@@ -1,0 +1,149 @@
+Size,File,Status,BaselineDimensions,EngineDimensions,MeanChannelDelta,PixelsOver16Percent
+512,bfo-pdfa\pdfa2-6-1-13-bfo-t01-fail.pdf-page-001.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,bfo-pdfa\pdfa2-6-10-bfo-t02-fail.pdf-page-001.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,color\altona\altona_measure_1v1a.pdf-page-001.png,compared,"(512, 369)","(512, 369)",23.5948,62.194
+512,color\altona\altona_technical_1v2_x3.pdf-page-001.png,compared,"(363, 512)","(363, 512)",30.0266,57.326
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG010_CMYK_OP_x3.pdf-page-001.png,compared,"(512, 284)","(512, 284)",5.6709,14.685
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG061_Shading_x1a.pdf-page-001.png,compared,"(512, 284)","(512, 284)",6.8093,18.112
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG1610_Softmasks_Text_part1_X4.pdf-page-001.png,compared,"(512, 284)","(512, 284)",22.2608,49.066
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG1611_Softmasks_Text_part2_X4.pdf-page-001.png,compared,"(512, 284)","(512, 284)",14.7302,42.236
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG168_Softmasks_Vector_part1_X4.pdf-page-001.png,compared,"(512, 284)","(512, 284)",10.874,20.685
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG169_Softmasks_Vector_part2_X4.pdf-page-001.png,compared,"(512, 284)","(512, 284)",8.0333,15.86
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG181_16Bit_DeviceCMYK_x4.pdf-page-001.png,compared,"(512, 284)","(512, 284)",8.3633,17.215
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\Patches\GWG180_16Bit_Images_ICCbasedRGB_x4.pdf-page-001.png,compared,"(512, 284)","(512, 284)",3.5847,7.425
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\Patches\GWG182_16Bit_Images_ICCbasedGray_x4.pdf-page-001.png,compared,"(512, 284)","(512, 284)",4.6016,9.543
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\ReadMes\GWG130_ICC_Source_Profile_README.pdf-page-001.png,dimensions-differ,"(384, 512)","(385, 512)",,
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\ReadMes\GWG130_ICC_Source_Profile_README.pdf-page-002.png,dimensions-differ,"(384, 512)","(385, 512)",,
+512,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\ReadMes\GWG130_ICC_Source_Profile_README.pdf-page-003.png,dimensions-differ,"(384, 512)","(385, 512)",,
+512,color\ghent-gos5\testpages\Ghent_PDF_Output_Suite_V50_Testpages\Ghent_PDF-Output-Test-V50_ALL_X4.pdf-page-001.png,compared,"(385, 512)","(385, 512)",10.2634,18.827
+512,color\ghent-gos5\testpages\Ghent_PDF_Output_Suite_V50_Testpages\Ghent_PDF-Output-Test-V50_ALL_X4.pdf-page-002.png,compared,"(385, 512)","(385, 512)",13.4184,25.231
+512,color\ghent-gos5\testpages\Ghent_PDF_Output_Suite_V50_Testpages\Ghent_PDF-Output-Test-V50_ALL_X4.pdf-page-003.png,compared,"(385, 512)","(385, 512)",8.9371,14.817
+512,pdf-cos-syntax\CompactedPDFSyntaxTest.pdf-page-001.png,compared,"(512, 512)","(512, 512)",17.302,17.648
+512,pdf-differences\ColorBurn-ColorDodge\ColorBurn.pdf-page-001.png,compared,"(512, 512)","(512, 512)",1.2808,2.574
+512,pdf-differences\UnknownFilter\382252277877c00a92f3bb54daef1413bafe5557e2f5f7c32c23e800cd9bdcd4.pdf-page-001.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,pdf-differences\UnknownFilter\4387ba480c6f935b8e97749d40b3c001ad584b7bda66ca2c040be67337669497.pdf-page-001.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,pdf-differences\UnknownFilter\UnknownFilter-Linearized.pdf-page-001.png,compared,"(341, 512)","(341, 512)",0.6892,0.931
+512,pdf20-examples\PDF 2.0 image with BPC.pdf-page-001.png,compared,"(512, 331)","(512, 331)",2.1124,4.817
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_1\495712.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_1\495712.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_1\495712.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\064034.pdf-page-001.png,compared,"(362, 512)","(362, 512)",29.5428,97.189
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\064034.pdf-page-002.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\064034.pdf-page-003.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\210260.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\210260.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\210260.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\367594.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\367594.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\367594.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-104\AIAA-2005-6173-712.pdf-page-001.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-104\AIAA-2005-6173-712.pdf-page-002.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-104\AIAA-2005-6173-712.pdf-page-003.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-114\response-to-fiber-concerns[1].pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-114\response-to-fiber-concerns[1].pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-114\response-to-fiber-concerns[1].pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-117\363_Risk-Based Management of Groundwater Contamination _Paper.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-117\363_Risk-Based Management of Groundwater Contamination _Paper.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-117\363_Risk-Based Management of Groundwater Contamination _Paper.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-136\42828.0001.001.pdf-page-001.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-136\42828.0001.001.pdf-page-002.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-136\42828.0001.001.pdf-page-003.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-165\UMURF-Issue04_2007.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-165\UMURF-Issue04_2007.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-165\UMURF-Issue04_2007.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-34\emi15514-sup-0002-SupinfoS2.pdf-page-001.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-34\emi15514-sup-0002-SupinfoS2.pdf-page-002.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-34\emi15514-sup-0002-SupinfoS2.pdf-page-003.png,dimensions-differ,"(361, 512)","(362, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-42\3253-Article Text-6302-1-10-20190531.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-42\3253-Article Text-6302-1-10-20190531.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-42\3253-Article Text-6302-1-10-20190531.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-66\Wiki SI 563 2021.pdf-page-001.png,compared,"(512, 288)","(512, 288)",1.3821,3.257
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-66\Wiki SI 563 2021.pdf-page-002.png,compared,"(512, 288)","(512, 288)",1.3048,2.499
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-66\Wiki SI 563 2021.pdf-page-003.png,compared,"(512, 288)","(512, 288)",3.0777,5.452
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-71\mipeng_poster_w24.pdf-page-001.png,compared,"(512, 384)","(512, 384)",1.6859,2.864
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\CLLASS Report for ER&L 2020.pdf-page-001.png,compared,"(512, 288)","(512, 288)",3.9441,8.271
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\CLLASS Report for ER&L 2020.pdf-page-002.png,compared,"(512, 288)","(512, 288)",3.2425,5.956
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\CLLASS Report for ER&L 2020.pdf-page-003.png,compared,"(512, 288)","(512, 288)",3.2031,7.179
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\ModRob_An_Inexpensive_and_Modular_Robotic_Arm_for_Hobbyists_Poster_-_Albert_Anwar.pdf-page-001.png,compared,"(512, 384)","(512, 384)",8.5875,18.147
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\facct2025-final168.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\facct2025-final168.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\facct2025-final168.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\Gasp_and_Wheeze_Puppetry.pdf-page-001.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\Gasp_and_Wheeze_Puppetry.pdf-page-002.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\Gasp_and_Wheeze_Puppetry.pdf-page-003.png,dimensions-differ,"(395, 512)","(396, 512)",,
+512,preservation\openpreserve-format-corpus\pdfCabinetOfHorrors\balloon_a1b_jp2k.pdf-page-001.png,dimensions-differ,"(375, 511)","(376, 512)",,
+512,safedocs\CompactedSyntax\CompactedPDFSyntaxMatrix.pdf-page-001.png,compared,"(362, 512)","(362, 512)",13.068,10.618
+2048,bfo-pdfa\pdfa2-6-1-13-bfo-t01-fail.pdf-page-001.png,compared,"(1447, 2048)","(1447, 2048)",0.0554,0.122
+2048,bfo-pdfa\pdfa2-6-10-bfo-t02-fail.pdf-page-001.png,compared,"(1447, 2048)","(1447, 2048)",0.0453,0.108
+2048,color\altona\altona_measure_1v1a.pdf-page-001.png,compared,"(2048, 1477)","(2048, 1477)",20.9231,59.467
+2048,color\altona\altona_technical_1v2_x3.pdf-page-001.png,dimensions-differ,"(1452, 2048)","(1453, 2048)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG010_CMYK_OP_x3.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG061_Shading_x1a.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG1610_Softmasks_Text_part1_X4.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG1611_Softmasks_Text_part2_X4.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG168_Softmasks_Vector_part1_X4.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG169_Softmasks_Vector_part2_X4.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\1-CMYK\Patches\GWG181_16Bit_DeviceCMYK_x4.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\Patches\GWG180_16Bit_Images_ICCbasedRGB_x4.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\Patches\GWG182_16Bit_Images_ICCbasedGray_x4.pdf-page-001.png,dimensions-differ,"(2048, 1137)","(2048, 1138)",,
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\ReadMes\GWG130_ICC_Source_Profile_README.pdf-page-001.png,compared,"(1539, 2048)","(1539, 2048)",2.9197,5.45
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\ReadMes\GWG130_ICC_Source_Profile_README.pdf-page-002.png,compared,"(1539, 2048)","(1539, 2048)",2.6066,3.358
+2048,color\ghent-gos5\patches\Ghent_PDF_Output_Suite_V50_Patches\Categories\3-ICC-CMS\ReadMes\GWG130_ICC_Source_Profile_README.pdf-page-003.png,compared,"(1539, 2048)","(1539, 2048)",2.8885,6.322
+2048,color\ghent-gos5\testpages\Ghent_PDF_Output_Suite_V50_Testpages\Ghent_PDF-Output-Test-V50_ALL_X4.pdf-page-001.png,dimensions-differ,"(1541, 2048)","(1542, 2048)",,
+2048,color\ghent-gos5\testpages\Ghent_PDF_Output_Suite_V50_Testpages\Ghent_PDF-Output-Test-V50_ALL_X4.pdf-page-002.png,dimensions-differ,"(1541, 2048)","(1542, 2048)",,
+2048,color\ghent-gos5\testpages\Ghent_PDF_Output_Suite_V50_Testpages\Ghent_PDF-Output-Test-V50_ALL_X4.pdf-page-003.png,dimensions-differ,"(1541, 2048)","(1542, 2048)",,
+2048,pdf-cos-syntax\CompactedPDFSyntaxTest.pdf-page-001.png,compared,"(2048, 2048)","(2048, 2048)",17.0385,16.719
+2048,pdf-differences\ColorBurn-ColorDodge\ColorBurn.pdf-page-001.png,compared,"(2048, 2048)","(2048, 2048)",0.5178,0.807
+2048,pdf-differences\UnknownFilter\382252277877c00a92f3bb54daef1413bafe5557e2f5f7c32c23e800cd9bdcd4.pdf-page-001.png,compared,"(1447, 2048)","(1447, 2048)",1.5451,3.151
+2048,pdf-differences\UnknownFilter\4387ba480c6f935b8e97749d40b3c001ad584b7bda66ca2c040be67337669497.pdf-page-001.png,compared,"(1447, 2048)","(1447, 2048)",2.3946,4.449
+2048,pdf-differences\UnknownFilter\UnknownFilter-Linearized.pdf-page-001.png,compared,"(1365, 2048)","(1365, 2048)",0.1248,0.076
+2048,pdf20-examples\PDF 2.0 image with BPC.pdf-page-001.png,compared,"(2048, 1325)","(2048, 1325)",1.5251,3.058
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_1\495712.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_1\495712.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_1\495712.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\064034.pdf-page-001.png,compared,"(1448, 2048)","(1448, 2048)",28.9353,96.648
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\064034.pdf-page-002.png,dimensions-differ,"(1447, 2048)","(1448, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\064034.pdf-page-003.png,dimensions-differ,"(1447, 2048)","(1448, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\210260.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\210260.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\210260.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\367594.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\367594.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\govdocs1-error-pdfs\error_set_2\367594.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-104\AIAA-2005-6173-712.pdf-page-001.png,compared,"(1447, 2048)","(1447, 2048)",7.5703,9.183
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-104\AIAA-2005-6173-712.pdf-page-002.png,compared,"(1447, 2048)","(1447, 2048)",8.3271,9.636
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-104\AIAA-2005-6173-712.pdf-page-003.png,compared,"(1447, 2048)","(1447, 2048)",1.8302,2.534
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-114\response-to-fiber-concerns[1].pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-114\response-to-fiber-concerns[1].pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-114\response-to-fiber-concerns[1].pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-117\363_Risk-Based Management of Groundwater Contamination _Paper.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-117\363_Risk-Based Management of Groundwater Contamination _Paper.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-117\363_Risk-Based Management of Groundwater Contamination _Paper.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-136\42828.0001.001.pdf-page-001.png,compared,"(1447, 2048)","(1447, 2048)",5.0217,4.621
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-136\42828.0001.001.pdf-page-002.png,compared,"(1447, 2048)","(1447, 2048)",0.0,0.0
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-136\42828.0001.001.pdf-page-003.png,compared,"(1447, 2048)","(1447, 2048)",1.2719,1.281
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-165\UMURF-Issue04_2007.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-165\UMURF-Issue04_2007.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-165\UMURF-Issue04_2007.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-34\emi15514-sup-0002-SupinfoS2.pdf-page-001.png,compared,"(1447, 2048)","(1447, 2048)",1.6688,3.614
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-34\emi15514-sup-0002-SupinfoS2.pdf-page-002.png,compared,"(1447, 2048)","(1447, 2048)",1.6793,3.562
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-34\emi15514-sup-0002-SupinfoS2.pdf-page-003.png,compared,"(1447, 2048)","(1447, 2048)",1.1767,1.825
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-42\3253-Article Text-6302-1-10-20190531.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-42\3253-Article Text-6302-1-10-20190531.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-42\3253-Article Text-6302-1-10-20190531.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-66\Wiki SI 563 2021.pdf-page-001.png,compared,"(2048, 1152)","(2048, 1152)",0.1985,0.518
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-66\Wiki SI 563 2021.pdf-page-002.png,compared,"(2048, 1152)","(2048, 1152)",0.1262,0.282
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-66\Wiki SI 563 2021.pdf-page-003.png,compared,"(2048, 1152)","(2048, 1152)",0.2382,0.609
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-71\mipeng_poster_w24.pdf-page-001.png,compared,"(2048, 1536)","(2048, 1536)",0.7511,1.096
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\CLLASS Report for ER&L 2020.pdf-page-001.png,compared,"(2048, 1152)","(2048, 1152)",1.0236,1.867
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\CLLASS Report for ER&L 2020.pdf-page-002.png,compared,"(2048, 1152)","(2048, 1152)",0.838,0.822
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\CLLASS Report for ER&L 2020.pdf-page-003.png,compared,"(2048, 1152)","(2048, 1152)",0.3266,0.588
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-78\ModRob_An_Inexpensive_and_Modular_Robotic_Arm_for_Hobbyists_Poster_-_Albert_Anwar.pdf-page-001.png,compared,"(2048, 1536)","(2048, 1536)",5.9966,10.169
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\facct2025-final168.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\facct2025-final168.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\facct2025-final168.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\Gasp_and_Wheeze_Puppetry.pdf-page-001.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\Gasp_and_Wheeze_Puppetry.pdf-page-002.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\jhove-errors\PDF-HUL-81\Gasp_and_Wheeze_Puppetry.pdf-page-003.png,dimensions-differ,"(1582, 2048)","(1583, 2048)",,
+2048,preservation\openpreserve-format-corpus\pdfCabinetOfHorrors\balloon_a1b_jp2k.pdf-page-001.png,dimensions-differ,"(1503, 2047)","(1503, 2048)",,
+2048,safedocs\CompactedSyntax\CompactedPDFSyntaxMatrix.pdf-page-001.png,compared,"(1448, 2048)","(1448, 2048)",3.7416,5.194

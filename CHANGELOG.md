@@ -29,7 +29,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added reusable PDF preflight profiles, reports, corrections, and conformance checks (#334).
 - Added reviewable PDF repair, optimization, sanitization, and duplicate resource cleanup (#333).
 - Added DPI, color mode, threshold, and JPEG compression controls to GUI and command-line PDF flattening (#366).
-- Added a `--batch-render` command that renders pages of a file or tree to PNG with a per-page render and open timing log, and a per-file comparison in the benchmark script.
+- Added a `--batch-render` command that renders pages of a file or tree to PNG with a per-page render and open timing log, and a per-file comparison in the benchmark script. Recorded shared-input timing, memory, and multipage rendering validation.
 
 ### Changed
 
