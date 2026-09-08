@@ -5,13 +5,13 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
-    private readonly Lazy<(PdfColorTransform? Transform, bool Unavailable)> _outputProfile;
+    private readonly Lazy<(PdfColorTransform? Transform, bool Unavailable)>[] _outputProfiles;
     private readonly BoundedCache<PdfObject, (PdfColorTransform? Transform, int Bytes)> _colorProfiles =
         new(8, ReferenceEqualityComparer.Instance, 4 * 1024 * 1024, entry => entry.Bytes);
     private static readonly Func<double, double, double, Color> IccXyzToDisplay =
         CreateXyzConverter([0.9642, 1, 0.8249]);
 
-    private (PdfColorTransform? Transform, bool Unavailable) ReadOutputProfile()
+    private (PdfColorTransform? Transform, bool Unavailable) ReadOutputProfile(int renderingIntent)
     {
         if (!_document.Trailer.TryGetValue(Name("Root"), out PdfObject? root)
             || Resolve(root) is not PdfDictionary catalog
@@ -25,7 +25,7 @@ public sealed partial class PdfPageRenderer
                 || !intent.TryGetValue(Name("DestOutputProfile"), out PdfObject? profileValue)) continue;
             declared = true;
             if (Resolve(profileValue) is not PdfStream stream
-                || ReadIccProfile(stream) is not { Components: 4 } profile) continue;
+                || ReadIccProfile(stream, renderingIntent) is not { Components: 4 } profile) continue;
             if (intent.TryGetValue(Name("S"), out PdfObject? subtype)
                 && Resolve(subtype) is PdfName name && name.ValueAsLatin1() == "GTS_PDFX") return (profile, false);
             fallback ??= profile;
@@ -35,12 +35,10 @@ public sealed partial class PdfPageRenderer
 
     private PdfColorTransform? OutputProfile(HashSet<string>? diagnostics, int intent = 1)
     {
-        var profile = _outputProfile.Value;
-        PdfColorTransform? transform = profile.Transform is PdfIccProfileTransform icc
-            ? icc.ForIntent(intent) : profile.Transform;
-        if (profile.Unavailable || profile.Transform is not null && transform is null)
+        var profile = _outputProfiles[intent].Value;
+        if (profile.Unavailable)
             diagnostics?.Add("The document output profile could not be used for DeviceCMYK color conversion.");
-        return transform;
+        return profile.Transform;
     }
 
     private ImageColorSpace BindDeviceProfile(ImageColorSpace space, HashSet<string>? diagnostics, int intent)
@@ -48,7 +46,7 @@ public sealed partial class PdfPageRenderer
         if (space.Components != 4) return space;
         PdfColorTransform? profile = OutputProfile(diagnostics, intent);
         return profile is not null ? space with { Profile = profile }
-            : _outputProfile.Value.Transform is not null ? space with { HasIccSource = true } : space;
+            : _outputProfiles[intent].Value.Unavailable ? space with { HasIccSource = true } : space;
     }
 
     private PdfColorTransform? ReadGroupProfile(PdfDictionary page, PdfDictionary resources,
@@ -111,7 +109,7 @@ public sealed partial class PdfPageRenderer
             try
             {
                 byte[] bytes = _document.DecodeStream((PdfStream)value, 16 * 1024 * 1024);
-                var transform = new PdfIccProfileTransform(bytes);
+                var transform = PdfIccProfileTransform.ReadAvailable(bytes);
                 return (transform, bytes.Length);
             }
             catch (Exception exception) when (exception is FormatException or NotSupportedException

@@ -143,6 +143,9 @@ and the fallback for unknown names. Intent changes also update previously select
 colors, including default, Indexed, Separation, and DeviceN spaces. Absolute
 colorimetric conversion uses the relative tables and media-white scaling.
 Intent variants share encoded profile storage and cache unavailable transforms.
+An unavailable relative table does not prevent selection of a usable perceptual or
+saturation table. Document output profiles are selected and cached for each requested
+intent, retaining PDF/X profile priority among profiles usable for that intent.
 Transparency blending profiles retain their relative-colorimetric conversion.
 
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels

@@ -12,6 +12,74 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfIccProfileTransformTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AvailableIntentSharesProfileStorageAndCachesFailures(bool saturation)
+    {
+        byte[] table = Lut(true, false, false), unsupported = "bad!\0\0\0\0"u8.ToArray();
+        byte[] bytes = Profile("RGB ", "XYZ ", ("A2B0", saturation ? unsupported : table),
+            ("A2B1", unsupported), ("A2B2", table), ("test", new byte[4 * 1024 * 1024]));
+        Assert.Throws<FormatException>(() => new PdfIccProfileTransform(bytes));
+        long start = GC.GetAllocatedBytesForCurrentThread();
+        var available = PdfIccProfileTransform.ReadAvailable(bytes);
+        Assert.True(GC.GetAllocatedBytesForCurrentThread() - start < 131072);
+        Assert.Null(available.ForIntent(1));
+        if (saturation) Assert.Null(available.ForIntent(0));
+        Assert.Same(available, available.ForIntent(saturation ? 2 : 0));
+        start = GC.GetAllocatedBytesForCurrentThread();
+        for (int repeat = 0; repeat < 100; repeat++) _ = available.ForIntent(1);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - start);
+    }
+
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(false, false, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, true, true)]
+    [InlineData(true, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(true, true, false)]
+    [InlineData(true, true, true)]
+    public void UnavailableRelativeTableDoesNotHideUsableIntent(bool output, bool saturation, bool relativeFirst)
+    {
+        Assert.Equal(Render(false), Render(true));
+
+        byte[] Render(bool unavailableRelative)
+        {
+            PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+            KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+            string select = output ? "0.2 0.3 0.4 0.25 k " : "/Space cs 0.2 0.3 0.4 scn ";
+            string intent = saturation ? "/Saturation ri " : "/Perceptual ri ";
+            string content = (relativeFirst ? select + intent : intent + select) + "0 0 8 8 re f";
+            var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());
+            var root = (PdfIndirectReference)source.Trailer[Name("Root")];
+            var catalog = (PdfDictionary)source.Resolve(root);
+            var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+            var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+            var page = (PdfDictionary)source.Resolve(pageReference);
+            var update = new PdfIncrementalUpdateBuilder(source);
+            int components = output ? 4 : 3;
+            byte[] table = Lut(true, false, false, components), unsupported = "bad!\0\0\0\0"u8.ToArray();
+            byte[] bytes = unavailableRelative
+                ? Profile(output ? "CMYK" : "RGB ", "XYZ ", ("A2B0", saturation ? unsupported : table),
+                    ("A2B1", unsupported), ("A2B2", table))
+                : Profile(output ? "CMYK" : "RGB ", "XYZ ", ("A2B0", table));
+            var profile = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(components))]), bytes));
+            if (output)
+                update.ReplaceObject(root.ObjectNumber, new PdfDictionary(catalog.Append(Entry("OutputIntents",
+                    new PdfArray([new PdfDictionary([Entry("S", Name("GTS_PDFX")), Entry("DestOutputProfile", profile)])])))));
+            else
+                update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                    .Append(Entry("Resources", new PdfDictionary([Entry("ColorSpace", new PdfDictionary([
+                        Entry("Space", new PdfArray([Name("ICCBased"), profile]))]))])))));
+            var renderer = new PdfPageRenderer(PdfDocument.Open(update.Build()));
+            var rendered = renderer.Render(0, new PdfRenderOptions(8, 8));
+            Assert.Equal(unavailableRelative && relativeFirst ? 1 : 0, rendered.Diagnostics.Count);
+            return rendered.Pixels.ToArray();
+        }
+    }
+
+    [Theory]
     [InlineData(false, false, false)]
     [InlineData(true, false, false)]
     [InlineData(false, true, false)]

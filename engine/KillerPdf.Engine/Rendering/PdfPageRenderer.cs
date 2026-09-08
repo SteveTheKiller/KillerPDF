@@ -48,7 +48,12 @@ public sealed partial class PdfPageRenderer
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
-        _outputProfile = new(ReadOutputProfile);
+        _outputProfiles = new Lazy<(PdfColorTransform? Transform, bool Unavailable)>[4];
+        for (int intent = 0; intent < _outputProfiles.Length; intent++)
+        {
+            int selected = intent;
+            _outputProfiles[intent] = new(() => ReadOutputProfile(selected));
+        }
         if (!document.CanReadPageContent)
             throw new InvalidOperationException("Authenticate the document before rendering pages.");
         _content = new PdfPageContentReader(document);

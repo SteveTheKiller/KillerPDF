@@ -139,6 +139,26 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         }
     }
 
+    internal static PdfIccProfileTransform ReadAvailable(ReadOnlyMemory<byte> data)
+    {
+        try { return new(data); }
+        catch (Exception exception) when (exception is FormatException or NotSupportedException)
+        {
+            try
+            {
+                var perceptual = new PdfIccProfileTransform(data, 0);
+                perceptual._attemptedIntents = 1 << 1;
+                return perceptual;
+            }
+            catch (Exception alternate) when (alternate is FormatException or NotSupportedException)
+            {
+                var saturation = new PdfIccProfileTransform(data, 2);
+                saturation._attemptedIntents = (1 << 0) | (1 << 1);
+                return saturation;
+            }
+        }
+    }
+
     internal PdfIccProfileTransform? ForIntent(int intent)
     {
         if (intent is < 0 or > 3) throw new ArgumentOutOfRangeException(nameof(intent));
