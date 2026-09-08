@@ -242,6 +242,7 @@ internal static class PdfJpegDecoder
                 throw Error("The JPEG component sampling factors are incompatible.");
             int mcuColumns = (_width + maxHorizontal * 8 - 1) / (maxHorizontal * 8);
             int mcuRows = (_height + maxVertical * 8 - 1) / (maxVertical * 8);
+            bool rowSamples = _scanComponents.Count > 1 || components == 1;
             long temporarySampleBytes = 0;
             foreach (Component component in _components)
             {
@@ -254,13 +255,14 @@ internal static class PdfJpegDecoder
                 component.Stride = checked(
                     mcuColumns * component.HorizontalSampling * blockSize);
                 int sampleCount = checked(component.Stride
-                    * mcuRows * component.VerticalSampling * blockSize);
+                    * (rowSamples ? 1 : mcuRows) * component.VerticalSampling * blockSize);
                 temporarySampleBytes = checked(temporarySampleBytes + sampleCount);
                 if (temporarySampleBytes > MaximumTemporarySampleBytes)
                     throw Error("JPEG temporary samples exceed the configured safety limit.");
                 component.Samples = new byte[sampleCount];
             }
             var bits = new BitReader(source, _position);
+            byte[]? output = rowSamples ? new byte[(int)outputLength] : null;
             int mcu = 0;
             if (_scanComponents.Count == 1)
             {
@@ -271,6 +273,7 @@ internal static class PdfJpegDecoder
                 int blockRows = checked((_height * component.VerticalSampling
                     + maxVertical * 8 - 1) / (maxVertical * 8));
                 for (int row = 0; row < blockRows; row++)
+                {
                     for (int column = 0; column < blockColumns; column++, mcu++)
                     {
                         if (_restartInterval > 0 && mcu > 0 && mcu % _restartInterval == 0)
@@ -279,12 +282,19 @@ internal static class PdfJpegDecoder
                             component.DcPredictor = 0;
                         }
                         DecodeBlock(bits, component,
-                            column * blockSize, row * blockSize);
+                            column * blockSize, rowSamples ? 0 : row * blockSize);
                     }
+                    if (output is not null)
+                        WriteRows(row * blockSize, blockSize);
+                }
+                if (output is not null)
+                    return new JpegDecodedImage(output, outputWidth, outputHeight,
+                        components, _width, _height);
                 return BuildOutput(maxHorizontal, maxVertical, outputWidth, outputHeight,
                     (int)outputLength);
             }
             for (int row = 0; row < mcuRows; row++)
+            {
                 for (int column = 0; column < mcuColumns; column++, mcu++)
                 {
                     if (_restartInterval > 0 && mcu > 0 && mcu % _restartInterval == 0)
@@ -298,19 +308,35 @@ internal static class PdfJpegDecoder
                                 DecodeBlock(bits, component,
                                     (column * component.HorizontalSampling + horizontal)
                                         * (8 / reduction),
-                                    (row * component.VerticalSampling + vertical)
-                                        * (8 / reduction));
+                                    vertical * (8 / reduction));
                 }
-            return BuildOutput(maxHorizontal, maxVertical, outputWidth, outputHeight,
-                (int)outputLength);
+                WriteRows(row * maxVertical * (8 / reduction), maxVertical * (8 / reduction));
+            }
+            return new JpegDecodedImage(output!, outputWidth, outputHeight,
+                components, _width, _height);
+
+            void WriteRows(int firstRow, int rowCount)
+            {
+                int rows = Math.Min(rowCount, outputHeight - firstRow);
+                WriteOutput(output.AsSpan(firstRow * outputWidth * components,
+                    rows * outputWidth * components), maxHorizontal, maxVertical, outputWidth, rows);
+            }
         }
 
         private JpegDecodedImage BuildOutput(
             int maxHorizontal, int maxVertical, int outputWidth, int outputHeight,
             int outputLength)
         {
-            int components = _components.Count;
             var output = new byte[outputLength];
+            WriteOutput(output, maxHorizontal, maxVertical, outputWidth, outputHeight);
+            return new JpegDecodedImage(
+                output, outputWidth, outputHeight, _components.Count, _width, _height);
+        }
+
+        private void WriteOutput(Span<byte> output, int maxHorizontal, int maxVertical,
+            int outputWidth, int outputHeight)
+        {
+            int components = _components.Count;
             int transform = colorTransform ?? _adobeTransform ?? (components == 3 ? 1 : 0);
             if (compatibilityRecovery && colorTransform is not null
                 && (components == 1 && transform != 0
@@ -352,8 +378,6 @@ internal static class PdfJpegDecoder
                             _components[3], x, y, maxHorizontal, maxVertical);
                     }
                 }
-            return new JpegDecodedImage(
-                output, outputWidth, outputHeight, components, _width, _height);
         }
 
         private void DecodeProgressiveScan()
@@ -604,20 +628,37 @@ internal static class PdfJpegDecoder
                 int blockSize = 8 / reduction;
                 component.Stride = checked(component.BlockColumns * blockSize);
                 component.Samples = new byte[checked(
-                    component.Stride * component.BlockRows * blockSize)];
-                for (int row = 0; row < component.VisibleBlockRows; row++)
-                    for (int column = 0; column < component.VisibleBlockColumns; column++)
-                    {
-                        int offset = (row * component.BlockColumns + column) * 64;
-                        WriteBlock(component, column * blockSize, row * blockSize,
-                            component.Coefficients.AsSpan(offset, 64));
-                    }
+                    component.Stride * component.VerticalSampling * blockSize)];
             }
             int outputWidth = ReducedDimension(_width);
             int outputHeight = ReducedDimension(_height);
-            return BuildOutput(geometry.MaxHorizontal, geometry.MaxVertical,
-                outputWidth, outputHeight,
-                checked(outputWidth * outputHeight * _components.Count));
+            int components = _components.Count;
+            var output = new byte[checked(outputWidth * outputHeight * components)];
+            int rowHeight = geometry.MaxVertical * (8 / reduction);
+            for (int row = 0; row < geometry.McuRows; row++)
+            {
+                foreach (Component component in _components)
+                {
+                    int blockSize = 8 / reduction;
+                    for (int vertical = 0; vertical < component.VerticalSampling; vertical++)
+                    {
+                        int sourceRow = row * component.VerticalSampling + vertical;
+                        if (sourceRow >= component.VisibleBlockRows) break;
+                        for (int column = 0; column < component.VisibleBlockColumns; column++)
+                        {
+                            int offset = (sourceRow * component.BlockColumns + column) * 64;
+                            WriteBlock(component, column * blockSize, vertical * blockSize,
+                                component.Coefficients.AsSpan(offset, 64));
+                        }
+                    }
+                }
+                int firstRow = row * rowHeight;
+                int rows = Math.Min(rowHeight, outputHeight - firstRow);
+                WriteOutput(output.AsSpan(firstRow * outputWidth * components,
+                    rows * outputWidth * components), geometry.MaxHorizontal, geometry.MaxVertical,
+                    outputWidth, rows);
+            }
+            return new JpegDecodedImage(output, outputWidth, outputHeight, components, _width, _height);
         }
 
         private void DecodeBlock(BitReader bits, Component component, int left, int top)

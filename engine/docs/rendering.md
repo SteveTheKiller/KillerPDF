@@ -331,6 +331,12 @@ rounding. Reused scale and quantization products reduce transform arithmetic;
 the one-eighth path evaluates its single output sample directly. These paths
 preserve decoded samples rather than lowering image quality for speed.
 
+Baseline interleaved scans and grayscale scans combine one block row at a time,
+so component sample scratch storage scales with image width instead of height.
+Progressive output also uses one block row of samples, while retaining the
+coefficients needed across scans. Color conversion and transform arithmetic are
+unchanged. Noninterleaved baseline color scans retain their existing path.
+
 On supported CPUs, SIMD calculates neighboring output samples together while
 retaining the coefficient accumulation order within each sample. Blocks smaller
 than the hardware vector width and CPUs without SIMD use the scalar path. The
