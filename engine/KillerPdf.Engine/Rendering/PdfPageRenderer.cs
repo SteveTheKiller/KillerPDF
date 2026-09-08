@@ -30,6 +30,10 @@ public sealed partial class PdfPageRenderer
     private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
         new(256, ReferenceEqualityComparer.Instance);
     private readonly BoundedCache<PdfName, PdfDictionary> _recoveredFontCache = new(14);
+    // Type 3 encodings are rebuilt per text operator otherwise; the table is a pure function
+    // of the font dictionary and is never modified after it is built.
+    private readonly BoundedCache<PdfDictionary, string[]> _type3EncodingCache =
+        new(64, ReferenceEqualityComparer.Instance);
     private readonly BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> _glyphPathCache = new(
         4096, ReferenceEqualityComparer.Instance,
         MaximumFlattenedGlyphCacheBytes,
@@ -927,7 +931,7 @@ public sealed partial class PdfPageRenderer
                     ShowOutlineText(text);
                     return;
                 }
-                string[] encoding = ReadType3Encoding(textFont);
+                string[] encoding = _type3EncodingCache.GetOrAdd(textFont, ReadType3Encoding);
                 PdfDictionary charProcs = textFont.TryGetValue(Name("CharProcs"),
                     out PdfObject? charProcsValue) && Resolve(charProcsValue) is PdfDictionary procs
                     ? procs : throw new FormatException("A Type 3 font has no CharProcs dictionary.");
