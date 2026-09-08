@@ -4100,7 +4100,8 @@ public sealed partial class PdfPageRenderer
                 { OverprintComponents = stencilColor.OverprintComponents } : stencilColor;
             if (plane is not null)
             {
-                if (target.Ink is not null) alphaPlane = RasterBuffers.Rent(checked(planeWidth * planeHeight));
+                if (target.Ink is not null && colorKeyMask is not null)
+                    alphaPlane = RasterBuffers.Rent(checked(planeWidth * planeHeight));
                 byte[] planeData = plane;
                 byte[]? alphaPlaneData = alphaPlane;
                 bool targetInk = target.Ink is not null;
@@ -4123,10 +4124,10 @@ public sealed partial class PdfPageRenderer
                             uint color = converter.Convert(sx, sy);
                             int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
                                 ? 0 : 255;
-                            if (alphaPlaneData is not null)
+                            if (targetInk)
                             {
                                 WriteInk(planeData, offset, color);
-                                alphaPlaneData[offset / 4] = (byte)alpha;
+                                if (alphaPlaneData is not null) alphaPlaneData[offset / 4] = (byte)alpha;
                             }
                             else
                             {
@@ -4234,8 +4235,10 @@ public sealed partial class PdfPageRenderer
                     else
                     {
                         int planeOffset = (py * planeWidth + px) * 4;
-                        alpha = alphaPlane is not null ? alphaPlane[planeOffset / 4] : plane[planeOffset + 3];
-                        color = alphaPlane is not null ? InkColor(ReadInk(plane, planeOffset))
+                        alpha = target.Ink is not null
+                            ? alphaPlane is not null ? alphaPlane[planeOffset / 4] : 255
+                            : plane[planeOffset + 3];
+                        color = target.Ink is not null ? InkColor(ReadInk(plane, planeOffset))
                             : target.ColorFromRgb(new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]));
                     }
                     if (alpha == 0) continue;
