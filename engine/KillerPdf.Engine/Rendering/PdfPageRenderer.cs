@@ -139,6 +139,8 @@ public sealed partial class PdfPageRenderer
             pixels.EnableInk(Color.White, profile: pageProfile);
         else if (pageProfile is { Components: 1 or 3 }) pixels.EnableRgb(Color.White, pageProfile);
         RasterSurface pageSurface = pixels;
+        int previousParallelism = _rowParallelism;
+        _rowParallelism = Math.Max(1, options.MaximumParallelism);
         try
         {
             Process(ReadInstructions(pageIndex, cancellationToken, diagnostics),
@@ -147,7 +149,11 @@ public sealed partial class PdfPageRenderer
             pixels.ConvertToBgra(cancellationToken);
             return new PdfRenderedPage(options.Width, options.Height, pixels.Data, diagnostics);
         }
-        finally { pageSurface.ReleaseInk(); }
+        finally
+        {
+            _rowParallelism = previousParallelism;
+            pageSurface.ReleaseInk();
+        }
 
         void Process(IEnumerable<PdfContentInstruction> instructions,
             PdfDictionary resources, GraphicsState initial, int depth,
@@ -4075,30 +4081,40 @@ public sealed partial class PdfPageRenderer
             if (plane is not null)
             {
                 if (target.Ink is not null) alphaPlane = RasterBuffers.Rent(checked(planeWidth * planeHeight));
-                var converter = new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
-                    bits, decode, colorSpace, target.Ink is not null, target.BlendProfile);
-                for (int py = 0; py < planeHeight; py++)
+                byte[] planeData = plane;
+                byte[]? alphaPlaneData = alphaPlane;
+                bool targetInk = target.Ink is not null;
+                PdfColorTransform? blendProfile = target.BlendProfile;
+                // Every plane sample is a pure function of its source sample, so row ranges can
+                // convert independently. Each range owns its converter because the converter
+                // keeps a small color cache.
+                ForEachRow(0, planeHeight, (long)planeWidth * planeHeight, cancellationToken, (rowStart, rowEnd) =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    int sy = Math.Min((int)((long)py * factor * sourceHeight / samplingHeight), sourceHeight - 1);
-                    for (int px = 0; px < planeWidth; px++)
+                    var converter = new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
+                        bits, decode, colorSpace, targetInk, blendProfile);
+                    for (int py = rowStart; py < rowEnd; py++)
                     {
-                        int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
-                        int offset = (py * planeWidth + px) * 4;
-                        uint color = converter.Convert(sx, sy);
-                        int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
-                            ? 0 : 255;
-                        if (alphaPlane is not null)
+                        cancellationToken.ThrowIfCancellationRequested();
+                        int sy = Math.Min((int)((long)py * factor * sourceHeight / samplingHeight), sourceHeight - 1);
+                        for (int px = 0; px < planeWidth; px++)
                         {
-                            WriteInk(plane, offset, color);
-                            alphaPlane[offset / 4] = (byte)alpha;
-                        }
-                        else
-                        {
-                            WriteInk(plane, offset, (color & 0xFFFFFF) | (uint)alpha << 24);
+                            int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
+                            int offset = (py * planeWidth + px) * 4;
+                            uint color = converter.Convert(sx, sy);
+                            int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
+                                ? 0 : 255;
+                            if (alphaPlaneData is not null)
+                            {
+                                WriteInk(planeData, offset, color);
+                                alphaPlaneData[offset / 4] = (byte)alpha;
+                            }
+                            else
+                            {
+                                WriteInk(planeData, offset, (color & 0xFFFFFF) | (uint)alpha << 24);
+                            }
                         }
                     }
-                }
+                });
             }
 
             // Stencil opacity uses its existing byte rounding. Ordinary images apply
@@ -4116,42 +4132,47 @@ public sealed partial class PdfPageRenderer
                 // straight across, and the rare partial alpha uses the ordinary compositor.
                 // An image soft mask scales the alpha the same way the general loop does.
                 byte[] data = target.Data;
-                for (int y = paintTop; y < paintBottom; y++)
+                byte[] planeData = plane;
+                ForEachRow(paintTop, paintBottom, (long)(paintRight - paintLeft) * (paintBottom - paintTop),
+                    cancellationToken, (rowStart, rowEnd) =>
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    Point first = inverse.Apply((left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
-                    double unitX = first.X, unitY = first.Y;
-                    int rowOffset = target.Offset(left, y);
-                    for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
+                    for (int y = rowStart; y < rowEnd; y++)
                     {
-                        if (x < paintLeft) continue;
-                        if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
-                        int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
-                        int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
-                        int planeOffset = (py * planeWidth + px) * 4;
-                        int alpha = plane[planeOffset + 3];
-                        if (alpha == 0) continue;
-                        if (softMask is not null)
+                        cancellationToken.ThrowIfCancellationRequested();
+                        Point first = inverse.Apply((left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
+                        double unitX = first.X, unitY = first.Y;
+                        int rowOffset = target.Offset(left, y);
+                        for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
                         {
-                            int maskX = Math.Min((int)(unitX * softMask.Width), softMask.Width - 1);
-                            int maskY = Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1);
-                            alpha = (alpha * softMask.Sample(maskX, maskY) + 127) / 255;
+                            if (x < paintLeft) continue;
+                            if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
+                            int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
+                            int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
+                            int planeOffset = (py * planeWidth + px) * 4;
+                            int alpha = planeData[planeOffset + 3];
                             if (alpha == 0) continue;
+                            if (softMask is not null)
+                            {
+                                int maskX = Math.Min((int)(unitX * softMask.Width), softMask.Width - 1);
+                                int maskY = Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1);
+                                alpha = (alpha * softMask.Sample(maskX, maskY) + 127) / 255;
+                                if (alpha == 0) continue;
+                            }
+                            if (alpha == 255)
+                            {
+                                int targetOffset = rowOffset + (x - left) * 4;
+                                data[targetOffset] = planeData[planeOffset];
+                                data[targetOffset + 1] = planeData[planeOffset + 1];
+                                data[targetOffset + 2] = planeData[planeOffset + 2];
+                                data[targetOffset + 3] = 255;
+                                continue;
+                            }
+                            SetPixel(target, targetWidth, x, y,
+                                new Color(planeData[planeOffset + 2], planeData[planeOffset + 1], planeData[planeOffset]),
+                                alpha / 255d, blendMode, graphicsSoftMask, knockout);
                         }
-                        if (alpha == 255)
-                        {
-                            int targetOffset = rowOffset + (x - left) * 4;
-                            data[targetOffset] = plane[planeOffset];
-                            data[targetOffset + 1] = plane[planeOffset + 1];
-                            data[targetOffset + 2] = plane[planeOffset + 2];
-                            data[targetOffset + 3] = 255;
-                            continue;
-                        }
-                        SetPixel(target, targetWidth, x, y,
-                            new Color(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]),
-                            alpha / 255d, blendMode, graphicsSoftMask, knockout);
                     }
-                }
+                });
                 return;
             }
             for (int y = paintTop; y < paintBottom; y++)

@@ -814,6 +814,39 @@ public sealed partial class PdfPageRenderer
     [ThreadStatic]
     private static CellRasterizer? _glyphRasterizer;
 
+    // Row parallelism requested by the render in progress on this thread. Large paints whose
+    // rows are independent split into row ranges; every row computes the same pixels as the
+    // sequential loop, so output does not depend on the thread count.
+    [ThreadStatic]
+    private static int _rowParallelism;
+
+    private const long ParallelPaintThreshold = 262_144;
+
+    /// <summary>Runs a row loop sequentially or across row ranges when large enough.</summary>
+    private static void ForEachRow(int top, int bottom, long pixelCount,
+        CancellationToken cancellationToken, Action<int, int> body)
+    {
+        int parallelism = _rowParallelism;
+        if (parallelism <= 1 || pixelCount < ParallelPaintThreshold || bottom - top < 2)
+        {
+            body(top, bottom);
+            return;
+        }
+        int rows = bottom - top;
+        int chunks = Math.Min(parallelism * 4, rows);
+        int chunkRows = (rows + chunks - 1) / chunks;
+        Parallel.For(0, chunks, new ParallelOptions
+        {
+            MaxDegreeOfParallelism = parallelism,
+            CancellationToken = cancellationToken
+        }, chunk =>
+        {
+            int start = top + chunk * chunkRows;
+            int end = Math.Min(bottom, start + chunkRows);
+            if (start < end) body(start, end);
+        });
+    }
+
     /// <summary>Lets tests compare cached glyph fills against the direct fill path.</summary>
     internal bool UseGlyphMaskCache { get; set; } = true;
 
@@ -1135,42 +1168,46 @@ public sealed partial class PdfPageRenderer
             // place. Pixels with a transparent destination still use the compositor.
             byte[] data = pixels.Data;
             uint packed = color.Blue | (uint)color.Green << 8 | (uint)color.Red << 16 | 0xFF000000u;
-            for (int y = top; y < bottom; y++)
+            Color fillColor = color;
+            ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken, (rowStart, rowEnd) =>
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                int rowOffset = pixels.Offset(left, y);
-                if (coverage is null)
+                for (int y = rowStart; y < rowEnd; y++)
                 {
-                    System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
-                        data.AsSpan(rowOffset, (right - left) * 4)).Fill(packed);
-                    continue;
-                }
-                int maskRow = mask.RowOffset(y) - mask.Left;
-                for (int x = left; x < right; x++)
-                {
-                    int cover = coverage[maskRow + x];
-                    if (cover == 0) continue;
-                    int offset = rowOffset + (x - left) * 4;
-                    if (cover == 255)
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int rowOffset = pixels.Offset(left, y);
+                    if (coverage is null)
                     {
-                        data[offset] = color.Blue;
-                        data[offset + 1] = color.Green;
-                        data[offset + 2] = color.Red;
-                        data[offset + 3] = 255;
+                        System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                            data.AsSpan(rowOffset, (right - left) * 4)).Fill(packed);
                         continue;
                     }
-                    if (data[offset + 3] == 255)
+                    int maskRow = mask.RowOffset(y) - mask.Left;
+                    for (int x = left; x < right; x++)
                     {
-                        int inverse = 255 - cover;
-                        data[offset] = (byte)((color.Blue * cover + data[offset] * inverse + 127) / 255);
-                        data[offset + 1] = (byte)((color.Green * cover + data[offset + 1] * inverse + 127) / 255);
-                        data[offset + 2] = (byte)((color.Red * cover + data[offset + 2] * inverse + 127) / 255);
-                        continue;
+                        int cover = coverage[maskRow + x];
+                        if (cover == 0) continue;
+                        int offset = rowOffset + (x - left) * 4;
+                        if (cover == 255)
+                        {
+                            data[offset] = fillColor.Blue;
+                            data[offset + 1] = fillColor.Green;
+                            data[offset + 2] = fillColor.Red;
+                            data[offset + 3] = 255;
+                            continue;
+                        }
+                        if (data[offset + 3] == 255)
+                        {
+                            int inverse = 255 - cover;
+                            data[offset] = (byte)((fillColor.Blue * cover + data[offset] * inverse + 127) / 255);
+                            data[offset + 1] = (byte)((fillColor.Green * cover + data[offset + 1] * inverse + 127) / 255);
+                            data[offset + 2] = (byte)((fillColor.Red * cover + data[offset + 2] * inverse + 127) / 255);
+                            continue;
+                        }
+                        SetPixel(pixels, width, x, y, fillColor, alpha * cover / 255d, blendMode,
+                            graphicsSoftMask, knockout);
                     }
-                    SetPixel(pixels, width, x, y, color, alpha * cover / 255d, blendMode,
-                        graphicsSoftMask, knockout);
                 }
-            }
+            });
             return;
         }
         for (int y = top; y < bottom; y++)
