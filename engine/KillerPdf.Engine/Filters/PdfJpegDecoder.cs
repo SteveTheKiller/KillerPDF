@@ -353,20 +353,31 @@ internal static class PdfJpegDecoder
                         .CopyTo(output.Slice(y * outputWidth, outputWidth));
                 return;
             }
+            Component firstComponent = _components[0], secondComponent = _components[1],
+                thirdComponent = _components[2];
+            Component? fourthComponent = components == 4 ? _components[3] : null;
+            int firstStep = maxHorizontal / firstComponent.HorizontalSampling;
+            int secondStep = maxHorizontal / secondComponent.HorizontalSampling;
+            int thirdStep = maxHorizontal / thirdComponent.HorizontalSampling;
+            int fourthStep = fourthComponent is null ? 1 : maxHorizontal / fourthComponent.HorizontalSampling;
             for (int y = 0, offset = 0; y < outputHeight; y++)
+            {
+                ReadOnlySpan<byte> firstRow = SampleRow(firstComponent, y, maxVertical);
+                ReadOnlySpan<byte> secondRow = SampleRow(secondComponent, y, maxVertical);
+                ReadOnlySpan<byte> thirdRow = SampleRow(thirdComponent, y, maxVertical);
+                ReadOnlySpan<byte> fourthRow = fourthComponent is null ? [] : SampleRow(fourthComponent, y, maxVertical);
                 for (int x = 0; x < outputWidth; x++)
                 {
-                    int first = Sample(_components[0], x, y, maxHorizontal, maxVertical);
-                    int second = Sample(_components[1], x, y, maxHorizontal, maxVertical);
-                    int third = Sample(_components[2], x, y, maxHorizontal, maxVertical);
+                    int first = Sample(firstRow, x, firstStep);
+                    int second = Sample(secondRow, x, secondStep);
+                    int third = Sample(thirdRow, x, thirdStep);
                     if (transform == 0)
                     {
                         output[offset++] = (byte)first;
                         output[offset++] = (byte)second;
                         output[offset++] = (byte)third;
                         if (components == 4)
-                            output[offset++] = Sample(_components[3], x, y,
-                                maxHorizontal, maxVertical);
+                            output[offset++] = Sample(fourthRow, x, fourthStep);
                     }
                     else
                     {
@@ -377,10 +388,10 @@ internal static class PdfJpegDecoder
                         output[offset++] = Clamp(components == 4 ? 255 - red : red);
                         output[offset++] = Clamp(components == 4 ? 255 - green : green);
                         output[offset++] = Clamp(components == 4 ? 255 - blue : blue);
-                        if (components == 4) output[offset++] = Sample(
-                            _components[3], x, y, maxHorizontal, maxVertical);
+                        if (components == 4) output[offset++] = Sample(fourthRow, x, fourthStep);
                     }
                 }
+            }
         }
 
         private void DecodeProgressiveScan()
@@ -797,13 +808,19 @@ internal static class PdfJpegDecoder
             return value >= threshold ? value : value - (1 << count) + 1;
         }
 
-        private static byte Sample(Component component, int x, int y,
-            int maxHorizontal, int maxVertical)
+        private static ReadOnlySpan<byte> SampleRow(Component component, int y, int maxVertical)
         {
-            int sampleX = x * component.HorizontalSampling / maxHorizontal;
             int sampleY = y * component.VerticalSampling / maxVertical;
-            return component.Samples[sampleY * component.Stride + sampleX];
+            return component.Samples.AsSpan(sampleY * component.Stride, component.Stride);
         }
+
+        private static byte Sample(ReadOnlySpan<byte> row, int x, int step) => row[step switch
+        {
+            1 => x,
+            2 => x >> 1,
+            4 => x >> 2,
+            _ => x / step
+        }];
 
         private byte ReadMarker()
         {
