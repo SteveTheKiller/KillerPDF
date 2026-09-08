@@ -5574,6 +5574,8 @@ public sealed partial class PdfPageRenderer
 
         internal ImageColorSpace ForDestination(RasterSurface destination) =>
             NativeProcessMask.HasValue && destination.Ink is not null ? this
+            : Profile is null && SourceSpace is { Components: 4, Profile: not null } original
+                && destination.Ink is not null && ReferenceEquals(original.Profile, destination.InkProfile) ? this
             : SourceSpace is not null ? SourceSpace.ForDestination(destination)
             : PaletteBase is { HasProcessColorants: true } && destination.Ink is not null
                 ? BindProcessPalette(destination)
@@ -5596,7 +5598,7 @@ public sealed partial class PdfPageRenderer
                 }
             : Components == 4 && Profile is not null && destination.Ink is not null
                 && ReferenceEquals(Profile, destination.InkProfile)
-                ? this with { Profile = null } : this;
+                ? this with { Profile = null, SourceSpace = this } : this;
 
         private ImageColorSpace BindProcessPalette(RasterSurface destination)
         {

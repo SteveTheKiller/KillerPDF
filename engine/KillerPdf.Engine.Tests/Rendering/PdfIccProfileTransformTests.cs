@@ -12,6 +12,61 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfIccProfileTransformTests
 {
     [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    public void NestedGroupPreservesInheritedCmykProfile(bool stroke, bool changeComponents, bool cmykGroup)
+    {
+        Assert.Equal(Render(false), Render(true));
+
+        byte[] Render(bool inherited)
+        {
+            PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+            KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+            PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
+            string select = stroke ? "/Space CS 0.2 0.3 0.4 0.25 SCN " : "/Space cs 0.2 0.3 0.4 0.25 scn ";
+            string paint = stroke ? "8 w 0 4 m 8 4 l S" : "0 0 8 8 re f";
+            var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8,
+                Encoding.ASCII.GetBytes((inherited ? select : "") + "/Form Do")).Build());
+            var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+            var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+            var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+            var page = (PdfDictionary)source.Resolve(pageReference);
+            var update = new PdfIncrementalUpdateBuilder(source);
+            byte[] forward = Lut(true, true, false, 4);
+            for (int cell = 0; cell < 16; cell++)
+                BinaryPrimitives.WriteUInt16BigEndian(forward.AsSpan(68 + cell * 6), (ushort)((cell & 1) == 0 ? 65280 : 0));
+            var profile = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(4))]),
+                Profile("CMYK", "Lab ", ("A2B0", forward), ("B2A0", NeutralReverseLut()))));
+            var space = new PdfArray([Name("ICCBased"), profile]);
+            var spaces = new PdfDictionary([Entry("Space", space)]);
+            PdfObject groupSpace = Name("DeviceRGB");
+            if (cmykGroup)
+            {
+                var otherProfile = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(4))]),
+                    Profile("CMYK", "Lab ", ("A2B0", forward), ("B2A0", NeutralReverseLut()))));
+                groupSpace = new PdfArray([Name("ICCBased"), otherProfile]);
+            }
+            string change = changeComponents ? stroke ? "0.4 0.1 0.2 0.5 SCN " : "0.4 0.1 0.2 0.5 scn " : "";
+            var form = update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Form")), Entry("BBox", Numbers(0, 0, 8, 8)),
+                Entry("Resources", new PdfDictionary([Entry("ColorSpace", inherited ? new PdfDictionary([]) : spaces)])),
+                Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")), Entry("I", new PdfBoolean(true)),
+                    Entry("CS", groupSpace)]))]), Encoding.ASCII.GetBytes((inherited ? "" : select) + change + paint)));
+            update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Concat([Entry("Resources", new PdfDictionary([Entry("ColorSpace", spaces),
+                    Entry("XObject", new PdfDictionary([Entry("Form", form)]))])),
+                    Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", space)]))])));
+            var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
+            Assert.Empty(rendered.Diagnostics);
+            return rendered.Pixels.ToArray();
+        }
+    }
+
+    [Theory]
     [InlineData("fill")]
     [InlineData("stroke")]
     [InlineData("after-color")]

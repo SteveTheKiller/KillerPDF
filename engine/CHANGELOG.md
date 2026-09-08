@@ -60,7 +60,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 - Applied graphics-state opacity to ordinary images and honored image-mask precedence over page masks and overridden color-key masks.
 - Preserved outer blend modes, opacity, and soft masks when non-isolated transparency groups reset their internal graphics state, and prevented page opacity and blending from altering soft-mask creation.
-- Preserved original ink components in CMYK transparency blending and shadow detail in unprofiled CMYK images and painted colors.
+- Preserved original ink components and inherited source profiles across CMYK transparency groups, and shadow detail in unprofiled CMYK images and painted colors.
 - Corrected embedded CFF subfont scaling that could make glyphs effectively invisible.
 - Honored default color-space resources for painting and transparency blending, and reset fill and stroke colors to their specified initial values when selecting a color space.
 - Reported source and output ICC profile fallbacks in page-rendering diagnostics and skipped unused output profiles when default color spaces replace them.

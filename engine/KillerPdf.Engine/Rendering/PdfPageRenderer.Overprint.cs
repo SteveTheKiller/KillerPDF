@@ -4,24 +4,26 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
-    private static GraphicsState RebindNamedColors(GraphicsState state, RasterSurface destination)
+    private GraphicsState RebindNamedColors(GraphicsState state, RasterSurface destination)
     {
-        if (state.FillColorSpace is { HasProcessColorants: true } fill)
+        if (state.FillColorSpace is { } fill && (fill.HasProcessColorants || fill.HasIccSource))
         {
             ImageColorSpace space = fill.ForDestination(destination);
             if (!ReferenceEquals(space, fill)) state = state with
             {
                 FillColorSpace = space,
-                Fill = state.FillComponents is { } values ? space.Convert(values) : state.Fill
+                Fill = state.FillOperands is { } operands ? ReadDevicePaint(space, operands, out _)
+                    : state.FillComponents is { } values ? space.Convert(values) : space.InitialPaint(out _)
             };
         }
-        if (state.StrokeColorSpace is { HasProcessColorants: true } stroke)
+        if (state.StrokeColorSpace is { } stroke && (stroke.HasProcessColorants || stroke.HasIccSource))
         {
             ImageColorSpace space = stroke.ForDestination(destination);
             if (!ReferenceEquals(space, stroke)) state = state with
             {
                 StrokeColorSpace = space,
-                Stroke = state.StrokeComponents is { } values ? space.Convert(values) : state.Stroke
+                Stroke = state.StrokeOperands is { } operands ? ReadDevicePaint(space, operands, out _)
+                    : state.StrokeComponents is { } values ? space.Convert(values) : space.InitialPaint(out _)
             };
         }
         return state;

@@ -119,6 +119,8 @@ components until compositing is finished. CalRGB and CalGray groups also blend
 in their declared space, including its gamma and white point. RGB and gray profiles
 use the existing four-byte pixel buffer, with alpha in the fourth byte. Gray samples occupy equal
 RGB channel values. Copies and knockout backdrops retain the profile identity.
+Inherited fill and stroke colors retain their source profile when a nested group
+uses a different blending space, including later component changes inside that group.
 ICC luminosity masks use connection-space luminance; device masks keep their
 uncalibrated device conversion. Image matte correction precedes color conversion.
 
