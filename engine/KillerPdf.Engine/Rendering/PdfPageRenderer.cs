@@ -3727,6 +3727,14 @@ public sealed partial class PdfPageRenderer
                     int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                     int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
                     int sourceOffset = sourceY * rowBytes + sourceX * components;
+                    if (stencilAlpha != 1)
+                    {
+                        byte firstSample = samples[sourceOffset];
+                        Color color = directGray ? new(firstSample, firstSample, firstSample)
+                            : new(firstSample, samples[sourceOffset + 1], samples[sourceOffset + 2]);
+                        SetPixel(target, targetWidth, x, y, color, stencilAlpha, blendMode);
+                        continue;
+                    }
                     int targetOffset = target.Offset(x, y);
                     if (directGray)
                     {
@@ -3800,7 +3808,10 @@ public sealed partial class PdfPageRenderer
                 }
             }
 
-            bool direct = rectangularClips && graphicsSoftMask is null && knockout is null
+            // Stencil opacity is already included in the plane. Ordinary images apply
+            // nonstroking opacity after their image mask, without another byte rounding.
+            double imageOpacity = imageMask ? 1 : Math.Clamp(stencilAlpha, 0, 1);
+            bool direct = imageOpacity == 1 && rectangularClips && graphicsSoftMask is null && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
@@ -3843,7 +3854,7 @@ public sealed partial class PdfPageRenderer
                     if (clipAlpha <= 0) continue;
                     SetPixel(target, targetWidth, x, y,
                         color,
-                        alpha / 255d * clipAlpha, blendMode, graphicsSoftMask, knockout);
+                        alpha / 255d * imageOpacity * clipAlpha, blendMode, graphicsSoftMask, knockout);
                 }
             }
         }
