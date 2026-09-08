@@ -280,6 +280,31 @@ public sealed partial class PdfPageRenderer
             }
         }
 
+        // Glyph bounds include every transformed point and a one-pixel margin.
+        internal void AddGlyphPolygons(IReadOnlyList<Point[]> polygons,
+            double a, double b, double c, double d, double offsetX, double offsetY,
+            int shiftX, int shiftY)
+        {
+            foreach (Point[] polygon in polygons)
+            {
+                if (polygon.Length < 3) continue;
+                Point first = polygon[0];
+                int firstX = Fixed((first.X * a + first.Y * c + offsetX) - shiftX);
+                int firstY = Fixed((first.X * b + first.Y * d + offsetY) - shiftY);
+                int fromX = firstX, fromY = firstY;
+                for (int index = 1; index < polygon.Length; index++)
+                {
+                    Point point = polygon[index];
+                    int toX = Fixed((point.X * a + point.Y * c + offsetX) - shiftX);
+                    int toY = Fixed((point.X * b + point.Y * d + offsetY) - shiftY);
+                    Line(fromX, fromY, toX, toY);
+                    fromX = toX;
+                    fromY = toY;
+                }
+                Line(fromX, fromY, firstX, firstY);
+            }
+        }
+
         private static int Fixed(double value) => (int)Math.Round(value * Scale);
 
         internal static CoverageMask? TryRectangle(Point[] polygon, int width, int height)
@@ -725,16 +750,13 @@ public sealed partial class PdfPageRenderer
             {
                 int start = starts[row], end = starts[row + 1];
                 if (end - start > 1)
-                    Array.Sort(sorted, start, end - start, CellXComparer.Instance);
+                    sorted.AsSpan(start, end - start).Sort(CompareCellX);
             }
             Array.Copy(sorted, _cells, _count);
         }
 
-        private sealed class CellXComparer : IComparer<Cell>
-        {
-            internal static CellXComparer Instance { get; } = new();
-            public int Compare(Cell first, Cell second) => first.X.CompareTo(second.X);
-        }
+        private static readonly Comparison<Cell> CompareCellX =
+            static (first, second) => first.X.CompareTo(second.X);
     }
 
     /// <summary>Rasterizes pixel-space polygons into a trimmed coverage mask.</summary>
@@ -845,40 +867,32 @@ public sealed partial class PdfPageRenderer
         IReadOnlyList<Point[]> source = _glyphPathCache.GetOrAdd(key.Outline, FlattenGlyphOutlineCore);
         double minX = double.PositiveInfinity, minY = double.PositiveInfinity;
         double maxX = double.NegativeInfinity, maxY = double.NegativeInfinity;
-        var polygons = new List<Point[]>(source.Count);
         foreach (Point[] sourcePath in source)
         {
             if (sourcePath.Length < 3) continue;
-            var polygon = new Point[sourcePath.Length];
             for (int index = 0; index < sourcePath.Length; index++)
             {
                 Point point = sourcePath[index];
                 double x = point.X * a + point.Y * c + offsetX;
                 double y = point.X * b + point.Y * d + offsetY;
                 if (!double.IsFinite(x) || !double.IsFinite(y)) return null;
-                polygon[index] = new Point(x, y);
                 if (x < minX) minX = x;
                 if (x > maxX) maxX = x;
                 if (y < minY) minY = y;
                 if (y > maxY) maxY = y;
             }
-            polygons.Add(polygon);
         }
-        if (polygons.Count == 0) return EmptyGlyphMask;
+        if (double.IsPositiveInfinity(minX)) return EmptyGlyphMask;
+        if (minX < int.MinValue / 2 || minY < int.MinValue / 2
+            || maxX > int.MaxValue / 2 || maxY > int.MaxValue / 2) return null;
         // One pixel of margin on every side keeps antialiased edges inside the local raster.
         int shiftX = (int)Math.Floor(minX) - 1, shiftY = (int)Math.Floor(minY) - 1;
         long width = (long)Math.Ceiling(maxX) + 2 - shiftX;
         long height = (long)Math.Ceiling(maxY) + 2 - shiftY;
         if (width <= 0 || height <= 0 || width * height > MaximumCachedGlyphPixels) return null;
-        for (int index = 0; index < polygons.Count; index++)
-        {
-            Point[] polygon = polygons[index];
-            for (int point = 0; point < polygon.Length; point++)
-                polygon[point] = new Point(polygon[point].X - shiftX, polygon[point].Y - shiftY);
-        }
         CellRasterizer rasterizer = _glyphRasterizer ??= new CellRasterizer((int)width, (int)height);
         rasterizer.Reset((int)width, (int)height);
-        rasterizer.AddPolygons(polygons);
+        rasterizer.AddGlyphPolygons(source, a, b, c, d, offsetX, offsetY, shiftX, shiftY);
         CoverageMask local = rasterizer.Sweep(evenOdd: false);
         return local.IsEmpty ? EmptyGlyphMask : new GlyphMask(local.Translate(shiftX, shiftY));
     }

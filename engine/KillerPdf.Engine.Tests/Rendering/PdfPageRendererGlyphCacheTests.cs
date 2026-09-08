@@ -102,6 +102,29 @@ public sealed class PdfPageRendererGlyphCacheTests
         Assert.Equal(1, renderer.GlyphMaskCacheCount);
     }
 
+    [Theory]
+    [InlineData(0, 1, -1, 0)]
+    [InlineData(-1, 0, 0, 1)]
+    [InlineData(1, 0.5, 0.25, 1)]
+    [InlineData(0.5, 0, 0, 1.5)]
+    public void Render_TransformedCachedGlyphsMatchDirectFills(
+        double a, double b, double c, double d)
+    {
+        var content = new PdfContentStreamBuilder().BeginText()
+            .SetFont(PdfStandardFont.HelveticaBold, 24)
+            .SetTextMatrix(a, b, c, d, 40, 40).ShowLatin1Text("B").EndText();
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(80, 80, content).Build());
+        PdfRenderedPage direct = Render(document, 160, 160, useCache: false, out _);
+        PdfRenderedPage cached = Render(document, 160, 160, useCache: true,
+            out PdfPageRenderer renderer);
+
+        (_, int maximumDelta) = Compare(direct, cached);
+        Assert.True(maximumDelta <= 2, $"Maximum channel delta was {maximumDelta}.");
+        Assert.True(renderer.GlyphMaskCacheCount > 0);
+        Assert.Contains(cached.Pixels.ToArray(), value => value < 255);
+    }
+
     [Fact]
     public void Render_LargeGlyphsBypassTheCacheAndMatchDirectFillsExactly()
     {
