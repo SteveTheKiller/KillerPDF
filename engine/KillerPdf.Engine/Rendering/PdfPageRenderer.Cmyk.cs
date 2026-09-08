@@ -45,14 +45,14 @@ public sealed partial class PdfPageRenderer
     private static void SetInkPixel(RasterSurface surface, int offset, Color color,
         double sourceAlpha, RendererBlendMode mode)
     {
-        double backdropAlpha = surface.InkAlpha![offset / 4] / 255d;
+        double backdropAlpha = surface.Alpha(offset) / 255d;
         double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
         if (outputAlpha <= 0) return;
         uint source = ColorInk(color);
         if (sourceAlpha == 1 && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
         {
             WriteInk(surface.Ink!, offset, source);
-            surface.InkAlpha[offset / 4] = 255;
+            surface.SetAlpha(offset, 255);
             return;
         }
         uint backdrop = ReadInk(surface.Ink!, offset);
@@ -83,6 +83,6 @@ public sealed partial class PdfPageRenderer
             output |= (uint)(byte)Math.Round(Math.Clamp(value, 0, 1) * 255) << (channel * 8);
         }
         WriteInk(surface.Ink!, offset, output);
-        surface.InkAlpha[offset / 4] = (byte)Math.Round(outputAlpha * 255);
+        surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
     }
 }

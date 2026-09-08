@@ -88,8 +88,9 @@ ICC color management; profile-dependent colors can still differ from other viewe
 Pages and isolated groups declaring a CMYK blending space retain all four ink
 components through painting and compositing. Black-only and process-black colors
 therefore remain distinct even when their displayed RGB colors match. CMYK working
-surfaces use four ink bytes and one alpha byte per pixel, converting to BGRA for
-the finished page. Non-isolated groups inherit their parent's blending space.
+surfaces use four ink bytes per pixel and retain uniform alpha as one value.
+An alpha plane is allocated only when samples differ. Finished pages convert
+to BGRA. Non-isolated groups inherit their parent's blending space.
 An ICCBased CMYK alternate selects this same device approximation; the profile
 itself is not applied.
 

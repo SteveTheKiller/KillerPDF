@@ -1450,7 +1450,7 @@ public sealed partial class PdfPageRenderer
                                         backdropPixels.Ink[offset + channel] = (byte)Math.Round(
                                             (backdropPixels.Ink[offset + channel] * backdropAlpha
                                                 + maskedGroupPixels.Ink![groupOffset + channel] * groupAlpha) / alpha);
-                                    backdropPixels.Alpha(offset) = (byte)Math.Round(alpha);
+                                    backdropPixels.SetAlpha(offset, (byte)Math.Round(alpha));
                                     continue;
                                 }
                                 for (int channel = 0; channel < 3; channel++)
@@ -4932,8 +4932,8 @@ public sealed partial class PdfPageRenderer
                     backdrop.Data.AsSpan(backdrop.Offset(_left, row + _top), _width * 4)
                         .CopyTo(_backdrop.AsSpan(row * _width * 4));
                     if (_backdropAlpha is not null)
-                        backdrop.InkAlpha!.AsSpan(backdrop.Offset(_left, row + _top) / 4, _width)
-                            .CopyTo(_backdropAlpha.AsSpan(row * _width));
+                        backdrop.CopyInkAlphaTo(backdrop.Offset(_left, row + _top),
+                            _backdropAlpha.AsSpan(row * _width, _width));
                     if (_backdropGroupAlpha is not null)
                         backdrop.GroupAlpha!.AsSpan(backdrop.Offset(_left, row + _top) / 4, _width)
                             .CopyTo(_backdropGroupAlpha.AsSpan(row * _width));
@@ -4972,13 +4972,13 @@ public sealed partial class PdfPageRenderer
             if (_backdrop is null)
             {
                 target.Data.AsSpan(offset, 4).Clear();
-                target.Alpha(offset) = 0;
+                target.SetAlpha(offset, 0);
                 return;
             }
             if ((target.Ink is null) == (_backdropInk is null))
             {
                 _backdrop.AsSpan(pixel * 4, 4).CopyTo(target.Data.AsSpan(offset, 4));
-                if (_backdropAlpha is not null) target.Alpha(offset) = _backdropAlpha[pixel];
+                if (_backdropAlpha is not null) target.SetAlpha(offset, _backdropAlpha[pixel]);
                 return;
             }
             Color color = _backdropInk is not null ? InkColor(ReadInk(_backdropInk, pixel * 4))
@@ -4990,7 +4990,7 @@ public sealed partial class PdfPageRenderer
                 target[offset + 1] = color.Green;
                 target[offset + 2] = color.Red;
             }
-            target.Alpha(offset) = _backdropAlpha?[pixel] ?? _backdrop[pixel * 4 + 3];
+            target.SetAlpha(offset, _backdropAlpha?[pixel] ?? _backdrop[pixel * 4 + 3]);
         }
     }
     private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,

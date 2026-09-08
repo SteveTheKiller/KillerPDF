@@ -1129,7 +1129,7 @@ public sealed partial class PdfPageRenderer
                 {
                     int offset = pixels.Offset(x, y);
                     WriteInk(pixels.Ink!, offset, ink);
-                    pixels.InkAlpha![offset / 4] = 255;
+                    pixels.SetAlpha(offset, 255);
                     if (pixels.GroupAlpha is not null) pixels.GroupAlpha[offset / 4] = 255;
                     continue;
                 }

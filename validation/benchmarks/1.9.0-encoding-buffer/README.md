@@ -112,3 +112,31 @@ calculator-app -Runs 3`.
 
 Combined app DLL SHA-256:
 `D852B5DA0CD055C25102EE8B2AE4BA06AAC6A6041511E50D996C0DD2C72E552B`.
+
+## Uniform CMYK alpha storage
+
+CMYK surfaces now retain one alpha value until pixels have different opacity,
+then allocate the alpha plane. Opaque 1024-pixel page tests allocate below
+128 KiB instead of about 1 MiB. Transparent and opaque group backdrops,
+group opacity, and knockout copying are covered. All 3,244 engine tests and
+341 app tests pass, and the app build has zero warnings or errors.
+
+All 74 Broad outputs match the preceding stencil build exactly. Three
+alternating runs completed every page; run 1 is warmup. Measured medians:
+
+| Build | Render seconds | Wall seconds | Peak working set MiB |
+| --- | ---: | ---: | ---: |
+| Before uniform alpha | 13.539 | 18.788 | 281.6 |
+| Uniform alpha | 13.390 | 18.554 | 281.3 |
+| PDFium 1.8.5 | 4.698 | 9.879 | 268.8 |
+
+These small differences do not establish a whole-app gain. The memory gap
+remains about 12.6 MiB, and difficult-page speed remains unresolved.
+[uniform-alpha-measurements.csv](uniform-alpha-measurements.csv) preserves
+all observations. The local command was
+`compare-raster.ps1 -Prefix uniform-alpha -Baseline stencil-app -Runs 3`.
+
+Before app DLL SHA-256:
+`D852B5DA0CD055C25102EE8B2AE4BA06AAC6A6041511E50D996C0DD2C72E552B`.
+After app DLL SHA-256:
+`827FB277AB73FB100BDB95D14B304797F7AB86CE2770FFF75086F01D4ED06152`.

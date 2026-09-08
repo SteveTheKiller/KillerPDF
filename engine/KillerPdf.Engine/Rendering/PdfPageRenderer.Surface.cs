@@ -8,6 +8,7 @@ public sealed partial class PdfPageRenderer
         internal byte[] Data { get; } = data;
         internal byte[]? Ink { get; private set; }
         internal byte[]? InkAlpha { get; private set; }
+        private byte _constantAlpha;
         internal byte[]? GroupAlpha { get; private set; }
         internal int Left { get; } = left;
         internal int Top { get; } = top;
@@ -16,11 +17,31 @@ public sealed partial class PdfPageRenderer
         internal int Right => Left + Width;
         internal int Bottom => Top + Height;
         internal int Length => checked(Width * Height * 4);
-        // CMYK surfaces store native ink in Data and alpha in a compact plane.
+        // CMYK surfaces store native ink in Data and materialize alpha only when it varies.
         // Native color reads use ReadColor; RGB hot paths access Data directly.
         internal ref byte this[int offset] => ref Data[offset];
-        internal ref byte Alpha(int offset) => ref (Ink is null
-            ? ref Data[offset + 3] : ref InkAlpha![offset / 4]);
+        internal byte Alpha(int offset) => Ink is null ? Data[offset + 3]
+            : InkAlpha is null ? _constantAlpha : InkAlpha[offset / 4];
+        internal void SetAlpha(int offset, byte alpha)
+        {
+            if (Ink is null)
+            {
+                Data[offset + 3] = alpha;
+                return;
+            }
+            if (InkAlpha is null)
+            {
+                if (alpha == _constantAlpha) return;
+                InkAlpha = RasterBuffers.Rent(Length / 4);
+                InkAlpha.AsSpan(0, Length / 4).Fill(_constantAlpha);
+            }
+            InkAlpha[offset / 4] = alpha;
+        }
+        internal void CopyInkAlphaTo(int offset, Span<byte> destination)
+        {
+            if (InkAlpha is null) destination.Fill(_constantAlpha);
+            else InkAlpha.AsSpan(offset / 4, destination.Length).CopyTo(destination);
+        }
         internal int Offset(int x, int y) => ((y - Top) * Width + x - Left) * 4;
         internal bool Contains(int x, int y) => x >= Left && x < Right && y >= Top && y < Bottom;
 
@@ -43,14 +64,14 @@ public sealed partial class PdfPageRenderer
 
         internal void EnableInk(Color background, bool preserveAlpha = true)
         {
-            InkAlpha = RasterBuffers.Rent(Length / 4);
+            _constantAlpha = preserveAlpha && Length > 0 ? Data[3] : (byte)0;
+            Ink = Data;
             uint ink = ColorInk(background);
             for (int offset = 0; offset < Length; offset += 4)
             {
-                InkAlpha[offset / 4] = preserveAlpha ? Data[offset + 3] : (byte)0;
+                SetAlpha(offset, preserveAlpha ? Data[offset + 3] : (byte)0);
                 WriteInk(Data, offset, ink);
             }
-            Ink = Data;
         }
 
         internal void TrackGroupAlpha()
@@ -65,10 +86,10 @@ public sealed partial class PdfPageRenderer
 
         internal void ReleaseInk()
         {
-            if (InkAlpha is null) return;
-            RasterBuffers.Return(InkAlpha);
+            if (InkAlpha is not null) RasterBuffers.Return(InkAlpha);
             InkAlpha = null;
             Ink = null;
+            _constantAlpha = 0;
         }
 
         internal void ConvertToBgra()
@@ -80,21 +101,32 @@ public sealed partial class PdfPageRenderer
                 Data[offset] = color.Blue;
                 Data[offset + 1] = color.Green;
                 Data[offset + 2] = color.Red;
-                Data[offset + 3] = InkAlpha![offset / 4];
+                Data[offset + 3] = Alpha(offset);
             }
             Ink = null;
         }
 
         internal void CopyFrom(RasterSurface source)
         {
+            if (ReferenceEquals(this, source)) return;
+            if (Ink is not null && source.Ink is not null)
+            {
+                if (source.InkAlpha is null)
+                {
+                    if (InkAlpha is not null) RasterBuffers.Return(InkAlpha);
+                    InkAlpha = null;
+                    _constantAlpha = source._constantAlpha;
+                }
+                else InkAlpha ??= RasterBuffers.Rent(Length / 4);
+            }
             for (int y = Top; y < Bottom; y++)
             {
                 if ((Ink is null) == (source.Ink is null))
                 {
                     source.Data.AsSpan(source.Offset(Left, y), Width * 4)
                         .CopyTo(Data.AsSpan(Offset(Left, y), Width * 4));
-                    if (Ink is not null)
-                        source.InkAlpha!.AsSpan(source.Offset(Left, y) / 4, Width)
+                    if (Ink is not null && source.InkAlpha is not null)
+                        source.InkAlpha.AsSpan(source.Offset(Left, y) / 4, Width)
                             .CopyTo(InkAlpha!.AsSpan(Offset(Left, y) / 4, Width));
                 }
                 else
@@ -109,7 +141,7 @@ public sealed partial class PdfPageRenderer
                             Data[offset + 1] = color.Green;
                             Data[offset + 2] = color.Red;
                         }
-                        Alpha(offset) = source.Alpha(sourceOffset);
+                        SetAlpha(offset, source.Alpha(sourceOffset));
                     }
             }
         }
