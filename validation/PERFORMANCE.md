@@ -1,5 +1,49 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 exact-output speed follow-up
+
+September 8, 2026. Six engine and app commits (`d92dc82` through `f8b9343`) speed
+up rendering without changing any output pixel: all 74 difficult-set pages at 2048 and
+1024 pixels and all 600 shared-set first pages at 1024 pixels hash identically to the
+`0f30226` engine after every step. The engine suite passes 3,702 tests and the app suite
+342, with a clean Release build.
+
+The largest change renders graphics-state soft masks on demand over the area each paint
+reads instead of the whole group bounding box at every `gs`, the approach PDFium takes.
+The others are exact fast paths: untouched soft-mask pixels reuse their backdrop value
+and repeated luminosity colors reuse one conversion, normal blending over opaque pixels
+skips the zero and unit terms, opaque image samples and transparency groups write native
+ink directly, direct image and fill paths keep group alpha and apply under antialiased
+clips where coverage is full, packed image samples read in one step, JPEG blocks skip
+zero coefficients with tabulated chroma products, unprofiled ink converts through a
+table, scratch buffers rent by size bucket, Type 3 encodings are cached, and the app
+splits paints on pages of at least a million pixels across up to four threads.
+
+Measured on the 40-file, 74-page difficult set at 2048 pixels, three pages per file,
+three alternating runs per build, using the app's `--batch-render` while the machine
+was also in interactive use, so absolute figures are noisier than the earlier records.
+
+| Median of three runs | Engine at `0f30226` | Engine at `f8b9343` |
+| --- | ---: | ---: |
+| Render time, 40 shared files | 13.552 s | 11.613 s |
+| Process wall time | 19.254 s | 17.208 s |
+
+The per-file median ratio is 0.887 over the whole set. The soft-mask patches show the
+mask change directly: GWG169 0.29, GWG1611 0.39, GWG182 0.53, GWG130 0.62, GWG1610 0.63,
+with 363_Risk at 0.79, response-to-fiber 0.72, and mipeng 0.87. A separate engine-only
+harness that alternates the two engines in one process and sums per-file CPU time put
+the whole set at 0.80 of the old engine. Against the retained PDFium 1.8.5 figures
+(4.913 s render, 11.102 s wall) the render ratio is about 2.4 and the wall ratio about
+1.55, so the difficult-page gate stays open. The remaining time is JPEG decoding, ICC
+transforms, per-pixel compositing under soft masks, and GC pauses, which the app's
+memory-conservation setting makes more frequent; changing those output pixels or the GC
+policy is outside this pass.
+
+Raw runs: [before and after comparison](benchmarks/1.9.0-render-informal/2026-09-08-lazy-masks).
+Application DLL SHA256 after `18DD0EDBD19E3020C56716C79FFA87FF79F4EB49757F3605F7B35A252025F403`,
+before `5B036623B3043B216A638ACCE98D90EA03227AEEC71441895B916A725017F10B`. Memory was not
+sampled in these runs.
+
 ## KillerPDF 1.9.0 image-memory follow-up
 
 September 8, 2026: invisible images now stop before codec and mask decoding.

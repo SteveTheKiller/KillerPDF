@@ -1,0 +1,3 @@
+"Version","Runs","MedianSeconds","MinimumSeconds","MaximumSeconds","MedianFilesPerSecond"
+"before","3","19.254","19.229","20.241","3.84"
+"after","3","17.208","17.203","19.225","4.3"
