@@ -1,5 +1,27 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 correctness and memory follow-up
+
+The observed outer soft-mask reset defect is fixed, and unprofiled CMYK
+conversion preserves photograph shadow detail. Profile-dependent color
+differences remain. All 3,119 engine tests and 340 app tests pass.
+
+On the 40-file, 74-page sample at 2048 pixels, avoiding a page copy before PNG
+encoding reduced median peak working set from 783.2 to 590.3 MiB across three
+alternating runs. Wall time was unchanged (17.794 versus 17.801 seconds), and
+all 74 compared output pages were pixel-identical. These are engine-to-engine
+results on the difficult sample, not a new PDFium comparison.
+
+The final 600-file shared-set check completed every file in all three alternating
+runs. All 600 compared pages were pixel-identical. Median peak working set fell
+from 785.1 to 770.4 MiB, only 1.9%, while timing remained within machine noise.
+Separate high-resolution tracing estimates 14.8% fewer allocated bytes after
+both allocation changes. First-page display and scrolling remain unmeasured
+because native UI control was unavailable.
+
+See the [correctness and memory record](benchmarks/1.9.0-render-correctness/README.md)
+for the implementation, profile, raw results, and remaining measurement limits.
+
 ## KillerPDF 1.9.0 rendering validation follow-up
 
 Measured September 7, 2026, using the retained tuning payload and PDFium 1.8.5.
