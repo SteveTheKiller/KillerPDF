@@ -101,7 +101,15 @@ namespace KillerPDF
             {
                 foreach (TreeViewItem node in items)
                 {
-                    if (node.Tag is not OutlineNodeRef) continue;   // ghost add-row: no text to measure
+                    if (node.Tag is not OutlineNodeRef)
+                    {
+                        if (node.Header is FrameworkElement header)
+                        {
+                            header.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                            max = Math.Max(max, depth * 19.0 + 31.0 + header.DesiredSize.Width);
+                        }
+                        continue;
+                    }
                     var ft = new System.Windows.Media.FormattedText(
                         node.Header?.ToString() ?? string.Empty,
                         System.Globalization.CultureInfo.CurrentUICulture,
@@ -549,7 +557,7 @@ namespace KillerPDF
 
         /// <summary>The add action lives as a dim first row inside the tree itself (#133): a + glyph
         /// and "Add bookmark", brightening on hover. Tag stays null so the selection handler, the
-        /// context menu, width auto-fit, and the refresh walks all treat it as a non-bookmark row.</summary>
+        /// context menu and the refresh walks treat it as a non-bookmark row.</summary>
         private TreeViewItem BuildAddBookmarkGhostRow()
         {
             var icon = new TextBlock

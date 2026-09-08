@@ -41,6 +41,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Localized the document page count and Italian certificate label, and included the add-bookmark row when sizing the sidebar (#394).
 - Used the destination monitor when calculating maximized client bounds during a cross-monitor move (#363).
 - Refreshed legacy PDF file associations to open the installed app instead of the installer (#393).
 - Corrected Italian translations (#395). (Thanks @bovirus)

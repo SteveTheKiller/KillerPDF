@@ -53,7 +53,7 @@
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSIONE</sys:String>
     <sys:String x:Key="Str_About_Publisher">EDITORE</sys:String>
-    <sys:String x:Key="Str_About_Thumbprint">THUMBPRINT</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">Impronta del certificato</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Informatica...</sys:String>
     <sys:String x:Key="Str_Tagline">Un toolkit PDF veloce e gratuito per Windows con strumenti di annotazione, unione, OCR, firma e moduli. Un'utilità GPLv3 da {0}.</sys:String>
