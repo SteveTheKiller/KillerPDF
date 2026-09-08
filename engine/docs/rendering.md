@@ -340,6 +340,11 @@ allocating one exact-sized sample buffer. It does not grow a second output
 buffer while expanding repetitions. Truncated runs, missing end markers, and
 output above the configured stream limit still fail.
 
+Image soft masks replace explicit and color-key image masks. An image's own
+soft, explicit, or color-key mask replaces the current graphics-state soft mask
+for that image; the page mask remains active for subsequent drawing. Nonstroking
+opacity and blending still apply. Overridden image masks are not decoded.
+
 Image soft masks retain packed samples at 1, 2, 4, 8, or 16 bits per component.
 Mask detail is sampled independently of the color image dimensions. During
 reduction, area averages preserve thin features that a single source sample can

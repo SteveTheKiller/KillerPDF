@@ -56,7 +56,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
-- Applied graphics-state opacity to ordinary images, including images with transparency masks.
+- Applied graphics-state opacity to ordinary images and honored image-mask precedence over page masks and overridden color-key masks.
 - Preserved outer blend modes, opacity, and soft masks when non-isolated transparency groups reset their internal graphics state, and prevented page opacity and blending from altering soft-mask creation.
 - Preserved original ink components in CMYK transparency blending and shadow detail in unprofiled CMYK images and painted colors.
 

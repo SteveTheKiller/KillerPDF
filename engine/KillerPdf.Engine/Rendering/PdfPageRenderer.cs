@@ -1947,24 +1947,6 @@ public sealed partial class PdfPageRenderer
         double[] decode;
         int[]? colorKeyMask = null;
         PdfStream? explicitMask = null;
-        if (stream.Dictionary.TryGetValue(Name("Mask"), out PdfObject? colorKeyValue))
-        {
-            PdfObject resolvedMask = Resolve(colorKeyValue);
-            if (resolvedMask is PdfStream maskStream && !imageMask)
-                explicitMask = maskStream;
-            else if (resolvedMask is PdfArray colorKey
-                && colorKey.Count == components * 2 && !imageMask)
-                colorKeyMask = colorKey.Select(item => Resolve(item) is PdfInteger integer
-                        && integer.Value >= 0 && integer.Value <= (1 << bits) - 1
-                        ? (int)integer.Value
-                        : throw new FormatException("An image color-key mask range is invalid."))
-                    .ToArray();
-            else
-            {
-                diagnostic = "Masked-image rendering is not implemented.";
-                return false;
-            }
-        }
         try
         {
             int encodedComponents = checked(components + (opacityChannel < 0 ? 0 : 1));
@@ -2057,6 +2039,24 @@ public sealed partial class PdfPageRenderer
             }
             if (softMask is null) softMask = ReadSoftMask(stream.Dictionary,
                 transform, scaleX, scaleY, cancellationToken);
+            if (softMask is null && stream.Dictionary.TryGetValue(Name("Mask"), out PdfObject? colorKeyValue))
+            {
+                PdfObject resolvedMask = Resolve(colorKeyValue);
+                if (resolvedMask is PdfStream maskStream && !imageMask)
+                    explicitMask = maskStream;
+                else if (resolvedMask is PdfArray colorKey
+                    && colorKey.Count == components * 2 && !imageMask)
+                    colorKeyMask = colorKey.Select(item => Resolve(item) is PdfInteger integer
+                            && integer.Value >= 0 && integer.Value <= (1 << bits) - 1
+                            ? (int)integer.Value
+                            : throw new FormatException("An image color-key mask range is invalid."))
+                        .ToArray();
+                else
+                {
+                    diagnostic = "Masked-image rendering is not implemented.";
+                    return false;
+                }
+            }
             if (softMask is null && explicitMask is not null)
                 softMask = ReadExplicitImageMask(explicitMask);
             decode = ReadImageDecode(stream.Dictionary, colorSpace, imageMask);
@@ -2080,7 +2080,8 @@ public sealed partial class PdfPageRenderer
             components, bits, clips,
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
-            cancellationToken, preblendMatte, graphicsSoftMask, knockout);
+            cancellationToken, preblendMatte,
+            softMask is not null || colorKeyMask is not null ? null : graphicsSoftMask, knockout);
         return true;
     }
 

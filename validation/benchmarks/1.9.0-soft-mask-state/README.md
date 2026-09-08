@@ -33,3 +33,24 @@ After app DLL SHA-256:
 This correctness check does not establish a new speed or memory result.
 ICC fidelity, remaining isolated-group outlines, difficult-page speed, and
 whole-app memory parity remain open development work.
+
+## Image-mask precedence follow-up
+
+Image soft masks now replace explicit and color-key masks, and any selected
+image mask replaces the current graphics-state soft mask for that image.
+Nonstroking opacity and blending remain active. Subsequent drawing retains
+the page mask. Overridden mask data is not parsed or decoded.
+
+Eight conflicting-mask regression cases failed before and pass afterward.
+The final fourteen cases cover opaque and transparent output, unmasked controls,
+soft masks, explicit masks, color keys, combinations, ignored malformed masks,
+and page-state preservation. The full suites pass 3,266 engine tests and
+341 app tests, and the app builds without warnings or errors.
+
+All 74 Broad pages render successfully and remain pixel-identical to
+`soft-mask-state-final`. The regression tests cover conflicting-mask combinations
+not exercised by that sample. This does not establish a speed or memory gain.
+New images and logs are in `image-mask-precedence-final` under the same scratch root.
+
+Follow-up app DLL SHA-256:
+`2F17EB90626ABBE509D7944F0A650B23D6785CCE097884581C448B1497A2E0D3`.
