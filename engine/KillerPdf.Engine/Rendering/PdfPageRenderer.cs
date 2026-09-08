@@ -4273,6 +4273,8 @@ public sealed partial class PdfPageRenderer
         private readonly int _maximum;
         private readonly bool _targetInk;
         private readonly PdfColorTransform? _targetProfile;
+        private readonly bool _directRgb;
+        private readonly bool _directGray;
 
         internal ImageSampleConverter(byte[] samples, int sourceWidth, int rowBytes,
             int components, int bits, double[] decode, ImageColorSpace colorSpace,
@@ -4288,6 +4290,14 @@ public sealed partial class PdfPageRenderer
             _targetProfile = targetProfile;
             _values = new double[(colorSpace.PaletteBase ?? colorSpace).Components];
             _maximum = bits >= 31 ? int.MaxValue : (1 << bits) - 1;
+            // Plain 8-bit device gray or RGB samples with the default decode convert to the
+            // same byte they started as, so those images skip the double conversion chain.
+            bool plainSpace = !targetInk && targetProfile is null && !colorSpace.DoesNotPaint
+                && colorSpace.Palette is null && colorSpace.Converter is null
+                && colorSpace.MultiConverter is null && colorSpace.Profile is null
+                && colorSpace.ComponentRange is null && bits == 8 && colorSpace.Components == components;
+            _directRgb = plainSpace && components == 3 && decode is [0, 1, 0, 1, 0, 1];
+            _directGray = plainSpace && components == 1 && decode is [0, 1];
             if (components == 1 && bits <= 8)
             {
                 _lookup = new uint[1 << bits];
@@ -4323,6 +4333,17 @@ public sealed partial class PdfPageRenderer
 
         internal uint Convert(int x, int y)
         {
+            if (_directRgb)
+            {
+                int offset = y * _rowBytes + x * 3;
+                return (uint)(_samples[offset + 2] | _samples[offset + 1] << 8 | _samples[offset] << 16)
+                    | 0xFF000000;
+            }
+            if (_directGray)
+            {
+                uint gray = _samples[y * _rowBytes + x];
+                return gray | gray << 8 | gray << 16 | 0xFF000000;
+            }
             if (_lookup is not null)
             {
                 int sample = Math.Min(Raw(x, y, 0), _lookup.Length - 1);
