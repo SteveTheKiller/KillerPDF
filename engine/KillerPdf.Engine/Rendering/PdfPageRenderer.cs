@@ -1248,7 +1248,8 @@ public sealed partial class PdfPageRenderer
                             if (row == 0) constant = blankConverted;
                             if (samples is null && blankConverted != constant)
                             {
-                                samples = new byte[sampleCount];
+                                // Every entry is written below, so the array need not be zeroed.
+                                samples = GC.AllocateUninitializedArray<byte>(sampleCount);
                                 samples.AsSpan(0, rowIndex).Fill(constant);
                             }
                             if (samples is not null) samples.AsSpan(rowIndex, maskWidth).Fill(blankConverted);
@@ -1276,7 +1277,7 @@ public sealed partial class PdfPageRenderer
                             if (index == 0) constant = converted;
                             if (samples is null && converted != constant)
                             {
-                                samples = new byte[sampleCount];
+                                samples = GC.AllocateUninitializedArray<byte>(sampleCount);
                                 samples.AsSpan(0, index).Fill(constant);
                             }
                             if (samples is not null) samples[index] = converted;
@@ -4214,7 +4215,8 @@ public sealed partial class PdfPageRenderer
                         target.SetAlpha(inkOffset, 255);
                         continue;
                     }
-                    if (stencilAlpha != 1 || target.Ink is not null || target.GroupAlpha is not null)
+                    if (stencilAlpha != 1 || target.Ink is not null
+                        || target.GroupAlpha is not null && !target.Contains(x, y))
                     {
                         byte firstSample = samples[sourceOffset];
                         Color color = directGray ? Color.Gray(firstSample / 255d)
@@ -4223,6 +4225,8 @@ public sealed partial class PdfPageRenderer
                         continue;
                     }
                     int targetOffset = directRowOffset + (x - left) * 4;
+                    // Full opacity sets group alpha to 255, the same as the compositor.
+                    if (target.GroupAlpha is not null) target.GroupAlpha[targetOffset / 4] = 255;
                     if (directGray)
                     {
                         byte gray = samples[sourceOffset];
@@ -4322,8 +4326,11 @@ public sealed partial class PdfPageRenderer
             // Stencil opacity uses its existing byte rounding. Ordinary images apply
             // nonstroking opacity after their image mask, without another byte rounding.
             double imageOpacity = imageMask ? 1 : Math.Clamp(stencilAlpha, 0, 1);
-            bool direct = target.Ink is null && target.RgbProfile is null && target.GroupAlpha is null && imageOpacity == 1 && rectangularClips && graphicsSoftMask is null && knockout is null
+            // Group alpha is compatible with the direct writes: an opaque pixel sets it to
+            // 255, which is what the compositor computes for full opacity.
+            bool direct = target.Ink is null && target.RgbProfile is null && imageOpacity == 1 && rectangularClips && graphicsSoftMask is null && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+            byte[]? directGroupAlpha = target.GroupAlpha;
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
@@ -4372,6 +4379,7 @@ public sealed partial class PdfPageRenderer
                                 data[targetOffset + 1] = planeData[planeOffset + greenIndex];
                                 data[targetOffset + 2] = planeData[planeOffset + redIndex];
                                 data[targetOffset + 3] = 255;
+                                if (directGroupAlpha is not null) directGroupAlpha[targetOffset / 4] = 255;
                                 continue;
                             }
                             SetPixel(target, targetWidth, x, y,
@@ -4479,6 +4487,7 @@ public sealed partial class PdfPageRenderer
                         target[targetOffset + 1] = color.Green;
                         target[targetOffset + 2] = color.Red;
                         target[targetOffset + 3] = 255;
+                        if (directGroupAlpha is not null) directGroupAlpha[targetOffset / 4] = 255;
                         continue;
                     }
                     double clipAlpha = rectangularClips ? 1 : ClipAlpha(clips, x, y);

@@ -1136,8 +1136,17 @@ public sealed partial class PdfPageRenderer
         }
         if (right <= left || bottom <= top) return;
         bool perPixelClip = clips.Count > 0 && !rectangularClips;
-        bool simpleBlend = pixels.Ink is null && pixels.RgbProfile is null && pixels.GroupAlpha is null && graphicsSoftMask is null && knockout is null
+        // Group alpha is maintained alongside the direct RGB paths with the compositor's own
+        // formula, so tracked groups take the same fast paths as plain pages.
+        bool simpleBlend = pixels.Ink is null && pixels.RgbProfile is null && graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        byte[]? groupAlpha = pixels.GroupAlpha;
+        void TrackGroupAlpha(int offset, double opacity)
+        {
+            double sourceAlpha = Math.Clamp(opacity, 0, 1);
+            groupAlpha![offset / 4] = (byte)Math.Round(sourceAlpha * 255
+                + groupAlpha[offset / 4] * (1 - sourceAlpha));
+        }
         bool direct = alpha >= 1 && simpleBlend;
         bool directInk = pixels.Ink is not null && alpha >= 1
             && (color.OverprintComponents & 16) == 0
@@ -1187,6 +1196,7 @@ public sealed partial class PdfPageRenderer
                     {
                         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
                             data.AsSpan(rowOffset, (right - left) * 4)).Fill(packed);
+                        groupAlpha?.AsSpan(rowOffset / 4, right - left).Fill(255);
                         continue;
                     }
                     int maskRow = mask.RowOffset(y) - mask.Left;
@@ -1201,6 +1211,7 @@ public sealed partial class PdfPageRenderer
                             data[offset + 1] = fillColor.Green;
                             data[offset + 2] = fillColor.Red;
                             data[offset + 3] = 255;
+                            if (groupAlpha is not null) groupAlpha[offset / 4] = 255;
                             continue;
                         }
                         if (data[offset + 3] == 255)
@@ -1209,6 +1220,7 @@ public sealed partial class PdfPageRenderer
                             data[offset] = (byte)((fillColor.Blue * cover + data[offset] * inverse + 127) / 255);
                             data[offset + 1] = (byte)((fillColor.Green * cover + data[offset + 1] * inverse + 127) / 255);
                             data[offset + 2] = (byte)((fillColor.Red * cover + data[offset + 2] * inverse + 127) / 255);
+                            if (groupAlpha is not null) TrackGroupAlpha(offset, alpha * cover / 255d);
                             continue;
                         }
                         SetPixel(pixels, width, x, y, fillColor, alpha * cover / 255d, blendMode,
@@ -1249,6 +1261,7 @@ public sealed partial class PdfPageRenderer
                         pixels[offset + 1] = color.Green;
                         pixels[offset + 2] = color.Red;
                         pixels[offset + 3] = 255;
+                        if (groupAlpha is not null) groupAlpha[offset / 4] = 255;
                         continue;
                     }
                     if (pixels[offset + 3] == 255)
@@ -1257,6 +1270,7 @@ public sealed partial class PdfPageRenderer
                         pixels[offset] = (byte)((color.Blue * cover + pixels[offset] * inverse + 127) / 255);
                         pixels[offset + 1] = (byte)((color.Green * cover + pixels[offset + 1] * inverse + 127) / 255);
                         pixels[offset + 2] = (byte)((color.Red * cover + pixels[offset + 2] * inverse + 127) / 255);
+                        if (groupAlpha is not null) TrackGroupAlpha(offset, alpha * cover / 255d);
                         continue;
                     }
                 }
@@ -1268,6 +1282,7 @@ public sealed partial class PdfPageRenderer
                         pixels[offset] = opaqueBlend[pixels[offset] * 4];
                         pixels[offset + 1] = opaqueBlend[pixels[offset + 1] * 4 + 1];
                         pixels[offset + 2] = opaqueBlend[pixels[offset + 2] * 4 + 2];
+                        if (groupAlpha is not null) TrackGroupAlpha(offset, alpha * cover / 255d);
                         continue;
                     }
                 }

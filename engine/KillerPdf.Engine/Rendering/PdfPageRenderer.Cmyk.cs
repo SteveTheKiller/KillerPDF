@@ -61,13 +61,26 @@ public sealed partial class PdfPageRenderer
         return (uint)(cyan | magenta << 8 | yellow << 16 | (255 - light) << 24);
     }
 
+    // Unprofiled ink to display: ((255 - ink) * (255 - black) + 127) / 255 for each of the
+    // three chromatic inks, tabulated by ink and black so conversion is two lookups per channel.
+    private static readonly byte[] InkDisplayTable = CreateInkDisplayTable();
+
+    private static byte[] CreateInkDisplayTable()
+    {
+        var table = new byte[256 * 256];
+        for (int ink = 0; ink < 256; ink++)
+            for (int black = 0; black < 256; black++)
+                table[black * 256 + ink] = (byte)(((255 - ink) * (255 - black) + 127) / 255);
+        return table;
+    }
+
     private static Color InkColor(uint ink, PdfColorTransform? profile = null)
     {
         if (profile is not null) return ProfileInkToDisplay(ink, profile) with { Ink = ink, InkProfile = profile };
-        int light = 255 - (int)(ink >> 24);
-        return new Color((byte)(((255 - (byte)ink) * light + 127) / 255),
-            (byte)(((255 - (byte)(ink >> 8)) * light + 127) / 255),
-            (byte)(((255 - (byte)(ink >> 16)) * light + 127) / 255)) { Ink = ink };
+        int blackRow = (int)(ink >> 24) * 256;
+        return new Color(InkDisplayTable[blackRow + (byte)ink],
+            InkDisplayTable[blackRow + (byte)(ink >> 8)],
+            InkDisplayTable[blackRow + (byte)(ink >> 16)]) { Ink = ink };
     }
 
     private static void SetInkPixel(RasterSurface surface, int offset, in Color color,
