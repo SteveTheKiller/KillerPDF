@@ -1159,6 +1159,65 @@ public sealed partial class PdfPageRenderer
                     if (CmykGroup(group.Dictionary, inheritedResources, false)) maskPixels.EnableInk(backdrop,
                         profile: maskProfile);
                     else if (maskProfile is { Components: 1 or 3 }) maskPixels.EnableRgb(backdrop, maskProfile);
+                    int sampleCount = checked(maskWidth * maskHeight);
+                    byte[]? samples = null;
+                    byte constant = 0;
+                    Func<double, Color>? transfer = null;
+                    if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
+                    {
+                        PdfObject resolvedTransfer = Resolve(transferValue);
+                        if (resolvedTransfer is not PdfName transferName
+                            || transferName.ValueAsLatin1() != "Identity")
+                            transfer = ReadColorFunction(transferValue,
+                                new ImageColorSpace(1, null), "soft-mask transfer function");
+                    }
+                    byte ConvertSample(double sample) => transfer is null
+                        ? (byte)Math.Round(sample * 255) : transfer(sample).Red;
+                    bool plainRgbMask = maskPixels.Ink is null && maskPixels.RgbProfile is null;
+                    bool plainInkMask = maskPixels.Ink is not null && maskPixels.InkProfile is null
+                        && deviceLuminosity;
+                    bool directMask = (plainRgbMask || plainInkMask) && transfer is null;
+                    byte[] maskData = maskPixels.Data;
+                    byte ConvertAt(int offset)
+                    {
+                        if (directMask)
+                        {
+                            // Plain RGB or unprofiled ink mask surface: read the bytes directly. The
+                            // arithmetic is the same as the general path below, without per-pixel
+                            // color objects. Ink pixels convert with InkColor's integer math.
+                            if (!luminosity)
+                            {
+                                // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
+                                return plainRgbMask ? maskData[offset + 3] : maskPixels.Alpha(offset);
+                            }
+                            if (plainRgbMask)
+                            {
+                                return (byte)Math.Round((0.3 * maskData[offset + 2]
+                                    + 0.59 * maskData[offset + 1] + 0.11 * maskData[offset]) / 255d * 255);
+                            }
+                            int light = 255 - maskData[offset + 3];
+                            int red = ((255 - maskData[offset]) * light + 127) / 255;
+                            int green = ((255 - maskData[offset + 1]) * light + 127) / 255;
+                            int blue = ((255 - maskData[offset + 2]) * light + 127) / 255;
+                            return (byte)Math.Round((0.3 * red + 0.59 * green + 0.11 * blue) / 255d * 255);
+                        }
+                        Color color = luminosity ? deviceLuminosity && maskPixels.Ink is not null
+                            ? InkColor(ReadInk(maskPixels.Ink, offset)) : maskPixels.ReadColor(offset) : default;
+                        double sample = luminosity
+                            ? Luminosity(color)
+                            : maskPixels.Alpha(offset) / 255d;
+                        return ConvertSample(sample);
+                    }
+                    // Pixels the group never paints keep the initial backdrop bytes, so their
+                    // converted value is known before the group renders. Whole untouched rows
+                    // and untouched pixels reuse it instead of repeating the conversion.
+                    uint blankPixel = sampleCount > 0 ? ReadInk(maskData, 0) : 0;
+                    byte blankAlpha = sampleCount > 0 ? maskPixels.Alpha(0) : (byte)0;
+                    byte blankConverted = sampleCount > 0 ? ConvertAt(0) : (byte)0;
+                    // Luminosity conversion depends only on the pixel's color bytes, so repeated
+                    // values reuse a small direct-mapped table instead of converting again.
+                    Span<ulong> recent = luminosity ? stackalloc ulong[4096] : [];
+                    recent.Clear();
                     try
                     {
                         pixels = maskPixels;
@@ -1176,84 +1235,44 @@ public sealed partial class PdfPageRenderer
                     {
                         pixels = pagePixels;
                     }
-                    int sampleCount = checked(maskWidth * maskHeight);
-                    byte[]? samples = null;
-                    byte constant = 0;
-                    Func<double, Color>? transfer = null;
-                    if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
-                    {
-                        PdfObject resolvedTransfer = Resolve(transferValue);
-                        if (resolvedTransfer is not PdfName transferName
-                            || transferName.ValueAsLatin1() != "Identity")
-                            transfer = ReadColorFunction(transferValue,
-                                new ImageColorSpace(1, null), "soft-mask transfer function");
-                    }
-                    byte ConvertSample(double sample) => transfer is null
-                        ? (byte)Math.Round(sample * 255) : transfer(sample).Red;
                     byte outside = maskWidth == options.Width && maskHeight == options.Height
                         ? (byte)0 : ConvertSample(luminosity
                             ? Luminosity(backdrop)
                             : 0);
-                    bool plainRgbMask = maskPixels.Ink is null && maskPixels.RgbProfile is null;
-                    bool plainInkMask = maskPixels.Ink is not null && maskPixels.InkProfile is null
-                        && deviceLuminosity;
-                    if ((plainRgbMask || plainInkMask) && transfer is null)
-                    {
-                        // Plain RGB or unprofiled ink mask surface: read the bytes directly. The
-                        // arithmetic is the same as the general loop below, without per-pixel
-                        // color objects. Ink pixels convert with InkColor's integer math.
-                        byte[] maskData = maskPixels.Data;
-                        for (int row = 0; row < maskHeight; row++)
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            int rowIndex = row * maskWidth;
-                            for (int column = 0; column < maskWidth; column++)
-                            {
-                                int index = rowIndex + column;
-                                int offset = index * 4;
-                                byte converted;
-                                if (!luminosity)
-                                {
-                                    // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
-                                    converted = plainRgbMask ? maskData[offset + 3] : maskPixels.Alpha(offset);
-                                }
-                                else if (plainRgbMask)
-                                {
-                                    converted = (byte)Math.Round((0.3 * maskData[offset + 2]
-                                        + 0.59 * maskData[offset + 1] + 0.11 * maskData[offset]) / 255d * 255);
-                                }
-                                else
-                                {
-                                    int light = 255 - maskData[offset + 3];
-                                    int red = ((255 - maskData[offset]) * light + 127) / 255;
-                                    int green = ((255 - maskData[offset + 1]) * light + 127) / 255;
-                                    int blue = ((255 - maskData[offset + 2]) * light + 127) / 255;
-                                    converted = (byte)Math.Round((0.3 * red + 0.59 * green + 0.11 * blue) / 255d * 255);
-                                }
-                                if (index == 0) constant = converted;
-                                if (samples is null && converted != constant)
-                                {
-                                    samples = new byte[sampleCount];
-                                    samples.AsSpan(0, index).Fill(constant);
-                                }
-                                if (samples is not null) samples[index] = converted;
-                            }
-                        }
-                    }
-                    else
-                    for (int y = maskTop; y < maskBottom; y++)
+                    for (int row = 0; row < maskHeight; row++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
-                        for (int x = maskLeft; x < maskRight; x++)
+                        int rowIndex = row * maskWidth;
+                        if (maskPixels.RowIsBlank(row, blankPixel, blankAlpha))
                         {
-                            int offset = maskPixels.Offset(x, y);
-                            Color color = luminosity ? deviceLuminosity && maskPixels.Ink is not null
-                                ? InkColor(ReadInk(maskPixels.Ink, offset)) : maskPixels.ReadColor(offset) : default;
-                            double sample = luminosity
-                                ? Luminosity(color)
-                                : maskPixels.Alpha(offset) / 255d;
-                            int index = (y - maskTop) * maskWidth + x - maskLeft;
-                            byte converted = ConvertSample(sample);
+                            if (row == 0) constant = blankConverted;
+                            if (samples is null && blankConverted != constant)
+                            {
+                                samples = new byte[sampleCount];
+                                samples.AsSpan(0, rowIndex).Fill(constant);
+                            }
+                            if (samples is not null) samples.AsSpan(rowIndex, maskWidth).Fill(blankConverted);
+                            continue;
+                        }
+                        for (int column = 0; column < maskWidth; column++)
+                        {
+                            int index = rowIndex + column;
+                            int offset = index * 4;
+                            byte converted;
+                            if (maskPixels.PixelIsBlank(offset, blankPixel, blankAlpha)) converted = blankConverted;
+                            else if (!luminosity) converted = ConvertAt(offset);
+                            else
+                            {
+                                uint key = ReadInk(maskData, offset);
+                                int slot = (int)((key * 2654435761u) >> 20);
+                                ulong entry = recent[slot];
+                                if ((entry & 0x100) != 0 && (uint)(entry >> 32) == key) converted = (byte)entry;
+                                else
+                                {
+                                    converted = ConvertAt(offset);
+                                    recent[slot] = ((ulong)key << 32) | 0x100 | converted;
+                                }
+                            }
                             if (index == 0) constant = converted;
                             if (samples is null && converted != constant)
                             {
@@ -1628,6 +1647,13 @@ public sealed partial class PdfPageRenderer
                         && groupPixels.RgbProfile is null && parentState.GraphicsSoftMask is null
                         && parentState.Knockout is null
                         && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+                    // Native ink groups whose ink is consumed unchanged by the page (ColorFromInk
+                    // returns the ink itself) skip the per-pixel color object for opaque pixels.
+                    bool inkComposite = pagePixels.Ink is not null && groupPixels.Ink is not null
+                        && (groupPixels.InkProfile is null
+                            || ReferenceEquals(groupPixels.InkProfile, pagePixels.InkProfile))
+                        && parentState.GraphicsSoftMask is null && parentState.Knockout is null
+                        && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
                     for (int y = top; y < bottom; y++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -1666,6 +1692,17 @@ public sealed partial class PdfPageRenderer
                             int offset = groupPixels.Offset(x, y);
                             byte alpha = groupPixels.Alpha(offset);
                             if (alpha == 0) continue;
+                            if (inkComposite && alpha == 255 && parentState.FillAlpha == 1)
+                            {
+                                // Same as SetPixel for an opaque native ink pixel at full outer
+                                // opacity: the ink is written unchanged with full alpha.
+                                if (!pagePixels.Contains(x, y)) continue;
+                                int pageOffset = pagePixels.Offset(x, y);
+                                if (pagePixels.GroupAlpha is not null) pagePixels.GroupAlpha[pageOffset / 4] = 255;
+                                WriteInk(pagePixels.Ink!, pageOffset, ReadInk(groupPixels.Ink!, offset));
+                                pagePixels.SetAlpha(pageOffset, 255);
+                                continue;
+                            }
                             SetPixel(pagePixels, options.Width, x, y,
                                 groupPixels.ReadColor(offset, pagePixels),
                                 alpha / 255d * parentState.FillAlpha, parentState.BlendMode,
@@ -3123,6 +3160,13 @@ public sealed partial class PdfPageRenderer
 
     private static uint ReadPackedSample(byte[] source, int bitOffset, int bits)
     {
+        // Samples that do not cross a byte boundary are one shift and mask; the bit loop
+        // below handles every other width and alignment.
+        int bitInByte = bitOffset & 7;
+        if (bits > 0 && bits <= 8 && bitInByte + bits <= 8)
+            return (uint)(source[bitOffset >> 3] >> (8 - bits - bitInByte)) & ((1u << bits) - 1);
+        if (bits == 16 && bitInByte == 0)
+            return (uint)(source[bitOffset >> 3] << 8 | source[(bitOffset >> 3) + 1]);
         uint value = 0;
         for (int bit = 0; bit < bits; bit++)
         {
@@ -3282,6 +3326,7 @@ public sealed partial class PdfPageRenderer
             if (!state.Transform.TryInverse(out Matrix inverse)) return true;
             (int left, int top, int right, int bottom) = GetRasterBounds(
                 state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+            Point[][]? boundsPolygons = bounds is null ? null : [bounds];
             bool cacheColumns = (axisX == 0 || inverse.C == 0) && (axisY == 0 || inverse.D == 0);
             bool cacheRow = (axisX == 0 || inverse.A == 0) && (axisY == 0 || inverse.B == 0);
             // Only exact repeated inputs are reused; no gradient quantization is applied.
@@ -3297,7 +3342,7 @@ public sealed partial class PdfPageRenderer
                     double pageY = (targetHeight - y - 0.5) / scaleY;
                     double clipAlpha = ClipAlpha(state.Clips, x, y);
                     if (clipAlpha <= 0) continue;
-                    if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
+                    if (boundsPolygons is not null && !Contains(boundsPolygons, false, pageX, pageY)) continue;
                     Point point = inverse.Apply(pageX, pageY);
                     double unit = ((point.X - x0) * axisX + (point.Y - y0) * axisY)
                         / axisLengthSquared;
@@ -3354,6 +3399,7 @@ public sealed partial class PdfPageRenderer
             state with { Transform = shadingToPage }, "Function");
         (int left, int top, int right, int bottom) = GetRasterBounds(
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+        Point[][]? boundsPolygons = bounds is null ? null : [bounds];
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -3363,7 +3409,7 @@ public sealed partial class PdfPageRenderer
                 double pageY = (targetHeight - y - 0.5) / scaleY;
                 double clipAlpha = ClipAlpha(state.Clips, x, y);
                 if (clipAlpha <= 0) continue;
-                if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
+                if (boundsPolygons is not null && !Contains(boundsPolygons, false, pageX, pageY)) continue;
                 Point point = pageToShading.Apply(pageX, pageY);
                 if (point.X < domain[0] || point.X > domain[1]
                     || point.Y < domain[2] || point.Y > domain[3]) continue;
@@ -3795,6 +3841,7 @@ public sealed partial class PdfPageRenderer
         double centerX = x1 - x0, centerY = y1 - y0, radius = r1 - r0;
         (int left, int top, int right, int bottom) = GetRasterBounds(
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+        Point[][]? boundsPolygons = bounds is null ? null : [bounds];
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -3804,7 +3851,7 @@ public sealed partial class PdfPageRenderer
                 double pageY = (targetHeight - y - 0.5) / scaleY;
                 double clipAlpha = ClipAlpha(state.Clips, x, y);
                 if (clipAlpha <= 0) continue;
-                if (bounds is not null && !Contains([bounds], false, pageX, pageY)) continue;
+                if (boundsPolygons is not null && !Contains(boundsPolygons, false, pageX, pageY)) continue;
                 Point point = inverse.Apply(pageX, pageY);
                 double relativeX = x0 - point.X, relativeY = y0 - point.Y;
                 double a = centerX * centerX + centerY * centerY - radius * radius;
@@ -4120,6 +4167,13 @@ public sealed partial class PdfPageRenderer
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
             byte[] directData = target.Data;
+            // Opaque samples on an ink destination: the compositor would convert each sample's
+            // color to ink and write it directly. The conversion is a pure function of the
+            // sample bytes for this surface, so repeated values reuse the converted ink.
+            bool inkDirect = target.Ink is not null && stencilAlpha == 1
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+            Span<ulong> inkLookup = inkDirect ? stackalloc ulong[directGray ? 256 : 4096] : [];
+            inkLookup.Clear();
             for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -4137,6 +4191,29 @@ public sealed partial class PdfPageRenderer
                     int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                     int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
                     int sourceOffset = sourceY * rowBytes + sourceX * components;
+                    if (inkDirect)
+                    {
+                        if (!target.Contains(x, y)) continue;
+                        byte sample = samples[sourceOffset];
+                        uint key = directGray ? sample
+                            : (uint)sample << 16 | (uint)samples[sourceOffset + 1] << 8 | samples[sourceOffset + 2];
+                        int slot = directGray ? sample : (int)((key * 2654435761u) >> 20);
+                        ulong entry = inkLookup[slot];
+                        uint ink;
+                        if ((entry & 0x100000000ul) != 0 && (uint)(entry >> 40) == key) ink = (uint)entry;
+                        else
+                        {
+                            Color sampleColor = directGray ? Color.Gray(sample / 255d)
+                                : new(sample, samples[sourceOffset + 1], samples[sourceOffset + 2]);
+                            ink = target.GetInk(sampleColor);
+                            inkLookup[slot] = (ulong)key << 40 | 0x100000000ul | ink;
+                        }
+                        int inkOffset = target.Offset(x, y);
+                        if (target.GroupAlpha is not null) target.GroupAlpha[inkOffset / 4] = 255;
+                        WriteInk(target.Ink!, inkOffset, ink);
+                        target.SetAlpha(inkOffset, 255);
+                        continue;
+                    }
                     if (stencilAlpha != 1 || target.Ink is not null || target.GroupAlpha is not null)
                     {
                         byte firstSample = samples[sourceOffset];
@@ -4305,6 +4382,12 @@ public sealed partial class PdfPageRenderer
                 });
                 return;
             }
+            // Opaque native ink samples on an ink destination take the same direct write the
+            // compositor performs for full opacity, without building a color per pixel.
+            bool directInk = target.Ink is not null && imageOpacity == 1 && rectangularClips
+                && graphicsSoftMask is null && knockout is null
+                && (imageMask || !colorSpace.NativeProcessMask.HasValue)
+                && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
             for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -4319,6 +4402,20 @@ public sealed partial class PdfPageRenderer
                     int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
                     int alpha;
                     Color color;
+                    if (directInk && matteConverter is null && softMask is null
+                        && (plane is not null || directInkSamples)
+                        && (alphaPlane is null || alphaPlane[py * planeWidth + px] == 255)
+                        && target.Contains(x, y))
+                    {
+                        int targetOffset = target.Offset(x, y);
+                        uint ink = plane is not null ? ReadInk(plane, (py * planeWidth + px) * 4)
+                            : ReadInk(samples, Math.Min(py * factor, sourceHeight - 1) * rowBytes
+                                + Math.Min(px * factor, sourceWidth - 1) * 4);
+                        WriteInk(target.Ink!, targetOffset, ink);
+                        target.SetAlpha(targetOffset, 255);
+                        if (target.GroupAlpha is not null) target.GroupAlpha[targetOffset / 4] = 255;
+                        continue;
+                    }
                     if (matteConverter is not null)
                     {
                         int sx = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
@@ -4864,6 +4961,8 @@ public sealed partial class PdfPageRenderer
     private static void AddCubic(List<Point> path, Point start, Point control1,
         Point control2, Point end)
     {
+        // Reserve the curve's points in one step instead of growing through several resizes.
+        if (path.Capacity - path.Count < 16) path.Capacity = Math.Max(path.Capacity * 2, path.Count + 16);
         for (int step = 1; step <= 16; step++)
         {
             double t = step / 16d, u = 1 - t;
@@ -5027,6 +5126,23 @@ public sealed partial class PdfPageRenderer
         double targetAlpha = pixels[offset + 3] / 255d;
         double outputAlpha = sourceAlpha + targetAlpha * (1 - sourceAlpha);
         if (outputAlpha <= 0) return;
+        if (targetAlpha == 1 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
+        {
+            // Normal blending over an opaque pixel: the same arithmetic as Composite with
+            // its zero and unit factors removed, so the rounded bytes are identical.
+            double targetWeight = 1 - sourceAlpha;
+            pixels[offset] = Blend(color.Blue, pixels[offset]);
+            pixels[offset + 1] = Blend(color.Green, pixels[offset + 1]);
+            pixels[offset + 2] = Blend(color.Red, pixels[offset + 2]);
+            pixels[offset + 3] = (byte)Math.Round(outputAlpha * 255);
+            return;
+
+            byte Blend(byte sourceByte, byte targetByte)
+            {
+                double value = (targetWeight * (targetByte / 255d) + sourceAlpha * (sourceByte / 255d)) / outputAlpha;
+                return (byte)Math.Round(Math.Clamp(value, 0, 1) * 255);
+            }
+        }
         (double blendRed, double blendGreen, double blendBlue) = blendMode switch
         {
             RendererBlendMode.Hue or RendererBlendMode.Saturation

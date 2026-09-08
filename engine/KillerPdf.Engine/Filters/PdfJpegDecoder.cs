@@ -16,6 +16,21 @@ internal static class PdfJpegDecoder
     private static readonly double[,,] ReducedCosines = CreateReducedCosines();
     private static readonly double[] VectorCosines = CreateVectorCosines();
     private static readonly double[] Scales = [1 / Math.Sqrt(2), 1, 1, 1, 1, 1, 1, 1];
+    private static readonly double[] CrRed = CreateChromaTable(1.402);
+    private static readonly double[] CbGreen = CreateChromaTable(0.344136);
+    private static readonly double[] CrGreen = CreateChromaTable(0.714136);
+    private static readonly double[] CbBlue = CreateChromaTable(1.772);
+
+    private static double[] CreateChromaTable(double factor)
+    {
+        var table = new double[256];
+        for (int sample = 0; sample < 256; sample++)
+        {
+            double chroma = sample - 128;
+            table[sample] = factor * chroma;
+        }
+        return table;
+    }
 
     internal static byte[] Decode(
         ReadOnlyMemory<byte> source, int maximumDecodedBytes, int? colorTransform = null,
@@ -381,10 +396,11 @@ internal static class PdfJpegDecoder
                     }
                     else
                     {
-                        double cb = second - 128, cr = third - 128;
-                        double red = first + 1.402 * cr;
-                        double green = first - 0.344136 * cb - 0.714136 * cr;
-                        double blue = first + 1.772 * cb;
+                        // The chroma products are tabulated per sample value; each is the
+                        // same double product the direct expression computes.
+                        double red = first + CrRed[third];
+                        double green = first - CbGreen[second] - CrGreen[third];
+                        double blue = first + CbBlue[second];
                         output[offset++] = Clamp(components == 4 ? 255 - red : red);
                         output[offset++] = Clamp(components == 4 ? 255 - green : green);
                         output[offset++] = Clamp(components == 4 ? 255 - blue : blue);
@@ -741,15 +757,25 @@ internal static class PdfJpegDecoder
             }
             Span<double> horizontal = stackalloc double[64];
             Span<double> dequantized = stackalloc double[8];
+            Span<bool> rowHasCoefficients = stackalloc bool[8];
+            // Zero coefficients add an exact zero to every sum, so trailing zeros in a row
+            // and all-zero rows are skipped without changing any rounding.
             for (int v = 0; v < 8; v++)
             {
-                for (int u = 0; u < 8; u++)
+                int lastU = coefficients.Slice(v * 8, 8).LastIndexOfAnyExcept(0);
+                rowHasCoefficients[v] = lastU >= 0;
+                if (lastU < 0)
+                {
+                    horizontal.Slice(v * blockSize, blockSize).Clear();
+                    continue;
+                }
+                for (int u = 0; u <= lastU; u++)
                     dequantized[u] = Scales[u] * coefficients[v * 8 + u]
                         * quantization[v * 8 + u];
                 for (int x = 0; x < blockSize; x++)
                 {
                     double sum = 0;
-                    for (int u = 0; u < 8; u++)
+                    for (int u = 0; u <= lastU; u++)
                         sum += dequantized[u] * ReducedCosines[reductionIndex, x, u];
                     horizontal[v * blockSize + x] = Scales[v] * sum;
                 }
@@ -759,8 +785,9 @@ internal static class PdfJpegDecoder
                 {
                     double sum = 0;
                     for (int v = 0; v < 8; v++)
-                        sum += horizontal[v * blockSize + x]
-                            * ReducedCosines[reductionIndex, y, v];
+                        if (rowHasCoefficients[v])
+                            sum += horizontal[v * blockSize + x]
+                                * ReducedCosines[reductionIndex, y, v];
                     component.Samples[(top + y) * component.Stride + left + x]
                         = Clamp(128 + sum / 4);
                 }
@@ -771,17 +798,27 @@ internal static class PdfJpegDecoder
         {
             Span<double> horizontal = stackalloc double[64];
             Span<double> dequantized = stackalloc double[8];
+            Span<bool> rowHasCoefficients = stackalloc bool[8];
             int lanes = Vector<double>.Count;
             // Each lane is a separate output sample. Preserve coefficient order
-            // within every lane so vectorization does not change rounding.
+            // within every lane so vectorization does not change rounding. Zero
+            // coefficients contribute an exact zero to every sum, so trailing zeros in a
+            // row and all-zero rows are skipped without changing any rounding.
             for (int v = 0; v < 8; v++)
             {
-                for (int u = 0; u < 8; u++)
+                int lastU = coefficients.Slice(v * 8, 8).LastIndexOfAnyExcept(0);
+                rowHasCoefficients[v] = lastU >= 0;
+                if (lastU < 0)
+                {
+                    horizontal.Slice(v * blockSize, blockSize).Clear();
+                    continue;
+                }
+                for (int u = 0; u <= lastU; u++)
                     dequantized[u] = Scales[u] * coefficients[v * 8 + u] * quantization[v * 8 + u];
                 for (int x = 0; x < blockSize; x += lanes)
                 {
                     Vector<double> sum = Vector<double>.Zero;
-                    for (int u = 0; u < 8; u++)
+                    for (int u = 0; u <= lastU; u++)
                         sum += new Vector<double>(dequantized[u])
                             * new Vector<double>(VectorCosines, reductionIndex * 64 + u * 8 + x);
                     (new Vector<double>(Scales[v]) * sum).CopyTo(horizontal.Slice(v * blockSize + x, lanes));
@@ -792,8 +829,9 @@ internal static class PdfJpegDecoder
             {
                 Vector<double> sum = Vector<double>.Zero;
                 for (int v = 0; v < 8; v++)
-                    sum += new Vector<double>(horizontal.Slice(v * blockSize + x, lanes))
-                        * new Vector<double>(ReducedCosines[reductionIndex, y, v]);
+                    if (rowHasCoefficients[v])
+                        sum += new Vector<double>(horizontal.Slice(v * blockSize + x, lanes))
+                            * new Vector<double>(ReducedCosines[reductionIndex, y, v]);
                 for (int lane = 0; lane < lanes; lane++)
                     component.Samples[(top + y) * component.Stride + left + x + lane]
                         = Clamp(128 + sum[lane] / 4);

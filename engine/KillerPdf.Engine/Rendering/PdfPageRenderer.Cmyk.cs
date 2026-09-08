@@ -86,6 +86,25 @@ public sealed partial class PdfPageRenderer
             return;
         }
         uint backdrop = ReadInk(surface.Ink!, offset);
+        if (!overprint && backdropAlpha == 1 && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
+        {
+            // Normal blending over an opaque backdrop. The terms that the general loop
+            // multiplies by zero or one are dropped; the remaining operations and their
+            // order are the same, so the rounded bytes match the general path exactly.
+            double backdropWeight = 1 - sourceAlpha;
+            uint blended = 0;
+            for (int channel = 0; channel < 4; channel++)
+            {
+                double s = (byte)(source >> (channel * 8)) / 255d;
+                double b = (byte)(backdrop >> (channel * 8)) / 255d;
+                double mixed = 1 - (1 - s);
+                double value = (backdropWeight * b + sourceAlpha * mixed) / outputAlpha;
+                blended |= (uint)(byte)Math.Round(Math.Clamp(value, 0, 1) * 255) << (channel * 8);
+            }
+            WriteInk(surface.Ink!, offset, blended);
+            surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
+            return;
+        }
         bool nonseparable = mode is RendererBlendMode.Hue or RendererBlendMode.Saturation
             or RendererBlendMode.Color or RendererBlendMode.Luminosity;
         (double Red, double Green, double Blue) blend = default;

@@ -15,11 +15,15 @@ internal static class PdfScratchBuffers
 // reused without retaining a fixed number in every possible size bucket.
 internal sealed class PdfScratchBufferPool<T>(int maximumBytes) : ArrayPool<T> where T : unmanaged
 {
-    private readonly LinkedList<T[]> _idle = [];
-    private readonly object _sync = new();
+    private const int MaximumIdleCount = 64;
+    // Idle buffers are bucketed by their power-of-two length so renting is a constant-time
+    // pop instead of a scan. Over budget, the largest idle buffers are released first.
+    private readonly Stack<T[]>[] _idle = new Stack<T[]>[32];
+    private readonly Lock _sync = new();
     private readonly int _maximumBytes = maximumBytes > 0 ? maximumBytes
         : throw new ArgumentOutOfRangeException(nameof(maximumBytes));
     private int _retainedBytes;
+    private int _idleCount;
 
     internal int RetainedBytes
     {
@@ -36,11 +40,11 @@ internal sealed class PdfScratchBufferPool<T>(int maximumBytes) : ArrayPool<T> w
         int length = (int)rounded;
         lock (_sync)
         {
-            for (var node = _idle.Last; node is not null; node = node.Previous)
+            Stack<T[]>? bucket = _idle[BitOperations.Log2((uint)length)];
+            if (bucket is { Count: > 0 })
             {
-                if (node.Value.Length != length) continue;
-                T[] buffer = node.Value;
-                _idle.Remove(node);
+                T[] buffer = bucket.Pop();
+                _idleCount--;
                 _retainedBytes -= length * Unsafe.SizeOf<T>();
                 return buffer;
             }
@@ -53,16 +57,21 @@ internal sealed class PdfScratchBufferPool<T>(int maximumBytes) : ArrayPool<T> w
         ArgumentNullException.ThrowIfNull(array);
         long bytes = (long)array.Length * Unsafe.SizeOf<T>();
         if (bytes == 0 || bytes > _maximumBytes) return;
+        if (!BitOperations.IsPow2(array.Length) || array.Length < 16) return;
         if (clearArray) Array.Clear(array);
         lock (_sync)
         {
-            while (_retainedBytes + bytes > _maximumBytes || _idle.Count >= 64)
+            int index = BitOperations.Log2((uint)array.Length);
+            int release = _idle.Length - 1;
+            while (_retainedBytes + bytes > _maximumBytes || _idleCount >= MaximumIdleCount)
             {
-                T[] oldest = _idle.First!.Value;
-                _idle.RemoveFirst();
-                _retainedBytes -= oldest.Length * Unsafe.SizeOf<T>();
+                while (_idle[release] is not { Count: > 0 }) release--;
+                T[] largest = _idle[release].Pop();
+                _idleCount--;
+                _retainedBytes -= largest.Length * Unsafe.SizeOf<T>();
             }
-            _idle.AddLast(array);
+            (_idle[index] ??= new Stack<T[]>()).Push(array);
+            _idleCount++;
             _retainedBytes += (int)bytes;
         }
     }

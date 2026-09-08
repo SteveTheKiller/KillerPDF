@@ -1143,7 +1143,12 @@ public sealed partial class PdfPageRenderer
             && (color.OverprintComponents & 16) == 0
             && graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        uint ink = directInk ? pixels.GetInk(color) : 0;
+        uint ink = pixels.Ink is not null ? pixels.GetInk(color) : 0;
+        // On ink surfaces the compositor resolves the paint's ink through GetInk for every
+        // pixel; a color that already carries this surface's ink resolves to the same value
+        // without the per-pixel color comparison.
+        Color paint = pixels.Ink is not null
+            ? color with { Ink = ink, InkProfile = pixels.InkProfile } : color;
         byte[]? opaqueBlend = simpleBlend && alpha > 0 && alpha < 1
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
@@ -1266,7 +1271,7 @@ public sealed partial class PdfPageRenderer
                         continue;
                     }
                 }
-                SetPixel(pixels, width, x, y, color, alpha * cover / 255d, blendMode,
+                SetPixel(pixels, width, x, y, paint, alpha * cover / 255d, blendMode,
                     graphicsSoftMask, knockout);
             }
         }

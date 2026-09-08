@@ -97,12 +97,45 @@ public sealed partial class PdfPageRenderer
             _constantAlpha = preserveAlpha && Length > 0 ? Data[3] : (byte)0;
             Ink = Data;
             uint ink = ColorInk(background, profile);
-            for (int offset = 0; offset < Length; offset += 4)
+            if (preserveAlpha)
             {
-                SetAlpha(offset, preserveAlpha ? Data[offset + 3] : (byte)0);
-                WriteInk(Data, offset, ink);
+                // Alpha varies only when some pixel differs from the first one; materialize
+                // InkAlpha from the existing alpha bytes before the ink overwrites them.
+                int pixelCount = Length / 4;
+                int varying = -1;
+                for (int pixel = 0; pixel < pixelCount; pixel++)
+                {
+                    if (Data[pixel * 4 + 3] != _constantAlpha)
+                    {
+                        varying = pixel;
+                        break;
+                    }
+                }
+                if (varying >= 0)
+                {
+                    InkAlpha = RasterBuffers.Rent(pixelCount);
+                    InkAlpha.AsSpan(0, varying).Fill(_constantAlpha);
+                    for (int pixel = varying; pixel < pixelCount; pixel++)
+                        InkAlpha[pixel] = Data[pixel * 4 + 3];
+                }
             }
+            System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(Data.AsSpan(0, Length)).Fill(ink);
         }
+
+        /// <summary>True when every pixel of a storage row still holds the given blank ink or RGBA value and alpha.</summary>
+        internal bool RowIsBlank(int row, uint blank, byte blankAlpha)
+        {
+            int start = row * Width;
+            if (System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                Data.AsSpan(start * 4, Width * 4)).IndexOfAnyExcept(blank) >= 0) return false;
+            if (Ink is null) return true;
+            if (InkAlpha is null) return _constantAlpha == blankAlpha;
+            return InkAlpha.AsSpan(start, Width).IndexOfAnyExcept(blankAlpha) < 0;
+        }
+
+        /// <summary>True when one pixel still holds the given blank ink or RGBA value and alpha.</summary>
+        internal bool PixelIsBlank(int offset, uint blank, byte blankAlpha) =>
+            ReadInk(Data, offset) == blank && (Ink is null || Alpha(offset) == blankAlpha);
 
         internal void EnableRgb(Color background, PdfColorTransform profile, bool preserveAlpha = true)
         {
