@@ -4277,6 +4277,18 @@ public sealed partial class PdfPageRenderer
         private readonly PdfColorTransform? _targetProfile;
         private readonly bool _directRgb;
         private readonly bool _directGray;
+        private readonly bool _directCmyk;
+
+        // Display value of one unprofiled CMYK channel for every (ink, black) byte pair,
+        // computed with Color.Cmyk's own arithmetic so the lookup is exact.
+        private static readonly Lazy<byte[]> CmykChannelTable = new(() =>
+        {
+            var table = new byte[256 * 256];
+            for (int ink = 0; ink < 256; ink++)
+                for (int black = 0; black < 256; black++)
+                    table[ink * 256 + black] = Color.Cmyk(ink / 255d, 0, 0, black / 255d).Red;
+            return table;
+        });
 
         internal ImageSampleConverter(byte[] samples, int sourceWidth, int rowBytes,
             int components, int bits, double[] decode, ImageColorSpace colorSpace,
@@ -4300,6 +4312,7 @@ public sealed partial class PdfPageRenderer
                 && colorSpace.ComponentRange is null && bits == 8 && colorSpace.Components == components;
             _directRgb = plainSpace && components == 3 && decode is [0, 1, 0, 1, 0, 1];
             _directGray = plainSpace && components == 1 && decode is [0, 1];
+            _directCmyk = plainSpace && components == 4 && decode is [0, 1, 0, 1, 0, 1, 0, 1];
             if (components == 1 && bits <= 8)
             {
                 _lookup = new uint[1 << bits];
@@ -4345,6 +4358,15 @@ public sealed partial class PdfPageRenderer
             {
                 uint gray = _samples[y * _rowBytes + x];
                 return gray | gray << 8 | gray << 16 | 0xFF000000;
+            }
+            if (_directCmyk)
+            {
+                int offset = y * _rowBytes + x * 4;
+                byte[] table = CmykChannelTable.Value;
+                int black = _samples[offset + 3];
+                return (uint)(table[_samples[offset + 2] * 256 + black]
+                    | table[_samples[offset + 1] * 256 + black] << 8
+                    | table[_samples[offset] * 256 + black] << 16) | 0xFF000000;
             }
             if (_lookup is not null)
             {
