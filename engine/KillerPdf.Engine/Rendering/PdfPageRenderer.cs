@@ -4105,7 +4105,13 @@ public sealed partial class PdfPageRenderer
             && colorSpace.MultiConverter is null && colorSpace.ComponentRange is null
             && (colorSpace.Profile is null || ReferenceEquals(colorSpace.Profile, target.BlendProfile))
             && decode is [0, 1, 0, 1, 0, 1, 0, 1];
-        byte[]? plane = imageMask || preblendMatte is not null || directInkSamples
+        bool directDeviceSamples = target.Ink is null && target.RgbProfile is null
+            && !imageMask && preblendMatte is null && colorKeyMask is null && bits == 8
+            && components == colorSpace.Components && colorSpace.Palette is null
+            && colorSpace.Converter is null && colorSpace.MultiConverter is null
+            && colorSpace.Profile is null && colorSpace.ComponentRange is null
+            && (components == 1 && decode is [0, 1] || components == 3 && decode is [0, 1, 0, 1, 0, 1]);
+        byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         var matteConverter = preblendMatte is not null && !imageMask
             ? new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
@@ -4165,14 +4171,17 @@ public sealed partial class PdfPageRenderer
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
-            if (direct && plane is not null && alphaPlane is null && matteConverter is null
+            if (direct && (plane is not null || directDeviceSamples) && alphaPlane is null && matteConverter is null
                 && !colorSpace.NativeProcessMask.HasValue)
             {
                 // Plain RGB destination with an opaque or color-keyed plane: opaque samples copy
                 // straight across, and the rare partial alpha uses the ordinary compositor.
                 // An image soft mask scales the alpha the same way the general loop does.
                 byte[] data = target.Data;
-                byte[] planeData = plane;
+                byte[] planeData = plane ?? samples;
+                int redIndex = directDeviceSamples ? 0 : 2;
+                int greenIndex = directDeviceSamples && components == 1 ? 0 : 1;
+                int blueIndex = directDeviceSamples && components == 3 ? 2 : 0;
                 ForEachRow(paintTop, paintBottom, (long)(paintRight - paintLeft) * (paintBottom - paintTop),
                     cancellationToken, (rowStart, rowEnd) =>
                 {
@@ -4188,8 +4197,10 @@ public sealed partial class PdfPageRenderer
                             if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
                             int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
                             int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
-                            int planeOffset = (py * planeWidth + px) * 4;
-                            int alpha = planeData[planeOffset + 3];
+                            int planeOffset = directDeviceSamples
+                                ? py * factor * rowBytes + px * factor * components
+                                : (py * planeWidth + px) * 4;
+                            int alpha = directDeviceSamples ? 255 : planeData[planeOffset + 3];
                             if (alpha == 0) continue;
                             if (softMask is not null)
                             {
@@ -4201,14 +4212,14 @@ public sealed partial class PdfPageRenderer
                             if (alpha == 255)
                             {
                                 int targetOffset = rowOffset + (x - left) * 4;
-                                data[targetOffset] = planeData[planeOffset];
-                                data[targetOffset + 1] = planeData[planeOffset + 1];
-                                data[targetOffset + 2] = planeData[planeOffset + 2];
+                                data[targetOffset] = planeData[planeOffset + blueIndex];
+                                data[targetOffset + 1] = planeData[planeOffset + greenIndex];
+                                data[targetOffset + 2] = planeData[planeOffset + redIndex];
                                 data[targetOffset + 3] = 255;
                                 continue;
                             }
                             SetPixel(target, targetWidth, x, y,
-                                new Color(planeData[planeOffset + 2], planeData[planeOffset + 1], planeData[planeOffset]),
+                                new Color(planeData[planeOffset + redIndex], planeData[planeOffset + greenIndex], planeData[planeOffset + blueIndex]),
                                 alpha / 255d, blendMode, graphicsSoftMask, knockout);
                         }
                     }
@@ -4248,6 +4259,14 @@ public sealed partial class PdfPageRenderer
                         int sx = Math.Min(px * factor, sourceWidth - 1);
                         int sy = Math.Min(py * factor, sourceHeight - 1);
                         color = InkColor(ReadInk(samples, sy * rowBytes + sx * 4));
+                        alpha = 255;
+                    }
+                    else if (directDeviceSamples)
+                    {
+                        int sourceOffset = py * factor * rowBytes + px * factor * components;
+                        byte red = samples[sourceOffset];
+                        color = components == 1 ? new Color(red, red, red)
+                            : new Color(red, samples[sourceOffset + 1], samples[sourceOffset + 2]);
                         alpha = 255;
                     }
                     else if (plane is null)
