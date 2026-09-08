@@ -282,6 +282,8 @@ public sealed partial class PdfPageRenderer
                         state = state with
                         {
                             FillPatternSpace = true,
+                            Fill = Color.NonPainting,
+                            FillComponents = null,
                             FillColorSpace = null,
                             FillPatternBase = fillPatternBase,
                             FillPattern = null
@@ -289,10 +291,12 @@ public sealed partial class PdfPageRenderer
                     }
                     else
                     {
+                        ImageColorSpace fillSpace = ReadColorSpace(values[0], resources, 0).ForDestination(pixels);
                         state = state with
                         {
-                            FillColorSpace = ReadColorSpace(values[0], resources, 0).ForDestination(pixels),
-                            FillComponents = null,
+                            FillColorSpace = fillSpace,
+                            Fill = fillSpace.InitialPaint(out double[]? initialFill),
+                            FillComponents = initialFill,
                             FillPatternSpace = false,
                             FillPatternBase = null,
                             FillPattern = null
@@ -346,6 +350,8 @@ public sealed partial class PdfPageRenderer
                         state = state with
                         {
                             StrokePatternSpace = true,
+                            Stroke = Color.NonPainting,
+                            StrokeComponents = null,
                             StrokeColorSpace = null,
                             StrokePatternBase = strokePatternBase,
                             StrokePattern = null
@@ -353,10 +359,12 @@ public sealed partial class PdfPageRenderer
                     }
                     else
                     {
+                        ImageColorSpace strokeSpace = ReadColorSpace(values[0], resources, 0).ForDestination(pixels);
                         state = state with
                         {
-                            StrokeColorSpace = ReadColorSpace(values[0], resources, 0).ForDestination(pixels),
-                            StrokeComponents = null,
+                            StrokeColorSpace = strokeSpace,
+                            Stroke = strokeSpace.InitialPaint(out double[]? initialStroke),
+                            StrokeComponents = initialStroke,
                             StrokePatternSpace = false,
                             StrokePatternBase = null,
                             StrokePattern = null
@@ -2403,7 +2411,8 @@ public sealed partial class PdfPageRenderer
             {
                 "DeviceGray" or "G" => new ImageColorSpace(1, null),
                 "DeviceRGB" or "RGB" => new ImageColorSpace(3, null),
-                "DeviceCMYK" or "CMYK" => new ImageColorSpace(4, null, Profile: _outputProfile.Value),
+                "DeviceCMYK" or "CMYK" => new ImageColorSpace(4, null, Profile: _outputProfile.Value,
+                    Initial: InitialColor.BlackInk),
                 _ => null
             };
             if (standard is not null) return standard;
@@ -2466,7 +2475,8 @@ public sealed partial class PdfPageRenderer
             }
             else if (effectiveRange is null && (alternate.Converter is not null || alternate.MultiConverter is not null))
                 effectiveRange = Enumerable.Range(0, (int)count.Value * 2).Select(index => (double)(index % 2)).ToArray();
-            return alternate with { DefaultDecode = componentRange, ComponentRange = effectiveRange };
+            return alternate with { DefaultDecode = componentRange, ComponentRange = effectiveRange,
+                Initial = InitialColor.Zero };
         }
         if (kind.ValueAsLatin1() == "CalGray")
         {
@@ -2549,10 +2559,11 @@ public sealed partial class PdfPageRenderer
             int channel = ProcessChannel(colorant.ValueAsLatin1());
             if (colorant.ValueAsLatin1() == "All")
                 return new ImageColorSpace(1, null, (tint, _, _, _) => Color.Gray(1 - tint),
-                    RegistrationColor: true);
+                    RegistrationColor: true, Initial: InitialColor.FullTint);
             return new ImageColorSpace(1, null,
                 (tint, _, _, _) => tintTransform(tint),
-                ProcessChannels: channel >= 0 ? [channel] : null, SuppressPainting: channel == -1);
+                ProcessChannels: channel >= 0 ? [channel] : null, SuppressPainting: channel == -1,
+                Initial: InitialColor.FullTint);
         }
         if (kind.ValueAsLatin1() == "DeviceN")
         {
@@ -2570,7 +2581,8 @@ public sealed partial class PdfPageRenderer
             bool supported = activeChannels > 0 && channels.All(channel => channel >= -1)
                 && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels;
             return new ImageColorSpace(names.Count, null, MultiConverter: tintTransform,
-                ProcessChannels: supported ? channels : null, SuppressPainting: channels.All(channel => channel == -1));
+                ProcessChannels: supported ? channels : null, SuppressPainting: channels.All(channel => channel == -1),
+                Initial: InitialColor.FullTint);
         }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
@@ -5441,17 +5453,33 @@ public sealed partial class PdfPageRenderer
             return minimum + value / limit * (maximum - minimum);
         }
     }
+    private enum InitialColor { Zero, BlackInk, FullTint }
+
     private sealed record ImageColorSpace(int Components, Color[]? Palette,
         Func<double, double, double, double, Color>? Converter = null,
         double[]? DefaultDecode = null, Func<double[], Color>? MultiConverter = null,
         PdfColorTransform? Profile = null, ImageColorSpace? PaletteBase = null,
         byte[]? PaletteSamples = null, bool IsIccBased = false, double[]? ComponentRange = null,
         int[]? ProcessChannels = null, byte? NativeProcessMask = null, ImageColorSpace? SourceSpace = null,
-        bool SuppressPainting = false, bool RegistrationColor = false)
+        bool SuppressPainting = false, bool RegistrationColor = false, InitialColor Initial = InitialColor.Zero)
     {
         internal bool DoesNotPaint => SuppressPainting || PaletteBase?.SuppressPainting == true;
         internal bool HasProcessColorants => RegistrationColor || ProcessChannels is not null
             || PaletteBase?.HasProcessColorants == true;
+
+        internal Color InitialPaint(out double[]? components)
+        {
+            components = null;
+            double tint = Initial == InitialColor.FullTint ? 1 : 0;
+            if (HasProcessColorants || MultiConverter is not null)
+            {
+                var values = new double[Components];
+                if (tint != 0) Array.Fill(values, tint);
+                if (HasProcessColorants) components = values;
+                return Convert(values);
+            }
+            return Convert(tint, tint, tint, Initial == InitialColor.BlackInk ? 1 : tint);
+        }
 
         internal ImageColorSpace ForDestination(RasterSurface destination) =>
             NativeProcessMask.HasValue && destination.Ink is not null ? this
