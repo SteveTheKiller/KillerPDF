@@ -144,8 +144,23 @@ internal sealed class PdfPageRenderSession : IDisposable
         int engineWidth = Math.Max(1, (int)Math.Round(pageWidth * renderScale));
         int engineHeight = Math.Max(1, (int)Math.Round(pageHeight * renderScale));
         return new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
-            includeAnnotations, includeFormFields);
+            includeAnnotations, includeFormFields)
+        { MaximumParallelism = RenderParallelism(engineWidth, engineHeight) };
     }
+
+    // Large pages split their big row-independent paints across a few threads; output pixels
+    // are identical at any thread count. Small pages stay on the calling thread, and the cap
+    // leaves cores free for pages the viewer renders concurrently.
+    private const long ParallelRenderPixels = 1_048_576;
+
+    internal static int RenderParallelism(int width, int height) =>
+        (long)width * height < ParallelRenderPixels ? 1
+            : Math.Clamp(Environment.ProcessorCount / 2, 1, 4);
+
+    private static EngineRenderOptions CreateExactOptions(int width, int height,
+        bool transparentBackground, bool includeFormFields) =>
+        new(width, height, transparentBackground, includeAnnotations: true, includeFormFields)
+        { MaximumParallelism = RenderParallelism(width, height) };
 
     internal static PdfRenderedPage? RenderExactPage(
         string path, int pageIndex, int width, int height,
@@ -157,9 +172,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         {
             EngineDocument document = OpenDocument(path);
             var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
-            return RenderOwnedPage(renderer,
-                pageIndex, new EngineRenderOptions(width, height, transparentBackground,
-                    includeAnnotations: true, includeFormFields), cancellationToken);
+            return RenderOwnedPage(renderer, pageIndex,
+                CreateExactOptions(width, height, transparentBackground, includeFormFields), cancellationToken);
         }
         catch (Exception exception) when (exception is not OutOfMemoryException
             && exception is not OperationCanceledException)
