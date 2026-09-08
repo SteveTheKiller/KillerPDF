@@ -2037,6 +2037,12 @@ public sealed partial class PdfPageRenderer
         out string? diagnostic, bool overprint = false, HashSet<string>? diagnostics = null, int renderingIntent = 1)
     {
         diagnostic = null;
+        cancellationToken.ThrowIfCancellationRequested();
+        // Cull before reading codec headers, allocating decoded samples, or opening soft masks.
+        // Keep the zero-opacity exception used by PaintImage for ink and knockout surfaces.
+        if ((stencilAlpha <= 0 && knockout is null && target.Ink is null && target.RgbProfile is null)
+            || !ImageMayReachTarget(transform, clips, targetWidth, targetHeight, scaleX, scaleY))
+            return true;
         if (_document.UsesCompatibilityRecovery
             && (!stream.Dictionary.TryGetValue(Name("Width"), out PdfObject? widthValue)
                 || Resolve(widthValue) is not PdfInteger { Value: > 0 and <= int.MaxValue }
@@ -4009,6 +4015,27 @@ public sealed partial class PdfPageRenderer
                 colorSpace.Components).SelectMany(pair => pair).ToArray();
         PdfArray array = ResolveArray(value, colorSpace.Components * 2, "Image decode array");
         return array.Select(item => Number(Resolve(item))).ToArray();
+    }
+
+    private static bool ImageMayReachTarget(Matrix transform, IReadOnlyList<ClipRegion> clips,
+        int width, int height, double scaleX, double scaleY)
+    {
+        if (!transform.TryInverse(out _)) return false;
+        Point a = transform.Apply(0, 0), b = transform.Apply(1, 0);
+        Point c = transform.Apply(0, 1), d = transform.Apply(1, 1);
+        double left = Math.Max(0, Math.Floor(Math.Min(Math.Min(a.X, b.X), Math.Min(c.X, d.X)) * scaleX));
+        double right = Math.Min(width, Math.Ceiling(Math.Max(Math.Max(a.X, b.X), Math.Max(c.X, d.X)) * scaleX));
+        double top = Math.Max(0, height - Math.Ceiling(Math.Max(Math.Max(a.Y, b.Y), Math.Max(c.Y, d.Y)) * scaleY));
+        double bottom = Math.Min(height, height - Math.Floor(Math.Min(Math.Min(a.Y, b.Y), Math.Min(c.Y, d.Y)) * scaleY));
+        // Coverage-mask bounds also enclose every antialiased edge pixel.
+        foreach (ClipRegion clip in clips)
+        {
+            left = Math.Max(left, clip.Mask.Left);
+            top = Math.Max(top, clip.Mask.Top);
+            right = Math.Min(right, clip.Mask.Right);
+            bottom = Math.Min(bottom, clip.Mask.Bottom);
+        }
+        return right > left && bottom > top;
     }
 
     private static void PaintImage(RasterSurface target, int targetWidth, int targetHeight,

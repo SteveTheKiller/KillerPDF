@@ -58,6 +58,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Skipped decoding images and soft masks when their placement cannot paint the page.
 - Added described overlays that extend existing PDF structure trees when saving markup.
 - Applied graphics-state opacity to ordinary images and honored image-mask precedence over page masks and overridden color-key masks.
 - Preserved outer blend modes, opacity, and soft masks when non-isolated transparency groups reset their internal graphics state, and prevented page opacity and blending from altering soft-mask creation.
