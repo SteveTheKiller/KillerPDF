@@ -4,7 +4,8 @@ namespace KillerPdf.Engine.Rendering;
 
 internal sealed class PdfIccCurve
 {
-    private readonly ReadOnlyMemory<byte> _samples;
+    // Sampled curves are decoded to normalized doubles once; empty for parametric curves.
+    private readonly double[] _samples = [];
     private readonly double[] _parameters;
     private readonly int _type;
     private readonly bool _monotonic = true;
@@ -30,11 +31,12 @@ internal sealed class PdfIccCurve
             else
             {
                 _parameters = [];
-                _samples = data.Slice(12, (int)count * 2);
+                _samples = new double[count];
+                ReadOnlySpan<byte> encoded = bytes.Slice(12, (int)count * 2);
+                for (int index = 0; index < count; index++)
+                    _samples[index] = BinaryPrimitives.ReadUInt16BigEndian(encoded[(index * 2)..]) / 65535d;
                 for (int index = 1; index < count; index++)
-                    if (BinaryPrimitives.ReadUInt16BigEndian(_samples.Span[(index * 2)..])
-                        < BinaryPrimitives.ReadUInt16BigEndian(_samples.Span[((index - 1) * 2)..]))
-                        _monotonic = false;
+                    if (_samples[index] < _samples[index - 1]) _monotonic = false;
             }
             return;
         }
@@ -72,19 +74,18 @@ internal sealed class PdfIccCurve
         double y = Math.Clamp(output, 0, 1);
         if (y <= Evaluate(0)) return 0;
         if (y >= Evaluate(1)) return 1;
-        if (!_samples.IsEmpty)
+        if (_samples.Length != 0)
         {
-            int lower = 0, upper = _samples.Length / 2 - 1;
+            int lower = 0, upper = _samples.Length - 1;
             while (upper - lower > 1)
             {
                 int middle = lower + (upper - lower) / 2;
-                double value = BinaryPrimitives.ReadUInt16BigEndian(_samples.Span[(middle * 2)..]) / 65535d;
-                if (value >= y) upper = middle; else lower = middle;
+                if (_samples[middle] >= y) upper = middle; else lower = middle;
             }
-            double first = BinaryPrimitives.ReadUInt16BigEndian(_samples.Span[(lower * 2)..]) / 65535d;
-            double last = BinaryPrimitives.ReadUInt16BigEndian(_samples.Span[(upper * 2)..]) / 65535d;
+            double first = _samples[lower];
+            double last = _samples[upper];
             double fraction = last == first ? 0 : (y - first) / (last - first);
-            return (lower + fraction) / (_samples.Length / 2 - 1);
+            return (lower + fraction) / (_samples.Length - 1);
         }
         double g = _parameters[0];
         if (_type <= 0) return Math.Pow(y, 1 / g);
@@ -102,13 +103,14 @@ internal sealed class PdfIccCurve
     {
         if (!double.IsFinite(input)) throw new ArgumentException("ICC curve inputs must be finite.");
         double x = Math.Clamp(input, 0, 1);
-        if (!_samples.IsEmpty)
+        double[] samples = _samples;
+        if (samples.Length != 0)
         {
-            int count = _samples.Length / 2;
+            int count = samples.Length;
             double position = x * (count - 1);
             int lower = Math.Min((int)position, count - 2);
-            double first = BinaryPrimitives.ReadUInt16BigEndian(_samples.Span[(lower * 2)..]) / 65535d;
-            double second = BinaryPrimitives.ReadUInt16BigEndian(_samples.Span[((lower + 1) * 2)..]) / 65535d;
+            double first = samples[lower];
+            double second = samples[lower + 1];
             return first + (position - lower) * (second - first);
         }
         double g = _parameters[0];

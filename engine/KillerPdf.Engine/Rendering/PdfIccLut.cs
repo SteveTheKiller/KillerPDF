@@ -6,7 +6,9 @@ namespace KillerPdf.Engine.Rendering;
 // and profile connection belong to the caller, outside this table evaluator.
 internal sealed class PdfIccLut : PdfIccTable
 {
-    private readonly ReadOnlyMemory<byte> _data;
+    // Every table sample is decoded to its normalized double once at construction; the
+    // offsets below index that array, so evaluation does no byte decoding per pixel.
+    private readonly double[] _samples;
     private readonly int _sampleBytes;
     private readonly int _grid;
     private readonly int _inputEntries;
@@ -42,21 +44,35 @@ internal sealed class PdfIccLut : PdfIccTable
             throw new FormatException("An ICC lookup table has invalid curve lengths.");
         long cells = 1;
         for (int channel = 0; channel < InputChannels; channel++) cells *= _grid;
-        _inputOffset = _sampleBytes == 1 ? 48 : 52;
-        long gridOffset = _inputOffset + (long)_inputEntries * InputChannels * _sampleBytes;
-        long outputOffset = gridOffset + cells * OutputChannels * _sampleBytes;
-        long end = outputOffset + (long)_outputEntries * OutputChannels * _sampleBytes;
+        int tableStart = _sampleBytes == 1 ? 48 : 52;
+        long inputSamples = (long)_inputEntries * InputChannels;
+        long gridSamples = cells * OutputChannels;
+        long outputSamples = (long)_outputEntries * OutputChannels;
+        long totalSamples = inputSamples + gridSamples + outputSamples;
+        long end = tableStart + totalSamples * _sampleBytes;
         if (end > bytes.Length) throw new FormatException("An ICC lookup table is truncated.");
-        _gridOffset = (int)gridOffset;
-        _outputOffset = (int)outputOffset;
-        _data = data[..(int)end];
+        _inputOffset = 0;
+        _gridOffset = (int)inputSamples;
+        _outputOffset = (int)(inputSamples + gridSamples);
+        _samples = new double[totalSamples];
+        ReadOnlySpan<byte> table = bytes[tableStart..(int)end];
+        if (_sampleBytes == 1)
+        {
+            for (int index = 0; index < _samples.Length; index++)
+                _samples[index] = table[index] / 255d;
+        }
+        else
+        {
+            for (int index = 0; index < _samples.Length; index++)
+                _samples[index] = BinaryPrimitives.ReadUInt16BigEndian(table[(index * 2)..]) / 65535d;
+        }
         _cornerOffsets = new int[1 << InputChannels];
         for (int corner = 0; corner < _cornerOffsets.Length; corner++)
         {
             int cell = 0;
             for (int channel = 0; channel < InputChannels; channel++)
                 cell = cell * _grid + ((corner >> channel) & 1);
-            _cornerOffsets[corner] = cell * OutputChannels * _sampleBytes;
+            _cornerOffsets[corner] = cell * OutputChannels;
         }
         _matrix = new double[9];
         for (int index = 0; index < _matrix.Length; index++)
@@ -87,15 +103,17 @@ internal sealed class PdfIccLut : PdfIccTable
         Span<double> fraction = stackalloc double[4];
         for (int channel = 0; channel < InputChannels; channel++)
         {
-            double value = Curve(_inputOffset + channel * _inputEntries * _sampleBytes,
+            double value = Curve(_inputOffset + channel * _inputEntries,
                 _inputEntries, values[channel]) * (_grid - 1);
             int lower = Math.Min((int)value, _grid - 2);
             baseCell = baseCell * _grid + lower;
             fraction[channel] = value - lower;
         }
         output.Clear();
-        int baseOffset = _gridOffset + baseCell * OutputChannels * _sampleBytes;
+        double[] samples = _samples;
+        int baseOffset = _gridOffset + baseCell * OutputChannels;
         int corners = 1 << InputChannels;
+        int outputs = OutputChannels;
         for (int corner = 0; corner < corners; corner++)
         {
             double weight = 1;
@@ -106,11 +124,11 @@ internal sealed class PdfIccLut : PdfIccTable
             }
             if (weight == 0) continue;
             int offset = baseOffset + _cornerOffsets[corner];
-            for (int channel = 0; channel < OutputChannels; channel++)
-                output[channel] += weight * Sample(offset + channel * _sampleBytes);
+            for (int channel = 0; channel < outputs; channel++)
+                output[channel] += weight * samples[offset + channel];
         }
-        for (int channel = 0; channel < OutputChannels; channel++)
-            output[channel] = Curve(_outputOffset + channel * _outputEntries * _sampleBytes,
+        for (int channel = 0; channel < outputs; channel++)
+            output[channel] = Curve(_outputOffset + channel * _outputEntries,
                 _outputEntries, Math.Clamp(output[channel], 0, 1));
     }
 
@@ -119,10 +137,7 @@ internal sealed class PdfIccLut : PdfIccTable
         double position = value * (count - 1);
         int lower = Math.Min((int)position, count - 2);
         double fraction = position - lower;
-        double first = Sample(offset + lower * _sampleBytes);
-        return first + fraction * (Sample(offset + (lower + 1) * _sampleBytes) - first);
+        double first = _samples[offset + lower];
+        return first + fraction * (_samples[offset + lower + 1] - first);
     }
-
-    private double Sample(int offset) => _sampleBytes == 1 ? _data.Span[offset] / 255d
-        : BinaryPrimitives.ReadUInt16BigEndian(_data.Span[offset..]) / 65535d;
 }

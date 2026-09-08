@@ -9,10 +9,11 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
     private readonly PdfIccCurve[] _b;
     private readonly PdfIccCurve[]? _m;
     private readonly double[]? _matrix;
-    private readonly ReadOnlyMemory<byte> _clut;
+    // CLUT samples are decoded to normalized doubles once at construction so evaluation
+    // indexes an array instead of decoding big-endian bytes per corner.
+    private readonly double[]? _clut;
     private readonly int[]? _grid;
     private readonly int[]? _cornerOffsets;
-    private readonly int _sampleBytes;
     internal override int InputChannels { get; }
     internal override int OutputChannels { get; }
 
@@ -64,8 +65,8 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
         {
             ReadOnlyMemory<byte> clut = Section(3);
             if (clut.Length < 20) throw new FormatException("An ICC processing CLUT is truncated.");
-            _sampleBytes = clut.Span[16];
-            if (_sampleBytes is not (1 or 2)) throw new FormatException("An ICC CLUT precision is invalid.");
+            int sampleBytes = clut.Span[16];
+            if (sampleBytes is not (1 or 2)) throw new FormatException("An ICC CLUT precision is invalid.");
             _grid = new int[InputChannels];
             long cells = 1;
             for (int channel = 0; channel < InputChannels; channel++)
@@ -74,16 +75,28 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
                 if (_grid[channel] < 2) throw new FormatException("An ICC CLUT grid is invalid.");
                 cells *= _grid[channel];
             }
-            long length = cells * OutputChannels * _sampleBytes;
+            long samples = cells * OutputChannels;
+            long length = samples * sampleBytes;
             if (length > clut.Length - 20) throw new FormatException("An ICC processing CLUT is truncated.");
-            _clut = clut.Slice(20, (int)length);
+            ReadOnlySpan<byte> table = clut.Span.Slice(20, (int)length);
+            _clut = new double[samples];
+            if (sampleBytes == 1)
+            {
+                for (int index = 0; index < _clut.Length; index++)
+                    _clut[index] = table[index] / 255d;
+            }
+            else
+            {
+                for (int index = 0; index < _clut.Length; index++)
+                    _clut[index] = BinaryPrimitives.ReadUInt16BigEndian(table[(index * 2)..]) / 65535d;
+            }
             _cornerOffsets = new int[1 << InputChannels];
             for (int corner = 0; corner < _cornerOffsets.Length; corner++)
             {
                 int cell = 0;
                 for (int channel = 0; channel < InputChannels; channel++)
                     cell = cell * _grid[channel] + ((corner >> channel) & 1);
-                _cornerOffsets[corner] = cell * OutputChannels * _sampleBytes;
+                _cornerOffsets[corner] = cell * OutputChannels;
             }
         }
     }
@@ -157,7 +170,9 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
             fraction[channel] = position - lower;
         }
         values.Clear();
-        int baseOffset = baseCell * OutputChannels * _sampleBytes;
+        double[] clut = _clut!;
+        int outputs = OutputChannels;
+        int baseOffset = baseCell * outputs;
         for (int corner = 0; corner < 1 << InputChannels; corner++)
         {
             double weight = 1;
@@ -168,13 +183,8 @@ internal sealed class PdfIccMultiProcessLut : PdfIccTable
             }
             if (weight == 0) continue;
             int cornerOffset = baseOffset + _cornerOffsets![corner];
-            for (int channel = 0; channel < OutputChannels; channel++)
-            {
-                int offset = cornerOffset + channel * _sampleBytes;
-                double sample = _sampleBytes == 1 ? _clut.Span[offset] / 255d
-                    : BinaryPrimitives.ReadUInt16BigEndian(_clut.Span[offset..]) / 65535d;
-                values[channel] += weight * sample;
-            }
+            for (int channel = 0; channel < outputs; channel++)
+                values[channel] += weight * clut[cornerOffset + channel];
         }
     }
 }
