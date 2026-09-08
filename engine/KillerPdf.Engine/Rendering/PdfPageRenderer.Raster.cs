@@ -1135,6 +1135,7 @@ public sealed partial class PdfPageRenderer
             if (clip.Mask.Coverage is not null) rectangularClips = false;
         }
         if (right <= left || bottom <= top) return;
+        graphicsSoftMask = graphicsSoftMask?.ForBounds(left, top, right, bottom);
         bool perPixelClip = clips.Count > 0 && !rectangularClips;
         // Group alpha is maintained alongside the direct RGB paths with the compositor's own
         // formula, so tracked groups take the same fast paths as plain pages.

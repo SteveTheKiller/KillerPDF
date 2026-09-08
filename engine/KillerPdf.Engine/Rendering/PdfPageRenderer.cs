@@ -1137,12 +1137,8 @@ public sealed partial class PdfPageRenderer
                     maskBounds = [transform.Apply(x0, y0), transform.Apply(x1, y0),
                         transform.Apply(x1, y1), transform.Apply(x0, y1)];
                 }
-                (int maskLeft, int maskTop, int maskRight, int maskBottom) = GetRasterBounds(
+                (int fullLeft, int fullTop, int fullRight, int fullBottom) = GetRasterBounds(
                     currentState.Clips, maskBounds, options.Width, options.Height, scaleX, scaleY);
-                int maskWidth = maskRight - maskLeft;
-                int maskHeight = maskBottom - maskTop;
-                RasterSurface pagePixels = pixels;
-                RasterSurface maskPixels = RasterSurface.Rent((maskLeft, maskTop, maskRight, maskBottom));
                 bool luminosity = subtype.ValueAsLatin1() == "Luminosity";
                 bool deviceLuminosity = true;
                 Color backdrop = luminosity ? ReadBackdrop(dictionary, group, out deviceLuminosity) : Color.White;
@@ -1153,147 +1149,167 @@ public sealed partial class PdfPageRenderer
                     if (deviceLuminosity && color.Ink is uint ink) color = InkColor(ink);
                     return (0.3 * color.Red + 0.59 * color.Green + 0.11 * color.Blue) / 255d;
                 }
-                try
+                Func<double, Color>? transfer = null;
+                if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
                 {
-                    System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
-                        maskPixels.Data.AsSpan(0, maskPixels.Length)).Fill(
-                            backdrop.Blue | (uint)backdrop.Green << 8 | (uint)backdrop.Red << 16
-                            | (luminosity ? 0xFF000000u : 0u));
-                    PdfColorTransform? maskProfile = ReadGroupProfile(group.Dictionary, inheritedResources, diagnostics);
-                    if (CmykGroup(group.Dictionary, inheritedResources, false)) maskPixels.EnableInk(backdrop,
-                        profile: maskProfile);
-                    else if (maskProfile is { Components: 1 or 3 }) maskPixels.EnableRgb(backdrop, maskProfile);
-                    int sampleCount = checked(maskWidth * maskHeight);
-                    byte[]? samples = null;
-                    byte constant = 0;
-                    Func<double, Color>? transfer = null;
-                    if (dictionary.TryGetValue(Name("TR"), out PdfObject? transferValue))
-                    {
-                        PdfObject resolvedTransfer = Resolve(transferValue);
-                        if (resolvedTransfer is not PdfName transferName
-                            || transferName.ValueAsLatin1() != "Identity")
-                            transfer = ReadColorFunction(transferValue,
-                                new ImageColorSpace(1, null), "soft-mask transfer function");
-                    }
-                    byte ConvertSample(double sample) => transfer is null
-                        ? (byte)Math.Round(sample * 255) : transfer(sample).Red;
-                    bool plainRgbMask = maskPixels.Ink is null && maskPixels.RgbProfile is null;
-                    bool plainInkMask = maskPixels.Ink is not null && maskPixels.InkProfile is null
-                        && deviceLuminosity;
-                    bool directMask = (plainRgbMask || plainInkMask) && transfer is null;
-                    byte[] maskData = maskPixels.Data;
-                    byte ConvertAt(int offset)
-                    {
-                        if (directMask)
+                    PdfObject resolvedTransfer = Resolve(transferValue);
+                    if (resolvedTransfer is not PdfName transferName
+                        || transferName.ValueAsLatin1() != "Identity")
+                        transfer = ReadColorFunction(transferValue,
+                            new ImageColorSpace(1, null), "soft-mask transfer function");
+                }
+                byte ConvertSample(double sample) => transfer is null
+                    ? (byte)Math.Round(sample * 255) : transfer(sample).Red;
+                byte outside = fullRight - fullLeft == options.Width && fullBottom - fullTop == options.Height
+                    ? (byte)0 : ConvertSample(luminosity
+                        ? Luminosity(backdrop)
+                        : 0);
+                // The mask group renders lazily, over the region of the paint that first
+                // consults it (see GraphicsSoftMask). Pixels the region excludes are ones the
+                // paint never reads, and the region clip bounds every inner paint to the
+                // surface, so the pixels inside it match a full-bounds render exactly.
+                return new GraphicsSoftMask(fullLeft, fullTop, fullRight, fullBottom, outside, RenderRegion);
+
+                (byte[]? Samples, byte Constant) RenderRegion(
+                    int maskLeft, int maskTop, int maskRight, int maskBottom)
+                {
+                    int maskWidth = maskRight - maskLeft;
+                    int maskHeight = maskBottom - maskTop;
+                    RasterSurface pagePixels = pixels;
+                    RasterSurface maskPixels = RasterSurface.Rent((maskLeft, maskTop, maskRight, maskBottom));
+                    GraphicsState regionState = currentState;
+                    if (maskLeft != fullLeft || maskTop != fullTop || maskRight != fullRight || maskBottom != fullBottom)
+                        regionState = regionState with
                         {
-                            // Plain RGB or unprofiled ink mask surface: read the bytes directly. The
-                            // arithmetic is the same as the general path below, without per-pixel
-                            // color objects. Ink pixels convert with InkColor's integer math.
-                            if (!luminosity)
-                            {
-                                // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
-                                return plainRgbMask ? maskData[offset + 3] : maskPixels.Alpha(offset);
-                            }
-                            if (plainRgbMask)
-                            {
-                                return (byte)Math.Round((0.3 * maskData[offset + 2]
-                                    + 0.59 * maskData[offset + 1] + 0.11 * maskData[offset]) / 255d * 255);
-                            }
-                            int light = 255 - maskData[offset + 3];
-                            int red = ((255 - maskData[offset]) * light + 127) / 255;
-                            int green = ((255 - maskData[offset + 1]) * light + 127) / 255;
-                            int blue = ((255 - maskData[offset + 2]) * light + 127) / 255;
-                            return (byte)Math.Round((0.3 * red + 0.59 * green + 0.11 * blue) / 255d * 255);
-                        }
-                        Color color = luminosity ? deviceLuminosity && maskPixels.Ink is not null
-                            ? InkColor(ReadInk(maskPixels.Ink, offset)) : maskPixels.ReadColor(offset) : default;
-                        double sample = luminosity
-                            ? Luminosity(color)
-                            : maskPixels.Alpha(offset) / 255d;
-                        return ConvertSample(sample);
-                    }
-                    // Pixels the group never paints keep the initial backdrop bytes, so their
-                    // converted value is known before the group renders. Whole untouched rows
-                    // and untouched pixels reuse it instead of repeating the conversion.
-                    uint blankPixel = sampleCount > 0 ? ReadInk(maskData, 0) : 0;
-                    byte blankAlpha = sampleCount > 0 ? maskPixels.Alpha(0) : (byte)0;
-                    byte blankConverted = sampleCount > 0 ? ConvertAt(0) : (byte)0;
-                    // Luminosity conversion depends only on the pixel's color bytes, so repeated
-                    // values reuse a small direct-mapped table instead of converting again.
-                    Span<ulong> recent = luminosity ? stackalloc ulong[4096] : [];
-                    recent.Clear();
+                            Clips = AddClip(currentState.Clips,
+                                CoverageMask.Rectangle(maskLeft, maskTop, maskRight, maskBottom))
+                        };
                     try
                     {
-                        pixels = maskPixels;
-                        RenderForm(group, inheritedResources,
-                            currentState with
+                        System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                            maskPixels.Data.AsSpan(0, maskPixels.Length)).Fill(
+                                backdrop.Blue | (uint)backdrop.Green << 8 | (uint)backdrop.Red << 16
+                                | (luminosity ? 0xFF000000u : 0u));
+                        PdfColorTransform? maskProfile = ReadGroupProfile(group.Dictionary, inheritedResources, diagnostics);
+                        if (CmykGroup(group.Dictionary, inheritedResources, false)) maskPixels.EnableInk(backdrop,
+                            profile: maskProfile);
+                        else if (maskProfile is { Components: 1 or 3 }) maskPixels.EnableRgb(backdrop, maskProfile);
+                        int sampleCount = checked(maskWidth * maskHeight);
+                        byte[]? samples = null;
+                        byte constant = 0;
+                        bool plainRgbMask = maskPixels.Ink is null && maskPixels.RgbProfile is null;
+                        bool plainInkMask = maskPixels.Ink is not null && maskPixels.InkProfile is null
+                            && deviceLuminosity;
+                        bool directMask = (plainRgbMask || plainInkMask) && transfer is null;
+                        byte[] maskData = maskPixels.Data;
+                        byte ConvertAt(int offset)
+                        {
+                            if (directMask)
                             {
-                                FillAlpha = 1,
-                                StrokeAlpha = 1,
-                                BlendMode = RendererBlendMode.Normal,
-                                GraphicsSoftMask = null,
-                                Knockout = null
-                            }, currentDepth);
+                                // Plain RGB or unprofiled ink mask surface: read the bytes directly. The
+                                // arithmetic is the same as the general path below, without per-pixel
+                                // color objects. Ink pixels convert with InkColor's integer math.
+                                if (!luminosity)
+                                {
+                                    // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
+                                    return plainRgbMask ? maskData[offset + 3] : maskPixels.Alpha(offset);
+                                }
+                                if (plainRgbMask)
+                                {
+                                    return (byte)Math.Round((0.3 * maskData[offset + 2]
+                                        + 0.59 * maskData[offset + 1] + 0.11 * maskData[offset]) / 255d * 255);
+                                }
+                                int light = 255 - maskData[offset + 3];
+                                int red = ((255 - maskData[offset]) * light + 127) / 255;
+                                int green = ((255 - maskData[offset + 1]) * light + 127) / 255;
+                                int blue = ((255 - maskData[offset + 2]) * light + 127) / 255;
+                                return (byte)Math.Round((0.3 * red + 0.59 * green + 0.11 * blue) / 255d * 255);
+                            }
+                            Color color = luminosity ? deviceLuminosity && maskPixels.Ink is not null
+                                ? InkColor(ReadInk(maskPixels.Ink, offset)) : maskPixels.ReadColor(offset) : default;
+                            double sample = luminosity
+                                ? Luminosity(color)
+                                : maskPixels.Alpha(offset) / 255d;
+                            return ConvertSample(sample);
+                        }
+                        // Pixels the group never paints keep the initial backdrop bytes, so their
+                        // converted value is known before the group renders. Whole untouched rows
+                        // and untouched pixels reuse it instead of repeating the conversion.
+                        uint blankPixel = sampleCount > 0 ? ReadInk(maskData, 0) : 0;
+                        byte blankAlpha = sampleCount > 0 ? maskPixels.Alpha(0) : (byte)0;
+                        byte blankConverted = sampleCount > 0 ? ConvertAt(0) : (byte)0;
+                        // Luminosity conversion depends only on the pixel's color bytes, so repeated
+                        // values reuse a small direct-mapped table instead of converting again.
+                        Span<ulong> recent = luminosity ? stackalloc ulong[4096] : [];
+                        recent.Clear();
+                        try
+                        {
+                            pixels = maskPixels;
+                            RenderForm(group, inheritedResources,
+                                regionState with
+                                {
+                                    FillAlpha = 1,
+                                    StrokeAlpha = 1,
+                                    BlendMode = RendererBlendMode.Normal,
+                                    GraphicsSoftMask = null,
+                                    Knockout = null
+                                }, currentDepth);
+                        }
+                        finally
+                        {
+                            pixels = pagePixels;
+                        }
+                        for (int row = 0; row < maskHeight; row++)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            int rowIndex = row * maskWidth;
+                            if (maskPixels.RowIsBlank(row, blankPixel, blankAlpha))
+                            {
+                                if (row == 0) constant = blankConverted;
+                                if (samples is null && blankConverted != constant)
+                                {
+                                    // Every entry is written below, so the array need not be zeroed.
+                                    samples = GC.AllocateUninitializedArray<byte>(sampleCount);
+                                    samples.AsSpan(0, rowIndex).Fill(constant);
+                                }
+                                if (samples is not null) samples.AsSpan(rowIndex, maskWidth).Fill(blankConverted);
+                                continue;
+                            }
+                            for (int column = 0; column < maskWidth; column++)
+                            {
+                                int index = rowIndex + column;
+                                int offset = index * 4;
+                                byte converted;
+                                if (maskPixels.PixelIsBlank(offset, blankPixel, blankAlpha)) converted = blankConverted;
+                                else if (!luminosity) converted = ConvertAt(offset);
+                                else
+                                {
+                                    uint key = ReadInk(maskData, offset);
+                                    int slot = (int)((key * 2654435761u) >> 20);
+                                    ulong entry = recent[slot];
+                                    if ((entry & 0x100) != 0 && (uint)(entry >> 32) == key) converted = (byte)entry;
+                                    else
+                                    {
+                                        converted = ConvertAt(offset);
+                                        recent[slot] = ((ulong)key << 32) | 0x100 | converted;
+                                    }
+                                }
+                                if (index == 0) constant = converted;
+                                if (samples is null && converted != constant)
+                                {
+                                    samples = GC.AllocateUninitializedArray<byte>(sampleCount);
+                                    samples.AsSpan(0, index).Fill(constant);
+                                }
+                                if (samples is not null) samples[index] = converted;
+                            }
+                        }
+                        return (samples, constant);
                     }
                     finally
                     {
                         pixels = pagePixels;
+                        maskPixels.Return();
                     }
-                    byte outside = maskWidth == options.Width && maskHeight == options.Height
-                        ? (byte)0 : ConvertSample(luminosity
-                            ? Luminosity(backdrop)
-                            : 0);
-                    for (int row = 0; row < maskHeight; row++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        int rowIndex = row * maskWidth;
-                        if (maskPixels.RowIsBlank(row, blankPixel, blankAlpha))
-                        {
-                            if (row == 0) constant = blankConverted;
-                            if (samples is null && blankConverted != constant)
-                            {
-                                // Every entry is written below, so the array need not be zeroed.
-                                samples = GC.AllocateUninitializedArray<byte>(sampleCount);
-                                samples.AsSpan(0, rowIndex).Fill(constant);
-                            }
-                            if (samples is not null) samples.AsSpan(rowIndex, maskWidth).Fill(blankConverted);
-                            continue;
-                        }
-                        for (int column = 0; column < maskWidth; column++)
-                        {
-                            int index = rowIndex + column;
-                            int offset = index * 4;
-                            byte converted;
-                            if (maskPixels.PixelIsBlank(offset, blankPixel, blankAlpha)) converted = blankConverted;
-                            else if (!luminosity) converted = ConvertAt(offset);
-                            else
-                            {
-                                uint key = ReadInk(maskData, offset);
-                                int slot = (int)((key * 2654435761u) >> 20);
-                                ulong entry = recent[slot];
-                                if ((entry & 0x100) != 0 && (uint)(entry >> 32) == key) converted = (byte)entry;
-                                else
-                                {
-                                    converted = ConvertAt(offset);
-                                    recent[slot] = ((ulong)key << 32) | 0x100 | converted;
-                                }
-                            }
-                            if (index == 0) constant = converted;
-                            if (samples is null && converted != constant)
-                            {
-                                samples = GC.AllocateUninitializedArray<byte>(sampleCount);
-                                samples.AsSpan(0, index).Fill(constant);
-                            }
-                            if (samples is not null) samples[index] = converted;
-                        }
-                    }
-                    return new GraphicsSoftMask(samples, maskLeft, maskTop, maskWidth, maskHeight,
-                        outside, constant);
-                }
-                finally
-                {
-                    pixels = pagePixels;
-                    maskPixels.Return();
                 }
 
                 Color ReadBackdrop(PdfDictionary source, PdfStream maskGroup, out bool device)
@@ -1489,6 +1505,8 @@ public sealed partial class PdfPageRenderer
                             Knockout = null
                         }, depth + 1);
                         pixels = backdropPixels;
+                        parentState.GraphicsSoftMask?.ForBounds(blendedGroupPixels.Left, blendedGroupPixels.Top,
+                            blendedGroupPixels.Right, blendedGroupPixels.Bottom);
                         for (int y = blendedGroupPixels.Top; y < blendedGroupPixels.Bottom; y++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -1539,6 +1557,7 @@ public sealed partial class PdfPageRenderer
                         (int left, int top, int right, int bottom) = GetRasterBounds(
                             formState.Clips, formBounds, options.Width, options.Height,
                             scaleX, scaleY);
+                        parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
                         if (backdropPixels.Ink is null && maskedGroupPixels.Ink is null)
                         {
                             // Same interpolation as the general loop below, reading the RGB
@@ -1546,6 +1565,14 @@ public sealed partial class PdfPageRenderer
                             byte[] backdropData = backdropPixels.Data;
                             byte[] groupData = maskedGroupPixels.Data;
                             GraphicsSoftMask? softMask = parentState.GraphicsSoftMask;
+                            // The mask covers this group's bounds, so anything outside its
+                            // materialized region is outside its full bounds.
+                            bool maskIntersects = softMask is not null && left < softMask.FullRight
+                                && right > softMask.FullLeft && top < softMask.FullBottom && bottom > softMask.FullTop;
+                            byte[]? maskSamples = maskIntersects ? softMask!.Samples : null;
+                            int maskLeft = maskIntersects ? softMask!.Left : 0, maskTop = maskIntersects ? softMask!.Top : 0;
+                            int maskWidth = maskIntersects ? softMask!.Width : 0, maskHeight = maskIntersects ? softMask!.Height : 0;
+                            byte maskConstant = maskIntersects ? softMask!.Constant : (byte)0, maskOutside = softMask?.Outside ?? 0;
                             double fillAlpha = parentState.FillAlpha;
                             for (int y = top; y < bottom; y++)
                             {
@@ -1553,14 +1580,14 @@ public sealed partial class PdfPageRenderer
                                 int backdropRow = backdropPixels.Offset(left, y);
                                 int groupRow = maskedGroupPixels.Offset(left, y);
                                 bool maskRowInside = softMask is not null
-                                    && (uint)(y - softMask.Top) < (uint)softMask.Height;
-                                int maskRow = maskRowInside ? (y - softMask!.Top) * softMask.Width - softMask.Left : 0;
+                                    && (uint)(y - maskTop) < (uint)maskHeight;
+                                int maskRow = maskRowInside ? (y - maskTop) * maskWidth - maskLeft : 0;
                                 for (int x = left; x < right; x++)
                                 {
                                     int maskSample = softMask is null ? 255
-                                        : !maskRowInside || (uint)(x - softMask.Left) >= (uint)softMask.Width
-                                            ? softMask.Outside
-                                            : softMask.Samples is null ? softMask.Constant : softMask.Samples[maskRow + x];
+                                        : !maskRowInside || (uint)(x - maskLeft) >= (uint)maskWidth
+                                            ? maskOutside
+                                            : maskSamples is null ? maskConstant : maskSamples[maskRow + x];
                                     double weight = fillAlpha * maskSample / 255d;
                                     if (weight <= 0) continue;
                                     int offset = backdropRow + (x - left) * 4;
@@ -1646,6 +1673,7 @@ public sealed partial class PdfPageRenderer
                                 ? new KnockoutState(options.Width, (left, top, right, bottom)) : null
                         }, depth + 1);
                     pixels = pagePixels;
+                    parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
                     using var compositeProfile = groupPixels.PrepareComposite(pagePixels, parentState.RenderingIntent, diagnostics);
                     bool plainComposite = pagePixels.Ink is null && pagePixels.RgbProfile is null
                         && pagePixels.GroupAlpha is null && groupPixels.Ink is null
@@ -3331,6 +3359,7 @@ public sealed partial class PdfPageRenderer
             if (!state.Transform.TryInverse(out Matrix inverse)) return true;
             (int left, int top, int right, int bottom) = GetRasterBounds(
                 state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+            state = state with { GraphicsSoftMask = state.GraphicsSoftMask?.ForBounds(left, top, right, bottom) };
             Point[][]? boundsPolygons = bounds is null ? null : [bounds];
             bool cacheColumns = (axisX == 0 || inverse.C == 0) && (axisY == 0 || inverse.D == 0);
             bool cacheRow = (axisX == 0 || inverse.A == 0) && (axisY == 0 || inverse.B == 0);
@@ -3404,6 +3433,7 @@ public sealed partial class PdfPageRenderer
             state with { Transform = shadingToPage }, "Function");
         (int left, int top, int right, int bottom) = GetRasterBounds(
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+        state = state with { GraphicsSoftMask = state.GraphicsSoftMask?.ForBounds(left, top, right, bottom) };
         Point[][]? boundsPolygons = bounds is null ? null : [bounds];
         for (int y = top; y < bottom; y++)
         {
@@ -3846,6 +3876,7 @@ public sealed partial class PdfPageRenderer
         double centerX = x1 - x0, centerY = y1 - y0, radius = r1 - r0;
         (int left, int top, int right, int bottom) = GetRasterBounds(
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
+        state = state with { GraphicsSoftMask = state.GraphicsSoftMask?.ForBounds(left, top, right, bottom) };
         Point[][]? boundsPolygons = bounds is null ? null : [bounds];
         for (int y = top; y < bottom; y++)
         {
@@ -4142,6 +4173,7 @@ public sealed partial class PdfPageRenderer
             paintBottom = Math.Min(paintBottom, clip.Mask.Bottom);
         }
         if (paintRight <= paintLeft || paintBottom <= paintTop) return;
+        graphicsSoftMask = graphicsSoftMask?.ForBounds(paintLeft, paintTop, paintRight, paintBottom);
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
         bool directRgb = target.RgbProfile is null && !imageMask && bits == 8 && components == 3
             && softMask is null && colorKeyMask is null && rectangularClips
@@ -5558,11 +5590,93 @@ public sealed partial class PdfPageRenderer
             return (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
         }
     }
-    private sealed record GraphicsSoftMask(byte[]? Samples, int Left, int Top, int Width, int Height,
-        byte Outside, byte Constant)
+    /// <summary>
+    /// A graphics-state soft mask over its full device bounds (the group bounding box within
+    /// the clip). The mask group renders on demand: a paint materializes the region it will
+    /// read through <see cref="ForBounds"/>, and any read outside the materialized region
+    /// materializes the full bounds, so results never depend on the region a paint chose.
+    /// </summary>
+    private sealed class GraphicsSoftMask
     {
-        internal byte At(int x, int y) => (uint)(x - Left) < (uint)Width && (uint)(y - Top) < (uint)Height
-            ? Samples is null ? Constant : Samples[(y - Top) * Width + x - Left] : Outside;
+        private readonly Func<int, int, int, int, (byte[]? Samples, byte Constant)> _render;
+        private readonly Lock _sync = new();
+        // Replaced as a whole so concurrent readers always see one consistent region.
+        private volatile Region? _region;
+
+        private sealed record Region(byte[]? Samples, int Left, int Top, int Width, int Height, byte Constant)
+        {
+            internal bool Covers(int left, int top, int right, int bottom) =>
+                left >= Left && top >= Top && right <= Left + Width && bottom <= Top + Height;
+        }
+
+        internal GraphicsSoftMask(int fullLeft, int fullTop, int fullRight, int fullBottom,
+            byte outside, Func<int, int, int, int, (byte[]? Samples, byte Constant)> render)
+        {
+            FullLeft = fullLeft;
+            FullTop = fullTop;
+            FullRight = fullRight;
+            FullBottom = fullBottom;
+            Outside = outside;
+            _render = render;
+        }
+
+        internal int FullLeft { get; }
+        internal int FullTop { get; }
+        internal int FullRight { get; }
+        internal int FullBottom { get; }
+        /// <summary>The value of every pixel outside the full bounds.</summary>
+        internal byte Outside { get; }
+        /// <summary>Materialized samples, or null when the region is uniformly <see cref="Constant"/>.</summary>
+        internal byte[]? Samples => Materialized.Samples;
+        internal int Left => Materialized.Left;
+        internal int Top => Materialized.Top;
+        internal int Width => Materialized.Width;
+        internal int Height => Materialized.Height;
+        internal byte Constant => Materialized.Constant;
+
+        private Region Materialized => _region ?? Materialize(FullLeft, FullTop, FullRight, FullBottom);
+
+        internal byte At(int x, int y)
+        {
+            if (x < FullLeft || x >= FullRight || y < FullTop || y >= FullBottom) return Outside;
+            Region region = Materialized;
+            if ((uint)(x - region.Left) >= (uint)region.Width || (uint)(y - region.Top) >= (uint)region.Height)
+                region = Materialize(FullLeft, FullTop, FullRight, FullBottom);
+            return region.Samples is null ? region.Constant
+                : region.Samples[(y - region.Top) * region.Width + x - region.Left];
+        }
+
+        /// <summary>
+        /// Ensures the mask covers the given device rectangle, rendering only that part of the
+        /// full bounds when nothing has been rendered yet.
+        /// </summary>
+        internal GraphicsSoftMask ForBounds(int left, int top, int right, int bottom)
+        {
+            left = Math.Max(left, FullLeft);
+            top = Math.Max(top, FullTop);
+            right = Math.Min(right, FullRight);
+            bottom = Math.Min(bottom, FullBottom);
+            if (right <= left || bottom <= top) return this;
+            if (_region is not { } region || !region.Covers(left, top, right, bottom))
+                Materialize(left, top, right, bottom);
+            return this;
+        }
+
+        private Region Materialize(int left, int top, int right, int bottom)
+        {
+            lock (_sync)
+            {
+                if (_region is { } existing)
+                {
+                    if (existing.Covers(left, top, right, bottom)) return existing;
+                    (left, top, right, bottom) = (FullLeft, FullTop, FullRight, FullBottom);
+                }
+                (byte[]? samples, byte constant) = _render(left, top, right, bottom);
+                var region = new Region(samples, left, top, right - left, bottom - top, constant);
+                _region = region;
+                return region;
+            }
+        }
     }
     private sealed class KnockoutState
     {
