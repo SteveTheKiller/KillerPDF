@@ -23,9 +23,36 @@ public sealed partial class PdfPageRenderer
     private static void WriteInk(byte[] ink, int offset, uint value) =>
         BinaryPrimitives.WriteUInt32LittleEndian(ink.AsSpan(offset, 4), value);
 
-    private static uint ColorInk(Color color)
+    private static uint ColorInk(in Color color, PdfColorTransform? profile = null)
     {
-        if (color.Ink is uint ink) return ink;
+        if (color.Ink is uint ink)
+        {
+            if (color.InkProfile is null || ReferenceEquals(color.InkProfile, profile)) return ink;
+            if (profile is { CanConvertFromXyz: true })
+            {
+                Span<double> source = stackalloc double[4];
+                Span<double> destination = stackalloc double[4];
+                for (int channel = 0; channel < 4; channel++) source[channel] = (byte)(ink >> (channel * 8)) / 255d;
+                if (color.Connection is { } connection)
+                {
+                    ReadOnlySpan<double> xyz = stackalloc double[3] { connection.X, connection.Y, connection.Z };
+                    profile.FromXyz(xyz, destination);
+                }
+                else color.InkProfile.ConvertTo(profile, source, destination);
+                return Color.Cmyk(destination[0], destination[1], destination[2], destination[3]).Ink!.Value;
+            }
+        }
+        if (profile is { CanConvertFromXyz: true })
+        {
+            if (color.Connection is { } connection)
+            {
+                Span<double> destination = stackalloc double[4];
+                ReadOnlySpan<double> xyz = stackalloc double[3] { connection.X, connection.Y, connection.Z };
+                profile.FromXyz(xyz, destination);
+                return Color.Cmyk(destination[0], destination[1], destination[2], destination[3]).Ink!.Value;
+            }
+            return DisplayToProfileInk(color, profile);
+        }
         int light = Math.Max(color.Red, Math.Max(color.Green, color.Blue));
         if (light == 0) return 0xFF000000;
         int cyan = (int)Math.Round((light - color.Red) * 255d / light);
@@ -34,22 +61,25 @@ public sealed partial class PdfPageRenderer
         return (uint)(cyan | magenta << 8 | yellow << 16 | (255 - light) << 24);
     }
 
-    private static Color InkColor(uint ink)
+    private static Color InkColor(uint ink, PdfColorTransform? profile = null)
     {
+        if (profile is not null) return ProfileInkToDisplay(ink, profile) with { Ink = ink, InkProfile = profile };
         int light = 255 - (int)(ink >> 24);
         return new Color((byte)(((255 - (byte)ink) * light + 127) / 255),
             (byte)(((255 - (byte)(ink >> 8)) * light + 127) / 255),
             (byte)(((255 - (byte)(ink >> 16)) * light + 127) / 255)) { Ink = ink };
     }
 
-    private static void SetInkPixel(RasterSurface surface, int offset, Color color,
+    private static void SetInkPixel(RasterSurface surface, int offset, in Color color,
         double sourceAlpha, RendererBlendMode mode)
     {
         double backdropAlpha = surface.Alpha(offset) / 255d;
         double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
         if (outputAlpha <= 0) return;
-        uint source = ColorInk(color);
-        if (sourceAlpha == 1 && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
+        uint source = surface.GetInk(color);
+        bool overprint = (color.OverprintComponents & 16) != 0
+            && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        if (!overprint && sourceAlpha == 1 && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
         {
             WriteInk(surface.Ink!, offset, source);
             surface.SetAlpha(offset, 255);
@@ -76,6 +106,7 @@ public sealed partial class PdfPageRenderer
                 2 => 1 - blend.Blue,
                 _ => mode == RendererBlendMode.Luminosity ? s : b
             } : 1 - BlendChannel(1 - b, 1 - s, mode);
+            if (overprint && (color.OverprintComponents & (1 << channel)) != 0) mixed = b;
             double value = sourceAlpha == 1 && backdropAlpha == 1 ? mixed
                 : ((1 - backdropAlpha) * sourceAlpha * s
                 + (1 - sourceAlpha) * backdropAlpha * b

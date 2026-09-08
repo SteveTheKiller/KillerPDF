@@ -83,7 +83,7 @@ still require their defining entries. These forms follow section 8.6.3 of the
 Unprofiled CMYK uses a subtractive approximation: each remaining color-channel
 intensity is multiplied by the remaining intensity after black ink. This preserves
 shadow detail where adding ink components would clip a channel to zero. It is not
-ICC color management; profile-dependent colors can still differ from other viewers.
+ICC color management. Supported embedded profiles use their own transforms instead.
 
 Pages and isolated groups declaring a CMYK blending space retain all four ink
 components through painting and compositing. Black-only and process-black colors
@@ -91,8 +91,37 @@ therefore remain distinct even when their displayed RGB colors match. CMYK worki
 surfaces use four ink bytes per pixel and retain uniform alpha as one value.
 An alpha plane is allocated only when samples differ. Finished pages convert
 to BGRA. Non-isolated groups inherit their parent's blending space.
-An ICCBased CMYK alternate selects this same device approximation; the profile
-itself is not applied.
+
+Supported ICCBased Gray, RGB, CMYK, and Lab colors convert through the profile's XYZ or
+Lab connection space. Matrix/TRC profiles and bounded `mft1`, `mft2`, `mAB`, and
+`mBA` tables are evaluated by the engine without a native color-management library.
+CMYK output intents also calibrate DeviceCMYK colors. Profile data is bounded and
+cached per renderer. Lab source components retain their natural ranges before
+table encoding; legacy 16-bit Lab-to-Lab tables adjust both sides of the transform.
+Alternate color spaces are read only when the embedded profile cannot be used.
+
+Declared ICC component ranges control default image decoding and Indexed palette
+scaling. Path, image, and shading values are clipped before color conversion.
+When an alternate space is used, its component limits are also applied. Lab
+alternates retain their own limits without replacing the ICC default decode range.
+
+Pages and isolated groups with supported ICC blending profiles retain native
+components until compositing is finished. CalRGB and CalGray groups also blend
+in their declared space, including its gamma and white point. RGB and gray profiles
+use the existing four-byte pixel buffer, with alpha in the fourth byte. Gray samples occupy equal
+RGB channel values. Copies and knockout backdrops retain the profile identity.
+ICC luminosity masks use connection-space luminance; device masks keep their
+uncalibrated device conversion. Image matte correction precedes color conversion.
+
+Non-isolated groups inherit their parent's blending space, as required by
+section 7.6.1 of the [PDF reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.6.pdf).
+An ordinary page group can declare its own space because it is treated as isolated.
+
+Lab profiles are not used as transparency blending spaces.
+
+Color management remains incomplete. Default color-space remapping and content
+rendering-intent selection still require work. Unsupported source profiles
+can fall back to their alternate space; fallback diagnostics are not yet complete.
 
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels
 are tightly packed BGRA32, with a top-left origin and a row stride of `Width * 4`.

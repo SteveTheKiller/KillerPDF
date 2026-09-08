@@ -1,0 +1,189 @@
+# Color rendering development review
+
+## Evidence
+
+Reviewed on September 8, 2026. This is a diagnostic review, not a completed
+conformance result or a performance comparison.
+
+The current `icc-lab-inspection-20260908` output contains 74 successful pages.
+All 74 match the preceding `icc-range-inspection-20260908` output exactly.
+Compared with `image-mask-precedence-final`, 18 pages have changed pixels.
+All 18 current pages were inspected visually. Selected pages were also compared
+with the retained `uniform-alpha-3-PDFium` output and the earlier engine output.
+The folders are under `C:/Users/steve/killerpdf-benchmark/cmyk-compositing-20260907`.
+
+The review uses embedded conformance reference images where available. A
+PDFium difference alone does not establish an engine error. In particular,
+the retained PDFium output visibly fails the gray-image cross test.
+
+## Findings
+
+| Pages | Observation | Remaining work |
+| --- | --- | --- |
+| GWG180, ICC RGB 16-bit image | No large cross is visible in the current or PDFium image. Their color and image sampling differ. | Verify color intent and sampling independently; visual absence of a cross does not prove exact color accuracy. |
+| GWG181, DeviceCMYK 16-bit image | No large cross is visible. The current image differs in color and sampling from PDFium. | Validate intended output-profile behavior. |
+| GWG182, ICC gray 16-bit image | The large tinted cross in the earlier engine output is gone. PDFium retains a faint cross. | Keep this as positive evidence for profile conversion, without treating it as whole-suite conformance. |
+| GWG061, shadings | All four shadings and embedded references are present. Color and raster sampling differences remain. | Quantify any discrepancies against the source definitions. |
+| GWG1610 and GWG1611, text soft masks | All text effects are present alongside their embedded references. | Review reference differences, including drop-shadow extent and feather sampling. |
+| GWG168 and GWG169, vector soft masks | All effects are present. The bevel differs from its embedded reference, but that difference is also visible in the earlier engine and PDFium output. | Do not misclassify the bevel difference as an ICC regression; investigate it separately. |
+| GWG010, CMYK overprint | Large crosses remain in font, vector, and shading patches. Thin mask outlines are also visible. | Implement overprint state and component-preserving paint behavior. |
+| Altona technical page | The page is populated, including its overprint matrix. | Detailed overprint and spot-color evaluation remains incomplete. |
+| GWG130 README, pages 1 through 3 | Text and illustrative figures are present. Crosses on page 2 illustrate errors described by the document. | Do not count those illustrations as actual failing test patches. |
+| Combined Ghent pages 1 through 3 | Content is present. Page 1 still shows overprint and DeviceN failures; page 2 has isolated-group edge crosses; page 3 contains font and image tests. | Resolve the specific failed patches. This review does not certify the combined pages. |
+| 495712 page 3 and UMURF issue 4 page 1 | Text, artwork, photographs, and clipping are present in both current and PDFium outputs. | Image sampling and edge differences remain; no exact-match claim. |
+
+## Next implementation target
+
+The implementation now retains `OP`, `op`, and `OPM` through graphics-state
+save and restore. Direct DeviceCMYK painting in native CMYK surfaces preserves
+zero source components when mode 1 overprinting is enabled. Stencil conversion
+retains this information. Thirty-nine focused tests cover separate fill and stroke
+settings, restoration, opacity, exact source zeros, and sampled-image behavior.
+Shading overprint is connected for function, axial, radial, triangle mesh, and
+patch mesh painting. Explicit overprint tests cover shading types 1, 2, 3, 5,
+6, and 7, including disabled-overprint and mode 0 controls. Together with the
+existing shading tests, 69 focused cases pass.
+The corpus images reviewed above precede these changes.
+
+The subsequent `overprint-shading-inspection-20260908` run rendered all 74
+pages successfully. Seventy-three pages are pixel-identical to the preceding
+ICC run. Only combined Ghent page 1 changed: its large mode-1 error cross is
+gone, with a faint outline remaining, and its mode-1 vector patch is corrected
+apart from edges. Font, shading, mask-edge, and DeviceN errors remain visible.
+Both versions of that page were inspected. This is partial correctness progress;
+it does not establish complete overprint support or performance parity.
+
+Further implementation must retain the source color-space semantics.
+DeviceN and Separation channel identity cannot be reconstructed after their
+conversion to ordinary CMYK. Images, stencils, text, paths, shadings, and
+transparency groups need explicit coverage; a vector-only fix is insufficient.
+
+Inspection of the actual `GWG010_CMYK_OP_x3.pdf` resources identifies the next
+missing cases. Its shading spaces are DeviceN with Cyan/Magenta/Yellow and
+Cyan/Magenta colorants. The overprint source deliberately omits Yellow, so
+the backdrop Yellow must survive even in mode 0. Its mode-0 text and vector
+patches use Separation Magenta. The reader previously reduced both spaces to
+tint-transform delegates and discarded the names. The standalone page also
+has no transparency group, so the current native-CMYK-only implementation
+cannot affect its RGB surface. These are separate gaps from the direct
+DeviceCMYK zero-component rule. The remaining font error is not yet isolated.
+
+The reader now retains mappings for distinct Cyan, Magenta, Yellow, and Black
+colorants. On CMYK surfaces, supported named spaces use their source tints
+directly and preserve unspecified components when overprinting in either mode.
+Sampled images retain the named-component mask through packed color conversion.
+An explicitly named zero component still replaces the backdrop component.
+Nine new cases cover these distinctions; 229 focused color and shading tests
+and all 3,453 engine tests pass. The app Release configuration builds cleanly.
+The `named-process-inspection-20260908` run rendered all 74 pages successfully;
+73 match the preceding overprint run exactly. The changed combined Ghent page 1
+was inspected: the mode-0 vector and both shading crosses are substantially
+corrected, with edge outlines remaining. Font and other DeviceN patches still
+fail. This is further partial progress, with no performance-parity claim.
+Unknown spot-color fallback, None/All, inherited group color changes, and default
+page color spaces still require work. The relevant rules are in the
+[PDF Reference, sections 4.5.5, 4.5.6, and 7.6.3](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.6.pdf).
+
+No additional page-sized buffer is justified by this work. Any component state
+added to compositing must be checked against the existing memory constraint.
+
+The subsequent font investigation found a separate CFF matrix-selection bug.
+The embedded GWGX glyph was scaled down by an extra factor of 1,000 because an
+implicit top-level matrix was concatenated with the explicit subfont matrix.
+Correcting this restores its declared bounds. In `cff-matrix-inspection-20260908`,
+all 74 pages rendered successfully and 72 match the preceding run exactly.
+The two changed pages are standalone GWG010 and combined Ghent page 1; both
+were inspected. The combined page now has solid font-test patches in both
+overprint modes. Standalone glyphs draw again, but their RGB-page overprint
+failure remains. The independent font fix is committed locally as `93ddca0`.
+Validation: 17 focused CFF cases, 3,454 engine tests, 341 app tests, and a clean
+Release configuration build. This does not finish the broader color work.
+
+The broader integration still needs rendering-intent selection, default color
+space mappings, profile validation and fallback diagnostics, malformed-range
+recovery, and controlled speed and memory validation before it is considered
+fully verified.
+
+Named-color inheritance across group color spaces now retains the original
+definition and source components. CMYK-to-RGB forms use the alternate transform;
+RGB-to-CMYK forms restore direct process tints. Six targeted cases cover inherited
+and repeated color selection, fill and stroke, return to the parent, and source
+precision below an 8-bit step. The initial two cases failed before the fix.
+All 235 focused color and shading cases pass. Unchanged CMYK handling reuses the
+existing mapping. The component array already created by color parsing is retained
+for named colors; the graphics state carries two additional references. Memory
+parity and corpus behavior of this increment have not yet been measured.
+
+Mixed DeviceN spaces now discard `None` components when the remaining names
+are supported process inks. This includes five-component CMYK plus `None`
+images. Explicitly named zero tints still replace their channels under either
+overprint mode. Ten new vector and image cases use a deliberately different
+alternate color to verify direct process handling. All 245 focused color and
+shading tests and 3,470 engine tests pass, with a clean Release build. Image
+conversion reuses the existing sample array and packed output plane. All-`None`
+spaces, registration color, RGB-page overprint, and measured memory parity
+remain unfinished.
+
+The `devicen-none-inspection-20260908` diagnostic render completed all 74 pages;
+73 remained identical and the combined Ghent page lost the three DeviceN vector
+crosses. The remaining image crosses used Indexed spaces with DeviceN bases.
+Palette expansion now invokes the base tint transform, including bases with
+more than four components, and maps named process inks to the destination before
+painting. Seven new indexed-image cases cover both overprint modes, explicit
+zero inks, mixed `None`, five components, and disabled overprint. Five failed
+before the fix. All 261 focused color, shading, and indexed tests pass.
+
+The subsequent `devicen-indexed-inspection-20260908` diagnostic render completed
+74 pages, with 72 identical to the mixed-None run. Both changed pages were
+inspected: the Ghent DeviceN image crosses disappear and both DeviceN check
+marks return; Altona's DeviceN palette colors now follow their tint transforms.
+The palette remains bounded to 256 entries. Destination mapping creates a
+replacement palette, retaining the original for fallback, with no new image or
+page plane. Controlled memory and timing validation remains outstanding.
+Final checks for this increment: 3,477 engine tests and 341 app tests pass;
+the Release configuration build has no warnings or errors. The broader color
+work remains uncommitted while its remaining correctness and parity checks
+are addressed.
+
+Indexed named colors now retain their palette index across group color-space
+changes. Four of five new inheritance cases failed before the fix; fill, stroke,
+repeated selection, RGB-to-CMYK, and return-to-parent cases now pass.
+
+Separation `None` and all-`None` DeviceN spaces now suppress painting on RGB and
+CMYK surfaces, including Indexed palettes. Nine cases cover fills, strokes,
+stencils, sampled images, multiple None components, and selection without a
+subsequent color-value operator. Six initial cases reproduced visible marks.
+The alternate transform in these fixtures produces a contrasting color.
+Nonpainting metadata uses a spare bit in the existing color flag byte; pixel
+painting returns before knockout or group-alpha changes. Path rendering skips
+coverage allocation and image painting skips its output plane. The rule follows
+the [PDF Reference, section 4.5.5](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/pdfreference1.6.pdf).
+All 275 focused color, shading, and indexed tests pass. Text clipping, patterns,
+shading variants, registration All, RGB-page overprint, and broader parity
+validation still need attention.
+The full checks pass with 3,491 engine tests, 341 app tests, and a clean Release
+build. All 74 pages in `none-paint-inspection-20260908` rendered successfully and
+are pixel-identical to the preceding indexed-palette run. The synthetic cases
+verify behavior absent from this diagnostic sample.
+
+None-colored text fill and stroke now have explicit tests. A clipping test
+compares invisible fill-and-clip text against clip-only text and verifies both
+painted and unpainted pixels remain. At this small size the glyph edges are
+antialiased; the check does not assume a fully covered interior pixel.
+
+Separation `All` now applies equal tints to all native CMYK inks and inverted
+tints to RGB output components, ignoring its alternate transform. Named-color
+group rebinding and Indexed palettes retain registration semantics. Seven
+cases compare against direct output-component painting across both overprint
+modes, including zero and full tint. The four initial cases failed before the
+fix. All 285 focused color, shading, and indexed tests pass. This does not add
+another pixel plane or expand the per-pixel color structure.
+Full checks pass with 3,501 engine tests, 341 app tests, and a clean Release
+build. The `registration-inspection-20260908` diagnostic run completed 74 pages;
+68 are identical to the preceding run. All six changed pages were inspected.
+Altona's registration row changes, along with registration-colored borders and
+labels in GWG010, GWG061, GWG180, GWG181, and GWG182. Previously tinted dark
+alternate-profile values now become neutral black. RGB-page overprint failures
+remain visible in standalone GWG010. Registration inheritance and Indexed
+handling still need dedicated endpoint coverage, as do initial color values
+after selecting a color space without a subsequent color-value operator.

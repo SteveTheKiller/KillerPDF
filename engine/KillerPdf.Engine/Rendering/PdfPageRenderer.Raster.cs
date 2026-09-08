@@ -1080,11 +1080,11 @@ public sealed partial class PdfPageRenderer
 
     /// <summary>Paints one color through a coverage mask, honoring clips, masks, and blending.</summary>
     private static void PaintCoverage(RasterSurface pixels, int width, int height, CoverageMask mask,
-        Color color, double alpha, RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
+        in Color color, double alpha, RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
         CancellationToken cancellationToken)
     {
-        if (mask.IsEmpty) return;
+        if (mask.IsEmpty || color.DoesNotPaint) return;
         int left = Math.Max(mask.Left, pixels.Left), top = Math.Max(mask.Top, pixels.Top);
         int right = Math.Min(mask.Right, pixels.Right), bottom = Math.Min(mask.Bottom, pixels.Bottom);
         // Rectangular clips are fully applied by these bounds, so only antialiased clip
@@ -1100,13 +1100,14 @@ public sealed partial class PdfPageRenderer
         }
         if (right <= left || bottom <= top) return;
         bool perPixelClip = clips.Count > 0 && !rectangularClips;
-        bool simpleBlend = pixels.Ink is null && pixels.GroupAlpha is null && graphicsSoftMask is null && knockout is null
+        bool simpleBlend = pixels.Ink is null && pixels.RgbProfile is null && pixels.GroupAlpha is null && graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         bool direct = alpha >= 1 && simpleBlend;
         bool directInk = pixels.Ink is not null && alpha >= 1
+            && (color.OverprintComponents & 16) == 0
             && graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        uint ink = directInk ? ColorInk(color) : 0;
+        uint ink = directInk ? pixels.GetInk(color) : 0;
         byte[]? opaqueBlend = simpleBlend && alpha > 0 && alpha < 1
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
