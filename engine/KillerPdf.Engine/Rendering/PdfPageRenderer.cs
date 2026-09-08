@@ -3555,16 +3555,42 @@ public sealed partial class PdfPageRenderer
         int top = Math.Clamp(targetHeight - (int)Math.Ceiling(corners.Max(p => p.Y) * scaleY), 0, targetHeight);
         int bottom = Math.Clamp(targetHeight - (int)Math.Floor(corners.Min(p => p.Y) * scaleY), 0, targetHeight);
         if (!transform.TryInverse(out Matrix inverse)) return;
+        // A rectangular clip is fully applied by shrinking the painted bounds, so it does not
+        // disqualify the direct paths; only antialiased clip masks need per-pixel coverage.
+        // The plane resolution below still derives from the unclipped bounds so clipping
+        // never changes which source samples are chosen.
+        bool rectangularClips = true;
+        int paintLeft = left, paintTop = top, paintRight = right, paintBottom = bottom;
+        foreach (ClipRegion clip in clips)
+        {
+            if (clip.Mask.Coverage is not null)
+            {
+                rectangularClips = false;
+                break;
+            }
+            paintLeft = Math.Max(paintLeft, clip.Mask.Left);
+            paintTop = Math.Max(paintTop, clip.Mask.Top);
+            paintRight = Math.Min(paintRight, clip.Mask.Right);
+            paintBottom = Math.Min(paintBottom, clip.Mask.Bottom);
+        }
+        if (rectangularClips && (paintRight <= paintLeft || paintBottom <= paintTop)) return;
+        if (!rectangularClips)
+        {
+            paintLeft = left;
+            paintTop = top;
+            paintRight = right;
+            paintBottom = bottom;
+        }
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
         bool directRgb = !imageMask && bits == 8 && components == 3
-            && softMask is null && colorKeyMask is null && clips.Count == 0
+            && softMask is null && colorKeyMask is null && rectangularClips
             && graphicsSoftMask is null && knockout is null
             && colorSpace.Palette is null && colorSpace.Converter is null
             && colorSpace.MultiConverter is null
             && decode is [0, 1, 0, 1, 0, 1]
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         bool directGray = !imageMask && bits == 8 && components == 1
-            && softMask is null && colorKeyMask is null && clips.Count == 0
+            && softMask is null && colorKeyMask is null && rectangularClips
             && graphicsSoftMask is null && knockout is null
             && colorSpace.Palette is null && colorSpace.Converter is null
             && colorSpace.MultiConverter is null
@@ -3575,7 +3601,7 @@ public sealed partial class PdfPageRenderer
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
-            for (int y = top; y < bottom; y++)
+            for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 double pageX = (left + 0.5) / scaleX;
@@ -3583,8 +3609,10 @@ public sealed partial class PdfPageRenderer
                 Point first = inverse.Apply(pageX, pageY);
                 double unitX = first.X;
                 double unitY = first.Y;
-                for (int x = left; x < right; x++, unitX += unitStepX, unitY += unitStepY)
+                // Step from the unclipped left edge so clipped rows sample identically.
+                for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
                 {
+                    if (x < paintLeft) continue;
                     if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
                     int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                     int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
@@ -3662,18 +3690,20 @@ public sealed partial class PdfPageRenderer
                 }
             }
 
-            bool direct = clips.Count == 0 && graphicsSoftMask is null && knockout is null
+            bool direct = rectangularClips && graphicsSoftMask is null && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
-            for (int y = top; y < bottom; y++)
+            for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 Point first = inverse.Apply((left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
                 double unitX = first.X, unitY = first.Y;
-                for (int x = left; x < right; x++, unitX += unitStepX, unitY += unitStepY)
+                // Step from the unclipped left edge so clipped rows sample identically.
+                for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
                 {
+                    if (x < paintLeft) continue;
                     if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
                     int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
                     int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);

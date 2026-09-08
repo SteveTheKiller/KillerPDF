@@ -989,14 +989,19 @@ public sealed partial class PdfPageRenderer
     {
         if (mask.IsEmpty) return;
         int left = mask.Left, top = mask.Top, right = mask.Right, bottom = mask.Bottom;
+        // Rectangular clips are fully applied by these bounds, so only antialiased clip
+        // masks need the per-pixel coverage lookup.
+        bool rectangularClips = true;
         foreach (ClipRegion clip in clips)
         {
             left = Math.Max(left, clip.Mask.Left);
             top = Math.Max(top, clip.Mask.Top);
             right = Math.Min(right, clip.Mask.Right);
             bottom = Math.Min(bottom, clip.Mask.Bottom);
+            if (clip.Mask.Coverage is not null) rectangularClips = false;
         }
         if (right <= left || bottom <= top) return;
+        bool perPixelClip = clips.Count > 0 && !rectangularClips;
         bool simpleBlend = graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         bool direct = alpha >= 1 && simpleBlend;
@@ -1012,7 +1017,7 @@ public sealed partial class PdfPageRenderer
             {
                 int cover = coverage is null ? 255 : coverage[maskRow + x];
                 if (cover == 0) continue;
-                if (clips.Count > 0)
+                if (perPixelClip)
                 {
                     int clipCover = ClipCoverage(clips, x, y);
                     if (clipCover == 0) continue;
