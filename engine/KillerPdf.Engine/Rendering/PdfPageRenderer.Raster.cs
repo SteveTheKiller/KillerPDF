@@ -33,16 +33,33 @@ public sealed partial class PdfPageRenderer
     /// <summary>A rectangular coverage mask in device pixels. Null coverage means fully covered.</summary>
     private sealed class CoverageMask
     {
-        internal CoverageMask(int left, int top, int right, int bottom, byte[]? coverage)
+        private bool _rented;
+
+        internal CoverageMask(int left, int top, int right, int bottom, byte[]? coverage,
+            bool rented = false)
         {
             Left = left;
             Top = top;
             Right = right;
             Bottom = bottom;
             Coverage = coverage;
+            _rented = rented && coverage is not null;
         }
 
         internal static CoverageMask Empty { get; } = new(0, 0, 0, 0, null);
+
+        /// <summary>
+        /// Returns a pooled coverage buffer once the mask is painted and discarded. Only the
+        /// mask produced by the rasterizer owns its buffer; masks that share it through
+        /// translation or intersection, and masks retained as clips or cached glyphs, never
+        /// return it. The mask must not be read after this call.
+        /// </summary>
+        internal void Return()
+        {
+            if (!_rented) return;
+            _rented = false;
+            ArrayPool<byte>.Shared.Return(Coverage!);
+        }
 
         internal int Left { get; }
         internal int Top { get; }
@@ -556,7 +573,11 @@ public sealed partial class PdfPageRenderer
         }
 
         /// <summary>Sweeps the accumulated cells into a trimmed coverage mask.</summary>
-        internal CoverageMask Sweep(bool evenOdd)
+        /// <summary>
+        /// Sweeps the accumulated cells into a coverage mask. With <paramref name="rent"/>
+        /// the mask owns a pooled buffer that the consumer returns after painting.
+        /// </summary>
+        internal CoverageMask Sweep(bool evenOdd, bool rent = false)
         {
             AddCurrentCell();
             _currentX = _currentY = int.MaxValue;
@@ -567,7 +588,16 @@ public sealed partial class PdfPageRenderer
             int bottom = Math.Min(_height, _maximumY + 1);
             if (right <= left || bottom <= top) return CoverageMask.Empty;
             int maskWidth = right - left;
-            var coverage = new byte[checked(maskWidth * (bottom - top))];
+            int size = checked(maskWidth * (bottom - top));
+            byte[] coverage;
+            if (rent)
+            {
+                // Large fills would otherwise allocate a page-sized array on the large object
+                // heap for every paint; pooled buffers keep those out of gen2 collections.
+                coverage = ArrayPool<byte>.Shared.Rent(size);
+                Array.Clear(coverage, 0, size);
+            }
+            else coverage = new byte[size];
             SortCells();
             int index = 0;
             while (index < _count)
@@ -618,7 +648,7 @@ public sealed partial class PdfPageRenderer
             _count = 0;
             _minimumX = _minimumY = int.MaxValue;
             _maximumX = _maximumY = int.MinValue;
-            return new CoverageMask(left, top, right, bottom, coverage);
+            return new CoverageMask(left, top, right, bottom, coverage, rent);
         }
 
         private void SortCells()
@@ -659,7 +689,7 @@ public sealed partial class PdfPageRenderer
     private static CellRasterizer? _sharedRasterizer;
 
     private static CoverageMask RasterizePolygons(IEnumerable<Point[]> pixelPolygons, bool evenOdd,
-        int width, int height)
+        int width, int height, bool rent = false)
     {
         if (pixelPolygons is IReadOnlyList<Point[]> { Count: 1 } polygons
             && CellRasterizer.TryRectangle(polygons[0], width, height) is { } rectangle)
@@ -669,7 +699,7 @@ public sealed partial class PdfPageRenderer
             _sharedRasterizer = rasterizer = new CellRasterizer(width, height);
         rasterizer.Reset();
         rasterizer.AddPolygons(pixelPolygons);
-        return rasterizer.Sweep(evenOdd);
+        return rasterizer.Sweep(evenOdd, rent);
     }
 
     // Filled text glyphs repeat constantly at the same size, so their coverage masks are
@@ -802,8 +832,8 @@ public sealed partial class PdfPageRenderer
 
     /// <summary>Rasterizes page-space paths into a coverage mask.</summary>
     private static CoverageMask RasterizeFill(IReadOnlyList<List<Point>> paths, bool evenOdd,
-        RasterFrame frame) =>
-        RasterizePolygons(frame.ToPixels(paths, 3), evenOdd, frame.Width, frame.Height);
+        RasterFrame frame, bool rent = false) =>
+        RasterizePolygons(frame.ToPixels(paths, 3), evenOdd, frame.Width, frame.Height, rent);
 
     private static CoverageMask RasterizeFill(IReadOnlyList<Point[]> polygons, bool evenOdd,
         RasterFrame frame) =>
@@ -812,7 +842,7 @@ public sealed partial class PdfPageRenderer
     /// <summary>Converts a page-space stroke into pixel-space outline polygons and rasterizes them.</summary>
     private static CoverageMask RasterizeStroke(IReadOnlyList<List<Point>> paths,
         double pageLineWidth, RendererLineCap lineCap, RendererLineJoin lineJoin,
-        double miterLimit, RasterFrame frame)
+        double miterLimit, RasterFrame frame, bool rent = false)
     {
         double radius = Math.Max(pageLineWidth * frame.StrokeScale / 2, 0.5);
         var polygons = new List<Point[]>();
@@ -822,7 +852,7 @@ public sealed partial class PdfPageRenderer
             Point[] pixels = frame.ToPixels(path);
             StrokeOutline(pixels, radius, lineCap, lineJoin, miterLimit, polygons);
         }
-        return RasterizePolygons(polygons, false, frame.Width, frame.Height);
+        return RasterizePolygons(polygons, false, frame.Width, frame.Height, rent);
     }
 
     /// <summary>Emits consistently oriented outline polygons for one stroked polyline.</summary>

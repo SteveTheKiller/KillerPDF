@@ -1014,10 +1014,16 @@ public sealed partial class PdfPageRenderer
                             if (clipsText)
                             {
                                 textClipCoverage ??= new byte[options.Width * options.Height];
-                                UnionInto(textClipCoverage, options.Width,
-                                    cachedFill ?? RasterizeFill(
+                                if (cachedFill is not null)
+                                    UnionInto(textClipCoverage, options.Width, cachedFill);
+                                else
+                                {
+                                    CoverageMask glyphMask = RasterizeFill(
                                         glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
-                                        false, frame));
+                                        false, frame, rent: true);
+                                    UnionInto(textClipCoverage, options.Width, glyphMask);
+                                    glyphMask.Return();
+                                }
                             }
                         }
                         else if ((paintMode != 3 || clipsText)
@@ -4069,9 +4075,16 @@ public sealed partial class PdfPageRenderer
         CancellationToken cancellationToken)
     {
         var frame = new RasterFrame(width, height, scaleX, scaleY);
-        CoverageMask mask = RasterizeFill(paths, evenOdd, frame);
-        PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
-            graphicsSoftMask, knockout, cancellationToken);
+        CoverageMask mask = RasterizeFill(paths, evenOdd, frame, rent: true);
+        try
+        {
+            PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
+                graphicsSoftMask, knockout, cancellationToken);
+        }
+        finally
+        {
+            mask.Return();
+        }
     }
 
     private static void StrokePaths(byte[] pixels, int width, int height, double scaleX,
@@ -4083,9 +4096,17 @@ public sealed partial class PdfPageRenderer
         CancellationToken cancellationToken)
     {
         var frame = new RasterFrame(width, height, scaleX, scaleY);
-        CoverageMask mask = RasterizeStroke(paths, lineWidth, lineCap, lineJoin, miterLimit, frame);
-        PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
-            graphicsSoftMask, knockout, cancellationToken);
+        CoverageMask mask = RasterizeStroke(paths, lineWidth, lineCap, lineJoin, miterLimit, frame,
+            rent: true);
+        try
+        {
+            PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
+                graphicsSoftMask, knockout, cancellationToken);
+        }
+        finally
+        {
+            mask.Return();
+        }
     }
 
     private static void AddCubic(List<Point> path, Point start, Point control1,
