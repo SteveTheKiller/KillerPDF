@@ -64,6 +64,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Corrected embedded CFF subfont scaling that could make glyphs effectively invisible.
 - Honored default color-space resources for painting and transparency blending, and reset fill and stroke colors to their specified initial values when selecting a color space.
 - Reported source and output ICC profile fallbacks in page-rendering diagnostics and skipped unused output profiles when default color spaces replace them.
+- Honored rendering intents in painted colors, images, and shadings, including absolute media-white conversion and recovery when a later intent is usable, while sharing encoded ICC profile data.
 
 ## [1.8.5] - Unreleased
 

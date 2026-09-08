@@ -12,6 +12,15 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     private readonly PdfIccCurve[]? _curves;
     private readonly double[]? _matrix;
     private readonly double[]? _inverseMatrix;
+    private double[]? _absoluteScale;
+    private readonly double[]? _mediaWhiteScale;
+    private readonly bool _invalidWhite;
+    private readonly ReadOnlyMemory<byte> _tableData;
+    private static readonly Lock IntentGate = new();
+    private PdfIccProfileTransform? _intentRoot;
+    private PdfIccProfileTransform?[]? _intents;
+    private byte _attemptedIntents;
+    private int _intent;
     private readonly bool _lab;
     internal bool IsLabInput { get; }
     internal override int Components { get; }
@@ -22,7 +31,8 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
 
     internal PdfIccProfileTransform(ReadOnlyMemory<byte> data, int intent = 1)
     {
-        if (intent is < 0 or > 2) throw new ArgumentOutOfRangeException(nameof(intent));
+        if (intent is < 0 or > 3) throw new ArgumentOutOfRangeException(nameof(intent));
+        _intent = intent;
         ReadOnlySpan<byte> bytes = data.Span;
         if (bytes.Length < 132 || !bytes.Slice(36, 4).SequenceEqual("acsp"u8))
             throw new FormatException("An ICC profile header is invalid.");
@@ -53,13 +63,38 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                 || !tags.TryAdd(name, data.Slice((int)offset, (int)size)))
                 throw new FormatException("An ICC profile tag has invalid bounds or a duplicate signature.");
         }
-        if (tags.TryGetValue($"A2B{intent}", out ReadOnlyMemory<byte> forward)
+        if (tags.ContainsKey("A2B0") || tags.ContainsKey("A2B1") || tags.ContainsKey("A2B2"))
+            _tableData = data[..(int)length];
+        if (tags.TryGetValue("wtpt", out ReadOnlyMemory<byte> whitePoint))
+        {
+            ReadOnlySpan<byte> white = whitePoint.Span;
+            if (white.Length < 20 || !white[..4].SequenceEqual("XYZ "u8))
+                _invalidWhite = true;
+            else
+            {
+                _mediaWhiteScale = new double[3];
+                ReadOnlySpan<double> reference = [0.9642, 1, 0.8249];
+                for (int channel = 0; channel < 3; channel++)
+                {
+                    double value = BinaryPrimitives.ReadInt32BigEndian(white[(8 + channel * 4)..]) / 65536d;
+                    if (value <= 0) _invalidWhite = true;
+                    _mediaWhiteScale[channel] = value / reference[channel];
+                }
+            }
+        }
+        if (intent == 3)
+        {
+            if (_invalidWhite) throw new FormatException("The ICC media white point is invalid.");
+            _absoluteScale = _mediaWhiteScale;
+        }
+        int tableIntent = intent == 3 ? 1 : intent;
+        if (tags.TryGetValue($"A2B{tableIntent}", out ReadOnlyMemory<byte> forward)
             || tags.TryGetValue("A2B0", out forward))
         {
             _forward = PdfIccTable.Read(forward);
             if (_forward.InputChannels != Components || _forward.OutputChannels != 3)
                 throw new FormatException("An ICC forward transform has invalid channel counts.");
-            if (tags.TryGetValue($"B2A{intent}", out ReadOnlyMemory<byte> reverse)
+            if (tags.TryGetValue($"B2A{tableIntent}", out ReadOnlyMemory<byte> reverse)
                 || tags.TryGetValue("B2A0", out reverse))
             {
                 _reverse = PdfIccTable.Read(reverse);
@@ -104,6 +139,41 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         }
     }
 
+    internal PdfIccProfileTransform? ForIntent(int intent)
+    {
+        if (intent is < 0 or > 3) throw new ArgumentOutOfRangeException(nameof(intent));
+        PdfIccProfileTransform root = _intentRoot ?? this;
+        if (intent == root._intent || root._tableData.IsEmpty && intent != 3 && root._intent != 3) return root;
+        lock (IntentGate)
+        {
+            root._intents ??= new PdfIccProfileTransform?[4];
+            byte bit = (byte)(1 << intent);
+            if ((root._attemptedIntents & bit) != 0) return root._intents[intent];
+            try
+            {
+                PdfIccProfileTransform variant;
+                if (root._tableData.IsEmpty)
+                {
+                    if (intent == 3 && root._invalidWhite) return null;
+                    variant = (PdfIccProfileTransform)root.MemberwiseClone();
+                    variant._intent = intent;
+                    variant._absoluteScale = intent == 3 ? root._mediaWhiteScale : null;
+                }
+                else variant = new PdfIccProfileTransform(root._tableData, intent);
+                variant._intentRoot = root;
+                return root._intents[intent] = variant;
+            }
+            catch (Exception exception) when (exception is FormatException or NotSupportedException)
+            {
+                return null;
+            }
+            finally
+            {
+                root._attemptedIntents |= bit;
+            }
+        }
+    }
+
     internal override void ToXyz(ReadOnlySpan<double> device, Span<double> xyz)
     {
         if (device.Length != Components || xyz.Length != 3)
@@ -136,6 +206,8 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                 xyz[2] = 0.8249 * LabInverse(y - b / 200);
             }
             else for (int channel = 0; channel < 3; channel++) xyz[channel] *= _forward.XyzEncodingScale;
+            if (_absoluteScale is not null)
+                for (int channel = 0; channel < 3; channel++) xyz[channel] *= _absoluteScale[channel];
             return;
         }
         Span<double> values = stackalloc double[3];
@@ -144,6 +216,8 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
             xyz[row] = Components == 1 ? _matrix![row] * values[0]
                 : _matrix![row * 3] * values[0] + _matrix[row * 3 + 1] * values[1]
                     + _matrix[row * 3 + 2] * values[2];
+        if (_absoluteScale is not null)
+            for (int channel = 0; channel < 3; channel++) xyz[channel] *= _absoluteScale[channel];
     }
 
     internal bool HasReverseLut => _reverse is not null;
@@ -157,6 +231,17 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
             throw new ArgumentException("ICC transform channel counts do not match.");
         for (int channel = 0; channel < 3; channel++)
             if (!double.IsFinite(xyz[channel])) throw new ArgumentException("ICC connection values must be finite.");
+        Span<double> relative = stackalloc double[3];
+        if (_absoluteScale is not null)
+        {
+            for (int channel = 0; channel < 3; channel++) relative[channel] = xyz[channel] / _absoluteScale[channel];
+            FromRelativeXyz(relative, device);
+        }
+        else FromRelativeXyz(xyz, device);
+    }
+
+    private void FromRelativeXyz(ReadOnlySpan<double> xyz, Span<double> device)
+    {
         if (_reverse is null)
         {
             if (!CanConvertFromXyz) throw new NotSupportedException("The ICC profile has no reverse transform.");

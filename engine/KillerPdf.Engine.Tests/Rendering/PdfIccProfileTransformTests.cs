@@ -11,6 +11,222 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfIccProfileTransformTests
 {
+    [Theory]
+    [InlineData("fill")]
+    [InlineData("stroke")]
+    [InlineData("after-color")]
+    [InlineData("graphics-state")]
+    [InlineData("restore")]
+    [InlineData("image")]
+    [InlineData("image-override")]
+    [InlineData("inline")]
+    [InlineData("shading")]
+    [InlineData("form")]
+    [InlineData("default")]
+    [InlineData("default-restore")]
+    [InlineData("saturation")]
+    [InlineData("unknown")]
+    [InlineData("indexed")]
+    [InlineData("separation")]
+    [InlineData("device-n")]
+    public void RenderHonorsSelectedIntent(string paint)
+    {
+        Assert.Equal(Render(true), Render(false));
+
+        byte[] Render(bool reference)
+        {
+            PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+            KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+            PdfArray Numbers(params double[] values) => new(values.Select(value => (PdfObject)new PdfReal(value)));
+            string select = "/Space cs 0.2 0.3 0.4 scn ";
+            string fill = "0 0 8 8 re f";
+            string content = paint switch
+            {
+                "stroke" => "/Perceptual ri /Space CS 0.2 0.3 0.4 SCN 8 w 0 4 m 8 4 l S",
+                "after-color" => select + "/Perceptual ri " + fill,
+                "graphics-state" => select + "/State gs " + fill,
+                "restore" => select + "/Perceptual ri q /RelativeColorimetric ri Q " + fill,
+                "image" => "/Perceptual ri 8 0 0 8 0 0 cm /Image Do",
+                "image-override" => "8 0 0 8 0 0 cm /Image Do",
+                "inline" => "/Perceptual ri 8 0 0 8 0 0 cm BI /W 1 /H 1 /BPC 8 /CS /Space ID abc EI",
+                "shading" => "/Perceptual ri /Shade sh",
+                "form" => select + "/Form Do",
+                "default" => "0.2 0.3 0.4 rg /Perceptual ri " + fill,
+                "default-restore" => "/Perceptual ri q /RelativeColorimetric ri 0.4 0.5 0.6 rg Q 0.2 0.3 0.4 rg " + fill,
+                "saturation" => select + "/Saturation ri " + fill,
+                "unknown" => "/Perceptual ri " + select + "/Unrecognized ri " + fill,
+                "indexed" => "/Indexed cs 0 scn /Perceptual ri " + fill,
+                "separation" => "/Spot cs 0.5 scn /Perceptual ri " + fill,
+                "device-n" => "/Multi cs 0.5 scn /Perceptual ri " + fill,
+                _ => "/Perceptual ri " + select + fill
+            };
+            var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());
+            var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+            var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+            var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+            var page = (PdfDictionary)source.Resolve(pageReference);
+            var update = new PdfIncrementalUpdateBuilder(source);
+            byte[] perceptual = Lut(true, false, paint == "unknown");
+            byte[] profile = reference ? Profile("RGB ", "XYZ ", ("A2B0", perceptual))
+                : Profile("RGB ", "XYZ ", ("A2B0", Lut(true, false, false)),
+                    ("A2B1", Lut(true, false, true)), ("A2B2", Lut(true, false, false)));
+            var profileReference = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(3))]), profile));
+            var space = new PdfArray([Name("ICCBased"), profileReference]);
+            var colorSpaces = new PdfDictionary([Entry("Space", space)]);
+            if (paint is "default" or "default-restore") colorSpaces = new PdfDictionary(colorSpaces.Append(Entry("DefaultRGB", space)));
+            var tint = new PdfDictionary([Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
+                Entry("C0", Numbers(0.2, 0.3, 0.4)), Entry("C1", Numbers(0.2, 0.3, 0.4)), Entry("N", new PdfInteger(1))]);
+            colorSpaces = new PdfDictionary(colorSpaces.Concat([
+                Entry("Indexed", new PdfArray([Name("Indexed"), space, new PdfInteger(0), new PdfString([51, 76, 102], PdfStringForm.Hexadecimal)])),
+                Entry("Spot", new PdfArray([Name("Separation"), Name("Custom"), space, tint])),
+                Entry("Multi", new PdfArray([Name("DeviceN"), new PdfArray([Name("Custom")]), space, tint]))]));
+            var imageDictionary = new PdfDictionary([Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)),
+                Entry("Height", new PdfInteger(1)), Entry("BitsPerComponent", new PdfInteger(8)), Entry("ColorSpace", space)]);
+            if (paint == "image-override") imageDictionary = new PdfDictionary(imageDictionary.Append(Entry("Intent", Name("Perceptual"))));
+            var image = update.AddObject(new PdfStream(imageDictionary, [51, 76, 102]));
+            var form = update.AddObject(new PdfStream(new PdfDictionary([Entry("Subtype", Name("Form")),
+                Entry("BBox", Numbers(0, 0, 8, 8)), Entry("Resources", new PdfDictionary([]))]),
+                Encoding.ASCII.GetBytes("/Perceptual ri " + fill)));
+            var function = new PdfDictionary([Entry("FunctionType", new PdfInteger(2)), Entry("Domain", Numbers(0, 1)),
+                Entry("C0", Numbers(0.2, 0.3, 0.4)), Entry("C1", Numbers(0.2, 0.3, 0.4)), Entry("N", new PdfInteger(1))]);
+            var shading = new PdfDictionary([Entry("ShadingType", new PdfInteger(2)), Entry("ColorSpace", space),
+                Entry("Coords", Numbers(0, 0, 8, 0)), Entry("Function", function)]);
+            var resources = new PdfDictionary([Entry("ColorSpace", colorSpaces),
+                Entry("XObject", new PdfDictionary([Entry("Image", image), Entry("Form", form)])),
+                Entry("Shading", new PdfDictionary([Entry("Shade", shading)])),
+                Entry("ExtGState", new PdfDictionary([Entry("State", new PdfDictionary([Entry("RI", Name("Perceptual"))]))]))]);
+            update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Append(Entry("Resources", resources))));
+            var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
+            Assert.Empty(rendered.Diagnostics);
+            return rendered.Pixels.ToArray();
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RelativeIntentRecoversAfterUnavailableAbsoluteIntent(bool output)
+    {
+        Assert.Equal(Render(false), Render(true));
+
+        byte[] Render(bool switchIntent)
+        {
+            PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+            KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+            string select = output ? "0.2 0.3 0.4 0.1 k " : "/Space cs 0.2 0.3 0.4 scn ";
+            string content = (switchIntent ? "/AbsoluteColorimetric ri " : "") + select
+                + "/RelativeColorimetric ri 0 0 8 8 re f";
+            var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 8, Encoding.ASCII.GetBytes(content)).Build());
+            var rootReference = (PdfIndirectReference)source.Trailer[Name("Root")];
+            var catalog = (PdfDictionary)source.Resolve(rootReference);
+            var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+            var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+            var page = (PdfDictionary)source.Resolve(pageReference);
+            var update = new PdfIncrementalUpdateBuilder(source);
+            int components = output ? 4 : 3;
+            byte[] profile = Profile(output ? "CMYK" : "RGB ", "XYZ ",
+                ("A2B0", Lut(true, false, false, components)), ("wtpt", Xyz(0, 1, 1)));
+            var profileReference = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(components))]), profile));
+            if (output)
+                update.ReplaceObject(rootReference.ObjectNumber, new PdfDictionary(catalog.Append(Entry("OutputIntents",
+                    new PdfArray([new PdfDictionary([Entry("S", Name("GTS_PDFX")), Entry("DestOutputProfile", profileReference)])])))));
+            else
+                update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                    .Append(Entry("Resources", new PdfDictionary([Entry("ColorSpace", new PdfDictionary([
+                        Entry("Space", new PdfArray([Name("ICCBased"), profileReference]))]))])))));
+            var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(8, 8));
+            Assert.Equal(switchIntent ? 1 : 0, rendered.Diagnostics.Count);
+            return rendered.Pixels.ToArray();
+        }
+    }
+
+    [Fact]
+    public void IntentVariantsReuseEncodedStorageAndStableIdentities()
+    {
+        var profile = new PdfIccProfileTransform(Profile("RGB ", "XYZ ",
+            ("A2B0", Lut(true, false, false)), ("A2B1", Lut(true, false, true)),
+            ("wtpt", Xyz(0.75, 0.875, 0.5)), ("test", new byte[4 * 1024 * 1024])));
+        long start = GC.GetAllocatedBytesForCurrentThread();
+        var perceptual = profile.ForIntent(0);
+        var saturation = profile.ForIntent(2);
+        var absolute = profile.ForIntent(3);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - start;
+        Assert.True(allocated < 131072, $"Intent variants allocated {allocated} bytes.");
+        Assert.NotNull(perceptual);
+        Assert.NotNull(saturation);
+        Assert.NotNull(absolute);
+        Assert.Same(profile, absolute.ForIntent(1));
+        Assert.Same(perceptual, saturation.ForIntent(0));
+        Assert.Same(absolute, perceptual.ForIntent(3));
+        var variants = new PdfIccProfileTransform?[32];
+        Parallel.For(0, variants.Length, index => variants[index] = profile.ForIntent(3));
+        Assert.All(variants, value => Assert.Same(absolute, value));
+        start = GC.GetAllocatedBytesForCurrentThread();
+        for (int repeat = 0; repeat < 100; repeat++) _ = profile.ForIntent(repeat % 4);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - start);
+    }
+
+    [Fact]
+    public void UnavailableAbsoluteIntentDoesNotRepeatExceptions()
+    {
+        var profile = new PdfIccProfileTransform(Profile("RGB ", "XYZ ",
+            ("A2B0", Lut(true, false, true)), ("wtpt", Xyz(0, 1, 1))));
+        Assert.Null(profile.ForIntent(3));
+        long start = GC.GetAllocatedBytesForCurrentThread();
+        for (int repeat = 0; repeat < 100; repeat++) _ = profile.ForIntent(3);
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - start);
+    }
+
+    [Theory]
+    [InlineData("GRAY")]
+    [InlineData("RGB ")]
+    [InlineData("LUT")]
+    public void AbsoluteIntentUsesMediaWhiteAndRelativeTables(string kind)
+    {
+        byte[] curve = new byte[12];
+        "curv"u8.CopyTo(curve);
+        var tags = new List<(string, byte[])> { ("wtpt", Xyz(0.75, 0.875, 0.5)) };
+        if (kind == "GRAY") tags.Add(("kTRC", curve));
+        else if (kind == "RGB ") tags.AddRange([
+            ("rTRC", curve), ("gTRC", curve), ("bTRC", curve),
+            ("rXYZ", Xyz(1, 0, 0)), ("gXYZ", Xyz(0, 1, 0)), ("bXYZ", Xyz(0, 0, 1))]);
+        else tags.AddRange([
+            ("A2B0", Lut(true, false, false)), ("A2B1", Lut(true, false, true)),
+            ("B2A0", Lut(true, false, false)), ("B2A1", Lut(true, false, true))]);
+        byte[] bytes = Profile(kind == "LUT" ? "RGB " : kind, "XYZ ", tags.ToArray());
+        var relative = new PdfIccProfileTransform(bytes, 1);
+        var absolute = new PdfIccProfileTransform(bytes, 3);
+        double[] input = kind == "GRAY" ? [0.25] : [0.2, 0.3, 0.4];
+        var expected = new double[3];
+        var actual = new double[3];
+        relative.ToXyz(input, expected);
+        absolute.ToXyz(input, actual);
+        Assert.Equal(expected[0] * (0.75 / 0.9642), actual[0], 12);
+        Assert.Equal(expected[1] * 0.875, actual[1], 12);
+        Assert.Equal(expected[2] * (0.5 / 0.8249), actual[2], 12);
+        var restored = new double[input.Length];
+        absolute.FromXyz(actual, restored);
+        for (int channel = 0; channel < input.Length; channel++) Assert.Equal(input[channel], restored[channel], 12);
+        long start = GC.GetAllocatedBytesForCurrentThread();
+        for (int repeat = 0; repeat < 100; repeat++)
+        {
+            absolute.ToXyz(input, actual);
+            absolute.FromXyz(actual, restored);
+        }
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - start);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void AbsoluteIntentRejectsInvalidWhiteWithoutBreakingRelativeIntent(double white)
+    {
+        byte[] bytes = Profile("RGB ", "XYZ ", ("A2B0", Lut(true, false, true)), ("wtpt", Xyz(white, 1, 1)));
+        _ = new PdfIccProfileTransform(bytes, 1);
+        Assert.Throws<FormatException>(() => new PdfIccProfileTransform(bytes, 3));
+    }
+
     [Fact]
     public void Render_RejectsReversibleLabBlendingProfile()
     {

@@ -133,8 +133,15 @@ report a diagnostic once per page, including when the profile result is cached.
 This applies to painted colors, images, patterns, and shadings.
 An unusable embedded document output profile also reports a diagnostic when
 DeviceCMYK conversion requests it. A default color-space replacement can avoid
-loading an unused output profile. Content rendering-intent selection still
-requires work.
+loading an unused output profile.
+
+Content `ri` and graphics-state `RI` select the ICC rendering intent; an image's
+`Intent` overrides the inherited value. Relative colorimetric remains the default
+and the fallback for unknown names. Intent changes also update previously selected
+colors, including default, Indexed, Separation, and DeviceN spaces. Absolute
+colorimetric conversion uses the relative tables and media-white scaling.
+Intent variants share encoded profile storage and cache unavailable transforms.
+Transparency blending profiles retain their relative-colorimetric conversion.
 
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels
 are tightly packed BGRA32, with a top-left origin and a row stride of `Width * 4`.

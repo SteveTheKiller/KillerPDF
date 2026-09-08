@@ -33,19 +33,22 @@ public sealed partial class PdfPageRenderer
         return (fallback, declared && fallback is null);
     }
 
-    private PdfColorTransform? OutputProfile(HashSet<string>? diagnostics)
+    private PdfColorTransform? OutputProfile(HashSet<string>? diagnostics, int intent = 1)
     {
         var profile = _outputProfile.Value;
-        if (profile.Unavailable)
+        PdfColorTransform? transform = profile.Transform is PdfIccProfileTransform icc
+            ? icc.ForIntent(intent) : profile.Transform;
+        if (profile.Unavailable || profile.Transform is not null && transform is null)
             diagnostics?.Add("The document output profile could not be used for DeviceCMYK color conversion.");
-        return profile.Transform;
+        return transform;
     }
 
-    private ImageColorSpace BindDeviceProfile(ImageColorSpace space, HashSet<string>? diagnostics)
+    private ImageColorSpace BindDeviceProfile(ImageColorSpace space, HashSet<string>? diagnostics, int intent)
     {
         if (space.Components != 4) return space;
-        PdfColorTransform? profile = OutputProfile(diagnostics);
-        return profile is null ? space : space with { Profile = profile };
+        PdfColorTransform? profile = OutputProfile(diagnostics, intent);
+        return profile is not null ? space with { Profile = profile }
+            : _outputProfile.Value.Transform is not null ? space with { HasIccSource = true } : space;
     }
 
     private PdfColorTransform? ReadGroupProfile(PdfDictionary page, PdfDictionary resources,
@@ -101,8 +104,9 @@ public sealed partial class PdfPageRenderer
         return profile;
     }
 
-    private PdfColorTransform? ReadIccProfile(PdfStream stream) =>
-        _colorProfiles.GetOrAdd(stream, value =>
+    private PdfColorTransform? ReadIccProfile(PdfStream stream, int intent = 1)
+    {
+        PdfColorTransform? profile = _colorProfiles.GetOrAdd(stream, value =>
         {
             try
             {
@@ -116,6 +120,8 @@ public sealed partial class PdfPageRenderer
                 return (null, 0);
             }
         }).Transform;
+        return profile is PdfIccProfileTransform icc ? icc.ForIntent(intent) : profile;
+    }
 
     private PdfColorTransform ReadCalibratedProfile(PdfArray space, double[] white,
         double[] gamma, double[]? matrix = null) => _colorProfiles.GetOrAdd(space,
