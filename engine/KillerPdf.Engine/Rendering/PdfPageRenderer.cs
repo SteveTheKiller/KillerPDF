@@ -1621,6 +1621,7 @@ public sealed partial class PdfPageRenderer
                                 ? new KnockoutState(options.Width, (left, top, right, bottom)) : null
                         }, depth + 1);
                     pixels = pagePixels;
+                    using var compositeProfile = groupPixels.PrepareComposite(pagePixels, parentState.RenderingIntent, diagnostics);
                     bool plainComposite = pagePixels.Ink is null && pagePixels.RgbProfile is null
                         && pagePixels.GroupAlpha is null && groupPixels.Ink is null
                         && groupPixels.RgbProfile is null && parentState.GraphicsSoftMask is null

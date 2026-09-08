@@ -121,6 +121,12 @@ use the existing four-byte pixel buffer, with alpha in the fourth byte. Gray sam
 RGB channel values. Copies and knockout backdrops retain the profile identity.
 Inherited fill and stroke colors retain their source profile when a nested group
 uses a different blending space, including later component changes inside that group.
+Conversion of an isolated group's completed result uses the rendering intent at
+its invoking `Do` operator, independently of intent changes inside the group.
+Source and destination transforms share their profiles' encoded data and leave
+both blend spaces unchanged. The destination conversion is restored after the
+group, including on failure. Unavailable result intents retain the blend-profile
+conversion and report a diagnostic.
 ICC luminosity masks use connection-space luminance; device masks keep their
 uncalibrated device conversion. Image matte correction precedes color conversion.
 

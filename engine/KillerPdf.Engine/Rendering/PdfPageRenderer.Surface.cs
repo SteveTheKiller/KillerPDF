@@ -10,6 +10,8 @@ public sealed partial class PdfPageRenderer
         internal PdfColorTransform? InkProfile { get; private set; }
         internal PdfColorTransform? RgbProfile { get; private set; }
         internal PdfColorTransform? BlendProfile => InkProfile ?? RgbProfile;
+        private PdfColorTransform? _compositeProfile;
+        private PdfColorTransform? _inputProfile;
         private Color _lastInkColor;
         private uint _lastInk;
         private bool _hasInkColor;
@@ -120,6 +122,42 @@ public sealed partial class PdfPageRenderer
             Array.Clear(GroupAlpha, 0, Length / 4);
         }
 
+        internal InputProfileScope PrepareComposite(RasterSurface destination, int intent, HashSet<string> diagnostics)
+        {
+            // The group's internal blend space stays fixed. Only conversion of its completed
+            // result uses the rendering intent captured at the invoking Do operator.
+            if (ReferenceEquals(BlendProfile, destination.BlendProfile)) return default;
+            if (BlendProfile is PdfIccProfileTransform profile)
+            {
+                _compositeProfile = profile.ForIntent(intent);
+                if (_compositeProfile is null)
+                    diagnostics.Add("The group rendering intent could not be used; its blend-profile conversion was used.");
+            }
+            _hasReadInk = false;
+            if (destination.BlendProfile is not PdfIccProfileTransform targetProfile) return default;
+            PdfIccProfileTransform? mapped = targetProfile.ForIntent(intent);
+            if (ReferenceEquals(mapped, targetProfile)) return default;
+            if (mapped is not { CanConvertFromXyz: true })
+            {
+                diagnostics.Add("The destination group rendering intent could not be used; its blend-profile conversion was used.");
+                return default;
+            }
+            var scope = new InputProfileScope(destination, destination._inputProfile);
+            destination._inputProfile = mapped;
+            destination._hasInkColor = false;
+            return scope;
+        }
+
+        internal readonly struct InputProfileScope(RasterSurface? surface, PdfColorTransform? previous) : IDisposable
+        {
+            public void Dispose()
+            {
+                if (surface is null) return;
+                surface._inputProfile = previous;
+                surface._hasInkColor = false;
+            }
+        }
+
         internal Color ReadColor(int offset, RasterSurface? destination = null) => Ink is null
             ? ColorFromRgb(new(Data[offset + 2], Data[offset + 1], Data[offset]))
             : ColorFromInk(ReadInk(Ink, offset), destination);
@@ -129,7 +167,7 @@ public sealed partial class PdfPageRenderer
             if (RgbProfile is null) return samples;
             uint key = (uint)(samples.Red << 16 | samples.Green << 8 | samples.Blue);
             if (_hasReadInk && key == _lastReadInk) return _lastReadColor;
-            _lastReadColor = ProfileRgbToDisplay(samples, RgbProfile);
+            _lastReadColor = ProfileRgbToDisplay(samples, _compositeProfile ?? RgbProfile);
             _lastReadInk = key;
             _hasReadInk = true;
             return _lastReadColor;
@@ -140,7 +178,7 @@ public sealed partial class PdfPageRenderer
             if (RgbProfile is null) return color;
             if (!_hasInkColor || color != _lastInkColor)
             {
-                Color samples = ColorRgb(color, RgbProfile);
+                Color samples = ColorRgb(color, _inputProfile ?? RgbProfile);
                 _lastInk = (uint)(samples.Red << 16 | samples.Green << 8 | samples.Blue);
                 _lastInkColor = color;
                 _hasInkColor = true;
@@ -157,7 +195,7 @@ public sealed partial class PdfPageRenderer
             if (InkProfile is null || destination?.Ink is not null
                 && ReferenceEquals(InkProfile, destination.InkProfile)) return InkColor(ink);
             if (_hasReadInk && ink == _lastReadInk) return _lastReadColor;
-            _lastReadColor = InkColor(ink, InkProfile);
+            _lastReadColor = InkColor(ink, _compositeProfile ?? InkProfile);
             _lastReadInk = ink;
             _hasReadInk = true;
             return _lastReadColor;
@@ -169,7 +207,7 @@ public sealed partial class PdfPageRenderer
             if (color.Ink is uint ink && (color.InkProfile is null
                 || ReferenceEquals(color.InkProfile, InkProfile))) return ink;
             if (_hasInkColor && color == _lastInkColor) return _lastInk;
-            _lastInk = ColorInk(color, InkProfile);
+            _lastInk = ColorInk(color, _inputProfile ?? InkProfile);
             _lastInkColor = color;
             _hasInkColor = true;
             return _lastInk;

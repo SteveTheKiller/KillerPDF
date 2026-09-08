@@ -12,6 +12,52 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfIccProfileTransformTests
 {
     [Theory]
+    [InlineData("Perceptual")]
+    [InlineData("Saturation")]
+    public void GroupConversionSelectsRgbDestinationIntentAndRestoresIt(string intent)
+    {
+        byte[] reference = Render(true), actual = Render(false);
+        Assert.Equal(reference[..4], actual[..4]);
+        Assert.NotEqual((byte)0, actual[0]);
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, actual[4..]);
+
+        byte[] Render(bool reference)
+        {
+            PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+            KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+            PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
+            var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+                Encoding.ASCII.GetBytes($"/{intent} ri /F Do /RelativeColorimetric ri 1 1 1 rg 1 0 1 1 re f")).Build());
+            var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+            var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+            var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+            var page = (PdfDictionary)source.Resolve(pageReference);
+            var update = new PdfIncrementalUpdateBuilder(source);
+            PdfArray Space(byte[] profile, int count) => new([Name("ICCBased"), update.AddObject(new PdfStream(
+                new PdfDictionary([Entry("N", new PdfInteger(count))]), profile))]);
+            byte[] sourceLut = Lut(true, true, false, 4);
+            for (int cell = 0; cell < 16; cell++)
+                BinaryPrimitives.WriteUInt16BigEndian(sourceLut.AsSpan(68 + cell * 6), 16320);
+            var groupSpace = Space(Profile("CMYK", "Lab ", ("A2B0", sourceLut)), 4);
+            byte[] relativeReverse = Lut(true, false, true);
+            if (!reference) relativeReverse.AsSpan(64, 8 * 6).Clear();
+            var pageSpace = Space(Profile("RGB ", "XYZ ", ("A2B0", Lut(true, false, true)),
+                ("B2A0", Lut(true, false, true)), ("B2A1", relativeReverse), ("B2A2", Lut(true, false, true))), 3);
+            var form = update.AddObject(new PdfStream(new PdfDictionary([
+                Entry("Subtype", Name("Form")), Entry("BBox", Numbers(0, 0, 1, 1)),
+                Entry("Resources", new PdfDictionary([])), Entry("Group", new PdfDictionary([
+                    Entry("S", Name("Transparency")), Entry("I", new PdfBoolean(true)), Entry("CS", groupSpace)]))]),
+                "0 0 0 0 k 0 0 1 1 re f"u8));
+            update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
+                .Concat([Entry("Resources", new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("F", form)]))])),
+                    Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", pageSpace)]))])));
+            var result = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(2, 1));
+            Assert.Empty(result.Diagnostics);
+            return result.Pixels.ToArray();
+        }
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void AvailableIntentSharesProfileStorageAndCachesFailures(bool saturation)
@@ -927,44 +973,76 @@ public sealed class PdfIccProfileTransformTests
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Render_ConvertsIsolatedGroupInkIntoDifferentParentProfile(bool rgbParent)
+    [InlineData(false, 1, false, false)]
+    [InlineData(true, 1, false, false)]
+    [InlineData(false, 0, false, false)]
+    [InlineData(true, 0, false, false)]
+    [InlineData(false, 2, false, false)]
+    [InlineData(true, 2, false, false)]
+    [InlineData(false, 1, true, false)]
+    [InlineData(true, 1, true, false)]
+    [InlineData(false, 0, true, false)]
+    [InlineData(true, 0, true, false)]
+    [InlineData(false, 2, true, false)]
+    [InlineData(true, 2, true, false)]
+    [InlineData(false, 0, false, true)]
+    [InlineData(true, 0, false, true)]
+    [InlineData(false, 0, true, true)]
+    [InlineData(true, 0, true, true)]
+    public void Render_ConvertsIsolatedGroupIntoDifferentParentProfile(bool rgbParent, int intent, bool rgbGroup, bool unavailable)
     {
-        byte[] groupLut = Lut(true, true, false, 4), pageLut = Lut(true, true, false, 4);
+        int components = rgbGroup ? 3 : 4, tableOffset = 52 + components * 4;
+        byte[] groupLut = Lut(true, true, false, components), pageLut = Lut(true, true, false, 4);
+        for (int cell = 0; cell < 1 << components; cell++)
+            BinaryPrimitives.WriteUInt16BigEndian(groupLut.AsSpan(tableOffset + cell * 6), 16320);
         for (int cell = 0; cell < 16; cell++)
         {
-            BinaryPrimitives.WriteUInt16BigEndian(groupLut.AsSpan(68 + cell * 6), 16320);
             BinaryPrimitives.WriteUInt16BigEndian(pageLut.AsSpan(68 + cell * 6), (ushort)((cell & 1) == 0 ? 65280 : 0));
         }
         PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
         KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
-        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1, Encoding.ASCII.GetBytes("/F Do")).Build());
+        string intentName = intent == 0 ? "Perceptual" : intent == 2 ? "Saturation" : "RelativeColorimetric";
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1,
+            Encoding.ASCII.GetBytes($"/{intentName} ri /F Do")).Build());
         var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
         var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
         var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
         var page = (PdfDictionary)source.Resolve(reference);
         var update = new PdfIncrementalUpdateBuilder(source);
-        PdfArray Space(byte[] profile) => new([Name("ICCBased"), update.AddObject(new PdfStream(
-            new PdfDictionary([Entry("N", new PdfInteger(4))]), profile))]);
-        PdfArray groupSpace = Space(Profile("CMYK", "Lab ", ("A2B0", groupLut)));
-        PdfArray pageSpace = Space(Profile("CMYK", "Lab ", ("A2B0", pageLut), ("B2A0", NeutralReverseLut())));
+        PdfArray Space(byte[] profile, int count = 4) => new([Name("ICCBased"), update.AddObject(new PdfStream(
+            new PdfDictionary([Entry("N", new PdfInteger(count))]), profile))]);
+        byte[] relativeLut = groupLut.ToArray();
+        if (intent != 1)
+            for (int cell = 0; cell < 1 << components; cell++)
+                BinaryPrimitives.WriteUInt16BigEndian(relativeLut.AsSpan(tableOffset + cell * 6), 48960);
+        PdfArray groupSpace = Space(Profile(rgbGroup ? "RGB " : "CMYK", "Lab ",
+            ("A2B0", unavailable ? Encoding.ASCII.GetBytes("bad!00000000") : groupLut),
+            ("A2B1", relativeLut), ("A2B2", groupLut),
+            ("B2A0", rgbGroup ? Lut(true, false, true) : NeutralReverseLut())), components);
+        byte[] relativeReverse = NeutralReverseLut();
+        if (intent != 1)
+            for (int cell = 0; cell < 8; cell++)
+                BinaryPrimitives.WriteUInt16BigEndian(relativeReverse.AsSpan(64 + cell * 8 + 6), 65535);
+        PdfArray pageSpace = Space(Profile("CMYK", "Lab ", ("A2B0", pageLut),
+            ("B2A0", NeutralReverseLut()), ("B2A1", relativeReverse), ("B2A2", NeutralReverseLut())));
         var form = new PdfStream(new PdfDictionary([Entry("Subtype", Name("Form")),
             Entry("BBox", new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(1), new PdfInteger(1)])),
             Entry("Resources", new PdfDictionary([])),
             Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")), Entry("CS", groupSpace),
-                Entry("I", new PdfBoolean(true))]))]), Encoding.ASCII.GetBytes("0 0 0 0 k 0 0 1 1 re f"));
+                Entry("I", new PdfBoolean(true))]))]), Encoding.ASCII.GetBytes(
+                    "/RelativeColorimetric ri " + (rgbGroup ? "0 0 0 rg " : "0 0 0 0 k ") + "0 0 1 1 re f"));
         var resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("F", update.AddObject(form))]))]);
         update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Resources")))
             .Append(Entry("Resources", resources)).Append(Entry("Group", new PdfDictionary([
                 Entry("S", Name("Transparency")), Entry("CS", rgbParent ? Name("DeviceRGB") : pageSpace)])))));
         var rendered = new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(1, 1));
         byte[] pixels = rendered.Pixels.ToArray();
-        Assert.InRange(pixels[0], (byte)58, (byte)60);
+        Assert.InRange(pixels[0], unavailable ? (byte)184 : (byte)58, unavailable ? (byte)186 : (byte)60);
         Assert.Equal(pixels[0], pixels[1]);
         Assert.Equal(pixels[1], pixels[2]);
         Assert.Equal((byte)255, pixels[3]);
-        Assert.Empty(rendered.Diagnostics);
+        if (unavailable) Assert.Contains("group rendering intent", Assert.Single(rendered.Diagnostics));
+        else Assert.Empty(rendered.Diagnostics);
     }
 
     [Theory]
