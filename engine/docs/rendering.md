@@ -89,6 +89,17 @@ The default background is opaque white. With `transparentBackground: true`,
 unpainted pixels retain zero alpha. Annotation and form appearance rendering can
 be selected independently through the options.
 
+## Masks on non-isolated groups
+
+Normal-blend, non-knockout transparency groups retain an outer soft mask until
+the whole group has been painted. Internal blends use the original backdrop;
+an internal mask reset cannot remove the group's outer mask. The final group
+result is interpolated in premultiplied color and alpha, preserving transparent
+backdrops and applying the outer mask once to overlapping objects.
+
+This path applies when the parent is not a knockout group. Other group blend
+modes and knockout combinations retain their existing support boundaries.
+
 ## Opening and authentication
 
 `PdfDocument.Open` uses strict parsing. For viewer compatibility with damaged

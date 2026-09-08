@@ -1289,6 +1289,60 @@ public sealed partial class PdfPageRenderer
                     }
                     return;
                 }
+                if (transparencyGroup && !isolated && !knockout
+                    && parentState.Knockout is null
+                    && parentState.GraphicsSoftMask is not null
+                    && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
+                {
+                    // The outer mask belongs to the completed group, not its individual objects.
+                    // Keep the backdrop for internal blends, then interpolate premultiplied
+                    // results once. This also preserves partially transparent backdrops.
+                    byte[] backdropPixels = pixels;
+                    byte[] maskedGroupPixels = ArrayPool<byte>.Shared.Rent(backdropPixels.Length);
+                    try
+                    {
+                        backdropPixels.CopyTo(maskedGroupPixels, 0);
+                        pixels = maskedGroupPixels;
+                        Process(instructions, formResources, formState with
+                        {
+                            FillAlpha = 1,
+                            StrokeAlpha = 1,
+                            BlendMode = RendererBlendMode.Normal,
+                            GraphicsSoftMask = null
+                        }, depth + 1);
+                        pixels = backdropPixels;
+                        (int left, int top, int right, int bottom) = GetRasterBounds(
+                            formState.Clips, formBounds, options.Width, options.Height,
+                            scaleX, scaleY);
+                        for (int y = top; y < bottom; y++)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            for (int x = left; x < right; x++)
+                            {
+                                int index = y * options.Width + x;
+                                double weight = parentState.FillAlpha
+                                    * parentState.GraphicsSoftMask.Samples[index] / 255d;
+                                if (weight <= 0) continue;
+                                int offset = index * 4;
+                                double backdropAlpha = backdropPixels[offset + 3] * (1 - weight);
+                                double groupAlpha = maskedGroupPixels[offset + 3] * weight;
+                                double alpha = backdropAlpha + groupAlpha;
+                                if (alpha <= 0) continue;
+                                for (int channel = 0; channel < 3; channel++)
+                                    backdropPixels[offset + channel] = (byte)Math.Round(
+                                        (backdropPixels[offset + channel] * backdropAlpha
+                                            + maskedGroupPixels[offset + channel] * groupAlpha) / alpha);
+                                backdropPixels[offset + 3] = (byte)Math.Round(alpha);
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        pixels = backdropPixels;
+                        ArrayPool<byte>.Shared.Return(maskedGroupPixels);
+                    }
+                    return;
+                }
                 if (!isolated)
                 {
                     Process(instructions, formResources, formState, depth + 1,
