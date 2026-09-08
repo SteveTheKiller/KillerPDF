@@ -3881,58 +3881,46 @@ public sealed partial class PdfPageRenderer
             > 4_000_000L) factor++;
         int planeWidth = (samplingWidth + factor - 1) / factor;
         int planeHeight = (samplingHeight + factor - 1) / factor;
-        byte[] plane = RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
+        byte[]? plane = imageMask ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         byte[]? alphaPlane = null;
         try
         {
-            if (target.Ink is not null) alphaPlane = RasterBuffers.Rent(checked(planeWidth * planeHeight));
-            var converter = new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
-                bits, decode, colorSpace);
             byte stencilAlphaByte = (byte)Math.Round(Math.Clamp(stencilAlpha, 0, 1) * 255);
-            for (int py = 0; py < planeHeight; py++)
+            Color paintedStencil = imageMask && target.Ink is not null
+                ? InkColor(ColorInk(stencilColor)) : stencilColor;
+            if (plane is not null)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                int sy = Math.Min((int)((long)py * factor * sourceHeight / samplingHeight), sourceHeight - 1);
-                for (int px = 0; px < planeWidth; px++)
+                if (target.Ink is not null) alphaPlane = RasterBuffers.Rent(checked(planeWidth * planeHeight));
+                var converter = new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
+                    bits, decode, colorSpace);
+                for (int py = 0; py < planeHeight; py++)
                 {
-                    int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
-                    int offset = (py * planeWidth + px) * 4;
-                    Color color;
-                    int alpha = 255;
-                    if (imageMask)
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int sy = Math.Min((int)((long)py * factor * sourceHeight / samplingHeight), sourceHeight - 1);
+                    for (int px = 0; px < planeWidth; px++)
                     {
-                        bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
-                        if (one != stencilPaintsOne)
+                        int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
+                        int offset = (py * planeWidth + px) * 4;
+                        Color color = converter.Convert(sx, sy);
+                        int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
+                            ? 0 : 255;
+                        if (alphaPlane is not null)
                         {
-                            if (alphaPlane is not null) alphaPlane[offset / 4] = 0;
-                            else plane[offset + 3] = 0;
-                            continue;
+                            WriteInk(plane, offset, ColorInk(color));
+                            alphaPlane[offset / 4] = (byte)alpha;
                         }
-                        color = stencilColor;
-                        alpha = stencilAlphaByte;
-                    }
-                    else
-                    {
-                        color = converter.Convert(sx, sy);
-                        if (colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask))
-                            alpha = 0;
-                    }
-                    if (alphaPlane is not null)
-                    {
-                        WriteInk(plane, offset, ColorInk(color));
-                        alphaPlane[offset / 4] = (byte)alpha;
-                    }
-                    else
-                    {
-                        plane[offset] = color.Blue;
-                        plane[offset + 1] = color.Green;
-                        plane[offset + 2] = color.Red;
-                        plane[offset + 3] = (byte)alpha;
+                        else
+                        {
+                            plane[offset] = color.Blue;
+                            plane[offset + 1] = color.Green;
+                            plane[offset + 2] = color.Red;
+                            plane[offset + 3] = (byte)alpha;
+                        }
                     }
                 }
             }
 
-            // Stencil opacity is already included in the plane. Ordinary images apply
+            // Stencil opacity uses its existing byte rounding. Ordinary images apply
             // nonstroking opacity after their image mask, without another byte rounding.
             double imageOpacity = imageMask ? 1 : Math.Clamp(stencilAlpha, 0, 1);
             bool direct = target.Ink is null && target.GroupAlpha is null && imageOpacity == 1 && rectangularClips && graphicsSoftMask is null && knockout is null
@@ -3952,11 +3940,25 @@ public sealed partial class PdfPageRenderer
                     if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
                     int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
                     int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
-                    int planeOffset = (py * planeWidth + px) * 4;
-                    int alpha = alphaPlane is not null ? alphaPlane[planeOffset / 4] : plane[planeOffset + 3];
+                    int alpha;
+                    Color color;
+                    if (plane is null)
+                    {
+                        int sx = Math.Min(px * factor, sourceWidth - 1);
+                        int sy = Math.Min(py * factor, sourceHeight - 1);
+                        bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
+                        if (one != stencilPaintsOne) continue;
+                        alpha = stencilAlphaByte;
+                        color = paintedStencil;
+                    }
+                    else
+                    {
+                        int planeOffset = (py * planeWidth + px) * 4;
+                        alpha = alphaPlane is not null ? alphaPlane[planeOffset / 4] : plane[planeOffset + 3];
+                        color = alphaPlane is not null ? InkColor(ReadInk(plane, planeOffset))
+                            : new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]);
+                    }
                     if (alpha == 0) continue;
-                    Color color = alphaPlane is not null ? InkColor(ReadInk(plane, planeOffset))
-                        : new(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]);
                     if (softMask is not null && alpha != 0)
                     {
                         int maskX = Math.Min((int)(unitX * softMask.Width), softMask.Width - 1);
@@ -3987,7 +3989,7 @@ public sealed partial class PdfPageRenderer
         finally
         {
             if (alphaPlane is not null) RasterBuffers.Return(alphaPlane);
-            RasterBuffers.Return(plane);
+            if (plane is not null) RasterBuffers.Return(plane);
         }
     }
 

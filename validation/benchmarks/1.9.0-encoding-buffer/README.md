@@ -77,3 +77,38 @@ in `packed-mask-final` under the same scratch root.
 
 Packed-mask app DLL SHA-256:
 `B7BF02008CAC15CC47B63B8C550EBE0BBF02DA9AECC06F57F2A4151F104FE208`.
+
+## Stencil painting and combined app check
+
+Stencil painting now samples its original packed bits without constructing a
+temporary color image and CMYK alpha plane. The sample grid and existing
+opacity rounding are unchanged. A cold 1024-pixel CMYK stencil test observed
+7,351,128 allocated bytes before and 2,107,888 after removing those planes.
+The final tests allow below 3 MiB for parsing and required page storage.
+RGB and CMYK checkerboards, clipping, half opacity, reversed decoding and
+quarter-turn rotation pass. All 3,238 engine tests and 341 app tests pass,
+and the app builds with zero warnings or errors.
+
+A combined comparison against the original calculator-buffer build includes
+the encoding spare and all three mask changes. One warmup and two measured
+alternating runs per build completed all 74 Broad pages. The final decoded
+pixels match the preceding packed-mask build on every page.
+
+| Build | Median render seconds | Median wall seconds | Median peak MiB |
+| --- | ---: | ---: | ---: |
+| Calculator-buffer baseline | 13.168 | 18.333 | 284.4 |
+| Encoding and mask changes | 13.447 | 18.595 | 282.2 |
+| PDFium 1.8.5 | 4.609 | 9.709 | 269.5 |
+
+The whole-app memory gap remains about 12.7 MiB. The small baseline-to-current
+peak difference is not a substantial gain, and timing differences remain
+within the previously observed noise. Targeted allocation savings do not
+establish whole-app parity. This comparison does not isolate the stencil change.
+
+[combined-measurements.csv](combined-measurements.csv) preserves all runs.
+Local logs and images use the `mask-storage-*` prefix under the same scratch
+root. The command was `compare-raster.ps1 -Prefix mask-storage -Baseline
+calculator-app -Runs 3`.
+
+Combined app DLL SHA-256:
+`D852B5DA0CD055C25102EE8B2AE4BA06AAC6A6041511E50D996C0DD2C72E552B`.

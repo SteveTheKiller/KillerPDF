@@ -141,6 +141,9 @@ every original byte; this does not add quantization or change the mask bounds.
 Explicit one-bit image masks keep their packed rows in the decoded-image cache.
 Sampling respects row padding and normal or reversed decoding without expanding
 the whole mask to one byte per source pixel.
+Stencil painting also reads packed bits directly with the existing sample grid,
+fill color, opacity rounding, and clipping. It does not allocate a temporary
+color image or a separate stencil alpha plane.
 
 Complex clip masks use scoped scratch storage. Restoring graphics state returns
 the discarded masks; leaving a form or page returns its remaining masks. Saved
