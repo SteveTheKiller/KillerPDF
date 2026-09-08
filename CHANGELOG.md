@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Corrected Italian translations (#395). (Thanks @bovirus)
 - Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 
 ### Added
