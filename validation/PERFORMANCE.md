@@ -13,6 +13,11 @@ results. Memory parity remains open, and difficult-page rendering remains slower
 See the [memory ownership record](benchmarks/1.9.0-memory-ownership/README.md)
 for raw trials, build hashes, heap evidence, and limits.
 
+Normal app rendering now also avoids a duplicate page bitmap and releases session
+references on disposal. An actual app-boundary check on the 74-page sample kept
+all pixels identical and reduced render-call allocation volume by 26.2%. This is
+not a further batch peak-memory result or proof of interactive parity.
+
 ## KillerPDF 1.9.0 correctness and memory follow-up
 
 The observed outer soft-mask reset defect is fixed, and unprofiled CMYK

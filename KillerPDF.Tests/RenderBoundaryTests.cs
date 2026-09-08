@@ -86,7 +86,7 @@ public sealed class RenderBoundaryTests
         Assert.Contains("OpenDocument(path)", method, StringComparison.Ordinal);
         Assert.Contains("EngineDocument.OpenWithCompatibilityRecovery(", source,
             StringComparison.Ordinal);
-        Assert.Contains("renderer.Render(", method, StringComparison.Ordinal);
+        Assert.Contains("RenderOwnedPage(renderer,", method, StringComparison.Ordinal);
         Assert.DoesNotContain("Fallback", method, StringComparison.Ordinal);
     }
 
@@ -343,7 +343,7 @@ public sealed class RenderBoundaryTests
         string root = FindRepositoryRoot();
         string boundary = File.ReadAllText(
             Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
-        Assert.Contains("PdfRenderBackend.Engine, Diagnostics(rendered.Diagnostics)", boundary,
+        Assert.Contains("PdfRenderBackend.Engine, Diagnostics(diagnostics)", boundary,
             StringComparison.Ordinal);
         Assert.DoesNotContain("NativeFallback", boundary, StringComparison.Ordinal);
         Assert.Contains("string? EngineFailure", boundary, StringComparison.Ordinal);

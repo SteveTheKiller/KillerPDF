@@ -46,8 +46,8 @@ corrected-build trace. Tracing and heap capture were excluded from timing runs.
 Intermediate trials fluctuated as allocation patterns changed collection timing.
 The raw iteration record is retained; individual small changes are not each
 claimed as a measured win. No forced garbage collection or runtime compilation
-settings were added. The remaining large-file source allocation and normal app
-render-result copying are follow-up ownership targets. Interactive memory,
+settings were added. Large-file source allocation remains a follow-up ownership
+target. The app render-result follow-up below removes another copy. Interactive memory,
 first-page display, scrolling, and zoom remain unverified.
 
 ## Reproduction and identity
@@ -72,3 +72,28 @@ test, corrected a source comment, and recorded documentation.
 See [all iteration measurements](iterations.csv) and the
 [open release gates](../../RELEASE-GATES-1.9.md). These local results do not
 authorize publication or release.
+
+## Normal application rendering follow-up
+
+Normal page rendering and exact-page comparison now render directly into the
+application's owned output array. The viewer already caches finished images, so
+keeping a second engine bitmap was unnecessary. Callers still receive independent
+mutable pixels. Disposing a session clears its renderer and page references as
+well as returning the encoding buffer.
+
+A reflection harness loaded the actual before and after application DLLs and
+called `PdfPageRenderSession.OpenEngineFirst(path, 2048, 2048)` and `RenderPage`
+on the same 40-file, 74-page sample. All output hashes matched. Summed allocations
+on the calling thread fell from 3,376,488,224 to 2,492,556,440 bytes (26.2%). This
+is allocation volume during render calls, not peak memory, interactive latency,
+or a PDFium comparison. The batch path already used caller-owned storage, so this
+does not establish any further improvement to the batch peaks above.
+
+The harness also checked independent pixels after caller mutation, cancellation,
+exact-page rendering, repeated disposal, cleared document references, and rejected
+rendering after disposal. The Release build passed without warnings or errors;
+all 341 app tests passed. Engine source is unchanged from the 3,147-test checkpoint.
+See [per-page allocation and hash evidence](app-session.csv).
+
+Before app SHA-256: `16105CA76842DF81D227A6AF51A4A28007E411AC6EECD5912B041AF22D7A2E31`.
+After app SHA-256: `9492591AB34B320839F0D079D529A6A849AC07F55A75D4AFDC9DA4B89E5BBB7B`.

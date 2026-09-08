@@ -17,8 +17,10 @@ internal sealed class PdfPageRenderSession : IDisposable
     private static readonly ArrayPool<byte> EncodingBuffers =
         ArrayPool<byte>.Create(maxArrayLength: 16 * 1024 * 1024, maxArraysPerBucket: 1);
     private byte[]? _encodingBuffer;
-    private readonly EngineRenderer _engineRenderer;
-    private readonly IReadOnlyList<EnginePageInformation> _enginePages;
+    private EngineRenderer? _engineRenderer;
+    private IReadOnlyList<EnginePageInformation> _enginePages;
+    private EngineRenderer Renderer => _engineRenderer
+        ?? throw new ObjectDisposedException(nameof(PdfPageRenderSession));
     private readonly int _maximumWidth;
     private readonly int _maximumHeight;
     private readonly double _scale;
@@ -97,10 +99,9 @@ internal sealed class PdfPageRenderSession : IDisposable
         bool includeAnnotations, bool includeFormFields,
         CancellationToken cancellationToken)
     {
-        var rendered = RenderEnginePixels(pageIndex, transparentBackground,
-            includeAnnotations, includeFormFields, cancellationToken);
-        return new PdfRenderedPage(rendered.Width, rendered.Height, rendered.Pixels.ToArray(),
-            PdfRenderBackend.Engine, Diagnostics(rendered.Diagnostics));
+        return RenderOwnedPage(Renderer, pageIndex,
+            CreateRenderOptions(pageIndex, transparentBackground, includeAnnotations, includeFormFields),
+            cancellationToken);
     }
 
     // Pixels remain valid until the next encoding render or session disposal.
@@ -115,21 +116,25 @@ internal sealed class PdfPageRenderSession : IDisposable
             _encodingBuffer = null;
             _encodingBuffer = EncodingBuffers.Rent(length);
         }
-        var diagnostics = _engineRenderer.RenderInto(pageIndex, options, _encodingBuffer, cancellationToken);
+        var diagnostics = Renderer.RenderInto(pageIndex, options, _encodingBuffer, cancellationToken);
         return new PdfPageForEncoding(options.Width, options.Height,
             _encodingBuffer.AsMemory(0, length), diagnostics);
     }
 
-    private KillerPdf.Engine.Rendering.PdfRenderedPage RenderEnginePixels(int pageIndex,
-        bool transparentBackground, bool includeAnnotations, bool includeFormFields,
-        CancellationToken cancellationToken) =>
-        _engineRenderer.Render(pageIndex,
-            CreateRenderOptions(pageIndex, transparentBackground, includeAnnotations, includeFormFields),
-            cancellationToken);
+    private static PdfRenderedPage RenderOwnedPage(EngineRenderer renderer, int pageIndex,
+        EngineRenderOptions options, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] pixels = GC.AllocateUninitializedArray<byte>(checked(options.Width * options.Height * 4));
+        var diagnostics = renderer.RenderInto(pageIndex, options, pixels, cancellationToken);
+        return new PdfRenderedPage(options.Width, options.Height, pixels,
+            PdfRenderBackend.Engine, Diagnostics(diagnostics));
+    }
 
     private EngineRenderOptions CreateRenderOptions(int pageIndex, bool transparentBackground,
         bool includeAnnotations, bool includeFormFields)
     {
+        ObjectDisposedException.ThrowIf(_engineRenderer is null, this);
         if (pageIndex < 0 || pageIndex >= _enginePages.Count)
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         EnginePageInformation pageInformation = _enginePages[pageIndex];
@@ -154,11 +159,9 @@ internal sealed class PdfPageRenderSession : IDisposable
         {
             EngineDocument document = OpenDocument(path);
             var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
-            KillerPdf.Engine.Rendering.PdfRenderedPage rendered = renderer.Render(
+            return RenderOwnedPage(renderer,
                 pageIndex, new EngineRenderOptions(width, height, transparentBackground,
                     includeAnnotations: true, includeFormFields), cancellationToken);
-            return new PdfRenderedPage(width, height, rendered.Pixels.ToArray(),
-                PdfRenderBackend.Engine, Diagnostics(rendered.Diagnostics));
         }
         catch (Exception exception) when (exception is not OutOfMemoryException
             && exception is not OperationCanceledException)
@@ -169,6 +172,8 @@ internal sealed class PdfPageRenderSession : IDisposable
 
     public void Dispose()
     {
+        _engineRenderer = null;
+        _enginePages = [];
         if (_encodingBuffer is null) return;
         EncodingBuffers.Return(_encodingBuffer);
         _encodingBuffer = null;
