@@ -10,6 +10,9 @@ public sealed partial class PdfPageRenderer
         internal PdfColorTransform? InkProfile { get; private set; }
         internal PdfColorTransform? RgbProfile { get; private set; }
         internal PdfColorTransform? BlendProfile => InkProfile ?? RgbProfile;
+        // Without a profile, paints use a color's quantized channels only; its XYZ
+        // connection value is never read.
+        internal bool HasProfile => InkProfile is not null || RgbProfile is not null;
         internal PdfColorTransform? InputProfile => _inputProfile ?? BlendProfile;
         private PdfColorTransform? _compositeProfile;
         private PdfColorTransform? _inputProfile;

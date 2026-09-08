@@ -3361,12 +3361,11 @@ public sealed partial class PdfPageRenderer
                 state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
             state = state with { GraphicsSoftMask = state.GraphicsSoftMask?.ForBounds(left, top, right, bottom) };
             Point[][]? boundsPolygons = bounds is null ? null : [bounds];
-            bool cacheColumns = (axisX == 0 || inverse.C == 0) && (axisY == 0 || inverse.D == 0);
-            bool cacheRow = (axisX == 0 || inverse.A == 0) && (axisY == 0 || inverse.B == 0);
-            // Only exact repeated inputs are reused; no gradient quantization is applied.
-            (long Bits, Color Color, bool Valid)[]? colors = cacheColumns
-                ? new (long, Color, bool)[Math.Max(0, right - left)]
-                : cacheRow ? new (long, Color, bool)[1] : null;
+            Point deviceStart = state.Transform.Apply(x0, y0), deviceEnd = state.Transform.Apply(x1, y1);
+            double axisDeviceX = (deviceEnd.X - deviceStart.X) * scaleX;
+            double axisDeviceY = (deviceEnd.Y - deviceStart.Y) * scaleY;
+            double axisPixels = Math.Sqrt(axisDeviceX * axisDeviceX + axisDeviceY * axisDeviceY);
+            var colors = new ShadingColorTable(function, domain[0], domain[1], axisPixels, target.HasProfile);
             for (int y = top; y < bottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -3383,17 +3382,8 @@ public sealed partial class PdfPageRenderer
                     if (unit < 0 && !extendStart || unit > 1 && !extendEnd) continue;
                     unit = Math.Clamp(unit, 0, 1);
                     double input = domain[0] + unit * (domain[1] - domain[0]);
-                    Color color;
-                    if (colors is null) color = function(input);
-                    else
-                    {
-                        ref var sample = ref colors[cacheColumns ? x - left : 0];
-                        long bits = BitConverter.DoubleToInt64Bits(input);
-                        if (!sample.Valid || sample.Bits != bits)
-                            sample = (bits, function(input), true);
-                        color = sample.Color;
-                    }
-                    color = OverprintColor(color, colorSpace, state.FillOverprint, state.OverprintMode);
+                    Color color = OverprintColor(colors.At(input), colorSpace,
+                        state.FillOverprint, state.OverprintMode);
                     SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
                         state.BlendMode, state.GraphicsSoftMask, state.Knockout);
                 }
@@ -3878,6 +3868,13 @@ public sealed partial class PdfPageRenderer
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
         state = state with { GraphicsSoftMask = state.GraphicsSoftMask?.ForBounds(left, top, right, bottom) };
         Point[][]? boundsPolygons = bounds is null ? null : [bounds];
+        Matrix transform = state.Transform;
+        double transformScale = Math.Max(
+            Math.Sqrt(transform.A * transform.A + transform.B * transform.B),
+            Math.Sqrt(transform.C * transform.C + transform.D * transform.D));
+        double extentPixels = (Math.Sqrt(centerX * centerX + centerY * centerY) + Math.Abs(radius))
+            * transformScale * Math.Max(scaleX, scaleY);
+        var colors = new ShadingColorTable(function, domain[0], domain[1], extentPixels, target.HasProfile);
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -3897,7 +3894,7 @@ public sealed partial class PdfPageRenderer
                     extendStart, extendEnd, out double unit)) continue;
                 unit = Math.Clamp(unit, 0, 1);
                 double input = domain[0] + unit * (domain[1] - domain[0]);
-                Color color = OverprintColor(function(input), colorSpace,
+                Color color = OverprintColor(colors.At(input), colorSpace,
                     state.FillOverprint, state.OverprintMode);
                 SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
                     state.BlendMode, state.GraphicsSoftMask, state.Knockout);
@@ -6081,6 +6078,69 @@ public sealed partial class PdfPageRenderer
                 -C / determinant, A / determinant,
                 (C * F - D * E) / determinant, (B * E - A * F) / determinant);
             return true;
+        }
+    }
+
+    // Axial and radial shadings read colors from this table instead of evaluating the
+    // color function for every pixel. The domain is sampled several times per device
+    // pixel of the shading's extent; a pixel takes the table color only when the two
+    // samples bracketing its input agree, and otherwise evaluates the function for its
+    // own input. Every jump, knot, or quantization step therefore lands exactly where
+    // direct evaluation puts it; the only inputs that can differ are those under a
+    // feature narrower than one step that returns to the same color on both sides.
+    // Samples fill on demand, and one shading paint uses the table from one thread.
+    private sealed class ShadingColorTable
+    {
+        private const int SamplesPerPixel = 8;
+        private const int MinimumSamples = 64;
+        private const int MaximumSamples = 16384;
+        private readonly Func<double, Color> _function;
+        private readonly double _start;
+        private readonly double _scale;
+        private readonly bool _compareConnection;
+        private readonly Color[] _colors;
+        private readonly bool[] _filled;
+
+        // compareConnection is true when the destination reads a color's XYZ connection
+        // value, which never repeats between samples; without it two samples agree when
+        // their quantized channels and ink agree.
+        internal ShadingColorTable(Func<double, Color> function, double start, double end,
+            double pixelExtent, bool compareConnection)
+        {
+            _function = function;
+            _compareConnection = compareConnection;
+            int samples = double.IsFinite(pixelExtent)
+                ? (int)Math.Clamp(Math.Ceiling(pixelExtent * SamplesPerPixel), MinimumSamples, MaximumSamples)
+                : MaximumSamples;
+            _start = start;
+            _scale = (samples - 1) / (end - start);
+            _colors = new Color[samples];
+            _filled = new bool[samples];
+        }
+
+        internal Color At(double input)
+        {
+            double position = (input - _start) * _scale;
+            int lower = (int)position;
+            if (lower < 0) lower = 0;
+            int last = _colors.Length - 1;
+            if (lower >= last) return Sample(last);
+            Color below = Sample(lower), above = Sample(lower + 1);
+            bool same = _compareConnection ? below == above
+                : below.Red == above.Red && below.Green == above.Green && below.Blue == above.Blue
+                    && below.Ink == above.Ink && below.OverprintComponents == above.OverprintComponents
+                    && ReferenceEquals(below.InkProfile, above.InkProfile);
+            return same ? below : _function(input);
+        }
+
+        private Color Sample(int index)
+        {
+            if (!_filled[index])
+            {
+                _colors[index] = _function(_start + index / _scale);
+                _filled[index] = true;
+            }
+            return _colors[index];
         }
     }
 
