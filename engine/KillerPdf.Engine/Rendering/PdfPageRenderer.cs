@@ -3910,17 +3910,18 @@ public sealed partial class PdfPageRenderer
         if (bits is not (1 or 2 or 4 or 8 or 16)) throw new NotSupportedException();
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
-        DecodedImage decodedImage = _imageCache.GetOrAdd(
-            new ImageCacheKey(stream, -3), _ => DecodeMask());
-        var mask = new SoftMask(decodedImage.Samples, decodedImage.Width, decodedImage.Height,
-            decodedImage.MaskBits, decodedImage.MaskDecodeStart, decodedImage.MaskDecodeEnd);
         double deviceWidth = Math.Sqrt(Math.Pow(transform.A * scaleX, 2)
             + Math.Pow(transform.B * scaleY, 2));
         double deviceHeight = Math.Sqrt(Math.Pow(transform.C * scaleX, 2)
             + Math.Pow(transform.D * scaleY, 2));
         int reducedWidth = (int)Math.Clamp(Math.Ceiling(deviceWidth * 2), 1, width);
         int reducedHeight = (int)Math.Clamp(Math.Ceiling(deviceHeight * 2), 1, height);
-        if (reducedWidth == width && reducedHeight == height) return mask;
+        if (reducedWidth == width && reducedHeight == height)
+        {
+            DecodedImage full = _imageCache.GetOrAdd(new ImageCacheKey(stream, -3), _ => DecodeMask());
+            return new SoftMask(full.Samples, full.Width, full.Height,
+                full.MaskBits, full.MaskDecodeStart, full.MaskDecodeEnd);
+        }
         while ((long)reducedWidth * reducedHeight > 4_000_000)
         {
             reducedWidth = Math.Max(1, reducedWidth / 2);
@@ -3932,6 +3933,12 @@ public sealed partial class PdfPageRenderer
 
         DecodedImage ReduceMask()
         {
+            // A full mask decoded solely for reduction is temporary. If an earlier large
+            // render already cached it, reuse that entry without retaining another copy.
+            DecodedImage full = _imageCache.TryGet(new ImageCacheKey(stream, -3), out DecodedImage cached)
+                ? cached : DecodeMask();
+            var mask = new SoftMask(full.Samples, full.Width, full.Height,
+                full.MaskBits, full.MaskDecodeStart, full.MaskDecodeEnd);
             var samples = new byte[checked(reducedWidth * reducedHeight)];
             for (int y = 0; y < reducedHeight; y++)
             {
@@ -5731,6 +5738,22 @@ public sealed partial class PdfPageRenderer
         internal int Count
         {
             get { lock (_sync) return _entries.Count; }
+        }
+
+        internal bool TryGet(TKey key, out TValue value)
+        {
+            lock (_sync)
+            {
+                if (_entries.TryGetValue(key, out var existing))
+                {
+                    _usage.Remove(existing);
+                    _usage.AddFirst(existing);
+                    value = existing.Value.Value;
+                    return true;
+                }
+                value = default!;
+                return false;
+            }
         }
 
         internal TValue GetOrAdd(TKey key, Func<TKey, TValue> factory)

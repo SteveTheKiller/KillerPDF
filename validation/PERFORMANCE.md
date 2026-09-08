@@ -1,5 +1,29 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 image-memory follow-up
+
+September 8, 2026: invisible images now stop before codec and mask decoding.
+Four 1024-pixel RGBA regressions allocated 4,217,088 to 7,372,408 bytes before
+the change; each now allocates less than 262,144 bytes. Coverage includes
+off-page, clipped, transparent, and singular placements, plus visible reuse.
+All 74 difficult-set app outputs at 2048 pixels remain byte-identical to the
+available-intent checkpoint. Raw outputs are in
+`C:\Users\steve\killerpdf-benchmark\cmyk-compositing-20260907\invisible-images-20260908`.
+
+Reduced soft masks now retain only the needed resolution when the full mask
+was decoded solely for reduction. The 1024-pixel thumbnail regression reduces
+decoded cache storage from 4,234,304 to at most 3,185,728 bytes, eliminating
+1 MiB of duplicate retention. Repeat rendering stays below 262,144 allocated
+bytes, and zooming to full mask resolution matches a fresh renderer exactly.
+These are focused allocation and retention results, not whole-app peak-memory
+or speed parity claims.
+An uncached zoom resolution can require decoding the mask again when no full
+mask is retained; zoom latency remains part of the performance gate.
+After both changes, all 74 difficult-set pages remain byte-identical. Final
+outputs are in the sibling `reduced-mask-cache-20260908` directory. The full
+engine suite passes 3,682 tests, the app suite passes 342, and Release builds
+with zero warnings or errors.
+
 ## KillerPDF 1.9.0 difficult-page speed follow-up
 
 Measured September 8, 2026, on the 40-file, 74-page difficult set at 2048 pixels
