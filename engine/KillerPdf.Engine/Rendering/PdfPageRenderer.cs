@@ -2525,11 +2525,11 @@ public sealed partial class PdfPageRenderer
         PdfObject value, ImageColorSpace colorSpace, string description)
     {
         PdfObject resolved = Resolve(value);
-        if (resolved is PdfArray)
+        if (resolved is PdfArray functions)
         {
-            Func<double[], Color> components = ReadMultidimensionalColorFunction(
-                value, 1, colorSpace, description);
-            return input => components([input]);
+            CalculatorColorFunction components = ReadCalculatorComponentFunctions(
+                functions, 1, colorSpace, description);
+            return input => components(stackalloc double[] { input });
         }
         PdfDictionary dictionary = resolved switch
         {
@@ -2554,9 +2554,9 @@ public sealed partial class PdfPageRenderer
     private Func<double, Color> ReadSingleInputCalculatorFunction(
         PdfStream stream, ImageColorSpace colorSpace, string description)
     {
-        Func<double[], Color> function = ReadCalculatorFunction(
+        CalculatorColorFunction function = ReadCalculatorColorFunction(
             stream, 1, colorSpace, description);
-        return input => function([input]);
+        return input => function(stackalloc double[] { input });
     }
 
     private Func<double, Color> ReadSampledFunction(PdfObject resolved,
@@ -2638,22 +2638,9 @@ public sealed partial class PdfPageRenderer
         PdfObject resolved = Resolve(value);
         if (resolved is PdfArray functions)
         {
-            if (functions.Count != colorSpace.Components)
-                throw new FormatException(
-                    $"A {description} array has the wrong component count.");
-            Func<double[], double[]>[] components = functions.Select((item, index) =>
-            {
-                PdfObject component = Resolve(item);
-                if (component is not PdfStream calculator
-                    || !calculator.Dictionary.TryGetValue(Name("FunctionType"),
-                        out PdfObject? componentType)
-                    || Resolve(componentType) is not PdfInteger { Value: 4 })
-                    throw new NotSupportedException();
-                return ReadCalculatorFunctionValues(calculator, inputCount, 1,
-                    $"{description} component {index + 1}");
-            }).ToArray();
-            return inputs => colorSpace.Convert(
-                components.Select(component => component(inputs)[0]).ToArray());
+            CalculatorColorFunction components = ReadCalculatorComponentFunctions(
+                functions, inputCount, colorSpace, description);
+            return inputs => components(inputs);
         }
         PdfDictionary dictionary = resolved switch
         {
@@ -2775,12 +2762,70 @@ public sealed partial class PdfPageRenderer
     private Func<double[], Color> ReadCalculatorFunction(PdfStream stream,
         int inputCount, ImageColorSpace colorSpace, string description)
     {
-        Func<double[], double[]> values = ReadCalculatorFunctionValues(
-            stream, inputCount, colorSpace.Components, description);
-        return inputs => colorSpace.Convert(values(inputs));
+        CalculatorColorFunction function = ReadCalculatorColorFunction(
+            stream, inputCount, colorSpace, description);
+        return inputs => function(inputs);
     }
 
-    private Func<double[], double[]> ReadCalculatorFunctionValues(PdfStream stream,
+    private delegate Color CalculatorColorFunction(ReadOnlySpan<double> inputs);
+    private delegate void CalculatorValueFunction(ReadOnlySpan<double> inputs, Span<double> outputs);
+
+    private CalculatorColorFunction ReadCalculatorColorFunction(PdfStream stream,
+        int inputCount, ImageColorSpace colorSpace, string description)
+    {
+        CalculatorValueFunction values = ReadCalculatorValueFunction(
+            stream, inputCount, colorSpace.Components, description);
+        if (colorSpace.MultiConverter is not null)
+            return inputs =>
+            {
+                var outputs = new double[colorSpace.Components];
+                values(inputs, outputs);
+                return colorSpace.Convert(outputs);
+            };
+        return inputs =>
+        {
+            Span<double> buffer = stackalloc double[4];
+            Span<double> outputs = buffer[..colorSpace.Components];
+            values(inputs, outputs);
+            return colorSpace.Convert(outputs);
+        };
+    }
+
+    private CalculatorColorFunction ReadCalculatorComponentFunctions(PdfArray functions,
+        int inputCount, ImageColorSpace colorSpace, string description)
+    {
+        if (functions.Count != colorSpace.Components)
+            throw new FormatException($"A {description} array has the wrong component count.");
+        CalculatorValueFunction[] components = functions.Select((item, index) =>
+        {
+            PdfObject component = Resolve(item);
+            if (component is not PdfStream calculator
+                || !calculator.Dictionary.TryGetValue(Name("FunctionType"),
+                    out PdfObject? componentType)
+                || Resolve(componentType) is not PdfInteger { Value: 4 })
+                throw new NotSupportedException();
+            return ReadCalculatorValueFunction(calculator, inputCount, 1,
+                $"{description} component {index + 1}");
+        }).ToArray();
+        if (colorSpace.MultiConverter is not null)
+            return inputs =>
+            {
+                var outputs = new double[components.Length];
+                for (int component = 0; component < components.Length; component++)
+                    components[component](inputs, outputs.AsSpan(component, 1));
+                return colorSpace.Convert(outputs);
+            };
+        return inputs =>
+        {
+            Span<double> buffer = stackalloc double[4];
+            Span<double> outputs = buffer[..components.Length];
+            for (int component = 0; component < components.Length; component++)
+                components[component](inputs, outputs.Slice(component, 1));
+            return colorSpace.Convert(outputs);
+        };
+    }
+
+    private CalculatorValueFunction ReadCalculatorValueFunction(PdfStream stream,
         int inputCount, int outputCount, string description)
     {
         PdfDictionary dictionary = stream.Dictionary;
@@ -2803,13 +2848,11 @@ public sealed partial class PdfPageRenderer
         if (tokenizer.Read().Kind != PdfTokenKind.EndOfInput)
             throw new FormatException($"A {description} program has trailing content.");
 
-        return inputs =>
+        return (inputs, outputs) =>
         {
             if (inputs.Length != inputCount)
                 throw new InvalidOperationException("A calculator function received the wrong input count.");
-            var outputs = new double[outputCount];
             compiled.Evaluate(inputs, domain, range, outputs);
-            return outputs;
         };
     }
 

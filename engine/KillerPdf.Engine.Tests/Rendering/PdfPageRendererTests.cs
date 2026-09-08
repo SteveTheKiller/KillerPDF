@@ -2385,6 +2385,45 @@ public sealed class PdfPageRendererTests
                 includeAnnotations: false, includeFormFields: false)));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RenderInto_CalculatorShadingAvoidsPerPixelArrays(bool componentFunctions)
+    {
+        const int size = 256;
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(size, size, "/Sh1 sh"u8.ToArray()).Build());
+        PdfStream Function(string program, bool singleOutput) => new(new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(4)),
+            new(Name("Domain"), Reals(0, 1)),
+            new(Name("Range"), singleOutput ? Reals(0, 1) : Reals(0, 1, 0, 1, 0, 1))]),
+            Encoding.ASCII.GetBytes(program));
+        PdfObject function = componentFunctions
+            ? new PdfArray([Function("{ }", true), Function("{ 1 exch sub }", true),
+                Function("{ pop 0 }", true)])
+            : Function("{ dup 1 exch sub 0 }", false);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(3)),
+            new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(128, 128, 0, 128, 128, size)),
+            new(Name("Function"), function)]);
+        var renderer = new PdfPageRenderer(AddShadingResource(source, shading));
+        var options = new PdfRenderOptions(size, size,
+            includeAnnotations: false, includeFormFields: false);
+        byte[] output = new byte[size * size * 4];
+        Assert.Empty(renderer.RenderInto(0, options, output));
+        byte[] expected = output.ToArray();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        renderer.RenderInto(0, options, output);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(expected, output);
+        Assert.Equal(new byte[] { 0, 254, 1, 255 }, output.AsSpan((128 * size + 128) * 4, 4).ToArray());
+        Assert.True(allocated < size * size * 4,
+            $"Calculator shading allocated {allocated} bytes for {size * size} pixels.");
+    }
+
     [Fact]
     public void Render_PaintsThirtyTwoBitSampledShadings()
     {
