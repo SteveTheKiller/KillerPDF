@@ -4125,28 +4125,19 @@ public sealed partial class PdfPageRenderer
         // disqualify the direct paths; only antialiased clip masks need per-pixel coverage.
         // The plane resolution below still derives from the unclipped bounds so clipping
         // never changes which source samples are chosen.
+        // Antialiased clip masks still bound the paint: every pixel outside a mask's bounds
+        // has zero coverage and would be skipped, so the bounds shrink for them as well.
         bool rectangularClips = true;
         int paintLeft = left, paintTop = top, paintRight = right, paintBottom = bottom;
         foreach (ClipRegion clip in clips)
         {
-            if (clip.Mask.Coverage is not null)
-            {
-                rectangularClips = false;
-                break;
-            }
+            if (clip.Mask.Coverage is not null) rectangularClips = false;
             paintLeft = Math.Max(paintLeft, clip.Mask.Left);
             paintTop = Math.Max(paintTop, clip.Mask.Top);
             paintRight = Math.Min(paintRight, clip.Mask.Right);
             paintBottom = Math.Min(paintBottom, clip.Mask.Bottom);
         }
-        if (rectangularClips && (paintRight <= paintLeft || paintBottom <= paintTop)) return;
-        if (!rectangularClips)
-        {
-            paintLeft = left;
-            paintTop = top;
-            paintRight = right;
-            paintBottom = bottom;
-        }
+        if (paintRight <= paintLeft || paintBottom <= paintTop) return;
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
         bool directRgb = target.RgbProfile is null && !imageMask && bits == 8 && components == 3
             && softMask is null && colorKeyMask is null && rectangularClips
@@ -4328,8 +4319,12 @@ public sealed partial class PdfPageRenderer
             double imageOpacity = imageMask ? 1 : Math.Clamp(stencilAlpha, 0, 1);
             // Group alpha is compatible with the direct writes: an opaque pixel sets it to
             // 255, which is what the compositor computes for full opacity.
-            bool direct = target.Ink is null && target.RgbProfile is null && imageOpacity == 1 && rectangularClips && graphicsSoftMask is null && knockout is null
+            // Antialiased clips only change pixels with partial clip coverage; fully covered
+            // pixels take the same direct write, and partially covered ones use the compositor
+            // with the same clip factor as the general loop.
+            bool direct = target.Ink is null && target.RgbProfile is null && imageOpacity == 1 && graphicsSoftMask is null && knockout is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+            bool perPixelClip = !rectangularClips;
             byte[]? directGroupAlpha = target.GroupAlpha;
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
@@ -4372,7 +4367,13 @@ public sealed partial class PdfPageRenderer
                                 alpha = (alpha * softMask.Sample(maskX, maskY) + 127) / 255;
                                 if (alpha == 0) continue;
                             }
-                            if (alpha == 255)
+                            int clipCover = 255;
+                            if (perPixelClip)
+                            {
+                                clipCover = ClipCoverage(clips, x, y);
+                                if (clipCover == 0) continue;
+                            }
+                            if (alpha == 255 && clipCover == 255)
                             {
                                 int targetOffset = rowOffset + (x - left) * 4;
                                 data[targetOffset] = planeData[planeOffset + blueIndex];
@@ -4384,7 +4385,8 @@ public sealed partial class PdfPageRenderer
                             }
                             SetPixel(target, targetWidth, x, y,
                                 new Color(planeData[planeOffset + redIndex], planeData[planeOffset + greenIndex], planeData[planeOffset + blueIndex]),
-                                alpha / 255d, blendMode, graphicsSoftMask, knockout);
+                                perPixelClip ? alpha / 255d * imageOpacity * (clipCover / 255d) : alpha / 255d,
+                                blendMode, graphicsSoftMask, knockout);
                         }
                     }
                 });
@@ -4392,7 +4394,7 @@ public sealed partial class PdfPageRenderer
             }
             // Opaque native ink samples on an ink destination take the same direct write the
             // compositor performs for full opacity, without building a color per pixel.
-            bool directInk = target.Ink is not null && imageOpacity == 1 && rectangularClips
+            bool directInk = target.Ink is not null && imageOpacity == 1
                 && graphicsSoftMask is null && knockout is null
                 && (imageMask || !colorSpace.NativeProcessMask.HasValue)
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
@@ -4410,7 +4412,10 @@ public sealed partial class PdfPageRenderer
                     int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
                     int alpha;
                     Color color;
-                    if (directInk && matteConverter is null && softMask is null
+                    // Full clip coverage leaves the compositor's opacity at exactly one, so the
+                    // direct ink write applies under antialiased clips as well.
+                    int clipCoverage = rectangularClips ? 255 : ClipCoverage(clips, x, y);
+                    if (directInk && clipCoverage == 255 && matteConverter is null && softMask is null
                         && (plane is not null || directInkSamples)
                         && (alphaPlane is null || alphaPlane[py * planeWidth + px] == 255)
                         && target.Contains(x, y))
@@ -4480,7 +4485,7 @@ public sealed partial class PdfPageRenderer
                         alpha = (alpha * maskSample + 127) / 255;
                     }
                     if (alpha == 0) continue;
-                    if (direct && alpha == 255)
+                    if (direct && alpha == 255 && clipCoverage == 255)
                     {
                         int targetOffset = target.Offset(x, y);
                         target[targetOffset] = color.Blue;
@@ -4490,7 +4495,7 @@ public sealed partial class PdfPageRenderer
                         if (directGroupAlpha is not null) directGroupAlpha[targetOffset / 4] = 255;
                         continue;
                     }
-                    double clipAlpha = rectangularClips ? 1 : ClipAlpha(clips, x, y);
+                    double clipAlpha = rectangularClips ? 1 : clipCoverage / 255d;
                     if (clipAlpha <= 0) continue;
                     if (!imageMask && colorSpace.NativeProcessMask.HasValue)
                         color = OverprintColor(color, colorSpace, overprint, 0);
