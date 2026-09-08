@@ -100,18 +100,10 @@ public sealed partial class PdfPageRenderer
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
             checked(options.Width * options.Height * 4)), 0, 0, options.Width, options.Height);
-        for (int y = 0; y < options.Height; y++)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            int rowEnd = checked((y + 1) * options.Width * 4);
-            for (int offset = y * options.Width * 4; offset < rowEnd; offset += 4)
-            {
-                pixels[offset] = 255;
-                pixels[offset + 1] = 255;
-                pixels[offset + 2] = 255;
-                pixels[offset + 3] = background;
-            }
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+            pixels.Data.AsSpan(0, checked(options.Width * options.Height * 4)))
+            .Fill(0x00FFFFFFu | (uint)background << 24);
 
         PdfPageInformation page = _pages[pageIndex];
         PdfPageBoxBounds crop = _boxes[pageIndex].CropBox;
@@ -1136,13 +1128,10 @@ public sealed partial class PdfPageRenderer
                 }
                 try
                 {
-                    for (int offset = 0; offset < maskPixels.Length; offset += 4)
-                    {
-                        maskPixels[offset] = backdrop.Blue;
-                        maskPixels[offset + 1] = backdrop.Green;
-                        maskPixels[offset + 2] = backdrop.Red;
-                        maskPixels[offset + 3] = luminosity ? (byte)255 : (byte)0;
-                    }
+                    System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                        maskPixels.Data.AsSpan(0, maskPixels.Length)).Fill(
+                            backdrop.Blue | (uint)backdrop.Green << 8 | (uint)backdrop.Red << 16
+                            | (luminosity ? 0xFF000000u : 0u));
                     PdfColorTransform? maskProfile = ReadGroupProfile(group.Dictionary, inheritedResources, diagnostics);
                     if (CmykGroup(group.Dictionary, inheritedResources, false)) maskPixels.EnableInk(backdrop,
                         profile: maskProfile);
@@ -1182,6 +1171,30 @@ public sealed partial class PdfPageRenderer
                         ? (byte)0 : ConvertSample(luminosity
                             ? Luminosity(backdrop)
                             : 0);
+                    if (maskPixels.Ink is null && maskPixels.RgbProfile is null && transfer is null)
+                    {
+                        // Plain RGB mask surface: read the bytes directly. The arithmetic is
+                        // the same as the general loop below, without per-pixel color objects.
+                        byte[] maskData = maskPixels.Data;
+                        for (int index = 0; index < sampleCount; index++)
+                        {
+                            if ((index % maskWidth) == 0) cancellationToken.ThrowIfCancellationRequested();
+                            int offset = index * 4;
+                            double sample = luminosity
+                                ? (0.3 * maskData[offset + 2] + 0.59 * maskData[offset + 1]
+                                    + 0.11 * maskData[offset]) / 255d
+                                : maskData[offset + 3] / 255d;
+                            byte converted = (byte)Math.Round(sample * 255);
+                            if (index == 0) constant = converted;
+                            if (samples is null && converted != constant)
+                            {
+                                samples = new byte[sampleCount];
+                                samples.AsSpan(0, index).Fill(constant);
+                            }
+                            if (samples is not null) samples[index] = converted;
+                        }
+                    }
+                    else
                     for (int y = maskTop; y < maskBottom; y++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -3910,6 +3923,7 @@ public sealed partial class PdfPageRenderer
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
+            byte[] directData = target.Data;
             for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -3918,6 +3932,7 @@ public sealed partial class PdfPageRenderer
                 Point first = inverse.Apply(pageX, pageY);
                 double unitX = first.X;
                 double unitY = first.Y;
+                int directRowOffset = target.Offset(left, y);
                 // Step from the unclipped left edge so clipped rows sample identically.
                 for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
                 {
@@ -3934,21 +3949,21 @@ public sealed partial class PdfPageRenderer
                         SetPixel(target, targetWidth, x, y, color, stencilAlpha, blendMode);
                         continue;
                     }
-                    int targetOffset = target.Offset(x, y);
+                    int targetOffset = directRowOffset + (x - left) * 4;
                     if (directGray)
                     {
                         byte gray = samples[sourceOffset];
-                        target[targetOffset] = gray;
-                        target[targetOffset + 1] = gray;
-                        target[targetOffset + 2] = gray;
+                        directData[targetOffset] = gray;
+                        directData[targetOffset + 1] = gray;
+                        directData[targetOffset + 2] = gray;
                     }
                     else
                     {
-                        target[targetOffset] = samples[sourceOffset + 2];
-                        target[targetOffset + 1] = samples[sourceOffset + 1];
-                        target[targetOffset + 2] = samples[sourceOffset];
+                        directData[targetOffset] = samples[sourceOffset + 2];
+                        directData[targetOffset + 1] = samples[sourceOffset + 1];
+                        directData[targetOffset + 2] = samples[sourceOffset];
                     }
-                    target[targetOffset + 3] = 255;
+                    directData[targetOffset + 3] = 255;
                 }
             }
             return;
@@ -4015,6 +4030,43 @@ public sealed partial class PdfPageRenderer
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
+            if (direct && plane is not null && alphaPlane is null && matteConverter is null
+                && softMask is null && !colorSpace.NativeProcessMask.HasValue)
+            {
+                // Plain RGB destination with an opaque or color-keyed plane: opaque samples copy
+                // straight across, and the rare partial alpha uses the ordinary compositor.
+                byte[] data = target.Data;
+                for (int y = paintTop; y < paintBottom; y++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Point first = inverse.Apply((left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
+                    double unitX = first.X, unitY = first.Y;
+                    int rowOffset = target.Offset(left, y);
+                    for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
+                    {
+                        if (x < paintLeft) continue;
+                        if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
+                        int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
+                        int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
+                        int planeOffset = (py * planeWidth + px) * 4;
+                        int alpha = plane[planeOffset + 3];
+                        if (alpha == 0) continue;
+                        if (alpha == 255)
+                        {
+                            int targetOffset = rowOffset + (x - left) * 4;
+                            data[targetOffset] = plane[planeOffset];
+                            data[targetOffset + 1] = plane[planeOffset + 1];
+                            data[targetOffset + 2] = plane[planeOffset + 2];
+                            data[targetOffset + 3] = 255;
+                            continue;
+                        }
+                        SetPixel(target, targetWidth, x, y,
+                            new Color(plane[planeOffset + 2], plane[planeOffset + 1], plane[planeOffset]),
+                            alpha / 255d, blendMode, graphicsSoftMask, knockout);
+                    }
+                }
+                return;
+            }
             for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();

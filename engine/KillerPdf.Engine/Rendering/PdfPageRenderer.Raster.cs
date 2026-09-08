@@ -1112,6 +1112,51 @@ public sealed partial class PdfPageRenderer
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
         byte[]? coverage = mask.Coverage;
+        if (direct && !perPixelClip)
+        {
+            // Opaque normal-blend fills on a plain RGB surface: full rows of a rectangular
+            // mask are one span fill, and antialiased edges blend against opaque pixels in
+            // place. Pixels with a transparent destination still use the compositor.
+            byte[] data = pixels.Data;
+            uint packed = color.Blue | (uint)color.Green << 8 | (uint)color.Red << 16 | 0xFF000000u;
+            for (int y = top; y < bottom; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int rowOffset = pixels.Offset(left, y);
+                if (coverage is null)
+                {
+                    System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                        data.AsSpan(rowOffset, (right - left) * 4)).Fill(packed);
+                    continue;
+                }
+                int maskRow = mask.RowOffset(y) - mask.Left;
+                for (int x = left; x < right; x++)
+                {
+                    int cover = coverage[maskRow + x];
+                    if (cover == 0) continue;
+                    int offset = rowOffset + (x - left) * 4;
+                    if (cover == 255)
+                    {
+                        data[offset] = color.Blue;
+                        data[offset + 1] = color.Green;
+                        data[offset + 2] = color.Red;
+                        data[offset + 3] = 255;
+                        continue;
+                    }
+                    if (data[offset + 3] == 255)
+                    {
+                        int inverse = 255 - cover;
+                        data[offset] = (byte)((color.Blue * cover + data[offset] * inverse + 127) / 255);
+                        data[offset + 1] = (byte)((color.Green * cover + data[offset + 1] * inverse + 127) / 255);
+                        data[offset + 2] = (byte)((color.Red * cover + data[offset + 2] * inverse + 127) / 255);
+                        continue;
+                    }
+                    SetPixel(pixels, width, x, y, color, alpha * cover / 255d, blendMode,
+                        graphicsSoftMask, knockout);
+                }
+            }
+            return;
+        }
         for (int y = top; y < bottom; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
