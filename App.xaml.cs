@@ -1896,19 +1896,18 @@ namespace KillerPDF
                 @"Software\Classes\KillerPDF.pdf\shell\open\command"))
                 k.SetValue("", $"\"{exePath}\" \"%1\"");
 
-            // Explorer identifies the installed payload by its internal executable name unless
-            // the application registration supplies a friendly product name.
-            using (var k = root.CreateSubKey(
-                @"Software\Classes\Applications\KillerPDF.App.exe"))
-                k.SetValue("FriendlyAppName", AppName);
-
-            using (var k = root.CreateSubKey(
-                @"Software\Classes\Applications\KillerPDF.App.exe\shell\open\command"))
-                k.SetValue("", $"\"{exePath}\" \"%1\"");
-
-            using (var k = root.CreateSubKey(
-                @"Software\Classes\Applications\KillerPDF.App.exe\SupportedTypes"))
-                k.SetValue(".pdf", "");
+            // Existing Open with choices can retain the launcher name after an upgrade.
+            // Both application identities must launch the installed payload, not setup.
+            foreach (string application in new[] { "KillerPDF.App.exe", "KillerPDF.exe" })
+            {
+                string applicationKey = @"Software\Classes\Applications\" + application;
+                using (var k = root.CreateSubKey(applicationKey))
+                    k.SetValue("FriendlyAppName", AppName);
+                using (var k = root.CreateSubKey(applicationKey + @"\shell\open\command"))
+                    k.SetValue("", $"\"{exePath}\" \"%1\"");
+                using (var k = root.CreateSubKey(applicationKey + @"\SupportedTypes"))
+                    k.SetValue(".pdf", "");
+            }
 
             // Associate .pdf extension - adds KillerPDF to the "Open with" list
             using (var k = root.CreateSubKey(
@@ -1944,6 +1943,7 @@ namespace KillerPDF
         {
             try { root.DeleteSubKeyTree(@"Software\Classes\KillerPDF.pdf", false); } catch { }
             try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.App.exe", false); } catch { }
+            try { root.DeleteSubKeyTree(@"Software\Classes\Applications\KillerPDF.exe", false); } catch { }
             try { root.DeleteSubKeyTree(@"Software\KillerPDF\Capabilities", false); } catch { }
             try
             {
