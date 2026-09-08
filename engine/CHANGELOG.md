@@ -47,6 +47,10 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Added per-image CCITT Group 4, adaptive predictor, or plain Flate selection for smaller lossless raster pages, plus strict full-page JPEG passthrough detection (#366).
 - Added integration guides for reading, rendering, fonts, authoring, editing, OCR, forms, XFA, annotations and review comments, accessibility, structured export, macros, imposition, page furniture, data merge, navigation, layers, attachments, optimization, preflight, encryption, and signature inspection.
 
+### Changed
+
+- Faster rendering: cached quarter-pixel text glyph masks, calculator functions compiled to a typed stack machine, no per-pixel clip lookups under rectangular clips, and pooled coverage-mask and Flate buffers. Damaged cross-reference recovery screens candidates before parsing them, which removes most of the open-time cost on broken files.
+
 ## [1.8.5] - Unreleased
 
 The 1.8.5 engine package matches the engine source shipped with KillerPDF 1.8.5.

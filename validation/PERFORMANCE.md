@@ -1,5 +1,36 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 engine tuning checkpoint
+
+Measured September 7, 2026, after the glyph mask cache, compiled calculator
+functions, rectangular-clip fast paths, pooled raster and Flate buffers, and the
+cross-reference recovery screening landed. Same 649-file conformance collection,
+page one at a maximum dimension of 1024 pixels, one warmup and three alternating
+measured runs per build.
+
+| Measurement | PDFium 1.8.5 | Engine 1.9.0 |
+| --- | ---: | ---: |
+| Rendered / skipped / failed | 600 / 41 / 8 | 614 / 35 / 0 |
+| Median render time on 600 shared files | 12.280 s | 12.196 s |
+| Median document open time on 600 shared files | not logged | 1.483 s |
+| Median whole-pass wall time | 23.209 s | 24.210 s |
+
+Product code: `604aa27`. App SHA256:
+`93B53A97AD8B1853699B5A55C00565FA985E887AE031D99C02207DE4BE6693B4`.
+The engine passes 3,113 tests.
+
+The per-run shared render ratios were 0.930, 1.042, and 0.976; the ratio of the
+medians is 0.993. The 1.8.5 build does not log open time, so its open cost is
+only inside the whole-pass figure. The engine's open time on the same files was
+3.7 s before the recovery screening change. Raw runs and the per-file comparison
+are in [benchmarks/1.9.0-render-informal/2026-09-07-engine-tuning](benchmarks/1.9.0-render-informal/2026-09-07-engine-tuning).
+
+Output changes: the glyph mask cache places cached glyphs at quarter-pixel
+positions, so antialiased text edges can differ from the previous build by up to
+about one eighth of a pixel of coverage; every other change in this checkpoint
+was verified pixel-identical on 190 sampled files. Run-to-run variation on this
+machine is about five percent, so a single run cannot separate the two builds.
+
 ## KillerPDF 1.9.0 development checkpoint
 
 Measured September 7, 2026, using page one at a maximum dimension of 1024 pixels
