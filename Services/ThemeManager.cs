@@ -130,7 +130,10 @@ namespace KillerPDF.Services
             }
         }
 
-        private static void LoadDict(Theme theme)
+        /// <summary>Complete the standalone installer palette without reading or saving preferences.</summary>
+        internal static void InitializeInstallerTheme() => LoadDict(Theme.Dark, DarkAccent.Green);
+
+        private static void LoadDict(Theme theme, DarkAccent? accentOverride = null)
         {
             var uri = theme switch
             {
@@ -191,7 +194,7 @@ namespace KillerPDF.Services
             // already restored green, so switching back from a colored accent works automatically).
             // Each theme has its own tuned overlay (Dark = bright text on dark; Light = dark text
             // on white), loaded from Accents/<Theme>/<Accent>.xaml.
-            var accent = AccentFor(theme);
+            var accent = accentOverride ?? AccentFor(theme);
             if (HasAccents(theme) && accent != DarkAccent.Green)
             {
                 // Dark overlays live in Accents/Dark/; Light in Accents/Light/; Black in Accents/Black/.

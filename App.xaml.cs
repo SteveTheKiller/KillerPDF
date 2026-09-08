@@ -1796,7 +1796,7 @@ namespace KillerPDF
             var (valid, _, _) = VerifyAuthenticode(src);
             if (!valid)
             {
-                MessageBox.Show(
+                KillerDialog.Show(Current.MainWindow,
                     "Installation refused: the running EXE does not carry a valid Authenticode " +
                     "signature.\n\nOnly signed builds of KillerPDF can be installed.",
                     AppName, MessageBoxButton.OK, MessageBoxImage.Error);
@@ -1810,7 +1810,7 @@ namespace KillerPDF
                 var instVer = FileVersionInfo.GetVersionInfo(InstallExe).FileVersion ?? "";
                 if (string.Compare(runVer, instVer, StringComparison.OrdinalIgnoreCase) < 0)
                 {
-                    var res = MessageBox.Show(
+                    var res = KillerDialog.Show(Current.MainWindow,
                         $"You are about to install an older version ({runVer}) " +
                         $"over the currently installed version ({instVer}).\n\n" +
                         "Downgrade anyway?",
@@ -1837,7 +1837,7 @@ namespace KillerPDF
                 }
                 catch (Exception copyEx) when (copyEx is UnauthorizedAccessException or IOException)
                 {
-                    MessageBox.Show(
+                    KillerDialog.Show(Current.MainWindow,
                         "Couldn't write the installed copy at:\n" + InstallExe +
                         "\n\nClose any open KillerPDF window (and check Task Manager for KillerPDF.exe), " +
                         "then run the installer again.",
@@ -1849,7 +1849,7 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Installation failed:\n{ex.Message}", AppName,
+                KillerDialog.Show(Current.MainWindow, $"Installation failed:\n{ex.Message}", AppName,
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -2003,8 +2003,9 @@ namespace KillerPDF
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Uninstall could not request administrator access:\n{ex.Message}",
-                    AppName, MessageBoxButton.OK, MessageBoxImage.Error);
+                if (!silent)
+                    KillerDialog.Show(null, $"Uninstall could not request administrator access:\n{ex.Message}",
+                        AppName, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             return true;
         }
@@ -2072,6 +2073,8 @@ namespace KillerPDF
 
         private static void Uninstall(bool silent)
         {
+            Current.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            if (!silent) ThemeManager.InitializeInstallerTheme();
             string currentExe = Path.GetFullPath(Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty);
             bool machine = IsRegisteredCopy(Registry.LocalMachine, currentExe);
             if (RelaunchMachineUninstallElevatedIfNeeded(machine, silent)) return;
