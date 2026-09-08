@@ -1176,22 +1176,27 @@ public sealed partial class PdfPageRenderer
                         // Plain RGB mask surface: read the bytes directly. The arithmetic is
                         // the same as the general loop below, without per-pixel color objects.
                         byte[] maskData = maskPixels.Data;
-                        for (int index = 0; index < sampleCount; index++)
+                        for (int row = 0; row < maskHeight; row++)
                         {
-                            if ((index % maskWidth) == 0) cancellationToken.ThrowIfCancellationRequested();
-                            int offset = index * 4;
-                            // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
-                            byte converted = luminosity
-                                ? (byte)Math.Round((0.3 * maskData[offset + 2] + 0.59 * maskData[offset + 1]
-                                    + 0.11 * maskData[offset]) / 255d * 255)
-                                : maskData[offset + 3];
-                            if (index == 0) constant = converted;
-                            if (samples is null && converted != constant)
+                            cancellationToken.ThrowIfCancellationRequested();
+                            int rowIndex = row * maskWidth;
+                            for (int column = 0; column < maskWidth; column++)
                             {
-                                samples = new byte[sampleCount];
-                                samples.AsSpan(0, index).Fill(constant);
+                                int index = rowIndex + column;
+                                int offset = index * 4;
+                                // Alpha masks round-trip exactly: Round(a / 255 * 255) is a.
+                                byte converted = luminosity
+                                    ? (byte)Math.Round((0.3 * maskData[offset + 2] + 0.59 * maskData[offset + 1]
+                                        + 0.11 * maskData[offset]) / 255d * 255)
+                                    : maskData[offset + 3];
+                                if (index == 0) constant = converted;
+                                if (samples is null && converted != constant)
+                                {
+                                    samples = new byte[sampleCount];
+                                    samples.AsSpan(0, index).Fill(constant);
+                                }
+                                if (samples is not null) samples[index] = converted;
                             }
-                            if (samples is not null) samples[index] = converted;
                         }
                     }
                     else
