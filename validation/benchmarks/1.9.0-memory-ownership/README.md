@@ -1,6 +1,8 @@
 # Memory ownership checkpoint
 
-Development checkpoint, September 7, 2026. Memory parity is not achieved.
+Historical development checkpoint, September 7, 2026. Memory parity was not
+achieved here. The later [runtime-policy comparison](../1.9.0-memory-parity/README.md)
+meets the memory target on both measured batch workloads.
 
 The engine now stores fractional rectangular clips compactly, allocates transparency
 and knockout surfaces within their bounds, bounds soft-mask samples, and returns
@@ -10,7 +12,7 @@ Flate, and cross-reference recovery avoid duplicate encoded payloads. Public
 caller-owned input still gets copied. A new caller-owned rendering API lets batch
 encoding reuse pixels and write PNGs directly to files.
 
-## Latest direct comparison
+## Initial direct comparison
 
 Both builds received identical inputs. These are single development passes, with
 PDFium first, not repeated median results or a release acceptance run.

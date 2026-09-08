@@ -1,5 +1,24 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 batch memory target
+
+Three rotating comparisons put median engine peak working set at 259.2 MiB
+versus PDFium's 269.1 MiB on the difficult 74-page sample, and 477.3 versus
+622.4 MiB on the shared 600-page set. Every engine working-set and private-byte
+peak was below its PDFium comparison. The decisive remaining change was the
+runtime's memory-conservation policy, following the buffer-ownership fixes.
+
+Shared render and wall medians were 2.5% and 1.7% higher than the engine control,
+within the approximately 5% noise allowance. This is not a speed win. All 2,022
+page comparisons preserved prior engine pixels. Suites pass 3,188 engine tests
+and 341 app tests, including with the memory policy enabled. The loose payload
+also loaded the setting and preserved all 74 smoke-test page pixels.
+
+The measured batch memory target passes. High-resolution speed, remaining color
+differences, interactive behavior, and release feature coverage remain open.
+See the [memory comparison record](benchmarks/1.9.0-memory-parity/README.md)
+for every run, both engine controls, build identity, and limitations.
+
 ## KillerPDF 1.9.0 memory ownership follow-up
 
 Bounded surfaces, compact clips, explicit scratch lifetimes, shared immutable
