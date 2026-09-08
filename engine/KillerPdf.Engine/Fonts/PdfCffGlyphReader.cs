@@ -137,7 +137,9 @@ public sealed class PdfCffGlyphReader
             {
                 var fd = Dict(fontDicts[i]);
                 (_local[i], _randomSeeds[i]) = PrivateData(fd);
-                _matrices[i] = Multiply(Matrix(fd, [1, 0, 0, 1, 0, 0]), topMatrix);
+                _matrices[i] = dict.ContainsKey(1207)
+                    ? Multiply(Matrix(fd, [1, 0, 0, 1, 0, 0]), topMatrix)
+                    : Matrix(fd, topMatrix);
             }
             _fd = FdSelect(Int(Value(dict, 1237, -1)), _glyphs.Length, fontDicts.Length);
         }

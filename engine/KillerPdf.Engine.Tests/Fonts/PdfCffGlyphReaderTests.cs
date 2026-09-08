@@ -93,17 +93,21 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(new PdfGlyphBounds(10, 20, 110, 20), font.GetBounds(1));
     }
 
-    [Fact]
-    public void CidCharsetIsNotAssumedToBeGlyphIdAndFdMatrixScalesBounds()
+    [Theory]
+    [InlineData(false, 1000)]
+    [InlineData(true, 1)]
+    public void CidCharsetIsNotAssumedToBeGlyphIdAndFdMatrixScalesBounds(bool explicitTopMatrix, int scale)
     {
         byte[] program = [.. Numbers(10, 20), 21, .. Numbers(100, 0, 0, 200), 5, 14];
         byte[] name = Index("CIDExample"u8.ToArray());
-        int charsetOffset = 4 + name.Length + Index(new byte[31]).Length + 4;
+        byte[] matrix = explicitTopMatrix
+            ? [30, 0x0a, 0x00, 0x1f, 139, 139, 30, 0x0a, 0x00, 0x1f, 139, 139, 12, 7] : [];
+        int charsetOffset = 4 + name.Length + Index(new byte[31 + matrix.Length]).Length + 4;
         int fdSelectOffset = charsetOffset + 3;
         int fdArrayOffset = fdSelectOffset + 3;
         byte[] fdArray = Index([.. Numbers(2, 0, 0, 3, 0, 0), 12, 7]);
         int charstringsOffset = fdArrayOffset + fdArray.Length;
-        byte[] top = [139, 139, 139, 12, 30, .. Offset(charsetOffset), 15,
+        byte[] top = [.. matrix, 139, 139, 139, 12, 30, .. Offset(charsetOffset), 15,
             .. Offset(charstringsOffset), 17, .. Offset(fdArrayOffset), 12, 36, .. Offset(fdSelectOffset), 12, 37];
         byte[] bytes = [1, 0, 4, 4, .. name, .. Index(top), 0, 0, 0, 0,
             0, 0, 42, 0, 0, 0, .. fdArray, .. Index([14], program)];
@@ -111,7 +115,7 @@ public sealed class PdfCffGlyphReaderTests
         Assert.Equal(1, font.FindCid(42));
         Assert.Equal(-1, font.FindCid(1));
         Assert.Null(font.GetGlyphName(1));
-        Assert.Equal(new PdfGlyphBounds(20, 60, 220, 660), font.GetBounds(1));
+        Assert.Equal(new PdfGlyphBounds(20 * scale, 60 * scale, 220 * scale, 660 * scale), font.GetBounds(1));
     }
 
     [Fact]
