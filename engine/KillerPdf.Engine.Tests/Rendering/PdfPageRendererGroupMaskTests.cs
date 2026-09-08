@@ -10,6 +10,48 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPageRendererGroupMaskTests
 {
+    [Fact]
+    public void Render_NonIsolatedOuterBlendPreservesBackdropForInnerBlend()
+    {
+        PdfDocument document = Create("1 0 0 rg 0 0 10 10 re f", "",
+            "0 0 1 rg 0 0 5 10 re f", false, "Multiply", 1,
+            useMask: false, outerBlendMode: "Screen");
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10));
+
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(page, 2));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(page, 7));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_NonIsolatedOuterBlendRemovesBackdropBeforePartialOpacity()
+    {
+        PdfDocument document = Create("1 0 0 rg 0 0 10 10 re f", "",
+            "0 0 1 rg 0 0 5 10 re f", false, "Normal", 0.5,
+            useMask: false, outerBlendMode: "Multiply");
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10));
+
+        byte[] blended = Pixel(page, 2);
+        Assert.Equal(0, blended[0]);
+        Assert.Equal(0, blended[1]);
+        Assert.InRange(blended[2], (byte)127, (byte)128);
+        Assert.Equal(255, blended[3]);
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(page, 7));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_NonIsolatedGroupKeepsOuterBlendAcrossInnerReset()
+    {
+        PdfDocument document = Create("1 0 0 rg 0 0 10 10 re f", "",
+            "0 0 1 rg 0 0 10 10 re f", false, "Normal", 1,
+            useMask: false, outerBlendMode: "Multiply");
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10));
+
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, Pixel(page, 2));
+        Assert.Empty(page.Diagnostics);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -68,7 +110,8 @@ public sealed class PdfPageRendererGroupMaskTests
         page.Pixels.Span.Slice((5 * page.Width + x) * 4, 4).ToArray();
 
     private static PdfDocument Create(string backdrop, string maskContent, string painting,
-        bool resetMask, string blendMode, double opacity, bool useMask = true, double groupOpacity = 1)
+        bool resetMask, string blendMode, double opacity, bool useMask = true, double groupOpacity = 1,
+        string outerBlendMode = "Normal")
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
             Encoding.ASCII.GetBytes(backdrop + " q /Mask gs /Paint Do Q")).Build());
@@ -92,6 +135,7 @@ public sealed class PdfPageRendererGroupMaskTests
         var resources = new PdfDictionary([
             Entry("ExtGState", new PdfDictionary([Entry("Mask", new PdfDictionary([
                 Entry("ca", new PdfReal(groupOpacity)),
+                Entry("BM", Name(outerBlendMode)),
                 Entry("SMask", useMask ? new PdfDictionary([Entry("S", Name("Luminosity")),
                     Entry("BC", new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(0)])),
                     Entry("G", update.AddObject(mask))]) : Name("None"))]))])),

@@ -85,6 +85,14 @@ intensity is multiplied by the remaining intensity after black ink. This preserv
 shadow detail where adding ink components would clip a channel to zero. It is not
 ICC color management; profile-dependent colors can still differ from other viewers.
 
+Pages and isolated groups declaring a CMYK blending space retain all four ink
+components through painting and compositing. Black-only and process-black colors
+therefore remain distinct even when their displayed RGB colors match. CMYK working
+surfaces use four ink bytes and one alpha byte per pixel, converting to BGRA for
+the finished page. Non-isolated groups inherit their parent's blending space.
+An ICCBased CMYK alternate selects this same device approximation; the profile
+itself is not applied.
+
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels
 are tightly packed BGRA32, with a top-left origin and a row stride of `Width * 4`.
 The renderer applies page crop and rotation geometry. `PdfRenderOptions` specifies
@@ -102,8 +110,12 @@ an internal mask reset cannot remove the group's outer mask. The final group
 result is interpolated in premultiplied color and alpha, preserving transparent
 backdrops and applying the outer mask once to overlapping objects.
 
-This path applies when the parent is not a knockout group. Other group blend
-modes and knockout combinations retain their existing support boundaries.
+This interpolation path applies when the parent is not a knockout group.
+Non-knockout groups with outer non-normal blend modes track their own accumulated
+alpha separately from the initial backdrop. Once the group is painted, the initial
+backdrop contribution is removed and the outer blend, opacity, and mask are applied
+once. Internal Normal blending cannot erase the outer blend mode. Unsupported
+non-isolated knockout combinations retain their existing diagnostic boundaries.
 
 ## Memory ownership
 

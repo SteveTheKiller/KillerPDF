@@ -11,14 +11,18 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererKnockoutBoundsTests
 {
     [Theory]
-    [InlineData(false, 1)]
-    [InlineData(false, 0.5)]
-    [InlineData(true, 1)]
-    [InlineData(true, 0.5)]
-    public void Render_TranslatedKnockoutGroupPreservesBackdropAndOverlap(bool isolated, double opacity)
+    [InlineData(false, 1, false)]
+    [InlineData(false, 0.5, false)]
+    [InlineData(true, 1, false)]
+    [InlineData(true, 0.5, false)]
+    [InlineData(false, 1, true)]
+    [InlineData(false, 0.5, true)]
+    [InlineData(true, 1, true)]
+    [InlineData(true, 0.5, true)]
+    public void Render_TranslatedKnockoutGroupPreservesBackdropAndOverlap(bool isolated, double opacity, bool cmyk)
     {
-        PdfRenderedPage origin = Render(0, 0, isolated, opacity);
-        PdfRenderedPage moved = Render(7, 9, isolated, opacity);
+        PdfRenderedPage origin = Render(0, 0, isolated, opacity, cmyk);
+        PdfRenderedPage moved = Render(7, 9, isolated, opacity, cmyk);
         for (int y = 0; y < 10; y++)
             for (int x = 0; x < 10; x++)
                 Assert.Equal(Pixel(origin, x, 20 + y), Pixel(moved, 7 + x, 11 + y));
@@ -31,7 +35,7 @@ public sealed class PdfPageRendererKnockoutBoundsTests
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
 
-    private static PdfRenderedPage Render(int x, int y, bool isolated, double opacity)
+    private static PdfRenderedPage Render(int x, int y, bool isolated, double opacity, bool cmyk)
     {
         var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
             .SetOpacity(0.5).SetFillRgb(1, 0, 0).Rectangle(0, 0, 7, 10).Fill()
@@ -41,7 +45,8 @@ public sealed class PdfPageRendererKnockoutBoundsTests
                 .SetOpacity(opacity).DrawForm(form, x, y)).Build());
         var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
         var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
-        var page = (PdfDictionary)source.Resolve((PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0]);
+        var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(pageReference);
         var resources = (PdfDictionary)page[Name("Resources")];
         var reference = (PdfIndirectReference)((PdfDictionary)resources[Name("XObject")]).Single().Value;
         var stream = (PdfStream)source.Resolve(reference);
@@ -52,6 +57,10 @@ public sealed class PdfPageRendererKnockoutBoundsTests
             new KeyValuePair<PdfName, PdfObject>(Name("Group"), group)));
         var update = new PdfIncrementalUpdateBuilder(source).ReplaceObject(reference.ObjectNumber,
             new PdfStream(dictionary, stream.EncodedData.Span));
+        if (cmyk)
+            update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page.Append(
+                new KeyValuePair<PdfName, PdfObject>(Name("Group"), new PdfDictionary([
+                    new(Name("S"), Name("Transparency")), new(Name("CS"), Name("DeviceCMYK"))])))));
         return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(40, 30));
     }
 

@@ -57,8 +57,8 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 ### Fixed
 
 - Applied graphics-state opacity to ordinary images, including images with transparency masks.
-- Preserved outer opacity and soft masks when non-isolated transparency groups reset their internal graphics state.
-- Preserved shadow detail in unprofiled CMYK images and painted colors when black ink overlaps other inks.
+- Preserved outer blend modes, opacity, and soft masks when non-isolated transparency groups reset their internal graphics state.
+- Preserved original ink components in CMYK transparency blending and shadow detail in unprofiled CMYK images and painted colors.
 
 ## [1.8.5] - Unreleased
 

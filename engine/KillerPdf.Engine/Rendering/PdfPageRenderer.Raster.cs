@@ -1086,9 +1086,13 @@ public sealed partial class PdfPageRenderer
         }
         if (right <= left || bottom <= top) return;
         bool perPixelClip = clips.Count > 0 && !rectangularClips;
-        bool simpleBlend = graphicsSoftMask is null && knockout is null
+        bool simpleBlend = pixels.Ink is null && pixels.GroupAlpha is null && graphicsSoftMask is null && knockout is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         bool direct = alpha >= 1 && simpleBlend;
+        bool directInk = pixels.Ink is not null && alpha >= 1
+            && graphicsSoftMask is null && knockout is null
+            && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        uint ink = directInk ? ColorInk(color) : 0;
         byte[]? opaqueBlend = simpleBlend && alpha > 0 && alpha < 1
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
@@ -1106,6 +1110,14 @@ public sealed partial class PdfPageRenderer
                     int clipCover = ClipCoverage(clips, x, y);
                     if (clipCover == 0) continue;
                     cover = clipCover == 255 ? cover : (cover * clipCover + 127) / 255;
+                }
+                if (directInk && cover == 255)
+                {
+                    int offset = pixels.Offset(x, y);
+                    WriteInk(pixels.Ink!, offset, ink);
+                    pixels.InkAlpha![offset / 4] = 255;
+                    if (pixels.GroupAlpha is not null) pixels.GroupAlpha[offset / 4] = 255;
+                    continue;
                 }
                 if (direct)
                 {
