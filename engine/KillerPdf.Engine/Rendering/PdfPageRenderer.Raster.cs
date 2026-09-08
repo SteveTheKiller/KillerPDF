@@ -1112,6 +1112,22 @@ public sealed partial class PdfPageRenderer
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
         byte[]? coverage = mask.Coverage;
+        if (directInk && !perPixelClip && coverage is null)
+        {
+            // Rectangular opaque ink fill: whole rows of ink, alpha, and group alpha at once.
+            byte[] inkData = pixels.Ink!;
+            int count = right - left;
+            for (int y = top; y < bottom; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int rowOffset = pixels.Offset(left, y);
+                System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                    inkData.AsSpan(rowOffset, count * 4)).Fill(ink);
+                pixels.SetAlphaRun(rowOffset, count, 255);
+                pixels.GroupAlpha?.AsSpan(rowOffset / 4, count).Fill(255);
+            }
+            return;
+        }
         if (direct && !perPixelClip)
         {
             // Opaque normal-blend fills on a plain RGB surface: full rows of a rectangular

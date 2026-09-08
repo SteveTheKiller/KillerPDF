@@ -43,6 +43,22 @@ public sealed partial class PdfPageRenderer
             }
             InkAlpha[offset / 4] = alpha;
         }
+        /// <summary>Sets the alpha of <paramref name="count"/> consecutive pixels, like SetAlpha per pixel.</summary>
+        internal void SetAlphaRun(int offset, int count, byte alpha)
+        {
+            if (Ink is null)
+            {
+                for (int index = 0; index < count; index++) Data[offset + index * 4 + 3] = alpha;
+                return;
+            }
+            if (InkAlpha is null)
+            {
+                if (alpha == _constantAlpha) return;
+                InkAlpha = RasterBuffers.Rent(Length / 4);
+                InkAlpha.AsSpan(0, Length / 4).Fill(_constantAlpha);
+            }
+            InkAlpha.AsSpan(offset / 4, count).Fill(alpha);
+        }
         internal void CopyInkAlphaTo(int offset, Span<byte> destination)
         {
             if (InkAlpha is null) destination.Fill(_constantAlpha);

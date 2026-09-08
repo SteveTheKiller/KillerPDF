@@ -648,6 +648,7 @@ public static class PdfFontResourceReader
         private readonly int _glyfLength;
         private readonly bool _longLocations;
         private readonly Dictionary<ushort, PdfGlyphOutline?> _outlineCache = [];
+        private readonly Lock _outlineLock = new();
 
         internal OutlineReader(TrueTypeFont font)
         {
@@ -689,7 +690,7 @@ public static class PdfFontResourceReader
 
         internal PdfGlyphOutline? Outline(ushort glyph)
         {
-            lock (_outlineCache)
+            lock (_outlineLock)
             {
                 if (_outlineCache.TryGetValue(glyph, out PdfGlyphOutline? cached))
                     return cached;

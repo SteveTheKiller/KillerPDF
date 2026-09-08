@@ -4110,10 +4110,11 @@ public sealed partial class PdfPageRenderer
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
             if (direct && plane is not null && alphaPlane is null && matteConverter is null
-                && softMask is null && !colorSpace.NativeProcessMask.HasValue)
+                && !colorSpace.NativeProcessMask.HasValue)
             {
                 // Plain RGB destination with an opaque or color-keyed plane: opaque samples copy
                 // straight across, and the rare partial alpha uses the ordinary compositor.
+                // An image soft mask scales the alpha the same way the general loop does.
                 byte[] data = target.Data;
                 for (int y = paintTop; y < paintBottom; y++)
                 {
@@ -4130,6 +4131,13 @@ public sealed partial class PdfPageRenderer
                         int planeOffset = (py * planeWidth + px) * 4;
                         int alpha = plane[planeOffset + 3];
                         if (alpha == 0) continue;
+                        if (softMask is not null)
+                        {
+                            int maskX = Math.Min((int)(unitX * softMask.Width), softMask.Width - 1);
+                            int maskY = Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1);
+                            alpha = (alpha * softMask.Sample(maskX, maskY) + 127) / 255;
+                            if (alpha == 0) continue;
+                        }
                         if (alpha == 255)
                         {
                             int targetOffset = rowOffset + (x - left) * 4;
@@ -5464,7 +5472,9 @@ public sealed partial class PdfPageRenderer
         private readonly Func<TValue, long> _weight;
         private readonly Dictionary<TKey, LinkedListNode<(TKey Key, TValue Value, long Weight)>> _entries;
         private readonly LinkedList<(TKey Key, TValue Value, long Weight)> _usage = [];
-        private readonly object _sync = new();
+        // System.Threading.Lock takes its uncontended fast path without the monitor slow path
+        // that showed up under the per-glyph cache lookups.
+        private readonly Lock _sync = new();
         private long _currentWeight;
 
         internal BoundedCache(int capacity, IEqualityComparer<TKey>? comparer = null,
