@@ -16,18 +16,23 @@ internal static class PdfJpegDecoder
     private static readonly double[,,] ReducedCosines = CreateReducedCosines();
     private static readonly double[] VectorCosines = CreateVectorCosines();
     private static readonly double[] Scales = [1 / Math.Sqrt(2), 1, 1, 1, 1, 1, 1, 1];
-    private static readonly double[] CrRed = CreateChromaTable(1.402);
-    private static readonly double[] CbGreen = CreateChromaTable(0.344136);
-    private static readonly double[] CrGreen = CreateChromaTable(0.714136);
-    private static readonly double[] CbBlue = CreateChromaTable(1.772);
+    private const int ChromaShift = 16;
+    private const int ChromaHalf = 1 << (ChromaShift - 1);
+    // Red and blue tables carry their rounding; the two green tables are summed before one
+    // shared rounding and shift.
+    private static readonly int[] CrRed = CreateChromaTable(1.402, shifted: true, addHalf: true);
+    private static readonly int[] CbGreen = CreateChromaTable(-0.344136, shifted: false, addHalf: true);
+    private static readonly int[] CrGreen = CreateChromaTable(-0.714136, shifted: false, addHalf: false);
+    private static readonly int[] CbBlue = CreateChromaTable(1.772, shifted: true, addHalf: true);
 
-    private static double[] CreateChromaTable(double factor)
+    private static int[] CreateChromaTable(double factor, bool shifted, bool addHalf)
     {
-        var table = new double[256];
+        var table = new int[256];
+        long fixedFactor = (long)Math.Round(factor * (1 << ChromaShift));
         for (int sample = 0; sample < 256; sample++)
         {
-            double chroma = sample - 128;
-            table[sample] = factor * chroma;
+            long value = fixedFactor * (sample - 128) + (addHalf ? ChromaHalf : 0);
+            table[sample] = (int)(shifted ? value >> ChromaShift : value);
         }
         return table;
     }
@@ -396,14 +401,18 @@ internal static class PdfJpegDecoder
                     }
                     else
                     {
-                        // The chroma products are tabulated per sample value; each is the
-                        // same double product the direct expression computes.
-                        double red = first + CrRed[third];
-                        double green = first - CbGreen[second] - CrGreen[third];
-                        double blue = first + CbBlue[second];
-                        output[offset++] = Clamp(components == 4 ? 255 - red : red);
-                        output[offset++] = Clamp(components == 4 ? 255 - green : green);
-                        output[offset++] = Clamp(components == 4 ? 255 - blue : blue);
+                        // Fixed-point YCbCr to RGB with 16 fractional bits and per-chroma tables,
+                        // the libjpeg formulation; results are within one step of the real-valued
+                        // conversion.
+                        int red = first + CrRed[third];
+                        int green = first + ((CbGreen[second] + CrGreen[third]) >> ChromaShift);
+                        int blue = first + CbBlue[second];
+                        red = Math.Clamp(red, 0, 255);
+                        green = Math.Clamp(green, 0, 255);
+                        blue = Math.Clamp(blue, 0, 255);
+                        output[offset++] = (byte)(components == 4 ? 255 - red : red);
+                        output[offset++] = (byte)(components == 4 ? 255 - green : green);
+                        output[offset++] = (byte)(components == 4 ? 255 - blue : blue);
                         if (components == 4) output[offset++] = Sample(fourthRow, x, fourthStep);
                     }
                 }
@@ -750,6 +759,11 @@ internal static class PdfJpegDecoder
                 component.Samples[top * component.Stride + left] = Clamp(128 + sum / 4);
                 return;
             }
+            if (blockSize == 8)
+            {
+                WriteFullBlock(component, left, top, coefficients, ScaledQuantization(component.QuantizationTable));
+                return;
+            }
             if (Vector.IsHardwareAccelerated && blockSize >= Vector<double>.Count)
             {
                 WriteVectorBlock(component, left, top, coefficients, quantization, blockSize, reductionIndex);
@@ -791,6 +805,102 @@ internal static class PdfJpegDecoder
                     component.Samples[(top + y) * component.Stride + left + x]
                         = Clamp(128 + sum / 4);
                 }
+        }
+
+        private readonly double[]?[] _scaledQuantization = new double[]?[4];
+
+        // Quantization multiplied by the Arai, Agui, and Nakajima scale factors and the 1/8
+        // normalization of the two-dimensional transform, so the full-size block transform
+        // below needs no per-coefficient scaling of its own.
+        private double[] ScaledQuantization(int table)
+        {
+            double[]? scaled = _scaledQuantization[table];
+            if (scaled is not null) return scaled;
+            int[] quantization = _quantization[table];
+            scaled = new double[64];
+            for (int v = 0; v < 8; v++)
+                for (int u = 0; u < 8; u++)
+                    scaled[v * 8 + u] = quantization[v * 8 + u] * AanScale[v] * AanScale[u] / 8;
+            return _scaledQuantization[table] = scaled;
+        }
+
+        // Full-size 8x8 inverse transform by the Arai, Agui, and Nakajima factorization in
+        // double precision (the same algorithm as libjpeg's floating-point IDCT with exact
+        // constants). It computes the same function as the direct transform; the two differ
+        // only by floating-point rounding on the order of 1e-12 before samples are rounded.
+        private static void WriteFullBlock(Component component, int left, int top,
+            ReadOnlySpan<int> coefficients, double[] scaledQuantization)
+        {
+            Span<double> workspace = stackalloc double[64];
+            // Columns first. A column with only a DC term transforms to eight copies of it.
+            for (int u = 0; u < 8; u++)
+            {
+                if (coefficients[8 + u] == 0 && coefficients[16 + u] == 0 && coefficients[24 + u] == 0
+                    && coefficients[32 + u] == 0 && coefficients[40 + u] == 0 && coefficients[48 + u] == 0
+                    && coefficients[56 + u] == 0)
+                {
+                    double dc = coefficients[u] * scaledQuantization[u];
+                    for (int v = 0; v < 8; v++) workspace[v * 8 + u] = dc;
+                    continue;
+                }
+                InverseTransform8(
+                    coefficients[u] * scaledQuantization[u],
+                    coefficients[8 + u] * scaledQuantization[8 + u],
+                    coefficients[16 + u] * scaledQuantization[16 + u],
+                    coefficients[24 + u] * scaledQuantization[24 + u],
+                    coefficients[32 + u] * scaledQuantization[32 + u],
+                    coefficients[40 + u] * scaledQuantization[40 + u],
+                    coefficients[48 + u] * scaledQuantization[48 + u],
+                    coefficients[56 + u] * scaledQuantization[56 + u],
+                    workspace, u, 8);
+            }
+            Span<double> row = stackalloc double[8];
+            for (int y = 0; y < 8; y++)
+            {
+                int rowStart = y * 8;
+                InverseTransform8(workspace[rowStart], workspace[rowStart + 1], workspace[rowStart + 2],
+                    workspace[rowStart + 3], workspace[rowStart + 4], workspace[rowStart + 5],
+                    workspace[rowStart + 6], workspace[rowStart + 7], row, 0, 1);
+                int output = (top + y) * component.Stride + left;
+                for (int x = 0; x < 8; x++)
+                    component.Samples[output + x] = Clamp(128 + row[x]);
+            }
+        }
+
+        private static readonly double[] AanScale =
+        [
+            1, Math.Cos(Math.PI / 16) * Math.Sqrt(2), Math.Cos(2 * Math.PI / 16) * Math.Sqrt(2),
+            Math.Cos(3 * Math.PI / 16) * Math.Sqrt(2), 1, Math.Cos(5 * Math.PI / 16) * Math.Sqrt(2),
+            Math.Cos(6 * Math.PI / 16) * Math.Sqrt(2), Math.Cos(7 * Math.PI / 16) * Math.Sqrt(2)
+        ];
+        private static readonly double Sqrt2 = Math.Sqrt(2);
+        private static readonly double Cos8x2 = 2 * Math.Cos(Math.PI / 8);
+        private static readonly double Cos3x8x2Sqrt2 = 2 * Math.Cos(3 * Math.PI / 8) * Math.Sqrt(2);
+        private static readonly double Cos8x2Sqrt2 = 2 * Math.Cos(Math.PI / 8) * Math.Sqrt(2);
+
+        /// <summary>One eight-point AAN inverse transform written to <paramref name="destination"/> at <paramref name="start"/> with the given stride.</summary>
+        private static void InverseTransform8(double in0, double in1, double in2, double in3,
+            double in4, double in5, double in6, double in7, Span<double> destination, int start, int stride)
+        {
+            double tmp10 = in0 + in4, tmp11 = in0 - in4;
+            double tmp13 = in2 + in6, tmp12 = (in2 - in6) * Sqrt2 - tmp13;
+            double tmp0 = tmp10 + tmp13, tmp3 = tmp10 - tmp13;
+            double tmp1 = tmp11 + tmp12, tmp2 = tmp11 - tmp12;
+            double z13 = in5 + in3, z10 = in5 - in3, z11 = in1 + in7, z12 = in1 - in7;
+            double tmp7 = z11 + z13;
+            double tmp11b = (z11 - z13) * Sqrt2;
+            double z5 = (z10 + z12) * Cos8x2;
+            double tmp10b = Cos3x8x2Sqrt2 * z12 - z5;
+            double tmp12b = -Cos8x2Sqrt2 * z10 + z5;
+            double tmp6 = tmp12b - tmp7, tmp5 = tmp11b - tmp6, tmp4 = tmp10b + tmp5;
+            destination[start] = tmp0 + tmp7;
+            destination[start + stride] = tmp1 + tmp6;
+            destination[start + 2 * stride] = tmp2 + tmp5;
+            destination[start + 3 * stride] = tmp3 - tmp4;
+            destination[start + 4 * stride] = tmp3 + tmp4;
+            destination[start + 5 * stride] = tmp2 - tmp5;
+            destination[start + 6 * stride] = tmp1 - tmp6;
+            destination[start + 7 * stride] = tmp0 - tmp7;
         }
 
         private static void WriteVectorBlock(Component component, int left, int top,
