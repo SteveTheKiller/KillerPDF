@@ -54,6 +54,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 ### Fixed
 
 - Preserved outer soft masks when non-isolated transparency groups reset their internal graphics state.
+- Preserved shadow detail in unprofiled CMYK images and painted colors when black ink overlaps other inks.
 
 ## [1.8.5] - Unreleased
 

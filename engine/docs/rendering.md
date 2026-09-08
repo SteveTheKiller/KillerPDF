@@ -80,6 +80,11 @@ spaces. Both forms use the same color conversion. Parameterized color spaces
 still require their defining entries. These forms follow section 8.6.3 of the
 [PDF reference](https://opensource.adobe.com/dc-acrobat-sdk-docs/pdfstandards/PDF32000_2008.pdf).
 
+Unprofiled CMYK uses a subtractive approximation: each remaining color-channel
+intensity is multiplied by the remaining intensity after black ink. This preserves
+shadow detail where adding ink components would clip a channel to zero. It is not
+ICC color management; profile-dependent colors can still differ from other viewers.
+
 `PdfRenderedPage` exposes `Width`, `Height`, `Pixels`, and `Diagnostics`. Pixels
 are tightly packed BGRA32, with a top-left origin and a row stride of `Width * 4`.
 The renderer applies page crop and rotation geometry. `PdfRenderOptions` specifies

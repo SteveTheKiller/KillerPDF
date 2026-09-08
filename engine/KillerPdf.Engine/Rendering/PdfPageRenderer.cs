@@ -4896,9 +4896,13 @@ public sealed partial class PdfPageRenderer
             new(Channel(red), Channel(green), Channel(blue));
         internal static Color LinearRgb(double red, double green, double blue) =>
             Rgb(Compand(red), Compand(green), Compand(blue));
-        internal static Color Cmyk(double cyan, double magenta, double yellow, double black) =>
-            Rgb(1 - Math.Min(1, cyan + black), 1 - Math.Min(1, magenta + black),
-                1 - Math.Min(1, yellow + black));
+        internal static Color Cmyk(double cyan, double magenta, double yellow, double black)
+        {
+            double light = 1 - Math.Clamp(black, 0, 1);
+            return Rgb((1 - Math.Clamp(cyan, 0, 1)) * light,
+                (1 - Math.Clamp(magenta, 0, 1)) * light,
+                (1 - Math.Clamp(yellow, 0, 1)) * light);
+        }
         private static byte Channel(double value) =>
             (byte)Math.Round(Math.Clamp(value, 0, 1) * 255, MidpointRounding.AwayFromZero);
         private static double Compand(double value) => value <= 0.0031308
