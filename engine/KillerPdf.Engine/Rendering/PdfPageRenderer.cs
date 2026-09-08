@@ -3926,7 +3926,7 @@ public sealed partial class PdfPageRenderer
                         target[targetOffset + 3] = 255;
                         continue;
                     }
-                    double clipAlpha = ClipAlpha(clips, x, y);
+                    double clipAlpha = rectangularClips ? 1 : ClipAlpha(clips, x, y);
                     if (clipAlpha <= 0) continue;
                     SetPixel(target, targetWidth, x, y,
                         color,
