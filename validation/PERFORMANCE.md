@@ -1,5 +1,18 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 memory ownership follow-up
+
+Bounded surfaces, compact clips, explicit scratch lifetimes, shared immutable
+stream storage, and reusable batch pixels reduce allocation pressure. The latest
+single direct comparison used 644.2 MiB versus PDFium's 622.3 MiB on the shared
+600-page set, and 400.1 versus 268.7 MiB on the difficult 74-page set. All 674
+compared pages match the previous engine pixels. Suites pass 3,147 engine and
+341 app tests. These are development checks, not median or release acceptance
+results. Memory parity remains open, and difficult-page rendering remains slower.
+
+See the [memory ownership record](benchmarks/1.9.0-memory-ownership/README.md)
+for raw trials, build hashes, heap evidence, and limits.
+
 ## KillerPDF 1.9.0 correctness and memory follow-up
 
 The observed outer soft-mask reset defect is fixed, and unprofiled CMYK
