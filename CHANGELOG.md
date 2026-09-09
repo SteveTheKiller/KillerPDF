@@ -44,6 +44,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Marked 1.9 development builds as unreleased in the About card.
+- Aligned website footer versions with the published release across all languages.
 - Standalone uninstall dialogs use the default Dark/Green theme, and installation errors use themed dialogs.
 
 - Localized the document page count and Italian certificate label, and included the add-bookmark row when sizing the sidebar (#394).
