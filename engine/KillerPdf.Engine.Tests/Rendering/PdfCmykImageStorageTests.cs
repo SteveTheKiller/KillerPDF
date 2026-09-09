@@ -56,7 +56,23 @@ public sealed class PdfCmykImageStorageTests
         Assert.Equal(converted.Pixels.ToArray(), direct.Pixels.ToArray());
     }
 
-    private static PdfDocument Create(int size, bool wideSamples, bool rotated, bool masked)
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    [InlineData(23, false)]
+    [InlineData(23, true)]
+    public void RgbSamplesEnteringInkGroupMatchFullConversion(int outputSize, bool rotated)
+    {
+        var options = new PdfRenderOptions(outputSize, outputSize, transparentBackground: true);
+        var direct = new PdfPageRenderer(Create(17, false, rotated, true, 3)).Render(0, options);
+        var converted = new PdfPageRenderer(Create(17, true, rotated, true, 3)).Render(0, options);
+        Assert.Empty(direct.Diagnostics);
+        Assert.Empty(converted.Diagnostics);
+        Assert.Equal(converted.Pixels.ToArray(), direct.Pixels.ToArray());
+    }
+
+    private static PdfDocument Create(int size, bool wideSamples, bool rotated, bool masked,
+        int components = 4)
     {
         string matrix = rotated ? $"0 {size} -{size} 0 {size} 0" : $"{size} 0 0 {size} 0 0";
         string clip = masked ? $"1 1 {size - 2} {size - 2} re W n /Half gs " : "";
@@ -67,16 +83,16 @@ public sealed class PdfCmykImageStorageTests
         var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
         var page = (PdfDictionary)source.Resolve(reference);
         var update = new PdfIncrementalUpdateBuilder(source);
-        byte[] samples = new byte[size * size * 4 * (wideSamples ? 2 : 1)];
-        for (int index = 0; index < size * size * 4; index++)
+        byte[] samples = new byte[size * size * components * (wideSamples ? 2 : 1)];
+        for (int index = 0; index < size * size * components; index++)
         {
-            byte sample = (byte)(index * 37 + index / (size * 4) * 13);
+            byte sample = (byte)(index * 37 + index / (size * components) * 13);
             if (wideSamples) samples[index * 2] = samples[index * 2 + 1] = sample;
             else samples[index] = sample;
         }
         var entries = new List<KeyValuePair<PdfName, PdfObject>> {
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(size)),
-            Entry("Height", new PdfInteger(size)), Entry("ColorSpace", Name("DeviceCMYK")),
+            Entry("Height", new PdfInteger(size)), Entry("ColorSpace", Name(components == 3 ? "DeviceRGB" : "DeviceCMYK")),
             Entry("BitsPerComponent", new PdfInteger(wideSamples ? 16 : 8)) };
         if (masked)
         {

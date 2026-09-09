@@ -4602,6 +4602,7 @@ public sealed partial class PdfPageRenderer
         private readonly bool _targetInk;
         private readonly PdfColorTransform? _targetProfile;
         private readonly bool _directRgb;
+        private readonly bool _directRgbInk;
         private readonly bool _directGray;
         private readonly bool _directCmyk;
 
@@ -4622,13 +4623,15 @@ public sealed partial class PdfPageRenderer
             _maximum = bits >= 31 ? int.MaxValue : (1 << bits) - 1;
             // Plain 8-bit device gray or RGB samples with the default decode convert to the
             // same byte they started as, so those images skip the double conversion chain.
-            bool plainSpace = !targetInk && targetProfile is null && !colorSpace.DoesNotPaint
+            bool plainSpace = targetProfile is null && !colorSpace.DoesNotPaint
                 && colorSpace.Palette is null && colorSpace.Converter is null
                 && colorSpace.MultiConverter is null && colorSpace.Profile is null
                 && colorSpace.ComponentRange is null && bits == 8 && colorSpace.Components == components;
-            _directRgb = plainSpace && components == 3 && decode is [0, 1, 0, 1, 0, 1];
-            _directGray = plainSpace && components == 1 && decode is [0, 1];
-            _directCmyk = plainSpace && components == 4 && decode is [0, 1, 0, 1, 0, 1, 0, 1];
+            bool plainRgb = plainSpace && components == 3 && decode is [0, 1, 0, 1, 0, 1];
+            _directRgb = plainRgb && !targetInk;
+            _directRgbInk = plainRgb && targetInk;
+            _directGray = plainSpace && !targetInk && components == 1 && decode is [0, 1];
+            _directCmyk = plainSpace && !targetInk && components == 4 && decode is [0, 1, 0, 1, 0, 1, 0, 1];
             if (components == 1 && bits <= 8)
             {
                 _lookup = new uint[1 << bits];
@@ -4715,6 +4718,8 @@ public sealed partial class PdfPageRenderer
 
         private uint ConvertRaw(int first, int second, int third, int fourth)
         {
+            if (_directRgbInk)
+                return PdfDeviceCmyk.FromRgb((byte)first, (byte)second, (byte)third);
             if (_colorSpace.Palette is not null)
                 return Pack(_colorSpace.Palette[Math.Min(first, _colorSpace.Palette.Length - 1)]);
             ReadOnlySpan<int> raw = [first, second, third, fourth];
