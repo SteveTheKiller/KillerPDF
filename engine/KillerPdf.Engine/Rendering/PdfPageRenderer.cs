@@ -4620,6 +4620,8 @@ public sealed partial class PdfPageRenderer
         private readonly bool _directRgbInk;
         private readonly bool _directGray;
         private readonly bool _directCmyk;
+        private int _binaryRowIndex = -1;
+        private PdfBinaryAreaSampler.Row _binaryRow;
 
 
         internal ImageSampleConverter(byte[] samples, int sourceWidth, int rowBytes,
@@ -4758,8 +4760,14 @@ public sealed partial class PdfPageRenderer
                     _lookup![sample] = ConvertRaw(sample, 0, 0, 0);
                     _lookupSet[sample] = true;
                 }
+                // Each converter serves one fixed output grid and owns its row range.
+                if (_binaryRowIndex != py)
+                {
+                    _binaryRow = PdfBinaryAreaSampler.Row.Create(py, sourceHeight, planeHeight);
+                    _binaryRowIndex = py;
+                }
                 return PdfBinaryAreaSampler.Sample(_samples, _rowBytes, sourceWidth, sourceHeight,
-                    px, py, planeWidth, planeHeight, _lookup![0], _lookup[1], cancellationToken);
+                    px, _binaryRow, planeWidth, planeHeight, _lookup![0], _lookup[1], cancellationToken);
             }
             double left = px * (double)sourceWidth / planeWidth, right = (px + 1) * (double)sourceWidth / planeWidth;
             double top = py * (double)sourceHeight / planeHeight, bottom = (py + 1) * (double)sourceHeight / planeHeight;

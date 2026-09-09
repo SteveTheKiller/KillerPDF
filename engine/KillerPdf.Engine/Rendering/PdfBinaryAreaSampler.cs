@@ -5,17 +5,29 @@ namespace KillerPdf.Engine.Rendering;
 
 internal static class PdfBinaryAreaSampler
 {
+    internal readonly record struct Row(long Top, long Bottom, int First, int Last)
+    {
+        internal static Row Create(int y, int height, int outputHeight)
+        {
+            long top = (long)y * height, bottom = (long)(y + 1) * height;
+            return new(top, bottom, (int)(top / outputHeight), (int)((bottom - 1) / outputHeight));
+        }
+    }
+
     internal static uint Sample(byte[] samples, int rowBytes, int width, int height,
         int x, int y, int outputWidth, int outputHeight, uint zero, uint one,
+        CancellationToken cancellationToken) => Sample(samples, rowBytes, width, height,
+            x, Row.Create(y, height, outputHeight), outputWidth, outputHeight, zero, one, cancellationToken);
+
+    internal static uint Sample(byte[] samples, int rowBytes, int width, int height,
+        int x, in Row bounds, int outputWidth, int outputHeight, uint zero, uint one,
         CancellationToken cancellationToken)
     {
         // Integer coordinates retain exact fractional coverage on the output grid.
         long left = (long)x * width, right = (long)(x + 1) * width;
-        long top = (long)y * height, bottom = (long)(y + 1) * height;
         int firstX = (int)(left / outputWidth), lastX = (int)((right - 1) / outputWidth);
-        int firstY = (int)(top / outputHeight), lastY = (int)((bottom - 1) / outputHeight);
         long selected = 0;
-        for (int sy = firstY; sy <= lastY; sy++)
+        for (int sy = bounds.First; sy <= bounds.Last; sy++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             int row = sy * rowBytes;
@@ -28,8 +40,8 @@ internal static class PdfBinaryAreaSampler
                     horizontal += right - (long)lastX * outputWidth;
                 horizontal += (long)Count(samples, row, firstX + 1, lastX) * outputWidth;
             }
-            long vertical = Math.Min((long)(sy + 1) * outputHeight, bottom)
-                - Math.Max((long)sy * outputHeight, top);
+            long vertical = Math.Min((long)(sy + 1) * outputHeight, bounds.Bottom)
+                - Math.Max((long)sy * outputHeight, bounds.Top);
             selected += horizontal * vertical;
         }
         long area = (long)width * height;

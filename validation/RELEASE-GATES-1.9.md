@@ -494,3 +494,24 @@ The payload is `parity-20260909-ghent/payload-opaque-image-mask`, with engine
 SHA-256 `CC0D65060B95F08C0F4E5D05B3FB70F1F8A4F90EC0642D81ABDA4030AAB042F7`.
 The earlier whole-application paired timings do not include this optimization;
 overall speed and fidelity parity remain open.
+
+A fresh 60-render profile of scan `42828.0001.001.pdf` attributes 4.809 of
+11.639 sampled CPU seconds to area conversion and 4.777 seconds to JBIG2
+generic-region line decoding. The first half is excluded and only `CPU_TIME`
+intervals are counted (`parity-20260909-ghent/scan-42828-cpu-summary.json`).
+Binary area conversion now reuses each row's exact vertical bounds across its
+columns. Each converter owns its current row state; no image-sized buffer is
+added, and integer coverage and rounding are unchanged.
+
+Two reversed-order pairs at size 2048 use 60 renders per process and exclude
+the first 30. Baseline/changed medians are 390.602/355.997 and 377.123/354.294
+ms, a 6% to 9% page-level gain. All 240 hashes are
+`A71BE1DB46524A81F558A807DE137923EF838F0E932F048CD3A3E96FAA7EA0E4`,
+with zero diagnostics. The two timing CSVs and `binary-row-bounds-summary.json`
+are in `parity-20260909-ghent`. All 3,818 engine tests, 352 app tests, and the
+Release publish pass. All 674 images remain pixel-identical to the opaque-mask
+checkpoint (`review-20260909/binary-row-bounds-pixels.json`). The payload is
+`parity-20260909-ghent/payload-binary-row-bounds`, with engine SHA-256
+`872E864EE61B0E4365487123BD7FB37EBBD6935A79984E5E6D3815B4358857E7`.
+The current paired application table describes `5bddb6c` before this row-bound
+optimization. Overall parity remains open, including the JBIG2 decoding gap.
