@@ -15,7 +15,7 @@
     <docsUrl>https://github.com/SteveTheKiller/KillerPDF/blob/main/README.md</docsUrl>
     <bugTrackerUrl>https://github.com/SteveTheKiller/KillerPDF/issues</bugTrackerUrl>
     <tags>pdf viewer editor annotate merge split sign ocr cli portable</tags>
-    <summary>PDF editor for Windows. No Adobe, no subscription, no telemetry.</summary>
+    <summary>Open-source PDF editor for Windows with text editing, OCR, annotations, signatures, forms and page organization.</summary>
     <description>PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home.
 
 **Features:**
