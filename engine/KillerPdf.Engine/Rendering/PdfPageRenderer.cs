@@ -4601,7 +4601,7 @@ public sealed partial class PdfPageRenderer
     /// <summary>Reads packed image samples and converts them to device colors with a small cache.</summary>
     private sealed class ImageSampleConverter
     {
-        private const int CacheSize = 4096;
+        private readonly int _cacheShift;
         private readonly byte[] _samples;
         private readonly int _rowBytes;
         private readonly int _components;
@@ -4657,10 +4657,12 @@ public sealed partial class PdfPageRenderer
             }
             else if (bits <= 8 && components <= 4)
             {
-                _cacheKeys = new uint[CacheSize];
-                _cacheValues = new uint[CacheSize];
-                _cacheValid = new bool[CacheSize];
-                if (matte) _matteAlpha = new byte[CacheSize];
+                _cacheShift = samples.Length >= 1024 * 1024 ? 18 : 20;
+                int cacheSize = 1 << (32 - _cacheShift);
+                _cacheKeys = new uint[cacheSize];
+                _cacheValues = new uint[cacheSize];
+                _cacheValid = new bool[cacheSize];
+                if (matte) _matteAlpha = new byte[cacheSize];
             }
         }
 
@@ -4715,7 +4717,7 @@ public sealed partial class PdfPageRenderer
                 uint key = 0;
                 for (int component = 0; component < _components; component++)
                     key = (key << 8) | (uint)Raw(x, y, component);
-                int slot = (int)((key * 2654435761u) >> 20) & (CacheSize - 1);
+                int slot = (int)((key * 2654435761u) >> _cacheShift);
                 if (_cacheValid![slot] && _cacheKeys[slot] == key) return _cacheValues![slot];
                 uint color = ConvertRaw((int)(key >> (8 * (_components - 1))) & 255,
                     _components > 1 ? (int)(key >> (8 * (_components - 2))) & 255 : 0,
@@ -4809,7 +4811,7 @@ public sealed partial class PdfPageRenderer
             {
                 for (int component = 0; component < _components; component++)
                     key = (key << 8) | (uint)Raw(x, y, component);
-                slot = (int)(((key ^ alpha) * 2654435761u) >> 20) & (CacheSize - 1);
+                slot = (int)(((key ^ alpha) * 2654435761u) >> _cacheShift);
                 if (_cacheValid![slot] && _cacheKeys[slot] == key && _matteAlpha![slot] == alpha)
                     return _cacheValues![slot];
             }

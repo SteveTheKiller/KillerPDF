@@ -71,8 +71,23 @@ public sealed class PdfCmykImageStorageTests
         Assert.Equal(converted.Pixels.ToArray(), direct.Pixels.ToArray());
     }
 
+    [Theory]
+    [InlineData(257, false)]
+    [InlineData(257, true)]
+    [InlineData(600, false)]
+    [InlineData(600, true)]
+    public void LargeColorCacheMatchesUncachedWideSamples(int outputSize, bool matte)
+    {
+        var options = new PdfRenderOptions(outputSize, outputSize, transparentBackground: true);
+        var cached = new PdfPageRenderer(Create(600, false, true, true, 3, true, matte)).Render(0, options);
+        var uncached = new PdfPageRenderer(Create(600, true, true, true, 3, true, matte)).Render(0, options);
+        Assert.Empty(cached.Diagnostics);
+        Assert.Empty(uncached.Diagnostics);
+        Assert.Equal(uncached.Pixels.ToArray(), cached.Pixels.ToArray());
+    }
+
     private static PdfDocument Create(int size, bool wideSamples, bool rotated, bool masked,
-        int components = 4)
+        int components = 4, bool varyColors = false, bool matte = false)
     {
         string matrix = rotated ? $"0 {size} -{size} 0 {size} 0" : $"{size} 0 0 {size} 0 0";
         string clip = masked ? $"1 1 {size - 2} {size - 2} re W n /Half gs " : "";
@@ -86,7 +101,9 @@ public sealed class PdfCmykImageStorageTests
         byte[] samples = new byte[size * size * components * (wideSamples ? 2 : 1)];
         for (int index = 0; index < size * size * components; index++)
         {
-            byte sample = (byte)(index * 37 + index / (size * components) * 13);
+            byte sample = varyColors
+                ? (byte)((index * 37) ^ (index / 7) ^ (index / (size * components) * 13))
+                : (byte)(index * 37 + index / (size * components) * 13);
             if (wideSamples) samples[index * 2] = samples[index * 2 + 1] = sample;
             else samples[index] = sample;
         }
@@ -97,10 +114,13 @@ public sealed class PdfCmykImageStorageTests
         if (masked)
         {
             byte[] alpha = Enumerable.Range(0, size * size).Select(index => (byte)(index * 53)).ToArray();
-            entries.Add(Entry("SMask", update.AddObject(new PdfStream(new PdfDictionary([
+            var maskEntries = new List<KeyValuePair<PdfName, PdfObject>> {
                 Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(size)),
                 Entry("Height", new PdfInteger(size)), Entry("ColorSpace", Name("DeviceGray")),
-                Entry("BitsPerComponent", new PdfInteger(8))]), alpha))));
+                Entry("BitsPerComponent", new PdfInteger(8)) };
+            if (matte) maskEntries.Add(Entry("Matte", new PdfArray(
+                Enumerable.Repeat<PdfObject>(new PdfReal(.25), components))));
+            entries.Add(Entry("SMask", update.AddObject(new PdfStream(new PdfDictionary(maskEntries), alpha))));
         }
         var resources = new PdfDictionary([
             Entry("XObject", new PdfDictionary([Entry("Image", update.AddObject(new PdfStream(new PdfDictionary(entries), samples)))])),

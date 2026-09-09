@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,779 engine tests, 352 app tests, and the Release payload publish pass with transparent-backdrop CMYK compositing. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,783 engine tests, 352 app tests, and the Release payload publish pass with bounded larger image color caches. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -247,3 +247,27 @@ milliseconds. It contains a 6,784 by 3,392, eight-bit DeviceCMYK Flate image
 (object 1239), plus two smaller CMYK images. Profile its decoding and painting
 before selecting the next change. All 5,392 repeated output images match their
 respective retained images; this consistency check does not establish visual parity.
+
+The Altona profile attributes 31.66 of 44.11 rendering seconds in its latter half
+to area conversion, including 14.48 seconds directly in averaging and substantial
+ICC conversion (`altona-large-profile-summary.json`). Its large image has 430,118
+distinct colors among 23,011,328 pixels. A linear-scan cache probe records
+1,519,180 misses with 4,096 entries and 860,096 with 16,384 entries. This probe
+is supporting evidence only; renderer traversal differs.
+
+Images with at least 1 MiB of sample data now use 16,384 conversion-cache entries;
+smaller images retain 4,096. The increase is 108 KiB per converter, or 120 KiB
+with matte alpha tracking. Full keys and alpha are still checked before reuse.
+Four new cases match uncached 16-bit references under clipping, rotation,
+reduction, and matte correction. All 674 corpus outputs remain identical
+(`image-cache14-pixels.json`), and 3,783 engine tests, 352 app tests, and the
+Release payload publish pass.
+
+Two reversed-order 80-render pairs at size 1024, excluding the first 40, give
+baseline/new medians of 1,034.055/897.156 and 1,081.929/912.226 milliseconds,
+a 13% to 16% improvement on this Altona page. All 320 hashes match with zero
+diagnostics. `image-cache14-summary.json` and `image-cache14-timing-*.csv` retain
+the data in `parity-20260909-ghent`. The published and measured engine SHA-256 is
+`7B0C7632C0A35E798C69327DAC55722FA553533CCEFF587347CBA1AE127D62D6`.
+The full application comparison above predates this change. Averaging overhead,
+remaining decoding costs, and broader parity gates remain open.
