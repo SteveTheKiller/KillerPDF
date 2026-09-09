@@ -515,3 +515,25 @@ checkpoint (`review-20260909/binary-row-bounds-pixels.json`). The payload is
 `872E864EE61B0E4365487123BD7FB37EBBD6935A79984E5E6D3815B4358857E7`.
 The current paired application table describes `5bddb6c` before this row-bound
 optimization. Overall parity remains open, including the JBIG2 decoding gap.
+
+JBIG2 arithmetic contexts now store the predicted bit alongside the seven-bit
+probability state in one byte. State updates preserve the prediction, toggles
+preserve the state, and copies remain independent. Two regression tests cover
+all 128 stored state values, alternating predictions, truncation, and copying.
+The standalone `ContextAllocation` probe constructs 100 contexts after warmup:
+each 65,536-entry context allocates 65,592 bytes instead of 131,160 bytes.
+This halves context storage, not total decoder or application memory.
+
+On the same scan, two reversed-order pairs of 60 renders at size 2048 exclude
+the first 30 per process. Baseline/changed medians are 369.615/360.868 and
+365.914/362.119 ms, a small 1% to 2.4% page-level gain. All 240 hashes remain
+`A71BE1DB46524A81F558A807DE137923EF838F0E932F048CD3A3E96FAA7EA0E4`,
+with zero diagnostics. Timing and allocation evidence is retained in
+`parity-20260909-ghent/jbig2-packed-context-summary.json` and the timing CSVs.
+All 3,820 engine tests, 352 app tests, and the Release publish pass. All 674
+corpus outputs match the row-bound checkpoint exactly
+(`review-20260909/jbig2-packed-context-pixels.json`). The payload is
+`parity-20260909-ghent/payload-jbig2-packed-context`, with engine SHA-256
+`3A10201A3E3E83FCE67E43F1C9E19801DF56539A0609B9B09F7FAEBE295B861E`.
+The current paired application table predates this context change; overall
+speed, memory, visual, and interactive parity still require verification.

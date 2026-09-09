@@ -66,6 +66,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Removed redundant encoded-stream copies and full-image JPEG scratch planes during parsing and decoding, reused JPEG sample rows and copied grayscale output by row, and reused JPEG 2000 color and transparency planes across repeated paints.
 - Faster JPEG 2000 decoding through reusable row color conversions, direct 8-bit and 16-bit sample output with cheaper range checks, and less redundant buffer clearing, with unchanged decoded values.
 - Faster image reduction through packed one-bit coverage counts, reused row bounds, and reused RGB averaging weights.
+- Halved JBIG2 probability-context storage with unchanged decoded pixels.
 
 ### Fixed
 

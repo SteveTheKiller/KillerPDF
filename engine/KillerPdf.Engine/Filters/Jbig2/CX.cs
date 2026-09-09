@@ -12,20 +12,19 @@ namespace KillerPdf.Engine.Filters.Jbig2
     internal sealed class CX
     {
         private readonly byte[] cx;
-        private readonly byte[] mps;
 
         public int Index { get; set; }
 
         public int Cx
         {
             get => cx[Index] & 0x7f;
-            set => cx[Index] = (byte)(value & 0x7f);
+            set => cx[Index] = (byte)((cx[Index] & 0x80) | (value & 0x7f));
         }
 
         /// <summary>
         /// Returns the decision. Possible values are 0 or 1.
         /// </summary>
-        public byte Mps => mps[Index];
+        public byte Mps => (byte)(cx[Index] >> 7);
 
         /// <summary>
         /// Creates a new <see cref="CX"/> instance
@@ -36,27 +35,25 @@ namespace KillerPdf.Engine.Filters.Jbig2
         {
             Index = index;
             cx = new byte[size];
-            mps = new byte[size];
         }
 
-        private CX(byte[] cx, byte[] mps, int index)
+        private CX(byte[] cx, int index)
         {
             this.cx = cx;
-            this.mps = mps;
             Index = index;
         }
 
         public CX Copy()
         {
-            return new CX((byte[])cx.Clone(), (byte[])mps.Clone(), Index);
+            return new CX((byte[])cx.Clone(), Index);
         }
 
         /// <summary>
-        /// Flips the bit in actual "more predictable symbol" array element.
+        /// Flips the predicted bit while preserving the probability state.
         /// </summary>
         public void ToggleMps()
         {
-            mps[Index] ^= 1;
+            cx[Index] ^= 0x80;
         }
     }
 }
