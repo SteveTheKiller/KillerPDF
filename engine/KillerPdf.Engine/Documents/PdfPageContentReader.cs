@@ -12,6 +12,7 @@ namespace KillerPdf.Engine.Documents;
 public sealed class PdfPageContentReader
 {
     internal const int MaximumRecoveredFormDepth = 16;
+    internal sealed class ContentLimitExceededException : FormatException;
     internal const int MaximumRecoveredFormExpansions = 64;
     internal const string TruncatedStreamDiagnostic =
         "Page content was truncated because a stream could not be decoded.";
@@ -55,9 +56,15 @@ public sealed class PdfPageContentReader
                 throw new FormatException("Page content is not a stream.");
             }
             byte[] bytes;
+            if (diagnostics is not null && stream.EncodedData.Length >= PdfContentStreamReader.MaximumSourceBytes)
+                throw new ContentLimitExceededException();
             try
             {
                 bytes = _document.DecodeStream(stream, PdfContentStreamReader.MaximumSourceBytes);
+            }
+            catch (PdfFilterException error) when (diagnostics is not null && error.IsSizeLimit)
+            {
+                throw new ContentLimitExceededException();
             }
             catch (PdfFilterException) when (_document.UsesCompatibilityRecovery
                 && diagnostics is not null && output.Length > 0)
@@ -68,6 +75,7 @@ public sealed class PdfPageContentReader
             }
             if (output.Length + bytes.Length + 1 > PdfContentStreamReader.MaximumSourceBytes)
             {
+                if (diagnostics is not null) throw new ContentLimitExceededException();
                 if (!_document.UsesCompatibilityRecovery)
                     throw new FormatException("Page content exceeds the extraction limit.");
                 // Keep the bounded prefix of oversized content instead of abandoning the page.
@@ -83,40 +91,85 @@ public sealed class PdfPageContentReader
             resolveColorComponents: name => ColorComponents(name, resources, 0),
             compatibilityRecovery: _document.UsesCompatibilityRecovery);
 
-        int? ColorComponents(PdfObject value, PdfDictionary current, int depth)
+    }
+
+    internal IEnumerable<PdfContentInstruction> EnumerateInstructions(
+        int pageIndex, CancellationToken cancellationToken, ISet<string> diagnostics)
+    {
+        PdfPageTreeEntry page = _tree.Pages[pageIndex];
+        if (!page.Dictionary.TryGetValue(Name("Contents"), out var content)) yield break;
+        PdfDictionary resources = page.InheritedValues.TryGetValue(Name("Resources"), out var inherited)
+            ? Resolve(inherited) as PdfDictionary ?? Empty : Empty;
+        using var source = new PdfConcatenatedContentStream(OpenStreams());
+        using var instructions = PdfContentStreamReader.Enumerate(source,
+            resolveColorComponents: name => ColorComponents(name, resources, 0),
+            cancellationToken: cancellationToken,
+            compatibilityRecovery: _document.UsesCompatibilityRecovery).GetEnumerator();
+        while (true)
         {
-            if (depth >= 32) throw new FormatException("Color space nesting limit exceeded.");
-            value = Resolve(value);
-            if (value is PdfName name)
+            bool available;
+            try
             {
-                int? standard = name.ValueAsLatin1() switch
-                {
-                    "DeviceGray" or "G" => 1,
-                    "DeviceRGB" or "RGB" => 3,
-                    "DeviceCMYK" or "CMYK" => 4,
-                    _ => null
-                };
-                if (standard.HasValue) return standard;
-                if (!current.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
-                    || Resolve(spacesValue) is not PdfDictionary spaces
-                    || !spaces.TryGetValue(name, out PdfObject? namedValue))
-                    return null;
-                return ColorComponents(namedValue, current, depth + 1);
+                available = instructions.MoveNext();
             }
-            if (value is not PdfArray array || array.Count == 0
-                || Resolve(array[0]) is not PdfName family)
-                return null;
-            return family.ValueAsLatin1() switch
+            catch (Exception error) when (_document.UsesCompatibilityRecovery
+                && error is PdfFilterException or InvalidDataException or Syntax.PdfSyntaxException or OverflowException)
             {
-                "CalGray" or "Indexed" or "I" or "Separation" => 1,
-                "CalRGB" or "Lab" => 3,
-                "DeviceN" when array.Count > 1 && Resolve(array[1]) is PdfArray names => names.Count,
-                "ICCBased" when array.Count > 1 && Resolve(array[1]) is PdfStream profile
-                    && profile.Dictionary.TryGetValue(Name("N"), out PdfObject? count) =>
-                    checked((int)Number(count)),
+                diagnostics.Add("Page content was truncated during streaming: " + error.Message);
+                available = false;
+            }
+            if (!available) yield break;
+            yield return instructions.Current;
+        }
+
+        IEnumerable<Stream> OpenStreams()
+        {
+            PdfObject resolved = Resolve(content);
+            IEnumerable<PdfObject> items = resolved is PdfArray array ? array : [resolved];
+            foreach (var item in items)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (Resolve(item) is PdfStream stream)
+                    yield return _document.OpenContentStream(stream, PdfContentStreamReader.MaximumSourceBytes);
+                else if (!_document.UsesCompatibilityRecovery && Resolve(item) is not PdfNull)
+                    throw new FormatException("Page content is not a stream.");
+            }
+        }
+    }
+
+    private int? ColorComponents(PdfObject value, PdfDictionary current, int depth)
+    {
+        if (depth >= 32) throw new FormatException("Color space nesting limit exceeded.");
+        value = Resolve(value);
+        if (value is PdfName name)
+        {
+            int? standard = name.ValueAsLatin1() switch
+            {
+                "DeviceGray" or "G" => 1,
+                "DeviceRGB" or "RGB" => 3,
+                "DeviceCMYK" or "CMYK" => 4,
                 _ => null
             };
+            if (standard.HasValue) return standard;
+            if (!current.TryGetValue(Name("ColorSpace"), out PdfObject? spacesValue)
+                || Resolve(spacesValue) is not PdfDictionary spaces
+                || !spaces.TryGetValue(name, out PdfObject? namedValue))
+                return null;
+            return ColorComponents(namedValue, current, depth + 1);
         }
+        if (value is not PdfArray array || array.Count == 0
+            || Resolve(array[0]) is not PdfName family)
+            return null;
+        return family.ValueAsLatin1() switch
+        {
+            "CalGray" or "Indexed" or "I" or "Separation" => 1,
+            "CalRGB" or "Lab" => 3,
+            "DeviceN" when array.Count > 1 && Resolve(array[1]) is PdfArray names => names.Count,
+            "ICCBased" when array.Count > 1 && Resolve(array[1]) is PdfStream profile
+                && profile.Dictionary.TryGetValue(Name("N"), out PdfObject? count) =>
+                checked((int)Number(count)),
+            _ => null
+        };
     }
 
     /// <summary>Extracts one zero-based page in unrotated, crop-relative PDF points.</summary>

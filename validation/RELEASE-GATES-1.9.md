@@ -15,10 +15,10 @@ behind an overall average.
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 537.3 versus 614.2 MiB shared and 268.3 versus 260.2 MiB difficult, including opaque masked images. Difficult engine peaks range from 268.0 to 270.1 MiB, with a median about 3% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 14.167 versus 12.765 seconds; shared wall time is 26.075 versus 23.694 seconds. Difficult render time is 9.788 versus 4.879 seconds and wall time is 14.929 versus 10.123 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
-| Rendering fidelity without regression | Open | Shared map 447403.pdf loses most content at the 64 MiB decoded-content cap without a diagnostic; bounded large-stream processing is required. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
+| Rendering fidelity without regression | Open | Shared map 447403.pdf now renders complete content through bounded streaming; mean RGB difference from PDFium falls from 42.4904 to 5.0726. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,818 engine tests, 352 app tests, and the Release payload publish pass with the opaque masked-image optimization. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,829 engine tests, 352 app tests, and the Release payload publish pass with large-content rendering. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -601,3 +601,25 @@ binary image boundaries, repeated buffer growth, global offsets, limits, and
 cancellation. All 3,826 engine tests pass. Renderer integration, decoded-stream
 filter handling, cache retention, and explicit truncation diagnostics remain
 unfinished; this change alone does not restore the rendered map.
+
+Renderer integration now restores the complete earthquake map. Large pages
+bypass the materialized instruction cache and use sequential content streams,
+preserving pending operands and graphics state across the stream array. Raw
+content and ordinary Flate streams decode incrementally; other filter pipelines
+retain bounded decoding and report failures or streaming limits as diagnostics
+in compatibility mode. The public materialized editing API retains its limit.
+Three additional tests verify rendering beyond 64 MiB in strict and compatibility
+modes, operands crossing content-stream boundaries, and a streaming decode diagnostic.
+All 3,829 engine tests and 352 app tests pass, and the Release payload publishes.
+
+The new payload is `parity-20260909-ghent/payload-streaming-content`, with engine
+SHA-256 `FCB4716668ED85050A3E0A40CB24FE02C13363FD52BBDB11F4D24C5760A44466`.
+All 674 corpus outputs succeed. `review-20260909/streaming-content-pixels.json`
+records 673 identical images and only the repaired map changed. Its mean RGB
+difference from PDFium falls from 42.4904 to 5.0726; the fraction of pixels with
+maximum channel error above 32 falls from 34.47% to 6.27%. Visual inspection
+confirms the maps, charts, labels, and photos are restored. Remaining pixel
+differences still need review. The direct render takes 2,703.845 ms with zero
+diagnostics; the old 708.534 ms observation rendered incomplete content and is
+not a valid full-page speed baseline. The paired timing and memory checkpoint
+above predates this repair and must be refreshed before claiming parity.

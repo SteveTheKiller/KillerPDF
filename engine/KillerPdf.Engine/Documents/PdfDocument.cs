@@ -60,6 +60,13 @@ public sealed class PdfDocument
                 stream, Resolve, maximumDecodedBytes)
             : PdfStreamDecoder.Decode(stream, Resolve, maximumDecodedBytes);
     }
+    internal Stream OpenContentStream(PdfStream stream, int maximumBufferedBytes)
+    {
+        _unencryptedPageGuard?.EnsureUnencryptedStream(stream, Resolve);
+        return PdfStreamDecoder.OpenContentStream(stream, Resolve,
+            maximumBufferedBytes, _compatibilityRecovery);
+    }
+
     internal JpegDecodedImage DecodeJpegImage(
         PdfStream stream, int maximumDecodedBytes, int reduction)
     {

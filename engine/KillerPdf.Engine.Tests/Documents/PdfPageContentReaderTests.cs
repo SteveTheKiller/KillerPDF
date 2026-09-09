@@ -10,6 +10,43 @@ public sealed class PdfPageContentReaderTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void RendersContentBeyondTheFormerPageLimitAcrossStreamBoundaries(bool recovery)
+    {
+        using var encoded = new MemoryStream();
+        using (var compressor = new System.IO.Compression.ZLibStream(encoded,
+            System.IO.Compression.CompressionLevel.Fastest, leaveOpen: true))
+        {
+            byte[] block = new byte[1024 * 1024];
+            Array.Fill(block, (byte)' ');
+            "q Q\n"u8.CopyTo(block);
+            for (int index = 0; index < 65; index++) compressor.Write(block);
+            compressor.Write("1 0"u8);
+        }
+        string data = Encoding.Latin1.GetString(encoded.ToArray());
+        string first = $"<< /Length {data.Length} /Filter /FlateDecode >>\nstream\n{data}\nendstream";
+        var document = Document("", "", "", [first, Stream("0 rg 0 0 300 400 re f")], "[6 0 R 7 0 R]");
+        if (recovery) document = PdfDocument.OpenWithCompatibilityRecovery(document.Source);
+        var options = new KillerPdf.Engine.Rendering.PdfRenderOptions(30, 40);
+        var actual = new KillerPdf.Engine.Rendering.PdfPageRenderer(document).Render(0, options);
+        var expected = new KillerPdf.Engine.Rendering.PdfPageRenderer(
+            Document("1 0 0 rg 0 0 300 400 re f", "", "", [])).Render(0, options);
+        Assert.Empty(actual.Diagnostics);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Fact]
+    public void StreamingContentReportsAnUndecodableStream()
+    {
+        var document = Document("", "", "", ["<< /Length 3 /Filter /FlateDecode >>\nstream\nabc\nendstream"], "6 0 R");
+        document = PdfDocument.OpenWithCompatibilityRecovery(document.Source);
+        var diagnostics = new HashSet<string>();
+        Assert.Empty(new PdfPageContentReader(document).EnumerateInstructions(0, default, diagnostics));
+        Assert.Contains(diagnostics, message => message.StartsWith("Page content was truncated during streaming:", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void RecoveryPreservesPrefixBeforeOversizedJbig2Content(bool oversizedFirst)
     {
         // Page information alone declares a 1.25 GB bitmap. No bitmap should be allocated.

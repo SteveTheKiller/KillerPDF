@@ -1883,17 +1883,24 @@ public sealed partial class PdfPageRenderer
         }
     }
 
-    private IReadOnlyList<PdfContentInstruction> ReadInstructions(
+    private IEnumerable<PdfContentInstruction> ReadInstructions(
         int pageIndex, CancellationToken cancellationToken, ISet<string> diagnostics)
     {
-        var parsed = _instructionCache.GetOrAdd(pageIndex, index =>
+        try
         {
-            var recovered = new HashSet<string>();
-            var instructions = _content.ReadInstructions(index, cancellationToken, recovered);
-            return (instructions, recovered);
-        });
-        diagnostics.UnionWith(parsed.Diagnostics);
-        return parsed.Instructions;
+            var parsed = _instructionCache.GetOrAdd(pageIndex, index =>
+            {
+                var recovered = new HashSet<string>();
+                var instructions = _content.ReadInstructions(index, cancellationToken, recovered);
+                return (instructions, recovered);
+            });
+            diagnostics.UnionWith(parsed.Diagnostics);
+            return parsed.Instructions;
+        }
+        catch (PdfPageContentReader.ContentLimitExceededException)
+        {
+            return _content.EnumerateInstructions(pageIndex, cancellationToken, diagnostics);
+        }
     }
 
     private PdfExtractionFont ReadFont(PdfDictionary font) =>

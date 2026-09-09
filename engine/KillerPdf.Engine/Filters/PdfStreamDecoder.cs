@@ -70,6 +70,22 @@ public static class PdfStreamDecoder
             compatibilityRecovery);
     }
 
+    internal static Stream OpenContentStream(PdfStream stream,
+        Func<PdfIndirectReference, PdfObject> resolve, int maximumBufferedBytes,
+        bool compatibilityRecovery)
+    {
+        List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
+        if (filters.Count == 0) return ReadEncodedStream(stream.EncodedData);
+        PdfDictionary?[] parameters = ReadParameters(stream.Dictionary, filters.Count, resolve);
+        if (filters.Count == 1 && filters[0].ValueAsLatin1() is "FlateDecode" or "Fl"
+            && (parameters[0] is not { } predictor || GetInteger(predictor, PredictorName, 1, resolve) == 1))
+            return new ZLibStream(ReadEncodedStream(stream.EncodedData), CompressionMode.Decompress);
+        byte[] decoded = DecodeCore(stream, resolve, checked(maximumBufferedBytes + 1),
+            0, compatibilityRecovery);
+        EnsureWithinLimit(decoded.Length, maximumBufferedBytes);
+        return new MemoryStream(decoded, writable: false);
+    }
+
     private static byte[] DecodeCore(
         PdfStream stream,
         Func<PdfIndirectReference, PdfObject>? resolve,
@@ -917,6 +933,7 @@ public static class PdfStreamDecoder
     private static void EnsureWithinLimit(long length, int maximumDecodedBytes)
     {
         if (length > maximumDecodedBytes)
-            throw new PdfFilterException($"Decoded stream exceeds the {maximumDecodedBytes:N0}-byte safety limit.");
+            throw new PdfFilterException($"Decoded stream exceeds the {maximumDecodedBytes:N0}-byte safety limit.")
+                { IsSizeLimit = true };
     }
 }

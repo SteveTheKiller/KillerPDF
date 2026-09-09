@@ -70,6 +70,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Restored missing content on large pages while keeping parsing memory bounded.
 - Preserved thin detail in reduced unmasked images through area averaging, including gray and RGB images under clipping.
 
 - Recovered text with missing font resources using a diagnosed Helvetica fallback in compatibility mode.
