@@ -4502,7 +4502,11 @@ public sealed partial class PdfPageRenderer
                     // Full clip coverage leaves the compositor's opacity at exactly one, so the
                     // direct ink write applies under antialiased clips as well.
                     int clipCoverage = rectangularClips ? 255 : ClipCoverage(clips, x, y);
-                    if (directInk && clipCoverage == 255 && matteConverter is null && softMask is null
+                    byte imageMaskSample = softMask is null ? (byte)255 : softMask.Sample(
+                        Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
+                        Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
+                    if (imageMaskSample == 0) continue;
+                    if (directInk && clipCoverage == 255 && matteConverter is null && imageMaskSample == 255
                         && (plane is not null || directInkSamples)
                         && (alphaPlane is null || alphaPlane[py * planeWidth + px] == 255)
                         && target.Contains(x, y))
@@ -4520,11 +4524,7 @@ public sealed partial class PdfPageRenderer
                     {
                         int sx = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                         int sy = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
-                        byte maskSample = softMask is null ? (byte)255 : softMask.Sample(
-                            Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
-                            Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
-                        if (maskSample == 0) continue;
-                        uint packed = matteConverter.ConvertMatte(sx, sy, preblendMatte!, maskSample);
+                        uint packed = matteConverter.ConvertMatte(sx, sy, preblendMatte!, imageMaskSample);
                         color = target.Ink is not null ? InkColor(packed)
                             : target.ColorFromRgb(new Color((byte)(packed >> 16), (byte)(packed >> 8), (byte)packed));
                         alpha = 255;
@@ -4566,10 +4566,7 @@ public sealed partial class PdfPageRenderer
                     if (alpha == 0) continue;
                     if (softMask is not null && alpha != 0)
                     {
-                        int maskX = Math.Min((int)(unitX * softMask.Width), softMask.Width - 1);
-                        int maskY = Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1);
-                        byte maskSample = softMask.Sample(maskX, maskY);
-                        alpha = (alpha * maskSample + 127) / 255;
+                        alpha = (alpha * imageMaskSample + 127) / 255;
                     }
                     if (alpha == 0) continue;
                     if (direct && alpha == 255 && clipCoverage == 255)

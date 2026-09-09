@@ -90,11 +90,27 @@ public sealed class PdfCmykImageStorageTests
         Assert.Equal(uncached.Pixels.ToArray(), cached.Pixels.ToArray());
     }
 
+    [Theory]
+    [InlineData(3, false)]
+    [InlineData(3, true)]
+    [InlineData(4, false)]
+    [InlineData(4, true)]
+    public void OpaqueImageMaskMatchesUnmaskedInkImage(int components, bool rotated)
+    {
+        var options = new PdfRenderOptions(23, 23, transparentBackground: true);
+        var masked = new PdfPageRenderer(Create(17, false, rotated, true, components,
+            opaqueMask: true)).Render(0, options);
+        var unmasked = new PdfPageRenderer(Create(17, false, rotated, false, components)).Render(0, options);
+        Assert.Empty(masked.Diagnostics);
+        Assert.Empty(unmasked.Diagnostics);
+        Assert.Equal(unmasked.Pixels.ToArray(), masked.Pixels.ToArray());
+    }
+
     private static PdfDocument Create(int size, bool wideSamples, bool rotated, bool masked,
-        int components = 4, bool varyColors = false, bool matte = false)
+        int components = 4, bool varyColors = false, bool matte = false, bool opaqueMask = false)
     {
         string matrix = rotated ? $"0 {size} -{size} 0 {size} 0" : $"{size} 0 0 {size} 0 0";
-        string clip = masked ? $"1 1 {size - 2} {size - 2} re W n /Half gs " : "";
+        string clip = masked && !opaqueMask ? $"1 1 {size - 2} {size - 2} re W n /Half gs " : "";
         var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(size, size,
             Encoding.ASCII.GetBytes($"{clip}{matrix} cm /Image Do")).Build());
         var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
@@ -117,7 +133,8 @@ public sealed class PdfCmykImageStorageTests
             Entry("BitsPerComponent", new PdfInteger(wideSamples ? 16 : 8)) };
         if (masked)
         {
-            byte[] alpha = Enumerable.Range(0, size * size).Select(index => (byte)(index * 53)).ToArray();
+            byte[] alpha = Enumerable.Range(0, size * size)
+                .Select(index => opaqueMask ? (byte)255 : (byte)(index * 53)).ToArray();
             var maskEntries = new List<KeyValuePair<PdfName, PdfObject>> {
                 Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(size)),
                 Entry("Height", new PdfInteger(size)), Entry("ColorSpace", Name("DeviceGray")),

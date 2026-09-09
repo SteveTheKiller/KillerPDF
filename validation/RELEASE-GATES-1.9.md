@@ -472,3 +472,25 @@ root. The reviewed maintenance PDF SHA-256 is
 It remains a 1.8 brochure and does not describe the 1.9 rendering architecture.
 The binary replacement is pending clarification of the atomic-tool-only rule
 against the separate verified binary-write procedure. No PDF was overwritten.
+
+A fresh 80-render profile of response-to-fiber-concerns attributes 5.419 of
+11.127 sampled CPU seconds to image painting after excluding the first half
+of the trace and counting only `CPU_TIME` intervals. Its RGB image has a
+fully opaque image soft mask inside a CMYK page group. Fully opaque mask
+samples now permit the existing direct ink write; partial samples retain
+normal compositing, and each mask sample is reused for matte conversion.
+The trace is `parity-20260909-ghent/fiber-clamp-current.speedscope.json`.
+
+Two reversed-order pairs of 80 renders at size 2048, excluding the first 40
+per process, produce baseline/changed medians of 238.933/207.043 and
+241.906/207.267 ms. This is a 13% to 14% page-level improvement without new
+buffers. All 320 hashes are
+`87E83A736E5D6C2D350A6CB84AAE1AD4597855F7E0ECC5E512DE76DF4918262F`,
+with zero diagnostics. Timing CSVs and `opaque-image-mask-summary.json` are
+in `parity-20260909-ghent`. All 3,818 engine tests, 352 app tests, and the
+Release publish pass. All 674 corpus outputs remain pixel-identical to the
+sample-clamping checkpoint (`review-20260909/opaque-image-mask-pixels.json`).
+The payload is `parity-20260909-ghent/payload-opaque-image-mask`, with engine
+SHA-256 `CC0D65060B95F08C0F4E5D05B3FB70F1F8A4F90EC0642D81ABDA4030AAB042F7`.
+The earlier whole-application paired timings do not include this optimization;
+overall speed and fidelity parity remain open.
