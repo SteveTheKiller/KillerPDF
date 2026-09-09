@@ -122,3 +122,20 @@ Eight added cases cover packed row padding, fractional reduction, rotation,
 clipping, both bit polarities, and an independent integer coverage-grid oracle.
 All 3,755 engine tests and 352 app tests pass. The remaining area-averaging cost,
 other fidelity differences, and full-pipeline parity still require work.
+
+The balloon JPEG 2000 page remains a major speed gap. A 100-render sampled
+thread-time profile of the current renderer, examining only time after 35 seconds,
+attributes about 18.65 of 26.36 seconds to decoding, including memory operations,
+and 6.48 seconds directly to area sampling. Its source is 2,717 by 3,701 pixels;
+the next lower JPEG 2000 level is smaller than the requested output. Preserve
+the current resolution while investigating area-sampling overhead and decoder
+memory traffic. The raw profile and summary are `balloon-current.nettrace`,
+`balloon-current.speedscope.json`, and `balloon-profile-summary.json` in the
+adjacent `parity-20260909-ghent` directory.
+
+A direct vector-load/store experiment for wavelet column copies was discarded.
+Two reversed-order 80-render pairs, excluding the first 40 renders of each run,
+gave baseline/new medians of 608.443/595.071 and 581.420/595.482 milliseconds.
+All 320 hashes matched with zero diagnostics, but the timing change reversed
+direction. `vectorcopy-*.csv` retains all iterations. No decoder or rendering
+implementation change was retained from this experiment.
