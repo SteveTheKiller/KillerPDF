@@ -1,5 +1,6 @@
 var I18N = {
  "ru": {
+  "package_install_intro": "Или установите через терминал:",
   "nav_dl": "Скачать",
   "nav_help": "Справка",
   "nav_tech": "Технические детали",
@@ -15,7 +16,7 @@ var I18N = {
   "download": "Скачать для Windows",
   "portable_download": "Скачать портативную версию",
   "gh_btn": "Исходный код на GitHub",
-  "brochure_btn": "Инфо-брошюра (PDF)",
+  "brochure_btn": "Информационная брошюра (PDF)",
   "hero_note": "Установите или запускайте портативно. Бесплатно, с открытым исходным кодом, GPLv3.<br>Не нужны ни учетные записи, ни подписки.<br>Никакой телеметрии и никакой рекламы... никогда.",
   "engine_kicker": "Теперь работает на",
   "engine_intro": "KillerPDF 1.8 заменяет прежний конвейер обработки документов на The KillerPDF.Engine: независимую библиотеку .NET, построенную с нуля для PDF 2.0 и современного PDF/A. Она читает, проверяет, создает, редактирует, подписывает, шифрует и записывает PDF через тот же публичный API, который доступен другим приложениям.",
@@ -650,6 +651,7 @@ var I18N = {
   "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.8.3</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
  },
  "it": {
+  "package_install_intro": "Oppure installa dal terminale:",
   "engine_kicker": "Ora basato su",
   "engine_intro": "KillerPDF 1.8 sostituisce la sua vecchia pipeline documentale con The KillerPDF.Engine: una libreria .NET indipendente costruita da zero per PDF 2.0 e il PDF/A moderno. Legge, valida, crea, modifica, firma, cifra e scrive PDF attraverso la stessa API pubblica disponibile alle altre applicazioni.",
   "engine_link": "Esplora il motore e la guida per sviluppatori",
@@ -1407,6 +1409,7 @@ var I18N = {
   "pt_105": "Il salvataggio non cambia mai il documento che stai guardando. KillerPDF scrive una copia pulita senza annotazioni, poi vi fissa dentro in modo permanente <b>prima i timbri, poi le annotazioni</b>, e riapre quella copia fresca. Partire ogni volta da una base pulita significa che non può mai fissare per sbaglio due volte la stessa cosa."
  },
  "hu": {
+  "package_install_intro": "Vagy telepítse a terminálból:",
   "engine_kicker": "Mostantól ez hajtja",
   "engine_intro": "A KillerPDF 1.8 a korábbi dokumentumfeldolgozó csővezetékét a The KillerPDF.Engine motorra cseréli: egy független .NET könyvtárra, amely az alapoktól épült a PDF 2.0 és a modern PDF/A támogatására. Ugyanazon a nyilvános API-n keresztül olvassa, ellenőrzi, hozza létre, szerkeszti, írja alá, titkosítja és írja ki a PDF-eket, amely más alkalmazások számára is elérhető.",
   "engine_link": "Ismerje meg a motort és a fejlesztői útmutatót",
@@ -2148,6 +2151,7 @@ var I18N = {
  },
 
  "pl": {
+  "package_install_intro": "Lub zainstaluj z terminala:",
   "engine_kicker": "Teraz napędza go",
   "engine_intro": "KillerPDF 1.8 zastępuje swój dotychczasowy potok dokumentów silnikiem The KillerPDF.Engine: niezależną biblioteką .NET zbudowaną od podstaw dla PDF 2.0 i nowoczesnego PDF/A. Czyta, waliduje, tworzy, edytuje, podpisuje, szyfruje i zapisuje pliki PDF przez to samo publiczne API, dostępne także dla innych aplikacji.",
   "engine_link": "Poznaj silnik i przewodnik dla programistów",
@@ -2886,6 +2890,7 @@ var I18N = {
   "footer_src": "Kod źródłowy w GitHubie"
  },
  "cs": {
+  "package_install_intro": "Nebo nainstalujte z terminálu:",
   "engine_kicker": "Nyní pohání",
   "engine_intro": "KillerPDF 1.8 nahrazuje svůj starší dokumentový kanál knihovnou The KillerPDF.Engine: nezávislou knihovnou .NET postavenou od základů pro PDF 2.0 a moderní PDF/A. Čte, ověřuje, vytváří, upravuje, podepisuje, šifruje a zapisuje PDF přes stejné veřejné API, které je dostupné i dalším aplikacím.",
   "engine_link": "Prozkoumejte engine a příručku pro vývojáře",
@@ -3643,6 +3648,7 @@ var I18N = {
   "pt_105": "Uložení nikdy nemění dokument, na který se díváte. KillerPDF zapíše čistou kopii bez anotací, pak trvale zapeče <b>nejdřív razítka, potom anotace</b>, a tuto čerstvou kopii znovu otevře. Start z čistého základu pokaždé znamená, že nikdy nemůže omylem zapéct totéž dvakrát."
  },
  "es": {
+  "package_install_intro": "O instala desde tu terminal:",
   "engine_kicker": "Ahora impulsado por",
   "engine_intro": "KillerPDF 1.8 sustituye su antigua canalización de documentos por The KillerPDF.Engine: una biblioteca .NET independiente construida desde cero para PDF 2.0 y el PDF/A moderno. Lee, valida, crea, edita, firma, cifra y escribe PDF a través de la misma API pública disponible para otras aplicaciones.",
   "engine_link": "Explore el motor y la guía para desarrolladores",
@@ -4400,6 +4406,7 @@ var I18N = {
   "pt_105": "Guardar nunca cambia el documento que estás viendo. KillerPDF escribe una copia limpia sin anotaciones, luego incorpora permanentemente <b>primero los sellos, después las anotaciones</b>, y reabre esa copia nueva. Partir de una base limpia cada vez significa que nunca pue"
  },
  "de": {
+  "package_install_intro": "Oder über das Terminal installieren:",
   "engine_kicker": "Jetzt angetrieben von",
   "engine_intro": "KillerPDF 1.8 ersetzt seine bisherige Dokument-Pipeline durch The KillerPDF.Engine: eine unabhängige .NET-Bibliothek, von Grund auf für PDF 2.0 und modernes PDF/A gebaut. Sie liest, validiert, erstellt, bearbeitet, signiert, verschlüsselt und schreibt PDFs über dieselbe öffentliche API, die auch anderen Anwendungen zur Verfügung steht.",
   "engine_link": "Engine und Entwicklerhandbuch erkunden",
@@ -4984,7 +4991,7 @@ var I18N = {
   "download": "Für Windows herunterladen",
   "portable_download": "Portable Version herunterladen",
   "gh_btn": "Quellcode auf GitHub",
-  "brochure_btn": "Info-Broschüre (PDF)",
+  "brochure_btn": "Informationsbroschüre (PDF)",
   "hero_note": "Installieren oder portabel ausführen. Kostenlos, quelloffen, GPLv3.<br/>Keine Konten oder Abonnements erforderlich.<br/>Es wird keine Telemetrie gesendet und keine Werbung... niemals.",
   "features_h": "Was es kann",
   "f_view_t": "Anzeigen und navigieren",
@@ -5157,6 +5164,7 @@ var I18N = {
   "pt_105": "Das Speichern ändert nie das Dokument, das Sie gerade ansehen. KillerPDF schreibt eine saubere Kopie ohne Annotationen, backt dann dauerhaft <b>zuerst die Stempel, dann die Annotationen</b> ein und öffnet diese frische Kopie erneut. Jedes Mal von einer sauberen Basis aus zu starten bedeutet, dass es nie"
  },
  "fr": {
+  "package_install_intro": "Ou installez depuis votre terminal :",
   "engine_kicker": "Désormais propulsé par",
   "engine_intro": "KillerPDF 1.8 remplace son ancienne chaîne documentaire par The KillerPDF.Engine : une bibliothèque .NET indépendante, construite de zéro pour PDF 2.0 et le PDF/A moderne. Elle lit, valide, crée, édite, signe, chiffre et écrit les PDF via la même API publique offerte aux autres applications.",
   "engine_link": "Explorer le moteur et le guide du développeur",
@@ -5914,6 +5922,7 @@ var I18N = {
   "pt_105": "L'enregistrement ne modifie jamais le document que vous regardez. KillerPDF écrit une copie propre sans annotations, puis intègre définitivement les <b>tampons d'abord, puis les annotations</b>, et rouvre cette nouvelle copie. Repartir d'une base propre à chaque fois signifie qu'il ne peu"
  },
  "tr": {
+  "package_install_intro": "Veya terminalinizden yükleyin:",
   "engine_kicker": "Artık gücünü şundan alıyor",
   "engine_intro": "KillerPDF 1.8, eski belge işleme hattını The KillerPDF.Engine ile değiştiriyor: PDF 2.0 ve modern PDF/A için sıfırdan geliştirilmiş bağımsız bir .NET kütüphanesi. PDF'leri, diğer uygulamaların da kullanabildiği aynı genel API üzerinden okur, doğrular, oluşturur, düzenler, imzalar, şifreler ve yazar.",
   "engine_link": "Motoru ve geliştirici kılavuzunu keşfedin",
@@ -6671,6 +6680,7 @@ var I18N = {
   "pt_105": "Kaydetme, baktığınız belgeyi asla değiştirmez. KillerPDF, ek açıklaması olmayan temiz bir kopya yazar, ardından kalıcı olarak <b>önce damgaları, sonra ek açıklamaları</b> pişirir ve o taze kopyayı yeniden açar. Her seferinde temiz bir tabandan başlamak, hiçbir za"
  },
  "zh": {
+  "package_install_intro": "或從終端機安裝：",
   "engine_kicker": "現已採用",
   "engine_intro": "KillerPDF 1.8 以 The KillerPDF.Engine 取代了舊有的文件處理管線：這是一個從零打造、針對 PDF 2.0 與現代 PDF/A 的獨立 .NET 程式庫。它透過同一套對其他應用程式開放的公開 API 來讀取、驗證、建立、編輯、簽署、加密與寫入 PDF。",
   "engine_link": "探索引擎與開發者指南",
@@ -7428,6 +7438,7 @@ var I18N = {
   "pt_105": "儲存絕不會改變你正在檢視的文件。KillerPDF 會寫入一份不含註解的乾淨副本，接著永久地烙入<b>先印章、再註解</b>，並重新開啟那份全新的副本。每次都從一個乾淨的基礎開始，意味著它永遠不會"
  },
  "zh-cn": {
+  "package_install_intro": "或从终端安装：",
   "engine_kicker": "现已采用",
   "engine_intro": "KillerPDF 1.8 以 The KillerPDF.Engine 取代了旧有的文档处理管线：这是一个从零打造、面向 PDF 2.0 与现代 PDF/A 的独立 .NET 库。它通过同一套向其他应用程序开放的公共 API 来读取、验证、创建、编辑、签名、加密和写入 PDF。",
   "engine_link": "了解引擎与开发者指南",
@@ -8185,6 +8196,7 @@ var I18N = {
   "pt_105": "保存绝不会改变你正在查看的文档。KillerPDF 会写入一份不含批注的干净副本，接着永久地烙入<b>先图章、再批注</b>，并重新打开那份全新的副本。每次都从一个干净的基础开始，意味着它永远不会"
  },
  "bn": {
+  "package_install_intro": "অথবা টার্মিনাল থেকে ইনস্টল করুন:",
   "engine_kicker": "এখন যার শক্তিতে চলে",
   "engine_intro": "KillerPDF 1.8 তার পুরনো নথি পাইপলাইনের জায়গায় এনেছে The KillerPDF.Engine: PDF 2.0 ও আধুনিক PDF/A-এর জন্য শূন্য থেকে তৈরি একটি স্বাধীন .NET লাইব্রেরি। এটি PDF পড়ে, যাচাই করে, তৈরি করে, সম্পাদনা করে, স্বাক্ষর করে, এনক্রিপ্ট করে এবং লেখে - সবই সেই একই পাবলিক API দিয়ে, যা অন্য অ্যাপ্লিকেশনের জন্যও উন্মুক্ত।",
   "engine_link": "ইঞ্জিন ও ডেভেলপার গাইড ঘুরে দেখুন",
@@ -8942,6 +8954,7 @@ var I18N = {
   "pt_105": "সংরক্ষণ আপনি যে নথিটি দেখছেন তা কখনো পরিবর্তন করে না। KillerPDF কোনো অ্যানোটেশন ছাড়া একটি পরিচ্ছন্ন কপি লেখে, তারপর স্থায়ীভাবে <b>প্রথমে স্ট্যাম্প, তারপর অ্যানোটেশন</b> বেক করে, এবং সেই তাজা কপিটি পুনরায় খোলে। প্রতিবার একটি পরিচ্ছন্ন ভিত্তি থেকে শুরু করার অর্থ এটি কখনো"
  },
  "ja": {
+  "package_install_intro": "またはターミナルからインストール：",
   "engine_kicker": "新しい心臓部",
   "engine_intro": "KillerPDF 1.8 は、従来の文書処理パイプラインを The KillerPDF.Engine に置き換えました。PDF 2.0 と現代の PDF/A のためにゼロから開発された独立した .NET ライブラリで、他のアプリケーションにも公開されている同一のパブリック API を通じて、PDF の読み取り、検証、作成、編集、署名、暗号化、書き込みを行います。",
   "engine_link": "エンジンと開発者ガイドを見る",
@@ -9699,6 +9712,7 @@ var I18N = {
   "pt_105": "保存が、いま見ているドキュメントを変更することはありません。KillerPDF は注釈のないクリーンなコピーを書き出し、<b>スタンプ、次に注釈</b>の順で恒久的に焼き込んでから、その新しいコピーを開き直します。毎回クリーンな状態から始めるため、同じものを誤って二重に焼き込むことは決してありません。"
  },
  "kk": {
+  "package_install_intro": "Немесе терминал арқылы орнатыңыз:",
   "ph_202": "Көмек",
   "ph_1": "Қарау және шарлау",
   "ph_2": "Аннотация",

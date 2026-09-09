@@ -162,12 +162,14 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
   .engine-stats { grid-template-columns: 1fr 1fr; }
 }
 /* Package manager commands */
-.package-commands { display: flex; flex-direction: column; gap: 2px; width: 100%; max-width: 360px; margin: 0; text-align: left; }
+.package-commands { display: flex; flex-direction: column; gap: 2px; width: 100%; max-width: 360px; margin: 0; text-align: center; }
+.package-commands .install-intro { margin: 0 0 4px; font: 13px/1.5 'Segoe UI', sans-serif; color: var(--text2); }
 .package-commands pre { min-width: 0; margin: 0; padding: 2px 0; border: 0; border-radius: 0; background: transparent; color: var(--text); overflow-x: auto; }
 .package-commands code { font: 13px/1.6 Consolas, 'Courier New', monospace; white-space: pre; user-select: all; }
 .package-commands .manager { color: var(--accent); font-weight: 700; }
 .package-commands .verb { color: var(--text2); }
-.brochure-link { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; font-size: 13px; color: var(--accent); }
+.brochure-link { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 6px; font-size: 13px; color: var(--accent); }
+.hero-info:has(.brochure-link) { padding-bottom: 8px; }
 .brochure-link img { width: 18px; height: auto; }
 .brochure-link:hover { text-decoration: underline; }
 </style>
@@ -260,6 +262,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <a href="https://github.com/SteveTheKiller/KillerPDF" class="gh-btn" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.29 3.44 9.77 8.2 11.36.6.11.82-.26.82-.58v-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.38-1.34-1.75-1.34-1.75-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.17 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0112 6.8c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0024 12.5C24 5.87 18.63.5 12 .5z"/></svg><span data-i18n="gh_btn">Source on GitHub</span></a>
 </div>
 <div class="package-commands">
+<p class="install-intro" data-i18n="package_install_intro">Or install from your terminal:</p>
 <pre><code><span class="manager">winget</span> <span class="verb">install</span> killerpdf</code></pre>
 <pre><code><span class="manager">choco</span> <span class="verb">install</span> killerpdf</code></pre>
 </div>
@@ -271,7 +274,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <div class="row"><span class="k">platform</span>&nbsp;<span class="v">Windows 10/11 x64</span></div>
 <div class="row"><span class="k">sha256</span>&nbsp;<span class="v hash">25c75cdd647d2c5a8cd2f691297e2e6d<br>4d03edc75472c6ef5d4d9c80a5da5143</span></div>
 <p class="note" data-i18n="hero_note">Install or run portable. Free, open source, GPLv3.<br>No accounts or subscriptions required.<br>No telemetry is sent and no ads... ever.</p>
-<a href="https://github.com/SteveTheKiller/KillerPDF/raw/main/KillerPDF.pdf" class="brochure-link" target="_blank" rel="noopener"><img src="brand/brochure-doc.png" alt=""><span data-i18n="brochure_btn">Info Brochure (PDF)</span></a>
+<a href="https://github.com/SteveTheKiller/KillerPDF/raw/main/KillerPDF.pdf" class="brochure-link" target="_blank" rel="noopener"><img src="brand/brochure-doc.png" alt=""><span data-i18n="brochure_btn">Informational Brochure (PDF)</span></a>
 </div>
 </div>
 <div class="hero-blurbs">
@@ -381,7 +384,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 </div>
 <div class="egg-toast" id="eggToast"></div>
 
-<script src="kp-i18n.js?v=10"></script>
+<script src="kp-i18n.js?v=11"></script>
 <script src="kp.js?v=14"></script>
 <script>
 (function () {
