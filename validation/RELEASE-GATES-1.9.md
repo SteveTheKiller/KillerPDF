@@ -15,7 +15,7 @@ behind an overall average.
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 536.1 versus 614.6 MiB shared and 266.6 versus 260.6 MiB difficult, including larger image caches and packed sample reads. Difficult engine peaks range from 266.2 to 271.0 MiB, with a median about 2% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.907 versus 14.205 seconds; shared wall time is 28.796 versus 25.742 seconds. Difficult render time is 10.022 versus 5.061 seconds and wall time is 15.300 versus 10.519 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
-| Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
+| Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 9: 3,791 engine tests, 352 app tests, and the Release payload publish pass with opaque CMYK coverage runs. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
@@ -346,3 +346,21 @@ The published and measured engine SHA-256 is
 `5D2EE68CEB19D07F8E4F114EC4EDE9C24CB6A7784557AB01898E30A5801D4CB8`.
 The full PDFium comparison remains the earlier `47edfd8` checkpoint; overall
 performance, fidelity, and interactive parity remain open.
+
+Visual inspection of Ghent 16.10 and 16.11 distinguishes effects from the pages'
+remaining background and text differences. Comparing each actual effect against
+its embedded reference image within the same renderer gives lower mean RGB error
+for the engine in all nine patches. Engine/PDFium errors are: drop shadow
+1.637/2.273, inner shadow 1.739/2.629, outer glow 1.589/2.718, inner glow
+1.589/4.511, bevel/emboss 1.445/4.869, satin 1.246/1.794, basic feather
+0.881/5.496, directional feather 1.351/3.879, and gradient feather 0.674/2.470.
+
+`ghent-text-softmask-reference-method.json` records all nine crop regions and
+measurements, using the same horizontal -3 to 3 and vertical 349 to 355 pixel
+alignment search for both renderers at size 2048. The inputs are the retained
+`ink-runs-ab-Broad-1-Engine` and `payload-cmyk-Broad-0-PDFium` images. These are
+local effect-consistency checks, not absolute color measurements: errors shared
+by an effect and its reference image can cancel. The effects should not be
+changed merely to reduce whole-page differences from PDFium. Background color,
+registration-color text, font rasterization, and other pages remain open.
+No renderer code changed during this visual review.
