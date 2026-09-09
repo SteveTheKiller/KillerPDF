@@ -587,3 +587,17 @@ copies them again into PdfStream objects. A complete large-page fix must avoid
 retaining the entire decoded image set through this cache. These are verified
 implementation constraints, not a completed streaming implementation or a new
 rendering result.
+
+The internal content reader now supports resumable prefixes and bounded stream
+enumeration. Incomplete operands, comments, operators, and inline images remain
+in the pending buffer; completed instructions keep their original global offsets.
+The original map passes a direct streaming parser probe: 734,227 instructions,
+all 190 images and 160,728,260 sample bytes, ending at Q at byte 171,848,460.
+The scratch probe is `parity-20260909-ghent/LargeContent.csproj`. Its single
+observed run took 989.887 ms and peaked at 241.863 MiB process working set;
+these are parser-only observations, not application performance claims.
+Six new parser tests cover every split position in representative content,
+binary image boundaries, repeated buffer growth, global offsets, limits, and
+cancellation. All 3,826 engine tests pass. Renderer integration, decoded-stream
+filter handling, cache retention, and explicit truncation diagnostics remain
+unfinished; this change alone does not restore the rendered map.

@@ -29,13 +29,96 @@ public static class PdfContentStreamReader
         Func<PdfName, int?>? resolveColorComponents = null,
         CancellationToken cancellationToken = default,
         bool compatibilityRecovery = false)
+        => ReadCore(source, true, out _, maximumInstructions, maximumOperands,
+            resolveColorComponents, cancellationToken, compatibilityRecovery, true);
+
+    // A non-final buffer commits only complete instructions. Its unconsumed suffix
+    // must be retained verbatim, including comments and pending operands.
+    internal static IReadOnlyList<PdfContentInstruction> ReadPrefix(
+        ReadOnlyMemory<byte> source, bool isFinal, out int consumed,
+        int maximumInstructions = 1_000_000, int maximumOperands = 4096,
+        Func<PdfName, int?>? resolveColorComponents = null,
+        CancellationToken cancellationToken = default,
+        bool compatibilityRecovery = false)
+        => ReadCore(source, isFinal, out consumed, maximumInstructions, maximumOperands,
+            resolveColorComponents, cancellationToken, compatibilityRecovery, false);
+
+    internal static IEnumerable<PdfContentInstruction> Enumerate(
+        Stream source, int initialBufferBytes = 64 * 1024,
+        int maximumBufferedBytes = MaximumSourceBytes,
+        int maximumInstructions = 1_000_000,
+        Func<PdfName, int?>? resolveColorComponents = null,
+        CancellationToken cancellationToken = default,
+        bool compatibilityRecovery = false)
     {
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(initialBufferBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumInstructions);
+        if (maximumBufferedBytes < initialBufferBytes || maximumBufferedBytes > MaximumSourceBytes)
+            throw new ArgumentOutOfRangeException(nameof(maximumBufferedBytes));
+        byte[] buffer = new byte[initialBufferBytes];
+        int count = 0, offset = 0, instructionCount = 0;
+        bool final = false;
+        while (true)
+        {
+            while (count < buffer.Length && !final)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = source.Read(buffer, count, buffer.Length - count);
+                if (read == 0) final = true;
+                count += read;
+            }
+
+            var instructions = ReadPrefix(buffer.AsMemory(0, count), final, out int consumed,
+                resolveColorComponents: resolveColorComponents,
+                cancellationToken: cancellationToken,
+                compatibilityRecovery: compatibilityRecovery);
+            foreach (var instruction in instructions)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++instructionCount > maximumInstructions)
+                    throw new PdfSyntaxException("Content instruction limit exceeded", offset);
+                yield return offset == 0 ? instruction : new PdfContentInstruction(
+                    instruction.Operator, checked(offset + instruction.Offset),
+                    instruction.Operands, instruction.InlineImageData);
+            }
+            if (final) yield break;
+            if (consumed > 0)
+            {
+                offset = checked(offset + consumed);
+                count -= consumed;
+                Buffer.BlockCopy(buffer, consumed, buffer, 0, count);
+            }
+            else
+            {
+                if (buffer.Length == maximumBufferedBytes)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (source.ReadByte() == -1)
+                    {
+                        final = true;
+                        continue;
+                    }
+                    throw new PdfSyntaxException("Content instruction exceeds the buffered size limit", offset);
+                }
+                Array.Resize(ref buffer, Math.Min(maximumBufferedBytes, checked(buffer.Length * 2)));
+            }
+        }
+    }
+
+    private static IReadOnlyList<PdfContentInstruction> ReadCore(
+        ReadOnlyMemory<byte> source, bool isFinal, out int consumed,
+        int maximumInstructions, int maximumOperands,
+        Func<PdfName, int?>? resolveColorComponents,
+        CancellationToken cancellationToken, bool compatibilityRecovery, bool allowInstructionTruncation)
+    {
+        consumed = 0;
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumInstructions);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOperands);
         if (source.Length > MaximumSourceBytes)
             throw new ArgumentOutOfRangeException(nameof(source), "Decoded content exceeds the size limit.");
 
-        var parser = PdfObjectParser.ForContent(source, compatibilityRecovery);
+        var parser = PdfObjectParser.ForContent(source, compatibilityRecovery && isFinal);
         var instructions = new List<PdfContentInstruction>();
         var operands = new List<PdfObject>();
         int recoveries = 0;
@@ -47,6 +130,10 @@ public static class PdfContentStreamReader
             {
                 token = parser.PeekContentToken();
             }
+            catch (PdfSyntaxException) when (!isFinal)
+            {
+                return instructions.AsReadOnly();
+            }
             catch (PdfSyntaxException error) when (compatibilityRecovery)
             {
                 Resynchronize(error.Offset);
@@ -54,14 +141,19 @@ public static class PdfContentStreamReader
             }
             if (token.Kind == PdfTokenKind.EndOfInput)
             {
+                if (!isFinal) return instructions.AsReadOnly();
                 if (operands.Count != 0 && !compatibilityRecovery)
                     throw new PdfSyntaxException("Content ends with operands but no operator", token.Offset);
+                consumed = source.Length;
                 return instructions.AsReadOnly();
             }
 
+            if (!isFinal && token.Offset + token.Length == source.Length)
+                return instructions.AsReadOnly();
+
             if (instructions.Count >= maximumInstructions)
             {
-                if (compatibilityRecovery) return instructions.AsReadOnly();
+                if (compatibilityRecovery && allowInstructionTruncation) return instructions.AsReadOnly();
                 throw new PdfSyntaxException("Content instruction limit exceeded", token.Offset);
             }
 
@@ -72,6 +164,10 @@ public static class PdfContentStreamReader
                 try
                 {
                     operands.Add(parser.ParseObject());
+                }
+                catch (PdfSyntaxException) when (!isFinal)
+                {
+                    return instructions.AsReadOnly();
                 }
                 catch (PdfSyntaxException error) when (compatibilityRecovery)
                 {
@@ -91,9 +187,17 @@ public static class PdfContentStreamReader
                 }
                 try
                 {
-                    instructions.Add(PdfInlineImageReader.Read(parser, source, token.Offset,
+                    var image = PdfInlineImageReader.Read(parser, source, token.Offset,
                         maximumOperands, resolveColorComponents, cancellationToken,
-                        compatibilityRecovery));
+                        compatibilityRecovery);
+                    if (!isFinal && parser.ContentPosition == source.Length)
+                        return instructions.AsReadOnly();
+                    instructions.Add(image);
+                    consumed = parser.ContentPosition;
+                }
+                catch (PdfSyntaxException) when (!isFinal)
+                {
+                    return instructions.AsReadOnly();
                 }
                 catch (PdfSyntaxException error) when (compatibilityRecovery)
                 {
@@ -109,6 +213,7 @@ public static class PdfContentStreamReader
             }
 
             instructions.Add(new PdfContentInstruction(operation, token.Offset, operands));
+            consumed = token.Offset + token.Length;
             operands.Clear();
         }
 

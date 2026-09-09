@@ -130,6 +130,86 @@ public sealed class PdfContentStreamReaderTests
         Assert.Equal(lastOperator, instructions[^1].Operator);
     }
 
+    [Theory]
+    [InlineData("q 1 0 0 1 20 30 cm % interrupted comment\nBT (nested (text) and \\) escape) Tj ET Q")]
+    [InlineData("/Span << /ActualText <FEFF0041> /MCID 0 >> BDC [(A) -20 (B)] TJ EMC")]
+    [InlineData("q BI /W 8 /H 1 /BPC 8 /CS /G ID A EI B CEI Q")]
+    public void PrefixParsingPreservesInstructionsAcrossEveryByteBoundary(string content)
+    {
+        byte[] bytes = Encoding.Latin1.GetBytes(content);
+        var expected = PdfContentStreamReader.Read(bytes, compatibilityRecovery: true);
+        for (int split = 0; split <= bytes.Length; split++)
+        {
+            var prefix = PdfContentStreamReader.ReadPrefix(bytes.AsMemory(0, split),
+                false, out int consumed, compatibilityRecovery: true);
+            var suffix = PdfContentStreamReader.ReadPrefix(bytes.AsMemory(consumed),
+                true, out int remainder, compatibilityRecovery: true);
+            Assert.Equal(bytes.Length, consumed + remainder);
+            Assert.Equal(expected.Count, prefix.Count + suffix.Count);
+            var actual = prefix.Concat(suffix).ToArray();
+            for (int index = 0; index < expected.Count; index++)
+            {
+                Assert.Equal(expected[index].Operator, actual[index].Operator);
+                Assert.Equal(expected[index].Offset, actual[index].Offset
+                    + (index < prefix.Count ? 0 : consumed));
+                Assert.Equal(expected[index].Operands.Count, actual[index].Operands.Count);
+                Assert.Equal(expected[index].InlineImageData?.ToArray(),
+                    actual[index].InlineImageData?.ToArray());
+            }
+        }
+    }
+
+    [Fact]
+    public void PrefixDoesNotRecoverAnUnfinishedStringOrOperator()
+    {
+        var prefix = PdfContentStreamReader.ReadPrefix("q (unfinished Tj Q"u8.ToArray(),
+            false, out int consumed, compatibilityRecovery: true);
+        Assert.Equal("q", Assert.Single(prefix).Operator);
+        Assert.Equal(1, consumed);
+        Assert.Empty(PdfContentStreamReader.ReadPrefix("c"u8.ToArray(), false, out consumed));
+        Assert.Equal(0, consumed);
+        Assert.Throws<PdfSyntaxException>(() => PdfContentStreamReader.ReadPrefix(
+            "(unfinished"u8.ToArray(), true, out _));
+    }
+
+    [Fact]
+    public void StreamingReaderGrowsForImagesAndPreservesGlobalOffsets()
+    {
+        const string unit = "q BI /W 8 /H 1 /BPC 8 /CS /G ID A EI B CEI Q\n";
+        byte[] bytes = Encoding.Latin1.GetBytes(string.Concat(Enumerable.Repeat(unit, 100)));
+        using var stream = new MemoryStream(bytes);
+        var actual = PdfContentStreamReader.Enumerate(stream, initialBufferBytes: 7,
+            maximumBufferedBytes: 128, compatibilityRecovery: true).ToArray();
+        Assert.Equal(300, actual.Length);
+        for (int index = 0; index < 100; index++)
+        {
+            Assert.Equal(index * unit.Length, actual[index * 3].Offset);
+            Assert.Equal("BI", actual[index * 3 + 1].Operator);
+            Assert.Equal("A EI B C"u8.ToArray(), actual[index * 3 + 1].InlineImageData!.Value.ToArray());
+            Assert.Equal("Q", actual[index * 3 + 2].Operator);
+        }
+        Assert.True(stream.CanRead);
+    }
+
+    [Fact]
+    public void StreamingReaderReportsLimitsAndCancellation()
+    {
+        using var exact = new MemoryStream(Encoding.ASCII.GetBytes("(" + new string('a', 27) + ") Tj"));
+        var complete = Assert.Single(PdfContentStreamReader.Enumerate(exact,
+            initialBufferBytes: 8, maximumBufferedBytes: 32));
+        Assert.Equal("Tj", complete.Operator);
+        Assert.Equal(new string('a', 27), Text(Assert.Single(complete.Operands)));
+        using var instructions = new MemoryStream("q Q q Q q Q"u8.ToArray());
+        Assert.Throws<PdfSyntaxException>(() => PdfContentStreamReader.Enumerate(instructions,
+            initialBufferBytes: 4, maximumInstructions: 3, compatibilityRecovery: true).ToArray());
+        using var oversized = new MemoryStream(Encoding.ASCII.GetBytes("(" + new string('a', 100)));
+        Assert.Throws<PdfSyntaxException>(() => PdfContentStreamReader.Enumerate(oversized,
+            initialBufferBytes: 8, maximumBufferedBytes: 32, compatibilityRecovery: true).ToArray());
+        using var canceled = new MemoryStream("q Q"u8.ToArray());
+        Assert.Throws<OperationCanceledException>(() => PdfContentStreamReader.Enumerate(canceled,
+            cancellationToken: new CancellationToken(true)).ToArray());
+    }
+
     private static string Text(PdfObject value) =>
         Encoding.Latin1.GetString(Assert.IsType<PdfString>(value).Bytes.Span);
 }
