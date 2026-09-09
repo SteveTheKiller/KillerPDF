@@ -168,6 +168,16 @@
       "maintenanceCommit": "eac3a045de73b2fe1dd9e327dda09a297d7e5333",
       "developmentCommit": "9d7d7fa5aea72664fedd584dd449c4eb4f30a9f3",
       "reason": "The landing page retains the corrected 1.8.4 installer SHA-256 value from the maintenance release-info correction."
+    },
+    {
+      "maintenanceCommit": "d2db0b3f85c546ac232b425249bffe46bbb56be2",
+      "developmentCommit": "cc972637d15a24fe48b352cef20bdfd7f72a3e91",
+      "reason": "All five landing pages and all 14 translated footers now match maintenance release metadata and its later installer-hash correction. The only HTML difference from local main is the refreshed translation cache version."
+    },
+    {
+      "maintenanceCommit": "f5306b6b5c3507026558f11dd4397487f8eca3c6",
+      "developmentCommit": "cc972637d15a24fe48b352cef20bdfd7f72a3e91",
+      "reason": "The feature-focused Chocolatey summary, package-manager commands, brochure link, shortened hero notes, and subsequent alignment refinements match local main across all seven affected files. Landing HTML differs only by the refreshed translation cache version."
     }
   ]
 }
