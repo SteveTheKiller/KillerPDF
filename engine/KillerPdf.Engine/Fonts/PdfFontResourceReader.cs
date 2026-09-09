@@ -320,6 +320,28 @@ public static class PdfFontResourceReader
                 // A missing host glyph must allow the bundled font fallback, not paint .notdef.
                 return glyph == 0 && resolvedData is not null ? null : embeddedOutlines?.Outline(glyph);
             }
+            var fittedSubstitutes = new Dictionary<uint, PdfGlyphOutline>();
+            PdfGlyphOutline? SubstituteOutline(uint code)
+            {
+                ushort glyph = SubstituteGlyph(code);
+                PdfGlyphOutline? outline = glyph == 0 ? null : substituteOutlines?.Outline(glyph);
+                if (outline is null || composite || code >= glyphNames.Length
+                    || PdfStandardGlyphBounds.Width(standardMetricsName, glyphNames[code]) is not null
+                    || !widths.TryGetValue(code, out double targetWidth) || targetWidth <= 0)
+                    return outline;
+                double naturalWidth = substitute!.GetPdfAdvanceWidth(glyph);
+                if (naturalWidth <= 0 || targetWidth == naturalWidth) return outline;
+                lock (fittedSubstitutes)
+                {
+                    if (fittedSubstitutes.TryGetValue(code, out PdfGlyphOutline? fitted)) return fitted;
+                    double scale = targetWidth / naturalWidth;
+                    fitted = new PdfGlyphOutline(Array.AsReadOnly([.. outline.Contours.Select(contour =>
+                        new PdfGlyphContour(Array.AsReadOnly([.. contour.Points.Select(point =>
+                            point with { X = point.X * scale })])))]));
+                    fittedSubstitutes.Add(code, fitted);
+                    return fitted;
+                }
+            }
             PdfGlyphOutline? BlankOutline(uint code) => !composite
                 && code < glyphNames.Length && glyphNames[code] == "space"
                     ? new PdfGlyphOutline(Array.Empty<PdfGlyphContour>()) : null;
@@ -361,8 +383,7 @@ public static class PdfFontResourceReader
                     ?? CompatibilityOutline(code)
                     ?? (!composite && code < glyphNames.Length
                         ? type1?.GetOutline(glyphNames[code]) : null)
-                    ?? (SubstituteGlyph(code) is ushort substituteGlyph && substituteGlyph != 0
-                        ? substituteOutlines?.Outline(substituteGlyph) : null)
+                    ?? SubstituteOutline(code)
                     ?? BlankOutline(code)
             };
         }

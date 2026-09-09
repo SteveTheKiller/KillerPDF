@@ -36,6 +36,77 @@ public sealed class PdfFontResourceReaderTests
     }
 
     [Theory]
+    [InlineData(400)]
+    [InlineData(900)]
+    public void BundledSubstituteFitsExplicitWidthsWithoutChangingHeight(int width)
+    {
+        PdfExtractionFont natural = Read(D(("Subtype", N("Type1")), ("BaseFont", N("UninstalledFamily")),
+            ("FontDescriptor", D(("Flags", new PdfInteger(2))))));
+        PdfExtractionFont fitted = Read(D(("Subtype", N("Type1")), ("BaseFont", N("UninstalledFamily")),
+            ("FontDescriptor", D(("Flags", new PdfInteger(2)))),
+            ("FirstChar", new PdfInteger(65)),
+            ("Widths", new PdfArray([new PdfInteger(width), new PdfInteger(width * 2)])),
+            ("Encoding", D(("Differences", new PdfArray([new PdfInteger(65), N("A"), N("A")]))))));
+        using Stream stream = typeof(PdfFontResourceReader).Assembly.GetManifestResourceStream(
+            "KillerPdf.Engine.Fonts.LiberationSerif-Regular.ttf")!;
+        using var bytes = new MemoryStream();
+        stream.CopyTo(bytes);
+        TrueTypeFont bundled = TrueTypeFont.LoadForExtraction(bytes.ToArray());
+        double advance = bundled.GetPdfAdvanceWidth(bundled.GetGlyphId(65));
+        var original = Assert.IsType<PdfGlyphOutline>(natural.GetGlyphOutline(65));
+        foreach (uint code in new uint[] { 65, 66 })
+        {
+            var actual = Assert.IsType<PdfGlyphOutline>(fitted.GetGlyphOutline(code));
+            double target = code == 65 ? width : width * 2;
+            Assert.Equal(target, fitted.GetWidth(code));
+            Assert.Equal(original.Contours.SelectMany(contour => contour.Points)
+                .Select(point => point with { X = point.X * (target / advance) }),
+                actual.Contours.SelectMany(contour => contour.Points));
+            Assert.Same(actual, fitted.GetGlyphOutline(code));
+        }
+    }
+
+    [Theory]
+    [InlineData("UninstalledFamily", 0)]
+    [InlineData("UninstalledFamily", -100)]
+    [InlineData("Helvetica", 900)]
+    [InlineData("ArialMT", 900)]
+    public void BundledWidthFittingPreservesStandardAndNonpositiveWidths(string name, int width)
+    {
+        PdfExtractionFont natural = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name))));
+        PdfExtractionFont explicitWidth = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name)),
+            ("FirstChar", new PdfInteger(65)), ("Widths", new PdfArray([new PdfInteger(width)]))));
+        Assert.Equal(width, explicitWidth.GetWidth(65));
+        Assert.Equal(Assert.IsType<PdfGlyphOutline>(natural.GetGlyphOutline(65))
+                .Contours.SelectMany(contour => contour.Points),
+            Assert.IsType<PdfGlyphOutline>(explicitWidth.GetGlyphOutline(65))
+                .Contours.SelectMany(contour => contour.Points));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BundledWidthFittingDoesNotAlterEmbeddedOrResolvedGlyphs(bool hosted)
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);
+        PdfDictionary descriptor = hosted ? D()
+            : D(("FontFile2", new PdfStream(D(), bytes)));
+        PdfExtractionFont ReadWidth(int width) => PdfFontResourceReader.Read(Document,
+            D(("Subtype", N("TrueType")), ("BaseFont", N("UninstalledFamily")),
+                ("FontDescriptor", descriptor), ("FirstChar", new PdfInteger(65)),
+                ("Widths", new PdfArray([new PdfInteger(width)]))),
+            hosted ? new TestFontResolver(bytes) : null);
+        var narrow = ReadWidth(300);
+        var wide = ReadWidth(900);
+        Assert.Equal(300, narrow.GetWidth(65));
+        Assert.Equal(900, wide.GetWidth(65));
+        Assert.Equal(Assert.IsType<PdfGlyphOutline>(narrow.GetGlyphOutline(65))
+                .Contours.SelectMany(contour => contour.Points),
+            Assert.IsType<PdfGlyphOutline>(wide.GetGlyphOutline(65))
+                .Contours.SelectMany(contour => contour.Points));
+    }
+
+    [Theory]
     [InlineData("Helvetica", 1854, -434)]
     [InlineData("Times-Roman", 1825, -443)]
     [InlineData("Courier", 1705, -615)]
