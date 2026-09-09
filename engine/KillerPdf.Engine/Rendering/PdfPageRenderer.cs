@@ -4224,6 +4224,10 @@ public sealed partial class PdfPageRenderer
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         if (directRgb || directGray)
         {
+            double footprintWidth = sourceWidth * (Math.Abs(inverse.A / scaleX) + Math.Abs(inverse.C / scaleY));
+            double footprintHeight = sourceHeight * (Math.Abs(inverse.B / scaleX) + Math.Abs(inverse.D / scaleY));
+            bool areaSample = (inverse.B == 0 && inverse.C == 0 || inverse.A == 0 && inverse.D == 0)
+                && footprintWidth > 1 && footprintHeight > 1;
             double pageStepX = 1 / scaleX;
             double unitStepX = inverse.A * pageStepX;
             double unitStepY = inverse.B * pageStepX;
@@ -4252,12 +4256,16 @@ public sealed partial class PdfPageRenderer
                     int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                     int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
                     int sourceOffset = sourceY * rowBytes + sourceX * components;
+                    uint rgb = areaSample ? PdfImageAreaSampler.Sample(samples, sourceWidth, sourceHeight,
+                        components, unitX * sourceWidth, (1 - unitY) * sourceHeight, footprintWidth, footprintHeight,
+                        cancellationToken)
+                        : directGray ? (uint)samples[sourceOffset] * 0x010101u
+                        : (uint)samples[sourceOffset] << 16 | (uint)samples[sourceOffset + 1] << 8 | samples[sourceOffset + 2];
                     if (inkDirect)
                     {
                         if (!target.Contains(x, y)) continue;
-                        byte sample = samples[sourceOffset];
-                        uint key = directGray ? sample
-                            : (uint)sample << 16 | (uint)samples[sourceOffset + 1] << 8 | samples[sourceOffset + 2];
+                        byte sample = (byte)(rgb >> 16);
+                        uint key = directGray ? sample : rgb;
                         int slot = directGray ? sample : (int)((key * 2654435761u) >> 20);
                         ulong entry = inkLookup[slot];
                         uint ink;
@@ -4265,7 +4273,7 @@ public sealed partial class PdfPageRenderer
                         else
                         {
                             Color sampleColor = directGray ? Color.Gray(sample / 255d)
-                                : new(sample, samples[sourceOffset + 1], samples[sourceOffset + 2]);
+                                : new(sample, (byte)(rgb >> 8), (byte)rgb);
                             ink = target.GetInk(sampleColor);
                             inkLookup[slot] = (ulong)key << 40 | 0x100000000ul | ink;
                         }
@@ -4278,9 +4286,9 @@ public sealed partial class PdfPageRenderer
                     if (stencilAlpha != 1 || target.Ink is not null
                         || target.GroupAlpha is not null && !target.Contains(x, y))
                     {
-                        byte firstSample = samples[sourceOffset];
+                        byte firstSample = (byte)(rgb >> 16);
                         Color color = directGray ? Color.Gray(firstSample / 255d)
-                            : new(firstSample, samples[sourceOffset + 1], samples[sourceOffset + 2]);
+                            : new(firstSample, (byte)(rgb >> 8), (byte)rgb);
                         SetPixel(target, targetWidth, x, y, color, stencilAlpha, blendMode);
                         continue;
                     }
@@ -4289,16 +4297,16 @@ public sealed partial class PdfPageRenderer
                     if (target.GroupAlpha is not null) target.GroupAlpha[targetOffset / 4] = 255;
                     if (directGray)
                     {
-                        byte gray = samples[sourceOffset];
+                        byte gray = (byte)rgb;
                         directData[targetOffset] = gray;
                         directData[targetOffset + 1] = gray;
                         directData[targetOffset + 2] = gray;
                     }
                     else
                     {
-                        directData[targetOffset] = samples[sourceOffset + 2];
-                        directData[targetOffset + 1] = samples[sourceOffset + 1];
-                        directData[targetOffset + 2] = samples[sourceOffset];
+                        directData[targetOffset] = (byte)rgb;
+                        directData[targetOffset + 1] = (byte)(rgb >> 8);
+                        directData[targetOffset + 2] = (byte)(rgb >> 16);
                     }
                     directData[targetOffset + 3] = 255;
                 }
@@ -4308,9 +4316,8 @@ public sealed partial class PdfPageRenderer
         int destinationWidth = right - left, destinationHeight = bottom - top;
         if (destinationWidth <= 0 || destinationHeight <= 0) return;
 
-        // Convert the image once into a device-ready BGRA plane at no more than about the
-        // destination resolution, so color conversion runs per source sample instead of per
-        // painted pixel, then paint by nearest lookup.
+        // Build a bounded plane in destination colors. Average unmasked reduced images
+        // across their source footprints so thin features survive the final nearest lookup.
         int samplingWidth = sourceWidth;
         int samplingHeight = sourceHeight;
         int factor = Math.Max(1, (int)Math.Floor(Math.Min(
@@ -4319,18 +4326,25 @@ public sealed partial class PdfPageRenderer
             > 4_000_000L) factor++;
         int planeWidth = (samplingWidth + factor - 1) / factor;
         int planeHeight = (samplingHeight + factor - 1) / factor;
-        bool directInkSamples = target.Ink is not null && !imageMask && preblendMatte is null
+        bool averagePlane = factor > 1 && !imageMask && preblendMatte is null
+            && colorKeyMask is null && softMask is null;
+        bool directInkSamples = !averagePlane && target.Ink is not null && !imageMask && preblendMatte is null
             && colorKeyMask is null && bits == 8 && components == 4 && colorSpace.Components == 4
             && !colorSpace.DoesNotPaint && colorSpace.Palette is null && colorSpace.Converter is null
             && colorSpace.MultiConverter is null && colorSpace.ComponentRange is null
             && (colorSpace.Profile is null || ReferenceEquals(colorSpace.Profile, target.BlendProfile))
             && decode is [0, 1, 0, 1, 0, 1, 0, 1];
-        bool directDeviceSamples = target.Ink is null && target.RgbProfile is null
+        bool directDeviceSamples = !averagePlane && target.Ink is null && target.RgbProfile is null
             && !imageMask && preblendMatte is null && colorKeyMask is null && bits == 8
             && components == colorSpace.Components && colorSpace.Palette is null
             && colorSpace.Converter is null && colorSpace.MultiConverter is null
             && colorSpace.Profile is null && colorSpace.ComponentRange is null
             && (components == 1 && decode is [0, 1] || components == 3 && decode is [0, 1, 0, 1, 0, 1]);
+        if (averagePlane)
+        {
+            planeWidth = Math.Min(planeWidth, destinationWidth);
+            planeHeight = Math.Min(planeHeight, destinationHeight);
+        }
         byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
         var matteConverter = preblendMatte is not null && !imageMask
@@ -4366,7 +4380,12 @@ public sealed partial class PdfPageRenderer
                         {
                             int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
                             int offset = (py * planeWidth + px) * 4;
-                            uint color = converter.Convert(sx, sy);
+                            uint color = averagePlane
+                                ? converter.ConvertArea(px * (double)sourceWidth / planeWidth,
+                                    py * (double)sourceHeight / planeHeight,
+                                    (px + 1) * (double)sourceWidth / planeWidth,
+                                    (py + 1) * (double)sourceHeight / planeHeight, cancellationToken)
+                                : converter.Convert(sx, sy);
                             int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
                                 ? 0 : 255;
                             if (targetInk)
@@ -4714,6 +4733,31 @@ public sealed partial class PdfPageRenderer
             for (int component = 0; component < _components; component++)
                 _values[component] = Decode(component, Raw(x, y, component));
             return ConvertDecoded(_colorSpace);
+        }
+
+        internal uint ConvertArea(double left, double top, double right, double bottom,
+            CancellationToken cancellationToken)
+        {
+            double first = 0, second = 0, third = 0, fourth = 0;
+            for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                double vertical = Math.Min(y + 1, bottom) - Math.Max(y, top);
+                for (int x = (int)left; x < (int)Math.Ceiling(right); x++)
+                {
+                    double weight = vertical * (Math.Min(x + 1, right) - Math.Max(x, left));
+                    uint color = Convert(x, y);
+                    first += (byte)color * weight;
+                    second += (byte)(color >> 8) * weight;
+                    third += (byte)(color >> 16) * weight;
+                    fourth += (byte)(color >> 24) * weight;
+                }
+            }
+            double area = (right - left) * (bottom - top);
+            return (uint)Math.Clamp(Math.Round(first / area), 0, 255)
+                | (uint)Math.Clamp(Math.Round(second / area), 0, 255) << 8
+                | (uint)Math.Clamp(Math.Round(third / area), 0, 255) << 16
+                | (uint)Math.Clamp(Math.Round(fourth / area), 0, 255) << 24;
         }
 
         private uint ConvertRaw(int first, int second, int third, int fourth)

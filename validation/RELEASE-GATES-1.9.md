@@ -78,7 +78,27 @@ changed in this checkpoint. The other visual differences remain open.
 
 In `altona_technical_1v2_x3.pdf`, the right-hand text sample is a 947 by 301
 pixel image (object 201), painted through nested Forms at 245.2755 by 78.56151
-page units. It is visibly rougher in the engine output than in PDFium. The
-current image path reduces its sampling grid by an integer factor and uses
-nearest-sample lookup. Investigate image reduction for this discrepancy before
-changing font rendering. This does not dispose of the page's other differences.
+page units. Runtime tracing confirmed that clipping sends it through the
+general image path with direct device samples and integer grid reduction.
+Area averaging now preserves its thin strokes and visibly smooths the text.
+Unmasked converted images and plain gray/RGB reductions also use area averaging;
+masked images retain their existing sampling. This does not dispose of the
+page's other differences.
+
+The area-averaging checkpoint renders all 674 pages successfully. Seven difficult
+outputs and 61 shared outputs have lower mean RGB error against PDFium; 604 are
+unchanged. Two shared outputs have small increases: the Altona drop-shadow page
+changes from 8.663269 to 8.682427 and Arakawa-2025-Lab_Animal from 5.215518 to
+5.215681. Visual inspection of the former shows smoother raster text. Raw scores
+are in `area-complete-Broad-analysis.json` and `area-complete-Shared-analysis.json`.
+All 3,747 engine tests and 352 app tests pass, including reduction under clipping,
+quarter-turn rotation, and fractional edge weighting.
+
+This fidelity improvement has an unresolved performance cost. A separate
+baseline/new/new/baseline difficult-batch check records render totals of
+8.905/10.291/10.252/9.150 seconds and wall times of
+13.954/15.358/15.352/14.282 seconds in `area-timing-results.csv`. These four
+passes are a focused before/after check, not a replacement for the full paired
+PDFium measurements above, which predate area averaging. Much of the added cost
+is in 42828.0001.001.pdf and balloon_a1b_jp2k.pdf. Optimize the averaging path
+while preserving the recovered detail; speed parity remains open.
