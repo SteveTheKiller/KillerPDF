@@ -148,6 +148,26 @@
       "maintenanceCommit": "064e2fa6b5fb44ef23edb112d75c1f3449fb91f3",
       "developmentCommit": "a2fce27e2df77b2b42607651cf1708a5262df62c",
       "reason": "The install-instruction alignment, brochure link, translations, and cache-version edits match across all six files; surrounding release-version text differs between branches."
+    },
+    {
+      "maintenanceCommit": "fbf02cd5f7f99c836ddb117a8191ea56467525e8",
+      "developmentCommit": "973e1cc909466bf66d31d9370d9ba6fb2e9c9530",
+      "reason": "The latest stable corresponding-source URL points to the 1.8.4 archive while retaining the development README wording."
+    },
+    {
+      "maintenanceCommit": "8102c4c71553f9ed6cb89b25ad4d00d3d347b6e7",
+      "developmentCommit": "c14cec16428c72cd31c6fdb9773c93b0f9905bb2",
+      "reason": "The 1.8.4 changelog retains September 6 as its release date. Active 1.9 development metadata uses Unreleased rather than an earlier release date, verified in the built application."
+    },
+    {
+      "maintenanceCommit": "7c07c4f33fc91f4d5ececdc4fadd950ebd763daa",
+      "developmentCommit": "a7f0e0cbf8e90f8a8b9f7b92cf6c55b4cc694a26",
+      "reason": "Both 1.8.5 changelog entries, including the batch-render addition, are retained. Active application, assembly, and engine versions stay at 1.9.0 for Overkill instead of adopting the maintenance branch version."
+    },
+    {
+      "maintenanceCommit": "eac3a045de73b2fe1dd9e327dda09a297d7e5333",
+      "developmentCommit": "9d7d7fa5aea72664fedd584dd449c4eb4f30a9f3",
+      "reason": "The landing page retains the corrected 1.8.4 installer SHA-256 value from the maintenance release-info correction."
     }
   ]
 }

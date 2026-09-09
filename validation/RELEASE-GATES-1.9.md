@@ -17,13 +17,15 @@ behind an overall average.
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 12.205 versus 12.829 seconds; shared wall time is 24.244 versus 23.873 seconds. Difficult render time is 9.683 versus 5.195 seconds and wall time is 15.049 versus 10.707 seconds. The focused optimizations do not establish general speed parity. |
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
-| Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 29 verified maintenance ports against local main at 5dd609f. The guard still reports seven release-history, brochure, and website commits requiring disposition. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,736 engine tests, 352 app tests, and the Release payload publish pass with the RGB-to-ink fast path. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,737 engine tests, 352 app tests, and the Release payload publish pass with vectorized inverse interpolation. The exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
-with all warmups, alternating runs, retained images, and DLL hashes. The current
+with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
 timings are in `rgb-ink-results.csv`, from the rendering code committed as
-`4e7d038`. All 674 retained images match the missing-font checkpoint; the
+`4e7d038`, before vectorized interpolation. The timing and memory figures above
+describe that checkpoint, not a remeasurement of the latest vectorized payload.
+All 674 retained images match the missing-font checkpoint; the
 comparison and timing ranges are in `rgb-ink-analysis.json`. Both applications were
 published locally with the framework-dependent Windows payload settings used
 by the packaging script. These supersede the woven development-build timings
@@ -52,3 +54,12 @@ it cannot reconstruct an absent original font. Strict behavior is preserved.
 
 Unmeasured interactive behavior and known speed and fidelity gaps remain
 release gates.
+
+The later vectorized inverse at `5d0d8ec` matches all 16,777,216 RGB inputs to
+the scalar reference, including a separate test with hardware intrinsics disabled.
+Two reversed-order pairs on the same profiled page reduce steady medians from
+308.052 and 281.686 to 277.619 and 246.561 milliseconds, respectively, with
+identical hashes. The accelerated path lazily adds about 154 KiB of shared lookup
+storage. `rgb-vector-pixels.json` confirms unchanged pixels for all 674 retained
+application outputs. Whole-pipeline timing and peak memory have not been remeasured
+for this later change.
