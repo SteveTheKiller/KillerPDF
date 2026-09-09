@@ -13,8 +13,8 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 525.6 versus 614.6 MiB shared and 266.3 versus 260.4 MiB difficult, including grayscale lookup, TIFF prediction, and transparent-backdrop compositing improvements. Difficult engine peaks range from 265.1 to 270.6 MiB, with a median about 2% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 13.499 versus 11.877 seconds; shared wall time is 25.190 versus 22.501 seconds. Difficult render time is 9.715 versus 4.763 seconds and wall time is 14.850 versus 9.886 seconds. The focused optimizations do not establish general speed parity. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 536.1 versus 614.6 MiB shared and 266.6 versus 260.6 MiB difficult, including larger image caches and packed sample reads. Difficult engine peaks range from 266.2 to 271.0 MiB, with a median about 2% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.907 versus 14.205 seconds; shared wall time is 28.796 versus 25.742 seconds. Difficult render time is 10.022 versus 5.061 seconds and wall time is 15.300 versus 10.519 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
@@ -22,13 +22,13 @@ behind an overall average.
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
-timings are in `ink-transparent-paired-results.csv`, from the rendering code committed as
-`cf976c1`, including grayscale lookup, TIFF prediction, and transparent-backdrop compositing.
+timings are in `packed-key-paired-results.csv`, from the rendering code committed as
+`47edfd8`, including larger image caches and packed sample reads.
 All 16 passes completed without
 failures; run zero is excluded as warmup. The timing and memory figures above
 describe this payload. All 5,392 outputs across four passes of both applications
 match their respective retained images. The comparison, timing ranges, and
-per-page gap rankings are in `ink-transparent-paired-analysis.json`. Both applications were
+per-page gap rankings are in `packed-key-paired-analysis.json`. Both applications were
 published locally with the framework-dependent Windows payload settings used
 by the packaging script. These supersede the woven development-build timings
 in `committed-cmyk-results.csv`; all 674 retained images per application match
@@ -269,7 +269,7 @@ a 13% to 16% improvement on this Altona page. All 320 hashes match with zero
 diagnostics. `image-cache14-summary.json` and `image-cache14-timing-*.csv` retain
 the data in `parity-20260909-ghent`. The published and measured engine SHA-256 is
 `7B0C7632C0A35E798C69327DAC55722FA553533CCEFF587347CBA1AE127D62D6`.
-The full application comparison above predates this change. Averaging overhead,
+The earlier `cf976c1` application comparison predates this change. Averaging overhead,
 remaining decoding costs, and broader parity gates remain open.
 
 A profile of the larger-cache build attributes 16.13 of 41.35 rendering seconds
@@ -297,5 +297,31 @@ the varying timings do not establish a broader application gain. All 240 hashes
 match with zero diagnostics (`packed-key-summary.json` and timing CSVs).
 The published and measured engine SHA-256 is
 `B8DF5FDF2AE4FA8B17DA64D9B880EAC68B1854DE1A7CCF83E26003AB6064C334`.
-The paired application comparison above predates this change. Overall performance,
+The earlier `cf976c1` application comparison predates this change. Overall performance,
 rendering fidelity, and interactive parity gates remain open.
+
+The full `47edfd8` application comparison now includes both image-cache changes.
+All 16 passes succeed, and all 5,392 output images match their respective retained
+images. Shared measured render ranges are 15.463-16.514 seconds for the engine
+and 13.169-14.757 for PDFium. Difficult ranges are 9.935-10.090 and 4.948-5.390.
+The within-series median gaps remain about 12% shared and 98% difficult; do not
+infer a speedup or regression by subtracting timings from the earlier session.
+
+The largest difficult-page gaps are balloon JPEG 2000 (1,144/464 milliseconds),
+Ghent combined test page 2 (619/145), and response-to-fiber-concerns (502/87).
+The large Altona page remains a shared-workload outlier (1,288/708). Fresh-process
+batch timings differ substantially from warmed single-page harness timings.
+Investigate the actual application batch profile before choosing another isolated
+averaging optimization. The application SHA-256 is
+`79B0F821D244957745CE277E365E5FF368F96E2C8D6BAE962E8C2A338EE6C264`;
+the engine SHA-256 remains the packed-read hash recorded above.
+
+The actual difficult-page application batch profile completes all 74 pages
+(`packed-key-app-broad.nettrace`). Restricting analysis to managed `CPU_TIME`
+samples, coverage painting contributes 957 milliseconds directly, image area
+conversion 793, and RGB-to-CMYK conversion 464. Rendering contributes 9,032
+milliseconds inclusively across sampled threads. These values are profile
+attribution, not independent wall-clock timings. Unmanaged intervals and thread
+waits are excluded from `packed-key-app-managed-profile.json`; the unfiltered
+summary must not be presented as CPU time. Coverage painting is the next engine
+target to investigate, alongside the still-open fidelity and interactive gates.
