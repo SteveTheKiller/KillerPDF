@@ -271,3 +271,15 @@ the data in `parity-20260909-ghent`. The published and measured engine SHA-256 i
 `7B0C7632C0A35E798C69327DAC55722FA553533CCEFF587347CBA1AE127D62D6`.
 The full application comparison above predates this change. Averaging overhead,
 remaining decoding costs, and broader parity gates remain open.
+
+A profile of the larger-cache build attributes 16.13 of 41.35 rendering seconds
+in its latter half directly to area averaging, with 27.91 seconds including
+called conversion work (`altona-cache14-profile-summary.json`). Reusing horizontal
+weights through a bounded stack buffer was tested and removed: two reversed-order
+60-render pairs, excluding the first 30, produced baseline/candidate medians of
+1,009.161/1,299.699 and 1,099.236/1,128.199 milliseconds. The wide timing ranges
+do not support a precise regression estimate, but neither pair showed a gain.
+All 240 output hashes match with zero diagnostics. `area-horizontal-summary.json`
+and its timing CSVs retain this rejected experiment outside the repository.
+The next averaging experiment should address accumulation or sample access
+without adding a per-footprint weight buffer. No renderer change was retained.
