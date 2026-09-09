@@ -32,6 +32,9 @@
     <Compile Include="..\Services\ProtocolRegistrar.cs" Link="Services\ProtocolRegistrar.cs" />
     <Compile Include="..\Services\PerspectiveWarp.cs" Link="Services\PerspectiveWarp.cs" />
     <Compile Include="..\Services\PdfFontStyle.cs" Link="Services\PdfFontStyle.cs" />
+    <Compile Include="..\Services\PdfPageRenderSession.cs" Link="Services\PdfPageRenderSession.cs" />
+    <Compile Include="..\Services\PdfEncodingBufferPool.cs" Link="Services\PdfEncodingBufferPool.cs" />
+    <Compile Include="..\Services\InstalledPdfFontResolver.cs" Link="Services\InstalledPdfFontResolver.cs" />
     <Compile Include="..\Services\PdfBurn.cs" Link="Services\PdfBurn.cs" />
     <Compile Include="..\Services\AnnotationRotate.cs" Link="Services\AnnotationRotate.cs" />
     <Compile Include="..\Services\WheelPageFlipGate.cs" Link="Services\WheelPageFlipGate.cs" />

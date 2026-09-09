@@ -137,12 +137,14 @@ internal sealed class PdfPageRenderSession : IDisposable
             throw new ArgumentOutOfRangeException(nameof(pageIndex));
         EnginePageInformation pageInformation = _enginePages[pageIndex];
         bool quarterTurn = pageInformation.Rotation is 90 or 270;
-        double pageWidth = quarterTurn ? pageInformation.Height : pageInformation.Width;
-        double pageHeight = quarterTurn ? pageInformation.Width : pageInformation.Height;
+        // The previous viewer exposed single-precision page geometry before scaling.
+        double pageWidth = (float)(quarterTurn ? pageInformation.Height : pageInformation.Width);
+        double pageHeight = (float)(quarterTurn ? pageInformation.Width : pageInformation.Height);
         double renderScale = _scale > 0
             ? _scale : Math.Min(_maximumWidth / pageWidth, _maximumHeight / pageHeight);
-        int engineWidth = Math.Max(1, (int)Math.Round(pageWidth * renderScale));
-        int engineHeight = Math.Max(1, (int)Math.Round(pageHeight * renderScale));
+        // Preserve the previous viewer's truncation of scaled page dimensions.
+        int engineWidth = Math.Max(1, (int)(pageWidth * renderScale));
+        int engineHeight = Math.Max(1, (int)(pageHeight * renderScale));
         return new EngineRenderOptions(engineWidth, engineHeight, transparentBackground,
             includeAnnotations, includeFormFields)
         { MaximumParallelism = RenderParallelism(engineWidth, engineHeight) };
