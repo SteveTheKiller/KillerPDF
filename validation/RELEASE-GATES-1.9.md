@@ -13,8 +13,8 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 530.1 versus 614.6 MiB shared and 266.1 versus 260.4 MiB difficult, including area averaging and reduced decoder clearing. Difficult engine peaks range from 265.5 to 269.7 MiB, with a median about 2% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 13.491 versus 11.883 seconds; shared wall time is 24.991 versus 22.429 seconds. Difficult render time is 9.648 versus 4.709 seconds and wall time is 14.707 versus 9.825 seconds. The focused optimizations do not establish general speed parity. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 525.6 versus 614.6 MiB shared and 266.3 versus 260.4 MiB difficult, including grayscale lookup, TIFF prediction, and transparent-backdrop compositing improvements. Difficult engine peaks range from 265.1 to 270.6 MiB, with a median about 2% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 13.499 versus 11.877 seconds; shared wall time is 25.190 versus 22.501 seconds. Difficult render time is 9.715 versus 4.763 seconds and wall time is 14.850 versus 9.886 seconds. The focused optimizations do not establish general speed parity. |
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
@@ -22,12 +22,13 @@ behind an overall average.
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
-timings are in `frame-clear-paired-results.csv`, from the rendering code committed as
-`df7e6b4`, including area averaging and reduced decoder clearing. All 16 passes completed without
+timings are in `ink-transparent-paired-results.csv`, from the rendering code committed as
+`cf976c1`, including grayscale lookup, TIFF prediction, and transparent-backdrop compositing.
+All 16 passes completed without
 failures; run zero is excluded as warmup. The timing and memory figures above
 describe this payload. All 5,392 outputs across four passes of both applications
 match their respective retained images. The comparison, timing ranges, and
-per-page gap rankings are in `frame-clear-paired-analysis.json`. Both applications were
+per-page gap rankings are in `ink-transparent-paired-analysis.json`. Both applications were
 published locally with the framework-dependent Windows payload settings used
 by the packaging script. These supersede the woven development-build timings
 in `committed-cmyk-results.csv`; all 674 retained images per application match
@@ -172,7 +173,7 @@ the four `frame-clear-*.csv` files retain the data in `parity-20260909-ghent`.
 The published and measured engine SHA-256 is
 `A208E82F48852EB4474C345049BA97E65A522B692E49C336B73719D225DBE855`.
 
-The refreshed paired run confirms that balloon and Ghent combined-suite page 2
+The earlier `frame-clear-paired-results.csv` run confirms that balloon and Ghent combined-suite page 2
 remain major difficult-page gaps (968/426 and 641/132 milliseconds respectively).
 The shared set also identifies `GWG182_16Bit_Images_ICCbasedGray_x4.pdf` at
 295/45 milliseconds before grayscale lookup caching. Its 684 by 684, 16-bit ICC
@@ -193,7 +194,7 @@ All 320 hashes match with zero diagnostics, a roughly 58% reduction on this page
 `gray16-lookup-summary.json` and `gray16-timing-*.csv` retain the data in
 `parity-20260909-ghent`. The published and measured engine SHA-256 is
 `E2EDB20F6EEC616AAE2009347FBC0579A6086ED95617D9DF317F0703E7EDDB52`.
-The full paired application measurements above predate this change. The same
+The earlier `frame-clear-paired-results.csv` measurements predate this change. The same
 profile identified bit-by-bit TIFF prediction as another substantial cost.
 
 TIFF prediction now reconstructs eight-bit bytes and big-endian 16-bit words
@@ -210,7 +211,7 @@ milliseconds. All 320 hashes match with zero diagnostics, a 45% to 47% reduction
 on the profiled page. `tiff-direct-summary.json` and `tiff-timing-*.csv` retain the
 measurements in `parity-20260909-ghent`. The published and measured engine SHA-256
 is `530B72A65095D0E50A3E36D10B67962B227BC72B179659B9773D75BDDFD56121`.
-The full application comparison still predates both changes; overall speed,
+The earlier `frame-clear-paired-results.csv` comparison predates both changes; overall speed,
 fidelity, and interactive parity remain open.
 
 Ghent combined-suite page 2 has distributed costs. The latter half of a
@@ -235,3 +236,14 @@ retain the measurements in `parity-20260909-ghent`. The published and measured
 engine SHA-256 is `F55A523A3D9EE001DDF730DF590C0F2612C9E1B92CD8338753DDC749E0F29520`.
 This does not establish general speed parity. Form processing, memory management,
 and the other release gates remain open.
+
+The current full application run includes these changes and confirms a median
+70/46 milliseconds for the targeted 16-bit grayscale page. It also confirms that
+the overall shared and difficult workloads remain slower; there is no established
+batch-wide speed gain relative to the preceding application checkpoint.
+The largest shared-set gap is now the first page of
+`eci_altona-test-suite-v2_technical2_one-patch-per-page_x4.pdf`, at 1,048/687
+milliseconds. It contains a 6,784 by 3,392, eight-bit DeviceCMYK Flate image
+(object 1239), plus two smaller CMYK images. Profile its decoding and painting
+before selecting the next change. All 5,392 repeated output images match their
+respective retained images; this consistency check does not establish visual parity.
