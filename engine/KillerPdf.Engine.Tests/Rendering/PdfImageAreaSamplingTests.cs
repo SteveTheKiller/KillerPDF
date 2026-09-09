@@ -108,4 +108,45 @@ public sealed class PdfImageAreaSamplingTests
         Assert.Throws<OperationCanceledException>(() => PdfImageAreaSampler.Sample(new byte[27],
             3, 3, 3, 1.5, 1.5, 2, 2, new CancellationToken(canceled: true)));
     }
+
+    [Theory]
+    [InlineData(17, 19, 5, 7)]
+    [InlineData(32768, 14, 16384, 2)]
+    [InlineData(32768, 15, 16384, 2)]
+    public void ConvertedImageReductionMatchesIndependentAreaAverage(int width, int height, int outputWidth, int outputHeight)
+    {
+        byte[] samples = Enumerable.Range(0, width * height * 4)
+            .Select(index => (byte)(index * 37 + index / width * 13)).ToArray();
+        var content = new PdfContentStreamBuilder().DrawImage(
+            PdfImage.FromCmyk(width, height, samples), 0, 0, outputWidth, outputHeight);
+        var document = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(outputWidth, outputHeight, content).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(outputWidth, outputHeight));
+        Assert.Empty(rendered.Diagnostics);
+        for (int py = 0; py < outputHeight; py++)
+        for (int px = 0; px < outputWidth; px++)
+        {
+            double left = px * (double)width / outputWidth;
+            double right = (px + 1) * (double)width / outputWidth;
+            double top = py * (double)height / outputHeight;
+            double bottom = (py + 1) * (double)height / outputHeight;
+            double red = 0, green = 0, blue = 0;
+            for (int y = (int)top; y < Math.Ceiling(bottom); y++)
+            for (int x = (int)left; x < Math.Ceiling(right); x++)
+            {
+                uint ink = BinaryPrimitives.ReadUInt32LittleEndian(samples.AsSpan((y * width + x) * 4));
+                uint rgb = PdfDeviceCmyk.ToRgb(ink);
+                double weight = (Math.Min(y + 1, bottom) - Math.Max(y, top))
+                    * (Math.Min(x + 1, right) - Math.Max(x, left));
+                red += (byte)(rgb >> 16) * weight;
+                green += (byte)(rgb >> 8) * weight;
+                blue += (byte)rgb * weight;
+            }
+            double area = (right - left) * (bottom - top);
+            Assert.Equal(new byte[] { (byte)Math.Round(blue / area), (byte)Math.Round(green / area),
+                    (byte)Math.Round(red / area), 255 },
+                rendered.Pixels.Slice((py * outputWidth + px) * 4, 4).ToArray());
+        }
+    }
 }

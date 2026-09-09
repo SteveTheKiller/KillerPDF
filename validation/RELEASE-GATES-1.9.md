@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,811 engine tests, 352 app tests, and the Release payload publish pass with descriptor-aware bundled font fallback and explicit width fitting. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,814 engine tests pass, including independent converted-image area averages. The unchanged runtime also has 352 passing app tests and a successful Release payload publish with descriptor-aware bundled font fallback and explicit width fitting. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -428,3 +428,13 @@ and zero diagnostics. The 9% to 16% slowdown is recorded in
 `parity-20260909-ghent/area-vector-summary.json` and the two timing CSVs.
 The experiment is removed; renderer source matches the verified width-fitting
 checkpoint. No performance gain is claimed from this attempt.
+
+A bounded converted-row cache was also rejected. It retained at most 1 MiB of
+pixel samples per converter, avoiding repeated conversion across neighboring
+footprints. On the same Altona workload, two reversed-order pairs of 60 renders
+(first 30 excluded) produced scalar/cache medians of 893.599/866.656 and
+874.098/889.435 ms. All 240 hashes match the scalar reference, but the ordering
+reverses the small timing benefit. Extra row storage is not retained. Results
+are in `parity-20260909-ghent/area-rows-summary.json` and its two timing CSVs.
+Three independent CMYK area-average checks cover fractional dimensions and
+both sides of the attempted cache limit; these remain as regression coverage.
