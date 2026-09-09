@@ -120,8 +120,10 @@ public sealed class PdfPageRendererImageOpacityTests
             _ => PdfImage.FromCmyk(1, 1, new byte[] { 0, 0, 0, 255 })
         };
         var content = new PdfContentStreamBuilder().SetOpacity(opacity, 1)
-            .DrawImage(image, 0, 0, 1, 1)
-            .SetFillGray(0).Rectangle(1, 0, 1, 1).Fill();
+            .DrawImage(image, 0, 0, 1, 1);
+        if (components == 4) content.SetFillCmyk(0, 0, 0, 1);
+        else content.SetFillGray(0);
+        content.Rectangle(1, 0, 1, 1).Fill();
         var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1, content).Build());
         PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(2, 1));
 

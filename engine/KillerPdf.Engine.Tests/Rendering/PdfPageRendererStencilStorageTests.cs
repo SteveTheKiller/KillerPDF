@@ -47,9 +47,9 @@ public sealed class PdfPageRendererStencilStorageTests
             {
                 bool paints = (x + y) % 2 == 0;
                 int offset = (y * size + x) * 4;
-                Assert.Equal(paints ? 0 : 255, pixels[offset]);
-                Assert.Equal(paints ? 0 : 255, pixels[offset + 1]);
-                Assert.Equal(255, pixels[offset + 2]);
+                Assert.Equal(paints ? cmyk ? 35 : 0 : 255, pixels[offset]);
+                Assert.Equal(paints ? cmyk ? 29 : 0 : 255, pixels[offset + 1]);
+                Assert.Equal(paints && cmyk ? 238 : 255, pixels[offset + 2]);
                 Assert.Equal(paints ? 255 : 0, pixels[offset + 3]);
             }
     }

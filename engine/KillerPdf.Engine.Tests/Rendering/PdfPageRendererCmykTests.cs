@@ -25,8 +25,8 @@ public sealed class PdfPageRendererCmykTests
             new PdfRenderOptions(3, 1, transparentBackground: transparent));
 
         Assert.Equal(transparent
-            ? new byte[] { 255, 255, 255, 0, 255, 0, 255, 64, 255, 0, 255, 128 }
-            : new byte[] { 255, 255, 255, 255, 255, 191, 255, 255, 255, 128, 255, 255 },
+            ? new byte[] { 255, 255, 255, 0, 140, 2, 237, 64, 140, 2, 237, 128 }
+            : new byte[] { 255, 255, 255, 255, 226, 192, 250, 255, 198, 128, 246, 255 },
             page.Pixels.ToArray());
         Assert.Empty(page.Diagnostics);
     }
@@ -64,7 +64,7 @@ public sealed class PdfPageRendererCmykTests
             new PdfDictionary(page.Append(new KeyValuePair<PdfName, PdfObject>(Name("Group"), group))));
         PdfRenderedPage rendered = new PdfPageRenderer(PdfDocument.Open(update.Build()))
             .Render(0, new PdfRenderOptions(2, 1));
-        Assert.Equal(new byte[] { 255, 255, 255, 255, 255, 0, 255, 255 }, rendered.Pixels.ToArray());
+        Assert.Equal(new byte[] { 255, 255, 255, 255, 140, 2, 237, 255 }, rendered.Pixels.ToArray());
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -80,7 +80,7 @@ public sealed class PdfPageRendererCmykTests
 
         PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(2, 1));
 
-        Assert.Equal(new byte[] { 95, 63, 31, 255, 95, 63, 31, 255 }, page.Pixels.ToArray());
+        Assert.Equal(new byte[] { 93, 69, 42, 255, 93, 69, 42, 255 }, page.Pixels.ToArray());
         Assert.Empty(page.Diagnostics);
     }
 
@@ -93,7 +93,7 @@ public sealed class PdfPageRendererCmykTests
 
         PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(4, 1));
 
-        Assert.Equal(new byte[] { 127, 95, 63, 31 },
+        Assert.Equal(new byte[] { 147, 108, 60, 0 },
             Enumerable.Range(0, 4).Select(x => page.Pixels.Span[x * 4 + 2]).ToArray());
         Assert.Empty(page.Diagnostics);
     }

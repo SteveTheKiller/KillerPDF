@@ -26,8 +26,9 @@ public sealed class PdfPageRendererKnockoutBoundsTests
         for (int y = 0; y < 10; y++)
             for (int x = 0; x < 10; x++)
                 Assert.Equal(Pixel(origin, x, 20 + y), Pixel(moved, 7 + x, 11 + y));
-        Assert.Equal(new byte[] { 128, 128, 128, 255 }, Pixel(moved, 6, 15));
-        Assert.Equal(new byte[] { 128, 128, 128, 255 }, Pixel(moved, 17, 15));
+        byte[] backdrop = Pixel(Render(40, 30, isolated, opacity, cmyk), 6, 15);
+        Assert.Equal(backdrop, Pixel(moved, 6, 15));
+        Assert.Equal(backdrop, Pixel(moved, 17, 15));
         Assert.NotEqual(Pixel(moved, 8, 15), Pixel(moved, 12, 15));
         Assert.Empty(moved.Diagnostics);
     }

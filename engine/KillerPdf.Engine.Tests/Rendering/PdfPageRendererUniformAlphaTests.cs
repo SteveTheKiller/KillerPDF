@@ -42,9 +42,9 @@ public sealed class PdfPageRendererUniformAlphaTests
             Assert.Empty(diagnostics);
             for (int offset = 0; offset < pixels.Length; offset += 4)
             {
-                Assert.Equal(paint ? 0 : 255, pixels[offset]);
-                Assert.Equal(paint ? 0 : 255, pixels[offset + 1]);
-                Assert.Equal(255, pixels[offset + 2]);
+                Assert.Equal(paint ? 35 : 255, pixels[offset]);
+                Assert.Equal(paint ? 29 : 255, pixels[offset + 1]);
+                Assert.Equal(paint ? 238 : 255, pixels[offset + 2]);
                 Assert.Equal(255, pixels[offset + 3]);
             }
         }
@@ -88,10 +88,12 @@ public sealed class PdfPageRendererUniformAlphaTests
         PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0,
             new PdfRenderOptions(3, 1, transparentBackground: transparent));
         Assert.Empty(rendered.Diagnostics);
-        Assert.Equal(new byte[] { 0, 0, 255, 255 }, rendered.Pixels.Slice(0, 4).ToArray());
+        Assert.Equal(PdfDeviceCmykTests.RenderInk(0, 255, 255), rendered.Pixels.Slice(0, 4).ToArray());
         byte faded = !transparent && !knockout ? (byte)127 : (byte)0;
         byte middleAlpha = transparent && !knockout ? (byte)128 : (byte)255;
-        Assert.Equal(new byte[] { 255, faded, faded, middleAlpha }, rendered.Pixels.Slice(4, 4).ToArray());
+        byte[] middle = PdfDeviceCmykTests.RenderInk((byte)(255 - faded), (byte)(255 - faded));
+        middle[3] = middleAlpha;
+        Assert.Equal(middle, rendered.Pixels.Slice(4, 4).ToArray());
         Assert.Equal(new byte[] { 255, 255, 255, transparent ? (byte)0 : (byte)255 },
             rendered.Pixels.Slice(8, 4).ToArray());
     }

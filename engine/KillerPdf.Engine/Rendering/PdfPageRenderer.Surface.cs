@@ -295,30 +295,6 @@ public sealed partial class PdfPageRenderer
                 RgbProfile = null;
                 return;
             }
-            if (InkProfile is null)
-            {
-                // Unprofiled ink: the same table lookups InkColor makes, applied to the ink
-                // bytes in place, with the alpha plane or constant read directly.
-                byte[] data = Data;
-                byte[] table = InkDisplayTable;
-                byte[]? inkAlpha = InkAlpha;
-                byte constantAlpha = _constantAlpha;
-                int length = Length;
-                for (int offset = 0; offset < length; offset += 4)
-                {
-                    if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                    int blackRow = data[offset + 3] * 256;
-                    byte red = table[blackRow + data[offset]];
-                    byte green = table[blackRow + data[offset + 1]];
-                    byte blue = table[blackRow + data[offset + 2]];
-                    data[offset] = blue;
-                    data[offset + 1] = green;
-                    data[offset + 2] = red;
-                    data[offset + 3] = inkAlpha is null ? constantAlpha : inkAlpha[offset >> 2];
-                }
-                Ink = null;
-                return;
-            }
             uint previousInk = 0;
             uint previousRgb = 0;
             Span<ulong> colors = stackalloc ulong[4096];
@@ -340,8 +316,12 @@ public sealed partial class PdfPageRenderer
                     }
                     else
                     {
-                        Color color = ProfileInkToDisplay(ink, InkProfile);
-                        rgb = (uint)(color.Red << 16 | color.Green << 8 | color.Blue);
+                        if (InkProfile is null) rgb = PdfDeviceCmyk.ToRgb(ink);
+                        else
+                        {
+                            Color color = ProfileInkToDisplay(ink, InkProfile);
+                            rgb = (uint)(color.Red << 16 | color.Green << 8 | color.Blue);
+                        }
                         colors[slot] = ((ulong)ink << 32) | rgb;
                         occupied[slot >> 5] |= bit;
                     }

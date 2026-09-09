@@ -1147,7 +1147,7 @@ public sealed partial class PdfPageRenderer
                 {
                     if (!deviceLuminosity && color.Connection is { } connection)
                         return Math.Clamp(connection.Y, 0, 1);
-                    if (deviceLuminosity && color.Ink is uint ink) color = InkColor(ink);
+                    if (deviceLuminosity && color.Ink is uint ink) color = InkLuminosityColor(ink);
                     return (0.3 * color.Red + 0.59 * color.Green + 0.11 * color.Blue) / 255d;
                 }
                 Func<double, Color>? transfer = null;
@@ -1227,7 +1227,7 @@ public sealed partial class PdfPageRenderer
                                 return (byte)Math.Round((0.3 * red + 0.59 * green + 0.11 * blue) / 255d * 255);
                             }
                             Color color = luminosity ? deviceLuminosity && maskPixels.Ink is not null
-                                ? InkColor(ReadInk(maskPixels.Ink, offset)) : maskPixels.ReadColor(offset) : default;
+                                ? InkLuminosityColor(ReadInk(maskPixels.Ink, offset)) : maskPixels.ReadColor(offset) : default;
                             double sample = luminosity
                                 ? Luminosity(color)
                                 : maskPixels.Alpha(offset) / 255d;
@@ -4597,16 +4597,6 @@ public sealed partial class PdfPageRenderer
         private readonly bool _directGray;
         private readonly bool _directCmyk;
 
-        // Display value of one unprofiled CMYK channel for every (ink, black) byte pair,
-        // computed with Color.Cmyk's own arithmetic so the lookup is exact.
-        private static readonly Lazy<byte[]> CmykChannelTable = new(() =>
-        {
-            var table = new byte[256 * 256];
-            for (int ink = 0; ink < 256; ink++)
-                for (int black = 0; black < 256; black++)
-                    table[ink * 256 + black] = Color.Cmyk(ink / 255d, 0, 0, black / 255d).Red;
-            return table;
-        });
 
         internal ImageSampleConverter(byte[] samples, int sourceWidth, int rowBytes,
             int components, int bits, double[] decode, ImageColorSpace colorSpace,
@@ -4680,11 +4670,7 @@ public sealed partial class PdfPageRenderer
             if (_directCmyk)
             {
                 int offset = y * _rowBytes + x * 4;
-                byte[] table = CmykChannelTable.Value;
-                int black = _samples[offset + 3];
-                return (uint)(table[_samples[offset + 2] * 256 + black]
-                    | table[_samples[offset + 1] * 256 + black] << 8
-                    | table[_samples[offset] * 256 + black] << 16) | 0xFF000000;
+                return PdfDeviceCmyk.ToRgb(ReadInk(_samples, offset)) | 0xFF000000;
             }
             if (_lookup is not null)
             {
@@ -6193,13 +6179,10 @@ public sealed partial class PdfPageRenderer
             Rgb(Compand(red), Compand(green), Compand(blue));
         internal static Color Cmyk(double cyan, double magenta, double yellow, double black)
         {
-            double light = 1 - Math.Clamp(black, 0, 1);
-            return Rgb((1 - Math.Clamp(cyan, 0, 1)) * light,
-                (1 - Math.Clamp(magenta, 0, 1)) * light,
-                (1 - Math.Clamp(yellow, 0, 1)) * light) with
+            uint ink = (uint)(Channel(cyan) | Channel(magenta) << 8
+                | Channel(yellow) << 16 | Channel(black) << 24);
+            return InkColor(ink) with
             {
-                Ink = (uint)(Channel(cyan) | Channel(magenta) << 8
-                    | Channel(yellow) << 16 | Channel(black) << 24),
                 OverprintComponents = ZeroInkComponents(cyan, magenta, yellow, black)
             };
         }

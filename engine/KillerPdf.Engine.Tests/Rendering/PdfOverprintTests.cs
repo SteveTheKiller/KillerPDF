@@ -58,10 +58,7 @@ public sealed class PdfOverprintTests
         var rendered = Render(paint, fill, stroke, mode);
         byte[] pixels = rendered.Pixels.ToArray();
         int center = (4 * 8 + 4) * 4;
-        Assert.Equal((byte)255, pixels[center]);
-        Assert.Equal((byte)0, pixels[center + 1]);
-        Assert.Equal((byte)red, pixels[center + 2]);
-        Assert.Equal((byte)255, pixels[center + 3]);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk((byte)(255 - red), 255), pixels[center..(center + 4)]);
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -78,10 +75,7 @@ public sealed class PdfOverprintTests
         var rendered = Render(paint, true, true, mode, 0.5);
         byte[] pixels = rendered.Pixels.ToArray();
         int center = (4 * 8 + 4) * 4;
-        Assert.Equal((byte)255, pixels[center]);
-        Assert.InRange(pixels[center + 1], (byte)127, (byte)128);
-        Assert.Equal((byte)red, pixels[center + 2]);
-        Assert.Equal((byte)255, pixels[center + 3]);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk((byte)(255 - red), 128), pixels[center..(center + 4)]);
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -102,7 +96,9 @@ public sealed class PdfOverprintTests
         var rendered = Render(paint, false, false, 0, indexed: indexed);
         byte[] pixels = rendered.Pixels.ToArray();
         int center = (4 * 8 + 4) * 4;
-        Assert.Equal(new byte[] { 255, green, red, 255 }, pixels[center..(center + 4)]);
+        byte[] expected = green == 0 ? PdfDeviceCmykTests.RenderInk((byte)(255 - red), 255)
+            : RenderRgbGroupReference();
+        Assert.Equal(expected, pixels[center..(center + 4)]);
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -119,7 +115,7 @@ public sealed class PdfOverprintTests
         var rendered = Render(paint, overprint, false, mode, indexed: true);
         byte[] pixels = rendered.Pixels.ToArray();
         int center = (4 * 8 + 4) * 4;
-        Assert.Equal(new byte[] { 255, 0, red, 255 }, pixels[center..(center + 4)]);
+        Assert.Equal(PdfDeviceCmykTests.RenderInk((byte)(255 - red), 255), pixels[center..(center + 4)]);
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -139,8 +135,9 @@ public sealed class PdfOverprintTests
     {
         var rendered = Render(paint, false, false, 0, indexed: indexed, none: true, rgb: rgb);
         byte[] pixels = rendered.Pixels.ToArray();
+        byte[] background = PdfDeviceCmykTests.RenderInk(255, 0);
         for (int index = 0; index < pixels.Length; index += 4)
-            Assert.Equal(new byte[] { 255, 255, 0, 255 }, pixels[index..(index + 4)]);
+            Assert.Equal(background, pixels[index..(index + 4)]);
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -153,8 +150,9 @@ public sealed class PdfOverprintTests
         Assert.Empty(invisible.Diagnostics);
         Assert.Empty(reference.Diagnostics);
         byte[] pixels = invisible.Pixels.ToArray();
-        Assert.Contains(Enumerable.Range(0, pixels.Length / 4), index => pixels[index * 4 + 1] < 255);
-        Assert.Contains(Enumerable.Range(0, pixels.Length / 4), index => pixels[index * 4 + 1] == 255);
+        byte backgroundGreen = PdfDeviceCmykTests.RenderInk(255, 0)[1];
+        Assert.Contains(Enumerable.Range(0, pixels.Length / 4), index => pixels[index * 4 + 1] < backgroundGreen);
+        Assert.Contains(Enumerable.Range(0, pixels.Length / 4), index => pixels[index * 4 + 1] == backgroundGreen);
     }
 
     [Theory]
@@ -175,10 +173,27 @@ public sealed class PdfOverprintTests
     {
         var rendered = Render(paint, true, true, mode, rgb: rgb, registration: true, registrationTint: tint, indexed: indexed);
         bool referenceRgb = paint == "group-inherited" || paint != "group-to-cmyk" && rgb;
-        var reference = Render("allreference", false, false, 0, rgb: referenceRgb, registrationTint: tint);
+        var reference = paint == "group-inherited"
+            ? Render("rgbgrayreference", false, false, 0, registrationTint: tint)
+            : Render("allreference", false, false, 0, rgb: referenceRgb, registrationTint: tint);
         Assert.Equal(reference.Pixels.ToArray(), rendered.Pixels.ToArray());
         Assert.Empty(rendered.Diagnostics);
         Assert.Empty(reference.Diagnostics);
+    }
+
+    private static byte[] RenderRgbGroupReference()
+    {
+        var content = new PdfContentStreamBuilder().DrawForm(new PdfFormXObject(1, 1,
+            new PdfContentStreamBuilder().SetFillCmyk(1, 0, 0, 0).Rectangle(0, 0, 1, 1).Fill(),
+            isolatedTransparencyGroup: true, transparencyGroupColorSpace: PdfTransparencyGroupColorSpace.Rgb), 0, 0);
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1, content).Build());
+        PdfPageTreeEntry page = PdfPageTree.Read(source).Pages[0];
+        var dictionary = (PdfDictionary)source.Resolve(page.Reference);
+        var group = new PdfDictionary([new(new PdfName("S"u8), new PdfName("Transparency"u8)),
+            new(new PdfName("CS"u8), new PdfName("DeviceCMYK"u8))]);
+        var update = new PdfIncrementalUpdateBuilder(source).ReplaceObject(page.Reference.ObjectNumber,
+            new PdfDictionary(dictionary.Append(new KeyValuePair<PdfName, PdfObject>(new PdfName("Group"u8), group))));
+        return new PdfPageRenderer(PdfDocument.Open(update.Build())).Render(0, new PdfRenderOptions(1, 1)).Pixels.ToArray();
     }
 
     private static PdfRenderedPage Render(string paint, bool? fill, bool stroke, int mode, double opacity = 1,
@@ -192,6 +207,7 @@ public sealed class PdfOverprintTests
         {
             "stroke" => "0 1 0 0 K 8 w 0 4 m 8 4 l S",
             "allreference" => (rgb ? grayNumber + " g" : $"{tintNumber} {tintNumber} {tintNumber} {tintNumber} k") + " 0 0 8 8 re f",
+            "rgbgrayreference" => $"{grayNumber} {grayNumber} {grayNumber} rg 0 0 8 8 re f",
             "image" or "stencil" or "namedimage" or "namednoneimage" or "namedfiveimage" => "8 0 0 8 0 0 cm /Im Do",
             "tiny" => "0.0001 1 0 0 k 0 0 8 8 re f",
             "separation" or "devicen" => "/Named cs 1 scn 0 0 8 8 re f",

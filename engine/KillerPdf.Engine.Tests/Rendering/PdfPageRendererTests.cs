@@ -793,7 +793,7 @@ public sealed class PdfPageRendererTests
 
         Assert.Equal([255, 0, 0, 255], Pixel(page, 0, 0));
         Assert.Equal([0, 0, 255, 255], Pixel(page, 0, 1));
-        Assert.Equal([255, 255, 0, 255], Pixel(page, 1, 1));
+        Assert.Equal([239, 174, 0, 255], Pixel(page, 1, 1));
     }
 
     [Fact]

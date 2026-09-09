@@ -64,6 +64,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 ### Fixed
 
 - Included the vendored JPEG 2000 decoder in the engine NuGet package.
+- Matched legacy unprofiled CMYK display colors and reduced color shifts when RGB artwork enters CMYK transparency groups.
 - Clipped oversized page crops to the physical page bounds while preserving the declared box metadata.
 - Skipped decoding invisible images and masks, and stopped retaining full-resolution soft masks used only for reduced rendering.
 - Added described overlays that extend existing PDF structure trees when saving markup.

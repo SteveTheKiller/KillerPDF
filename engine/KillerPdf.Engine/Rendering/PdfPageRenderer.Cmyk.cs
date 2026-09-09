@@ -53,16 +53,10 @@ public sealed partial class PdfPageRenderer
             }
             return DisplayToProfileInk(color, profile);
         }
-        int light = Math.Max(color.Red, Math.Max(color.Green, color.Blue));
-        if (light == 0) return 0xFF000000;
-        int cyan = (int)Math.Round((light - color.Red) * 255d / light);
-        int magenta = (int)Math.Round((light - color.Green) * 255d / light);
-        int yellow = (int)Math.Round((light - color.Blue) * 255d / light);
-        return (uint)(cyan | magenta << 8 | yellow << 16 | (255 - light) << 24);
+        return PdfDeviceCmyk.FromRgb(color.Red, color.Green, color.Blue);
     }
 
-    // Unprofiled ink to display: ((255 - ink) * (255 - black) + 127) / 255 for each of the
-    // three chromatic inks, tabulated by ink and black so conversion is two lookups per channel.
+    // Device-space luminosity uses the ink components, independently of display conversion.
     private static readonly byte[] InkDisplayTable = CreateInkDisplayTable();
 
     private static byte[] CreateInkDisplayTable()
@@ -77,6 +71,12 @@ public sealed partial class PdfPageRenderer
     private static Color InkColor(uint ink, PdfColorTransform? profile = null)
     {
         if (profile is not null) return ProfileInkToDisplay(ink, profile) with { Ink = ink, InkProfile = profile };
+        uint rgb = PdfDeviceCmyk.ToRgb(ink);
+        return new Color((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb) { Ink = ink };
+    }
+
+    private static Color InkLuminosityColor(uint ink)
+    {
         int blackRow = (int)(ink >> 24) * 256;
         return new Color(InkDisplayTable[blackRow + (byte)ink],
             InkDisplayTable[blackRow + (byte)(ink >> 8)],

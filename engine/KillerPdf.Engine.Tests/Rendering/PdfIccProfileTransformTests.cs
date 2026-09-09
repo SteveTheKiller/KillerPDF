@@ -1127,7 +1127,7 @@ public sealed class PdfIccProfileTransformTests
         byte[] pixels = rendered.Pixels.ToArray();
         if (invalid != 0)
         {
-            Assert.Equal(transparent ? (byte)0 : (byte)127, pixels[1]);
+            Assert.Equal(PdfDeviceCmykTests.RenderInk(0, transparent ? (byte)255 : (byte)128)[1], pixels[1]);
             Assert.Contains(rendered.Diagnostics, message => message.Contains("ICC profile could not be used"));
             return;
         }
@@ -1136,7 +1136,10 @@ public sealed class PdfIccProfileTransformTests
         else if (rgb) Assert.InRange(pixels[1], transparent ? (byte)126 : (byte)189, transparent ? (byte)129 : (byte)192);
         else Assert.Equal((byte)255, pixels[1]);
         Assert.Equal(transparent ? (byte)128 : (byte)255, pixels[3]);
-        Assert.InRange(pixels[4], transparent ? (byte)0 : (byte)118, transparent ? (byte)0 : (byte)120);
+        // The RGB group first maps the unprofiled magenta-plus-black ink to RGB (21, 0, 0).
+        // The page's neutral ICC transform therefore retains a small nonzero shadow value.
+        if (transparent && sourceKind == "rgbGroup") Assert.Equal((byte)6, pixels[4]);
+        else Assert.InRange(pixels[4], transparent ? (byte)0 : (byte)118, transparent ? (byte)0 : (byte)120);
         Assert.Equal(pixels[4], pixels[5]);
         Assert.Equal(pixels[5], pixels[6]);
         Assert.Empty(rendered.Diagnostics);
