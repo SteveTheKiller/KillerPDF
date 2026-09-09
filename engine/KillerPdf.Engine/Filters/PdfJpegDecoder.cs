@@ -25,6 +25,21 @@ internal static class PdfJpegDecoder
     private static readonly int[] CrGreen = CreateChromaTable(-0.714136, shifted: false, addHalf: false);
     private static readonly int[] CbBlue = CreateChromaTable(1.772, shifted: true, addHalf: true);
 
+    // Range limit table in libjpeg's style: one indexed read replaces the compare pair per
+    // component in the color conversion loops. Index RangeLimitOffset is sample zero. The
+    // fixed-point conversion above reaches -227 at the low end and 480 at the high end, so
+    // the table spans -256 to 767 and every reachable value lands inside it.
+    private const int RangeLimitOffset = 256;
+    private static readonly byte[] RangeLimit = CreateRangeLimit();
+
+    private static byte[] CreateRangeLimit()
+    {
+        var table = new byte[1024];
+        for (int index = 0; index < table.Length; index++)
+            table[index] = (byte)Math.Clamp(index - RangeLimitOffset, 0, 255);
+        return table;
+    }
+
     private static int[] CreateChromaTable(double factor, bool shifted, bool addHalf)
     {
         var table = new int[256];
@@ -387,6 +402,7 @@ internal static class PdfJpegDecoder
                 // arithmetic as the general loop below without per-sample step dispatch.
                 int chromaShift = secondStep == 1 ? 0 : secondStep == 2 ? 1 : 2;
                 int[] crRed = CrRed, cbGreen = CbGreen, crGreen = CrGreen, cbBlue = CbBlue;
+                byte[] rangeLimit = RangeLimit;
                 for (int y = 0, offset = 0; y < outputHeight; y++)
                 {
                     ReadOnlySpan<byte> lumaRow = SampleRow(firstComponent, y, maxVertical);
@@ -401,9 +417,9 @@ internal static class PdfJpegDecoder
                         int red = luma + crRed[cr];
                         int green = luma + ((cbGreen[cb] + crGreen[cr]) >> ChromaShift);
                         int blue = luma + cbBlue[cb];
-                        outputRow[target] = (byte)Math.Clamp(red, 0, 255);
-                        outputRow[target + 1] = (byte)Math.Clamp(green, 0, 255);
-                        outputRow[target + 2] = (byte)Math.Clamp(blue, 0, 255);
+                        outputRow[target] = rangeLimit[red + RangeLimitOffset];
+                        outputRow[target + 1] = rangeLimit[green + RangeLimitOffset];
+                        outputRow[target + 2] = rangeLimit[blue + RangeLimitOffset];
                     }
                     offset += outputWidth * 3;
                 }
@@ -436,9 +452,9 @@ internal static class PdfJpegDecoder
                         int red = first + CrRed[third];
                         int green = first + ((CbGreen[second] + CrGreen[third]) >> ChromaShift);
                         int blue = first + CbBlue[second];
-                        red = Math.Clamp(red, 0, 255);
-                        green = Math.Clamp(green, 0, 255);
-                        blue = Math.Clamp(blue, 0, 255);
+                        red = RangeLimit[red + RangeLimitOffset];
+                        green = RangeLimit[green + RangeLimitOffset];
+                        blue = RangeLimit[blue + RangeLimitOffset];
                         output[offset++] = (byte)(components == 4 ? 255 - red : red);
                         output[offset++] = (byte)(components == 4 ? 255 - green : green);
                         output[offset++] = (byte)(components == 4 ? 255 - blue : blue);
