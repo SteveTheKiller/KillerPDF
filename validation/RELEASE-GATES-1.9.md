@@ -63,3 +63,13 @@ identical hashes. The accelerated path lazily adds about 154 KiB of shared looku
 storage. `rgb-vector-pixels.json` confirms unchanged pixels for all 674 retained
 application outputs. Whole-pipeline timing and peak memory have not been remeasured
 for this later change.
+
+The largest mean RGB difference in the 74-page difficult set is
+`pdf-cos-syntax/CompactedPDFSyntaxTest.pdf`. Its content selects an empty-name
+graphics-state resource with `/ca 0.33` and `/CA 0.66`. Engine 1.9 applies those
+fill and stroke opacities; the retained PDFium output paints the shapes opaque.
+This particular difference preserves the document's requested transparency and
+is not a target for pixel matching. A focused regression checks both opacities
+with empty and ordinary resource names, using direct and indirect dictionaries.
+All 3,741 engine tests pass after adding these four cases. No rendering code
+changed in this checkpoint. The other visual differences remain open.
