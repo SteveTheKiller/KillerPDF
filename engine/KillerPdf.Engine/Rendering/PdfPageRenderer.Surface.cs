@@ -295,6 +295,30 @@ public sealed partial class PdfPageRenderer
                 RgbProfile = null;
                 return;
             }
+            if (InkProfile is null)
+            {
+                // Unprofiled ink: the same table lookups InkColor makes, applied to the ink
+                // bytes in place, with the alpha plane or constant read directly.
+                byte[] data = Data;
+                byte[] table = InkDisplayTable;
+                byte[]? inkAlpha = InkAlpha;
+                byte constantAlpha = _constantAlpha;
+                int length = Length;
+                for (int offset = 0; offset < length; offset += 4)
+                {
+                    if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    int blackRow = data[offset + 3] * 256;
+                    byte red = table[blackRow + data[offset]];
+                    byte green = table[blackRow + data[offset + 1]];
+                    byte blue = table[blackRow + data[offset + 2]];
+                    data[offset] = blue;
+                    data[offset + 1] = green;
+                    data[offset + 2] = red;
+                    data[offset + 3] = inkAlpha is null ? constantAlpha : inkAlpha[offset >> 2];
+                }
+                Ink = null;
+                return;
+            }
             uint previousInk = 0;
             Color previousColor = default;
             Span<ulong> colors = InkProfile is null ? [] : stackalloc ulong[4096];
