@@ -72,15 +72,19 @@ public sealed class PdfCmykImageStorageTests
     }
 
     [Theory]
-    [InlineData(257, false)]
-    [InlineData(257, true)]
-    [InlineData(600, false)]
-    [InlineData(600, true)]
-    public void LargeColorCacheMatchesUncachedWideSamples(int outputSize, bool matte)
+    [InlineData(257, false, 3)]
+    [InlineData(257, true, 3)]
+    [InlineData(600, false, 3)]
+    [InlineData(600, true, 3)]
+    [InlineData(257, false, 4)]
+    [InlineData(257, true, 4)]
+    [InlineData(600, false, 4)]
+    [InlineData(600, true, 4)]
+    public void LargeColorCacheMatchesUncachedWideSamples(int outputSize, bool matte, int components)
     {
         var options = new PdfRenderOptions(outputSize, outputSize, transparentBackground: true);
-        var cached = new PdfPageRenderer(Create(600, false, true, true, 3, true, matte)).Render(0, options);
-        var uncached = new PdfPageRenderer(Create(600, true, true, true, 3, true, matte)).Render(0, options);
+        var cached = new PdfPageRenderer(Create(600, false, true, true, components, true, matte)).Render(0, options);
+        var uncached = new PdfPageRenderer(Create(600, true, true, true, components, true, matte)).Render(0, options);
         Assert.Empty(cached.Diagnostics);
         Assert.Empty(uncached.Diagnostics);
         Assert.Equal(uncached.Pixels.ToArray(), cached.Pixels.ToArray());

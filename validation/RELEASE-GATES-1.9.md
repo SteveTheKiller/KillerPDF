@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,783 engine tests, 352 app tests, and the Release payload publish pass with bounded larger image color caches. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,787 engine tests, 352 app tests, and the Release payload publish pass with packed image color-cache reads. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -283,3 +283,19 @@ All 240 output hashes match with zero diagnostics. `area-horizontal-summary.json
 and its timing CSVs retain this rejected experiment outside the repository.
 The next averaging experiment should address accumulation or sample access
 without adding a per-footprint weight buffer. No renderer change was retained.
+
+Packed cache-key reads for eight-bit RGB and CMYK samples reduce repeated sample
+addressing without changing conversion or adding storage. Four additional large
+CMYK cases match uncached 16-bit references, including matte correction. All 674
+corpus outputs match the larger-cache build (`packed-key-pixels.json`). The full
+3,787 engine tests, 352 app tests, and Release payload publish pass.
+
+Two reversed-order 60-render pairs on the Altona page at size 1024, excluding
+the first 30, give baseline/new medians of 974.440/891.219 and
+1,012.365/853.370 milliseconds. This is about 9% to 16% faster on this page;
+the varying timings do not establish a broader application gain. All 240 hashes
+match with zero diagnostics (`packed-key-summary.json` and timing CSVs).
+The published and measured engine SHA-256 is
+`B8DF5FDF2AE4FA8B17DA64D9B880EAC68B1854DE1A7CCF83E26003AB6064C334`.
+The paired application comparison above predates this change. Overall performance,
+rendering fidelity, and interactive parity gates remain open.

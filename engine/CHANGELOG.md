@@ -58,7 +58,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Removed per-sample calculator color arrays and repeated ICC grid-address calculations, temporary glyph point copies, repeated raster-sort delegates, reference-cycle tracking for direct rendering operands, and redundant color objects during final CMYK display conversion.
 - Faster RGB image conversion into unprofiled CMYK groups through direct sample handling and vectorized inverse interpolation where supported.
 - Faster 16-bit grayscale image conversion through exact sample lookups, including matte correction.
-- Reduced repeated color conversion in large images with bounded larger caches.
+- Faster image color caching through packed sample reads and bounded larger caches for large images.
 - Faster TIFF predictor reconstruction for 8-bit and 16-bit samples with unchanged decoded bytes.
 - Faster CMYK compositing over transparent pixels with unchanged output.
 - Reduced transparency-group storage and mask allocations, omitted uniform CMYK alpha planes and redundant CMYK, RGB, and grayscale image copies, kept one-bit masks packed, bounded retained scratch buffers, and added reusable caller-owned page output.

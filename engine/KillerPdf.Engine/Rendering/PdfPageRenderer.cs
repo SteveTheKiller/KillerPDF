@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Buffers.Binary;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Filters;
 using KillerPdf.Engine.Fonts;
@@ -4673,6 +4674,22 @@ public sealed partial class PdfPageRenderer
             return checked((int)ReadPackedSample(_samples, checked((int)bitOffset), _bits));
         }
 
+        private uint ReadCacheKey(int x, int y)
+        {
+            if (_bits == 8)
+            {
+                int offset = y * _rowBytes + x * _components;
+                if (_components == 4)
+                    return BinaryPrimitives.ReadUInt32BigEndian(_samples.AsSpan(offset, 4));
+                if (_components == 3)
+                    return (uint)(_samples[offset] << 16 | _samples[offset + 1] << 8 | _samples[offset + 2]);
+            }
+            uint key = 0;
+            for (int component = 0; component < _components; component++)
+                key = (key << 8) | (uint)Raw(x, y, component);
+            return key;
+        }
+
         internal bool MatchesColorKey(int x, int y, int[] colorKeyMask)
         {
             for (int component = 0; component < _components; component++)
@@ -4714,9 +4731,7 @@ public sealed partial class PdfPageRenderer
             }
             if (_cacheKeys is not null)
             {
-                uint key = 0;
-                for (int component = 0; component < _components; component++)
-                    key = (key << 8) | (uint)Raw(x, y, component);
+                uint key = ReadCacheKey(x, y);
                 int slot = (int)((key * 2654435761u) >> _cacheShift);
                 if (_cacheValid![slot] && _cacheKeys[slot] == key) return _cacheValues![slot];
                 uint color = ConvertRaw((int)(key >> (8 * (_components - 1))) & 255,
@@ -4809,8 +4824,7 @@ public sealed partial class PdfPageRenderer
             }
             else if (_cacheKeys is not null)
             {
-                for (int component = 0; component < _components; component++)
-                    key = (key << 8) | (uint)Raw(x, y, component);
+                key = ReadCacheKey(x, y);
                 slot = (int)(((key ^ alpha) * 2654435761u) >> _cacheShift);
                 if (_cacheValid![slot] && _cacheKeys[slot] == key && _matteAlpha![slot] == alpha)
                     return _cacheValues![slot];
