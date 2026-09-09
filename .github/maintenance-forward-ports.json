@@ -138,6 +138,16 @@
       "maintenanceCommit": "168f89877d86d9eefe4f3e776d8a9994357987ee",
       "developmentCommit": "a7f0e0cbf8e90f8a8b9f7b92cf6c55b4cc694a26",
       "reason": "The separate 1.8.4 engine changelog entry preserves the September 6 release date."
+    },
+    {
+      "maintenanceCommit": "cae4038949de1f396471816f2d2d85c17d93868a",
+      "developmentCommit": "9d7d7fa5aea72664fedd584dd449c4eb4f30a9f3",
+      "reason": "The 1.8.4 corpus report, measured runs, results page, and release-performance section are retained. Corpus landing results and the index summary match maintenance."
+    },
+    {
+      "maintenanceCommit": "064e2fa6b5fb44ef23edb112d75c1f3449fb91f3",
+      "developmentCommit": "a2fce27e2df77b2b42607651cf1708a5262df62c",
+      "reason": "The install-instruction alignment, brochure link, translations, and cache-version edits match across all six files; surrounding release-version text differs between branches."
     }
   ]
 }
