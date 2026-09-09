@@ -37,6 +37,14 @@ encoder is unreachable from PDF parsing and is exercised by three engine tests
 that build JPEG 2000 inputs on the fly, so keeping it costs a larger assembly and
 nothing else.
 
+## Who references it
+
+`engine/KillerPdf.Engine` references this project for decoding. `engine/KillerPdf.Engine.Tests`
+references it directly as well, because three JPEG 2000 tests build their own input with the
+encoder and therefore use CoreJ2K types in their own source. A transitive reference through the
+engine resolves at the command line but not in the Visual Studio design-time build, so the test
+project declares its own.
+
 ## Local changes
 
 The library sources are unmodified. Every `.cs` file matches upstream at the commit
