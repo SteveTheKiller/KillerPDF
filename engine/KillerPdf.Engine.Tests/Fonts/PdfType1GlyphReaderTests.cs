@@ -83,8 +83,10 @@ public sealed class PdfType1GlyphReaderTests
         Assert.Equal(new PdfGlyphPoint(200, 500, true), outline.Contours[1].Points[0]);
     }
 
-    [Fact]
-    public void FlexUsesOriginalStartAndSkipsItsReferencePoint()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FlexUsesOriginalStartAndPreservesItsContour(bool continueAfterFlex)
     {
         var program = new List<byte>();
         program.AddRange([.. Number(0), .. Number(600), 13, .. Number(100), .. Number(-10), 21,
@@ -92,8 +94,15 @@ public sealed class PdfType1GlyphReaderTests
         foreach (var (x, y) in new[] { (50, 0), (-35, 0), (10, 10), (25, 0), (25, 0), (10, -10), (15, 0) })
             program.AddRange([.. Number(x), .. Number(y), 21, .. Number(0), .. Number(2), 12, 16]);
         program.AddRange([.. Number(50), .. Number(200), .. Number(-10), .. Number(3), .. Number(0),
-            12, 16, 12, 17, 12, 17, 12, 33, 14]);
-        Assert.Equal(new PdfGlyphBounds(100, -10, 200, 0), Font([.. program]).GetGlyphBounds(65));
+            12, 16, 12, 17, 12, 17, 12, 33]);
+        if (continueAfterFlex)
+            program.AddRange([.. Number(0), .. Number(110), 5, .. Number(-100), .. Number(0), 5]);
+        program.Add(14);
+        var font = Font([.. program]);
+        Assert.Equal(new PdfGlyphBounds(100, -10, 200, continueAfterFlex ? 100 : 0), font.GetGlyphBounds(65));
+        var contour = Assert.Single(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65)).Contours);
+        Assert.Equal(continueAfterFlex ? 9 : 7, contour.Points.Count);
+        Assert.Equal(new PdfGlyphPoint(100, -10, true), contour.Points[0]);
     }
 
     [Fact]

@@ -72,6 +72,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Preserved thin detail in reduced unmasked images through area averaging, including gray and RGB images under clipping.
 
 - Recovered text with missing font resources using a diagnosed Helvetica fallback in compatibility mode.
+- Fixed broken Type 1 letter outlines when a contour continues after a flex curve.
 - Included the vendored JPEG 2000 decoder in the engine NuGet package.
 - Matched legacy unprofiled CMYK display colors and reduced color shifts when RGB artwork enters CMYK transparency groups.
 - Clipped oversized page crops to the physical page bounds while preserving the declared box metadata.

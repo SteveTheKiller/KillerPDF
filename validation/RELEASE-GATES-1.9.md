@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,791 engine tests, 352 app tests, and the Release payload publish pass with opaque CMYK coverage runs. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,792 engine tests, 352 app tests, and the Release payload publish pass with preserved Type 1 flex contours. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -364,3 +364,20 @@ by an effect and its reference image can cancel. The effects should not be
 changed merely to reduce whole-page differences from PDFium. Background color,
 registration-color text, font rasterization, and other pages remain open.
 No renderer code changed during this visual review.
+
+The FAccT paper exposes a separate, confirmed Type 1 outline regression: letters
+have triangular gaps because `setcurrentpoint` prematurely finishes the contour
+after flex. [Adobe's Type 1 specification, section 6.4](https://adobe-type-tools.github.io/font-tech-notes/pdfs/T1_SPEC.pdf)
+defines this as setting the current point without a moveto. Removing the contour
+finish preserves the following path segments. The extended flex regression test
+fails before the change with two contours instead of one, then passes after it.
+Visual inspection confirms the broken letters are repaired on FAccT page 2.
+
+All 674 corpus renders succeed. Ten outputs change, all with lower mean RGB
+error against PDFium; the other 664 remain identical. The three difficult-set
+FAccT pages improve from 5.943/7.436/6.871 to 4.289/5.283/4.993 mean error.
+Seven shared outputs also improve (`type1-contour-pixels.json`). Residual font
+rasterization differences remain; this does not establish overall text parity.
+All 3,792 engine tests, 352 app tests, and the Release payload publish pass.
+The engine SHA-256 is
+`3B996C604C07D9D2AAA3190080805ACC1F98925B31DA78B06F118DCFB95604AE`.

@@ -377,7 +377,7 @@ internal sealed class PdfType1GlyphReader
                     else throw new NotSupportedException("Unsupported Type1 OtherSubr.");
                     return;
                 case 17: if (_other.Count == 0) throw new FormatException("Type1 OtherSubr stack underflow."); Push(_other.Pop()); return;
-                case 33: Need(2); FinishContour(); _x = _stack[^2]; _y = _stack[^1]; _stack.Clear(); return;
+                case 33: Need(2); _x = _stack[^2]; _y = _stack[^1]; _stack.Clear(); return;
                 default: throw new NotSupportedException($"Type1 escaped operator {op} is not supported.");
             }
         }
