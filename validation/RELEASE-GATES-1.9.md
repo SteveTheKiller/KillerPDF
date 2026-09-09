@@ -537,3 +537,13 @@ corpus outputs match the row-bound checkpoint exactly
 `3A10201A3E3E83FCE67E43F1C9E19801DF56539A0609B9B09F7FAEBE295B861E`.
 The current paired application table predates this context change; overall
 speed, memory, visual, and interactive parity still require verification.
+
+A contiguous JBIG2 probability-table experiment was rejected. It preserved
+all 47 rows and 188 values, and reused the selected row during arithmetic
+decoding. Two reversed-order pairs on the scan, with 60 renders per process
+and the first 30 excluded, produced baseline/candidate medians of
+333.706/332.104 and 345.048/355.548 ms. The small first-pair improvement
+reversed to a roughly 3% slowdown. All 240 hashes matched, with zero
+diagnostics, but the runtime change was removed. Decoder source again matches
+the verified compact-context checkpoint. The candidate build and timing CSVs
+remain in `parity-20260909-ghent/jbig2-flat-table*` for reference.
