@@ -15,7 +15,7 @@ behind an overall average.
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 537.3 versus 614.2 MiB shared and 268.3 versus 260.2 MiB difficult, including opaque masked images. Difficult engine peaks range from 268.0 to 270.1 MiB, with a median about 3% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 14.167 versus 12.765 seconds; shared wall time is 26.075 versus 23.694 seconds. Difficult render time is 9.788 versus 4.879 seconds and wall time is 14.929 versus 10.123 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
-| Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
+| Rendering fidelity without regression | Open | Shared map 447403.pdf loses most content at the 64 MiB decoded-content cap without a diagnostic; bounded large-stream processing is required. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 9: 3,818 engine tests, 352 app tests, and the Release payload publish pass with the opaque masked-image optimization. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
@@ -547,3 +547,25 @@ reversed to a roughly 3% slowdown. All 240 hashes matched, with zero
 diagnostics, but the runtime change was removed. Decoder source again matches
 the verified compact-context checkpoint. The candidate build and timing CSVs
 remain in `parity-20260909-ghent/jbig2-flat-table*` for reference.
+
+A fresh comparison of all 674 current images is retained in
+`review-20260909/jbig2-context-fidelity.json`. Mean pixel differences rank
+investigation targets, not correctness. The two largest shared differences,
+`pdfa2-6-1-13-bfo-t04-fail.pdf` and `pdfa2-6-1-13-bfo-t06-pass.pdf`, each
+contain equal and opposite extreme translations followed by a red rectangle.
+The engine preserves the cancellation and rectangle; PDFium renders blank.
+Do not remove this content merely to reduce pixel differences.
+
+The next shared case is a confirmed missing-content defect:
+`preservation/openpreserve-format-corpus/govdocs1-error-pdfs/error_set_1/447403.pdf`.
+The engine renders only a small terrain image instead of the full earthquake
+map, charts, and labels. Its single Flate content stream has 7,211,743 encoded
+bytes and expands completely to 171,848,462 bytes. A bounded chunked zlib
+inspection reached the final text operators and closing graphics-state restore.
+`PdfPageContentReader` requests the 64 MiB content limit; compatibility Flate
+decoding returns that bounded prefix, and the content reader trims it further
+to append a separator. The rest is lost. The profiled render reports zero
+diagnostics, so successful batch status does not prove complete page output.
+The current shared mean RGB error is 42.4904. Bounded large-content processing
+and an explicit diagnostic whenever content is truncated remain required;
+raising the cap alone would not address the memory goal or silent truncation.
