@@ -418,3 +418,13 @@ not a timing measurement or overall text-parity claim. All 3,811 engine tests,
 352 app tests, and the Release publish pass. The Release payload is
 `parity-20260909-ghent/payload-font-width`, with engine SHA-256
 `254BC52B289DEBCDEAB3FD1F7C49681A90B625B29A912E1B9B9E34AB8E7501B4`.
+
+A four-channel Vector256 accumulation experiment for converted-image area
+averaging was rejected. Two reversed-order pairs on the large Altona image at
+size 1024 used 60 renders per process, excluding the first 30. Scalar/vector
+medians were 896.026/974.740 and 834.264/963.722 ms. All 240 outputs have SHA-256
+`3B05C5B420F741F18129C2017D50600B304C530D0ECA84E6783AD2F09C165364`
+and zero diagnostics. The 9% to 16% slowdown is recorded in
+`parity-20260909-ghent/area-vector-summary.json` and the two timing CSVs.
+The experiment is removed; renderer source matches the verified width-fitting
+checkpoint. No performance gain is claimed from this attempt.
