@@ -77,7 +77,8 @@ public static class PdfFontResourceReader
             PdfType1GlyphReader? type1 = type1Stream is not null
                 ? ReadType1(type1Stream) : null;
             TrueTypeFont? substitute = subtype is not null and not "Type3"
-                ? PdfStandardFontSubstitutes.Find(metricsName) : null;
+                ? PdfStandardFontSubstitutes.Find(metricsName,
+                    Get(descriptor, "Flags") is PdfInteger fallbackFlags ? fallbackFlags.Value : 0) : null;
             var embeddedOutlines = embedded is null ? null : new OutlineReader(embedded);
             var substituteOutlines = substitute is null ? null : new OutlineReader(substitute);
             var widths = new Dictionary<uint, double>();

@@ -13,6 +13,29 @@ public sealed class PdfFontResourceReaderTests
     private static readonly PdfDocument Document = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage().Build());
 
     [Theory]
+    [InlineData("UninstalledFamily", 2, "Times-Roman")]
+    [InlineData("UninstalledFamily", 66, "Times-Italic")]
+    [InlineData("UninstalledFamily", 262146, "Times-Bold")]
+    [InlineData("UninstalledFamily", 262210, "Times-BoldItalic")]
+    [InlineData("UninstalledFamily", 1, "Courier")]
+    [InlineData("UninstalledFamily", 65, "Courier-Oblique")]
+    [InlineData("Helvetica", 2, "Helvetica")]
+    [InlineData("ArialMT", 1, "Helvetica")]
+    [InlineData("ArialBlack", 1, "Helvetica-Bold")]
+    [InlineData("Verdana", 33, "Helvetica")]
+    [InlineData("TrebuchetMS-Bold", 33, "Helvetica-Bold")]
+    public void BundledFallbackUsesDescriptorTraits(string name, int flags, string expectedName)
+    {
+        PdfExtractionFont font = Read(D(("Subtype", N("Type1")), ("BaseFont", N(name)),
+            ("FontDescriptor", D(("Flags", new PdfInteger(flags))))));
+        PdfExtractionFont expected = Read(D(("Subtype", N("Type1")), ("BaseFont", N(expectedName))));
+        var outline = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(65));
+        var reference = Assert.IsType<PdfGlyphOutline>(expected.GetGlyphOutline(65));
+        Assert.Equal(reference.Contours.SelectMany(contour => contour.Points),
+            outline.Contours.SelectMany(contour => contour.Points));
+    }
+
+    [Theory]
     [InlineData("Helvetica", 1854, -434)]
     [InlineData("Times-Roman", 1825, -443)]
     [InlineData("Courier", 1705, -615)]

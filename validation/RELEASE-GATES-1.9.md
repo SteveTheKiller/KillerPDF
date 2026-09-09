@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,792 engine tests, 352 app tests, and the Release payload publish pass with preserved Type 1 flex contours. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,803 engine tests, 352 app tests, and the Release payload publish pass with descriptor-aware bundled font fallback. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -381,3 +381,20 @@ rasterization differences remain; this does not establish overall text parity.
 All 3,792 engine tests, 352 app tests, and the Release payload publish pass.
 The engine SHA-256 is
 `3B996C604C07D9D2AAA3190080805ACC1F98925B31DA78B06F118DCFB95604AE`.
+
+Bundled font fallback now reads serif, fixed-width, italic, and forced-bold
+descriptor flags. Exact standard fonts retain precedence, and known Arial,
+Helvetica, Verdana, and Trebuchet families remain proportional despite misleading
+fixed-width flags. Eleven cases cover descriptor traits, exact standard fonts,
+and these name-based safeguards. The initial six descriptor cases failed before
+the change. The final 3,803 engine tests, 352 app tests, and Release publish pass.
+
+The unembedded Bembo title in `210260.pdf` now uses a serif fallback; its difficult
+pages 2 and 3 improve from 6.497/5.602 to 5.131/4.972 mean RGB error. Across all
+674 outputs, eight improve against PDFium, 665 remain identical, and one has a
+small increase: `303226.pdf` changes from 6.408115 to 6.412256. Its MIonic font
+is explicitly marked serif, and visual inspection confirms the corrected family;
+glyph width and spacing still differ from PDFium. This exception remains open.
+The first candidate's Trebuchet regression is removed, and that page is identical
+to the baseline in the final run (`font-traits-v3-pixels.json`). The engine hash is
+`9480652F6A525BBCF0BAC1878D3F5C8FE4E88A654B57342267AC323325DEA049`.

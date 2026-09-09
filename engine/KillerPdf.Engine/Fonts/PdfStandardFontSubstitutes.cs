@@ -34,20 +34,22 @@ internal static class PdfStandardFontSubstitutes
             ["Courier-BoldOblique"] = MonoBoldItalic
         };
 
-    internal static TrueTypeFont Find(string fontName)
+    internal static TrueTypeFont Find(string fontName, long descriptorFlags = 0)
     {
         if (Fonts.TryGetValue(fontName, out Lazy<TrueTypeFont>? exact))
             return exact.Value;
 
-        bool bold = Contains(fontName, "bold") || Contains(fontName, "semibold")
+        bool bold = (descriptorFlags & (1 << 18)) != 0 || Contains(fontName, "bold") || Contains(fontName, "semibold")
             || Contains(fontName, "demi") || Contains(fontName, "black")
             || Contains(fontName, "heavy");
-        bool italic = Contains(fontName, "italic") || Contains(fontName, "oblique")
+        bool italic = (descriptorFlags & 64) != 0 || Contains(fontName, "italic") || Contains(fontName, "oblique")
             || fontName.EndsWith("-It", StringComparison.OrdinalIgnoreCase)
             || Contains(fontName, "chancery");
-        bool mono = Contains(fontName, "courier") || Contains(fontName, "mono")
-            || Contains(fontName, "typewriter");
-        bool serif = !mono && (Contains(fontName, "times") || Contains(fontName, "serif")
+        bool knownSans = Contains(fontName, "arial") || Contains(fontName, "helv")
+            || Contains(fontName, "verdana") || Contains(fontName, "trebuchet");
+        bool mono = !knownSans && ((descriptorFlags & 1) != 0 || Contains(fontName, "courier") || Contains(fontName, "mono")
+            || Contains(fontName, "typewriter"));
+        bool serif = !mono && !knownSans && ((descriptorFlags & 2) != 0 || Contains(fontName, "times") || Contains(fontName, "serif")
             || Contains(fontName, "minion") || Contains(fontName, "calluna")
             || Contains(fontName, "century") || Contains(fontName, "schoolbook")
             || Contains(fontName, "warnock"));
