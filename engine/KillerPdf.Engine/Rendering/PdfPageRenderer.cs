@@ -600,9 +600,11 @@ public sealed partial class PdfPageRenderer
                     textFont = ResolveFont(resources, fontName);
                     if (textFont is null)
                     {
-                        textFont = RecoverStandardFont(fontName);
+                        textFont = RecoverFont(fontName);
                         if (textFont is not null)
-                            diagnostics.Add($"Missing standard font resource /{fontName.ValueAsLatin1()} was recovered.");
+                            diagnostics.Add(textFont[Name("BaseFont")].Equals(fontName)
+                                ? $"Missing standard font resource /{fontName.ValueAsLatin1()} was recovered."
+                                : $"Missing font resource /{fontName.ValueAsLatin1()} was replaced with Helvetica.");
                     }
                     extractionFont = null;
                     textSize = Number(values[1]);
@@ -2015,20 +2017,26 @@ public sealed partial class PdfPageRenderer
         && fonts.TryGetValue(resourceName, out PdfObject? fontValue)
         ? Resolve(fontValue) as PdfDictionary : null;
 
-    private PdfDictionary? RecoverStandardFont(PdfName resourceName)
+    private PdfDictionary? RecoverFont(PdfName resourceName)
     {
-        if (!_document.UsesCompatibilityRecovery
-            || resourceName.ValueAsLatin1() is not ("Helvetica" or "Helvetica-Bold"
+        if (!_document.UsesCompatibilityRecovery)
+            return null;
+        PdfName baseFont = resourceName.ValueAsLatin1() is ("Helvetica" or "Helvetica-Bold"
                 or "Helvetica-Oblique" or "Helvetica-BoldOblique"
                 or "Times-Roman" or "Times-Bold" or "Times-Italic" or "Times-BoldItalic"
                 or "Courier" or "Courier-Bold" or "Courier-Oblique" or "Courier-BoldOblique"
-                or "Symbol" or "ZapfDingbats"))
-            return null;
-        return _recoveredFontCache.GetOrAdd(resourceName, name => new PdfDictionary([
-            new(Name("Type"), Name("Font")),
-            new(Name("Subtype"), Name("Type1")),
-            new(Name("BaseFont"), name)
-        ]));
+                or "Symbol" or "ZapfDingbats") ? resourceName : Name("Helvetica");
+        return _recoveredFontCache.GetOrAdd(resourceName, name =>
+        {
+            List<KeyValuePair<PdfName, PdfObject>> entries = [
+                new(Name("Type"), Name("Font")),
+                new(Name("Subtype"), Name("Type1")),
+                new(Name("BaseFont"), baseFont)
+            ];
+            if (!baseFont.Equals(name))
+                entries.Add(new(Name("Encoding"), Name("WinAnsiEncoding")));
+            return new PdfDictionary(entries);
+        });
     }
 
     private string[] ReadType3Encoding(PdfDictionary font)
