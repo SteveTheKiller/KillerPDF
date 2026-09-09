@@ -161,6 +161,12 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
   .engine-lockup .wm-logo { height: 30px; }
   .engine-stats { grid-template-columns: 1fr 1fr; }
 }
+/* Package manager commands */
+.package-commands { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 980px; margin: 22px auto 0; text-align: left; }
+.package-commands pre { flex: 1 1 300px; min-width: 0; margin: 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); overflow-x: auto; }
+.package-commands code { font: 13px/1.6 Consolas, 'Courier New', monospace; white-space: pre; user-select: all; }
+.package-commands .manager { color: var(--accent); font-weight: 700; }
+.package-commands .verb { color: var(--muted); }
 </style>
 </head>
 <body>
@@ -258,8 +264,12 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <div class="row"><span class="k">size</span>&nbsp;<span class="v">~9.47 MB exe</span></div>
 <div class="row"><span class="k">platform</span>&nbsp;<span class="v">Windows 10/11 x64</span></div>
 <div class="row"><span class="k">sha256</span>&nbsp;<span class="v hash">25c75cdd647d2c5a8cd2f691297e2e6d<br>4d03edc75472c6ef5d4d9c80a5da5143</span></div>
-<p class="note" data-i18n="hero_note">Install or run portable. Free, open source, GPLv3.<br>No accounts or subscriptions required.<br>No telemetry is sent and no ads... ever.<br><br>Built by a field tech with an intense dislike for Adobe.</p>
+<p class="note" data-i18n="hero_note">Install or run portable. Free, open source, GPLv3.<br>No accounts or subscriptions required.<br>No telemetry is sent and no ads... ever.</p>
 </div>
+</div>
+<div class="package-commands">
+<pre><code><span class="manager">winget</span> <span class="verb">install</span> killerpdf</code></pre>
+<pre><code><span class="manager">choco</span> <span class="verb">install</span> killerpdf</code></pre>
 </div>
 <div class="hero-blurbs">
 <div class="blurb"><h3 data-i18n="b3_t">The people's editor</h3><p data-i18n="b3_d">Much of what KillerPDF does was requested by the people who use it. The <a href="https://github.com/SteveTheKiller/KillerPDF/issues" target="_blank" rel="noopener">GitHub issues</a> page is open to anyone, so anybody can request a feature or report a bug.<br><br>Your suggestions genuinely shape where this goes next. Read the story behind the app on the <a href="about.html">About</a> page.</p></div>
@@ -368,7 +378,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 </div>
 <div class="egg-toast" id="eggToast"></div>
 
-<script src="kp-i18n.js?v=9"></script>
+<script src="kp-i18n.js?v=10"></script>
 <script src="kp.js?v=14"></script>
 <script>
 (function () {
