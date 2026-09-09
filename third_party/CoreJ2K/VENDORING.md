@@ -45,6 +45,10 @@ encoder and therefore use CoreJ2K types in their own source. A transitive refere
 engine resolves at the command line but not in the Visual Studio design-time build, so the test
 project declares its own.
 
+The engine NuGet package includes the built `CoreJ2K.dll` alongside the engine
+assembly. Its private project reference does not generate an external CoreJ2K
+package dependency. Test projects continue to reference the vendored project.
+
 ## Local changes
 
 The library sources are unmodified. Every `.cs` file matches upstream at the commit

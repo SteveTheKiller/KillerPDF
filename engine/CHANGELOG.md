@@ -62,6 +62,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Included the vendored JPEG 2000 decoder in the engine NuGet package.
 - Skipped decoding invisible images and masks, and stopped retaining full-resolution soft masks used only for reduced rendering.
 - Added described overlays that extend existing PDF structure trees when saving markup.
 - Honored destination rendering intents for ordinary paints, image overrides, and isolated transparency-group results.

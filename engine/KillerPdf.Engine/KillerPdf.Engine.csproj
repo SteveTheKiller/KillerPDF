@@ -44,8 +44,19 @@
 
   <ItemGroup>
     <!-- Vendored JPEG 2000 codec. See third_party/CoreJ2K/VENDORING.md. -->
-    <ProjectReference Include="..\..\third_party\CoreJ2K\CoreJ2K\CoreJ2K.csproj" />
+    <ProjectReference Include="..\..\third_party\CoreJ2K\CoreJ2K\CoreJ2K.csproj" PrivateAssets="all" />
   </ItemGroup>
+
+  <PropertyGroup>
+    <TargetsForTfmSpecificBuildOutput>$(TargetsForTfmSpecificBuildOutput);IncludeVendoredCodec</TargetsForTfmSpecificBuildOutput>
+  </PropertyGroup>
+
+  <Target Name="IncludeVendoredCodec" DependsOnTargets="ResolveReferences">
+    <ItemGroup>
+      <BuildOutputInPackage Include="@(ReferenceCopyLocalPaths)"
+                            Condition="'%(ReferenceCopyLocalPaths.Filename)' == 'CoreJ2K' and '%(ReferenceCopyLocalPaths.Extension)' == '.dll'" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <None Include="..\README.md" Pack="true" PackagePath="\" />
