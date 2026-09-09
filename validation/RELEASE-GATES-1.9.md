@@ -13,23 +13,23 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 531.6 versus 614.5 MiB shared and 267.9 versus 260.4 MiB difficult, including the font-width fixes. Difficult engine peaks range from 264.6 to 268.0 MiB, with a median about 3% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 13.975 versus 12.577 seconds; shared wall time is 25.650 versus 23.308 seconds. Difficult render time is 9.701 versus 4.852 seconds and wall time is 14.800 versus 10.072 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 537.3 versus 614.2 MiB shared and 268.3 versus 260.2 MiB difficult, including opaque masked images. Difficult engine peaks range from 268.0 to 270.1 MiB, with a median about 3% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 14.167 versus 12.765 seconds; shared wall time is 26.075 versus 23.694 seconds. Difficult render time is 9.788 versus 4.879 seconds and wall time is 14.929 versus 10.123 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,814 engine tests, 352 app tests, and the Release payload publish pass with the JPEG 2000 sample-clamping optimization. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,818 engine tests, 352 app tests, and the Release payload publish pass with the opaque masked-image optimization. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
-timings are in `font-width-paired-results.csv`, from the rendering code committed as
-`56cf4c4`, including opaque CMYK runs, Type 1 contour repair, descriptor traits,
-and bundled substitute width fitting.
+timings are in `opaque-image-mask-paired-results.csv`, from the rendering code committed as
+`5bddb6c`, including JPEG 2000 sample clamping and direct writes for fully opaque
+image-mask samples, plus the preceding font and CMYK fixes.
 All 16 passes completed without
 failures; run zero is excluded as warmup. The timing and memory figures above
 describe this payload. All 5,392 outputs across four passes of both applications
 match their respective retained images. The comparison, timing ranges, and
-per-page gap rankings are in `font-width-paired-analysis.json`. Both applications were
+per-page gap rankings are in `opaque-image-mask-paired-analysis.json`. Both applications were
 published locally with the framework-dependent Windows payload settings used
 by the packaging script. These supersede the woven development-build timings
 in `committed-cmyk-results.csv`; all 674 retained images per application match
