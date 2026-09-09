@@ -458,3 +458,17 @@ remains open. All 3,814 engine tests, 352 app tests, and the Release publish pas
 All 674 corpus images remain pixel-identical (`jp2-int-clamp-pixels.json`).
 The payload is `parity-20260909-ghent/payload-jp2-int-clamp`, with engine SHA-256
 `0CDAB4B817FED5DFB64B01A2CA7600CD7895BFDF9D54B02424CF3C2C0444C61E`.
+
+The remaining maintenance brochure port, `4cd5096`, has been reviewed but is
+not applied. The maintenance PDF has 50 pages with unchanged page dimensions,
+18 fields, 22 widgets, and unchanged field values. Extracted text changes only
+the applicable 1.8.3 labels to the 1.8 series, retaining historical result labels.
+All 50 pages were rendered at 72 DPI and visually inspected for text overlap
+and clipping, including page 40. Page 46 has doubled radio-button outlines in
+both the current and maintenance copies; this is an existing visual issue.
+Rendered evidence is in `review-20260909/brochure-maintenance` under the scratch
+root. The reviewed maintenance PDF SHA-256 is
+`4C3BBD6FB871F7045154FCADCEACDC20D8B53F589D561BD7E5503595AAEE79A3`.
+It remains a 1.8 brochure and does not describe the 1.9 rendering architecture.
+The binary replacement is pending clarification of the atomic-tool-only rule
+against the separate verified binary-write procedure. No PDF was overwritten.
