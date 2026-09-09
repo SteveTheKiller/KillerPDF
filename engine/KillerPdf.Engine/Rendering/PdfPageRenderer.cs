@@ -1592,6 +1592,16 @@ public sealed partial class PdfPageRenderer
                                     if (weight <= 0) continue;
                                     int offset = backdropRow + (x - left) * 4;
                                     int groupOffset = groupRow + (x - left) * 4;
+                                    if (weight >= 1 && groupData[groupOffset + 3] != 0)
+                                    {
+                                        // Full weight: the backdrop term is zero and the group
+                                        // term divides out exactly, so the group pixel copies over.
+                                        backdropData[offset] = groupData[groupOffset];
+                                        backdropData[offset + 1] = groupData[groupOffset + 1];
+                                        backdropData[offset + 2] = groupData[groupOffset + 2];
+                                        backdropData[offset + 3] = groupData[groupOffset + 3];
+                                        continue;
+                                    }
                                     double backdropAlpha = backdropData[offset + 3] * (1 - weight);
                                     double groupAlpha = groupData[groupOffset + 3] * weight;
                                     double alpha = backdropAlpha + groupAlpha;
@@ -1615,8 +1625,25 @@ public sealed partial class PdfPageRenderer
                                 if (weight <= 0) continue;
                                 int offset = backdropPixels.Offset(x, y);
                                 int groupOffset = maskedGroupPixels.Offset(x, y);
+                                byte groupPixelAlpha = maskedGroupPixels.Alpha(groupOffset);
+                                if (weight >= 1 && groupPixelAlpha != 0)
+                                {
+                                    // Full weight: the backdrop term is zero and the group term
+                                    // divides out exactly, so the group pixel copies over.
+                                    if (backdropPixels.Ink is not null)
+                                    {
+                                        WriteInk(backdropPixels.Ink, offset, ReadInk(maskedGroupPixels.Ink!, groupOffset));
+                                        backdropPixels.SetAlpha(offset, groupPixelAlpha);
+                                        continue;
+                                    }
+                                    backdropPixels[offset] = maskedGroupPixels[groupOffset];
+                                    backdropPixels[offset + 1] = maskedGroupPixels[groupOffset + 1];
+                                    backdropPixels[offset + 2] = maskedGroupPixels[groupOffset + 2];
+                                    backdropPixels[offset + 3] = groupPixelAlpha;
+                                    continue;
+                                }
                                 double backdropAlpha = backdropPixels.Alpha(offset) * (1 - weight);
-                                double groupAlpha = maskedGroupPixels.Alpha(groupOffset) * weight;
+                                double groupAlpha = groupPixelAlpha * weight;
                                 double alpha = backdropAlpha + groupAlpha;
                                 if (alpha <= 0) continue;
                                 if (backdropPixels.Ink is not null)
