@@ -320,39 +320,35 @@ public sealed partial class PdfPageRenderer
                 return;
             }
             uint previousInk = 0;
-            Color previousColor = default;
-            Span<ulong> colors = InkProfile is null ? [] : stackalloc ulong[4096];
-            Span<uint> occupied = InkProfile is null ? [] : stackalloc uint[128];
+            uint previousRgb = 0;
+            Span<ulong> colors = stackalloc ulong[4096];
+            Span<uint> occupied = stackalloc uint[128];
             occupied.Clear();
             for (int offset = 0; offset < Length; offset += 4)
             {
                 if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 uint ink = ReadInk(Ink, offset);
-                Color color;
-                if (InkProfile is null) color = InkColor(ink);
-                else if (offset > 0 && ink == previousInk) color = previousColor;
+                uint rgb;
+                if (offset > 0 && ink == previousInk) rgb = previousRgb;
                 else
                 {
                     int slot = (int)((ink * 2654435761u) >> 20);
                     uint bit = 1u << (slot & 31);
                     if ((occupied[slot >> 5] & bit) != 0 && (uint)(colors[slot] >> 32) == ink)
                     {
-                        uint rgb = (uint)colors[slot];
-                        color = new Color((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb);
+                        rgb = (uint)colors[slot];
                     }
                     else
                     {
-                        color = ProfileInkToDisplay(ink, InkProfile);
-                        colors[slot] = ((ulong)ink << 32) | (uint)(color.Red << 16 | color.Green << 8 | color.Blue);
+                        Color color = ProfileInkToDisplay(ink, InkProfile);
+                        rgb = (uint)(color.Red << 16 | color.Green << 8 | color.Blue);
+                        colors[slot] = ((ulong)ink << 32) | rgb;
                         occupied[slot >> 5] |= bit;
                     }
                 }
                 previousInk = ink;
-                previousColor = color;
-                Data[offset] = color.Blue;
-                Data[offset + 1] = color.Green;
-                Data[offset + 2] = color.Red;
-                Data[offset + 3] = Alpha(offset);
+                previousRgb = rgb;
+                WriteInk(Data, offset, rgb | (uint)Alpha(offset) << 24);
             }
             Ink = null;
         }
