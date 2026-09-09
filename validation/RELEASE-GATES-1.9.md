@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,757 engine tests, 352 app tests, and the Release payload publish pass with reused RGB averaging weights. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,765 engine tests, 352 app tests, and the Release payload publish pass with exact 16-bit grayscale lookup caching. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -175,7 +175,24 @@ The published and measured engine SHA-256 is
 The refreshed paired run confirms that balloon and Ghent combined-suite page 2
 remain major difficult-page gaps (968/426 and 641/132 milliseconds respectively).
 The shared set also identifies `GWG182_16Bit_Images_ICCbasedGray_x4.pdf` at
-295/45 milliseconds. Its 684 by 684, 16-bit ICC grayscale image uses the uncached
-conversion path; existing single-component lookup caching stops at eight bits.
-Profile this path and verify any caching change against exact retained pixels,
-including matte handling, before treating it as a performance improvement.
+295/45 milliseconds before grayscale lookup caching. Its 684 by 684, 16-bit ICC
+grayscale image used the uncached conversion path. A 300-render profile attributes
+20.67 of 44.83 seconds of rendering in its latter half to color conversion and
+8.73 seconds to TIFF prediction (`gray16-profile-summary.json`).
+
+Single-component lookup caching now includes 16-bit samples. Each converter uses
+320 KiB for values and validity flags, plus 64 KiB when matte alpha is tracked;
+parallel row workers own separate converters. Eight retained-reference cases
+cover the full 65,536-value range repeated with differing alpha, inverted decode,
+nonlinear calibrated gray, and reduction. All 674 corpus outputs remain identical
+in `gray16-lookup-pixels.json`. Tests and the Release payload publish pass.
+
+Two reversed-order 80-render pairs at size 1024, excluding the first 40 renders,
+give baseline/new medians of 288.868/122.397 and 287.692/121.944 milliseconds.
+All 320 hashes match with zero diagnostics, a roughly 58% reduction on this page.
+`gray16-lookup-summary.json` and `gray16-timing-*.csv` retain the data in
+`parity-20260909-ghent`. The published and measured engine SHA-256 is
+`E2EDB20F6EEC616AAE2009347FBC0579A6086ED95617D9DF317F0703E7EDDB52`.
+The full paired application measurements above predate this change. TIFF prediction
+still reads and writes byte-aligned samples bit by bit; it is the next profiled
+target. Overall speed, fidelity, and interactive parity remain open.

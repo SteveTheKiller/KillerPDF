@@ -4649,7 +4649,7 @@ public sealed partial class PdfPageRenderer
             _directRgbInk = plainRgb && targetInk;
             _directGray = plainSpace && !targetInk && components == 1 && decode is [0, 1];
             _directCmyk = plainSpace && !targetInk && components == 4 && decode is [0, 1, 0, 1, 0, 1, 0, 1];
-            if (components == 1 && bits <= 8)
+            if (components == 1 && bits <= 16)
             {
                 _lookup = new uint[1 << bits];
                 _lookupSet = new bool[1 << bits];

@@ -57,6 +57,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Axial and radial shadings sample their color function a few times per device pixel and reuse a sample wherever its neighbors agree, evaluating the function directly everywhere else, so pages of gradients render up to twice as fast with unchanged pixels.
 - Removed per-sample calculator color arrays and repeated ICC grid-address calculations, temporary glyph point copies, repeated raster-sort delegates, reference-cycle tracking for direct rendering operands, and redundant color objects during final CMYK display conversion.
 - Faster RGB image conversion into unprofiled CMYK groups through direct sample handling and vectorized inverse interpolation where supported.
+- Faster 16-bit grayscale image conversion through exact sample lookups, including matte correction.
 - Reduced transparency-group storage and mask allocations, omitted uniform CMYK alpha planes and redundant CMYK, RGB, and grayscale image copies, kept one-bit masks packed, bounded retained scratch buffers, and added reusable caller-owned page output.
 - Reduced built-in character-map storage and loaded encoded mappings only when requested.
 - Removed redundant encoded-stream copies and full-image JPEG scratch planes during parsing and decoding, reused JPEG sample rows and copied grayscale output by row, and reused JPEG 2000 color and transparency planes across repeated paints.
