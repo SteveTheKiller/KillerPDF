@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.Security.Cryptography;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Rendering;
@@ -65,6 +67,24 @@ public sealed class PdfDeviceCmykTests
         Assert.InRange(Math.Abs((byte)(displayed >> 16) - red), 0, 4);
         Assert.InRange(Math.Abs((byte)(displayed >> 8) - green), 0, 4);
         Assert.InRange(Math.Abs((byte)displayed - blue), 0, 4);
+    }
+
+    [Fact]
+    public void InverseMatchesScalarReferenceForEveryRgbColor()
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Span<byte> row = stackalloc byte[256 * 4];
+        for (int red = 0; red < 256; red++)
+            for (int green = 0; green < 256; green++)
+            {
+                for (int blue = 0; blue < 256; blue++)
+                    BinaryPrimitives.WriteUInt32LittleEndian(row.Slice(blue * 4, 4),
+                        PdfDeviceCmyk.FromRgb((byte)red, (byte)green, (byte)blue));
+                hash.AppendData(row);
+            }
+        // Retained scalar output for all 16,777,216 RGB inputs, packed as little-endian inks.
+        Assert.Equal("4ED2006AF8C38E589C435F156B3E6A79C7EE8482E063674943190C55CDEC2A17",
+            Convert.ToHexString(hash.GetHashAndReset()));
     }
 
     internal static byte[] RenderInk(byte c, byte m, byte y = 0, byte k = 0)

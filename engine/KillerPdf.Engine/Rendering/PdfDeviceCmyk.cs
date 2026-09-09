@@ -3,6 +3,8 @@
 // BSD-3-Clause; see engine/THIRD-PARTY-NOTICES.txt for the complete notice.
 // Forward conversion and unchanged forward table from PDFium revision
 // f91ca5a72358bb0b00b4da9481b21fe668157614, core/fxge/dib/cfx_cmyk_to_srgb.cpp.
+using System.Runtime.Intrinsics;
+
 namespace KillerPdf.Engine.Rendering;
 
 /// <summary>Converts unprofiled process inks to the legacy renderer's display colors.</summary>
@@ -35,6 +37,33 @@ internal static class PdfDeviceCmyk
     }
 
     internal static uint FromRgb(byte red, byte green, byte blue)
+    {
+        if (!Vector256.IsHardwareAccelerated) return FromRgbScalar(red, green, blue);
+        double r = red * (16d / 255), g = green * (16d / 255), b = blue * (16d / 255);
+        int ri = Math.Min((int)r, 15), gi = Math.Min((int)g, 15), bi = Math.Min((int)b, 15);
+        r -= ri; g -= gi; b -= bi;
+        double[] samples = RgbInverseVectorTable.Samples;
+        Vector256<double> sum = Vector256<double>.Zero;
+        for (int dr = 0; dr < 2; dr++)
+            for (int dg = 0; dg < 2; dg++)
+                for (int db = 0; db < 2; db++)
+                {
+                    int offset = (((ri + dr) * 17 + gi + dg) * 17 + bi + db) * 4;
+                    double weight = (dr == 0 ? 1 - r : r) * (dg == 0 ? 1 - g : g) * (db == 0 ? 1 - b : b);
+                    Vector256<double> sample = Vector256.LoadUnsafe(ref samples[offset]);
+                    sum = Vector256.Add(sum, Vector256.Multiply(sample, weight));
+                }
+        return (uint)((byte)Math.Round(sum.GetElement(0)) | (byte)Math.Round(sum.GetElement(1)) << 8
+            | (byte)Math.Round(sum.GetElement(2)) << 16 | (byte)Math.Round(sum.GetElement(3)) << 24);
+    }
+
+    private static class RgbInverseVectorTable
+    {
+        // Expand once on first accelerated RGB conversion, preserving exact integer samples.
+        internal static readonly double[] Samples = Array.ConvertAll(InverseSamples, value => (double)value);
+    }
+
+    private static uint FromRgbScalar(byte red, byte green, byte blue)
     {
         double r = red * (16d / 255), g = green * (16d / 255), b = blue * (16d / 255);
         int ri = Math.Min((int)r, 15), gi = Math.Min((int)g, 15), bi = Math.Min((int)b, 15);
