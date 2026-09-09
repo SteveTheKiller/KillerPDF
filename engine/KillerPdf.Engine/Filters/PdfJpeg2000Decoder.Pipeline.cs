@@ -111,8 +111,8 @@ internal static partial class PdfJpeg2000Decoder
                             int bias = 1 << (bits - 1);
                             for (int column = 0; column < tileWidth; column++, destination += stride)
                             {
-                                int value = (int)Math.Clamp((long)(values[block.offset + column] >> fixedPoint)
-                                    + bias, 0, maximum);
+                                int value = Math.Clamp(values[block.offset + column] >> fixedPoint,
+                                    -bias, maximum - bias) + bias;
                                 if (bits == 8) samples[destination] = (byte)value;
                                 else
                                 {

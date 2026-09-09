@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,814 engine tests pass, including independent converted-image area averages. The unchanged runtime also has 352 passing app tests and a successful Release payload publish with descriptor-aware bundled font fallback and explicit width fitting. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,814 engine tests, 352 app tests, and the Release payload publish pass with the JPEG 2000 sample-clamping optimization. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -438,3 +438,23 @@ reverses the small timing benefit. Extra row storage is not retained. Results
 are in `parity-20260909-ghent/area-rows-summary.json` and its two timing CSVs.
 Three independent CMYK area-average checks cover fractional dimensions and
 both sides of the attempted cache limit; these remain as regression coverage.
+
+A fresh balloon-page sampled-thread-time trace attributes 13.784 of 18.774
+seconds of sampled CPU time to JPEG 2000 decoding, including 2.149 seconds
+exclusive to sample output. Only intervals containing `CPU_TIME` are counted,
+and the first half of the trace is excluded (`balloon-width-cpu-summary.json`).
+Direct 8-bit and 16-bit rows now clamp signed values before adding their output
+bias, preserving bounds without 64-bit arithmetic. A separate arithmetic check
+covers 1,110 signed-limit and clamp-boundary combinations across shifts 0 to 30.
+
+Two reversed-order pairs on the balloon page at size 2048 use 80 renders per
+process, excluding the first 40. Baseline/changed medians are 593.033/578.208
+and 588.672/576.494 ms, a small 2% to 2.5% page-level improvement. All 320 hashes
+are `391277DC61978A0AB08C8F51C2CE6611DDDF266110525B51228FCC8AD09AD18F`,
+with zero diagnostics (`jp2-int-clamp-summary.json` and its timing CSVs).
+These profiling files are in `parity-20260909-ghent`. The change adds no buffers.
+The full application timings above predate this optimization; overall parity
+remains open. All 3,814 engine tests, 352 app tests, and the Release publish pass.
+All 674 corpus images remain pixel-identical (`jp2-int-clamp-pixels.json`).
+The payload is `parity-20260909-ghent/payload-jp2-int-clamp`, with engine SHA-256
+`0CDAB4B817FED5DFB64B01A2CA7600CD7895BFDF9D54B02424CF3C2C0444C61E`.
