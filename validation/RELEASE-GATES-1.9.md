@@ -155,3 +155,19 @@ unchanged and zero diagnostics. `areaweights-summary.json` and the four
 `areaweights-*.csv` files in `parity-20260909-ghent` retain the measurements.
 All 3,757 engine tests, 352 app tests, and the Release payload publish pass.
 Decoder cost and broader rendering, performance, and interactive gates remain open.
+
+JPEG 2000 reconstruction now allocates buffers above the sample pool's retention
+limit directly, avoiding a second clearing of already-zeroed arrays. Reused
+buffers still clear every tile sample, without clearing unused bucket capacity.
+The pool limit and temporary-memory accounting are unchanged. For the balloon
+page, this removes 120,667,404 redundant bytes of clearing per decode.
+All 674 retained application outputs remain identical (`frame-clear-pixels.json`),
+and 3,757 engine tests, 352 app tests, and the Release payload publish pass.
+
+The corresponding 80-render baseline/new/new/baseline medians, excluding the
+first 40 of each run, are 567.285/555.692/572.878/576.186 milliseconds. All 320
+hashes match with zero diagnostics. The small differences and overlapping ranges
+do not establish a general speed improvement. `frame-clear-summary.json` and
+the four `frame-clear-*.csv` files retain the data in `parity-20260909-ghent`.
+The published and measured engine SHA-256 is
+`A208E82F48852EB4474C345049BA97E65A522B692E49C336B73719D225DBE855`.

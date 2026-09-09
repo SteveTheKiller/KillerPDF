@@ -202,14 +202,16 @@ internal static partial class PdfJpeg2000Decoder
                 bool integer = tree.HorWFilter is null || tree.HorWFilter.DataType == DataBlk.TYPE_INT;
                 int count = checked(width * height);
                 long pooledBytes = (long)BitOperations.RoundUpToPowerOf2((uint)Math.Max(16, count)) * sizeof(int);
-                bool pooled = pooledBytes + scratchBytes <= MaximumTemporarySampleBytes - _sampleBytes;
+                // Oversized pool requests already allocate fresh, zeroed arrays.
+                bool pooled = pooledBytes <= PdfScratchBuffers.MaximumSamplePoolBytes
+                    && pooledBytes + scratchBytes <= MaximumTemporarySampleBytes - _sampleBytes;
                 Array samples = integer
                     ? pooled ? IntegerFrames.Rent(count) : new int[count]
                     : pooled ? FloatFrames.Rent(count) : new float[count];
                 if (pooled)
                 {
                     _rentedFrames.Add(samples);
-                    Array.Clear(samples);
+                    Array.Clear(samples, 0, count);
                     bytes = (long)samples.Length * sizeof(int);
                     if (bytes + scratchBytes > MaximumTemporarySampleBytes - _sampleBytes)
                         throw new PdfFilterException("JPEG 2000 temporary samples exceed the configured safety limit.");
