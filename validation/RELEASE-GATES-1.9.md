@@ -13,14 +13,17 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch slightly higher; interactive use unverified | September 9 median peak working set is 534.4 versus 620.0 MiB shared and 275.0 versus 266.2 MiB difficult. Difficult engine peaks range from 264.9 to 277.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating measured runs put shared render medians at 12.309 versus 12.705 seconds, with engine variability overlapping PDFium; shared wall time is 2.3% longer. Difficult render time is 9.298 versus 4.891 seconds and wall time is 42.7% longer. The focused JPEG 2000 improvement does not establish general speed parity. |
-| Rendering fidelity without regression | Open | Scaled geometry and crop fixes reduce dimension mismatches from 215 to 2 of 600 shared outputs and 43 to 0 of 74 difficult outputs. Two one-pixel height differences remain. Color, compositing, font, and fine-detail differences still need disposition; unprofiled CMYK is an approximation. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 committed-CMYK median peak working set is 554.0 versus 620.3 MiB shared and 297.9 versus 266.3 MiB difficult. Difficult engine peaks range from 295.9 to 299.5 MiB, about 12% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating measured runs put shared render medians at 12.121 versus 12.955 seconds; shared wall time is 24.399 versus 24.072 seconds. Difficult render time is 9.551 versus 4.947 seconds and wall time is 14.909 versus 10.363 seconds. The focused optimizations do not establish general speed parity. |
+| Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
-| Existing 1.8 functionality and maintenance fixes preserved | Unverified for release | Verify the maintenance forward-port record and applicable feature workflows on the release build. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,709 engine tests, 352 app tests, and the Release application build pass. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 27 verified maintenance ports against local main at 5dd609f. The guard still reports nine release-history, brochure, and website commits requiring disposition. Applicable feature workflows still need release-build verification. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,726 engine tests, 352 app tests, and the Release application build pass at the CMYK checkpoint. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
-with all warmups, alternating runs, retained images, and DLL hashes. It supersedes
+with all warmups, alternating runs, retained images, and DLL hashes. The current
+timings are in `committed-cmyk-results.csv`, from the build containing `42a1571`.
+The narrowly scoped color comparison is described in `engine/docs/color-review.md`.
+This supersedes
 the earlier batch-memory conclusion for this build. Unmeasured interactive behavior
 and known speed and fidelity gaps remain release gates.

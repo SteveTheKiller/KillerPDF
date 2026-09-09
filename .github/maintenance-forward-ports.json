@@ -3,5 +3,141 @@
   "maintenanceBaseline": "3fd395385857cde086d216b564e7747092f26c83",
   "developmentBaseline": "be14536bcfec562363319f0cb893fad9abff0f34",
   "baselineReason": "Issues #227 and #353 through #356 were verified on both branches before this check was introduced.",
-  "ports": []
+  "ports": [
+    {
+      "maintenanceCommit": "378d7d1ad97bfb71a908ecfc06ad21f6348f9610",
+      "developmentCommit": "161b71e2779d8a908420296123653a8948566234",
+      "reason": "Footer pixel labels extend the unit toggle already present in 1.9; current formatter, transform dialog, and footer behavior were compared with maintenance."
+    },
+    {
+      "maintenanceCommit": "c471de4806043c9c402d43159f47294c55422f06",
+      "developmentCommit": "73f85a86f1c684814e4d91fd5f5bc2f93232d10d",
+      "reason": "Functional patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "9dbea80fe19aed63ea21085c2a1cdf01ab486b85",
+      "developmentCommit": "9835b5cba41521114756d966fffdb3e902d3f9a6",
+      "reason": "Functional patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "706045972a6eda5ad4d156d73d55a5b559983276",
+      "developmentCommit": "d503bb8a2ca3311f35f0e8668dd5d8231fc0aa83",
+      "reason": "Functional patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "3f3973bcfbca40b0dadc2dea69bfba4cb31aed40",
+      "developmentCommit": "0330e2d8bc41a6cee2d9c6bebe04eb9033b3516b",
+      "reason": "JPEG flattening implementation and tests match after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "23a80b43ee20c3f32cbb9b4c0f47d1a0420e5b0f",
+      "developmentCommit": "f6cc18a776bf27637dc912172440644bca8113c5",
+      "reason": "JPEG raster import and integration patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "88b1970f761f45042bd95ddaa94e273094a3fe0a",
+      "developmentCommit": "97acba71a524e1c50f40e05dce244756f377861c",
+      "reason": "The same footer analyzer edits are included in the broader 1.9 analyzer cleanup."
+    },
+    {
+      "maintenanceCommit": "56ebda9e2d903c3ae8fa5a5e10a8b10908017f51",
+      "developmentCommit": "38988b547bc5664da5181ac0debd6b88aadd8876",
+      "reason": "Comparison identity patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "3cd263abbbbc9d9d9f9b7a7659263d15bea8bcd2",
+      "developmentCommit": "b2d95927a1498493d6ca683934db58e22cb660e3",
+      "reason": "The bootstrap render patch is included in the versioned #379 development commit."
+    },
+    {
+      "maintenanceCommit": "49f3d996841480d92098faa287d548c5fe8ba354",
+      "developmentCommit": "ac2d47f9d650e295073ed74a04e8eca7dce7f0f5",
+      "reason": "Title-bar hit testing patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "fcafefb5b217ef6d35b39f1f64ce8a6fba36591a",
+      "developmentCommit": "b6c166bdb4a31b0932374a8a3b7786f2588f6215",
+      "reason": "Tagged page transform implementation and tests have identical changed lines; surrounding 1.9 editor code differs."
+    },
+    {
+      "maintenanceCommit": "0c8a6587d18676d9fa3cfe6d3a97da9c4b1beaee",
+      "developmentCommit": "a73fa25a9f864460086405fbbbbd334e3336ee5c",
+      "reason": "Localization implementation and regression tests match after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "7d083edb8e4be61f801897a8d4d06be09bf5af9c",
+      "developmentCommit": "b2d95927a1498493d6ca683934db58e22cb660e3",
+      "reason": "Bootstrap render patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "b96295aa3efb2b1ef5ba546d3a91a306be8ba736",
+      "developmentCommit": "986ed5f820c3d22b310eacd856373a0b985987e3",
+      "reason": "Pasted-image page insertion patch and tests match after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "29d97dd7879b884b5cef20f33336c1eb72be10b4",
+      "developmentCommit": "1aa22319e893455b33a13e0ae8a9a931d035a6ef",
+      "reason": "Clipboard opacity implementation and tests have identical changed lines; the test project already includes BitmapHelpers."
+    },
+    {
+      "maintenanceCommit": "c81e5696f5cf15cca2b43010548fabad545b8e94",
+      "developmentCommit": "963c3a38b4c85ed9b536f6cd4a704d00aa7e8e03",
+      "reason": "PDF handler naming patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "1571a6ef5fca70eaef11d5c445d7ba3b601c8e0f",
+      "developmentCommit": "e6953e9c1a2a4f313496d61286e84090d124bf8c",
+      "reason": "Custom title-bar controls patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "9cc30873a0e0c86021a0848a9f41d340ccb90c34",
+      "developmentCommit": "10a9b330a395df63b3746a1181d64c0cd4b5865e",
+      "reason": "Batch rendering uses the 1.9 engine session in place of the maintenance PDFium session; the retained comparison exercises both commands."
+    },
+    {
+      "maintenanceCommit": "8c927768bf5d28d4df17ca9a51e42f21d41d87ff",
+      "developmentCommit": "16637ac974e7c8fd4e87bbe669d4bc164efda3b9",
+      "reason": "Described tagged overlays and regression tests are preserved using 1.9 overlayContent and its existing transformed overlay record."
+    },
+    {
+      "maintenanceCommit": "b9f56b96e28dc625c1615e9151fba56b11cc7a90",
+      "developmentCommit": "9c27562de5d451b8ea4729bb5d1da1afd4374a2c",
+      "reason": "PDF association refresh patch matches after excluding version-specific changelog edits."
+    },
+    {
+      "maintenanceCommit": "ca4f4ca63541707e1d82e6c22f7ed64f29bafd7e",
+      "developmentCommit": "0f3022642973f6326808c8bf52ae298d4b212a22",
+      "reason": "The integrated Italian resource file is byte-identical to the maintenance integration, including these corrections."
+    },
+    {
+      "maintenanceCommit": "9d88c9337b78b7db879f6e7f5ba1829ab0c0783d",
+      "developmentCommit": "0f3022642973f6326808c8bf52ae298d4b212a22",
+      "reason": "The integrated Italian resource file is byte-identical to the maintenance integration, including these corrections."
+    },
+    {
+      "maintenanceCommit": "c3ee656a19baa0dd9d14012bb8cace6a69cc720e",
+      "developmentCommit": "0f3022642973f6326808c8bf52ae298d4b212a22",
+      "reason": "The integrated Italian resource file is byte-identical to the maintenance integration, including these corrections."
+    },
+    {
+      "maintenanceCommit": "b51c25820005981ee69b91c7a624433ba1d28c60",
+      "developmentCommit": "0f3022642973f6326808c8bf52ae298d4b212a22",
+      "reason": "The integrated Italian resource file is byte-identical to the maintenance integration, including these corrections."
+    },
+    {
+      "maintenanceCommit": "7f708e6a41509d30f57d474e4daee42b3f0af837",
+      "developmentCommit": "0f3022642973f6326808c8bf52ae298d4b212a22",
+      "reason": "The integrated Italian resource file is byte-identical to the maintenance integration, including these corrections."
+    },
+    {
+      "maintenanceCommit": "97d508ff889275bed782554ac2fdc27c07f5051b",
+      "developmentCommit": "0f3022642973f6326808c8bf52ae298d4b212a22",
+      "reason": "The 1.9 changelog preserves #395 contributor credit."
+    },
+    {
+      "maintenanceCommit": "168f89877d86d9eefe4f3e776d8a9994357987ee",
+      "developmentCommit": "a7f0e0cbf8e90f8a8b9f7b92cf6c55b4cc694a26",
+      "reason": "The separate 1.8.4 engine changelog entry preserves the September 6 release date."
+    }
+  ]
 }
