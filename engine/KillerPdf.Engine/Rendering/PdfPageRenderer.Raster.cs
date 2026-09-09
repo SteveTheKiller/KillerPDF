@@ -1231,7 +1231,23 @@ public sealed partial class PdfPageRenderer
             });
             return;
         }
-        for (int y = top; y < bottom; y++)
+        // Row chunks write disjoint pixels, disjoint group alpha entries and disjoint knockout
+        // object slots, and the graphics soft mask was materialized by ForBounds above, so this
+        // loop parallelizes by row on plain RGB surfaces. Ink and profiled RGB surfaces stay
+        // serial: their per-pixel GetInk and GetRgb calls memoize into surface state.
+        // A local function cannot capture the 'in' parameter, so the direct path reads a copy.
+        Color directColor = color;
+        if (pixels.Ink is null && pixels.RgbProfile is null)
+        {
+            ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken,
+                (rowStart, rowEnd) => PaintRows(rowStart, rowEnd));
+        }
+        else PaintRows(top, bottom);
+        return;
+
+        void PaintRows(int firstRow, int lastRow)
+        {
+        for (int y = firstRow; y < lastRow; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
             int maskRow = mask.RowOffset(y) - mask.Left;
@@ -1258,9 +1274,9 @@ public sealed partial class PdfPageRenderer
                     int offset = pixels.Offset(x, y);
                     if (cover == 255)
                     {
-                        pixels[offset] = color.Blue;
-                        pixels[offset + 1] = color.Green;
-                        pixels[offset + 2] = color.Red;
+                        pixels[offset] = directColor.Blue;
+                        pixels[offset + 1] = directColor.Green;
+                        pixels[offset + 2] = directColor.Red;
                         pixels[offset + 3] = 255;
                         if (groupAlpha is not null) groupAlpha[offset / 4] = 255;
                         continue;
@@ -1268,9 +1284,9 @@ public sealed partial class PdfPageRenderer
                     if (pixels[offset + 3] == 255)
                     {
                         int inverse = 255 - cover;
-                        pixels[offset] = (byte)((color.Blue * cover + pixels[offset] * inverse + 127) / 255);
-                        pixels[offset + 1] = (byte)((color.Green * cover + pixels[offset + 1] * inverse + 127) / 255);
-                        pixels[offset + 2] = (byte)((color.Red * cover + pixels[offset + 2] * inverse + 127) / 255);
+                        pixels[offset] = (byte)((directColor.Blue * cover + pixels[offset] * inverse + 127) / 255);
+                        pixels[offset + 1] = (byte)((directColor.Green * cover + pixels[offset + 1] * inverse + 127) / 255);
+                        pixels[offset + 2] = (byte)((directColor.Red * cover + pixels[offset + 2] * inverse + 127) / 255);
                         if (groupAlpha is not null) TrackGroupAlpha(offset, alpha * cover / 255d);
                         continue;
                     }
@@ -1290,6 +1306,7 @@ public sealed partial class PdfPageRenderer
                 SetPixel(pixels, width, x, y, paint, alpha * cover / 255d, blendMode,
                     graphicsSoftMask, knockout);
             }
+        }
         }
     }
 
