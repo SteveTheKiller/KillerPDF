@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Vendored copy of CoreJ2K. See ../VENDORING.md for the upstream revision and the
+    list of changes made to this project file. The library sources are unmodified.
+
+    Upstream builds this project with a Directory.Build.props at its repository root,
+    which is not vendored. The properties that file supplied are reproduced below so
+    the build behaves the same way, along with the identity metadata that carries the
+    JJ2000 and Sjofn LLC copyright into the compiled assembly.
+  -->
+
+  <PropertyGroup>
+    <AssemblyName>CoreJ2K</AssemblyName>
+    <RootNamespace>CoreJ2K</RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsAotCompatible>true</IsAotCompatible>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>2.3.0.0</Version>
+    <Product>CoreJ2K</Product>
+    <Authors>Sjofn LLC</Authors>
+    <Company>Sjofn LLC</Company>
+    <Copyright>Copyright (c) 1999-2000 JJ2000 Partners. Copyright (c) 2007-2012 Jason S. Clary. Copyright (c) 2013-2018 Anders Gustafsson, Cureos AB. Copyright (c) Sjofn LLC 2024-2026. All rights reserved.</Copyright>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Nullable warnings are surfaced but not errors, matching upstream. -->
+    <WarningsNotAsErrors>CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8619;CS8620;CS8621;CS8625;CS8629</WarningsNotAsErrors>
+  </PropertyGroup>
+
+</Project>

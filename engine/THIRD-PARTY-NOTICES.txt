@@ -180,9 +180,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
 OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-CoreJ2K JPEG 2000 codec: https://github.com/cinderblocks/CoreJ2K
+CoreJ2K JPEG 2000 codec, vendored into the KillerPDF engine:
+https://github.com/cinderblocks/CoreJ2K
 
+The complete license, the upstream JJ2000 copyright notice, and the record of the
+vendored revision are included in third_party/CoreJ2K.
+
+Copyright (c) 1999-2000, JJ2000 Partners.
 Copyright (c) 2007-2016, CSJ2K contributors.
+Copyright (c) 2007-2012, Jason S. Clary.
+Copyright (c) 2013-2018, Anders Gustafsson, Cureos AB.
 Copyright (c) 2024-2026, Sjofn LLC.
 
 Redistribution and use in source and binary forms, with or without modification,
