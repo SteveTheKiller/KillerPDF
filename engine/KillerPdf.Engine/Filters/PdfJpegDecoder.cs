@@ -380,6 +380,35 @@ internal static class PdfJpegDecoder
             int secondStep = maxHorizontal / secondComponent.HorizontalSampling;
             int thirdStep = maxHorizontal / thirdComponent.HorizontalSampling;
             int fourthStep = fourthComponent is null ? 1 : maxHorizontal / fourthComponent.HorizontalSampling;
+            if (components == 3 && transform == 1 && firstStep == 1
+                && secondStep == thirdStep && secondStep is 1 or 2 or 4)
+            {
+                // Three-component YCbCr with full-resolution luma, the common case: the same
+                // arithmetic as the general loop below without per-sample step dispatch.
+                int chromaShift = secondStep == 1 ? 0 : secondStep == 2 ? 1 : 2;
+                int[] crRed = CrRed, cbGreen = CbGreen, crGreen = CrGreen, cbBlue = CbBlue;
+                for (int y = 0, offset = 0; y < outputHeight; y++)
+                {
+                    ReadOnlySpan<byte> lumaRow = SampleRow(firstComponent, y, maxVertical);
+                    ReadOnlySpan<byte> cbRow = SampleRow(secondComponent, y, maxVertical);
+                    ReadOnlySpan<byte> crRow = SampleRow(thirdComponent, y, maxVertical);
+                    Span<byte> outputRow = output.Slice(offset, outputWidth * 3);
+                    for (int x = 0, target = 0; x < outputWidth; x++, target += 3)
+                    {
+                        int luma = lumaRow[x];
+                        int cb = cbRow[x >> chromaShift];
+                        int cr = crRow[x >> chromaShift];
+                        int red = luma + crRed[cr];
+                        int green = luma + ((cbGreen[cb] + crGreen[cr]) >> ChromaShift);
+                        int blue = luma + cbBlue[cb];
+                        outputRow[target] = (byte)Math.Clamp(red, 0, 255);
+                        outputRow[target + 1] = (byte)Math.Clamp(green, 0, 255);
+                        outputRow[target + 2] = (byte)Math.Clamp(blue, 0, 255);
+                    }
+                    offset += outputWidth * 3;
+                }
+                return;
+            }
             for (int y = 0, offset = 0; y < outputHeight; y++)
             {
                 ReadOnlySpan<byte> firstRow = SampleRow(firstComponent, y, maxVertical);
