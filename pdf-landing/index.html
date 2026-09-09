@@ -162,11 +162,11 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
   .engine-stats { grid-template-columns: 1fr 1fr; }
 }
 /* Package manager commands */
-.package-commands { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 980px; margin: 22px auto 0; text-align: left; }
-.package-commands pre { flex: 1 1 300px; min-width: 0; margin: 0; padding: 12px 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--panel); color: var(--text); overflow-x: auto; }
+.package-commands { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 24px; width: fit-content; max-width: 100%; margin: 12px auto 0; text-align: left; }
+.package-commands pre { flex: 0 1 auto; min-width: 0; margin: 0; padding: 4px 0; border: 0; border-radius: 0; background: transparent; color: var(--text); overflow-x: auto; }
 .package-commands code { font: 13px/1.6 Consolas, 'Courier New', monospace; white-space: pre; user-select: all; }
 .package-commands .manager { color: var(--accent); font-weight: 700; }
-.package-commands .verb { color: var(--muted); }
+.package-commands .verb { color: var(--text2); }
 </style>
 </head>
 <body>
