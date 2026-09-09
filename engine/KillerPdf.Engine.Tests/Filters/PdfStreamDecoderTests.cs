@@ -498,6 +498,62 @@ public sealed class PdfStreamDecoderTests
         Assert.Equal(new byte[] { 0x13, 0x7F }, PdfStreamDecoder.Decode(stream));
     }
 
+    [Theory]
+    [InlineData(8, 1)]
+    [InlineData(8, 3)]
+    [InlineData(8, 4)]
+    [InlineData(16, 1)]
+    [InlineData(16, 3)]
+    [InlineData(16, 4)]
+    public void Decode_ByteAlignedTiffPredictionPreservesChannelsAndRowBoundaries(int bits, int colors)
+    {
+        foreach (int columns in new[] { 1, 17, 257 })
+        {
+            const int rows = 9;
+            int maximum = (1 << bits) - 1;
+            int samplesPerRow = columns * colors;
+            int[] values = Enumerable.Range(0, samplesPerRow * rows)
+                .Select(index => (index * 7919 + index / samplesPerRow * 65521) & maximum).ToArray();
+            byte[] expected = new byte[values.Length * (bits / 8)];
+            byte[] predicted = new byte[expected.Length];
+            for (int sample = 0; sample < values.Length; sample++)
+            {
+                Write(expected, sample, values[sample]);
+                int previous = sample % samplesPerRow < colors ? 0 : values[sample - colors];
+                Write(predicted, sample, (values[sample] - previous) & maximum);
+            }
+            PdfDictionary parameters = Dictionary(Pair("Predictor", new PdfInteger(2)),
+                Pair("BitsPerComponent", new PdfInteger(bits)), Pair("Colors", new PdfInteger(colors)),
+                Pair("Columns", new PdfInteger(columns)));
+            PdfStream stream = Stream(Compress(predicted), Pair("Filter", Name("FlateDecode")),
+                Pair("DecodeParms", parameters));
+            Assert.Equal(expected, PdfStreamDecoder.Decode(stream));
+
+            void Write(byte[] target, int sample, int value)
+            {
+                if (bits == 8) target[sample] = (byte)value;
+                else
+                {
+                    target[sample * 2] = (byte)(value >> 8);
+                    target[sample * 2 + 1] = (byte)value;
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData(8)]
+    [InlineData(16)]
+    public void Decode_ByteAlignedTiffPredictionRejectsIncompleteRows(int bits)
+    {
+        PdfDictionary parameters = Dictionary(Pair("Predictor", new PdfInteger(2)),
+            Pair("BitsPerComponent", new PdfInteger(bits)), Pair("Colors", new PdfInteger(3)),
+            Pair("Columns", new PdfInteger(5)));
+        PdfStream stream = Stream(Compress(new byte[15 * (bits / 8) - 1]),
+            Pair("Filter", Name("FlateDecode")), Pair("DecodeParms", parameters));
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+    }
+
     [Fact]
     public void Decode_EnforcesOutputLimitWhileInflating()
     {

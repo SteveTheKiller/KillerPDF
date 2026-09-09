@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,765 engine tests, 352 app tests, and the Release payload publish pass with exact 16-bit grayscale lookup caching. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,773 engine tests, 352 app tests, and the Release payload publish pass with direct byte-aligned TIFF prediction. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -193,6 +193,22 @@ All 320 hashes match with zero diagnostics, a roughly 58% reduction on this page
 `gray16-lookup-summary.json` and `gray16-timing-*.csv` retain the data in
 `parity-20260909-ghent`. The published and measured engine SHA-256 is
 `E2EDB20F6EEC616AAE2009347FBC0579A6086ED95617D9DF317F0703E7EDDB52`.
-The full paired application measurements above predate this change. TIFF prediction
-still reads and writes byte-aligned samples bit by bit; it is the next profiled
-target. Overall speed, fidelity, and interactive parity remain open.
+The full paired application measurements above predate this change. The same
+profile identified bit-by-bit TIFF prediction as another substantial cost.
+
+TIFF prediction now reconstructs eight-bit bytes and big-endian 16-bit words
+directly, preserving modular arithmetic and channel spacing. Packed samples
+retain the existing path. Six test cases cover 1, 3, and 4 channels across three
+row widths, including single-column rows, wraparound, and independent row starts;
+two more cases check rejection of incomplete rows. No additional buffers are used.
+All 3,773 engine tests, 352 app tests, and the Release payload publish pass.
+All 674 corpus images remain identical (`tiff-direct-pixels.json`).
+
+Against the grayscale-lookup build, two reversed-order 80-render pairs excluding
+the first 40 give baseline/new medians of 123.959/65.931 and 122.102/67.201
+milliseconds. All 320 hashes match with zero diagnostics, a 45% to 47% reduction
+on the profiled page. `tiff-direct-summary.json` and `tiff-timing-*.csv` retain the
+measurements in `parity-20260909-ghent`. The published and measured engine SHA-256
+is `530B72A65095D0E50A3E36D10B67962B227BC72B179659B9773D75BDDFD56121`.
+The full application comparison still predates both changes; overall speed,
+fidelity, and interactive parity remain open.

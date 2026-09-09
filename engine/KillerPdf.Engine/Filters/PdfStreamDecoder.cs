@@ -757,6 +757,27 @@ public static class PdfStreamDecoder
 
         byte[] decoded = (byte[])data.Clone();
         int samplesPerRow = checked(colors * columns);
+        if (bitsPerComponent == 8)
+        {
+            for (int row = 0; row < decoded.Length; row += rowLength)
+            for (int offset = row + colors; offset < row + rowLength; offset++)
+                decoded[offset] = unchecked((byte)(decoded[offset] + decoded[offset - colors]));
+            return decoded;
+        }
+        if (bitsPerComponent == 16)
+        {
+            int stride = checked(colors * 2);
+            for (int row = 0; row < decoded.Length; row += rowLength)
+            for (int offset = row + stride; offset < row + rowLength; offset += 2)
+            {
+                int previous = offset - stride;
+                int value = ((decoded[offset] << 8) | decoded[offset + 1])
+                    + ((decoded[previous] << 8) | decoded[previous + 1]);
+                decoded[offset] = unchecked((byte)(value >> 8));
+                decoded[offset + 1] = unchecked((byte)value);
+            }
+            return decoded;
+        }
         int mask = (1 << bitsPerComponent) - 1;
         for (int row = 0; row < decoded.Length; row += rowLength)
         {
