@@ -164,12 +164,11 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 /* Package manager commands */
 .package-commands { display: flex; flex-direction: column; gap: 2px; width: 100%; max-width: 360px; margin: 0; text-align: center; }
 .package-commands .install-intro { margin: 0 0 4px; font: 13px/1.5 'Segoe UI', sans-serif; color: var(--text2); }
-.package-commands pre { min-width: 0; margin: 0; padding: 2px 0; border: 0; border-radius: 0; background: transparent; color: var(--text); overflow-x: auto; }
+.package-commands pre { min-width: 0; margin: 0 auto; padding: 2px 10px; border: 0; border-radius: 3px; background: rgba(0, 0, 0, 0.22); color: var(--text); overflow-x: auto; }
 .package-commands code { font: 13px/1.6 Consolas, 'Courier New', monospace; white-space: pre; user-select: all; }
 .package-commands .manager { color: var(--accent); font-weight: 700; }
 .package-commands .verb { color: var(--text2); }
-.brochure-link { display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: 6px; font-size: 13px; color: var(--accent); }
-.hero-info:has(.brochure-link) { padding-bottom: 8px; }
+.brochure-link { display: flex; align-items: center; justify-content: flex-start; gap: 7px; margin-top: 12px; font-size: 13px; color: var(--accent); }
 .brochure-link img { width: 18px; height: auto; }
 .brochure-link:hover { text-decoration: underline; }
 </style>
@@ -274,11 +273,12 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <div class="row"><span class="k">platform</span>&nbsp;<span class="v">Windows 10/11 x64</span></div>
 <div class="row"><span class="k">sha256</span>&nbsp;<span class="v hash">25c75cdd647d2c5a8cd2f691297e2e6d<br>4d03edc75472c6ef5d4d9c80a5da5143</span></div>
 <p class="note" data-i18n="hero_note">Install or run portable. Free, open source, GPLv3.<br>No accounts or subscriptions required.<br>No telemetry is sent and no ads... ever.</p>
-<a href="https://github.com/SteveTheKiller/KillerPDF/raw/main/KillerPDF.pdf" class="brochure-link" target="_blank" rel="noopener"><img src="brand/brochure-doc.png" alt=""><span data-i18n="brochure_btn">Informational Brochure (PDF)</span></a>
 </div>
 </div>
 <div class="hero-blurbs">
-<div class="blurb"><h3 data-i18n="b3_t">The people's editor</h3><p data-i18n="b3_d">Much of what KillerPDF does was requested by the people who use it. The <a href="https://github.com/SteveTheKiller/KillerPDF/issues" target="_blank" rel="noopener">GitHub issues</a> page is open to anyone, so anybody can request a feature or report a bug.<br><br>Your suggestions genuinely shape where this goes next. Read the story behind the app on the <a href="about.html">About</a> page.</p></div>
+<div class="blurb"><h3 data-i18n="b3_t">The people's editor</h3><p data-i18n="b3_d">Much of what KillerPDF does was requested by the people who use it. The <a href="https://github.com/SteveTheKiller/KillerPDF/issues" target="_blank" rel="noopener">GitHub issues</a> page is open to anyone, so anybody can request a feature or report a bug.<br><br>Your suggestions genuinely shape where this goes next. Read the story behind the app on the <a href="about.html">About</a> page.</p>
+<a href="https://github.com/SteveTheKiller/KillerPDF/raw/main/KillerPDF.pdf" class="brochure-link" target="_blank" rel="noopener"><img src="brand/brochure-doc.png" alt=""><span data-i18n="brochure_btn">Informational Brochure (PDF)</span></a>
+</div>
 <div class="blurb"><h3 data-i18n="b2_t">Built from scratch</h3><p data-i18n="b2_d">KillerPDF is written in C# and WPF on .NET. It renders through PDFium and runs OCR on Tesseract, with extra language models downloaded only on demand so the base download stays small.<br><br>PDF creation, editing, validation, encryption, and writing are powered by <a href="./engine/index.html">The KillerPDF.Engine</a>, an independent .NET library built from scratch for PDF 2.0 and modern PDF/A. The <a href="technical.html">Technical</a> page shows how it all fits together.</p></div>
 <div class="blurb"><h3 data-i18n="b1_t">Fully featured</h3><ul class="blurb-list" data-i18n="b1_d">
 <li>Four view modes across unlimited tabs</li>
