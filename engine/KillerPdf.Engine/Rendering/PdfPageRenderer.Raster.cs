@@ -1163,15 +1163,42 @@ public sealed partial class PdfPageRenderer
             && (long)(right - left) * (bottom - top) >= 4096
             ? CreateOpaqueBlendLookup(color, alpha * 255 / 255d, blendMode) : null;
         byte[]? coverage = mask.Coverage;
-        if (directInk && !perPixelClip && coverage is null)
+        if (directInk && !perPixelClip)
         {
-            // Rectangular opaque ink fill: whole rows of ink, alpha, and group alpha at once.
+            // Opaque interiors share bulk ink and alpha writes; partial edges keep the compositor.
             byte[] inkData = pixels.Ink!;
             int count = right - left;
             for (int y = top; y < bottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 int rowOffset = pixels.Offset(left, y);
+                if (coverage is not null)
+                {
+                    int maskRow = mask.RowOffset(y) - mask.Left;
+                    for (int x = left; x < right;)
+                    {
+                        int cover = coverage[maskRow + x];
+                        if (cover == 255)
+                        {
+                            int start = x++;
+                            while (x < right && coverage[maskRow + x] == 255) x++;
+                            int offset = rowOffset + (start - left) * 4;
+                            int length = x - start;
+                            System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
+                                inkData.AsSpan(offset, length * 4)).Fill(ink);
+                            pixels.SetAlphaRun(offset, length, 255);
+                            pixels.GroupAlpha?.AsSpan(offset / 4, length).Fill(255);
+                        }
+                        else
+                        {
+                            if (cover != 0)
+                                SetPixel(pixels, width, x, y, paint, alpha * cover / 255d, blendMode,
+                                    graphicsSoftMask, knockout);
+                            x++;
+                        }
+                    }
+                    continue;
+                }
                 System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
                     inkData.AsSpan(rowOffset, count * 4)).Fill(ink);
                 pixels.SetAlphaRun(rowOffset, count, 255);

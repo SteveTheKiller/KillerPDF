@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,787 engine tests, 352 app tests, and the Release payload publish pass with packed image color-cache reads. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,791 engine tests, 352 app tests, and the Release payload publish pass with opaque CMYK coverage runs. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -325,3 +325,24 @@ attribution, not independent wall-clock timings. Unmanaged intervals and thread
 waits are excluded from `packed-key-app-managed-profile.json`; the unfiltered
 summary must not be presented as CPU time. Coverage painting is the next engine
 target to investigate, alongside the still-open fidelity and interactive gates.
+
+Opaque CMYK shapes now fill fully covered interior runs in bulk, retaining the
+original compositor for partial edges and the existing paths for masked clips,
+soft masks, overprint, and knockout. Four new cases compare disjoint antialiased
+shapes against the general transparent-backdrop compositor with group opacity.
+All 674 corpus outputs remain identical, including 444 repeated difficult outputs
+and 600 shared outputs (`ink-runs-pixels.json`). The 3,791 engine tests, 352 app
+tests, and Release payload publish pass.
+
+The focused Ghent page-2 timing is inconclusive: baseline/new medians are
+260.259/237.8205 and 237.0305/238.197 milliseconds in two reversed-order
+80-render pairs, excluding the first 40. All 320 hashes match with zero
+diagnostics (`ink-runs-summary.json`). In the actual difficult-page application
+batch, two measured reversed-order pairs after warmup give baseline/new render
+times of 10,278/10,079 and 10,155/10,053 milliseconds, about 1% to 2% lower.
+Warmup favored the baseline, so this is modest evidence rather than an established
+general speed gain. All six batch passes succeed (`ink-runs-ab-results.csv`).
+The published and measured engine SHA-256 is
+`5D2EE68CEB19D07F8E4F114EC4EDE9C24CB6A7784557AB01898E30A5801D4CB8`.
+The full PDFium comparison remains the earlier `47edfd8` checkpoint; overall
+performance, fidelity, and interactive parity remain open.

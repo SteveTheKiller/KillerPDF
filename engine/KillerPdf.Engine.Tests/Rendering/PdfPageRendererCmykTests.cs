@@ -11,6 +11,37 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererCmykTests
 {
     [Theory]
+    [InlineData(37, false)]
+    [InlineData(37, true)]
+    [InlineData(256, false)]
+    [InlineData(256, true)]
+    public void Render_OpaqueCmykShapeRunsMatchTransparentBackdropCompositor(int size, bool transparent)
+    {
+        byte[] Render(PdfBlendMode blend)
+        {
+            var shapes = new PdfContentStreamBuilder().SetBlendMode(blend)
+                .Rectangle(1, 1, 98, 68).Clip();
+            for (int index = 0; index < 3; index++)
+            {
+                double x = index * 32 + .3;
+                shapes.SetFillCmyk(.2 * index, .8, .3, .1)
+                    .MoveTo(x, 2.4).LineTo(x + 30.2, 8.7).LineTo(x + 12.6, 69.3)
+                    .ClosePath().Fill();
+            }
+            var form = new PdfFormXObject(100, 70, shapes, isolatedTransparencyGroup: true,
+                transparencyGroupColorSpace: PdfTransparencyGroupColorSpace.Cmyk);
+            var content = new PdfContentStreamBuilder().SetOpacity(.63).DrawForm(form, 0, 0);
+            var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 70, content).Build());
+            var result = new PdfPageRenderer(document).Render(0,
+                new PdfRenderOptions(size, size, transparentBackground: transparent));
+            Assert.Empty(result.Diagnostics);
+            return result.Pixels.ToArray();
+        }
+        // Disjoint shapes meet a transparent group backdrop, where both blend modes agree.
+        Assert.Equal(Render(PdfBlendMode.Multiply), Render(PdfBlendMode.Normal));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void Render_CmykImageMaskCombinesWithGroupOpacity(bool transparent)
