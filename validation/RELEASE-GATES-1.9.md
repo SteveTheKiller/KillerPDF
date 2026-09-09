@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,755 engine tests, 352 app tests, and the Release payload publish pass with exact one-bit area averaging. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,757 engine tests, 352 app tests, and the Release payload publish pass with reused RGB averaging weights. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -139,3 +139,19 @@ gave baseline/new medians of 608.443/595.071 and 581.420/595.482 milliseconds.
 All 320 hashes matched with zero diagnostics, but the timing change reversed
 direction. `vectorcopy-*.csv` retains all iterations. No decoder or rendering
 implementation change was retained from this experiment.
+
+Small RGB area footprints now reuse horizontal weights across rows and unroll
+up to three columns while preserving accumulation order and cancellation.
+All 674 application outputs remain pixel-identical to the one-bit checkpoint;
+`areaweights-pixels.json` records the comparison. A retained scalar digest covers
+388,960 gray/RGB footprints, including boundaries and the wider fallback path.
+The isolated 3,078,144-sample check matches every pixel and reduces sampling
+time by about 27%; this is a kernel measurement, not application throughput.
+
+On the balloon page, baseline/new/new/baseline runs of 80 fresh-document renders,
+excluding the first 40 per run, give medians of 591.797/558.250/558.135/581.445
+milliseconds. Both run orders improve by about 4% to 6%, with all 320 hashes
+unchanged and zero diagnostics. `areaweights-summary.json` and the four
+`areaweights-*.csv` files in `parity-20260909-ghent` retain the measurements.
+All 3,757 engine tests, 352 app tests, and the Release payload publish pass.
+Decoder cost and broader rendering, performance, and interactive gates remain open.

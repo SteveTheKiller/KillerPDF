@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace KillerPdf.Engine.Rendering;
 
 internal static class PdfImageAreaSampler
@@ -11,19 +13,39 @@ internal static class PdfImageAreaSampler
         double top = Math.Max(0, centerY - footprintHeight / 2);
         double bottom = Math.Min(height, centerY + footprintHeight / 2);
         double red = 0, green = 0, blue = 0;
-        for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
+        int first = (int)left, columns = (int)Math.Ceiling(right) - first;
+        if (components == 3 && columns is > 0 and <= 3)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            double vertical = Math.Min(y + 1, bottom) - Math.Max(y, top);
-            for (int x = (int)left; x < (int)Math.Ceiling(right); x++)
+            // Reuse horizontal weights without changing sample accumulation order.
+            double w0 = Math.Min(first + 1, right) - Math.Max(first, left);
+            double w1 = columns > 1 ? Math.Min(first + 2, right) - Math.Max(first + 1, left) : 0;
+            double w2 = columns > 2 ? Math.Min(first + 3, right) - Math.Max(first + 2, left) : 0;
+            for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
             {
-                double weight = vertical * (Math.Min(x + 1, right) - Math.Max(x, left));
-                int offset = (y * width + x) * components;
-                red += samples[offset] * weight;
-                if (components == 3)
+                cancellationToken.ThrowIfCancellationRequested();
+                double vertical = Math.Min(y + 1, bottom) - Math.Max(y, top);
+                int offset = (y * width + first) * 3;
+                AddRgb(samples, offset, vertical * w0, ref red, ref green, ref blue);
+                if (columns > 1) AddRgb(samples, offset + 3, vertical * w1, ref red, ref green, ref blue);
+                if (columns > 2) AddRgb(samples, offset + 6, vertical * w2, ref red, ref green, ref blue);
+            }
+        }
+        else
+        {
+            for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                double vertical = Math.Min(y + 1, bottom) - Math.Max(y, top);
+                for (int x = (int)left; x < (int)Math.Ceiling(right); x++)
                 {
-                    green += samples[offset + 1] * weight;
-                    blue += samples[offset + 2] * weight;
+                    double weight = vertical * (Math.Min(x + 1, right) - Math.Max(x, left));
+                    int offset = (y * width + x) * components;
+                    red += samples[offset] * weight;
+                    if (components == 3)
+                    {
+                        green += samples[offset + 1] * weight;
+                        blue += samples[offset + 2] * weight;
+                    }
                 }
             }
         }
@@ -32,5 +54,14 @@ internal static class PdfImageAreaSampler
         uint g = components == 1 ? r : (uint)Math.Clamp(Math.Round(green / area), 0, 255);
         uint b = components == 1 ? r : (uint)Math.Clamp(Math.Round(blue / area), 0, 255);
         return r << 16 | g << 8 | b;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AddRgb(byte[] samples, int offset, double weight, ref double red,
+        ref double green, ref double blue)
+    {
+        red += samples[offset] * weight;
+        green += samples[offset + 1] * weight;
+        blue += samples[offset + 2] * weight;
     }
 }

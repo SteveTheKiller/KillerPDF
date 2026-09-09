@@ -1,3 +1,5 @@
+using System.Buffers.Binary;
+using System.Security.Cryptography;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Rendering;
@@ -73,5 +75,37 @@ public sealed class PdfImageAreaSamplingTests
             return result.Pixels.ToArray();
         }
         Assert.Equal(Render(PdfImage.FromGray(17, 19, values)), Render(PdfImage.FromBitonal(17, 19, values)));
+    }
+
+    [Fact]
+    public void SmallFootprintsMatchRetainedScalarBoundaryDigest()
+    {
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        Span<byte> packed = stackalloc byte[4];
+        foreach (int components in new[] { 1, 3 })
+        {
+            byte[] samples = Enumerable.Range(0, 17 * 13 * components)
+                .Select(index => (byte)(index * 37 + index / 17 * 13)).ToArray();
+            foreach (double width in new[] { .25, .75, 1, 1.25, 1.999, 2, 2.5, 3, 3.25, 5.5, 19 })
+            foreach (double height in new[] { .5, 1, 1.75, 3.5, 15 })
+            for (int y = 0; y < 52; y++)
+            for (int x = 0; x < 68; x++)
+            {
+                uint color = PdfImageAreaSampler.Sample(samples, 17, 13, components,
+                    (x + .5) / 4, (y + .5) / 4, width, height);
+                BinaryPrimitives.WriteUInt32LittleEndian(packed, color);
+                hash.AppendData(packed);
+            }
+        }
+        // 388,960 gray/RGB footprints from the scalar sampler, including image edges.
+        Assert.Equal("E0BE05592416EF857D24F5BC65FE0AE713606DDA0314CABF0B26DA74A02F32D0",
+            Convert.ToHexString(hash.GetHashAndReset()));
+    }
+
+    [Fact]
+    public void SmallRgbFootprintObservesCancellation()
+    {
+        Assert.Throws<OperationCanceledException>(() => PdfImageAreaSampler.Sample(new byte[27],
+            3, 3, 3, 1.5, 1.5, 2, 2, new CancellationToken(canceled: true)));
     }
 }
