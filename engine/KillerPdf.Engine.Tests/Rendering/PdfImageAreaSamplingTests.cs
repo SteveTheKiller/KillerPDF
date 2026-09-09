@@ -51,4 +51,27 @@ public sealed class PdfImageAreaSamplingTests
         Assert.Equal(0x808080u, PdfImageAreaSampler.Sample([128], 1, 1, 1,
             0.25, 0.25, 2, 2));
     }
+
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(5, true)]
+    [InlineData(8, false)]
+    [InlineData(8, true)]
+    public void PackedBinaryReductionMatchesByteSamples(int outputSize, bool rotated)
+    {
+        byte[] values = Enumerable.Range(0, 17 * 19)
+            .Select(index => (index % 17 * 11 + index / 17 * 7) % 8 > 3 ? (byte)255 : (byte)0).ToArray();
+        byte[] Render(PdfImage image)
+        {
+            var content = new PdfContentStreamBuilder();
+            if (rotated) content.Transform(0, 1, -1, 0, 10, 0);
+            content.MoveTo(0, 0).LineTo(10, 0).LineTo(0, 10).ClosePath().Clip()
+                .DrawImage(image, 0, 0, 10, 10);
+            var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
+            var result = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(outputSize, outputSize));
+            Assert.Empty(result.Diagnostics);
+            return result.Pixels.ToArray();
+        }
+        Assert.Equal(Render(PdfImage.FromGray(17, 19, values)), Render(PdfImage.FromBitonal(17, 19, values)));
+    }
 }

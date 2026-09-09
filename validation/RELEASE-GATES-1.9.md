@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,737 engine tests, 352 app tests, and the Release payload publish pass with vectorized inverse interpolation. The exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,755 engine tests, 352 app tests, and the Release payload publish pass with exact one-bit area averaging. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -102,3 +102,23 @@ passes are a focused before/after check, not a replacement for the full paired
 PDFium measurements above, which predate area averaging. Much of the added cost
 is in 42828.0001.001.pdf and balloon_a1b_jp2k.pdf. Optimize the averaging path
 while preserving the recovered detail; speed parity remains open.
+
+The later one-bit reduction path counts packed bits with exact integer coverage
+weights, then interpolates the two converted colors. In the final
+baseline/new/new/baseline check, the three 42828.0001.001.pdf pages take
+1.187/0.739/0.773/1.179 seconds combined. This recovers about 36% of their render
+time relative to the initial averaging implementation. Whole difficult-batch
+render totals are 10.365/10.521/9.955/10.115 seconds and wall times are
+15.526/16.228/15.038/15.261 seconds, so these runs do not establish a batch-wide
+speed improvement. See `area-count-final-timing-results.csv` and
+`area-count-final-verification.json`. The plain-byte shortcut experiment was
+removed because its benefit was unclear.
+
+All 674 final outputs match the bit-count candidate. Relative to initial area
+averaging, all 74 difficult outputs and 591 shared outputs are unchanged. Exact
+coverage rounding changes 1,614 pixels across nine shared images by at most one
+channel level; `area-count-pixels.json` retains their scores against PDFium.
+Eight added cases cover packed row padding, fractional reduction, rotation,
+clipping, both bit polarities, and an independent integer coverage-grid oracle.
+All 3,755 engine tests and 352 app tests pass. The remaining area-averaging cost,
+other fidelity differences, and full-pipeline parity still require work.

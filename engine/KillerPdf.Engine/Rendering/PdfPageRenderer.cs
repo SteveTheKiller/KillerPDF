@@ -4381,10 +4381,8 @@ public sealed partial class PdfPageRenderer
                             int sx = Math.Min((int)((long)px * factor * sourceWidth / samplingWidth), sourceWidth - 1);
                             int offset = (py * planeWidth + px) * 4;
                             uint color = averagePlane
-                                ? converter.ConvertArea(px * (double)sourceWidth / planeWidth,
-                                    py * (double)sourceHeight / planeHeight,
-                                    (px + 1) * (double)sourceWidth / planeWidth,
-                                    (py + 1) * (double)sourceHeight / planeHeight, cancellationToken)
+                                ? converter.ConvertArea(px, py, planeWidth, planeHeight,
+                                    sourceWidth, sourceHeight, cancellationToken)
                                 : converter.Convert(sx, sy);
                             int alpha = colorKeyMask is not null && converter.MatchesColorKey(sx, sy, colorKeyMask)
                                 ? 0 : 255;
@@ -4735,9 +4733,22 @@ public sealed partial class PdfPageRenderer
             return ConvertDecoded(_colorSpace);
         }
 
-        internal uint ConvertArea(double left, double top, double right, double bottom,
-            CancellationToken cancellationToken)
+        internal uint ConvertArea(int px, int py, int planeWidth, int planeHeight,
+            int sourceWidth, int sourceHeight, CancellationToken cancellationToken)
         {
+            if (_bits == 1 && _components == 1)
+            {
+                for (int sample = 0; sample < 2; sample++)
+                {
+                    if (_lookupSet![sample]) continue;
+                    _lookup![sample] = ConvertRaw(sample, 0, 0, 0);
+                    _lookupSet[sample] = true;
+                }
+                return PdfBinaryAreaSampler.Sample(_samples, _rowBytes, sourceWidth, sourceHeight,
+                    px, py, planeWidth, planeHeight, _lookup![0], _lookup[1], cancellationToken);
+            }
+            double left = px * (double)sourceWidth / planeWidth, right = (px + 1) * (double)sourceWidth / planeWidth;
+            double top = py * (double)sourceHeight / planeHeight, bottom = (py + 1) * (double)sourceHeight / planeHeight;
             double first = 0, second = 0, third = 0, fourth = 0;
             for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
             {

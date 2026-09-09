@@ -61,6 +61,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Reduced built-in character-map storage and loaded encoded mappings only when requested.
 - Removed redundant encoded-stream copies and full-image JPEG scratch planes during parsing and decoding, reused JPEG sample rows and copied grayscale output by row, and reused JPEG 2000 color and transparency planes across repeated paints.
 - Faster JPEG 2000 decoding through reusable row color conversions and direct 8-bit and 16-bit sample output, with unchanged decoded values.
+- Faster one-bit image reduction through packed bit counts and exact fractional coverage.
 
 ### Fixed
 
