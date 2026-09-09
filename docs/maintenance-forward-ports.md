@@ -2,7 +2,7 @@
 
 Every commit added to `main` after the reviewed 1.8.4 baseline must also be accounted for in `dev/1.9-overkill`. This includes code, tests, translations, documentation, and release metadata.
 
-The **Maintenance changes reach Overkill** workflow checks pushes and pull requests for either branch. An identical cherry-picked patch passes automatically, even when the commit has a different version prefix. Commits already merged into Overkill also pass.
+Run `build/Check-MaintenanceForwardPorts.ps1` locally to check coverage. An identical cherry-picked patch passes, even when the commit has a different version prefix. Commits already merged into Overkill also pass. No GitHub workflow runs this check automatically.
 
 If Overkill needs a different implementation, port and test the fix, commit it with the `v1.9.0:` prefix, then add a record to `.github/maintenance-forward-ports.json`:
 
@@ -29,6 +29,6 @@ To check local work before pushing both branches:
 ./build/Check-MaintenanceForwardPorts.ps1 -MaintenanceRef main -DevelopmentRef dev/1.9-overkill
 ```
 
-Missing ports fail with the commit hashes and subjects. Port the change before merging its maintenance PR, or push both completed branches together. A push to Overkill runs a fresh check after a missing port is added.
+Missing ports fail with the commit hashes and subjects. Port the change and rerun the local check after recording it. Pushes and merges require separate authorization.
 
-This checks commit coverage, not semantic correctness. Adapted ports still require review and tests. Reverts must be carried deliberately too. GitHub branch protection must require this status to block PR merges; the workflow alone reports failures and does not block direct pushes. No branch-protection settings are changed by installing this check.
+This checks commit coverage, not semantic correctness. Adapted ports still require review and tests. Reverts must be carried deliberately too. The local check does not change branch protection or block remote pushes and merges.
