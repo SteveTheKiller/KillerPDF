@@ -53,7 +53,7 @@
 @keyframes blink { 50% { opacity: 0; } }
 
 /* Download CTA (flat) */
-.hero-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; flex: 0 1 360px; }
+.hero-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; flex: 0 1 360px; }
 .cta-row { display: flex; flex-direction: column; gap: 12px; align-items: center; width: 100%; }
 .download-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; max-width: 360px; background: var(--btn); color: var(--btn-text); font-size: 15px; font-weight: 700; padding: 14px 28px; border-radius: 6px; box-shadow: 0 8px 20px rgba(0,0,0,0.35); transition: filter 0.15s, transform 0.1s, box-shadow 0.15s; }
 .download-btn:hover { filter: brightness(1.4); transform: translateY(-1px); box-shadow: 0 12px 28px rgba(0,0,0,0.5); color: var(--btn-text); }
@@ -161,6 +161,16 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
   .engine-lockup .wm-logo { height: 30px; }
   .engine-stats { grid-template-columns: 1fr 1fr; }
 }
+/* Package manager commands */
+.package-commands { display: grid; grid-template-columns: 56px max-content; justify-content: center; align-items: center; gap: 2px 12px; width: 100%; max-width: 360px; margin: 0; text-align: center; }
+.package-commands .terminal-icon { grid-row: 1 / 3; width: 56px; height: 56px; }
+.package-commands pre { min-width: 0; margin: 0 auto; padding: 2px 10px; border: 0; border-radius: 3px; background: rgba(0, 0, 0, 0.22); color: var(--text); overflow-x: auto; }
+.package-commands code { font: 13px/1.6 Consolas, 'Courier New', monospace; white-space: pre; user-select: all; }
+.package-commands .manager { color: var(--accent); font-weight: 700; }
+.package-commands .verb { color: var(--text2); }
+.brochure-link { display: flex; align-items: center; justify-content: flex-start; gap: 7px; margin-top: 24px; font-size: 13px; color: var(--accent); }
+.brochure-link img { width: 18px; height: auto; }
+.brochure-link:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -248,9 +258,13 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <div class="cta-row">
 <a href="https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe" class="download-btn"><svg viewBox="0 0 24 24"><path d="M3 3h8v8H3V3zm10 0h8v8h-8V3zM3 13h8v8H3v-8zm10 0h8v8h-8v-8z"/></svg><span data-i18n="download">Download for Windows</span></a>
 <a href="https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF-Portable.exe" class="gh-btn"><svg viewBox="0 0 24 24"><path d="M11 4h2v7h3l-4 5-4-5h3V4zM5 18h14v2H5z"/></svg><span data-i18n="portable_download">Download portable version</span></a>
-<a href="https://github.com/SteveTheKiller/KillerPDF" class="gh-btn" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.29 3.44 9.77 8.2 11.36.6.11.82-.26.82-.58v-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.38-1.34-1.75-1.34-1.75-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.17 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0112 6.8c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0024 12.5C24 5.87 18.63.5 12 .5z"/></svg><span data-i18n="gh_btn">Source on GitHub</span></a>
-<a href="https://github.com/SteveTheKiller/KillerPDF/raw/main/KillerPDF.pdf" class="brochure-btn" target="_blank" rel="noopener"><img src="brand/brochure-doc.png" alt=""><span data-i18n="brochure_btn">Info Brochure (PDF)</span></a>
 </div>
+<div class="package-commands">
+<img class="terminal-icon" src="brand/killerterminal.png" alt="KillerTerminal" width="56" height="56">
+<pre><code><span class="manager">winget</span> <span class="verb">install</span> killerpdf</code></pre>
+<pre><code><span class="manager">choco</span> <span class="verb">install</span> killerpdf</code></pre>
+</div>
+<a href="https://github.com/SteveTheKiller/KillerPDF" class="gh-btn" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.29 3.44 9.77 8.2 11.36.6.11.82-.26.82-.58v-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.38-1.34-1.75-1.34-1.75-1.09-.74.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.17 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0112 6.8c1.02 0 2.05.14 3 .4 2.29-1.55 3.3-1.23 3.3-1.23.65 1.65.24 2.87.12 3.17.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.82.58A12 12 0 0024 12.5C24 5.87 18.63.5 12 .5z"/></svg><span data-i18n="gh_btn">Source on GitHub</span></a>
 </div>
 <div class="hero-info">
 <div class="row"><span class="k">version</span>&nbsp;<span class="v">KillerPDF v1.8.4</span></div>
@@ -258,11 +272,13 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 <div class="row"><span class="k">size</span>&nbsp;<span class="v">~9.47 MB exe</span></div>
 <div class="row"><span class="k">platform</span>&nbsp;<span class="v">Windows 10/11 x64</span></div>
 <div class="row"><span class="k">sha256</span>&nbsp;<span class="v hash">25c75cdd647d2c5a8cd2f691297e2e6d<br>4d03edc75472c6ef5d4d9c80a5da5143</span></div>
-<p class="note" data-i18n="hero_note">Install or run portable. Free, open source, GPLv3.<br>No accounts or subscriptions required.<br>No telemetry is sent and no ads... ever.<br><br>Built by a field tech with an intense dislike for Adobe.</p>
+<p class="note" data-i18n="hero_note">Install or run portable. Free, open source, GPLv3.<br>No accounts or subscriptions required.<br>No telemetry is sent and no ads... ever.</p>
 </div>
 </div>
 <div class="hero-blurbs">
-<div class="blurb"><h3 data-i18n="b3_t">The people's editor</h3><p data-i18n="b3_d">Much of what KillerPDF does was requested by the people who use it. The <a href="https://github.com/SteveTheKiller/KillerPDF/issues" target="_blank" rel="noopener">GitHub issues</a> page is open to anyone, so anybody can request a feature or report a bug.<br><br>Your suggestions genuinely shape where this goes next. Read the story behind the app on the <a href="about.html">About</a> page.</p></div>
+<div class="blurb"><h3 data-i18n="b3_t">The people's editor</h3><p data-i18n="b3_d">Much of what KillerPDF does was requested by the people who use it. The <a href="https://github.com/SteveTheKiller/KillerPDF/issues" target="_blank" rel="noopener">GitHub issues</a> page is open to anyone, so anybody can request a feature or report a bug.<br><br>Your suggestions genuinely shape where this goes next. Read the story behind the app on the <a href="about.html">About</a> page.</p>
+<a href="https://github.com/SteveTheKiller/KillerPDF/raw/main/KillerPDF.pdf" class="brochure-link" target="_blank" rel="noopener"><img src="brand/brochure-doc.png" alt=""><span data-i18n="brochure_btn">Informational Brochure (PDF)</span></a>
+</div>
 <div class="blurb"><h3 data-i18n="b2_t">Built from scratch</h3><p data-i18n="b2_d">KillerPDF is written in C# and WPF on .NET. It renders through PDFium and runs OCR on Tesseract, with extra language models downloaded only on demand so the base download stays small.<br><br>PDF creation, editing, validation, encryption, and writing are powered by <a href="./engine/index.html">The KillerPDF.Engine</a>, an independent .NET library built from scratch for PDF 2.0 and modern PDF/A. The <a href="technical.html">Technical</a> page shows how it all fits together.</p></div>
 <div class="blurb"><h3 data-i18n="b1_t">Fully featured</h3><ul class="blurb-list" data-i18n="b1_d">
 <li>Four view modes across unlimited tabs</li>
@@ -368,7 +384,7 @@ html[data-theme="light"] .engine-lockup { text-shadow: none; }
 </div>
 <div class="egg-toast" id="eggToast"></div>
 
-<script src="kp-i18n.js?v=9"></script>
+<script src="kp-i18n.js?v=11"></script>
 <script src="kp.js?v=14"></script>
 <script>
 (function () {

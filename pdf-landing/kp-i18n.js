@@ -1,5 +1,6 @@
 var I18N = {
  "ru": {
+  "package_install_intro": "Или установите через терминал:",
   "nav_dl": "Скачать",
   "nav_help": "Справка",
   "nav_tech": "Технические детали",
@@ -15,8 +16,8 @@ var I18N = {
   "download": "Скачать для Windows",
   "portable_download": "Скачать портативную версию",
   "gh_btn": "Исходный код на GitHub",
-  "brochure_btn": "Инфо-брошюра (PDF)",
-  "hero_note": "Установите или запускайте портативно. Бесплатно, с открытым исходным кодом, GPLv3.<br>Не нужны ни учетные записи, ни подписки.<br>Никакой телеметрии и никакой рекламы... никогда.<br><br>Создано выездным техником, который терпеть не может Adobe.",
+  "brochure_btn": "Информационная брошюра (PDF)",
+  "hero_note": "Установите или запускайте портативно. Бесплатно, с открытым исходным кодом, GPLv3.<br>Не нужны ни учетные записи, ни подписки.<br>Никакой телеметрии и никакой рекламы... никогда.",
   "engine_kicker": "Теперь работает на",
   "engine_intro": "KillerPDF 1.8 заменяет прежний конвейер обработки документов на The KillerPDF.Engine: независимую библиотеку .NET, построенную с нуля для PDF 2.0 и современного PDF/A. Она читает, проверяет, создает, редактирует, подписывает, шифрует и записывает PDF через тот же публичный API, который доступен другим приложениям.",
   "engine_link": "Изучить движок и руководство разработчика",
@@ -650,6 +651,7 @@ var I18N = {
   "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.8.4</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
  },
  "it": {
+  "package_install_intro": "Oppure installa dal terminale:",
   "engine_kicker": "Ora basato su",
   "engine_intro": "KillerPDF 1.8 sostituisce la sua vecchia pipeline documentale con The KillerPDF.Engine: una libreria .NET indipendente costruita da zero per PDF 2.0 e il PDF/A moderno. Legge, valida, crea, modifica, firma, cifra e scrive PDF attraverso la stessa API pubblica disponibile alle altre applicazioni.",
   "engine_link": "Esplora il motore e la guida per sviluppatori",
@@ -1235,7 +1237,7 @@ var I18N = {
   "portable_download": "Scarica la versione portatile",
   "gh_btn": "Codice sorgente su GitHub",
   "brochure_btn": "Brochure informativa (PDF)",
-  "hero_note": "Installalo oppure eseguilo in modo portatile. Gratuito, open source, GPLv3.<br/>Nessun account e nessun abbonamento.<br/>Nessuna telemetria e nessuna pubblicità... mai.<br/><br/>Creato da un tecnico sul campo con una profonda antipatia per Adobe.",
+  "hero_note": "Installalo oppure eseguilo in modo portatile. Gratuito, open source, GPLv3.<br/>Nessun account e nessun abbonamento.<br/>Nessuna telemetria e nessuna pubblicità... mai.",
   "features_h": "Cosa sa fare",
   "f_view_t": "Visualizza e naviga",
   "f_view_d": "Disegno delle pagine con PDFium e quattro modalità di visualizzazione: pagina singola, scorrimento continuo, due pagine e una griglia di tutte le pagine. Apri più PDF in schede, con ricerca, struttura e link cliccabili.",
@@ -1407,6 +1409,7 @@ var I18N = {
   "pt_105": "Il salvataggio non cambia mai il documento che stai guardando. KillerPDF scrive una copia pulita senza annotazioni, poi vi fissa dentro in modo permanente <b>prima i timbri, poi le annotazioni</b>, e riapre quella copia fresca. Partire ogni volta da una base pulita significa che non può mai fissare per sbaglio due volte la stessa cosa."
  },
  "hu": {
+  "package_install_intro": "Vagy telepítse a terminálból:",
   "engine_kicker": "Mostantól ez hajtja",
   "engine_intro": "A KillerPDF 1.8 a korábbi dokumentumfeldolgozó csővezetékét a The KillerPDF.Engine motorra cseréli: egy független .NET könyvtárra, amely az alapoktól épült a PDF 2.0 és a modern PDF/A támogatására. Ugyanazon a nyilvános API-n keresztül olvassa, ellenőrzi, hozza létre, szerkeszti, írja alá, titkosítja és írja ki a PDF-eket, amely más alkalmazások számára is elérhető.",
   "engine_link": "Ismerje meg a motort és a fejlesztői útmutatót",
@@ -1495,7 +1498,7 @@ var I18N = {
   "portable_download": "Hordozható verzió letöltése",
   "gh_btn": "Forrás a GitHubon",
   "brochure_btn": "Információs prospektus (PDF)",
-  "hero_note": "Telepítse vagy futtassa a hordozható eszközt. Ingyenes, nyílt forráskódú, GPLv3.<br>Nincs szükség fiókra vagy előfizetésre.<br>Nem küldenek telemetriát és nem küldenek hirdetéseket... soha.<br><br>Tereptechnológia építette, aki nem szereti az Adobe-t.",
+  "hero_note": "Telepítse vagy futtassa a hordozható eszközt. Ingyenes, nyílt forráskódú, GPLv3.<br>Nincs szükség fiókra vagy előfizetésre.<br>Nem küldenek telemetriát és nem küldenek hirdetéseket... soha.",
   "features_h": "Mit csinál",
   "f_view_t": "Megtekintés és navigáció",
   "f_view_d": "Renderelés PDFiummal négy módban: egyoldalas, folyamatos görgetés, kétoldalas és teljes oldalas rács. Nyisson meg több PDF-fájlt a lapokon, használjon keresést, vázlatot és élő hivatkozásokat.",
@@ -2148,6 +2151,7 @@ var I18N = {
  },
 
  "pl": {
+  "package_install_intro": "Lub zainstaluj z terminala:",
   "engine_kicker": "Teraz napędza go",
   "engine_intro": "KillerPDF 1.8 zastępuje swój dotychczasowy potok dokumentów silnikiem The KillerPDF.Engine: niezależną biblioteką .NET zbudowaną od podstaw dla PDF 2.0 i nowoczesnego PDF/A. Czyta, waliduje, tworzy, edytuje, podpisuje, szyfruje i zapisuje pliki PDF przez to samo publiczne API, dostępne także dla innych aplikacji.",
   "engine_link": "Poznaj silnik i przewodnik dla programistów",
@@ -2843,7 +2847,7 @@ var I18N = {
   "portable_download": "Pobierz wersję przenośną",
   "gh_btn": "Kod źródłowy w GitHubie",
   "brochure_btn": "Broszura informacyjna (PDF)",
-  "hero_note": "Zainstaluj lub uruchom w trybie przenośnym. Bezpłatny, otwartoźródłowy, GPLv3.<br>Bez kont i subskrypcji.<br>Bez telemetrii i reklam - zawsze.<br><br>Stworzony przez technika terenowego, który wyjątkowo nie lubi Adobe.",
+  "hero_note": "Zainstaluj lub uruchom w trybie przenośnym. Bezpłatny, otwartoźródłowy, GPLv3.<br>Bez kont i subskrypcji.<br>Bez telemetrii i reklam - zawsze.",
   "features_h": "Możliwości",
   "f_view_t": "Przeglądanie i nawigacja",
   "f_view_d": "Renderowanie przez PDFium w czterech trybach: pojedyncza strona, przewijanie ciągłe, dwie strony i siatka wszystkich stron. Otwieraj wiele plików PDF w kartach, korzystaj z wyszukiwania, konspektu i aktywnych łączy.",
@@ -2886,6 +2890,7 @@ var I18N = {
   "footer_src": "Kod źródłowy w GitHubie"
  },
  "cs": {
+  "package_install_intro": "Nebo nainstalujte z terminálu:",
   "engine_kicker": "Nyní pohání",
   "engine_intro": "KillerPDF 1.8 nahrazuje svůj starší dokumentový kanál knihovnou The KillerPDF.Engine: nezávislou knihovnou .NET postavenou od základů pro PDF 2.0 a moderní PDF/A. Čte, ověřuje, vytváří, upravuje, podepisuje, šifruje a zapisuje PDF přes stejné veřejné API, které je dostupné i dalším aplikacím.",
   "engine_link": "Prozkoumejte engine a příručku pro vývojáře",
@@ -3471,7 +3476,7 @@ var I18N = {
   "portable_download": "Stáhnout přenosnou verzi",
   "gh_btn": "Zdrojový kód na GitHubu",
   "brochure_btn": "Informační brožura (PDF)",
-  "hero_note": "Nainstalujte, nebo spusťte přenosně. Zdarma, open source, GPLv3.<br>Žádné účty ani předplatná.<br>Neodesílá se žádná telemetrie a žádné reklamy... nikdy.<br><br>Vytvořil terénní technik s intenzivním odporem k Adobe.",
+  "hero_note": "Nainstalujte, nebo spusťte přenosně. Zdarma, open source, GPLv3.<br>Žádné účty ani předplatná.<br>Neodesílá se žádná telemetrie a žádné reklamy... nikdy.",
   "features_h": "Co umí",
   "f_view_t": "Zobrazení a navigace",
   "f_view_d": "Vykreslování přes PDFium se čtyřmi režimy zobrazení - jedna stránka, souvislé rolování, dvoustrana a mřížka všech stránek. Otevřete několik PDF v kartách, s hledáním, osnovou a klikatelnými odkazy.",
@@ -3643,6 +3648,7 @@ var I18N = {
   "pt_105": "Uložení nikdy nemění dokument, na který se díváte. KillerPDF zapíše čistou kopii bez anotací, pak trvale zapeče <b>nejdřív razítka, potom anotace</b>, a tuto čerstvou kopii znovu otevře. Start z čistého základu pokaždé znamená, že nikdy nemůže omylem zapéct totéž dvakrát."
  },
  "es": {
+  "package_install_intro": "O instala desde tu terminal:",
   "engine_kicker": "Ahora impulsado por",
   "engine_intro": "KillerPDF 1.8 sustituye su antigua canalización de documentos por The KillerPDF.Engine: una biblioteca .NET independiente construida desde cero para PDF 2.0 y el PDF/A moderno. Lee, valida, crea, edita, firma, cifra y escribe PDF a través de la misma API pública disponible para otras aplicaciones.",
   "engine_link": "Explore el motor y la guía para desarrolladores",
@@ -4228,7 +4234,7 @@ var I18N = {
   "portable_download": "Descargar versión portátil",
   "gh_btn": "Código en GitHub",
   "brochure_btn": "Folleto informativo (PDF)",
-  "hero_note": "Instala o ejecuta en modo portátil. Gratis, de código abierto, GPLv3.<br/>No se requieren cuentas ni suscripciones.<br/>No se envía telemetría y sin anuncios... nunca.<br/><br/>Creado por un técnico de campo con una intensa aversión hacia Adobe.",
+  "hero_note": "Instala o ejecuta en modo portátil. Gratis, de código abierto, GPLv3.<br/>No se requieren cuentas ni suscripciones.<br/>No se envía telemetría y sin anuncios... nunca.",
   "features_h": "Qué hace",
   "f_view_t": "Ver y navegar",
   "f_view_d": "Renderizado con PDFium con cuatro modos de vista - página única, desplazamiento continuo, dos páginas y una cuadrícula de todas las páginas. Abre varios PDF en pestañas, con búsqueda, esquemas y enlaces en los que se puede hacer clic.",
@@ -4400,6 +4406,7 @@ var I18N = {
   "pt_105": "Guardar nunca cambia el documento que estás viendo. KillerPDF escribe una copia limpia sin anotaciones, luego incorpora permanentemente <b>primero los sellos, después las anotaciones</b>, y reabre esa copia nueva. Partir de una base limpia cada vez significa que nunca pue"
  },
  "de": {
+  "package_install_intro": "Oder über das Terminal installieren:",
   "engine_kicker": "Jetzt angetrieben von",
   "engine_intro": "KillerPDF 1.8 ersetzt seine bisherige Dokument-Pipeline durch The KillerPDF.Engine: eine unabhängige .NET-Bibliothek, von Grund auf für PDF 2.0 und modernes PDF/A gebaut. Sie liest, validiert, erstellt, bearbeitet, signiert, verschlüsselt und schreibt PDFs über dieselbe öffentliche API, die auch anderen Anwendungen zur Verfügung steht.",
   "engine_link": "Engine und Entwicklerhandbuch erkunden",
@@ -4984,8 +4991,8 @@ var I18N = {
   "download": "Für Windows herunterladen",
   "portable_download": "Portable Version herunterladen",
   "gh_btn": "Quellcode auf GitHub",
-  "brochure_btn": "Info-Broschüre (PDF)",
-  "hero_note": "Installieren oder portabel ausführen. Kostenlos, quelloffen, GPLv3.<br/>Keine Konten oder Abonnements erforderlich.<br/>Es wird keine Telemetrie gesendet und keine Werbung... niemals.<br/><br/>Entwickelt von einem Außendiensttechniker mit einer intensiven Abneigung gegen Adobe.",
+  "brochure_btn": "Informationsbroschüre (PDF)",
+  "hero_note": "Installieren oder portabel ausführen. Kostenlos, quelloffen, GPLv3.<br/>Keine Konten oder Abonnements erforderlich.<br/>Es wird keine Telemetrie gesendet und keine Werbung... niemals.",
   "features_h": "Was es kann",
   "f_view_t": "Anzeigen und navigieren",
   "f_view_d": "PDFium-Rendering mit vier Ansichtsmodi - Einzelseite, fortlaufendes Scrollen, Doppelseite und ein Raster aller Seiten. Öffne mehrere PDFs in Tabs, mit Suche, Gliederungen und anklickbaren Links.",
@@ -5157,6 +5164,7 @@ var I18N = {
   "pt_105": "Das Speichern ändert nie das Dokument, das Sie gerade ansehen. KillerPDF schreibt eine saubere Kopie ohne Annotationen, backt dann dauerhaft <b>zuerst die Stempel, dann die Annotationen</b> ein und öffnet diese frische Kopie erneut. Jedes Mal von einer sauberen Basis aus zu starten bedeutet, dass es nie"
  },
  "fr": {
+  "package_install_intro": "Ou installez depuis votre terminal :",
   "engine_kicker": "Désormais propulsé par",
   "engine_intro": "KillerPDF 1.8 remplace son ancienne chaîne documentaire par The KillerPDF.Engine : une bibliothèque .NET indépendante, construite de zéro pour PDF 2.0 et le PDF/A moderne. Elle lit, valide, crée, édite, signe, chiffre et écrit les PDF via la même API publique offerte aux autres applications.",
   "engine_link": "Explorer le moteur et le guide du développeur",
@@ -5742,7 +5750,7 @@ var I18N = {
   "portable_download": "Télécharger la version portable",
   "gh_btn": "Code source sur GitHub",
   "brochure_btn": "Brochure d'information (PDF)",
-  "hero_note": "Installez-le ou exécutez-le en mode portable. Gratuit, open source, GPLv3.<br/>Aucun compte ni abonnement requis.<br/>Aucune télémétrie n'est envoyée et aucune publicité... jamais.<br/><br/>Créé par un technicien de terrain qui déteste profondément Adobe.",
+  "hero_note": "Installez-le ou exécutez-le en mode portable. Gratuit, open source, GPLv3.<br/>Aucun compte ni abonnement requis.<br/>Aucune télémétrie n'est envoyée et aucune publicité... jamais.",
   "features_h": "Ce qu'il fait",
   "f_view_t": "Afficher et naviguer",
   "f_view_d": "Rendu PDFium avec quatre modes d'affichage - page unique, défilement continu, double page et une grille de toutes les pages. Ouvrez plusieurs PDF dans des onglets, avec recherche, plans et liens cliquables.",
@@ -5914,6 +5922,7 @@ var I18N = {
   "pt_105": "L'enregistrement ne modifie jamais le document que vous regardez. KillerPDF écrit une copie propre sans annotations, puis intègre définitivement les <b>tampons d'abord, puis les annotations</b>, et rouvre cette nouvelle copie. Repartir d'une base propre à chaque fois signifie qu'il ne peu"
  },
  "tr": {
+  "package_install_intro": "Veya terminalinizden yükleyin:",
   "engine_kicker": "Artık gücünü şundan alıyor",
   "engine_intro": "KillerPDF 1.8, eski belge işleme hattını The KillerPDF.Engine ile değiştiriyor: PDF 2.0 ve modern PDF/A için sıfırdan geliştirilmiş bağımsız bir .NET kütüphanesi. PDF'leri, diğer uygulamaların da kullanabildiği aynı genel API üzerinden okur, doğrular, oluşturur, düzenler, imzalar, şifreler ve yazar.",
   "engine_link": "Motoru ve geliştirici kılavuzunu keşfedin",
@@ -6499,7 +6508,7 @@ var I18N = {
   "portable_download": "Taşınabilir sürümü indir",
   "gh_btn": "GitHub'da kaynak kodu",
   "brochure_btn": "Bilgi Broşürü (PDF)",
-  "hero_note": "Kurun ya da taşınabilir olarak çalıştırın. Ücretsiz, açık kaynak, GPLv3.<br/>Hesap veya abonelik gerekmez.<br/>Telemetri gönderilmez ve reklam yoktur... asla.<br/><br/>Adobe'ye karşı yoğun bir hoşnutsuzluğu olan bir saha teknisyeni tarafından geliştirildi.",
+  "hero_note": "Kurun ya da taşınabilir olarak çalıştırın. Ücretsiz, açık kaynak, GPLv3.<br/>Hesap veya abonelik gerekmez.<br/>Telemetri gönderilmez ve reklam yoktur... asla.",
   "features_h": "Neler yapar",
   "f_view_t": "Görüntüle ve gezin",
   "f_view_d": "Dört görünüm modlu PDFium işleme - tek sayfa, sürekli kaydırma, çift sayfa ve tüm sayfaların bir ızgarası. Birden fazla PDF'i sekmelerde açın; arama, ana hatlar ve tıklanabilir bağlantılarla.",
@@ -6671,6 +6680,7 @@ var I18N = {
   "pt_105": "Kaydetme, baktığınız belgeyi asla değiştirmez. KillerPDF, ek açıklaması olmayan temiz bir kopya yazar, ardından kalıcı olarak <b>önce damgaları, sonra ek açıklamaları</b> pişirir ve o taze kopyayı yeniden açar. Her seferinde temiz bir tabandan başlamak, hiçbir za"
  },
  "zh": {
+  "package_install_intro": "或從終端機安裝：",
   "engine_kicker": "現已採用",
   "engine_intro": "KillerPDF 1.8 以 The KillerPDF.Engine 取代了舊有的文件處理管線：這是一個從零打造、針對 PDF 2.0 與現代 PDF/A 的獨立 .NET 程式庫。它透過同一套對其他應用程式開放的公開 API 來讀取、驗證、建立、編輯、簽署、加密與寫入 PDF。",
   "engine_link": "探索引擎與開發者指南",
@@ -7256,7 +7266,7 @@ var I18N = {
   "portable_download": "下載可攜版",
   "gh_btn": "GitHub 原始碼",
   "brochure_btn": "資訊手冊（PDF）",
-  "hero_note": "可安裝或以可攜方式執行。免費、開放原始碼、GPLv3。<br/>無需帳號或訂閱。<br/>不傳送遙測，也沒有廣告...永遠不會。<br/><br/>由一位對 Adobe 極度反感的現場技術人員打造。",
+  "hero_note": "可安裝或以可攜方式執行。免費、開放原始碼、GPLv3。<br/>無需帳號或訂閱。<br/>不傳送遙測，也沒有廣告...永遠不會。",
   "features_h": "它能做什麼",
   "f_view_t": "檢視與導覽",
   "f_view_d": "PDFium 算繪，具備四種檢視模式 - 單頁、連續捲動、雙頁，以及所有頁面的網格檢視。可在分頁中開啟多份 PDF，並支援搜尋、大綱與可點擊連結。",
@@ -7428,6 +7438,7 @@ var I18N = {
   "pt_105": "儲存絕不會改變你正在檢視的文件。KillerPDF 會寫入一份不含註解的乾淨副本，接著永久地烙入<b>先印章、再註解</b>，並重新開啟那份全新的副本。每次都從一個乾淨的基礎開始，意味著它永遠不會"
  },
  "zh-cn": {
+  "package_install_intro": "或从终端安装：",
   "engine_kicker": "现已采用",
   "engine_intro": "KillerPDF 1.8 以 The KillerPDF.Engine 取代了旧有的文档处理管线：这是一个从零打造、面向 PDF 2.0 与现代 PDF/A 的独立 .NET 库。它通过同一套向其他应用程序开放的公共 API 来读取、验证、创建、编辑、签名、加密和写入 PDF。",
   "engine_link": "了解引擎与开发者指南",
@@ -8013,7 +8024,7 @@ var I18N = {
   "portable_download": "下载便携版",
   "gh_btn": "GitHub 源代码",
   "brochure_btn": "信息手册（PDF）",
-  "hero_note": "可安装或以便携方式运行。免费、开源、GPLv3。<br/>无需账户或订阅。<br/>不发送遥测，也没有广告...永远不会。<br/><br/>由一位对 Adobe 极度反感的现场技术人员打造。",
+  "hero_note": "可安装或以便携方式运行。免费、开源、GPLv3。<br/>无需账户或订阅。<br/>不发送遥测，也没有广告...永远不会。",
   "features_h": "它能做什么",
   "f_view_t": "查看与导航",
   "f_view_d": "PDFium 渲染，具备四种视图模式 - 单页、连续滚动、双页，以及所有页面的网格视图。可在标签页中打开多个 PDF，并支持搜索、大纲与可点击链接。",
@@ -8185,6 +8196,7 @@ var I18N = {
   "pt_105": "保存绝不会改变你正在查看的文档。KillerPDF 会写入一份不含批注的干净副本，接着永久地烙入<b>先图章、再批注</b>，并重新打开那份全新的副本。每次都从一个干净的基础开始，意味着它永远不会"
  },
  "bn": {
+  "package_install_intro": "অথবা টার্মিনাল থেকে ইনস্টল করুন:",
   "engine_kicker": "এখন যার শক্তিতে চলে",
   "engine_intro": "KillerPDF 1.8 তার পুরনো নথি পাইপলাইনের জায়গায় এনেছে The KillerPDF.Engine: PDF 2.0 ও আধুনিক PDF/A-এর জন্য শূন্য থেকে তৈরি একটি স্বাধীন .NET লাইব্রেরি। এটি PDF পড়ে, যাচাই করে, তৈরি করে, সম্পাদনা করে, স্বাক্ষর করে, এনক্রিপ্ট করে এবং লেখে - সবই সেই একই পাবলিক API দিয়ে, যা অন্য অ্যাপ্লিকেশনের জন্যও উন্মুক্ত।",
   "engine_link": "ইঞ্জিন ও ডেভেলপার গাইড ঘুরে দেখুন",
@@ -8770,7 +8782,7 @@ var I18N = {
   "portable_download": "পোর্টেবল সংস্করণ ডাউনলোড করুন",
   "gh_btn": "GitHub-এ সোর্স",
   "brochure_btn": "তথ্য পুস্তিকা (PDF)",
-  "hero_note": "ইনস্টল করুন অথবা পোর্টেবলভাবে চালান। বিনামূল্যে, ওপেন সোর্স, GPLv3।<br/>কোনো অ্যাকাউন্ট বা সাবস্ক্রিপশন প্রয়োজন নেই।<br/>কোনো টেলিমেট্রি পাঠানো হয় না এবং কোনো বিজ্ঞাপন নেই... কখনোই না।<br/><br/>Adobe-এর প্রতি তীব্র অপছন্দ থাকা একজন ফিল্ড টেকনিশিয়ানের তৈরি।",
+  "hero_note": "ইনস্টল করুন অথবা পোর্টেবলভাবে চালান। বিনামূল্যে, ওপেন সোর্স, GPLv3।<br/>কোনো অ্যাকাউন্ট বা সাবস্ক্রিপশন প্রয়োজন নেই।<br/>কোনো টেলিমেট্রি পাঠানো হয় না এবং কোনো বিজ্ঞাপন নেই... কখনোই না।",
   "features_h": "এটি যা করে",
   "f_view_t": "দেখুন ও চলাফেরা করুন",
   "f_view_d": "চারটি ভিউ মোডসহ PDFium রেন্ডারিং - একক পৃষ্ঠা, ধারাবাহিক স্ক্রল, দুই পৃষ্ঠা, এবং প্রতিটি পৃষ্ঠার একটি গ্রিড। ট্যাবে একাধিক PDF খুলুন, সঙ্গে অনুসন্ধান, রূপরেখা এবং ক্লিকযোগ্য লিঙ্ক।",
@@ -8942,6 +8954,7 @@ var I18N = {
   "pt_105": "সংরক্ষণ আপনি যে নথিটি দেখছেন তা কখনো পরিবর্তন করে না। KillerPDF কোনো অ্যানোটেশন ছাড়া একটি পরিচ্ছন্ন কপি লেখে, তারপর স্থায়ীভাবে <b>প্রথমে স্ট্যাম্প, তারপর অ্যানোটেশন</b> বেক করে, এবং সেই তাজা কপিটি পুনরায় খোলে। প্রতিবার একটি পরিচ্ছন্ন ভিত্তি থেকে শুরু করার অর্থ এটি কখনো"
  },
  "ja": {
+  "package_install_intro": "またはターミナルからインストール：",
   "engine_kicker": "新しい心臓部",
   "engine_intro": "KillerPDF 1.8 は、従来の文書処理パイプラインを The KillerPDF.Engine に置き換えました。PDF 2.0 と現代の PDF/A のためにゼロから開発された独立した .NET ライブラリで、他のアプリケーションにも公開されている同一のパブリック API を通じて、PDF の読み取り、検証、作成、編集、署名、暗号化、書き込みを行います。",
   "engine_link": "エンジンと開発者ガイドを見る",
@@ -9527,7 +9540,7 @@ var I18N = {
   "portable_download": "ポータブル版をダウンロード",
   "gh_btn": "GitHub のソースコード",
   "brochure_btn": "紹介パンフレット (PDF)",
-  "hero_note": "インストールしても、ポータブルでそのまま実行しても OK。無料、オープンソース、GPLv3。<br>アカウントもサブスクリプションも不要。<br>テレメトリーの送信も広告も... 一切ありません。<br><br>Adobe が心底嫌いなフィールドエンジニアが作りました。",
+  "hero_note": "インストールしても、ポータブルでそのまま実行しても OK。無料、オープンソース、GPLv3。<br>アカウントもサブスクリプションも不要。<br>テレメトリーの送信も広告も... 一切ありません。",
   "features_h": "できること",
   "f_view_t": "表示 &amp; ナビゲーション",
   "f_view_d": "PDFium レンダリングと 4 つの表示モード - 単ページ、連続スクロール、見開き、全ページのグリッド。複数の PDF をタブで開けて、検索、アウトライン、クリック可能なリンクにも対応します。",
@@ -9699,6 +9712,7 @@ var I18N = {
   "pt_105": "保存が、いま見ているドキュメントを変更することはありません。KillerPDF は注釈のないクリーンなコピーを書き出し、<b>スタンプ、次に注釈</b>の順で恒久的に焼き込んでから、その新しいコピーを開き直します。毎回クリーンな状態から始めるため、同じものを誤って二重に焼き込むことは決してありません。"
  },
  "kk": {
+  "package_install_intro": "Немесе терминал арқылы орнатыңыз:",
   "ph_202": "Көмек",
   "ph_1": "Қарау және шарлау",
   "ph_2": "Аннотация",
@@ -10307,7 +10321,7 @@ var I18N = {
   "portable_download": "Портативті нұсқаны жүктеп алу",
   "gh_btn": "GitHub сайтындағы бастапқы код",
   "brochure_btn": "Ақпараттық кітапша (PDF)",
-  "hero_note": "Орнатыңыз немесе портативті нұсқасын іске қосыңыз. Тегін, бастапқы коды ашық, GPLv3.<br>Тіркелгі де, жазылым да қажет емес.<br>Телеметрия жіберілмейді және жарнама ешқашан көрсетілмейді.<br><br>Adobe бағдарламасын ұнатпайтын далалық техник жасаған.",
+  "hero_note": "Орнатыңыз немесе портативті нұсқасын іске қосыңыз. Тегін, бастапқы коды ашық, GPLv3.<br>Тіркелгі де, жазылым да қажет емес.<br>Телеметрия жіберілмейді және жарнама ешқашан көрсетілмейді.",
   "engine_kicker": "Енді мынаның қуатымен жұмыс істейді",
   "engine_intro": "KillerPDF 1.8 бұрынғы құжат өңдеу арнасын The KillerPDF.Engine жүйесімен алмастырады. Бұл PDF 2.0 және заманауи PDF/A үшін нөлден жасалған тәуелсіз .NET кітапханасы. Ол басқа қолданбаларға да қолжетімді бірдей ашық API арқылы PDF файлдарын оқиды, тексереді, жасайды, өңдейді, қол қояды, шифрлайды және жазады.",
   "engine_link": "Қозғалтқыш пен әзірлеуші нұсқаулығын қарау",
