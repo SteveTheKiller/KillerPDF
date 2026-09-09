@@ -122,7 +122,8 @@ public sealed partial class PdfPageRenderer
         double scaleX = options.Width / displayWidth;
         double scaleY = options.Height / displayHeight;
         var frame = new RasterFrame(options.Width, options.Height, scaleX, scaleY);
-        Matrix normalize = new(1, 0, 0, 1, -crop.Left, -crop.Bottom);
+        Matrix normalize = new(1, 0, 0, 1,
+            -Math.Max(crop.Left, page.Left), -Math.Max(crop.Bottom, page.Bottom));
         Matrix rotate = page.Rotation switch
         {
             90 => new Matrix(0, -1, 1, 0, 0, page.Width),

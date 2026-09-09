@@ -50,6 +50,20 @@ public sealed record PdfPageInformation
                 y1 = Number(document, box[1], index);
                 x2 = Number(document, box[2], index);
                 y2 = Number(document, box[3], index);
+                if (crop is not null && page.InheritedValues.TryGetValue(Name("MediaBox"), out PdfObject? physicalBox))
+                {
+                    PdfArray physical = ResolveArray(document, physicalBox, $"Page {index + 1} media box");
+                    if (physical.Count != 4)
+                        throw new InvalidOperationException($"Page {index + 1} media box does not contain four numbers.");
+                    double mx1 = Number(document, physical[0], index), my1 = Number(document, physical[1], index);
+                    double mx2 = Number(document, physical[2], index), my2 = Number(document, physical[3], index);
+                    double left = Math.Max(Math.Min(x1, x2), Math.Min(mx1, mx2));
+                    double bottom = Math.Max(Math.Min(y1, y2), Math.Min(my1, my2));
+                    double right = Math.Min(Math.Max(x1, x2), Math.Max(mx1, mx2));
+                    double top = Math.Min(Math.Max(y1, y2), Math.Max(my1, my2));
+                    if (right > left && top > bottom)
+                        (x1, y1, x2, y2) = (left, bottom, right, top);
+                }
                 width = Math.Abs(x2 - x1);
                 height = Math.Abs(y2 - y1);
                 if (!double.IsFinite(width) || !double.IsFinite(height) || width <= 0 || height <= 0)
