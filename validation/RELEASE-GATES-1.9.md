@@ -20,6 +20,6 @@ behind an overall average.
 | Existing 1.8 functionality and maintenance fixes preserved | Unverified for release | Verify the maintenance forward-port record and applicable feature workflows on the release build. |
 | Builds and regression suites | Passing development checkpoint | Repeat required checks for the final release build. Passing suites alone do not close the other gates. |
 
-The [memory comparison](benchmarks/1.9.0-memory-parity/README.md) closes the measured
+The memory comparison (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-memory-parity/README.md`) closes the measured
 batch memory target, not release readiness. Unmeasured interactive behavior and
 the known speed and fidelity gaps remain release gates.

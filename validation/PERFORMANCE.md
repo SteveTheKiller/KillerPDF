@@ -39,7 +39,7 @@ transforms, per-pixel compositing under soft masks, and GC pauses, which the app
 memory-conservation setting makes more frequent; changing those output pixels or the GC
 policy is outside this pass.
 
-Raw runs: [before and after comparison](benchmarks/1.9.0-render-informal/2026-09-08-lazy-masks).
+Raw runs: before and after comparison (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-render-informal/2026-09-08-lazy-masks`).
 Application DLL SHA256 after `18DD0EDBD19E3020C56716C79FFA87FF79F4EB49757F3605F7B35A252025F403`,
 before `5B036623B3043B216A638ACCE98D90EA03227AEEC71441895B916A725017F10B`. Memory was not
 sampled in these runs.
@@ -100,8 +100,8 @@ scanned and photographic pages (064034, 42828, balloon) are decode and color
 conversion bound at 1.6 to 2.6 times PDFium, and CMYK pages with profiles and
 many soft masks (Ghent, altona, 363_Risk) are 2.2 to 4 times PDFium.
 
-Raw runs: [PDFium comparison](benchmarks/1.9.0-render-informal/2026-09-08-difficult-tuning/pdfium)
-and [color-only comparison](benchmarks/1.9.0-render-informal/2026-09-08-difficult-tuning/color-only).
+Raw runs: PDFium comparison (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-render-informal/2026-09-08-difficult-tuning/pdfium`)
+and color-only comparison (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-render-informal/2026-09-08-difficult-tuning/color-only`).
 Tuned application DLL SHA256
 `5A75FC25DD412D69B2BCE8EB165A8A612B71234C1A45698A10616CF455CE4129`, color-only
 `5E6713D0A28EB874B7FE6465FBB092192F13E1AA82E557D1AD31A50A04AC96D1`. Memory was
@@ -123,7 +123,7 @@ also loaded the setting and preserved all 74 smoke-test page pixels.
 
 The measured batch memory target passes. High-resolution speed, remaining color
 differences, interactive behavior, and release feature coverage remain open.
-See the [memory comparison record](benchmarks/1.9.0-memory-parity/README.md)
+See the memory comparison record (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-memory-parity/README.md`)
 for every run, both engine controls, build identity, and limitations.
 
 ## KillerPDF 1.9.0 memory ownership follow-up
@@ -136,7 +136,7 @@ compared pages match the previous engine pixels. Suites pass 3,147 engine and
 341 app tests. These are development checks, not median or release acceptance
 results. Memory parity remains open, and difficult-page rendering remains slower.
 
-See the [memory ownership record](benchmarks/1.9.0-memory-ownership/README.md)
+See the memory ownership record (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-memory-ownership/README.md`)
 for raw trials, build hashes, heap evidence, and limits.
 
 Normal app rendering now also avoids a duplicate page bitmap and releases session
@@ -163,7 +163,7 @@ Separate high-resolution tracing estimates 14.8% fewer allocated bytes after
 both allocation changes. First-page display and scrolling remain unmeasured
 because native UI control was unavailable.
 
-See the [correctness and memory record](benchmarks/1.9.0-render-correctness/README.md)
+See the correctness and memory record (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-render-correctness/README.md`)
 for the implementation, profile, raw results, and remaining measurement limits.
 
 ## KillerPDF 1.9.0 rendering validation follow-up
@@ -196,7 +196,7 @@ and color differences remain, including dark rectangles around Ghent text effect
 and distorted image colors. These were also visible in a retained earlier engine
 payload. Successful rendering does not establish visual equivalence.
 
-See the [complete follow-up record](benchmarks/1.9.0-render-validation/README.md)
+See the complete follow-up record (archived locally: `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-render-validation/README.md`)
 for raw timings, startup results, build hashes, visual findings, and limitations.
 The [band-parallel rendering plan](../engine/docs/band-parallel-rendering-plan.md)
 is a proposal only. Correctness and memory work take priority over enabling it.
@@ -224,7 +224,7 @@ The per-run shared render ratios were 0.930, 1.042, and 0.976; the ratio of the
 medians is 0.993. The 1.8.5 build does not log open time, so its open cost is
 only inside the whole-pass figure. The engine's open time on the same files was
 3.7 s before the recovery screening change. Raw runs and the per-file comparison
-are in [benchmarks/1.9.0-render-informal/2026-09-07-engine-tuning](benchmarks/1.9.0-render-informal/2026-09-07-engine-tuning).
+are archived locally in `C:/Users/steve/kp-bench-render/repo-cleanup-20260908-final/1.9.0-render-informal/2026-09-07-engine-tuning`.
 
 Output changes: the glyph mask cache places cached glyphs at quarter-pixel
 positions, so antialiased text edges can differ from the previous build by up to

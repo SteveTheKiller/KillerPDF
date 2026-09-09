@@ -1,9 +1,0 @@
-Stage,Run,Build,Set,RenderMs,WallSeconds,PeakMiB,Pages,Failures,ExitCode
-Intermediate,1,Before,Broad,13093,18.367814,284.91796875,74,0,0
-Intermediate,1,After,Broad,14560,20.6436187,288.34375,74,0,0
-Intermediate,1,PDFium,Broad,4727,10.941034,270.54296875,74,0,0
-Intermediate,2,PDFium,Broad,4816,10.0816005,268.7109375,74,0,0
-Intermediate,2,After,Broad,14556,19.7395076,284.03125,74,0,0
-Intermediate,2,Before,Broad,13082,18.3440069,284.953125,74,0,0
-Final,1,Engine,Broad,14247,20.1347679,287.234375,74,0,0
-Final,1,Engine,Shared,12692,29.2609866,552.10546875,600,0,0

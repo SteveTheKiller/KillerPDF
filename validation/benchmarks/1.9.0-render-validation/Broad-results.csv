@@ -1,5 +1,0 @@
-"Mode","Size","Run","Build","Measured","WallSeconds","PeakWorkingSetMiB","OK","Skip","Fail","ExitCode","RenderMs"
-"Broad","512","1","Baseline","True","3.937","136.8","74","0","0","0","2911"
-"Broad","512","1","Engine","True","7.421","344","74","0","0","0","6226"
-"Broad","2048","1","Baseline","True","10.101","267.2","74","0","0","0","4854"
-"Broad","2048","1","Engine","True","18.566","746.4","74","0","0","0","13300"
