@@ -569,3 +569,21 @@ diagnostics, so successful batch status does not prove complete page output.
 The current shared mean RGB error is 42.4904. Bounded large-content processing
 and an explicit diagnostic whenever content is truncated remain required;
 raising the cap alone would not address the memory goal or silent truncation.
+
+A streaming layout probe now validates all 190 raw inline-image sample lengths
+against their actual EI boundaries, reaching the complete decoded stream with
+1 MiB reads. Image samples account for 160,728,260 bytes; the largest individual
+image contains 9,450,000 bytes. The remaining 11,120,202 bytes contain content
+syntax and image dictionaries. Results, offsets, and source/decoded hashes are
+in `review-20260909/large-content-layout.json`. This supports incremental
+instruction processing without increasing the existing per-image limit. Some
+images omit whitespace before EI, so the existing compatibility recovery must
+remain available across buffer boundaries.
+
+The rendering path accepts an instruction enumerable, but its page reader first
+materializes a list and the page-instruction cache limits entries to 32 without
+a byte budget. Inline-image instructions copy their payloads, and rendering
+copies them again into PdfStream objects. A complete large-page fix must avoid
+retaining the entire decoded image set through this cache. These are verified
+implementation constraints, not a completed streaming implementation or a new
+rendering result.
