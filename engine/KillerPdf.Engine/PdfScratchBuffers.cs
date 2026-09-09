@@ -9,7 +9,7 @@ internal static class PdfScratchBuffers
     // Raster callers size their work from the requested length, so an idle byte buffer up
     // to four times the request serves it; the sample pools account by array length and
     // keep exact buckets.
-    internal static readonly ArrayPool<byte> Bytes = new PdfScratchBufferPool<byte>(32 * 1024 * 1024, largerBucketSearch: 2);
+    internal static readonly ArrayPool<byte> Bytes = new PdfScratchBufferPool<byte>(64 * 1024 * 1024, largerBucketSearch: 2);
     internal static readonly ArrayPool<int> Integers = new PdfScratchBufferPool<int>(16 * 1024 * 1024);
     internal static readonly ArrayPool<float> Floats = new PdfScratchBufferPool<float>(16 * 1024 * 1024);
 }
