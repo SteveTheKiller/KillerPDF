@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Color, compositing, font, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,773 engine tests, 352 app tests, and the Release payload publish pass with direct byte-aligned TIFF prediction. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,779 engine tests, 352 app tests, and the Release payload publish pass with transparent-backdrop CMYK compositing. The earlier exhaustive RGB check also passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
@@ -212,3 +212,26 @@ measurements in `parity-20260909-ghent`. The published and measured engine SHA-2
 is `530B72A65095D0E50A3E36D10B67962B227BC72B179659B9773D75BDDFD56121`.
 The full application comparison still predates both changes; overall speed,
 fidelity, and interactive parity remain open.
+
+Ghent combined-suite page 2 has distributed costs. The latter half of a
+100-render sampled profile attributes 1.49 of 12.02 rendering seconds directly
+to `SetInkPixel`, 1.45 seconds to GC polling, and 1.39 seconds directly to Form
+processing (`ghent-page2-profile-summary.json`). A separate branch probe counts
+296,457 general-path calls with a transparent backdrop among 913,203 ink calls.
+The probe counters were removed before validation and timing.
+
+Transparent-backdrop CMYK compositing now omits zero-weight backdrop and blend
+calculations while preserving source-alpha multiplication, division, and rounding.
+Six regression cases pass both before and after the change across all 16 authoring
+blend modes, three opacities, images, and filled paths. All 674 corpus outputs
+remain identical (`ink-transparent-pixels.json`), and all 3,779 engine tests,
+352 app tests, and the Release payload publish pass. No additional buffers are used.
+
+Two reversed-order 80-render pairs, excluding the first 40, give baseline/new
+medians of 214.998/208.737 and 213.645/210.444 milliseconds, a modest 1.5% to 3%
+page improvement with overlapping ranges. All 320 hashes match with zero
+diagnostics. `ink-transparent-summary.json` and `ink-transparent-timing-*.csv`
+retain the measurements in `parity-20260909-ghent`. The published and measured
+engine SHA-256 is `F55A523A3D9EE001DDF730DF590C0F2612C9E1B92CD8338753DDC749E0F29520`.
+This does not establish general speed parity. Form processing, memory management,
+and the other release gates remain open.

@@ -84,6 +84,41 @@ public sealed class PdfPageRendererCmykTests
         Assert.Empty(page.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false, 0.25)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0.25)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_BlendModesOverTransparentCmykPreserveSource(bool image, double opacity)
+    {
+        byte[] samples = Enumerable.Range(0, 256).SelectMany(value =>
+            new byte[] { (byte)value, (byte)(255 - value), (byte)(value * 37), (byte)(value * 71) }).ToArray();
+        byte[] expected = Render(PdfBlendMode.Normal);
+        foreach (PdfBlendMode mode in Enum.GetValues<PdfBlendMode>())
+            Assert.Equal(expected, Render(mode));
+
+        byte[] Render(PdfBlendMode mode)
+        {
+            var content = new PdfContentStreamBuilder().SetOpacity(opacity).SetBlendMode(mode);
+            if (image) content.DrawImage(PdfImage.FromCmyk(256, 1, samples), 0, 0, 256, 1);
+            else
+                for (int x = 0; x < 256; x++)
+                    content.SetFillCmyk(samples[x * 4] / 255d, samples[x * 4 + 1] / 255d,
+                        samples[x * 4 + 2] / 255d, samples[x * 4 + 3] / 255d)
+                        .Rectangle(x, 0, 1, 1).Fill();
+            var form = new PdfFormXObject(256, 1, content, isolatedTransparencyGroup: true,
+                transparencyGroupColorSpace: PdfTransparencyGroupColorSpace.Cmyk);
+            var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(256, 1,
+                new PdfContentStreamBuilder().DrawForm(form, 0, 0)).Build());
+            var result = new PdfPageRenderer(document).Render(0,
+                new PdfRenderOptions(256, 1, transparentBackground: true));
+            Assert.Empty(result.Diagnostics);
+            return result.Pixels.ToArray();
+        }
+    }
+
     [Fact]
     public void Render_BlackInkDoesNotFlattenTheRemainingCyanRamp()
     {

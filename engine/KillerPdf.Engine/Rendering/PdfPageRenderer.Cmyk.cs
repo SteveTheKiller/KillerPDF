@@ -98,6 +98,21 @@ public sealed partial class PdfPageRenderer
             surface.SetAlpha(offset, 255);
             return;
         }
+        if (backdropAlpha == 0)
+        {
+            // Preserve the original arithmetic, including very small source alpha.
+            // Every backdrop and blend contribution has zero weight.
+            uint transparent = 0;
+            for (int channel = 0; channel < 4; channel++)
+            {
+                double s = (byte)(source >> (channel * 8)) / 255d;
+                double value = sourceAlpha * s / outputAlpha;
+                transparent |= (uint)(byte)Math.Round(Math.Clamp(value, 0, 1) * 255) << (channel * 8);
+            }
+            WriteInk(surface.Ink!, offset, transparent);
+            surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
+            return;
+        }
         uint backdrop = ReadInk(surface.Ink!, offset);
         if (!overprint && backdropAlpha == 1 && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
         {
