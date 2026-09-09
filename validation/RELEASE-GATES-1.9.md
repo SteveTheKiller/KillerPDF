@@ -13,8 +13,8 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 536.1 versus 614.6 MiB shared and 266.6 versus 260.6 MiB difficult, including larger image caches and packed sample reads. Difficult engine peaks range from 266.2 to 271.0 MiB, with a median about 2% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.907 versus 14.205 seconds; shared wall time is 28.796 versus 25.742 seconds. Difficult render time is 10.022 versus 5.061 seconds and wall time is 15.300 versus 10.519 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 531.6 versus 614.5 MiB shared and 267.9 versus 260.4 MiB difficult, including the font-width fixes. Difficult engine peaks range from 264.6 to 268.0 MiB, with a median about 3% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 13.975 versus 12.577 seconds; shared wall time is 25.650 versus 23.308 seconds. Difficult render time is 9.701 versus 4.852 seconds and wall time is 14.800 versus 10.072 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
 | Rendering fidelity without regression | Open | Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 33 verified maintenance ports against local main at 5dd609f. The guard still reports three brochure and website commits requiring disposition. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
@@ -22,13 +22,14 @@ behind an overall average.
 
 Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
 with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
-timings are in `packed-key-paired-results.csv`, from the rendering code committed as
-`47edfd8`, including larger image caches and packed sample reads.
+timings are in `font-width-paired-results.csv`, from the rendering code committed as
+`56cf4c4`, including opaque CMYK runs, Type 1 contour repair, descriptor traits,
+and bundled substitute width fitting.
 All 16 passes completed without
 failures; run zero is excluded as warmup. The timing and memory figures above
 describe this payload. All 5,392 outputs across four passes of both applications
 match their respective retained images. The comparison, timing ranges, and
-per-page gap rankings are in `packed-key-paired-analysis.json`. Both applications were
+per-page gap rankings are in `font-width-paired-analysis.json`. Both applications were
 published locally with the framework-dependent Windows payload settings used
 by the packaging script. These supersede the woven development-build timings
 in `committed-cmyk-results.csv`; all 674 retained images per application match
