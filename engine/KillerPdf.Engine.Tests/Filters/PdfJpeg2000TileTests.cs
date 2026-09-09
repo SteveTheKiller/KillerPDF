@@ -10,20 +10,25 @@ namespace KillerPdf.Engine.Tests.Filters;
 public sealed class PdfJpeg2000TileTests
 {
     [Theory]
-    [InlineData(33, 65, 1)]
-    [InlineData(65, 33, 1)]
-    [InlineData(129, 257, 1)]
-    [InlineData(257, 129, 1)]
-    [InlineData(33, 65, 3)]
-    [InlineData(65, 33, 3)]
-    [InlineData(129, 257, 3)]
-    [InlineData(257, 129, 3)]
-    public void LosslessRectangularTilesPreserveVaryingRowsAndColumns(int width, int height, int components)
+    [InlineData(33, 65, 1, 8)]
+    [InlineData(65, 33, 1, 8)]
+    [InlineData(129, 257, 1, 8)]
+    [InlineData(257, 129, 1, 8)]
+    [InlineData(33, 65, 3, 8)]
+    [InlineData(65, 33, 3, 8)]
+    [InlineData(129, 257, 3, 8)]
+    [InlineData(257, 129, 3, 8)]
+    [InlineData(33, 65, 1, 16)]
+    [InlineData(65, 33, 3, 16)]
+    [InlineData(129, 257, 3, 16)]
+    public void LosslessRectangularTilesPreserveVaryingRowsAndColumns(int width, int height, int components, int bits)
     {
+        int bias = 1 << (bits - 1);
+        int maximum = (1 << bits) - 1;
         int[][] samples = Enumerable.Range(0, components).Select(component =>
             Enumerable.Range(0, width * height).Select(index =>
-                ((index % width * 17 + index / width * 29 + component * 53) & 255) - 128).ToArray()).ToArray();
-        var source = new InterleavedImageSource(width, height, components, 8, new bool[components], samples);
+                ((index % width * 17 + index / width * 29 + component * 53) & maximum) - bias).ToArray()).ToArray();
+        var source = new InterleavedImageSource(width, height, components, bits, new bool[components], samples);
         var parameters = new J2KEncoderConfiguration().WithLossless()
             .WithTiles(tiles => tiles.SetSize(64, 128)).ToParameterList();
         parameters["Wlev"] = "3";
@@ -34,10 +39,15 @@ public sealed class PdfJpeg2000TileTests
             Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(encoded, 1_000_000, -1);
             Assert.Equal(width, decoded.Width);
             Assert.Equal(height, decoded.Height);
-            Assert.Equal(width * height * components, decoded.Samples.Length);
+            Assert.Equal(width * height * components * (bits / 8), decoded.Samples.Length);
             for (int pixel = 0; pixel < width * height; pixel++)
             for (int component = 0; component < components; component++)
-                Assert.Equal(samples[component][pixel] + 128, decoded.Samples[pixel * components + component]);
+            {
+                int sample = pixel * components + component;
+                int actual = bits == 8 ? decoded.Samples[sample]
+                    : BinaryPrimitives.ReadUInt16BigEndian(decoded.Samples.AsSpan(sample * 2));
+                Assert.Equal(samples[component][pixel] + bias, actual);
+            }
         }
     }
 

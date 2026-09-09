@@ -64,6 +64,10 @@ internal static partial class PdfJpeg2000Decoder
             for (int tileX = 0; tileX < tiles.x; tileX++, tile++)
             {
                 pixels.SetTile(tileX, tileY);
+                var geometry = new (int Bits, int FixedPoint, int StepX, int StepY,
+                    int Width, int Height, int Left, int Top, bool Direct)[shape.Components];
+                var blocks = new DataBlk[shape.Components];
+                int rows = 0;
                 for (int component = 0; component < shape.Components; component++)
                 {
                     int bits = pixels.GetNomRangeBits(component);
@@ -75,16 +79,49 @@ internal static partial class PdfJpeg2000Decoder
                     int tileHeight = pixels.GetTileCompHeight(tile, component);
                     int left = checked(pixels.GetCompULX(component) * stepX - pixels.ImgULX);
                     int top = checked(pixels.GetCompULY(component) * stepY - pixels.ImgULY);
-                    DataBlk block = new DataBlkInt();
-                    for (int row = 0; row < tileHeight; row++)
+                    bool directRows = stepX == 1 && stepY == 1 && bits is 8 or 16
+                        && left >= 0 && top >= 0 && (long)left + tileWidth <= width
+                        && (long)top + tileHeight <= height;
+                    geometry[component] = (bits, fixedPoint, stepX, stepY, tileWidth, tileHeight, left, top, directRows);
+                    blocks[component] = new DataBlkInt();
+                    rows = Math.Max(rows, tileHeight);
+                }
+                // Consume all components of a row while the inverse color transform still
+                // has its other output channels cached for that row.
+                for (int row = 0; row < rows; row++)
+                {
+                    for (int component = 0; component < shape.Components; component++)
                     {
+                        var (bits, fixedPoint, stepX, stepY, tileWidth, tileHeight, left, top, directRows) = geometry[component];
+                        if (row >= tileHeight) continue;
+                        DataBlk block = blocks[component];
                         block.ulx = 0;
                         block.uly = row;
                         block.w = tileWidth;
                         block.h = 1;
-                        block = pixels.GetInternCompData(block, component);
+                        block = blocks[component] = pixels.GetInternCompData(block, component);
                         int[] values = block.Data as int[]
                             ?? throw new PdfFilterException("JPEG 2000 has no decoded component samples.");
+                        if (directRows)
+                        {
+                            int bytesPerSample = bits / 8;
+                            int destination = (top + row) * rowBytes
+                                + (left * shape.Components + component) * bytesPerSample;
+                            int stride = shape.Components * bytesPerSample;
+                            int bias = 1 << (bits - 1);
+                            for (int column = 0; column < tileWidth; column++, destination += stride)
+                            {
+                                int value = (int)Math.Clamp((long)(values[block.offset + column] >> fixedPoint)
+                                    + bias, 0, maximum);
+                                if (bits == 8) samples[destination] = (byte)value;
+                                else
+                                {
+                                    samples[destination] = (byte)(value >> 8);
+                                    samples[destination + 1] = (byte)value;
+                                }
+                            }
+                            continue;
+                        }
                         int firstY = Math.Max(0, checked(top + row * stepY));
                         int lastY = Math.Min(height, checked(top + (row + 1) * stepY));
                         for (int column = 0; column < tileWidth; column++)
