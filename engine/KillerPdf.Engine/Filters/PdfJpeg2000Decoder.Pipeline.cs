@@ -259,13 +259,15 @@ internal static partial class PdfJpeg2000Decoder
             if (!tree.isNode)
             {
                 DataBlk data = frame.DataType == DataBlk.TYPE_INT ? new DataBlkInt() : new DataBlkFloat();
+                Array destination = SampleArray(frame);
                 for (int y = 0; y < tree.numCb.y; y++)
                 for (int x = 0; x < tree.numCb.x; x++)
                 {
                     data = _source.GetInternCodeBlock(component, y, x, tree, data);
+                    Array source = SampleArray(data);
                     for (int row = 0; row < data.h; row++)
-                        Array.Copy(SampleArray(data), data.offset + row * data.scanw,
-                            SampleArray(frame), checked((data.uly + row) * frame.w + data.ulx), data.w);
+                        Array.Copy(source, data.offset + row * data.scanw,
+                            destination, checked((data.uly + row) * frame.w + data.ulx), data.w);
                 }
                 return;
             }
