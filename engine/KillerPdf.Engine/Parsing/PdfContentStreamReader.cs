@@ -78,9 +78,8 @@ public static class PdfContentStreamReader
                 cancellationToken.ThrowIfCancellationRequested();
                 if (++instructionCount > maximumInstructions)
                     throw new PdfSyntaxException("Content instruction limit exceeded", offset);
-                yield return offset == 0 ? instruction : new PdfContentInstruction(
-                    instruction.Operator, checked(offset + instruction.Offset),
-                    instruction.Operands, instruction.InlineImageData);
+                yield return offset == 0 ? instruction
+                    : instruction.WithOffset(checked(offset + instruction.Offset));
             }
             if (final) yield break;
             if (consumed > 0)

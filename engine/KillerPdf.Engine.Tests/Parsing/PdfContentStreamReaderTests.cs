@@ -176,7 +176,8 @@ public sealed class PdfContentStreamReaderTests
     public void StreamingReaderGrowsForImagesAndPreservesGlobalOffsets()
     {
         const string unit = "q BI /W 8 /H 1 /BPC 8 /CS /G ID A EI B CEI Q\n";
-        byte[] bytes = Encoding.Latin1.GetBytes(string.Concat(Enumerable.Repeat(unit, 100)));
+        byte[] bytes = Encoding.Latin1.GetBytes(string.Concat(Enumerable.Range(0, 100)
+            .Select(index => unit.Replace("A EI B C", $"{index:D2} EI BC", StringComparison.Ordinal))));
         using var stream = new MemoryStream(bytes);
         var actual = PdfContentStreamReader.Enumerate(stream, initialBufferBytes: 7,
             maximumBufferedBytes: 128, compatibilityRecovery: true).ToArray();
@@ -185,7 +186,9 @@ public sealed class PdfContentStreamReaderTests
         {
             Assert.Equal(index * unit.Length, actual[index * 3].Offset);
             Assert.Equal("BI", actual[index * 3 + 1].Operator);
-            Assert.Equal("A EI B C"u8.ToArray(), actual[index * 3 + 1].InlineImageData!.Value.ToArray());
+            Assert.Equal(index * unit.Length + 2, actual[index * 3 + 1].Offset);
+            Assert.Equal(Encoding.Latin1.GetBytes($"{index:D2} EI BC"),
+                actual[index * 3 + 1].InlineImageData!.Value.ToArray());
             Assert.Equal("Q", actual[index * 3 + 2].Operator);
         }
         Assert.True(stream.CanRead);

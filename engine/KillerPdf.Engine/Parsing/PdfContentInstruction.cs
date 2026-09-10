@@ -23,6 +23,17 @@ public sealed class PdfContentInstruction
             InlineImageData = new ReadOnlyMemory<byte>(inlineImageData.Value.ToArray());
     }
 
+    private PdfContentInstruction(PdfContentInstruction source, int offset)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        Operator = source.Operator;
+        Offset = offset;
+        Operands = source.Operands;
+        InlineImageData = source.InlineImageData;
+    }
+
+    internal PdfContentInstruction WithOffset(int offset) => new(this, offset);
+
     /// <summary>Gets the case-sensitive PDF operator name.</summary>
     public string Operator { get; }
 
