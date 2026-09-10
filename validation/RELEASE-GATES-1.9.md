@@ -13,24 +13,24 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close; interactive use unverified | September 9 installed-layout median peak working set is 478.7 versus 614.7 MiB shared and 271.5 versus 260.2 MiB difficult, including complete large-map rendering. Shared engine peaks range from 478.1 to 478.8 MiB; difficult peaks range from 269.2 to 272.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.389 versus 12.344 seconds; shared wall time is 27.197 versus 23.149 seconds. Difficult render time is 10.415 versus 5.520 seconds and wall time is 15.770 versus 11.106 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
-| Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions now match PDFium after legacy decimal page-box sizing. Only the two previously mismatched pages change; the other 672 outputs retain identical pixels. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 461.9 to 501.1 MiB; difficult peaks range from 278.6 to 288.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
+| Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 9: 3,884 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length dash, and reduced stencil regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
-`C:/Users/steve/kp-bench-render/review-20260909/unknown-image-paired*`.
-The measured engine payload includes rendering changes through `1d76719`,
-including legacy page dimensions, pattern text fills, scratch pool eviction,
-and unknown image filter handling. Its engine SHA-256 is
-`82D5B69A8746D181D08307805293720FB98B42547C4BFEAFA87C0294456F2B22`.
+`C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
+The measured engine payload includes rendering changes through `249072b`,
+including installed-font aliases, pattern text and transparency, zero-length
+dash caps, and reduced stencil coverage. Its engine SHA-256 is
+`BE2B3A818A9FE932FA491D911DFC6D5EEA04327F8F1D5EEDE8802B63011F7132`.
 All 16 passes completed successfully. Run zero is warmup; runs one through three
 alternate application order. All 5,392 images match their respective current
 engine and PDFium baselines. The measurements, ranges, and page rankings are in
-`unknown-image-paired-analysis.json`; the individual runs are in
-`unknown-image-paired-results.csv`. Both applications use the retained
+`stencil-area-paired-analysis.json`; the individual runs are in
+`stencil-area-paired-results.csv`. Both applications use the retained
 framework-dependent Windows payload layout. No installer or release was created.
 
 Earlier checkpoints below document individual fixes and historical measurements.
