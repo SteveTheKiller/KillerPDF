@@ -69,7 +69,13 @@ internal static class PdfBinaryAreaSampler
     private static int Count(byte[] samples, int row, int start, int end)
     {
         int count = 0;
-        while (start < end && (start & 7) != 0) count += Bit(samples, row, start++);
+        if (start < end && (start & 7) != 0)
+        {
+            int length = Math.Min(end - start, 8 - (start & 7));
+            uint mask = ((1u << length) - 1) << (8 - (start & 7) - length);
+            count += BitOperations.PopCount(samples[row + (start >> 3)] & mask);
+            start += length;
+        }
         while (end - start >= 64)
         {
             count += BitOperations.PopCount(BinaryPrimitives.ReadUInt64LittleEndian(samples.AsSpan(row + (start >> 3), 8)));
@@ -80,7 +86,8 @@ internal static class PdfBinaryAreaSampler
             count += BitOperations.PopCount((uint)samples[row + (start >> 3)]);
             start += 8;
         }
-        while (start < end) count += Bit(samples, row, start++);
+        if (start < end)
+            count += BitOperations.PopCount((uint)samples[row + (start >> 3)] >> (8 - (end - start)));
         return count;
     }
 }

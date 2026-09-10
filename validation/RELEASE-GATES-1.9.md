@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,884 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length dash, and reduced stencil regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,886 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length dash, reduced stencil, and packed coverage regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1029,5 +1029,26 @@ All 674 Broad and Shared pages retain matching dimensions and OK batch rows.
 Twelve pages change, each with lower mean RGB error against native; 662 remain
 pixel-identical. Evidence is retained as `stencil-area-*` logs and comparison
 JSON, plus `review-20260909/stencil-area-*` renders in the local benchmark root.
-The payload is `parity-20260909-ghent/payload-stencil-area`. The paired timing
-results at the top predate this change; no new overall speed claim is made.
+The payload is `parity-20260909-ghent/payload-stencil-area`. The subsequent paired
+timing results at the top include this change and leave speed parity open.
+
+### Packed coverage edge counting checkpoint
+
+Partial bytes in binary-image coverage now use masked population counts instead
+of reading each bit separately. Exact coverage-grid regressions include short
+footprints spanning byte boundaries. All 3,886 engine tests and 370 app tests
+pass, Release publish succeeds, and all 674 corpus images remain pixel-identical
+to the stencil-area checkpoint, with unchanged dimensions and OK batch rows.
+
+Two fresh-render workloads were measured in A/B/B/A and B/A/A/B order. Runs use
+80 renders with 40 discarded, then 160 with 80 discarded. All 1,920 renders
+have matching hashes per workload and zero diagnostics. Six of eight pairs
+favor the change; two do not. Median run medians fall from 60.320 to 56.542 ms
+for the article at 1024 pixels and from 66.376 to 62.826 ms for the unknown-filter
+fixture at 2048 pixels. Timing ranges overlap, so these are limited workload
+results, not a whole-application speed claim. The earlier full paired benchmark
+at the top remains the current overall comparison.
+
+Evidence is under `binary-count-20260909`, `binary-count-*` logs, and
+`review-20260909/binary-count-*` in the local benchmark root. The payload is
+`parity-20260909-ghent/payload-binary-count`. Overall parity remains open.

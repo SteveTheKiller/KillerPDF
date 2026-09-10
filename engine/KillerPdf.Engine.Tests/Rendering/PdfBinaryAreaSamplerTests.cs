@@ -9,6 +9,8 @@ public sealed class PdfBinaryAreaSamplerTests
     [InlineData(1, 1)]
     [InlineData(7, 3)]
     [InlineData(19, 7)]
+    [InlineData(127, 3)]
+    [InlineData(256, 3)]
     public void PackedCountsMatchExactCoverageGrid(int outputWidth, int outputHeight)
     {
         const int width = 257, height = 19, rowBytes = 33;
