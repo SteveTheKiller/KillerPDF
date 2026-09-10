@@ -13,22 +13,22 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close; interactive use unverified | September 9 installed-layout median peak working set is 462.1 versus 614.5 MiB shared and 262.2 versus 260.2 MiB difficult, including complete large-map rendering. Shared engine peaks range from 456.9 to 503.8 MiB; difficult peaks range from 261.6 to 270.3 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 16.734 versus 14.894 seconds; shared wall time is 29.271 versus 26.495 seconds. Difficult render time is 10.447 versus 5.423 seconds and wall time is 15.898 versus 10.992 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close; interactive use unverified | September 9 installed-layout median peak working set is 462.5 versus 613.9 MiB shared and 264.9 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 460.9 to 463.4 MiB; difficult peaks range from 264.4 to 271.3 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 16.067 versus 13.126 seconds; shared wall time is 28.657 versus 24.470 seconds. Difficult render time is 10.473 versus 5.572 seconds and wall time is 16.002 versus 11.156 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
 | Rendering fidelity without regression | Open | Shared map 447403.pdf now renders complete content through bounded streaming; mean RGB difference from PDFium falls from 42.4904 to 5.0726. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,854 engine tests, 352 app tests, and the Release payload publish pass with vectorized opaque CMYK blending. The new blend tests and the earlier exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,854 engine tests, 352 app tests, and the Release payload publish pass with opaque and transparent CMYK blend shortcuts. The new blend tests and the earlier exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
-`C:/Users/steve/kp-bench-render/review-20260909/streaming-content-paired*`.
-The measured engine payload comes from rendering commit `7a671f2`, including
-bounded large-page streaming, binary row-bound reuse, and compact JBIG2 contexts.
+`C:/Users/steve/kp-bench-render/review-20260909/transparent-ink-paired*`.
+The measured engine payload comes from rendering commit `4f46d84`, including
+bounded large-page streaming, direct CMYK JPEG output, and CMYK blend shortcuts.
 All 16 passes completed successfully. Run zero is warmup; runs one through three
 alternate application order. All 5,392 images match their respective current
 engine and PDFium baselines. The measurements, ranges, and page rankings are in
-`streaming-content-paired-analysis.json`; the individual runs are in
-`streaming-content-paired-results.csv`. Both applications use the retained
+`transparent-ink-paired-analysis.json`; the individual runs are in
+`transparent-ink-paired-results.csv`. Both applications use the retained
 framework-dependent Windows payload layout. No installer or release was created.
 
 Earlier checkpoints below document individual fixes and historical measurements.
@@ -784,3 +784,15 @@ Evidence is under `C:/Users/steve/kp-bench-render`: numeric checks, timings, tes
 logs, and `payload-transparent-ink` in `parity-20260909-ghent`, and corpus output
 in `review-20260909/transparent-ink*`. The measured and published engine hash is
 `89AD727550B0CD6F12D2030D3DE20653B33D083286A5C4A33DC7F4432DBEA0D0`.
+
+The refreshed whole-application comparison completed sixteen passes with no
+failures. All 5,392 images match their respective engine/PDFium baselines.
+The largest difficult-page render gaps are balloon_a1b_jp2k (1,158/446 ms),
+Ghent ALL page 2 (659/140 ms), and Ghent ALL page 1 (530/124 ms). Shared leaders
+are the complete large map (2,194/1,824 ms), Altona measure (398/72 ms), and the
+balloon document (486/167 ms). Values are paired median engine/PDFium times.
+These are the next performance priorities; microbenchmark improvements have
+not closed the overall gap. The report script uses explicit UTF-8 CSV decoding
+for corpus filenames. Its first analysis reached the page-ranking step after
+image verification, then failed on default Windows decoding; the corrected
+analysis completed and repeated all image checks successfully.
