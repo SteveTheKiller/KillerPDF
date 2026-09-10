@@ -22,6 +22,7 @@ public sealed partial class PdfPageRenderer
         internal byte[]? InkAlpha { get; private set; }
         private byte _constantAlpha;
         internal byte[]? GroupAlpha { get; private set; }
+        internal byte[]? GroupShape { get; private set; }
         internal int Left { get; } = left;
         internal int Top { get; } = top;
         internal int Width { get; } = width;
@@ -157,6 +158,12 @@ public sealed partial class PdfPageRenderer
         {
             GroupAlpha = RasterBuffers.Rent(Length / 4);
             Array.Clear(GroupAlpha, 0, Length / 4);
+        }
+
+        internal void TrackGroupShape()
+        {
+            GroupShape = RasterBuffers.Rent(Length / 4);
+            Array.Clear(GroupShape, 0, Length / 4);
         }
 
         internal InputProfileScope PrepareComposite(RasterSurface destination, int intent, HashSet<string> diagnostics)
@@ -376,6 +383,11 @@ public sealed partial class PdfPageRenderer
 
         internal void Return()
         {
+            if (GroupShape is not null)
+            {
+                RasterBuffers.Return(GroupShape);
+                GroupShape = null;
+            }
             if (GroupAlpha is not null)
             {
                 RasterBuffers.Return(GroupAlpha);

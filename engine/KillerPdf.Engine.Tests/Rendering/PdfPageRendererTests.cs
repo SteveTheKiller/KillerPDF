@@ -1958,6 +1958,84 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false, 128, 128, 255)]
+    [InlineData(true, 128, 64, 191)]
+    public void Render_ShadingPatternAlphaShapeRetainsBackground(bool alphaIsShape, int blue, int green, int red)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes("/Pattern cs /P1 scn 0 0 100 100 re f")).Build());
+        var function = new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(2)), new(Name("Domain"), Reals(0, 1)),
+            new(Name("C0"), Reals(1, 0, 0)), new(Name("C1"), Reals(1, 0, 0)),
+            new(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(2)), new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(0, 0, 100, 0)), new(Name("Function"), function),
+            new(Name("Background"), Reals(0, 0, 1))]);
+        var parameters = new PdfDictionary([
+            new(Name("ca"), new PdfReal(0.5)), new(Name("AIS"), new PdfBoolean(alphaIsShape))]);
+        var document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0), parameters);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        byte[] pixel = Pixel(rendered, 50, 50);
+        Assert.InRange(Math.Abs(pixel[0] - blue), 0, 1);
+        Assert.InRange(Math.Abs(pixel[1] - green), 0, 1);
+        Assert.InRange(Math.Abs(pixel[2] - red), 0, 1);
+        Assert.Equal(255, pixel[3]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    [InlineData(false, 0.5, 0)]
+    [InlineData(false, 0.5, 0.5)]
+    [InlineData(true, 0.5, 0)]
+    [InlineData(true, 0.5, 0.5)]
+    public void Render_KnockoutShadingPatternHonorsOuterAlphaSource(bool alphaIsShape, double alpha, double innerAlpha = 1)
+    {
+        var parent = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill(), knockoutTransparencyGroup: true);
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(parent, 0, 0)).Build());
+        var function = new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(2)), new(Name("Domain"), Reals(0, 1)),
+            new(Name("C0"), Reals(1, 0, 0)), new(Name("C1"), Reals(1, 0, 0)),
+            new(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(2)), new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(0, 0, 10, 0)), new(Name("Function"), function)]);
+        source = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0),
+            new PdfDictionary([new(Name("ca"), new PdfReal(innerAlpha))]));
+        var catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        var pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        var page = ResolveDictionary(source, Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        var resources = Assert.IsType<PdfDictionary>(page[Name("Resources")]);
+        var forms = Assert.IsType<PdfDictionary>(resources[Name("XObject")]);
+        var reference = Assert.IsType<PdfIndirectReference>(forms.First().Value);
+        var form = Assert.IsType<PdfStream>(source.Resolve(reference));
+        var state = new PdfDictionary([new(Name("ca"), new PdfReal(alpha)),
+            new(Name("AIS"), new PdfBoolean(alphaIsShape))]);
+        var formResources = new PdfDictionary([new(Name("Pattern"), resources[Name("Pattern")]),
+            new(Name("ExtGState"), new PdfDictionary([new(Name("Test"), state)]))]);
+        var dictionary = new PdfDictionary(form.Dictionary.Where(pair => !pair.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), formResources)));
+        var document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source).ReplaceObject(reference.ObjectNumber,
+            new PdfStream(dictionary, "0 0 1 rg 0 0 10 10 re f /Test gs /Pattern cs /P1 scn 2 2 6 6 re f"u8)).Build());
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10));
+        byte[] pixel = Pixel(rendered, 5, 5);
+        Assert.InRange(Math.Abs(pixel[0] - 255 * (1 - alpha * innerAlpha)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[1] - 255 * (alphaIsShape ? alpha * (1 - innerAlpha) : 1 - alpha * innerAlpha)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[2] - 255 * (alphaIsShape ? alpha : 1)), 0, 1);
+        Assert.Equal(255, pixel[3]);
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 0, 0));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_ShadingPatternBlendIsInternalAndDoesNotLeak()
     {
@@ -2256,6 +2334,51 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    public void Render_FunctionShadingHonorsAlphaSource(bool alphaIsShape, double alpha)
+    {
+        var placeholder = new PdfAxialGradient(0, 0, 10, 0,
+            [new PdfGradientStop(0, new PdfRgbColor(1, 0, 0)),
+             new PdfGradientStop(1, new PdfRgbColor(1, 0, 0))]);
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: alpha, alphaIsShape: alphaIsShape))
+            .PaintShading(placeholder), knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(form, 0, 0)).Build());
+        PdfDictionary ReadDictionary(PdfObject value) => value as PdfDictionary
+            ?? ResolveDictionary(document, value);
+        PdfDictionary catalog = ReadDictionary(document.Trailer[Name("Root")]);
+        PdfDictionary pages = ReadDictionary(catalog[Name("Pages")]);
+        PdfDictionary page = ReadDictionary(Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        PdfDictionary forms = ReadDictionary(ReadDictionary(page[Name("Resources")])[Name("XObject")]);
+        var stream = Assert.IsType<PdfStream>(document.Resolve(Assert.IsType<PdfIndirectReference>(forms.First().Value)));
+        PdfDictionary shadings = ReadDictionary(ReadDictionary(stream.Dictionary[Name("Resources")])[Name("Shading")]);
+        var shadingReference = Assert.IsType<PdfIndirectReference>(shadings.First().Value);
+        var update = new PdfIncrementalUpdateBuilder(document);
+        var function = new PdfStream(new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(4)),
+            new(Name("Domain"), Reals(0, 10, 0, 10)),
+            new(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]),
+            Encoding.ASCII.GetBytes("{ pop pop 1 0 0 }"));
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(1)),
+            new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Domain"), Reals(0, 10, 0, 10)),
+            new(Name("Function"), update.AddObject(function))]);
+        document = PdfDocument.Open(update.ReplaceObject(shadingReference.ObjectNumber, shading).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte remaining = (byte)Math.Round(255 * (1 - alpha));
+        Assert.Equal(new byte[] { remaining, alphaIsShape ? (byte)0 : remaining,
+            alphaIsShape ? (byte)Math.Round(255 * alpha) : (byte)255, 255 }, Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_PaintsFunctionShadingsWithIndexedColors()
     {
@@ -2465,6 +2588,29 @@ public sealed class PdfPageRendererTests
     [InlineData(6, true)]
     [InlineData(7, true)]
     public void Render_OverlappingMeshTrianglesApplyOpacityOnce(int type, bool screen)
+        => AssertMeshOpacityOnce(type, screen, alphaIsShape: false);
+
+    [Theory]
+    [InlineData(4, false)]
+    [InlineData(5, false)]
+    [InlineData(6, false)]
+    [InlineData(7, false)]
+    [InlineData(4, true)]
+    [InlineData(5, true)]
+    [InlineData(6, true)]
+    [InlineData(7, true)]
+    public void Render_OverlappingMeshTrianglesApplyShapeOnce(int type, bool screen)
+        => AssertMeshOpacityOnce(type, screen, alphaIsShape: true);
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    public void Render_IsolatedMeshRecordsOverlappingShapeOnce(int type)
+        => AssertMeshOpacityOnce(type, screen: false, alphaIsShape: true, grouped: true);
+
+    private static void AssertMeshOpacityOnce(int type, bool screen, bool alphaIsShape, bool grouped = false)
     {
         var placeholder = new PdfRadialGradient(5, 5, 0, 5, 5, 5,
             [new PdfGradientStop(0, new PdfRgbColor(1, 0, 0)),
@@ -2472,7 +2618,8 @@ public sealed class PdfPageRendererTests
         var content = new PdfContentStreamBuilder();
         if (screen) content.SetFillRgb(0.5, 0.5, 0.5).Rectangle(0, 0, 10, 10).Fill();
         content.SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5,
-            blendMode: screen ? PdfBlendMode.Screen : PdfBlendMode.Normal)).PaintShading(placeholder);
+            blendMode: screen ? PdfBlendMode.Screen : PdfBlendMode.Normal,
+            alphaIsShape: alphaIsShape)).PaintShading(placeholder);
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
         byte[] triangle = [0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0, 0, 0, 0, 255, 255, 0, 0];
         if (type == 5)
@@ -2496,10 +2643,82 @@ public sealed class PdfPageRendererTests
             new(Name("BitsPerFlag"), new PdfInteger(8)),
             new(Name("Decode"), Reals(0, 10, 0, 10, 0, 1, 0, 1, 0, 1))]),
             [.. triangle, .. triangle]);
-        PdfRenderedPage rendered = new PdfPageRenderer(AddShadingResource(source, shading)).Render(
+        PdfDocument document = AddShadingResource(source, shading);
+        if (grouped) document = WrapPageInKnockout(document);
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
-        Assert.Equal(screen ? [128, 128, 192, 255] : [128, 128, 255, 255], Pixel(rendered, 2, 7));
+        Assert.Equal(grouped ? [127, 0, 128, 255]
+            : screen ? [128, 128, 192, 255] : [128, 128, 255, 255], Pixel(rendered, 2, 7));
         Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(0.5)]
+    [InlineData(1)]
+    [InlineData(0, true)]
+    [InlineData(0.5, true)]
+    [InlineData(1, true)]
+    public void Render_DeepNonisolatedGroupPreservesShape(double opacity, bool knockout = false)
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            new PdfContentStreamBuilder().SetGraphicsState(new PdfGraphicsState(fillOpacity: opacity, alphaIsShape: false))
+                .SetFillRgb(1, 0, 0).Rectangle(2, 2, 6, 6).Fill()).Build());
+        var document = WrapPageInKnockout(source, nestedNonisolated: true, nestedKnockout: knockout);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        byte[] pixel = Pixel(rendered, 5, 95);
+        Assert.InRange(Math.Abs(pixel[0] - (255 - 128 * opacity)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[1] - 128 * (1 - opacity)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[2] - 128), 0, 1);
+        Assert.Equal(255, pixel[3]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    private static PdfDocument WrapPageInKnockout(PdfDocument source, bool nestedNonisolated = false,
+        bool nestedKnockout = false)
+    {
+        var catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        var pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        var pageReference = Assert.IsType<PdfIndirectReference>(Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+        var page = ResolveDictionary(source, pageReference);
+        var content = Assert.IsType<PdfStream>(source.Resolve(Assert.IsType<PdfIndirectReference>(page[Name("Contents")])));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var childDictionary = new PdfDictionary(content.Dictionary.Concat(new KeyValuePair<PdfName, PdfObject>[] {
+            new(Name("Type"), Name("XObject")), new(Name("Subtype"), Name("Form")),
+            new(Name("BBox"), Reals(0, 0, 10, 10)), new(Name("Resources"), page[Name("Resources")]),
+            new(Name("Group"), new PdfDictionary([new(Name("S"), Name("Transparency")), new(Name("I"), new PdfBoolean(!nestedNonisolated))])) }));
+        if (nestedKnockout)
+        {
+            var group = Assert.IsType<PdfDictionary>(childDictionary[Name("Group")]);
+            childDictionary = new PdfDictionary(childDictionary.Where(pair => !pair.Key.Equals(Name("Group")))
+                .Append(new KeyValuePair<PdfName, PdfObject>(Name("Group"), new PdfDictionary(group
+                    .Append(new KeyValuePair<PdfName, PdfObject>(Name("K"), new PdfBoolean(true)))))));
+        }
+        var child = update.AddObject(new PdfStream(childDictionary, content.EncodedData.Span));
+        if (nestedNonisolated)
+        {
+            var state = new PdfDictionary([new(Name("ca"), new PdfReal(0.5)), new(Name("AIS"), new PdfBoolean(true))]);
+            child = update.AddObject(new PdfStream(new PdfDictionary([
+                new(Name("Type"), Name("XObject")), new(Name("Subtype"), Name("Form")),
+                new(Name("BBox"), Reals(0, 0, 10, 10)),
+                new(Name("Resources"), new PdfDictionary([
+                    new(Name("XObject"), new PdfDictionary([new(Name("Nested"), child)])),
+                    new(Name("ExtGState"), new PdfDictionary([new(Name("Outer"), state)]))])),
+                new(Name("Group"), new PdfDictionary([new(Name("S"), Name("Transparency")), new(Name("I"), new PdfBoolean(true))]))]),
+                "/Outer gs /Nested Do"u8));
+        }
+        var parent = update.AddObject(new PdfStream(new PdfDictionary([
+            new(Name("Type"), Name("XObject")), new(Name("Subtype"), Name("Form")),
+            new(Name("BBox"), Reals(0, 0, 10, 10)),
+            new(Name("Resources"), new PdfDictionary([new(Name("XObject"), new PdfDictionary([new(Name("Child"), child)]))])),
+            new(Name("Group"), new PdfDictionary([new(Name("S"), Name("Transparency")), new(Name("K"), new PdfBoolean(true))]))]),
+            "0 0 1 rg 0 0 10 10 re f /Child Do"u8));
+        var pageContent = update.AddObject(new PdfStream(new PdfDictionary([]), "/Parent Do"u8));
+        var updatedPage = new PdfDictionary(page.Where(pair => !pair.Key.Equals(Name("Contents")) && !pair.Key.Equals(Name("Resources")))
+            .Concat(new KeyValuePair<PdfName, PdfObject>[] {
+                new(Name("Contents"), pageContent),
+                new(Name("Resources"), new PdfDictionary([new(Name("XObject"), new PdfDictionary([new(Name("Parent"), parent)]))])) }));
+        return PdfDocument.Open(update.ReplaceObject(pageReference.ObjectNumber, updatedPage).Build());
     }
 
     [Fact]
@@ -4110,6 +4329,282 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_KnockoutDistinguishesAlphaShapeFromOpacity(bool alphaIsShape, double alpha)
+    {
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: alpha, alphaIsShape: alphaIsShape))
+            .SetFillRgb(1, 0, 0).Rectangle(2, 2, 6, 6).Fill(), knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(form, 0, 0)).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte remaining = (byte)Math.Round(255 * (1 - alpha));
+        byte red = alphaIsShape ? (byte)Math.Round(255 * alpha) : (byte)255;
+        byte green = alphaIsShape ? (byte)0 : remaining;
+        Assert.Equal([remaining, green, red, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 0, 0));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_NestedKnockoutGroupDistinguishesAlphaShapeFromOpacity(bool alphaIsShape, double alpha)
+        => AssertNestedGroupAlphaSource(alphaIsShape, alpha, isolated: false);
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_IsolatedKnockoutGroupDistinguishesAlphaShapeFromOpacity(bool alphaIsShape, double alpha)
+        => AssertNestedGroupAlphaSource(alphaIsShape, alpha, isolated: true);
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_IsolatedBlendedGroupDistinguishesAlphaShapeFromOpacity(bool alphaIsShape, double alpha)
+        => AssertNestedGroupAlphaSource(alphaIsShape, alpha, isolated: true, knockout: false);
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_NonisolatedBlendedGroupDistinguishesAlphaShapeFromOpacity(bool alphaIsShape, double alpha)
+        => AssertNestedGroupAlphaSource(alphaIsShape, alpha, isolated: false, knockout: false);
+
+    private static void AssertNestedGroupAlphaSource(bool alphaIsShape, double alpha, bool isolated,
+        bool knockout = true)
+    {
+        var child = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 1, 0).Rectangle(2, 2, 6, 6).Fill()
+            .SetFillRgb(1, 0, 0).Rectangle(2, 2, 6, 6).Fill(),
+            knockoutTransparencyGroup: knockout, isolatedTransparencyGroup: isolated || !knockout);
+        var parent = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: alpha, alphaIsShape: alphaIsShape))
+            .DrawForm(child, 0, 0), knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(parent, 0, 0)).Build());
+        if (!isolated && !knockout)
+        {
+            PdfDictionary ReadDictionary(PdfObject value) => value as PdfDictionary
+                ?? ResolveDictionary(document, value);
+            PdfDictionary catalog = ResolveDictionary(document, document.Trailer[Name("Root")]);
+            PdfDictionary pages = ResolveDictionary(document, catalog[Name("Pages")]);
+            PdfDictionary page = ResolveDictionary(document, Assert.IsType<PdfArray>(pages[Name("Kids")])[0]);
+            PdfDictionary resources = ReadDictionary(page[Name("Resources")]);
+            PdfDictionary forms = ReadDictionary(resources[Name("XObject")]);
+            var parentForm = Assert.IsType<PdfStream>(document.Resolve(Assert.IsType<PdfIndirectReference>(forms.First().Value)));
+            PdfDictionary childResources = ReadDictionary(parentForm.Dictionary[Name("Resources")]);
+            PdfDictionary children = ReadDictionary(childResources[Name("XObject")]);
+            var childReference = Assert.IsType<PdfIndirectReference>(children.First().Value);
+            var childForm = Assert.IsType<PdfStream>(document.Resolve(childReference));
+            PdfDictionary group = ReadDictionary(childForm.Dictionary[Name("Group")]);
+            var nonisolated = new PdfDictionary(group.Where(pair => !pair.Key.Equals(Name("I")))
+                .Append(new KeyValuePair<PdfName, PdfObject>(Name("I"), new PdfBoolean(false))));
+            var dictionary = new PdfDictionary(childForm.Dictionary.Where(pair => !pair.Key.Equals(Name("Group")))
+                .Append(new KeyValuePair<PdfName, PdfObject>(Name("Group"), nonisolated)));
+            document = PdfDocument.Open(new PdfIncrementalUpdateBuilder(document)
+                .ReplaceObject(childReference.ObjectNumber, new PdfStream(dictionary, childForm.EncodedData.Span)).Build());
+        }
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte remaining = (byte)Math.Round(255 * (1 - alpha));
+        byte red = alphaIsShape ? (byte)Math.Round(255 * alpha) : (byte)255;
+        byte green = alphaIsShape ? (byte)0 : remaining;
+        Assert.Equal([remaining, green, red, 255], Pixel(rendered, 5, 5));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 0, 0));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false, 255)]
+    [InlineData(true, 255)]
+    [InlineData(false, 128)]
+    [InlineData(true, 128)]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    public void Render_IsolatedImageGroupRecordsShape(bool alphaIsShape, byte imageAlpha)
+        => AssertImageGroupShape(alphaIsShape, imageAlpha, nested: false);
+
+    [Theory]
+    [InlineData(false, 255)]
+    [InlineData(true, 255)]
+    [InlineData(false, 128)]
+    [InlineData(true, 128)]
+    [InlineData(false, 0)]
+    [InlineData(true, 0)]
+    public void Render_DeeplyNestedImageGroupRecordsShape(bool alphaIsShape, byte imageAlpha)
+        => AssertImageGroupShape(alphaIsShape, imageAlpha, nested: true);
+
+    private static void AssertImageGroupShape(bool alphaIsShape, byte imageAlpha, bool nested)
+    {
+        var image = PdfImage.FromRgba(1, 1, new byte[] { 255, 0, 0, imageAlpha });
+        var child = new PdfFormXObject(10, 10,
+            new PdfContentStreamBuilder().SetGraphicsState(new PdfGraphicsState(alphaIsShape: false))
+                .DrawImage(image, 2, 2, 6, 6),
+            isolatedTransparencyGroup: true);
+        if (nested)
+            child = new PdfFormXObject(10, 10, new PdfContentStreamBuilder().DrawForm(child, 0, 0),
+                isolatedTransparencyGroup: true);
+        var parent = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5, alphaIsShape: alphaIsShape))
+            .DrawForm(child, 0, 0), knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(parent, 0, 0)).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte[] pixel = Pixel(rendered, 5, 5);
+        Assert.InRange(Math.Abs(pixel[0] - (255 - imageAlpha * 0.5)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[1] - (alphaIsShape ? (255 - imageAlpha) * 0.5
+            : 255 - imageAlpha * 0.5)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[2] - (alphaIsShape ? 128 : 255)), 0, 1);
+        Assert.Equal(255, pixel[3]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false, 128, 64)]
+    [InlineData(true, 64, 0)]
+    public void Render_NestedKnockoutPreservesFractionalGroupShape(bool alphaIsShape, int red, int green)
+    {
+        var child = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 1, 0).Rectangle(8, 2, 1, 6).Fill()
+            .SetFillRgb(1, 0, 0).Rectangle(2.5, 2, 4, 6).Fill(),
+            knockoutTransparencyGroup: true);
+        var parent = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5, alphaIsShape: alphaIsShape))
+            .DrawForm(child, 0, 0), knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(parent, 0, 0)).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte[] edge = Pixel(rendered, 2, 5);
+        Assert.InRange(Math.Abs(edge[0] - 191), 0, 2);
+        Assert.InRange(Math.Abs(edge[1] - green), 0, 2);
+        Assert.InRange(Math.Abs(edge[2] - red), 0, 2);
+        Assert.Equal(255, edge[3]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_AxialShadingDistinguishesAlphaShapeFromOpacity(bool alphaIsShape, double alpha)
+        => AssertShadingAlphaSource(alphaIsShape, alpha, radial: false);
+
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_RadialShadingDistinguishesAlphaShapeFromOpacity(bool alphaIsShape, double alpha)
+        => AssertShadingAlphaSource(alphaIsShape, alpha, radial: true);
+
+    private static void AssertShadingAlphaSource(bool alphaIsShape, double alpha, bool radial)
+    {
+        PdfGradientStop[] stops =
+        [
+            new PdfGradientStop(0, new PdfRgbColor(1, 0, 0)),
+            new PdfGradientStop(1, new PdfRgbColor(1, 0, 0))
+        ];
+        PdfShading shading = radial ? new PdfRadialGradient(5, 5, 0, 5, 5, 5, stops)
+            : new PdfAxialGradient(0, 0, 10, 0, stops);
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: alpha, alphaIsShape: alphaIsShape))
+            .PaintShading(shading), knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(form, 0, 0)).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte remaining = (byte)Math.Round(255 * (1 - alpha));
+        byte red = alphaIsShape ? (byte)Math.Round(255 * alpha) : (byte)255;
+        byte green = alphaIsShape ? (byte)0 : remaining;
+        Assert.Equal([remaining, green, red, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(0.5, 64)]
+    public void Render_KnockoutPartiallyCoveredPixelRetainsImmediateBackdrop(double opacity, int expectedGreen)
+    {
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetOpacity(opacity).SetFillRgb(1, 0, 0).Rectangle(2.5, 2, 5, 6).Fill(),
+            knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(form, 0, 0)).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte[] edge = Pixel(rendered, 2, 5);
+        Assert.InRange(Math.Abs(edge[2] - 128), 0, 2);
+        Assert.InRange(Math.Abs(edge[1] - expectedGreen), 0, 2);
+        Assert.InRange(Math.Abs(edge[0] - (128 + expectedGreen)), 0, 2);
+        Assert.Equal(255, edge[3]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false, 255)]
+    [InlineData(false, 128)]
+    [InlineData(false, 0)]
+    [InlineData(true, 255)]
+    [InlineData(true, 128)]
+    [InlineData(true, 0)]
+    public void Render_ImageSoftMaskFollowsGraphicsAlphaSource(bool alphaIsShape, byte imageAlpha)
+    {
+        var image = PdfImage.FromRgba(1, 1, new byte[] { 255, 0, 0, imageAlpha });
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5, alphaIsShape: alphaIsShape))
+            .DrawImage(image, 2, 2, 6, 6), knockoutTransparencyGroup: true);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().DrawForm(form, 0, 0)).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        int green = alphaIsShape ? 0 : (int)Math.Round(255 - imageAlpha * 0.5);
+        int blue = (int)Math.Round(255 - imageAlpha * 0.5);
+        int red = alphaIsShape ? (int)Math.Round(imageAlpha * 0.5) : 255;
+        byte[] pixel = Pixel(rendered, 5, 5);
+        Assert.InRange(Math.Abs(pixel[0] - blue), 0, 1);
+        Assert.InRange(Math.Abs(pixel[1] - green), 0, 1);
+        Assert.InRange(Math.Abs(pixel[2] - red), 0, 1);
+        Assert.Equal(255, pixel[3]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_SeparatesWidgetAppearanceInclusionFromPageContent()
     {
@@ -4145,6 +4640,44 @@ public sealed class PdfPageRendererTests
         Assert.Equal([255, 0, 0, 255], Pixel(page, 2, 6));
         Assert.Equal([255, 255, 255, 255], Pixel(page, 5, 6));
         Assert.DoesNotContain("Masked-image rendering is not implemented.", page.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(0.5)]
+    [InlineData(1)]
+    public void Render_StencilGroupPreservesShapeIndependentlyOfOpacity(double opacity)
+    {
+        var source = AddStrokeGraphicsState(
+            "/Test gs 1 0 0 rg 4 0 0 2 2 3 cm BI /W 2 /H 1 /IM true /F /AHx ID 40> EI",
+            "ca", new PdfReal(opacity));
+        var document = WrapPageInKnockout(source);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        byte remaining = (byte)(255 - Math.Round(255 * opacity));
+        Assert.Equal([remaining, remaining, 255, 255], Pixel(rendered, 2, 96));
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 5, 96));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(0.5)]
+    [InlineData(1)]
+    public void Render_ReducedStencilGroupPreservesPartialShape(double opacity)
+    {
+        var source = AddStrokeGraphicsState(
+            "/Test gs 1 0 0 rg 2 0 0 2 1 1 cm BI /W 8 /H 8 /IM true /F /AHx ID 5555555555555555> EI",
+            "ca", new PdfReal(opacity));
+        var document = WrapPageInKnockout(source);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        byte[] pixel = Pixel(rendered, 1, 98);
+        double paintedAlpha = Math.Round(255 * opacity) / 255d;
+        Assert.InRange(Math.Abs(pixel[0] - (255 - 128 * paintedAlpha)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[1] - 128 * (1 - paintedAlpha)), 0, 1);
+        Assert.InRange(Math.Abs(pixel[2] - 128), 0, 1);
+        Assert.Equal(255, pixel[3]);
+        Assert.Equal([255, 0, 0, 255], Pixel(rendered, 0, 99));
+        Assert.Empty(rendered.Diagnostics);
     }
 
     [Theory]

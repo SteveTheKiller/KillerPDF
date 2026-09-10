@@ -1132,12 +1132,13 @@ public sealed partial class PdfPageRenderer
     private static void PaintCoverage(RasterSurface pixels, int width, int height, CoverageMask mask,
         in Color color, double alpha, RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool alphaIsShape = false)
     {
         if (mask.IsEmpty || color.DoesNotPaint) return;
         // Zero opacity on a plain RGB surface leaves every pixel and group alpha unchanged;
         // knockout groups still need the object recorded, so they keep the full path.
-        if (alpha <= 0 && knockout is null && pixels.Ink is null && pixels.RgbProfile is null) return;
+        if (alpha <= 0 && knockout is null && pixels.GroupShape is null
+            && pixels.Ink is null && pixels.RgbProfile is null) return;
         int left = Math.Max(mask.Left, pixels.Left), top = Math.Max(mask.Top, pixels.Top);
         int right = Math.Min(mask.Right, pixels.Right), bottom = Math.Min(mask.Bottom, pixels.Bottom);
         // Rectangular clips are fully applied by these bounds, so only antialiased clip
@@ -1157,6 +1158,7 @@ public sealed partial class PdfPageRenderer
         // Group alpha is maintained alongside the direct RGB paths with the compositor's own
         // formula, so tracked groups take the same fast paths as plain pages.
         bool simpleBlend = pixels.Ink is null && pixels.RgbProfile is null && graphicsSoftMask is null && knockout is null
+            && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         byte[]? groupAlpha = pixels.GroupAlpha;
         void TrackGroupAlpha(int offset, double opacity)
@@ -1169,6 +1171,7 @@ public sealed partial class PdfPageRenderer
         bool directInk = pixels.Ink is not null && alpha >= 1
             && (color.OverprintComponents & 16) == 0
             && graphicsSoftMask is null && knockout is null
+            && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         uint ink = pixels.Ink is not null ? pixels.GetInk(color) : 0;
         // On ink surfaces the compositor resolves the paint's ink through GetInk for every
@@ -1348,7 +1351,7 @@ public sealed partial class PdfPageRenderer
                     }
                 }
                 SetPixel(pixels, width, x, y, paint, alpha * cover / 255d, blendMode,
-                    graphicsSoftMask, knockout);
+                    graphicsSoftMask, knockout, shape: cover / 255d, alphaIsShape: alphaIsShape);
             }
         }
         }

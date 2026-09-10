@@ -476,6 +476,9 @@ public sealed partial class PdfPageRenderer
                             FillAlpha = fillAlpha ?? state.FillAlpha,
                             StrokeAlpha = strokeAlpha ?? state.StrokeAlpha,
                             BlendMode = blendMode ?? state.BlendMode,
+                            AlphaIsShape = strokeSettings.TryGetValue(Name("AIS"), out PdfObject? alphaShapeValue)
+                                && Resolve(alphaShapeValue) is PdfBoolean alphaShape
+                                    ? alphaShape.Value : state.AlphaIsShape,
                             GraphicsSoftMask = softMaskValue is null
                                 ? state.GraphicsSoftMask
                                 : ReadGraphicsSoftMask(softMaskValue, resources, state, depth)
@@ -691,7 +694,7 @@ public sealed partial class PdfPageRenderer
                             state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                             state.Knockout, cancellationToken, pixels, options.Width,
                             options.Height, scaleX, scaleY,
-                            out string? imageDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent))
+                            out string? imageDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape))
                             diagnostics.Add(imageDiagnostic
                                 ?? "Image rendering is not implemented.");
                     }
@@ -706,7 +709,7 @@ public sealed partial class PdfPageRenderer
                         state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                         state.Knockout, cancellationToken, pixels, options.Width,
                         options.Height, scaleX, scaleY,
-                        out string? inlineDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent))
+                        out string? inlineDiagnostic, state.FillOverprint, diagnostics, state.RenderingIntent, state.AlphaIsShape))
                         diagnostics.Add(inlineDiagnostic
                             ?? "Inline-image rendering is not implemented.");
                     break;
@@ -764,7 +767,7 @@ public sealed partial class PdfPageRenderer
                     FillPaths(pixels, options.Width, options.Height,
                         scaleX, scaleY, fillPath, state.PaintFill, state.FillAlpha, evenOdd,
                         state.BlendMode, state.Clips, state.GraphicsSoftMask, state.Knockout,
-                        cancellationToken);
+                        cancellationToken, state.AlphaIsShape);
                     return;
                 }
                 var fillClip = new ClipRegion(RasterizeFill(fillPath, evenOdd, frame));
@@ -784,7 +787,7 @@ public sealed partial class PdfPageRenderer
                         paintedPath, state.PaintStroke, state.StrokeAlpha, lineWidth,
                         state.LineCap, state.LineJoin, state.MiterLimit,
                         state.BlendMode, state.Clips, state.GraphicsSoftMask, state.Knockout,
-                        cancellationToken);
+                        cancellationToken, state.AlphaIsShape);
                     return;
                 }
                 var strokeClip = new ClipRegion(RasterizeStroke(paintedPath, lineWidth,
@@ -823,6 +826,8 @@ public sealed partial class PdfPageRenderer
                     {
                         Transform = paint.Matrix.Then(initial.Transform),
                         FillAlpha = fillAlpha ?? 1,
+                        AlphaIsShape = parameters.TryGetValue(Name("AIS"), out PdfObject? patternAlphaShape)
+                            && Resolve(patternAlphaShape) is PdfBoolean { Value: true },
                         BlendMode = blendMode ?? RendererBlendMode.Normal
                     };
                     if (parameters.TryGetValue(Name("RI"), out PdfObject? intent)
@@ -836,6 +841,7 @@ public sealed partial class PdfPageRenderer
                     if (unsupportedBlend) diagnostics.Add("Transparency blend-mode rendering is not implemented.");
                 }
                 if (paint.Background is null && objectAlpha >= 1 && parentState.GraphicsSoftMask is null && parentState.Knockout is null
+                    && pixels.GroupShape is null
                     && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
                 {
                     RenderPatternContents(paint, paintPath, paintClip, parentResources, contentState, patternDepth);
@@ -849,13 +855,17 @@ public sealed partial class PdfPageRenderer
                 try
                 {
                     group.CopyFrom(backdrop);
+                    parentState.Knockout?.CopyBackdropTo(group, cancellationToken);
                     group.TrackGroupAlpha();
+                    bool trackShape = parentState.Knockout is not null || backdrop.GroupShape is not null;
+                    if (trackShape) group.TrackGroupShape();
                     if (paint.Background is not null)
                         contentState = contentState with { Knockout = new KnockoutState(options.Width, bounds, group) };
                     pixels = group;
                     RenderPatternContents(paint, paintPath, paintClip, parentResources, contentState, patternDepth);
                     pixels = backdrop;
                     parentState.GraphicsSoftMask?.ForBounds(group.Left, group.Top, group.Right, group.Bottom);
+                    Span<byte> immediateBackdrop = stackalloc byte[4];
                     for (int y = group.Top; y < group.Bottom; y++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -864,6 +874,27 @@ public sealed partial class PdfPageRenderer
                             if (!backdrop.Contains(x, y)) continue;
                             int offset = group.Offset(x, y);
                             double alpha = group.GroupAlpha![offset / 4] / 255d;
+                            if (trackShape)
+                            {
+                                double outerAlpha = objectAlpha * (parentState.GraphicsSoftMask?.At(x, y) ?? 255) / 255d;
+                                double shape = group.GroupShape![offset / 4] / 255d
+                                    * (parentState.AlphaIsShape ? outerAlpha : 1);
+                                if (shape == 0) continue;
+                                int backdropOffset = backdrop.Offset(x, y);
+                                backdrop.Data.AsSpan(backdropOffset, 4).CopyTo(immediateBackdrop);
+                                byte immediateAlpha = backdrop.Alpha(backdropOffset);
+                                byte immediateGroupAlpha = backdrop.GroupAlpha?[backdropOffset / 4] ?? 0;
+                                parentState.Knockout?.RestorePixel(backdrop, x, y);
+                                Color groupSource = alpha == 0 ? Color.Black
+                                    : RemoveGroupBackdrop(group, offset, backdrop, backdropOffset, alpha);
+                                immediateBackdrop.CopyTo(backdrop.Data.AsSpan(backdropOffset, 4));
+                                backdrop.SetAlpha(backdropOffset, immediateAlpha);
+                                if (backdrop.GroupAlpha is not null)
+                                    backdrop.GroupAlpha[backdropOffset / 4] = immediateGroupAlpha;
+                                SetPixel(backdrop, options.Width, x, y, groupSource, alpha * outerAlpha,
+                                    parentState.BlendMode, knockout: parentState.Knockout, shape: shape);
+                                continue;
+                            }
                             if (alpha == 0) continue;
                             Color source = RemoveGroupBackdrop(group, offset, backdrop, backdrop.Offset(x, y), alpha);
                             SetPixel(backdrop, options.Width, x, y, source, alpha * objectAlpha,
@@ -914,7 +945,8 @@ public sealed partial class PdfPageRenderer
                         shadingState.Knockout!.BeginObject();
                         PaintCoverage(pixels, options.Width, options.Height, paintClip.Mask, background,
                             shadingState.FillAlpha, shadingState.BlendMode, parentState.Clips,
-                            shadingState.GraphicsSoftMask, shadingState.Knockout, cancellationToken);
+                            shadingState.GraphicsSoftMask, shadingState.Knockout, cancellationToken,
+                            shadingState.AlphaIsShape);
                         shadingState.Knockout.BeginObject();
                     }
                     if (!TryRenderResolvedShading(paint.Shading, parentResources,
@@ -1163,7 +1195,7 @@ public sealed partial class PdfPageRenderer
                                     PaintCoverage(pixels, options.Width, options.Height,
                                         cachedFill, state.PaintFill, state.FillAlpha,
                                         state.BlendMode, state.Clips, state.GraphicsSoftMask,
-                                        state.Knockout, cancellationToken);
+                                        state.Knockout, cancellationToken, state.AlphaIsShape);
                                 else
                                     FillPaths(pixels, options.Width,
                                         options.Height, scaleX, scaleY,
@@ -1171,7 +1203,7 @@ public sealed partial class PdfPageRenderer
                                         state.PaintFill, state.FillAlpha, false,
                                         state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                         state.Knockout,
-                                        cancellationToken);
+                                        cancellationToken, state.AlphaIsShape);
                             }
                             if (paintMode is 1 or 2)
                             {
@@ -1185,7 +1217,7 @@ public sealed partial class PdfPageRenderer
                                     state.LineCap, state.LineJoin, state.MiterLimit,
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                     state.Knockout,
-                                    cancellationToken);
+                                    cancellationToken, state.AlphaIsShape);
                             }
                             if (clipsText)
                             {
@@ -1518,9 +1550,11 @@ public sealed partial class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
                 bool multipleKnockoutObjects = knockout && !isolated
                     && instructions.Count(IsPaintingOperation) > 1;
-                if (multipleKnockoutObjects)
+                if (multipleKnockoutObjects
+                    || (transparencyGroup && !isolated
+                        && (parentState.Knockout is not null || pixels.GroupShape is not null)))
                 {
-                    if (parentState.FillAlpha == 1 && parentState.GraphicsSoftMask is null
+                    if (knockout && parentState.FillAlpha == 1 && parentState.GraphicsSoftMask is null
                         && parentState.Knockout is null
                         && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
                     {
@@ -1547,9 +1581,10 @@ public sealed partial class PdfPageRenderer
                         nonisolatedGroupPixels.CopyFrom(nonisolatedPagePixels);
                         parentState.Knockout?.CopyBackdropTo(nonisolatedGroupPixels, cancellationToken);
                         nonisolatedGroupPixels.TrackGroupAlpha();
-                        var groupKnockout = new KnockoutState(
+                        var groupKnockout = knockout ? new KnockoutState(
                             options.Width, GetRasterBounds(formState.Clips, formBounds,
-                                options.Width, options.Height, scaleX, scaleY), nonisolatedGroupPixels);
+                                options.Width, options.Height, scaleX, scaleY), nonisolatedGroupPixels) : null;
+                        if (!knockout) nonisolatedGroupPixels.TrackGroupShape();
                         pixels = nonisolatedGroupPixels;
                         Process(instructions, formResources,
                             formState with
@@ -1565,15 +1600,42 @@ public sealed partial class PdfPageRenderer
                             formState.Clips, formBounds, options.Width, options.Height,
                             scaleX, scaleY);
                         parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
+                        Span<byte> immediateBackdrop = stackalloc byte[4];
                         for (int y = top; y < bottom; y++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
                             for (int x = left; x < right; x++)
                             {
                                 int offset = (y * options.Width + x) * 4;
-                                if (!groupKnockout.WasTouched(offset)) continue;
+                                if (groupKnockout is not null && !groupKnockout.WasTouched(offset)) continue;
                                 offset = nonisolatedGroupPixels.Offset(x, y);
+                                if (groupKnockout is null && nonisolatedGroupPixels.GroupShape![offset / 4] == 0) continue;
                                 double alpha = nonisolatedGroupPixels.GroupAlpha![offset / 4] / 255d;
+                                if (parentState.Knockout is not null || nonisolatedPagePixels.GroupShape is not null)
+                                {
+                                    double outerAlpha = parentState.FillAlpha
+                                        * (parentState.GraphicsSoftMask?.At(x, y) ?? 255) / 255d;
+                                    double shape = (groupKnockout?.ShapeAt(x, y)
+                                        ?? nonisolatedGroupPixels.GroupShape![offset / 4] / 255d)
+                                        * (parentState.AlphaIsShape ? outerAlpha : 1);
+                                    if (shape == 0) continue;
+                                    int pageOffset = nonisolatedPagePixels.Offset(x, y);
+                                    nonisolatedPagePixels.Data.AsSpan(pageOffset, 4).CopyTo(immediateBackdrop);
+                                    byte immediateAlpha = nonisolatedPagePixels.Alpha(pageOffset);
+                                    byte immediateGroupAlpha = nonisolatedPagePixels.GroupAlpha?[pageOffset / 4] ?? 0;
+                                    parentState.Knockout?.RestorePixel(nonisolatedPagePixels, x, y);
+                                    Color groupSource = alpha == 0 ? Color.Black
+                                        : RemoveGroupBackdrop(nonisolatedGroupPixels, offset,
+                                            nonisolatedPagePixels, pageOffset, alpha);
+                                    immediateBackdrop.CopyTo(nonisolatedPagePixels.Data.AsSpan(pageOffset, 4));
+                                    nonisolatedPagePixels.SetAlpha(pageOffset, immediateAlpha);
+                                    if (nonisolatedPagePixels.GroupAlpha is not null)
+                                        nonisolatedPagePixels.GroupAlpha[pageOffset / 4] = immediateGroupAlpha;
+                                    SetPixel(nonisolatedPagePixels, options.Width, x, y, groupSource,
+                                        alpha * outerAlpha, parentState.BlendMode,
+                                        knockout: parentState.Knockout, shape: shape);
+                                    continue;
+                                }
                                 parentState.Knockout?.PreparePixel(nonisolatedPagePixels, x, y);
                                 if (alpha == 0) continue;
                                 Color source = RemoveGroupBackdrop(nonisolatedGroupPixels, offset,
@@ -1798,6 +1860,10 @@ public sealed partial class PdfPageRenderer
                         scaleX, scaleY);
                     Array.Clear(groupPixels.Data, 0, groupPixels.Length);
                     pixels = groupPixels;
+                    var isolatedKnockout = knockout
+                        ? new KnockoutState(options.Width, (left, top, right, bottom)) : null;
+                    if (!knockout && (parentState.Knockout is not null || pagePixels.GroupShape is not null))
+                        groupPixels.TrackGroupShape();
                     Process(instructions, formResources,
                         formState with
                         {
@@ -1805,13 +1871,13 @@ public sealed partial class PdfPageRenderer
                             StrokeAlpha = 1,
                             BlendMode = RendererBlendMode.Normal,
                             GraphicsSoftMask = null,
-                            Knockout = knockout
-                                ? new KnockoutState(options.Width, (left, top, right, bottom)) : null
+                            Knockout = isolatedKnockout
                         }, depth + 1);
                     pixels = pagePixels;
                     parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
                     using var compositeProfile = groupPixels.PrepareComposite(pagePixels, parentState.RenderingIntent, diagnostics);
                     bool plainComposite = pagePixels.Ink is null && pagePixels.RgbProfile is null
+                        && pagePixels.GroupShape is null
                         && pagePixels.GroupAlpha is null && groupPixels.Ink is null
                         && groupPixels.RgbProfile is null && parentState.GraphicsSoftMask is null
                         && parentState.Knockout is null
@@ -1819,6 +1885,7 @@ public sealed partial class PdfPageRenderer
                     // Native ink groups whose ink is consumed unchanged by the page (ColorFromInk
                     // returns the ink itself) skip the per-pixel color object for opaque pixels.
                     bool inkComposite = pagePixels.Ink is not null && groupPixels.Ink is not null
+                        && pagePixels.GroupShape is null
                         && (groupPixels.InkProfile is null
                             || ReferenceEquals(groupPixels.InkProfile, pagePixels.InkProfile))
                         && parentState.GraphicsSoftMask is null && parentState.Knockout is null
@@ -1860,6 +1927,21 @@ public sealed partial class PdfPageRenderer
                         {
                             int offset = groupPixels.Offset(x, y);
                             byte alpha = groupPixels.Alpha(offset);
+                            if ((parentState.Knockout is not null || pagePixels.GroupShape is not null)
+                                && (isolatedKnockout is not null || groupPixels.GroupShape is not null))
+                            {
+                                double outerAlpha = parentState.FillAlpha
+                                    * (parentState.GraphicsSoftMask?.At(x, y) ?? 255) / 255d;
+                                double shape = (isolatedKnockout?.ShapeAt(x, y)
+                                    ?? groupPixels.GroupShape![offset / 4] / 255d)
+                                    * (parentState.AlphaIsShape ? outerAlpha : 1);
+                                if (shape == 0) continue;
+                                SetPixel(pagePixels, options.Width, x, y,
+                                    alpha == 0 ? Color.Black : groupPixels.ReadColor(offset, pagePixels),
+                                    alpha / 255d * outerAlpha, parentState.BlendMode,
+                                    knockout: parentState.Knockout, shape: shape);
+                                continue;
+                            }
                             if (alpha == 0) continue;
                             if (inkComposite && alpha == 255 && parentState.FillAlpha == 1)
                             {
@@ -2259,13 +2341,15 @@ public sealed partial class PdfPageRenderer
         RendererBlendMode blendMode, GraphicsSoftMask? graphicsSoftMask,
         KnockoutState? knockout, CancellationToken cancellationToken,
         RasterSurface target, int targetWidth, int targetHeight, double scaleX, double scaleY,
-        out string? diagnostic, bool overprint = false, HashSet<string>? diagnostics = null, int renderingIntent = 1)
+        out string? diagnostic, bool overprint = false, HashSet<string>? diagnostics = null, int renderingIntent = 1,
+        bool alphaIsShape = false)
     {
         diagnostic = null;
         cancellationToken.ThrowIfCancellationRequested();
         // Cull before reading codec headers, allocating decoded samples, or opening soft masks.
         // Keep the zero-opacity exception used by PaintImage for ink and knockout surfaces.
-        if ((stencilAlpha <= 0 && knockout is null && target.Ink is null && target.RgbProfile is null)
+        if ((stencilAlpha <= 0 && knockout is null && target.GroupShape is null
+                && target.Ink is null && target.RgbProfile is null)
             || !ImageMayReachTarget(transform, clips, targetWidth, targetHeight, scaleX, scaleY))
             return true;
         if (_document.UsesCompatibilityRecovery
@@ -2473,7 +2557,8 @@ public sealed partial class PdfPageRenderer
             imageMask, imageMask && StencilPaintsOne(stream.Dictionary), softMask, decode,
             colorKeyMask, colorSpace, stencilColor, stencilAlpha, blendMode,
             cancellationToken, preblendMatte,
-            softMask is not null || colorKeyMask is not null ? null : graphicsSoftMask, knockout, overprint);
+            softMask is not null || colorKeyMask is not null ? null : graphicsSoftMask, knockout, overprint, alphaIsShape,
+            explicitMask is not null);
         return true;
     }
 
@@ -3555,7 +3640,8 @@ public sealed partial class PdfPageRenderer
                     Color color = OverprintColor(colors.At(input), colorSpace,
                         state.FillOverprint, state.OverprintMode);
                     SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
-                        state.BlendMode, state.GraphicsSoftMask, state.Knockout);
+                        state.BlendMode, state.GraphicsSoftMask, state.Knockout,
+                        shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
                 }
             }
             return true;
@@ -3612,7 +3698,7 @@ public sealed partial class PdfPageRenderer
                     state.FillOverprint, state.OverprintMode);
                 SetPixel(target, targetWidth, x, y, color,
                     state.FillAlpha * clipAlpha, state.BlendMode, state.GraphicsSoftMask,
-                    state.Knockout);
+                    state.Knockout, shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
             }
         }
         return true;
@@ -3761,7 +3847,8 @@ public sealed partial class PdfPageRenderer
                 Color color = OverprintColor(mesh.Convert(values), mesh.ColorSpace,
                     state.FillOverprint, state.OverprintMode);
                 SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
-                    state.BlendMode, state.GraphicsSoftMask, state.Knockout);
+                    state.BlendMode, state.GraphicsSoftMask, state.Knockout,
+                    shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
             }
         }
 
@@ -3958,7 +4045,7 @@ public sealed partial class PdfPageRenderer
                         state.FillOverprint, state.OverprintMode);
                     SetPixel(target, targetWidth, x, y, color,
                         state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
-                        state.Knockout);
+                        state.Knockout, alphaIsShape: state.AlphaIsShape);
                 }
         }
         static double Edge(Point first, Point second, double x, double y) =>
@@ -4067,7 +4154,8 @@ public sealed partial class PdfPageRenderer
                 Color color = OverprintColor(colors.At(input), colorSpace,
                     state.FillOverprint, state.OverprintMode);
                 SetPixel(target, targetWidth, x, y, color, state.FillAlpha * clipAlpha,
-                    state.BlendMode, state.GraphicsSoftMask, state.Knockout);
+                    state.BlendMode, state.GraphicsSoftMask, state.Knockout,
+                    shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
             }
         }
         return true;
@@ -4307,11 +4395,12 @@ public sealed partial class PdfPageRenderer
         ImageColorSpace colorSpace, Color stencilColor, double stencilAlpha,
         RendererBlendMode blendMode, CancellationToken cancellationToken,
         double[]? preblendMatte, GraphicsSoftMask? graphicsSoftMask,
-        KnockoutState? knockout, bool overprint)
+        KnockoutState? knockout, bool overprint, bool alphaIsShape, bool explicitMask)
     {
         if (imageMask ? stencilColor.DoesNotPaint : colorSpace.DoesNotPaint) return;
         // Zero opacity on a plain RGB surface changes nothing outside a knockout group.
-        if (stencilAlpha <= 0 && knockout is null && target.Ink is null && target.RgbProfile is null) return;
+        if (stencilAlpha <= 0 && knockout is null && target.GroupShape is null
+            && target.Ink is null && target.RgbProfile is null) return;
         colorSpace = colorSpace.ForDestination(target);
         Point[] corners =
         [
@@ -4343,6 +4432,7 @@ public sealed partial class PdfPageRenderer
         graphicsSoftMask = graphicsSoftMask?.ForBounds(paintLeft, paintTop, paintRight, paintBottom);
         int rowBytes = (sourceWidth * components * bits + 7) / 8;
         bool directRgb = target.RgbProfile is null && !imageMask && bits == 8 && components == 3
+            && target.GroupShape is null
             && softMask is null && colorKeyMask is null && rectangularClips
             && graphicsSoftMask is null && knockout is null
             && colorSpace.Palette is null && colorSpace.Converter is null && colorSpace.Profile is null && colorSpace.ComponentRange is null
@@ -4350,6 +4440,7 @@ public sealed partial class PdfPageRenderer
             && decode is [0, 1, 0, 1, 0, 1]
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         bool directGray = target.RgbProfile is null && !imageMask && bits == 8 && components == 1
+            && target.GroupShape is null
             && softMask is null && colorKeyMask is null && rectangularClips
             && graphicsSoftMask is null && knockout is null
             && colorSpace.Palette is null && colorSpace.Converter is null && colorSpace.Profile is null && colorSpace.ComponentRange is null
@@ -4489,6 +4580,8 @@ public sealed partial class PdfPageRenderer
         try
         {
             byte stencilAlphaByte = (byte)Math.Round(Math.Clamp(stencilAlpha, 0, 1) * 255);
+            bool separateStencilShape = imageMask && (knockout is not null || target.GroupShape is not null);
+            byte stencilCoverageByte = separateStencilShape ? (byte)255 : stencilAlphaByte;
             Color paintedStencil = imageMask && target.Ink is not null
                 ? InkColor(target.GetInk(stencilColor)) with
                 { OverprintComponents = stencilColor.OverprintComponents } : stencilColor;
@@ -4502,8 +4595,8 @@ public sealed partial class PdfPageRenderer
                     for (int px = 0; px < planeWidth; px++)
                         alphaPlane[py * planeWidth + px] = (byte)PdfBinaryAreaSampler.Sample(
                             samples, rowBytes, sourceWidth, sourceHeight, px, row, planeWidth, planeHeight,
-                            stencilPaintsOne ? 0u : stencilAlphaByte,
-                            stencilPaintsOne ? stencilAlphaByte : 0u, cancellationToken);
+                            stencilPaintsOne ? 0u : stencilCoverageByte,
+                            stencilPaintsOne ? stencilCoverageByte : 0u, cancellationToken);
                 }
             }
             if (plane is not null)
@@ -4551,13 +4644,15 @@ public sealed partial class PdfPageRenderer
 
             // Stencil opacity uses its existing byte rounding. Ordinary images apply
             // nonstroking opacity after their image mask, without another byte rounding.
-            double imageOpacity = imageMask ? 1 : Math.Clamp(stencilAlpha, 0, 1);
+            double imageOpacity = imageMask ? separateStencilShape ? stencilAlphaByte / 255d : 1
+                : Math.Clamp(stencilAlpha, 0, 1);
             // Group alpha is compatible with the direct writes: an opaque pixel sets it to
             // 255, which is what the compositor computes for full opacity.
             // Antialiased clips only change pixels with partial clip coverage; fully covered
             // pixels take the same direct write, and partially covered ones use the compositor
             // with the same clip factor as the general loop.
             bool direct = target.Ink is null && target.RgbProfile is null && imageOpacity == 1 && graphicsSoftMask is null && knockout is null
+                && target.GroupShape is null
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
             bool perPixelClip = !rectangularClips;
             byte[]? directGroupAlpha = target.GroupAlpha;
@@ -4630,6 +4725,7 @@ public sealed partial class PdfPageRenderer
             // Opaque native ink samples on an ink destination take the same direct write the
             // compositor performs for full opacity, without building a color per pixel.
             bool directInk = target.Ink is not null && imageOpacity == 1
+                && target.GroupShape is null
                 && graphicsSoftMask is null && knockout is null
                 && (imageMask || !colorSpace.NativeProcessMask.HasValue)
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
@@ -4653,7 +4749,14 @@ public sealed partial class PdfPageRenderer
                     byte imageMaskSample = softMask is null ? (byte)255 : softMask.Sample(
                         Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
                         Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
-                    if (imageMaskSample == 0) continue;
+                    if (imageMaskSample == 0)
+                    {
+                        if ((knockout is not null || target.GroupShape is not null)
+                            && !alphaIsShape && !explicitMask && !imageMask && clipCoverage > 0)
+                            SetPixel(target, targetWidth, x, y, Color.Black, 0, blendMode,
+                                knockout: knockout, shape: clipCoverage / 255d);
+                        continue;
+                    }
                     if (directInk && clipCoverage == 255 && matteConverter is null && imageMaskSample == 255
                         && (plane is not null || directInkSamples)
                         && (alphaPlane is null || alphaPlane[py * planeWidth + px] == 255)
@@ -4703,7 +4806,7 @@ public sealed partial class PdfPageRenderer
                             int sy = Math.Min(py * factor, sourceHeight - 1);
                             bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
                             if (one != stencilPaintsOne) continue;
-                            alpha = stencilAlphaByte;
+                            alpha = stencilCoverageByte;
                         }
                         color = paintedStencil;
                     }
@@ -4738,7 +4841,8 @@ public sealed partial class PdfPageRenderer
                         color = OverprintColor(color, colorSpace, overprint, 0);
                     SetPixel(target, targetWidth, x, y,
                         color,
-                        alpha / 255d * imageOpacity * clipAlpha, blendMode, graphicsSoftMask, knockout);
+                        alpha / 255d * imageOpacity * clipAlpha, blendMode, graphicsSoftMask, knockout,
+                        shape: separateStencilShape ? alpha / 255d * clipAlpha : clipAlpha, alphaIsShape: alphaIsShape);
                 }
             }
         }
@@ -5231,7 +5335,7 @@ public sealed partial class PdfPageRenderer
         double scaleY, IReadOnlyList<List<Point>> paths, Color color, double alpha, bool evenOdd,
         RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
         GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool alphaIsShape = false)
     {
         if (color.DoesNotPaint) return;
         var frame = new RasterFrame(width, height, scaleX, scaleY);
@@ -5239,7 +5343,7 @@ public sealed partial class PdfPageRenderer
         try
         {
             PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
-                graphicsSoftMask, knockout, cancellationToken);
+                graphicsSoftMask, knockout, cancellationToken, alphaIsShape);
         }
         finally
         {
@@ -5253,7 +5357,7 @@ public sealed partial class PdfPageRenderer
         double miterLimit, RendererBlendMode blendMode,
         IReadOnlyList<ClipRegion> clips, GraphicsSoftMask? graphicsSoftMask,
         KnockoutState? knockout,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken, bool alphaIsShape = false)
     {
         if (color.DoesNotPaint) return;
         var frame = new RasterFrame(width, height, scaleX, scaleY);
@@ -5262,7 +5366,7 @@ public sealed partial class PdfPageRenderer
         try
         {
             PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
-                graphicsSoftMask, knockout, cancellationToken);
+                graphicsSoftMask, knockout, cancellationToken, alphaIsShape);
         }
         finally
         {
@@ -5408,10 +5512,50 @@ public sealed partial class PdfPageRenderer
 
     private static void SetPixel(RasterSurface pixels, int width, int x, int y,
         in Color color, double opacity, RendererBlendMode blendMode,
-        GraphicsSoftMask? graphicsSoftMask = null, KnockoutState? knockout = null)
+        GraphicsSoftMask? graphicsSoftMask = null, KnockoutState? knockout = null, double shape = 1,
+        bool alphaIsShape = false, bool recordShape = true)
     {
         if (color.DoesNotPaint || !pixels.Contains(x, y)) return;
         int offset = pixels.Offset(x, y);
+        if ((knockout is not null || pixels.GroupShape is not null) && alphaIsShape)
+        {
+            opacity = Math.Clamp(opacity, 0, 1) * (graphicsSoftMask?.At(x, y) ?? 255) / 255d;
+            shape = opacity;
+            graphicsSoftMask = null;
+        }
+        bool newShape = recordShape && (knockout?.RecordShape(x, y, Math.Clamp(shape, 0, 1)) ?? true);
+        if (newShape && pixels.GroupShape is not null)
+        {
+            double coverage = Math.Clamp(shape, 0, 1);
+            pixels.GroupShape[offset / 4] = (byte)Math.Round(coverage * 255
+                + pixels.GroupShape[offset / 4] * (1 - coverage));
+        }
+        if (knockout is not null && shape < 1)
+        {
+            shape = Math.Clamp(shape, 0, 1);
+            if (shape == 0) return;
+            knockout.PrepareImmediatePixel(pixels, x, y);
+            Span<byte> immediate = stackalloc byte[4];
+            pixels.Data.AsSpan(offset, 4).CopyTo(immediate);
+            double immediateAlpha = pixels.Alpha(offset) / 255d;
+            byte immediateGroupAlpha = pixels.GroupAlpha?[offset / 4] ?? 0;
+            knockout.PreparePixel(pixels, x, y);
+            SetPixel(pixels, width, x, y, color, opacity / shape, blendMode, graphicsSoftMask,
+                recordShape: false);
+            double initialWeight = (1 - shape) * immediateAlpha;
+            double paintedWeight = shape * pixels.Alpha(offset) / 255d;
+            double resultAlpha = initialWeight + paintedWeight;
+            if (resultAlpha > 0)
+                for (int channel = 0; channel < (pixels.Ink is null ? 3 : 4); channel++)
+                    pixels[offset + channel] = (byte)Math.Round(Math.Clamp(
+                        (immediate[channel] * initialWeight + pixels[offset + channel] * paintedWeight)
+                            / resultAlpha, 0, 255));
+            pixels.SetAlpha(offset, (byte)Math.Round(resultAlpha * 255));
+            if (pixels.GroupAlpha is not null)
+                pixels.GroupAlpha[offset / 4] = (byte)Math.Round(
+                    immediateGroupAlpha * (1 - shape) + pixels.GroupAlpha[offset / 4] * shape);
+            return;
+        }
         knockout?.PreparePixel(pixels, x, y);
         double sourceAlpha = Math.Clamp(opacity, 0, 1);
         if (graphicsSoftMask is not null)
@@ -5776,7 +5920,8 @@ public sealed partial class PdfPageRenderer
         ImageColorSpace? StrokeColorSpace, GraphicsSoftMask? GraphicsSoftMask,
         KnockoutState? Knockout, bool FillOverprint = false, bool StrokeOverprint = false,
         int OverprintMode = 0, double[]? FillComponents = null, double[]? StrokeComponents = null,
-        int RenderingIntent = 1, IReadOnlyList<PdfObject>? FillOperands = null, IReadOnlyList<PdfObject>? StrokeOperands = null)
+        int RenderingIntent = 1, IReadOnlyList<PdfObject>? FillOperands = null, IReadOnlyList<PdfObject>? StrokeOperands = null,
+        bool AlphaIsShape = false)
     {
         internal Color PaintFill => OverprintColor(Fill, FillColorSpace, FillOverprint, OverprintMode);
         internal Color PaintStroke => OverprintColor(Stroke, StrokeColorSpace, StrokeOverprint, OverprintMode);
@@ -5960,6 +6105,7 @@ public sealed partial class PdfPageRenderer
     private sealed class KnockoutState
     {
         private readonly int[] _objects;
+        private readonly byte[] _shapes;
         private readonly byte[]? _backdrop;
         private readonly byte[]? _backdropInk;
         private readonly PdfColorTransform? _backdropInkProfile;
@@ -5973,6 +6119,9 @@ public sealed partial class PdfPageRenderer
         private int _currentObject;
         private readonly bool _restoreEveryPaint;
         private readonly KnockoutState? _parent;
+        private byte[]? _immediateBackdrop;
+        private byte[]? _immediateAlpha;
+        private byte[]? _immediateGroupAlpha;
 
         internal KnockoutState(int pageWidth, (int Left, int Top, int Right, int Bottom) bounds,
             RasterSurface? backdrop = null, bool restoreEveryPaint = false, KnockoutState? parent = null)
@@ -5985,6 +6134,7 @@ public sealed partial class PdfPageRenderer
             _width = bounds.Right - bounds.Left;
             int height = bounds.Bottom - bounds.Top;
             _objects = new int[checked(_width * height)];
+            _shapes = new byte[_objects.Length];
             if (backdrop is not null)
             {
                 _backdropRgbProfile = backdrop.RgbProfile;
@@ -6030,6 +6180,44 @@ public sealed partial class PdfPageRenderer
 
         internal bool WasTouched(int offset) => _objects[LocalPixel(offset)] != 0;
 
+        internal double ShapeAt(int x, int y) => _shapes[(y - _top) * _width + x - _left] / 255d;
+
+        internal bool RecordShape(int x, int y, double shape)
+        {
+            int pixel = (y - _top) * _width + x - _left;
+            if (_restoreEveryPaint && _objects[pixel] != 0) return false;
+            _shapes[pixel] = (byte)Math.Round(shape * 255 + _shapes[pixel] * (1 - shape));
+            if (_restoreEveryPaint) _parent?.RecordShape(x, y, shape);
+            return true;
+        }
+
+        internal void PrepareImmediatePixel(RasterSurface target, int x, int y)
+        {
+            if (!_restoreEveryPaint) return;
+            if (_parent is null)
+            {
+                RestorePixel(target, x, y);
+                return;
+            }
+            int offset = target.Offset(x, y);
+            int pixel = (y - _top) * _width + x - _left;
+            _immediateBackdrop ??= new byte[checked(_objects.Length * 4)];
+            if (target.Ink is not null) _immediateAlpha ??= new byte[_objects.Length];
+            if (target.GroupAlpha is not null) _immediateGroupAlpha ??= new byte[_objects.Length];
+            if (_objects[pixel] == 0)
+            {
+                target.Data.AsSpan(offset, 4).CopyTo(_immediateBackdrop.AsSpan(pixel * 4, 4));
+                if (_immediateAlpha is not null) _immediateAlpha[pixel] = target.Alpha(offset);
+                if (_immediateGroupAlpha is not null)
+                    _immediateGroupAlpha[pixel] = target.GroupAlpha![offset / 4];
+                return;
+            }
+            _immediateBackdrop.AsSpan(pixel * 4, 4).CopyTo(target.Data.AsSpan(offset, 4));
+            if (_immediateAlpha is not null) target.SetAlpha(offset, _immediateAlpha[pixel]);
+            if (_immediateGroupAlpha is not null)
+                target.GroupAlpha![offset / 4] = _immediateGroupAlpha[pixel];
+        }
+
         internal void PreparePixel(RasterSurface target, int x, int y)
         {
             int offset = target.Offset(x, y);
@@ -6056,7 +6244,7 @@ public sealed partial class PdfPageRenderer
             }
         }
 
-        private void RestorePixel(RasterSurface target, int x, int y)
+        internal void RestorePixel(RasterSurface target, int x, int y)
         {
             int offset = target.Offset(x, y);
             int pixel = (y - _top) * _width + x - _left;
