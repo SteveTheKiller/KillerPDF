@@ -239,6 +239,7 @@ public sealed partial class PdfPageRenderer
                 double CharacterSpacing, double WordSpacing, double HorizontalScale,
                 double Leading, double Rise, int RenderingMode, int ClipMark)>();
             var path = new List<List<Point>>();
+            var freeSubpaths = new Stack<List<Point>>();
             List<Point>? subpath = null;
             var visibilityStack = new Stack<bool>();
             bool contentVisible = true;
@@ -289,8 +290,7 @@ public sealed partial class PdfPageRenderer
                             textRenderingMode, clipMark) = stack.Pop();
                         clipScratch.Restore(clipMark);
                     }
-                    path.Clear();
-                    subpath = null;
+                    ClearPath();
                     break;
                 case "cm" when values.Count == 6:
                     state = state with { Transform = Matrix.From(values).Then(state.Transform) };
@@ -539,8 +539,8 @@ public sealed partial class PdfPageRenderer
                         diagnostics.Add("Transparency blend-mode rendering is not implemented.");
                     break;
                 case "m" when values.Count == 2:
-                    subpath = [state.Transform.Apply(Number(values[0]), Number(values[1]))];
-                    path.Add(subpath);
+                    subpath = BeginSubpath(
+                        state.Transform.Apply(Number(values[0]), Number(values[1])));
                     break;
                 case "l" when values.Count == 2 && subpath is not null:
                     subpath.Add(state.Transform.Apply(Number(values[0]), Number(values[1])));
@@ -575,26 +575,22 @@ public sealed partial class PdfPageRenderer
                 case "re" when values.Count == 4:
                     double x = Number(values[0]), y = Number(values[1]);
                     double w = Number(values[2]), h = Number(values[3]);
-                    subpath =
-                    [
-                        state.Transform.Apply(x, y), state.Transform.Apply(x + w, y),
-                        state.Transform.Apply(x + w, y + h), state.Transform.Apply(x, y + h),
-                        state.Transform.Apply(x, y)
-                    ];
-                    path.Add(subpath);
+                    subpath = BeginSubpath(state.Transform.Apply(x, y));
+                    subpath.Add(state.Transform.Apply(x + w, y));
+                    subpath.Add(state.Transform.Apply(x + w, y + h));
+                    subpath.Add(state.Transform.Apply(x, y + h));
+                    subpath.Add(state.Transform.Apply(x, y));
                     break;
                 case "f" or "F" or "f*" when path.Count > 0:
                     PaintFill(path, instruction.Operator == "f*");
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
-                    path.Clear();
-                    subpath = null;
+                    ClearPath();
                     break;
                 case "S" or "s" when path.Count > 0:
                     if (instruction.Operator == "s" && subpath is { Count: > 1 }) subpath.Add(subpath[0]);
                     PaintStroke(path);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
-                    path.Clear();
-                    subpath = null;
+                    ClearPath();
                     break;
                 case "B" or "B*" or "b" or "b*" when path.Count > 0:
                     if (instruction.Operator[0] == 'b' && subpath is { Count: > 1 })
@@ -602,18 +598,15 @@ public sealed partial class PdfPageRenderer
                     PaintFill(path, instruction.Operator.EndsWith('*'));
                     PaintStroke(path);
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
-                    path.Clear();
-                    subpath = null;
+                    ClearPath();
                     break;
                 case "f" or "F" or "f*" or "S" or "s" or "B" or "B*" or "b" or "b*":
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
-                    path.Clear();
-                    subpath = null;
+                    ClearPath();
                     break;
                 case "n":
                     state = ApplyPendingClip(state, path, ref pendingClipEvenOdd, frame);
-                    path.Clear();
-                    subpath = null;
+                    ClearPath();
                     break;
                 case "BT":
                     textMatrix = textLineMatrix = Matrix.Identity;
@@ -780,6 +773,26 @@ public sealed partial class PdfPageRenderer
                             $"Rendering operator {instruction.Operator} is not implemented.");
                     break;
                 }
+            }
+
+            List<Point> BeginSubpath(Point first)
+            {
+                List<Point> result = freeSubpaths.Count == 0
+                    ? new List<Point>() : freeSubpaths.Pop();
+                result.Add(first);
+                path.Add(result);
+                return result;
+            }
+
+            void ClearPath()
+            {
+                foreach (List<Point> item in path)
+                {
+                    item.Clear();
+                    freeSubpaths.Push(item);
+                }
+                path.Clear();
+                subpath = null;
             }
 
             bool OptionalContentVisible(
