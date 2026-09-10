@@ -30,10 +30,26 @@ knockout behavior on these patches, without extending the result to all groups.
 The ICCBasedRGB page explicitly permits faint crosses caused by color-management
 differences. Fifteen engine center/background pairs differ by zero to three
 levels; Color Dodge differs by 19. Native differences reach 193 levels and its
-crosses are visibly stronger. The engine's Color Dodge residual remains open
-for color-transform analysis; this inspection does not declare that whole page
-conformant. Exact sampled colors for both builds are retained in
+crosses are visibly stronger. The subsequent isolated conversion check below
+accounts for the Color Dodge residual without establishing whole-page
+conformance. Exact sampled colors for both builds are retained in
 `review-20260909/blend-indicator-review-20260909.json`.
+
+The Color Dodge backdrop is RGB (0, 0, 0.502), with cyan foreground. Using the
+embedded profiles and saturation intent, the engine produces CMYK bytes
+(206, 234, 0, 34) and (173, 0, 46, 0); LittleCMS produces (206, 233, 0, 34)
+and (173, 0, 46, 0). Both yield blended cyan 183, compared with reference cyan
+181. Isolated engine relative-colorimetric display conversion reproduces the
+page samples exactly: RGB (0, 186, 238) and (19, 187, 238).
+
+LittleCMS with NOOPTIMIZE reproduces both display samples exactly. Its default
+optimized conversion gives (24, 186, 238) and (29, 187, 238); high-resolution
+precalculation gives (11, 186, 238) and (19, 187, 238). This bounded comparison
+accounts for the 19-level residual through the display transform near the red
+gamut boundary. It does not justify changing the blend or group compositor.
+The scratch `icc-dodge-probe` links the current engine ICC implementation;
+`icc-dodge-independent-20260909.json` retains the independent samples in the
+local benchmark root. No production behavior changed for this finding.
 
 ## September 9 CMYK display conversion
 

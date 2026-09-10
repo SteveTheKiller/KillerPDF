@@ -1068,7 +1068,8 @@ The subsequent GWG161 comparison supports all 16 sampled DeviceCMYK knockout
 patches: engine center/background differences are at most one channel level,
 while native error crosses remain prominent. On the ICCBasedRGB page, 15 engine
 pairs differ by at most three levels; Color Dodge retains a 19-level difference
-and remains an analysis target. The page permits faint color-management crosses,
+reproduced exactly by isolated engine and unoptimized LittleCMS display conversion.
+This sample does not establish a blend defect. The page permits faint color-management crosses,
 so neither pixel mismatch alone nor this comparison proves full conformance.
 Values and image locations are recorded in the color review.
 
