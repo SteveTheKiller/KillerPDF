@@ -45,6 +45,8 @@ internal static class PdfBinaryAreaSampler
             selected += horizontal * vertical;
         }
         long area = (long)width * height;
+        if (selected == 0) return zero;
+        if (selected == area) return one;
         uint first = Mix((byte)zero, (byte)one, selected, area);
         uint fourth = Mix((byte)(zero >> 24), (byte)(one >> 24), selected, area);
         if ((zero & 0xFFFFFF) == (uint)(byte)zero * 0x010101
