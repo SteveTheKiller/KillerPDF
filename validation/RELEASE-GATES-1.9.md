@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,886 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length dash, reduced stencil, and packed coverage regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,894 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length dash, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1071,3 +1071,26 @@ pairs differ by at most three levels; Color Dodge retains a 19-level difference
 and remains an analysis target. The page permits faint color-management crosses,
 so neither pixel mismatch alone nor this comparison proves full conformance.
 Values and image locations are recorded in the color review.
+
+### Color Dodge and Color Burn endpoint checkpoint
+
+The renderer now preserves a black backdrop channel under Color Dodge and a
+white backdrop channel under Color Burn, including the opposite source endpoint.
+This follows the June 2009 Adobe correction adopted by PDF 2.0, described in
+[the PDF Association's blend formula explanation](https://pdfa.org/why-pdf-2-0-is-the-new-pdf-bible/).
+Eight regressions cover RGB and CMYK with full and partial opacity. All eight
+fail before the correction and pass afterward. All 3,894 engine tests and 370
+app tests pass, and Release publish succeeds.
+
+All 674 corpus pages render successfully with unchanged dimensions. Only the
+ColorBurn fixture at both sizes and the shared ColorDodge fixture change; the
+other 671 images remain identical. Their mean RGB differences from native grow
+from 0.3451 to 3.0210, 0.6923 to 3.3434, and 0.4686 to 5.1080 respectively.
+The ColorBurn stripes were visually reviewed: fully saturated backdrop channels
+now remain saturated under zero source channels, as the corrected formula requires.
+These native differences are intentional standards corrections, not a measured
+visual parity win. The separate GWG161 ICCBasedRGB Color Dodge residual is unchanged.
+
+Evidence is retained as `blend-endpoints-*` logs and comparison JSON and
+`review-20260909/blend-endpoints-*` images in the local benchmark root. The payload
+is `parity-20260909-ghent/payload-blend-endpoints`. Overall parity remains open.

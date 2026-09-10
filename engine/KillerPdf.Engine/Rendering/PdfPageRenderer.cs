@@ -5422,8 +5422,8 @@ public sealed partial class PdfPageRenderer
         RendererBlendMode.Overlay => HardLight(source, backdrop),
         RendererBlendMode.Darken => Math.Min(backdrop, source),
         RendererBlendMode.Lighten => Math.Max(backdrop, source),
-        RendererBlendMode.ColorDodge => source >= 1 ? 1 : Math.Min(1, backdrop / (1 - source)),
-        RendererBlendMode.ColorBurn => source <= 0 ? 0 : 1 - Math.Min(1, (1 - backdrop) / source),
+        RendererBlendMode.ColorDodge => backdrop <= 0 ? 0 : source >= 1 ? 1 : Math.Min(1, backdrop / (1 - source)),
+        RendererBlendMode.ColorBurn => backdrop >= 1 ? 1 : source <= 0 ? 0 : 1 - Math.Min(1, (1 - backdrop) / source),
         RendererBlendMode.HardLight => HardLight(backdrop, source),
         RendererBlendMode.SoftLight => source <= 0.5
             ? backdrop - (1 - 2 * source) * backdrop * (1 - backdrop)

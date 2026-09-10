@@ -3369,6 +3369,47 @@ public sealed class PdfPageRendererTests
     }
 
     [Theory]
+    [InlineData(PdfBlendMode.ColorDodge, false, 1)]
+    [InlineData(PdfBlendMode.ColorDodge, true, 1)]
+    [InlineData(PdfBlendMode.ColorBurn, false, 1)]
+    [InlineData(PdfBlendMode.ColorBurn, true, 1)]
+    [InlineData(PdfBlendMode.ColorDodge, false, 0.5)]
+    [InlineData(PdfBlendMode.ColorDodge, true, 0.5)]
+    [InlineData(PdfBlendMode.ColorBurn, false, 0.5)]
+    [InlineData(PdfBlendMode.ColorBurn, true, 0.5)]
+    public void Render_DodgeAndBurnKeepBackdropEndpointsContinuous(PdfBlendMode mode, bool cmyk, double opacity)
+    {
+        byte[] Render(bool foreground)
+        {
+            var content = new PdfContentStreamBuilder();
+            void Color(double value)
+            {
+                if (cmyk) content.SetFillCmyk(1 - value, 1 - value, 1 - value, 1 - value);
+                else content.SetFillRgb(value, value, value);
+            }
+            Color(mode == PdfBlendMode.ColorBurn ? 1 : 0);
+            content.Rectangle(0, 0, 3, 1).Fill();
+            if (foreground)
+            {
+                content.SetGraphicsState(new PdfGraphicsState(fillOpacity: opacity, blendMode: mode));
+                for (int x = 0; x < 3; x++)
+                {
+                    Color(x / 2d);
+                    content.Rectangle(x, 0, 1, 1).Fill();
+                }
+            }
+            if (cmyk)
+                content = new PdfContentStreamBuilder().DrawForm(new PdfFormXObject(3, 1, content,
+                    isolatedTransparencyGroup: true, transparencyGroupColorSpace: PdfTransparencyGroupColorSpace.Cmyk), 0, 0);
+            PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(3, 1, content).Build());
+            PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(3, 1));
+            Assert.Empty(page.Diagnostics);
+            return page.Pixels.ToArray();
+        }
+        Assert.Equal(Render(false), Render(true));
+    }
+
+    [Theory]
     [InlineData(PdfBlendMode.Hue, 102)]
     [InlineData(PdfBlendMode.Saturation, 102)]
     [InlineData(PdfBlendMode.Color, 102)]
