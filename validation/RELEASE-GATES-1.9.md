@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions now match PDFium after legacy decimal page-box sizing. Only the two previously mismatched pages change; the other 672 outputs retain identical pixels. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,859 engine tests, 370 app tests, and the Release payload publish pass, including pattern text, pool eviction, and unknown image filter regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,876 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency and zero-length dash regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/unknown-image-paired*`.
@@ -995,3 +995,21 @@ Evidence is retained as `shading-opacity-*` logs, the
 and `review-20260909/shading-opacity-*` renders in the local benchmark root.
 The payload is `parity-20260909-ghent/payload-shading-opacity`. Shading-pattern
 graphics-state overrides and overlapping mesh transparency remain unverified.
+
+### Zero-length dash checkpoint
+
+Zero-length painted dash entries now retain round or square caps instead of
+disappearing. Square marks retain the line direction, including diagonal paths.
+Nine regressions cover all three cap styles, horizontal and diagonal lines,
+positive and negative phases, and subpath restarts. Four cap regressions fail
+before the fix. The dedicated three-page native comparison confirms restored
+round and square marks; their rendered shapes were inspected. Native spacing
+drifts slightly on this fixture, while the engine preserves the declared cycle.
+
+All 3,876 engine tests and 370 app tests pass, and Release publish succeeds.
+All 674 Broad and Shared pages remain pixel-identical to the shading-opacity
+checkpoint with unchanged dimensions and OK batch rows. The negative-phase
+corpus page remains unchanged; its odd-length cycle differs from the native
+renderer and was not replaced with native spacing. Evidence is retained under
+`zero-dash-20260909` and `review-20260909/zero-dash-*` in the local benchmark root.
+The payload is `parity-20260909-ghent/payload-zero-dash`. Overall parity remains open.

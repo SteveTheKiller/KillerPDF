@@ -699,6 +699,49 @@ public sealed class PdfPageRendererTests
         Assert.Equal([0, 0, 0, 255], Pixel(transformed, 4, 0));
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public void Render_ZeroLengthDashesRetainCapsAndDirection(int cap, bool diagonal)
+    {
+        string path = diagonal ? "10 10 m 90 90 l S" : "10 50 m 90 50 l S";
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes($"6 w {cap} J [0 10] 0 d {path}")).Build());
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        int centerY = diagonal ? 89 : 49;
+        Assert.Equal(cap == 0 ? new byte[] { 255, 255, 255, 255 } : new byte[] { 0, 0, 0, 255 },
+            Pixel(rendered, 10, centerY));
+        if (cap == 2 && diagonal)
+        {
+            Assert.InRange(Pixel(rendered, 13, 89)[0], 50, 100);
+            Assert.InRange(Pixel(rendered, 12, 87)[0], 230, 255);
+        }
+        Assert.InRange(Pixel(rendered, diagonal ? 14 : 15, diagonal ? 85 : 49)[0], 230, 255);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(2, 18)]
+    [InlineData(-2, 12)]
+    [InlineData(10, 10)]
+    public void Render_ZeroLengthDashesRespectPhaseAndRestartAtEachSubpath(int phase, int firstDot)
+    {
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            Encoding.ASCII.GetBytes($"2 w 1 J [0 10] {phase} d 10 50 m 90 50 l 10 20 m 90 20 l S")).Build());
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        foreach (int y in new[] { 49, 79 })
+        {
+            Assert.InRange(Pixel(rendered, firstDot, y)[0], 0, 80);
+            Assert.InRange(Pixel(rendered, firstDot + 10, y)[0], 0, 80);
+            Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(rendered, firstDot + 5, y));
+        }
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_TransformsStrokeWidthWithTheCurrentMatrix()
     {

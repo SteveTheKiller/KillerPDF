@@ -950,6 +950,23 @@ public sealed partial class PdfPageRenderer
         {
             if (path.Count == 0) continue;
             Point[] pixels = frame.ToPixels(path);
+            if (path is ZeroLengthDash dash && lineCap == RendererLineCap.ProjectingSquare)
+            {
+                Point origin = path[0];
+                Point[] axis = frame.ToPixels([origin,
+                    new Point(origin.X + dash.Direction.X, origin.Y + dash.Direction.Y)]);
+                double dx = axis[1].X - axis[0].X, dy = axis[1].Y - axis[0].Y;
+                double length = Math.Sqrt(dx * dx + dy * dy);
+                if (length == 0 || !double.IsFinite(length)) continue;
+                double ux = dx / length * radius, uy = dy / length * radius;
+                Point center = pixels[0];
+                polygons.Add(Oriented([
+                    new Point(center.X - ux + uy, center.Y - uy - ux),
+                    new Point(center.X + ux + uy, center.Y + uy - ux),
+                    new Point(center.X + ux - uy, center.Y + uy + ux),
+                    new Point(center.X - ux - uy, center.Y - uy + ux)]));
+                continue;
+            }
             StrokeOutline(pixels, radius, lineCap, lineJoin, miterLimit, polygons);
         }
         return RasterizePolygons(polygons, false, frame.Width, frame.Height, rent);

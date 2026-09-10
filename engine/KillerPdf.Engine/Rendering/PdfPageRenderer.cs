@@ -5523,7 +5523,6 @@ public sealed partial class PdfPageRenderer
             bool paints = true;
             double remaining = pattern[0];
             double phase = suppliedPhase % cycle;
-            AdvancePastEmptyEntries();
             while (phase > 0)
             {
                 if (phase < remaining)
@@ -5535,7 +5534,6 @@ public sealed partial class PdfPageRenderer
                 {
                     phase -= remaining;
                     AdvancePattern();
-                    AdvancePastEmptyEntries();
                 }
             }
 
@@ -5552,7 +5550,13 @@ public sealed partial class PdfPageRenderer
                 double used = 0;
                 while (used < userLength - 1e-12)
                 {
-                    AdvancePastEmptyEntries();
+                    while (remaining <= 1e-12)
+                    {
+                        if (paints && pattern[patternIndex] == 0)
+                            result.Add(new ZeroLengthDash(Lerp(pageStart, pageEnd, used / userLength),
+                                new Point(pageEnd.X - pageStart.X, pageEnd.Y - pageStart.Y)));
+                        AdvancePattern();
+                    }
                     double length = Math.Min(remaining, userLength - used);
                     double startUnit = used / userLength;
                     double endUnit = (used + length) / userLength;
@@ -5580,17 +5584,17 @@ public sealed partial class PdfPageRenderer
                 paints = !paints;
                 remaining = pattern[patternIndex];
             }
-
-            void AdvancePastEmptyEntries()
-            {
-                while (remaining <= 1e-12) AdvancePattern();
-            }
         }
         return result;
 
         static Point Lerp(Point from, Point to, double amount) => new(
             from.X + (to.X - from.X) * amount,
             from.Y + (to.Y - from.Y) * amount);
+    }
+
+    private sealed class ZeroLengthDash(Point location, Point direction) : List<Point>([location])
+    {
+        internal Point Direction { get; } = direction;
     }
 
     private static bool Contains(IReadOnlyList<Point[]> polygons,
