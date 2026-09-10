@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions now match PDFium after legacy decimal page-box sizing. Only the two previously mismatched pages change; the other 672 outputs retain identical pixels. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,876 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency and zero-length dash regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,884 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length dash, and reduced stencil regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/unknown-image-paired*`.
@@ -1013,3 +1013,21 @@ corpus page remains unchanged; its odd-length cycle differs from the native
 renderer and was not replaced with native spacing. Evidence is retained under
 `zero-dash-20260909` and `review-20260909/zero-dash-*` in the local benchmark root.
 The payload is `parity-20260909-ghent/payload-zero-dash`. Overall parity remains open.
+
+### Reduced stencil detail checkpoint
+
+Reduced one-bit stencil images now average source coverage into a bounded alpha
+plane instead of selecting individual bits. This restores thin text strokes in
+the scanned All Quiet on the Third Coast article. Eight regressions cover both
+decode directions, clipping, and partial nonstroking opacity; all fail before
+the fix and pass afterward. The article and affected Ghent mask and font pages
+were visually inspected. Article mean RGB error against native falls from
+11.9876 to 2.8804; that remaining difference is not visual parity.
+
+All 3,884 engine tests and 370 app tests pass, and Release publish succeeds.
+All 674 Broad and Shared pages retain matching dimensions and OK batch rows.
+Twelve pages change, each with lower mean RGB error against native; 662 remain
+pixel-identical. Evidence is retained as `stencil-area-*` logs and comparison
+JSON, plus `review-20260909/stencil-area-*` renders in the local benchmark root.
+The payload is `parity-20260909-ghent/payload-stencil-area`. The paired timing
+results at the top predate this change; no new overall speed claim is made.

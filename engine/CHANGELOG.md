@@ -75,7 +75,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Restored pattern fills and strokes on text outlines, corrected pattern stroke opacity, and fixed tiling-pattern blending.
 - Restored zero-length dash marks with round and correctly oriented square caps.
 - Skipped images with unknown compression filters instead of painting corrupted pixels over page content.
-- Preserved thin detail in reduced unmasked images through area averaging, including gray and RGB images under clipping.
+- Preserved thin detail in reduced images and stencil masks, including clipped and translucent artwork.
 
 - Recovered text with missing font resources using a diagnosed Helvetica fallback in compatibility mode.
 - Fixed broken Type 1 letter outlines when a contour continues after a flex curve.

@@ -4404,6 +4404,7 @@ public sealed partial class PdfPageRenderer
         int planeHeight = (samplingHeight + factor - 1) / factor;
         bool averagePlane = factor > 1 && !imageMask && preblendMatte is null
             && colorKeyMask is null && softMask is null;
+        bool averageStencil = factor > 1 && imageMask;
         bool directInkSamples = !averagePlane && target.Ink is not null && !imageMask && preblendMatte is null
             && colorKeyMask is null && bits == 8 && components == 4 && colorSpace.Components == 4
             && !colorSpace.DoesNotPaint && colorSpace.Palette is null && colorSpace.Converter is null
@@ -4416,7 +4417,7 @@ public sealed partial class PdfPageRenderer
             && colorSpace.Converter is null && colorSpace.MultiConverter is null
             && colorSpace.Profile is null && colorSpace.ComponentRange is null
             && (components == 1 && decode is [0, 1] || components == 3 && decode is [0, 1, 0, 1, 0, 1]);
-        if (averagePlane)
+        if (averagePlane || averageStencil)
         {
             planeWidth = Math.Min(planeWidth, destinationWidth);
             planeHeight = Math.Min(planeHeight, destinationHeight);
@@ -4433,6 +4434,20 @@ public sealed partial class PdfPageRenderer
             Color paintedStencil = imageMask && target.Ink is not null
                 ? InkColor(target.GetInk(stencilColor)) with
                 { OverprintComponents = stencilColor.OverprintComponents } : stencilColor;
+            if (averageStencil)
+            {
+                alphaPlane = RasterBuffers.Rent(checked(planeWidth * planeHeight));
+                for (int py = 0; py < planeHeight; py++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var row = PdfBinaryAreaSampler.Row.Create(py, sourceHeight, planeHeight);
+                    for (int px = 0; px < planeWidth; px++)
+                        alphaPlane[py * planeWidth + px] = (byte)PdfBinaryAreaSampler.Sample(
+                            samples, rowBytes, sourceWidth, sourceHeight, px, row, planeWidth, planeHeight,
+                            stencilPaintsOne ? 0u : stencilAlphaByte,
+                            stencilPaintsOne ? stencilAlphaByte : 0u, cancellationToken);
+                }
+            }
             if (plane is not null)
             {
                 if (target.Ink is not null && colorKeyMask is not null)
@@ -4622,11 +4637,16 @@ public sealed partial class PdfPageRenderer
                     }
                     else if (plane is null)
                     {
-                        int sx = Math.Min(px * factor, sourceWidth - 1);
-                        int sy = Math.Min(py * factor, sourceHeight - 1);
-                        bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
-                        if (one != stencilPaintsOne) continue;
-                        alpha = stencilAlphaByte;
+                        if (alphaPlane is not null)
+                            alpha = alphaPlane[py * planeWidth + px];
+                        else
+                        {
+                            int sx = Math.Min(px * factor, sourceWidth - 1);
+                            int sy = Math.Min(py * factor, sourceHeight - 1);
+                            bool one = (samples[sy * rowBytes + sx / 8] & (0x80 >> (sx & 7))) != 0;
+                            if (one != stencilPaintsOne) continue;
+                            alpha = stencilAlphaByte;
+                        }
                         color = paintedStencil;
                     }
                     else

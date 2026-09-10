@@ -3802,6 +3802,30 @@ public sealed class PdfPageRendererTests
     }
 
     [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(true, true, false)]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public void Render_ReducedStencilRetainsFineInkAndOpacity(bool inverted, bool clipped, bool translucent)
+    {
+        string clip = clipped ? "1 1 1 2 re W n " : "";
+        string decode = inverted ? "[1 0]" : "[0 1]";
+        PdfDocument document = AddStrokeGraphicsState(
+            $"/Test gs 0 0 1 rg {clip}2 0 0 2 1 1 cm BI /W 8 /H 8 /IM true /D {decode} /F /AHx ID 5555555555555555> EI",
+            "ca", new PdfReal(translucent ? 0.5 : 1));
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        byte unpainted = translucent ? (byte)191 : (byte)127;
+        Assert.Equal(new byte[] { 255, unpainted, unpainted, 255 }, Pixel(rendered, 1, 98));
+        Assert.Equal(clipped ? new byte[] { 255, 255, 255, 255 }
+            : new byte[] { 255, unpainted, unpainted, 255 }, Pixel(rendered, 2, 98));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
     [InlineData(2,
         "AAAADGpQICANCocKAAAAFGZ0eXBqcDIgAAAAAGpwMiAAAABPanAyaAAAABZpaGRyAAAAAQAAAAIABAcHAAAAAAAPY29scgEAAAAAABAAAAAiY2RlZgAEAAAAAAABAAEAAAACAAIAAAADAAMAAQAAAAAAnmpwMmP/T/9RADIAAAAAAAIAAAABAAAAAAAAAAAAAAACAAAAAQAAAAAAAAAAAAQHAQEHAQEHAQEHAQH/UgAMAAAAAQAABAQAAf9cAARAQP9kACUAAUNyZWF0ZWQgYnkgT3BlbkpQRUcgdmVyc2lvbiAyLjUuNP+QAAoAAAAAACMAAf+T34AQDF/fgBAJP9+AGAWxf8+0CAsX/9k=",
         200, 0, 0)]
