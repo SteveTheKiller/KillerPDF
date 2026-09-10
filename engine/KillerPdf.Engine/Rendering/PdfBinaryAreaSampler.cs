@@ -26,6 +26,8 @@ internal static class PdfBinaryAreaSampler
         // Integer coordinates retain exact fractional coverage on the output grid.
         long left = (long)x * width, right = (long)(x + 1) * width;
         int firstX = (int)(left / outputWidth), lastX = (int)((right - 1) / outputWidth);
+        long firstWeight = Math.Min((long)(firstX + 1) * outputWidth, right) - left;
+        long lastWeight = right - (long)lastX * outputWidth;
         long selected = 0;
         for (int sy = bounds.First; sy <= bounds.Last; sy++)
         {
@@ -33,11 +35,11 @@ internal static class PdfBinaryAreaSampler
             int row = sy * rowBytes;
             long horizontal = 0;
             if (Bit(samples, row, firstX) != 0)
-                horizontal = Math.Min((long)(firstX + 1) * outputWidth, right) - left;
+                horizontal = firstWeight;
             if (lastX > firstX)
             {
                 if (Bit(samples, row, lastX) != 0)
-                    horizontal += right - (long)lastX * outputWidth;
+                    horizontal += lastWeight;
                 horizontal += (long)Count(samples, row, firstX + 1, lastX) * outputWidth;
             }
             long vertical = Math.Min((long)(sy + 1) * outputHeight, bounds.Bottom)
