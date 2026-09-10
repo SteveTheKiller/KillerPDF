@@ -2,6 +2,42 @@ using KillerPdf.Engine.Fonts;
 using KillerPDF.Services;
 
 int failures = 0;
+foreach (var (name, family, bold, italic) in new[]
+{
+    ("Helvetica", "Arial", false, false),
+    ("Helvetica-Bold", "Arial", true, false),
+    ("Helvetica-Oblique", "Arial", false, true),
+    ("Helvetica-BoldOblique", "Arial", true, true),
+    ("Times-Roman", "Times New Roman", false, false),
+    ("Times-Bold", "Times New Roman", true, false),
+    ("Times-Italic", "Times New Roman", false, true),
+    ("Times-BoldItalic", "Times New Roman", true, true),
+    ("TimesNewRomanPS-BdMT", "Times New Roman", true, false)
+})
+    Check($"Standard alias {name} preserves installed family and style", () =>
+    {
+        InstalledFontCatalog.Faces[family] = [7];
+        Require(new InstalledPdfFontResolver().Resolve(Request(name))?[0] == 7);
+        Require(InstalledFontCatalog.Calls.Last() == family);
+        Require(InstalledFontCatalog.Styles.Last() == (bold, italic));
+    });
+Check("Installed Helvetica takes precedence over Arial", () =>
+{
+    InstalledFontCatalog.Faces["Helvetica"] = [8];
+    InstalledFontCatalog.Faces["Arial"] = [7];
+    Require(new InstalledPdfFontResolver().Resolve(Request("Helvetica"))?[0] == 8);
+    Require(InstalledFontCatalog.Calls.SequenceEqual(["Helvetica"]));
+});
+Check("Missing standard aliases retain bundled fallback", () =>
+{
+    Require(new InstalledPdfFontResolver().Resolve(Request("Times-Roman")) is null);
+    Require(InstalledFontCatalog.Calls.SequenceEqual(["Times Roman", "Times New Roman"]));
+});
+Check("Distinct Times families do not use the standard alias", () =>
+{
+    InstalledFontCatalog.Faces["Times New Roman"] = [7];
+    Require(new InstalledPdfFontResolver().Resolve(Request("TimesCustom")) is null);
+});
 foreach (var (name, bold, italic) in new[]
 {
     ("Courier", false, false), ("Courier-Bold", true, false),

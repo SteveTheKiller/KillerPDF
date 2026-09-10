@@ -926,3 +926,24 @@ The remaining red text is visually consistent with the native reference,
 although the complete images are not byte-identical. Evidence is under
 `review-20260909/unknown-image-*` and `parity-20260909-ghent/payload-unknown-image`
 in the local benchmark root. Broader visual and performance gates remain open.
+
+### Installed standard-font aliases checkpoint (2026-09-09)
+
+The desktop resolver now maps Helvetica and Times aliases to installed Arial
+and Times New Roman faces, preserving styles and exact requested-family
+precedence. Missing installed families still use the engine's bundled fallback.
+No additional font data is shipped. Engine source is unchanged.
+
+All 33 standalone resolver checks and 370 app tests pass; Release publish passes.
+All 674 corpus rows report OK and retain the same dimensions. Of 220 changed
+pages, 219 have lower mean absolute RGB error against PDFium. The other 454
+pages are pixel-identical. The one higher score changes only nine pixels on a
+horizontal line in 507618.pdf, increasing the total absolute channel error by
+24. OverlappingGlyphClipping.pdf drops from 16.9909 to 0.2237 mean error, and
+PatternTextInsideText.pdf drops from 28.8898 to 3.0027. These scores support
+the specific font-selection improvement, not overall visual parity.
+
+Evidence is under `standard-latin-probe-20260909/corpus-comparison.json` and
+`review-20260909/standard-alias-*` in the local benchmark root. The payload is
+`parity-20260909-ghent/payload-standard-alias`. Earlier paired speed results
+predate this desktop resolver change.

@@ -2,7 +2,7 @@
 
 `InstalledPdfFontResolverRegression.cs` compiles the production resolver with a
 deterministic installed-font catalog substitute. Its checks cover requested
-font precedence, Courier PostScript aliases and styles, emoji fallback, unrelated
+font precedence, Helvetica, Times, and Courier aliases and styles, emoji fallback, unrelated
 fonts, unavailable fonts, and caching.
 It needs .NET 10 and no installed fonts or additional packages. It is separate
 from the app test suite and is excluded from the application build.

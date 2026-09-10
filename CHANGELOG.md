@@ -56,6 +56,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 - Restored missing page text, corrected pattern placement, and repaired missing or corrupt JPEG 2000 image tiles.
 - Preserved the previous renderer's scaled page dimensions for viewing and image export.
+- Matched installed Arial and Times New Roman fonts for unembedded Helvetica and Times text, preserving bold and italic styles.
 - Restored title-bar controls, including the close button and logo zoom control.
 - Registered the PDF handler as KillerPDF instead of the internal KillerPDF.App executable name.
 - Ignored invalid engine OCR models and kept the Tesseract migration fallback available.
