@@ -200,6 +200,38 @@ public sealed class PdfPageRendererTests
     }
 
     [Theory]
+    [InlineData(false, "0.0000000000008", 8)]
+    [InlineData(true, "0.0000000000008", 8)]
+    [InlineData(false, "0.000000000008", 80)]
+    [InlineData(true, "0.000000000008", 80)]
+    public void Render_TinyTransformedDashesMatchOrdinaryCoordinates(bool phase, string end, int width)
+    {
+        PdfRenderedPage Render(string content)
+        {
+            var document = PdfDocument.Open(new PdfDocumentBuilder()
+                .AddPage(width, 1, Encoding.ASCII.GetBytes(content)).Build());
+            var page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(width, 1));
+            Assert.Empty(page.Diagnostics);
+            return page;
+        }
+        var expected = Render($"0 w [1 1] {(phase ? "1" : "0")} d 0 0.5 m {width} 0.5 l S");
+        var actual = Render("10000000000000 0 0 1 0 0 cm 0 w "
+            + $"[0.0000000000001 0.0000000000001] {(phase ? "0.0000000000001" : "0")} d "
+            + $"0 0.5 m {end} 0.5 l S");
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Fact]
+    public void Render_ExtremelyDenseDashesReachExpansionLimit()
+    {
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(8, 1,
+            "0 w [0.0000000000001 0.0000000000001] 0 d 0 0.5 m 8 0.5 l S"u8.ToArray()).Build());
+        var error = Assert.Throws<NotSupportedException>(() => new PdfPageRenderer(document)
+            .Render(0, new PdfRenderOptions(8, 1)));
+        Assert.Contains("Line dash expansion limit", error.Message);
+    }
+
+    [Theory]
     [InlineData(0, false)]
     [InlineData(0, true)]
     [InlineData(.00001, false)]

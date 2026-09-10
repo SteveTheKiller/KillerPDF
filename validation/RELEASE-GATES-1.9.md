@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,894 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length dash, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,899 engine tests, 370 app tests, and the Release payload publish pass, including pattern transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1095,3 +1095,21 @@ visual parity win. The separate GWG161 ICCBasedRGB Color Dodge residual is uncha
 Evidence is retained as `blend-endpoints-*` logs and comparison JSON and
 `review-20260909/blend-endpoints-*` images in the local benchmark root. The payload
 is `parity-20260909-ghent/payload-blend-endpoints`. Overall parity remains open.
+
+### Tiny transformed dash checkpoint
+
+Dash expansion no longer drops positive lengths using a fixed user-space
+tolerance. Four comparisons cover tiny dash coordinates magnified into visible
+one-pixel dashes, at two path lengths and two phases. The two short-path cases
+failed before the change; the longer paths previously reached a nonadvancing
+pattern loop and were added after the correction. All four now match equivalent
+ordinary coordinates exactly. A fifth regression verifies the expansion limit.
+
+Expansion checks cancellation, rejects arithmetic that cannot advance, and stops
+after one million expansion steps with NotSupportedException. This is an explicit
+complexity limit, not successful rendering of arbitrarily dense patterns.
+All 3,899 engine tests and 370 app tests pass, Release publish succeeds, and all
+674 corpus pages remain pixel-identical with unchanged dimensions and OK rows.
+Evidence is retained as `tiny-dash-*` logs and comparison JSON and
+`review-20260909/tiny-dash-*` images in the local benchmark root. The payload is
+`parity-20260909-ghent/payload-tiny-dash`. Overall parity remains open.

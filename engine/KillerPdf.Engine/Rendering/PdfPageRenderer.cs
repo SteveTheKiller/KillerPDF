@@ -776,7 +776,7 @@ public sealed partial class PdfPageRenderer
                 double lineWidth = state.LineWidth * state.Transform.StrokeScale;
                 IReadOnlyList<List<Point>> paintedPath = state.DashPattern.Count == 0
                     ? strokePath : CreateDashedPaths(strokePath, state.Transform,
-                        state.DashPattern, state.DashPhase);
+                        state.DashPattern, state.DashPhase, cancellationToken);
                 if (state.StrokePattern is null)
                 {
                     StrokePaths(pixels, options.Width, options.Height,
@@ -5529,13 +5529,14 @@ public sealed partial class PdfPageRenderer
 
     private static IReadOnlyList<List<Point>> CreateDashedPaths(
         IReadOnlyList<List<Point>> paths, Matrix transform,
-        IReadOnlyList<double> suppliedPattern, double suppliedPhase)
+        IReadOnlyList<double> suppliedPattern, double suppliedPhase, CancellationToken cancellationToken)
     {
         if (!transform.TryInverse(out Matrix inverse)) return paths;
         double[] pattern = suppliedPattern.Count % 2 == 0
             ? suppliedPattern.ToArray()
             : [.. suppliedPattern, .. suppliedPattern];
         double cycle = pattern.Sum();
+        int steps = 0;
         var result = new List<List<Point>>();
         foreach (List<Point> path in paths)
         {
@@ -5545,6 +5546,7 @@ public sealed partial class PdfPageRenderer
             double phase = suppliedPhase % cycle;
             while (phase > 0)
             {
+                CheckProgress();
                 if (phase < remaining)
                 {
                     remaining -= phase;
@@ -5566,18 +5568,22 @@ public sealed partial class PdfPageRenderer
                 double userX = userEnd.X - userStart.X;
                 double userY = userEnd.Y - userStart.Y;
                 double userLength = Math.Sqrt(userX * userX + userY * userY);
-                if (userLength <= 1e-12) continue;
+                if (userLength <= 0) continue;
                 double used = 0;
-                while (used < userLength - 1e-12)
+                while (used < userLength)
                 {
-                    while (remaining <= 1e-12)
+                    CheckProgress();
+                    while (remaining <= 0)
                     {
+                        CheckProgress();
                         if (paints && pattern[patternIndex] == 0)
                             result.Add(new ZeroLengthDash(Lerp(pageStart, pageEnd, used / userLength),
                                 new Point(pageEnd.X - pageStart.X, pageEnd.Y - pageStart.Y)));
                         AdvancePattern();
                     }
                     double length = Math.Min(remaining, userLength - used);
+                    if (used + length <= used)
+                        throw new NotSupportedException("A line dash is too small to advance along its path.");
                     double startUnit = used / userLength;
                     double endUnit = (used + length) / userLength;
                     Point start = Lerp(pageStart, pageEnd, startUnit);
@@ -5594,7 +5600,7 @@ public sealed partial class PdfPageRenderer
                     else painted = null;
                     used += length;
                     remaining -= length;
-                    if (remaining <= 1e-12) AdvancePattern();
+                    if (remaining <= 0) AdvancePattern();
                 }
             }
 
@@ -5606,6 +5612,13 @@ public sealed partial class PdfPageRenderer
             }
         }
         return result;
+
+        void CheckProgress()
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (++steps > 1_000_000)
+                throw new NotSupportedException("Line dash expansion limit exceeded.");
+        }
 
         static Point Lerp(Point from, Point to, double amount) => new(
             from.X + (to.X - from.X) * amount,
