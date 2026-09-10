@@ -1050,7 +1050,9 @@ public sealed partial class PdfPageRenderer
                             IReadOnlyList<List<Point>>? glyphPaths = null;
                             if (paintMode is 0 or 2)
                             {
-                                if (cachedFill is not null)
+                                if (state.FillPattern is not null)
+                                    PaintFill(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform), false);
+                                else if (cachedFill is not null)
                                     PaintCoverage(pixels, options.Width, options.Height,
                                         cachedFill, state.PaintFill, state.FillAlpha,
                                         state.BlendMode, state.Clips, state.GraphicsSoftMask,

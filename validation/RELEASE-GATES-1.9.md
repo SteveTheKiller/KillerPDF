@@ -876,3 +876,18 @@ direct native probes. The scaled-page test for height 301.999999 now expects
 points, confirming that the former 151-pixel expectation used a direct cast
 instead of the legacy parser. Geometry compatibility is verified at the corpus
 sizes; overall visual, speed, and interactive parity remain open.
+
+### Pattern text fill checkpoint (2026-09-09)
+
+PatternTextInsideText.pdf now paints its red text pattern inside the blue
+outlined glyphs. Across the 674 Broad and Shared pages, only this image changes;
+the other 673 remain pixel-identical and every output retains its dimensions.
+The published app renders all batch rows successfully. Local evidence is under
+`C:\Users\steve\kp-bench-render\review-20260909\pattern-text-*`, with the
+payload under `parity-20260909-ghent/payload-pattern-text`.
+
+Both new pattern clipping tests pass. All 3,856 engine tests pass with test
+parallelism disabled, and all 370 app tests pass. The parallel engine suite
+exposes an allocation-test isolation problem: the clip-buffer reuse test fails
+under concurrent pool activity but passes alone and in the serial suite.
+Overall visual, speed, and interactive parity remain open.
