@@ -4076,14 +4076,18 @@ public sealed class PdfPageRendererTests
     }
 
     [Theory]
-    [InlineData(false, 0.5)]
-    [InlineData(false, 1)]
-    [InlineData(true, 0.5)]
-    [InlineData(true, 1)]
-    public void Render_NestedKnockoutUsesInitialParentBackdrop(bool isolated, double opacity)
+    [InlineData(false, 0.5, 0.5)]
+    [InlineData(false, 1, 0.5)]
+    [InlineData(true, 0.5, 0.5)]
+    [InlineData(true, 1, 0.5)]
+    [InlineData(false, 0.5, 0)]
+    [InlineData(false, 1, 0)]
+    [InlineData(true, 0.5, 0)]
+    [InlineData(true, 1, 0)]
+    public void Render_NestedKnockoutUsesInitialParentBackdrop(bool isolated, double opacity, double childOpacity)
     {
         var child = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
-            .SetOpacity(0.5).SetFillRgb(1, 0, 0).Rectangle(0, 0, 7, 7).Fill()
+            .SetOpacity(childOpacity).SetFillRgb(1, 0, 0).Rectangle(0, 0, 7, 7).Fill()
             .SetFillRgb(0, 0, 1).Rectangle(3, 0, 7, 7).Fill(), knockoutTransparencyGroup: true);
         var parent = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
             .SetFillRgb(1, 1, 0).Rectangle(0, 0, 10, 10).Fill()
@@ -4094,7 +4098,7 @@ public sealed class PdfPageRendererTests
         var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
         var rendered = new PdfPageRenderer(document).Render(0,
             new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
-        int painted = (int)Math.Round(128 * opacity);
+        int painted = (int)Math.Round(Math.Round(255 * childOpacity) * opacity);
         byte[] left = Pixel(rendered, 1, 5), overlap = Pixel(rendered, 5, 5);
         Assert.Equal(0, left[0]);
         Assert.Equal(0, overlap[2]);

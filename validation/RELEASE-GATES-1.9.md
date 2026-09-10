@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,935 engine tests, 370 app tests, and the Release payload publish pass, including nested knockout groups, blends, masks and backdrop removal, mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,939 engine tests, 370 app tests, and the Release payload publish pass, including transparent nested knockout content, nested groups, blends, masks and backdrop removal, mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1290,3 +1290,24 @@ Evidence is in `nested-knockout-*`, `nested-knockout-probe`, and
 payload is `parity-20260909-ghent/payload-nested-knockout`. This closes the
 explicit nested-group rejection exercised here; it does not establish full
 transparency, visual, performance, memory, or interactive parity.
+
+### Transparent nested knockout checkpoint
+
+A touched child pixel now prepares its knockout parent before the zero-alpha
+shortcut. Transparent child content therefore clears earlier parent content
+within its shape while leaving untouched parent pixels unchanged. This follows
+the separation of shape and opacity in PDF 32000-1:2008 section 11.4.6.
+Four zero-opacity cases failed before the correction; all eight nested tests
+now pass under isolated and non-isolated parents at half and full outer opacity.
+
+All 3,939 engine tests and 370 app tests pass, and Release publish succeeds.
+The four-page zero-opacity fixture now exposes RGB (0, 255, 0), the original
+backdrop, instead of the intervening yellow fill. Evidence is in
+`knockout-zero-*` and `knockout-zero-probe/input-v2`, `before-v2`, and `fixed`
+under the local benchmark root. The initial scratch conversion failed before
+producing an input PDF; only the v2 fixture is evidence. The payload is
+`parity-20260909-ghent/payload-knockout-zero`.
+
+Validation here is focused; the latest 674-page comparison belongs to the
+preceding nested-knockout checkpoint. Fractional shape coverage, alpha-is-shape
+behavior, and the broader parity gates still require verification.

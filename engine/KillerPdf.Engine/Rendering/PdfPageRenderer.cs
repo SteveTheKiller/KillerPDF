@@ -1574,8 +1574,8 @@ public sealed partial class PdfPageRenderer
                                 if (!groupKnockout.WasTouched(offset)) continue;
                                 offset = nonisolatedGroupPixels.Offset(x, y);
                                 double alpha = nonisolatedGroupPixels.GroupAlpha![offset / 4] / 255d;
-                                if (alpha == 0) continue;
                                 parentState.Knockout?.PreparePixel(nonisolatedPagePixels, x, y);
+                                if (alpha == 0) continue;
                                 Color source = RemoveGroupBackdrop(nonisolatedGroupPixels, offset,
                                     nonisolatedPagePixels, nonisolatedPagePixels.Offset(x, y), alpha);
                                 SetPixel(nonisolatedPagePixels, options.Width, x, y,
