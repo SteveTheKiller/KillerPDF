@@ -16,6 +16,29 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfPageRendererTests
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Render_UnknownImageFilterDoesNotPaintEncodedBytes(bool arrayFilter)
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(4, 2, new PdfContentStreamBuilder()
+                .SetFillRgb(0, 1, 0).Rectangle(0, 0, 4, 2).Fill()
+                .DrawImage(PdfImage.FromGray(2, 2, new byte[] { 0, 0, 0, 0 }),
+                    1, 0, 2, 2)).Build());
+        PdfObject filter = arrayFilter ? new PdfArray([Name("XXXDecode")]) : Name("XXXDecode");
+        PdfDocument malformed = AddImageDictionaryEntry(source, "Filter", filter, [0]);
+        PdfDocument recovered = PdfDocument.OpenWithCompatibilityRecovery(
+            PdfDocumentWriter.Write(malformed));
+
+        PdfRenderedPage page = new PdfPageRenderer(recovered).Render(0,
+            new PdfRenderOptions(4, 2, includeAnnotations: false, includeFormFields: false));
+        for (int y = 0; y < 2; y++)
+            for (int x = 0; x < 4; x++)
+                Assert.Equal(new byte[] { 0, 255, 0, 255 }, Pixel(page, x, y));
+        Assert.Contains(page.Diagnostics, diagnostic => diagnostic.Contains("/XXXDecode"));
+    }
+
+    [Theory]
     [InlineData(PdfTextRenderingMode.Fill, "B")]
     [InlineData(PdfTextRenderingMode.Fill, "BA")]
     [InlineData(PdfTextRenderingMode.Clip, "B")]

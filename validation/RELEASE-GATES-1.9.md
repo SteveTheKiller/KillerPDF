@@ -909,3 +909,18 @@ All 674 Broad and Shared renders are pixel-identical to the pattern-text
 checkpoint, with unchanged dimensions and OK batch rows. Evidence is under
 `review-20260909/pool-eviction-*` and `parity-20260909-ghent/payload-pool-eviction`
 in the local benchmark root.
+
+### Unknown image filter checkpoint (2026-09-09)
+
+UnknownFilter-ImageXObject.pdf no longer paints encoded bytes as a noisy black
+rectangle. Unknown image filters produce a diagnostic; general-stream recovery
+still permits unknown-filter pass-through. Both direct and array filter forms
+have rendering regressions that failed before the fix and now pass.
+
+All 3,859 engine tests and 370 app tests pass, and Release publish succeeds.
+All 674 corpus rows report OK with unchanged output dimensions. Only this
+malformed-image page changes; the other 673 images remain pixel-identical.
+The remaining red text is visually consistent with the native reference,
+although the complete images are not byte-identical. Evidence is under
+`review-20260909/unknown-image-*` and `parity-20260909-ghent/payload-unknown-image`
+in the local benchmark root. Broader visual and performance gates remain open.

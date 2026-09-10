@@ -144,9 +144,9 @@ public static class PdfStreamDecoder
                     GetCcittOptions(stream.Dictionary, parameters[i], resolve), filterLimit,
                     compatibilityRecovery),
                 "Crypt" => null,
-                // Mainstream viewers pass data through an unknown filter unchanged rather
-                // than abandoning the document.
-                _ when compatibilityRecovery => null,
+                // General streams may contain usable content despite an unknown filter.
+                // Image bytes cannot be treated as decoded samples on that assumption.
+                _ when compatibilityRecovery && !IsImageStream(stream.Dictionary, resolve) => null,
                 _ => throw new PdfFilterException($"The PDF stream filter /{filter} is not supported yet.")
             };
 
@@ -475,6 +475,12 @@ public static class PdfStreamDecoder
     }
 
     private static bool IsWhiteSpace(byte value) => value is 0 or 9 or 10 or 12 or 13 or 32;
+
+    private static bool IsImageStream(PdfDictionary dictionary,
+        Func<PdfIndirectReference, PdfObject>? resolve) =>
+        dictionary.TryGetValue(new PdfName("Subtype"u8), out PdfObject? subtype)
+        && Resolve(subtype, resolve, "stream /Subtype") is PdfName name
+        && name.ValueAsLatin1() == "Image";
 
     private static List<PdfName> ReadFilters(
         PdfDictionary dictionary, Func<PdfIndirectReference, PdfObject>? resolve)
