@@ -650,13 +650,39 @@ All 240 pixel hashes matched, with zero diagnostics. Evidence remains in
 `parity-20260909-ghent/unchanged-group*`; renderer source matches the validated
 large-content checkpoint. No runtime optimization was retained from this test.
 
-A separate `AllocationProfile.csproj` probe measures about 50.6 MB of managed
-allocation during each steady Ghent page-2 render, excluding document opening
-and renderer construction. Its last ten renders trigger six generation-2
-collections; all twenty images retain the same hash and zero diagnostics.
+A separate `AllocationProfile.csproj` probe initially suggested about 50.6 MB
+of managed allocation per steady Ghent page-2 render. Its assembly resolution
+was subsequently found to select another scratch DLL; the hash-verified
+measurements below supersede that initial observation.
 `ghent-allocations.nettrace` and `ghent-allocation-types.json` provide a separate
 allocation-tick sample over thirty fresh-document renders. Byte arrays dominate
 the sampled allocation weights, followed by renderer Point arrays and double
 arrays. The type sample includes document opening and is statistical, so its
 weights must not be treated as exact render-only byte totals. Allocation call
 stacks are the next investigation target before choosing a buffer or cache change.
+
+Allocation stacks are now available in `ghent-allocation-stacks.json`, decoded
+from the existing trace with `AllocationStacks.csproj`. All 5,505 sampled events
+in the retained half have stacks. The largest byte-array samples belong to the
+document's input copy and the rendered output buffer. Those have ownership
+requirements and are not automatically removable. JPEG decoding and flattened
+glyph Point arrays follow. The trace includes opening the document, whereas the
+separate allocation harness measures only Render.
+
+An ICC intent-table sharing experiment passed 173 focused tests, including a
+synthetic allocation and color-equivalence check, but was removed after the
+real-page allocation probe showed little benefit. Hash-verified median allocated
+bytes over the last ten of twenty renders were 50,730,356/50,624,580 on Ghent
+and 154,102,432/154,102,688 on Altona (baseline/experiment). All 80 page hashes
+matched within their workload, with zero diagnostics. The result is too small
+to pursue as the explanation for Ghent's allocation pressure. Production source
+and tests again match the validated large-content checkpoint.
+
+The allocation harness now searches explicit HintPath references first and uses
+distinct output/intermediate directories. MSBuild's candidate-assembly search
+had selected another DLL from the scratch directory despite the intended hint.
+Only `icc-shared-verified-allocation.csv` and its summary are valid comparisons:
+baseline engine hash is `D7B83C01599F8A074C3FA4FA71B1C80ECABBB4DA5867725B27E07F185C0021D0`,
+experiment hash is `9B9E2D3EF12B3827C5A1FDEDBD0585ADE0D83DB31EB1BA8CD1A577FF1E812664`.
+The earlier `icc-shared-allocation.csv` and `icc-shared-altona-allocation.csv`
+are invalid for before/after claims and are retained only as investigation history.
