@@ -5,6 +5,9 @@ namespace KillerPdf.Engine.Parsing;
 /// <summary>An operator and its direct operands in a decoded page-content stream.</summary>
 public sealed class PdfContentInstruction
 {
+    private static readonly IReadOnlyList<PdfObject> EmptyOperands =
+        Array.AsReadOnly(Array.Empty<PdfObject>());
+
     /// <summary>Creates an instruction for inspection or content-stream rewriting.</summary>
     public PdfContentInstruction(string operation, int offset, IEnumerable<PdfObject> operands,
         ReadOnlyMemory<byte>? inlineImageData = null)
@@ -18,7 +21,8 @@ public sealed class PdfContentInstruction
             throw new ArgumentException("Only an inline-image instruction can contain image data.", nameof(inlineImageData));
         Operator = operation;
         Offset = offset;
-        Operands = Array.AsReadOnly(operands.ToArray());
+        PdfObject[] values = operands.ToArray();
+        Operands = values.Length == 0 ? EmptyOperands : Array.AsReadOnly(values);
         if (inlineImageData.HasValue)
             InlineImageData = new ReadOnlyMemory<byte>(inlineImageData.Value.ToArray());
     }
