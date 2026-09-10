@@ -1889,6 +1889,86 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false, "ca", 191)]
+    [InlineData(true, "ca", 191)]
+    [InlineData(false, "CA", 128)]
+    [InlineData(true, "CA", 128)]
+    public void Render_ShadingPatternStateCombinesWithObjectOpacity(bool stroke, string key, byte green)
+    {
+        string paint = stroke ? "/Pattern CS /P1 SCN 10 w 50 0 m 50 100 l S"
+            : "/Pattern cs /P1 scn 0 0 100 100 re f";
+        PdfDocument source = AddStrokeGraphicsState("/Test gs " + paint,
+            stroke ? "CA" : "ca", new PdfReal(0.5));
+        var function = new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(2)), new(Name("Domain"), Reals(0, 1)),
+            new(Name("C0"), Reals(1, 0, 0)), new(Name("C1"), Reals(1, 0, 0)),
+            new(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(2)), new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(0, 0, 100, 0)), new(Name("Function"), function)]);
+        var parameters = new PdfDictionary([new(Name(key), new PdfReal(0.5))]);
+        var document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0), parameters);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        byte[] pixel = Pixel(rendered, 50, 50);
+        Assert.InRange(pixel[0], green, green + 1);
+        Assert.InRange(pixel[1], green, green + 1);
+        Assert.Equal(255, pixel[2]);
+        Assert.Equal(255, pixel[3]);
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_ShadingPatternBlendIsInternalAndDoesNotLeak()
+    {
+        PdfDocument source = AddStrokeGraphicsState(
+            "0 0 1 rg 0 0 100 100 re f /Test gs /Pattern cs /P1 scn 0 0 40 100 re f "
+            + "1 0 0 rg 60 0 40 100 re f", "BM", Name("Multiply"));
+        var function = new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(2)), new(Name("Domain"), Reals(0, 1)),
+            new(Name("C0"), Reals(1, 0, 0)), new(Name("C1"), Reals(1, 0, 0)),
+            new(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(2)), new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(0, 0, 100, 0)), new(Name("Function"), function)]);
+        var parameters = new PdfDictionary([new(Name("BM"), Name("Screen"))]);
+        var document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0), parameters);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, Pixel(rendered, 20, 50));
+        Assert.Equal(new byte[] { 0, 0, 0, 255 }, Pixel(rendered, 80, 50));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_ShadingPatternSoftMaskUsesPatternCoordinatesAndDoesNotLeak()
+    {
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(100, 100,
+            "/Pattern cs /P1 scn 0 0 100 100 re f 0 1 0 rg 80 0 20 100 re f"u8.ToArray()).Build());
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var mask = update.AddObject(new PdfStream(new PdfDictionary([
+            new(Name("Type"), Name("XObject")), new(Name("Subtype"), Name("Form")),
+            new(Name("BBox"), Reals(0, 0, 100, 100)), new(Name("Resources"), new PdfDictionary([])),
+            new(Name("Group"), new PdfDictionary([
+                new(Name("S"), Name("Transparency")), new(Name("CS"), Name("DeviceGray"))]))
+        ]), "1 g 0 0 50 100 re f"u8.ToArray()));
+        source = PdfDocument.Open(update.Build());
+        var function = new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(2)), new(Name("Domain"), Reals(0, 1)),
+            new(Name("C0"), Reals(1, 0, 0)), new(Name("C1"), Reals(1, 0, 0)),
+            new(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(2)), new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(0, 0, 100, 0)), new(Name("Function"), function)]);
+        var parameters = new PdfDictionary([new(Name("SMask"), new PdfDictionary([
+            new(Name("S"), Name("Luminosity")), new(Name("G"), mask)]))]);
+        var document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 10, 0), parameters);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(rendered, 55, 50));
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(rendered, 65, 50));
+        Assert.Equal(new byte[] { 0, 255, 0, 255 }, Pixel(rendered, 85, 50));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_ResolvesNamedPatternColorSpaces()
     {
@@ -4483,7 +4563,7 @@ public sealed class PdfPageRendererTests
     }
 
     private static PdfDocument AddShadingPatternResource(
-        PdfDocument source, PdfDictionary shading, PdfArray matrix)
+        PdfDocument source, PdfDictionary shading, PdfArray matrix, PdfDictionary? parameters = null)
     {
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
         PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
@@ -4496,6 +4576,8 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("PatternType"), new PdfInteger(2)),
             new KeyValuePair<PdfName, PdfObject>(Name("Shading"), shading),
             new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), matrix)]);
+        if (parameters is not null)
+            pattern = new PdfDictionary(pattern.Append(new KeyValuePair<PdfName, PdfObject>(Name("ExtGState"), parameters)));
         var patterns = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("P1"), pattern)]);
         var updatedResources = new PdfDictionary(resources

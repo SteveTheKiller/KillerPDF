@@ -797,14 +797,14 @@ public sealed partial class PdfPageRenderer
                 IReadOnlyList<List<Point>> paintPath, ClipRegion paintClip,
                 PdfDictionary parentResources, GraphicsState parentState, int patternDepth, double objectAlpha)
             {
-                if (paint.Shading is not null)
+                if (paint.Shading is not null && paint.Parameters is null)
                 {
                     RenderPatternContents(paint, paintPath, paintClip, parentResources,
                         parentState with { FillAlpha = objectAlpha }, patternDepth);
                     return;
                 }
-                // Tiling cells form a non-isolated group. Outer transparency applies once
-                // to the pattern-painted object, not separately to each mark in its cells.
+                // Evaluate the pattern's own transparency before applying the painted
+                // object's transparency to the completed non-isolated group.
                 GraphicsState contentState = initial with
                 {
                     Clips = parentState.Clips,
@@ -814,6 +814,27 @@ public sealed partial class PdfPageRenderer
                     GraphicsSoftMask = null,
                     Knockout = null
                 };
+                if (paint.Parameters is { } parameters)
+                {
+                    ReadGraphicsState(parameters, out double? fillAlpha, out _,
+                        out RendererBlendMode? blendMode, out bool unsupportedBlend,
+                        out PdfObject? softMask, out _);
+                    contentState = ApplyOverprintSettings(contentState, parameters) with
+                    {
+                        Transform = paint.Matrix.Then(initial.Transform),
+                        FillAlpha = fillAlpha ?? 1,
+                        BlendMode = blendMode ?? RendererBlendMode.Normal
+                    };
+                    if (parameters.TryGetValue(Name("RI"), out PdfObject? intent)
+                        && Resolve(intent) is PdfName intentName)
+                        contentState = ApplyRenderingIntent(contentState, ReadRenderingIntent(intentName), pixels, diagnostics);
+                    if (softMask is not null)
+                        contentState = contentState with
+                        {
+                            GraphicsSoftMask = ReadGraphicsSoftMask(softMask, parentResources, contentState, patternDepth)
+                        };
+                    if (unsupportedBlend) diagnostics.Add("Transparency blend-mode rendering is not implemented.");
+                }
                 if (objectAlpha >= 1 && parentState.GraphicsSoftMask is null && parentState.Knockout is null
                     && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
                 {
@@ -861,6 +882,7 @@ public sealed partial class PdfPageRenderer
             {
                 if (paint.Shading is not null)
                 {
+                    using var inputProfile = pixels.PrepareInput(parentState.RenderingIntent);
                     GraphicsState shadingState = parentState with
                     {
                         Transform = paint.Matrix.Then(initial.Transform),
@@ -2195,7 +2217,9 @@ public sealed partial class PdfPageRenderer
             PdfObject shading = Resolve(shadingValue);
             if (shading is PdfDictionary or PdfStream)
             {
-                pattern = new PatternPaint(null, shading, matrix, null);
+                PdfDictionary? parameters = dictionary.TryGetValue(Name("ExtGState"), out PdfObject? parameterValue)
+                    ? Resolve(parameterValue) as PdfDictionary : null;
+                pattern = new PatternPaint(null, shading, matrix, null, parameters);
                 return true;
             }
             return false;
@@ -4989,6 +5013,17 @@ public sealed partial class PdfPageRenderer
             || Resolve(stateValue) is not PdfDictionary dictionary)
             return false;
         strokeSettings = dictionary;
+        ReadGraphicsState(dictionary, out fillAlpha, out strokeAlpha, out blendMode,
+            out unsupportedBlend, out softMaskValue, out fontValue);
+        return true;
+    }
+
+    private void ReadGraphicsState(PdfDictionary dictionary,
+        out double? fillAlpha, out double? strokeAlpha, out RendererBlendMode? blendMode,
+        out bool unsupportedBlend, out PdfObject? softMaskValue, out PdfObject? fontValue)
+    {
+        blendMode = null;
+        unsupportedBlend = false;
         fillAlpha = Alpha(dictionary, "ca");
         strokeAlpha = Alpha(dictionary, "CA");
         dictionary.TryGetValue(Name("SMask"), out softMaskValue);
@@ -5015,8 +5050,6 @@ public sealed partial class PdfPageRenderer
             }
             else unsupportedBlend = true;
         }
-        return true;
-
         double? Alpha(PdfDictionary source, string key)
         {
             if (!source.TryGetValue(Name(key), out PdfObject? value)) return null;
@@ -5996,7 +6029,7 @@ public sealed partial class PdfPageRenderer
         }
     }
     private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,
-        Matrix Matrix, Color? BaseColor);
+        Matrix Matrix, Color? BaseColor, PdfDictionary? Parameters = null);
     private readonly record struct MeshVertex(Point Point, double[] Values);
     private sealed class MeshDecoder(
         byte[] source, int coordinateBits, int componentBits, int flagBits,
