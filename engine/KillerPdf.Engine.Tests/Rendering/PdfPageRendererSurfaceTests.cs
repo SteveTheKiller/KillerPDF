@@ -8,6 +8,7 @@ using Xunit;
 
 namespace KillerPdf.Engine.Tests.Rendering;
 
+[Collection(nameof(SoftMaskAllocationCollection))]
 public sealed class PdfPageRendererSurfaceTests
 {
     [Theory]

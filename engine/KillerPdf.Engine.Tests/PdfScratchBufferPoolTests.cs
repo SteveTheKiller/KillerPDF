@@ -5,6 +5,22 @@ namespace KillerPdf.Engine.Tests;
 public sealed class PdfScratchBufferPoolTests
 {
     [Fact]
+    public void Return_CountLimitDoesNotLetSmallBuffersDisplaceLargeWorkingSet()
+    {
+        var pool = new PdfScratchBufferPool<byte>(8 * 1024 * 1024);
+        byte[][] small = Enumerable.Range(0, 64).Select(_ => pool.Rent(16)).ToArray();
+        foreach (byte[] buffer in small) pool.Return(buffer);
+        byte[][] large = Enumerable.Range(0, 32).Select(_ => pool.Rent(128 * 1024)).ToArray();
+        foreach (byte[] buffer in large) pool.Return(buffer);
+
+        var expected = new HashSet<byte[]>(large);
+        for (int index = 0; index < large.Length; index++)
+            Assert.True(expected.Remove(pool.Rent(128 * 1024)));
+        Assert.Empty(expected);
+        Assert.InRange(pool.RetainedBytes, 0, 8 * 1024 * 1024);
+    }
+
+    [Fact]
     public void Rent_ReusesConcurrentSameSizedBuffersWithinByteBudget()
     {
         var pool = new PdfScratchBufferPool<float>(1024);

@@ -23,7 +23,8 @@ internal sealed class PdfScratchBufferPool<T>(int maximumBytes, int largerBucket
     private readonly int _largerBucketSearch = largerBucketSearch >= 0 ? largerBucketSearch
         : throw new ArgumentOutOfRangeException(nameof(largerBucketSearch));
     // Idle buffers are bucketed by their power-of-two length so renting is a constant-time
-    // pop instead of a scan. Over budget, the largest idle buffers are released first.
+    // pop instead of a scan. Over the byte budget, the largest idle buffers go first;
+    // at the item limit, small buffers give way to the incoming working set.
     private readonly Stack<T[]>[] _idle = new Stack<T[]>[32];
     private readonly Lock _sync = new();
     private readonly int _maximumBytes = maximumBytes > 0 ? maximumBytes
@@ -74,13 +75,16 @@ internal sealed class PdfScratchBufferPool<T>(int maximumBytes, int largerBucket
         lock (_sync)
         {
             int index = BitOperations.Log2((uint)array.Length);
-            int release = _idle.Length - 1;
             while (_retainedBytes + bytes > _maximumBytes || _idleCount >= MaximumIdleCount)
             {
-                while (_idle[release] is not { Count: > 0 }) release--;
-                T[] largest = _idle[release].Pop();
+                bool overBudget = _retainedBytes + bytes > _maximumBytes;
+                // At the count limit, retire cheap small buffers so an old population
+                // of tiny arrays cannot force every subsequent large rent to allocate.
+                int release = overBudget ? _idle.Length - 1 : 0;
+                while (_idle[release] is not { Count: > 0 }) release += overBudget ? -1 : 1;
+                T[] discarded = _idle[release].Pop();
                 _idleCount--;
-                _retainedBytes -= largest.Length * Unsafe.SizeOf<T>();
+                _retainedBytes -= discarded.Length * Unsafe.SizeOf<T>();
             }
             (_idle[index] ??= new Stack<T[]>()).Push(array);
             _idleCount++;

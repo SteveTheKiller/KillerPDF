@@ -888,6 +888,24 @@ payload under `parity-20260909-ghent/payload-pattern-text`.
 
 Both new pattern clipping tests pass. All 3,856 engine tests pass with test
 parallelism disabled, and all 370 app tests pass. The parallel engine suite
-exposes an allocation-test isolation problem: the clip-buffer reuse test fails
-under concurrent pool activity but passes alone and in the serial suite.
+exposes a clip-buffer allocation failure that passes alone and in the serial
+suite. The subsequent pool investigation below identifies the underlying cause.
 Overall visual, speed, and interactive parity remain open.
+
+### Scratch pool eviction checkpoint (2026-09-09)
+
+The 64-item limit previously evicted the largest idle buffer even when the byte
+budget had room. Small idle arrays could therefore displace nearly all later
+large buffers. Count-limit eviction now removes the smallest idle buffer;
+byte-budget eviction still removes the largest. Both limits are unchanged.
+A deterministic regression verifies reuse of 32 large buffers after filling the
+pool with 64 tiny buffers. Allocation-sensitive surface tests also use the
+existing isolated collection to avoid unrelated concurrent pool traffic.
+
+All 3,857 engine tests pass in the normal parallel suite, all 370 app tests pass,
+and Release publish succeeds. This corrects buffer reuse, without establishing
+a whole-page speed improvement or overall engine parity.
+All 674 Broad and Shared renders are pixel-identical to the pattern-text
+checkpoint, with unchanged dimensions and OK batch rows. Evidence is under
+`review-20260909/pool-eviction-*` and `parity-20260909-ghent/payload-pool-eviction`
+in the local benchmark root.

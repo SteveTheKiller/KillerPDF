@@ -70,6 +70,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Prevented small idle scratch buffers from forcing repeated large rendering allocations.
 - Restored missing content on large pages while keeping parsing memory bounded.
 - Restored pattern fills inside text outlines.
 - Preserved thin detail in reduced unmasked images through area averaging, including gray and RGB images under clipping.
