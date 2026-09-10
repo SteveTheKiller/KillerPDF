@@ -703,8 +703,8 @@ public sealed partial class PdfPageRenderer
                     break;
                 case "BI" when values.Count == 1 && values[0] is PdfDictionary inlineDictionary
                     && instruction.InlineImageData.HasValue:
-                    var inlineImage = new PdfStream(inlineDictionary,
-                        instruction.InlineImageData.Value.Span);
+                    var inlineImage = PdfStream.FromOwnedData(inlineDictionary,
+                        instruction.InlineImageData.Value);
                     if (!TryRenderImage(inlineImage, resources, state.Transform, state.Clips,
                         state.PaintFill, state.FillAlpha, state.BlendMode, state.GraphicsSoftMask,
                         state.Knockout, cancellationToken, pixels, options.Width,

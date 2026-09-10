@@ -65,7 +65,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Faster opaque CMYK shape fills, fully opaque masked image samples, and compositing over transparent pixels with unchanged output.
 - Reduced transparency-group storage and mask allocations, omitted uniform CMYK alpha planes and redundant CMYK, RGB, and grayscale image copies, kept one-bit masks packed, bounded retained scratch buffers, and added reusable caller-owned page output.
 - Reduced built-in character-map storage and loaded encoded mappings only when requested.
-- Removed redundant encoded-stream copies and full-image JPEG scratch planes during parsing and decoding, reused JPEG sample rows and copied grayscale output by row, and reused JPEG 2000 color and transparency planes across repeated paints.
+- Removed redundant encoded-stream and inline-image copies and full-image JPEG scratch planes during parsing and decoding, reused JPEG sample rows and copied grayscale output by row, and reused JPEG 2000 color and transparency planes across repeated paints.
 - Faster JPEG 2000 decoding through reusable row color conversions, direct 8-bit and 16-bit sample output with cheaper range checks, and less redundant buffer clearing, with unchanged decoded values.
 - Faster image reduction through packed one-bit coverage counts with byte-level edge handling, reused row bounds, and reused RGB averaging weights.
 - Halved JBIG2 probability-context storage with unchanged decoded pixels.
