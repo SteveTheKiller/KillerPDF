@@ -4,10 +4,26 @@ namespace KillerPdf.Engine.Rendering;
 
 internal static class PdfImageAreaSampler
 {
-    internal readonly struct Row(int height, double center, double footprint)
+    internal readonly struct Row
     {
-        internal double Top { get; } = Math.Max(0, center - footprint / 2);
-        internal double Bottom { get; } = Math.Min(height, center + footprint / 2);
+        internal double Top { get; }
+        internal double Bottom { get; }
+        internal int First { get; }
+        internal int End { get; }
+        private readonly double _firstWeight;
+        private readonly double _lastWeight;
+
+        internal Row(int height, double center, double footprint)
+        {
+            Top = Math.Max(0, center - footprint / 2);
+            Bottom = Math.Min(height, center + footprint / 2);
+            First = (int)Top;
+            End = (int)Math.Ceiling(Bottom);
+            _firstWeight = Math.Min(First + 1, Bottom) - Math.Max(First, Top);
+            _lastWeight = Math.Min(End, Bottom) - Math.Max(End - 1, Top);
+        }
+
+        internal double Weight(int y) => y == First ? _firstWeight : y == End - 1 ? _lastWeight : 1;
     }
 
     internal static uint Sample(byte[] samples, int width, int height, int components,
@@ -32,10 +48,10 @@ internal static class PdfImageAreaSampler
             double w0 = Math.Min(first + 1, right) - Math.Max(first, left);
             double w1 = columns > 1 ? Math.Min(first + 2, right) - Math.Max(first + 1, left) : 0;
             double w2 = columns > 2 ? Math.Min(first + 3, right) - Math.Max(first + 2, left) : 0;
-            for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
+            for (int y = row.First; y < row.End; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                double vertical = Math.Min(y + 1, bottom) - Math.Max(y, top);
+                double vertical = row.Weight(y);
                 int offset = (y * width + first) * 3;
                 AddRgb(samples, offset, vertical * w0, ref red, ref green, ref blue);
                 if (columns > 1) AddRgb(samples, offset + 3, vertical * w1, ref red, ref green, ref blue);
@@ -44,10 +60,10 @@ internal static class PdfImageAreaSampler
         }
         else
         {
-            for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
+            for (int y = row.First; y < row.End; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                double vertical = Math.Min(y + 1, bottom) - Math.Max(y, top);
+                double vertical = row.Weight(y);
                 for (int x = (int)left; x < (int)Math.Ceiling(right); x++)
                 {
                     double weight = vertical * (Math.Min(x + 1, right) - Math.Max(x, left));
