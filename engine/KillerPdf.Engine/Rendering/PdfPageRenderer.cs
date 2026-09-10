@@ -797,7 +797,7 @@ public sealed partial class PdfPageRenderer
                 IReadOnlyList<List<Point>> paintPath, ClipRegion paintClip,
                 PdfDictionary parentResources, GraphicsState parentState, int patternDepth, double objectAlpha)
             {
-                if (paint.Shading is not null && paint.Parameters is null)
+                if (paint.Shading is not null && paint.Parameters is null && paint.Background is null)
                 {
                     RenderPatternContents(paint, paintPath, paintClip, parentResources,
                         parentState with { FillAlpha = objectAlpha }, patternDepth);
@@ -835,7 +835,7 @@ public sealed partial class PdfPageRenderer
                         };
                     if (unsupportedBlend) diagnostics.Add("Transparency blend-mode rendering is not implemented.");
                 }
-                if (objectAlpha >= 1 && parentState.GraphicsSoftMask is null && parentState.Knockout is null
+                if (paint.Background is null && objectAlpha >= 1 && parentState.GraphicsSoftMask is null && parentState.Knockout is null
                     && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
                 {
                     RenderPatternContents(paint, paintPath, paintClip, parentResources, contentState, patternDepth);
@@ -850,6 +850,8 @@ public sealed partial class PdfPageRenderer
                 {
                     group.CopyFrom(backdrop);
                     group.TrackGroupAlpha();
+                    if (paint.Background is not null)
+                        contentState = contentState with { Knockout = new KnockoutState(options.Width, bounds, group) };
                     pixels = group;
                     RenderPatternContents(paint, paintPath, paintClip, parentResources, contentState, patternDepth);
                     pixels = backdrop;
@@ -894,6 +896,27 @@ public sealed partial class PdfPageRenderer
                         StrokePatternBase = null,
                         StrokePattern = null
                     };
+                    if (paint.Background is not null)
+                    {
+                        PdfDictionary shading = paint.Shading is PdfStream stream ? stream.Dictionary : (PdfDictionary)paint.Shading;
+                        if (!shading.TryGetValue(Name("ColorSpace"), out PdfObject? colorSpaceValue))
+                            throw new FormatException("A shading background color space is missing.");
+                        ImageColorSpace colorSpace = ReadColorSpace(colorSpaceValue, parentResources, 0,
+                            diagnostics: diagnostics, intent: shadingState.RenderingIntent).ForDestination(pixels);
+                        double[] components = ResolveArray(paint.Background, colorSpace.Components, "Shading background")
+                            .Select(value => Number(Resolve(value))).ToArray();
+                        if (components.Any(value => !double.IsFinite(value)))
+                            throw new FormatException("A shading background component is invalid.");
+                        Color background = OverprintColor(colorSpace.Convert(components), colorSpace,
+                            shadingState.FillOverprint, shadingState.OverprintMode);
+                        // Background and shading are distinct objects in the implicit knockout group.
+                        // Both see its initial backdrop, so their overlapping opacity does not accumulate.
+                        shadingState.Knockout!.BeginObject();
+                        PaintCoverage(pixels, options.Width, options.Height, paintClip.Mask, background,
+                            shadingState.FillAlpha, shadingState.BlendMode, parentState.Clips,
+                            shadingState.GraphicsSoftMask, shadingState.Knockout, cancellationToken);
+                        shadingState.Knockout.BeginObject();
+                    }
                     if (!TryRenderResolvedShading(paint.Shading, parentResources,
                         shadingState, pixels, options.Width, options.Height, scaleX, scaleY,
                         cancellationToken, out string? shadingDiagnostic, diagnostics)
@@ -2219,7 +2242,9 @@ public sealed partial class PdfPageRenderer
             {
                 PdfDictionary? parameters = dictionary.TryGetValue(Name("ExtGState"), out PdfObject? parameterValue)
                     ? Resolve(parameterValue) as PdfDictionary : null;
-                pattern = new PatternPaint(null, shading, matrix, null, parameters);
+                PdfDictionary shadingDictionary = shading is PdfStream shadingStream ? shadingStream.Dictionary : (PdfDictionary)shading;
+                shadingDictionary.TryGetValue(Name("Background"), out PdfObject? background);
+                pattern = new PatternPaint(null, shading, matrix, null, parameters, background);
                 return true;
             }
             return false;
@@ -6029,7 +6054,7 @@ public sealed partial class PdfPageRenderer
         }
     }
     private sealed record PatternPaint(PdfStream? Tiling, PdfObject? Shading,
-        Matrix Matrix, Color? BaseColor, PdfDictionary? Parameters = null);
+        Matrix Matrix, Color? BaseColor, PdfDictionary? Parameters = null, PdfObject? Background = null);
     private readonly record struct MeshVertex(Point Point, double[] Values);
     private sealed class MeshDecoder(
         byte[] source, int coordinateBits, int componentBits, int flagBits,

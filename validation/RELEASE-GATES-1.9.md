@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,905 engine tests, 370 app tests, and the Release payload publish pass, including pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,912 engine tests, 370 app tests, and the Release payload publish pass, including shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1134,9 +1134,35 @@ A separate three-page fixture produces RGB (255, 192, 192) in both half-opacity
 cases and blue for internal Screen followed by outer Multiply over blue. The
 retained native renderer gives (255, 127, 127) and black, consistent with ignoring
 the pattern state. These are bounded standards-based improvements, not overall
-parity. Shading Background handling and overlapping mesh transparency remain
-unverified and are not covered by this checkpoint.
+parity. Shading Background handling is addressed by the following checkpoint;
+overlapping mesh transparency remains unverified.
 
 Evidence is under `pattern-state-*`, `pattern-state-fixture`, and
 `review-20260909/pattern-state-*` in the local benchmark root. The published
 payload is `parity-20260909-ghent/payload-pattern-state`. Overall parity remains open.
+
+### Shading pattern background checkpoint
+
+The shading Background color now fills the pattern-painted area before the
+gradient. Background and gradient are separate objects in an implicit knockout
+group, preventing their opacity from accumulating where they overlap. The
+gradient's BBox clips the gradient while background remains in the rest of the
+painted area. Direct sh operations still ignore Background, as required by
+Table 78 and clause 11.6.7 of PDF 32000-1:2008.
+
+Seven regressions cover fills, strokes, outer and internal opacity, BBox and
+paint clipping, and the direct-sh control. Four initial pattern cases failed
+before the fix; the direct-sh control already passed. All 3,912 engine tests
+and 370 app tests pass, Release publish succeeds, and all 674 corpus images
+remain pixel-identical with unchanged dimensions and OK rows.
+
+The two-page fixture was rendered at 400 pixels. Engine background samples are
+RGB (128, 128, 255) and (192, 192, 255); gradient samples are (255, 128, 128)
+and (255, 192, 192). Native backgrounds are opaque blue and white respectively,
+with (255, 127, 127) gradients. The engine's bounded and translucent background
+was visually inspected. This verifies the focused behavior without establishing
+overall visual, performance, or interactive parity.
+
+Evidence is under `shading-background-*`, `shading-background-fixture`, and
+`review-20260909/shading-background-*` in the local benchmark root. The payload
+is `parity-20260909-ghent/payload-shading-background`. Overall parity remains open.

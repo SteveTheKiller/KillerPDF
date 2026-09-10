@@ -1890,6 +1890,46 @@ public sealed class PdfPageRendererTests
     }
 
     [Theory]
+    [InlineData(false, false, false, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, true, false, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(true, true, true, false)]
+    [InlineData(true, false, false, true)]
+    [InlineData(true, true, true, true)]
+    public void Render_ShadingBackgroundIsPatternOnlyAndDoesNotAccumulateOpacity(bool pattern, bool innerOpacity, bool bounds, bool stroke)
+    {
+        string paint = pattern ? "/Pattern cs /P1 scn 10 10 80 80 re f"
+            : "10 10 80 80 re W n /Sh1 sh";
+        if (stroke) paint = "/Pattern CS /P1 SCN 80 w 50 10 m 50 90 l S";
+        var source = AddStrokeGraphicsState("/Test gs " + paint, stroke ? "CA" : "ca", new PdfReal(0.5));
+        var function = new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(2)), new(Name("Domain"), Reals(0, 1)),
+            new(Name("C0"), Reals(1, 0, 0)), new(Name("C1"), Reals(1, 0, 0)),
+            new(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(2)), new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(30, 0, 70, 0)), new(Name("Function"), function),
+            new(Name("Background"), Reals(0, 0, 1))]);
+        if (bounds) shading = new PdfDictionary(shading.Append(new KeyValuePair<PdfName, PdfObject>(
+            Name("BBox"), Reals(40, 20, 60, 80))));
+        var parameters = innerOpacity ? new PdfDictionary([new(Name("ca"), new PdfReal(0.5))]) : null;
+        var document = pattern ? AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0), parameters)
+            : AddShadingResource(source, shading);
+        var rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        int pale = innerOpacity ? 191 : 128;
+        byte[] center = Pixel(rendered, 50, 50), outside = Pixel(rendered, bounds ? 35 : 20, 50);
+        Assert.Equal(255, center[2]);
+        Assert.InRange(center[0], pale - 1, pale + 1);
+        Assert.InRange(center[1], pale - 1, pale + 1);
+        Assert.Equal(255, outside[0]);
+        Assert.InRange(outside[1], pattern ? pale - 1 : 255, pattern ? pale + 1 : 255);
+        Assert.InRange(outside[2], pattern ? pale - 1 : 255, pattern ? pale + 1 : 255);
+        Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(rendered, 5, 50));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
     [InlineData(false, "ca", 191)]
     [InlineData(true, "ca", 191)]
     [InlineData(false, "CA", 128)]
