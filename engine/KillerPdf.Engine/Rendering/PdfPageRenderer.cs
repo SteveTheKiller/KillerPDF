@@ -4617,6 +4617,28 @@ public sealed partial class PdfPageRenderer
                     for (int py = rowStart; py < rowEnd; py++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
+                        if (averagePlane && bits == 1 && components == 1 && py > rowStart)
+                        {
+                            int firstRow = (int)((long)(py - 1) * sourceHeight / planeHeight);
+                            int lastRow = (int)(((long)(py + 1) * sourceHeight - 1) / planeHeight);
+                            bool identical = true;
+                            for (int sourceRow = firstRow + 1; sourceRow <= lastRow; sourceRow++)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                if (!samples.AsSpan(firstRow * rowBytes, rowBytes)
+                                    .SequenceEqual(samples.AsSpan(sourceRow * rowBytes, rowBytes)))
+                                {
+                                    identical = false;
+                                    break;
+                                }
+                            }
+                            if (identical)
+                            {
+                                planeData.AsSpan((py - 1) * planeWidth * 4, planeWidth * 4)
+                                    .CopyTo(planeData.AsSpan(py * planeWidth * 4, planeWidth * 4));
+                                continue;
+                            }
+                        }
                         int sy = Math.Min((int)((long)py * factor * sourceHeight / samplingHeight), sourceHeight - 1);
                         for (int px = 0; px < planeWidth; px++)
                         {
