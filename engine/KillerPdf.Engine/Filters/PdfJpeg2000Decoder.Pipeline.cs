@@ -109,16 +109,22 @@ internal static partial class PdfJpeg2000Decoder
                                 + (left * shape.Components + component) * bytesPerSample;
                             int stride = shape.Components * bytesPerSample;
                             int bias = 1 << (bits - 1);
+                            if (bits == 8)
+                            {
+                                ReadOnlySpan<int> sourceRow = values.AsSpan(block.offset, tileWidth);
+                                foreach (int sample in sourceRow)
+                                {
+                                    samples[destination] = (byte)(Math.Clamp(sample >> fixedPoint, -128, 127) + 128);
+                                    destination += stride;
+                                }
+                                continue;
+                            }
                             for (int column = 0; column < tileWidth; column++, destination += stride)
                             {
                                 int value = Math.Clamp(values[block.offset + column] >> fixedPoint,
                                     -bias, maximum - bias) + bias;
-                                if (bits == 8) samples[destination] = (byte)value;
-                                else
-                                {
-                                    samples[destination] = (byte)(value >> 8);
-                                    samples[destination + 1] = (byte)value;
-                                }
+                                samples[destination] = (byte)(value >> 8);
+                                samples[destination + 1] = (byte)value;
                             }
                             continue;
                         }
