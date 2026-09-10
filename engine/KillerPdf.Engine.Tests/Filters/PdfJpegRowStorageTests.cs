@@ -7,7 +7,7 @@ public sealed class PdfJpegRowStorageTests
 {
     public static IEnumerable<object[]> Shapes()
     {
-        foreach (var (components, horizontal, vertical) in new[] { (1, 1, 1), (3, 1, 1), (3, 2, 1), (3, 2, 2), (3, 3, 1), (3, 4, 1), (4, 1, 1) })
+        foreach (var (components, horizontal, vertical) in new[] { (1, 1, 1), (3, 1, 1), (3, 2, 1), (3, 2, 2), (3, 3, 1), (3, 4, 1), (4, 1, 1), (4, 1, 2), (4, 2, 1) })
             foreach (int reduction in new[] { 1, 2, 4, 8 })
                 foreach (bool progressive in new[] { false, true })
                     yield return [components, horizontal, vertical, reduction, progressive];

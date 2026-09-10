@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Shared map 447403.pdf now renders complete content through bounded streaming; mean RGB difference from PDFium falls from 42.4904 to 5.0726. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,829 engine tests, 352 app tests, and the Release payload publish pass with large-content rendering. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,845 engine tests, 352 app tests, and the Release payload publish pass with direct CMYK JPEG output. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/streaming-content-paired*`.
@@ -699,3 +699,26 @@ Evidence is in `parity-20260909-ghent/glyph-scratch-allocation.csv` and
 `glyph-scratch-timing.csv`. The measured experiment engine hash was
 `BF0F9C678C9F4573E68FEBE71A9A200081E6468F671CA14B421AFACF8F823130`;
 both allocation harness DLL copies were verified against their intended builds.
+
+### Direct CMYK JPEG output
+
+JPEGs with four horizontally full-resolution components and no color transform
+now interleave component rows directly. Vertical sampling still uses the existing
+row mapping; transformed and horizontally subsampled images retain the general
+path. Added sixteen odd-size baseline/progressive sampling cases across all four
+reductions. All 133 focused JPEG tests passed. The full run first hit the ICC
+destination-curve allocation assertion (7,752 unexpected bytes); that unrelated
+test passed alone and the complete rerun passed all 3,845 engine tests. All 352
+app tests and the Release payload publish passed.
+
+Two reversed-order pairs of sixty Ghent page-2 renders, excluding the first
+thirty per process, produced baseline/new medians of 227.496/224.481 and
+221.642/220.547 ms (0.5% to 1.3% lower). All 240 hashes matched with zero
+diagnostics. This is a small page-specific observation, not overall speed parity.
+The 74 difficult and 600 shared corpus pages all completed and matched the
+previous validated output pixel for pixel, including the complete large map.
+Evidence remains under `C:/Users/steve/kp-bench-render`: timing and test logs in
+`parity-20260909-ghent/jpeg-direct*`, payload in `payload-jpeg-direct` beneath
+that directory, and corpus results in `review-20260909/jpeg-direct*`.
+The measured and published engine DLL hash is
+`F6DC0FC8830430DD744E588BDC13C0AA802E446075C8E1282BC1F95DE9B538D1`.

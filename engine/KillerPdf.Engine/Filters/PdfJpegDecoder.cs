@@ -395,6 +395,25 @@ internal static class PdfJpegDecoder
             int secondStep = maxHorizontal / secondComponent.HorizontalSampling;
             int thirdStep = maxHorizontal / thirdComponent.HorizontalSampling;
             int fourthStep = fourthComponent is null ? 1 : maxHorizontal / fourthComponent.HorizontalSampling;
+            if (fourthComponent is not null && transform == 0
+                && firstStep == 1 && secondStep == 1 && thirdStep == 1 && fourthStep == 1)
+            {
+                for (int y = 0, offset = 0; y < outputHeight; y++)
+                {
+                    ReadOnlySpan<byte> firstRow = SampleRow(firstComponent, y, maxVertical);
+                    ReadOnlySpan<byte> secondRow = SampleRow(secondComponent, y, maxVertical);
+                    ReadOnlySpan<byte> thirdRow = SampleRow(thirdComponent, y, maxVertical);
+                    ReadOnlySpan<byte> fourthRow = SampleRow(fourthComponent, y, maxVertical);
+                    for (int x = 0; x < outputWidth; x++)
+                    {
+                        output[offset++] = firstRow[x];
+                        output[offset++] = secondRow[x];
+                        output[offset++] = thirdRow[x];
+                        output[offset++] = fourthRow[x];
+                    }
+                }
+                return;
+            }
             if (components == 3 && transform == 1 && firstStep == 1
                 && secondStep == thirdStep && secondStep is 1 or 2 or 4)
             {
