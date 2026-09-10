@@ -799,7 +799,8 @@ public sealed partial class PdfPageRenderer
             {
                 if (paint.Shading is not null)
                 {
-                    RenderPatternContents(paint, paintPath, paintClip, parentResources, parentState, patternDepth);
+                    RenderPatternContents(paint, paintPath, paintClip, parentResources,
+                        parentState with { FillAlpha = objectAlpha }, patternDepth);
                     return;
                 }
                 // Tiling cells form a non-isolated group. Outer transparency applies once

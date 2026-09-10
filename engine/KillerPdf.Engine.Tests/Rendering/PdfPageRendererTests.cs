@@ -1788,6 +1788,32 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Pattern rendering is not implemented.", rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData("CA", 191, 0)]
+    [InlineData("ca", 0, 191)]
+    public void Render_ShadingPatternUsesThePaintedObjectsOpacity(string key, byte strokeGreen, byte fillGreen)
+    {
+        PdfDocument source = AddStrokeGraphicsState(
+            "/Test gs /Pattern cs /P1 scn 0 0 40 100 re f /Pattern CS /P1 SCN 10 w 70 0 m 70 100 l S",
+            key, new PdfReal(0.25));
+        var function = new PdfDictionary([
+            new(Name("FunctionType"), new PdfInteger(2)),
+            new(Name("Domain"), Reals(0, 1)),
+            new(Name("C0"), Reals(1, 0, 0)),
+            new(Name("C1"), Reals(1, 0, 0)),
+            new(Name("N"), new PdfInteger(1))]);
+        var shading = new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(2)),
+            new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("Coords"), Reals(0, 0, 100, 0)),
+            new(Name("Function"), function)]);
+        PdfDocument document = AddShadingPatternResource(source, shading, Reals(1, 0, 0, 1, 0, 0));
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(100, 100));
+        Assert.Equal(new byte[] { strokeGreen, strokeGreen, 255, 255 }, Pixel(rendered, 70, 50));
+        Assert.Equal(new byte[] { fillGreen, fillGreen, 255, 255 }, Pixel(rendered, 20, 50));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_ResolvesNamedPatternColorSpaces()
     {

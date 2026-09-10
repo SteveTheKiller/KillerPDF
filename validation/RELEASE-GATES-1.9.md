@@ -982,3 +982,16 @@ checkpoint, with unchanged dimensions and OK batch rows. Evidence is under
 `review-20260909/pattern-opacity-*` in the local benchmark root; the payload is
 `parity-20260909-ghent/payload-pattern-opacity`. Shading-pattern transparency,
 broader visual parity, and performance parity remain open.
+
+### Shading-pattern stroke opacity checkpoint
+
+Shading-pattern strokes now use stroke opacity instead of fill opacity. Two
+regressions independently vary CA and ca, verify both the stroke and fill,
+and fail before the correction. All 3,867 engine tests and 370 app tests pass;
+Release publish succeeds. All 674 Broad and Shared pages remain pixel-identical
+to the tiling-opacity checkpoint with unchanged dimensions and OK batch rows.
+Evidence is retained as `shading-opacity-*` logs, the
+`pattern-stroke-probe-20260909/shading-opacity-corpus-comparison.json` comparison,
+and `review-20260909/shading-opacity-*` renders in the local benchmark root.
+The payload is `parity-20260909-ghent/payload-shading-opacity`. Shading-pattern
+graphics-state overrides and overlapping mesh transparency remain unverified.
