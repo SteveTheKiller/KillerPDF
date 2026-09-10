@@ -175,7 +175,7 @@ public static class PdfContentStreamReader
                 continue;
             }
 
-            string operation = parser.TakeContentToken().ValueAsLatin1();
+            string operation = ReadOperation(parser.TakeContentToken());
             if (operation == "BI")
             {
                 if (operands.Count != 0)
@@ -235,5 +235,62 @@ public static class PdfContentStreamReader
             value is 0 or 9 or 10 or 12 or 13 or 32
                 or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
                 or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
+    }
+
+    private static string ReadOperation(PdfToken token)
+    {
+        ReadOnlySpan<byte> value = token.Value.Span;
+        if (value.Length == 1)
+            return value[0] switch
+            {
+                (byte)'b' => "b", (byte)'B' => "B", (byte)'c' => "c",
+                (byte)'F' => "F", (byte)'f' => "f", (byte)'G' => "G",
+                (byte)'g' => "g", (byte)'h' => "h", (byte)'i' => "i",
+                (byte)'j' => "j", (byte)'J' => "J", (byte)'K' => "K",
+                (byte)'k' => "k", (byte)'l' => "l", (byte)'m' => "m",
+                (byte)'M' => "M", (byte)'n' => "n", (byte)'q' => "q",
+                (byte)'Q' => "Q", (byte)'s' => "s", (byte)'S' => "S",
+                (byte)'v' => "v", (byte)'w' => "w", (byte)'W' => "W",
+                (byte)'y' => "y", (byte)'\'' => "'", (byte)'\"' => "\"",
+                _ => token.ValueAsLatin1()
+            };
+        if (value.Length == 2)
+            return (value[0] | value[1] << 8) switch
+            {
+                'b' | '*' << 8 => "b*", 'B' | '*' << 8 => "B*",
+                'B' | 'I' << 8 => "BI", 'B' | 'T' << 8 => "BT",
+                'B' | 'X' << 8 => "BX", 'c' | 'm' << 8 => "cm",
+                'C' | 'S' << 8 => "CS", 'c' | 's' << 8 => "cs",
+                'd' | '0' << 8 => "d0", 'd' | '1' << 8 => "d1",
+                'D' | 'o' << 8 => "Do", 'D' | 'P' << 8 => "DP",
+                'E' | 'I' << 8 => "EI", 'E' | 'T' << 8 => "ET",
+                'E' | 'X' << 8 => "EX", 'f' | '*' << 8 => "f*",
+                'g' | 's' << 8 => "gs", 'I' | 'D' << 8 => "ID",
+                'L' | 'C' << 8 => "LC", 'L' | 'J' << 8 => "LJ",
+                'L' | 'W' << 8 => "LW", 'M' | 'L' << 8 => "ML",
+                'M' | 'P' << 8 => "MP", 'r' | 'e' << 8 => "re",
+                'R' | 'G' << 8 => "RG", 'r' | 'g' << 8 => "rg",
+                'r' | 'i' << 8 => "ri", 'S' | 'C' << 8 => "SC",
+                's' | 'c' << 8 => "sc", 's' | 'h' << 8 => "sh",
+                'T' | '*' << 8 => "T*", 'T' | 'c' << 8 => "Tc",
+                'T' | 'd' << 8 => "Td", 'T' | 'D' << 8 => "TD",
+                'T' | 'f' << 8 => "Tf", 'T' | 'j' << 8 => "Tj",
+                'T' | 'J' << 8 => "TJ", 'T' | 'L' << 8 => "TL",
+                'T' | 'm' << 8 => "Tm", 'T' | 'r' << 8 => "Tr",
+                'T' | 's' << 8 => "Ts", 'T' | 'w' << 8 => "Tw",
+                'T' | 'z' << 8 => "Tz", 'W' | '*' << 8 => "W*",
+                _ => token.ValueAsLatin1()
+            };
+        if (value.Length == 3)
+            return (value[0] | value[1] << 8 | value[2] << 16) switch
+            {
+                'B' | 'D' << 8 | 'C' << 16 => "BDC",
+                'B' | 'M' << 8 | 'C' << 16 => "BMC",
+                'E' | 'M' << 8 | 'C' << 16 => "EMC",
+                'S' | 'C' << 8 | 'N' << 16 => "SCN",
+                's' | 'c' << 8 | 'n' << 16 => "scn",
+                _ => token.ValueAsLatin1()
+            };
+        return token.ValueAsLatin1();
     }
 }

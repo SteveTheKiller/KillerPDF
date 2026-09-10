@@ -47,6 +47,24 @@ public sealed class PdfContentStreamReaderTests
     }
 
     [Fact]
+    public void ReusesCommonOperatorNames()
+    {
+        var instructions = Read("q Q BT ET cm Do Tf Tj SCN scn q");
+
+        Assert.Same("q", instructions[0].Operator);
+        Assert.Same("Q", instructions[1].Operator);
+        Assert.Same("BT", instructions[2].Operator);
+        Assert.Same("ET", instructions[3].Operator);
+        Assert.Same("cm", instructions[4].Operator);
+        Assert.Same("Do", instructions[5].Operator);
+        Assert.Same("Tf", instructions[6].Operator);
+        Assert.Same("Tj", instructions[7].Operator);
+        Assert.Same("SCN", instructions[8].Operator);
+        Assert.Same("scn", instructions[9].Operator);
+        Assert.Same(instructions[0].Operator, instructions[10].Operator);
+    }
+
+    [Fact]
     public void ReadsFiniteIntegerOperandsBeyondTheInt64RangeAsRealNumbers()
     {
         const string oversized = "-2366213136885537460660416106463232";
