@@ -761,3 +761,26 @@ Evidence under `C:/Users/steve/kp-bench-render/parity-20260909-ghent` includes
 Corpus evidence is in `review-20260909/ink-vector*` under the benchmark root.
 Measured and published engine SHA-256:
 `AC9B6CC44CCE66B469319FC889A758DE415539B5D234EFCD320ABFDEC8A143A6`.
+
+### Transparent CMYK backdrop shortcut
+
+Paint over a zero-alpha CMYK backdrop now copies native sample bytes when source
+opacity is between 1e-300 and 1. The threshold keeps nonzero sample products away
+from underflow, so normalization cannot change the final rounded byte. Smaller
+opacity retains the original arithmetic. An independent numeric check covered
+26,426,880 sample/opacity combinations over all byte values, exponent boundaries,
+threshold neighbors, and deterministic random floating-point values. It found
+5,354 differing tiny-opacity cases below the threshold, confirming the need for
+the fallback, and no differing cases in the shortcut's range.
+
+All 35 focused rendering tests, 3,854 engine tests, 352 app tests, and the Release
+payload publish passed. All 674 corpus pages match the preceding vector-blend
+checkpoint pixel for pixel. Two reversed-order Ghent pairs, sixty renders each
+with thirty warmups, produced baseline/new medians of 288.228/283.514 and
+288.504/286.234 ms (0.8% to 1.6% lower). All 240 hashes matched with zero
+diagnostics. Overall parity remains open.
+
+Evidence is under `C:/Users/steve/kp-bench-render`: numeric checks, timings, test
+logs, and `payload-transparent-ink` in `parity-20260909-ghent`, and corpus output
+in `review-20260909/transparent-ink*`. The measured and published engine hash is
+`89AD727550B0CD6F12D2030D3DE20653B33D083286A5C4A33DC7F4432DBEA0D0`.

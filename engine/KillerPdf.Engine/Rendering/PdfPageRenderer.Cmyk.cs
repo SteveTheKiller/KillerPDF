@@ -102,6 +102,14 @@ public sealed partial class PdfPageRenderer
         }
         if (backdropAlpha == 0)
         {
+            // Away from underflow, multiplying and dividing by the same opacity
+            // cannot move a byte sample by half a level. Preserve tiny-opacity arithmetic below.
+            if (sourceAlpha is >= 1e-300 and <= 1)
+            {
+                WriteInk(surface.Ink!, offset, source);
+                surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
+                return;
+            }
             // Preserve the original arithmetic, including very small source alpha.
             // Every backdrop and blend contribution has zero weight.
             uint transparent = 0;
