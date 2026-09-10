@@ -2476,7 +2476,7 @@ public sealed partial class PdfPageRenderer
                 {
                     Jpeg2000DecodedImage decoded = PdfJpeg2000Decoder.DecodeImage(
                         stream.EncodedData, PdfStreamDecoder.DefaultMaximumDecodedBytes,
-                        resolutionLevel);
+                        resolutionLevel, _rowParallelism);
                     byte[] colors = decoded.Samples;
                     SoftMask? alpha = opacityChannel >= 0
                         ? SeparateEmbeddedJpeg2000Alpha(ref colors, decoded.Width,

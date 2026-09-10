@@ -10,6 +10,33 @@ namespace KillerPdf.Engine.Tests.Filters;
 public sealed class PdfJpeg2000TileTests
 {
     [Theory]
+    [InlineData(513, 515, 1)]
+    [InlineData(1025, 513, 3)]
+    public void ParallelIrreversibleRowsMatchSerialSamples(int width, int height, int components)
+    {
+        int[][] samples = Enumerable.Range(0, components).Select(component =>
+            Enumerable.Range(0, width * height).Select(index =>
+                ((index % width * 17 + index / width * 29 + component * 53) & 255) - 128).ToArray()).ToArray();
+        var source = new InterleavedImageSource(width, height, components, 8, new bool[components], samples);
+        var parameters = new J2KEncoderConfiguration().ToParameterList();
+        parameters["Wlev"] = "3";
+        parameters["Ffilters"] = "w9x7";
+        parameters["Qtype"] = "expounded";
+        byte[] encoded = J2kImage.ToBytes(source, parameters);
+        foreach (int level in new[] { -1, 2 })
+        {
+            Jpeg2000DecodedImage serial = PdfJpeg2000Decoder.DecodeImage(encoded, 4_000_000, level);
+            for (int repeat = 0; repeat < 3; repeat++)
+            {
+                Jpeg2000DecodedImage parallel = PdfJpeg2000Decoder.DecodeImage(encoded, 4_000_000, level, 4);
+                Assert.Equal(serial.Width, parallel.Width);
+                Assert.Equal(serial.Height, parallel.Height);
+                Assert.Equal(serial.Samples, parallel.Samples);
+            }
+        }
+    }
+
+    [Theory]
     [InlineData(33, 65, 1, 8)]
     [InlineData(65, 33, 1, 8)]
     [InlineData(129, 257, 1, 8)]

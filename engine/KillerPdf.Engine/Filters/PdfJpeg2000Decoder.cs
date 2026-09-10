@@ -11,7 +11,7 @@ internal static partial class PdfJpeg2000Decoder
         => DecodeImage(source, maximumDecodedBytes, -1).Samples;
 
     internal static Jpeg2000DecodedImage DecodeImage(
-        ReadOnlyMemory<byte> source, int maximumDecodedBytes, int resolutionLevel)
+        ReadOnlyMemory<byte> source, int maximumDecodedBytes, int resolutionLevel, int maximumParallelism = 1)
     {
         try
         {
@@ -27,7 +27,7 @@ internal static partial class PdfJpeg2000Decoder
             int length = checked(rowBytes * height);
             if (length > maximumDecodedBytes)
                 throw new PdfFilterException("Decoded stream exceeds the configured safety limit.");
-            return DecodePixels(source, shape, resolutionLevel, width, height, rowBytes, length);
+            return DecodePixels(source, shape, resolutionLevel, width, height, rowBytes, length, maximumParallelism);
         }
         catch (PdfFilterException)
         {

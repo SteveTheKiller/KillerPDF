@@ -20,7 +20,7 @@ internal static partial class PdfJpeg2000Decoder
     private static readonly ArrayPool<int> IntegerFrames = PdfScratchBuffers.Integers;
     private static readonly ArrayPool<float> FloatFrames = PdfScratchBuffers.Floats;
     private static Jpeg2000DecodedImage DecodePixels(ReadOnlyMemory<byte> encoded,
-        Jpeg2000Shape shape, int resolutionLevel, int width, int height, int rowBytes, int length)
+        Jpeg2000Shape shape, int resolutionLevel, int width, int height, int rowBytes, int length, int maximumParallelism)
     {
         using MemoryStream input = CreateReadStream(encoded);
         var access = new ISRandomAccessIO(input);
@@ -42,7 +42,7 @@ internal static partial class PdfJpeg2000Decoder
         var entropy = header.createEntropyDecoder(packets, parameters);
         var roi = header.createROIDeScaler(entropy, parameters, specifications);
         var quantized = HeaderDecoder.createDequantizer(roi, depths, specifications);
-        var inverse = new ImageInverseTransform(quantized, specifications)
+        var inverse = new ImageInverseTransform(quantized, specifications, maximumParallelism)
         {
             ImgResLevel = packets.ImgRes
         };
@@ -175,9 +175,14 @@ internal static partial class PdfJpeg2000Decoder
         private readonly Dictionary<int, DataBlk> _frames = [];
         private readonly List<Array> _rentedFrames = [];
         private long _sampleBytes;
+        private readonly int _maximumParallelism;
 
-        internal ImageInverseTransform(CBlkWTDataSrcDec source, DecoderSpecs specifications)
-            : base(source, specifications) => _source = source;
+        internal ImageInverseTransform(CBlkWTDataSrcDec source, DecoderSpecs specifications, int maximumParallelism)
+            : base(source, specifications)
+        {
+            _source = source;
+            _maximumParallelism = Math.Clamp(maximumParallelism, 1, Math.Min(8, Environment.ProcessorCount));
+        }
 
         public override void SetTile(int x, int y)
         {
@@ -234,7 +239,20 @@ internal static partial class PdfJpeg2000Decoder
                 float[]? columnInput = vectorColumns ? new float[checked(height * lanes)] : null;
                 Array columnOutput = integer ? new int[height]
                     : new float[vectorColumns ? checked(height * lanes) : height];
-                Reconstruct(frame, tree, component, Level(TileIdx, component), scratch, columnOutput, columnInput);
+                float[][]? rowScratch = null;
+                if (!integer && _maximumParallelism > 1 && width > 0 && height >= 64 && count >= 262144)
+                {
+                    long available = MaximumTemporarySampleBytes - _sampleBytes - bytes - scratchBytes
+                        - (vectorColumns ? vectorExtraBytes : 0);
+                    int workers = (int)Math.Min(_maximumParallelism, 1 + available / ((long)width * sizeof(float)));
+                    if (workers > 1)
+                    {
+                        rowScratch = new float[workers][];
+                        rowScratch[0] = (float[])scratch;
+                        for (int worker = 1; worker < workers; worker++) rowScratch[worker] = new float[width];
+                    }
+                }
+                Reconstruct(frame, tree, component, Level(TileIdx, component), scratch, columnOutput, columnInput, rowScratch);
                 _frames.Add(component, frame);
                 _sampleBytes += bytes;
             }
@@ -259,7 +277,7 @@ internal static partial class PdfJpeg2000Decoder
         }
 
         private void Reconstruct(DataBlk frame, SubbandSyn tree, int component, int level,
-            Array scratch, Array columnOutput, float[]? columnInput)
+            Array scratch, Array columnOutput, float[]? columnInput, float[][]? rowScratch)
         {
             if (tree.w == 0 || tree.h == 0) return;
             if (!tree.isNode)
@@ -277,17 +295,25 @@ internal static partial class PdfJpeg2000Decoder
                 }
                 return;
             }
-            Reconstruct(frame, (SubbandSyn)tree.LL, component, level, scratch, columnOutput, columnInput);
+            Reconstruct(frame, (SubbandSyn)tree.LL, component, level, scratch, columnOutput, columnInput, rowScratch);
             if (tree.resLvl > level) return;
-            Reconstruct(frame, (SubbandSyn)tree.HL, component, level, scratch, columnOutput, columnInput);
-            Reconstruct(frame, (SubbandSyn)tree.LH, component, level, scratch, columnOutput, columnInput);
-            Reconstruct(frame, (SubbandSyn)tree.HH, component, level, scratch, columnOutput, columnInput);
+            Reconstruct(frame, (SubbandSyn)tree.HL, component, level, scratch, columnOutput, columnInput, rowScratch);
+            Reconstruct(frame, (SubbandSyn)tree.LH, component, level, scratch, columnOutput, columnInput, rowScratch);
+            Reconstruct(frame, (SubbandSyn)tree.HH, component, level, scratch, columnOutput, columnInput, rowScratch);
             Array values = SampleArray(frame);
-            for (int row = 0; row < tree.h; row++)
+            if (rowScratch is not null && tree.hFilter is SynWTFilterFloatLift9x7
+                && tree.h >= 64 && (long)tree.w * tree.h >= 262144)
             {
-                int offset = checked((tree.uly + row) * frame.w + tree.ulx);
-                Array.Copy(values, offset, scratch, 0, tree.w);
-                Synthesize(tree.hFilter, tree.ulcx, tree.w, scratch, values, offset, 1);
+                SynthesizeParallelRows(frame.w, tree, values, rowScratch);
+            }
+            else
+            {
+                for (int row = 0; row < tree.h; row++)
+                {
+                    int offset = checked((tree.uly + row) * frame.w + tree.ulx);
+                    Array.Copy(values, offset, scratch, 0, tree.w);
+                    Synthesize(tree.hFilter, tree.ulcx, tree.w, scratch, values, offset, 1);
+                }
             }
             int column = 0;
             if (columnInput is not null && values is float[] floatSamples
@@ -336,6 +362,22 @@ internal static partial class PdfJpeg2000Decoder
                     for (int row = 0; row < tree.h; row++) floatOutput[offset + row * frame.w] = line[row];
                 }
             }
+        }
+
+        private static void SynthesizeParallelRows(int frameWidth, SubbandSyn tree, Array values, float[][] rowScratch)
+        {
+            // Rows are disjoint and the lifting filter has no mutable state.
+            Parallel.For(0, rowScratch.Length, new ParallelOptions { MaxDegreeOfParallelism = rowScratch.Length }, worker =>
+            {
+                int start = (int)((long)tree.h * worker / rowScratch.Length);
+                int end = (int)((long)tree.h * (worker + 1) / rowScratch.Length);
+                for (int row = start; row < end; row++)
+                {
+                    int offset = checked((tree.uly + row) * frameWidth + tree.ulx);
+                    Array.Copy(values, offset, rowScratch[worker], 0, tree.w);
+                    Synthesize(tree.hFilter, tree.ulcx, tree.w, rowScratch[worker], values, offset, 1);
+                }
+            });
         }
 
         private static Array SampleArray(DataBlk block) => block.Data as Array
