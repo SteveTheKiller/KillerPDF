@@ -1171,12 +1171,6 @@ public sealed partial class PdfPageRenderer
             && pixels.GroupShape is null
             && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
         byte[]? groupAlpha = pixels.GroupAlpha;
-        void TrackGroupAlpha(int offset, double opacity)
-        {
-            double sourceAlpha = Math.Clamp(opacity, 0, 1);
-            groupAlpha![offset / 4] = (byte)Math.Round(sourceAlpha * 255
-                + groupAlpha[offset / 4] * (1 - sourceAlpha));
-        }
         bool direct = alpha >= 1 && simpleBlend;
         bool directInk = pixels.Ink is not null && alpha >= 1
             && (color.OverprintComponents & 16) == 0
@@ -1278,7 +1272,7 @@ public sealed partial class PdfPageRenderer
                             data[offset] = (byte)((fillColor.Blue * cover + data[offset] * inverse + 127) / 255);
                             data[offset + 1] = (byte)((fillColor.Green * cover + data[offset + 1] * inverse + 127) / 255);
                             data[offset + 2] = (byte)((fillColor.Red * cover + data[offset + 2] * inverse + 127) / 255);
-                            if (groupAlpha is not null) TrackGroupAlpha(offset, alpha * cover / 255d);
+                            if (groupAlpha is not null) TrackGroupAlpha(groupAlpha, offset, alpha * cover / 255d);
                             continue;
                         }
                         SetPixel(pixels, width, x, y, fillColor, alpha * cover / 255d, blendMode,
@@ -1296,14 +1290,41 @@ public sealed partial class PdfPageRenderer
         Color directColor = color;
         if (pixels.Ink is null && pixels.RgbProfile is null)
         {
-            ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken,
-                (rowStart, rowEnd) => PaintRows(rowStart, rowEnd));
+            PaintCoverageRowsParallel(pixels, width, mask, directColor, paint, alpha,
+                blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
+                alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
+                ink, direct, groupAlpha, coverage, opaqueBlend);
         }
-        else PaintRows(top, bottom);
+        else PaintCoverageRows(pixels, width, mask, directColor, paint, alpha,
+            blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
+            alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
+            ink, direct, groupAlpha, coverage, opaqueBlend);
         return;
+    }
 
-        void PaintRows(int firstRow, int lastRow)
-        {
+    private static void PaintCoverageRowsParallel(RasterSurface pixels, int width,
+        CoverageMask mask, Color directColor, Color paint, double alpha,
+        RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
+        GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
+        CancellationToken cancellationToken, bool alphaIsShape, int left, int top,
+        int right, int bottom, bool perPixelClip, bool directInk, uint ink,
+        bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend)
+    {
+        ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken,
+            (rowStart, rowEnd) => PaintCoverageRows(pixels, width, mask, directColor,
+                paint, alpha, blendMode, clips, graphicsSoftMask, knockout,
+                cancellationToken, alphaIsShape, left, rowStart, right, rowEnd,
+                perPixelClip, directInk, ink, direct, groupAlpha, coverage, opaqueBlend));
+    }
+
+    private static void PaintCoverageRows(RasterSurface pixels, int width,
+        CoverageMask mask, Color directColor, Color paint, double alpha,
+        RendererBlendMode blendMode, IReadOnlyList<ClipRegion> clips,
+        GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
+        CancellationToken cancellationToken, bool alphaIsShape, int left, int firstRow,
+        int right, int lastRow, bool perPixelClip, bool directInk, uint ink,
+        bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend)
+    {
         for (int y = firstRow; y < lastRow; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1344,7 +1365,7 @@ public sealed partial class PdfPageRenderer
                         pixels[offset] = (byte)((directColor.Blue * cover + pixels[offset] * inverse + 127) / 255);
                         pixels[offset + 1] = (byte)((directColor.Green * cover + pixels[offset + 1] * inverse + 127) / 255);
                         pixels[offset + 2] = (byte)((directColor.Red * cover + pixels[offset + 2] * inverse + 127) / 255);
-                        if (groupAlpha is not null) TrackGroupAlpha(offset, alpha * cover / 255d);
+                        if (groupAlpha is not null) TrackGroupAlpha(groupAlpha, offset, alpha * cover / 255d);
                         continue;
                     }
                 }
@@ -1356,7 +1377,7 @@ public sealed partial class PdfPageRenderer
                         pixels[offset] = opaqueBlend[pixels[offset] * 4];
                         pixels[offset + 1] = opaqueBlend[pixels[offset + 1] * 4 + 1];
                         pixels[offset + 2] = opaqueBlend[pixels[offset + 2] * 4 + 2];
-                        if (groupAlpha is not null) TrackGroupAlpha(offset, alpha * cover / 255d);
+                        if (groupAlpha is not null) TrackGroupAlpha(groupAlpha, offset, alpha * cover / 255d);
                         continue;
                     }
                 }
@@ -1364,7 +1385,13 @@ public sealed partial class PdfPageRenderer
                     graphicsSoftMask, knockout, shape: cover / 255d, alphaIsShape: alphaIsShape);
             }
         }
-        }
+    }
+
+    private static void TrackGroupAlpha(byte[] groupAlpha, int offset, double opacity)
+    {
+        double sourceAlpha = Math.Clamp(opacity, 0, 1);
+        groupAlpha[offset / 4] = (byte)Math.Round(sourceAlpha * 255
+            + groupAlpha[offset / 4] * (1 - sourceAlpha));
     }
 
     private static byte[] CreateOpaqueBlendLookup(Color color, double alpha, RendererBlendMode blendMode)
