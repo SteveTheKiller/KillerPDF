@@ -302,17 +302,29 @@ public sealed partial class PdfPageRenderer
                 RgbProfile = null;
                 return;
             }
+            byte[] inkData = Ink;
+            ForEachRow(0, Height, Length / 4, cancellationToken, (startRow, endRow) =>
+                {
+                    ConvertInkRange(inkData, startRow * Width * 4,
+                        endRow * Width * 4, cancellationToken);
+                });
+            Ink = null;
+        }
+
+        private void ConvertInkRange(byte[] inkData, int start, int end,
+            CancellationToken cancellationToken)
+        {
             uint previousInk = 0;
             uint previousRgb = 0;
             Span<ulong> colors = stackalloc ulong[4096];
             Span<uint> occupied = stackalloc uint[128];
             occupied.Clear();
-            for (int offset = 0; offset < Length; offset += 4)
+            for (int offset = start; offset < end; offset += 4)
             {
                 if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-                uint ink = ReadInk(Ink, offset);
+                uint ink = ReadInk(inkData, offset);
                 uint rgb;
-                if (offset > 0 && ink == previousInk) rgb = previousRgb;
+                if (offset > start && ink == previousInk) rgb = previousRgb;
                 else
                 {
                     int slot = (int)((ink * 2654435761u) >> 20);
@@ -337,7 +349,6 @@ public sealed partial class PdfPageRenderer
                 previousRgb = rgb;
                 WriteInk(Data, offset, rgb | (uint)Alpha(offset) << 24);
             }
-            Ink = null;
         }
 
         internal void CopyFrom(RasterSurface source)

@@ -38,6 +38,24 @@ public sealed class PdfPageRendererParallelismTests
     }
 
     [Fact]
+    public void Render_ParallelCmykConversionProducesTheSequentialPixels()
+    {
+        var content = new PdfContentStreamBuilder()
+            .SetFillCmyk(0.15, 0.8, 0.35, 0.1).Rectangle(0, 0, 612, 792).Fill()
+            .SetFillCmyk(0.8, 0.1, 0.25, 0.05).Rectangle(100, 100, 412, 592).Fill();
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddPage(612, 792, content).Build());
+        var sequential = new PdfRenderOptions(1400, 1811, includeAnnotations: false,
+            includeFormFields: false) { CacheResult = false };
+        var parallel = sequential with { MaximumParallelism = 4 };
+
+        PdfRenderedPage expected = new PdfPageRenderer(document).Render(0, sequential);
+        PdfRenderedPage actual = new PdfPageRenderer(document).Render(0, parallel);
+
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Fact]
     public void Render_ParallelRowsHonorCancellation()
     {
         PdfDocument document = LargePage();
