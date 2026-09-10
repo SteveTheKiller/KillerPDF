@@ -104,15 +104,32 @@ public sealed partial class PdfPageRenderer
         return RenderUncached(pageIndex, options, cancellationToken, destination).Diagnostics;
     }
 
+    internal PdfRenderedPage RenderRegion(int pageIndex, PdfRenderOptions options,
+        int left, int top, int width, int height, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        if (pageIndex < 0 || pageIndex >= _pages.Count)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (left < 0 || top < 0 || width <= 0 || height <= 0
+            || (long)left + width > options.Width || (long)top + height > options.Height)
+            throw new ArgumentOutOfRangeException(nameof(width), "The region must fit inside the page raster.");
+        cancellationToken.ThrowIfCancellationRequested();
+        return RenderUncached(pageIndex, options, cancellationToken,
+            region: (left, top, left + width, top + height));
+    }
+
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
-        CancellationToken cancellationToken, byte[]? destination = null)
+        CancellationToken cancellationToken, byte[]? destination = null,
+        (int Left, int Top, int Right, int Bottom)? region = null)
     {
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
+        var bounds = region ?? (Left: 0, Top: 0, Right: options.Width, Bottom: options.Height);
+        int rasterWidth = bounds.Right - bounds.Left, rasterHeight = bounds.Bottom - bounds.Top;
         var pixels = new RasterSurface(destination ?? GC.AllocateUninitializedArray<byte>(
-            checked(options.Width * options.Height * 4)), 0, 0, options.Width, options.Height);
+            checked(rasterWidth * rasterHeight * 4)), bounds.Left, bounds.Top, rasterWidth, rasterHeight);
         cancellationToken.ThrowIfCancellationRequested();
         System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(
-            pixels.Data.AsSpan(0, checked(options.Width * options.Height * 4)))
+            pixels.Data.AsSpan(0, pixels.Length))
             .Fill(0x00FFFFFFu | (uint)background << 24);
 
         PdfPageInformation page = _pages[pageIndex];
@@ -134,7 +151,8 @@ public sealed partial class PdfPageRenderer
         };
         var initialState = new GraphicsState(normalize.Then(rotate), Color.Black, Color.Black,
             1, 1, 1, RendererLineCap.Butt, RendererLineJoin.Miter, 10,
-            [], 0, RendererBlendMode.Normal, [],
+            [], 0, RendererBlendMode.Normal, region.HasValue
+                ? [new ClipRegion(CoverageMask.Rectangle(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom))] : [],
             false, null, null, false, null, null,
             new ImageColorSpace(1, null), new ImageColorSpace(1, null), null, null);
         var diagnostics = new HashSet<string>();
@@ -169,7 +187,7 @@ public sealed partial class PdfPageRenderer
                 pageResources, initialState, 0);
             RenderAppearances();
             pixels.ConvertToBgra(cancellationToken);
-            return new PdfRenderedPage(options.Width, options.Height, pixels.Data, diagnostics);
+            return new PdfRenderedPage(rasterWidth, rasterHeight, pixels.Data, diagnostics);
         }
         finally
         {
@@ -5386,7 +5404,7 @@ public sealed partial class PdfPageRenderer
         if (color.DoesNotPaint) return;
         var frame = new RasterFrame(width, height, scaleX, scaleY);
         CoverageMask mask = RasterizeStroke(paths, lineWidth, lineCap, lineJoin, miterLimit, frame,
-            rent: true);
+            rent: true, bounds: (pixels.Left, pixels.Top, pixels.Right, pixels.Bottom));
         try
         {
             PaintCoverage(pixels, width, height, mask, color, alpha, blendMode, clips,
