@@ -1,4 +1,6 @@
 using System.Buffers.Binary;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using KillerPdf.Engine.Objects;
 
 namespace KillerPdf.Engine.Rendering;
@@ -119,16 +121,7 @@ public sealed partial class PdfPageRenderer
             // Normal blending over an opaque backdrop. The terms that the general loop
             // multiplies by zero or one are dropped; the remaining operations and their
             // order are the same, so the rounded bytes match the general path exactly.
-            double backdropWeight = 1 - sourceAlpha;
-            uint blended = 0;
-            for (int channel = 0; channel < 4; channel++)
-            {
-                double s = (byte)(source >> (channel * 8)) / 255d;
-                double b = (byte)(backdrop >> (channel * 8)) / 255d;
-                double mixed = 1 - (1 - s);
-                double value = (backdropWeight * b + sourceAlpha * mixed) / outputAlpha;
-                blended |= (uint)(byte)Math.Round(Math.Clamp(value, 0, 1) * 255) << (channel * 8);
-            }
+            uint blended = BlendOpaqueInk(source, backdrop, sourceAlpha, outputAlpha);
             WriteInk(surface.Ink!, offset, blended);
             surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
             return;
@@ -162,5 +155,37 @@ public sealed partial class PdfPageRenderer
         }
         WriteInk(surface.Ink!, offset, output);
         surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
+    }
+
+    internal static uint BlendOpaqueInk(uint source, uint backdrop, double sourceAlpha, double outputAlpha)
+    {
+        double backdropWeight = 1 - sourceAlpha;
+        if (Avx.IsSupported && Sse2.IsSupported)
+        {
+            var scale = Vector256.Create(255d);
+            var one = Vector256.Create(1d);
+            var s = Vector256.Create((double)(byte)source, (double)(byte)(source >> 8),
+                (double)(byte)(source >> 16), (double)(byte)(source >> 24)) / scale;
+            var b = Vector256.Create((double)(byte)backdrop, (double)(byte)(backdrop >> 8),
+                (double)(byte)(backdrop >> 16), (double)(byte)(backdrop >> 24)) / scale;
+            var mixed = one - (one - s);
+            var value = (Vector256.Create(backdropWeight) * b + Vector256.Create(sourceAlpha) * mixed)
+                / Vector256.Create(outputAlpha);
+            value = Vector256.Min(Vector256.Max(value, Vector256<double>.Zero), one) * scale;
+            // Round each channel to even before narrowing, independently of conversion rounding mode.
+            var integers = Avx.ConvertToVector128Int32WithTruncation(Avx.RoundToNearestInteger(value));
+            var shorts = Sse2.PackSignedSaturate(integers, Vector128<int>.Zero);
+            return Sse2.PackUnsignedSaturate(shorts, Vector128<short>.Zero).AsUInt32()[0];
+        }
+        uint blended = 0;
+        for (int channel = 0; channel < 4; channel++)
+        {
+            double s = (byte)(source >> (channel * 8)) / 255d;
+            double b = (byte)(backdrop >> (channel * 8)) / 255d;
+            double mixed = 1 - (1 - s);
+            double value = (backdropWeight * b + sourceAlpha * mixed) / outputAlpha;
+            blended |= (uint)(byte)Math.Round(Math.Clamp(value, 0, 1) * 255) << (channel * 8);
+        }
+        return blended;
     }
 }

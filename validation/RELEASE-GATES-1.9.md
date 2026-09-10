@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | Shared map 447403.pdf now renders complete content through bounded streaming; mean RGB difference from PDFium falls from 42.4904 to 5.0726. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,845 engine tests, 352 app tests, and the Release payload publish pass with direct CMYK JPEG output. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,854 engine tests, 352 app tests, and the Release payload publish pass with vectorized opaque CMYK blending. The new blend tests and the earlier exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/streaming-content-paired*`.
@@ -731,3 +731,33 @@ no timing benefit. The renderer was verified identical to the validated CMYK
 JPEG checkpoint after removal; no additional full-suite run was needed.
 Evidence is in `parity-20260909-ghent/opaque-group-rows*`; the tested engine hash
 was `F34059A9BF3FD79DBD79C266884F82F57BD54209D161AD4056B1C7A4748686DA`.
+
+### Vectorized opaque CMYK blending
+
+A temporary diagnostic build counted 903,961 SetInkPixel calls on Ghent page 2.
+Partial-opacity normal paint over an opaque backdrop without overprint accounted
+for 296,871 calls; transparent backdrops accounted for another 296,457 calls.
+The diagnostic counters were removed before production measurements. The probe's
+render hash matched the baseline; its timing is not a performance measurement.
+
+The opaque normal-blend case now processes four channels together when AVX and
+SSE2 are available, retaining the existing scalar fallback. Operation order,
+double precision, clamping, and nearest-even rounding are preserved. Standalone
+scalar/vector comparisons passed 17,039,360 cases, including subnormal opacity.
+Nine additional tests check every byte pair with distinct channel values and
+representative opacity boundaries; all pass with intrinsics enabled and disabled.
+All 44 focused rendering tests, 3,854 engine tests, 352 app tests, and the Release
+payload publish passed. All 674 corpus pages match the preceding JPEG checkpoint.
+
+Two reversed-order pairs of sixty Ghent renders, excluding the first thirty,
+gave baseline/new medians of 287.546/285.415 and 286.498/282.578 ms, a 0.7% to
+1.4% reduction. All 240 hashes matched with zero diagnostics. Session timings
+are higher than the earlier JPEG session, so cross-session comparisons are not
+valid. The standalone blend is roughly twice as fast; the much smaller measured
+page gain is the relevant rendering result and does not establish overall parity.
+Evidence under `C:/Users/steve/kp-bench-render/parity-20260909-ghent` includes
+`ink-blend-probe-ghent-result.txt`, `ink-vector-packed-check-results.json`,
+`ink-vector-timing.csv`, the test logs, and `payload-ink-vector`.
+Corpus evidence is in `review-20260909/ink-vector*` under the benchmark root.
+Measured and published engine SHA-256:
+`AC9B6CC44CCE66B469319FC889A758DE415539B5D234EFCD320ABFDEC8A143A6`.
