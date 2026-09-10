@@ -13,28 +13,26 @@ behind an overall average.
 
 | Requirement | Current status | Evidence still needed |
 | --- | --- | --- |
-| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 537.3 versus 614.2 MiB shared and 268.3 versus 260.2 MiB difficult, including opaque masked images. Difficult engine peaks range from 268.0 to 270.1 MiB, with a median about 3% above PDFium. Verify representative interactive document use and an explicit acceptable tolerance before release. |
-| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 14.167 versus 12.765 seconds; shared wall time is 26.075 versus 23.694 seconds. Difficult render time is 9.788 versus 4.879 seconds and wall time is 14.929 versus 10.123 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
+| Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close; interactive use unverified | September 9 installed-layout median peak working set is 462.1 versus 614.5 MiB shared and 262.2 versus 260.2 MiB difficult, including complete large-map rendering. Shared engine peaks range from 456.9 to 503.8 MiB; difficult peaks range from 261.6 to 270.3 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
+| Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 16.734 versus 14.894 seconds; shared wall time is 29.271 versus 26.495 seconds. Difficult render time is 10.447 versus 5.423 seconds and wall time is 15.898 versus 10.992 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
 | Rendering fidelity without regression | Open | Shared map 447403.pdf now renders complete content through bounded streaming; mean RGB difference from PDFium falls from 42.4904 to 5.0726. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 9: 3,829 engine tests, 352 app tests, and the Release payload publish pass with large-content rendering. The earlier exhaustive RGB check passes with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
-Current evidence is archived locally at `C:/Users/steve/kp-bench-render/review-20260909/README.md`,
-with all warmups, alternating runs, retained images, and DLL hashes. The latest paired
-timings are in `opaque-image-mask-paired-results.csv`, from the rendering code committed as
-`5bddb6c`, including JPEG 2000 sample clamping and direct writes for fully opaque
-image-mask samples, plus the preceding font and CMYK fixes.
-All 16 passes completed without
-failures; run zero is excluded as warmup. The timing and memory figures above
-describe this payload. All 5,392 outputs across four passes of both applications
-match their respective retained images. The comparison, timing ranges, and
-per-page gap rankings are in `opaque-image-mask-paired-analysis.json`. Both applications were
-published locally with the framework-dependent Windows payload settings used
-by the packaging script. These supersede the woven development-build timings
-in `committed-cmyk-results.csv`; all 674 retained images per application match
-between the two layouts in the earlier `payload-cmyk` layout comparison.
-No installer or release was created.
+Current paired evidence is archived locally under
+`C:/Users/steve/kp-bench-render/review-20260909/streaming-content-paired*`.
+The measured engine payload comes from rendering commit `7a671f2`, including
+bounded large-page streaming, binary row-bound reuse, and compact JBIG2 contexts.
+All 16 passes completed successfully. Run zero is warmup; runs one through three
+alternate application order. All 5,392 images match their respective current
+engine and PDFium baselines. The measurements, ranges, and page rankings are in
+`streaming-content-paired-analysis.json`; the individual runs are in
+`streaming-content-paired-results.csv`. Both applications use the retained
+framework-dependent Windows payload layout. No installer or release was created.
+
+Earlier checkpoints below document individual fixes and historical measurements.
+They do not supersede the current paired results above.
 
 On the profiled response-to-fiber-concerns page, two reversed-order pairs of
 80 single-threaded fresh-document renders, each excluding the first 40,
@@ -621,5 +619,17 @@ maximum channel error above 32 falls from 34.47% to 6.27%. Visual inspection
 confirms the maps, charts, labels, and photos are restored. Remaining pixel
 differences still need review. The direct render takes 2,703.845 ms with zero
 diagnostics; the old 708.534 ms observation rendered incomplete content and is
-not a valid full-page speed baseline. The paired timing and memory checkpoint
-above predates this repair and must be refreshed before claiming parity.
+not a valid full-page speed baseline. The earlier opaque-mask timing and memory
+checkpoint predates this repair and is superseded by the paired refresh below.
+
+The paired checkpoint has now been refreshed against the retained PDFium app.
+All 16 passes and all 5,392 image comparisons pass. The table at the top uses
+these new medians and ranges. Shared render time remains about 12.4% slower,
+with median peak working set about 24.8% lower. Difficult render time remains
+about 92.6% slower, with median peak working set about 0.8% higher. These are
+batch observations, not an interactive memory or overall parity claim.
+The repaired map itself measures 2,452 versus 2,251 ms median per page.
+The largest difficult-corpus gaps remain balloon JPEG 2000 (1,148 versus 513 ms),
+Ghent ALL page 2 (653 versus 146 ms), and mipeng poster (975 versus 526 ms).
+Shared Altona's large technical page remains 1,131 versus 766 ms. These measured
+gaps guide the next work; the map repair does not complete the parity goal.
