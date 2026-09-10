@@ -404,6 +404,41 @@ public sealed class PdfIccProfileTransformTests
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - start);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void IntentVariantsReuseDecodedTablesForAliasesAndFallbacks(bool aliases)
+    {
+        byte[] table = Lut(false, false, true);
+        byte[] bytes = aliases
+            ? Profile("RGB ", "XYZ ", ("A2B0", table), ("B2A0", table),
+                ("A2B1", table), ("B2A1", table), ("A2B2", table), ("B2A2", table))
+            : Profile("RGB ", "XYZ ", ("A2B0", table), ("B2A0", table));
+        if (aliases)
+            for (int tag = 2; tag < 6; tag++)
+                bytes.AsSpan(136 + (tag % 2) * 12, 8).CopyTo(bytes.AsSpan(136 + tag * 12, 8));
+        var profile = new PdfIccProfileTransform(bytes);
+        long start = GC.GetAllocatedBytesForCurrentThread();
+        var perceptual = profile.ForIntent(0);
+        var saturation = profile.ForIntent(2);
+        var absolute = profile.ForIntent(3);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - start;
+        Assert.True(allocated < 8192, $"Shared table variants allocated {allocated} bytes.");
+        PdfIccProfileTransform?[] variants = [perceptual, profile, saturation, absolute];
+        double[] input = [0.2, 0.5, 0.8], expected = new double[3], actual = new double[3];
+        for (int intent = 0; intent < variants.Length; intent++)
+        {
+            var variant = Assert.IsType<PdfIccProfileTransform>(variants[intent]);
+            var independent = new PdfIccProfileTransform(bytes, intent);
+            independent.ToXyz(input, expected);
+            variant.ToXyz(input, actual);
+            Assert.Equal(expected, actual);
+            independent.FromXyz(input, expected);
+            variant.FromXyz(input, actual);
+            Assert.Equal(expected, actual);
+        }
+    }
+
     [Fact]
     public void UnavailableAbsoluteIntentDoesNotRepeatExceptions()
     {

@@ -16,6 +16,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
     private readonly double[]? _mediaWhiteScale;
     private readonly bool _invalidWhite;
     private readonly ReadOnlyMemory<byte> _tableData;
+    private readonly Dictionary<ReadOnlyMemory<byte>, PdfIccTable>? _tables;
     private static readonly Lock IntentGate = new();
     private PdfIccProfileTransform? _intentRoot;
     private PdfIccProfileTransform?[]? _intents;
@@ -30,6 +31,10 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         : Math.Clamp(value, 0, 1);
 
     internal PdfIccProfileTransform(ReadOnlyMemory<byte> data, int intent = 1)
+        : this(data, intent, null) { }
+
+    private PdfIccProfileTransform(ReadOnlyMemory<byte> data, int intent,
+        Dictionary<ReadOnlyMemory<byte>, PdfIccTable>? tables)
     {
         if (intent is < 0 or > 3) throw new ArgumentOutOfRangeException(nameof(intent));
         _intent = intent;
@@ -64,7 +69,10 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                 throw new FormatException("An ICC profile tag has invalid bounds or a duplicate signature.");
         }
         if (tags.ContainsKey("A2B0") || tags.ContainsKey("A2B1") || tags.ContainsKey("A2B2"))
+        {
             _tableData = data[..(int)length];
+            _tables = tables ?? new();
+        }
         if (tags.TryGetValue("wtpt", out ReadOnlyMemory<byte> whitePoint))
         {
             ReadOnlySpan<byte> white = whitePoint.Span;
@@ -91,13 +99,13 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
         if (tags.TryGetValue($"A2B{tableIntent}", out ReadOnlyMemory<byte> forward)
             || tags.TryGetValue("A2B0", out forward))
         {
-            _forward = PdfIccTable.Read(forward);
+            _forward = ReadTable(forward);
             if (_forward.InputChannels != Components || _forward.OutputChannels != 3)
                 throw new FormatException("An ICC forward transform has invalid channel counts.");
             if (tags.TryGetValue($"B2A{tableIntent}", out ReadOnlyMemory<byte> reverse)
                 || tags.TryGetValue("B2A0", out reverse))
             {
-                _reverse = PdfIccTable.Read(reverse);
+                _reverse = ReadTable(reverse);
                 if (_reverse.InputChannels != 3 || _reverse.OutputChannels != Components)
                     throw new FormatException("An ICC reverse transform has invalid channel counts.");
             }
@@ -179,7 +187,7 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                     variant._intent = intent;
                     variant._absoluteScale = intent == 3 ? root._mediaWhiteScale : null;
                 }
-                else variant = new PdfIccProfileTransform(root._tableData, intent);
+                else variant = new PdfIccProfileTransform(root._tableData, intent, root._tables);
                 variant._intentRoot = root;
                 return root._intents[intent] = variant;
             }
@@ -192,6 +200,16 @@ internal sealed class PdfIccProfileTransform : PdfColorTransform
                 root._attemptedIntents |= bit;
             }
         }
+    }
+
+    private PdfIccTable ReadTable(ReadOnlyMemory<byte> data)
+    {
+        // Intent tags can reference the same byte slice. Share only those immutable
+        // tables within this profile; variant construction holds IntentGate.
+        if (_tables!.TryGetValue(data, out PdfIccTable? table)) return table;
+        table = PdfIccTable.Read(data);
+        _tables.Add(data, table);
+        return table;
     }
 
     internal override void ToXyz(ReadOnlySpan<double> device, Span<double> xyz)
