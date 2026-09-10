@@ -21,6 +21,20 @@ Matching the native crosses would be a regression. Their absence does not
 establish absolute color accuracy, full ICC conformance, or overall visual
 parity. Remaining one-level differences in GWG221 are not declared exact.
 
+The DeviceCMYK knockout and ICCBasedRGB GWG161 pages were also compared.
+All 16 sampled knockout center/background pairs differ by at most one channel
+level in the engine. Native differences range from 29 to 255 and show the
+prominent error crosses identified by the page. This supports the current
+knockout behavior on these patches, without extending the result to all groups.
+
+The ICCBasedRGB page explicitly permits faint crosses caused by color-management
+differences. Fifteen engine center/background pairs differ by zero to three
+levels; Color Dodge differs by 19. Native differences reach 193 levels and its
+crosses are visibly stronger. The engine's Color Dodge residual remains open
+for color-transform analysis; this inspection does not declare that whole page
+conformant. Exact sampled colors for both builds are retained in
+`review-20260909/blend-indicator-review-20260909.json`.
+
 ## September 9 CMYK display conversion
 
 Unprofiled CMYK now uses the retained renderer's process-ink display mapping.

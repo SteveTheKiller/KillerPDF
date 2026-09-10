@@ -1063,3 +1063,11 @@ native pixel differences are positive indicator results, not evidence that the
 engine should reproduce native output. See `engine/docs/color-review.md` for
 sample values, retained evidence, and the limits of this finding. Absolute color
 accuracy and overall visual parity remain open.
+
+The subsequent GWG161 comparison supports all 16 sampled DeviceCMYK knockout
+patches: engine center/background differences are at most one channel level,
+while native error crosses remain prominent. On the ICCBasedRGB page, 15 engine
+pairs differ by at most three levels; Color Dodge retains a 19-level difference
+and remains an analysis target. The page permits faint color-management crosses,
+so neither pixel mismatch alone nor this comparison proves full conformance.
+Values and image locations are recorded in the color review.
