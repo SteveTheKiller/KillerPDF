@@ -2470,9 +2470,9 @@ public sealed class PdfPageRendererTests
             [new PdfGradientStop(0, new PdfRgbColor(1, 0, 0)),
              new PdfGradientStop(1, new PdfRgbColor(1, 0, 0))]);
         var content = new PdfContentStreamBuilder();
-        if (screen) content.SetFillRgb(0, 0, 0).Rectangle(0, 0, 10, 10).Fill();
-        content.SetBlendMode(screen ? PdfBlendMode.Screen : PdfBlendMode.Normal)
-            .SetOpacity(0.5).PaintShading(placeholder);
+        if (screen) content.SetFillRgb(0.5, 0.5, 0.5).Rectangle(0, 0, 10, 10).Fill();
+        content.SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5,
+            blendMode: screen ? PdfBlendMode.Screen : PdfBlendMode.Normal)).PaintShading(placeholder);
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
         byte[] triangle = [0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0, 0, 0, 0, 255, 255, 0, 0];
         if (type == 5)
@@ -2498,7 +2498,7 @@ public sealed class PdfPageRendererTests
             [.. triangle, .. triangle]);
         PdfRenderedPage rendered = new PdfPageRenderer(AddShadingResource(source, shading)).Render(
             0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
-        Assert.Equal(screen ? [0, 0, 128, 255] : [128, 128, 255, 255], Pixel(rendered, 2, 7));
+        Assert.Equal(screen ? [128, 128, 192, 255] : [128, 128, 255, 255], Pixel(rendered, 2, 7));
         Assert.Empty(rendered.Diagnostics);
     }
 
@@ -4048,6 +4048,30 @@ public sealed class PdfPageRendererTests
             Assert.InRange(Math.Abs(left[channel] - expectedLeft[channel]), 0, 2);
             Assert.InRange(Math.Abs(overlap[channel] - expectedOverlap[channel]), 0, 2);
         }
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(PdfBlendMode.Screen, 0.5)]
+    [InlineData(PdfBlendMode.Screen, 1)]
+    [InlineData(PdfBlendMode.Multiply, 0.5)]
+    [InlineData(PdfBlendMode.Multiply, 1)]
+    public void Render_AppliesOuterBlendToCompletedNonIsolatedKnockoutGroup(PdfBlendMode blend, double opacity)
+    {
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 7, 10).Fill()
+            .SetFillRgb(0, 0, 1).Rectangle(3, 0, 7, 10).Fill(), knockoutTransparencyGroup: true);
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(0, 1, 0).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: opacity,
+                strokeOpacity: opacity, blendMode: blend)).DrawForm(form, 0, 0);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        byte color = blend == PdfBlendMode.Screen ? (byte)Math.Round(255 * opacity) : (byte)0;
+        byte green = blend == PdfBlendMode.Screen ? (byte)255 : (byte)Math.Round(255 * (1 - opacity));
+        Assert.Equal([0, green, color, 255], Pixel(rendered, 1, 5));
+        Assert.Equal([color, green, 0, 255], Pixel(rendered, 5, 5));
         Assert.Empty(rendered.Diagnostics);
     }
 

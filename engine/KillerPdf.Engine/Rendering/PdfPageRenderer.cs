@@ -1518,20 +1518,16 @@ public sealed partial class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
                 bool multipleKnockoutObjects = knockout && !isolated
                     && instructions.Count(IsPaintingOperation) > 1;
-                if (multipleKnockoutObjects
-                    && (parentState.BlendMode is not (RendererBlendMode.Normal
-                            or RendererBlendMode.Compatible)
-                        || parentState.Knockout is not null))
+                if (multipleKnockoutObjects && parentState.Knockout is not null)
                 {
-                    string reason = parentState.Knockout is not null ? "nested knockout groups"
-                        : "a non-normal blend mode";
                     diagnostics.Add("Non-isolated transparency knockout-group rendering "
-                        + $"with {reason} is not implemented.");
+                        + "with nested knockout groups is not implemented.");
                     return;
                 }
                 if (multipleKnockoutObjects)
                 {
-                    if (parentState.FillAlpha == 1 && parentState.GraphicsSoftMask is null)
+                    if (parentState.FillAlpha == 1 && parentState.GraphicsSoftMask is null
+                        && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
                     {
                         Process(instructions, formResources,
                             formState with
