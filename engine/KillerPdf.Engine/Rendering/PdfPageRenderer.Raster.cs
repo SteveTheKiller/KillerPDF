@@ -1232,13 +1232,45 @@ public sealed partial class PdfPageRenderer
         }
         if (direct && !perPixelClip)
         {
-            // Opaque normal-blend fills on a plain RGB surface: full rows of a rectangular
-            // mask are one span fill, and antialiased edges blend against opaque pixels in
-            // place. Pixels with a transparent destination still use the compositor.
-            byte[] data = pixels.Data;
-            uint packed = color.Blue | (uint)color.Green << 8 | (uint)color.Red << 16 | 0xFF000000u;
-            Color fillColor = color;
-            ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken, (rowStart, rowEnd) =>
+            PaintDirectCoverageRows(pixels, width, mask, color, alpha, blendMode,
+                graphicsSoftMask, knockout, cancellationToken, left, top, right,
+                bottom, groupAlpha, coverage);
+            return;
+        }
+        // Row chunks write disjoint pixels, disjoint group alpha entries and disjoint knockout
+        // object slots, and the graphics soft mask was materialized by ForBounds above, so this
+        // loop parallelizes by row on plain RGB surfaces. Ink and profiled RGB surfaces stay
+        // serial: their per-pixel GetInk and GetRgb calls memoize into surface state.
+        // A local function cannot capture the 'in' parameter, so the direct path reads a copy.
+        Color directColor = color;
+        if (pixels.Ink is null && pixels.RgbProfile is null)
+        {
+            PaintCoverageRowsParallel(pixels, width, mask, directColor, paint, alpha,
+                blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
+                alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
+                ink, direct, groupAlpha, coverage, opaqueBlend);
+        }
+        else PaintCoverageRows(pixels, width, mask, directColor, paint, alpha,
+            blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
+            alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
+            ink, direct, groupAlpha, coverage, opaqueBlend);
+        return;
+    }
+
+    private static void PaintDirectCoverageRows(RasterSurface pixels, int width,
+        CoverageMask mask, Color fillColor, double alpha, RendererBlendMode blendMode,
+        GraphicsSoftMask? graphicsSoftMask, KnockoutState? knockout,
+        CancellationToken cancellationToken, int left, int top, int right, int bottom,
+        byte[]? groupAlpha, byte[]? coverage)
+    {
+        // Opaque normal-blend fills on a plain RGB surface: full rows of a rectangular
+        // mask are one span fill, and antialiased edges blend against opaque pixels in
+        // place. Pixels with a transparent destination still use the compositor.
+        byte[] data = pixels.Data;
+        uint packed = fillColor.Blue | (uint)fillColor.Green << 8
+            | (uint)fillColor.Red << 16 | 0xFF000000u;
+        ForEachRow(top, bottom, (long)(right - left) * (bottom - top), cancellationToken,
+            (rowStart, rowEnd) =>
             {
                 for (int y = rowStart; y < rowEnd; y++)
                 {
@@ -1272,34 +1304,15 @@ public sealed partial class PdfPageRenderer
                             data[offset] = (byte)((fillColor.Blue * cover + data[offset] * inverse + 127) / 255);
                             data[offset + 1] = (byte)((fillColor.Green * cover + data[offset + 1] * inverse + 127) / 255);
                             data[offset + 2] = (byte)((fillColor.Red * cover + data[offset + 2] * inverse + 127) / 255);
-                            if (groupAlpha is not null) TrackGroupAlpha(groupAlpha, offset, alpha * cover / 255d);
+                            if (groupAlpha is not null)
+                                TrackGroupAlpha(groupAlpha, offset, alpha * cover / 255d);
                             continue;
                         }
-                        SetPixel(pixels, width, x, y, fillColor, alpha * cover / 255d, blendMode,
-                            graphicsSoftMask, knockout);
+                        SetPixel(pixels, width, x, y, fillColor, alpha * cover / 255d,
+                            blendMode, graphicsSoftMask, knockout);
                     }
                 }
             });
-            return;
-        }
-        // Row chunks write disjoint pixels, disjoint group alpha entries and disjoint knockout
-        // object slots, and the graphics soft mask was materialized by ForBounds above, so this
-        // loop parallelizes by row on plain RGB surfaces. Ink and profiled RGB surfaces stay
-        // serial: their per-pixel GetInk and GetRgb calls memoize into surface state.
-        // A local function cannot capture the 'in' parameter, so the direct path reads a copy.
-        Color directColor = color;
-        if (pixels.Ink is null && pixels.RgbProfile is null)
-        {
-            PaintCoverageRowsParallel(pixels, width, mask, directColor, paint, alpha,
-                blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
-                alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
-                ink, direct, groupAlpha, coverage, opaqueBlend);
-        }
-        else PaintCoverageRows(pixels, width, mask, directColor, paint, alpha,
-            blendMode, clips, graphicsSoftMask, knockout, cancellationToken,
-            alphaIsShape, left, top, right, bottom, perPixelClip, directInk,
-            ink, direct, groupAlpha, coverage, opaqueBlend);
-        return;
     }
 
     private static void PaintCoverageRowsParallel(RasterSurface pixels, int width,
