@@ -2,11 +2,11 @@
   <a href="https://killerpdf.net"><img src="docs/wordmark.png" width="640" alt="KillerPDF wordmark: a free, open-source PDF editor for Windows"></a>
 </p>
 
-# KillerPDF 1.9 Overkill
+# KillerPDF 1.9 "Overkill"
 
 **Development build. This branch is not a stable release.**
 
-KillerPDF 1.9 Overkill is under active development, with continuous work on The KillerPDF.Engine. Features, rendering results, and performance may change between commits.
+KillerPDF 1.9 "Overkill" is under active development, with continuous work on The KillerPDF.Engine. Features, rendering results, and performance may change between commits.
 
 ## Ongoing engine work
 
