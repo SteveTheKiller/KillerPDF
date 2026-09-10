@@ -55,6 +55,25 @@ public sealed class PdfImageAreaSamplingTests
     }
 
     [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void PrecomputedColumnsMatchDirectSampling(int components)
+    {
+        byte[] samples = Enumerable.Range(0, 17 * 13 * components)
+            .Select(index => (byte)(index * 37 + index / 17 * 13)).ToArray();
+        var row = new PdfImageAreaSampler.Row(13, 6.25, 2.75);
+        foreach (double center in new[] { .25, 1.5, 8.75, 16.8 })
+        foreach (double footprint in new[] { 1.25, 1.999, 2, 2.75, 5.5 })
+        {
+            uint expected = PdfImageAreaSampler.Sample(samples, 17, components,
+                center, footprint, row);
+            var column = new PdfImageAreaSampler.Column(17, center, footprint);
+            Assert.Equal(expected, PdfImageAreaSampler.Sample(samples, 17,
+                components, column, row));
+        }
+    }
+
+    [Theory]
     [InlineData(5, false)]
     [InlineData(5, true)]
     [InlineData(8, false)]

@@ -4,6 +4,30 @@ namespace KillerPdf.Engine.Rendering;
 
 internal static class PdfImageAreaSampler
 {
+    internal readonly struct Column
+    {
+        internal double Left { get; }
+        internal double Right { get; }
+        internal int First { get; }
+        internal int Count { get; }
+        internal double FirstWeight { get; }
+        internal double SecondWeight { get; }
+        internal double ThirdWeight { get; }
+
+        internal Column(int width, double center, double footprint)
+        {
+            Left = Math.Max(0, center - footprint / 2);
+            Right = Math.Min(width, center + footprint / 2);
+            First = (int)Left;
+            Count = (int)Math.Ceiling(Right) - First;
+            FirstWeight = Math.Min(First + 1, Right) - Math.Max(First, Left);
+            SecondWeight = Count > 1
+                ? Math.Min(First + 2, Right) - Math.Max(First + 1, Left) : 0;
+            ThirdWeight = Count > 2
+                ? Math.Min(First + 3, Right) - Math.Max(First + 2, Left) : 0;
+        }
+    }
+
     internal readonly struct Row
     {
         internal double Top { get; }
@@ -35,19 +59,24 @@ internal static class PdfImageAreaSampler
     internal static uint Sample(byte[] samples, int width, int components,
         double centerX, double footprintWidth, Row row,
         CancellationToken cancellationToken = default)
+        => Sample(samples, width, components, new Column(width, centerX, footprintWidth),
+            row, cancellationToken);
+
+    internal static uint Sample(byte[] samples, int width, int components,
+        Column column, Row row, CancellationToken cancellationToken = default)
     {
-        double left = Math.Max(0, centerX - footprintWidth / 2);
-        double right = Math.Min(width, centerX + footprintWidth / 2);
+        double left = column.Left;
+        double right = column.Right;
         double top = row.Top;
         double bottom = row.Bottom;
         double red = 0, green = 0, blue = 0;
-        int first = (int)left, columns = (int)Math.Ceiling(right) - first;
+        int first = column.First, columns = column.Count;
         if (components == 3 && columns is > 0 and <= 3)
         {
             // Reuse horizontal weights without changing sample accumulation order.
-            double w0 = Math.Min(first + 1, right) - Math.Max(first, left);
-            double w1 = columns > 1 ? Math.Min(first + 2, right) - Math.Max(first + 1, left) : 0;
-            double w2 = columns > 2 ? Math.Min(first + 3, right) - Math.Max(first + 2, left) : 0;
+            double w0 = column.FirstWeight;
+            double w1 = column.SecondWeight;
+            double w2 = column.ThirdWeight;
             for (int y = row.First; y < row.End; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
