@@ -10,6 +10,57 @@ public sealed class PdfPageRendererPatternTextTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void Render_TransparentPatternRetainsBackdropForInternalBlending(bool multiply)
+    {
+        var cell = new PdfContentStreamBuilder().SetGraphicsState(new PdfGraphicsState(
+            fillOpacity: 0.5, strokeOpacity: 0.5,
+            blendMode: multiply ? PdfBlendMode.Multiply : PdfBlendMode.Normal));
+        cell.SetFillRgb(1, 0, 0).Rectangle(0, 0, 10, 10).Fill();
+        var pattern = new PdfTilingPattern(10, 10, cell);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().SetFillRgb(0, 0, 1).Rectangle(0, 0, 10, 10).Fill()
+                .SetOpacity(0.5).SetFillPattern(pattern).Rectangle(0, 0, 10, 10).Fill()).Build());
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10));
+        byte[] pixel = page.Pixels.Slice((5 * 10 + 5) * 4, 4).ToArray();
+        Assert.InRange(pixel[0], 190, 192);
+        Assert.Equal(0, pixel[1]);
+        Assert.InRange(pixel[2], multiply ? 0 : 63, multiply ? 0 : 65);
+        Assert.Equal(255, pixel[3]);
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_TilingPatternAppliesOuterOpacityOnceToOverlappingMarks()
+    {
+        var pattern = new PdfTilingPattern(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 8, 10).Fill()
+            .Rectangle(2, 0, 8, 10).Fill());
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().SetOpacity(0.5).SetFillPattern(pattern)
+                .Rectangle(0, 0, 10, 10).Fill()).Build());
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10));
+        Assert.Equal(new byte[] { 128, 128, 255, 255 }, page.Pixels.Slice((5 * 10 + 5) * 4, 4).ToArray());
+        Assert.Equal(page.Pixels.Slice((5 * 10) * 4, 4).ToArray(),
+            page.Pixels.Slice((5 * 10 + 5) * 4, 4).ToArray());
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_TilingPatternStrokeUsesStrokeOpacity()
+    {
+        var pattern = new PdfTilingPattern(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, 10, 10).Fill());
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10,
+            new PdfContentStreamBuilder().SetOpacity(0.75, 0.25).SetStrokePattern(pattern)
+                .SetLineWidth(4).MoveTo(0, 5).LineTo(10, 5).Stroke()).Build());
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(0, new PdfRenderOptions(10, 10));
+        Assert.Equal(new byte[] { 191, 191, 255, 255 }, page.Pixels.Slice((5 * 10 + 5) * 4, 4).ToArray());
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void Render_PatternStrokeStaysInsideGlyphOutline(bool fill)
     {
         var pattern = new PdfTilingPattern(8, 8, new PdfContentStreamBuilder()

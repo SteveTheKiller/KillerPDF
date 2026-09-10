@@ -963,3 +963,22 @@ does not exercise this missing stroke behavior; the dedicated comparison does.
 Evidence is under `pattern-stroke-probe-20260909` and
 `review-20260909/pattern-stroke-*` in the local benchmark root, with the payload
 under `parity-20260909-ghent/payload-pattern-stroke`. Overall parity remains open.
+
+### Tiling-pattern transparency checkpoint
+
+Tiling patterns now apply the painted object's transparency once after drawing
+their cells, with default transparency inside the pattern and the existing
+backdrop available for internal blending. Patterned strokes use stroke opacity.
+Four regressions cover overlapping marks, distinct fill and stroke opacity,
+and internal Normal and Multiply blending. The first two failed before the fix.
+This follows PDF 32000-1 section 11.6.7; the retained native renderer ignores
+outer stroke opacity in the dedicated fixture, so its opaque result is not the
+expected reference for that case. The rendered translucent stroke was inspected.
+
+All 3,865 engine tests and 370 app tests pass, and Release publish succeeds.
+All 674 Broad and Shared pages remain pixel-identical to the pattern-stroke
+checkpoint, with unchanged dimensions and OK batch rows. Evidence is under
+`pattern-stroke-probe-20260909/opacity-*` and
+`review-20260909/pattern-opacity-*` in the local benchmark root; the payload is
+`parity-20260909-ghent/payload-pattern-opacity`. Shading-pattern transparency,
+broader visual parity, and performance parity remain open.

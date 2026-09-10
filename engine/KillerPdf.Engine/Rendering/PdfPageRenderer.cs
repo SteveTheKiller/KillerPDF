@@ -768,7 +768,7 @@ public sealed partial class PdfPageRenderer
                     return;
                 }
                 var fillClip = new ClipRegion(RasterizeFill(fillPath, evenOdd, frame));
-                RenderPattern(state.FillPattern, fillPath, fillClip, resources, state, depth);
+                RenderPattern(state.FillPattern, fillPath, fillClip, resources, state, depth, state.FillAlpha);
             }
 
             void PaintStroke(IReadOnlyList<List<Point>> strokePath)
@@ -790,10 +790,71 @@ public sealed partial class PdfPageRenderer
                 var strokeClip = new ClipRegion(RasterizeStroke(paintedPath, lineWidth,
                     state.LineCap, state.LineJoin, state.MiterLimit, frame));
                 RenderPattern(state.StrokePattern, paintedPath, strokeClip,
-                    resources, state, depth);
+                    resources, state, depth, state.StrokeAlpha);
             }
 
             void RenderPattern(PatternPaint paint,
+                IReadOnlyList<List<Point>> paintPath, ClipRegion paintClip,
+                PdfDictionary parentResources, GraphicsState parentState, int patternDepth, double objectAlpha)
+            {
+                if (paint.Shading is not null)
+                {
+                    RenderPatternContents(paint, paintPath, paintClip, parentResources, parentState, patternDepth);
+                    return;
+                }
+                // Tiling cells form a non-isolated group. Outer transparency applies once
+                // to the pattern-painted object, not separately to each mark in its cells.
+                GraphicsState contentState = initial with
+                {
+                    Clips = parentState.Clips,
+                    FillAlpha = 1,
+                    StrokeAlpha = 1,
+                    BlendMode = RendererBlendMode.Normal,
+                    GraphicsSoftMask = null,
+                    Knockout = null
+                };
+                if (objectAlpha >= 1 && parentState.GraphicsSoftMask is null && parentState.Knockout is null
+                    && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
+                {
+                    RenderPatternContents(paint, paintPath, paintClip, parentResources, contentState, patternDepth);
+                    return;
+                }
+                RasterSurface backdrop = pixels;
+                var bounds = GetRasterBounds(AddClip(parentState.Clips, paintClip.Mask), null,
+                    options.Width, options.Height, scaleX, scaleY);
+                if (bounds.Right <= bounds.Left || bounds.Bottom <= bounds.Top) return;
+                RasterSurface group = RasterSurface.Rent(bounds, backdrop.Ink is not null, backdrop.BlendProfile);
+                try
+                {
+                    group.CopyFrom(backdrop);
+                    group.TrackGroupAlpha();
+                    pixels = group;
+                    RenderPatternContents(paint, paintPath, paintClip, parentResources, contentState, patternDepth);
+                    pixels = backdrop;
+                    parentState.GraphicsSoftMask?.ForBounds(group.Left, group.Top, group.Right, group.Bottom);
+                    for (int y = group.Top; y < group.Bottom; y++)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        for (int x = group.Left; x < group.Right; x++)
+                        {
+                            if (!backdrop.Contains(x, y)) continue;
+                            int offset = group.Offset(x, y);
+                            double alpha = group.GroupAlpha![offset / 4] / 255d;
+                            if (alpha == 0) continue;
+                            Color source = RemoveGroupBackdrop(group, offset, backdrop, backdrop.Offset(x, y), alpha);
+                            SetPixel(backdrop, options.Width, x, y, source, alpha * objectAlpha,
+                                parentState.BlendMode, parentState.GraphicsSoftMask, parentState.Knockout);
+                        }
+                    }
+                }
+                finally
+                {
+                    pixels = backdrop;
+                    group.Return();
+                }
+            }
+
+            void RenderPatternContents(PatternPaint paint,
                 IReadOnlyList<List<Point>> paintPath, ClipRegion paintClip,
                 PdfDictionary parentResources, GraphicsState parentState, int patternDepth)
             {
