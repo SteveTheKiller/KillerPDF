@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,912 engine tests, 370 app tests, and the Release payload publish pass, including shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,920 engine tests, 370 app tests, and the Release payload publish pass, including mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1166,3 +1166,35 @@ overall visual, performance, or interactive parity.
 Evidence is under `shading-background-*`, `shading-background-fixture`, and
 `review-20260909/shading-background-*` in the local benchmark root. The payload
 is `parity-20260909-ghent/payload-shading-background`. Overall parity remains open.
+
+### Mesh overlap compositing checkpoint
+
+Mesh elements now blend against the backdrop preceding their shading object.
+Overlapping triangles and patch subdivisions no longer accumulate opacity or
+blend effects. A nested knockout parent prepares each touched pixel before
+the mesh captures that pixel's backdrop. Eight regressions cover shading
+types 4 through 7 with Normal and Screen blending. The original regression
+failed with a 75% opaque result for a shading with 50% opacity.
+
+All 3,920 engine tests and 370 app tests pass, and Release publish succeeds.
+The two-page 400-pixel reproduction now produces RGB (255, 128, 128) for
+both single and overlapping triangles. Native output is (255, 127, 127).
+All 674 corpus images remain pixel-identical to the shading-background
+checkpoint, with unchanged dimensions and successful render rows.
+
+An eight-page nested fixture checks isolation and knockout combinations.
+Single and duplicate meshes match in all four combinations when outer fill
+and stroke opacity are equal. Unequal outer opacity still triggers the
+existing unsupported non-isolated knockout-group diagnostic; that case
+remains an open parity gap, not a mesh-fix regression.
+
+The backdrop snapshot is bounded by the clip and target surface. Its RGB
+storage is eight bytes per bounded pixel (32 MiB for a full 2048-square
+surface), plus optional alpha planes and array overhead. Opaque, unclipped,
+normal paints without masks, knockout, or overprint bypass it. This cost is
+derived from allocations in the implementation, not a measured peak-memory
+result. Further allocation and performance work remains open.
+
+Evidence is in `mesh-overlap-*`, `mesh-overlap-probe`, `mesh-nested-probe`,
+and `review-20260909/mesh-overlap-*` under the local benchmark root. The
+payload is `parity-20260909-ghent/payload-mesh-overlap`.

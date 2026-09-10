@@ -3461,6 +3461,23 @@ public sealed partial class PdfPageRenderer
             if (!shading.TryGetValue(Name("ShadingType"), out PdfObject? typeValue)
                 || Resolve(typeValue) is not PdfInteger shadingType)
                 throw new NotSupportedException();
+            if (shadingType.Value is >= 4 and <= 7
+                && (state.FillAlpha < 1 || state.GraphicsSoftMask is not null
+                    || state.Knockout is not null || state.Clips.Count != 0 || state.FillOverprint
+                    || state.BlendMode is not (RendererBlendMode.Normal or RendererBlendMode.Compatible)))
+            {
+                var meshBounds = GetRasterBounds(state.Clips, null,
+                    targetWidth, targetHeight, scaleX, scaleY);
+                meshBounds = (Math.Max(meshBounds.Left, target.Left), Math.Max(meshBounds.Top, target.Top),
+                    Math.Min(meshBounds.Right, target.Right), Math.Min(meshBounds.Bottom, target.Bottom));
+                if (meshBounds.Right <= meshBounds.Left || meshBounds.Bottom <= meshBounds.Top) return true;
+                // Mesh elements replace each other within one shading object. Each
+                // sample blends against the backdrop from before that object.
+                var meshBackdrop = new KnockoutState(targetWidth, meshBounds, target,
+                    restoreEveryPaint: true, parent: state.Knockout);
+                meshBackdrop.BeginObject();
+                state = state with { Knockout = meshBackdrop };
+            }
             if (shadingType.Value == 1)
                 return RenderFunctionShading(shading, resources, state, target,
                     targetWidth, targetHeight, scaleX, scaleY, cancellationToken, diagnostics);
@@ -5962,10 +5979,14 @@ public sealed partial class PdfPageRenderer
         private readonly int _top;
         private readonly int _width;
         private int _currentObject;
+        private readonly bool _restoreEveryPaint;
+        private readonly KnockoutState? _parent;
 
         internal KnockoutState(int pageWidth, (int Left, int Top, int Right, int Bottom) bounds,
-            RasterSurface? backdrop = null)
+            RasterSurface? backdrop = null, bool restoreEveryPaint = false, KnockoutState? parent = null)
         {
+            _restoreEveryPaint = restoreEveryPaint;
+            _parent = parent;
             _pageWidth = pageWidth;
             _left = bounds.Left;
             _top = bounds.Top;
@@ -6021,7 +6042,15 @@ public sealed partial class PdfPageRenderer
         {
             int offset = target.Offset(x, y);
             int pixel = (y - _top) * _width + x - _left;
-            if (_objects[pixel] == _currentObject) return;
+            if (_objects[pixel] == _currentObject && !_restoreEveryPaint) return;
+            if (_restoreEveryPaint && _objects[pixel] == 0 && _parent is not null)
+            {
+                _parent.PreparePixel(target, x, y);
+                target.Data.AsSpan(offset, 4).CopyTo(_backdrop!.AsSpan(pixel * 4, 4));
+                if (_backdropAlpha is not null) _backdropAlpha[pixel] = target.Alpha(offset);
+                if (_backdropGroupAlpha is not null)
+                    _backdropGroupAlpha[pixel] = target.GroupAlpha![offset / 4];
+            }
             _objects[pixel] = _currentObject;
             if (target.GroupAlpha is not null)
                 target.GroupAlpha[offset / 4] = _backdropGroupAlpha?[pixel] ?? 0;

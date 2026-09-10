@@ -2455,6 +2455,53 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(4, false)]
+    [InlineData(5, false)]
+    [InlineData(6, false)]
+    [InlineData(7, false)]
+    [InlineData(4, true)]
+    [InlineData(5, true)]
+    [InlineData(6, true)]
+    [InlineData(7, true)]
+    public void Render_OverlappingMeshTrianglesApplyOpacityOnce(int type, bool screen)
+    {
+        var placeholder = new PdfRadialGradient(5, 5, 0, 5, 5, 5,
+            [new PdfGradientStop(0, new PdfRgbColor(1, 0, 0)),
+             new PdfGradientStop(1, new PdfRgbColor(1, 0, 0))]);
+        var content = new PdfContentStreamBuilder();
+        if (screen) content.SetFillRgb(0, 0, 0).Rectangle(0, 0, 10, 10).Fill();
+        content.SetBlendMode(screen ? PdfBlendMode.Screen : PdfBlendMode.Normal)
+            .SetOpacity(0.5).PaintShading(placeholder);
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
+        byte[] triangle = [0, 0, 0, 255, 0, 0, 0, 255, 0, 255, 0, 0, 0, 0, 255, 255, 0, 0];
+        if (type == 5)
+            triangle = [0, 0, 255, 0, 0, 255, 0, 255, 0, 0,
+                0, 255, 255, 0, 0, 255, 255, 255, 0, 0];
+        if (type is 6 or 7)
+        {
+            byte[] points = [0, 0, 85, 0, 170, 0, 255, 0,
+                255, 85, 255, 170, 255, 255, 170, 255,
+                85, 255, 0, 255, 0, 170, 0, 85,
+                85, 85, 170, 85, 170, 170, 85, 170];
+            triangle = [0, .. points.Take(type == 6 ? 24 : 32),
+                255, 0, 0, 255, 0, 0, 255, 0, 0, 255, 0, 0];
+        }
+        var shading = new PdfStream(new PdfDictionary([
+            new(Name("ShadingType"), new PdfInteger(type)),
+            new(Name("VerticesPerRow"), new PdfInteger(2)),
+            new(Name("ColorSpace"), Name("DeviceRGB")),
+            new(Name("BitsPerCoordinate"), new PdfInteger(8)),
+            new(Name("BitsPerComponent"), new PdfInteger(8)),
+            new(Name("BitsPerFlag"), new PdfInteger(8)),
+            new(Name("Decode"), Reals(0, 10, 0, 10, 0, 1, 0, 1, 0, 1))]),
+            [.. triangle, .. triangle]);
+        PdfRenderedPage rendered = new PdfPageRenderer(AddShadingResource(source, shading)).Render(
+            0, new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        Assert.Equal(screen ? [0, 0, 128, 255] : [128, 128, 255, 255], Pixel(rendered, 2, 7));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_PaintsFreeFormGouraudMeshShadings()
     {
