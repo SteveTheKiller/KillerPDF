@@ -1067,7 +1067,10 @@ public sealed partial class PdfPageRenderer
                                         cancellationToken);
                             }
                             if (paintMode is 1 or 2)
-                                StrokePaths(pixels, options.Width,
+                            {
+                                if (state.StrokePattern is not null)
+                                    PaintStroke(glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform));
+                                else StrokePaths(pixels, options.Width,
                                     options.Height, scaleX, scaleY,
                                     glyphPaths ??= FlattenGlyphOutline(outline, glyphTransform),
                                     state.PaintStroke, state.StrokeAlpha,
@@ -1076,6 +1079,7 @@ public sealed partial class PdfPageRenderer
                                     state.BlendMode, state.Clips, state.GraphicsSoftMask,
                                     state.Knockout,
                                     cancellationToken);
+                            }
                             if (clipsText)
                             {
                                 textClipCoverage ??= new byte[options.Width * options.Height];

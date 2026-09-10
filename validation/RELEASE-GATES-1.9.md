@@ -947,3 +947,19 @@ Evidence is under `standard-latin-probe-20260909/corpus-comparison.json` and
 `review-20260909/standard-alias-*` in the local benchmark root. The payload is
 `parity-20260909-ghent/payload-standard-alias`. Earlier paired speed results
 predate this desktop resolver change.
+
+### Pattern text stroke checkpoint (2026-09-09)
+
+Glyph strokes now honor the selected pattern, preserving ordinary solid-stroke
+rendering. Both new regressions failed with zero pattern-colored pixels before
+the fix and pass afterward. A four-page native comparison covers stroke-only,
+fill-and-stroke, and both text-clipping modes; visual inspection confirms the
+pattern, fill, and subsequent clipped artwork in each mode.
+
+All 3,861 engine tests and 370 app tests pass, and Release publish succeeds.
+All 674 Broad and Shared pages remain pixel-identical to the installed-font
+alias checkpoint, with unchanged dimensions and OK batch rows. The corpus
+does not exercise this missing stroke behavior; the dedicated comparison does.
+Evidence is under `pattern-stroke-probe-20260909` and
+`review-20260909/pattern-stroke-*` in the local benchmark root, with the payload
+under `parity-20260909-ghent/payload-pattern-stroke`. Overall parity remains open.
