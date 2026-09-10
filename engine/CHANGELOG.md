@@ -74,7 +74,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 - Prevented small idle scratch buffers from forcing repeated large rendering allocations.
 - Restored missing content on large pages while keeping parsing memory bounded.
-- Restored process-color overprint on pages with a CMYK output intent and no explicit page blending space, while keeping unused profiles lazy.
+- Restored process-color overprint on pages with a CMYK output intent and spot-color overprint across paths, text, shadings, masks, and images, while keeping unused profiles lazy.
 - Restored patterned text, corrected pattern stroke opacity and tiling transparency, and honored shading pattern backgrounds, opacity, blending, and soft masks.
 - Prevented overlapping mesh triangles and patches from accumulating shading opacity or blend effects.
 - Preserved nested non-isolated knockout groups and groups with unequal outer opacity, soft masks, or blend modes, without counting partially transparent backdrops twice.

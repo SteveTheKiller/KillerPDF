@@ -2961,7 +2961,8 @@ public sealed partial class PdfPageRenderer
             return new ImageColorSpace(1, null,
                 (tint, _, _, _) => tintTransform(tint),
                 ProcessChannels: channel >= 0 ? [channel] : null, SuppressPainting: channel == -1,
-                Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource);
+                Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource,
+                HasSpotColorants: channel == -2);
         }
         if (kind.ValueAsLatin1() == "DeviceN")
         {
@@ -2980,7 +2981,8 @@ public sealed partial class PdfPageRenderer
                 && channels.Where(channel => channel >= 0).Distinct().Count() == activeChannels;
             return new ImageColorSpace(names.Count, null, MultiConverter: tintTransform,
                 ProcessChannels: supported ? channels : null, SuppressPainting: channels.All(channel => channel == -1),
-                Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource);
+                Initial: InitialColor.FullTint, HasIccSource: alternate.HasIccSource,
+                HasSpotColorants: channels is [-2]);
         }
         if (kind.ValueAsLatin1() != "Indexed" || array.Count != 4
             || Resolve(array[2]) is not PdfInteger highValue
@@ -4791,6 +4793,7 @@ public sealed partial class PdfPageRenderer
             bool directInk = target.Ink is not null && imageOpacity == 1
                 && target.GroupShape is null
                 && graphicsSoftMask is null && knockout is null
+                && !(overprint && colorSpace.ContainsSpotColorants)
                 && (imageMask || !colorSpace.NativeProcessMask.HasValue)
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
             for (int y = paintTop; y < paintBottom; y++)
@@ -4901,7 +4904,7 @@ public sealed partial class PdfPageRenderer
                     }
                     double clipAlpha = rectangularClips ? 1 : clipCoverage / 255d;
                     if (clipAlpha <= 0) continue;
-                    if (!imageMask && colorSpace.NativeProcessMask.HasValue)
+                    if (!imageMask && (colorSpace.NativeProcessMask.HasValue || colorSpace.ContainsSpotColorants))
                         color = OverprintColor(color, colorSpace, overprint, 0);
                     SetPixel(target, targetWidth, x, y,
                         color,
@@ -6403,12 +6406,13 @@ public sealed partial class PdfPageRenderer
         byte[]? PaletteSamples = null, bool IsIccBased = false, double[]? ComponentRange = null,
         int[]? ProcessChannels = null, byte? NativeProcessMask = null, ImageColorSpace? SourceSpace = null,
         bool SuppressPainting = false, bool RegistrationColor = false, InitialColor Initial = InitialColor.Zero,
-        bool IsLab = false, bool IsDefault = false, bool HasIccSource = false,
+        bool IsLab = false, bool IsDefault = false, bool HasIccSource = false, bool HasSpotColorants = false,
         PdfObject? Definition = null, PdfDictionary? SourceResources = null, int Intent = 1)
     {
         internal bool DoesNotPaint => SuppressPainting || PaletteBase?.SuppressPainting == true;
         internal bool HasProcessColorants => RegistrationColor || ProcessChannels is not null
             || PaletteBase?.HasProcessColorants == true;
+        internal bool ContainsSpotColorants => HasSpotColorants || PaletteBase?.ContainsSpotColorants == true;
 
         internal Color InitialPaint(out double[]? components)
         {

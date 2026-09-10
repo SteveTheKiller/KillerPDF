@@ -94,6 +94,7 @@ public sealed partial class PdfPageRenderer
         uint source = surface.GetInk(color);
         bool overprint = (color.OverprintComponents & 16) != 0
             && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+        bool spotOverprint = overprint && (color.OverprintComponents & 64) != 0;
         if (!overprint && sourceAlpha == 1 && mode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
         {
             WriteInk(surface.Ink!, offset, source);
@@ -161,7 +162,8 @@ public sealed partial class PdfPageRenderer
                 2 => 1 - blend.Blue,
                 _ => mode == RendererBlendMode.Luminosity ? s : b
             } : 1 - BlendChannel(1 - b, 1 - s, mode);
-            if (overprint && (color.OverprintComponents & (1 << channel)) != 0) mixed = b;
+            if (spotOverprint) mixed = s + b - s * b;
+            else if (overprint && (color.OverprintComponents & (1 << channel)) != 0) mixed = b;
             double value = sourceAlpha == 1 && backdropAlpha == 1 ? mixed
                 : ((1 - backdropAlpha) * sourceAlpha * s
                 + (1 - sourceAlpha) * backdropAlpha * b

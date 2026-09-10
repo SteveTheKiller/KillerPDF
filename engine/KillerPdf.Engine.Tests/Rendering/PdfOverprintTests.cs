@@ -37,6 +37,11 @@ public sealed class PdfOverprintTests
     [InlineData("separation", true, false, 0, 0)]
     [InlineData("separation", true, false, 1, 0)]
     [InlineData("separation", false, true, 1, 255)]
+    [InlineData("spot", true, false, 0, 0)]
+    [InlineData("spot", true, false, 1, 0)]
+    [InlineData("spot", false, true, 1, 255)]
+    [InlineData("spotimage", true, false, 1, 0)]
+    [InlineData("spotimage", false, true, 1, 255)]
     [InlineData("devicen", true, false, 0, 0)]
     [InlineData("devicen", true, false, 1, 0)]
     [InlineData("namedzero", true, false, 1, 255)]
@@ -208,9 +213,9 @@ public sealed class PdfOverprintTests
             "stroke" => "0 1 0 0 K 8 w 0 4 m 8 4 l S",
             "allreference" => (rgb ? grayNumber + " g" : $"{tintNumber} {tintNumber} {tintNumber} {tintNumber} k") + " 0 0 8 8 re f",
             "rgbgrayreference" => $"{grayNumber} {grayNumber} {grayNumber} rg 0 0 8 8 re f",
-            "image" or "stencil" or "namedimage" or "namednoneimage" or "namedfiveimage" => "8 0 0 8 0 0 cm /Im Do",
+            "image" or "stencil" or "namedimage" or "spotimage" or "namednoneimage" or "namedfiveimage" => "8 0 0 8 0 0 cm /Im Do",
             "tiny" => "0.0001 1 0 0 k 0 0 8 8 re f",
-            "separation" or "devicen" => "/Named cs 1 scn 0 0 8 8 re f",
+            "separation" or "spot" or "devicen" => "/Named cs 1 scn 0 0 8 8 re f",
             "namedzero" => "/Named cs 0 1 scn 0 0 8 8 re f",
             "namedstroke" => "/Named CS 1 SCN 8 w 0 4 m 8 4 l S",
             "noneinitial" => "/Named cs 0 0 8 8 re f",
@@ -250,7 +255,8 @@ public sealed class PdfOverprintTests
             Entry("Subtype", Name("Image")), Entry("Width", new PdfInteger(1)), Entry("Height", new PdfInteger(1)),
             Entry("BitsPerComponent", new PdfInteger(paint is "stencil" or "namedstencil" ? 1 : 8))
         };
-        byte[] imageSamples = paint is "stencil" or "namedstencil" ? new byte[] { 0 } : paint == "namedimage" ? new byte[] { 255 }
+        byte[] imageSamples = paint is "stencil" or "namedstencil" ? new byte[] { 0 }
+                : paint is "namedimage" or "spotimage" ? new byte[] { 255 }
                 : paint == "namednoneimage" ? new byte[] { 255, 192 }
                 : paint == "namedfiveimage" ? new byte[] { 0, 255, 0, 0, 192 }
                 : new byte[] { 0, 255, 0, 0 };
@@ -259,7 +265,7 @@ public sealed class PdfOverprintTests
         else imageEntries.Add(Entry("ColorSpace", indexed
             ? new PdfArray([Name("Indexed"), Name("Named"), new PdfInteger(0),
                 new PdfString(imageSamples, PdfStringForm.Hexadecimal)])
-            : Name(paint is "namedimage" or "namednoneimage" or "namedfiveimage" ? "Named" : "DeviceCMYK")));
+            : Name(paint is "namedimage" or "spotimage" or "namednoneimage" or "namedfiveimage" ? "Named" : "DeviceCMYK")));
         var image = update.AddObject(new PdfStream(new PdfDictionary(imageEntries), indexed ? [0] : imageSamples));
         PdfArray Numbers(params int[] values) => new(values.Select(value => (PdfObject)new PdfInteger(value)));
         var function = new PdfDictionary([
@@ -317,8 +323,11 @@ public sealed class PdfOverprintTests
         var resources = new PdfDictionary([
             Entry("ColorSpace", new PdfDictionary([Entry("Named", new PdfArray(new PdfObject[]
             {
-                Name(paint == "separation" || registration ? "Separation" : "DeviceN"),
-                paint == "separation" || registration ? Name(colorants[0]) : new PdfArray(colorants.Select(value => (PdfObject)Name(value))),
+                Name(paint is "separation" or "spot" || registration ? "Separation" : "DeviceN"),
+                paint is "separation" or "spot" || registration
+                    ? Name(paint == "spot" ? "Custom" : colorants[0])
+                    : new PdfArray((paint == "spotimage" ? new[] { "Custom" } : colorants)
+                        .Select(value => (PdfObject)Name(value))),
                 Name("DeviceCMYK"), update.AddObject(new PdfStream(new PdfDictionary([
                     Entry("FunctionType", new PdfInteger(4)),
                     Entry("Domain", Numbers(Enumerable.Range(0, colorants.Length * 2).Select(index => index % 2).ToArray())),

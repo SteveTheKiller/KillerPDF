@@ -72,6 +72,8 @@ public sealed partial class PdfPageRenderer
         space?.DoesNotPaint == true ? Color.NonPainting
         : enabled && space?.NativeProcessMask is byte mask
             ? color with { OverprintComponents = (byte)((~mask & 15) | 16) }
+        : enabled && space?.ContainsSpotColorants == true
+            ? color with { OverprintComponents = (byte)(color.OverprintComponents | 16 | 64) }
         : enabled && mode == 1 && space is { Components: 4, IsIccBased: false, Palette: null,
             Converter: null, MultiConverter: null }
             ? color with { OverprintComponents = (byte)(color.OverprintComponents | 16) } : color;
