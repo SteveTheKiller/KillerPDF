@@ -1,5 +1,26 @@
 # Color rendering development review
 
+## September 9 color-indicator review
+
+The current `binary-count-Shared` images and retained
+`payload-cmyk-Shared-0-PDFium` images were inspected for GWG220 and GWG221.
+These test pages explicitly identify a visible cross as a conversion or output
+intent change indicator. Both retained native images show prominent crosses.
+The engine's GWG220 interior is uniform; GWG221 is visually uniform with
+one-level channel differences between the sampled center and corner.
+
+For GWG220, engine center and corner are both RGB (181, 182, 182), while
+native samples are (170, 171, 175) and (67, 81, 84). For GWG221, engine samples
+are (107, 107, 106) and (106, 107, 107), versus native (92, 93, 94) and
+(18, 16, 22). The interior sampling excludes the square's outer edges.
+The samples are retained in `review-20260909/color-indicator-review-20260909.json`
+under the local benchmark root.
+
+These are bounded positive results against the pages' stated indicators.
+Matching the native crosses would be a regression. Their absence does not
+establish absolute color accuracy, full ICC conformance, or overall visual
+parity. Remaining one-level differences in GWG221 are not declared exact.
+
 ## September 9 CMYK display conversion
 
 Unprofiled CMYK now uses the retained renderer's process-ink display mapping.

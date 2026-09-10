@@ -1052,3 +1052,14 @@ at the top remains the current overall comparison.
 Evidence is under `binary-count-20260909`, `binary-count-*` logs, and
 `review-20260909/binary-count-*` in the local benchmark root. The payload is
 `parity-20260909-ghent/payload-binary-count`. Overall parity remains open.
+
+### Color-indicator visual disposition
+
+Current and native GWG220 and GWG221 images were inspected. The current engine
+avoids the prominent crosses visible in native output, consistent with these
+pages' stated conversion and output-intent indicators. GWG220's sampled interior
+is uniform; GWG221 retains one-level channel differences. These two large
+native pixel differences are positive indicator results, not evidence that the
+engine should reproduce native output. See `engine/docs/color-review.md` for
+sample values, retained evidence, and the limits of this finding. Absolute color
+accuracy and overall visual parity remain open.
