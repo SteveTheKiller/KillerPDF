@@ -819,3 +819,12 @@ boundary test now recognizes the retained primary path. Engine source is
 unchanged; the earlier 3,854-test engine checkpoint remains the engine test
 evidence. The new payload is `payload-primary-reuse`; interactive first-page,
 scrolling, zoom, and edit/reload validation remain open.
+
+The published application's own rendering boundary confirms the reuse gain on
+the balloon document: fresh/reused/reused/fresh medians are
+736.186/182.069/183.422/695.986 ms. All 48 renders match across the three zoom
+sizes with no diagnostics. This invokes the retained primary helper and fresh
+session through the published assembly, including the application font resolver
+and render parallelism. It does not measure WPF presentation or compare with
+PDFium. The measured assemblies and limits are recorded in
+`parity-20260909-ghent/app-reuse-summary.json`.
