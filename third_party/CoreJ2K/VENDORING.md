@@ -51,10 +51,7 @@ package dependency. Test projects continue to reference the vendored project.
 
 ## Local changes
 
-The library sources are unmodified. Every `.cs` file matches upstream at the commit
-above and should stay that way unless a change is recorded here.
-
-`CoreJ2K/CoreJ2K.csproj` is the only modified file. Upstream builds it alongside a
+`CoreJ2K/CoreJ2K.csproj` is modified. Upstream builds it alongside a
 `Directory.Build.props` at its repository root, which is not vendored, so the
 properties that file supplied are reproduced inline. The changes are:
 
@@ -71,6 +68,11 @@ properties that file supplied are reproduced inline. The changes are:
    props file so the compiled assembly still carries the JJ2000, Clary, Cureos and
    Sjofn LLC copyright.
 
+`CoreJ2K/j2k/entropy/decoder/ByteInputBuffer.cs` seals the concrete buffer type,
+removes virtual dispatch from its methods, and requests inlining for the hot
+unchecked byte read. KillerPDF only creates this concrete type. The change keeps
+decoded pixels identical while reducing JPEG 2000 entropy-decoding overhead.
+
 ## Keeping it in sync
 
 ```
@@ -83,10 +85,9 @@ git diff f75a5263ba21fcbeb8ee05cf354e9a32737fa42f..origin/master -- CoreJ2K
 Apply the relevant changes to `third_party/CoreJ2K/CoreJ2K`, keeping the project
 file changes listed above, then update the commit hash and date in this file.
 
-Because the sources are unmodified, a sync is a straight copy in most cases. Keep
-it that way. Any optimization applied here must be recorded in the section above,
-and should be offered upstream first when it is not specific to KillerPDF, so it
-comes back through a normal sync instead of becoming a permanent local patch.
+Preserve the local changes above during a sync. Any additional optimization must
+be recorded in this section and should be offered upstream first when it is not
+specific to KillerPDF, so it can come back through a normal sync.
 
 ## Verification after a sync
 

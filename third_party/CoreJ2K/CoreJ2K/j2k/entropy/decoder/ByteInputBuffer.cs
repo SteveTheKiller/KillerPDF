@@ -36,6 +36,7 @@
 * Copyright (c) 1999/2000 JJ2000 Partners.
 * */
 using System;
+using System.Runtime.CompilerServices;
 namespace CoreJ2K.j2k.entropy.decoder
 {
 
@@ -52,7 +53,7 @@ namespace CoreJ2K.j2k.entropy.decoder
     /// 
     /// </summary>
     /// <seealso cref="InputStream" />
-    public class ByteInputBuffer
+    public sealed class ByteInputBuffer
     {
 
         /// <summary>The byte array containing the data </summary>
@@ -124,7 +125,7 @@ namespace CoreJ2K.j2k.entropy.decoder
         /// <param name="length">the maximum number of bytes to read frmo the buffer.
         /// 
         /// </param>
-        public virtual void SetByteArray(byte[]? buf, int offset, int length)
+        public void SetByteArray(byte[]? buf, int offset, int length)
         {
             // In same buffer?
             if (buf == null)
@@ -172,7 +173,7 @@ namespace CoreJ2K.j2k.entropy.decoder
         /// <param name="len">The number of elements to add to the array.
         /// 
         /// </param>
-        public virtual void addByteArray(byte[] data, int off, int len)
+        public void addByteArray(byte[] data, int off, int len)
         {
             lock (this)
             {
@@ -227,7 +228,7 @@ namespace CoreJ2K.j2k.entropy.decoder
         /// <exception cref="EOFException">If the end of the stream is reached.
         /// 
         /// </exception>
-        public virtual int readChecked()
+        public int readChecked()
         {
             if (pos < count)
             {
@@ -250,7 +251,8 @@ namespace CoreJ2K.j2k.entropy.decoder
         /// has been reached.
         /// 
         /// </returns>
-        public virtual int read()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public int read()
         {
             if (pos < count)
             {
