@@ -134,6 +134,13 @@ public sealed partial class PdfPageRenderer
             surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
             return;
         }
+        if (mode is RendererBlendMode.Multiply or RendererBlendMode.Screen)
+        {
+            WriteInk(surface.Ink!, offset, BlendMultiplyScreenInk(source, backdrop,
+                sourceAlpha, backdropAlpha, outputAlpha, mode == RendererBlendMode.Screen));
+            surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
+            return;
+        }
         bool nonseparable = mode is RendererBlendMode.Hue or RendererBlendMode.Saturation
             or RendererBlendMode.Color or RendererBlendMode.Luminosity;
         (double Red, double Green, double Blue) blend = default;
@@ -163,6 +170,45 @@ public sealed partial class PdfPageRenderer
         }
         WriteInk(surface.Ink!, offset, output);
         surface.SetAlpha(offset, (byte)Math.Round(outputAlpha * 255));
+    }
+
+    internal static uint BlendMultiplyScreenInk(uint source, uint backdrop,
+        double sourceAlpha, double backdropAlpha, double outputAlpha, bool screen)
+    {
+        if (Avx.IsSupported && Sse2.IsSupported)
+        {
+            var one = Vector256.Create(1d);
+            var scale = Vector256.Create(255d);
+            var s = Vector256.Create((double)(byte)source, (double)(byte)(source >> 8),
+                (double)(byte)(source >> 16), (double)(byte)(source >> 24)) / scale;
+            var b = Vector256.Create((double)(byte)backdrop, (double)(byte)(backdrop >> 8),
+                (double)(byte)(backdrop >> 16), (double)(byte)(backdrop >> 24)) / scale;
+            var lightSource = one - s;
+            var lightBackdrop = one - b;
+            var mixed = one - (screen
+                ? lightBackdrop + lightSource - lightBackdrop * lightSource
+                : lightBackdrop * lightSource);
+            var value = sourceAlpha == 1 && backdropAlpha == 1 ? mixed
+                : (Vector256.Create((1 - backdropAlpha) * sourceAlpha) * s
+                    + Vector256.Create((1 - sourceAlpha) * backdropAlpha) * b
+                    + Vector256.Create(sourceAlpha * backdropAlpha) * mixed) / Vector256.Create(outputAlpha);
+            value = Vector256.Min(Vector256.Max(value, Vector256<double>.Zero), one) * scale;
+            var integers = Avx.ConvertToVector128Int32WithTruncation(Avx.RoundToNearestInteger(value));
+            var shorts = Sse2.PackSignedSaturate(integers, Vector128<int>.Zero);
+            return Sse2.PackUnsignedSaturate(shorts, Vector128<short>.Zero).AsUInt32()[0];
+        }
+        uint output = 0;
+        for (int channel = 0; channel < 4; channel++)
+        {
+            double s = (byte)(source >> (channel * 8)) / 255d;
+            double b = (byte)(backdrop >> (channel * 8)) / 255d;
+            double mixed = 1 - (screen ? (1 - b) + (1 - s) - (1 - b) * (1 - s) : (1 - b) * (1 - s));
+            double value = sourceAlpha == 1 && backdropAlpha == 1 ? mixed
+                : ((1 - backdropAlpha) * sourceAlpha * s + (1 - sourceAlpha) * backdropAlpha * b
+                    + sourceAlpha * backdropAlpha * mixed) / outputAlpha;
+            output |= (uint)(byte)Math.Round(Math.Clamp(value, 0, 1) * 255) << (channel * 8);
+        }
+        return output;
     }
 
     internal static uint BlendOpaqueInk(uint source, uint backdrop, double sourceAlpha, double outputAlpha)

@@ -62,7 +62,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Faster 16-bit grayscale image conversion through exact sample lookups, including matte correction.
 - Faster image color caching through packed sample reads and bounded larger caches for large images.
 - Faster TIFF predictor reconstruction for 8-bit and 16-bit samples with unchanged decoded bytes.
-- Faster opaque CMYK shape fills, fully opaque masked image samples, and compositing over transparent pixels with unchanged output.
+- Faster CMYK Multiply and Screen blending, opaque shape fills, fully opaque masked image samples, and compositing over transparent pixels with unchanged output.
 - Reduced transparency-group storage and mask allocations, omitted uniform CMYK alpha planes and redundant CMYK, RGB, and grayscale image copies, kept one-bit masks packed, bounded retained scratch buffers, and added reusable caller-owned page output.
 - Reduced built-in character-map storage and loaded encoded mappings only when requested.
 - Removed redundant encoded-stream, inline-image, and streamed operand copies and full-image JPEG scratch planes during parsing and decoding, reused JPEG sample rows and copied grayscale output by row, and reused JPEG 2000 color and transparency planes across repeated paints.
