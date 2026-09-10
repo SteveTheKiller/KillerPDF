@@ -722,3 +722,12 @@ Evidence remains under `C:/Users/steve/kp-bench-render`: timing and test logs in
 that directory, and corpus results in `review-20260909/jpeg-direct*`.
 The measured and published engine DLL hash is
 `F6DC0FC8830430DD744E588BDC13C0AA802E446075C8E1282BC1F95DE9B538D1`.
+
+Extending the RGB row-based group interpolation loop to uniformly opaque CMYK
+surfaces was tested and removed. Reversed-order Ghent pairs gave baseline/test
+medians of 224.539/241.205 and 225.142/225.878 ms after thirty warmup renders
+per process. All 240 pixel hashes matched with zero diagnostics, but there was
+no timing benefit. The renderer was verified identical to the validated CMYK
+JPEG checkpoint after removal; no additional full-suite run was needed.
+Evidence is in `parity-20260909-ghent/opaque-group-rows*`; the tested engine hash
+was `F34059A9BF3FD79DBD79C266884F82F57BD54209D161AD4056B1C7A4748686DA`.
