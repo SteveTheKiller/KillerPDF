@@ -265,6 +265,12 @@ namespace KillerPdf.Engine.Filters.Jbig2
         private void DecodeTemplate0a(int lineNumber, int width, int rowStride,
                 int paddedWidth, int byteIndex, int idx)
         {
+            if (!isOverride && !useSkip)
+            {
+                DecodeTemplate0aFast(lineNumber, width, rowStride, paddedWidth, byteIndex, idx);
+                return;
+            }
+
             int context;
             int overriddenContext;
 
@@ -323,6 +329,42 @@ namespace KillerPdf.Engine.Filters.Jbig2
 
                     context = (context & 0x7bf7) << 1 | bit | line1 >> toShift & 0x10
                             | line2 >> toShift & 0x800;
+                }
+
+                regionBitmap.SetByte(byteIndex++, result);
+                idx++;
+            }
+        }
+
+        private void DecodeTemplate0aFast(int lineNumber, int width, int rowStride,
+                int paddedWidth, int byteIndex, int idx)
+        {
+            int line1 = lineNumber >= 1 ? regionBitmap.GetByteAsInteger(idx) : 0;
+            int line2 = lineNumber >= 2 ? regionBitmap.GetByteAsInteger(idx - rowStride) << 6 : 0;
+            int context = line1 & 0xf0 | line2 & 0x3800;
+
+            int nextByte;
+            for (int x = 0; x < paddedWidth; x = nextByte)
+            {
+                byte result = 0;
+                nextByte = x + 8;
+                int minorWidth = width - x > 8 ? 8 : width - x;
+
+                if (lineNumber > 0)
+                    line1 = line1 << 8
+                        | (nextByte < width ? regionBitmap.GetByteAsInteger(idx + 1) : 0);
+                if (lineNumber > 1)
+                    line2 = line2 << 8
+                        | (nextByte < width ? regionBitmap.GetByteAsInteger(idx - rowStride + 1) << 6 : 0);
+
+                for (int minorX = 0; minorX < minorWidth; minorX++)
+                {
+                    int toShift = 7 - minorX;
+                    cx.Index = context;
+                    int bit = arithDecoder.Decode(cx);
+                    result = (byte)(result | bit << toShift);
+                    context = (context & 0x7bf7) << 1 | bit | line1 >> toShift & 0x10
+                        | line2 >> toShift & 0x800;
                 }
 
                 regionBitmap.SetByte(byteIndex++, result);
