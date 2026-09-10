@@ -129,8 +129,17 @@ internal sealed class PdfPageRenderSession : IDisposable
             PdfRenderBackend.Engine, Diagnostics(diagnostics));
     }
 
+    internal PdfRenderedPage RenderFittedPage(int pageIndex, int maximumWidth, int maximumHeight,
+        bool includeFormFields = false)
+    {
+        if (maximumWidth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
+        if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
+        return RenderOwnedPage(Renderer, pageIndex,
+            CreateRenderOptions(pageIndex, false, true, includeFormFields, maximumWidth, maximumHeight), default);
+    }
+
     private EngineRenderOptions CreateRenderOptions(int pageIndex, bool transparentBackground,
-        bool includeAnnotations, bool includeFormFields)
+        bool includeAnnotations, bool includeFormFields, int maximumWidth = 0, int maximumHeight = 0)
     {
         ObjectDisposedException.ThrowIf(_engineRenderer is null, this);
         if (pageIndex < 0 || pageIndex >= _enginePages.Count)
@@ -140,7 +149,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         // The previous viewer exposed single-precision page geometry before scaling.
         double pageWidth = (float)(quarterTurn ? pageInformation.Height : pageInformation.Width);
         double pageHeight = (float)(quarterTurn ? pageInformation.Width : pageInformation.Height);
-        double renderScale = _scale > 0
+        double renderScale = maximumWidth > 0
+            ? Math.Min(maximumWidth / pageWidth, maximumHeight / pageHeight) : _scale > 0
             ? _scale : Math.Min(_maximumWidth / pageWidth, _maximumHeight / pageHeight);
         // Preserve the previous viewer's truncation of scaled page dimensions.
         int engineWidth = Math.Max(1, (int)(pageWidth * renderScale));
@@ -198,6 +208,33 @@ internal sealed class PdfPageRenderSession : IDisposable
 }
 
 internal enum PdfRenderBackend { Engine }
+
+// Owned by one viewer's UI thread. Background renderers keep independent sessions.
+internal sealed class PdfPrimaryRenderSession
+{
+    private PdfPageRenderSession? _session;
+    private string? _path;
+    private long _revision;
+
+    internal PdfRenderedPage Render(string path, long revision, int pageIndex, int maximumSize)
+    {
+        if (_session is null || _path != path || _revision != revision)
+        {
+            Clear();
+            _session = PdfPageRenderSession.OpenEngineFirst(path, maximumSize, maximumSize);
+            _path = path;
+            _revision = revision;
+        }
+        return _session.RenderFittedPage(pageIndex, maximumSize, maximumSize);
+    }
+
+    internal void Clear()
+    {
+        _session?.Dispose();
+        _session = null;
+        _path = null;
+    }
+}
 
 internal readonly record struct PdfPageForEncoding(
     int Width, int Height, ReadOnlyMemory<byte> Pixels, IReadOnlyList<string> Diagnostics);

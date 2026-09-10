@@ -252,6 +252,7 @@ namespace KillerPDF.Controls
         }
 
         private PdfEngineDocumentSession? _engineDocumentSession;
+        private readonly PdfPrimaryRenderSession _primaryRenderSession = new();
 
         private PdfEngineDocumentSession EnsureEngineDocumentSession()
         {
@@ -261,7 +262,11 @@ namespace KillerPDF.Controls
             return _engineDocumentSession = PdfEngineDocumentSession.Open(_currentFile);
         }
 
-        private void CloseEngineDocumentSession() => _engineDocumentSession = null;
+        private void CloseEngineDocumentSession()
+        {
+            _engineDocumentSession = null;
+            _primaryRenderSession.Clear();
+        }
 
         /// <summary>
         /// Renders link overlays for the primary page onto the annotation canvas.

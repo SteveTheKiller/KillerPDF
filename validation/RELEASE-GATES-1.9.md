@@ -796,3 +796,26 @@ not closed the overall gap. The report script uses explicit UTF-8 CSV decoding
 for corpus filenames. Its first analysis reached the page-ranking step after
 image verification, then failed on default Windows decoding; the corrected
 analysis completed and repeated all image checks successfully.
+
+Primary-page rendering now retains one engine session per viewer pane across
+zoom sizes. Document switches, immutable-document invalidation, view-mode
+changes, and pane cache flushes release it. Bitmap invalidation advances a
+document revision so a subsequent render cannot reuse the old snapshot.
+Background render tasks retain independent session ownership.
+
+The engine-level zoom probe uses RenderInto, avoiding rendered-page cache hits.
+On balloon_a1b_jp2k.pdf, fresh/reused/reused/fresh medians are
+771.255/190.131/202.389/750.554 ms across three sizes. All 48 images match, with
+no diagnostics. Three document probes retain an additional 28 to 36 MiB of
+managed data, which becomes collectible after releasing the renderer. These
+are not interactive latency or working-set measurements. Evidence is in
+`parity-20260909-ghent/session-reuse-summary.json` and
+`session-memory-summary.json` under the local benchmark root.
+
+All 356 app tests and the Release payload publish pass after integration.
+Four new cases cover snapshot reuse, painted zoom output, independent pixel
+ownership, file rewrites, explicit clearing, and switching files. The existing
+boundary test now recognizes the retained primary path. Engine source is
+unchanged; the earlier 3,854-test engine checkpoint remains the engine test
+evidence. The new payload is `payload-primary-reuse`; interactive first-page,
+scrolling, zoom, and edit/reload validation remain open.

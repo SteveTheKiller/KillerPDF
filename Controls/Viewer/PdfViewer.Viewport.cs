@@ -872,9 +872,8 @@ namespace KillerPDF.Controls
                 }
                 else
                 {
-                    using var renderSession = PdfPageRenderSession.OpenEngineFirst(
-                        _currentFile, scaledMax, scaledMax);
-                    PdfRenderedPage rendered = renderSession.RenderPage(pageIndex, includeFormFields: false);
+                    PdfRenderedPage rendered = _primaryRenderSession.Render(
+                        _currentFile, _active?.RenderRevision ?? 0, pageIndex, scaledMax);
                     width = rendered.Width;
                     height = rendered.Height;
                     byte[] rawBytes = rendered.Pixels;
@@ -2081,6 +2080,7 @@ namespace KillerPDF.Controls
         internal void ApplyViewMode(ViewMode mode, bool force = false)
         {
             if (_viewMode == mode && !force) return;
+            _primaryRenderSession.Clear();
             _viewMode = mode;
             _renderedPrimaryPage = -1;   // spread/layout changes with the mode; force the next render
             _gridScrollToPage = -1;

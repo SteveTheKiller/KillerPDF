@@ -303,7 +303,8 @@ public sealed class RenderBoundaryTests
         string boundary = File.ReadAllText(
             Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
 
-        Assert.Equal(4, Count(viewer, "PdfPageRenderSession.OpenEngineFirst("));
+        Assert.Equal(3, Count(viewer, "PdfPageRenderSession.OpenEngineFirst("));
+        Assert.Equal(1, Count(viewer, "_primaryRenderSession.Render("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", viewer,
             StringComparison.Ordinal);
         Assert.DoesNotContain("NativeFallback", boundary, StringComparison.Ordinal);

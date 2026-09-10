@@ -67,6 +67,7 @@ namespace KillerPDF.Controls
             // that could not freeze throws cross-thread from whatever renderer is evicting,
             // which killed the background render tasks (vanishing thumbnails after invert).
             public readonly System.Collections.Concurrent.ConcurrentDictionary<(int page, int bucket, int rot), long> RenderCacheSize = new();
+            public long RenderRevision;
             public Dictionary<int, int> PageRotations = [];
             public Dictionary<string, string> FormTextValues = [];
             public Dictionary<string, string> FormChoiceValues = [];
@@ -388,6 +389,7 @@ namespace KillerPDF.Controls
         // cache (the carve-out that keeps pictures uninverted) goes with it; it re-fills lazily.
         private void FlushAllRenderCaches()
         {
+            _primaryRenderSession.Clear();
             foreach (var s in _renderLru) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); }
             // THIS pane's rect cache - the bare call, NOT `Viewer.FlushImageRectCache()`, which
             // hardcodes pane A and leaves pane B's night-mode carve-out cache serving rects from
@@ -430,6 +432,7 @@ namespace KillerPDF.Controls
         // Drop a tab's cached bitmaps after an edit that changes page pixels or page order.
         private static void InvalidateRenderCache(DocumentSession? s)
         {
+            if (s is not null) s.RenderRevision++;
             s?.RenderCache.Clear();
             s?.RenderCacheSize.Clear();
         }
@@ -509,6 +512,7 @@ namespace KillerPDF.Controls
         // re-render on the other pane's toggle (2026-08-15).
         internal void FlushOwnRenderCaches()
         {
+            _primaryRenderSession.Clear();
             foreach (var s in _sessions) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); }
             FlushImageRectCache();
         }
