@@ -1607,6 +1607,8 @@ public sealed partial class PdfPageRenderer
                     || (transparencyGroup && !isolated
                         && (parentState.Knockout is not null || pixels.GroupShape is not null)))
                 {
+                    (int Left, int Top, int Right, int Bottom) groupBounds = GetRasterBounds(
+                        formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY);
                     if (knockout && parentState.FillAlpha == 1 && parentState.GraphicsSoftMask is null
                         && parentState.Knockout is null
                         && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
@@ -1619,15 +1621,13 @@ public sealed partial class PdfPageRenderer
                                 BlendMode = RendererBlendMode.Normal,
                                 GraphicsSoftMask = null,
                                 Knockout = new KnockoutState(
-                                    options.Width, GetRasterBounds(formState.Clips, formBounds,
-                                        options.Width, options.Height, scaleX, scaleY), pixels)
+                                    options.Width, groupBounds, pixels)
                             }, depth + 1);
                         return;
                     }
 
                     RasterSurface nonisolatedPagePixels = pixels;
-                    RasterSurface nonisolatedGroupPixels = RasterSurface.Rent(GetRasterBounds(
-                        formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY),
+                    RasterSurface nonisolatedGroupPixels = RasterSurface.Rent(groupBounds,
                         pixels.Ink is not null, pixels.BlendProfile);
                     try
                     {
@@ -1635,8 +1635,7 @@ public sealed partial class PdfPageRenderer
                         parentState.Knockout?.CopyBackdropTo(nonisolatedGroupPixels, cancellationToken);
                         nonisolatedGroupPixels.TrackGroupAlpha();
                         var groupKnockout = knockout ? new KnockoutState(
-                            options.Width, GetRasterBounds(formState.Clips, formBounds,
-                                options.Width, options.Height, scaleX, scaleY), nonisolatedGroupPixels) : null;
+                            options.Width, groupBounds, nonisolatedGroupPixels) : null;
                         if (!knockout) nonisolatedGroupPixels.TrackGroupShape();
                         pixels = nonisolatedGroupPixels;
                         Process(instructions, formResources,
@@ -1649,9 +1648,7 @@ public sealed partial class PdfPageRenderer
                                 Knockout = groupKnockout
                             }, depth + 1);
                         pixels = nonisolatedPagePixels;
-                        (int left, int top, int right, int bottom) = GetRasterBounds(
-                            formState.Clips, formBounds, options.Width, options.Height,
-                            scaleX, scaleY);
+                        (int left, int top, int right, int bottom) = groupBounds;
                         parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
                         Span<byte> immediateBackdrop = stackalloc byte[4];
                         for (int y = top; y < bottom; y++)
@@ -1763,8 +1760,9 @@ public sealed partial class PdfPageRenderer
                     // Keep the backdrop for internal blends, then interpolate premultiplied
                     // results once. This also preserves partially transparent backdrops.
                     RasterSurface backdropPixels = pixels;
-                    RasterSurface maskedGroupPixels = RasterSurface.Rent(GetRasterBounds(
-                        formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY),
+                    (int Left, int Top, int Right, int Bottom) groupBounds = GetRasterBounds(
+                        formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY);
+                    RasterSurface maskedGroupPixels = RasterSurface.Rent(groupBounds,
                         pixels.Ink is not null, pixels.BlendProfile);
                     try
                     {
@@ -1778,9 +1776,7 @@ public sealed partial class PdfPageRenderer
                             GraphicsSoftMask = null
                         }, depth + 1);
                         pixels = backdropPixels;
-                        (int left, int top, int right, int bottom) = GetRasterBounds(
-                            formState.Clips, formBounds, options.Width, options.Height,
-                            scaleX, scaleY);
+                        (int left, int top, int right, int bottom) = groupBounds;
                         parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
                         if (backdropPixels.Ink is null && maskedGroupPixels.Ink is null)
                         {
