@@ -686,3 +686,16 @@ baseline engine hash is `D7B83C01599F8A074C3FA4FA71B1C80ECABBB4DA5867725B27E07F1
 experiment hash is `9B9E2D3EF12B3827C5A1FDEDBD0585ADE0D83DB31EB1BA8CD1A577FF1E812664`.
 The earlier `icc-shared-allocation.csv` and `icc-shared-altona-allocation.csv`
 are invalid for before/after claims and are retained only as investigation history.
+
+A per-glyph contour scratch-buffer experiment was also removed. On Ghent page 2,
+average Render allocations over the last ten of twenty passes decreased from
+50,616,240 to 50,003,197 bytes (1.2%). Two reversed-order timing pairs of sixty
+renders, excluding the first thirty per process, gave baseline/experiment medians
+of 227.432/239.238 and 229.234/229.687 ms. The small allocation saving did not
+produce a timing benefit. All 280 rendered pixel hashes matched with zero
+diagnostics. The experiment built successfully; production source was then
+verified identical to the validated baseline, so full tests were not repeated.
+Evidence is in `parity-20260909-ghent/glyph-scratch-allocation.csv` and
+`glyph-scratch-timing.csv`. The measured experiment engine hash was
+`BF0F9C678C9F4573E68FEBE71A9A200081E6468F671CA14B421AFACF8F823130`;
+both allocation harness DLL copies were verified against their intended builds.
