@@ -15,7 +15,7 @@ behind an overall average.
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch close; interactive use unverified | September 9 installed-layout median peak working set is 462.5 versus 613.9 MiB shared and 264.9 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 460.9 to 463.4 MiB; difficult peaks range from 264.4 to 271.3 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 16.067 versus 13.126 seconds; shared wall time is 28.657 versus 24.470 seconds. Difficult render time is 10.473 versus 5.572 seconds and wall time is 16.002 versus 11.156 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
-| Rendering fidelity without regression | Open | Shared map 447403.pdf now renders complete content through bounded streaming; mean RGB difference from PDFium falls from 42.4904 to 5.0726. Scaled geometry and crop fixes leave two one-pixel height differences among 600 shared outputs and none among 74 difficult outputs. The CMYK display fix matches 6,561 legacy swatches and lowers mean RGB pixel error on all 59 changed sample images. Nine Ghent text-softmask effects match their embedded references more closely than PDFium; preserve those effects. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
+| Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions now match PDFium after legacy decimal page-box sizing. Only the two previously mismatched pages change; the other 672 outputs retain identical pixels. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 9: 3,854 engine tests, 352 app tests, and the Release payload publish pass with opaque and transparent CMYK blend shortcuts. The new blend tests and the earlier exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
@@ -860,3 +860,19 @@ parallel. Their original painted pixels remain identical and independently
 owned. Late returns leave the replacement document's idle session intact.
 All 363 app tests pass. This verifies the cache race without claiming UI
 scheduling or presentation coverage; no runtime code changed in this check.
+
+Application bitmap sizing now applies the measured legacy decimal coordinate
+conversion to page boxes, preserving accurate engine parsing and rendering
+geometry. All 674 published application outputs match PDFium dimensions.
+Only hisn13056.pdf and UA1_Tpdf-G1_F01.pdf change from the earlier engine
+baseline; the remaining 672 decoded images are identical. Every batch row
+reports OK. Outputs are under `review-20260909/legacy-geometry-*` in the local
+benchmark root; the payload and test/build logs use `legacy-geometry` in
+`parity-20260909-ghent`.
+
+All 370 app tests and the Release publish pass. Seven coordinate cases match
+direct native probes. The scaled-page test for height 301.999999 now expects
+150 pixels at half scale: the retained native library reports 301.9999694824219
+points, confirming that the former 151-pixel expectation used a direct cast
+instead of the legacy parser. Geometry compatibility is verified at the corpus
+sizes; overall visual, speed, and interactive parity remain open.

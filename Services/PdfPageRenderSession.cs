@@ -27,7 +27,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         double scale)
     {
         _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
-        _enginePages = pages;
+        var boxes = KillerPdf.Engine.Documents.PdfPageBoxInformation.Read(document);
+        _enginePages = pages.Select((page, index) => PdfLegacyPageGeometry.Size(page, boxes[index])).ToArray();
         _maximumWidth = maximumWidth;
         _maximumHeight = maximumHeight;
         _scale = scale;
@@ -205,6 +206,45 @@ internal sealed class PdfPageRenderSession : IDisposable
 
     private static string? Diagnostics(IReadOnlyList<string> diagnostics) =>
         diagnostics.Count == 0 ? null : string.Join(" ", diagnostics);
+}
+
+internal static class PdfLegacyPageGeometry
+{
+    internal static float Coordinate(double number)
+    {
+        if (!decimal.TryParse(number.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+            System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture,
+            out decimal value)) return (float)number;
+        string digits = Math.Abs(value).ToString("0.############################",
+            System.Globalization.CultureInfo.InvariantCulture);
+        ReadOnlySpan<float> scales = [0.1f, 0.01f, 0.001f, 0.0001f, 0.00001f,
+            0.000001f, 0.0000001f, 0.00000001f, 0.000000001f, 0.0000000001f, 0.00000000001f];
+        float result = 0;
+        int index = 0;
+        while (index < digits.Length && digits[index] != '.')
+            result = result * 10 + (digits[index++] - '0');
+        for (int place = 0; ++index < digits.Length && place < scales.Length; place++)
+            result += scales[place] * (digits[index] - '0');
+        return number < 0 ? -result : result;
+    }
+
+    internal static EnginePageInformation Size(EnginePageInformation page,
+        KillerPdf.Engine.Documents.PdfPageBoxInformation boxes)
+    {
+        var crop = boxes.CropBox;
+        var media = boxes.MediaBox;
+        double left = Math.Max(crop.Left, media.Left), bottom = Math.Max(crop.Bottom, media.Bottom);
+        double right = Math.Min(crop.Right, media.Right), top = Math.Min(crop.Top, media.Top);
+        if (right <= left || top <= bottom)
+            (left, bottom, right, top) = (crop.Left, crop.Bottom, crop.Right, crop.Top);
+        // Preserve the page reader's recovery when the two box APIs select different fallbacks.
+        if (left != page.Left || bottom != page.Bottom || right - left != page.Width || top - bottom != page.Height)
+            return page;
+        float width = Coordinate(right) - Coordinate(left);
+        float height = Coordinate(top) - Coordinate(bottom);
+        return float.IsFinite(width) && float.IsFinite(height) && width > 0 && height > 0
+            ? page with { Width = width, Height = height } : page;
+    }
 }
 
 internal enum PdfRenderBackend { Engine }

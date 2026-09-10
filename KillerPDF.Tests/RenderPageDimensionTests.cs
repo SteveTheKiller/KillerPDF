@@ -31,7 +31,7 @@ public sealed class RenderPageDimensionTests
     [Theory]
     [InlineData(200.8, 301.6, 100, 150)]
     [InlineData(301.6, 200.8, 150, 100)]
-    [InlineData(200.000001, 301.999999, 100, 151)]
+    [InlineData(200.000001, 301.999999, 100, 150)]
     [InlineData(1, 1, 1, 1)]
     public void ScaledPagePreservesLegacyPixelDimensions(double width, double height,
         int expectedWidth, int expectedHeight)
