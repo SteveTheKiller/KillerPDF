@@ -4,14 +4,26 @@ namespace KillerPdf.Engine.Rendering;
 
 internal static class PdfImageAreaSampler
 {
+    internal readonly struct Row(int height, double center, double footprint)
+    {
+        internal double Top { get; } = Math.Max(0, center - footprint / 2);
+        internal double Bottom { get; } = Math.Min(height, center + footprint / 2);
+    }
+
     internal static uint Sample(byte[] samples, int width, int height, int components,
         double centerX, double centerY, double footprintWidth, double footprintHeight,
+        CancellationToken cancellationToken = default)
+        => Sample(samples, width, components, centerX, footprintWidth,
+            new Row(height, centerY, footprintHeight), cancellationToken);
+
+    internal static uint Sample(byte[] samples, int width, int components,
+        double centerX, double footprintWidth, Row row,
         CancellationToken cancellationToken = default)
     {
         double left = Math.Max(0, centerX - footprintWidth / 2);
         double right = Math.Min(width, centerX + footprintWidth / 2);
-        double top = Math.Max(0, centerY - footprintHeight / 2);
-        double bottom = Math.Min(height, centerY + footprintHeight / 2);
+        double top = row.Top;
+        double bottom = row.Bottom;
         double red = 0, green = 0, blue = 0;
         int first = (int)left, columns = (int)Math.Ceiling(right) - first;
         if (components == 3 && columns is > 0 and <= 3)

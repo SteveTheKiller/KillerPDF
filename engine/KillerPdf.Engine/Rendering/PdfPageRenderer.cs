@@ -4472,6 +4472,8 @@ public sealed partial class PdfPageRenderer
                 Point first = inverse.Apply(pageX, pageY);
                 double unitX = first.X;
                 double unitY = first.Y;
+                PdfImageAreaSampler.Row areaRow = areaSample && inverse.B == 0
+                    ? new(sourceHeight, (1 - unitY) * sourceHeight, footprintHeight) : default;
                 int directRowOffset = target.Offset(left, y);
                 // Step from the unclipped left edge so clipped rows sample identically.
                 for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
@@ -4481,9 +4483,9 @@ public sealed partial class PdfPageRenderer
                     int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
                     int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
                     int sourceOffset = sourceY * rowBytes + sourceX * components;
-                    uint rgb = areaSample ? PdfImageAreaSampler.Sample(samples, sourceWidth, sourceHeight,
-                        components, unitX * sourceWidth, (1 - unitY) * sourceHeight, footprintWidth, footprintHeight,
-                        cancellationToken)
+                    uint rgb = areaSample ? PdfImageAreaSampler.Sample(samples, sourceWidth,
+                        components, unitX * sourceWidth, footprintWidth, inverse.B == 0 ? areaRow
+                            : new(sourceHeight, (1 - unitY) * sourceHeight, footprintHeight), cancellationToken)
                         : directGray ? (uint)samples[sourceOffset] * 0x010101u
                         : (uint)samples[sourceOffset] << 16 | (uint)samples[sourceOffset + 1] << 8 | samples[sourceOffset + 2];
                     if (inkDirect)
