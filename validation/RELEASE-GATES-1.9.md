@@ -633,3 +633,19 @@ The largest difficult-corpus gaps remain balloon JPEG 2000 (1,148 versus 513 ms)
 Ghent ALL page 2 (653 versus 146 ms), and mipeng poster (975 versus 526 ms).
 Shared Altona's large technical page remains 1,131 versus 766 ms. These measured
 gaps guide the next work; the map repair does not complete the parity goal.
+
+A current Ghent page-2 CPU profile is retained as
+`parity-20260909-ghent/ghent-streaming.nettrace` and the matching speedscope and
+CPU summary files. Counting only CPU_TIME intervals after the first half gives
+8,300.264 ms sampled CPU time. Major exclusive costs include GC polling
+(1,118.433 ms), RenderForm (961.992 ms), SetInkPixel (885.296 ms), coverage
+painting (640.296 ms), and memory copying (529.526 ms). These samples identify
+where to investigate; they are not independent elapsed-time measurements.
+
+An unchanged-pixel shortcut in non-isolated CMYK group compositing was tested
+and removed. Two reversed-order pairs of 60 renders, excluding the first 30
+per process, produced baseline/experiment medians of 225.208/217.288 and
+217.227/220.130 ms. The first improvement reversed in the second pair.
+All 240 pixel hashes matched, with zero diagnostics. Evidence remains in
+`parity-20260909-ghent/unchanged-group*`; renderer source matches the validated
+large-content checkpoint. No runtime optimization was retained from this test.
