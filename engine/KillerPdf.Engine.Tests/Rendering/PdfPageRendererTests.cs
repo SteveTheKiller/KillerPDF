@@ -3956,11 +3956,17 @@ public sealed class PdfPageRendererTests
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(0.5)]
-    [InlineData(1)]
-    public void Render_CompositesNonIsolatedKnockoutGroupOpacity(double strokeOpacity)
+    [InlineData(0, false, 0.5)]
+    [InlineData(0.5, false, 0.5)]
+    [InlineData(1, false, 0.5)]
+    [InlineData(0, true, 0.5)]
+    [InlineData(1, true, 0.5)]
+    [InlineData(1, true, 1)]
+    public void Render_CompositesNonIsolatedKnockoutGroupOpacity(double strokeOpacity, bool masked, double opacity)
     {
+        PdfSoftMask? mask = masked ? new PdfSoftMask(new PdfFormXObject(10, 10,
+            new PdfContentStreamBuilder().SetOpacity(0.5).SetFillRgb(1, 1, 1)
+                .Rectangle(0, 0, 10, 10).Fill(), isolatedTransparencyGroup: true)) : null;
         var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
             .SetFillRgb(1, 0, 0)
             .Rectangle(0, 0, 7, 10)
@@ -3973,7 +3979,7 @@ public sealed class PdfPageRendererTests
                 .SetFillRgb(0, 1, 0)
                 .Rectangle(0, 0, 10, 10)
                 .Fill()
-                .SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5, strokeOpacity: strokeOpacity))
+                .SetGraphicsState(new PdfGraphicsState(fillOpacity: opacity, strokeOpacity: strokeOpacity, softMask: mask))
                 .DrawForm(form, 0, 0))
             .Build());
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
@@ -4002,8 +4008,46 @@ public sealed class PdfPageRendererTests
             0, new PdfRenderOptions(10, 10,
                 includeAnnotations: false, includeFormFields: false));
 
-        Assert.Equal([0, 128, 128, 255], Pixel(rendered, 1, 5));
-        Assert.Equal([128, 128, 0, 255], Pixel(rendered, 5, 5));
+        double weight = opacity * (masked ? 128 / 255d : 1);
+        byte painted = (byte)Math.Round(255 * weight);
+        byte backdrop = (byte)Math.Round(255 * (1 - weight));
+        Assert.Equal([0, backdrop, painted, 255], Pixel(rendered, 1, 5));
+        Assert.Equal([painted, backdrop, 0, 255], Pixel(rendered, 5, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Render_KnockoutGroupDoesNotCompositeItsBackdropTwice(bool masked)
+    {
+        PdfSoftMask? mask = masked ? new PdfSoftMask(new PdfFormXObject(10, 10,
+            new PdfContentStreamBuilder().SetOpacity(0.5).SetFillRgb(1, 1, 1)
+                .Rectangle(0, 0, 10, 10).Fill(), isolatedTransparencyGroup: true)) : null;
+        var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetOpacity(0.5).SetFillRgb(1, 0, 0).Rectangle(0, 0, 7, 10).Fill()
+            .SetFillRgb(0, 0, 1).Rectangle(3, 0, 7, 10).Fill(), knockoutTransparencyGroup: true);
+        var content = new PdfContentStreamBuilder().SetOpacity(0.5)
+            .SetFillRgb(0, 1, 0).Rectangle(0, 0, 10, 10).Fill()
+            .SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5, strokeOpacity: 0.5, softMask: mask))
+            .DrawForm(form, 0, 0);
+        PdfDocument document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+        double sourceAlpha = 0.5 * 0.5 * (masked ? 128 / 255d : 1);
+        double alpha = sourceAlpha + 128 / 255d * (1 - sourceAlpha);
+        byte paint = (byte)Math.Round(255 * sourceAlpha / alpha);
+        byte green = (byte)Math.Round(255 * (alpha - sourceAlpha) / alpha);
+        byte outputAlpha = (byte)Math.Round(255 * alpha);
+        byte[] left = Pixel(rendered, 1, 5), overlap = Pixel(rendered, 5, 5);
+        byte[] expectedLeft = [0, green, paint, outputAlpha];
+        byte[] expectedOverlap = [paint, green, 0, outputAlpha];
+        for (int channel = 0; channel < 4; channel++)
+        {
+            Assert.InRange(Math.Abs(left[channel] - expectedLeft[channel]), 0, 2);
+            Assert.InRange(Math.Abs(overlap[channel] - expectedOverlap[channel]), 0, 2);
+        }
         Assert.Empty(rendered.Diagnostics);
     }
 

@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,920 engine tests, 370 app tests, and the Release payload publish pass, including mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,927 engine tests, 370 app tests, and the Release payload publish pass, including knockout masks and backdrop removal, mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1219,3 +1219,25 @@ non-isolated groups. Overall parity remains open.
 Evidence is in `knockout-unequal-*` and `mesh-nested-probe/unequal-fixed`
 under the local benchmark root. The payload is
 `parity-20260909-ghent/payload-knockout-unequal`.
+
+### Knockout mask and backdrop checkpoint
+
+Non-isolated knockout groups now accept an outer soft mask. The mask applies
+once to the completed group, including when outer opacity is one. Group
+opacity is tracked independently of the initial backdrop, and the backdrop
+contribution is removed before outer compositing. This also corrects an
+existing double-backdrop error with partially transparent backgrounds.
+
+Three masked regressions failed before mask support; two additional masked
+and unmasked transparent-backdrop regressions failed before backdrop removal.
+All 3,927 engine tests and 370 app tests pass, and Release publish succeeds.
+All 674 corpus images are unchanged from the mesh-overlap checkpoint, with
+successful rows and unchanged dimensions. Eight published mask-fixture samples
+match their quarter-opacity controls; the restored knockout triangle was
+visually inspected. Its sample is RGB (32, 223, 0), previously (0, 255, 0).
+
+Evidence is in `knockout-mask-*`, `knockout-backdrop-*`, `knockout-mask-probe`,
+and `review-20260909/knockout-backdrop-*` in the local benchmark root. The
+payload is `parity-20260909-ghent/payload-knockout-backdrop`. Non-normal
+outer blends and nested knockout parents remain restricted. Overall
+rendering, performance, memory, and interactive parity remain open.

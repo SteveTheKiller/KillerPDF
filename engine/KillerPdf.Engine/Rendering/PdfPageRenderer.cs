@@ -1521,11 +1521,9 @@ public sealed partial class PdfPageRenderer
                 if (multipleKnockoutObjects
                     && (parentState.BlendMode is not (RendererBlendMode.Normal
                             or RendererBlendMode.Compatible)
-                        || parentState.GraphicsSoftMask is not null
                         || parentState.Knockout is not null))
                 {
                     string reason = parentState.Knockout is not null ? "nested knockout groups"
-                        : parentState.GraphicsSoftMask is not null ? "a soft mask"
                         : "a non-normal blend mode";
                     diagnostics.Add("Non-isolated transparency knockout-group rendering "
                         + $"with {reason} is not implemented.");
@@ -1533,7 +1531,7 @@ public sealed partial class PdfPageRenderer
                 }
                 if (multipleKnockoutObjects)
                 {
-                    if (parentState.FillAlpha == 1)
+                    if (parentState.FillAlpha == 1 && parentState.GraphicsSoftMask is null)
                     {
                         Process(instructions, formResources,
                             formState with
@@ -1553,12 +1551,13 @@ public sealed partial class PdfPageRenderer
                     RasterSurface nonisolatedGroupPixels = RasterSurface.Rent(GetRasterBounds(
                         formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY),
                         pixels.Ink is not null, pixels.BlendProfile);
-                    var groupKnockout = new KnockoutState(
-                        options.Width, GetRasterBounds(formState.Clips, formBounds,
-                            options.Width, options.Height, scaleX, scaleY), nonisolatedPagePixels);
                     try
                     {
                         nonisolatedGroupPixels.CopyFrom(nonisolatedPagePixels);
+                        nonisolatedGroupPixels.TrackGroupAlpha();
+                        var groupKnockout = new KnockoutState(
+                            options.Width, GetRasterBounds(formState.Clips, formBounds,
+                                options.Width, options.Height, scaleX, scaleY), nonisolatedGroupPixels);
                         pixels = nonisolatedGroupPixels;
                         Process(instructions, formResources,
                             formState with
@@ -1573,6 +1572,7 @@ public sealed partial class PdfPageRenderer
                         (int left, int top, int right, int bottom) = GetRasterBounds(
                             formState.Clips, formBounds, options.Width, options.Height,
                             scaleX, scaleY);
+                        parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
                         for (int y = top; y < bottom; y++)
                         {
                             cancellationToken.ThrowIfCancellationRequested();
@@ -1581,11 +1581,13 @@ public sealed partial class PdfPageRenderer
                                 int offset = (y * options.Width + x) * 4;
                                 if (!groupKnockout.WasTouched(offset)) continue;
                                 offset = nonisolatedGroupPixels.Offset(x, y);
+                                double alpha = nonisolatedGroupPixels.GroupAlpha![offset / 4] / 255d;
+                                if (alpha == 0) continue;
+                                Color source = RemoveGroupBackdrop(nonisolatedGroupPixels, offset,
+                                    nonisolatedPagePixels, nonisolatedPagePixels.Offset(x, y), alpha);
                                 SetPixel(nonisolatedPagePixels, options.Width, x, y,
-                                    nonisolatedGroupPixels.ReadColor(offset, nonisolatedPagePixels),
-                                    nonisolatedGroupPixels.Alpha(offset) / 255d
-                                        * parentState.FillAlpha,
-                                    parentState.BlendMode, null, null);
+                                    source, alpha * parentState.FillAlpha,
+                                    parentState.BlendMode, parentState.GraphicsSoftMask, null);
                             }
                         }
                     }
