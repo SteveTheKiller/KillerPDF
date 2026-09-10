@@ -1291,10 +1291,7 @@ public sealed partial class PdfPageRenderer
                         int offset = rowOffset + (x - left) * 4;
                         if (cover == 255)
                         {
-                            data[offset] = fillColor.Blue;
-                            data[offset + 1] = fillColor.Green;
-                            data[offset + 2] = fillColor.Red;
-                            data[offset + 3] = 255;
+                            Unsafe.WriteUnaligned(ref data[offset], packed);
                             if (groupAlpha is not null) groupAlpha[offset / 4] = 255;
                             continue;
                         }
@@ -1338,6 +1335,8 @@ public sealed partial class PdfPageRenderer
         int right, int lastRow, bool perPixelClip, bool directInk, uint ink,
         bool direct, byte[]? groupAlpha, byte[]? coverage, byte[]? opaqueBlend)
     {
+        uint directPacked = directColor.Blue | (uint)directColor.Green << 8
+            | (uint)directColor.Red << 16 | 0xFF000000u;
         for (int y = firstRow; y < lastRow; y++)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -1365,10 +1364,7 @@ public sealed partial class PdfPageRenderer
                     int offset = pixels.Offset(x, y);
                     if (cover == 255)
                     {
-                        pixels[offset] = directColor.Blue;
-                        pixels[offset + 1] = directColor.Green;
-                        pixels[offset + 2] = directColor.Red;
-                        pixels[offset + 3] = 255;
+                        Unsafe.WriteUnaligned(ref pixels.Data[offset], directPacked);
                         if (groupAlpha is not null) groupAlpha[offset / 4] = 255;
                         continue;
                     }
