@@ -8,6 +8,51 @@ namespace KillerPDF.Tests;
 public sealed class BackgroundRenderCacheTests
 {
     [Fact]
+    public async Task OverlappingWorkersKeepTheirSnapshotAfterDocumentReplacement()
+    {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
+        var cache = new PdfBackgroundRenderCache();
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<byte[]>[] workers = [];
+        try
+        {
+            File.WriteAllBytes(path, Document(100, 200));
+            using var baseline = PdfPageRenderSession.OpenEngineFirst(path, 128, 128);
+            byte[] expected = baseline.RenderPage(0, includeFormFields: false).Pixels;
+            var request = cache.Capture(path, 0);
+            int acquired = 0;
+            workers = Enumerable.Range(0, 2).Select(_ => Task.Run(async () =>
+            {
+                using var lease = request.Rent();
+                if (Interlocked.Increment(ref acquired) == 2) ready.TrySetResult();
+                await release.Task;
+                return lease.Render(0, 128, 128).Pixels;
+            })).ToArray();
+            await ready.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            cache.Clear();
+            File.WriteAllBytes(path, Document(200, 100));
+            var current = cache.Capture(path, 1);
+            using (var replacement = current.Rent())
+                Assert.Equal(128, replacement.Render(0, 128, 128).Width);
+            release.TrySetResult();
+            byte[][] rendered = await Task.WhenAll(workers);
+            Assert.Equal(expected, rendered[0]);
+            Assert.Equal(expected, rendered[1]);
+            Assert.NotSame(rendered[0], rendered[1]);
+            File.Delete(path);
+            using var reused = current.Rent();
+            Assert.Equal(128, reused.Render(0, 128, 128).Width);
+        }
+        finally
+        {
+            release.TrySetResult();
+            try { await Task.WhenAll(workers); }
+            finally { cache.Clear(); File.Delete(path); }
+        }
+    }
+
+    [Fact]
     public void ActiveLeaseIsExclusiveAndIdleLeaseReusesSnapshot()
     {
         WithFile((path, cache) =>

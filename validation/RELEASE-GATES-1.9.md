@@ -853,3 +853,10 @@ All 48 outputs match with no diagnostics. Measurements and the assembly hash
 are in `parity-20260909-ghent/background-reuse-summary.json`. This sequential
 boundary probe excludes concurrent task scheduling and WPF presentation;
 interactive and PDFium parity gates remain open.
+
+A coordinated two-worker regression now acquires separate leases, replaces
+the document while both workers are outstanding, then lets both render in
+parallel. Their original painted pixels remain identical and independently
+owned. Late returns leave the replacement document's idle session intact.
+All 363 app tests pass. This verifies the cache race without claiming UI
+scheduling or presentation coverage; no runtime code changed in this check.
