@@ -114,14 +114,39 @@ internal sealed class PdfIccLut : PdfIccTable
         int baseOffset = _gridOffset + baseCell * OutputChannels;
         int corners = 1 << InputChannels;
         int outputs = OutputChannels;
+        Span<double> cmykWeights = stackalloc double[16];
+        if (InputChannels == 4)
+        {
+            double low0 = 1 - fraction[0], low1 = 1 - fraction[1];
+            double low2 = 1 - fraction[2], low3 = 1 - fraction[3];
+            double high0 = fraction[0], high1 = fraction[1];
+            double high2 = fraction[2], high3 = fraction[3];
+            cmykWeights[0] = low0 * low1 * low2 * low3;
+            cmykWeights[1] = high0 * low1 * low2 * low3;
+            cmykWeights[2] = low0 * high1 * low2 * low3;
+            cmykWeights[3] = high0 * high1 * low2 * low3;
+            cmykWeights[4] = low0 * low1 * high2 * low3;
+            cmykWeights[5] = high0 * low1 * high2 * low3;
+            cmykWeights[6] = low0 * high1 * high2 * low3;
+            cmykWeights[7] = high0 * high1 * high2 * low3;
+            cmykWeights[8] = low0 * low1 * low2 * high3;
+            cmykWeights[9] = high0 * low1 * low2 * high3;
+            cmykWeights[10] = low0 * high1 * low2 * high3;
+            cmykWeights[11] = high0 * high1 * low2 * high3;
+            cmykWeights[12] = low0 * low1 * high2 * high3;
+            cmykWeights[13] = high0 * low1 * high2 * high3;
+            cmykWeights[14] = low0 * high1 * high2 * high3;
+            cmykWeights[15] = high0 * high1 * high2 * high3;
+        }
         for (int corner = 0; corner < corners; corner++)
         {
-            double weight = 1;
-            for (int channel = 0; channel < InputChannels; channel++)
-            {
-                bool upper = (corner & (1 << channel)) != 0;
-                weight *= upper ? fraction[channel] : 1 - fraction[channel];
-            }
+            double weight = InputChannels == 4 ? cmykWeights[corner] : 1;
+            if (InputChannels != 4)
+                for (int channel = 0; channel < InputChannels; channel++)
+                {
+                    bool upper = (corner & (1 << channel)) != 0;
+                    weight *= upper ? fraction[channel] : 1 - fraction[channel];
+                }
             if (weight == 0) continue;
             int offset = baseOffset + _cornerOffsets[corner];
             for (int channel = 0; channel < outputs; channel++)
