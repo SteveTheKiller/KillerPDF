@@ -649,3 +649,14 @@ per process, produced baseline/experiment medians of 225.208/217.288 and
 All 240 pixel hashes matched, with zero diagnostics. Evidence remains in
 `parity-20260909-ghent/unchanged-group*`; renderer source matches the validated
 large-content checkpoint. No runtime optimization was retained from this test.
+
+A separate `AllocationProfile.csproj` probe measures about 50.6 MB of managed
+allocation during each steady Ghent page-2 render, excluding document opening
+and renderer construction. Its last ten renders trigger six generation-2
+collections; all twenty images retain the same hash and zero diagnostics.
+`ghent-allocations.nettrace` and `ghent-allocation-types.json` provide a separate
+allocation-tick sample over thirty fresh-document renders. Byte arrays dominate
+the sampled allocation weights, followed by renderer Point arrays and double
+arrays. The type sample includes document opening and is statistical, so its
+weights must not be treated as exact render-only byte totals. Allocation call
+stacks are the next investigation target before choosing a buffer or cache change.
