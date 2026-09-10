@@ -65,6 +65,7 @@ internal static class PdfImageAreaSampler
     internal static uint Sample(byte[] samples, int width, int components,
         Column column, Row row, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         double left = column.Left;
         double right = column.Right;
         double top = row.Top;
@@ -79,7 +80,6 @@ internal static class PdfImageAreaSampler
             double w2 = column.ThirdWeight;
             for (int y = row.First; y < row.End; y++)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 double vertical = row.Weight(y);
                 int offset = (y * width + first) * 3;
                 AddRgb(samples, offset, vertical * w0, ref red, ref green, ref blue);
@@ -91,7 +91,6 @@ internal static class PdfImageAreaSampler
         {
             for (int y = row.First; y < row.End; y++)
             {
-                cancellationToken.ThrowIfCancellationRequested();
                 double vertical = row.Weight(y);
                 for (int x = (int)left; x < (int)Math.Ceiling(right); x++)
                 {
