@@ -1198,3 +1198,24 @@ result. Further allocation and performance work remains open.
 Evidence is in `mesh-overlap-*`, `mesh-overlap-probe`, `mesh-nested-probe`,
 and `review-20260909/mesh-overlap-*` under the local benchmark root. The
 payload is `parity-20260909-ghent/payload-mesh-overlap`.
+
+### Unequal outer knockout opacity checkpoint
+
+Removed the rejection of non-isolated knockout groups solely because outer
+fill and stroke opacity differ. The completed group already composites with
+nonstroking opacity, as required by PDF 32000-1:2008 clause 11.6.4.4.
+The existing group test now covers outer stroke opacity 0, 0.5, and 1 with
+fill opacity 0.5. Both unequal cases failed before the correction.
+
+All 3,922 engine tests and 370 app tests pass; Release publish succeeds.
+All eight pages of the nested fixture with unequal outer opacity now match
+the equal-opacity control byte for byte. The non-isolated knockout samples
+retain RGB (64, 192, 0) instead of the previously blank green backdrop.
+This checkpoint uses focused fixture validation; the prior 674-page corpus
+comparison belongs to the mesh-overlap checkpoint. Non-normal outer blends,
+outer soft masks, and nested knockout parents remain restricted for these
+non-isolated groups. Overall parity remains open.
+
+Evidence is in `knockout-unequal-*` and `mesh-nested-probe/unequal-fixed`
+under the local benchmark root. The payload is
+`parity-20260909-ghent/payload-knockout-unequal`.

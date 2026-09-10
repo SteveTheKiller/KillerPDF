@@ -3955,8 +3955,11 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
-    [Fact]
-    public void Render_CompositesNonIsolatedKnockoutGroupOpacity()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(0.5)]
+    [InlineData(1)]
+    public void Render_CompositesNonIsolatedKnockoutGroupOpacity(double strokeOpacity)
     {
         var form = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
             .SetFillRgb(1, 0, 0)
@@ -3970,7 +3973,7 @@ public sealed class PdfPageRendererTests
                 .SetFillRgb(0, 1, 0)
                 .Rectangle(0, 0, 10, 10)
                 .Fill()
-                .SetOpacity(0.5)
+                .SetGraphicsState(new PdfGraphicsState(fillOpacity: 0.5, strokeOpacity: strokeOpacity))
                 .DrawForm(form, 0, 0))
             .Build());
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
