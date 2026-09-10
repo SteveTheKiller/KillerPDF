@@ -12,6 +12,63 @@ namespace KillerPdf.Engine.Tests.Rendering;
 public sealed class PdfIccProfileTransformTests
 {
     [Theory]
+    [InlineData(false, false, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    [InlineData(false, false, false)]
+    public void OverprintUsesOutputIntentWithoutReplacingExplicitPageSpace(bool form, bool rgbPage, bool overprint)
+    {
+        PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+        KeyValuePair<PdfName, PdfObject> Entry(string key, PdfObject value) => new(Name(key), value);
+        string foreground = "/OP gs 0 0 0 0 k 0 0 1 1 re f";
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(2, 1,
+            Encoding.ASCII.GetBytes("1 0 0 0 k 0 0 1 1 re f " + (form ? "/F Do" : foreground))).Build());
+        var root = (PdfIndirectReference)source.Trailer[Name("Root")];
+        var catalog = (PdfDictionary)source.Resolve(root);
+        var pageEntry = PdfPageTree.Read(source).Pages[0];
+        var page = (PdfDictionary)source.Resolve(pageEntry.Reference);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        byte[] lut = Lut(true, true, false, 4);
+        for (int cell = 0; cell < 16; cell++)
+            BinaryPrimitives.WriteUInt16BigEndian(lut.AsSpan(68 + cell * 6),
+                (ushort)((cell & 8) == 0 ? 65280 : 0));
+        var profile = update.AddObject(new PdfStream(new PdfDictionary([Entry("N", new PdfInteger(4))]),
+            Profile("CMYK", "Lab ", ("A2B0", lut))));
+        update.ReplaceObject(root.ObjectNumber, new PdfDictionary(catalog.Append(Entry("OutputIntents",
+            new PdfArray([new PdfDictionary([Entry("S", Name("GTS_PDFX")), Entry("DestOutputProfile", profile)])])))));
+        var states = new PdfDictionary([Entry("ExtGState", new PdfDictionary([Entry("OP", new PdfDictionary([
+            Entry("op", new PdfBoolean(overprint)), Entry("OPM", new PdfInteger(1))]))]))]);
+        PdfDictionary resources = states;
+        if (form)
+        {
+            var xobject = update.AddObject(new PdfStream(new PdfDictionary([Entry("Subtype", Name("Form")),
+                Entry("BBox", new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(2), new PdfInteger(1)])),
+                Entry("Resources", states)]), Encoding.ASCII.GetBytes(foreground)));
+            resources = new PdfDictionary([Entry("XObject", new PdfDictionary([Entry("F", xobject)]))]);
+        }
+        var entries = page.Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources));
+        if (rgbPage) entries = entries.Append(Entry("Group", new PdfDictionary([
+            Entry("S", Name("Transparency")), Entry("CS", Name("DeviceRGB"))])));
+        update.ReplaceObject(pageEntry.Reference.ObjectNumber, new PdfDictionary(entries));
+        var renderer = new PdfPageRenderer(PdfDocument.Open(update.Build()));
+        foreach (bool transparent in new[] { false, true })
+        {
+            var options = new PdfRenderOptions(2, 1, transparentBackground: transparent) { CacheResult = false };
+            byte expected = overprint && !rgbPage ? (byte)0 : (byte)255;
+            var rendered = renderer.Render(0, options);
+            byte[] pixels = rendered.Pixels.ToArray();
+            Assert.Equal(new byte[] { expected, expected, expected, 255 }, pixels[..4]);
+            Assert.Equal(transparent ? (byte)0 : (byte)255, pixels[7]);
+            Assert.Empty(rendered.Diagnostics);
+            byte[] destination = new byte[pixels.Length];
+            Assert.Empty(renderer.RenderInto(0, options, destination));
+            Assert.Equal(pixels, destination);
+            Assert.Equal(pixels[..4], renderer.RenderRegion(0, options, 0, 0, 1, 1).Pixels.ToArray());
+        }
+    }
+
+    [Theory]
     [InlineData("Perceptual", 0)]
     [InlineData("Saturation", 0)]
     [InlineData("Perceptual", 1)]

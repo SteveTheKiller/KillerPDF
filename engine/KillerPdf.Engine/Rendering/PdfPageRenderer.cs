@@ -120,7 +120,8 @@ public sealed partial class PdfPageRenderer
 
     private PdfRenderedPage RenderUncached(int pageIndex, PdfRenderOptions options,
         CancellationToken cancellationToken, byte[]? destination = null,
-        (int Left, int Top, int Right, int Bottom)? region = null)
+        (int Left, int Top, int Right, int Bottom)? region = null,
+        PdfColorTransform? outputProfile = null)
     {
         byte background = options.TransparentBackground ? (byte)0 : (byte)255;
         var bounds = region ?? (Left: 0, Top: 0, Right: options.Width, Bottom: options.Height);
@@ -164,7 +165,11 @@ public sealed partial class PdfPageRenderer
         IReadOnlySet<int> hiddenOptionalContentGroups = _hiddenOptionalContentGroups;
         PdfDictionary pageResources = _pageResources[pageIndex];
         PdfColorTransform? pageProfile = ReadGroupProfile(_tree.Pages[pageIndex].Dictionary, pageResources, diagnostics);
-        if (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false))
+        bool probeOutputIntent = outputProfile is null
+            && !_tree.Pages[pageIndex].Dictionary.TryGetValue(Name("Group"), out _);
+        if (outputProfile is not null)
+            pixels.EnableInk(Color.White, profile: outputProfile);
+        else if (CmykGroup(_tree.Pages[pageIndex].Dictionary, pageResources, false))
             pixels.EnableInk(Color.White, profile: pageProfile);
         else if (pageProfile is { Components: 1 or 3 }) pixels.EnableRgb(Color.White, pageProfile);
         RasterSurface pageSurface = pixels;
@@ -189,10 +194,25 @@ public sealed partial class PdfPageRenderer
             pixels.ConvertToBgra(cancellationToken);
             return new PdfRenderedPage(rasterWidth, rasterHeight, pixels.Data, diagnostics);
         }
+        catch (OutputOverprintRequiredException required)
+        {
+            outputProfile = required.Profile;
+        }
         finally
         {
             _rowParallelism = previousParallelism;
             pageSurface.ReleaseInk();
+        }
+        // Release the first pass's surfaces before replaying into the same output buffer.
+        // A supplied profile disables probing, so a page can restart only once.
+        return RenderUncached(pageIndex, options, cancellationToken, pageSurface.Data, region, outputProfile);
+
+        void RequireOutputIntent(GraphicsState state)
+        {
+            if (!probeOutputIntent || !(state.FillOverprint || state.StrokeOverprint)) return;
+            probeOutputIntent = false;
+            if (OutputProfile(null) is { } profile)
+                throw new OutputOverprintRequiredException(profile);
         }
 
         void Process(IEnumerable<PdfContentInstruction> instructions,
@@ -487,6 +507,7 @@ public sealed partial class PdfPageRenderer
                     {
                         state = ApplyGraphicsStrokeSettings(state, strokeSettings!, diagnostics);
                         state = ApplyOverprintSettings(state, strokeSettings!);
+                        RequireOutputIntent(state);
                         if (strokeSettings!.TryGetValue(Name("RI"), out PdfObject? intentValue) && Resolve(intentValue) is PdfName graphicsIntent)
                             state = ApplyRenderingIntent(state, ReadRenderingIntent(graphicsIntent), pixels, diagnostics);
                         state = state with
@@ -848,6 +869,7 @@ public sealed partial class PdfPageRenderer
                             && Resolve(patternAlphaShape) is PdfBoolean { Value: true },
                         BlendMode = blendMode ?? RendererBlendMode.Normal
                     };
+                    RequireOutputIntent(contentState);
                     if (parameters.TryGetValue(Name("RI"), out PdfObject? intent)
                         && Resolve(intent) is PdfName intentName)
                         contentState = ApplyRenderingIntent(contentState, ReadRenderingIntent(intentName), pixels, diagnostics);

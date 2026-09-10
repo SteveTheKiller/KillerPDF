@@ -4,6 +4,11 @@ namespace KillerPdf.Engine.Rendering;
 
 public sealed partial class PdfPageRenderer
 {
+    private sealed class OutputOverprintRequiredException(PdfColorTransform profile) : Exception
+    {
+        internal PdfColorTransform Profile { get; } = profile;
+    }
+
     private GraphicsState RebindNamedColors(GraphicsState state, RasterSurface destination)
     {
         if (state.FillColorSpace is { } fill && (fill.HasProcessColorants || fill.HasIccSource))
