@@ -5451,15 +5451,18 @@ public sealed partial class PdfPageRenderer
         PdfGlyphOutline outline)
     {
         var paths = new List<Point[]>(outline.Contours.Count);
+        var path = new List<Point>();
         foreach (PdfGlyphContour contour in outline.Contours)
         {
+            path.Clear();
             IReadOnlyList<PdfGlyphPoint> points = contour.Points;
             if (points.Count == 0) continue;
             PdfGlyphPoint first = points[0], last = points[^1];
             if (points.Any(point => point.IsCubicControl))
             {
                 if (!first.OnCurve) continue;
-                var cubicPath = new List<Point> { new(first.X, first.Y) };
+                var cubicPath = path;
+                cubicPath.Add(new(first.X, first.Y));
                 bool valid = true;
                 for (int cubicIndex = 1; cubicIndex < points.Count;)
                 {
@@ -5512,7 +5515,7 @@ public sealed partial class PdfPageRenderer
                 index = 0;
                 consumed = 0;
             }
-            var path = new List<Point> { new(start.X, start.Y) };
+            path.Add(new(start.X, start.Y));
             PdfGlyphPoint current = start;
             while (consumed < points.Count)
             {
