@@ -1518,15 +1518,10 @@ public sealed partial class PdfPageRenderer
                     && Resolve(knockoutValue) is PdfBoolean { Value: true };
                 bool multipleKnockoutObjects = knockout && !isolated
                     && instructions.Count(IsPaintingOperation) > 1;
-                if (multipleKnockoutObjects && parentState.Knockout is not null)
-                {
-                    diagnostics.Add("Non-isolated transparency knockout-group rendering "
-                        + "with nested knockout groups is not implemented.");
-                    return;
-                }
                 if (multipleKnockoutObjects)
                 {
                     if (parentState.FillAlpha == 1 && parentState.GraphicsSoftMask is null
+                        && parentState.Knockout is null
                         && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible)
                     {
                         Process(instructions, formResources,
@@ -1550,6 +1545,7 @@ public sealed partial class PdfPageRenderer
                     try
                     {
                         nonisolatedGroupPixels.CopyFrom(nonisolatedPagePixels);
+                        parentState.Knockout?.CopyBackdropTo(nonisolatedGroupPixels, cancellationToken);
                         nonisolatedGroupPixels.TrackGroupAlpha();
                         var groupKnockout = new KnockoutState(
                             options.Width, GetRasterBounds(formState.Clips, formBounds,
@@ -1579,6 +1575,7 @@ public sealed partial class PdfPageRenderer
                                 offset = nonisolatedGroupPixels.Offset(x, y);
                                 double alpha = nonisolatedGroupPixels.GroupAlpha![offset / 4] / 255d;
                                 if (alpha == 0) continue;
+                                parentState.Knockout?.PreparePixel(nonisolatedPagePixels, x, y);
                                 Color source = RemoveGroupBackdrop(nonisolatedGroupPixels, offset,
                                     nonisolatedPagePixels, nonisolatedPagePixels.Offset(x, y), alpha);
                                 SetPixel(nonisolatedPagePixels, options.Width, x, y,
@@ -6047,6 +6044,22 @@ public sealed partial class PdfPageRenderer
                     _backdropGroupAlpha[pixel] = target.GroupAlpha![offset / 4];
             }
             _objects[pixel] = _currentObject;
+            RestorePixel(target, x, y);
+        }
+
+        internal void CopyBackdropTo(RasterSurface target, CancellationToken cancellationToken)
+        {
+            for (int y = target.Top; y < target.Bottom; y++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                for (int x = target.Left; x < target.Right; x++) RestorePixel(target, x, y);
+            }
+        }
+
+        private void RestorePixel(RasterSurface target, int x, int y)
+        {
+            int offset = target.Offset(x, y);
+            int pixel = (y - _top) * _width + x - _left;
             if (target.GroupAlpha is not null)
                 target.GroupAlpha[offset / 4] = _backdropGroupAlpha?[pixel] ?? 0;
             if (_backdrop is null)

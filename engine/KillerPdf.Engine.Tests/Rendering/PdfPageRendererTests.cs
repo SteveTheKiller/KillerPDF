@@ -4075,6 +4075,37 @@ public sealed class PdfPageRendererTests
         Assert.Empty(rendered.Diagnostics);
     }
 
+    [Theory]
+    [InlineData(false, 0.5)]
+    [InlineData(false, 1)]
+    [InlineData(true, 0.5)]
+    [InlineData(true, 1)]
+    public void Render_NestedKnockoutUsesInitialParentBackdrop(bool isolated, double opacity)
+    {
+        var child = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetOpacity(0.5).SetFillRgb(1, 0, 0).Rectangle(0, 0, 7, 7).Fill()
+            .SetFillRgb(0, 0, 1).Rectangle(3, 0, 7, 7).Fill(), knockoutTransparencyGroup: true);
+        var parent = new PdfFormXObject(10, 10, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 1, 0).Rectangle(0, 0, 10, 10).Fill()
+            .SetOpacity(opacity).DrawForm(child, 0, 0),
+            isolatedTransparencyGroup: isolated, knockoutTransparencyGroup: true);
+        var content = new PdfContentStreamBuilder()
+            .SetFillRgb(0, 1, 0).Rectangle(0, 0, 10, 10).Fill().DrawForm(parent, 0, 0);
+        var document = PdfDocument.Open(new PdfDocumentBuilder().AddPage(10, 10, content).Build());
+        var rendered = new PdfPageRenderer(document).Render(0,
+            new PdfRenderOptions(10, 10, includeAnnotations: false, includeFormFields: false));
+        int painted = (int)Math.Round(128 * opacity);
+        byte[] left = Pixel(rendered, 1, 5), overlap = Pixel(rendered, 5, 5);
+        Assert.Equal(0, left[0]);
+        Assert.Equal(0, overlap[2]);
+        Assert.InRange(Math.Abs(left[2] - painted), 0, 1);
+        Assert.InRange(Math.Abs(overlap[0] - painted), 0, 1);
+        Assert.InRange(Math.Abs(left[1] - (255 - painted)), 0, 1);
+        Assert.InRange(Math.Abs(overlap[1] - (255 - painted)), 0, 1);
+        Assert.Equal([0, 255, 255, 255], Pixel(rendered, 5, 1));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Fact]
     public void Render_SeparatesWidgetAppearanceInclusionFromPageContent()
     {

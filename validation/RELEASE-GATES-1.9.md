@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,931 engine tests, 370 app tests, and the Release payload publish pass, including knockout blends, masks and backdrop removal, mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 9: 3,935 engine tests, 370 app tests, and the Release payload publish pass, including nested knockout groups, blends, masks and backdrop removal, mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1265,3 +1265,28 @@ Evidence is in `knockout-blend-*`, `knockout-blend-probe`, and
 `review-20260909/knockout-blend-*` under the local benchmark root. The
 payload is `parity-20260909-ghent/payload-knockout-blend`. Nested knockout
 parents remain restricted; overall parity remains open.
+
+### Nested knockout backdrop checkpoint
+
+Non-isolated knockout children now render within knockout parents. The child
+copies the parent's initial backdrop into its bounded surface without marking
+the parent as painted. Only pixels contributed by the completed child prepare
+the parent's backdrop for compositing. This preserves earlier parent content
+outside the child's painted area and avoids using that content as the child's
+initial backdrop. The backdrop copy checks cancellation by row and reuses the
+existing child surface instead of allocating an additional surface.
+
+Four regressions cover isolated and non-isolated parents with half and full
+child opacity, including untouched parent pixels. All four failed before the
+fix. All 3,935 engine tests and 370 app tests pass; Release publish succeeds.
+All 674 corpus images remain unchanged from the knockout-blend checkpoint,
+with successful rows and unchanged dimensions. The four-page published fixture
+now displays its child meshes, previously skipped over a yellow parent fill.
+Single and duplicate samples match: RGB (128, 128, 0) for non-isolated parents
+and (128, 127, 0) for isolated parents. The restored fixture was visually inspected.
+
+Evidence is in `nested-knockout-*`, `nested-knockout-probe`, and
+`review-20260909/nested-knockout-*` under the local benchmark root. The
+payload is `parity-20260909-ghent/payload-nested-knockout`. This closes the
+explicit nested-group rejection exercised here; it does not establish full
+transparency, visual, performance, memory, or interactive parity.
