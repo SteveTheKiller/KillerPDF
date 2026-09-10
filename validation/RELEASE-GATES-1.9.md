@@ -845,3 +845,11 @@ one-idle-session retention, and cancellation. The payload and build log are
 `background-reuse-publish.log`. Background interactive speed, screen
 presentation, and working-set measurements remain open; the earlier primary
 rendering timings do not prove those gates.
+
+The published background lease boundary takes 254.567/75.978/76.413/253.301 ms
+in a fresh/reused/reused/fresh balloon-page comparison. Each run cycles three
+continuous-style width/height limits and returns its lease after every render.
+All 48 outputs match with no diagnostics. Measurements and the assembly hash
+are in `parity-20260909-ghent/background-reuse-summary.json`. This sequential
+boundary probe excludes concurrent task scheduling and WPF presentation;
+interactive and PDFium parity gates remain open.
