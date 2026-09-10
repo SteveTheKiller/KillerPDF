@@ -303,7 +303,8 @@ public sealed class RenderBoundaryTests
         string boundary = File.ReadAllText(
             Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
 
-        Assert.Equal(3, Count(viewer, "PdfPageRenderSession.OpenEngineFirst("));
+        Assert.DoesNotContain("PdfPageRenderSession.OpenEngineFirst(", viewer, StringComparison.Ordinal);
+        Assert.Equal(3, Count(viewer, "renderRequest.Rent(cts.Token)"));
         Assert.Equal(1, Count(viewer, "_primaryRenderSession.Render("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", viewer,
             StringComparison.Ordinal);
@@ -335,7 +336,10 @@ public sealed class RenderBoundaryTests
         Assert.Contains("RenderBasePage(pages[i], ct)", ocr, StringComparison.Ordinal);
         Assert.Contains("RenderBasePage(pageIdx, ct)", ocr, StringComparison.Ordinal);
         Assert.Equal(2, Count(ocr, "RenderBasePage(i, ct)"));
-        Assert.Equal(3, Count(viewer, "cancellationToken: cts.Token"));
+        Assert.Equal(3, Count(viewer, "renderRequest.Rent(cts.Token)"));
+        Assert.Contains("renderSession.Render(i, renderW, renderW * 2, cts.Token)", viewer);
+        Assert.Contains("renderSession.Render(p, hiW, hiW * 2, cts.Token)", viewer);
+        Assert.Contains("renderSession.Render(i, secondaryMax, secondaryMax, cts.Token)", viewer);
     }
 
     [Fact]

@@ -531,9 +531,10 @@ namespace KillerPDF.Controls
             var rotations = new Dictionary<int, int>(_pageRotations);
 
             var session = _active;
+            var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0);
             await System.Threading.Tasks.Task.Run(() =>
             {
-                PdfPageRenderSession? renderSession = null;
+                PdfBackgroundRenderCache.Lease? renderSession = null;
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                 try
                 {
@@ -555,10 +556,8 @@ namespace KillerPDF.Controls
                             continue;
                         }
 
-                        renderSession ??= PdfPageRenderSession.OpenEngineFirst(
-                            currentFile, renderW, renderW * 2);
-                        PdfRenderedPage rendered = renderSession.RenderPage(i,
-                            includeFormFields: false, cancellationToken: cts.Token);
+                        renderSession ??= renderRequest.Rent(cts.Token);
+                        PdfRenderedPage rendered = renderSession.Render(i, renderW, renderW * 2, cts.Token);
                         int w = rendered.Width;
                         int h = rendered.Height;
                         byte[] raw = rendered.Pixels;
@@ -780,19 +779,18 @@ namespace KillerPDF.Controls
 
             string currentFile = _currentFile;
             var rotations = new Dictionary<int, int>(_pageRotations);
+            var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0);
             _ = System.Threading.Tasks.Task.Run(() =>
             {
-                PdfPageRenderSession? renderSession = null;
+                PdfBackgroundRenderCache.Lease? renderSession = null;
                 ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                 try
                 {
                     foreach (int p in work)
                     {
                         if (cts.IsCancellationRequested) return;
-                        renderSession ??= PdfPageRenderSession.OpenEngineFirst(
-                            currentFile, hiW, hiW * 2);
-                        PdfRenderedPage rendered = renderSession.RenderPage(p,
-                            includeFormFields: false, cancellationToken: cts.Token);
+                        renderSession ??= renderRequest.Rent(cts.Token);
+                        PdfRenderedPage rendered = renderSession.Render(p, hiW, hiW * 2, cts.Token);
                         int w = rendered.Width, h = rendered.Height;
                         byte[] raw = rendered.Pixels;
                         if (w <= 0 || h <= 0 || raw is null) continue;
@@ -1147,9 +1145,10 @@ namespace KillerPDF.Controls
                 // tile bitmap whose baked logical geometry follows the primary page cannot collide
                 // with a primary bitmap rendered at the same pixel budget.
                 int tileBucket = -secondaryMax;
+                var renderRequest = _backgroundRenderCache.Capture(currentFile, session?.RenderRevision ?? 0);
                 await System.Threading.Tasks.Task.Run(() =>
                 {
-                    PdfPageRenderSession? renderSession = null;
+                    PdfBackgroundRenderCache.Lease? renderSession = null;
                     ContentDoc? contentDoc = null;   // opened lazily by ImageRectsFor on the first uncached page
                     try
                     {
@@ -1182,10 +1181,8 @@ namespace KillerPDF.Controls
                             // tile, which read as "the grid's last column never refreshed".
                             try
                             {
-                                renderSession ??= PdfPageRenderSession.OpenEngineFirst(
-                                    currentFile, secondaryMax, secondaryMax);
-                                PdfRenderedPage rendered = renderSession.RenderPage(i,
-                                    includeFormFields: false, cancellationToken: cts.Token);
+                                renderSession ??= renderRequest.Rent(cts.Token);
+                                PdfRenderedPage rendered = renderSession.Render(i, secondaryMax, secondaryMax, cts.Token);
                                 int w = rendered.Width;
                                 int h = rendered.Height;
                                 byte[] rawBytes = rendered.Pixels;
@@ -2081,6 +2078,7 @@ namespace KillerPDF.Controls
         {
             if (_viewMode == mode && !force) return;
             _primaryRenderSession.Clear();
+            _backgroundRenderCache.Clear();
             _viewMode = mode;
             _renderedPrimaryPage = -1;   // spread/layout changes with the mode; force the next render
             _gridScrollToPage = -1;

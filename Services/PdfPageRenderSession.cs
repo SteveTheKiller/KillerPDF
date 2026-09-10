@@ -130,12 +130,12 @@ internal sealed class PdfPageRenderSession : IDisposable
     }
 
     internal PdfRenderedPage RenderFittedPage(int pageIndex, int maximumWidth, int maximumHeight,
-        bool includeFormFields = false)
+        bool includeFormFields = false, CancellationToken cancellationToken = default)
     {
         if (maximumWidth <= 0) throw new ArgumentOutOfRangeException(nameof(maximumWidth));
         if (maximumHeight <= 0) throw new ArgumentOutOfRangeException(nameof(maximumHeight));
         return RenderOwnedPage(Renderer, pageIndex,
-            CreateRenderOptions(pageIndex, false, true, includeFormFields, maximumWidth, maximumHeight), default);
+            CreateRenderOptions(pageIndex, false, true, includeFormFields, maximumWidth, maximumHeight), cancellationToken);
     }
 
     private EngineRenderOptions CreateRenderOptions(int pageIndex, bool transparentBackground,
@@ -233,6 +233,85 @@ internal sealed class PdfPrimaryRenderSession
         _session?.Dispose();
         _session = null;
         _path = null;
+    }
+}
+
+// A task exclusively owns its lease. Only one idle session is retained per pane.
+internal sealed class PdfBackgroundRenderCache
+{
+    private readonly object _sync = new();
+    private Request? _current;
+    private PdfPageRenderSession? _idle;
+
+    internal Request Capture(string path, long revision)
+    {
+        lock (_sync)
+        {
+            if (_current is not null && _current.Path == path && _current.Revision == revision)
+                return _current;
+            _idle?.Dispose();
+            _idle = null;
+            return _current = new Request(this, path, revision);
+        }
+    }
+
+    internal void Clear()
+    {
+        lock (_sync)
+        {
+            _current = null;
+            _idle?.Dispose();
+            _idle = null;
+        }
+    }
+
+    internal sealed class Request(PdfBackgroundRenderCache owner, string path, long revision)
+    {
+        internal string Path { get; } = path;
+        internal long Revision { get; } = revision;
+
+        internal Lease Rent(CancellationToken cancellationToken = default)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfPageRenderSession? session = null;
+            lock (owner._sync)
+            {
+                if (ReferenceEquals(owner._current, this))
+                {
+                    session = owner._idle;
+                    owner._idle = null;
+                }
+            }
+            // Opening and rendering never hold the cache lock or wait on the UI thread.
+            session ??= PdfPageRenderSession.OpenEngineFirst(Path, 1, 1);
+            return new Lease(owner, this, session);
+        }
+    }
+
+    internal sealed class Lease(PdfBackgroundRenderCache owner, Request request,
+        PdfPageRenderSession session) : IDisposable
+    {
+        private PdfPageRenderSession? _session = session;
+
+        internal PdfRenderedPage Render(int pageIndex, int maximumWidth, int maximumHeight,
+            CancellationToken cancellationToken = default) =>
+            (_session ?? throw new ObjectDisposedException(nameof(Lease))).RenderFittedPage(
+                pageIndex, maximumWidth, maximumHeight, cancellationToken: cancellationToken);
+
+        public void Dispose()
+        {
+            PdfPageRenderSession? released = Interlocked.Exchange(ref _session, null);
+            if (released is null) return;
+            lock (owner._sync)
+            {
+                if (ReferenceEquals(owner._current, request) && owner._idle is null)
+                {
+                    owner._idle = released;
+                    return;
+                }
+            }
+            released.Dispose();
+        }
     }
 }
 

@@ -828,3 +828,20 @@ session through the published assembly, including the application font resolver
 and render parallelism. It does not measure WPF presentation or compare with
 PDFium. The measured assemblies and limits are recorded in
 `parity-20260909-ghent/app-reuse-summary.json`.
+
+Continuous base rendering, continuous zoom sharpening, and secondary tiles now
+reuse sessions through exclusive task leases. Each pane retains at most one
+idle background session; overlapping tasks retain separate active sessions.
+Requests capture the document path and revision on the UI thread. Cache clears
+invalidate outstanding requests, and late returns from those requests are
+disposed instead of becoming the current cached session. Opening and rendering
+never hold the cache lock. Cancellation reaches both lease acquisition and
+the engine render operation.
+
+All 362 app tests and the Release payload publish pass. Six new cases cover
+exclusive ownership, idle reuse, late requests and returns after invalidation,
+one-idle-session retention, and cancellation. The payload and build log are
+`parity-20260909-ghent/payload-background-reuse` and
+`background-reuse-publish.log`. Background interactive speed, screen
+presentation, and working-set measurements remain open; the earlier primary
+rendering timings do not prove those gates.

@@ -38,7 +38,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Built the JPEG 2000 decoder from vendored CoreJ2K sources instead of a package reference.
 - Reduced rendering memory use through direct page storage, released sessions, a single reusable encoding buffer, direct PNG output, and runtime memory conservation.
 - Faster soft masks, compositing, and scanned pages with unchanged pixels, and large pages split their big fills and image paints across a few threads.
-- Reuse decoded page data during primary-page zooming, with invalidation after document changes and cache flushes.
+- Reuse decoded page data during zooming and background page rendering, with invalidation after document changes and cache flushes.
 - Click the footer page dimensions to cycle through pixel, inch, millimeter, and point dimensions (#364).
 - Transform and image export DPI previews show the output scale (#365).
 

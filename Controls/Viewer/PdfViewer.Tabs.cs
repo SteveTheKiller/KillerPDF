@@ -390,6 +390,7 @@ namespace KillerPDF.Controls
         private void FlushAllRenderCaches()
         {
             _primaryRenderSession.Clear();
+            _backgroundRenderCache.Clear();
             foreach (var s in _renderLru) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); }
             // THIS pane's rect cache - the bare call, NOT `Viewer.FlushImageRectCache()`, which
             // hardcodes pane A and leaves pane B's night-mode carve-out cache serving rects from
@@ -513,6 +514,7 @@ namespace KillerPDF.Controls
         internal void FlushOwnRenderCaches()
         {
             _primaryRenderSession.Clear();
+            _backgroundRenderCache.Clear();
             foreach (var s in _sessions) { s.RenderCache.Clear(); s.RenderCacheSize.Clear(); }
             FlushImageRectCache();
         }

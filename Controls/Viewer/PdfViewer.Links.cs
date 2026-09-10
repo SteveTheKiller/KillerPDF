@@ -253,6 +253,7 @@ namespace KillerPDF.Controls
 
         private PdfEngineDocumentSession? _engineDocumentSession;
         private readonly PdfPrimaryRenderSession _primaryRenderSession = new();
+        private readonly PdfBackgroundRenderCache _backgroundRenderCache = new();
 
         private PdfEngineDocumentSession EnsureEngineDocumentSession()
         {
@@ -266,6 +267,7 @@ namespace KillerPDF.Controls
         {
             _engineDocumentSession = null;
             _primaryRenderSession.Clear();
+            _backgroundRenderCache.Clear();
         }
 
         /// <summary>
