@@ -4818,6 +4818,39 @@ public sealed partial class PdfPageRenderer
                 && !(overprint && colorSpace.ContainsSpotColorants)
                 && (imageMask || !colorSpace.NativeProcessMask.HasValue)
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
+            if (directInk && directInkSamples && softMask is null && alphaPlane is null
+                && matteConverter is null && rectangularClips)
+            {
+                ForEachRow(paintTop, paintBottom,
+                    (long)(paintRight - paintLeft) * (paintBottom - paintTop), cancellationToken,
+                    (rowStart, rowEnd) =>
+                    {
+                        for (int y = rowStart; y < rowEnd; y++)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            Point first = inverse.Apply(
+                                (left + 0.5) / scaleX, (targetHeight - y - 0.5) / scaleY);
+                            double unitX = first.X, unitY = first.Y;
+                            for (int x = left; x < paintRight;
+                                x++, unitX += unitStepX, unitY += unitStepY)
+                            {
+                                if (x < paintLeft) continue;
+                                if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
+                                int px = Math.Min((int)(unitX * planeWidth), planeWidth - 1);
+                                int py = Math.Min((int)((1 - unitY) * planeHeight), planeHeight - 1);
+                                if (!target.Contains(x, y)) continue;
+                                int targetOffset = target.Offset(x, y);
+                                int sourceOffset = Math.Min(py * factor, sourceHeight - 1) * rowBytes
+                                    + Math.Min(px * factor, sourceWidth - 1) * 4;
+                                WriteInk(target.Ink!, targetOffset, ReadInk(samples, sourceOffset));
+                                target.SetAlpha(targetOffset, 255);
+                                if (target.GroupAlpha is not null)
+                                    target.GroupAlpha[targetOffset / 4] = 255;
+                            }
+                        }
+                    });
+                return;
+            }
             for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();

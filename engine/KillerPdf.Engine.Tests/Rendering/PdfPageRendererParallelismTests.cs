@@ -56,6 +56,27 @@ public sealed class PdfPageRendererParallelismTests
     }
 
     [Fact]
+    public void Render_ParallelNativeCmykImageProducesTheSequentialPixels()
+    {
+        var samples = new byte[300 * 200 * 4];
+        for (int index = 0; index < samples.Length; index++)
+            samples[index] = (byte)(index * 11 + index / 300);
+        PdfImage image = PdfImage.FromCmyk(300, 200, samples);
+        var content = new PdfContentStreamBuilder()
+            .DrawImage(image, 30, 120, 550, 550);
+        PdfDocument document = PdfDocument.Open(
+            new PdfDocumentBuilder().AddPage(612, 792, content).Build());
+        var sequential = new PdfRenderOptions(1400, 1811, includeAnnotations: false,
+            includeFormFields: false) { CacheResult = false };
+        var parallel = sequential with { MaximumParallelism = 4 };
+
+        PdfRenderedPage expected = new PdfPageRenderer(document).Render(0, sequential);
+        PdfRenderedPage actual = new PdfPageRenderer(document).Render(0, parallel);
+
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Fact]
     public void Render_ParallelRowsHonorCancellation()
     {
         PdfDocument document = LargePage();
