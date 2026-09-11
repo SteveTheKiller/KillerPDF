@@ -51,8 +51,8 @@ public static class PdfPageDimensionNormalizer
         bool changed = false;
         foreach (int pageIndex in selected)
         {
-            var (Width, Height) = MediaDimensions(document, tree.Pages[pageIndex]);
-            double scale = ScaleFor(Width, Height, minimum, maximum);
+            var (Width, Height, Corners) = MediaDimensions(document, tree.Pages[pageIndex]);
+            double scale = ScaleFor(Width, Height, minimum, maximum, Corners);
             if (Math.Abs(scale - 1) < 1e-12) continue;
             PdfPageTreeEntry page = tree.Pages[pageIndex];
             var entries = page.Dictionary.ToDictionary(item => item.Key, item => item.Value);
@@ -151,32 +151,45 @@ public static class PdfPageDimensionNormalizer
             _ => throw new InvalidOperationException($"The page {description} array contains a nonnumeric value.")
         };
 
-    private static double ScaleFor(double width, double height, double minimum, double maximum)
+    private static double ScaleFor(double width, double height, double minimum, double maximum,
+        double[] corners)
     {
         if (width >= minimum && width <= maximum && height >= minimum && height <= maximum)
             return 1;
         double scale = width > maximum || height > maximum
             ? Math.Min(maximum / width, maximum / height)
             : Math.Max(minimum / width, minimum / height);
-        // A boundary quotient can round back outside the range in binary floating
-        // point, and a uniform factor cannot rescue a page whose two dimensions
-        // violate opposite bounds, so nudge one ulp toward feasibility and fall
-        // back to the identity - a byte-for-byte no-op - when nudging cannot
-        // converge, rather than emitting a revision still outside the range.
-        for (int attempt = 0; attempt < 8 && scale > 0 && double.IsFinite(scale); attempt++)
+        for (int attempt = 0; attempt < 14 && scale > 0 && double.IsFinite(scale); attempt++)
         {
             double scaledWidth = width * scale;
             double scaledHeight = height * scale;
             bool below = scaledWidth < minimum || scaledHeight < minimum;
             bool above = !double.IsFinite(scaledWidth) || !double.IsFinite(scaledHeight)
                 || scaledWidth > maximum || scaledHeight > maximum;
-            if (!below && !above) return scale;
+            if (!below && !above
+                && EmittedBox(corners, scale, out double emittedWidth, out double emittedHeight)
+                && emittedWidth <= maximum && emittedHeight <= maximum)
+                return scale;
             if (above) scale = Math.BitDecrement(scale);
             else scale = Math.BitIncrement(scale);
         }
         return 1;
-    }
 
+    }
+    
+    private static bool EmittedBox(double[] c, double s, out double w, out double h)
+    {
+        double x0 = c[0] * s, x2 = c[2] * s;
+        double y0 = c[1] * s, y3 = c[3] * s;
+        if (!double.IsFinite(x0) || !double.IsFinite(x2) || !double.IsFinite(y0) || !double.IsFinite(y3))
+        {
+            w = h = double.MaxValue;
+            return false;
+        }
+        w = Math.Abs(x2 - x0);
+        h = Math.Abs(y3 - y0);
+        return double.IsFinite(w) && double.IsFinite(h) && w > 0 && h > 0;
+    }
     /// <summary>
     /// Formats a scale factor for the content-stream CTM exactly as the guard
     /// verified it: the legacy 0.######## format truncates tiny factors
@@ -194,7 +207,7 @@ public static class PdfPageDimensionNormalizer
         return Encoding.ASCII.GetString(PdfObjectWriter.Write(new PdfReal(scale)));
     }
 
-    private static (double Width, double Height) MediaDimensions(
+    private static (double Width, double Height, double[] Corners) MediaDimensions(
         PdfDocument document, PdfPageTreeEntry page)
     {
         PdfObject value = page.InheritedValues.TryGetValue(Name("MediaBox"), out PdfObject? media)
@@ -203,8 +216,12 @@ public static class PdfPageDimensionNormalizer
             ?? throw new InvalidOperationException("A page /MediaBox value is not an array.");
         if (box.Count != 4)
             throw new InvalidOperationException("A page /MediaBox does not contain four numbers.");
-        return (Math.Abs(Number(document, box[2], "/MediaBox") - Number(document, box[0], "/MediaBox")),
-            Math.Abs(Number(document, box[3], "/MediaBox") - Number(document, box[1], "/MediaBox")));
+        double[] corners =
+        [
+            Number(document, box[0], "/MediaBox"), Number(document, box[1], "/MediaBox"),
+            Number(document, box[2], "/MediaBox"), Number(document, box[3], "/MediaBox")
+        ];
+        return (Math.Abs(corners[2] - corners[0]), Math.Abs(corners[3] - corners[1]), corners);
     }
 
     private static void ValidateRange(PdfDocument document, double minimum, double maximum)
