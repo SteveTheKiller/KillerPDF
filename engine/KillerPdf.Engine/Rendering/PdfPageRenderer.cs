@@ -6153,6 +6153,7 @@ public sealed partial class PdfPageRenderer
     /// </summary>
     private sealed class GraphicsSoftMask
     {
+        private const int MaximumRenderBandPixels = 2 * 1024 * 1024;
         private readonly Func<int, int, int, int, (byte[]? Samples, byte Constant)> _render;
         private readonly Lock _sync = new();
         // Replaced as a whole so concurrent readers always see one consistent region.
@@ -6226,11 +6227,47 @@ public sealed partial class PdfPageRenderer
                     if (existing.Covers(left, top, right, bottom)) return existing;
                     (left, top, right, bottom) = (FullLeft, FullTop, FullRight, FullBottom);
                 }
-                (byte[]? samples, byte constant) = _render(left, top, right, bottom);
+                (byte[]? samples, byte constant) = RenderBounded(left, top, right, bottom);
                 var region = new Region(samples, left, top, right - left, bottom - top, constant);
                 _region = region;
                 return region;
             }
+        }
+
+        private (byte[]? Samples, byte Constant) RenderBounded(
+            int left, int top, int right, int bottom)
+        {
+            int width = right - left;
+            int height = bottom - top;
+            if ((long)width * height <= MaximumRenderBandPixels)
+                return _render(left, top, right, bottom);
+
+            int bandHeight = Math.Max(1, MaximumRenderBandPixels / width);
+            byte[]? combined = null;
+            byte first = 0;
+            int completedRows = 0;
+            for (int bandTop = top; bandTop < bottom; bandTop += bandHeight)
+            {
+                int bandBottom = Math.Min(bottom, bandTop + bandHeight);
+                (byte[]? samples, byte constant) = _render(left, bandTop, right, bandBottom);
+                int bandRows = bandBottom - bandTop;
+                int bandLength = checked(width * bandRows);
+                if (completedRows == 0) first = samples is null ? constant : samples[0];
+                if (combined is null && (samples is not null
+                    || constant != first))
+                {
+                    combined = GC.AllocateUninitializedArray<byte>(checked(width * height));
+                    combined.AsSpan(0, completedRows * width).Fill(first);
+                }
+                if (combined is not null)
+                {
+                    Span<byte> target = combined.AsSpan(completedRows * width, bandLength);
+                    if (samples is null) target.Fill(constant);
+                    else samples.AsSpan(0, bandLength).CopyTo(target);
+                }
+                completedRows += bandRows;
+            }
+            return (combined, first);
         }
     }
     private sealed class KnockoutState

@@ -106,6 +106,43 @@ public sealed class PdfPageRendererSoftMaskBoundsTests
         }
     }
 
+    [Fact]
+    public void Render_LargeSoftMaskStitchesBoundedBandsExactly()
+    {
+        const int size = 1500;
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(size, size,
+            Encoding.ASCII.GetBytes($"/Mask gs 1 0 0 rg 0 0 {size} {size} re f")).Build());
+        var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+        var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(reference);
+        var update = new PdfIncrementalUpdateBuilder(source);
+        var group = new PdfStream(new PdfDictionary([
+            Entry("Subtype", Name("Form")), Entry("BBox", Array(0, 0, size, size)),
+            Entry("Group", new PdfDictionary([Entry("S", Name("Transparency")),
+                Entry("CS", Name("DeviceGray"))])), Entry("Resources", new PdfDictionary([]))
+        ]), Encoding.ASCII.GetBytes($"1 g 0 0 {size / 2} {size} re f"));
+        var mask = new PdfDictionary([Entry("S", Name("Alpha")),
+            Entry("G", update.AddObject(group))]);
+        var resources = new PdfDictionary([Entry("ExtGState", new PdfDictionary([
+            Entry("Mask", new PdfDictionary([Entry("SMask", mask)]))]))]);
+        update.ReplaceObject(reference.ObjectNumber, new PdfDictionary(page
+            .Where(pair => !pair.Key.Equals(Name("Resources"))).Append(Entry("Resources", resources))));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(PdfDocument.Open(update.Build()))
+            .Render(0, new PdfRenderOptions(size, size));
+
+        Assert.Empty(rendered.Diagnostics);
+        foreach (int y in new[] { 100, 1450 })
+        {
+            Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(100, y));
+            Assert.Equal(new byte[] { 255, 255, 255, 255 }, Pixel(1400, y));
+        }
+
+        byte[] Pixel(int x, int y) =>
+            rendered.Pixels.Slice((y * size + x) * 4, 4).ToArray();
+    }
+
     [Theory]
     [InlineData(false, false, false)]
     [InlineData(false, false, true)]
