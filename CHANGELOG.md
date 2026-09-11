@@ -21,6 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added page size selection with current-page, Letter, A4, Legal, and custom dimensions when inserting blank pages (#400).
 - Added Open Containing Folder to document tab menus (#399).
 - Added a `--batch-render` command that renders pages of a file or tree to PNG with a per-page timing log.
 

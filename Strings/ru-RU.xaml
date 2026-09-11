@@ -531,6 +531,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Ctx_DeletePage">Удалить страницу</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Дублировать страницу</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Добавить пустую страницу</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Текущая страница</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Другой размер</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Введите ширину и высоту от 0,1 до 200 дюймов.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Закрыть вкладку</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Открыть папку с файлом</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Закрыть другие вкладки</sys:String>

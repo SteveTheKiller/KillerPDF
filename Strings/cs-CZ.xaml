@@ -523,6 +523,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Ctx_DeletePage">Smazat stránku</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplikovat stránku</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Přidat prázdnou stránku</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Aktuální stránka</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Vlastní</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Zadejte šířku a výšku od 0,1 do 200 palců.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Zavřít kartu</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Otevřít složku se souborem</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Zavřít ostatní karty</sys:String>

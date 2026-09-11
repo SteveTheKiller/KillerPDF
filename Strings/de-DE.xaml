@@ -458,6 +458,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Ctx_DeletePage">Seite löschen</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Seite duplizieren</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Leere Seite hinzufügen</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Aktuelle Seite</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Benutzerdefiniert</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Geben Sie eine Breite und Höhe zwischen 0,1 und 200 Zoll ein.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Tab schließen</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Dateipfad öffnen</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Andere Tabs schließen</sys:String>
