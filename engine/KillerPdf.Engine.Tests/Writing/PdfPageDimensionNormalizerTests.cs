@@ -62,6 +62,99 @@ public sealed class PdfPageDimensionNormalizerTests
             PdfDocument.Open(source), [0], 3, 14_400));
     }
 
+    [Fact]
+    public void NormalizePages_GrowScaleDoesNotPushTheOtherDimensionPastMaximum()
+    {
+        // A 2 x 14,000 point page needs a 1.5x grow to reach the 3 point
+        // minimum, but that would put height at 21,000, past the 14,400 point
+        // maximum. No uniform scale can satisfy both bounds, so the page must
+        // be left untouched instead of rewritten still out of range.
+        byte[] source = new PdfDocumentBuilder().AddBlankPage(2, 14_000).Build();
+
+        byte[] result = PdfPageDimensionNormalizer.NormalizePages(
+            PdfDocument.Open(source), [0], 3, 14_400);
+
+        Assert.Equal(source, result);
+    }
+
+    [Theory]
+    [InlineData(20_000, 2)]
+    [InlineData(2, 20_000)]
+    [InlineData(20_000, 1)]
+    [InlineData(0.5, 30_000)]
+    public void NormalizePages_LeavesBytesUnchangedWhenNoUniformScaleFitsRange(
+        double width, double height)
+    {
+        // One dimension exceeds the maximum while the other falls below the
+        // minimum: shrinking fixes one bound and breaks the other, and any
+        // grow does the reverse. The prior behavior scaled by whichever rule
+        // matched first and produced output still outside the supported range
+        // (20,000 x 2 scaled to 14,400 x 1.44). Such pages must be reported by
+        // FindPagesOutsideRange and then preserved byte for byte.
+        byte[] source = new PdfDocumentBuilder().AddBlankPage(width, height).Build();
+        PdfDocument original = PdfDocument.Open(source);
+        Assert.Equal([0], PdfPageDimensionNormalizer.FindPagesOutsideRange(
+            original, 3, 14_400));
+
+        byte[] result = PdfPageDimensionNormalizer.NormalizePages(
+            original, [0], 3, 14_400);
+
+        Assert.Equal(source, result);
+    }
+
+    [Theory]
+    [InlineData(0.06444000000000308, 53)]
+    [InlineData(22913.474794679445, 7000)]
+    public void NormalizePages_ConvergesInsideRangeDespiteBoundaryRounding(
+        double width, double height)
+    {
+        // The boundary quotient can round back outside the range in binary
+        // floating point: 0.06444000000000308 grown by the exact minimum
+        // quotient produces a serialized width of 2.9999999999999996, just
+        // below the minimum, and 22913.474794679445 shrunk by the exact
+        // maximum quotient produces 14400.000000000002, just above it. Both
+        // would be flagged by FindPagesOutsideRange after the rewrite, so the
+        // factor must be nudged one ulp toward feasibility first.
+        byte[] source = new PdfDocumentBuilder().AddBlankPage(width, height).Build();
+
+        byte[] result = PdfPageDimensionNormalizer.NormalizePages(
+            PdfDocument.Open(source), [0], 3, 14_400);
+
+        Assert.NotEqual(source, result);
+        PdfDocument reopened = PdfDocument.Open(result);
+        Assert.Empty(PdfPageDimensionNormalizer.FindPagesOutsideRange(
+            reopened, 3, 14_400));
+    }
+
+    [Fact]
+    public void NormalizePages_ContentTransformFactorMatchesTheVerifiedScale()
+    {
+        // A 1,000,000,000,000 x 10,000,000,000 point page shrinks by 1.44E-08.
+        // The legacy 0.######## factor format truncated that to 0.00000001, so
+        // the emitted content stream drew at one tenth of the verified scale
+        // while the page box claimed 14,400 x 100 - the content no longer
+        // filled its own page. The factor written into the CTM must reproduce
+        // the scale that the serialized page boxes use.
+        byte[] source = new PdfDocumentBuilder()
+            .AddPage(1_000_000_000_000, 10_000_000_000, "q Q\n"u8.ToArray())
+            .Build();
+
+        byte[] result = PdfPageDimensionNormalizer.NormalizePages(
+            PdfDocument.Open(source), [0], 3, 14_400);
+
+        PdfDocument reopened = PdfDocument.Open(result);
+        PdfPageInformation info = Assert.Single(PdfPageInformation.Read(reopened));
+        PdfDictionary page = FirstPage(reopened);
+        PdfArray contents = Assert.IsType<PdfArray>(page[Name("Contents")]);
+        PdfStream prefix = Assert.IsType<PdfStream>(reopened.Resolve(
+            Assert.IsType<PdfIndirectReference>(contents[0])));
+        string stream = System.Text.Encoding.ASCII.GetString(prefix.EncodedData.Span);
+        string factor = stream.Split(' ')[1];
+        double applied = double.Parse(factor, System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(info.Width, 1_000_000_000_000 * applied, 6);
+        Assert.Equal(info.Height, 10_000_000_000 * applied, 6);
+    }
+
     private static PdfDictionary FirstPage(PdfDocument document)
     {
         PdfDictionary catalog = ResolveDictionary(document, document.Trailer[Name("Root")]);

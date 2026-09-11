@@ -57,7 +57,7 @@ public static class PdfPageDimensionNormalizer
             PdfPageTreeEntry page = tree.Pages[pageIndex];
             var entries = page.Dictionary.ToDictionary(item => item.Key, item => item.Value);
 
-            string factor = scale.ToString("0.########", CultureInfo.InvariantCulture);
+            string factor = FormatFactor(scale);
             PdfIndirectReference prefix = update.AddObject(Stream($"q {factor} 0 0 {factor} 0 0 cm\n"));
             PdfIndirectReference suffix = update.AddObject(Stream("\nQ\n"));
             var contents = new List<PdfObject> { prefix };
@@ -153,11 +153,45 @@ public static class PdfPageDimensionNormalizer
 
     private static double ScaleFor(double width, double height, double minimum, double maximum)
     {
-        if (width > maximum || height > maximum)
-            return Math.Min(maximum / width, maximum / height);
-        if (width < minimum || height < minimum)
-            return Math.Max(minimum / width, minimum / height);
+        if (width >= minimum && width <= maximum && height >= minimum && height <= maximum)
+            return 1;
+        double scale = width > maximum || height > maximum
+            ? Math.Min(maximum / width, maximum / height)
+            : Math.Max(minimum / width, minimum / height);
+        // A boundary quotient can round back outside the range in binary floating
+        // point, and a uniform factor cannot rescue a page whose two dimensions
+        // violate opposite bounds, so nudge one ulp toward feasibility and fall
+        // back to the identity - a byte-for-byte no-op - when nudging cannot
+        // converge, rather than emitting a revision still outside the range.
+        for (int attempt = 0; attempt < 8 && scale > 0 && double.IsFinite(scale); attempt++)
+        {
+            double scaledWidth = width * scale;
+            double scaledHeight = height * scale;
+            bool below = scaledWidth < minimum || scaledHeight < minimum;
+            bool above = !double.IsFinite(scaledWidth) || !double.IsFinite(scaledHeight)
+                || scaledWidth > maximum || scaledHeight > maximum;
+            if (!below && !above) return scale;
+            if (above) scale = Math.BitDecrement(scale);
+            else scale = Math.BitIncrement(scale);
+        }
         return 1;
+    }
+
+    /// <summary>
+    /// Formats a scale factor for the content-stream CTM exactly as the guard
+    /// verified it: the legacy 0.######## format truncates tiny factors
+    /// (1.44E-08 became 0.00000001, so a 1,000,000,000,000-point page got a
+    /// 14,400-point box while its content drew at 10,000 points), so the
+    /// canonical writer format is used whenever the short form would not
+    /// parse back to the exact factor.
+    /// </summary>
+    private static string FormatFactor(double scale)
+    {
+        string shortForm = scale.ToString("0.########", CultureInfo.InvariantCulture);
+        if (double.TryParse(shortForm, NumberStyles.Float, CultureInfo.InvariantCulture,
+                out double roundTrip) && roundTrip == scale)
+            return shortForm;
+        return Encoding.ASCII.GetString(PdfObjectWriter.Write(new PdfReal(scale)));
     }
 
     private static (double Width, double Height) MediaDimensions(
