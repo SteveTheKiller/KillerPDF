@@ -59,6 +59,45 @@ public sealed class PdfPageRendererTransparencyBandTests
             rendered.Pixels.Slice((y * size + x) * 4, 4).ToArray();
     }
 
+    [Fact]
+    public void Render_WideIsolatedGroupStitchesHorizontalTilesExactly()
+    {
+        const int width = 8192;
+        const int height = 257;
+        const int split = 4096;
+        var form = new PdfFormXObject(width, height, new PdfContentStreamBuilder()
+            .SetFillRgb(1, 0, 0).Rectangle(0, 0, split, height).Fill()
+            .SetFillRgb(0, 0, 1).Rectangle(split, 0, width - split, height).Fill());
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(width, height, new PdfContentStreamBuilder()
+                .SetOpacity(0.5).DrawForm(form, 0, 0))
+            .Build());
+        PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
+        PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
+        var pageReference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        PdfDictionary page = ResolveDictionary(source, pageReference);
+        PdfDictionary resources = ResolveDictionary(source, page[Name("Resources")]);
+        PdfDictionary xObjects = ResolveDictionary(source, resources[Name("XObject")]);
+        var formReference = (PdfIndirectReference)Assert.Single(xObjects).Value;
+        var formStream = (PdfStream)source.Resolve(formReference);
+        var group = new PdfDictionary([
+            Entry("S", Name("Transparency")), Entry("I", new PdfBoolean(true))]);
+        var dictionary = new PdfDictionary(formStream.Dictionary.Append(Entry("Group", group)));
+        var update = new PdfIncrementalUpdateBuilder(source);
+        PdfDocument document = PdfDocument.Open(update.ReplaceObject(formReference.ObjectNumber,
+            new PdfStream(dictionary, formStream.EncodedData.Span)).Build());
+
+        PdfRenderedPage rendered = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(width, height));
+
+        Assert.Empty(rendered.Diagnostics);
+        Assert.Equal(new byte[] { 128, 128, 255, 255 }, Pixel(split - 1, 128));
+        Assert.Equal(new byte[] { 255, 128, 128, 255 }, Pixel(split, 128));
+
+        byte[] Pixel(int x, int y) =>
+            rendered.Pixels.Slice((y * width + x) * 4, 4).ToArray();
+    }
+
     private static PdfDictionary ResolveDictionary(PdfDocument document, PdfObject value) =>
         value is PdfDictionary dictionary
             ? dictionary

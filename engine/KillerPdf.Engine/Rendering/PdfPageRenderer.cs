@@ -16,7 +16,8 @@ public sealed partial class PdfPageRenderer
     private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
     private const long MaximumRenderedPageCacheBytes = 64L * 1024 * 1024;
     private const int MaximumMeshVerticesPerRow = 65_536;
-    private const int MaximumIsolatedGroupBandPixels = 2 * 1024 * 1024;
+    private const int MaximumIsolatedGroupTilePixels = 2 * 1024 * 1024;
+    private const int MaximumTransparencyTileWidth = 4096;
     private static readonly ArrayPool<byte> RasterBuffers = PdfScratchBuffers.Bytes;
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
@@ -1909,22 +1910,32 @@ public sealed partial class PdfPageRenderer
                     formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY);
                 int isolatedWidth = isolatedBounds.Right - isolatedBounds.Left;
                 int isolatedHeight = isolatedBounds.Bottom - isolatedBounds.Top;
-                bool renderInBands = !_document.UsesCompatibilityRecovery
-                    && (long)isolatedWidth * isolatedHeight > MaximumIsolatedGroupBandPixels;
-                int bandHeight = renderInBands
-                    ? Math.Max(1, MaximumIsolatedGroupBandPixels / isolatedWidth)
+                if (isolatedWidth <= 0 || isolatedHeight <= 0) return;
+                bool renderInTiles = !_document.UsesCompatibilityRecovery
+                    && (long)isolatedWidth * isolatedHeight > MaximumIsolatedGroupTilePixels;
+                int tileWidth = renderInTiles
+                    ? Math.Min(isolatedWidth, MaximumTransparencyTileWidth)
+                    : isolatedWidth;
+                int tileHeight = renderInTiles
+                    ? Math.Max(1, MaximumIsolatedGroupTilePixels / tileWidth)
                     : isolatedHeight;
+                int tileColumns = renderInTiles
+                    ? (isolatedWidth + tileWidth - 1) / tileWidth : 1;
+                int tileRows = renderInTiles
+                    ? (isolatedHeight + tileHeight - 1) / tileHeight : 1;
                 bool cmykGroup = CmykGroup(form.Dictionary, formResources, pixels.Ink is not null);
                 PdfColorTransform? groupProfile = ReadGroupProfile(
                     form.Dictionary, formResources, diagnostics, pixels.BlendProfile);
                 parentState.GraphicsSoftMask?.ForBounds(isolatedBounds.Left, isolatedBounds.Top,
                     isolatedBounds.Right, isolatedBounds.Bottom);
-                for (int bandTop = isolatedBounds.Top; bandTop < isolatedBounds.Bottom; bandTop += bandHeight)
+                for (int tileIndex = 0; tileIndex < tileColumns * tileRows; tileIndex++)
                 {
-                    int bandBottom = Math.Min(isolatedBounds.Bottom, bandTop + bandHeight);
-                    (int left, int top, int right, int bottom) = renderInBands
-                        ? (isolatedBounds.Left, bandTop, isolatedBounds.Right, bandBottom)
-                        : isolatedBounds;
+                    int tileLeft = isolatedBounds.Left + tileIndex % tileColumns * tileWidth;
+                    int tileTop = isolatedBounds.Top + tileIndex / tileColumns * tileHeight;
+                    int tileRight = Math.Min(isolatedBounds.Right, tileLeft + tileWidth);
+                    int tileBottom = Math.Min(isolatedBounds.Bottom, tileTop + tileHeight);
+                    (int left, int top, int right, int bottom) = renderInTiles
+                        ? (tileLeft, tileTop, tileRight, tileBottom) : isolatedBounds;
                     RasterSurface groupPixels = RasterSurface.Rent(
                         (left, top, right, bottom), cmykGroup, groupProfile);
                     try
@@ -1943,7 +1954,7 @@ public sealed partial class PdfPageRenderer
                             GraphicsSoftMask = null,
                             Knockout = isolatedKnockout
                         };
-                        if (renderInBands)
+                        if (renderInTiles)
                             isolatedState = isolatedState with
                             {
                                 Clips = AddClip(isolatedState.Clips,
@@ -6276,7 +6287,7 @@ public sealed partial class PdfPageRenderer
     /// </summary>
     private sealed class GraphicsSoftMask
     {
-        private const int MaximumRenderBandPixels = 2 * 1024 * 1024;
+        private const int MaximumRenderTilePixels = 2 * 1024 * 1024;
         private readonly Func<int, int, int, int, (byte[]? Samples, byte Constant)> _render;
         private readonly Lock _sync = new();
         // Replaced as a whole so concurrent readers always see one consistent region.
@@ -6362,33 +6373,46 @@ public sealed partial class PdfPageRenderer
         {
             int width = right - left;
             int height = bottom - top;
-            if ((long)width * height <= MaximumRenderBandPixels)
+            if ((long)width * height <= MaximumRenderTilePixels)
                 return _render(left, top, right, bottom);
 
-            int bandHeight = Math.Max(1, MaximumRenderBandPixels / width);
+            int tileWidth = Math.Min(width, MaximumTransparencyTileWidth);
+            int tileHeight = Math.Max(1, MaximumRenderTilePixels / tileWidth);
+            int tileColumns = (width + tileWidth - 1) / tileWidth;
+            int tileRows = (height + tileHeight - 1) / tileHeight;
             byte[]? combined = null;
             byte first = 0;
-            int completedRows = 0;
-            for (int bandTop = top; bandTop < bottom; bandTop += bandHeight)
+            bool hasFirst = false;
+            for (int tileIndex = 0; tileIndex < tileColumns * tileRows; tileIndex++)
             {
-                int bandBottom = Math.Min(bottom, bandTop + bandHeight);
-                (byte[]? samples, byte constant) = _render(left, bandTop, right, bandBottom);
-                int bandRows = bandBottom - bandTop;
-                int bandLength = checked(width * bandRows);
-                if (completedRows == 0) first = samples is null ? constant : samples[0];
+                int tileLeft = left + tileIndex % tileColumns * tileWidth;
+                int tileTop = top + tileIndex / tileColumns * tileHeight;
+                int tileRight = Math.Min(right, tileLeft + tileWidth);
+                int tileBottom = Math.Min(bottom, tileTop + tileHeight);
+                (byte[]? samples, byte constant) = _render(tileLeft, tileTop, tileRight, tileBottom);
+                int renderedWidth = tileRight - tileLeft;
+                int renderedRows = tileBottom - tileTop;
+                if (!hasFirst)
+                {
+                    first = samples is null ? constant : samples[0];
+                    hasFirst = true;
+                }
                 if (combined is null && (samples is not null
                     || constant != first))
                 {
                     combined = GC.AllocateUninitializedArray<byte>(checked(width * height));
-                    combined.AsSpan(0, completedRows * width).Fill(first);
+                    combined.AsSpan().Fill(first);
                 }
                 if (combined is not null)
                 {
-                    Span<byte> target = combined.AsSpan(completedRows * width, bandLength);
-                    if (samples is null) target.Fill(constant);
-                    else samples.AsSpan(0, bandLength).CopyTo(target);
+                    for (int row = 0; row < renderedRows; row++)
+                    {
+                        Span<byte> target = combined.AsSpan(
+                            checked((tileTop - top + row) * width + tileLeft - left), renderedWidth);
+                        if (samples is null) target.Fill(constant);
+                        else samples.AsSpan(row * renderedWidth, renderedWidth).CopyTo(target);
+                    }
                 }
-                completedRows += bandRows;
             }
             return (combined, first);
         }
