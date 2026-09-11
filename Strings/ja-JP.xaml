@@ -537,6 +537,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">ページを複製</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">空白ページを追加</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">タブを閉じる</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">ファイルの場所を開く</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">他のタブを閉じる</sys:String>
 
     <!-- 変換ツール -->

@@ -537,6 +537,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Ctx_DuplicatePage">Oldal megkettőzése</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Üres oldal hozzáadása</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Lap bezárása</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Tartalmazó mappa megnyitása</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Többi lap bezárása</sys:String>
 
     <!-- Transform tool -->

@@ -537,6 +537,7 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Ctx_DuplicatePage">Dupliquer la page</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Ajouter une page vierge</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Fermer l'onglet</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Ouvrir le dossier contenant</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Fermer les autres onglets</sys:String>
 
     <!-- Transform tool -->

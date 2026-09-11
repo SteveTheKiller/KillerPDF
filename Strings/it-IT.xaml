@@ -537,6 +537,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplica pagina</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Aggiungi pagina vuota</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Chiudi scheda</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Apri cartella contenente</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Chiudi altre schede</sys:String>
 
     <!-- Transform tool -->
