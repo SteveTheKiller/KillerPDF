@@ -233,23 +233,28 @@ namespace KillerPDF.Controls
             // swap, so the pane being LEFT still counts as focused here - the rule this yields is
             // "the most recently used pane wins". A pane holding the only copy always writes.
             if (Host == null || Host.IsViewerFocused(this) || !Host.OtherViewerHasFile(this, s.OriginalFile))
-                SaveDocState(s.OriginalFile, s.Fit, s.ZoomLevel, s.View, s.PageIndex);
+                SaveDocState(s.OriginalFile, s.Fit, s.ZoomLevel, s.View, s.PageIndex,
+                    s.ScrollH, s.ScrollV);
         }
 
         // ── Per-document view state (persisted across restarts, keyed by file path) ──────────────────
         // So reopening a file restores how you left it (fit mode, zoom, view mode, page) instead of the
-        // per-view-mode default. Stored as one registry value: lines of "path|fit|zoom|view|page", most
+        // per-view-mode default. Stored as one registry value: lines of
+        // "path|fit|zoom|view|page|scrollH|scrollV", most
         // recent first, capped. '|' and newline are both illegal in Windows paths, so they're safe delimiters.
         private const int DocStatesMax = 40;
 
-        private static void SaveDocState(string? path, FitMode fit, double zoom, ViewMode view, int page)
+        private static void SaveDocState(string? path, FitMode fit, double zoom, ViewMode view, int page,
+            double scrollH, double scrollV)
         {
             if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;   // skip Untitled/imported
             string entry = string.Join("|", path,
                 fit.ToString(),
                 zoom.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 view.ToString(),
-                page.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                page.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                scrollH.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                scrollV.ToString(System.Globalization.CultureInfo.InvariantCulture));
             var lines = new List<string> { entry };
             var raw = App.GetSetting("DocStates");
             if (!string.IsNullOrEmpty(raw))
@@ -265,9 +270,11 @@ namespace KillerPDF.Controls
             App.SetSetting("DocStates", string.Join("\n", lines));
         }
 
-        private static bool TryGetDocState(string? path, out FitMode fit, out double zoom, out ViewMode view, out int page)
+        private static bool TryGetDocState(string? path, out FitMode fit, out double zoom,
+            out ViewMode view, out int page, out double scrollH, out double scrollV)
         {
             fit = FitMode.None; zoom = 1.0; view = ViewMode.Continuous; page = 0;
+            scrollH = 0; scrollV = 0;
             if (string.IsNullOrEmpty(path)) return false;
             var raw = App.GetSetting("DocStates");
             if (string.IsNullOrEmpty(raw)) return false;
@@ -280,6 +287,13 @@ namespace KillerPDF.Controls
                     System.Globalization.CultureInfo.InvariantCulture, out zoom);
                 _ = Enum.TryParse(p[3], out view);
                 _ = int.TryParse(p[4], out page);
+                if (p.Length >= 7)
+                {
+                    _ = double.TryParse(p[5], System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out scrollH);
+                    _ = double.TryParse(p[6], System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out scrollV);
+                }
                 if (zoom <= 0) zoom = 1.0;
                 return true;
             }

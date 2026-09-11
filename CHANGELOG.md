@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Kept scroll and manual zoom settings independent between document tabs and restored them when reopening files (#399).
 - Kept selected-page transforms when retained pages contain inconsistent font-width metadata.
 - Standalone uninstall dialogs use the default Dark/Green theme, and installation errors use themed dialogs.
 
