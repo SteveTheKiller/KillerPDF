@@ -258,6 +258,8 @@ public sealed partial class PdfPageRenderer
                 cancellationToken.ThrowIfCancellationRequested();
                 using var inputProfile = pixels.PrepareInput(state.RenderingIntent);
                 IReadOnlyList<PdfObject> values = instruction.Operands;
+                double N(int index) => instruction.TryGetNumber(index, out double number)
+                    ? number : Number(values[index]);
                 if (instruction.Operator is "BMC" or "BDC")
                 {
                     visibilityStack.Push(contentVisible);
@@ -293,7 +295,10 @@ public sealed partial class PdfPageRenderer
                     ClearPath();
                     break;
                 case "cm" when values.Count == 6:
-                    state = state with { Transform = Matrix.From(values).Then(state.Transform) };
+                    state = state with
+                    {
+                        Transform = new Matrix(N(0), N(1), N(2), N(3), N(4), N(5)).Then(state.Transform)
+                    };
                     break;
                 case "g" when values.Count == 1:
                 case "rg" when values.Count == 3:
@@ -454,7 +459,7 @@ public sealed partial class PdfPageRenderer
                     };
                     break;
                 case "w" when values.Count == 1:
-                    state = state with { LineWidth = Math.Max(0, Number(values[0])) };
+                    state = state with { LineWidth = Math.Max(0, N(0)) };
                     break;
                 case "J" when values.Count == 1:
                     double capValue = Number(Resolve(values[0]));
@@ -539,27 +544,26 @@ public sealed partial class PdfPageRenderer
                         diagnostics.Add("Transparency blend-mode rendering is not implemented.");
                     break;
                 case "m" when values.Count == 2:
-                    subpath = BeginSubpath(
-                        state.Transform.Apply(Number(values[0]), Number(values[1])));
+                    subpath = BeginSubpath(state.Transform.Apply(N(0), N(1)));
                     break;
                 case "l" when values.Count == 2 && subpath is not null:
-                    subpath.Add(state.Transform.Apply(Number(values[0]), Number(values[1])));
+                    subpath.Add(state.Transform.Apply(N(0), N(1)));
                     break;
                 case "c" when values.Count == 6 && subpath is { Count: > 0 }:
                     AddCubic(subpath, subpath[^1],
-                        state.Transform.Apply(Number(values[0]), Number(values[1])),
-                        state.Transform.Apply(Number(values[2]), Number(values[3])),
-                        state.Transform.Apply(Number(values[4]), Number(values[5])));
+                        state.Transform.Apply(N(0), N(1)),
+                        state.Transform.Apply(N(2), N(3)),
+                        state.Transform.Apply(N(4), N(5)));
                     break;
                 case "v" when values.Count == 4 && subpath is { Count: > 0 }:
                     AddCubic(subpath, subpath[^1], subpath[^1],
-                        state.Transform.Apply(Number(values[0]), Number(values[1])),
-                        state.Transform.Apply(Number(values[2]), Number(values[3])));
+                        state.Transform.Apply(N(0), N(1)),
+                        state.Transform.Apply(N(2), N(3)));
                     break;
                 case "y" when values.Count == 4 && subpath is { Count: > 0 }:
-                    Point end = state.Transform.Apply(Number(values[2]), Number(values[3]));
+                    Point end = state.Transform.Apply(N(2), N(3));
                     AddCubic(subpath, subpath[^1],
-                        state.Transform.Apply(Number(values[0]), Number(values[1])), end, end);
+                        state.Transform.Apply(N(0), N(1)), end, end);
                     break;
                 case "h" when subpath is { Count: > 1 }:
                     subpath.Add(subpath[0]);
@@ -573,8 +577,8 @@ public sealed partial class PdfPageRenderer
                     pendingClipEvenOdd = true;
                     break;
                 case "re" when values.Count == 4:
-                    double x = Number(values[0]), y = Number(values[1]);
-                    double w = Number(values[2]), h = Number(values[3]);
+                    double x = N(0), y = N(1);
+                    double w = N(2), h = N(3);
                     subpath = BeginSubpath(state.Transform.Apply(x, y));
                     subpath.Add(state.Transform.Apply(x + w, y));
                     subpath.Add(state.Transform.Apply(x + w, y + h));

@@ -78,6 +78,21 @@ public sealed class PdfContentStreamReaderTests
             new PdfObjectParser(Encoding.ASCII.GetBytes(oversized)).ParseObject());
     }
 
+    [Fact]
+    public void CompactPathOperandsPreserveNumericTypesAndLargeIntegers()
+    {
+        IReadOnlyList<PdfContentInstruction> instructions = Read(
+            "1 2.5 m 9007199254740993 4 l");
+
+        Assert.True(instructions[0].TryGetNumber(0, out double x));
+        Assert.Equal(1, x);
+        Assert.IsType<PdfInteger>(instructions[0].Operands[0]);
+        Assert.Equal(2.5, Assert.IsType<PdfReal>(instructions[0].Operands[1]).Value);
+        Assert.False(instructions[1].TryGetNumber(0, out _));
+        Assert.Equal(9_007_199_254_740_993,
+            Assert.IsType<PdfInteger>(instructions[1].Operands[0]).Value);
+    }
+
     [Theory]
     [InlineData("12")]
     [InlineData("[(unterminated) TJ")]
