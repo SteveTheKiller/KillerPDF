@@ -592,7 +592,7 @@ namespace KillerPDF
             var saveInkCheck = UiKit.CheckBox(S("Str_Print_SaveInkToner"));
             saveInkCheck.Margin = new Thickness(0, 2, 0, 8);
             saveInkCheck.IsChecked = _saveInkToner;
-            saveInkCheck.ToolTip = "Reduces ink/toner usage by lightening the output";
+            saveInkCheck.ToolTip = S("Str_Print_SaveInkTip");
             saveInkCheck.Checked   += (_, _) => { _saveInkToner = true; UpdatePreview(); };
             saveInkCheck.Unchecked += (_, _) => { _saveInkToner = false; UpdatePreview(); };
             panel.Children.Add(saveInkCheck);
@@ -633,7 +633,7 @@ namespace KillerPDF
             _reverse = false;
             var reverseCheck = UiKit.CheckBox(S("Str_Print_ReversePages"));
             reverseCheck.Margin = new Thickness(0, 2, 0, 10);
-            reverseCheck.ToolTip = "Print pages in reverse order (last page first)";
+            reverseCheck.ToolTip = S("Str_Print_ReverseTip");
             reverseCheck.Checked   += (_, _) => { _reverse = true; _previewIndex = 0; UpdatePreview(); };
             reverseCheck.Unchecked += (_, _) => { _reverse = false; _previewIndex = 0; UpdatePreview(); };
             panel.Children.Add(reverseCheck);
@@ -753,7 +753,7 @@ namespace KillerPDF
             _booklet = App.GetSetting("PrintBooklet") == "1";
             var bookletCheck = UiKit.CheckBox(S("Str_Print_Booklet"));
             bookletCheck.Margin = new Thickness(0, 2, 0, 10);
-            bookletCheck.ToolTip = "Arrange pages in booklet format for folding";
+            bookletCheck.ToolTip = S("Str_Print_BookletTip");
             bookletCheck.IsChecked = _booklet;
             bookletCheck.Checked   += (_, _) => { _booklet = true; _previewIndex = 0; UpdatePreview(); };
             bookletCheck.Unchecked += (_, _) => { _booklet = false; _previewIndex = 0; UpdatePreview(); };
@@ -1261,10 +1261,10 @@ namespace KillerPDF
             // Scale percentage
             double scalePct = _scaleMode switch
             {
-                0 => 100,   // fit to page: show "100%" as baseline
                 1 => 100,   // actual size
-                2 => 100,   // shrink oversized: dynamic, show 100% as nominal
-                _ => _customPct
+                3 => _customPct,
+                2 => 100,   // shrink oversized: nominal value
+                _ => FitPercent()  // fit to page: true computed value (e.g. 94%)
             };
             _scaleLabel.Text = $"Scale: {scalePct:0}%";
 
@@ -1281,6 +1281,21 @@ namespace KillerPDF
             {
                 _paperSizeLabel.Text = "";
             }
+        }
+
+        // True fit-to-page percentage for the first selected page, relative to actual
+        // size (100% = actual size). Falls back to 100 when no page has rendered yet.
+        private double FitPercent()
+        {
+            var selected = SelectedIndices();
+            if (selected.Count == 0) return 100;
+            int idx = selected[0];
+            if (idx < 0 || idx >= _pages.Length) return 100;
+            if (_rasterW[idx] <= 0 || _rasterH[idx] <= 0) return 100;
+            double actual = _pageDipW[idx] / _rasterW[idx];
+            if (actual <= 0) return 100;
+            double fit = Math.Min(_areaW / _rasterW[idx], _areaH / _rasterH[idx]);
+            return fit / actual * 100;
         }
 
         // Called (on the UI thread) by the background renderer as each page finishes.

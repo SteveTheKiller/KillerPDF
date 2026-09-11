@@ -1032,6 +1032,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
     <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
     <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkTip">Reduces ink/toner usage by lightening the output</sys:String>
+    <sys:String x:Key="Str_Print_ReverseTip">Print pages in reverse order (last page first)</sys:String>
+    <sys:String x:Key="Str_Print_BookletTip">Arrange pages in booklet format for folding</sys:String>
     <sys:String x:Key="Str_Form_ClickInitials">Click to add your initials</sys:String>
     <sys:String x:Key="Str_Form_ClickSign">Click to sign</sys:String>
     <sys:String x:Key="Str_Form_Initial">Initial</sys:String>
