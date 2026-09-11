@@ -540,6 +540,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">他のタブを閉じる</sys:String>
 
     <!-- 変換ツール -->
+    <sys:String x:Key="Str_ColorCorrection">色補正</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">変換</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">回転</sys:String>
     <sys:String x:Key="Str_Tf_Scale">拡大縮小</sys:String>

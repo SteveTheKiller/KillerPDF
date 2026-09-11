@@ -1467,6 +1467,7 @@
                             <TextBlock Text="&#xE7C2;" FontFamily="Segoe MDL2 Assets" FontSize="9" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Grid>
                     </Button>
+                    <Button x:Name="ToolColorCorrectionBtn" Content="&#xE790;" Style="{StaticResource ToolbarButton}" Click="ToolColorCorrection_Click" ToolTip="{DynamicResource Str_ColorCorrection}"/>
                     <Button x:Name="ToolMeasureBtn" Content="&#xED5E;" Style="{StaticResource ToolbarButton}" Click="ToolMeasure_Click" ToolTip="{DynamicResource Str_TT_MeasureTool}"/>
                     <Button x:Name="ToolStampBtn" Content="&#xE932;" Style="{StaticResource ToolbarButton}" Click="ToolStamp_Click" ToolTip="{DynamicResource Str_TT_StampTool}"/>
                     <StackPanel x:Name="GrpFormField" Orientation="Horizontal">
@@ -1571,6 +1572,9 @@
                                 </Button>
                                 <Button x:Name="MiCrop" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="ToolCrop_Click">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE7A8;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_Lbl_Crop}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
+                                </Button>
+                                <Button x:Name="MiColorCorrection" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="ToolColorCorrection_Click">
+                                    <StackPanel Orientation="Horizontal"><TextBlock Text="&#xE790;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_ColorCorrection}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>
                                 </Button>
                                 <Button x:Name="MiMeasure" Style="{StaticResource OverflowMenuButton}" Visibility="Collapsed" Click="ToolMeasure_Click">
                                     <StackPanel Orientation="Horizontal"><TextBlock Text="&#xED5E;" FontFamily="Segoe MDL2 Assets" FontSize="14" Width="24" Foreground="{DynamicResource TextBrush}"/><TextBlock Text="{DynamicResource Str_Lbl_Measure}" Foreground="{DynamicResource TextBrush}" VerticalAlignment="Center"/></StackPanel>

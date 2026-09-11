@@ -475,6 +475,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">Transformar</sys:String>
     <sys:String x:Key="Str_Lbl_Stamp">Sello</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Transformar página - rotar / enderezar (escala próximamente) (R)</sys:String>
+    <sys:String x:Key="Str_ColorCorrection">Corrección de color</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Transformar</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">ROTAR</sys:String>
     <sys:String x:Key="Str_Tf_Scale">ESCALAR</sys:String>

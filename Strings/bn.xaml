@@ -475,6 +475,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Lbl_Rotate">রূপান্তর</sys:String>
     <sys:String x:Key="Str_Lbl_Stamp">স্ট্যাম্প</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">পৃষ্ঠা রূপান্তর - ঘোরান / সোজা করুন (স্কেল শীঘ্রই আসছে) (R)</sys:String>
+    <sys:String x:Key="Str_ColorCorrection">রঙ সংশোধন</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">রূপান্তর</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">ঘোরান</sys:String>
     <sys:String x:Key="Str_Tf_Scale">স্কেল</sys:String>

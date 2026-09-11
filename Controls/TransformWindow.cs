@@ -10,6 +10,12 @@ using KillerPDF.Services;
 
 namespace KillerPDF
 {
+    internal enum TransformWindowMode
+    {
+        Transform,
+        ColorCorrection
+    }
+
     /// <summary>
     /// Modal "Transform" window. Renders the current page on its own canvas (so the main view's mode is
     /// irrelevant) and lets the user rotate (quarter turns + fine deskew) and scale it, with the controls in
@@ -95,7 +101,8 @@ namespace KillerPDF
         private static SolidColorBrush R(string key) => (SolidColorBrush)Application.Current.Resources[key];
         private static string S(string key) => Application.Current.TryFindResource(key) as string ?? key;
 
-        public TransformWindow(Window owner, IReadOnlyList<PagePreview> pages)
+        public TransformWindow(Window owner, IReadOnlyList<PagePreview> pages,
+            TransformWindowMode mode = TransformWindowMode.Transform)
         {
             ArgumentNullException.ThrowIfNull(pages);
             if (pages.Count == 0) throw new ArgumentException("At least one page preview is required.", nameof(pages));
@@ -105,7 +112,9 @@ namespace KillerPDF
             _srcH = _src.PixelHeight;
             _pageWpt = pages[0].WidthPoints;
             _pageHpt = pages[0].HeightPoints;
-            Title = "KillerPDF - " + S("Str_Tf_Suffix");
+            string toolName = S(mode == TransformWindowMode.Transform
+                ? "Str_Tf_Suffix" : "Str_ColorCorrection");
+            Title = "KillerPDF - " + toolName;
             Width = 980;
             Height = 720;
             MinWidth = 640;
@@ -281,6 +290,8 @@ namespace KillerPDF
             stack.Children.Add(resetPerspective);
             WrapSection(stack, perspectiveStart, S("Str_Tf_Perspective"), expanded: false);
 
+            int colorControlsStart = stack.Children.Count;
+
             // #174: LEVELS - FineReader-style source levels for rescuing pale scans. Black point,
             // white point, and a midtone gamma; live in the preview, baked on Apply like every
             // other correction here.
@@ -396,6 +407,16 @@ namespace KillerPDF
             qualityReset.Click += (_, _) => ResetQuality();
             stack.Children.Add(qualityReset);
             WrapSection(stack, qualityStart, S("Str_Tf_Quality"), expanded: false);
+
+            int visibleStart = mode == TransformWindowMode.Transform ? 0 : colorControlsStart;
+            int visibleEnd = mode == TransformWindowMode.Transform ? colorControlsStart : stack.Children.Count;
+            for (int i = 0; i < stack.Children.Count; i++)
+                if (i < visibleStart || i >= visibleEnd)
+                    stack.Children[i].Visibility = Visibility.Collapsed;
+
+            if (mode == TransformWindowMode.ColorCorrection &&
+                colorControlsStart < stack.Children.Count)
+                stack.Children[colorControlsStart].Visibility = Visibility.Collapsed;
 
             // The classic scrollbar sits near the window edge to return width to translated
             // controls, while this small inner gap keeps those controls from touching it.
@@ -533,7 +554,7 @@ namespace KillerPDF
             previewColumn.Children.Add(UiKit.PaneWithShadow(previewWrap));
             root.Children.Add(previewColumn);
 
-            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + S("Str_Tf_Suffix"), () => { Applied = false; Close(); }, root);
+            Content = DialogChrome.Frame(this, Owner, "KillerPDF - " + toolName, () => { Applied = false; Close(); }, root);
             UpdatePreview();   // populate the output-size readout at the original dimensions
             UpdatePageNavigation();
 

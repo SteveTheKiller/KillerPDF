@@ -525,6 +525,7 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Ctx_CloseOthers">Zamknij pozostałe strony</sys:String>
 
     <!-- Transform tool -->
+    <sys:String x:Key="Str_ColorCorrection">Korekcja kolorów</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Przekształcanie</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">OBRÓT</sys:String>
     <sys:String x:Key="Str_Tf_Scale">SKALA</sys:String>

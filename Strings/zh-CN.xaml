@@ -477,6 +477,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">变换</sys:String>
     <sys:String x:Key="Str_Lbl_Stamp">盖章</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">变换页面 - 旋转 / 校正倾斜（缩放即将推出）(R)</sys:String>
+    <sys:String x:Key="Str_ColorCorrection">色彩校正</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">变换</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">旋转</sys:String>
     <sys:String x:Key="Str_Tf_Scale">缩放</sys:String>

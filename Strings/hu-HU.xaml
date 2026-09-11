@@ -540,6 +540,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Ctx_CloseOthers">Többi lap bezárása</sys:String>
 
     <!-- Transform tool -->
+    <sys:String x:Key="Str_ColorCorrection">Színkorrekció</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Átalakítás</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">FORGATÁS</sys:String>
     <sys:String x:Key="Str_Tf_Scale">MÉRETEZÉS</sys:String>

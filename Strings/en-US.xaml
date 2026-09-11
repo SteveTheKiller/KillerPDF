@@ -36,7 +36,7 @@
     <sys:String x:Key="Str_TT_ImageTool">Image Tool - click to insert an image onto the page (I)</sys:String>
     <sys:String x:Key="Str_TT_CropTool">Crop Tool - drag to set crop area, then apply to page(s) (C)</sys:String>
     <sys:String x:Key="Str_TT_MeasureTool">Measure distance and inspect page size</sys:String>
-    <sys:String x:Key="Str_TT_RotateTool">Transform page - rotate / deskew (scale coming soon) (R)</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Transform page - rotate, scale, flip, deskew, or correct perspective (R)</sys:String>
     <sys:String x:Key="Str_TT_ClearAnnotations">Clear All Annotations</sys:String>
     <sys:String x:Key="Str_TT_Search">Search (Ctrl+F)</sys:String>
     <sys:String x:Key="Str_TT_UndoLast">Undo Last (Ctrl+Z)</sys:String>
@@ -540,6 +540,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Ctx_CloseOthers">Close Other Tabs</sys:String>
 
     <!-- Transform tool -->
+    <sys:String x:Key="Str_ColorCorrection">Color Correction</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Transform</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">ROTATE</sys:String>
     <sys:String x:Key="Str_Tf_Scale">SCALE</sys:String>

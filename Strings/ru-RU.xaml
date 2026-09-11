@@ -540,6 +540,7 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Ctx_CloseOthers">Закрыть другие вкладки</sys:String>
 
     <!-- Transform tool -->
+    <sys:String x:Key="Str_ColorCorrection">Цветокоррекция</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Трансформировать</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">Повернуть</sys:String>
     <sys:String x:Key="Str_Tf_Scale">МАСШТАБ</sys:String>

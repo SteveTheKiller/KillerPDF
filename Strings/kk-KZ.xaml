@@ -522,6 +522,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Ctx_CloseOthers">Басқа қойындыларды жабу</sys:String>
 
     <!-- Transform tool -->
+    <sys:String x:Key="Str_ColorCorrection">Түсті түзету</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Түрлендіру</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">БҰРУ</sys:String>
     <sys:String x:Key="Str_Tf_Scale">МАСШТАБ</sys:String>

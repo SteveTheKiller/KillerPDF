@@ -254,6 +254,8 @@ namespace KillerPDF
             _ctxMenu.Items.Add(new Separator());
 
             _ctxMenu.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(), "R"));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (s, e) =>
+                OpenTransformWindow(TransformWindowMode.ColorCorrection), glyph: ""));
             _ctxMenu.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCW"), (s, e) => RotatePages_Click(90), clockwise: true));
             _ctxMenu.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCCW"), (s, e) => RotatePages_Click(-90), clockwise: false));
             _ctxMenu.Items.Add(new Separator());
@@ -586,6 +588,8 @@ namespace KillerPDF
                 menu.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCWShort"), (s, ev) => RotatePages_Click(90), clockwise: true));
                 menu.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCCWShort"), (s, ev) => RotatePages_Click(-90), clockwise: false));
                 menu.Items.Add(MakeTransformMenuItem(Loc("Str_Tf_Suffix"), (s, ev) => OpenTransformWindow()));
+                menu.Items.Add(MakeMenuItem(Loc("Str_ColorCorrection"), (s, ev) =>
+                    OpenTransformWindow(TransformWindowMode.ColorCorrection), glyph: ""));
                 menu.Items.Add(new Separator());
                 menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveUp"), (s, ev) => MoveUp_Click(s!, ev), glyph: ""));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_MoveDown"), (s, ev) => MoveDown_Click(s!, ev), glyph: ""));

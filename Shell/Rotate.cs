@@ -20,12 +20,20 @@ namespace KillerPDF
         private void ToolRotate_Click(object sender, RoutedEventArgs e)
         {
             if (_doc is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
-            OpenTransformWindow();
+            OpenTransformWindow(TransformWindowMode.Transform);
         }
 
-        private void OpenTransformWindow()
+        private void ToolColorCorrection_Click(object sender, RoutedEventArgs e)
+        {
+            if (_doc is null) { SetStatus(Loc("Str_Msg_OpenFirst")); return; }
+            OpenTransformWindow(TransformWindowMode.ColorCorrection);
+        }
+
+        private void OpenTransformWindow(TransformWindowMode mode = TransformWindowMode.Transform)
         {
             if (_doc is null) return;
+            string toolName = Loc(mode == TransformWindowMode.Transform
+                ? "Str_Tf_Suffix" : "Str_ColorCorrection");
             // Transform burns the live annotation layer into its preview and final page image. A text
             // box that still has keyboard focus has not entered that layer yet, so opening Transform
             // directly after typing used to preview (and apply) the page without the new text.
@@ -51,12 +59,12 @@ namespace KillerPDF
             {
                 var (res, dontWarn) = KillerDialog.ShowWithCheckbox(this,
                     Loc("Str_Tf_Warn"),
-                    Loc("Str_Tf_DontWarn"), Loc("Str_Tf_Suffix"), MessageBoxButton.OKCancel);
+                    Loc("Str_Tf_DontWarn"), toolName, MessageBoxButton.OKCancel);
                 if (res != MessageBoxResult.OK) return;
                 if (dontWarn) App.SetSetting("RotateWarnAck", "1");
             }
 
-            var win = new TransformWindow(this, previews);
+            var win = new TransformWindow(this, previews, mode);
             win.ShowDialog();
             if (win.Applied && (Math.Abs(win.Angle) > 0.01 || Math.Abs(win.Scale - 1.0) > 0.001 ||
                 win.FlipH || win.FlipV || !PerspectiveWarp.IsIdentity(win.PerspectiveCorners) ||

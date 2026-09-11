@@ -477,6 +477,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Lbl_Rotate">變形</sys:String>
     <sys:String x:Key="Str_Lbl_Stamp">蓋章</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">變形頁面 - 旋轉／校正傾斜（縮放即將推出）(R)</sys:String>
+    <sys:String x:Key="Str_ColorCorrection">色彩校正</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">變形</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">旋轉</sys:String>
     <sys:String x:Key="Str_Tf_Scale">縮放</sys:String>

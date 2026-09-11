@@ -737,6 +737,7 @@ namespace KillerPDF
             [""] = "Str_Lbl_Stamp",     // page-number / watermark stamp tool
             [""] = "Str_Lbl_Shape",   // Shapes tool (rect / ellipse / polygon)
             ["\uED5E"] = "Str_Lbl_Measure",
+            ["\uE790"] = "Str_ColorCorrection",
         };
 
         // Walks LeftBar + RightBar once and records each icon button with its glyph + label key.
@@ -1181,6 +1182,7 @@ namespace KillerPDF
                     (GrpSignature,      new UIElement[] { MiSignature }),
                     (ToolImageBtn,      new UIElement[] { MiImage }),
                     (ToolCropBtn,       new UIElement[] { MiCrop }),
+                    (ToolColorCorrectionBtn, new UIElement[] { MiColorCorrection }),
                     (ToolMeasureBtn,    new UIElement[] { MiMeasure }),
                     (GrpUndo,           new UIElement[] { MiUndo, MiClear }),
                     (ToolShapeBtn,      new UIElement[] { MiShape }),

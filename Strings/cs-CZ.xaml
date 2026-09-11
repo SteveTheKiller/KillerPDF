@@ -532,6 +532,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Ctx_CloseOthers">Zavřít ostatní karty</sys:String>
 
     <!-- Transform tool -->
+    <sys:String x:Key="Str_ColorCorrection">Korekce barev</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Transformace</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">OTOČENÍ</sys:String>
     <sys:String x:Key="Str_Tf_Scale">MĚŘÍTKO</sys:String>

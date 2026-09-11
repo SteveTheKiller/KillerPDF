@@ -475,6 +475,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Lbl_Rotate">Dönüştür</sys:String>
     <sys:String x:Key="Str_Lbl_Stamp">Damga</sys:String>
     <sys:String x:Key="Str_TT_RotateTool">Sayfayı dönüştür - döndür / düzelt (ölçekleme yakında) (R)</sys:String>
+    <sys:String x:Key="Str_ColorCorrection">Renk Düzeltme</sys:String>
     <sys:String x:Key="Str_Tf_Suffix">Dönüştür</sys:String>
     <sys:String x:Key="Str_Tf_Rotate">DÖNDÜR</sys:String>
     <sys:String x:Key="Str_Tf_Scale">ÖLÇEKLE</sys:String>
