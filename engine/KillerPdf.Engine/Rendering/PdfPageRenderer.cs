@@ -5719,7 +5719,7 @@ public sealed partial class PdfPageRenderer
     private static void SetPixel(RasterSurface pixels, int width, int x, int y,
         in Color color, double opacity, RendererBlendMode blendMode,
         GraphicsSoftMask? graphicsSoftMask = null, KnockoutState? knockout = null, double shape = 1,
-        bool alphaIsShape = false, bool recordShape = true)
+        bool alphaIsShape = false, bool recordShape = true, uint? resolvedInk = null)
     {
         if (color.DoesNotPaint || !pixels.Contains(x, y)) return;
         int offset = pixels.Offset(x, y);
@@ -5747,7 +5747,7 @@ public sealed partial class PdfPageRenderer
             byte immediateGroupAlpha = pixels.GroupAlpha?[offset / 4] ?? 0;
             knockout.PreparePixel(pixels, x, y);
             SetPixel(pixels, width, x, y, color, opacity / shape, blendMode, graphicsSoftMask,
-                recordShape: false);
+                recordShape: false, resolvedInk: resolvedInk);
             double initialWeight = (1 - shape) * immediateAlpha;
             double paintedWeight = shape * pixels.Alpha(offset) / 255d;
             double resultAlpha = initialWeight + paintedWeight;
@@ -5774,7 +5774,9 @@ public sealed partial class PdfPageRenderer
         }
         if (pixels.Ink is not null)
         {
-            SetInkPixel(pixels, offset, color, sourceAlpha, blendMode);
+            if (resolvedInk is uint ink)
+                SetInkPixel(pixels, offset, ink, color.OverprintComponents, sourceAlpha, blendMode);
+            else SetInkPixel(pixels, offset, color, sourceAlpha, blendMode);
             return;
         }
         if (pixels.RgbProfile is not null)

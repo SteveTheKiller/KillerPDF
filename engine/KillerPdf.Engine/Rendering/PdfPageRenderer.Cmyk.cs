@@ -87,20 +87,24 @@ public sealed partial class PdfPageRenderer
 
     private static void SetInkPixel(RasterSurface surface, int offset, in Color color,
         double sourceAlpha, RendererBlendMode mode)
+        => SetInkPixel(surface, offset, surface.GetInk(color), color.OverprintComponents,
+            sourceAlpha, mode);
+
+    private static void SetInkPixel(RasterSurface surface, int offset, uint source,
+        int overprintComponents, double sourceAlpha, RendererBlendMode mode)
     {
         bool normal = mode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-        bool overprint = (color.OverprintComponents & 16) != 0 && normal;
+        bool overprint = (overprintComponents & 16) != 0 && normal;
         if (!overprint && sourceAlpha == 1 && normal)
         {
-            WriteInk(surface.Ink!, offset, surface.GetInk(color));
+            WriteInk(surface.Ink!, offset, source);
             surface.SetAlpha(offset, 255);
             return;
         }
         double backdropAlpha = surface.Alpha(offset) / 255d;
         double outputAlpha = sourceAlpha + backdropAlpha * (1 - sourceAlpha);
         if (outputAlpha <= 0) return;
-        uint source = surface.GetInk(color);
-        bool spotOverprint = overprint && (color.OverprintComponents & 64) != 0;
+        bool spotOverprint = overprint && (overprintComponents & 64) != 0;
         if (backdropAlpha == 0)
         {
             // Away from underflow, multiplying and dividing by the same opacity
@@ -163,7 +167,7 @@ public sealed partial class PdfPageRenderer
                 _ => mode == RendererBlendMode.Luminosity ? s : b
             } : 1 - BlendChannel(1 - b, 1 - s, mode);
             if (spotOverprint) mixed = s + b - s * b;
-            else if (overprint && (color.OverprintComponents & (1 << channel)) != 0) mixed = b;
+            else if (overprint && (overprintComponents & (1 << channel)) != 0) mixed = b;
             double value = sourceAlpha == 1 && backdropAlpha == 1 ? mixed
                 : ((1 - backdropAlpha) * sourceAlpha * s
                 + (1 - sourceAlpha) * backdropAlpha * b
@@ -243,5 +247,19 @@ public sealed partial class PdfPageRenderer
             blended |= (uint)(byte)Math.Round(Math.Clamp(value, 0, 1) * 255) << (channel * 8);
         }
         return blended;
+    }
+
+    private static uint BlendCoverageInk(uint source, uint backdrop, int coverage)
+    {
+        int inverse = 255 - coverage;
+        uint output = 0;
+        for (int channel = 0; channel < 4; channel++)
+        {
+            int shift = channel * 8;
+            int value = ((byte)(source >> shift) * coverage
+                + (byte)(backdrop >> shift) * inverse + 127) / 255;
+            output |= (uint)value << shift;
+        }
+        return output;
     }
 }

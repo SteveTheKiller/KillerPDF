@@ -1216,8 +1216,16 @@ public sealed partial class PdfPageRenderer
                         else
                         {
                             if (cover != 0)
-                                SetPixel(pixels, width, x, y, paint, alpha * cover / 255d, blendMode,
-                                    graphicsSoftMask, knockout);
+                            {
+                                int offset = rowOffset + (x - left) * 4;
+                                double sourceAlpha = Math.Clamp(alpha * cover / 255d, 0, 1);
+                                if (pixels.GroupAlpha is not null)
+                                    TrackGroupAlpha(pixels.GroupAlpha, offset, sourceAlpha);
+                                if (alpha == 1 && pixels.Alpha(offset) == 255)
+                                    WriteInk(inkData, offset,
+                                        BlendCoverageInk(ink, ReadInk(inkData, offset), cover));
+                                else SetInkPixel(pixels, offset, ink, 0, sourceAlpha, blendMode);
+                            }
                             x++;
                         }
                     }
@@ -1391,7 +1399,8 @@ public sealed partial class PdfPageRenderer
                     }
                 }
                 SetPixel(pixels, width, x, y, paint, alpha * cover / 255d, blendMode,
-                    graphicsSoftMask, knockout, shape: cover / 255d, alphaIsShape: alphaIsShape);
+                    graphicsSoftMask, knockout, shape: cover / 255d, alphaIsShape: alphaIsShape,
+                    resolvedInk: pixels.Ink is not null ? ink : null);
             }
         }
     }
