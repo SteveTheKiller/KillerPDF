@@ -1222,16 +1222,6 @@ public sealed partial class PdfPageRenderer
                         _document.UsesCompatibilityRecovery
                             ? extractionFont.DecodeWithCompatibilityRecovery(text.Bytes)
                             : extractionFont.Decode(text.Bytes);
-                    // The scale components of glyphTransform (A, B, C, D) are the same for every
-                    // glyph in this string: textScale.A..D, textMatrix.A..D, and state.Transform
-                    // do not change between glyphs (only glyphTransform.E and .F do). Build the
-                    // run preparation lazily on the first cache-hit glyph and reuse it for the
-                    // rest so the per-glyph cache lookup skips eight multiplies and four
-                    // DoubleToInt64Bits calls.
-                    GlyphRunPreparation glyphRun = default;
-                    bool glyphRunReady = false;
-                    int paintModeAll = textRenderingMode % 4;
-                    bool clipsTextAll = textRenderingMode >= 4;
                     foreach (PdfDecodedCharacter character in characters)
                     {
                         PdfVerticalGlyphMetrics vertical =
@@ -1251,21 +1241,12 @@ public sealed partial class PdfPageRenderer
                             diagnostics.Add("A cyclic or excessively nested text glyph was omitted.");
                             outline = new PdfGlyphOutline([]);
                         }
-                        int paintMode = paintModeAll;
-                        bool clipsText = clipsTextAll;
+                        int paintMode = textRenderingMode % 4;
+                        bool clipsText = textRenderingMode >= 4;
                         if ((paintMode != 3 || clipsText) && outline is not null)
                         {
-                            CoverageMask? cachedFill = null;
-                            if (paintMode is 0 or 2 || clipsText)
-                            {
-                                if (!glyphRunReady)
-                                {
-                                    glyphRun = new GlyphRunPreparation(glyphTransform, frame);
-                                    glyphRunReady = true;
-                                }
-                                cachedFill = TryCachedGlyphFillPrepared(outline,
-                                    glyphTransform.E, glyphTransform.F, in glyphRun);
-                            }
+                            CoverageMask? cachedFill = paintMode is 0 or 2 || clipsText
+                                ? TryCachedGlyphFill(outline, glyphTransform, frame) : null;
                             IReadOnlyList<List<Point>>? glyphPaths = null;
                             if (paintMode is 0 or 2)
                             {

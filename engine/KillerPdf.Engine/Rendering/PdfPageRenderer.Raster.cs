@@ -862,62 +862,20 @@ public sealed partial class PdfPageRenderer
     internal int GlyphMaskCacheCount => _glyphMaskCache.Count;
 
     /// <summary>
-    /// Precomputed run-invariant values for a text string. The scale components of the glyph
-    /// device matrix do not change between glyphs in one string, only the origin does; caching
-    /// them here removes eight multiplies and four <see cref="BitConverter.DoubleToInt64Bits(double)"/>
-    /// per glyph on the cache-hit path.
-    /// </summary>
-    private readonly struct GlyphRunPreparation
-    {
-        internal readonly double A, B, C, D;
-        internal readonly long BitsA, BitsB, BitsC, BitsD;
-        internal readonly double FrameScaleX, FrameScaleY;
-        internal readonly int FrameHeight, FrameWidth;
-        internal readonly bool ScaleFinite;
-        internal GlyphRunPreparation(Matrix runTransform, RasterFrame frame)
-        {
-            A = runTransform.A * frame.ScaleX;
-            B = -runTransform.B * frame.ScaleY;
-            C = runTransform.C * frame.ScaleX;
-            D = -runTransform.D * frame.ScaleY;
-            BitsA = BitConverter.DoubleToInt64Bits(A);
-            BitsB = BitConverter.DoubleToInt64Bits(B);
-            BitsC = BitConverter.DoubleToInt64Bits(C);
-            BitsD = BitConverter.DoubleToInt64Bits(D);
-            FrameScaleX = frame.ScaleX;
-            FrameScaleY = frame.ScaleY;
-            FrameHeight = frame.Height;
-            FrameWidth = frame.Width;
-            ScaleFinite = double.IsFinite(A) && double.IsFinite(B)
-                && double.IsFinite(C) && double.IsFinite(D);
-        }
-    }
-
-    /// <summary>
     /// Returns the filled coverage of a glyph in page pixels, from the cache when the glyph is
     /// small enough. Returns null when the glyph must take the ordinary fill path.
     /// </summary>
     private CoverageMask? TryCachedGlyphFill(PdfGlyphOutline outline, Matrix glyphTransform,
         RasterFrame frame)
     {
-        var run = new GlyphRunPreparation(glyphTransform, frame);
-        return TryCachedGlyphFillPrepared(outline, glyphTransform.E, glyphTransform.F, in run);
-    }
-
-    /// <summary>
-    /// Per-glyph cache lookup that reuses a precomputed <see cref="GlyphRunPreparation"/>. The
-    /// output is identical to <see cref="TryCachedGlyphFill"/> at every position; this exists so
-    /// text-run callers can avoid the run-invariant matrix work per glyph.
-    /// </summary>
-    private CoverageMask? TryCachedGlyphFillPrepared(PdfGlyphOutline outline,
-        double glyphOriginE, double glyphOriginF, in GlyphRunPreparation run)
-    {
         if (!UseGlyphMaskCache) return null;
-        if (!run.ScaleFinite) return null;
         // Device matrix for text-space thousandths, including the frame's Y flip.
-        double originX = glyphOriginE * run.FrameScaleX;
-        double originY = run.FrameHeight - glyphOriginF * run.FrameScaleY;
-        if (!double.IsFinite(originX) || !double.IsFinite(originY))
+        double a = glyphTransform.A * frame.ScaleX, b = -glyphTransform.B * frame.ScaleY;
+        double c = glyphTransform.C * frame.ScaleX, d = -glyphTransform.D * frame.ScaleY;
+        double originX = glyphTransform.E * frame.ScaleX;
+        double originY = frame.Height - glyphTransform.F * frame.ScaleY;
+        if (!double.IsFinite(a) || !double.IsFinite(b) || !double.IsFinite(c)
+            || !double.IsFinite(d) || !double.IsFinite(originX) || !double.IsFinite(originY))
             return null;
         // Round the origin to the nearest quarter pixel so whole-pixel and quarter-pixel
         // positions are rasterized exactly and any other position moves at most one eighth.
@@ -930,14 +888,15 @@ public sealed partial class PdfPageRenderer
             return null;
         int subX = (int)(stepsX - pixelX * GlyphSubpixelSteps);
         int subY = (int)(stepsY - pixelY * GlyphSubpixelSteps);
-        var key = new GlyphMaskKey(outline, run.BitsA, run.BitsB, run.BitsC, run.BitsD,
-            subX, subY);
+        var key = new GlyphMaskKey(outline, BitConverter.DoubleToInt64Bits(a),
+            BitConverter.DoubleToInt64Bits(b), BitConverter.DoubleToInt64Bits(c),
+            BitConverter.DoubleToInt64Bits(d), subX, subY);
         GlyphMask? glyph = _glyphMaskCache.GetOrAdd(key, RasterizeGlyphMask);
         if (glyph is null) return null;
         if (glyph.Mask.IsEmpty) return CoverageMask.Empty;
         CoverageMask placed = glyph.Mask.Translate((int)pixelX, (int)pixelY);
         return CoverageMask.Intersect(
-            CoverageMask.Rectangle(0, 0, run.FrameWidth, run.FrameHeight), placed);
+            CoverageMask.Rectangle(0, 0, frame.Width, frame.Height), placed);
     }
 
     /// <summary>Rasterizes one glyph relative to its origin pixel, or returns null when too large.</summary>
