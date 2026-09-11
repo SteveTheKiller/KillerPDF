@@ -213,11 +213,12 @@ namespace KillerPDF.Controls
             Host?.PageJumpText = (State.CurrentPage + 1).ToString();
             Host?.EnsureSidebarPageVisible(this, State.CurrentPage);
         }
-        internal static void SaveDocStateExt(string? path, FitMode fit, double zoom, ViewMode view, int page)
-            => SaveDocState(path, fit, zoom, view, page);
+        internal static void SaveDocStateExt(string? path, FitMode fit, double zoom, ViewMode view,
+            int page, double scrollH, double scrollV)
+            => SaveDocState(path, fit, zoom, view, page, scrollH, scrollV);
         internal static bool TryGetDocStateExt(string? path, out FitMode fit, out double zoom,
-                                        out ViewMode view, out int page)
-            => TryGetDocState(path, out fit, out zoom, out view, out page);
+            out ViewMode view, out int page, out double scrollH, out double scrollV)
+            => TryGetDocState(path, out fit, out zoom, out view, out page, out scrollH, out scrollV);
 
         // ── Strip and render ─────────────────────────────────────────────────────────────────
         internal void InitTabStripExt() => InitTabStrip();

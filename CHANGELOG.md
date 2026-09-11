@@ -47,6 +47,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Kept scroll and manual zoom settings independent between document tabs and restored them when reopening files (#399).
 - Kept selected-page transforms when retained pages contain inconsistent font-width metadata.
 - Marked 1.9 development builds as unreleased in the About card.
 - Aligned website footer versions with the published release across all languages.

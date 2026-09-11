@@ -235,6 +235,12 @@ namespace KillerPDF.Controls
             // viewport is page navigation or a reason to rebuild document chrome.
             if (!ReferenceEquals(e.OriginalSource, PagePreviewPanel)) return;
 
+            if (_active is not null)
+            {
+                _active.ScrollH = PagePreviewPanel.HorizontalOffset;
+                _active.ScrollV = PagePreviewPanel.VerticalOffset;
+            }
+
             if (e.HorizontalChange != 0 || e.VerticalChange != 0)
                 Host?.ViewerScrolled(this,
                     PagePreviewPanel.ScrollableWidth <= 0 ? 0 : PagePreviewPanel.HorizontalOffset / PagePreviewPanel.ScrollableWidth,
@@ -1410,8 +1416,9 @@ namespace KillerPDF.Controls
         }
 
         internal void BootstrapDocumentView(int initialPage, bool autoFit, bool restoreFitMode = false,
-            double? restoreVerticalOffset = null)
+            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null)
         {
+            DocumentSession? expectedSession = _active;
             // The document is (re)displaying - usually a different one (tab switch/close/open). The
             // skip-render guard in PageList_SelectionChanged compares the target page to the last
             // rasterised page (_renderedPrimaryPage) but not to WHICH document, so a switch to another
@@ -1444,7 +1451,11 @@ namespace KillerPDF.Controls
                 // Continuous's SelectionChanged returns early (no RenderPage call), so build its panel here.
                 if (isContinuous)
                     Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded,
-                        () => SetupContinuousView(page, fitDefault: autoFit, restoreVerticalOffset));
+                        () =>
+                        {
+                            if (expectedSession is not null && !ReferenceEquals(_active, expectedSession)) return;
+                            SetupContinuousView(page, fitDefault: autoFit, restoreVerticalOffset);
+                        });
                 // RefreshPageList re-seats the sidebar under _syncingPageList, so the selection
                 // handler never renders the primary for a new document. Render it here, or the
                 // previous tab's page stays on screen in Single, Two-Page and Grid.
@@ -1456,6 +1467,7 @@ namespace KillerPDF.Controls
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
                     (Action)(() =>
                     {
+                        if (expectedSession is not null && !ReferenceEquals(_active, expectedSession)) return;
                         if (autoFit)
                         {
                             // Grid opens to its 3-across default; other modes fit to width.
@@ -1500,6 +1512,16 @@ namespace KillerPDF.Controls
                         if (System.Windows.Input.Keyboard.FocusedElement is not TextBox { IsReadOnly: false })
                             PagePreviewPanel.Focus();
                     }));
+                if (restoreHorizontalOffset.HasValue || restoreVerticalOffset.HasValue)
+                    Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle,
+                        (Action)(() =>
+                        {
+                            if (expectedSession is not null && !ReferenceEquals(_active, expectedSession)) return;
+                            if (restoreHorizontalOffset.HasValue)
+                                PagePreviewPanel.ScrollToHorizontalOffset(restoreHorizontalOffset.Value);
+                            if (restoreVerticalOffset.HasValue)
+                                PagePreviewPanel.ScrollToVerticalOffset(restoreVerticalOffset.Value);
+                        }));
             }
         }
 
