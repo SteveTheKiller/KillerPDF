@@ -16,8 +16,13 @@ namespace KillerPDF
     /// </summary>
     internal sealed class PageThumbnailVm(int pageIndex, string filePath, int rotation = 0) : INotifyPropertyChanged
     {
-        // Limit concurrent pdfium doc-reader opens to avoid contention
-        private static readonly SemaphoreSlim _loadSem = new(2, 2);
+        // Concurrency cap for sidebar thumbnail loads. The prior limit of two came from
+        // pdfium doc-reader contention, which no longer applies now that the engine is
+        // pure managed. Use ProcessorCount workers so a wide sidebar of a long PDF
+        // populates in parallel across cores. Each load still opens its own session.
+        private static readonly SemaphoreSlim _loadSem =
+            new(System.Math.Max(2, System.Environment.ProcessorCount),
+                System.Math.Max(2, System.Environment.ProcessorCount));
 
         private BitmapSource? _thumb;
         private bool         _loadRequested;
