@@ -49,6 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
+- Reused parsed extraction fonts across pages, reducing text extraction time on multipage documents.
 - Reduced parsed content-instruction allocation by compiling numeric path, text, matrix, and graphics-state operands directly into compact storage with unchanged rendering output.
 - Faster JPEG 2000 entropy input through sealed, inlined byte reads with unchanged decoded pixels.
 - Reduced JPEG 2000 reconstruction overhead while preserving decoded pixels.

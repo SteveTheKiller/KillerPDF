@@ -18,6 +18,8 @@ public sealed class PdfPageContentReader
         "Page content was truncated because a stream could not be decoded.";
     private readonly PdfDocument _document;
     private readonly PdfPageTree _tree;
+    private readonly Dictionary<PdfDictionary, PdfExtractionFont> _fontCache = [];
+    private readonly Lock _fontCacheLock = new();
     private static readonly PdfDictionary Empty = new([]);
 
     /// <summary>Creates a reader for an immutable document.</summary>
@@ -211,8 +213,17 @@ public sealed class PdfPageContentReader
             if (!fontNames.TryGetValue(dictionary, out var key))
             {
                 key = "ExtractedFont" + fonts.Count;
-                fonts.Add(key, PdfFontResourceReader.Read(_document, dictionary));
-                diagnostics.UnionWith(fonts[key].Diagnostics);
+                PdfExtractionFont font;
+                lock (_fontCacheLock)
+                {
+                    if (!_fontCache.TryGetValue(dictionary, out font!))
+                    {
+                        font = PdfFontResourceReader.Read(_document, dictionary);
+                        _fontCache.Add(dictionary, font);
+                    }
+                }
+                fonts.Add(key, font);
+                diagnostics.UnionWith(font.Diagnostics);
                 fontNames.Add(dictionary, key);
             }
             return key;
