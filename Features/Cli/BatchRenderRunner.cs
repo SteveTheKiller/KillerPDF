@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using KillerPDF.Services;
 
 namespace KillerPDF.Features
@@ -115,12 +119,40 @@ namespace KillerPDF.Features
             long totalMs = 0;
             var total = Stopwatch.StartNew();
 
-            foreach (var (rel, src) in work)
+            // Structural change: render files in parallel across the ThreadPool. Each file gets
+            // its own PdfPageRenderSession so their per-instance caches (font, image, instruction)
+            // stay independent. Per-file directory creation is done up-front, single-threaded, to
+            // avoid Directory.CreateDirectory races on shared parents. The console and log writes
+            // happen under a lock so their line order is coherent, but the render themselves run
+            // concurrently. File-level parallelism uses ProcessorCount workers and each session
+            // internally still uses its own row-parallelism cap, so total in-flight thread count
+            // grows: acceptable for a batch benchmark, where wall-clock throughput is the goal.
+            foreach (var (rel, _) in work)
             {
                 string dstBase = Path.Combine(outRoot, rel);
                 var dstDir = Path.GetDirectoryName(dstBase);
                 if (!string.IsNullOrEmpty(dstDir)) Directory.CreateDirectory(dstDir);
+            }
+
+            var perFile = new (string Rel, string Src, List<RenderRow> Rows)[work.Count];
+            for (int i = 0; i < work.Count; i++)
+                perFile[i] = (work[i].Rel, work[i].Src, new List<RenderRow>());
+
+            int parallelism = Math.Max(1, Environment.ProcessorCount);
+            Parallel.For(0, perFile.Length, new ParallelOptions
+            {
+                MaxDegreeOfParallelism = parallelism
+            }, index =>
+            {
+                string rel = perFile[index].Rel;
+                string src = perFile[index].Src;
+                string dstBase = Path.Combine(outRoot, rel);
                 foreach (var row in RenderFile(src, dstBase, size, pageLimit))
+                    perFile[index].Rows.Add(row);
+            });
+
+            foreach (var (rel, _, rows) in perFile)
+                foreach (var row in rows)
                 {
                     if (row.Status == "OK") ok++;
                     else if (row.Status == "SKIP") skip++;
@@ -136,7 +168,6 @@ namespace KillerPDF.Features
                         row.Height.ToString(CultureInfo.InvariantCulture), Csv(row.Detail),
                         row.OpenMilliseconds.ToString(CultureInfo.InvariantCulture)));
                 }
-            }
 
             total.Stop();
             con.WriteLine($"Done. {work.Count} files, {ok} pages OK, {skip} skipped, {fail} failed, {totalMs} ms rendering, {total.ElapsedMilliseconds} ms total.");
