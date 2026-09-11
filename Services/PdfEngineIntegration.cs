@@ -738,6 +738,15 @@ internal static class PdfEngineIntegration
         ReplaceWithBuiltResult(path, result);
     }
 
+    /// <summary>Writes the document's initial viewer state as an incremental revision.</summary>
+    internal static void ApplyInitialView(string path, PdfInitialView initialView)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(initialView);
+        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        ReplaceWithBuiltResult(path, initialView.Apply(document));
+    }
+
     /// <summary>
     /// Writes visible crop and matching trim boundaries as the final incremental revision.
     /// A null rectangle removes both boundaries so the page falls back to its media box.

@@ -1659,6 +1659,50 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void ApplyInitialView_WritesViewerStateAndPreservesPrefix()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-initial-view-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder()
+                .AddBlankPage()
+                .AddBlankPage()
+                .Build();
+            File.WriteAllBytes(path, source);
+            var initialView = new PdfInitialView
+            {
+                PageLayout = PdfPageLayout.TwoPageRight,
+                PageMode = PdfPageMode.UseOutlines,
+                PageIndex = 1,
+                Destination = PdfDestination.FitWidth(640),
+                ViewerPreferences = new PdfViewerPreferences
+                {
+                    DisplayDocumentTitle = true,
+                    FitWindow = true
+                }
+            };
+
+            PdfEngineIntegration.ApplyInitialView(path, initialView);
+
+            byte[] result = File.ReadAllBytes(path);
+            Assert.True(result.AsSpan(0, source.Length).SequenceEqual(source));
+            PdfInitialView saved = PdfDocumentInformation.Read(
+                PdfDocument.Open(result)).InitialView;
+            Assert.Equal(initialView.PageLayout, saved.PageLayout);
+            Assert.Equal(initialView.PageMode, saved.PageMode);
+            Assert.Equal(initialView.PageIndex, saved.PageIndex);
+            Assert.Equal(initialView.Destination.Kind, saved.Destination?.Kind);
+            Assert.Equal(initialView.Destination.Values, saved.Destination?.Values);
+            Assert.True(saved.ViewerPreferences.DisplayDocumentTitle);
+            Assert.True(saved.ViewerPreferences.FitWindow);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ApplyPageRotations_WithNoApplicationRotations_LeavesFileUntouched()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-rotation-{Guid.NewGuid():N}.pdf");
