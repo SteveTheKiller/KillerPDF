@@ -116,6 +116,19 @@ internal static class PdfEngineIntegration
         ReplaceWithBuiltResult(path, PdfCommentEditor.Remove(document, comment));
     }
 
+    /// <summary>Divides selected spreads and returns their final page mappings.</summary>
+    internal static IReadOnlyList<PdfSpreadDivisionMapping> DivideSpreads(
+        string path, IEnumerable<PdfSpreadDivisionRequest> requests,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(requests);
+        PdfSpreadDivisionResult result = PdfSpreadDivider.Divide(
+            PdfDocument.Open(File.ReadAllBytes(path)), requests, cancellationToken);
+        ReplaceWithBuiltResult(path, result.Document.ToArray());
+        return result.Mappings;
+    }
+
     /// <summary>Adds one editable AcroForm text field to an existing page.</summary>
     internal static string AddTextField(
         string path, int pageIndex, double x, double y, double width, double height)

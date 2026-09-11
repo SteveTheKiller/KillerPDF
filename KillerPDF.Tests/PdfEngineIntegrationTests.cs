@@ -134,6 +134,40 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void DivideSpreads_WritesOrderedPagePairsAndReturnsMappings()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-spreads-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder()
+                .AddBlankPage(600, 400)
+                .AddBlankPage(300, 400)
+                .Build();
+            File.WriteAllBytes(path, source);
+
+            IReadOnlyList<PdfSpreadDivisionMapping> mappings =
+                PdfEngineIntegration.DivideSpreads(path,
+                [new PdfSpreadDivisionRequest(
+                    0, PdfSpreadDivisionDirection.Vertical, 0.4)]);
+
+            byte[] result = File.ReadAllBytes(path);
+            Assert.True(result.AsSpan(0, source.Length).SequenceEqual(source));
+            Assert.Equal(new PdfSpreadDivisionMapping(0, 0, 1), Assert.Single(mappings));
+            IReadOnlyList<PdfPageInformation> pages =
+                PdfPageInformation.Read(PdfDocument.Open(result));
+            Assert.Equal(3, pages.Count);
+            Assert.Equal(240, pages[0].Width);
+            Assert.Equal(360, pages[1].Width);
+            Assert.Equal(300, pages[2].Width);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ReplaceBookmarks_WritesEditedHierarchyThroughEngine()
     {
         string path = Path.Combine(Path.GetTempPath(),
