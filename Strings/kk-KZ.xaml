@@ -514,6 +514,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Ctx_DuplicatePage">Беттің көшірмесін жасау</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Бос бет қосу</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Қойындыны жабу</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Файл орналасқан қалтаны ашу</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Басқа қойындыларды жабу</sys:String>
 
     <!-- Transform tool -->

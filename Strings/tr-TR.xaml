@@ -459,6 +459,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Ctx_DuplicatePage">Sayfayı çoğalt</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Boş sayfa ekle</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Sekmeyi kapat</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Dosyanın bulunduğu klasörü aç</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Diğer sekmeleri kapat</sys:String>
 
     <!-- ── OCR + Dönüştürme + Kırpma (v1.x eklendi) ──────────────────── -->

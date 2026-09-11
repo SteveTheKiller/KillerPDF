@@ -459,6 +459,7 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">复制页面</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">添加空白页</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">关闭标签页</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">打开文件所在文件夹</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">关闭其他标签页</sys:String>
 
     <!-- ── OCR ────────────────────────────────────────────────────────── -->

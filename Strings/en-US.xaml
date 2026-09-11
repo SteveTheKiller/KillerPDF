@@ -532,6 +532,7 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplicate Page</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Add Blank Page</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Close Tab</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Open Containing Folder</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Close Other Tabs</sys:String>
 
     <!-- Transform tool -->

@@ -459,6 +459,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Ctx_DuplicatePage">Seite duplizieren</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Leere Seite hinzufügen</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Tab schließen</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Dateipfad öffnen</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Andere Tabs schließen</sys:String>
 
     <!-- ── OCR ─────────────────────────────────────────────────────────── -->
