@@ -174,9 +174,8 @@ public static class PdfPageDimensionNormalizer
             else scale = Math.BitIncrement(scale);
         }
         return 1;
-
     }
-    
+
     private static bool EmittedBox(double[] c, double s, out double w, out double h)
     {
         double x0 = c[0] * s, x2 = c[2] * s;
@@ -190,6 +189,7 @@ public static class PdfPageDimensionNormalizer
         h = Math.Abs(y3 - y0);
         return double.IsFinite(w) && double.IsFinite(h) && w > 0 && h > 0;
     }
+
     /// <summary>
     /// Formats a scale factor for the content-stream CTM exactly as the guard
     /// verified it: the legacy 0.######## format truncates tiny factors
