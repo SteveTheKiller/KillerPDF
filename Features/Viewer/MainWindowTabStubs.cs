@@ -38,11 +38,13 @@ namespace KillerPDF
             => ActiveViewer.CaptureSessionStateExt(s);
         private void ApplySessionState(Controls.PdfViewer.DocumentSession s)
             => ActiveViewer.ApplySessionStateExt(s);
-        private static void SaveDocState(string? path, FitMode fit, double zoom, ViewMode view, int page)
-            => Controls.PdfViewer.SaveDocStateExt(path, fit, zoom, view, page);
+        private static void SaveDocState(string? path, FitMode fit, double zoom, ViewMode view, int page,
+            double scrollH, double scrollV)
+            => Controls.PdfViewer.SaveDocStateExt(path, fit, zoom, view, page, scrollH, scrollV);
         private static bool TryGetDocState(string? path, out FitMode fit, out double zoom,
-                                    out ViewMode view, out int page)
-            => Controls.PdfViewer.TryGetDocStateExt(path, out fit, out zoom, out view, out page);
+            out ViewMode view, out int page, out double scrollH, out double scrollV)
+            => Controls.PdfViewer.TryGetDocStateExt(path, out fit, out zoom, out view, out page,
+                out scrollH, out scrollV);
 
         private void RebuildTabStrip() => ActiveViewer.RebuildTabStripExt();
         private void ScheduleTabReflow() => ActiveViewer.ScheduleTabReflowExt();
