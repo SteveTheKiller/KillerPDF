@@ -25,9 +25,8 @@ internal sealed class PdfPageRenderSession : IDisposable
     // One shared cache per parsed document. Attached via a ConditionalWeakTable so the cache
     // is reclaimed automatically when the document itself becomes unreachable. Passing it to
     // every PdfPageRenderer built for the same document means viewer, sidebar-thumbnail,
-    // print-preview, and image-export renderers all reuse decoded images, glyph masks,
-    // flattened glyph outlines, and parsed fonts instead of decoding and rasterizing them
-    // from scratch in each renderer instance.
+    // print-preview, and image-export renderers all reuse parsed page and form instructions,
+    // decoded images, glyph masks, flattened glyph outlines, and parsed fonts.
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EngineDocument,
         EngineRenderer.SharedCache> _sharedRenderCaches = new();
 
