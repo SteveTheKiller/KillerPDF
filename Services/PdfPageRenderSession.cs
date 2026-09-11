@@ -22,11 +22,24 @@ internal sealed class PdfPageRenderSession : IDisposable
     private readonly int _maximumWidth;
     private readonly int _maximumHeight;
     private readonly double _scale;
+    // One shared cache per parsed document. Attached via a ConditionalWeakTable so the cache
+    // is reclaimed automatically when the document itself becomes unreachable. Passing it to
+    // every PdfPageRenderer built for the same document means viewer, sidebar-thumbnail,
+    // print-preview, and image-export renderers all reuse decoded images, glyph masks,
+    // flattened glyph outlines, and parsed fonts instead of decoding and rasterizing them
+    // from scratch in each renderer instance.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<EngineDocument,
+        EngineRenderer.SharedCache> _sharedRenderCaches = new();
+
+    private static EngineRenderer.SharedCache SharedCacheFor(EngineDocument document) =>
+        _sharedRenderCaches.GetValue(document, static _ => new EngineRenderer.SharedCache());
+
     private PdfPageRenderSession(EngineDocument document,
         IReadOnlyList<EnginePageInformation> pages, int maximumWidth, int maximumHeight,
         double scale)
     {
-        _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
+        _engineRenderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance,
+            SharedCacheFor(document));
         var boxes = KillerPdf.Engine.Documents.PdfPageBoxInformation.Read(document);
         _enginePages = pages.Select((page, index) => PdfLegacyPageGeometry.Size(page, boxes[index])).ToArray();
         _maximumWidth = maximumWidth;
@@ -226,7 +239,8 @@ internal sealed class PdfPageRenderSession : IDisposable
         try
         {
             EngineDocument document = OpenDocument(path);
-            var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance);
+            var renderer = new EngineRenderer(document, InstalledPdfFontResolver.Instance,
+                SharedCacheFor(document));
             return RenderOwnedPage(renderer, pageIndex,
                 CreateExactOptions(width, height, transparentBackground, includeFormFields), cancellationToken);
         }

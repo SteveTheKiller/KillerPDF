@@ -30,7 +30,7 @@ public sealed partial class PdfPageRenderer
     }
 
     /// <summary>A rectangular coverage mask in device pixels. Null coverage means fully covered.</summary>
-    private sealed class CoverageMask
+    internal sealed class CoverageMask
     {
         private bool _rented;
         private readonly bool _repeatedMiddleRows;
@@ -794,11 +794,11 @@ public sealed partial class PdfPageRenderer
     private const int MaximumCachedGlyphPixels = 128 * 128;
     private const long MaximumGlyphMaskCacheBytes = 8L * 1024 * 1024;
 
-    private readonly record struct GlyphMaskKey(PdfGlyphOutline Outline,
+    internal readonly record struct GlyphMaskKey(PdfGlyphOutline Outline,
         long A, long B, long C, long D, int SubX, int SubY);
 
     /// <summary>A glyph mask whose bounds are relative to the glyph origin's pixel.</summary>
-    private sealed record GlyphMask(CoverageMask Mask);
+    internal sealed record GlyphMask(CoverageMask Mask);
 
     private static readonly GlyphMask EmptyGlyphMask = new(CoverageMask.Empty);
 
@@ -816,7 +816,11 @@ public sealed partial class PdfPageRenderer
     }
 
     // A null entry records a glyph that was too large to cache, so it is not re-measured.
-    private readonly BoundedCache<GlyphMaskKey, GlyphMask?> _glyphMaskCache = new(
+    // Initialized from the constructor so callers passing a SharedCache can share this
+    // instance across every renderer that opens the same document.
+    private readonly BoundedCache<GlyphMaskKey, GlyphMask?> _glyphMaskCache;
+
+    private static BoundedCache<GlyphMaskKey, GlyphMask?> CreateGlyphMaskCache() => new(
         8192, GlyphMaskKeyComparer.Instance, MaximumGlyphMaskCacheBytes,
         glyph => glyph?.Mask.Coverage?.LongLength ?? 0);
 

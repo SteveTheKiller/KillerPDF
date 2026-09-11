@@ -30,29 +30,70 @@ public sealed partial class PdfPageRenderer
     private readonly IReadOnlySet<int> _hiddenOptionalContentGroups;
     private readonly BoundedCache<int, (IReadOnlyList<PdfContentInstruction> Instructions,
         IReadOnlySet<string> Diagnostics)> _instructionCache = new(32);
-    private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache =
-        new(256, ReferenceEqualityComparer.Instance);
     private readonly BoundedCache<PdfName, PdfDictionary> _recoveredFontCache = new(14);
     // Type 3 encodings are rebuilt per text operator otherwise; the table is a pure function
     // of the font dictionary and is never modified after it is built.
     private readonly BoundedCache<PdfDictionary, string[]> _type3EncodingCache =
         new(64, ReferenceEqualityComparer.Instance);
-    private readonly BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> _glyphPathCache = new(
-        4096, ReferenceEqualityComparer.Instance,
-        MaximumFlattenedGlyphCacheBytes,
-        paths => paths.Sum(path => (long)path.Length * sizeof(double) * 2));
-    private readonly BoundedCache<ImageCacheKey, DecodedImage> _imageCache = new(
-        64, maximumWeight: MaximumDecodedImageCacheBytes,
-        weight: image => image.Samples.LongLength + (image.Alpha?.LongLength ?? 0));
     private readonly BoundedCache<PdfStream, ParsedStream> _streamInstructionCache = new(
         128, ReferenceEqualityComparer.Instance,
         PdfContentStreamReader.MaximumSourceBytes, parsed => parsed.SourceBytes);
     private readonly BoundedCache<RenderCacheKey, PdfRenderedPage> _renderCache = new(
         16, maximumWeight: MaximumRenderedPageCacheBytes,
         weight: page => page.Pixels.Length);
+    // The four caches below are initialized from a shared instance when the caller supplies
+    // one, so viewer, thumbnail, print, and export renderers on the same document all reuse
+    // decoded images, glyph masks, flattened glyph outlines, and parsed fonts.
+    private readonly BoundedCache<PdfDictionary, PdfExtractionFont> _fontCache;
+    private readonly BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> _glyphPathCache;
+    private readonly BoundedCache<ImageCacheKey, DecodedImage> _imageCache;
+
+    private static BoundedCache<PdfDictionary, PdfExtractionFont> CreateFontCache() =>
+        new(256, ReferenceEqualityComparer.Instance);
+    private static BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> CreateGlyphPathCache() =>
+        new(4096, ReferenceEqualityComparer.Instance,
+            MaximumFlattenedGlyphCacheBytes,
+            paths => paths.Sum(path => (long)path.Length * sizeof(double) * 2));
+    private static BoundedCache<ImageCacheKey, DecodedImage> CreateImageCache() =>
+        new(64, maximumWeight: MaximumDecodedImageCacheBytes,
+            weight: image => image.Samples.LongLength + (image.Alpha?.LongLength ?? 0));
+
+    /// <summary>
+    /// Caches that can be reused across several <see cref="PdfPageRenderer"/> instances that
+    /// open the same immutable document. Sharing lets sibling renderers (viewer, sidebar
+    /// thumbnails, print preview, export) skip decoding the same image and rasterizing the
+    /// same glyph mask on every renderer. The cached entries are still bounded by the same
+    /// per-cache weight limits, so total memory does not grow with the number of renderers.
+    /// </summary>
+    public sealed class SharedCache
+    {
+        internal readonly BoundedCache<PdfDictionary, PdfExtractionFont> FontCache;
+        internal readonly BoundedCache<PdfGlyphOutline, IReadOnlyList<Point[]>> GlyphPathCache;
+        internal readonly BoundedCache<ImageCacheKey, DecodedImage> ImageCache;
+        internal readonly BoundedCache<GlyphMaskKey, GlyphMask?> GlyphMaskCache;
+
+        /// <summary>Creates a fresh shared cache with the engine's default per-cache limits.</summary>
+        public SharedCache()
+        {
+            FontCache = CreateFontCache();
+            GlyphPathCache = CreateGlyphPathCache();
+            ImageCache = CreateImageCache();
+            GlyphMaskCache = CreateGlyphMaskCache();
+        }
+    }
 
     /// <summary>Creates a renderer for an immutable document.</summary>
     public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver = null)
+        : this(document, fontResolver, sharedCache: null) { }
+
+    /// <summary>
+    /// Creates a renderer for an immutable document, optionally reusing decoded-image and
+    /// glyph-mask caches held by <paramref name="sharedCache"/>. Passing the same instance
+    /// to multiple renderers for the same document lets those renderers share expensive
+    /// decode and rasterization work.
+    /// </summary>
+    public PdfPageRenderer(PdfDocument document, IPdfFontResolver? fontResolver,
+        SharedCache? sharedCache)
     {
         _document = document ?? throw new ArgumentNullException(nameof(document));
         _outputProfiles = new Lazy<(PdfColorTransform? Transform, bool Unavailable)>[4];
@@ -73,6 +114,10 @@ public sealed partial class PdfPageRenderer
         _hiddenOptionalContentGroups = PdfOptionalContentReader.Read(_document).Groups
             .Where(group => !group.IsInitiallyVisible)
             .Select(group => group.ObjectNumber).ToHashSet();
+        _fontCache = sharedCache?.FontCache ?? CreateFontCache();
+        _glyphPathCache = sharedCache?.GlyphPathCache ?? CreateGlyphPathCache();
+        _imageCache = sharedCache?.ImageCache ?? CreateImageCache();
+        _glyphMaskCache = sharedCache?.GlyphMaskCache ?? CreateGlyphMaskCache();
     }
 
     /// <summary>Renders the currently supported page operators into BGRA32 pixels.</summary>
@@ -6775,7 +6820,7 @@ public sealed partial class PdfPageRenderer
             ? normalized : DefaultDecode[component * 2] + normalized
                 * (DefaultDecode[component * 2 + 1] - DefaultDecode[component * 2]);
     }
-    private sealed class BoundedCache<TKey, TValue> where TKey : notnull
+    internal sealed class BoundedCache<TKey, TValue> where TKey : notnull
     {
         private readonly int _capacity;
         private readonly long _maximumWeight;
@@ -6860,13 +6905,13 @@ public sealed partial class PdfPageRenderer
     private readonly record struct RenderCacheKey(
         int PageIndex, int Width, int Height, bool TransparentBackground,
         bool IncludeAnnotations, bool IncludeFormFields);
-    private readonly record struct ImageCacheKey(PdfStream Stream, int ResolutionLevel,
+    internal readonly record struct ImageCacheKey(PdfStream Stream, int ResolutionLevel,
         int MaskWidth = 0, int MaskHeight = 0);
-    private sealed record DecodedImage(byte[] Samples, int Width, int Height, byte[]? Alpha = null,
+    internal sealed record DecodedImage(byte[] Samples, int Width, int Height, byte[]? Alpha = null,
         int MaskBits = 8, double MaskDecodeStart = 0, double MaskDecodeEnd = 1);
     private sealed record ParsedStream(
         IReadOnlyList<PdfContentInstruction> Instructions, int SourceBytes);
-    private readonly record struct Point(double X, double Y);
+    internal readonly record struct Point(double X, double Y);
     private readonly record struct Matrix(double A, double B, double C, double D, double E, double F)
     {
         internal static Matrix Identity => new(1, 0, 0, 1, 0, 0);
