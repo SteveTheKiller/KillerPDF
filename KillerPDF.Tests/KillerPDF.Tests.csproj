@@ -26,6 +26,7 @@
     <Compile Include="..\Services\AppDataPaths.cs" Link="Services\AppDataPaths.cs" />
     <Compile Include="..\Services\SignatureStore.cs" Link="Services\SignatureStore.cs" />
     <Compile Include="..\Services\TextFieldPresetStore.cs" Link="Services\TextFieldPresetStore.cs" />
+    <Compile Include="..\Services\PdfMacroStore.cs" Link="Services\PdfMacroStore.cs" />
     <Compile Include="..\Services\SearchService.cs" Link="Services\SearchService.cs" />
     <Compile Include="..\Services\PdfContentDocument.cs" Link="Services\PdfContentDocument.cs" />
     <Compile Include="..\Services\TextRunService.cs" Link="Services\TextRunService.cs" />
