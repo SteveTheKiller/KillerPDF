@@ -1017,4 +1017,14 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_Link_GoToPage">转到第 {0} 页</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">测量不可用</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">修复失败 - 文件损坏过于严重，无法恢复。&#10;&#10;请尝试使用其他应用程序 (Adobe Acrobat 或浏览器) 打开原始文件，这些应用程序可能提供其他恢复选项。</sys:String>
+    <sys:String x:Key="Str_Print_ReversePages">Reverse pages</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkToner">Save ink/toner</sys:String>
+    <sys:String x:Key="Str_Print_ShrinkOversized">Shrink oversized pages</sys:String>
+    <sys:String x:Key="Str_Print_Booklet">Booklet</sys:String>
+    <sys:String x:Key="Str_Print_CommentsForms">Comments &amp; Forms</sys:String>
+    <sys:String x:Key="Str_Print_DocAndMarkups">Document and Markups</sys:String>
+    <sys:String x:Key="Str_Print_DocOnly">Document only</sys:String>
+    <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
+    <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
 </ResourceDictionary>

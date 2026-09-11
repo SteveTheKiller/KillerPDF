@@ -1022,6 +1022,16 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_St_TextEditDetectedFont">Editing with {0}, {1} pt. Font metrics may differ from the original.</sys:String>
     <sys:String x:Key="Str_St_TextEditFontSubstituted">Font {0} is unavailable. Editing with {1}, {2} pt.</sys:String>
     <sys:String x:Key="Str_Print_NoTwoSidedSupport">The selected printer doesn't report two-sided support.</sys:String>
+    <sys:String x:Key="Str_Print_ReversePages">Reverse pages</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkToner">Save ink/toner</sys:String>
+    <sys:String x:Key="Str_Print_ShrinkOversized">Shrink oversized pages</sys:String>
+    <sys:String x:Key="Str_Print_Booklet">Booklet</sys:String>
+    <sys:String x:Key="Str_Print_CommentsForms">Comments &amp; Forms</sys:String>
+    <sys:String x:Key="Str_Print_DocAndMarkups">Document and Markups</sys:String>
+    <sys:String x:Key="Str_Print_DocOnly">Document only</sys:String>
+    <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
+    <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
     <sys:String x:Key="Str_Form_ClickInitials">Click to add your initials</sys:String>
     <sys:String x:Key="Str_Form_ClickSign">Click to sign</sys:String>
     <sys:String x:Key="Str_Form_Initial">Initial</sys:String>

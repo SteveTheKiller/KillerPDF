@@ -1013,4 +1013,14 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_Link_GoToPage">পৃষ্ঠা {0}-এ যান</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">পরিমাপ পাওয়া যাচ্ছে না</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">মেরামত ব্যর্থ হয়েছে - ফাইলটি পুনরুদ্ধার করার জন্য অত্যন্ত ক্ষতিগ্রস্ত।&#10;&#10;মূল ফাইলটি অন্য কোনো অ্যাপ্লিকেশনে (Adobe Acrobat বা ব্রাউজার) খোলার চেষ্টা করুন, যেখানে অতিরিক্ত পুনরুদ্ধারের বিকল্প থাকতে পারে।</sys:String>
+    <sys:String x:Key="Str_Print_ReversePages">Reverse pages</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkToner">Save ink/toner</sys:String>
+    <sys:String x:Key="Str_Print_ShrinkOversized">Shrink oversized pages</sys:String>
+    <sys:String x:Key="Str_Print_Booklet">Booklet</sys:String>
+    <sys:String x:Key="Str_Print_CommentsForms">Comments &amp; Forms</sys:String>
+    <sys:String x:Key="Str_Print_DocAndMarkups">Document and Markups</sys:String>
+    <sys:String x:Key="Str_Print_DocOnly">Document only</sys:String>
+    <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
+    <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
 </ResourceDictionary>

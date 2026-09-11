@@ -1033,4 +1033,14 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Link_GoToPage">Vai alla pagina {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Misurazione non disponibile</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Riparazione non riuscita - il file è troppo danneggiato per essere recuperato.&#10;&#10;Prova ad aprire l’originale in un’altra applicazione (Adobe Acrobat o un browser), che potrebbe offrire ulteriori opzioni di recupero.</sys:String>
+    <sys:String x:Key="Str_Print_ReversePages">Reverse pages</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkToner">Save ink/toner</sys:String>
+    <sys:String x:Key="Str_Print_ShrinkOversized">Shrink oversized pages</sys:String>
+    <sys:String x:Key="Str_Print_Booklet">Booklet</sys:String>
+    <sys:String x:Key="Str_Print_CommentsForms">Comments &amp; Forms</sys:String>
+    <sys:String x:Key="Str_Print_DocAndMarkups">Document and Markups</sys:String>
+    <sys:String x:Key="Str_Print_DocOnly">Document only</sys:String>
+    <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
+    <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
 </ResourceDictionary>

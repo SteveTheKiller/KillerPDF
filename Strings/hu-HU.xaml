@@ -1020,4 +1020,14 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Link_GoToPage">Ugrás a(z) {0}. oldalra</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">A mérés nem érhető el</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">A javítás nem sikerült - a fájl túl súlyosan sérült.&#10;&#10;Próbálja meg megnyitni az eredetit egy másik alkalmazásban (Adobe Acrobat vagy böngésző), amely további helyreállítási lehetőségeket kínálhat.</sys:String>
+    <sys:String x:Key="Str_Print_ReversePages">Reverse pages</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkToner">Save ink/toner</sys:String>
+    <sys:String x:Key="Str_Print_ShrinkOversized">Shrink oversized pages</sys:String>
+    <sys:String x:Key="Str_Print_Booklet">Booklet</sys:String>
+    <sys:String x:Key="Str_Print_CommentsForms">Comments &amp; Forms</sys:String>
+    <sys:String x:Key="Str_Print_DocAndMarkups">Document and Markups</sys:String>
+    <sys:String x:Key="Str_Print_DocOnly">Document only</sys:String>
+    <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
+    <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
 </ResourceDictionary>

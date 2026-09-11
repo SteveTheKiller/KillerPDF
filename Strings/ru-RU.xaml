@@ -1033,4 +1033,14 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Link_GoToPage">Перейти на страницу {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Измерение недоступно</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Не удалось восстановить файл - он слишком сильно поврежден.&#10;&#10;Попробуйте открыть оригинал в другом приложении (Adobe Acrobat или браузере), которое может предложить дополнительные возможности восстановления.</sys:String>
+    <sys:String x:Key="Str_Print_ReversePages">Reverse pages</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkToner">Save ink/toner</sys:String>
+    <sys:String x:Key="Str_Print_ShrinkOversized">Shrink oversized pages</sys:String>
+    <sys:String x:Key="Str_Print_Booklet">Booklet</sys:String>
+    <sys:String x:Key="Str_Print_CommentsForms">Comments &amp; Forms</sys:String>
+    <sys:String x:Key="Str_Print_DocAndMarkups">Document and Markups</sys:String>
+    <sys:String x:Key="Str_Print_DocOnly">Document only</sys:String>
+    <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
+    <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
 </ResourceDictionary>

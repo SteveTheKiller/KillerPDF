@@ -1018,4 +1018,14 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Link_GoToPage">Přejít na stránku {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Měření není k dispozici</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Oprava se nezdařila - soubor je příliš poškozený.&#10;&#10;Zkuste otevřít originál v jiné aplikaci (Adobe Acrobat nebo prohlížeči), která může nabídnout další možnosti obnovení.</sys:String>
+    <sys:String x:Key="Str_Print_ReversePages">Reverse pages</sys:String>
+    <sys:String x:Key="Str_Print_SaveInkToner">Save ink/toner</sys:String>
+    <sys:String x:Key="Str_Print_ShrinkOversized">Shrink oversized pages</sys:String>
+    <sys:String x:Key="Str_Print_Booklet">Booklet</sys:String>
+    <sys:String x:Key="Str_Print_CommentsForms">Comments &amp; Forms</sys:String>
+    <sys:String x:Key="Str_Print_DocAndMarkups">Document and Markups</sys:String>
+    <sys:String x:Key="Str_Print_DocOnly">Document only</sys:String>
+    <sys:String x:Key="Str_Print_SecPagesToPrint">PAGES TO PRINT</sys:String>
+    <sys:String x:Key="Str_Print_SecPageSizing">PAGE SIZING &amp; HANDLING</sys:String>
+    <sys:String x:Key="Str_Print_SecOptions">OPTIONS</sys:String>
 </ResourceDictionary>
