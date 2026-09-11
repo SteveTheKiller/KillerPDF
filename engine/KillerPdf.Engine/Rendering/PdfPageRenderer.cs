@@ -5315,11 +5315,30 @@ public sealed partial class PdfPageRenderer
                 for (int x = column.First; x < column.End; x++)
                 {
                     double weight = vertical * column.Weight(x);
-                    uint color = Convert(x, y);
-                    first += (byte)color * weight;
-                    second += (byte)(color >> 8) * weight;
-                    third += (byte)(color >> 16) * weight;
-                    fourth += (byte)(color >> 24) * weight;
+                    if (_directRgb)
+                    {
+                        int offset = y * _rowBytes + x * 3;
+                        first += _samples[offset + 2] * weight;
+                        second += _samples[offset + 1] * weight;
+                        third += _samples[offset] * weight;
+                        fourth += 255 * weight;
+                    }
+                    else if (_directGray)
+                    {
+                        byte gray = _samples[y * _rowBytes + x];
+                        first += gray * weight;
+                        second += gray * weight;
+                        third += gray * weight;
+                        fourth += 255 * weight;
+                    }
+                    else
+                    {
+                        uint color = Convert(x, y);
+                        first += (byte)color * weight;
+                        second += (byte)(color >> 8) * weight;
+                        third += (byte)(color >> 16) * weight;
+                        fourth += (byte)(color >> 24) * weight;
+                    }
                 }
             }
             double area = column.Length * row.Length;
