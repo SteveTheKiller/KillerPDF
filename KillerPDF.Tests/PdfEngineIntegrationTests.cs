@@ -67,6 +67,40 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void PrintProductionInspection_ProvidesDesktopReportAndSeparationSelection()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-print-production-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            var orange = new PdfSpotColor("Killer Orange", new PdfCmykColor(0, 0.72, 1, 0));
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .AddPage(300, 400, new PdfContentStreamBuilder()
+                    .SetFillCmyk(0.1, 0.2, 0.3, 0.4).Rectangle(10, 10, 20, 20).Fill())
+                .AddPage(500, 600, new PdfContentStreamBuilder()
+                    .SetFillSpotColor(orange, 0.8).Rectangle(20, 20, 20, 20).Fill())
+                .Build());
+
+            PdfPrintProductionReport report =
+                PdfEngineIntegration.InspectPrintProduction(path);
+            PdfSeparationPreview preview = PdfEngineIntegration.CreateSeparationPreview(
+                path, ["Black", "Killer Orange"], [1]);
+
+            Assert.Equal(2, report.Pages.Count);
+            Assert.Equal(new PdfPageBoxBounds(0, 0, 500, 600), report.Pages[1].MediaBox);
+            Assert.Equal(["Black", "Cyan", "Magenta", "Yellow", "Killer Orange"],
+                report.Colorants.Select(colorant => colorant.Name));
+            Assert.Equal([1], preview.Pages.Select(page => page.PageIndex));
+            Assert.Empty(preview.Plates[0].PageIndexes);
+            Assert.Equal([1], preview.Plates[1].PageIndexes);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ReplaceBookmarks_WritesEditedHierarchyThroughEngine()
     {
         string path = Path.Combine(Path.GetTempPath(),

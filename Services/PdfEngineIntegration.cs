@@ -75,6 +75,22 @@ internal static class PdfEngineIntegration
         ];
     }
 
+    /// <summary>Inspects page boxes, colorants, and output intents for print workflows.</summary>
+    internal static PdfPrintProductionReport InspectPrintProduction(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfPrintProductionReport.Inspect(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    /// <summary>Builds a validated separation selection for the requested pages.</summary>
+    internal static PdfSeparationPreview CreateSeparationPreview(
+        string path, IEnumerable<string> plateNames, IEnumerable<int>? pageIndexes = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfSeparationPreview.Create(
+            PdfDocument.Open(File.ReadAllBytes(path)), plateNames, pageIndexes);
+    }
+
     /// <summary>Adds one editable AcroForm text field to an existing page.</summary>
     internal static string AddTextField(
         string path, int pageIndex, double x, double y, double width, double height)
