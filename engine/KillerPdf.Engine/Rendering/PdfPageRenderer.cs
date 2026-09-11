@@ -16,6 +16,7 @@ public sealed partial class PdfPageRenderer
     private const long MaximumFlattenedGlyphCacheBytes = 16L * 1024 * 1024;
     private const long MaximumRenderedPageCacheBytes = 64L * 1024 * 1024;
     private const int MaximumMeshVerticesPerRow = 65_536;
+    private const int MaximumIsolatedGroupBandPixels = 2 * 1024 * 1024;
     private static readonly ArrayPool<byte> RasterBuffers = PdfScratchBuffers.Bytes;
     private readonly PdfDocument _document;
     private readonly PdfPageContentReader _content;
@@ -1904,33 +1905,54 @@ public sealed partial class PdfPageRenderer
                 }
 
                 RasterSurface pagePixels = pixels;
-                RasterSurface groupPixels = RasterSurface.Rent(GetRasterBounds(
-                    formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY),
-                    CmykGroup(form.Dictionary, formResources, pixels.Ink is not null),
-                    ReadGroupProfile(form.Dictionary, formResources, diagnostics, pixels.BlendProfile));
-                try
+                (int Left, int Top, int Right, int Bottom) isolatedBounds = GetRasterBounds(
+                    formState.Clips, formBounds, options.Width, options.Height, scaleX, scaleY);
+                int isolatedWidth = isolatedBounds.Right - isolatedBounds.Left;
+                int isolatedHeight = isolatedBounds.Bottom - isolatedBounds.Top;
+                bool renderInBands = !_document.UsesCompatibilityRecovery
+                    && (long)isolatedWidth * isolatedHeight > MaximumIsolatedGroupBandPixels;
+                int bandHeight = renderInBands
+                    ? Math.Max(1, MaximumIsolatedGroupBandPixels / isolatedWidth)
+                    : isolatedHeight;
+                bool cmykGroup = CmykGroup(form.Dictionary, formResources, pixels.Ink is not null);
+                PdfColorTransform? groupProfile = ReadGroupProfile(
+                    form.Dictionary, formResources, diagnostics, pixels.BlendProfile);
+                parentState.GraphicsSoftMask?.ForBounds(isolatedBounds.Left, isolatedBounds.Top,
+                    isolatedBounds.Right, isolatedBounds.Bottom);
+                for (int bandTop = isolatedBounds.Top; bandTop < isolatedBounds.Bottom; bandTop += bandHeight)
                 {
-                    (int left, int top, int right, int bottom) = GetRasterBounds(
-                        formState.Clips, formBounds, options.Width, options.Height,
-                        scaleX, scaleY);
-                    Array.Clear(groupPixels.Data, 0, groupPixels.Length);
-                    pixels = groupPixels;
-                    var isolatedKnockout = knockout
-                        ? new KnockoutState(options.Width, (left, top, right, bottom)) : null;
-                    if (!knockout && (parentState.Knockout is not null || pagePixels.GroupShape is not null))
-                        groupPixels.TrackGroupShape();
-                    Process(instructions, formResources,
-                        formState with
+                    int bandBottom = Math.Min(isolatedBounds.Bottom, bandTop + bandHeight);
+                    (int left, int top, int right, int bottom) = renderInBands
+                        ? (isolatedBounds.Left, bandTop, isolatedBounds.Right, bandBottom)
+                        : isolatedBounds;
+                    RasterSurface groupPixels = RasterSurface.Rent(
+                        (left, top, right, bottom), cmykGroup, groupProfile);
+                    try
+                    {
+                        Array.Clear(groupPixels.Data, 0, groupPixels.Length);
+                        pixels = groupPixels;
+                        var isolatedKnockout = knockout
+                            ? new KnockoutState(options.Width, (left, top, right, bottom)) : null;
+                        if (!knockout && (parentState.Knockout is not null || pagePixels.GroupShape is not null))
+                            groupPixels.TrackGroupShape();
+                        GraphicsState isolatedState = formState with
                         {
                             FillAlpha = 1,
                             StrokeAlpha = 1,
                             BlendMode = RendererBlendMode.Normal,
                             GraphicsSoftMask = null,
                             Knockout = isolatedKnockout
-                        }, depth + 1);
-                    pixels = pagePixels;
-                    parentState.GraphicsSoftMask?.ForBounds(left, top, right, bottom);
-                    using var compositeProfile = groupPixels.PrepareComposite(pagePixels, parentState.RenderingIntent, diagnostics);
+                        };
+                        if (renderInBands)
+                            isolatedState = isolatedState with
+                            {
+                                Clips = AddClip(isolatedState.Clips,
+                                    CoverageMask.Rectangle(left, top, right, bottom))
+                            };
+                        Process(instructions, formResources, isolatedState, depth + 1);
+                        pixels = pagePixels;
+                        using var compositeProfile = groupPixels.PrepareComposite(
+                            pagePixels, parentState.RenderingIntent, diagnostics);
                     bool plainComposite = pagePixels.Ink is null && pagePixels.RgbProfile is null
                         && pagePixels.GroupShape is null
                         && pagePixels.GroupAlpha is null && groupPixels.Ink is null
@@ -1945,8 +1967,8 @@ public sealed partial class PdfPageRenderer
                             || ReferenceEquals(groupPixels.InkProfile, pagePixels.InkProfile))
                         && parentState.GraphicsSoftMask is null && parentState.Knockout is null
                         && parentState.BlendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-                    for (int y = top; y < bottom; y++)
-                    {
+                        for (int y = top; y < bottom; y++)
+                        {
                         cancellationToken.ThrowIfCancellationRequested();
                         if (plainComposite)
                         {
@@ -2014,12 +2036,13 @@ public sealed partial class PdfPageRenderer
                                 alpha / 255d * parentState.FillAlpha, parentState.BlendMode,
                                 parentState.GraphicsSoftMask, parentState.Knockout);
                         }
+                        }
                     }
-                }
-                finally
-                {
-                    pixels = pagePixels;
-                    groupPixels.Return();
+                    finally
+                    {
+                        pixels = pagePixels;
+                        groupPixels.Return();
+                    }
                 }
             }
             finally
