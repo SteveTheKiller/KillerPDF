@@ -4720,6 +4720,10 @@ public sealed partial class PdfPageRenderer
         }
         byte[]? plane = imageMask || preblendMatte is not null || directInkSamples || directDeviceSamples
             ? null : RasterBuffers.Rent(checked(planeWidth * planeHeight * 4));
+        ImageSampleConverter.AreaSpan[]? converterAreaColumns = averagePlane
+            ? ImageSampleConverter.CreateAreaSpans(sourceWidth, planeWidth) : null;
+        ImageSampleConverter.AreaSpan[]? converterAreaRows = averagePlane
+            ? ImageSampleConverter.CreateAreaSpans(sourceHeight, planeHeight) : null;
         var matteConverter = preblendMatte is not null && !imageMask
             ? new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
                 bits, decode, colorSpace, target.Ink is not null, target.InputProfile, matte: true) : null;
@@ -4760,7 +4764,8 @@ public sealed partial class PdfPageRenderer
                 ForEachRow(0, planeHeight, (long)planeWidth * planeHeight, cancellationToken, (rowStart, rowEnd) =>
                 {
                     var converter = new ImageSampleConverter(samples, sourceWidth, rowBytes, components,
-                        bits, decode, colorSpace, targetInk, blendProfile);
+                        bits, decode, colorSpace, targetInk, blendProfile,
+                        areaColumns: converterAreaColumns, areaRows: converterAreaRows);
                     for (int py = rowStart; py < rowEnd; py++)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -5076,6 +5081,8 @@ public sealed partial class PdfPageRenderer
         private readonly int _maximum;
         private readonly bool _targetInk;
         private readonly PdfColorTransform? _targetProfile;
+        private readonly AreaSpan[]? _areaColumns;
+        private readonly AreaSpan[]? _areaRows;
         private readonly bool _directRgb;
         private readonly bool _directRgbInk;
         private readonly bool _directGray;
@@ -5086,7 +5093,8 @@ public sealed partial class PdfPageRenderer
 
         internal ImageSampleConverter(byte[] samples, int sourceWidth, int rowBytes,
             int components, int bits, double[] decode, ImageColorSpace colorSpace,
-            bool targetInk, PdfColorTransform? targetProfile, bool matte = false)
+            bool targetInk, PdfColorTransform? targetProfile, bool matte = false,
+            AreaSpan[]? areaColumns = null, AreaSpan[]? areaRows = null)
         {
             _samples = samples;
             _rowBytes = rowBytes;
@@ -5096,6 +5104,8 @@ public sealed partial class PdfPageRenderer
             _colorSpace = colorSpace;
             _targetInk = targetInk;
             _targetProfile = targetProfile;
+            _areaColumns = areaColumns;
+            _areaRows = areaRows;
             _values = new double[(colorSpace.PaletteBase ?? colorSpace).Components];
             _maximum = bits >= 31 ? int.MaxValue : (1 << bits) - 1;
             // Plain 8-bit device gray or RGB samples with the default decode convert to the
@@ -5229,16 +5239,16 @@ public sealed partial class PdfPageRenderer
                 return PdfBinaryAreaSampler.Sample(_samples, _rowBytes, sourceWidth, sourceHeight,
                     px, _binaryRow, planeWidth, planeHeight, _lookup![0], _lookup[1], cancellationToken);
             }
-            double left = px * (double)sourceWidth / planeWidth, right = (px + 1) * (double)sourceWidth / planeWidth;
-            double top = py * (double)sourceHeight / planeHeight, bottom = (py + 1) * (double)sourceHeight / planeHeight;
+            AreaSpan column = _areaColumns?[px] ?? AreaSpan.Create(px, sourceWidth, planeWidth);
+            AreaSpan row = _areaRows?[py] ?? AreaSpan.Create(py, sourceHeight, planeHeight);
             double first = 0, second = 0, third = 0, fourth = 0;
-            for (int y = (int)top; y < (int)Math.Ceiling(bottom); y++)
+            for (int y = row.First; y < row.End; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                double vertical = Math.Min(y + 1, bottom) - Math.Max(y, top);
-                for (int x = (int)left; x < (int)Math.Ceiling(right); x++)
+                double vertical = row.Weight(y);
+                for (int x = column.First; x < column.End; x++)
                 {
-                    double weight = vertical * (Math.Min(x + 1, right) - Math.Max(x, left));
+                    double weight = vertical * column.Weight(x);
                     uint color = Convert(x, y);
                     first += (byte)color * weight;
                     second += (byte)(color >> 8) * weight;
@@ -5246,11 +5256,47 @@ public sealed partial class PdfPageRenderer
                     fourth += (byte)(color >> 24) * weight;
                 }
             }
-            double area = (right - left) * (bottom - top);
+            double area = column.Length * row.Length;
             return (uint)Math.Clamp(Math.Round(first / area), 0, 255)
                 | (uint)Math.Clamp(Math.Round(second / area), 0, 255) << 8
                 | (uint)Math.Clamp(Math.Round(third / area), 0, 255) << 16
                 | (uint)Math.Clamp(Math.Round(fourth / area), 0, 255) << 24;
+        }
+
+        internal static AreaSpan[] CreateAreaSpans(int sourceLength, int destinationLength)
+        {
+            var spans = new AreaSpan[destinationLength];
+            for (int index = 0; index < spans.Length; index++)
+                spans[index] = AreaSpan.Create(index, sourceLength, destinationLength);
+            return spans;
+        }
+
+        internal readonly struct AreaSpan
+        {
+            internal int First { get; }
+            internal int End { get; }
+            internal double Length { get; }
+            private readonly double _firstWeight;
+            private readonly double _lastWeight;
+
+            private AreaSpan(double start, double end)
+            {
+                First = (int)start;
+                End = (int)Math.Ceiling(end);
+                Length = end - start;
+                _firstWeight = Math.Min(First + 1, end) - Math.Max(First, start);
+                _lastWeight = Math.Min(End, end) - Math.Max(End - 1, start);
+            }
+
+            internal static AreaSpan Create(int index, int sourceLength, int destinationLength)
+            {
+                double start = index * (double)sourceLength / destinationLength;
+                double end = (index + 1) * (double)sourceLength / destinationLength;
+                return new AreaSpan(start, end);
+            }
+
+            internal double Weight(int index) => index == First
+                ? _firstWeight : index == End - 1 ? _lastWeight : 1;
         }
 
         private uint ConvertRaw(int first, int second, int third, int fourth)

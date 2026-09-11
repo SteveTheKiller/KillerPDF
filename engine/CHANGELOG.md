@@ -52,7 +52,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 - Reduced parsed content-instruction allocation by compiling numeric path, text, matrix, and graphics-state operands directly into compact storage with unchanged rendering output.
 - Faster JPEG 2000 entropy input through sealed, inlined byte reads with unchanged decoded pixels.
 - Reduced JPEG 2000 reconstruction overhead while preserving decoded pixels.
-- Reduced image reduction overhead in uniform areas, repeated rows, and area sampling without changing pixels.
+- Reduced image reduction overhead in uniform areas, repeated rows, and ICC area sampling without changing pixels.
 - Faster rendering: cached quarter-pixel text glyph masks, calculator functions compiled to a typed stack machine, no per-pixel clip lookups under rectangular clips, and pooled coverage-mask and Flate buffers. Damaged cross-reference recovery screens candidates before parsing them, which removes most of the open-time cost on broken files.
 - Faster high-resolution pages: row-based opaque fills, packed opaque RGB coverage writes, area-resampled image placement, transparency-group compositing, soft-mask sampling, and final CMYK display conversion, exact byte paths for plain gray, RGB, and unprofiled CMYK image samples, and zero-opacity paints skipped outside knockout groups. `PdfRenderOptions.MaximumParallelism` lets a host split large image and fill work across threads with identical output; the default stays single-threaded.
 - Graphics-state soft masks now render on demand over the area each paint uses instead of their whole bounding box at every `gs`, which makes pages with many masked objects several times faster with unchanged pixels and far less temporary memory.
