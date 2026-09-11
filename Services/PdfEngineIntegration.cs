@@ -996,7 +996,18 @@ internal static class PdfEngineIntegration
         }
         catch (Exception ex) when (IsBookmarkGraphFailure(ex))
         {
-            RebuildDocument(path, path, preserveBookmarks: false);
+            try
+            {
+                RebuildDocument(path, path, preserveBookmarks: false);
+            }
+            catch (Exception retryException) when (IsImportedFontWidthFailure(retryException))
+            {
+                // The replacement is complete. Compaction is optional for this malformed source.
+            }
+        }
+        catch (Exception ex) when (IsImportedFontWidthFailure(ex))
+        {
+            // The replacement is complete. Compaction is optional for this malformed source.
         }
     }
 
@@ -1078,6 +1089,17 @@ internal static class PdfEngineIntegration
     {
         for (Exception? current = exception; current is not null; current = current.InnerException)
             if (current.Message.Contains("bookmark", StringComparison.OrdinalIgnoreCase))
+                return true;
+        return false;
+    }
+
+    private static bool IsImportedFontWidthFailure(Exception exception)
+    {
+        for (Exception? current = exception; current is not null; current = current.InnerException)
+            if (current is InvalidOperationException
+                && current.Message.Contains(
+                    "has inconsistent /FirstChar, /LastChar, or /Widths values.",
+                    StringComparison.Ordinal))
                 return true;
         return false;
     }

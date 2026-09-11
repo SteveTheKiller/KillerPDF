@@ -45,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Kept selected-page transforms when retained pages contain inconsistent font-width metadata.
 - Marked 1.9 development builds as unreleased in the About card.
 - Aligned website footer versions with the published release across all languages.
 - Standalone uninstall dialogs use the default Dark/Green theme, and installation errors use themed dialogs.

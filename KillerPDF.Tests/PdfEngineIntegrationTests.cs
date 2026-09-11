@@ -1059,6 +1059,62 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void ReplacePagesAndCompact_KeepsReplacementWhenRetainedFontWidthsAreMalformed()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-font-width-transform-{Guid.NewGuid():N}.pdf");
+        string replacement = Path.Combine(Path.GetTempPath(), $"killerpdf-font-width-page-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, BuildMalformedSource());
+            File.WriteAllBytes(replacement,
+                new PdfDocumentBuilder().AddBlankPage(320, 480).Build());
+
+            PdfEngineIntegration.ReplacePagesAndCompact(path,
+                new Dictionary<int, string> { [0] = replacement });
+
+            PdfDocument result = PdfDocument.Open(File.ReadAllBytes(path));
+            Assert.Equal([320d, 210d], Enumerable.Range(0, 2)
+                .Select(index => PageMediaBox(result, index)[2]));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+            if (File.Exists(replacement)) File.Delete(replacement);
+        }
+
+        static byte[] BuildMalformedSource()
+        {
+            string[] objects =
+            [
+                "<< /Type /Catalog /Pages 2 0 R >>",
+                "<< /Type /Pages /Kids [3 0 R 4 0 R] /Count 2 >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 300] /Resources << >> /Contents 5 0 R >>",
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 210 310] /Resources << /Font << /F1 6 0 R >> >> /Contents 7 0 R >>",
+                "<< /Length 0 >>\nstream\n\nendstream",
+                "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 32 /LastChar 33 /Widths [500] >>",
+                "<< /Length 0 >>\nstream\n\nendstream"
+            ];
+            var pdf = new System.Text.StringBuilder("%PDF-1.7\n");
+            var offsets = new List<int>();
+            for (int index = 0; index < objects.Length; index++)
+            {
+                offsets.Add(System.Text.Encoding.ASCII.GetByteCount(pdf.ToString()));
+                pdf.Append(index + 1).Append(" 0 obj\n")
+                    .Append(objects[index]).Append("\nendobj\n");
+            }
+            int startXref = System.Text.Encoding.ASCII.GetByteCount(pdf.ToString());
+            pdf.Append("xref\n0 ").Append(objects.Length + 1)
+                .Append("\n0000000000 65535 f \n");
+            foreach (int offset in offsets)
+                pdf.Append(offset.ToString("D10")).Append(" 00000 n \n");
+            pdf.Append("trailer\n<< /Size ").Append(objects.Length + 1)
+                .Append(" /Root 1 0 R >>\nstartxref\n")
+                .Append(startXref).Append("\n%%EOF\n");
+            return System.Text.Encoding.ASCII.GetBytes(pdf.ToString());
+        }
+    }
+
+    [Fact]
     public void ReplaceAllPagesAndCompact_DoesNotRetainAnyOriginalPageImages()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-all-pages-{Guid.NewGuid():N}.pdf");
