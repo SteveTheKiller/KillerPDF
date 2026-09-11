@@ -7,6 +7,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Security;
 using KillerPDF.Services;
 using Xunit;
@@ -160,6 +161,43 @@ public sealed class PdfEngineIntegrationTests
             Assert.Equal(240, pages[0].Width);
             Assert.Equal(360, pages[1].Width);
             Assert.Equal(300, pages[2].Width);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void PartialRasterization_PlansAndAppliesReviewedDesktopRegion()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-partial-raster-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfDocumentBuilder()
+                .AddPage(100, 100, new PdfContentStreamBuilder()
+                    .Rectangle(10, 10, 20, 20).Stroke())
+                .Build();
+            File.WriteAllBytes(path, source);
+            PdfPartialRasterizationPlan plan =
+                PdfEngineIntegration.PlanPartialRasterization(
+                    path, 0, new PdfContentBounds(5, 5, 30, 30), 72);
+            PdfImage raster = PdfImage.FromRgb(plan.PixelWidth, plan.PixelHeight,
+                Enumerable.Repeat((byte)180, plan.PixelWidth * plan.PixelHeight * 3).ToArray());
+
+            PdfEngineIntegration.ApplyPartialRasterization(path,
+            [
+                new PdfPartialRasterizationReplacement(0, plan, raster)
+            ]);
+
+            byte[] result = File.ReadAllBytes(path);
+            Assert.True(result.AsSpan(0, source.Length).SequenceEqual(source));
+            Assert.Equal(25, plan.PixelWidth);
+            Assert.Single(plan.Paths);
+            PdfExtractedImage image = Assert.Single(new PdfPageContentReader(
+                PdfDocument.Open(result)).Read(0).Images);
+            Assert.Equal(plan.Region, image.BoundingBox);
         }
         finally
         {

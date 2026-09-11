@@ -7,6 +7,7 @@ using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Fonts;
+using KillerPdf.Engine.Parsing;
 using KillerPdf.Engine.Signing;
 using KillerPdf.Engine.Writing;
 using DrawingBitmap = System.Drawing.Bitmap;
@@ -127,6 +128,29 @@ internal static class PdfEngineIntegration
             PdfDocument.Open(File.ReadAllBytes(path)), requests, cancellationToken);
         ReplaceWithBuiltResult(path, result.Document.ToArray());
         return result.Mappings;
+    }
+
+    /// <summary>Plans a selected partial-rasterization region for desktop preview.</summary>
+    internal static PdfPartialRasterizationPlan PlanPartialRasterization(
+        string path, int pageIndex, PdfContentBounds region, double dpi,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        PdfPageContent page = new PdfPageContentReader(document).Read(pageIndex, cancellationToken);
+        return PdfPartialRasterization.Plan(page, region, dpi);
+    }
+
+    /// <summary>Applies reviewed partial-rasterization replacements in one revision.</summary>
+    internal static void ApplyPartialRasterization(string path,
+        IEnumerable<PdfPartialRasterizationReplacement> replacements,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(replacements);
+        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        ReplaceWithBuiltResult(path,
+            PdfPartialRasterization.Apply(document, replacements, cancellationToken));
     }
 
     /// <summary>Adds one editable AcroForm text field to an existing page.</summary>
