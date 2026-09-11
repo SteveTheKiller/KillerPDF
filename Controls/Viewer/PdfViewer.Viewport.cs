@@ -36,6 +36,81 @@ namespace KillerPDF.Controls
         private readonly System.Collections.Concurrent.ConcurrentDictionary<string, BitmapHelpers.FracRect[]>
             _pageImageRects = new();
 
+        // ── Adjacent page prefetch (Single-page view) ──────────────────────────────────────
+        // In Single mode the user often steps to the next or previous page, and each step used
+        // to pay the full render before the new bitmap appeared. After a primary render lands
+        // we fire a background render for pageIndex + 1 and pageIndex - 1 through the same
+        // per-tab render cache the viewer already uses, so navigation to either neighbour hits
+        // TryGetCachedRender and skips the engine entirely. Continuous and Grid modes stream
+        // their own tiles through _backgroundRenderCache and do not need this. Two-Page shows
+        // the whole spread already, so its adjacents are the next/previous spread; prefetching
+        // them the same way still helps but keeps the same cancellation contract.
+        private CancellationTokenSource? _prefetchCts;
+        private void CancelAdjacentPrefetch()
+        {
+            var cts = System.Threading.Interlocked.Exchange(ref _prefetchCts, null);
+            if (cts is null) return;
+            try { cts.Cancel(); } catch { }
+            cts.Dispose();
+        }
+        private void KickOffAdjacentPrefetch(int pageIndex, int scaledMax, int pgRot)
+        {
+            if (_viewMode != ViewMode.Single && _viewMode != ViewMode.TwoPage) return;
+            if (_currentFile is null || _doc is null) return;
+            CancelAdjacentPrefetch();
+            var cts = new CancellationTokenSource();
+            _prefetchCts = cts;
+            var session = _active;
+            string currentFile = _currentFile;
+            long revision = session?.RenderRevision ?? 0;
+            int total = _doc.PageCount;
+            int forward = _viewMode == ViewMode.TwoPage
+                ? SpreadStart(pageIndex) + 2 : pageIndex + 1;
+            int backward = _viewMode == ViewMode.TwoPage
+                ? SpreadStart(pageIndex) - 2 : pageIndex - 1;
+            int[] targets = [forward, backward];
+            var rotations = new Dictionary<int, int>(_pageRotations);
+            var renderRequest = _backgroundRenderCache.Capture(currentFile, revision);
+            _ = System.Threading.Tasks.Task.Run(() =>
+            {
+                PdfBackgroundRenderCache.Lease? lease = null;
+                try
+                {
+                    foreach (int target in targets)
+                    {
+                        if (cts.Token.IsCancellationRequested) return;
+                        if (target < 0 || target >= total) continue;
+                        int rot = rotations.TryGetValue(target, out int r) ? r : pgRot;
+                        var cached = TryGetCachedRender(session, target, scaledMax, rot);
+                        if (cached is not null) continue;
+                        lease ??= renderRequest.Rent(cts.Token);
+                        PdfRenderedPage rendered = lease.Render(target, scaledMax, scaledMax, cts.Token);
+                        int w = rendered.Width, h = rendered.Height;
+                        byte[] raw = rendered.Pixels;
+                        if (w <= 0 || h <= 0 || raw is null) continue;
+                        if (rot != 0)
+                            (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
+                        if (cts.Token.IsCancellationRequested) return;
+                        double longest = Math.Max(1, Math.Max(w, h));
+                        int bw = Math.Max(1, (int)Math.Round(2048.0 * w / longest));
+                        int bh = Math.Max(1, (int)Math.Round(2048.0 * h / longest));
+                        var wb = new WriteableBitmap(w, h,
+                            96.0 * w / bw, 96.0 * h / bh, PixelFormats.Bgra32, null);
+                        wb.WritePixels(new Int32Rect(0, 0, w, h), raw, w * 4, 0);
+                        wb.Freeze();
+                        int localTarget = target, localRot = rot;
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            if (cts.Token.IsCancellationRequested) return;
+                            CacheRender(session, localTarget, scaledMax, localRot, wb);
+                        }));
+                    }
+                }
+                catch { /* prefetch is best-effort */ }
+                finally { lease?.Dispose(); }
+            }, cts.Token);
+        }
+
         /// <summary>The page's image boxes for the inversion carve-out, cached per (file, page).
         /// On a miss, opens engine into the caller's ref (so a worker loop pays ONE open however
         /// many pages it fills) - the caller disposes it; a held handle on the temp file would
@@ -827,6 +902,9 @@ namespace KillerPDF.Controls
         internal void RenderPage(int pageIndex, bool keepTiles = false)
         {
             if (_currentFile is null || _doc is null) return;
+            // Cancel any adjacent-page prefetch from the previous page; a new prefetch is
+            // scheduled at the tail of this render.
+            CancelAdjacentPrefetch();
             // Continuous has its own pipeline (SetupContinuousView + RenderContinuousPages into
             // _continuousPanel) and owns the _pages map for every page. RenderPage targets the hidden
             // single/grid primary (_annotationCanvas in the collapsed _pageContentPanel) and calls
@@ -950,6 +1028,10 @@ namespace KillerPDF.Controls
                     RenderPageLinks(pageIndex, dipW, dipH);
                 });
                 _renderedPrimaryPage = pageIndex;
+                // Fire background renders for the pages the user is most likely to reach next.
+                // Cached bitmaps land in the same per-tab render cache TryGetCachedRender reads,
+                // so the next PageDown/Left/Right skips the engine entirely.
+                KickOffAdjacentPrefetch(pageIndex, scaledMax, pgRot);
             }
             catch (Exception ex)
             {
