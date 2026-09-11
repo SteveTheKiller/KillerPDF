@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using KillerPDF.Services;
 
@@ -16,7 +14,7 @@ namespace KillerPDF.Features
     // Headless CLI render benchmark
     // ============================================================
     //
-    // KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--log <file.csv>] [--quiet]
+    // KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet]
     //
     // Renders the first N pages of one PDF (or every *.pdf under a folder tree)
     // through the same page-render path the viewer, print, flatten, and image
@@ -41,6 +39,7 @@ namespace KillerPDF.Features
             var con = BatchRunner.OpenBatchConsole();
             string? input = null, output = null, logPath = null;
             int size = DefaultSize, pages = 1;
+            int parallelism = Math.Max(1, Environment.ProcessorCount);
             bool quiet = false, badUsage = false;
             for (int i = flagIdx + 1; i < args.Length; i++)
             {
@@ -64,6 +63,13 @@ namespace KillerPDF.Features
                         continue;
                     badUsage = true;
                 }
+                else if (string.Equals(a, "--parallel", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (i + 1 < args.Length && int.TryParse(args[++i], NumberStyles.Integer,
+                        CultureInfo.InvariantCulture, out parallelism) && parallelism >= 1)
+                        continue;
+                    badUsage = true;
+                }
                 else if (string.Equals(a, "--quiet", StringComparison.OrdinalIgnoreCase))
                 {
                     quiet = true;
@@ -75,14 +81,14 @@ namespace KillerPDF.Features
 
             if (badUsage || string.IsNullOrWhiteSpace(input) || string.IsNullOrWhiteSpace(output))
             {
-                con.WriteLine("Usage: KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--log <file.csv>] [--quiet]");
+                con.WriteLine("Usage: KillerPDF.exe --batch-render <input.pdf|inputDir> <outputDir> [--size <px>] [--pages <n>] [--parallel <n>] [--log <file.csv>] [--quiet]");
                 exitCode = 2;
                 return true;
             }
 
             try
             {
-                exitCode = Run(input!, output!, size, pages, logPath, quiet, con);
+                exitCode = Run(input!, output!, size, pages, parallelism, logPath, quiet, con);
             }
             catch (Exception ex)
             {
@@ -93,7 +99,7 @@ namespace KillerPDF.Features
         }
 
         private static int Run(string input, string output, int size, int pageLimit,
-            string? logPath, bool quiet, TextWriter con)
+            int parallelism, string? logPath, bool quiet, TextWriter con)
         {
             var work = new List<(string Rel, string Src)>();
             if (File.Exists(input))
@@ -138,7 +144,6 @@ namespace KillerPDF.Features
             for (int i = 0; i < work.Count; i++)
                 perFile[i] = (work[i].Rel, work[i].Src, new List<RenderRow>());
 
-            int parallelism = Math.Max(1, Environment.ProcessorCount);
             Parallel.For(0, perFile.Length, new ParallelOptions
             {
                 MaxDegreeOfParallelism = parallelism
