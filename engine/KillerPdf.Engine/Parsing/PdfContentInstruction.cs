@@ -45,7 +45,36 @@ public sealed class PdfContentInstruction : IReadOnlyList<PdfObject>
         InlineImageData = source.InlineImageData;
     }
 
+    private PdfContentInstruction(string operation, int offset,
+        IReadOnlyList<PdfContentNumber> operands)
+    {
+        Operator = operation;
+        Offset = offset;
+        var numbers = GC.AllocateUninitializedArray<double>(operands.Count);
+        for (int index = 0; index < operands.Count; index++)
+        {
+            PdfContentNumber operand = operands[index];
+            numbers[index] = operand.Value;
+            if (operand.IsInteger) _integerMask |= (byte)(1 << index);
+        }
+        _operandStorage = numbers;
+    }
+
     internal PdfContentInstruction WithOffset(int offset) => new(this, offset);
+
+    internal static bool TryCreateCompact(string operation, int offset,
+        IReadOnlyList<PdfContentNumber> operands, out PdfContentInstruction? instruction)
+    {
+        if (!UsesCompactNumbers(operation) || operands.Count is < 1 or > 6
+            || operands.Any(value => value.IsInteger
+                && value.Integer is < -9_007_199_254_740_992 or > 9_007_199_254_740_992))
+        {
+            instruction = null;
+            return false;
+        }
+        instruction = new PdfContentInstruction(operation, offset, operands);
+        return true;
+    }
 
     /// <summary>Gets the case-sensitive PDF operator name.</summary>
     public string Operator { get; }
@@ -109,8 +138,16 @@ public sealed class PdfContentInstruction : IReadOnlyList<PdfObject>
     }
 
     private static bool UsesCompactNumbers(string operation) => operation is
-        "cm" or "w" or "m" or "l" or "c" or "v" or "y" or "re";
+        "cm" or "w" or "J" or "j" or "M" or "i"
+        or "m" or "l" or "c" or "v" or "y" or "re"
+        or "Tc" or "Tw" or "Tz" or "TL" or "Tr" or "Ts"
+        or "Td" or "TD" or "Tm" or "d0" or "d1";
 
     /// <summary>Gets encoded inline-image bytes for BI, or null for another operator.</summary>
     public ReadOnlyMemory<byte>? InlineImageData { get; }
+}
+
+internal readonly record struct PdfContentNumber(double Value, long Integer, bool IsInteger)
+{
+    internal PdfObject ToObject() => IsInteger ? new PdfInteger(Integer) : new PdfReal(Value);
 }

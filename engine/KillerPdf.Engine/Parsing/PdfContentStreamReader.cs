@@ -1,3 +1,4 @@
+using System.Globalization;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Syntax;
 
@@ -120,6 +121,7 @@ public static class PdfContentStreamReader
         var parser = PdfObjectParser.ForContent(source, compatibilityRecovery && isFinal);
         var instructions = new List<PdfContentInstruction>();
         var operands = new List<PdfObject>();
+        var numericOperands = new List<PdfContentNumber>(6);
         int recoveries = 0;
         while (true)
         {
@@ -141,8 +143,11 @@ public static class PdfContentStreamReader
             if (token.Kind == PdfTokenKind.EndOfInput)
             {
                 if (!isFinal) return instructions.AsReadOnly();
-                if (operands.Count != 0 && !compatibilityRecovery)
+                if (operands.Count != 0 || numericOperands.Count != 0)
+                {
+                    if (compatibilityRecovery) return instructions.AsReadOnly();
                     throw new PdfSyntaxException("Content ends with operands but no operator", token.Offset);
+                }
                 consumed = source.Length;
                 return instructions.AsReadOnly();
             }
@@ -158,11 +163,17 @@ public static class PdfContentStreamReader
 
             if (token.Kind != PdfTokenKind.Keyword)
             {
-                if (operands.Count >= maximumOperands)
+                if (operands.Count + numericOperands.Count >= maximumOperands)
                     throw new PdfSyntaxException("Content operand limit exceeded", token.Offset);
                 try
                 {
-                    operands.Add(parser.ParseObject());
+                    if (operands.Count == 0 && token.Kind is PdfTokenKind.Integer or PdfTokenKind.Real)
+                        numericOperands.Add(ParseNumber(parser.TakeContentToken()));
+                    else
+                    {
+                        MaterializeNumbers();
+                        operands.Add(parser.ParseObject());
+                    }
                 }
                 catch (PdfSyntaxException) when (!isFinal)
                 {
@@ -178,11 +189,12 @@ public static class PdfContentStreamReader
             string operation = ReadOperation(parser.TakeContentToken());
             if (operation == "BI")
             {
-                if (operands.Count != 0)
+                if (operands.Count != 0 || numericOperands.Count != 0)
                 {
                     if (!compatibilityRecovery)
                         throw new PdfSyntaxException("BI cannot follow operands", token.Offset);
                     operands.Clear();
+                    numericOperands.Clear();
                 }
                 try
                 {
@@ -211,9 +223,17 @@ public static class PdfContentStreamReader
                 continue;
             }
 
-            instructions.Add(new PdfContentInstruction(operation, token.Offset, operands));
+            if (operands.Count == 0 && PdfContentInstruction.TryCreateCompact(operation,
+                token.Offset, numericOperands, out PdfContentInstruction? compact))
+                instructions.Add(compact!);
+            else
+            {
+                MaterializeNumbers();
+                instructions.Add(new PdfContentInstruction(operation, token.Offset, operands));
+            }
             consumed = token.Offset + token.Length;
             operands.Clear();
+            numericOperands.Clear();
         }
 
         // Common viewers skip a malformed token and keep interpreting the rest of the
@@ -228,13 +248,33 @@ public static class PdfContentStreamReader
             while (position < bytes.Length && !IsDelimiterOrWhitespace(bytes[position]))
                 position++;
             operands.Clear();
+            numericOperands.Clear();
             parser.SetContentPosition(position);
+        }
+
+        void MaterializeNumbers()
+        {
+            foreach (PdfContentNumber number in numericOperands) operands.Add(number.ToObject());
+            numericOperands.Clear();
         }
 
         static bool IsDelimiterOrWhitespace(byte value) =>
             value is 0 or 9 or 10 or 12 or 13 or 32
                 or (byte)'(' or (byte)')' or (byte)'<' or (byte)'>' or (byte)'[' or (byte)']'
                 or (byte)'{' or (byte)'}' or (byte)'/' or (byte)'%';
+    }
+
+    private static PdfContentNumber ParseNumber(PdfToken token)
+    {
+        ReadOnlySpan<byte> value = token.Value.Span;
+        if (token.Kind == PdfTokenKind.Integer
+            && long.TryParse(value, NumberStyles.AllowLeadingSign,
+                CultureInfo.InvariantCulture, out long integer))
+            return new PdfContentNumber(integer, integer, true);
+        if (!double.TryParse(value, NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint,
+                CultureInfo.InvariantCulture, out double real) || !double.IsFinite(real))
+            throw new PdfSyntaxException("The real number is outside the supported finite range", token.Offset);
+        return new PdfContentNumber(real, 0, false);
     }
 
     private static string ReadOperation(PdfToken token)

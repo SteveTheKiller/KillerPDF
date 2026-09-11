@@ -462,25 +462,26 @@ public sealed partial class PdfPageRenderer
                     state = state with { LineWidth = Math.Max(0, N(0)) };
                     break;
                 case "J" when values.Count == 1:
-                    double capValue = Number(Resolve(values[0]));
+                    double capValue = N(0);
                     if (capValue != Math.Truncate(capValue) || capValue is < 0 or > 2)
                         throw new FormatException("A line cap style is invalid.");
                     state = state with { LineCap = (RendererLineCap)(int)capValue };
                     break;
                 case "j" when values.Count == 1:
-                    PdfObject joinOperand = Resolve(values[0]);
-                    if (_document.UsesCompatibilityRecovery && joinOperand is not (PdfInteger or PdfReal))
+                    if (_document.UsesCompatibilityRecovery
+                        && !instruction.TryGetNumber(0, out _)
+                        && Resolve(values[0]) is not (PdfInteger or PdfReal))
                     {
                         diagnostics.Add("An invalid line-join operation was ignored.");
                         break;
                     }
-                    double joinValue = Number(joinOperand);
+                    double joinValue = N(0);
                     if (joinValue != Math.Truncate(joinValue) || joinValue is < 0 or > 2)
                         throw new FormatException("A line join style is invalid.");
                     state = state with { LineJoin = (RendererLineJoin)(int)joinValue };
                     break;
                 case "M" when values.Count == 1:
-                    double miterLimit = Number(Resolve(values[0]));
+                    double miterLimit = N(0);
                     if (!double.IsFinite(miterLimit) || miterLimit < 1)
                         throw new FormatException("A miter limit is invalid.");
                     state = state with { MiterLimit = miterLimit };
@@ -650,7 +651,8 @@ public sealed partial class PdfPageRenderer
                     textSize = Number(values[1]);
                     break;
                 case "Tm" when values.Count == 6:
-                    textMatrix = textLineMatrix = Matrix.From(values);
+                    textMatrix = textLineMatrix = new Matrix(
+                        N(0), N(1), N(2), N(3), N(4), N(5));
                     break;
                 case "Td" or "TD" when values.Count == 2:
                     if (_document.UsesCompatibilityRecovery
@@ -660,7 +662,7 @@ public sealed partial class PdfPageRenderer
                         diagnostics.Add("An invalid text-position operation was ignored.");
                         break;
                     }
-                    double textX = Number(values[0]), textY = Number(values[1]);
+                    double textX = N(0), textY = N(1);
                     if (instruction.Operator == "TD") textLeading = -textY;
                     textLineMatrix = new Matrix(1, 0, 0, 1, textX, textY)
                         .Then(textLineMatrix);
@@ -672,22 +674,22 @@ public sealed partial class PdfPageRenderer
                     textMatrix = textLineMatrix;
                     break;
                 case "Tc" when values.Count == 1:
-                    characterSpacing = Number(values[0]);
+                    characterSpacing = N(0);
                     break;
                 case "Tw" when values.Count == 1:
-                    wordSpacing = Number(values[0]);
+                    wordSpacing = N(0);
                     break;
                 case "Tz" when values.Count == 1:
-                    horizontalScale = Number(values[0]) / 100;
+                    horizontalScale = N(0) / 100;
                     break;
                 case "TL" when values.Count == 1:
-                    textLeading = Number(values[0]);
+                    textLeading = N(0);
                     break;
                 case "Tr" when values.Count == 1:
-                    textRenderingMode = (int)Number(values[0]);
+                    textRenderingMode = (int)N(0);
                     break;
                 case "Ts" when values.Count == 1:
-                    textRise = Number(values[0]);
+                    textRise = N(0);
                     break;
                 case "Tj" when values.Count == 1 && values[0] is PdfString text:
                     ShowText(text);
