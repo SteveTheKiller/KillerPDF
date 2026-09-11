@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">SOUKROMÍ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Nepamatovat si naposledy otevřené soubory</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Exportovat stránky jako obrázky...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Exportovat dokument...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Exportovat dokument</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Strukturovaný export zachová čitelný obsah a rozvržení, pokud je vybraný formát podporuje. Před uložením můžete zkontrolovat známé ztráty.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Tento formát nedokáže zachovat {0} položek z vybraných stránek. Pokračovat v exportu?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Dokument byl exportován do {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Odebrat heslo</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Uloženo bez ochrany heslem - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Exportovat stránky jako obrázky</sys:String>

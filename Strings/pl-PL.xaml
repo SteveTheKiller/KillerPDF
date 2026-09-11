@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">PRYWATNOŚĆ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Nie zapamiętywaj ostatnio otwieranych plików</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Eksportuj strony jako obrazy...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Eksportuj dokument...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Eksportuj dokument</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Eksport strukturalny zachowuje czytelną treść i układ, jeśli wybrany format je obsługuje. Przed zapisaniem można sprawdzić znane straty.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Ten format nie może odwzorować {0} elementów z wybranych stron. Kontynuować eksport?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Dokument wyeksportowano do {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Usuń Hasło</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Zapisano bez ochrony hasłem - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Eksportuj strony jako obrazy</sys:String>

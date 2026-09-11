@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">プライバシー</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">最近開いたファイルを記憶しない</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">ページを画像としてエクスポート...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">ドキュメントをエクスポート...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">ドキュメントをエクスポート</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">構造化エクスポートは、選択した形式で対応できる範囲の読み取り可能な内容とレイアウトを保持します。保存前に既知の欠落を確認できます。</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">この形式では、選択したページの {0} 件の項目を表現できません。エクスポートを続行しますか？</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">ドキュメントを {0} にエクスポートしました</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">パスワードを削除</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">パスワード保護なしで保存しました - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">ページを画像としてエクスポート</sys:String>

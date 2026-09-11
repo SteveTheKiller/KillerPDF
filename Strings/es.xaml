@@ -645,6 +645,11 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_PrivacySection">PRIVACIDAD</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">No recordar los archivos abiertos recientemente</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Exportar páginas como imágenes...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Exportar documento...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Exportar documento</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Las exportaciones estructuradas conservan el contenido legible y el diseño cuando el formato seleccionado lo permite. Puede revisar las pérdidas conocidas antes de guardar.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Este formato no puede representar {0} elemento(s) de las páginas seleccionadas. ¿Continuar con la exportación?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Documento exportado a {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Quitar contraseña</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Guardado sin protección por contraseña - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Exportar páginas como imágenes</sys:String>

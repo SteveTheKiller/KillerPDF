@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">PRIVACY</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Non ricordare i file aperti di recente</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Esporta pagine come immagini...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Esporta documento...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Esporta documento</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Le esportazioni strutturate conservano il contenuto leggibile e il layout quando il formato scelto lo consente. Puoi controllare le perdite note prima del salvataggio.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Questo formato non può rappresentare {0} elemento/i delle pagine selezionate. Continuare l'esportazione?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Documento esportato in {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Rimuovi password</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Salvato senza protezione tramite password - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Esporta pagine come immagini</sys:String>

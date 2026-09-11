@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">ADATVÉDELEM</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Ne jegyezze meg a legutóbb megnyitott fájlokat</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Oldalak exportálása képként...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Dokumentum exportálása...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Dokumentum exportálása</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">A strukturált export megőrzi az olvasható tartalmat és az elrendezést, ha a kiválasztott formátum támogatja. Mentés előtt áttekintheti az ismert veszteségeket.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Ez a formátum nem tudja megjeleníteni a kijelölt oldalak {0} elemét. Folytatja az exportálást?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">A dokumentum exportálva ide: {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Jelszó eltávolítása</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Mentve jelszavas védelem nélkül - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Oldalak exportálása képként</sys:String>

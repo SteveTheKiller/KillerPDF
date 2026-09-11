@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">PRIVACY</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Don't remember recently opened files</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Export Pages as Images...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Export Document...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Export Document</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Structured exports preserve readable content and layout where the selected format supports them. You can review any known losses before saving.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">This format cannot represent {0} item(s) from the selected pages. Continue with the export?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Exported document to {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Remove Password</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Saved without password protection - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Export Pages as Images</sys:String>

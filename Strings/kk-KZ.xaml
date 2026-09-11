@@ -171,6 +171,11 @@
     <sys:String x:Key="Str_PrivacySection">ҚҰПИЯЛЫЛЫҚ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Жақында ашылған файлдарды есте сақтамау</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Беттерді сурет ретінде экспорттау...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Құжатты экспорттау...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Құжатты экспорттау</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Құрылымдық экспорт таңдалған пішім қолдайтын оқылатын мазмұн мен орналасуды сақтайды. Сақтау алдында белгілі жоғалтуларды тексеруге болады.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Бұл пішім таңдалған беттердегі {0} элементті көрсете алмайды. Экспортты жалғастыру керек пе?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Құжат {0} орнына экспортталды</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Құпиясөзді жою</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Құпиясөзсіз сақталды - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Беттерді сурет ретінде экспорттау</sys:String>

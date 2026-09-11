@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">CONFIDENTIALITÉ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Ne pas mémoriser les fichiers récemment ouverts</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Exporter les pages en images...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Exporter le document...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Exporter le document</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Les exports structurés conservent le contenu lisible et la mise en page lorsque le format choisi le permet. Vous pouvez vérifier les pertes connues avant l'enregistrement.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Ce format ne peut pas représenter {0} élément(s) des pages sélectionnées. Continuer l'exportation ?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Document exporté vers {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Supprimer le mot de passe</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Enregistré sans protection par mot de passe - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Exporter les pages en images</sys:String>

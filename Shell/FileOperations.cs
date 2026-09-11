@@ -734,6 +734,7 @@ namespace KillerPDF
                 menu.Items.Add(MakeMenuItem(Loc("Str_Menu_SaveAs"), (s2, e2) => SaveAs_Click(s2, e2), "Ctrl+Shift+S", ""));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Menu_CompressZip"), (s2, e2) => CompressToZip_Click(s2, e2), null, ""));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ExportImages"), (s2, e2) => ExportImages_Click(s2, e2), null, ""));   // #132
+                menu.Items.Add(MakeMenuItem(Loc("Str_Menu_ExportDocument"), (s2, e2) => ExportDocument_Click(s2, e2), null, ""));
                 menu.Items.Add(new Separator());
                 menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_DigitalSig"), (_, _) => OpenSignDialog(), null, ""));
                 // #149: visible always (discoverability, the PDF Viewer Plus way), enabled only when the
@@ -1156,6 +1157,82 @@ namespace KillerPDF
         // chosen DPI and writes <base>-page-NNN.<ext> beside the base name the user picked.
         private async void ExportImages_Click(object sender, RoutedEventArgs e)
             => await ExportImagesFlow("");
+
+        private async void ExportDocument_Click(object sender, RoutedEventArgs e)
+        {
+            if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            CommitActiveTextBox();
+            var options = new ExportDocumentDialog(this);
+            options.ShowDialog();
+            if (!options.Confirmed) return;
+
+            int pageCount = EnsureEngineDocumentSession().PageCount;
+            List<int>? pages = null;
+            if (options.Range.Length > 0)
+            {
+                pages = CliParsePageRange(options.Range, pageCount, out string rangeError);
+                if (pages is null)
+                {
+                    KillerDialog.Show(this, rangeError.Length > 0 ? rangeError : Loc("Str_InvalidRange"),
+                        "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+            }
+
+            string extension = PdfStructuredExportBatchRunner.OutputName("document.pdf", options.Format);
+            extension = System.IO.Path.GetExtension(extension);
+            string description = options.Format switch
+            {
+                PdfStructuredExportFormat.WordDocument => "Word document",
+                PdfStructuredExportFormat.Spreadsheet => "Excel workbook",
+                PdfStructuredExportFormat.Presentation => "PowerPoint presentation",
+                PdfStructuredExportFormat.Html => "HTML document",
+                PdfStructuredExportFormat.Markdown => "Markdown document",
+                PdfStructuredExportFormat.PlainText => "Text document",
+                PdfStructuredExportFormat.Json => "JSON document",
+                _ => "Document"
+            };
+            var save = new Controls.FileDialog(Controls.FileDialogMode.Save)
+            {
+                Filter = $"{description}|*{extension}",
+                Title = Loc("Str_ExportDoc_Suffix"),
+                CheckFileExists = false,
+                CheckPathExists = true,
+                FileName = System.IO.Path.GetFileNameWithoutExtension(_originalFile ?? _currentFile ?? "document") + extension
+            };
+            if (save.ShowDialog(this) != true) return;
+
+            bool operationStarted = false;
+            try
+            {
+                var document = EnsureEngineDocumentSession().Document;
+                PdfStructuredExportReport losses = PdfStructuredExport.InspectLosses(document, options.Format, pages);
+                if (!losses.IsLossless)
+                {
+                    string warning = string.Format(Loc("Str_ExportDoc_LossWarning"), losses.Findings.Count);
+                    if (KillerDialog.Show(this, warning, Loc("Str_ExportDoc_Suffix"),
+                        MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
+                }
+
+                var cancellation = BeginCancellableOp(Loc("Str_Op_Export"));
+                operationStarted = true;
+                byte[] output = await Task.Run(() => PdfStructuredExport.Export(
+                    document, options.Format, pages, cancellationToken: cancellation), cancellation);
+                if (cancellation.IsCancellationRequested) return;
+                await System.IO.File.WriteAllBytesAsync(save.FileName, output, cancellation);
+                SetStatus(string.Format(Loc("Str_ExportDoc_Done"), System.IO.Path.GetFileName(save.FileName)));
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex)
+            {
+                KillerDialog.Show(this, Loc("Str_Err_ExportFailed") + "\n" + ex.Message,
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                if (operationStarted) EndCancellableOp();
+            }
+        }
 
         /// <summary>The image-export flow; presetRange scopes the dialog to specific pages
         /// (the Pages panel's "Export page as image", #207) while staying fully editable.</summary>

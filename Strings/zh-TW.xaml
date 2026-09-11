@@ -647,6 +647,11 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_PrivacySection">隱私</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">不記住最近開啟的檔案</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">將頁面匯出為圖片...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">匯出文件...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">匯出文件</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">結構化匯出會在所選格式支援的範圍內保留可讀內容和版面配置。儲存前可以檢視已知的內容損失。</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">此格式無法呈現所選頁面中的 {0} 個項目。是否繼續匯出？</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">文件已匯出至 {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">移除密碼</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">已儲存，無密碼保護 - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">將頁面匯出為圖片</sys:String>

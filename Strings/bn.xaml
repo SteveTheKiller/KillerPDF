@@ -645,6 +645,11 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_PrivacySection">গোপনীয়তা</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">সম্প্রতি খোলা ফাইলগুলি মনে রাখবেন না</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">পৃষ্ঠাগুলি ছবি হিসেবে এক্সপোর্ট করুন...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">ডকুমেন্ট এক্সপোর্ট করুন...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">ডকুমেন্ট এক্সপোর্ট করুন</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">নির্বাচিত ফরম্যাট সমর্থন করলে গঠিত এক্সপোর্ট পাঠযোগ্য বিষয়বস্তু ও বিন্যাস সংরক্ষণ করে। সংরক্ষণের আগে পরিচিত ক্ষতি পর্যালোচনা করতে পারেন।</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">এই ফরম্যাট নির্বাচিত পৃষ্ঠার {0}টি আইটেম উপস্থাপন করতে পারে না। এক্সপোর্ট চালিয়ে যাবেন?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">ডকুমেন্ট {0}-এ এক্সপোর্ট করা হয়েছে</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">পাসওয়ার্ড সরান</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">পাসওয়ার্ড সুরক্ষা ছাড়াই সংরক্ষিত হয়েছে - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">পৃষ্ঠাগুলি ছবি হিসেবে এক্সপোর্ট</sys:String>

@@ -649,6 +649,11 @@ KillerPDF 不会创建两个已安装的副本。</sys:String>
     <sys:String x:Key="Str_PrivacySection">隐私</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">不记住最近打开的文件</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">将页面导出为图片...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">导出文档...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">导出文档</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">结构化导出会在所选格式支持的范围内保留可读内容和布局。保存前可以查看已知的内容损失。</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">此格式无法表示所选页面中的 {0} 个项目。是否继续导出？</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">文档已导出到 {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">移除密码</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">已保存，无密码保护 - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">将页面导出为图片</sys:String>

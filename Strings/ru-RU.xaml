@@ -172,6 +172,11 @@
     <sys:String x:Key="Str_PrivacySection">КОНФИДЕНЦИАЛЬНОСТЬ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Не запоминать недавно открытые файлы</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Экспорт страницы в виде изображения...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Экспортировать документ...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Экспорт документа</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Структурированный экспорт сохраняет читаемое содержимое и макет, если выбранный формат их поддерживает. Перед сохранением можно проверить известные потери.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Этот формат не может представить {0} элемент(ов) выбранных страниц. Продолжить экспорт?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Документ экспортирован в {0}</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Удалить пароль</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Сохранено без защиты паролем - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Экспорт страниц в виде изображений</sys:String>

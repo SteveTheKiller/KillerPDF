@@ -645,6 +645,11 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_PrivacySection">GİZLİLİK</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Son açılan dosyaları hatırlama</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Sayfaları görüntü olarak dışa aktar...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Belgeyi dışa aktar...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Belgeyi dışa aktar</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Yapılandırılmış dışa aktarma, seçilen biçimin desteklediği okunabilir içeriği ve düzeni korur. Kaydetmeden önce bilinen kayıpları inceleyebilirsiniz.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Bu biçim seçilen sayfalardaki {0} öğeyi gösteremez. Dışa aktarmaya devam edilsin mi?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Belge {0} konumuna aktarıldı</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Parolayı Kaldır</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Parola koruması olmadan kaydedildi - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Sayfaları Görüntü Olarak Dışa Aktar</sys:String>

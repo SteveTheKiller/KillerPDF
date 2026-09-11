@@ -651,6 +651,11 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_PrivacySection">DATENSCHUTZ</sys:String>
     <sys:String x:Key="Str_NoRecentSetting">Zuletzt geöffnete Dateien nicht merken</sys:String>
     <sys:String x:Key="Str_Menu_ExportImages">Seiten als Bilder exportieren...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Dokument exportieren...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Dokument exportieren</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Strukturierte Exporte bewahren lesbare Inhalte und das Layout, soweit das gewählte Format dies unterstützt. Bekannte Verluste können vor dem Speichern geprüft werden.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Dieses Format kann {0} Element(e) der ausgewählten Seiten nicht darstellen. Export trotzdem fortsetzen?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Dokument nach {0} exportiert</sys:String>
     <sys:String x:Key="Str_Menu_RemovePassword">Passwort entfernen</sys:String>
     <sys:String x:Key="Str_St_SavedNoPassword">Ohne Passwortschutz gespeichert - {0}</sys:String>
     <sys:String x:Key="Str_ExportImg_Suffix">Seiten als Bilder exportieren</sys:String>
