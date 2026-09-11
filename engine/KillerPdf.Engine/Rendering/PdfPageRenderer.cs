@@ -4542,8 +4542,6 @@ public sealed partial class PdfPageRenderer
             // sample bytes for this surface, so repeated values reuse the converted ink.
             bool inkDirect = target.Ink is not null && stencilAlpha == 1
                 && blendMode is RendererBlendMode.Normal or RendererBlendMode.Compatible;
-            Span<ulong> inkLookup = inkDirect ? stackalloc ulong[directGray ? 256 : 4096] : [];
-            inkLookup.Clear();
             PdfImageAreaSampler.Column[]? areaColumns = null;
             if (areaSample && inverse.B == 0 && inverse.C == 0)
             {
@@ -4554,6 +4552,60 @@ public sealed partial class PdfPageRenderer
                     areaColumns[x - left] = new(sourceWidth,
                         columnUnitX * sourceWidth, footprintWidth);
             }
+            if (target.Ink is null && target.GroupAlpha is null && stencilAlpha == 1)
+            {
+                ForEachRow(paintTop, paintBottom,
+                    (long)(paintRight - paintLeft) * (paintBottom - paintTop), cancellationToken,
+                    (rowStart, rowEnd) =>
+                    {
+                        for (int y = rowStart; y < rowEnd; y++)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            double pageX = (left + 0.5) / scaleX;
+                            double pageY = (targetHeight - y - 0.5) / scaleY;
+                            Point first = inverse.Apply(pageX, pageY);
+                            double unitX = first.X;
+                            double unitY = first.Y;
+                            PdfImageAreaSampler.Row areaRow = areaSample && inverse.B == 0
+                                ? new(sourceHeight, (1 - unitY) * sourceHeight, footprintHeight) : default;
+                            int directRowOffset = target.Offset(left, y);
+                            for (int x = left; x < paintRight; x++, unitX += unitStepX, unitY += unitStepY)
+                            {
+                                if (x < paintLeft) continue;
+                                if (unitX < 0 || unitX >= 1 || unitY < 0 || unitY >= 1) continue;
+                                int sourceX = Math.Min((int)(unitX * sourceWidth), sourceWidth - 1);
+                                int sourceY = Math.Min((int)((1 - unitY) * sourceHeight), sourceHeight - 1);
+                                int sourceOffset = sourceY * rowBytes + sourceX * components;
+                                uint rgb = areaSample ? areaColumns is not null
+                                    ? PdfImageAreaSampler.Sample(samples, sourceWidth, components,
+                                        areaColumns[x - left], areaRow, cancellationToken)
+                                    : PdfImageAreaSampler.Sample(samples, sourceWidth,
+                                        components, unitX * sourceWidth, footprintWidth, inverse.B == 0 ? areaRow
+                                            : new(sourceHeight, (1 - unitY) * sourceHeight, footprintHeight), cancellationToken)
+                                    : directGray ? (uint)samples[sourceOffset] * 0x010101u
+                                    : (uint)samples[sourceOffset] << 16 | (uint)samples[sourceOffset + 1] << 8 | samples[sourceOffset + 2];
+                                int targetOffset = directRowOffset + (x - left) * 4;
+                                if (directGray)
+                                {
+                                    byte gray = (byte)rgb;
+                                    directData[targetOffset] = gray;
+                                    directData[targetOffset + 1] = gray;
+                                    directData[targetOffset + 2] = gray;
+                                }
+                                else
+                                {
+                                    directData[targetOffset] = (byte)rgb;
+                                    directData[targetOffset + 1] = (byte)(rgb >> 8);
+                                    directData[targetOffset + 2] = (byte)(rgb >> 16);
+                                }
+                                directData[targetOffset + 3] = 255;
+                            }
+                        }
+                    });
+                return;
+            }
+            Span<ulong> inkLookup = inkDirect ? stackalloc ulong[directGray ? 256 : 4096] : [];
+            inkLookup.Clear();
             for (int y = paintTop; y < paintBottom; y++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
