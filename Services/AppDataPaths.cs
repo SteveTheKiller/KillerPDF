@@ -32,6 +32,7 @@ internal static class AppDataPaths
     internal static string UserRoot => PortableRoot ?? LocalRoot;
     internal static string SettingsFile => Path.Combine(UserRoot, "settings.json");
     internal static string SignaturesFile => Path.Combine(UserRoot, "signatures.json");
+    internal static string TextFieldPresetsFile => Path.Combine(UserRoot, "text-field-presets.json");
     internal static string TessDataDirectory => Path.Combine(UserRoot, "tessdata");
 
     internal static string? GetPortableSetting(string name)
