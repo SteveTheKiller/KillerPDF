@@ -536,6 +536,9 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">ページを削除</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">ページを複製</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">空白ページを追加</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">現在のページ</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">カスタム</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">幅と高さに 0.1 から 200 インチの値を入力してください。</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">タブを閉じる</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">ファイルの場所を開く</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">他のタブを閉じる</sys:String>

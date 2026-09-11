@@ -460,6 +460,9 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">刪除頁面</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">複製頁面</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">新增空白頁</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">目前頁面</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">自訂</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">請輸入 0.1 到 200 英吋之間的寬度和高度。</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">關閉分頁</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">開啟檔案所在資料夾</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">關閉其他分頁</sys:String>

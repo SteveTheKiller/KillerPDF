@@ -521,6 +521,9 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_Ctx_DeletePage">Usuń stronę</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplikat strony</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Dodaj pustą stronę</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Bieżąca strona</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Własny</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Wprowadź szerokość i wysokość od 0,1 do 200 cali.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Zamknij stronę</sys:String>
     <sys:String x:Key="Str_Ctx_OpenContainingFolder">Otwórz folder zawierający</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Zamknij pozostałe strony</sys:String>
