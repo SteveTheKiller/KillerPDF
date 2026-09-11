@@ -49,6 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
+- Reduced parsed content-instruction allocation with unchanged rendering output.
 - Faster JPEG 2000 entropy input through sealed, inlined byte reads with unchanged decoded pixels.
 - Reduced JPEG 2000 reconstruction overhead while preserving decoded pixels.
 - Reduced image reduction overhead in uniform areas, repeated rows, and area sampling without changing pixels.
