@@ -45,24 +45,66 @@ internal sealed class PdfPageRenderSession : IDisposable
         return new PdfPageRenderSession(document, pages, maximumWidth, maximumHeight, 0);
     }
 
+    // In-process cache of parsed PdfDocument instances keyed by absolute path plus its
+    // last-write timestamp plus its size. The engine's PdfDocument is immutable after Open,
+    // so sharing one across the primary render session, background render session, sidebar
+    // thumbnails, print preview, and image export is safe: each PdfPageRenderer instance
+    // keeps its own font, image, and instruction caches on top of the shared parse tree.
+    // Weak references let the GC reclaim documents no viewer holds. The key includes size
+    // and mtime so any file rewrite invalidates automatically.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string,
+        (long Ticks, long Size, WeakReference<EngineDocument> Ref)> _documentCache = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Opens a file for rendering. Files encrypted with only an owner password open with the
-    /// empty user password, the same as every mainstream viewer.
+    /// empty user password, the same as every mainstream viewer. Repeated opens of the same
+    /// file, while any earlier session on that file is still reachable, share the parsed
+    /// PdfDocument so a subsequent thumbnail, preview, or export does not re-parse the file.
     /// </summary>
     internal static EngineDocument OpenDocument(string path)
     {
-        using FileStream source = File.OpenRead(path);
-        EngineDocument document = EngineDocument.OpenWithCompatibilityRecovery(source);
-        if (document.CanReadPageContent) return document;
+        string normalized;
+        long ticks, size;
         try
         {
-            source.Position = 0;
-            return EngineDocument.OpenWithCompatibilityRecovery(source, string.Empty);
+            var info = new FileInfo(path);
+            normalized = info.FullName;
+            ticks = info.LastWriteTimeUtc.Ticks;
+            size = info.Length;
+            if (_documentCache.TryGetValue(normalized, out var entry)
+                && entry.Ticks == ticks && entry.Size == size
+                && entry.Ref.TryGetTarget(out EngineDocument? cached)
+                && cached is not null)
+                return cached;
         }
         catch (Exception exception) when (exception is not OutOfMemoryException)
         {
-            return document;
+            // The file cannot be stat'd yet the engine may still parse from the stream below;
+            // fall through to the direct-open path without touching the cache.
+            normalized = null!;
+            ticks = 0;
+            size = 0;
         }
+        EngineDocument document;
+        using (FileStream source = File.OpenRead(path))
+        {
+            document = EngineDocument.OpenWithCompatibilityRecovery(source);
+            if (!document.CanReadPageContent)
+            {
+                try
+                {
+                    source.Position = 0;
+                    document = EngineDocument.OpenWithCompatibilityRecovery(source, string.Empty);
+                }
+                catch (Exception exception) when (exception is not OutOfMemoryException)
+                {
+                    // Keep the strict-open document; the caller inspects CanReadPageContent.
+                }
+            }
+        }
+        if (normalized is not null)
+            _documentCache[normalized] = (ticks, size, new WeakReference<EngineDocument>(document));
+        return document;
     }
 
     internal static PdfPageRenderSession OpenEngineFirst(string path, double scale)
