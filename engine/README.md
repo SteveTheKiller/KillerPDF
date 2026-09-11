@@ -152,14 +152,14 @@ Corpus files are intentionally malformed or nonconforming in many cases. A refus
 - Keep public APIs typed and reusable instead of exposing KillerPDF application state.
 - Treat conformance as validator-backed behavior, not a label inferred from the PDF header.
 
-The original architecture decision is recorded in [ADR-001](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/docs/architecture/ADR-001-pdf-engine-boundary.md).
+The original architecture decision is recorded in [ADR-001](https://github.com/Rafie-kun/KillerPDF/blob/main/engine/docs/architecture/ADR-001-pdf-engine-boundary.md).
 
 ## KillerPDF integration
 
 KillerPDF directly references The KillerPDF.Engine as its document parser, writer, and editing library. The Windows application no longer references or vendors PdfSharpCore; PDFium remains responsible for rendering and PdfPig for text extraction.
 
-See [The KillerPDF.Engine changelog](https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md) for detailed capability history.
+See [The KillerPDF.Engine changelog](https://github.com/Rafie-kun/KillerPDF/blob/main/engine/CHANGELOG.md) for detailed capability history.
 
 ## License
 
-The KillerPDF.Engine is licensed under GPLv3 as part of the KillerPDF repository. See the repository [LICENSE](https://github.com/SteveTheKiller/KillerPDF/blob/main/LICENSE).
+The KillerPDF.Engine is licensed under GPLv3 as part of the KillerPDF repository. See the repository [LICENSE](https://github.com/Rafie-kun/KillerPDF/blob/main/LICENSE).

@@ -23,7 +23,7 @@ namespace KillerPDF.Features
         private const string SignerName = "Stephen Riley";
         private const string AkaName    = "Steve the Killer";
 
-        private const string Repo = "https://github.com/SteveTheKiller/KillerPDF";
+        private const string Repo = "https://github.com/Rafie-kun/KillerPDF";
 
         private readonly IAboutHost _host;
 
