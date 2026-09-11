@@ -170,7 +170,7 @@ namespace KillerPDF.Features
                 }
 
             total.Stop();
-            con.WriteLine($"Done. {work.Count} files, {ok} pages OK, {skip} skipped, {fail} failed, {totalMs} ms rendering, {total.ElapsedMilliseconds} ms total.");
+            con.WriteLine($"Done. {work.Count} files, {ok} pages OK, {skip} skipped, {fail} failed, {totalMs} ms summed page rendering, {total.ElapsedMilliseconds} ms elapsed.");
             if (!string.IsNullOrWhiteSpace(logPath))
             {
                 try

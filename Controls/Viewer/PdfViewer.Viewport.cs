@@ -51,7 +51,6 @@ namespace KillerPDF.Controls
             var cts = System.Threading.Interlocked.Exchange(ref _prefetchCts, null);
             if (cts is null) return;
             try { cts.Cancel(); } catch { }
-            cts.Dispose();
         }
         private void KickOffAdjacentPrefetch(int pageIndex, int scaledMax, int pgRot)
         {
@@ -59,6 +58,7 @@ namespace KillerPDF.Controls
             if (_currentFile is null || _doc is null) return;
             CancelAdjacentPrefetch();
             var cts = new CancellationTokenSource();
+            CancellationToken cancellationToken = cts.Token;
             _prefetchCts = cts;
             var session = _active;
             string currentFile = _currentFile;
@@ -78,19 +78,19 @@ namespace KillerPDF.Controls
                 {
                     foreach (int target in targets)
                     {
-                        if (cts.Token.IsCancellationRequested) return;
+                        if (cancellationToken.IsCancellationRequested) return;
                         if (target < 0 || target >= total) continue;
                         int rot = rotations.TryGetValue(target, out int r) ? r : pgRot;
                         var cached = TryGetCachedRender(session, target, scaledMax, rot);
                         if (cached is not null) continue;
-                        lease ??= renderRequest.Rent(cts.Token);
-                        PdfRenderedPage rendered = lease.Render(target, scaledMax, scaledMax, cts.Token);
+                        lease ??= renderRequest.Rent(cancellationToken);
+                        PdfRenderedPage rendered = lease.Render(target, scaledMax, scaledMax, cancellationToken);
                         int w = rendered.Width, h = rendered.Height;
                         byte[] raw = rendered.Pixels;
                         if (w <= 0 || h <= 0 || raw is null) continue;
                         if (rot != 0)
                             (raw, w, h) = BitmapHelpers.RotateBitmap(raw, w, h, rot);
-                        if (cts.Token.IsCancellationRequested) return;
+                        if (cancellationToken.IsCancellationRequested) return;
                         double longest = Math.Max(1, Math.Max(w, h));
                         int bw = Math.Max(1, (int)Math.Round(2048.0 * w / longest));
                         int bh = Math.Max(1, (int)Math.Round(2048.0 * h / longest));
@@ -101,14 +101,18 @@ namespace KillerPDF.Controls
                         int localTarget = target, localRot = rot;
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            if (cts.Token.IsCancellationRequested) return;
+                            if (cancellationToken.IsCancellationRequested) return;
                             CacheRender(session, localTarget, scaledMax, localRot, wb);
                         }));
                     }
                 }
                 catch { /* prefetch is best-effort */ }
-                finally { lease?.Dispose(); }
-            }, cts.Token);
+                finally
+                {
+                    lease?.Dispose();
+                    cts.Dispose();
+                }
+            });
         }
 
         /// <summary>The page's image boxes for the inversion carve-out, cached per (file, page).

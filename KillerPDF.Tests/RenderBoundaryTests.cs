@@ -304,7 +304,9 @@ public sealed class RenderBoundaryTests
             Path.Combine(root, "Services", "PdfPageRenderSession.cs"));
 
         Assert.DoesNotContain("PdfPageRenderSession.OpenEngineFirst(", viewer, StringComparison.Ordinal);
-        Assert.Equal(4, Count(viewer, "renderRequest.Rent(cts.Token)"));
+        Assert.Equal(3, Count(viewer, "renderRequest.Rent(cts.Token)"));
+        Assert.Contains("renderRequest.Rent(cancellationToken)", viewer,
+            StringComparison.Ordinal);
         Assert.Equal(1, Count(viewer, "_primaryRenderSession.Render("));
         Assert.DoesNotContain("PdfPageRenderSession.Open(", viewer,
             StringComparison.Ordinal);
@@ -336,11 +338,13 @@ public sealed class RenderBoundaryTests
         Assert.Contains("RenderBasePage(pages[i], ct)", ocr, StringComparison.Ordinal);
         Assert.Contains("RenderBasePage(pageIdx, ct)", ocr, StringComparison.Ordinal);
         Assert.Equal(2, Count(ocr, "RenderBasePage(i, ct)"));
-        Assert.Equal(4, Count(viewer, "renderRequest.Rent(cts.Token)"));
+        Assert.Equal(3, Count(viewer, "renderRequest.Rent(cts.Token)"));
+        Assert.Contains("renderRequest.Rent(cancellationToken)", viewer,
+            StringComparison.Ordinal);
         Assert.Contains("renderSession.Render(i, renderW, renderW * 2, cts.Token)", viewer);
         Assert.Contains("renderSession.Render(p, hiW, hiW * 2, cts.Token)", viewer);
         Assert.Contains("renderSession.Render(i, secondaryMax, secondaryMax, cts.Token)", viewer);
-        Assert.Contains("lease.Render(target, scaledMax, scaledMax, cts.Token)", viewer);
+        Assert.Contains("lease.Render(target, scaledMax, scaledMax, cancellationToken)", viewer);
     }
 
     [Fact]
