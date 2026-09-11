@@ -101,6 +101,39 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void CommentIntegration_ReadsEditsAndRemovesSelectedComment()
+    {
+        string path = Path.Combine(Path.GetTempPath(),
+            $"killerpdf-comments-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            File.WriteAllBytes(path, new PdfDocumentBuilder()
+                .AddBlankPage()
+                .AddTextNote(0, 10, 20, "Review this", name: "review")
+                .AddTextNote(0, 30, 20, "Done", name: "reply", inReplyTo: "review")
+                .Build());
+
+            PdfCommentThread thread = Assert.Single(
+                PdfEngineIntegration.ReadCommentThreads(path));
+            PdfCommentInfo reply = Assert.Single(thread.Replies).Comment;
+            PdfEngineIntegration.SetCommentContents(path, reply, "Updated reply");
+
+            thread = Assert.Single(PdfEngineIntegration.ReadCommentThreads(path));
+            reply = Assert.Single(thread.Replies).Comment;
+            Assert.Equal("Updated reply", reply.Contents);
+            PdfEngineIntegration.RemoveComment(path, reply);
+
+            thread = Assert.Single(PdfEngineIntegration.ReadCommentThreads(path));
+            Assert.Equal("Review this", thread.Comment.Contents);
+            Assert.Empty(thread.Replies);
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ReplaceBookmarks_WritesEditedHierarchyThroughEngine()
     {
         string path = Path.Combine(Path.GetTempPath(),

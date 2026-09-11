@@ -91,6 +91,31 @@ internal static class PdfEngineIntegration
             PdfDocument.Open(File.ReadAllBytes(path)), plateNames, pageIndexes);
     }
 
+    /// <summary>Reads review comments and their reply relationships for the desktop.</summary>
+    internal static IReadOnlyList<PdfCommentThread> ReadCommentThreads(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        return PdfCommentReader.ReadThreads(PdfDocument.Open(File.ReadAllBytes(path)));
+    }
+
+    /// <summary>Changes the text of a comment selected from the current document.</summary>
+    internal static void SetCommentContents(string path, PdfCommentInfo comment, string contents)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(comment);
+        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        ReplaceWithBuiltResult(path, PdfCommentEditor.SetContents(document, comment, contents));
+    }
+
+    /// <summary>Removes a comment selected from the current document.</summary>
+    internal static void RemoveComment(string path, PdfCommentInfo comment)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        ArgumentNullException.ThrowIfNull(comment);
+        PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
+        ReplaceWithBuiltResult(path, PdfCommentEditor.Remove(document, comment));
+    }
+
     /// <summary>Adds one editable AcroForm text field to an existing page.</summary>
     internal static string AddTextField(
         string path, int pageIndex, double x, double y, double width, double height)
