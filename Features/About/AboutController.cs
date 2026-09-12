@@ -188,7 +188,7 @@ namespace KillerPDF.Features
                 _updateTag = fullTag;
                 switch (_host.ShowUpdatePrompt(fullTag, notes))
                 {
-                    case UpdateChoice.Update: StartupUpdate(); break;
+                    case UpdateChoice.Update: UpdateCore(confirmFirst: false); break;
                     case UpdateChoice.Skip:
                         App.SetSetting("SkipUpdateVersion", fullTag);
                         break;
@@ -196,28 +196,6 @@ namespace KillerPDF.Features
                 }
             }
             catch { /* offline, timeout, or API error - quietly do nothing */ }
-        }
-
-        /// <summary>
-        /// Update from the startup prompt (which already served as confirmation). Unsigned
-        /// builds cannot self-swap - the Authenticode gate below would reject the download -
-        /// so they go straight to the release page instead of fetching a doomed 70+ MB file.
-        /// </summary>
-        private void StartupUpdate()
-        {
-            if (_host.IsDirty)
-            {
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Dlg_SaveBeforeUpdate"),
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            var (sigValid, _, _) = App.GetExeSignerInfo();
-            if (!sigValid)
-            {
-                OpenUrl($"{Repo}/releases/latest");
-                return;
-            }
-            UpdateCore(confirmFirst: false);
         }
 
         // ---- Self-update ---------------------------------------------------------------------
@@ -329,8 +307,13 @@ namespace KillerPDF.Features
                 string? portableLauncher = Environment.GetEnvironmentVariable("KILLERPDF_LAUNCHER_PATH");
                 bool packagedPortable = portable && !string.IsNullOrWhiteSpace(portableLauncher) && File.Exists(portableLauncher);
 
-                if (!App.VerifyAuthenticode(newExe).Valid)
+                if (!App.VerifyAuthenticode(newExe).Valid && App.GetExeSignerInfo().Valid)
                     throw new InvalidDataException("The downloaded update is not signed by a trusted publisher.");
+                // Fork: when the RUNNING build is itself unsigned there is no publisher identity
+                // to compare against, so a download already verified against the release's
+                // published SHA256SUMS.txt is accepted. A signed install still demands a trusted
+                // signature and will never downgrade itself to unsigned bytes. Hash-over-HTTPS
+                // keeps corruption/CDN-mixup protection either way.
 
                 // A machine-wide install (Program Files, from winget, choco or an RMM) is not
                 // writable by a normal user, so the swap has to run elevated. This previously ran
