@@ -356,20 +356,43 @@ namespace KillerPDF
             _ => (1, 1)
         };
 
-        // Booklet page pairing: for a list of N pages, sheet i gets pages[i] and pages[N-1-i].
-        // When N is odd, the last sheet has a single page on the right half (left is blank).
-        // This produces the correct imposition for 2-sided booklet printing: page 1 pairs with
-        // the last page, page 2 with second-to-last, etc. After folding, pages read in order.
-        private static List<int> BookletSheetPages(List<int> indices, int sheet)
+        // Booklet imposition shared by the preview and the spool path, so what you see is
+        // what prints. Pair P_k holds pages (N-1-k, k): the back page renders on the LEFT,
+        // the front page on the RIGHT. A -1 slot is an intentional blank (odd page counts).
+        // Single-sided emits pairs in order P_0..P_{K-1}. Two-sided interleaves so every
+        // physical sheet is correct on both faces: front P_0, back mirror(P_1), front P_2,
+        // back mirror(P_3), ... Folding the stack then reads 1..N in order. (Emitting pairs
+        // in order under duplex put mirrored backs on every sheet - pages came out scrambled.)
+        // Odd N: the middle page stands alone, right side on fronts, left side on backs.
+        private static List<List<int>> BookletSheets(List<int> indices, bool duplex)
         {
             int n = indices.Count;
-            int left = n - 1 - sheet;
-            int right = sheet;
-            if (left < 0) left = -1;  // no page for this slot
-            var result = new List<int>();
-            if (left >= 0 && left < n) result.Add(indices[left]);
-            if (right >= 0 && right < n && right != left) result.Add(indices[right]);
-            return result;
+            int pairs = (n + 1) / 2;
+            var sheets = new List<List<int>>(pairs);
+            for (int k = 0; k < pairs; k++)
+            {
+                int left = n - 1 - k, right = k;
+                bool single = left == right;
+                bool mirror = duplex && (k % 2 == 1);   // backs of physical sheets
+                var sheet = new List<int>(2);
+                if (single)
+                {
+                    if (mirror) sheet.Add(indices[left]);
+                    else { sheet.Add(-1); sheet.Add(indices[left]); }
+                }
+                else if (mirror)
+                {
+                    if (right >= 0 && right < n) sheet.Add(indices[right]);
+                    if (left >= 0 && left < n) sheet.Add(indices[left]);
+                }
+                else
+                {
+                    if (left >= 0 && left < n) sheet.Add(indices[left]);
+                    if (right >= 0 && right < n) sheet.Add(indices[right]);
+                }
+                sheets.Add(sheet);
+            }
+            return sheets;
         }
 
         // The page indices the preview walks AND the Print button sends - whatever range is typed in the
@@ -400,7 +423,7 @@ namespace KillerPDF
         {
             if (_pages.Length == 0) return 0;
             var indices = SelectedIndices();
-            if (_booklet && indices.Count > 1) return (indices.Count + 1) / 2;  // booklet: 2 pages per sheet
+            if (_booklet && indices.Count > 1) return BookletSheets(indices, _duplex).Count;
             return (indices.Count + _nUp - 1) / _nUp;
         }
 
@@ -422,7 +445,7 @@ namespace KillerPDF
             var canvas = new Canvas();
             double m = layout.MarginPx;
 
-            if (layout.NUp <= 1 && idxs.Count <= 1)
+            if (layout.NUp <= 1 && idxs.Count <= 1 && !layout.Booklet)
             {
                 if (idxs.Count > 0)
                 {
@@ -454,6 +477,7 @@ namespace KillerPDF
                 for (int i = 0; i < idxs.Count && i < cols * rows; i++)
                 {
                     int idx = idxs[i];
+                    if (idx < 0) continue;   // intentional booklet blank: leave the cell empty
                     int row = i / cols, col = i % cols;
                     double availW = Math.Max(1, cellW - gap), availH = Math.Max(1, cellH - gap);
                     double s = Math.Min(availW / rw[idx], availH / rh[idx]);
@@ -1194,30 +1218,35 @@ namespace KillerPDF
                 return;
             }
             _printBtn?.IsEnabled = !_isLoading && !_printing;
-            int sheets = Math.Max(1, (selected.Count + _nUp - 1) / _nUp);
-            int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
-            _previewIndex = sheet;
-            _previousPage?.IsEnabled = sheet > 0;
-            _nextPage?.IsEnabled = sheet + 1 < sheets;
-
-            // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp for N-up).
-            // Booklet mode: page pairing uses the dedicated BookletSheetPages() helper.
+            // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp
+            // for N-up). Booklet mode walks the shared imposition list so the preview shows
+            // exactly the sheets the spooler will emit, in the same order.
             var idxs = new System.Collections.Generic.List<int>();
+            int sheets;
             if (_booklet && selected.Count > 1)
             {
-                idxs = BookletSheetPages(selected, sheet);
+                var booklet = BookletSheets(selected, _duplex);
+                sheets = Math.Max(1, booklet.Count);
+                int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
+                _previewIndex = sheet;
+                idxs = booklet[sheet];
             }
             else
             {
+                sheets = Math.Max(1, (selected.Count + _nUp - 1) / _nUp);
+                int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
+                _previewIndex = sheet;
                 for (int i = sheet * _nUp; i < Math.Min(selected.Count, sheet * _nUp + _nUp); i++)
                     idxs.Add(selected[i]);
             }
+            _previousPage?.IsEnabled = _previewIndex > 0;
+            _nextPage?.IsEnabled = _previewIndex + 1 < sheets;
 
             // Page/sheet nav label is always shown; the "Rendering X / Y" line above it appears only while
             // pages are still streaming in. 1-up shows the real page number (so a filtered preview reads
             // "Page 6 of 108"); N-up shows the sheet position within the selected set.
             _pageLabel.Text = _nUp > 1 || _booklet
-                ? $"Sheet {sheet + 1} of {sheets}"
+                ? $"Sheet {_previewIndex + 1} of {sheets}"
                 : string.Format(S("Str_PageOf"), idxs.Count > 0 ? idxs[0] + 1 : 1, _pages.Length);
 
             // Paper size and scale info (like Adobe's preview header showing "Scale: 94%" + "8.5 x 11 Inches")
@@ -1226,7 +1255,8 @@ namespace KillerPDF
             UpdateRenderLabel();
 
             // If any page on this sheet hasn't rendered yet, show a spinner instead of composing.
-            if (idxs.Any(i => _pages[i] is null))
+            // (-1 is an intentional booklet blank, not a page.)
+            if (idxs.Any(i => i >= 0 && _pages[i] is null))
             {
                 _previewHost.Children.Add(BuildLoadingIndicator());
                 return;
@@ -1308,6 +1338,16 @@ namespace KillerPDF
 
             int first = _previewIndex * _nUp;
             bool onCurrentSheet = index >= first && index < first + _nUp;
+            if (_booklet)
+            {
+                // Booklet sheets pair non-contiguous pages, so check membership in the
+                // current imposition sheet instead of a contiguous index range.
+                var selected = SelectedIndices();
+                var booklet = BookletSheets(selected, _duplex);
+                int sheet = booklet.Count == 0 ? 0
+                    : Math.Max(0, Math.Min(_previewIndex, booklet.Count - 1));
+                onCurrentSheet = booklet.Count > 0 && booklet[sheet].Contains(index);
+            }
             if (onCurrentSheet)
                 UpdatePreview();                 // reveal the page (or keep spinner if sheet incomplete)
             else if (_isLoading)
@@ -1571,20 +1611,18 @@ namespace KillerPDF
             // Under two-sided printing an odd-sheet copy would leave the next copy starting on the
             // back of this copy's last sheet. Pad each copy (bar the last) with a blank sheet so every
             // copy begins on a fresh front side.
-            // Booklet mode: pages are paired using BookletSheetPages() for 2-up booklet printing.
-            int effectiveNUp = layout.Booklet ? 2 : layout.NUp;
+            // Booklet mode: sheet list comes from the shared imposition helper, so the spooled
+            // order is exactly what the preview showed (duplex pairs interleaved + mirrored).
             int sheetsPerCopy = layout.Booklet
-                ? (indices.Count + 1) / 2
+                ? BookletSheets(indices, layout.Duplex).Count
                 : (indices.Count + layout.NUp - 1) / layout.NUp;
             bool padForDuplex = layout.Duplex && copies > 1 && (sheetsPerCopy % 2 == 1);
             for (int copy = 0; copy < copies; copy++)
             {
                 if (layout.Booklet)
                 {
-                    // Booklet: each sheet pairs page i with page (N-1-i)
-                    for (int sheet = 0; sheet < sheetsPerCopy; sheet++)
+                    foreach (var chunk in BookletSheets(indices, layout.Duplex))
                     {
-                        var chunk = BookletSheetPages(indices, sheet);
                         var fp = new FixedPage { Width = aw, Height = ah };
                         var sheetVisual = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH, layout);
                         FixedPage.SetLeft(sheetVisual, 0);
