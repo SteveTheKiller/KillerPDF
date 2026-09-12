@@ -1113,14 +1113,16 @@ namespace KillerPDF
         private static readonly List<string> _sessionTemps = [];
 
         /// <summary>
-        /// Creates a tracked temp path of the form killerpdf_&lt;tag&gt;_&lt;guid&gt;.pdf
+        /// Creates a tracked temp path of the form killerpdf_&lt;tag&gt;_&lt;guid&gt;.&lt;ext&gt;
         /// under %LOCALAPPDATA%\KillerPDF\Temp\.
         /// All registered paths are deleted when CleanupSessionTemps() is called.
         /// </summary>
-        internal static string MakeTempFile(string tag)
+        internal static string MakeTempFile(string tag, string extension = ".pdf")
         {
             try { Directory.CreateDirectory(TempDir); } catch { }
-            var path = Path.Combine(TempDir, $"killerpdf_{tag}_{Guid.NewGuid():N}.pdf");
+            if (string.IsNullOrWhiteSpace(extension) || !extension.StartsWith('.'))
+                extension = ".pdf";
+            var path = Path.Combine(TempDir, $"killerpdf_{tag}_{Guid.NewGuid():N}{extension}");
             lock (_sessionTemps) _sessionTemps.Add(path);
             return path;
         }

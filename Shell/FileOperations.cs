@@ -775,22 +775,38 @@ namespace KillerPDF
                 KillerPdf.Engine.Documents.PdfDocumentInformation.Read(
                     EnsureEngineDocumentSession().Document);
             KillerPdf.Engine.Authoring.PdfDocumentMetadata? editedMetadata = null;
-            var dlg = new DocumentInfoDialog(this, info, metadata => editedMetadata = metadata, path);
+            InitialViewSpec? editedView = null;
+            int openPage = PageList.SelectedIndex >= 0 ? PageList.SelectedIndex + 1 : 1;
+            var dlg = new DocumentInfoDialog(this, info,
+                metadata => editedMetadata = metadata,
+                view => editedView = view, path, openPage, _doc.PageCount);
             dlg.ShowDialog();   // fade-close dialogs don't reliably return true; rely on the Saved flag
-            if (dlg.Saved && editedMetadata is not null)
+            if (dlg.Saved && (editedMetadata is not null || editedView is not null))
             {
-                var completeMetadata = editedMetadata with
-                {
-                    Language = info.Language,
-                    CreationDate = info.CreationDate,
-                    ModificationDate = info.ModificationDate,
-                    Trapped = info.Trapped
-                };
                 SaveTempAndReload(
                     keepAnnotations: true,
                     finalizeSavedFile: target =>
-                        PdfEngineIntegration.ApplyDocumentMetadata(target, completeMetadata));
-                SetStatus(Loc("Str_St_DocInfoUpdated"));
+                    {
+                        if (editedMetadata is not null)
+                        {
+                            var completeMetadata = editedMetadata with
+                            {
+                                Language = info.Language,
+                                CreationDate = info.CreationDate,
+                                ModificationDate = info.ModificationDate,
+                                Trapped = info.Trapped
+                            };
+                            PdfEngineIntegration.ApplyDocumentMetadata(target, completeMetadata);
+                        }
+                        if (editedView is { } view)
+                        {
+                            PdfEngineIntegration.ApplyInitialView(target, view.PageIndex,
+                                view.Zoom, view.Layout, view.Mode,
+                                view.HideToolbar, view.HideMenuBar);
+                        }
+                    });
+                SetStatus(Loc(editedView is not null && editedMetadata is null
+                    ? "Str_St_ViewSaved" : "Str_St_DocInfoUpdated"));
             }
         }
 

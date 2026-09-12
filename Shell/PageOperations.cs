@@ -436,5 +436,53 @@ namespace KillerPDF
                     "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        // #340: arm a field preset for click-to-place (switches to the FormField tool),
+        // or delete one. Presets live in app settings, shared across documents.
+        private static FormFieldPresets.Store PresetStore()
+            => new(App.GetSetting, App.SetSetting, App.RemoveSetting);
+
+        private void AppendFieldPresetMenu(int pageIdx)
+        {
+            var presets = FormFieldPresets.Load(PresetStore());
+            if (presets.Count == 0) return;
+            var insertSub = MakeMenuItem(Loc("Str_FF_InsertPreset"), (_, _) => { }, glyph: "");
+            foreach (var preset in presets)
+            {
+                var captured = preset;
+                insertSub.Items.Add(MakeMenuItem(
+                    $"{captured.Name}  {captured.WidthPt:0.#} x {captured.HeightPt:0.#}",
+                    (_, _) => ArmFieldPreset(captured)));
+            }
+            var deleteSub = MakeMenuItem(Loc("Str_FF_DeletePreset"), (_, _) => { });
+            foreach (var preset in presets)
+            {
+                var captured = preset;
+                deleteSub.Items.Add(MakeMenuItem(captured.Name,
+                    (_, _) => DeleteFieldPreset(captured.Name)));
+            }
+            insertSub.Items.Add(new Separator());
+            insertSub.Items.Add(deleteSub);
+            _ctxMenu.Items.Add(insertSub);
+        }
+
+        private void ArmFieldPreset(FieldPreset preset)
+        {
+            if (_doc is null) return;
+            SetTool(EditTool.FormField);
+            ActiveViewer.PendingFieldPresetExt = preset;
+            SetStatus(string.Format(Loc("Str_FF_PlaceHint"), preset.Name));
+        }
+
+        private void DeleteFieldPreset(string name)
+        {
+            var store = PresetStore();
+            var presets = FormFieldPresets.Load(store);
+            if (FormFieldPresets.Remove(presets, name))
+            {
+                FormFieldPresets.Save(store, presets);
+                SetStatus(string.Format(Loc("Str_FF_Deleted"), name));
+            }
+        }
     }
 }

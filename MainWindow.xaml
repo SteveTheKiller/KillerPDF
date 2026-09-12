@@ -1839,7 +1839,12 @@
                                       ItemContainerStyle="{StaticResource OutlineItemStyle}"
                                       PreviewMouseRightButtonDown="OutlineTree_PreviewMouseRightButtonDown"
                                       PreviewMouseLeftButtonDown="OutlineTree_PreviewMouseLeftButtonDown"
+                                      PreviewMouseMove="OutlineTree_PreviewMouseMove"
                                       PreviewKeyDown="OutlineTree_PreviewKeyDown"
+                                      AllowDrop="True"
+                                      DragOver="OutlineTree_DragOver"
+                                      Drop="OutlineTree_Drop"
+                                      DragLeave="OutlineTree_DragLeave"
                                       Padding="4,2"/>
                         </ScrollViewer>
                     </DockPanel>

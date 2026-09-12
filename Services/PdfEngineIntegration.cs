@@ -75,9 +75,16 @@ internal static class PdfEngineIntegration
         ];
     }
 
-    /// <summary>Adds one editable AcroForm text field to an existing page.</summary>
+    /// <summary>Adds one editable AcroForm text field to an existing page.
+    /// Appearance overrides are optional: null keeps the historic defaults (white fill,
+    /// red 1pt border, black text, height-derived font size) so existing callers behave
+    /// exactly as before. Used by field presets (#340).</summary>
     internal static string AddTextField(
-        string path, int pageIndex, double x, double y, double width, double height)
+        string path, int pageIndex, double x, double y, double width, double height,
+        KillerPdf.Engine.Authoring.PdfRgbColor? textColor = null,
+        KillerPdf.Engine.Authoring.PdfRgbColor? backgroundColor = null,
+        KillerPdf.Engine.Authoring.PdfRgbColor? borderColor = null,
+        double? borderWidth = null, double? fontSize = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         PdfDocument document = PdfDocument.Open(File.ReadAllBytes(path));
@@ -95,13 +102,15 @@ internal static class PdfEngineIntegration
 
         var appearance = new PdfFormFieldAppearanceStyle
         {
-            BackgroundColor = new PdfRgbColor(1, 1, 1),
-            BorderColor = new PdfRgbColor(1, 0, 0),
-            TextColor = new PdfRgbColor(0, 0, 0),
-            BorderWidth = 1
+            BackgroundColor = backgroundColor ?? new PdfRgbColor(1, 1, 1),
+            BorderColor = borderColor ?? new PdfRgbColor(1, 0, 0),
+            TextColor = textColor ?? new PdfRgbColor(0, 0, 0),
+            BorderWidth = borderWidth ?? 1
         };
         var options = new PdfTextFieldOptions { Multiline = height >= 32 };
-        double initialFontSize = Math.Clamp(height * 0.5, 12, 24);
+        double initialFontSize = fontSize is > 0
+            ? Math.Clamp(fontSize.Value, 4, 96)
+            : Math.Clamp(height * 0.5, 12, 24);
         byte[] result = new PdfIncrementalPageEditor(document).AddTextField(
             pageIndex, name, x, y, width, height, fontSize: initialFontSize,
             options: options,
@@ -802,6 +811,40 @@ internal static class PdfEngineIntegration
         }
 
         ReplaceWithBuiltResult(path, editor.Build());
+    }
+
+    /// <summary>Initial-view zoom choices for <see cref="ApplyInitialView"/>.</summary>
+    internal enum InitialViewZoom { FitPage, FitWidth, ActualSize }
+
+    /// <summary>Writes the initial view (open page + zoom, layout, panel, toolbar chrome)
+    /// as one byte-preserving incremental revision (#338).</summary>
+    internal static void ApplyInitialView(string path, int pageIndex, InitialViewZoom zoom,
+        KillerPdf.Engine.Authoring.PdfPageLayout layout, KillerPdf.Engine.Authoring.PdfPageMode mode,
+        bool hideToolbar, bool hideMenuBar)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        byte[] source = File.ReadAllBytes(path);
+        PdfDocument document = PdfDocument.Open(source);
+        int pageCount = PdfDocumentInformation.Read(document).PageCount;
+        if (pageIndex < 0 || pageIndex >= pageCount)
+            throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        KillerPdf.Engine.Authoring.PdfDestination dest = zoom switch
+        {
+            InitialViewZoom.FitWidth => KillerPdf.Engine.Authoring.PdfDestination.FitWidth(),
+            InitialViewZoom.ActualSize => KillerPdf.Engine.Authoring.PdfDestination.At(zoom: 1.0),
+            _ => KillerPdf.Engine.Authoring.PdfDestination.FitPage(),
+        };
+        byte[] result = new PdfIncrementalPageEditor(document)
+            .SetOpenAction(pageIndex, dest)
+            .SetPageLayout(layout)
+            .SetPageMode(mode)
+            .SetViewerPreferences(new KillerPdf.Engine.Authoring.PdfViewerPreferences
+            {
+                HideToolbar = hideToolbar,
+                HideMenuBar = hideMenuBar,
+            })
+            .Build();
+        ReplaceWithBuiltResult(path, result);
     }
 
     /// <summary>Removes pages as one byte-preserving incremental revision.</summary>

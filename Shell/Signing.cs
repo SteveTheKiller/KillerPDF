@@ -520,18 +520,25 @@ namespace KillerPDF
                 var rowBtns = new Grid { Margin = new Thickness(4, 8, 4, 2) };
                 rowBtns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 rowBtns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                rowBtns.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
                 var createBtn = UiKit.Make(Loc("Str_Sig_Create"), accent: true);
                 createBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
                 createBtn.Margin = new Thickness(0, 0, 3, 0);
                 createBtn.Click += (s, e) => { HideSignaturePopup(); OpenSignatureCreator(kind); ShowSignaturePopup(); };
                 var importBtn = UiKit.Make(Loc("Str_Sig_Import"), accent: false);
                 importBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
-                importBtn.Margin = new Thickness(3, 0, 0, 0);
+                importBtn.Margin = new Thickness(3, 0, 3, 0);
                 importBtn.Click += (s, e) => { HideSignaturePopup(); ImportImageSignature(kind); ShowSignaturePopup(); };
+                var libraryBtn = UiKit.Make(Loc("Str_Lib_Pick"), accent: false);
+                libraryBtn.HorizontalAlignment = HorizontalAlignment.Stretch;
+                libraryBtn.Margin = new Thickness(3, 0, 0, 0);
+                libraryBtn.Click += (s, e) => { HideSignaturePopup(); PickLibrarySignature(kind); ShowSignaturePopup(); };
                 Grid.SetColumn(createBtn, 0);
                 Grid.SetColumn(importBtn, 1);
+                Grid.SetColumn(libraryBtn, 2);
                 rowBtns.Children.Add(createBtn);
                 rowBtns.Children.Add(importBtn);
+                rowBtns.Children.Add(libraryBtn);
                 stack.Children.Add(rowBtns);
             }
 
@@ -866,6 +873,11 @@ namespace KillerPDF
                 _signatureStore.Add(saved);
                 PersistSignatures();
 
+                // Imported images also join the shared library (#326), so stamps and future
+                // tools can reuse them without a second import.
+                _imageLibrary.Add(saved.Name, saved.ImageData!, bmp.PixelWidth, bmp.PixelHeight);
+                PersistImageLibrary();
+
                 _pendingSignature = saved;
                 _annotationCanvas.Cursor = Cursors.Cross;
                 SetStatus(Loc("Str_St_ImageLoaded"));
@@ -875,6 +887,26 @@ namespace KillerPDF
                 KillerDialog.Show(this, Loc("Str_Err_ImportImageFailed") + "\n" + ex.Message, "KillerPDF",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        // #326: pick a library image as this kind of signature. Transient (not copied into
+        // the signature store - the library stays its home) but otherwise identical to an
+        // import: selected for click-to-place with the crosshair cursor.
+        private void PickLibrarySignature(SignatureKind kind = SignatureKind.Signature)
+        {
+            var dlg = new ImageLibraryDialog(this, _imageLibrary);
+            if (dlg.ShowDialog() != true || dlg.Selected is null) return;
+            var asset = dlg.Selected;
+            _pendingSignature = new SavedSignature
+            {
+                Kind = kind,
+                Name = asset.Name,
+                CanvasWidth = asset.Width,
+                CanvasHeight = asset.Height,
+                ImageData = asset.ImageData
+            };
+            _annotationCanvas.Cursor = Cursors.Cross;
+            SetStatus(Loc("Str_St_ImageLoaded"));
         }
     }
 }

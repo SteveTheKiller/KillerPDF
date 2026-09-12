@@ -231,6 +231,10 @@ namespace KillerPDF
 
         // Signatures
         private readonly SignatureStore _signatureStore = new();
+        // #326: shared image library (signature picker, stamp watermark, future comments).
+        private readonly KillerPDF.Services.ImageAssetLibrary _imageLibrary = new();
+        private void LoadImageLibrary() => _imageLibrary.Load();
+        private void PersistImageLibrary() => _imageLibrary.Persist();
         private SavedSignature? _pendingSignature { get => ActiveViewer.PendingSignatureRef; set => ActiveViewer.PendingSignatureRef = value; }
         private Border? _signaturePopup;
         // Guided AcroForm signing: "pick once, reuse" - the chosen signature/initials are remembered
@@ -405,6 +409,7 @@ namespace KillerPDF
             IndexToolbarButtons();
             OutlineTree.SelectedItemChanged += OutlineTree_SelectedItemChanged;
             LoadSignatures();
+            LoadImageLibrary();
             BuildContextMenu();
             SetTool(EditTool.Select);
             ApplyGrainTexture();

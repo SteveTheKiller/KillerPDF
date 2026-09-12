@@ -46,6 +46,7 @@ namespace KillerPDF.Controls
         internal void UngroupAnnotationExt(PageAnnotation a) => UngroupAnnotation(a);
         internal void RemoveFromGroupExt(PageAnnotation a) => RemoveFromGroup(a);
         internal void DeleteSelectedExt() => DeleteSelected();
+        internal void RasterizeZoneExt(PageAnnotation hit) => RasterizeZone(hit);
         internal bool NudgeSelectedExt(double dx, double dy) => NudgeSelected(dx, dy);
         internal bool HasSelectedFormFieldExt => HasSelectedFormField;
         internal void DeleteSelectedFormFieldExt() => DeleteSelectedFormField();
@@ -228,6 +229,7 @@ namespace KillerPDF.Controls
         internal InkAnnotation? ActiveInkRef { get => _activeInk; set => _activeInk = value; }
         internal TextBox? ActiveTextBoxRef { get => _activeTextBox; set => _activeTextBox = value; }
         internal double TextFontSizeRef { get => _textFontSize; set => _textFontSize = value; }
+        internal FieldPreset? PendingFieldPresetExt { get => _pendingFieldPreset; set => _pendingFieldPreset = value; }
         internal double TextLetterSpacingRef { get => _textLetterSpacing; set => _textLetterSpacing = value; }
         internal string TextFontNameRef { get => _textFontName; set => _textFontName = value; }
         internal bool TextBoldRef { get => _textBold; set => _textBold = value; }

@@ -38,11 +38,6 @@ namespace KillerPDF.Controls
                 Canvas.GetLeft(preview), Canvas.GetTop(preview),
                 preview.Width, preview.Height);
             _activeCanvas?.Children.Remove(preview);
-            if (canvasRect.Width < 12 || canvasRect.Height < 12)
-            {
-                SetStatus(Loc("Str_St_FormFieldCanceled"));
-                return;
-            }
             if (_currentFile is null || _activeCanvas is null)
                 return;
 
@@ -56,6 +51,37 @@ namespace KillerPDF.Controls
                 : page.Rotation;
             double canvasWidth = Math.Max(1, _activeCanvas.ActualWidth);
             double canvasHeight = Math.Max(1, _activeCanvas.ActualHeight);
+
+            // #340: click-to-place an armed preset centered on the click (a real drag wins
+            // instead and discards the armed preset). One shot either way.
+            var preset = _pendingFieldPreset;
+            _pendingFieldPreset = null;
+            bool fromPreset = false;
+            KillerPdf.Engine.Authoring.PdfRgbColor? presetText = null, presetFill = null, presetBorder = null;
+            double presetBorderW = 1, presetFont = 0;
+            if (preset is not null && canvasRect.Width >= 12 && canvasRect.Height >= 12)
+            {
+                // Manual drag with a preset armed: fully manual, preset discarded.
+            }
+            else if (preset is not null)
+            {
+                double presetCanvasW = preset.WidthPt * canvasWidth / Math.Max(1, page.Width);
+                double presetCanvasH = preset.HeightPt * canvasHeight / Math.Max(1, page.Height);
+                canvasRect = new Rect(
+                    _drawStart.X - presetCanvasW / 2, _drawStart.Y - presetCanvasH / 2,
+                    presetCanvasW, presetCanvasH);
+                fromPreset = true;
+                presetText = RgbFromHex(preset.TextHex);
+                presetFill = RgbFromHex(preset.FillHex);
+                presetBorder = RgbFromHex(preset.BorderHex);
+                presetBorderW = preset.BorderWidth;
+                presetFont = preset.FontSizePt;
+            }
+            else if (canvasRect.Width < 12 || canvasRect.Height < 12)
+            {
+                SetStatus(Loc("Str_St_FormFieldCanceled"));
+                return;
+            }
             (double x1, double y1, double x2, double y2) = CanvasToPdfRect(
                 canvasRect, page.Width, page.Height, canvasWidth, canvasHeight, rotation);
 
@@ -63,8 +89,12 @@ namespace KillerPDF.Controls
             SaveTempAndReload(
                 keepAnnotations: true,
                 preserveZoom: true,
-                finalizeSavedFile: path => fieldName = PdfEngineIntegration.AddTextField(
-                    path, pageIndex, x1, y1, x2 - x1, y2 - y1),
+                finalizeSavedFile: path => fieldName = fromPreset
+                    ? PdfEngineIntegration.AddTextField(path, pageIndex, x1, y1, x2 - x1, y2 - y1,
+                        presetText, presetFill, presetBorder, presetBorderW,
+                        presetFont > 0 ? presetFont : null)
+                    : PdfEngineIntegration.AddTextField(
+                        path, pageIndex, x1, y1, x2 - x1, y2 - y1),
                 selectedPageAfterReload: pageIndex,
                 preserveRenderedPages: true);
             SetStatus(fieldName is null
