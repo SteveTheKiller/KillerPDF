@@ -63,7 +63,6 @@ namespace KillerPDF
         private bool _reverse;               // print pages in reverse order
         private bool _booklet;               // booklet printing mode (2-up, paired for folding)
         private bool _saveInkToner;          // reduce ink usage by lightening the print
-        private bool _shrinkOversized;       // shrink pages larger than the paper
 
         // Immutable copy of every layout choice used while composing a print job. The progress
         // scrim blocks the mouse but deliberately does not steal keyboard focus, so controls can
@@ -72,11 +71,11 @@ namespace KillerPDF
         private readonly record struct PrintLayout(
             bool Landscape, int AlignH, int AlignV, int ScaleMode, double CustomPct,
             double MarginPx, int NUp, bool Duplex, bool Grayscale,
-            bool Reverse, bool Booklet, bool SaveInkToner, bool ShrinkOversized);
+            bool Reverse, bool Booklet, bool SaveInkToner);
 
         private PrintLayout CurrentLayout() => new(
             _landscape, _alignH, _alignV, _scaleMode, _customPct, _marginPx,
-            _nUp, _duplex, _grayscale, _reverse, _booklet, _saveInkToner, _shrinkOversized);
+            _nUp, _duplex, _grayscale, _reverse, _booklet, _saveInkToner);
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -1379,7 +1378,6 @@ namespace KillerPDF
                 App.SetSetting("PrintDuplex",    _duplex     ? "1" : "0");
                 App.SetSetting("PrintBooklet",   _booklet    ? "1" : "0");
                 App.SetSetting("PrintSaveInk",   _saveInkToner ? "1" : "0");
-                App.SetSetting("PrintShrink",    _shrinkOversized ? "1" : "0");
             }
             catch { /* settings are best-effort */ }
         }

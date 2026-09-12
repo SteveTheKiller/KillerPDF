@@ -45,6 +45,19 @@ public sealed class ShortcutCustomizationTests
         Assert.False(ShortcutCustomization.TryParseChord(text, out _, out _));
     }
 
+    [Theory]
+    [InlineData("P", true, false, false, "Ctrl+P")]
+    [InlineData("P", true, true, false, "Ctrl+Shift+P")]
+    [InlineData("Delete", false, false, false, "Delete")]
+    [InlineData("LeftCtrl", true, false, false, null)]
+    [InlineData("LWin", true, false, false, null)]
+    [InlineData("", true, false, false, null)]
+    public void Canonicalize_FormsChordsOrRejects(string key, bool ctrl, bool shift, bool alt,
+        string? expected)
+    {
+        Assert.Equal(expected, ShortcutCustomization.Canonicalize(key, ctrl, shift, alt));
+    }
+
     [Fact]
     public void EffectiveChord_FallsBackToDefault()
     {

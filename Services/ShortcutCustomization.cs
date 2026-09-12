@@ -83,6 +83,31 @@ namespace KillerPDF
             return true;
         }
 
+        // Canonical "Ctrl+Shift+P" form from a captured key plus modifier flags. Returns
+        // null for bare modifiers, the Windows keys, and anything unparseable, so capture
+        // code can use it as the validity check.
+        internal static string? Canonicalize(string keyName, bool ctrl, bool shift, bool alt)
+        {
+            if (string.IsNullOrWhiteSpace(keyName)) return null;
+            string name = keyName.Trim();
+            switch (name)
+            {
+                case "LeftCtrl":
+                case "RightCtrl":
+                case "LeftShift":
+                case "RightShift":
+                case "LeftAlt":
+                case "RightAlt":
+                case "LWin":
+                case "RWin":
+                case "None":
+                    return null;
+            }
+            string chord = (ctrl ? "Ctrl+" : "") + (shift ? "Shift+" : "") + (alt ? "Alt+" : "")
+                + (name == "Del" ? "Delete" : name);
+            return TryParseChord(chord, out _, out _) ? chord : null;
+        }
+
         internal static Chord EffectiveChord(Store store, string id)
         {
             var action = Actions.First(a => a.Id == id);
