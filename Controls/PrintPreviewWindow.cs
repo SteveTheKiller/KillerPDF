@@ -57,7 +57,11 @@ namespace KillerPDF
         private double _marginPx;            // extra inset inside the printable area (DIPs)
         private int _nUp = 1;                // pages per sheet (1, 2, 4, 6, 9)
         private bool _duplex;                // two-sided printing (when the printer supports it)
+        private int _duplexMode;             // 0 = flip on long edge, 1 = flip on short edge
+        private bool _duplexLongOk;          // printer reports long-edge duplex support
+        private bool _duplexShortOk;         // printer reports short-edge duplex support
         private CheckBox _duplexCheck = null!;
+        private ComboBox _duplexEdgeCombo = null!;
         private ComboBox _subsetCombo = null!;   // all / odd only / even only (#134, manual duplex)
         private bool _grayscale;             // send the job as grayscale/B&W rather than color
         private bool _pureBW;                // pure 1-bit black & white (no gray tones)
@@ -71,12 +75,12 @@ namespace KillerPDF
         // changes halfway through (especially N-up, which controls the page-loop increment).
         private readonly record struct PrintLayout(
             bool Landscape, int AlignH, int AlignV, int ScaleMode, double CustomPct,
-            double MarginPx, int NUp, bool Duplex, bool Grayscale, bool PureBlackWhite,
+            double MarginPx, int NUp, bool Duplex, int DuplexEdge, bool Grayscale, bool PureBlackWhite,
             bool Reverse, bool Booklet, bool SaveInkToner);
 
         private PrintLayout CurrentLayout() => new(
             _landscape, _alignH, _alignV, _scaleMode, _customPct, _marginPx,
-            _nUp, _duplex, _grayscale, _pureBW, _reverse, _booklet, _saveInkToner);
+            _nUp, _duplex, _duplexMode, _grayscale, _pureBW, _reverse, _booklet, _saveInkToner);
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -360,12 +364,12 @@ namespace KillerPDF
         // Booklet imposition shared by the preview and the spool path, so what you see is
         // what prints. Pair P_k holds pages (N-1-k, k): the back page renders on the LEFT,
         // the front page on the RIGHT. A -1 slot is an intentional blank (odd page counts).
-        // Single-sided emits pairs in order P_0..P_{K-1}. Two-sided interleaves so every
-        // physical sheet is correct on both faces: front P_0, back mirror(P_1), front P_2,
-        // back mirror(P_3), ... Folding the stack then reads 1..N in order. (Emitting pairs
-        // in order under duplex put mirrored backs on every sheet - pages came out scrambled.)
+        // Single-sided (and short-edge duplex, where backs keep front order) emits pairs in
+        // order P_0..P_{K-1}. Long-edge duplex interleaves so every physical sheet is correct
+        // on both faces: front P_0, back mirror(P_1), front P_2, back mirror(P_3), ...
+        // Folding the stack then reads 1..N in order.
         // Odd N: the middle page stands alone, right side on fronts, left side on backs.
-        private static List<List<int>> BookletSheets(List<int> indices, bool duplex)
+        private static List<List<int>> BookletSheets(List<int> indices, bool mirrorBacks)
         {
             int n = indices.Count;
             int pairs = (n + 1) / 2;
@@ -374,7 +378,7 @@ namespace KillerPDF
             {
                 int left = n - 1 - k, right = k;
                 bool single = left == right;
-                bool mirror = duplex && (k % 2 == 1);   // backs of physical sheets
+                bool mirror = mirrorBacks && (k % 2 == 1);   // backs of physical sheets
                 var sheet = new List<int>(2);
                 if (single)
                 {
@@ -395,6 +399,10 @@ namespace KillerPDF
             }
             return sheets;
         }
+
+        // Long-edge duplex flips around the binding edge, so backs mirror; short-edge
+        // flips over the top and backs keep front order. Single-sided never mirrors.
+        private bool MirrorBookletBacks() => _duplex && _duplexMode == 0;
 
         // The page indices the preview walks AND the Print button sends - whatever range is typed in the
         // Pages box (blank = every page; a range that matches no page = empty, which the preview and the
@@ -424,7 +432,7 @@ namespace KillerPDF
         {
             if (_pages.Length == 0) return 0;
             var indices = SelectedIndices();
-            if (_booklet && indices.Count > 1) return BookletSheets(indices, _duplex).Count;
+            if (_booklet && indices.Count > 1) return BookletSheets(indices, MirrorBookletBacks()).Count;
             return (indices.Count + _nUp - 1) / _nUp;
         }
 
@@ -500,22 +508,33 @@ namespace KillerPDF
             return sheet;
         }
 
-        // Enables the two-sided checkbox only when the selected printer reports duplex support.
+        // Enables the two-sided checkbox when the printer reports long- or short-edge
+        // duplex support, and steers the flip-edge combo to a supported mode.
         private void UpdateDuplexAvailability()
         {
-            bool ok = false;
+            _duplexLongOk = false;
+            _duplexShortOk = false;
             try
             {
-                var caps = _queue?.GetPrintCapabilities();
-                ok = caps?.DuplexingCapability?.Contains(Duplexing.TwoSidedLongEdge) == true;
+                var caps = _queue?.GetPrintCapabilities()?.DuplexingCapability;
+                _duplexLongOk = caps?.Contains(Duplexing.TwoSidedLongEdge) == true;
+                _duplexShortOk = caps?.Contains(Duplexing.TwoSidedShortEdge) == true;
             }
             catch { /* capability query not supported: leave disabled */ }
+            bool ok = _duplexLongOk || _duplexShortOk;
 
             if (_duplexCheck is null) return;
             _duplexCheck.IsEnabled = ok;
             if (!ok) { _duplexCheck.IsChecked = false; _duplex = false; }
             _duplexCheck.Opacity = ok ? 1.0 : 0.4;
             _duplexCheck.ToolTip = ok ? null : S("Str_Print_NoTwoSidedSupport");
+            if (_duplexEdgeCombo is not null)
+            {
+                _duplexEdgeCombo.IsEnabled = ok && _duplex;
+                // Keep a supported edge selected: prefer the user's pick, else the other.
+                if (_duplex && ((_duplexMode == 1 && !_duplexShortOk) || (_duplexMode == 0 && !_duplexLongOk)))
+                    _duplexEdgeCombo.SelectedIndex = _duplexShortOk ? 1 : 0;
+            }
         }
 
         // ---- UI construction -------------------------------------------------
@@ -845,11 +864,26 @@ namespace KillerPDF
 
             // Two-sided: the printer does the flipping; we just set the ticket when it's supported.
             _duplexCheck = UiKit.CheckBox(S("Str_Print_TwoSided"));
-            _duplexCheck.Margin = new Thickness(0, 2, 0, 10);
-            _duplexCheck.Checked   += (_, _) => _duplex = true;
-            _duplexCheck.Unchecked += (_, _) => _duplex = false;
+            _duplexCheck.Margin = new Thickness(0, 2, 0, 6);
+            _duplexCheck.Checked   += (_, _) => { _duplex = true; if (_duplexEdgeCombo is not null) _duplexEdgeCombo.IsEnabled = true; };
+            _duplexCheck.Unchecked += (_, _) => { _duplex = false; if (_duplexEdgeCombo is not null) _duplexEdgeCombo.IsEnabled = false; };
             _duplexCheck.IsChecked = App.GetSetting("PrintDuplex") == "1";   // restore; cleared below if unsupported
             panel.Children.Add(_duplexCheck);
+
+            // Flip edge, like Edge/Acrobat: long edge (bind on the side) or short edge (bind on top).
+            _duplexMode = App.GetSetting("PrintDuplexMode") == "1" ? 1 : 0;
+            _duplexEdgeCombo = new ComboBox { Margin = new Thickness(20, 0, 0, 10), Height = 26 };
+            ApplyComboStyle(_duplexEdgeCombo);
+            _duplexEdgeCombo.Items.Add(S("Str_Print_FlipLong"));
+            _duplexEdgeCombo.Items.Add(S("Str_Print_FlipShort"));
+            _duplexEdgeCombo.SelectedIndex = _duplexMode;
+            _duplexEdgeCombo.SelectionChanged += (s, _) =>
+            {
+                _duplexMode = ((ComboBox)s).SelectedIndex == 1 ? 1 : 0;
+                _previewIndex = 0;
+                UpdatePreview();   // booklet backs mirror on long edge only
+            };
+            panel.Children.Add(_duplexEdgeCombo);
 
             // Comments & Forms section (document vs document+markups)
             panel.Children.Add(Label(S("Str_Print_CommentsForms")));
@@ -1241,7 +1275,7 @@ namespace KillerPDF
             int sheets;
             if (_booklet && selected.Count > 1)
             {
-                var booklet = BookletSheets(selected, _duplex);
+                var booklet = BookletSheets(selected, MirrorBookletBacks());
                 sheets = Math.Max(1, booklet.Count);
                 int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
                 _previewIndex = sheet;
@@ -1359,7 +1393,7 @@ namespace KillerPDF
                 // Booklet sheets pair non-contiguous pages, so check membership in the
                 // current imposition sheet instead of a contiguous index range.
                 var selected = SelectedIndices();
-                var booklet = BookletSheets(selected, _duplex);
+                var booklet = BookletSheets(selected, MirrorBookletBacks());
                 int sheet = booklet.Count == 0 ? 0
                     : Math.Max(0, Math.Min(_previewIndex, booklet.Count - 1));
                 onCurrentSheet = booklet.Count > 0 && booklet[sheet].Contains(index);
@@ -1433,6 +1467,7 @@ namespace KillerPDF
                 App.SetSetting("PrintGrayscale", _grayscale ? "1" : "0");
                 App.SetSetting("PrintPureBW",    _pureBW     ? "1" : "0");
                 App.SetSetting("PrintDuplex",    _duplex     ? "1" : "0");
+                App.SetSetting("PrintDuplexMode", _duplexMode.ToString());
                 App.SetSetting("PrintBooklet",   _booklet    ? "1" : "0");
                 App.SetSetting("PrintSaveInk",   _saveInkToner ? "1" : "0");
             }
@@ -1487,7 +1522,11 @@ namespace KillerPDF
                 // Relying on PrintTicket.CopyCount produced an extra copy on some printers (issue #83).
                 ticket.CopyCount      = 1;
                 ticket.PageOrientation = _landscape ? PageOrientation.Landscape : PageOrientation.Portrait;
-                ticket.Duplexing = _duplex ? Duplexing.TwoSidedLongEdge : Duplexing.OneSided;
+                ticket.Duplexing = !_duplex ? Duplexing.OneSided
+                    : _duplexMode == 1 && _duplexShortOk ? Duplexing.TwoSidedShortEdge
+                    : _duplexLongOk ? Duplexing.TwoSidedLongEdge
+                    : _duplexShortOk ? Duplexing.TwoSidedShortEdge
+                    : Duplexing.OneSided;
                 ticket.OutputColor = (_grayscale || _pureBW) ? OutputColor.Grayscale : OutputColor.Color;
                 // Same paper pick the preview used: the manual combo choice when one is set,
                 // otherwise the automatic document-size match (see MediaSizeForDocument, #186).
@@ -1631,14 +1670,14 @@ namespace KillerPDF
             // Booklet mode: sheet list comes from the shared imposition helper, so the spooled
             // order is exactly what the preview showed (duplex pairs interleaved + mirrored).
             int sheetsPerCopy = layout.Booklet
-                ? BookletSheets(indices, layout.Duplex).Count
+                ? BookletSheets(indices, layout.Duplex && layout.DuplexEdge == 0).Count
                 : (indices.Count + layout.NUp - 1) / layout.NUp;
             bool padForDuplex = layout.Duplex && copies > 1 && (sheetsPerCopy % 2 == 1);
             for (int copy = 0; copy < copies; copy++)
             {
                 if (layout.Booklet)
                 {
-                    foreach (var chunk in BookletSheets(indices, layout.Duplex))
+                    foreach (var chunk in BookletSheets(indices, layout.Duplex && layout.DuplexEdge == 0))
                     {
                         var fp = new FixedPage { Width = aw, Height = ah };
                         var sheetVisual = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH, layout);

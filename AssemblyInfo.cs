@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Windows;
 
-[assembly: AssemblyVersion("1.8.5.0")]
+[assembly: AssemblyVersion("1.8.6.0")]
 
 [assembly: ThemeInfo(
     ResourceDictionaryLocation.None,            //where theme specific resource dictionaries are located

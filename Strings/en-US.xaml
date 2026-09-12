@@ -1064,4 +1064,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_St_SplitSpread">Split {0} spread(s) into {1} pages</sys:String>
     <sys:String x:Key="Str_Err_SplitSpreadFailed">Split failed:</sys:String>
     <sys:String x:Key="Str_Print_PureBW">Pure black &amp; white</sys:String>
+    <sys:String x:Key="Str_Print_FlipLong">Flip on long edge</sys:String>
+    <sys:String x:Key="Str_Print_FlipShort">Flip on short edge</sys:String>
 </ResourceDictionary>
