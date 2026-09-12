@@ -531,7 +531,11 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Ctx_DeletePage">Supprimer la page</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Dupliquer la page</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Ajouter une page vierge</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Page actuelle</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Personnalisé</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Saisissez une largeur et une hauteur comprises entre 0,1 et 200 pouces.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Fermer l'onglet</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Ouvrir le dossier contenant</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Fermer les autres onglets</sys:String>
 
     <!-- Transform tool -->

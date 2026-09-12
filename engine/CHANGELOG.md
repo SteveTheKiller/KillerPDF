@@ -10,6 +10,7 @@ The 1.8.5 engine package matches the engine source shipped with KillerPDF 1.8.5.
 
 ### Fixed
 
+- Kept normalized page sizes within supported limits for extreme page coordinates (#401). (Thanks @Matthew-Selvam)
 - Added described overlays that extend existing PDF structure trees when saving markup.
 
 ## [1.8.4] - 2026-09-06

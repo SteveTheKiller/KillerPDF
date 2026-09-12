@@ -191,12 +191,14 @@ namespace KillerPDF
                 ? preferredView : ViewMode.Continuous;
             FitMode? preferredFit = Enum.TryParse<FitMode>(App.GetSetting("DefaultFitMode"), out var savedFit)
                 && savedFit != FitMode.None ? savedFit : null;
-            if (TryGetDocState(displayPath, out var sfit, out var szoom, out _, out var spage))
+            if (TryGetDocState(displayPath, out var sfit, out var szoom, out _, out var spage,
+                out var scrollH, out var scrollV))
             {
-                _fitMode   = preferredFit ?? sfit;
+                _fitMode   = sfit;
                 _zoomLevel = szoom;
                 int pg = Math.Max(0, Math.Min(spage, pageCount - 1));
-                BootstrapDocumentView(pg, autoFit: false, restoreFitMode: true);
+                BootstrapDocumentView(pg, autoFit: false, restoreFitMode: true,
+                    restoreHorizontalOffset: scrollH, restoreVerticalOffset: scrollV);
             }
             else
             {

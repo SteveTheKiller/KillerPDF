@@ -458,7 +458,11 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">Eliminar página</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplicar página</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Añadir página en blanco</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Página actual</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Personalizado</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Introduzca un ancho y un alto entre 0,1 y 200 pulgadas.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Cerrar pestaña</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Abrir carpeta contenedora</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Cerrar otras pestañas</sys:String>
 
     <!-- ── OCR + Transform + Crop (añadido) ──────────────────────────── -->

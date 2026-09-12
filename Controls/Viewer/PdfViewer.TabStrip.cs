@@ -473,6 +473,11 @@ namespace KillerPDF.Controls
         {
             if (sender is not FrameworkElement fe || fe.DataContext is not DocumentSession s) return;
             var menu = MakeThemedMenu();
+            string? sourcePath = s.OriginalFile ?? s.DeferredPath;
+            var openFolder = MakeMenuItem(Loc("Str_Ctx_OpenContainingFolder"), (_, _) => OpenContainingFolder(sourcePath), null, "");
+            openFolder.IsEnabled = !string.IsNullOrWhiteSpace(sourcePath) && System.IO.File.Exists(sourcePath);
+            menu.Items.Add(openFolder);
+            menu.Items.Add(new Separator());
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_CloseTab"), (_, _) => CloseTab(s), "Ctrl+W", ""));
             var others = MakeMenuItem(Loc("Str_Ctx_CloseOthers"), (_, _) => CloseOtherTabs(s), "Ctrl+Shift+W", "");
             others.IsEnabled = _sessions.Count(z => z.Doc != null || z.DeferredPath != null) > 1;
@@ -480,6 +485,17 @@ namespace KillerPDF.Controls
             menu.PlacementTarget = fe;
             menu.IsOpen = true;
             e.Handled = true;
+        }
+
+        private static void OpenContainingFolder(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path)) return;
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"/select,\"{path}\"",
+                UseShellExecute = true
+            });
         }
 
         private void CloseTab_Click(object sender, RoutedEventArgs e)

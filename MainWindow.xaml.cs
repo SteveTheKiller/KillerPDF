@@ -626,7 +626,8 @@ namespace KillerPDF
                 // The active tab may not have been captured yet at exit; persist its view state directly.
                 if (_active != null)
                     SaveDocState(_originalFile, _fitMode, _zoomLevel, _viewMode,
-                        PageList.SelectedIndex >= 0 ? PageList.SelectedIndex : 0);
+                        _active.PageIndex,
+                        _active.ScrollH, _active.ScrollV);
             }
             catch { /* best-effort */ }
         }
