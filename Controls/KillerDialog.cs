@@ -307,6 +307,95 @@ namespace KillerPDF
             return result;
         }
 
+        // Startup update prompt with the release notes. Returns 0 = Update, 1 = Skip this
+        // version, 2 = Later (also when closed without choosing).
+        public static int ShowUpdatePrompt(Window? owner, string tag, string notes)
+        {
+            int result = 2;
+
+            var win = new Window
+            {
+                Title = L("Str_Update_Title", "Update available"),
+                Width = 540,
+                MinWidth = 420,
+                SizeToContent = SizeToContent.Height
+            };
+            DialogChrome.Configure(win, owner, fade: true);
+
+            var outerBorder = new Border
+            {
+                Background = R("MenuBackgroundBrush"),
+                BorderBrush = UiKit.Brush("DialogFrameBrush"),
+                BorderThickness = Application.Current.TryFindResource("DialogFrameThickness") is Thickness dft ? dft : new Thickness(1),
+                Padding = Application.Current.TryFindResource("DialogFramePadding") is Thickness dfp ? dfp : new Thickness(0),
+                CornerRadius = UiKit.RadWindow,
+                Margin = Application.Current.TryFindResource("DialogHaloMargin") is Thickness hm ? hm : new Thickness(10),
+                Effect = UiKit.ShadowDialog()
+            };
+
+            var root = new StackPanel();
+            var titleBar = new Border { Background = Brushes.Transparent, Padding = new Thickness(16, 10, 16, 10) };
+            titleBar.MouseLeftButtonDown += (_, e) => { if (e.ButtonState == MouseButtonState.Pressed) win.DragMove(); };
+            titleBar.Child = new TextBlock { Text = L("Str_Update_Title", "Update available"), Foreground = R("PrimaryBrush"), FontWeight = FontWeights.Bold, FontSize = 14, FontFamily = UiKit.MonoFont };
+            root.Children.Add(titleBar);
+
+            var body = new StackPanel { Margin = new Thickness(20, 4, 20, 8) };
+            body.Children.Add(new TextBlock
+            {
+                Text = string.Format(Application.Current.TryFindResource("Str_UpdateAvailable") as string
+                    ?? "Update available: {0}", tag),
+                Foreground = R("TextBrush"),
+                FontSize = 13,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 8)
+            });
+            if (!string.IsNullOrWhiteSpace(notes))
+            {
+                var notesBox = new TextBox
+                {
+                    Text = notes.Trim(),
+                    IsReadOnly = true,
+                    AcceptsReturn = true,
+                    TextWrapping = TextWrapping.Wrap,
+                    VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                    MaxHeight = 260,
+                    Foreground = R("TextBrush"),
+                    Background = Brushes.Transparent,
+                    BorderThickness = new Thickness(0),
+                    IsTabStop = false,
+                };
+                body.Children.Add(notesBox);
+            }
+            root.Children.Add(body);
+
+            var btnPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+            var update = UiKit.Make(L("Str_Update_Update", "Update"), accent: true);
+            update.IsDefault = true;
+            update.Padding = new Thickness(22, 8, 22, 8);
+            update.MinWidth = 96;
+            update.Click += (_, _) => { result = 0; win.Close(); };
+            var skip = UiKit.Make(L("Str_Update_Skip", "Skip this version"), accent: false);
+            skip.Padding = new Thickness(22, 8, 22, 8);
+            skip.MinWidth = 96;
+            skip.Margin = new Thickness(8, 0, 0, 0);
+            skip.Click += (_, _) => { result = 1; win.Close(); };
+            var later = UiKit.Make(L("Str_Update_Later", "Later"), accent: false);
+            later.IsCancel = true;
+            later.Padding = new Thickness(22, 8, 22, 8);
+            later.MinWidth = 96;
+            later.Margin = new Thickness(8, 0, 0, 0);
+            later.Click += (_, _) => { result = 2; win.Close(); };
+            btnPanel.Children.Add(update);
+            btnPanel.Children.Add(skip);
+            btnPanel.Children.Add(later);
+            root.Children.Add(new Border { Padding = new Thickness(16, 8, 16, 16), Child = btnPanel });
+
+            outerBorder.Child = root;
+            win.Content = DialogChrome.WrapContent(owner, outerBorder);
+            win.ShowDialog();
+            return result;
+        }
+
         /// <summary>
         /// Like <see cref="Show"/> but with a "don't warn again" style checkbox between the message and the
         /// buttons. Returns the button result and the checkbox state.

@@ -211,6 +211,9 @@ namespace KillerPDF
 
         private void AboutUpdateButton_Click(object sender, RoutedEventArgs e) => About.Update();
 
+        UpdateChoice IAboutHost.ShowUpdatePrompt(string tag, string notes)
+            => (UpdateChoice)KillerDialog.ShowUpdatePrompt(this, tag, notes);
+
         /// <summary>
         /// "Clear all Data" footer link: wipes settings, downloaded OCR language packs, and temp
         /// files after an explicit confirmation. Destructive, so it always warns first; the user's

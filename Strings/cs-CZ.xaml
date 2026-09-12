@@ -1051,4 +1051,8 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Print_PureBW">Pure black &amp; white</sys:String>
     <sys:String x:Key="Str_Print_FlipLong">Flip on long edge</sys:String>
     <sys:String x:Key="Str_Print_FlipShort">Flip on short edge</sys:String>
+    <sys:String x:Key="Str_Update_Title">Update available</sys:String>
+    <sys:String x:Key="Str_Update_Update">Update</sys:String>
+    <sys:String x:Key="Str_Update_Skip">Skip this version</sys:String>
+    <sys:String x:Key="Str_Update_Later">Later</sys:String>
 </ResourceDictionary>

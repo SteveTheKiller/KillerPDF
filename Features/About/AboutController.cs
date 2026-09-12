@@ -77,8 +77,9 @@ namespace KillerPDF.Features
             ComputeSha256Async();
         }
 
-        /// <summary>Opens the GitHub release for the running version.</summary>
-        internal static void OpenReleaseNotes() => OpenUrl($"{Repo}/releases/tag/v{Version}");
+        /// <summary>Opens the GitHub releases page. The fork tags carry suffixes
+        /// (v1.8.6-enhanced) that never match a bare version, so /latest always resolves.</summary>
+        internal static void OpenReleaseNotes() => OpenUrl($"{Repo}/releases/latest");
 
         internal static void OpenUrl(string url)
         {
@@ -95,6 +96,33 @@ namespace KillerPDF.Features
         }
 
         // ---- Update check --------------------------------------------------------------------
+
+        /// <summary>
+        /// Parses a release tag into a comparable version. Fork tags carry suffixes
+        /// (v1.8.6-enhanced) that System.Version chokes on, so only the numeric head
+        /// is parsed and the rest is ignored for comparison purposes.
+        /// </summary>
+        internal static bool TryParseReleaseTag(string? tag, out System.Version version)
+        {
+            version = new System.Version(0, 0, 0);
+            if (string.IsNullOrWhiteSpace(tag)) return false;
+            string t = tag.Trim().TrimStart('v', 'V').Trim();
+            int i = 0;
+            while (i < t.Length && (char.IsDigit(t[i]) || t[i] == '.')) i++;
+            if (i == 0) return false;
+            // System.Version spelled out: this class has a string property called Version, which
+            // shadows the type in expression position, so a bare "Version.TryParse" binds to
+            // string.TryParse and does not compile.
+            return System.Version.TryParse(t[..i], out version!);
+        }
+
+        private static bool IsNewerThanCurrent(System.Version latest, System.Version? current)
+        {
+            if (current is null) return false;
+            var cur = new System.Version(current.Major, current.Minor, current.Build < 0 ? 0 : current.Build);
+            var lat = new System.Version(latest.Major, latest.Minor, latest.Build < 0 ? 0 : latest.Build);
+            return lat > cur;
+        }
 
         /// <summary>
         /// Quietly checks GitHub for a newer release when the About card opens. Runs only on demand
@@ -114,21 +142,82 @@ namespace KillerPDF.Features
                 using var doc = System.Text.Json.JsonDocument.Parse(json);
                 if (!doc.RootElement.TryGetProperty("tag_name", out var tagEl)) return;
                 var tag = tagEl.GetString();
-                if (string.IsNullOrWhiteSpace(tag)) return;
-                // System.Version spelled out: this class has a string property called Version, which
-                // shadows the type in expression position, so a bare "Version.TryParse" binds to
-                // string.TryParse and does not compile.
-                if (!System.Version.TryParse(tag!.TrimStart('v', 'V').Trim(), out var latest)) return;
+                if (!TryParseReleaseTag(tag, out var latest)) return;
 
-                var cur = new System.Version(current.Major, current.Minor, current.Build < 0 ? 0 : current.Build);
-                var lat = new System.Version(latest.Major, latest.Minor, latest.Build < 0 ? 0 : latest.Build);
-                if (lat <= cur) return;
+                if (!IsNewerThanCurrent(latest, current)) return;
 
-                _updateTag = $"v{lat.ToString(3)}";
+                _updateTag = $"v{latest.ToString(3)}";
                 _host.UpdateText    = string.Format(_host.Loc("Str_UpdateAvailable"), _updateTag);
                 _host.UpdateVisible = true;
             }
             catch { /* offline, timeout, or API error - quietly do nothing */ }
+        }
+
+        /// <summary>
+        /// Startup update check: same GitHub endpoint, but instead of lighting the About
+        /// button it shows the update prompt with the release notes - unless this exact tag
+        /// was skipped, in which case it stays silent until a newer release appears.
+        /// </summary>
+        internal async void CheckForUpdateOnStartupAsync()
+        {
+            try
+            {
+                using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("KillerPDF-UpdateCheck");
+                var json = await http.GetStringAsync($"{Repo.Replace("github.com", "api.github.com/repos")}/releases/latest")
+                    .ConfigureAwait(true);
+
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                if (!doc.RootElement.TryGetProperty("tag_name", out var tagEl)) return;
+                var tag = tagEl.GetString();
+                if (!TryParseReleaseTag(tag, out var latest)) return;
+
+                if (!IsNewerThanCurrent(latest,
+                        System.Reflection.Assembly.GetExecutingAssembly().GetName().Version))
+                    return;
+
+                string fullTag = tag!.Trim();
+                if (string.Equals(App.GetSetting("SkipUpdateVersion"), fullTag,
+                        StringComparison.OrdinalIgnoreCase))
+                    return;   // skipped: stay silent until a newer tag appears
+
+                string notes = "";
+                if (doc.RootElement.TryGetProperty("body", out var bodyEl))
+                    notes = bodyEl.GetString() ?? "";
+
+                _updateTag = fullTag;
+                switch (_host.ShowUpdatePrompt(fullTag, notes))
+                {
+                    case UpdateChoice.Update: StartupUpdate(); break;
+                    case UpdateChoice.Skip:
+                        App.SetSetting("SkipUpdateVersion", fullTag);
+                        break;
+                    default: break;   // Later: ask again next launch
+                }
+            }
+            catch { /* offline, timeout, or API error - quietly do nothing */ }
+        }
+
+        /// <summary>
+        /// Update from the startup prompt (which already served as confirmation). Unsigned
+        /// builds cannot self-swap - the Authenticode gate below would reject the download -
+        /// so they go straight to the release page instead of fetching a doomed 70+ MB file.
+        /// </summary>
+        private void StartupUpdate()
+        {
+            if (_host.IsDirty)
+            {
+                KillerDialog.Show(_host.Window, _host.Loc("Str_Dlg_SaveBeforeUpdate"),
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            var (sigValid, _, _) = App.GetExeSignerInfo();
+            if (!sigValid)
+            {
+                OpenUrl($"{Repo}/releases/latest");
+                return;
+            }
+            UpdateCore(confirmFirst: false);
         }
 
         // ---- Self-update ---------------------------------------------------------------------
@@ -138,7 +227,9 @@ namespace KillerPDF.Features
         /// copies hand it the same payload-based install command used by a manual upgrade; portable
         /// copies replace their original launcher after both launcher and inner app have exited.
         /// </summary>
-        internal async void Update()
+        internal async void Update() => UpdateCore(confirmFirst: true);
+
+        internal async void UpdateCore(bool confirmFirst)
         {
             var tag = _updateTag;
             if (string.IsNullOrEmpty(tag)) return;
@@ -150,9 +241,11 @@ namespace KillerPDF.Features
                 return;
             }
 
-            var confirm = KillerDialog.Show(_host.Window,
-                string.Format(_host.Loc("Str_UpdatePrompt"), tag),
-                "KillerPDF", MessageBoxButton.OKCancel, MessageBoxImage.Question);
+            var confirm = confirmFirst
+                ? KillerDialog.Show(_host.Window,
+                    string.Format(_host.Loc("Str_UpdatePrompt"), tag),
+                    "KillerPDF", MessageBoxButton.OKCancel, MessageBoxImage.Question)
+                : MessageBoxResult.OK;   // the startup prompt already confirmed
             if (confirm != MessageBoxResult.OK) return;
 
             _host.UpdateEnabled = false;
