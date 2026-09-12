@@ -335,5 +335,154 @@ namespace KillerPDF
                 catch { /* docReader open failed; all items remain label-only */ }
             }, ct);
         }
+
+        // #382: split book-spread pages into two. Asks direction first, then works on the
+        // selected thumbnails (or the page under the cursor when nothing is selected).
+        private void SplitSpreadAskDirection(int pageIdx)
+        {
+            if (_doc is null) return;
+            int choice = KillerDialog.ShowChoices(this,
+                Loc("Str_SplitSpread_Direction"),
+                [Loc("Str_SplitSpread_Vertical"), Loc("Str_SplitSpread_Horizontal")]);
+            if (choice < 0) return;   // closed without choosing
+            SplitSpread(pageIdx, vertical: choice == 0);
+        }
+
+        // Duplicates each target page, then crops the original to one half and the copy to
+        // the other (vertical: left/right, horizontal: top/bottom). Targets run descending so
+        // insertions never shift pending targets. Annotations stay with the original half -
+        // like the crop tool, crops don't move marks - while later pages shift for the
+        // insertions so the rest of the document stays aligned.
+        private void SplitSpread(int pageIdx, bool vertical)
+        {
+            if (_doc is null) return;
+            var selected = PageList.SelectedItems;
+            var indices = new List<int>();
+            if (selected.Count > 0) { foreach (PageThumbnailVm vm in selected) indices.Add(vm.PageIndex); }
+            else if (pageIdx >= 0 && pageIdx < _doc.PageCount) indices.Add(pageIdx);
+            if (indices.Count == 0)
+            {
+                KillerDialog.Show(this, Loc("Str_Dlg_SelectSplit"), "KillerPDF",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                UndoEntry? documentUndo = CaptureDocumentUndo();
+                var engineSession = EnsureEngineDocumentSession();
+                // Media sizes upfront: the insertions below append pages, never resize them.
+                var sizes = new Dictionary<int, (double W, double H)>();
+                foreach (int i in indices.Distinct().OrderBy(x => x))
+                {
+                    if (i < 0 || i >= engineSession.PageCount) continue;
+                    var pg = engineSession.Pages[i];
+                    if (pg.Width <= 0 || pg.Height <= 0) continue;
+                    sizes[i] = (pg.Width, pg.Height);
+                }
+                if (sizes.Count == 0) return;
+                var ordered = sizes.Keys.OrderByDescending(x => x).ToList();
+                var annotationBackup = _annotations.ToDictionary(
+                    pair => pair.Key, pair => pair.Value);
+                try
+                {
+                    foreach (int i in ordered) PageAnnotationInsertion.Shift(_annotations, i + 1, 1);
+                    SaveTempAndReload(
+                        keepAnnotations: true,
+                        preserveZoom: true,
+                        finalizeSavedFile: path =>
+                        {
+                            foreach (int i in ordered)
+                            {
+                                PdfEngineIntegration.DuplicatePage(path, i);
+                                var (w, h) = sizes[i];
+                                var crops = new Dictionary<int, PdfEngineIntegration.PageRectangle?>();
+                                if (vertical)
+                                {
+                                    crops[i]     = new PdfEngineIntegration.PageRectangle(0, 0, w / 2, h);
+                                    crops[i + 1] = new PdfEngineIntegration.PageRectangle(w / 2, 0, w - w / 2, h);
+                                }
+                                else
+                                {
+                                    crops[i]     = new PdfEngineIntegration.PageRectangle(0, h / 2, w, h - h / 2);
+                                    crops[i + 1] = new PdfEngineIntegration.PageRectangle(0, 0, w, h / 2);
+                                }
+                                PdfEngineIntegration.ApplyCropBoxes(path, crops);
+                            }
+                        },
+                        remapRotations: rotations =>
+                        {
+                            foreach (int i in ordered)
+                                PdfEngineIntegration.RemapRotationsAfterPageDuplication(rotations, i);
+                        },
+                        selectedPageAfterReload: ordered[^1],
+                        documentUndo: documentUndo);
+                }
+                catch
+                {
+                    _annotations.Clear();
+                    foreach (var pair in annotationBackup)
+                    {
+                        foreach (PageAnnotation annotation in pair.Value)
+                            annotation.PageIndex = pair.Key;
+                        _annotations[pair.Key] = pair.Value;
+                    }
+                    throw;
+                }
+                SetStatus(string.Format(Loc("Str_St_SplitSpread"), ordered.Count, ordered.Count * 2));
+            }
+            catch (Exception ex)
+            {
+                KillerDialog.Show(this, Loc("Str_Err_SplitSpreadFailed") + "\n" + ex.Message,
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // #340: arm a field preset for click-to-place (switches to the FormField tool),
+        // or delete one. Presets live in app settings, shared across documents.
+        private static FormFieldPresets.Store PresetStore()
+            => new(App.GetSetting, App.SetSetting, App.RemoveSetting);
+
+        private void AppendFieldPresetMenu(int pageIdx)
+        {
+            var presets = FormFieldPresets.Load(PresetStore());
+            if (presets.Count == 0) return;
+            var insertSub = MakeMenuItem(Loc("Str_FF_InsertPreset"), (_, _) => { }, glyph: "");
+            foreach (var preset in presets)
+            {
+                var captured = preset;
+                insertSub.Items.Add(MakeMenuItem(
+                    $"{captured.Name}  {captured.WidthPt:0.#} x {captured.HeightPt:0.#}",
+                    (_, _) => ArmFieldPreset(captured)));
+            }
+            var deleteSub = MakeMenuItem(Loc("Str_FF_DeletePreset"), (_, _) => { });
+            foreach (var preset in presets)
+            {
+                var captured = preset;
+                deleteSub.Items.Add(MakeMenuItem(captured.Name,
+                    (_, _) => DeleteFieldPreset(captured.Name)));
+            }
+            insertSub.Items.Add(new Separator());
+            insertSub.Items.Add(deleteSub);
+            _ctxMenu.Items.Add(insertSub);
+        }
+
+        private void ArmFieldPreset(FieldPreset preset)
+        {
+            if (_doc is null) return;
+            SetTool(EditTool.FormField);
+            ActiveViewer.PendingFieldPresetExt = preset;
+            SetStatus(string.Format(Loc("Str_FF_PlaceHint"), preset.Name));
+        }
+
+        private void DeleteFieldPreset(string name)
+        {
+            var store = PresetStore();
+            var presets = FormFieldPresets.Load(store);
+            if (FormFieldPresets.Remove(presets, name))
+            {
+                FormFieldPresets.Save(store, presets);
+                SetStatus(string.Format(Loc("Str_FF_Deleted"), name));
+            }
+        }
     }
 }

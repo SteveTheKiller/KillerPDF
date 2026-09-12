@@ -4,6 +4,48 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.9] - 2026-09-12
+
+One-click updates for unsigned builds: hash-verified downloads now install without requiring Authenticode (signed installs still demand a trusted signature).
+
+## [1.8.8] - 2026-09-12
+
+Test release to verify the startup update prompt fires with notes. No feature changes.
+
+## [1.8.7] - 2026-09-12
+
+Fork release: startup update prompt, issue batch 2, and the booklet/shortcut fixes.
+
+### Added
+
+- Startup update prompt with release notes: Update / Skip this version / Later, skip persisted per tag, fork-suffixed tags supported.
+- Draggable outline bookmarks with before/after/child drop positions (#391).
+- Fillable field presets: save from the focused field, click-to-place insert, delete (#340).
+- Initial view settings in Document Info: open page, zoom, layout, panel, toolbar chrome (#338).
+- Rasterize zone: bake an annotation's region to image in one undo step (#369).
+- Shared image library picker for signatures and stamp watermarks, with import/delete (#326).
+
+### Fixed
+
+- Booklet preview and spool share one imposition list with duplex-correct backs.
+- Pure black & white print mode.
+
+## [1.8.6] - 2026-09-12
+
+Fork release on top of upstream 1.8.5: Adobe-style print dialog, annotation nudge, spread splitting, and remappable shortcuts.
+
+### Added
+
+- Adobe-style advanced print dialog: reverse pages, booklet mode with duplex-correct imposition, save ink/toner, pure black & white, shrink-oversized scale, reorganized sections, and paper size plus true scale percentage in the preview.
+- Flip on long edge / flip on short edge two-sided printing, matching Edge and Acrobat.
+- Arrow-key nudge for selected annotations (1 DIP steps, 10 with Shift) (#368).
+- Split spread: duplicate a page and crop the halves apart, vertically or horizontally, across multiple pages (#382).
+- Remappable core shortcuts (open, save, print, undo, find, and more) from the F1 overlay's Customize link, with conflict detection (#190).
+
+### Fixed
+
+- Booklet preview and spool share one imposition list, so sheets print in the order shown with no mirrored duplicates.
+
 ## [1.8.5] - Unreleased
 
 1.8.5 restores saving edits to tagged PDFs and adds a headless page-render benchmark command.

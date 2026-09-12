@@ -800,6 +800,20 @@ namespace KillerPDF.Controls
             panel.Children.Add(sizeLbl);
             panel.Children.Add(MakeFormSizeStep("", () => AdjustFormFontSize(+1, sizeLbl)));  // plus
 
+            // #340: save this field's dimensions + appearance as a reusable preset.
+            var savePreset = new TextBlock
+            {
+                Text = Loc("Str_FF_Save"),
+                FontFamily = UiKit.UiFont, FontSize = 10,
+                Foreground = new SolidColorBrush(Color.FromRgb(0xF2, 0xF2, 0xF2)),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
+                Cursor = Cursors.Hand,
+                ToolTip = Loc("Str_FF_SavePreset"),
+            };
+            savePreset.MouseLeftButtonDown += (_, e) => { e.Handled = true; SaveFocusedFieldAsPreset(); };
+            panel.Children.Add(savePreset);
+
             // The on-document "inline flyout" style: translucent pill, solidifies on hover.
             _formSizeBar = UiKit.InlineFlyout(panel);
             _formSizeBar.HorizontalAlignment = HorizontalAlignment.Left;
@@ -887,6 +901,98 @@ namespace KillerPDF.Controls
             _activeFormTb.FontSize = pt * scale;
             sizeLbl.Text = pt.ToString("0");
             MarkDirty(true);
+        }
+
+        // #340: the pending field preset for click-to-place (armed from the page menu).
+        private FieldPreset? _pendingFieldPreset;
+
+        private static FormFieldPresets.Store PresetStore()
+            => new(App.GetSetting, App.SetSetting, App.RemoveSetting);
+
+        // Captures the focused field's dimensions, font size and appearance as a preset,
+        // named after the field itself. Best-effort: silently does nothing when the widget
+        // cannot be found (e.g. an older incremental revision renamed it underneath us).
+        private void SaveFocusedFieldAsPreset()
+        {
+            if (string.IsNullOrEmpty(_activeFormName) || _currentFile is null) return;
+            try
+            {
+                KillerPdf.Engine.Documents.PdfFormWidgetInfo? found = null;
+                foreach (var page in PdfEngineIntegration.ReadAllPageFormWidgets(_currentFile))
+                {
+                    found = page.FirstOrDefault(w => w.FieldName == _activeFormName);
+                    if (found is not null) break;
+                }
+                if (found is null) return;
+                double w = Math.Abs(found.Right - found.Left);
+                double h = Math.Abs(found.Top - found.Bottom);
+                if (w < 3 || h < 3) return;
+                double scale = _activeFormScale > 0 ? _activeFormScale : 1;
+                double pt = _activeFormTb is not null
+                    ? Math.Round(_activeFormTb.FontSize / scale)
+                    : ParseDaFontSize(found.DefaultAppearance);
+                if (pt <= 0) pt = 0;   // 0 = auto size at insert
+                var store = PresetStore();
+                var presets = FormFieldPresets.Load(store);
+                string name = FormFieldPresets.UniqueName(presets, _activeFormName);
+                presets.Add(new FieldPreset(name, w, h, pt,
+                    ToHexColor(ParseDaColor(found.DefaultAppearance)),
+                    ToHexColor(found.BackgroundColor, "#FFFFFF"),
+                    ToHexColor(found.BorderColor, "#FF0000"), 1));
+                FormFieldPresets.Save(store, presets);
+                SetStatus(string.Format(Loc("Str_FF_Saved"), name));
+            }
+            catch { /* best-effort */ }
+        }
+
+        private static string ToHexColor(Color color) =>
+            $"#{color.R:X2}{color.G:X2}{color.B:X2}";
+
+        private static string ToHexColor(KillerPdf.Engine.Authoring.PdfRgbColor? color, string fallback) =>
+            color is null ? fallback : ToHexColor(Color.FromRgb(
+                (byte)Math.Clamp(Math.Round(color.Value.Red * 255), 0, 255),
+                (byte)Math.Clamp(Math.Round(color.Value.Green * 255), 0, 255),
+                (byte)Math.Clamp(Math.Round(color.Value.Blue * 255), 0, 255)));
+
+        internal static KillerPdf.Engine.Authoring.PdfRgbColor? RgbFromHex(string hex)
+        {
+            if (hex.Length != 7 || hex[0] != '#') return null;
+            if (!byte.TryParse(hex.AsSpan(1, 2), System.Globalization.NumberStyles.HexNumber, null, out byte r)
+                || !byte.TryParse(hex.AsSpan(3, 2), System.Globalization.NumberStyles.HexNumber, null, out byte g)
+                || !byte.TryParse(hex.AsSpan(5, 2), System.Globalization.NumberStyles.HexNumber, null, out byte b))
+                return null;
+            return new KillerPdf.Engine.Authoring.PdfRgbColor(r / 255.0, g / 255.0, b / 255.0);
+        }
+
+        // Font color from a /DA string: "0 g" is gray, "r g b rg" is rgb. Unknown -> black.
+        private static Color ParseDaColor(string? da)
+        {
+            if (!string.IsNullOrWhiteSpace(da))
+            {
+                var t = da.Split([' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
+                for (int i = 0; i < t.Length; i++)
+                {
+                    if (t[i] == "g" && i >= 1 && double.TryParse(t[i - 1],
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out double g)
+                        && g >= 0 && g <= 1)
+                    {
+                        byte v = (byte)Math.Round(g * 255);
+                        return Color.FromRgb(v, v, v);
+                    }
+                    if ((t[i] == "rg" || t[i] == "RG") && i >= 3
+                        && double.TryParse(t[i - 3], System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out double r)
+                        && double.TryParse(t[i - 2], System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out double g2)
+                        && double.TryParse(t[i - 1], System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out double b)
+                        && r >= 0 && r <= 1 && g2 >= 0 && g2 <= 1 && b >= 0 && b <= 1)
+                        return Color.FromRgb((byte)Math.Round(r * 255),
+                            (byte)Math.Round(g2 * 255), (byte)Math.Round(b * 255));
+                }
+            }
+            return Colors.Black;
         }
 
         private void HideFormSizeBar()

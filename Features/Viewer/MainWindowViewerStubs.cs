@@ -54,6 +54,7 @@ namespace KillerPDF
         private void UngroupAnnotation(PageAnnotation a) => ActiveViewer.UngroupAnnotationExt(a);
         private void RemoveFromGroup(PageAnnotation a) => ActiveViewer.RemoveFromGroupExt(a);
         private void DeleteSelected() => ActiveViewer.DeleteSelectedExt();
+        private void RasterizeSelectedZone(PageAnnotation hit) => ActiveViewer.RasterizeZoneExt(hit);
         private bool SelectAllAnnotations() => ActiveViewer.SelectAllAnnotationsExt();
         private void HideBrushPreview() => ActiveViewer.HideBrushPreviewExt();
         private void FinishStuckGesture() => ActiveViewer.FinishStuckGestureExt();

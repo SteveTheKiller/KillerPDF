@@ -1,5 +1,8 @@
 namespace KillerPDF.Features
 {
+    /// <summary>Answer to the startup update prompt: install it, skip this version, or later.</summary>
+    internal enum UpdateChoice { Update, Skip, Later }
+
     /// <summary>
     /// What AboutController needs from the window hosting it, beyond the shared shell services.
     ///
@@ -51,5 +54,8 @@ namespace KillerPDF.Features
         /// <summary>Dismisses any other full-window overlay, then fades the About card in.
         /// The overlays are mutually exclusive rather than stacking.</summary>
         void ShowCard();
+
+        /// <summary>Startup update prompt with the release notes. Returns what to do.</summary>
+        UpdateChoice ShowUpdatePrompt(string tag, string notes);
     }
 }

@@ -57,9 +57,17 @@ namespace KillerPDF
         private double _marginPx;            // extra inset inside the printable area (DIPs)
         private int _nUp = 1;                // pages per sheet (1, 2, 4, 6, 9)
         private bool _duplex;                // two-sided printing (when the printer supports it)
+        private int _duplexMode;             // 0 = flip on long edge, 1 = flip on short edge
+        private bool _duplexLongOk;          // printer reports long-edge duplex support
+        private bool _duplexShortOk;         // printer reports short-edge duplex support
         private CheckBox _duplexCheck = null!;
+        private ComboBox _duplexEdgeCombo = null!;
         private ComboBox _subsetCombo = null!;   // all / odd only / even only (#134, manual duplex)
         private bool _grayscale;             // send the job as grayscale/B&W rather than color
+        private bool _pureBW;                // pure 1-bit black & white (no gray tones)
+        private bool _reverse;               // print pages in reverse order
+        private bool _booklet;               // booklet printing mode (2-up, paired for folding)
+        private bool _saveInkToner;          // reduce ink usage by lightening the print
 
         // Immutable copy of every layout choice used while composing a print job. The progress
         // scrim blocks the mouse but deliberately does not steal keyboard focus, so controls can
@@ -67,11 +75,12 @@ namespace KillerPDF
         // changes halfway through (especially N-up, which controls the page-loop increment).
         private readonly record struct PrintLayout(
             bool Landscape, int AlignH, int AlignV, int ScaleMode, double CustomPct,
-            double MarginPx, int NUp, bool Duplex, bool Grayscale);
+            double MarginPx, int NUp, bool Duplex, int DuplexEdge, bool Grayscale, bool PureBlackWhite,
+            bool Reverse, bool Booklet, bool SaveInkToner);
 
         private PrintLayout CurrentLayout() => new(
             _landscape, _alignH, _alignV, _scaleMode, _customPct, _marginPx,
-            _nUp, _duplex, _grayscale);
+            _nUp, _duplex, _duplexMode, _grayscale, _pureBW, _reverse, _booklet, _saveInkToner);
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -80,6 +89,8 @@ namespace KillerPDF
         private readonly Grid _previewHost = new();
         private readonly TextBlock _pageLabel = new();
         private readonly TextBlock _renderLabel = new();   // "Rendering X / Y" line shown above the page nav
+        private TextBlock _paperSizeLabel = null!;  // paper dimensions in preview (e.g. "8.5 x 11 Inches")
+        private TextBlock _scaleLabel = null!;      // scale percentage in preview (e.g. "Scale: 94%")
         private Button _previousPage = null!;
         private Button _nextPage = null!;
         private ComboBox _printerCombo = null!;
@@ -115,10 +126,10 @@ namespace KillerPDF
             _cleanupPath = cleanupPath;
 
             Title  = S("Str_Print_Title");
-            Width  = 936;
-            Height = 716;
-            MinWidth  = 720;
-            MinHeight = 480;
+            Width  = 980;
+            Height = 740;
+            MinWidth  = 780;
+            MinHeight = 520;
             DialogChrome.Configure(this, owner, resizable: true);
             UseLayoutRounding = true;
 
@@ -321,14 +332,16 @@ namespace KillerPDF
 
         // Raster-pixels -> DIP scale factor for a page under the current scale mode.
         // Fit shrinks the page to the printable area; actual/custom use the true physical size.
+        // Shrink oversized: like fit but only when the page is larger than the paper.
         private double ScaleFor(int idx, double areaW, double areaH, int[] rw, int[] rh, PrintLayout layout)
         {
             double actual = _pageDipW[idx] / Math.Max(1, rw[idx]);
             return layout.ScaleMode switch
             {
                 1 => actual,
-                2 => actual * (layout.CustomPct / 100.0),
-                _ => Math.Min(areaW / rw[idx], areaH / rh[idx])
+                3 => actual * (layout.CustomPct / 100.0),  // custom percentage
+                2 => Math.Min(1.0, Math.Min(areaW / rw[idx], areaH / rh[idx])),  // shrink oversized only
+                _ => Math.Min(areaW / rw[idx], areaH / rh[idx])  // fit to page
             };
         }
 
@@ -348,6 +361,49 @@ namespace KillerPDF
             _ => (1, 1)
         };
 
+        // Booklet imposition shared by the preview and the spool path, so what you see is
+        // what prints. Pair P_k holds pages (N-1-k, k): the back page renders on the LEFT,
+        // the front page on the RIGHT. A -1 slot is an intentional blank (odd page counts).
+        // Single-sided (and short-edge duplex, where backs keep front order) emits pairs in
+        // order P_0..P_{K-1}. Long-edge duplex interleaves so every physical sheet is correct
+        // on both faces: front P_0, back mirror(P_1), front P_2, back mirror(P_3), ...
+        // Folding the stack then reads 1..N in order.
+        // Odd N: the middle page stands alone, right side on fronts, left side on backs.
+        private static List<List<int>> BookletSheets(List<int> indices, bool mirrorBacks)
+        {
+            int n = indices.Count;
+            int pairs = (n + 1) / 2;
+            var sheets = new List<List<int>>(pairs);
+            for (int k = 0; k < pairs; k++)
+            {
+                int left = n - 1 - k, right = k;
+                bool single = left == right;
+                bool mirror = mirrorBacks && (k % 2 == 1);   // backs of physical sheets
+                var sheet = new List<int>(2);
+                if (single)
+                {
+                    if (mirror) sheet.Add(indices[left]);
+                    else { sheet.Add(-1); sheet.Add(indices[left]); }
+                }
+                else if (mirror)
+                {
+                    if (right >= 0 && right < n) sheet.Add(indices[right]);
+                    if (left >= 0 && left < n) sheet.Add(indices[left]);
+                }
+                else
+                {
+                    if (left >= 0 && left < n) sheet.Add(indices[left]);
+                    if (right >= 0 && right < n) sheet.Add(indices[right]);
+                }
+                sheets.Add(sheet);
+            }
+            return sheets;
+        }
+
+        // Long-edge duplex flips around the binding edge, so backs mirror; short-edge
+        // flips over the top and backs keep front order. Single-sided never mirrors.
+        private bool MirrorBookletBacks() => _duplex && _duplexMode == 0;
+
         // The page indices the preview walks AND the Print button sends - whatever range is typed in the
         // Pages box (blank = every page; a range that matches no page = empty, which the preview and the
         // print guard both surface). Driving the preview off this keeps it showing exactly the pages that
@@ -366,10 +422,19 @@ namespace KillerPDF
                     if ((i % 2 == 0) == (subset == 1)) filtered.Add(i);   // 0-based even index = odd page number
                 list = filtered;
             }
+            // Reverse pages: print last page first (like Adobe's "Reverse pages" checkbox).
+            // Applies after odd/even filtering so "odds reversed" prints 99, 97, 95, ...
+            if (_reverse) list.Reverse();
             return list;
         }
 
-        private int SheetCount() => _pages.Length == 0 ? 0 : (SelectedIndices().Count + _nUp - 1) / _nUp;
+        private int SheetCount()
+        {
+            if (_pages.Length == 0) return 0;
+            var indices = SelectedIndices();
+            if (_booklet && indices.Count > 1) return BookletSheets(indices, MirrorBookletBacks()).Count;
+            return (indices.Count + _nUp - 1) / _nUp;
+        }
 
         // Builds one sheet (aw x ah DIPs, white) holding the given source pages. 1-up honors the
         // scale mode + alignment + margin; N-up fits each page into its grid cell. Shared by the
@@ -389,7 +454,7 @@ namespace KillerPDF
             var canvas = new Canvas();
             double m = layout.MarginPx;
 
-            if (layout.NUp <= 1)
+            if (layout.NUp <= 1 && idxs.Count <= 1 && !layout.Booklet)
             {
                 if (idxs.Count > 0)
                 {
@@ -400,8 +465,10 @@ namespace KillerPDF
                     // white sheet doesn't peek through as a 1px hairline at the page edge (float seam).
                     if (iw >= (aw - 2 * m) - 1.5) iw = aw - 2 * m + 1;   // +1 bleed: covers the right hairline (clipped by the sheet)
                     if (ih >= (ah - 2 * m) - 1.5) ih = ah - 2 * m + 1;
-                    BitmapSource source = layout.Grayscale
-                        ? PrintColorConverter.CreateGrayscaleBitmap(pages[idx]!) : pages[idx]!;
+                    BitmapSource source = pages[idx]!;
+                    if (layout.PureBlackWhite) source = PrintColorConverter.CreateBitonalBitmap(source);
+                    else if (layout.Grayscale) source = PrintColorConverter.CreateGrayscaleBitmap(source);
+                    else if (layout.SaveInkToner) source = PrintColorConverter.CreateReducedInkBitmap(source);
                     var img = new Image { Source = source, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
                     Canvas.SetLeft(img, m + OffsetH(aw - 2 * m, iw, layout));
@@ -411,18 +478,24 @@ namespace KillerPDF
             }
             else
             {
-                var (cols, rows) = NupGrid(layout);
+                // For booklet mode with 2 pages, use 2 columns; otherwise use NupGrid.
+                var (cols, rows) = idxs.Count <= 2 && layout.Booklet
+                    ? (2, 1)  // booklet always 2-up side by side
+                    : NupGrid(layout);
                 const double gap = 6;
                 double cellW = (aw - 2 * m) / cols, cellH = (ah - 2 * m) / rows;
                 for (int i = 0; i < idxs.Count && i < cols * rows; i++)
                 {
                     int idx = idxs[i];
+                    if (idx < 0) continue;   // intentional booklet blank: leave the cell empty
                     int row = i / cols, col = i % cols;
                     double availW = Math.Max(1, cellW - gap), availH = Math.Max(1, cellH - gap);
                     double s = Math.Min(availW / rw[idx], availH / rh[idx]);
                     double iw = rw[idx] * s, ih = rh[idx] * s;
-                    BitmapSource source = layout.Grayscale
-                        ? PrintColorConverter.CreateGrayscaleBitmap(pages[idx]!) : pages[idx]!;
+                    BitmapSource source = pages[idx]!;
+                    if (layout.PureBlackWhite) source = PrintColorConverter.CreateBitonalBitmap(source);
+                    else if (layout.Grayscale) source = PrintColorConverter.CreateGrayscaleBitmap(source);
+                    else if (layout.SaveInkToner) source = PrintColorConverter.CreateReducedInkBitmap(source);
                     var img = new Image { Source = source, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
                     Canvas.SetLeft(img, m + col * cellW + (cellW - iw) / 2);
@@ -435,22 +508,33 @@ namespace KillerPDF
             return sheet;
         }
 
-        // Enables the two-sided checkbox only when the selected printer reports duplex support.
+        // Enables the two-sided checkbox when the printer reports long- or short-edge
+        // duplex support, and steers the flip-edge combo to a supported mode.
         private void UpdateDuplexAvailability()
         {
-            bool ok = false;
+            _duplexLongOk = false;
+            _duplexShortOk = false;
             try
             {
-                var caps = _queue?.GetPrintCapabilities();
-                ok = caps?.DuplexingCapability?.Contains(Duplexing.TwoSidedLongEdge) == true;
+                var caps = _queue?.GetPrintCapabilities()?.DuplexingCapability;
+                _duplexLongOk = caps?.Contains(Duplexing.TwoSidedLongEdge) == true;
+                _duplexShortOk = caps?.Contains(Duplexing.TwoSidedShortEdge) == true;
             }
             catch { /* capability query not supported: leave disabled */ }
+            bool ok = _duplexLongOk || _duplexShortOk;
 
             if (_duplexCheck is null) return;
             _duplexCheck.IsEnabled = ok;
             if (!ok) { _duplexCheck.IsChecked = false; _duplex = false; }
             _duplexCheck.Opacity = ok ? 1.0 : 0.4;
             _duplexCheck.ToolTip = ok ? null : S("Str_Print_NoTwoSidedSupport");
+            if (_duplexEdgeCombo is not null)
+            {
+                _duplexEdgeCombo.IsEnabled = ok && _duplex;
+                // Keep a supported edge selected: prefer the user's pick, else the other.
+                if (_duplex && ((_duplexMode == 1 && !_duplexShortOk) || (_duplexMode == 0 && !_duplexLongOk)))
+                    _duplexEdgeCombo.SelectedIndex = _duplexShortOk ? 1 : 0;
+            }
         }
 
         // ---- UI construction -------------------------------------------------
@@ -477,8 +561,7 @@ namespace KillerPDF
             // Options live in a scroller (buttons are pinned below), so only a little top/side inset.
             var panel = new StackPanel { Margin = new Thickness(16, 8, 12, 4) };
 
-            // Collapsible sections, the Transform/Stamp dialog pattern (WrapSection): PRINTER and
-            // OUTPUT open, LAYOUT tucked away - it holds the set-and-forget options.
+            // ── PRINTER section ────────────────────────────────────────────
             int secPrinter = panel.Children.Count;
 
             panel.Children.Add(Label(S("Str_Print_Printer")));
@@ -526,8 +609,218 @@ namespace KillerPDF
                 _sourceOverride = i > 0 && i - 1 < _sourceBins.Count ? _sourceBins[i - 1] : null;
             };
             panel.Children.Add(source);
+
+            // Copies
+            panel.Children.Add(Label(S("Str_Print_Copies")));
+            _copiesBox = UiKit.Field();
+            _copiesBox.Text = "1";
+            _copiesBox.VerticalContentAlignment = VerticalAlignment.Center;
+            var (getCopies, setCopies) = NumericField(_copiesBox, 1, 9999);
+            var copiesSpin = BuildStepper(getCopies, setCopies);
+            var copiesRow = new DockPanel { Margin = new Thickness(0, 4, 0, 12), LastChildFill = true };
+            DockPanel.SetDock(copiesSpin, Dock.Right);
+            copiesRow.Children.Add(copiesSpin);
+            copiesRow.Children.Add(_copiesBox);
+            panel.Children.Add(copiesRow);
+
+            // Print in grayscale
+            _grayscale = App.GetSetting("PrintGrayscale") == "1";
+            _pureBW = App.GetSetting("PrintPureBW") == "1";
+            if (_pureBW) _grayscale = false;   // the two B&W modes are exclusive
+            var grayscaleCheck = UiKit.CheckBox(S("Str_Print_BW"));
+            grayscaleCheck.Margin = new Thickness(0, 2, 0, 8);
+            grayscaleCheck.IsChecked = _grayscale;
+            panel.Children.Add(grayscaleCheck);
+
+            // Pure black & white: 1-bit photocopy look, no gray tones. Mutually exclusive
+            // with grayscale above - checking one unchecks the other.
+            var pureBWCheck = UiKit.CheckBox(S("Str_Print_PureBW"));
+            pureBWCheck.Margin = new Thickness(0, 2, 0, 8);
+            pureBWCheck.IsChecked = _pureBW;
+            panel.Children.Add(pureBWCheck);
+
+            // Handlers wired after both boxes exist (each one drives the other).
+            grayscaleCheck.Checked   += (_, _) => { _grayscale = true; _pureBW = false; pureBWCheck.IsChecked = false; UpdatePreview(); };
+            grayscaleCheck.Unchecked += (_, _) => { _grayscale = false; UpdatePreview(); };
+            pureBWCheck.Checked   += (_, _) => { _pureBW = true; _grayscale = false; grayscaleCheck.IsChecked = false; UpdatePreview(); };
+            pureBWCheck.Unchecked += (_, _) => { _pureBW = false; UpdatePreview(); };
+
+            // Save ink/toner
+            _saveInkToner = App.GetSetting("PrintSaveInk") == "1";
+            var saveInkCheck = UiKit.CheckBox(S("Str_Print_SaveInkToner"));
+            saveInkCheck.Margin = new Thickness(0, 2, 0, 8);
+            saveInkCheck.IsChecked = _saveInkToner;
+            saveInkCheck.ToolTip = S("Str_Print_SaveInkTip");
+            saveInkCheck.Checked   += (_, _) => { _saveInkToner = true; UpdatePreview(); };
+            saveInkCheck.Unchecked += (_, _) => { _saveInkToner = false; UpdatePreview(); };
+            panel.Children.Add(saveInkCheck);
+
             WrapSection(panel, secPrinter, S("Str_Print_SecPrinter"), expanded: true);
-            int secLayout = panel.Children.Count;
+
+            // ── PAGES TO PRINT section ────────────────────────────────────
+            int secPages = panel.Children.Count;
+
+            // All / Pages radio-like selection via ComboBox
+            panel.Children.Add(Label(S("Str_Print_Pages")));
+            _pagesBox = UiKit.Field();
+            _pagesBox.Text = "";
+            _pagesBox.Margin = new Thickness(0, 4, 0, 2);
+            _pagesBox.TextChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
+            panel.Children.Add(_pagesBox);
+            panel.Children.Add(new TextBlock
+            {
+                Text         = S("Str_Print_PagesHint"),
+                Foreground   = R("MutedTextBrush"),
+                FontSize     = 11,
+                Margin       = new Thickness(0, 0, 0, 8),
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            // Odd/even subset (#134): Word-style manual duplex - print the odd pages, flip the
+            // stack, print the even pages. Applies on top of the Pages range above.
+            _subsetCombo = new ComboBox { Margin = new Thickness(0, 0, 0, 10), Height = 26 };
+            ApplyComboStyle(_subsetCombo);
+            _subsetCombo.Items.Add(S("Str_Print_AllPages"));
+            _subsetCombo.Items.Add(S("Str_Print_OddOnly"));
+            _subsetCombo.Items.Add(S("Str_Print_EvenOnly"));
+            _subsetCombo.SelectedIndex = 0;
+            _subsetCombo.SelectionChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
+            panel.Children.Add(_subsetCombo);
+
+            // Reverse pages
+            _reverse = false;
+            var reverseCheck = UiKit.CheckBox(S("Str_Print_ReversePages"));
+            reverseCheck.Margin = new Thickness(0, 2, 0, 10);
+            reverseCheck.ToolTip = S("Str_Print_ReverseTip");
+            reverseCheck.Checked   += (_, _) => { _reverse = true; _previewIndex = 0; UpdatePreview(); };
+            reverseCheck.Unchecked += (_, _) => { _reverse = false; _previewIndex = 0; UpdatePreview(); };
+            panel.Children.Add(reverseCheck);
+
+            WrapSection(panel, secPages, S("Str_Print_SecPagesToPrint"), expanded: true);
+
+            // ── PAGE SIZING & HANDLING section ─────────────────────────────
+            int secSizing = panel.Children.Count;
+
+            // Scale mode: Fit / Actual / Shrink oversized / Custom
+            panel.Children.Add(Label(S("Str_Print_Scale")));
+            var scale = new ComboBox { Margin = new Thickness(0, 4, 0, 6), Height = 26 };
+            ApplyComboStyle(scale);
+            scale.Items.Add(S("Str_Print_Fit"));
+            scale.Items.Add(S("Str_Print_Actual"));
+            scale.Items.Add(S("Str_Print_ShrinkOversized"));
+            scale.Items.Add(S("Str_Print_Custom"));
+            scale.SelectedIndex = 0;
+            panel.Children.Add(scale);
+
+            // Custom percentage: a compact box (always 1-1000) with a "%" suffix, revealed only
+            // when "Custom" is chosen.
+            _scaleBox = UiKit.Field();
+            _scaleBox.Text = "100";
+            _scaleBox.VerticalContentAlignment = VerticalAlignment.Center;
+            _scaleBox.ToolTip = S("Str_Print_ScaleHint");
+            var (getScale, setScale) = NumericField(_scaleBox, 1, 1000);
+            _scaleBox.TextChanged += (s, _) =>
+            {
+                if (int.TryParse(((TextBox)s).Text?.Trim(), out int p) && p > 0)
+                {
+                    _customPct = p;
+                    if (_scaleMode == 3) UpdatePreview();  // custom is now index 3
+                }
+            };
+
+            var scaleRow = new DockPanel
+            {
+                Margin        = new Thickness(0, 0, 0, 12),
+                LastChildFill = true,
+                Visibility    = Visibility.Collapsed
+            };
+            var scalePct = new TextBlock
+            {
+                Text = "%", Foreground = R("MutedTextBrush"),
+                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0)
+            };
+            DockPanel.SetDock(scalePct, Dock.Right);
+            var scaleSpin = BuildStepper(getScale, setScale);
+            DockPanel.SetDock(scaleSpin, Dock.Right);
+            scaleRow.Children.Add(scalePct);
+            scaleRow.Children.Add(scaleSpin);
+            scaleRow.Children.Add(_scaleBox);
+            var scaleSlide = new TranslateTransform();
+            scaleRow.RenderTransform = scaleSlide;
+
+            scale.SelectionChanged += (s, _) =>
+            {
+                _scaleMode = ((ComboBox)s).SelectedIndex;
+                if (_scaleMode == 1) { _customPct = 100; _scaleBox.Text = "100"; }
+                if (_scaleMode == 3)  // custom
+                {
+                    scaleRow.Visibility = Visibility.Visible;
+                    scaleRow.BeginAnimation(UIElement.OpacityProperty,
+                        new System.Windows.Media.Animation.DoubleAnimation(0, 1,
+                            new Duration(TimeSpan.FromMilliseconds(140))));
+                    scaleSlide.BeginAnimation(TranslateTransform.YProperty,
+                        new System.Windows.Media.Animation.DoubleAnimation(-8, 0,
+                            new Duration(TimeSpan.FromMilliseconds(140)))
+                        { EasingFunction = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
+                    _scaleBox.Focus();
+                    _scaleBox.SelectAll();
+                }
+                else
+                {
+                    scaleRow.Visibility = Visibility.Collapsed;
+                }
+                UpdatePreview();
+            };
+            panel.Children.Add(scaleRow);
+
+            // Pages per sheet (N-up): KillerPDF composes the sheet itself.
+            panel.Children.Add(Label(S("Str_Print_PagesPerSheet")));
+            var nup = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            ApplyComboStyle(nup);
+            foreach (var n in new[] { "1", "2", "4", "6", "9" }) nup.Items.Add(n);
+            nup.SelectedIndex = 0;
+            nup.SelectionChanged += (s, _) =>
+            {
+                _nUp = int.TryParse((string)((ComboBox)s).SelectedItem, out int n) && n > 0 ? n : 1;
+                _previewIndex = 0;
+                UpdatePreview();
+            };
+            panel.Children.Add(nup);
+
+            // Margins: an extra inset applied inside the printable area.
+            panel.Children.Add(Label(S("Str_Print_Margins")));
+            var margins = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
+            ApplyComboStyle(margins);
+            var marginOpts = new (string name, double inches)[]
+            {
+                (S("Str_Margin_None"), 0),
+                ($"{S("Str_Margin_Narrow")} (0.25\")", 0.25),
+                ($"{S("Str_Margin_Normal")} (0.5\")", 0.5),
+                ($"{S("Str_Margin_Wide")} (1\")", 1.0)
+            };
+            foreach (var (name, _) in marginOpts) margins.Items.Add(name);
+            margins.SelectedIndex = 0;
+            margins.SelectionChanged += (s, _) =>
+            {
+                int i = ((ComboBox)s).SelectedIndex;
+                if (i >= 0 && i < marginOpts.Length) { _marginPx = marginOpts[i].inches * 96.0; UpdatePreview(); }
+            };
+            panel.Children.Add(margins);
+
+            // Booklet printing
+            _booklet = App.GetSetting("PrintBooklet") == "1";
+            var bookletCheck = UiKit.CheckBox(S("Str_Print_Booklet"));
+            bookletCheck.Margin = new Thickness(0, 2, 0, 10);
+            bookletCheck.ToolTip = S("Str_Print_BookletTip");
+            bookletCheck.IsChecked = _booklet;
+            bookletCheck.Checked   += (_, _) => { _booklet = true; _previewIndex = 0; UpdatePreview(); };
+            bookletCheck.Unchecked += (_, _) => { _booklet = false; _previewIndex = 0; UpdatePreview(); };
+            panel.Children.Add(bookletCheck);
+
+            WrapSection(panel, secSizing, S("Str_Print_SecPageSizing"), expanded: true);
+
+            // ── OPTIONS section ────────────────────────────────────────────
+            int secOptions = panel.Children.Count;
 
             panel.Children.Add(Label(S("Str_Print_Orientation")));
             var orient = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
@@ -569,182 +862,39 @@ namespace KillerPDF
             };
             panel.Children.Add(position);
 
-            // Margins: an extra inset applied inside the printable area.
-            panel.Children.Add(Label(S("Str_Print_Margins")));
-            var margins = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
-            ApplyComboStyle(margins);
-            var marginOpts = new (string name, double inches)[]
-            {
-                (S("Str_Margin_None"), 0),
-                ($"{S("Str_Margin_Narrow")} (0.25\")", 0.25),
-                ($"{S("Str_Margin_Normal")} (0.5\")", 0.5),
-                ($"{S("Str_Margin_Wide")} (1\")", 1.0)
-            };
-            foreach (var (name, _) in marginOpts) margins.Items.Add(name);
-            margins.SelectedIndex = 0;
-            margins.SelectionChanged += (s, _) =>
-            {
-                int i = ((ComboBox)s).SelectedIndex;
-                if (i >= 0 && i < marginOpts.Length) { _marginPx = marginOpts[i].inches * 96.0; UpdatePreview(); }
-            };
-            panel.Children.Add(margins);
-
-            // Pages per sheet (N-up): KillerPDF composes the sheet itself.
-            panel.Children.Add(Label(S("Str_Print_PagesPerSheet")));
-            var nup = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
-            ApplyComboStyle(nup);
-            foreach (var n in new[] { "1", "2", "4", "6", "9" }) nup.Items.Add(n);
-            nup.SelectedIndex = 0;
-            nup.SelectionChanged += (s, _) =>
-            {
-                _nUp = int.TryParse((string)((ComboBox)s).SelectedItem, out int n) && n > 0 ? n : 1;
-                _previewIndex = 0;
-                UpdatePreview();
-            };
-            panel.Children.Add(nup);
-
-            panel.Children.Add(Label(S("Str_Print_Scale")));
-            var scale = new ComboBox { Margin = new Thickness(0, 4, 0, 6), Height = 26 };
-            ApplyComboStyle(scale);
-            scale.Items.Add(S("Str_Print_Fit"));
-            scale.Items.Add(S("Str_Print_Actual"));
-            scale.Items.Add(S("Str_Print_Custom"));
-            scale.SelectedIndex = 0;
-            panel.Children.Add(scale);
-
-            // Custom percentage: a compact box (always 1-100ish) with a "%" suffix, revealed only
-            // when "Custom" is chosen - it slides down into place instead of always taking space.
-            _scaleBox = UiKit.Field();
-            _scaleBox.Text = "100";
-            _scaleBox.VerticalContentAlignment = VerticalAlignment.Center;
-            _scaleBox.ToolTip = S("Str_Print_ScaleHint");
-            // Same numeric treatment as Copies: digits only, 1-1000 %, arrow-key / wheel / spinner stepping.
-            var (getScale, setScale) = NumericField(_scaleBox, 1, 1000);
-            _scaleBox.TextChanged += (s, _) =>
-            {
-                if (int.TryParse(((TextBox)s).Text?.Trim(), out int p) && p > 0)
-                {
-                    _customPct = p;
-                    if (_scaleMode == 2) UpdatePreview();
-                }
-            };
-
-            // Full-width row matching the Copies field: the box fills the column, with the stepper and the
-            // "%" suffix docked at the right edge.
-            var scaleRow = new DockPanel
-            {
-                Margin        = new Thickness(0, 0, 0, 12),
-                LastChildFill = true,
-                Visibility    = Visibility.Collapsed
-            };
-            var scalePct = new TextBlock
-            {
-                Text = "%", Foreground = R("MutedTextBrush"),
-                VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0, 0, 0)
-            };
-            DockPanel.SetDock(scalePct, Dock.Right);
-            var scaleSpin = BuildStepper(getScale, setScale);
-            DockPanel.SetDock(scaleSpin, Dock.Right);
-            scaleRow.Children.Add(scalePct);    // rightmost
-            scaleRow.Children.Add(scaleSpin);   // left of %
-            scaleRow.Children.Add(_scaleBox);   // fills the rest of the column width
-            var scaleSlide = new TranslateTransform();
-            scaleRow.RenderTransform = scaleSlide;
-
-            scale.SelectionChanged += (s, _) =>
-            {
-                _scaleMode = ((ComboBox)s).SelectedIndex;
-                if (_scaleMode == 1) { _customPct = 100; _scaleBox.Text = "100"; }
-                if (_scaleMode == 2)
-                {
-                    scaleRow.Visibility = Visibility.Visible;
-                    scaleRow.BeginAnimation(UIElement.OpacityProperty,
-                        new System.Windows.Media.Animation.DoubleAnimation(0, 1,
-                            new Duration(TimeSpan.FromMilliseconds(140))));
-                    scaleSlide.BeginAnimation(TranslateTransform.YProperty,
-                        new System.Windows.Media.Animation.DoubleAnimation(-8, 0,
-                            new Duration(TimeSpan.FromMilliseconds(140)))
-                        { EasingFunction = new System.Windows.Media.Animation.QuadraticEase { EasingMode = System.Windows.Media.Animation.EasingMode.EaseOut } });
-                    _scaleBox.Focus();
-                    _scaleBox.SelectAll();
-                }
-                else
-                {
-                    scaleRow.Visibility = Visibility.Collapsed;
-                }
-                UpdatePreview();
-            };
-            panel.Children.Add(scaleRow);
-            WrapSection(panel, secLayout, S("Str_Print_SecLayout"), expanded: false);
-            int secOutput = panel.Children.Count;
-
-            // Color vs black & white. Sent on the print ticket so color-restricted print policies
-            // (e.g. "B&W needs no password") see the job correctly instead of treating it as color.
-            panel.Children.Add(Label(S("Str_Print_Color")));
-            var colorMode = new ComboBox { Margin = new Thickness(0, 4, 0, 12), Height = 26 };
-            ApplyComboStyle(colorMode);
-            colorMode.Items.Add(S("Str_Print_Color"));
-            colorMode.Items.Add(S("Str_Print_BW"));
-            _grayscale = App.GetSetting("PrintGrayscale") == "1";   // restore last color choice
-            colorMode.SelectedIndex = _grayscale ? 1 : 0;
-            colorMode.SelectionChanged += (s, _) =>
-            {
-                _grayscale = ((ComboBox)s).SelectedIndex == 1;
-                UpdatePreview();
-            };
-            panel.Children.Add(colorMode);
-
-            panel.Children.Add(Label(S("Str_Print_Copies")));
-            _copiesBox = UiKit.Field();
-            _copiesBox.Text = "1";
-            _copiesBox.VerticalContentAlignment = VerticalAlignment.Center;
-            // Copies is replicated `copies` times in DoPrint, so 1 means exactly one printout; min 1.
-            var (getCopies, setCopies) = NumericField(_copiesBox, 1, 9999);
-
-            // Stepper flush against the right edge of the full-width field, so the row lines up with the
-            // Printer / Pages fields above and below it.
-            var copiesSpin = BuildStepper(getCopies, setCopies);
-            var copiesRow = new DockPanel { Margin = new Thickness(0, 4, 0, 12), LastChildFill = true };
-            DockPanel.SetDock(copiesSpin, Dock.Right);
-            copiesRow.Children.Add(copiesSpin);   // docked right, full field height
-            copiesRow.Children.Add(_copiesBox);   // fills the rest of the column width
-            panel.Children.Add(copiesRow);
-
-            panel.Children.Add(Label(S("Str_Print_Pages")));
-            _pagesBox = UiKit.Field();
-            _pagesBox.Text = "";
-            _pagesBox.Margin = new Thickness(0, 4, 0, 2);
-            // Typing a range re-filters the preview to just those pages (jump back to the first one).
-            _pagesBox.TextChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
-            panel.Children.Add(_pagesBox);
-            panel.Children.Add(new TextBlock
-            {
-                Text         = S("Str_Print_PagesHint"),
-                Foreground   = R("MutedTextBrush"),
-                FontSize     = 11,
-                Margin       = new Thickness(0, 0, 0, 8),
-                TextWrapping = TextWrapping.Wrap
-            });
-
-            // Odd/even subset (#134): Word-style manual duplex - print the odd pages, flip the
-            // stack, print the even pages. Applies on top of the Pages range above.
-            _subsetCombo = new ComboBox { Margin = new Thickness(0, 0, 0, 14), Height = 26 };
-            ApplyComboStyle(_subsetCombo);
-            _subsetCombo.Items.Add(S("Str_Print_AllPages"));
-            _subsetCombo.Items.Add(S("Str_Print_OddOnly"));
-            _subsetCombo.Items.Add(S("Str_Print_EvenOnly"));
-            _subsetCombo.SelectedIndex = 0;
-            _subsetCombo.SelectionChanged += (_, _) => { _previewIndex = 0; UpdatePreview(); };
-            panel.Children.Add(_subsetCombo);
-
             // Two-sided: the printer does the flipping; we just set the ticket when it's supported.
             _duplexCheck = UiKit.CheckBox(S("Str_Print_TwoSided"));
-            _duplexCheck.Margin = new Thickness(0, 2, 0, 14);
-            _duplexCheck.Checked   += (_, _) => _duplex = true;
-            _duplexCheck.Unchecked += (_, _) => _duplex = false;
+            _duplexCheck.Margin = new Thickness(0, 2, 0, 6);
+            _duplexCheck.Checked   += (_, _) => { _duplex = true; if (_duplexEdgeCombo is not null) _duplexEdgeCombo.IsEnabled = true; };
+            _duplexCheck.Unchecked += (_, _) => { _duplex = false; if (_duplexEdgeCombo is not null) _duplexEdgeCombo.IsEnabled = false; };
             _duplexCheck.IsChecked = App.GetSetting("PrintDuplex") == "1";   // restore; cleared below if unsupported
             panel.Children.Add(_duplexCheck);
-            WrapSection(panel, secOutput, S("Str_Print_SecOutput"), expanded: true);
+
+            // Flip edge, like Edge/Acrobat: long edge (bind on the side) or short edge (bind on top).
+            _duplexMode = App.GetSetting("PrintDuplexMode") == "1" ? 1 : 0;
+            _duplexEdgeCombo = new ComboBox { Margin = new Thickness(20, 0, 0, 10), Height = 26 };
+            ApplyComboStyle(_duplexEdgeCombo);
+            _duplexEdgeCombo.Items.Add(S("Str_Print_FlipLong"));
+            _duplexEdgeCombo.Items.Add(S("Str_Print_FlipShort"));
+            _duplexEdgeCombo.SelectedIndex = _duplexMode;
+            _duplexEdgeCombo.SelectionChanged += (s, _) =>
+            {
+                _duplexMode = ((ComboBox)s).SelectedIndex == 1 ? 1 : 0;
+                _previewIndex = 0;
+                UpdatePreview();   // booklet backs mirror on long edge only
+            };
+            panel.Children.Add(_duplexEdgeCombo);
+
+            // Comments & Forms section (document vs document+markups)
+            panel.Children.Add(Label(S("Str_Print_CommentsForms")));
+            var commentsCombo = new ComboBox { Margin = new Thickness(0, 4, 0, 8), Height = 26 };
+            ApplyComboStyle(commentsCombo);
+            commentsCombo.Items.Add(S("Str_Print_DocAndMarkups"));
+            commentsCombo.Items.Add(S("Str_Print_DocOnly"));
+            commentsCombo.SelectedIndex = 0;
+            panel.Children.Add(commentsCombo);
+
+            WrapSection(panel, secOptions, S("Str_Print_SecOptions"), expanded: false);
             UpdateDuplexAvailability();
 
             var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
@@ -820,6 +970,23 @@ namespace KillerPDF
             _pageLabel.HorizontalAlignment = HorizontalAlignment.Center;
             _pageLabel.FontSize = 12;
 
+            // Paper size info (like Adobe's "8.5 x 11 Inches" + scale display in preview)
+            _paperSizeLabel = new TextBlock
+            {
+                Foreground = R("MutedTextBrush"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontSize = 11,
+                Margin = new Thickness(0, 0, 0, 2)
+            };
+            _scaleLabel = new TextBlock
+            {
+                Foreground = R("MutedTextBrush"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontSize = 11,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 4)
+            };
+
             // Rendering progress stays with the counter, but the compact strip now lives below the
             // framed content pane instead of consuming document-preview height.
             _renderLabel.Foreground = R("MutedTextBrush");
@@ -832,6 +999,8 @@ namespace KillerPDF
                 VerticalAlignment = VerticalAlignment.Center
             };
             navCenter.Children.Add(_renderLabel);
+            navCenter.Children.Add(_scaleLabel);
+            navCenter.Children.Add(_paperSizeLabel);
             navCenter.Children.Add(_pageLabel);
             Grid.SetColumn(navCenter, 1);
             navigation.Children.Add(navCenter);
@@ -1079,6 +1248,8 @@ namespace KillerPDF
                 // translate. The Pages box drives this on every keystroke, so the message appears as
                 // soon as the range stops matching anything.
                 _pageLabel.Text = "";
+                _scaleLabel.Text = "";
+                _paperSizeLabel.Text = "";
                 UpdateRenderLabel();
                 _previewHost.Children.Add(new TextBlock
                 {
@@ -1097,27 +1268,45 @@ namespace KillerPDF
                 return;
             }
             _printBtn?.IsEnabled = !_isLoading && !_printing;
-            int sheets = Math.Max(1, (selected.Count + _nUp - 1) / _nUp);
-            int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
-            _previewIndex = sheet;
-            _previousPage?.IsEnabled = sheet > 0;
-            _nextPage?.IsEnabled = sheet + 1 < sheets;
-
-            // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp for N-up).
+            // Source pages on this sheet, taken from the SELECTED set (one for 1-up, up to _nUp
+            // for N-up). Booklet mode walks the shared imposition list so the preview shows
+            // exactly the sheets the spooler will emit, in the same order.
             var idxs = new System.Collections.Generic.List<int>();
-            for (int i = sheet * _nUp; i < Math.Min(selected.Count, sheet * _nUp + _nUp); i++)
-                idxs.Add(selected[i]);
+            int sheets;
+            if (_booklet && selected.Count > 1)
+            {
+                var booklet = BookletSheets(selected, MirrorBookletBacks());
+                sheets = Math.Max(1, booklet.Count);
+                int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
+                _previewIndex = sheet;
+                idxs = booklet[sheet];
+            }
+            else
+            {
+                sheets = Math.Max(1, (selected.Count + _nUp - 1) / _nUp);
+                int sheet = Math.Max(0, Math.Min(_previewIndex, sheets - 1));
+                _previewIndex = sheet;
+                for (int i = sheet * _nUp; i < Math.Min(selected.Count, sheet * _nUp + _nUp); i++)
+                    idxs.Add(selected[i]);
+            }
+            _previousPage?.IsEnabled = _previewIndex > 0;
+            _nextPage?.IsEnabled = _previewIndex + 1 < sheets;
 
             // Page/sheet nav label is always shown; the "Rendering X / Y" line above it appears only while
             // pages are still streaming in. 1-up shows the real page number (so a filtered preview reads
             // "Page 6 of 108"); N-up shows the sheet position within the selected set.
-            _pageLabel.Text = _nUp > 1
-                ? $"Sheet {sheet + 1} of {sheets}"
+            _pageLabel.Text = _nUp > 1 || _booklet
+                ? $"Sheet {_previewIndex + 1} of {sheets}"
                 : string.Format(S("Str_PageOf"), idxs.Count > 0 ? idxs[0] + 1 : 1, _pages.Length);
+
+            // Paper size and scale info (like Adobe's preview header showing "Scale: 94%" + "8.5 x 11 Inches")
+            UpdatePreviewLabels();
+
             UpdateRenderLabel();
 
             // If any page on this sheet hasn't rendered yet, show a spinner instead of composing.
-            if (idxs.Any(i => _pages[i] is null))
+            // (-1 is an intentional booklet blank, not a page.)
+            if (idxs.Any(i => i >= 0 && _pages[i] is null))
             {
                 _previewHost.Children.Add(BuildLoadingIndicator());
                 return;
@@ -1144,6 +1333,50 @@ namespace KillerPDF
             else _renderLabel.Visibility = Visibility.Collapsed;
         }
 
+        // Updates the paper size and scale percentage labels in the preview header.
+        // Shows "Scale: XX%" and "W x H Inches/mm" like Adobe Acrobat's print dialog.
+        private void UpdatePreviewLabels()
+        {
+            // Scale percentage
+            double scalePct = _scaleMode switch
+            {
+                1 => 100,   // actual size
+                3 => _customPct,
+                2 => 100,   // shrink oversized: nominal value
+                _ => FitPercent()  // fit to page: true computed value (e.g. 94%)
+            };
+            _scaleLabel.Text = $"Scale: {scalePct:0}%";
+
+            // Paper dimensions in physical units
+            if (_pageDipW.Length > 0)
+            {
+                double pw = _pageDipW[0] / 96.0;  // inches
+                double ph = _pageDipH[0] / 96.0;
+                if (_landscape && pw < ph) (pw, ph) = (ph, pw);
+                else if (!_landscape && pw > ph) (pw, ph) = (ph, pw);
+                _paperSizeLabel.Text = $"{pw:0.##} x {ph:0.##} Inches";
+            }
+            else
+            {
+                _paperSizeLabel.Text = "";
+            }
+        }
+
+        // True fit-to-page percentage for the first selected page, relative to actual
+        // size (100% = actual size). Falls back to 100 when no page has rendered yet.
+        private double FitPercent()
+        {
+            var selected = SelectedIndices();
+            if (selected.Count == 0) return 100;
+            int idx = selected[0];
+            if (idx < 0 || idx >= _pages.Length) return 100;
+            if (_rasterW[idx] <= 0 || _rasterH[idx] <= 0) return 100;
+            double actual = _pageDipW[idx] / _rasterW[idx];
+            if (actual <= 0) return 100;
+            double fit = Math.Min(_areaW / _rasterW[idx], _areaH / _rasterH[idx]);
+            return fit / actual * 100;
+        }
+
         // Called (on the UI thread) by the background renderer as each page finishes.
         public void SetRenderedPage(int index, BitmapSource src, int w, int h)
         {
@@ -1155,6 +1388,16 @@ namespace KillerPDF
 
             int first = _previewIndex * _nUp;
             bool onCurrentSheet = index >= first && index < first + _nUp;
+            if (_booklet)
+            {
+                // Booklet sheets pair non-contiguous pages, so check membership in the
+                // current imposition sheet instead of a contiguous index range.
+                var selected = SelectedIndices();
+                var booklet = BookletSheets(selected, MirrorBookletBacks());
+                int sheet = booklet.Count == 0 ? 0
+                    : Math.Max(0, Math.Min(_previewIndex, booklet.Count - 1));
+                onCurrentSheet = booklet.Count > 0 && booklet[sheet].Contains(index);
+            }
             if (onCurrentSheet)
                 UpdatePreview();                 // reveal the page (or keep spinner if sheet incomplete)
             else if (_isLoading)
@@ -1222,7 +1465,11 @@ namespace KillerPDF
                 if (_queue != null) App.SetSetting("PrintPrinter", _queue.FullName);
                 App.SetSetting("PrintLandscape", _landscape ? "1" : "0");
                 App.SetSetting("PrintGrayscale", _grayscale ? "1" : "0");
+                App.SetSetting("PrintPureBW",    _pureBW     ? "1" : "0");
                 App.SetSetting("PrintDuplex",    _duplex     ? "1" : "0");
+                App.SetSetting("PrintDuplexMode", _duplexMode.ToString());
+                App.SetSetting("PrintBooklet",   _booklet    ? "1" : "0");
+                App.SetSetting("PrintSaveInk",   _saveInkToner ? "1" : "0");
             }
             catch { /* settings are best-effort */ }
         }
@@ -1275,8 +1522,12 @@ namespace KillerPDF
                 // Relying on PrintTicket.CopyCount produced an extra copy on some printers (issue #83).
                 ticket.CopyCount      = 1;
                 ticket.PageOrientation = _landscape ? PageOrientation.Landscape : PageOrientation.Portrait;
-                ticket.Duplexing = _duplex ? Duplexing.TwoSidedLongEdge : Duplexing.OneSided;
-                ticket.OutputColor = _grayscale ? OutputColor.Grayscale : OutputColor.Color;
+                ticket.Duplexing = !_duplex ? Duplexing.OneSided
+                    : _duplexMode == 1 && _duplexShortOk ? Duplexing.TwoSidedShortEdge
+                    : _duplexLongOk ? Duplexing.TwoSidedLongEdge
+                    : _duplexShortOk ? Duplexing.TwoSidedShortEdge
+                    : Duplexing.OneSided;
+                ticket.OutputColor = (_grayscale || _pureBW) ? OutputColor.Grayscale : OutputColor.Color;
                 // Same paper pick the preview used: the manual combo choice when one is set,
                 // otherwise the automatic document-size match (see MediaSizeForDocument, #186).
                 var docMedia = _paperOverride ?? MediaSizeForDocument();
@@ -1416,25 +1667,48 @@ namespace KillerPDF
             // Under two-sided printing an odd-sheet copy would leave the next copy starting on the
             // back of this copy's last sheet. Pad each copy (bar the last) with a blank sheet so every
             // copy begins on a fresh front side.
-            int sheetsPerCopy = (indices.Count + layout.NUp - 1) / layout.NUp;
+            // Booklet mode: sheet list comes from the shared imposition helper, so the spooled
+            // order is exactly what the preview showed (duplex pairs interleaved + mirrored).
+            int sheetsPerCopy = layout.Booklet
+                ? BookletSheets(indices, layout.Duplex && layout.DuplexEdge == 0).Count
+                : (indices.Count + layout.NUp - 1) / layout.NUp;
             bool padForDuplex = layout.Duplex && copies > 1 && (sheetsPerCopy % 2 == 1);
             for (int copy = 0; copy < copies; copy++)
             {
-                for (int start = 0; start < indices.Count; start += layout.NUp)
+                if (layout.Booklet)
                 {
-                    var chunk = indices.Skip(start).Take(layout.NUp).ToList();
+                    foreach (var chunk in BookletSheets(indices, layout.Duplex && layout.DuplexEdge == 0))
+                    {
+                        var fp = new FixedPage { Width = aw, Height = ah };
+                        var sheetVisual = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH, layout);
+                        FixedPage.SetLeft(sheetVisual, 0);
+                        FixedPage.SetTop(sheetVisual, 0);
+                        fp.Children.Add(sheetVisual);
+                        fp.Measure(new Size(aw, ah));
+                        fp.Arrange(new Rect(new Point(), new Size(aw, ah)));
+                        var pc = new PageContent();
+                        ((IAddChild)pc).AddChild(fp);
+                        fixedDoc.Pages.Add(pc);
+                    }
+                }
+                else
+                {
+                    for (int start = 0; start < indices.Count; start += layout.NUp)
+                    {
+                        var chunk = indices.Skip(start).Take(layout.NUp).ToList();
 
-                    var fp = new FixedPage { Width = aw, Height = ah };
-                    var sheet = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH, layout);
-                    FixedPage.SetLeft(sheet, 0);
-                    FixedPage.SetTop(sheet, 0);
-                    fp.Children.Add(sheet);
-                    fp.Measure(new Size(aw, ah));
-                    fp.Arrange(new Rect(new Point(), new Size(aw, ah)));
+                        var fp = new FixedPage { Width = aw, Height = ah };
+                        var sheet = ComposeSheet(chunk, aw, ah, hiPages, hiW, hiH, layout);
+                        FixedPage.SetLeft(sheet, 0);
+                        FixedPage.SetTop(sheet, 0);
+                        fp.Children.Add(sheet);
+                        fp.Measure(new Size(aw, ah));
+                        fp.Arrange(new Rect(new Point(), new Size(aw, ah)));
 
-                    var pc = new PageContent();
-                    ((IAddChild)pc).AddChild(fp);
-                    fixedDoc.Pages.Add(pc);
+                        var pc = new PageContent();
+                        ((IAddChild)pc).AddChild(fp);
+                        fixedDoc.Pages.Add(pc);
+                    }
                 }
 
                 if (padForDuplex && copy < copies - 1)

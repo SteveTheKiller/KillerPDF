@@ -692,7 +692,7 @@ namespace KillerPDF
                         $"```\n{stack}\n```\n\n" +
                         $"_Log folder: `{CrashReporter.LogDir}`_");
                     Process.Start(new ProcessStartInfo(
-                        $"https://github.com/SteveTheKiller/KillerPDF/issues/new?title={title}&body={body}")
+                        $"https://github.com/Rafie-kun/KillerPDF/issues/new?title={title}&body={body}")
                         { UseShellExecute = true });
                 }
                 catch { }
@@ -1113,14 +1113,16 @@ namespace KillerPDF
         private static readonly List<string> _sessionTemps = [];
 
         /// <summary>
-        /// Creates a tracked temp path of the form killerpdf_&lt;tag&gt;_&lt;guid&gt;.pdf
+        /// Creates a tracked temp path of the form killerpdf_&lt;tag&gt;_&lt;guid&gt;.&lt;ext&gt;
         /// under %LOCALAPPDATA%\KillerPDF\Temp\.
         /// All registered paths are deleted when CleanupSessionTemps() is called.
         /// </summary>
-        internal static string MakeTempFile(string tag)
+        internal static string MakeTempFile(string tag, string extension = ".pdf")
         {
             try { Directory.CreateDirectory(TempDir); } catch { }
-            var path = Path.Combine(TempDir, $"killerpdf_{tag}_{Guid.NewGuid():N}.pdf");
+            if (string.IsNullOrWhiteSpace(extension) || !extension.StartsWith('.'))
+                extension = ".pdf";
+            var path = Path.Combine(TempDir, $"killerpdf_{tag}_{Guid.NewGuid():N}{extension}");
             lock (_sessionTemps) _sessionTemps.Add(path);
             return path;
         }
@@ -1710,7 +1712,7 @@ namespace KillerPDF
             };
             var cardContent = new StackPanel();
             cardContent.Children.Add(MakeRow("VERSION", $"v{version}", fgDim, accent,
-                onClick: () => OpenUrl($"https://github.com/SteveTheKiller/KillerPDF/releases/tag/v{version}")));
+                onClick: () => OpenUrl($"https://github.com/Rafie-kun/KillerPDF/releases/tag/v{version}")));
             cardContent.Children.Add(MakeRow("PUBLISHER", sigInfo,         fgDim, fg));
             cardContent.Children.Add(MakeRow("THUMBPRINT", thumbInfo,      fgDim, fg, mono, wrap: true));
             cardContent.Children.Add(MakeRow("EXE SHA256", sha256,         fgDim, fg, mono, wrap: true));

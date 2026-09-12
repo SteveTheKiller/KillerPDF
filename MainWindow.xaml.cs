@@ -231,6 +231,10 @@ namespace KillerPDF
 
         // Signatures
         private readonly SignatureStore _signatureStore = new();
+        // #326: shared image library (signature picker, stamp watermark, future comments).
+        private readonly KillerPDF.Services.ImageAssetLibrary _imageLibrary = new();
+        private void LoadImageLibrary() => _imageLibrary.Load();
+        private void PersistImageLibrary() => _imageLibrary.Persist();
         private SavedSignature? _pendingSignature { get => ActiveViewer.PendingSignatureRef; set => ActiveViewer.PendingSignatureRef = value; }
         private Border? _signaturePopup;
         // Guided AcroForm signing: "pick once, reuse" - the chosen signature/initials are remembered
@@ -405,6 +409,7 @@ namespace KillerPDF
             IndexToolbarButtons();
             OutlineTree.SelectedItemChanged += OutlineTree_SelectedItemChanged;
             LoadSignatures();
+            LoadImageLibrary();
             BuildContextMenu();
             SetTool(EditTool.Select);
             ApplyGrainTexture();
@@ -523,6 +528,18 @@ namespace KillerPDF
                 // Start with the sidebar collapsed when no PDF is open (nothing to show); a document
                 // opened above will have expanded it via FinishOpenFile.
                 SyncSidebarToDocState(hasDoc: _doc != null, startup: true);
+
+                // Fork: offer a newer release shortly after launch, with its notes and a
+                // skip-this-version choice. Delayed so it never blocks startup, and skipped
+                // when the window is already gone.
+                _ = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
+                    _ = Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (IsLoaded) About.CheckForUpdateOnStartupAsync();
+                    }), System.Windows.Threading.DispatcherPriority.Background);
+                });
             };
         }
 

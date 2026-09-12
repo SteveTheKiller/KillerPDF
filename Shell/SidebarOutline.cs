@@ -417,6 +417,100 @@ namespace KillerPDF
             return (-1, 0);
         }
 
+        /// <summary>Drop positions for bookmark drag (#391): before/after a sibling row,
+        /// or as its last child. A null target means the background/ghost row: root end.</summary>
+        private enum BookmarkDropPosition { Before, After, Child }
+
+        private static bool ContainsBookmark(
+            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+            (int ObjectNumber, int Generation) identity)
+        {
+            foreach (var item in items)
+            {
+                if ((item.ObjectNumber, item.Generation) == identity) return true;
+                if (ContainsBookmark(item.Children, identity)) return true;
+            }
+            return false;
+        }
+
+        // Splits out the dragged node, preserving its whole subtree. Returns false when missing.
+        private static bool TryExtractBookmark(
+            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+            (int ObjectNumber, int Generation) sourceId,
+            out List<KillerPdf.Engine.Documents.PdfBookmarkInfo> remainder,
+            out KillerPdf.Engine.Documents.PdfBookmarkInfo? moved)
+        {
+            remainder = [];
+            moved = null;
+            foreach (var item in items)
+            {
+                if ((item.ObjectNumber, item.Generation) == sourceId)
+                {
+                    moved = item;
+                    continue;
+                }
+                if (TryExtractBookmark(item.Children, sourceId, out var sub, out var m) && moved is null)
+                {
+                    moved = m;
+                    remainder.Add(item with { Children = sub });
+                    continue;
+                }
+                remainder.Add(item);
+            }
+            return moved is not null;
+        }
+
+        private static IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> InsertBookmark(
+            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+            (int ObjectNumber, int Generation)? targetId,
+            BookmarkDropPosition position,
+            KillerPdf.Engine.Documents.PdfBookmarkInfo moved)
+        {
+            // Background/ghost drop: append to the root end.
+            if (targetId is null) return [.. items, moved];
+            var result = new List<KillerPdf.Engine.Documents.PdfBookmarkInfo>();
+            foreach (var item in items)
+            {
+                if ((item.ObjectNumber, item.Generation) == targetId)
+                {
+                    switch (position)
+                    {
+                        case BookmarkDropPosition.Before:
+                            result.Add(moved); result.Add(item); break;
+                        case BookmarkDropPosition.After:
+                            result.Add(item); result.Add(moved); break;
+                        default:
+                            result.Add(item with { Children = [.. item.Children, moved] }); break;
+                    }
+                    continue;
+                }
+                result.Add(item with
+                {
+                    Children = InsertBookmark(item.Children, targetId, position, moved)
+                });
+            }
+            return result;
+        }
+
+        // Relocates one bookmark (with its subtree) to a sibling slot or a new parent.
+        // No-ops on self-drops, drops into the dragged subtree, and stale targets.
+        private static IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> MoveBookmarkTo(
+            IReadOnlyList<KillerPdf.Engine.Documents.PdfBookmarkInfo> items,
+            (int ObjectNumber, int Generation) sourceId,
+            (int ObjectNumber, int Generation)? targetId,
+            BookmarkDropPosition position)
+        {
+            if (targetId.HasValue && targetId.Value == sourceId) return items;
+            if (!TryExtractBookmark(items, sourceId, out var remainder, out var moved) || moved is null)
+                return items;
+            if (targetId is not null)
+            {
+                if (ContainsBookmark(moved.Children, targetId.Value)) return items;
+                if (!ContainsBookmark(remainder, targetId.Value)) return items;
+            }
+            return InsertBookmark(remainder, targetId, position, moved);
+        }
+
         // PdfSharpCore cannot save a document opened read-only (owner-password or XRef-fallback
         // opens), so bookmark editing is hidden there rather than failing at save time.
         private bool CanEditBookmarks => _doc is not null && !_doc.IsReadOnly;
@@ -501,6 +595,13 @@ namespace KillerPDF
             if (tvi?.Tag is not OutlineNodeRef nref || !CanEditBookmarks || (!ctrl && !shift))
             {
                 // Plain click, ghost row, or empty space: default single-selection behavior.
+                // A plain press on a real row also arms a drag (#391); the move threshold in
+                // PreviewMouseMove decides drag vs. click.
+                if (tvi?.Tag is OutlineNodeRef dragRef && CanEditBookmarks && !ctrl && !shift
+                    && e.LeftButton == MouseButtonState.Pressed)
+                    ArmBookmarkDrag(tvi, dragRef, e);
+                else
+                    _bmDragItem = null;
                 ClearBookmarkMultiSelection();
                 return;
             }
@@ -743,6 +844,172 @@ namespace KillerPDF
         {
             if (!CanEditBookmarks) return;
             ApplyEngineBookmarkEdit(items => MoveBookmarkModel(items, nref.Identity, delta));
+        }
+
+        // ---- Bookmark drag-to-reorder (#391) -------------------------------------------
+        // Plain-press arming in PreviewMouseLeftButtonDown, OLE drag past the system threshold,
+        // drop before/after/into by vertical thirds (background = root end). Only the primary
+        // row drags; the multi-selection set is untouched. The engine write, undo entry and
+        // tree reload all flow through ApplyEngineBookmarkEdit like every other bookmark edit.
+
+        private const string BookmarkDragFormat = "KillerPDF.Bookmark";
+        private TreeViewItem? _bmDragItem;
+        private Point _bmDragStart;
+        private (int ObjectNumber, int Generation) _bmDragId;
+        private BookmarkDropAdorner? _bmDropAdorner;
+
+        private void ArmBookmarkDrag(TreeViewItem tvi, OutlineNodeRef nref, MouseButtonEventArgs e)
+        {
+            if (e.OriginalSource is TextBox) return;   // inline rename in progress
+            _bmDragItem = tvi;
+            _bmDragStart = e.GetPosition(OutlineTree);
+            _bmDragId = nref.Identity;
+        }
+
+        private void OutlineTree_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_bmDragItem is null || e.LeftButton != MouseButtonState.Pressed)
+            {
+                _bmDragItem = null;
+                return;
+            }
+            var diff = e.GetPosition(OutlineTree) - _bmDragStart;
+            if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance
+                && Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+            var dragged = _bmDragItem;
+            var id = _bmDragId;
+            _bmDragItem = null;
+            if (!CanEditBookmarks || dragged is null) return;
+            DragDrop.DoDragDrop(dragged, new DataObject(BookmarkDragFormat, id), DragDropEffects.Move);
+        }
+
+        // Hit-tests the drop: the row, its identity (null = background/ghost = root end),
+        // and the slot by vertical thirds.
+        private static (TreeViewItem? Item, (int ObjectNumber, int Generation)? Target,
+            BookmarkDropPosition Position) BookmarkDropTarget(DragEventArgs e)
+        {
+            var tvi = OutlineItemAt(e.OriginalSource as DependencyObject);
+            if (tvi?.Tag is not OutlineNodeRef nref)
+                return (null, null, BookmarkDropPosition.After);
+            Point p = e.GetPosition(tvi);
+            double ratio = p.Y / Math.Max(1, tvi.ActualHeight);
+            if (ratio < 0.25) return (tvi, nref.Identity, BookmarkDropPosition.Before);
+            if (ratio > 0.75) return (tvi, nref.Identity, BookmarkDropPosition.After);
+            return (tvi, nref.Identity, BookmarkDropPosition.Child);
+        }
+
+        // False for self-drops and drops into the dragged subtree (walk the visual ancestors).
+        private static bool BookmarkDropAllowed(TreeViewItem? tvi, (int ObjectNumber, int Generation) sourceId)
+        {
+            if (tvi?.Tag is not OutlineNodeRef nref) return true;   // background/ghost: root end
+            if (nref.Identity == sourceId) return false;
+            for (var p = ItemsControl.ItemsControlFromItemContainer(tvi) as TreeViewItem;
+                 p is not null;
+                 p = ItemsControl.ItemsControlFromItemContainer(p) as TreeViewItem)
+                if (p.Tag is OutlineNodeRef r && r.Identity == sourceId) return false;
+            return true;
+        }
+
+        private void OutlineTree_DragOver(object sender, DragEventArgs e)
+        {
+            if (!CanEditBookmarks || !e.Data.GetDataPresent(BookmarkDragFormat)
+                || e.Data.GetData(BookmarkDragFormat) is not ValueTuple<int, int> sourceId)
+                return;
+            var (item, _, _) = BookmarkDropTarget(e);
+            if (!BookmarkDropAllowed(item, sourceId))
+            {
+                e.Effects = DragDropEffects.None;
+                HideBookmarkDropAdorner();
+                e.Handled = true;
+                return;
+            }
+            e.Effects = DragDropEffects.Move;
+            e.Handled = true;
+            ShowBookmarkDropAdorner(e);
+        }
+
+        private void OutlineTree_DragLeave(object sender, DragEventArgs e) => HideBookmarkDropAdorner();
+
+        private void OutlineTree_Drop(object sender, DragEventArgs e)
+        {
+            HideBookmarkDropAdorner();
+            if (!CanEditBookmarks) return;
+            if (e.Data.GetData(BookmarkDragFormat) is not ValueTuple<int, int> sourceId) return;
+            var (item, target, position) = BookmarkDropTarget(e);
+            if (!BookmarkDropAllowed(item, sourceId)) return;
+            ApplyEngineBookmarkEdit(items => MoveBookmarkTo(items, sourceId, target, position));
+            e.Handled = true;
+            // Keep the moved row selected and visible (FindOutlineItem expands ancestors).
+            var hit = FindOutlineItem(OutlineTree.Items, sourceId);
+            if (hit is not null) { hit.IsSelected = true; hit.BringIntoView(); }
+        }
+
+        private void ShowBookmarkDropAdorner(DragEventArgs e)
+        {
+            var layer = System.Windows.Documents.AdornerLayer.GetAdornerLayer(OutlineTree);
+            if (layer is null) return;
+            if (_bmDropAdorner is null)
+            {
+                _bmDropAdorner = new BookmarkDropAdorner(OutlineTree);
+                layer.Add(_bmDropAdorner);
+            }
+            var (item, _, position) = BookmarkDropTarget(e);
+            if (item is null)
+            {
+                // Background/ghost: line under the last row (or near the top when empty).
+                double y = 4, w = Math.Max(0, OutlineTree.ActualWidth - 8);
+                TreeViewItem? last = null;
+                foreach (TreeViewItem it in OutlineTree.Items) last = it;
+                if (last is not null)
+                {
+                    var t = last.TransformToVisual(OutlineTree);
+                    var bottom = t.Transform(new Point(0, last.ActualHeight));
+                    y = bottom.Y - 1;
+                    w = Math.Max(0, last.ActualWidth);
+                }
+                _bmDropAdorner.Marker = new Rect(8, y, w, 2);
+                _bmDropAdorner.AsBox = false;
+            }
+            else
+            {
+                var t = item.TransformToVisual(OutlineTree);
+                var top = t.Transform(new Point(0, 0));
+                var rect = new Rect(top.X, top.Y, Math.Max(0, item.ActualWidth), Math.Max(0, item.ActualHeight));
+                if (position == BookmarkDropPosition.Child)
+                {
+                    _bmDropAdorner.Marker = rect;
+                    _bmDropAdorner.AsBox = true;
+                }
+                else
+                {
+                    double y = position == BookmarkDropPosition.Before ? rect.Y - 1 : rect.Bottom - 1;
+                    _bmDropAdorner.Marker = new Rect(rect.X, y, rect.Width, 2);
+                    _bmDropAdorner.AsBox = false;
+                }
+            }
+            _bmDropAdorner.InvalidateVisual();
+        }
+
+        private void HideBookmarkDropAdorner()
+        {
+            if (_bmDropAdorner is null) return;
+            System.Windows.Documents.AdornerLayer.GetAdornerLayer(OutlineTree)?.Remove(_bmDropAdorner);
+            _bmDropAdorner = null;
+        }
+
+        // Insertion line (before/after) or highlight frame (child), in the accent brush.
+        private sealed class BookmarkDropAdorner(UIElement adorned)
+            : System.Windows.Documents.Adorner(adorned)
+        {
+            public Rect Marker;
+            public bool AsBox;
+            protected override void OnRender(System.Windows.Media.DrawingContext dc)
+            {
+                var pen = new System.Windows.Media.Pen(UiKit.Brush("PrimaryBrush"), 2);
+                if (AsBox) dc.DrawRectangle(null, pen, Marker);
+                else dc.DrawLine(pen, Marker.TopLeft, Marker.TopRight);
+            }
         }
 
         /// <summary>Repoints a bookmark at the current page as a plain go-to-page destination.</summary>

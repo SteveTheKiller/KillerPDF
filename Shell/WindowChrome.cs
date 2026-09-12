@@ -337,7 +337,7 @@ namespace KillerPDF
         private void Install_Click(object sender, RoutedEventArgs e)
         {
             Process.Start(new ProcessStartInfo(
-                "https://github.com/SteveTheKiller/KillerPDF/releases/latest")
+                "https://github.com/Rafie-kun/KillerPDF/releases/latest")
                 { UseShellExecute = true });
         }
 

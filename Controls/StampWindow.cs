@@ -329,13 +329,20 @@ namespace KillerPDF
             _wmTextPanel.Children.Add(ColorRow(S("Str_Stamp_Color"), _wmColor, out _wmSwatch, c => { _wmColor = c; Schedule(); }));
             _wmBody.Children.Add(_wmTextPanel);
 
-            // Image sub-panel: filename fills the left, the Choose button sits right-aligned across from it.
+            // Image sub-panel: filename fills the left, the Choose/Library buttons sit right-aligned across from it.
             _wmImagePanel = new StackPanel();
             var imgRow = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
             var chooseBtn = UiKit.Make(S("Str_Stamp_ChooseImage"), false);
             chooseBtn.Click += (_, _2) => ChooseImage();
             DockPanel.SetDock(chooseBtn, Dock.Right);
             imgRow.Children.Add(chooseBtn);
+            // #326: pull a shared-library image instead of a file (bridged through a tracked
+            // session temp PNG, since the stamp pipeline reads the watermark from disk).
+            var libraryBtn = UiKit.Make(S("Str_Lib_Pick"), false);
+            libraryBtn.Margin = new Thickness(0, 0, 8, 0);
+            libraryBtn.Click += (_, _2) => ChooseLibraryImage();
+            DockPanel.SetDock(libraryBtn, Dock.Right);
+            imgRow.Children.Add(libraryBtn);
             _wmImageLabel = new TextBlock { Text = System.IO.Path.GetFileName(_wmImagePath ?? ""), Foreground = R("MutedTextBrush"), FontSize = 11, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
             imgRow.Children.Add(_wmImageLabel);
             _wmImagePanel.Children.Add(imgRow);
@@ -509,6 +516,26 @@ namespace KillerPDF
                 LoadWatermarkImage();
                 Schedule();
             }
+        }
+
+        // #326: use a library image as the watermark. Bytes land in a tracked session temp
+        // (cleaned at exit) because everything downstream reads the watermark from a path.
+        private void ChooseLibraryImage()
+        {
+            var library = new KillerPDF.Services.ImageAssetLibrary();
+            library.Load();
+            var dlg = new ImageLibraryDialog(this, library);
+            if (dlg.ShowDialog() != true || dlg.Selected is null) return;
+            try
+            {
+                string temp = App.MakeTempFile("lib", ".png");
+                System.IO.File.WriteAllBytes(temp, Convert.FromBase64String(dlg.Selected.ImageData));
+                _wmImagePath = temp;
+                _wmImageLabel.Text = dlg.Selected.Name;
+                LoadWatermarkImage();
+                Schedule();
+            }
+            catch { /* corrupt bytes: keep the previous image */ }
         }
 
         private void LoadWatermarkImage()

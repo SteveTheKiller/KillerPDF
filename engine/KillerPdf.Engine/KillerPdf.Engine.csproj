@@ -7,7 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>KillerPdf.Engine</RootNamespace>
     <AssemblyName>KillerPdf.Engine</AssemblyName>
-    <Version>1.8.5</Version>
+    <Version>1.8.9</Version>
     <PackageId>KillerPdf.Engine</PackageId>
     <Title>The KillerPDF.Engine</Title>
     <Authors>Steve the Killer</Authors>
@@ -16,11 +16,11 @@
     <PackageTags>pdf;pdf-2.0;pdf-a;pdf-ua;validation;authoring;signing;encryption;document-processing;csharp</PackageTags>
     <PackageLicenseExpression>GPL-3.0-only</PackageLicenseExpression>
     <PackageProjectUrl>https://killerpdf.net/engine.html</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/SteveTheKiller/KillerPDF</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Rafie-kun/KillerPDF</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
-    <PackageReleaseNotes>https://github.com/SteveTheKiller/KillerPDF/blob/main/engine/CHANGELOG.md</PackageReleaseNotes>
+    <PackageReleaseNotes>https://github.com/Rafie-kun/KillerPDF/blob/main/engine/CHANGELOG.md</PackageReleaseNotes>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>

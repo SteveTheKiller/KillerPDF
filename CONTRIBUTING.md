@@ -6,7 +6,7 @@ The project moves quickly. Small, reviewable contributions are much easier to in
 
 ## Before you start
 
-Check the existing [issues](https://github.com/SteveTheKiller/KillerPDF/issues) and [discussions](https://github.com/SteveTheKiller/KillerPDF/discussions) first.
+Check the existing [issues](https://github.com/Rafie-kun/KillerPDF/issues) and [discussions](https://github.com/Rafie-kun/KillerPDF/discussions) first.
 
 You do not need permission to submit:
 
@@ -65,7 +65,7 @@ KillerPDF requires the .NET 10 SDK version selected by [`global.json`](global.js
 Clone and publish the Windows application:
 
 ```powershell
-git clone https://github.com/SteveTheKiller/KillerPDF.git
+git clone https://github.com/Rafie-kun/KillerPDF.git
 cd KillerPDF
 dotnet publish -c Release
 ```
@@ -99,7 +99,7 @@ Add a focused regression test when fixing a reproducible bug.
 
 Engine changes should test the smallest PDF structure that demonstrates the behavior. Tests should verify both the intended result and the important failure boundaries.
 
-Changes affecting opening, saving, importing, page structure, forms, annotations, signatures, encryption, or preservation may also need corpus validation. The [KillerPDF Corpus](https://github.com/SteveTheKiller/KillerPDF-Corpus) provides versioned, provenance-checked inputs, reproducible benchmarks, adapter examples, and machine-readable baselines. The [corpus guide](https://killerpdf.net/corpus.html) explains its collections and workflow, while the [published results](https://killerpdf.net/corpus-results.html) show the current release baselines.
+Changes affecting opening, saving, importing, page structure, forms, annotations, signatures, encryption, or preservation may also need corpus validation. The [KillerPDF Corpus](https://github.com/Rafie-kun/KillerPDF-Corpus) provides versioned, provenance-checked inputs, reproducible benchmarks, adapter examples, and machine-readable baselines. The [corpus guide](https://killerpdf.net/corpus.html) explains its collections and workflow, while the [published results](https://killerpdf.net/corpus-results.html) show the current release baselines.
 
 Maintainers can run restricted or release-scale collections that are not part of an ordinary contributor checkout. Contributors should still add the smallest useful regression fixture to the normal test suite whenever licensing permits it.
 
@@ -155,7 +155,7 @@ Match the established interface instead of introducing a separate visual system.
 
 A UI pull request should include before-and-after screenshots when the visual difference matters. Mention the theme, scaling level, window size, and page mode shown.
 
-KillerPDF 2.0 is planned as a cross-platform release. The UI framework, rendering backend, OCR strategy, and native dependency approach are being evaluated in the [KillerPDF 2.0 architecture discussion](https://github.com/SteveTheKiller/KillerPDF/discussions/320). Please coordinate large platform or framework work there before building it.
+KillerPDF 2.0 is planned as a cross-platform release. The UI framework, rendering backend, OCR strategy, and native dependency approach are being evaluated in the [KillerPDF 2.0 architecture discussion](https://github.com/Rafie-kun/KillerPDF/discussions/320). Please coordinate large platform or framework work there before building it.
 
 ## Translations
 

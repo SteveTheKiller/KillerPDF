@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace KillerPDF
@@ -100,8 +101,10 @@ namespace KillerPDF
             if (pos < text.Length) target.Inlines.Add(new System.Windows.Documents.Run(text[pos..]));
         }
 
-        // Fill the two overlay columns from the tables above. Called once from the constructor; the
-        // SetResourceReference calls keep every string and color live across theme + language changes.
+        // Fill the two overlay columns from the tables above. Built once from the constructor
+        // and rebuilt on every open (hosts are cleared first), so remapped chords (#190) and
+        // theme/language changes render fresh. The SetResourceReference calls keep every string
+        // and color live across theme + language changes.
         private void BuildShortcutsOverlay()
         {
             BuildShortcutsColumn(ShortcutLeftColumn,  KsLeftColumn);
@@ -159,7 +162,7 @@ namespace KillerPDF
                         Margin     = new Thickness(0, 0, 12, 0),
                         VerticalAlignment = VerticalAlignment.Center,
                     };
-                    FillKeyInlines(keys, row.Keys);
+                    FillKeyInlines(keys, ShortcutCustomization.EffectiveKeysForRow(ShortcutStore(), row.LabelKey, row.Keys));
                     keys.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
                     Grid.SetColumn(keys, 0);
                     rowGrid.Children.Add(keys);
@@ -180,6 +183,157 @@ namespace KillerPDF
                     host.Children.Add(rowGrid);
                 }
             }
+        }
+
+        // #190: custom-shortcut editor, opened from the overlay's Customize link. One row per
+        // remappable action: localized name, live chord (same token rendering as the F1 list),
+        // Change button. Reset All drops every override. The F1 list itself picks the new
+        // bindings up because it renders through EffectiveKeysForRow and rebuilds on open.
+        private void CustomizeShortcuts_Click(object sender, RoutedEventArgs e) => OpenShortcutCustomizer();
+
+        private void OpenShortcutCustomizer()
+        {
+            var win = new Window
+            {
+                Title = Loc("Str_KS_Customize"),
+                Width = 560,
+                MinWidth = 460,
+                SizeToContent = SizeToContent.Height,
+                Owner = this,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            };
+            DialogChrome.Configure(win, this, fade: true);
+
+            var rows = new StackPanel { Margin = new Thickness(20, 8, 20, 4) };
+            var hint = new TextBlock
+            {
+                Text = Loc("Str_KS_PressKeys"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 6),
+            };
+            hint.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+            rows.Children.Add(hint);
+
+            var chordBlocks = new Dictionary<string, TextBlock>();
+            foreach (var action in ShortcutCustomization.Actions)
+            {
+                var row = new Grid { Margin = new Thickness(0, 5, 0, 0) };
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                var label = new TextBlock { VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 12, 0) };
+                label.SetResourceReference(TextBlock.TextProperty, action.LabelKey);
+                label.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+                Grid.SetColumn(label, 0);
+                row.Children.Add(label);
+                var chord = new TextBlock
+                {
+                    FontFamily = new FontFamily("Consolas"),
+                    FontSize = 11,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0, 0, 12, 0),
+                };
+                chord.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+                FillKeyInlines(chord, ShortcutCustomization.EffectiveTokens(ShortcutStore(), action.Id));
+                Grid.SetColumn(chord, 1);
+                row.Children.Add(chord);
+                string capturedId = action.Id;
+                var change = UiKit.Make(Loc("Str_KS_Change"), accent: false);
+                change.Padding = new Thickness(14, 4, 14, 4);
+                change.Click += (_, _) => CaptureShortcut(win, capturedId, () => RefreshCustomizerRows(chordBlocks));
+                Grid.SetColumn(change, 2);
+                row.Children.Add(change);
+                chordBlocks[action.Id] = chord;
+                rows.Children.Add(row);
+            }
+
+            var btnRow = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 14, 0, 0) };
+            var reset = UiKit.Make(Loc("Str_KS_ResetAll"), accent: false);
+            reset.Padding = new Thickness(14, 4, 14, 4);
+            reset.Click += (_, _) => { ShortcutCustomization.ResetAll(ShortcutStore()); RefreshCustomizerRows(chordBlocks); };
+            btnRow.Children.Add(reset);
+
+            var root = new Grid();
+            root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Grid.SetRow(rows, 0);
+            Grid.SetRow(btnRow, 1);
+            root.Children.Add(rows);
+            var btnHost = new Border { Child = btnRow, Padding = new Thickness(20, 4, 20, 14) };
+            Grid.SetRow(btnHost, 1);
+            root.Children.Add(btnHost);
+
+            win.Content = DialogChrome.Frame(win, this, Loc("Str_KS_Customize"),
+                () => { try { win.DialogResult = false; } catch { } win.Close(); }, root);
+            win.ShowDialog();
+        }
+
+        private void RefreshCustomizerRows(Dictionary<string, TextBlock> chordBlocks)
+        {
+            foreach (var action in ShortcutCustomization.Actions)
+                if (chordBlocks.TryGetValue(action.Id, out var block))
+                    FillKeyInlines(block, ShortcutCustomization.EffectiveTokens(ShortcutStore(), action.Id));
+        }
+
+        // Modal key-capture for one action. Bare modifiers are ignored, bare Esc cancels,
+        // anything without Ctrl/Alt is rejected (typing and navigation stay unreachable),
+        // and clashes name the action already holding the chord.
+        private void CaptureShortcut(Window owner, string actionId, Action refresh)
+        {
+            var win = new Window
+            {
+                Title = Loc("Str_KS_Customize"),
+                Width = 420,
+                SizeToContent = SizeToContent.Height,
+                Owner = owner,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            };
+            DialogChrome.Configure(win, owner, fade: true);
+            var msg = new TextBlock
+            {
+                Text = Loc("Str_KS_PressKeys"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(20, 12, 20, 4),
+            };
+            msg.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+            var conflict = new TextBlock
+            {
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(20, 4, 20, 12),
+                Visibility = Visibility.Collapsed,
+            };
+            conflict.SetResourceReference(TextBlock.ForegroundProperty, "PrimaryBrush");
+            var body = new StackPanel();
+            body.Children.Add(msg);
+            body.Children.Add(conflict);
+            win.PreviewKeyDown += (_, ev) =>
+            {
+                Key key = ev.Key == Key.System ? ev.SystemKey : ev.Key;
+                var mods = Keyboard.Modifiers;
+                if (key is Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift
+                    or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin or Key.None)
+                    return;   // bare modifiers (and Win) never form a chord
+                ev.Handled = true;
+                if (key == Key.Escape && mods == ModifierKeys.None) { win.Close(); return; }
+                if (!mods.HasFlag(ModifierKeys.Control) && !mods.HasFlag(ModifierKeys.Alt))
+                {
+                    conflict.Text = Loc("Str_KS_PressKeys");
+                    conflict.Visibility = Visibility.Visible;
+                    return;
+                }
+                if (!ShortcutCustomization.TrySet(ShortcutStore(), actionId, key, mods, out string clash))
+                {
+                    conflict.Text = string.Format(Loc("Str_KS_Conflict"),
+                        clash.Length > 0 ? Loc(clash) : Loc("Str_KS_Builtin"));
+                    conflict.Visibility = Visibility.Visible;
+                    return;
+                }
+                refresh();
+                win.Close();
+            };
+            win.Content = DialogChrome.Frame(win, owner, Loc("Str_KS_Customize"),
+                () => { try { win.DialogResult = false; } catch { } win.Close(); }, body);
+            win.ShowDialog();
         }
     }
 }

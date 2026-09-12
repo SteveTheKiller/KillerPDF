@@ -216,6 +216,11 @@ namespace KillerPDF
             if (_annotationClipboard.Count > 0)
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_Paste"), (s, e) => PasteAnnotations(hit.PageIndex), "Ctrl+V", ""));
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), "Delete", ""));
+            // #369: bake the zone under this annotation to pixels (text inside becomes an
+            // unselectable image, ready to erase over or cover). Single annotation only;
+            // text boxes, covers, and images have their own flows.
+            if (!multi && hit is not TextAnnotation and not CoverAnnotation and not ImageAnnotation)
+                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Zone_Rasterize"), (s, e) => RasterizeSelectedZone(hit), glyph: ((char)0xE91B).ToString()));
         }
 
         // Page-level menu shown when the right-click lands on empty page space (no annotation under it).
@@ -254,6 +259,7 @@ namespace KillerPDF
                 if (_pendingSignature is not null) PlaceSignature(pt, pageIdx);
                 else { SetTool(EditTool.Signature); ShowSignaturePopup(); }
             }, "G", ""));
+            AppendFieldPresetMenu(pageIdx);
             _ctxMenu.Items.Add(new Separator());
 
             _ctxMenu.Items.Add(MakeTransformMenuItem(Loc("Str_Lbl_Rotate"), (s, e) => OpenTransformWindow(), "R"));
@@ -262,10 +268,12 @@ namespace KillerPDF
             _ctxMenu.Items.Add(new Separator());
 
             _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, e) => DuplicatePage(pageIdx), glyph: ""));
+            // #382: split a book spread into two pages (asks direction, works on selection).
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SplitSpread"), (s, e) => SplitSpreadAskDirection(pageIdx), glyph: "\uE8C6"));
             // Delete Selected when something is selected; otherwise Delete Page (the page under the cursor,
             // which the right-click already made the selected page).
             if (hasSelection)
-                _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), "Delete", ""));
+            _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeleteSel"), (s, e) => DeleteSelected(), "Delete", ""));
             else
                 _ctxMenu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DeletePage"), (s, e) => Delete_Click(s!, e), glyph: ""));
             _ctxMenu.Items.Add(new Separator());
@@ -585,6 +593,8 @@ namespace KillerPDF
                 menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_InsertBlank"), (s, ev) => InsertBlankPage_Click(s!, ev), glyph: ""));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Lbl_Merge"), async (s, ev) => await MergeAtIndex(clickedPage + 1), glyph: ""));
                 menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_DuplicatePage"), (s, ev) => DuplicatePage(clickedPage), glyph: ""));
+                // #382: split a book spread into two pages (asks direction, works on selection).
+                menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_SplitSpread"), (s, ev) => SplitSpreadAskDirection(clickedPage), glyph: "\uE8C6"));
                 menu.Items.Add(new Separator());
                 menu.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCWShort"), (s, ev) => RotatePages_Click(90), clockwise: true));
                 menu.Items.Add(MakeRotateMenuItem(Loc("Str_Ctx_RotateCCWShort"), (s, ev) => RotatePages_Click(-90), clockwise: false));

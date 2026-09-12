@@ -477,6 +477,117 @@ namespace KillerPDF.Controls
                 ? "Str_St_DeletedAnnotationOne" : "Str_St_DeletedAnnotationMany"), toDelete.Count));
         }
 
+        // #369: rasterize the zone under one annotation (usually a drawn rectangle) into an
+        // image baked from a 300-DPI page render, replacing the shape. Selectable text inside
+        // becomes pixels, so it can be painted over or covered with new fields. One undo entry
+        // covers the swap. Text covers/boxes and existing images are excluded (typing tools
+        // and already-raster content have their own flows).
+        internal void RasterizeZone(PageAnnotation hit)
+        {
+            if (hit is TextAnnotation or CoverAnnotation or ImageAnnotation) return;
+            int pageIdx = hit.PageIndex;
+            var bounds = AnnotBounds(hit);
+            if (bounds.Width < 4 || bounds.Height < 4) return;
+            if (_currentFile is null || _doc is null) return;
+            if (pageIdx < 0 || pageIdx >= _doc.PageCount) return;
+            try
+            {
+                var canvas = CanvasForPage(pageIdx);
+                double canvasW = Math.Max(1, canvas?.ActualWidth ?? 0);
+                double canvasH = Math.Max(1, canvas?.ActualHeight ?? 0);
+                var pages = PdfEngineIntegration.ReadPageInformation(_currentFile);
+                if ((uint)pageIdx >= (uint)pages.Count) return;
+                var page = pages[pageIdx];
+                _pageRotations.TryGetValue(pageIdx, out int rot);
+                // Canvas rect -> PDF coords with the same rotation-aware inversion the crop
+                // tool uses. Matches the unrotated render below; rotated pages may misalign
+                // by the rotation (documented edge, same assumption as the print path).
+                var (x1, y1, x2, y2) = CanvasToPdfRect(
+                    bounds, page.Width, page.Height, canvasW, canvasH, rot);
+                x1 = Math.Max(0, x1); y1 = Math.Max(0, y1);
+                x2 = Math.Min(page.Width, x2); y2 = Math.Min(page.Height, y2);
+                if (x2 - x1 < 1 || y2 - y1 < 1) return;
+
+                using var dr = DocLib.Instance.GetDocReader(_currentFile, new PageDimensions(300.0 / 72.0));
+                using var pr = dr.GetPageReader(pageIdx);
+                int w = pr.GetPageWidth(), h = pr.GetPageHeight();
+                if (w <= 0 || h <= 0) return;
+                byte[]? full = PdfiumInterop.RenderPageWithAnnotations(_currentFile, pageIdx, w, h)
+                    ?? pr.GetImage();
+                if (full is null || full.Length < w * h * 4) return;
+                // Renders are top-down rows: PDF y (bottom origin) flips to h - y.
+                double sx = (double)w / page.Width, sy = (double)h / page.Height;
+                int px = Math.Max(0, Math.Min(w - 1, (int)Math.Round(x1 * sx)));
+                int py = Math.Max(0, Math.Min(h - 1, (int)Math.Round(h - y2 * sy)));
+                int pw = Math.Min(Math.Max(1, (int)Math.Round((x2 - x1) * sx)), w - px);
+                int ph = Math.Min(Math.Max(1, (int)Math.Round((y2 - y1) * sy)), h - py);
+                if (pw <= 0 || ph <= 0) return;
+                var zone = new byte[pw * ph * 4];
+                for (int row = 0; row < ph; row++)
+                    Buffer.BlockCopy(full, ((py + row) * w + px) * 4, zone, row * pw * 4, pw * 4);
+                var bmp = BitmapSource.Create(pw, ph, 96, 96, PixelFormats.Bgra32, null, zone, pw * 4);
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(bmp));
+                using var ms = new MemoryStream();
+                encoder.Save(ms);
+
+                var imgAnnot = new ImageAnnotation
+                {
+                    PageIndex = pageIdx,
+                    Position = bounds.TopLeft,
+                    Scale = bounds.Width / Math.Max(1, (double)pw),
+                    SourceWidth = pw,
+                    SourceHeight = ph,
+                    ImageData = Convert.ToBase64String(ms.ToArray())
+                };
+                PushPagesSnapshotUndo([pageIdx]);
+                if (_annotations.TryGetValue(pageIdx, out var list)) list.Remove(hit);
+                if (!_annotations.TryGetValue(pageIdx, out var target))
+                {
+                    target = [];
+                    _annotations[pageIdx] = target;
+                }
+                target.Add(imgAnnot);
+                MarkDirty();
+                RenderAllAnnotations(pageIdx);
+                SelectAnnotation(imgAnnot, new Rect(bounds.TopLeft,
+                    new Size(bounds.Width, bounds.Height)));
+                SetStatus(Loc("Str_Zone_Done"));
+            }
+            catch (Exception ex)
+            {
+                SetStatus(Loc("Str_Err_RasterizeFailed") + " " + ex.Message);
+            }
+        }
+
+        // #368: arrow-key nudge. Moves the primary selection plus any shift-selected
+        // annotations by (dx,dy) DIPs - the same move machinery as mouse-drag
+        // (AnnotSetPos + ClampAnnotPos), committed the same way (re-render the touched
+        // pages, reattach the selection visuals, MarkDirty). Like drag-moves, nudges
+        // carry no undo entry. Returns false when nothing is selected so the caller
+        // can fall through to the default arrow-key behavior (page nav / scroll).
+        internal bool NudgeSelected(double dx, double dy)
+        {
+            var targets = new List<PageAnnotation>();
+            if (_selectedAnnotation is not null) targets.Add(_selectedAnnotation);
+            foreach (var a in _selectedSet)
+                if (!targets.Contains(a)) targets.Add(a);
+            if (targets.Count == 0) return false;
+            var pages = new HashSet<int>();
+            foreach (var a in targets)
+            {
+                var p = AnnotGetPos(a);
+                AnnotSetPos(a, new Point(p.X + dx, p.Y + dy));
+                AnnotSetPos(a, ClampAnnotPos(a));   // keep the whole annotation on-page
+                pages.Add(a.PageIndex);
+            }
+            foreach (var p in pages) RenderAllAnnotations(p);
+            ReattachSelectionVisuals();
+            ReattachMultiOutlines();
+            MarkDirty();
+            return true;
+        }
+
         private static bool HitTestAnnotation(PageAnnotation annot, Point pos, out Rect bounds)
         {
             switch (annot)
