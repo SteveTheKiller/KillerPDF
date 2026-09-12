@@ -4,6 +4,24 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.7] - 2026-09-12
+
+Fork release: startup update prompt, issue batch 2, and the booklet/shortcut fixes.
+
+### Added
+
+- Startup update prompt with release notes: Update / Skip this version / Later, skip persisted per tag, fork-suffixed tags supported.
+- Draggable outline bookmarks with before/after/child drop positions (#391).
+- Fillable field presets: save from the focused field, click-to-place insert, delete (#340).
+- Initial view settings in Document Info: open page, zoom, layout, panel, toolbar chrome (#338).
+- Rasterize zone: bake an annotation's region to image in one undo step (#369).
+- Shared image library picker for signatures and stamp watermarks, with import/delete (#326).
+
+### Fixed
+
+- Booklet preview and spool share one imposition list with duplex-correct backs.
+- Pure black & white print mode.
+
 ## [1.8.6] - 2026-09-12
 
 Fork release on top of upstream 1.8.5: Adobe-style print dialog, annotation nudge, spread splitting, and remappable shortcuts.

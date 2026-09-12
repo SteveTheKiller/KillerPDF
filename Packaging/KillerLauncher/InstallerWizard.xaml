@@ -112,7 +112,7 @@
                     </Image>
                     <StackPanel Grid.Row="1" Margin="0,14,0,0">
                         <TextBlock><TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Direction="270" Opacity="0.65"/></TextBlock.Effect><Run Text="Killer" FontFamily="{StaticResource Wordmark}" FontSize="26"/><Run Text="PDF" FontFamily="{StaticResource Wordmark}" FontSize="33" FontWeight="Bold" Foreground="{StaticResource Green}"/></TextBlock>
-                        <TextBlock Text="SETUP  •  1.8.6" FontFamily="Consolas" FontSize="9.5" Foreground="#a0a0a0" Margin="1,2,0,0"/>
+                        <TextBlock Text="SETUP  •  1.8.7" FontFamily="Consolas" FontSize="9.5" Foreground="#a0a0a0" Margin="1,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Row="2" Margin="1,24,5,0" TextWrapping="Wrap" Foreground="#d0d0d0" LineHeight="17"
                                Text="A free and modern PDF editor, built from scratch for privacy and speed."/>
