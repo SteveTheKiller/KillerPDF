@@ -692,7 +692,7 @@ namespace KillerPDF
                         $"```\n{stack}\n```\n\n" +
                         $"_Log folder: `{CrashReporter.LogDir}`_");
                     Process.Start(new ProcessStartInfo(
-                        $"https://github.com/SteveTheKiller/KillerPDF/issues/new?title={title}&body={body}")
+                        $"https://github.com/Rafie-kun/KillerPDF/issues/new?title={title}&body={body}")
                         { UseShellExecute = true });
                 }
                 catch { }
@@ -1710,7 +1710,7 @@ namespace KillerPDF
             };
             var cardContent = new StackPanel();
             cardContent.Children.Add(MakeRow("VERSION", $"v{version}", fgDim, accent,
-                onClick: () => OpenUrl($"https://github.com/SteveTheKiller/KillerPDF/releases/tag/v{version}")));
+                onClick: () => OpenUrl($"https://github.com/Rafie-kun/KillerPDF/releases/tag/v{version}")));
             cardContent.Children.Add(MakeRow("PUBLISHER", sigInfo,         fgDim, fg));
             cardContent.Children.Add(MakeRow("THUMBPRINT", thumbInfo,      fgDim, fg, mono, wrap: true));
             cardContent.Children.Add(MakeRow("EXE SHA256", sha256,         fgDim, fg, mono, wrap: true));

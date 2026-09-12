@@ -22,7 +22,7 @@ jobs:
         run: |
           $releaseTag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ github.event.inputs.tag }}" } else { "${{ github.event.release.tag_name }}" }
           $version = $releaseTag.TrimStart('v')
-          $exeUrl  = "https://github.com/SteveTheKiller/KillerPDF/releases/download/$releaseTag/KillerPDF.exe"
+          $exeUrl  = "https://github.com/Rafie-kun/KillerPDF/releases/download/$releaseTag/KillerPDF.exe"
 
           # Download release EXE and compute hash
           Write-Host "Downloading $exeUrl..."

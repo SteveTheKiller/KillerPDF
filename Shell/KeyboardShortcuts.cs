@@ -436,7 +436,7 @@ namespace KillerPDF
             else if (e.Key == Key.D1 && Keyboard.Modifiers == ModifierKeys.Control && _doc is not null)
             {
                 _fitMode = FitMode.None;
-                SetTrueZoomUser(1.0);    // actual size (Acrobat Ctrl+1); Ctrl+0 stays the 100% reset
+                SetTrueZoom(1.0);    // actual size (Acrobat Ctrl+1); Ctrl+0 stays the 100% reset
                 e.Handled = true;
             }
             else if (e.Key == Key.D2 && Keyboard.Modifiers == ModifierKeys.Control && _doc is not null)
@@ -533,18 +533,18 @@ namespace KillerPDF
             else if (Services.KeyLayout.IsCtrlChar(e.Key, '+', '=')
                      || ((e.Key == Key.OemPlus || e.Key == Key.Add) && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoomUser(_zoomLevel + ZoomStep);
+                if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoom(_zoomLevel + ZoomStep);
                 e.Handled = true;
             }
             else if (Services.KeyLayout.IsCtrlChar(e.Key, '-')
                       || ((e.Key == Key.OemMinus || e.Key == Key.Subtract) && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                if (_viewMode == ViewMode.Grid) GridZoomStep(true); else SetZoomUser(_zoomLevel - ZoomStep);
+                if (_viewMode == ViewMode.Grid) GridZoomStep(true); else SetZoom(_zoomLevel - ZoomStep);
                 e.Handled = true;
             }
             else if (e.Key == Key.D0 && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                SetTrueZoomUser(1.0);
+                SetTrueZoom(1.0);
                 e.Handled = true;
             }
             else if (e.Key == Key.Escape && _doc is not null && _currentTool != EditTool.Select)

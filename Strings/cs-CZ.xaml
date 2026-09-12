@@ -523,7 +523,11 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Ctx_DeletePage">Smazat stránku</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplikovat stránku</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Přidat prázdnou stránku</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Aktuální stránka</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Vlastní</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Zadejte šířku a výšku od 0,1 do 200 palců.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Zavřít kartu</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Otevřít složku se souborem</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Zavřít ostatní karty</sys:String>
 
     <!-- Transform tool -->
@@ -1031,7 +1035,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Print_SaveInkTip">Reduces ink/toner usage by lightening the output</sys:String>
     <sys:String x:Key="Str_Print_ReverseTip">Print pages in reverse order (last page first)</sys:String>
     <sys:String x:Key="Str_Print_BookletTip">Arrange pages in booklet format for folding</sys:String>
-    <sys:String x:Key="Str_Ctx_OpenFolder">Open containing folder</sys:String>
     <sys:String x:Key="Str_Ctx_SplitSpread">Split spread…</sys:String>
     <sys:String x:Key="Str_KS_Customize">Customize shortcuts</sys:String>
     <sys:String x:Key="Str_KS_Change">Change…</sys:String>
@@ -1045,15 +1048,4 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Dlg_SelectSplit">Select pages to split.</sys:String>
     <sys:String x:Key="Str_St_SplitSpread">Split {0} spread(s) into {1} pages</sys:String>
     <sys:String x:Key="Str_Err_SplitSpreadFailed">Split failed:</sys:String>
-    <sys:String x:Key="Str_BlankPage_Title">Insert Blank Page</sys:String>
-    <sys:String x:Key="Str_BlankPage_Size">Page size</sys:String>
-    <sys:String x:Key="Str_BlankPage_Match">Match current page ({0})</sys:String>
-    <sys:String x:Key="Str_BlankPage_Width">Width</sys:String>
-    <sys:String x:Key="Str_BlankPage_Height">Height</sys:String>
-    <sys:String x:Key="Str_BlankPage_Unit">Unit</sys:String>
-    <sys:String x:Key="Str_BlankPage_Insert">Insert</sys:String>
-    <sys:String x:Key="Str_BlankPage_Invalid">Enter a valid size (width and height must be numbers).</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitPt">Points</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitIn">Inches</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitMm">Millimeters</sys:String>
 </ResourceDictionary>

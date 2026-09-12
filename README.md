@@ -74,14 +74,14 @@ Chocolatey:
 choco install killerpdf
 ```
 
-- Standard installer: <https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF.exe>
-- Portable edition: <https://github.com/SteveTheKiller/KillerPDF/releases/latest/download/KillerPDF-Portable.exe>
-- Source (GPL3 corresponding source for this release): <https://github.com/SteveTheKiller/KillerPDF/releases/download/v1.8.4/KillerPDF-1.8.4-src.zip>
+- Standard installer: <https://github.com/Rafie-kun/KillerPDF/releases/latest/download/KillerPDF.exe>
+- Portable edition: <https://github.com/Rafie-kun/KillerPDF/releases/latest/download/KillerPDF-Portable.exe>
+- Source (GPL3 corresponding source for this release): <https://github.com/Rafie-kun/KillerPDF/releases/download/v1.8.5/KillerPDF-1.8.5-src.zip>
 
 ## Build from source
 
 ```powershell
-git clone https://github.com/SteveTheKiller/KillerPDF.git
+git clone https://github.com/Rafie-kun/KillerPDF.git
 cd KillerPDF
 dotnet publish -c Release
 ```

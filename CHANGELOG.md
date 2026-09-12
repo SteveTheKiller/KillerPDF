@@ -10,6 +10,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Kept scroll and manual zoom settings independent between document tabs and restored them when reopening files (#399).
+- Kept selected-page transforms when retained pages contain inconsistent font-width metadata.
 - Standalone uninstall dialogs use the default Dark/Green theme, and installation errors use themed dialogs.
 
 - Localized the document page count and Italian certificate label, and included the add-bookmark row when sizing the sidebar (#394).
@@ -20,6 +22,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
+- Added page size selection with current-page, Letter, A4, Legal, and custom dimensions when inserting blank pages (#400).
+- Added Open Containing Folder to document tab menus (#399).
 - Added a `--batch-render` command that renders pages of a file or tree to PNG with a per-page timing log.
 
 ## [1.8.4] - 2026-09-06

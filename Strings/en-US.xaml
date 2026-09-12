@@ -531,7 +531,11 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Ctx_DeletePage">Delete Page</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplicate Page</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Add Blank Page</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Current page</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Custom</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Enter a width and height between 0.1 and 200 inches.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Close Tab</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Open Containing Folder</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Close Other Tabs</sys:String>
 
     <!-- Transform tool -->
@@ -1046,7 +1050,6 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Link_GoToPage">Go to page {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Measurement unavailable</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Repair failed - the file is too severely damaged to recover.&#10;&#10;Try opening the original in a different application (Adobe Acrobat or a browser), which may have additional recovery options.</sys:String>
-    <sys:String x:Key="Str_Ctx_OpenFolder">Open containing folder</sys:String>
     <sys:String x:Key="Str_Ctx_SplitSpread">Split spread…</sys:String>
     <sys:String x:Key="Str_KS_Customize">Customize shortcuts</sys:String>
     <sys:String x:Key="Str_KS_Change">Change…</sys:String>
@@ -1060,15 +1063,4 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Dlg_SelectSplit">Select pages to split.</sys:String>
     <sys:String x:Key="Str_St_SplitSpread">Split {0} spread(s) into {1} pages</sys:String>
     <sys:String x:Key="Str_Err_SplitSpreadFailed">Split failed:</sys:String>
-    <sys:String x:Key="Str_BlankPage_Title">Insert Blank Page</sys:String>
-    <sys:String x:Key="Str_BlankPage_Size">Page size</sys:String>
-    <sys:String x:Key="Str_BlankPage_Match">Match current page ({0})</sys:String>
-    <sys:String x:Key="Str_BlankPage_Width">Width</sys:String>
-    <sys:String x:Key="Str_BlankPage_Height">Height</sys:String>
-    <sys:String x:Key="Str_BlankPage_Unit">Unit</sys:String>
-    <sys:String x:Key="Str_BlankPage_Insert">Insert</sys:String>
-    <sys:String x:Key="Str_BlankPage_Invalid">Enter a valid size (width and height must be numbers).</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitPt">Points</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitIn">Inches</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitMm">Millimeters</sys:String>
 </ResourceDictionary>

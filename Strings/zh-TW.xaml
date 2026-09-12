@@ -460,7 +460,11 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Ctx_DeletePage">刪除頁面</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">複製頁面</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">新增空白頁</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">目前頁面</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">自訂</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">請輸入 0.1 到 200 英吋之間的寬度和高度。</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">關閉分頁</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">開啟檔案所在資料夾</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">關閉其他分頁</sys:String>
 
     <!-- ── OCR 與頁面變形（新增） ───────────────────────────────────────── -->
@@ -1028,7 +1032,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Print_SaveInkTip">Reduces ink/toner usage by lightening the output</sys:String>
     <sys:String x:Key="Str_Print_ReverseTip">Print pages in reverse order (last page first)</sys:String>
     <sys:String x:Key="Str_Print_BookletTip">Arrange pages in booklet format for folding</sys:String>
-    <sys:String x:Key="Str_Ctx_OpenFolder">Open containing folder</sys:String>
     <sys:String x:Key="Str_Ctx_SplitSpread">Split spread…</sys:String>
     <sys:String x:Key="Str_KS_Customize">Customize shortcuts</sys:String>
     <sys:String x:Key="Str_KS_Change">Change…</sys:String>
@@ -1042,15 +1045,4 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Dlg_SelectSplit">Select pages to split.</sys:String>
     <sys:String x:Key="Str_St_SplitSpread">Split {0} spread(s) into {1} pages</sys:String>
     <sys:String x:Key="Str_Err_SplitSpreadFailed">Split failed:</sys:String>
-    <sys:String x:Key="Str_BlankPage_Title">Insert Blank Page</sys:String>
-    <sys:String x:Key="Str_BlankPage_Size">Page size</sys:String>
-    <sys:String x:Key="Str_BlankPage_Match">Match current page ({0})</sys:String>
-    <sys:String x:Key="Str_BlankPage_Width">Width</sys:String>
-    <sys:String x:Key="Str_BlankPage_Height">Height</sys:String>
-    <sys:String x:Key="Str_BlankPage_Unit">Unit</sys:String>
-    <sys:String x:Key="Str_BlankPage_Insert">Insert</sys:String>
-    <sys:String x:Key="Str_BlankPage_Invalid">Enter a valid size (width and height must be numbers).</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitPt">Points</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitIn">Inches</sys:String>
-    <sys:String x:Key="Str_BlankPage_UnitMm">Millimeters</sys:String>
 </ResourceDictionary>

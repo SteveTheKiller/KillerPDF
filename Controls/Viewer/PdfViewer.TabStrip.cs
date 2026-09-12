@@ -473,35 +473,34 @@ namespace KillerPDF.Controls
         {
             if (sender is not FrameworkElement fe || fe.DataContext is not DocumentSession s) return;
             var menu = MakeThemedMenu();
+            string? sourcePath = s.OriginalFile ?? s.DeferredPath;
+            var openFolder = MakeMenuItem(Loc("Str_Ctx_OpenContainingFolder"), (_, _) => OpenContainingFolder(sourcePath), null, "");
+            openFolder.IsEnabled = !string.IsNullOrWhiteSpace(sourcePath) && System.IO.File.Exists(sourcePath);
+            menu.Items.Add(openFolder);
+            menu.Items.Add(new Separator());
             menu.Items.Add(MakeMenuItem(Loc("Str_Ctx_CloseTab"), (_, _) => CloseTab(s), "Ctrl+W", ""));
             var others = MakeMenuItem(Loc("Str_Ctx_CloseOthers"), (_, _) => CloseOtherTabs(s), "Ctrl+Shift+W", "");
             others.IsEnabled = _sessions.Count(z => z.Doc != null || z.DeferredPath != null) > 1;
             menu.Items.Add(others);
-            // #399: reveal the tab's file in Explorer.
-            var folder = MakeMenuItem(Loc("Str_Ctx_OpenFolder"), (_, _) => OpenContainingFolder(s.OriginalFile), glyph: "\uE8B7");
-            folder.IsEnabled = !string.IsNullOrEmpty(s.OriginalFile) && System.IO.File.Exists(s.OriginalFile);
-            menu.Items.Add(folder);
             menu.PlacementTarget = fe;
             menu.IsOpen = true;
             e.Handled = true;
         }
 
+        private static void OpenContainingFolder(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path)) return;
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = "explorer.exe",
+                Arguments = $"/select,\"{path}\"",
+                UseShellExecute = true
+            });
+        }
+
         private void CloseTab_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button b && b.Tag is DocumentSession s) CloseTab(s);
-        }
-
-        // #399: open Explorer with the tab's file selected. Fully qualified BCL names so
-        // this file needs no new usings; missing Explorer is not worth an error dialog.
-        private static void OpenContainingFolder(string? path)
-        {
-            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
-            try
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
-                    "explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true });
-            }
-            catch { /* best-effort */ }
         }
 
         // ════════════════════════════════════════════════════════════════════════════════════════

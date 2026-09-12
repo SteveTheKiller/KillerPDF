@@ -55,16 +55,16 @@ namespace KillerPDF
         // ══ OUTWARD: the viewer's members, under the names the window already calls ══════════
         // Signatures mirror the originals exactly, defaults included, so no call site changed.
         private System.Threading.Tasks.Task RenderContinuousPages(int centerPage) => ActiveViewer.RenderContinuousPages(centerPage);
-        private void BootstrapDocumentView(int initialPage, bool autoFit, bool restoreFitMode = false)
-            => ActiveViewer.BootstrapDocumentView(initialPage, autoFit, restoreFitMode);
+        private void BootstrapDocumentView(int initialPage, bool autoFit, bool restoreFitMode = false,
+            double? restoreHorizontalOffset = null, double? restoreVerticalOffset = null)
+            => ActiveViewer.BootstrapDocumentView(initialPage, autoFit, restoreFitMode,
+                restoreHorizontalOffset, restoreVerticalOffset);
         private void RefreshPageView(int pageIndex) => ActiveViewer.RefreshPageView(pageIndex);
         private void ScrollContinuousToPage(int pageIndex) => ActiveViewer.ScrollContinuousToPage(pageIndex);
 
         private void StartRerenderTimer() => ActiveViewer.StartRerenderTimer();
         private void SetZoom(double level) => ActiveViewer.SetZoom(level);
         private void SetTrueZoom(double trueZoom) => ActiveViewer.SetTrueZoom(trueZoom);
-        private void SetZoomUser(double level) => ActiveViewer.SetZoomUserExt(level);
-        private void SetTrueZoomUser(double trueZoom) => ActiveViewer.SetTrueZoomUserExt(trueZoom);
         private void GridZoomStep(bool zoomOut) => ActiveViewer.GridZoomStep(zoomOut);
         private double GridZoomForN(int n) => ActiveViewer.GridZoomForN(n);
         private double DisplayZoomPct() => ActiveViewer.DisplayZoomPct();

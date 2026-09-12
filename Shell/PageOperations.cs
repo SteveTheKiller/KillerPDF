@@ -114,11 +114,10 @@ namespace KillerPDF
             int insertAfter = PageList.SelectedIndex >= 0
                 ? PageList.SelectedIndex : _doc.PageCount - 1;
             int insertIndex = insertAfter + 1;
-            // #400: ask for the page size first - match current page, a preset, or custom W/H.
-            var pts = ActiveViewer.CurrentPagePointsExt();
-            var picked = KillerDialog.ShowBlankPageSize(this, pts?.Width, pts?.Height,
-                ActiveViewer.CurrentPageSizeExt()?.Label);
-            if (picked is null) return;   // cancelled
+            var (pageWidth, pageHeight) = EnsureEngineDocumentSession()
+                .VisualPageSize(Math.Max(0, insertAfter), _pageRotations);
+            var sizeDialog = new BlankPageDialog(this, pageWidth, pageHeight);
+            if (sizeDialog.ShowDialog() != true) return;
             try
             {
                 UndoEntry? documentUndo = CaptureDocumentUndo();
@@ -130,7 +129,8 @@ namespace KillerPDF
                     SaveTempAndReload(
                         keepAnnotations: true,
                         finalizeSavedFile: path =>
-                            PdfEngineIntegration.InsertBlankPage(path, insertIndex, picked.Value.Width, picked.Value.Height),
+                            PdfEngineIntegration.InsertBlankPage(path, insertIndex,
+                                sizeDialog.WidthPoints, sizeDialog.HeightPoints),
                         remapRotations: rotations =>
                             PdfEngineIntegration.RemapRotationsAfterPageInsertion(
                                 rotations, insertIndex),
@@ -156,24 +156,25 @@ namespace KillerPDF
             }
         }
 
-        // Appends a blank page to the END of the document (size picked in the dialog).
-        // Used by the page-agnostic context menu (sidebar empty area / outside the page),
-        // where there's no specific page to insert relative to.
+        // Appends a blank page to the END of the document. Used by the page-agnostic context menu
+        // (sidebar empty area / outside the page), where there's no specific page to insert relative to.
         private void AddBlankPageAtEnd()
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
-            // #400: same size picker as insert (match current page by default).
-            var pts = ActiveViewer.CurrentPagePointsExt();
-            var picked = KillerDialog.ShowBlankPageSize(this, pts?.Width, pts?.Height,
-                ActiveViewer.CurrentPageSizeExt()?.Label);
-            if (picked is null) return;   // cancelled
+            int referencePage = Math.Clamp(PageList.SelectedIndex >= 0
+                ? PageList.SelectedIndex : _currentPage, 0, _doc.PageCount - 1);
+            var (pageWidth, pageHeight) = EnsureEngineDocumentSession()
+                .VisualPageSize(referencePage, _pageRotations);
+            var sizeDialog = new BlankPageDialog(this, pageWidth, pageHeight);
+            if (sizeDialog.ShowDialog() != true) return;
             try
             {
                 int insertIndex = _doc.PageCount;
                 SaveTempAndReload(
                     keepAnnotations: true,
                     finalizeSavedFile: path =>
-                        PdfEngineIntegration.InsertBlankPage(path, insertIndex, picked.Value.Width, picked.Value.Height),
+                        PdfEngineIntegration.InsertBlankPage(path, insertIndex,
+                            sizeDialog.WidthPoints, sizeDialog.HeightPoints),
                     remapRotations: rotations =>
                         PdfEngineIntegration.RemapRotationsAfterPageInsertion(
                             rotations, insertIndex));
