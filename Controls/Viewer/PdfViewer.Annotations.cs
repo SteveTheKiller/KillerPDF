@@ -477,6 +477,34 @@ namespace KillerPDF.Controls
                 ? "Str_St_DeletedAnnotationOne" : "Str_St_DeletedAnnotationMany"), toDelete.Count));
         }
 
+        // #368: arrow-key nudge. Moves the primary selection plus any shift-selected
+        // annotations by (dx,dy) DIPs - the same move machinery as mouse-drag
+        // (AnnotSetPos + ClampAnnotPos), committed the same way (re-render the touched
+        // pages, reattach the selection visuals, MarkDirty). Like drag-moves, nudges
+        // carry no undo entry. Returns false when nothing is selected so the caller
+        // can fall through to the default arrow-key behavior (page nav / scroll).
+        internal bool NudgeSelected(double dx, double dy)
+        {
+            var targets = new List<PageAnnotation>();
+            if (_selectedAnnotation is not null) targets.Add(_selectedAnnotation);
+            foreach (var a in _selectedSet)
+                if (!targets.Contains(a)) targets.Add(a);
+            if (targets.Count == 0) return false;
+            var pages = new HashSet<int>();
+            foreach (var a in targets)
+            {
+                var p = AnnotGetPos(a);
+                AnnotSetPos(a, new Point(p.X + dx, p.Y + dy));
+                AnnotSetPos(a, ClampAnnotPos(a));   // keep the whole annotation on-page
+                pages.Add(a.PageIndex);
+            }
+            foreach (var p in pages) RenderAllAnnotations(p);
+            ReattachSelectionVisuals();
+            ReattachMultiOutlines();
+            MarkDirty();
+            return true;
+        }
+
         private static bool HitTestAnnotation(PageAnnotation annot, Point pos, out Rect bounds)
         {
             switch (annot)

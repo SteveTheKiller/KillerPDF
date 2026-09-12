@@ -477,6 +477,10 @@ namespace KillerPDF.Controls
             var others = MakeMenuItem(Loc("Str_Ctx_CloseOthers"), (_, _) => CloseOtherTabs(s), "Ctrl+Shift+W", "");
             others.IsEnabled = _sessions.Count(z => z.Doc != null || z.DeferredPath != null) > 1;
             menu.Items.Add(others);
+            // #399: reveal the tab's file in Explorer.
+            var folder = MakeMenuItem(Loc("Str_Ctx_OpenFolder"), (_, _) => OpenContainingFolder(s.OriginalFile), glyph: "\uE8B7");
+            folder.IsEnabled = !string.IsNullOrEmpty(s.OriginalFile) && System.IO.File.Exists(s.OriginalFile);
+            menu.Items.Add(folder);
             menu.PlacementTarget = fe;
             menu.IsOpen = true;
             e.Handled = true;
@@ -485,6 +489,19 @@ namespace KillerPDF.Controls
         private void CloseTab_Click(object sender, RoutedEventArgs e)
         {
             if (sender is Button b && b.Tag is DocumentSession s) CloseTab(s);
+        }
+
+        // #399: open Explorer with the tab's file selected. Fully qualified BCL names so
+        // this file needs no new usings; missing Explorer is not worth an error dialog.
+        private static void OpenContainingFolder(string? path)
+        {
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return;
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                    "explorer.exe", "/select,\"" + path + "\"") { UseShellExecute = true });
+            }
+            catch { /* best-effort */ }
         }
 
         // ════════════════════════════════════════════════════════════════════════════════════════

@@ -74,6 +74,8 @@ namespace KillerPDF.Controls
                 //    refresh and hi-res re-sharpen run ONCE when the wheel rests (settle timer)
                 //    instead of on every notch, which is what made zooming feel steppy.
                 _fitMode   = FitMode.None;
+                // #399: explicit wheel zoom clears the global fit override (see SetZoomUser).
+                App.SetSetting("DefaultFitMode", FitMode.None.ToString());
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax,
                     _zoomLevel * Math.Pow(WheelZoomFactor, e.Delta / 120.0)));
                 ApplyZoom(lite: true);

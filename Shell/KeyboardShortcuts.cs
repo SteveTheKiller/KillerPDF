@@ -78,6 +78,11 @@ namespace KillerPDF
                     e.Key, Keyboard.Modifiers, e.SystemKey))
                 return;
 
+            // #190: user-remapped action shortcuts run before the built-in chain, in the exact
+            // same input context (typing already returned above). Abandoned defaults are
+            // swallowed here too, so no built-in branch needs editing.
+            if (TryRunCustomShortcut(e)) return;
+
             if (e.Key == Key.C && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 // An annotation selection copies the annotation(s); otherwise copy page text.
@@ -431,7 +436,7 @@ namespace KillerPDF
             else if (e.Key == Key.D1 && Keyboard.Modifiers == ModifierKeys.Control && _doc is not null)
             {
                 _fitMode = FitMode.None;
-                SetTrueZoom(1.0);    // actual size (Acrobat Ctrl+1); Ctrl+0 stays the 100% reset
+                SetTrueZoomUser(1.0);    // actual size (Acrobat Ctrl+1); Ctrl+0 stays the 100% reset
                 e.Handled = true;
             }
             else if (e.Key == Key.D2 && Keyboard.Modifiers == ModifierKeys.Control && _doc is not null)
@@ -484,6 +489,20 @@ namespace KillerPDF
             {
                 e.Handled = true;
             }
+            // #368: arrow keys nudge the selected annotation(s) instead of navigating,
+            // when something is selected. Bare arrows = 1 DIP steps, Shift+arrows = 10.
+            // Falls through to the navigation branches below when nothing is selected.
+            else if (e.Key is Key.Left or Key.Right or Key.Up or Key.Down
+                     && Keyboard.Modifiers is ModifierKeys.None or ModifierKeys.Shift
+                     && _doc is not null
+                     && ActiveViewer.NudgeSelectedExt(
+                         (e.Key == Key.Left ? -1 : e.Key == Key.Right ? 1 : 0)
+                             * (Keyboard.Modifiers == ModifierKeys.Shift ? 10 : 1),
+                         (e.Key == Key.Up ? -1 : e.Key == Key.Down ? 1 : 0)
+                             * (Keyboard.Modifiers == ModifierKeys.Shift ? 10 : 1)))
+            {
+                e.Handled = true;
+            }
             // Left/Right move one page - one two-page SPREAD in Two-Page mode (#120), so a press
             // always changes what's on screen instead of stepping through both pages of a spread.
             else if (e.Key == Key.Left && Keyboard.Modifiers == ModifierKeys.None)
@@ -514,18 +533,18 @@ namespace KillerPDF
             else if (Services.KeyLayout.IsCtrlChar(e.Key, '+', '=')
                      || ((e.Key == Key.OemPlus || e.Key == Key.Add) && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoom(_zoomLevel + ZoomStep);
+                if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoomUser(_zoomLevel + ZoomStep);
                 e.Handled = true;
             }
             else if (Services.KeyLayout.IsCtrlChar(e.Key, '-')
-                     || ((e.Key == Key.OemMinus || e.Key == Key.Subtract) && Keyboard.Modifiers == ModifierKeys.Control))
+                      || ((e.Key == Key.OemMinus || e.Key == Key.Subtract) && Keyboard.Modifiers == ModifierKeys.Control))
             {
-                if (_viewMode == ViewMode.Grid) GridZoomStep(true); else SetZoom(_zoomLevel - ZoomStep);
+                if (_viewMode == ViewMode.Grid) GridZoomStep(true); else SetZoomUser(_zoomLevel - ZoomStep);
                 e.Handled = true;
             }
             else if (e.Key == Key.D0 && Keyboard.Modifiers == ModifierKeys.Control)
             {
-                SetTrueZoom(1.0);
+                SetTrueZoomUser(1.0);
                 e.Handled = true;
             }
             else if (e.Key == Key.Escape && _doc is not null && _currentTool != EditTool.Select)
@@ -556,7 +575,70 @@ namespace KillerPDF
         {
             if (AboutOverlay.Visibility == Visibility.Visible) FadeOverlayOut(AboutOverlay);
             ApplyPersistedShortcutView();
+            BuildShortcutsOverlay();   // rebuild so remapped chords (#190) show immediately
             FadeOverlayIn(ShortcutOverlay);
+        }
+
+        // #190: remapped-shortcut runner. Normalizes System keys (Alt chords arrive as
+        // Key.System), resolves through ShortcutCustomization, and runs the action with the
+        // same bodies the built-in branches use. Returns true when claimed (including
+        // swallowed abandoned defaults), so the caller returns before the built-in chain.
+        private bool TryRunCustomShortcut(KeyEventArgs e)
+        {
+            Key key = e.Key == Key.System ? e.SystemKey : e.Key;
+            var mods = Keyboard.Modifiers;
+            string? chord = ShortcutCustomization.Canonicalize(
+                key.ToString(),
+                mods.HasFlag(ModifierKeys.Control),
+                mods.HasFlag(ModifierKeys.Shift),
+                mods.HasFlag(ModifierKeys.Alt));
+            if (chord is null) return false;
+            if (!ShortcutCustomization.TryResolve(ShortcutStore(), chord, out string? actionId))
+                return false;
+            if (actionId is not null) RunShortcutAction(actionId, e);
+            e.Handled = true;
+            return true;
+        }
+
+        private static ShortcutCustomization.Store ShortcutStore()
+            => new(App.GetSetting, App.SetSetting, App.RemoveSetting);
+
+        // #190: action bodies mirror their built-in branches one-to-one (copy/paste/select-all
+        // replicate the branch logic verbatim so behavior cannot drift between the two paths).
+        private void RunShortcutAction(string actionId, KeyEventArgs e)
+        {
+            switch (actionId)
+            {
+                case "Open":      Open_Click(this, e); break;
+                case "Save":      SaveInPlace(); break;
+                case "SaveAs":    SaveAs_Click(this, e); break;
+                case "CloseTab":  CloseTab(_active); break;
+                case "Print":     Print_Click(this, e); break;
+                case "Undo":      if (!e.IsRepeat) Undo_Click(this, e); break;
+                case "Redo":      if (!e.IsRepeat) Redo_Click(this, e); break;
+                case "Find":      ToggleSearchBar(); break;
+                case "CopyText":
+                    if (_selectedAnnotation is not null || _selectedSet.Count > 0) CopySelectedAnnotations();
+                    else CopySelectedText();
+                    break;
+                case "Paste":
+                    if (_annotationClipboard.Count > 0) PasteAnnotations(PageList.SelectedIndex);
+                    else PasteFromClipboard();
+                    break;
+                case "SelectAll":
+                    if (PageList.IsKeyboardFocusWithin)
+                        PageList.SelectAll();
+                    else if (!SelectAllAnnotations()) SelectAllText();
+                    break;
+                case "DeleteAnnot":
+                    if (PageList.IsKeyboardFocusWithin && PageList.SelectedItems.Count > 0)
+                        Delete_Click(this, e);
+                    else if (Viewer.HasSelectedFormFieldExt)
+                        Viewer.DeleteSelectedFormFieldExt();
+                    else if (_selectedAnnotation is not null || _selectedSet.Count > 0)
+                        DeleteSelected();
+                    break;
+            }
         }
 
         // ── Jump history (Alt+Left / Alt+Right / mouse back-forward buttons) ─────────────────────

@@ -63,6 +63,8 @@ namespace KillerPDF
         private void StartRerenderTimer() => ActiveViewer.StartRerenderTimer();
         private void SetZoom(double level) => ActiveViewer.SetZoom(level);
         private void SetTrueZoom(double trueZoom) => ActiveViewer.SetTrueZoom(trueZoom);
+        private void SetZoomUser(double level) => ActiveViewer.SetZoomUserExt(level);
+        private void SetTrueZoomUser(double trueZoom) => ActiveViewer.SetTrueZoomUserExt(trueZoom);
         private void GridZoomStep(bool zoomOut) => ActiveViewer.GridZoomStep(zoomOut);
         private double GridZoomForN(int n) => ActiveViewer.GridZoomForN(n);
         private double DisplayZoomPct() => ActiveViewer.DisplayZoomPct();

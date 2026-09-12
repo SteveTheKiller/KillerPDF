@@ -114,6 +114,11 @@ namespace KillerPDF
             int insertAfter = PageList.SelectedIndex >= 0
                 ? PageList.SelectedIndex : _doc.PageCount - 1;
             int insertIndex = insertAfter + 1;
+            // #400: ask for the page size first - match current page, a preset, or custom W/H.
+            var pts = ActiveViewer.CurrentPagePointsExt();
+            var picked = KillerDialog.ShowBlankPageSize(this, pts?.Width, pts?.Height,
+                ActiveViewer.CurrentPageSizeExt()?.Label);
+            if (picked is null) return;   // cancelled
             try
             {
                 UndoEntry? documentUndo = CaptureDocumentUndo();
@@ -125,7 +130,7 @@ namespace KillerPDF
                     SaveTempAndReload(
                         keepAnnotations: true,
                         finalizeSavedFile: path =>
-                            PdfEngineIntegration.InsertBlankPage(path, insertIndex, 595, 842),
+                            PdfEngineIntegration.InsertBlankPage(path, insertIndex, picked.Value.Width, picked.Value.Height),
                         remapRotations: rotations =>
                             PdfEngineIntegration.RemapRotationsAfterPageInsertion(
                                 rotations, insertIndex),
@@ -151,18 +156,24 @@ namespace KillerPDF
             }
         }
 
-        // Appends a blank A4 page to the END of the document. Used by the page-agnostic context menu
-        // (sidebar empty area / outside the page), where there's no specific page to insert relative to.
+        // Appends a blank page to the END of the document (size picked in the dialog).
+        // Used by the page-agnostic context menu (sidebar empty area / outside the page),
+        // where there's no specific page to insert relative to.
         private void AddBlankPageAtEnd()
         {
             if (_doc is null) { KillerDialog.Show(this, Loc("Str_Msg_OpenFirst")); return; }
+            // #400: same size picker as insert (match current page by default).
+            var pts = ActiveViewer.CurrentPagePointsExt();
+            var picked = KillerDialog.ShowBlankPageSize(this, pts?.Width, pts?.Height,
+                ActiveViewer.CurrentPageSizeExt()?.Label);
+            if (picked is null) return;   // cancelled
             try
             {
                 int insertIndex = _doc.PageCount;
                 SaveTempAndReload(
                     keepAnnotations: true,
                     finalizeSavedFile: path =>
-                        PdfEngineIntegration.InsertBlankPage(path, insertIndex, 595, 842),
+                        PdfEngineIntegration.InsertBlankPage(path, insertIndex, picked.Value.Width, picked.Value.Height),
                     remapRotations: rotations =>
                         PdfEngineIntegration.RemapRotationsAfterPageInsertion(
                             rotations, insertIndex));
@@ -322,6 +333,107 @@ namespace KillerPDF
                 }
                 catch { /* docReader open failed; all items remain label-only */ }
             }, ct);
+        }
+
+        // #382: split book-spread pages into two. Asks direction first, then works on the
+        // selected thumbnails (or the page under the cursor when nothing is selected).
+        private void SplitSpreadAskDirection(int pageIdx)
+        {
+            if (_doc is null) return;
+            int choice = KillerDialog.ShowChoices(this,
+                Loc("Str_SplitSpread_Direction"),
+                [Loc("Str_SplitSpread_Vertical"), Loc("Str_SplitSpread_Horizontal")]);
+            if (choice < 0) return;   // closed without choosing
+            SplitSpread(pageIdx, vertical: choice == 0);
+        }
+
+        // Duplicates each target page, then crops the original to one half and the copy to
+        // the other (vertical: left/right, horizontal: top/bottom). Targets run descending so
+        // insertions never shift pending targets. Annotations stay with the original half -
+        // like the crop tool, crops don't move marks - while later pages shift for the
+        // insertions so the rest of the document stays aligned.
+        private void SplitSpread(int pageIdx, bool vertical)
+        {
+            if (_doc is null) return;
+            var selected = PageList.SelectedItems;
+            var indices = new List<int>();
+            if (selected.Count > 0) { foreach (PageThumbnailVm vm in selected) indices.Add(vm.PageIndex); }
+            else if (pageIdx >= 0 && pageIdx < _doc.PageCount) indices.Add(pageIdx);
+            if (indices.Count == 0)
+            {
+                KillerDialog.Show(this, Loc("Str_Dlg_SelectSplit"), "KillerPDF",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            try
+            {
+                UndoEntry? documentUndo = CaptureDocumentUndo();
+                var engineSession = EnsureEngineDocumentSession();
+                // Media sizes upfront: the insertions below append pages, never resize them.
+                var sizes = new Dictionary<int, (double W, double H)>();
+                foreach (int i in indices.Distinct().OrderBy(x => x))
+                {
+                    if (i < 0 || i >= engineSession.PageCount) continue;
+                    var pg = engineSession.Pages[i];
+                    if (pg.Width <= 0 || pg.Height <= 0) continue;
+                    sizes[i] = (pg.Width, pg.Height);
+                }
+                if (sizes.Count == 0) return;
+                var ordered = sizes.Keys.OrderByDescending(x => x).ToList();
+                var annotationBackup = _annotations.ToDictionary(
+                    pair => pair.Key, pair => pair.Value);
+                try
+                {
+                    foreach (int i in ordered) PageAnnotationInsertion.Shift(_annotations, i + 1, 1);
+                    SaveTempAndReload(
+                        keepAnnotations: true,
+                        preserveZoom: true,
+                        finalizeSavedFile: path =>
+                        {
+                            foreach (int i in ordered)
+                            {
+                                PdfEngineIntegration.DuplicatePage(path, i);
+                                var (w, h) = sizes[i];
+                                var crops = new Dictionary<int, PdfEngineIntegration.PageRectangle?>();
+                                if (vertical)
+                                {
+                                    crops[i]     = new PdfEngineIntegration.PageRectangle(0, 0, w / 2, h);
+                                    crops[i + 1] = new PdfEngineIntegration.PageRectangle(w / 2, 0, w - w / 2, h);
+                                }
+                                else
+                                {
+                                    crops[i]     = new PdfEngineIntegration.PageRectangle(0, h / 2, w, h - h / 2);
+                                    crops[i + 1] = new PdfEngineIntegration.PageRectangle(0, 0, w, h / 2);
+                                }
+                                PdfEngineIntegration.ApplyCropBoxes(path, crops);
+                            }
+                        },
+                        remapRotations: rotations =>
+                        {
+                            foreach (int i in ordered)
+                                PdfEngineIntegration.RemapRotationsAfterPageDuplication(rotations, i);
+                        },
+                        selectedPageAfterReload: ordered[^1],
+                        documentUndo: documentUndo);
+                }
+                catch
+                {
+                    _annotations.Clear();
+                    foreach (var pair in annotationBackup)
+                    {
+                        foreach (PageAnnotation annotation in pair.Value)
+                            annotation.PageIndex = pair.Key;
+                        _annotations[pair.Key] = pair.Value;
+                    }
+                    throw;
+                }
+                SetStatus(string.Format(Loc("Str_St_SplitSpread"), ordered.Count, ordered.Count * 2));
+            }
+            catch (Exception ex)
+            {
+                KillerDialog.Show(this, Loc("Str_Err_SplitSpreadFailed") + "\n" + ex.Message,
+                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

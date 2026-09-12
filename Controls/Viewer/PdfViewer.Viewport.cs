@@ -1673,8 +1673,24 @@ namespace KillerPDF.Controls
             SetZoom(trueZoom / zf);
         }
 
-        internal void ZoomIn_Click(object sender, RoutedEventArgs e)  { if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoom(_zoomLevel + ZoomStep); }
-        internal void ZoomOut_Click(object sender, RoutedEventArgs e) { if (_viewMode == ViewMode.Grid) GridZoomStep(true);  else SetZoom(_zoomLevel - ZoomStep); }
+        // #399: USER-picked zoom (buttons, keys, wheel, dropdown). Clears the remembered
+        // global fit preference so the per-document zoom memory governs the next launch -
+        // otherwise a stale DefaultFitMode (Width/Page) overrode it and the custom % was
+        // "forgotten". Internal restores keep calling SetZoom/SetTrueZoom directly and
+        // leave the preference alone.
+        internal void SetZoomUser(double level)
+        {
+            App.SetSetting("DefaultFitMode", FitMode.None.ToString());
+            SetZoom(level);
+        }
+        internal void SetTrueZoomUser(double trueZoom)
+        {
+            App.SetSetting("DefaultFitMode", FitMode.None.ToString());
+            SetTrueZoom(trueZoom);
+        }
+
+        internal void ZoomIn_Click(object sender, RoutedEventArgs e)  { if (_viewMode == ViewMode.Grid) GridZoomStep(false); else SetZoomUser(_zoomLevel + ZoomStep); }
+        internal void ZoomOut_Click(object sender, RoutedEventArgs e) { if (_viewMode == ViewMode.Grid) GridZoomStep(true);  else SetZoomUser(_zoomLevel - ZoomStep); }
 
         /// <summary>Set by SyncZoomBox around its programmatic writes. Same story as
         /// _syncingPageList: the box's real subscription is the WINDOW's XAML-bound stub, so the
@@ -1733,6 +1749,9 @@ namespace KillerPDF.Controls
                 System.Globalization.CultureInfo.InvariantCulture, out double z))
             {
                 _fitMode = FitMode.None;
+                // #399: same as SetZoom - a picked percentage clears the global fit override
+                // so the per-document zoom memory survives the next launch.
+                App.SetSetting("DefaultFitMode", FitMode.None.ToString());
                 // Preset tags are true zoom (1.0 = 100%); convert to the internal render-dim scale.
                 double zf = DisplayZoomFactor(); if (zf <= 0) zf = 1.0;
                 _zoomLevel = Math.Max(ZoomMin, Math.Min(ZoomMax, z / zf));

@@ -46,6 +46,7 @@ namespace KillerPDF.Controls
         internal void UngroupAnnotationExt(PageAnnotation a) => UngroupAnnotation(a);
         internal void RemoveFromGroupExt(PageAnnotation a) => RemoveFromGroup(a);
         internal void DeleteSelectedExt() => DeleteSelected();
+        internal bool NudgeSelectedExt(double dx, double dy) => NudgeSelected(dx, dy);
         internal bool HasSelectedFormFieldExt => HasSelectedFormField;
         internal void DeleteSelectedFormFieldExt() => DeleteSelectedFormField();
         internal void RefreshFormFieldsExt(int pageIndex)
@@ -79,10 +80,20 @@ namespace KillerPDF.Controls
             var (width, height) = EnsureEngineDocumentSession().VisualPageSize(page, _pageRotations);
             return PageSizeFormatter.Format(width, height, metric);
         }
+        // #400: raw page size in POINTS for the blank-page size picker.
+        internal (double Width, double Height)? CurrentPagePointsExt()
+        {
+            int page = State.CurrentPage;
+            if (_doc is null || page < 0 || page >= _doc.PageCount) return null;
+            var (width, height) = EnsureEngineDocumentSession().VisualPageSize(page, _pageRotations);
+            return (width, height);
+        }
         internal double ZoomLevelExt => _zoomLevel;
         internal void SetZoomExt(double level) => SetZoom(level);
+        internal void SetZoomUserExt(double level) => SetZoomUser(level);
         internal double TrueZoomLevelExt => DisplayZoomPct() / 100.0;
         internal void SetTrueZoomExt(double level) => SetTrueZoom(level);
+        internal void SetTrueZoomUserExt(double level) => SetTrueZoomUser(level);
         internal void ApplyComparisonZoomExt(PdfViewer source)
         {
             double zoom = Math.Clamp(source.TrueZoomLevelExt / DisplayZoomFactor(), ZoomMin, ZoomMax);
