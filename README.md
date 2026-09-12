@@ -76,7 +76,7 @@ choco install killerpdf
 
 - Standard installer: <https://github.com/Rafie-kun/KillerPDF/releases/latest/download/KillerPDF.exe>
 - Portable edition: <https://github.com/Rafie-kun/KillerPDF/releases/latest/download/KillerPDF-Portable.exe>
-- Source (GPL3 corresponding source for this release): <https://github.com/Rafie-kun/KillerPDF/releases/download/v1.8.7/KillerPDF-1.8.7-src.zip>
+- Source (GPL3 corresponding source for this release): <https://github.com/Rafie-kun/KillerPDF/releases/download/v1.8.8/KillerPDF-1.8.8-src.zip>
 
 ## Build from source
 

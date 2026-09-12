@@ -4,6 +4,10 @@ All notable changes to KillerPDF are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.8] - 2026-09-12
+
+Test release to verify the startup update prompt fires with notes. No feature changes.
+
 ## [1.8.7] - 2026-09-12
 
 Fork release: startup update prompt, issue batch 2, and the booklet/shortcut fixes.
