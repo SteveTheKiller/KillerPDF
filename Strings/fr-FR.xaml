@@ -1063,4 +1063,5 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Dlg_SelectSplit">Select pages to split.</sys:String>
     <sys:String x:Key="Str_St_SplitSpread">Split {0} spread(s) into {1} pages</sys:String>
     <sys:String x:Key="Str_Err_SplitSpreadFailed">Split failed:</sys:String>
+    <sys:String x:Key="Str_Print_PureBW">Pure black &amp; white</sys:String>
 </ResourceDictionary>

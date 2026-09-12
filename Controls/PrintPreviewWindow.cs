@@ -60,6 +60,7 @@ namespace KillerPDF
         private CheckBox _duplexCheck = null!;
         private ComboBox _subsetCombo = null!;   // all / odd only / even only (#134, manual duplex)
         private bool _grayscale;             // send the job as grayscale/B&W rather than color
+        private bool _pureBW;                // pure 1-bit black & white (no gray tones)
         private bool _reverse;               // print pages in reverse order
         private bool _booklet;               // booklet printing mode (2-up, paired for folding)
         private bool _saveInkToner;          // reduce ink usage by lightening the print
@@ -70,12 +71,12 @@ namespace KillerPDF
         // changes halfway through (especially N-up, which controls the page-loop increment).
         private readonly record struct PrintLayout(
             bool Landscape, int AlignH, int AlignV, int ScaleMode, double CustomPct,
-            double MarginPx, int NUp, bool Duplex, bool Grayscale,
+            double MarginPx, int NUp, bool Duplex, bool Grayscale, bool PureBlackWhite,
             bool Reverse, bool Booklet, bool SaveInkToner);
 
         private PrintLayout CurrentLayout() => new(
             _landscape, _alignH, _alignV, _scaleMode, _customPct, _marginPx,
-            _nUp, _duplex, _grayscale, _reverse, _booklet, _saveInkToner);
+            _nUp, _duplex, _grayscale, _pureBW, _reverse, _booklet, _saveInkToner);
 
         // Printable area in DIPs for the currently selected printer + orientation.
         private double _areaW = 816;   // Letter portrait fallback (8.5in * 96)
@@ -457,7 +458,8 @@ namespace KillerPDF
                     if (iw >= (aw - 2 * m) - 1.5) iw = aw - 2 * m + 1;   // +1 bleed: covers the right hairline (clipped by the sheet)
                     if (ih >= (ah - 2 * m) - 1.5) ih = ah - 2 * m + 1;
                     BitmapSource source = pages[idx]!;
-                    if (layout.Grayscale) source = PrintColorConverter.CreateGrayscaleBitmap(source);
+                    if (layout.PureBlackWhite) source = PrintColorConverter.CreateBitonalBitmap(source);
+                    else if (layout.Grayscale) source = PrintColorConverter.CreateGrayscaleBitmap(source);
                     else if (layout.SaveInkToner) source = PrintColorConverter.CreateReducedInkBitmap(source);
                     var img = new Image { Source = source, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
@@ -483,7 +485,8 @@ namespace KillerPDF
                     double s = Math.Min(availW / rw[idx], availH / rh[idx]);
                     double iw = rw[idx] * s, ih = rh[idx] * s;
                     BitmapSource source = pages[idx]!;
-                    if (layout.Grayscale) source = PrintColorConverter.CreateGrayscaleBitmap(source);
+                    if (layout.PureBlackWhite) source = PrintColorConverter.CreateBitonalBitmap(source);
+                    else if (layout.Grayscale) source = PrintColorConverter.CreateGrayscaleBitmap(source);
                     else if (layout.SaveInkToner) source = PrintColorConverter.CreateReducedInkBitmap(source);
                     var img = new Image { Source = source, Width = iw, Height = ih };
                     RenderOptions.SetBitmapScalingMode(img, BitmapScalingMode.HighQuality);
@@ -603,12 +606,25 @@ namespace KillerPDF
 
             // Print in grayscale
             _grayscale = App.GetSetting("PrintGrayscale") == "1";
+            _pureBW = App.GetSetting("PrintPureBW") == "1";
+            if (_pureBW) _grayscale = false;   // the two B&W modes are exclusive
             var grayscaleCheck = UiKit.CheckBox(S("Str_Print_BW"));
             grayscaleCheck.Margin = new Thickness(0, 2, 0, 8);
             grayscaleCheck.IsChecked = _grayscale;
-            grayscaleCheck.Checked   += (_, _) => { _grayscale = true; UpdatePreview(); };
-            grayscaleCheck.Unchecked += (_, _) => { _grayscale = false; UpdatePreview(); };
             panel.Children.Add(grayscaleCheck);
+
+            // Pure black & white: 1-bit photocopy look, no gray tones. Mutually exclusive
+            // with grayscale above - checking one unchecks the other.
+            var pureBWCheck = UiKit.CheckBox(S("Str_Print_PureBW"));
+            pureBWCheck.Margin = new Thickness(0, 2, 0, 8);
+            pureBWCheck.IsChecked = _pureBW;
+            panel.Children.Add(pureBWCheck);
+
+            // Handlers wired after both boxes exist (each one drives the other).
+            grayscaleCheck.Checked   += (_, _) => { _grayscale = true; _pureBW = false; pureBWCheck.IsChecked = false; UpdatePreview(); };
+            grayscaleCheck.Unchecked += (_, _) => { _grayscale = false; UpdatePreview(); };
+            pureBWCheck.Checked   += (_, _) => { _pureBW = true; _grayscale = false; grayscaleCheck.IsChecked = false; UpdatePreview(); };
+            pureBWCheck.Unchecked += (_, _) => { _pureBW = false; UpdatePreview(); };
 
             // Save ink/toner
             _saveInkToner = App.GetSetting("PrintSaveInk") == "1";
@@ -1415,6 +1431,7 @@ namespace KillerPDF
                 if (_queue != null) App.SetSetting("PrintPrinter", _queue.FullName);
                 App.SetSetting("PrintLandscape", _landscape ? "1" : "0");
                 App.SetSetting("PrintGrayscale", _grayscale ? "1" : "0");
+                App.SetSetting("PrintPureBW",    _pureBW     ? "1" : "0");
                 App.SetSetting("PrintDuplex",    _duplex     ? "1" : "0");
                 App.SetSetting("PrintBooklet",   _booklet    ? "1" : "0");
                 App.SetSetting("PrintSaveInk",   _saveInkToner ? "1" : "0");
@@ -1471,7 +1488,7 @@ namespace KillerPDF
                 ticket.CopyCount      = 1;
                 ticket.PageOrientation = _landscape ? PageOrientation.Landscape : PageOrientation.Portrait;
                 ticket.Duplexing = _duplex ? Duplexing.TwoSidedLongEdge : Duplexing.OneSided;
-                ticket.OutputColor = _grayscale ? OutputColor.Grayscale : OutputColor.Color;
+                ticket.OutputColor = (_grayscale || _pureBW) ? OutputColor.Grayscale : OutputColor.Color;
                 // Same paper pick the preview used: the manual combo choice when one is set,
                 // otherwise the automatic document-size match (see MediaSizeForDocument, #186).
                 var docMedia = _paperOverride ?? MediaSizeForDocument();
