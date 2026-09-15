@@ -456,12 +456,17 @@ try {
     $indexPath = Join-Path $siteDir 'index.html'
     $indexRaw  = [System.IO.File]::ReadAllText($indexPath)
     $indexNew  = $indexRaw
-    $indexNew  = $indexNew -replace '(<span class="k">version</span>&nbsp;<span class="v">)KillerPDF v[0-9]+\.[0-9]+\.[0-9]+', ('${1}' + "KillerPDF v$Version")
-    $indexNew  = $indexNew -replace '(<span class="k">released</span>&nbsp;<span class="v">)[0-9]{4}-[0-9]{2}-[0-9]{2}', ('${1}' + $releaseDate)
-    $indexNew  = $indexNew -replace '(<span class="k">size</span>&nbsp;<span class="v">)[^<]*', ('${1}' + "~$exeMB MB exe")
-    $indexNew  = $indexNew -replace '(<span class="v hash">)[0-9A-Fa-f]{32}<br>[0-9A-Fa-f]{32}', ('${1}' + $hashLower.Substring(0, 32) + '<br>' + $hashLower.Substring(32, 32))
-    if ($indexNew -eq $indexRaw) {
-        Write-Warning 'index.html hero block did not change - check the release-info markup still matches the patterns in this script.'
+    $releaseFields = @(
+        @{ Pattern = '(<span class="k"[^>]*>version</span>&nbsp;<span class="v">)KillerPDF v[0-9]+\.[0-9]+\.[0-9]+'; Value = "KillerPDF v$Version" },
+        @{ Pattern = '(<span class="k"[^>]*>released</span>&nbsp;<span class="v">)[0-9]{4}-[0-9]{2}-[0-9]{2}'; Value = $releaseDate },
+        @{ Pattern = '(<span class="k"[^>]*>size</span>&nbsp;<span class="v">)[^<]*'; Value = "~$exeMB MB exe" },
+        @{ Pattern = '(<span class="v hash">)[0-9A-Fa-f]{32}<br>[0-9A-Fa-f]{32}'; Value = $hashLower.Substring(0, 32) + '<br>' + $hashLower.Substring(32, 32) }
+    )
+    foreach ($field in $releaseFields) {
+        if ([regex]::Matches($indexNew, $field.Pattern).Count -ne 1) {
+            throw "Expected exactly one landing release field matching: $($field.Pattern)"
+        }
+        $indexNew = $indexNew -replace $field.Pattern, ('${1}' + $field.Value)
     }
 
     if ($DryRun) {
