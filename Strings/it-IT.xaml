@@ -3,7 +3,7 @@
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
 
     <!-- ================================================================
-         KillerPDF  -  Italian (it-IT) strings - Revised: 07.09.2026
+         KillerPDF  -  Italian (it-IT) strings - Revised: 15.09.2026
          ================================================================ -->
 
     <!-- ── Toolbar tooltips ─────────────────────────────────────────── -->
@@ -683,7 +683,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
 
     <sys:String x:Key="Str_KS_ViewList">ELENCO</sys:String>
     <sys:String x:Key="Str_KS_ViewKeyboard">TASTIERA</sys:String>
-    <sys:String x:Key="Str_KS_HoldHint">Tieni premuto Ctrl, Maiusc o Alt per l'anteprima del livello - passa il mouse su un tasto illuminato per la sua azione</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Premi Ctrl, Maiusc o Alt per anteprima livello - passa il mouse su un tasto illuminato per la sua azione</sys:String>
     <sys:String x:Key="Str_Zoom_ActualSize">Dimensione reale</sys:String>
     <sys:String x:Key="Str_KS_PrevTab">Scheda precedente</sys:String>
 
