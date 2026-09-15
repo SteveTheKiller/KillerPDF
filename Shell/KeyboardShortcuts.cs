@@ -288,6 +288,14 @@ namespace KillerPDF
                 DeleteSelected();
                 e.Handled = true;
             }
+            else if (e.Key == Key.R &&
+                     (Keyboard.Modifiers == ModifierKeys.Control ||
+                      Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift)))
+            {
+                if (!e.IsRepeat)
+                    RotatePages_Click(Keyboard.Modifiers == ModifierKeys.Control ? 90 : -90);
+                e.Handled = true;
+            }
             else if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
             {
                 if (!e.IsRepeat) Undo_Click(this, e);   // ignore key auto-repeat so one press = one undo

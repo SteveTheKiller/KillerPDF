@@ -1,5 +1,8 @@
 var I18N = {
  "ru": {
+  "release_185_rotation": "Ctrl+R поворачивает выбранные страницы на 90° по часовой стрелке, а Ctrl+Shift+R на 90° против часовой стрелки.",
+  "kb_rotate_cw": "Повернуть страницу по часовой стрелке",
+  "kb_rotate_ccw": "Повернуть страницу против часовой стрелки",
   "shot_183_01": "Режим сетки с четырьмя кнопками режима просмотра и меню масштаба в нижней панели",
   "shot_183_02": "Предпросмотр преобразования с уровнями, цветовым режимом, DPI, размерами в пикселях и настройками сжатия JPEG",
   "shot_183_03": "Сравнение PDF бок о бок с выделенными изменениями и сводкой различий страниц",
@@ -761,6 +764,9 @@ var I18N = {
   "pa_31": "<span id=\"verEgg\" title=\"click me\">v1.8.4</span> &middot; &copy; 2026 <b><a href=\"https://thekiller.net\" target=\"_blank\" rel=\"noopener\">Steve the Killer</a></b>"
  },
  "it": {
+  "release_185_rotation": "Ctrl+R ruota le pagine selezionate di 90° in senso orario. Ctrl+Shift+R le ruota di 90° in senso antiorario.",
+  "kb_rotate_cw": "Ruota pagina senso orario",
+  "kb_rotate_ccw": "Ruota pagina senso anti orario",
   "shot_183_01": "Vista a griglia con quattro pulsanti di visualizzazione e il menu dello zoom nel piè di pagina",
   "shot_183_02": "Anteprima di trasformazione con livelli, modalità colore, DPI, dimensioni in pixel e controlli di compressione JPEG",
   "shot_183_03": "Confronto PDF affiancato con modifiche evidenziate e riepilogo delle differenze tra pagine",
@@ -1601,6 +1607,9 @@ var I18N = {
   "pt_105": "Il salvataggio non cambia mai il documento che stai guardando. KillerPDF scrive una copia pulita senza annotazioni, poi vi fissa dentro in modo permanente <b>prima i timbri, poi le annotazioni</b>, e riapre quella copia fresca. Partire ogni volta da una base pulita significa che non può mai fissare per sbaglio due volte la stessa cosa."
  },
  "hu": {
+  "release_185_rotation": "A Ctrl+R 90°-kal az óramutató járásával megegyező irányba forgatja a kijelölt oldalakat. A Ctrl+Shift+R 90°-kal az ellenkező irányba forgatja őket.",
+  "kb_rotate_cw": "Oldal forgatása az óramutató járásával",
+  "kb_rotate_ccw": "Oldal forgatása az óramutatóval ellentétesen",
   "shot_183_01": "Rácsnézet négy nézetmódgombbal és a lábléc nagyítási menüjével",
   "shot_183_02": "Átalakítási előnézet szintekkel, színmóddal, DPI-vel, kimeneti pixelméretekkel és JPEG-tömörítési vezérlőkkel",
   "shot_183_03": "PDF-ek egymás melletti összehasonlítása kiemelt változásokkal és az oldalkülönbségek összegzésével",
@@ -2425,6 +2434,9 @@ var I18N = {
  },
 
  "pl": {
+  "release_185_rotation": "Ctrl+R obraca zaznaczone strony o 90° w prawo. Ctrl+Shift+R obraca je o 90° w lewo.",
+  "kb_rotate_cw": "Obróć stronę w prawo",
+  "kb_rotate_ccw": "Obróć stronę w lewo",
   "shot_183_01": "Widok siatki z czterema przyciskami trybu widoku i menu powiększenia w stopce",
   "shot_183_02": "Podgląd przekształcenia z poziomami, trybem kolorów, DPI, wymiarami w pikselach i ustawieniami kompresji JPEG",
   "shot_183_03": "Porównanie PDF obok siebie z wyróżnionymi zmianami i podsumowaniem różnic między stronami",
@@ -3246,6 +3258,9 @@ var I18N = {
   "footer_src": "Kod źródłowy w GitHubie"
  },
  "cs": {
+  "release_185_rotation": "Ctrl+R otočí vybrané stránky o 90° doprava. Ctrl+Shift+R je otočí o 90° doleva.",
+  "kb_rotate_cw": "Otočit stránku doprava",
+  "kb_rotate_ccw": "Otočit stránku doleva",
   "shot_183_01": "Mřížkové zobrazení se čtyřmi tlačítky režimů zobrazení a nabídkou přiblížení v zápatí",
   "shot_183_02": "Náhled transformace s úrovněmi, barevným režimem, DPI, výstupními rozměry v pixelech a nastavením komprese JPEG",
   "shot_183_03": "Porovnání PDF vedle sebe se zvýrazněnými změnami a souhrnem rozdílů stránek",
@@ -4086,6 +4101,9 @@ var I18N = {
   "pt_105": "Uložení nikdy nemění dokument, na který se díváte. KillerPDF zapíše čistou kopii bez anotací, pak trvale zapeče <b>nejdřív razítka, potom anotace</b>, a tuto čerstvou kopii znovu otevře. Start z čistého základu pokaždé znamená, že nikdy nemůže omylem zapéct totéž dvakrát."
  },
  "es": {
+  "release_185_rotation": "Ctrl+R gira las páginas seleccionadas 90° a la derecha. Ctrl+Shift+R las gira 90° a la izquierda.",
+  "kb_rotate_cw": "Girar página a la derecha",
+  "kb_rotate_ccw": "Girar página a la izquierda",
   "shot_183_01": "Vista de cuadrícula con cuatro botones de modo de vista y el menú de zoom en el pie",
   "shot_183_02": "Vista previa de transformación con niveles, modo de color, DPI, dimensiones de salida en píxeles y controles de compresión JPEG",
   "shot_183_03": "Comparación de PDF en paralelo con cambios resaltados y un resumen de diferencias entre páginas",
@@ -4926,6 +4944,9 @@ var I18N = {
   "pt_105": "Guardar nunca cambia el documento que estás viendo. KillerPDF escribe una copia limpia sin anotaciones, luego incorpora permanentemente <b>primero los sellos, después las anotaciones</b>, y reabre esa copia nueva. Partir de una base limpia cada vez significa que nunca pue"
  },
  "de": {
+  "release_185_rotation": "Ctrl+R dreht die ausgewählten Seiten um 90° im Uhrzeigersinn. Ctrl+Shift+R dreht sie um 90° gegen den Uhrzeigersinn.",
+  "kb_rotate_cw": "Seite im Uhrzeigersinn drehen",
+  "kb_rotate_ccw": "Seite gegen den Uhrzeigersinn drehen",
   "shot_183_01": "Rasteransicht mit vier Ansichtsmodus-Schaltflächen und dem Zoommenü in der Fußleiste",
   "shot_183_02": "Transformationsvorschau mit Tonwerten, Farbmodus, DPI, Pixelabmessungen der Ausgabe und JPEG-Komprimierungseinstellungen",
   "shot_183_03": "PDF-Vergleich nebeneinander mit hervorgehobenen Änderungen und einer Zusammenfassung der Seitenunterschiede",
@@ -5766,6 +5787,9 @@ var I18N = {
   "pt_105": "Das Speichern ändert nie das Dokument, das Sie gerade ansehen. KillerPDF schreibt eine saubere Kopie ohne Annotationen, backt dann dauerhaft <b>zuerst die Stempel, dann die Annotationen</b> ein und öffnet diese frische Kopie erneut. Jedes Mal von einer sauberen Basis aus zu starten bedeutet, dass es nie"
  },
  "fr": {
+  "release_185_rotation": "Ctrl+R fait pivoter les pages sélectionnées de 90° vers la droite. Ctrl+Shift+R les fait pivoter de 90° vers la gauche.",
+  "kb_rotate_cw": "Pivoter la page à droite",
+  "kb_rotate_ccw": "Pivoter la page à gauche",
   "shot_183_01": "Vue en grille avec quatre boutons de mode d'affichage et le menu de zoom dans le pied de page",
   "shot_183_02": "Aperçu de transformation avec niveaux, mode couleur, DPI, dimensions de sortie en pixels et réglages de compression JPEG",
   "shot_183_03": "Comparaison de PDF côte à côte avec modifications surlignées et résumé des différences entre pages",
@@ -6606,6 +6630,9 @@ var I18N = {
   "pt_105": "L'enregistrement ne modifie jamais le document que vous regardez. KillerPDF écrit une copie propre sans annotations, puis intègre définitivement les <b>tampons d'abord, puis les annotations</b>, et rouvre cette nouvelle copie. Repartir d'une base propre à chaque fois signifie qu'il ne peu"
  },
  "tr": {
+  "release_185_rotation": "Ctrl+R seçili sayfaları saat yönünde 90° döndürür. Ctrl+Shift+R saat yönünün tersine 90° döndürür.",
+  "kb_rotate_cw": "Sayfayı Saat Yönünde Döndür",
+  "kb_rotate_ccw": "Sayfayı Saatin Tersine Döndür",
   "shot_183_01": "Dört görünüm modu düğmesi ve alt çubukta yakınlaştırma menüsü bulunan ızgara görünümü",
   "shot_183_02": "Seviyeler, renk modu, DPI, çıktı piksel boyutları ve JPEG sıkıştırma denetimleriyle dönüştürme önizlemesi",
   "shot_183_03": "Vurgulanan değişiklikler ve sayfa farkı özetiyle yan yana PDF karşılaştırması",
@@ -7446,6 +7473,9 @@ var I18N = {
   "pt_105": "Kaydetme, baktığınız belgeyi asla değiştirmez. KillerPDF, ek açıklaması olmayan temiz bir kopya yazar, ardından kalıcı olarak <b>önce damgaları, sonra ek açıklamaları</b> pişirir ve o taze kopyayı yeniden açar. Her seferinde temiz bir tabandan başlamak, hiçbir za"
  },
  "zh": {
+  "release_185_rotation": "Ctrl+R 將所選頁面順時針旋轉 90°。Ctrl+Shift+R 將其逆時針旋轉 90°。",
+  "kb_rotate_cw": "順時針旋轉頁面",
+  "kb_rotate_ccw": "逆時針旋轉頁面",
   "shot_183_01": "格線檢視，含四個檢視模式按鈕及底部的縮放選單",
   "shot_183_02": "轉換預覽，含色階、色彩模式、DPI、輸出像素尺寸及 JPEG 壓縮控制項",
   "shot_183_03": "並排比較 PDF，醒目標示變更並提供頁面差異摘要",
@@ -8286,6 +8316,9 @@ var I18N = {
   "pt_105": "儲存絕不會改變你正在檢視的文件。KillerPDF 會寫入一份不含註解的乾淨副本，接著永久地烙入<b>先印章、再註解</b>，並重新開啟那份全新的副本。每次都從一個乾淨的基礎開始，意味著它永遠不會"
  },
  "zh-cn": {
+  "release_185_rotation": "Ctrl+R 将所选页面顺时针旋转 90°。Ctrl+Shift+R 将其逆时针旋转 90°。",
+  "kb_rotate_cw": "顺时针旋转页面",
+  "kb_rotate_ccw": "逆时针旋转页面",
   "shot_183_01": "网格视图，带有四个视图模式按钮和底部的缩放菜单",
   "shot_183_02": "变换预览，带有色阶、颜色模式、DPI、输出像素尺寸和 JPEG 压缩控件",
   "shot_183_03": "并排比较 PDF，突出显示更改并提供页面差异摘要",
@@ -9126,6 +9159,9 @@ var I18N = {
   "pt_105": "保存绝不会改变你正在查看的文档。KillerPDF 会写入一份不含批注的干净副本，接着永久地烙入<b>先图章、再批注</b>，并重新打开那份全新的副本。每次都从一个干净的基础开始，意味着它永远不会"
  },
  "bn": {
+  "release_185_rotation": "Ctrl+R নির্বাচিত পৃষ্ঠাগুলোকে ঘড়ির কাঁটার দিকে ৯০° ঘোরায়। Ctrl+Shift+R সেগুলোকে ঘড়ির কাঁটার বিপরীতে ৯০° ঘোরায়।",
+  "kb_rotate_cw": "পৃষ্ঠা ঘড়ির কাঁটার দিকে ঘোরান",
+  "kb_rotate_ccw": "পৃষ্ঠা ঘড়ির কাঁটার বিপরীতে ঘোরান",
   "shot_183_01": "চারটি ভিউ মোড বোতাম ও ফুটারে জুম মেনুসহ গ্রিড ভিউ",
   "shot_183_02": "লেভেল, কালার মোড, DPI, আউটপুটের পিক্সেল মাপ ও JPEG কম্প্রেশন নিয়ন্ত্রণসহ রূপান্তরের প্রিভিউ",
   "shot_183_03": "হাইলাইট করা পরিবর্তন ও পৃষ্ঠার পার্থক্যের সারাংশসহ পাশাপাশি PDF তুলনা",
@@ -9966,6 +10002,9 @@ var I18N = {
   "pt_105": "সংরক্ষণ আপনি যে নথিটি দেখছেন তা কখনো পরিবর্তন করে না। KillerPDF কোনো অ্যানোটেশন ছাড়া একটি পরিচ্ছন্ন কপি লেখে, তারপর স্থায়ীভাবে <b>প্রথমে স্ট্যাম্প, তারপর অ্যানোটেশন</b> বেক করে, এবং সেই তাজা কপিটি পুনরায় খোলে। প্রতিবার একটি পরিচ্ছন্ন ভিত্তি থেকে শুরু করার অর্থ এটি কখনো"
  },
  "ja": {
+  "release_185_rotation": "Ctrl+Rで選択したページを右に90°回転します。Ctrl+Shift+Rで左に90°回転します。",
+  "kb_rotate_cw": "ページを右回転",
+  "kb_rotate_ccw": "ページを左回転",
   "shot_183_01": "4 つの表示モードボタンとフッターのズームメニューを備えたグリッド表示",
   "shot_183_02": "レベル、カラーモード、DPI、出力ピクセル寸法、JPEG 圧縮を調整できる変換プレビュー",
   "shot_183_03": "変更箇所の強調表示とページ差分の概要を備えた PDF の並列比較",
@@ -10806,6 +10845,9 @@ var I18N = {
   "pt_105": "保存が、いま見ているドキュメントを変更することはありません。KillerPDF は注釈のないクリーンなコピーを書き出し、<b>スタンプ、次に注釈</b>の順で恒久的に焼き込んでから、その新しいコピーを開き直します。毎回クリーンな状態から始めるため、同じものを誤って二重に焼き込むことは決してありません。"
  },
  "kk": {
+  "release_185_rotation": "Ctrl+R таңдалған беттерді сағат тілімен 90° бұрады. Ctrl+Shift+R оларды сағат тіліне қарсы 90° бұрады.",
+  "kb_rotate_cw": "Бетті сағат тілімен бұру",
+  "kb_rotate_ccw": "Бетті сағат тіліне қарсы бұру",
   "shot_183_01": "Төрт көрініс режимі түймесі және төменгі панельде масштаб мәзірі бар тор көрінісі",
   "shot_183_02": "Деңгейлер, түс режимі, DPI, шығыс пиксель өлшемдері және JPEG сығу басқару элементтері бар түрлендіруді алдын ала қарау",
   "shot_183_03": "Өзгерістері ерекшеленген және бет айырмашылықтарының қорытындысы бар PDF файлдарын қатар салыстыру",

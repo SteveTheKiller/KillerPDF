@@ -720,9 +720,12 @@ namespace KillerPDF
             return item;
         }
 
-        private static MenuItem MakeRotateMenuItem(string header, RoutedEventHandler click, bool clockwise)
+        private MenuItem MakeRotateMenuItem(string header, RoutedEventHandler click, bool clockwise)
         {
-            var item = MakeMenuItem(header, click, glyph: "\uE7AD");
+            string gesture = clockwise
+                ? Loc("Str_Key_Ctrl") + "+R"
+                : Loc("Str_Key_Ctrl") + "+" + Loc("Str_Key_Shift") + "+R";
+            var item = MakeMenuItem(header, click, gesture, glyph: "\uE7AD");
             if (item.Icon is TextBlock icon)
             {
                 icon.FontSize = 15;

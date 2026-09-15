@@ -113,6 +113,8 @@ namespace KillerPDF
             B("7 (%or% G)",      "Str_Lbl_Signature", "Tools", Cap("D7"), Cap("G")),
             B("8 (%or% C)",      "Str_Lbl_Crop",      "Tools", Cap("D8"), Cap("C")),
             B("9 (%or% R)",      "Str_Lbl_Rotate",    "Tools", Cap("D9"), Cap("R")),
+            B("%ctrl%+R",        "Str_Ctx_RotateCW", "Tools", Cap("Ctrl:R")),
+            B("%ctrl%+%shift%+R", "Str_Ctx_RotateCCW", "Tools", Cap("CtrlShift:R")),
             B("0 (%or% S)",      "Str_Ctx_StampPages","Tools", Cap("D0"), Cap("S")),
             B("F",               "Str_KS_FormField",  "Tools", Cap("F")),
 
