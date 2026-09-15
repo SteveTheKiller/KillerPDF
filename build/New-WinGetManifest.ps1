@@ -39,7 +39,9 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 # The launcher installs machine-wide with /silent. Its interactive wizard can
 # select a user install, so this machine-scoped manifest advertises silent modes only.
 $installer = @"
+# Created by the KillerPDF release workflow
 # yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+
 PackageIdentifier: SteveTheKiller.KillerPDF
 PackageVersion: $version
 InstallerType: exe
@@ -69,7 +71,9 @@ ManifestType: installer
 ManifestVersion: 1.12.0
 "@
 $locale = @"
+# Created by the KillerPDF release workflow
 # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+
 PackageIdentifier: SteveTheKiller.KillerPDF
 PackageVersion: $version
 PackageLocale: en-US
@@ -88,7 +92,9 @@ ManifestType: defaultLocale
 ManifestVersion: 1.12.0
 "@
 $manifest = @"
+# Created by the KillerPDF release workflow
 # yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
+
 PackageIdentifier: SteveTheKiller.KillerPDF
 PackageVersion: $version
 DefaultLocale: en-US

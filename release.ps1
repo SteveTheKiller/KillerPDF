@@ -147,6 +147,12 @@ try {
     Pop-Location
 }
 
+Write-Host "`n==> Checking WinGet fork synchronization..." -ForegroundColor Cyan
+gh api --method POST repos/SteveTheKiller/winget-pkgs/merge-upstream -f branch=master
+if ($LASTEXITCODE -ne 0) {
+    throw "WinGet fork synchronization failed. Resolve the GitHub API error above before publishing."
+}
+
 if (-not $PublishOnly) {
 
 # ── 0. SimplySign preflight ──────────────────────────────────────────────────
