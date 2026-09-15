@@ -44,25 +44,14 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         shell: pwsh
 
-      # komac branches from the fork's master, so a stale fork breaks the branch and the PR.
-      # GitHub reports that as "does not have the correct permissions to execute CreateRef",
-      # which reads like a token problem and is not. The fork was 7,877 commits behind when
-      # this was tracked down on 2026-08-26, and every app shares the one fork, so all five
-      # repos started failing together.
       - name: Sync the winget-pkgs fork
         run: |
-          $delays = @(30, 90, 180)
-          for ($i = 0; $i -le $delays.Count; $i++) {
-              komac sync
-              if ($LASTEXITCODE -eq 0) { exit 0 }
-              if ($i -eq $delays.Count) { break }
-              Write-Host "Fork sync failed with exit $LASTEXITCODE. Retrying in $($delays[$i])s."
-              Start-Sleep -Seconds $delays[$i]
+          gh api --method POST repos/SteveTheKiller/winget-pkgs/merge-upstream -f branch=master
+          if ($LASTEXITCODE -ne 0) {
+              throw "Fork sync failed. Check the API response above for token access or branch conflicts."
           }
-          Write-Error "komac sync failed after $($delays.Count + 1) attempts. Confirm WINGET_TOKEN is a classic token with public_repo scope."
-          exit 1
         env:
-          GITHUB_TOKEN: ${{ secrets.WINGET_TOKEN }}
+          GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
         shell: pwsh
 
       - name: Submit to WinGet
