@@ -70,6 +70,11 @@ Installers:
 ManifestType: installer
 ManifestVersion: 1.12.0
 "@
+$releaseNotes = ([string]$release.body).Trim()
+if ([string]::IsNullOrWhiteSpace($releaseNotes) -or $releaseNotes.Length -gt 10000) {
+    throw 'WinGet requires release notes between 1 and 10000 characters.'
+}
+$releaseNotes = (($releaseNotes -split '\r?\n') | ForEach-Object { "  $_" }) -join "`r`n"
 $locale = @"
 # Created by the KillerPDF release workflow
 # yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
@@ -85,8 +90,21 @@ PackageName: KillerPDF
 PackageUrl: https://github.com/SteveTheKiller/KillerPDF
 License: GPL-3.0
 LicenseUrl: https://github.com/SteveTheKiller/KillerPDF/blob/HEAD/LICENSE
+Copyright: Copyright (c) 2026 Steve the Killer
 ShortDescription: PDF editor for Windows. No account, no subscription, no telemetry.
+Description: KillerPDF is a lightweight PDF viewer and toolkit for Windows. View, merge, split, and manage PDF files. Runs portable or installs to your user profile without admin rights. No account, no subscription, no telemetry. Open source under GPLv3.
 Moniker: killerpdf
+Tags:
+- dotnet
+- gplv3
+- opensource
+- pdf
+- pdf-editor
+- portable
+- windows
+- wpf
+ReleaseNotes: |-
+$releaseNotes
 ReleaseNotesUrl: https://github.com/SteveTheKiller/KillerPDF/releases/tag/$Tag
 ManifestType: defaultLocale
 ManifestVersion: 1.12.0
