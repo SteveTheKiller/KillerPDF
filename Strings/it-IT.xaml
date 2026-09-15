@@ -1050,4 +1050,5 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_KS_DisabledStatus">Scorciatoie tastiera disabilitate. Premi Ctrl+Shift+K per abilitarle.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Cerca aggiornamenti all'avvio</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} è disponibile. Vuoi scaricarlo e installarlo ora?&#10;&#10;L'app si chiuderà e si riaprirà automaticamente.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Controlla sempre gli aggiornamenti all'avvio</sys:String>
 </ResourceDictionary>

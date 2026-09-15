@@ -1030,4 +1030,5 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_KS_DisabledStatus">কীবোর্ড শর্টকাট বন্ধ আছে। চালু করতে Ctrl+Shift+K চাপুন।</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">অ্যাপ চালু হলে আপডেট পরীক্ষা করুন</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} উপলব্ধ। এখনই এটি ডাউনলোড করে ইনস্টল করবেন?&#10;&#10;অ্যাপটি বন্ধ হয়ে স্বয়ংক্রিয়ভাবে আবার খুলবে।</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">অ্যাপ চালু হলে সর্বদা আপডেট পরীক্ষা করুন</sys:String>
 </ResourceDictionary>

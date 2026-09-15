@@ -1050,4 +1050,5 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_KS_DisabledStatus">Сочетания клавиш отключены. Нажмите Ctrl+Shift+K, чтобы включить их.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Проверять обновления при запуске</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Доступен KillerPDF {0}. Хотите скачать и установить его сейчас?&#10;&#10;Приложение закроется и снова откроется автоматически.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Всегда проверять обновления при запуске</sys:String>
 </ResourceDictionary>

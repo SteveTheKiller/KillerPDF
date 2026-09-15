@@ -1050,4 +1050,5 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_KS_DisabledStatus">Keyboard shortcuts disabled. Press Ctrl+Shift+K to enable them.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Check for updates on startup</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} is available. Would you like to download and install it now?&#10;&#10;The app will close and reopen automatically.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Always check on startup</sys:String>
 </ResourceDictionary>

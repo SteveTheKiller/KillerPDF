@@ -140,6 +140,20 @@ namespace KillerPDF.Features
         /// </summary>
         internal void Update() => UpdateCore(startup: false);
 
+        private MessageBoxResult ConfirmUpdate(string tag, bool startup)
+        {
+            var (result, checkOnStartup) = KillerDialog.ShowWithCheckbox(_host.Window,
+                string.Format(_host.Loc(startup ? "Str_StartupUpdatePrompt" : "Str_UpdatePrompt"), tag),
+                _host.Loc("Str_AlwaysCheckOnStartup"),
+                "KillerPDF", startup ? MessageBoxButton.YesNo : MessageBoxButton.OKCancel,
+                checkboxInitial: Services.ReleaseUpdateCheck.IsEnabled(
+                    App.GetSetting(Services.ReleaseUpdateCheck.Setting)));
+            App.SetSetting(Services.ReleaseUpdateCheck.Setting, checkOnStartup ? "1" : "0");
+            if (_host.Window.FindName("StartupUpdateCheck") is System.Windows.Controls.CheckBox aboutCheck)
+                aboutCheck.IsChecked = checkOnStartup;
+            return result;
+        }
+
         private async void UpdateCore(bool startup)
         {
             var tag = _updateTag;
@@ -157,10 +171,7 @@ namespace KillerPDF.Features
                     return;
                 }
 
-                var confirm = KillerDialog.Show(_host.Window,
-                    string.Format(_host.Loc(startup ? "Str_StartupUpdatePrompt" : "Str_UpdatePrompt"), tag),
-                    "KillerPDF", startup ? MessageBoxButton.YesNo : MessageBoxButton.OKCancel,
-                    MessageBoxImage.Question);
+                var confirm = ConfirmUpdate(tag, startup);
                 if (confirm != (startup ? MessageBoxResult.Yes : MessageBoxResult.OK)) return;
 
                 _host.UpdateEnabled = false;

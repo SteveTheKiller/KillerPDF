@@ -1050,4 +1050,5 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_KS_DisabledStatus">Raccourcis clavier désactivés. Appuyez sur Ctrl+Shift+K pour les activer.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Rechercher les mises à jour au démarrage</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} est disponible. Voulez-vous le télécharger et l'installer maintenant ?&#10;&#10;L'application se fermera et rouvrira automatiquement.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Toujours rechercher les mises à jour au démarrage</sys:String>
 </ResourceDictionary>

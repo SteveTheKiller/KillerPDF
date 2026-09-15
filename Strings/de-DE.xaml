@@ -1036,4 +1036,5 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_KS_DisabledStatus">Tastenkürzel deaktiviert. Zum Aktivieren Ctrl+Shift+K drücken.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Beim Start nach Updates suchen</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} ist verfügbar. Möchten Sie diese Version jetzt herunterladen und installieren?&#10;&#10;Die App wird geschlossen und automatisch neu geöffnet.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Beim Start immer nach Updates suchen</sys:String>
 </ResourceDictionary>

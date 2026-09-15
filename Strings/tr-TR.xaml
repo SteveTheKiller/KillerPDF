@@ -1030,4 +1030,5 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_KS_DisabledStatus">Klavye kısayolları devre dışı. Etkinleştirmek için Ctrl+Shift+K tuşlarına basın.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Başlangıçta güncellemeleri denetle</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} kullanılabilir. Şimdi indirip yüklemek ister misiniz?&#10;&#10;Uygulama kapanacak ve otomatik olarak yeniden açılacak.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Başlangıçta her zaman güncellemeleri denetle</sys:String>
 </ResourceDictionary>

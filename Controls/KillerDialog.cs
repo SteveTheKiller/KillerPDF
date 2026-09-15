@@ -39,11 +39,12 @@ namespace KillerPDF
             MessageBoxImage image = MessageBoxImage.None,
             bool fadeClose = true,
             string? checkboxText = null,
-            MessageBoxResult? defaultResult = null)
+            MessageBoxResult? defaultResult = null,
+            bool checkboxInitial = false)
 #pragma warning restore IDE0060
         {
             var result = MessageBoxResult.OK;
-            bool boxChecked = false;
+            bool boxChecked = checkboxInitial;
 
             var win = new Window
             {
@@ -131,6 +132,7 @@ namespace KillerPDF
             if (checkboxText is not null)
             {
                 var chk = UiKit.CheckBox(checkboxText);
+                chk.IsChecked = checkboxInitial;
                 chk.Margin = new Thickness(20, 10, 20, 4);
                 chk.Checked += (_, _2) => boxChecked = true;
                 chk.Unchecked += (_, _2) => boxChecked = false;
@@ -319,9 +321,11 @@ namespace KillerPDF
             string checkboxText,
             string title = "KillerPDF",
             MessageBoxButton buttons = MessageBoxButton.OKCancel,
-            MessageBoxResult? defaultResult = null)
+            MessageBoxResult? defaultResult = null,
+            bool checkboxInitial = false)
         {
-            var result = Show(owner, message, title, buttons, checkboxText: checkboxText, defaultResult: defaultResult);
+            var result = Show(owner, message, title, buttons, checkboxText: checkboxText,
+                defaultResult: defaultResult, checkboxInitial: checkboxInitial);
             return (result, _lastCheckboxChecked);
         }
 
