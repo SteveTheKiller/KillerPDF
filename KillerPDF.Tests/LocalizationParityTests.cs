@@ -65,7 +65,7 @@ public sealed class LocalizationParityTests
         var offenders = new List<string>();
         var allowed = new HashSet<string>(StringComparer.Ordinal)
         {
-            "KillerPDF", "Killer", "PDF", "T", "English", "Čeština", "Deutsch",
+            "KillerPDF", "Killer Tools", "Killer", "PDF", "T", "English", "Čeština", "Deutsch",
             "Español", "Français", "Magyar", "Italiano", "Polski", "Türkçe",
             "en-US", "bn", "cs-CZ", "de-DE", "es", "fr-FR", "hu-HU", "it-IT",
             "ja-JP", "kk-KZ", "pl-PL", "ru-RU", "tr-TR", "zh-CN", "zh-TW",
@@ -92,6 +92,10 @@ public sealed class LocalizationParityTests
                          @"\b(?:Text|Content|Header|ToolTip|Title)\s*=\s*(?:[^;\r\n]*\?[^:\r\n]*:\s*)?\$?""([^""\r\n]*[A-Za-z][^""\r\n]*)"""))
                 if (!IsAllowedUiLiteral(match.Groups[1].Value, allowed))
                     offenders.Add($"{Path.GetRelativePath(root, file)}: {match.Groups[1].Value}");
+            foreach (Match match in Regex.Matches(source,
+                         @"(?:new\s+(?:System\.Windows\.Documents\.)?Run|UiKit\.(?:Make|CheckBox))\s*\(\s*\$?""([^""\r\n]*[A-Za-z][^""\r\n]*)"""))
+                if (!IsAllowedUiLiteral(match.Groups[1].Value, allowed))
+                    offenders.Add($"{Path.GetRelativePath(root, file)}: {match.Groups[1].Value}");
         }
 
         Assert.True(offenders.Count == 0,
@@ -104,7 +108,8 @@ public sealed class LocalizationParityTests
         string root = Directory.GetParent(StringsDirectory)!.FullName;
         var checks = new Dictionary<string, string[]>
         {
-            ["Controls/KillerDialog.cs"] = ["MakeBtn(\"Yes\"", "MakeBtn(\"No\"", "MakeBtn(\"Cancel\""],
+            ["Controls/KillerDialog.cs"] = ["MakeBtn(\"Yes\"", "MakeBtn(\"No\"", "MakeBtn(\"Cancel\"",
+                "UiKit.Make(\"Open\"", "UiKit.Make(\"Cancel\"", "Run(\"is password protected.\")"],
             ["Shell/FileOperations.cs"] = [": \"missing\"", "\"Exporting\"", "\"Flattening\""],
             ["Shell/ContextMenu.cs"] = ["Copied 1 annotation", "Pasted 1 annotation"],
             ["Controls/Viewer/PdfViewer.Annotations.cs"] = ["Deleted selected annotation", "Selection cleared", "annotations selected - press Delete to remove"],

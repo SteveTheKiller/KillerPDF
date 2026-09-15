@@ -1033,4 +1033,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">啟動時檢查更新</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} 已推出。要立即下載並安裝嗎？&#10;&#10;應用程式將關閉並自動重新開啟。</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">啟動時一律檢查更新</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">「{0}」受密碼保護。</sys:String>
+    <sys:String x:Key="Str_About_Aka">別名</sys:String>
+    <sys:String x:Key="Str_Btn_Run">執行</sys:String>
 </ResourceDictionary>

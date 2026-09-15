@@ -1050,4 +1050,7 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_StartupUpdateCheck">Іске қосылғанда жаңартуларды тексеру</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} қолжетімді. Оны қазір жүктеп, орнатқыңыз келе ме?&#10;&#10;Қолданба автоматты түрде жабылып, қайта ашылады.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Іске қосылғанда жаңартуларды әрдайым тексеру</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">«{0}» құпиясөзбен қорғалған.</sys:String>
+    <sys:String x:Key="Str_About_Aka">Басқа аты</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Іске қосу</sys:String>
 </ResourceDictionary>

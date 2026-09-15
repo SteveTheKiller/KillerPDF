@@ -1037,4 +1037,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_StartupUpdateCheck">Beim Start nach Updates suchen</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} ist verfügbar. Möchten Sie diese Version jetzt herunterladen und installieren?&#10;&#10;Die App wird geschlossen und automatisch neu geöffnet.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Beim Start immer nach Updates suchen</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">„{0}“ ist passwortgeschützt.</sys:String>
+    <sys:String x:Key="Str_About_Aka">Auch bekannt als</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Starten</sys:String>
 </ResourceDictionary>

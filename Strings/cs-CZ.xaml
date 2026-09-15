@@ -1036,4 +1036,7 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_StartupUpdateCheck">Kontrolovat aktualizace při spuštění</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Je k dispozici KillerPDF {0}. Chcete jej nyní stáhnout a nainstalovat?&#10;&#10;Aplikace se zavře a automaticky znovu otevře.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Vždy kontrolovat aktualizace při spuštění</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">Soubor „{0}“ je chráněn heslem.</sys:String>
+    <sys:String x:Key="Str_About_Aka">Také známý jako</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Spustit</sys:String>
 </ResourceDictionary>

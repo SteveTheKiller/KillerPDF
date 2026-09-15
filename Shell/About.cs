@@ -79,7 +79,7 @@ namespace KillerPDF
             if (alias is null) return;
 
             AboutAkaBlock.Inlines.Clear();
-            AboutAkaBlock.Inlines.Add(new Run("AKA ") { Foreground = Res("MutedTextBrush") });
+            AboutAkaBlock.Inlines.Add(new Run(Loc("Str_About_Aka") + " ") { Foreground = Res("MutedTextBrush") });
             var hl = AccentLink(alias, () => AboutController.OpenUrl("https://thekiller.net"));
             hl.ToolTip = "thekiller.net";
             AboutAkaBlock.Inlines.Add(hl);

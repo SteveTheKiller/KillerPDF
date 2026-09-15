@@ -497,19 +497,22 @@ namespace KillerPDF
 
             var body = new StackPanel();
 
-            // Message: "<file>" is password protected.
+            // Keep filename emphasis while allowing each language to place it naturally.
             var msg = new TextBlock { Foreground = R("TextBrush"), FontSize = 13, TextWrapping = TextWrapping.Wrap };
-            msg.Inlines.Add(new System.Windows.Documents.Run($"“{System.IO.Path.GetFileName(filename)}” ") { FontWeight = FontWeights.SemiBold });
-            msg.Inlines.Add(new System.Windows.Documents.Run("is password protected."));
+            string template = L("Str_PasswordProtected", "“{0}” is password protected.");
+            int filenamePosition = template.IndexOf("{0}", StringComparison.Ordinal);
+            msg.Inlines.Add(new System.Windows.Documents.Run(template[..filenamePosition]));
+            msg.Inlines.Add(new System.Windows.Documents.Run(System.IO.Path.GetFileName(filename)) { FontWeight = FontWeights.SemiBold });
+            msg.Inlines.Add(new System.Windows.Documents.Run(template[(filenamePosition + 3)..]));
             body.Children.Add(new Border { Padding = new Thickness(20, 4, 20, 10), Child = msg });
 
             var pw = UiKit.PasswordField();
             body.Children.Add(new Border { Padding = new Thickness(20, 0, 20, 4), Child = pw });
 
-            var openBtn = UiKit.Make("Open", accent: true);
+            var openBtn = UiKit.Make(L("Str_Btn_Open", "Open"), accent: true);
             openBtn.IsDefault = true;
             openBtn.Click += (_, _2) => { result = pw.Password; win.Close(); };
-            var cancelBtn = UiKit.Make("Cancel", accent: false);
+            var cancelBtn = UiKit.Make(L("Str_Btn_Cancel", "Cancel"), accent: false);
             cancelBtn.IsCancel = true;
             cancelBtn.Click += (_, _2) => CloseCancel();
             body.Children.Add(new Border { Padding = new Thickness(16, 12, 16, 16), Child = UiKit.ButtonRow(openBtn, cancelBtn) });

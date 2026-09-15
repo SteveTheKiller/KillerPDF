@@ -1038,4 +1038,7 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_StartupUpdateCheck">Frissítések keresése indításkor</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Elérhető a KillerPDF {0}. Szeretnéd most letölteni és telepíteni?&#10;&#10;Az alkalmazás automatikusan bezárul és újraindul.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Mindig keressen frissítéseket indításkor</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">A(z) „{0}” jelszóval védett.</sys:String>
+    <sys:String x:Key="Str_About_Aka">Más néven</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Futtatás</sys:String>
 </ResourceDictionary>

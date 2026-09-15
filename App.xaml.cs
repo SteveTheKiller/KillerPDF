@@ -1411,7 +1411,7 @@ namespace KillerPDF
 
             content.Children.Add(new TextBlock
             {
-                Text       = $"Version {AppVersion.Display}",
+                Text       = $"{Current.TryFindResource("Str_About_Version")} {AppVersion.Display}",
                 Foreground = dimText,
                 FontSize   = 12,
                 Margin     = new Thickness(0, 2, 0, 18)
@@ -1431,7 +1431,7 @@ namespace KillerPDF
             {
                 IsChecked = true,
                 Margin    = new Thickness(0, 0, 0, 22),
-                Content   = new TextBlock { Text = Current.TryFindResource("Str_Dlg_InstallShortcut") as string ?? "Create desktop shortcut", Foreground = Brushes.White }
+                Content   = new TextBlock { Text = Current.TryFindResource("Str_Chk_Desktop") as string ?? string.Empty, Foreground = Brushes.White }
             };
             content.Children.Add(desktopChk);
 
@@ -1441,14 +1441,14 @@ namespace KillerPDF
                 HorizontalAlignment = HorizontalAlignment.Right
             };
 
-            var runBtn = UiKit.Make("Run",
+            var runBtn = UiKit.Make(Current.TryFindResource("Str_Btn_Run") as string ?? string.Empty,
                 new SolidColorBrush(Color.FromRgb(0x30, 0x30, 0x30)),
                 new SolidColorBrush(Color.FromRgb(0x16, 0x63, 0x34)),
                 Brushes.White, Brushes.White);
             runBtn.Width  = 88;
             runBtn.Margin = new Thickness(0, 0, 8, 0);
 
-            var installBtn = UiKit.Make(alreadyInstalled ? "Update" : "Install",
+            var installBtn = UiKit.Make(Current.TryFindResource(alreadyInstalled ? "Str_Btn_DoUpdate" : "Str_Btn_DoInstall") as string ?? string.Empty,
                 accent,
                 new SolidColorBrush(Color.FromRgb(0x4a, 0xf0, 0x90)),
                 new SolidColorBrush(Color.FromRgb(0x0a, 0x0a, 0x0a)),
@@ -1709,15 +1709,15 @@ namespace KillerPDF
                 Margin = new Thickness(0, 0, 0, 0)
             };
             var cardContent = new StackPanel();
-            cardContent.Children.Add(MakeRow("VERSION", $"v{version}", fgDim, accent,
+            cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Version") as string ?? string.Empty, $"v{version}", fgDim, accent,
                 onClick: () => OpenUrl($"https://github.com/SteveTheKiller/KillerPDF/releases/tag/v{version}")));
-            cardContent.Children.Add(MakeRow("PUBLISHER", sigInfo,         fgDim, fg));
-            cardContent.Children.Add(MakeRow("THUMBPRINT", thumbInfo,      fgDim, fg, mono, wrap: true));
-            cardContent.Children.Add(MakeRow("EXE SHA256", sha256,         fgDim, fg, mono, wrap: true));
+            cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Publisher") as string ?? string.Empty, sigInfo, fgDim, fg));
+            cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_Thumbprint") as string ?? string.Empty, thumbInfo, fgDim, fg, mono, wrap: true));
+            cardContent.Children.Add(MakeRow(Current.TryFindResource("Str_About_ExeSha") as string ?? string.Empty, sha256, fgDim, fg, mono, wrap: true));
             card.Child = cardContent;
 
             // Close button
-            var okBtn = UiKit.Make("Close",
+            var okBtn = UiKit.Make(Current.TryFindResource("Str_Lbl_Close") as string ?? string.Empty,
                 new SolidColorBrush(Color.FromRgb(0x1e, 0xa5, 0x4c)),
                 new SolidColorBrush(Color.FromRgb(0x17, 0x7a, 0x38)),
                 new SolidColorBrush(Colors.White),
@@ -1740,7 +1740,9 @@ namespace KillerPDF
 
             // Tagline with Killer Tools link
             var tagline = new TextBlock { FontSize = 11, Margin = new Thickness(0, 0, 0, 16) };
-            tagline.Inlines.Add(new Run("A fast, free PDF toolkit for Windows. Part of ") { Foreground = fgDim });
+            var taglineText = Current.TryFindResource("Str_Tagline") as string ?? string.Empty;
+            int brandPosition = taglineText.IndexOf("{0}", StringComparison.Ordinal);
+            tagline.Inlines.Add(new Run(brandPosition >= 0 ? taglineText[..brandPosition] : taglineText) { Foreground = fgDim });
             var ktHl = new Hyperlink(new Run("Killer Tools"))
             {
                 Foreground = accent,
@@ -1748,7 +1750,7 @@ namespace KillerPDF
             };
             ktHl.Click += (_, _) => OpenUrl("https://killertools.net");
             tagline.Inlines.Add(ktHl);
-            tagline.Inlines.Add(new Run(".") { Foreground = fgDim });
+            tagline.Inlines.Add(new Run(brandPosition >= 0 ? taglineText[(brandPosition + 3)..] : string.Empty) { Foreground = fgDim });
 
             var body = new StackPanel { Margin = new Thickness(16, 16, 16, 20) };
             body.Children.Add(logo);

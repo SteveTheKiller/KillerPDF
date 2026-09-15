@@ -1031,4 +1031,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">Buscar actualizaciones al iniciar</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} está disponible. ¿Quieres descargarlo e instalarlo ahora?&#10;&#10;La aplicación se cerrará y volverá a abrirse automáticamente.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Buscar siempre actualizaciones al iniciar</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">«{0}» está protegido con contraseña.</sys:String>
+    <sys:String x:Key="Str_About_Aka">También conocido como</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Ejecutar</sys:String>
 </ResourceDictionary>

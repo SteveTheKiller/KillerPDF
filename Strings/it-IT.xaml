@@ -1051,4 +1051,7 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_StartupUpdateCheck">Cerca aggiornamenti all'avvio</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} è disponibile. Vuoi scaricarlo e installarlo ora?&#10;&#10;L'app si chiuderà e si riaprirà automaticamente.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">Controlla sempre gli aggiornamenti all'avvio</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">“{0}” è protetto da password.</sys:String>
+    <sys:String x:Key="Str_About_Aka">Conosciuto anche come</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Esegui</sys:String>
 </ResourceDictionary>

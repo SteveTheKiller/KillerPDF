@@ -1051,4 +1051,7 @@ Windows の設定 - 既定のアプリ を開きます。</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">起動時に更新を確認する</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} が利用可能です。今すぐダウンロードしてインストールしますか？&#10;&#10;アプリは終了し、自動的に再起動します。</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">起動時に常に更新を確認する</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">「{0}」はパスワードで保護されています。</sys:String>
+    <sys:String x:Key="Str_About_Aka">別名</sys:String>
+    <sys:String x:Key="Str_Btn_Run">実行</sys:String>
 </ResourceDictionary>
