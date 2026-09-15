@@ -1023,4 +1023,9 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_Link_GoToPage">Ir a la página {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Medición no disponible</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">La reparación falló - el archivo está demasiado dañado para recuperarlo.&#10;&#10;Intente abrir el original en otra aplicación (Adobe Acrobat o un navegador), que puede ofrecer opciones adicionales de recuperación.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Activar atajos de teclado</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Activar o desactivar atajos de teclado</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Activa o desactiva todos los atajos de la aplicación. Ctrl+Shift+K siempre funciona.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Atajos de teclado activados</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Atajos de teclado desactivados. Pulsa Ctrl+Shift+K para activarlos.</sys:String>
 </ResourceDictionary>

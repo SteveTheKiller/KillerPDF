@@ -104,6 +104,8 @@ namespace KillerPDF
         // SetResourceReference calls keep every string and color live across theme + language changes.
         private void BuildShortcutsOverlay()
         {
+            KeyboardShortcutsCheck.IsChecked = KeyboardShortcutsEnabled;
+            FillKeyInlines(KeyboardShortcutsChordLabel, " (%ctrl%+%shift%+K)");
             BuildShortcutsColumn(ShortcutLeftColumn,  KsLeftColumn);
             BuildShortcutsColumn(ShortcutRightColumn, KsRightColumn);
         }

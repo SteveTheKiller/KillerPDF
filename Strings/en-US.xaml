@@ -1043,4 +1043,9 @@ Scale them to a supported size? The pages keep their look and proportions.</sys:
     <sys:String x:Key="Str_Link_GoToPage">Go to page {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Measurement unavailable</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Repair failed - the file is too severely damaged to recover.&#10;&#10;Try opening the original in a different application (Adobe Acrobat or a browser), which may have additional recovery options.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Enable keyboard shortcuts</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Toggle keyboard shortcuts</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Turn all app shortcuts on or off. Ctrl+Shift+K always works.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Keyboard shortcuts enabled</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Keyboard shortcuts disabled. Press Ctrl+Shift+K to enable them.</sys:String>
 </ResourceDictionary>

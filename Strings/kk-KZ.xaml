@@ -1042,4 +1042,9 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_Link_GoToPage">{0}-бетке өту</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Өлшеу қолжетімсіз</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Жөндеу сәтсіз аяқталды - файл қалпына келтіруге келмейтіндей қатты зақымдалған.&#10;&#10;Түпнұсқаны қосымша қалпына келтіру мүмкіндіктері бар басқа қолданбада (Adobe Acrobat немесе браузерде) ашып көріңіз.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Пернелер тіркесімін қосу</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Пернелер тіркесімін қосу немесе өшіру</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Қолданбадағы барлық пернелер тіркесімін қосу немесе өшіру. Ctrl+Shift+K әрқашан жұмыс істейді.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Пернелер тіркесімі қосулы</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Пернелер тіркесімі өшірулі. Қосу үшін Ctrl+Shift+K басыңыз.</sys:String>
 </ResourceDictionary>

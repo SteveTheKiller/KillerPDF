@@ -1030,4 +1030,9 @@ Megnyílik a Windows Beállítások - Alapértelmezett alkalmazások.</sys:Strin
     <sys:String x:Key="Str_Link_GoToPage">Ugrás a(z) {0}. oldalra</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">A mérés nem érhető el</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">A javítás nem sikerült - a fájl túl súlyosan sérült.&#10;&#10;Próbálja meg megnyitni az eredetit egy másik alkalmazásban (Adobe Acrobat vagy böngésző), amely további helyreállítási lehetőségeket kínálhat.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Billentyűparancsok engedélyezése</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Billentyűparancsok be- és kikapcsolása</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Az alkalmazás összes billentyűparancsának be- és kikapcsolása. A Ctrl+Shift+K mindig működik.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Billentyűparancsok bekapcsolva</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Billentyűparancsok kikapcsolva. A bekapcsolásukhoz nyomd meg a Ctrl+Shift+K billentyűkombinációt.</sys:String>
 </ResourceDictionary>

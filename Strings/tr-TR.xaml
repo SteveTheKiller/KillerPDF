@@ -1023,4 +1023,9 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_Link_GoToPage">{0}. sayfaya git</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Ölçüm kullanılamıyor</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Onarım başarısız oldu - dosya kurtarılamayacak kadar hasarlı.&#10;&#10;Ek kurtarma seçenekleri sunabilecek başka bir uygulamada (Adobe Acrobat veya tarayıcı) özgün dosyayı açmayı deneyin.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Klavye kısayollarını etkinleştir</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Klavye kısayollarını aç veya kapat</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Uygulamanın tüm kısayollarını açın veya kapatın. Ctrl+Shift+K her zaman çalışır.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Klavye kısayolları etkin</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Klavye kısayolları devre dışı. Etkinleştirmek için Ctrl+Shift+K tuşlarına basın.</sys:String>
 </ResourceDictionary>

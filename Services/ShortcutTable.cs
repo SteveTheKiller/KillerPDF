@@ -134,6 +134,7 @@ namespace KillerPDF
 
             B("F1 / %ctrl%+?", "Str_KS_ThisList", "Help", Cap("F1"), Cap("Ctrl:Slash")),
             B("F12",         "Str_KS_About",    "Help", Cap("F12")),
+            B("%ctrl%+%shift%+K", "Str_KS_Toggle", "Help", Cap("CtrlShift:K")),
 
             B("← / → %or% %pgup%/%pgdn%", "Str_KS_PrevNext", "Nav", Cap("Left",  "Str_Kb_PrevPage"),
                                                                     Cap("Right", "Str_Kb_NextPage"),

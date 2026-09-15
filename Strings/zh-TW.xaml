@@ -1025,4 +1025,9 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_Link_GoToPage">前往第 {0} 頁</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">無法使用測量</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">修復失敗 - 檔案損壞過於嚴重，無法復原。&#10;&#10;請嘗試使用其他應用程式 (Adobe Acrobat 或瀏覽器) 開啟原始檔案，這些應用程式可能提供其他復原選項。</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">啟用鍵盤快速鍵</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">啟用或停用鍵盤快速鍵</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">啟用或停用應用程式的所有快速鍵。Ctrl+Shift+K 一律有效。</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">鍵盤快速鍵已啟用</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">鍵盤快速鍵已停用。按 Ctrl+Shift+K 即可啟用。</sys:String>
 </ResourceDictionary>

@@ -25,6 +25,19 @@ namespace KillerPDF
         {
             base.OnPreviewKeyDown(e);
 
+            if (ShortcutTogglePolicy.IsToggle(e.Key, Keyboard.Modifiers, e.SystemKey))
+            {
+                if (!e.IsRepeat) SetKeyboardShortcutsEnabled(!KeyboardShortcutsEnabled);
+                e.Handled = true;
+                return;
+            }
+            if (!KeyboardShortcutsEnabled)
+            {
+                e.Handled = ShortcutTogglePolicy.SuppressWhenDisabled(
+                    e.Key, e.OriginalSource is TextBox or PasswordBox, e.SystemKey);
+                return;
+            }
+
             // Keyboard view of the shortcuts overlay: holding Ctrl / Shift / Alt previews that layer.
             KbSyncLayerFromModifiers();
 

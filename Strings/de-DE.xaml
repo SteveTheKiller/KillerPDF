@@ -1029,4 +1029,9 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_Link_GoToPage">Zu Seite {0} wechseln</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Messung nicht verfügbar</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Reparatur fehlgeschlagen - die Datei ist zu stark beschädigt.&#10;&#10;Versuchen Sie, das Original in einer anderen Anwendung (Adobe Acrobat oder einem Browser) zu öffnen, die möglicherweise weitere Wiederherstellungsoptionen bietet.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Tastenkürzel aktivieren</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Tastenkürzel ein- oder ausschalten</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Alle Tastenkürzel der App ein- oder ausschalten. Ctrl+Shift+K funktioniert immer.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Tastenkürzel aktiviert</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Tastenkürzel deaktiviert. Zum Aktivieren Ctrl+Shift+K drücken.</sys:String>
 </ResourceDictionary>

@@ -1028,4 +1028,9 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_Link_GoToPage">Přejít na stránku {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Měření není k dispozici</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Oprava se nezdařila - soubor je příliš poškozený.&#10;&#10;Zkuste otevřít originál v jiné aplikaci (Adobe Acrobat nebo prohlížeči), která může nabídnout další možnosti obnovení.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Povolit klávesové zkratky</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Zapnout nebo vypnout klávesové zkratky</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Zapnout nebo vypnout všechny zkratky aplikace. Ctrl+Shift+K funguje vždy.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Klávesové zkratky jsou zapnuté</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Klávesové zkratky jsou vypnuté. Zapnete je stisknutím Ctrl+Shift+K.</sys:String>
 </ResourceDictionary>

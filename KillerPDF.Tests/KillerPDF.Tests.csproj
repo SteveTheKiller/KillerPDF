@@ -64,6 +64,7 @@
          and of MainWindow so the invariants can be checked without standing up a window. -->
     <Compile Include="..\Services\ShortcutTable.cs" Link="Services\ShortcutTable.cs" />
     <Compile Include="..\Services\EditableTextShortcutPolicy.cs" Link="Services\EditableTextShortcutPolicy.cs" />
+    <Compile Include="..\Services\ShortcutTogglePolicy.cs" Link="Services\ShortcutTogglePolicy.cs" />
     <Compile Include="..\Services\PayloadIntegrityVerifier.cs" Link="Services\PayloadIntegrityVerifier.cs" />
     <Compile Include="..\Services\PrintColorConverter.cs" Link="Services\PrintColorConverter.cs" />
     <Compile Include="..\Services\PageQualityConverter.cs" Link="Services\PageQualityConverter.cs" />

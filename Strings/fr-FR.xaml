@@ -1043,4 +1043,9 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_Link_GoToPage">Aller à la page {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Mesure indisponible</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">La réparation a échoué - le fichier est trop endommagé pour être récupéré.&#10;&#10;Essayez d’ouvrir l’original dans une autre application (Adobe Acrobat ou un navigateur), qui peut proposer d’autres options de récupération.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Activer les raccourcis clavier</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Activer ou désactiver les raccourcis clavier</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Activez ou désactivez tous les raccourcis de l'application. Ctrl+Shift+K fonctionne toujours.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Raccourcis clavier activés</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Raccourcis clavier désactivés. Appuyez sur Ctrl+Shift+K pour les activer.</sys:String>
 </ResourceDictionary>

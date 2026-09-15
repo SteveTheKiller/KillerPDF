@@ -1043,4 +1043,9 @@ KillerPDF не будет создавать две установленные �
     <sys:String x:Key="Str_Link_GoToPage">Перейти на страницу {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Измерение недоступно</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Не удалось восстановить файл - он слишком сильно поврежден.&#10;&#10;Попробуйте открыть оригинал в другом приложении (Adobe Acrobat или браузере), которое может предложить дополнительные возможности восстановления.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Включить сочетания клавиш</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Включить или отключить сочетания клавиш</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Включить или отключить все сочетания клавиш приложения. Ctrl+Shift+K работает всегда.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Сочетания клавиш включены</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Сочетания клавиш отключены. Нажмите Ctrl+Shift+K, чтобы включить их.</sys:String>
 </ResourceDictionary>

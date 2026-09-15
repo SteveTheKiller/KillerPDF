@@ -527,6 +527,7 @@ namespace KillerPDF
 
         private void OutlineTree_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            if (!KeyboardShortcutsEnabled) return;
             if (e.OriginalSource is TextBox) return;   // inline rename in progress: Delete edits text, not bookmarks
             if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
             {

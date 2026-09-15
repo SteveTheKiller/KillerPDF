@@ -1043,4 +1043,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Link_GoToPage">Vai alla pagina {0}</sys:String>
     <sys:String x:Key="Str_Measurement_Unavailable">Misurazione non disponibile</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Riparazione non riuscita - il file è troppo danneggiato per essere recuperato.&#10;&#10;Prova ad aprire l’originale in un’altra applicazione (Adobe Acrobat o un browser), che potrebbe offrire ulteriori opzioni di recupero.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Abilita scorciatoie tastiera</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Attiva o disattiva scorciatoie tastiera</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Attiva o disattiva tutte le scorciatoie dell'app. Ctrl+Shift+K funziona sempre.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Scorciatoie tastiera abilitate</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Scorciatoie tastiera disabilitate. Premi Ctrl+Shift+K per abilitarle.</sys:String>
 </ResourceDictionary>

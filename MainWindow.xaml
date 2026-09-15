@@ -2916,6 +2916,16 @@
                         </StackPanel>
                     </Grid>
 
+                    <CheckBox x:Name="KeyboardShortcutsCheck" Margin="0,0,0,12"
+                              Style="{StaticResource ThemeCheck}"
+                              ToolTip="{DynamicResource Str_KS_ToggleTip}"
+                              Click="KeyboardShortcutsCheck_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{DynamicResource Str_KS_Enabled}"/>
+                            <TextBlock x:Name="KeyboardShortcutsChordLabel"/>
+                        </StackPanel>
+                    </CheckBox>
+
                     <!-- Column layout (LIST view) -->
                     <Grid x:Name="ShortcutListHost">
                         <Grid.ColumnDefinitions>
