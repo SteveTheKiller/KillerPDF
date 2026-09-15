@@ -27,6 +27,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Update WinGet validator
+        shell: pwsh
+        run: |
+          Install-Module Microsoft.WinGet.Client -Scope CurrentUser -Force -Repository PSGallery
+          Repair-WinGetPackageManager -Latest
+          winget --version
+
       - name: Install Komac
         run: |
           $headers = @{
