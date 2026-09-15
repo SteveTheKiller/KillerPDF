@@ -48,9 +48,6 @@ public static class PdfDetachedSignatureWriter
         ExistingFormField? existingField = FindField(document, tree, options.FieldName);
         if (existingField is not null)
         {
-            if (options.VisibleAppearance is not null)
-                throw new InvalidOperationException(
-                    "A custom visible appearance can only be applied to a new signature field.");
             if (!existingField.FieldType.Equals(Name("Sig")))
                 throw new InvalidOperationException(
                     $"The AcroForm field '{options.FieldName}' is not a signature field.");
@@ -104,13 +101,11 @@ public static class PdfDetachedSignatureWriter
         {
             if (existingField.Reference is not null)
                 update.ReplaceObject(existingField.Reference.ObjectNumber,
-                    ReplaceMany(existingField.Dictionary, new Dictionary<PdfName, PdfObject>
-                    {
-                        [Name("V")] = signatureReference
-                    }));
+                    FillExistingField(document, update, existingField.Dictionary,
+                        signatureReference, appearanceReference));
             PdfDictionary? replacement = existingField.Reference is null
                 ? UpdateDirectSignatureField(
-                    document, tree, update, options.FieldName, signatureReference)
+                    document, tree, update, options.FieldName, signatureReference, appearanceReference)
                 : UpdateSignatureFlags(document, tree, update);
             if (replacement is not null)
             {
@@ -184,7 +179,12 @@ public static class PdfDetachedSignatureWriter
         }
         if (catalogChanged)
             update.ReplaceObject(tree.CatalogReference.ObjectNumber, catalogReplacement);
-        byte[] prepared = update.Build(options.IncrementalWriteOptions);
+        byte[] prepared = update.Build(options.IncrementalWriteOptions
+            ?? new PdfIncrementalUpdateWriteOptions
+            {
+                CrossReferenceFormat = document.CrossReferences.Sections[0].IsStream
+                    ? PdfCrossReferenceFormat.Stream : PdfCrossReferenceFormat.Table
+            });
         FillSignature(prepared, document.Source.Length,
             signatureReference.ObjectNumber, options.ReservedSignatureSize,
             createDetachedCms, evidenceRequirements, options.SignerCertificate);
@@ -1166,12 +1166,90 @@ public static class PdfDetachedSignatureWriter
         });
     }
 
+    private static PdfDictionary FillExistingField(
+        PdfDocument document,
+        PdfIncrementalUpdateBuilder update,
+        PdfDictionary field,
+        PdfIndirectReference signatureReference,
+        PdfIndirectReference? appearanceReference)
+    {
+        PdfDictionary replacement = ReplaceMany(field, new Dictionary<PdfName, PdfObject>
+        {
+            [Name("V")] = signatureReference
+        });
+        if (appearanceReference is null) return replacement;
+
+        if (field.TryGetValue(Name("Subtype"), out PdfObject? subtype)
+            && Resolve(document, subtype) is PdfName widgetType
+            && widgetType.Equals(Name("Widget")))
+            replacement = WithAppearance(replacement);
+
+        if (field.TryGetValue(KidsName, out PdfObject? kidsValue))
+        {
+            ResolvedValue resolvedKids = ResolveWithIdentity(document, kidsValue,
+                "The signature field /Kids value");
+            PdfArray kids = resolvedKids.Value as PdfArray
+                ?? throw new InvalidOperationException("The signature field /Kids value is not an array.");
+            var rewritten = new List<PdfObject>(kids.Count);
+            bool changed = false;
+            foreach (PdfObject kid in kids)
+            {
+                ResolvedValue resolved = ResolveWithIdentity(document, kid,
+                    "A signature widget");
+                PdfDictionary widget = resolved.Value as PdfDictionary
+                    ?? throw new InvalidOperationException("A signature widget is not a dictionary.");
+                if (!widget.ContainsKey(FieldNameName)
+                    && widget.TryGetValue(Name("Subtype"), out PdfObject? type)
+                    && Resolve(document, type) is PdfName name && name.Equals(Name("Widget")))
+                {
+                    PdfDictionary updated = WithAppearance(widget);
+                    if (resolved.FinalReference is { } reference)
+                        update.ReplaceObject(reference.ObjectNumber, updated);
+                    else
+                    {
+                        rewritten.Add(updated);
+                        changed = true;
+                        continue;
+                    }
+                }
+                rewritten.Add(kid);
+            }
+            if (changed)
+            {
+                var updatedKids = new PdfArray(rewritten);
+                if (resolvedKids.FinalReference is { } reference)
+                    update.ReplaceObject(reference.ObjectNumber, updatedKids);
+                else
+                    replacement = ReplaceMany(replacement, new Dictionary<PdfName, PdfObject>
+                    {
+                        [KidsName] = updatedKids
+                    });
+            }
+        }
+        return replacement;
+
+        PdfDictionary WithAppearance(PdfDictionary widget)
+        {
+            PdfDictionary appearances = widget.TryGetValue(Name("AP"), out PdfObject? value)
+                ? ResolveDictionary(document, value, "The signature widget /AP value")
+                : new PdfDictionary([]);
+            return ReplaceMany(widget, new Dictionary<PdfName, PdfObject>
+            {
+                [Name("AP")] = ReplaceMany(appearances, new Dictionary<PdfName, PdfObject>
+                {
+                    [Name("N")] = appearanceReference
+                })
+            });
+        }
+    }
+
     private static PdfDictionary? UpdateDirectSignatureField(
         PdfDocument document,
         PdfPageTree tree,
         PdfIncrementalUpdateBuilder update,
         string targetName,
-        PdfIndirectReference signatureReference)
+        PdfIndirectReference signatureReference,
+        PdfIndirectReference? appearanceReference)
     {
         PdfObject formValue = tree.Catalog[AcroFormName];
         ResolvedValue resolvedForm = ResolveWithIdentity(
@@ -1262,10 +1340,8 @@ public static class PdfDetachedSignatureWriter
             bool found = reference is null && definesName && fullName == targetName;
             bool changed = found;
             PdfDictionary replacement = found
-                ? ReplaceMany(field, new Dictionary<PdfName, PdfObject>
-                {
-                    [Name("V")] = signatureReference
-                }) : field;
+                ? FillExistingField(document, update, field, signatureReference, appearanceReference)
+                : field;
             if (field.TryGetValue(KidsName, out PdfObject? kidsValue))
             {
                 RewriteResult kids = RewriteArray(kidsValue, fullName, fieldType, depth + 1);

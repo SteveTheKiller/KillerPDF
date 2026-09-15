@@ -33,7 +33,7 @@ public sealed record PdfSignatureOptions
     public PdfSignatureDocumentLockIntent? DocumentLockIntent { get; init; }
     /// <summary>Gets the selected named signature appearance.</summary>
     public string? AppearanceName { get; init; }
-    /// <summary>Gets the optional visible appearance for a newly created signature field.</summary>
+    /// <summary>Gets the optional visible appearance for the target signature widgets.</summary>
     public PdfSignatureAppearance? VisibleAppearance { get; init; }
     /// <summary>DER-encoded end-entity certificate used by the detached CMS callback.</summary>
     public ReadOnlyMemory<byte> SignerCertificate { get; init; }
@@ -48,11 +48,15 @@ public sealed record PdfSignatureOptions
     /// <summary>
     /// Optional structural policy for the signature revision. The signature dictionary remains
     /// direct and patchable even when other eligible revision objects are packed.
+    /// When omitted, the signature preserves the latest source cross-reference format.
     /// </summary>
     public PdfIncrementalUpdateWriteOptions? IncrementalWriteOptions { get; init; }
 }
 
-/// <summary>Describes a visible text appearance for a new signature widget.</summary>
+/// <summary>
+/// Describes a visible text appearance. Existing widgets retain their page rectangles and
+/// scale the appearance to fit; position and dimensions place newly created widgets.
+/// </summary>
 public sealed record PdfSignatureAppearance
 {
     /// <summary>Gets the left edge in unrotated PDF page coordinates.</summary>
