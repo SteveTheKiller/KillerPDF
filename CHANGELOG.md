@@ -96,10 +96,28 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.5] - 2026-09-14
 
-1.8.5 adds a headless page-render benchmark command.
+1.8.5 improves saving, signatures, installation, and keyboard controls, and adds optional startup update checks.
+
+### Fixed
+
+- Completed remaining dialog and installer translations and refreshed the website guides.
+- Moved the keyboard shortcut toggle to the footer beside the online guide.
+- Evenly spaced About options, moved startup update checks to the bottom, and aligned Clear all Data with the top row.
+- Corrected WinGet release manifests to run the installer and include the required desktop runtime (#386).
+- Kept scroll and manual zoom settings independent between document tabs and restored them when reopening files (#399).
+- Kept selected-page transforms when retained pages contain inconsistent font-width metadata.
+- Standalone uninstall dialogs use the default Dark/Green theme, and installation errors use themed dialogs.
+- Localized the document page count and Italian certificate label, and included the add-bookmark row when sizing the sidebar (#394).
+- Used the destination monitor when calculating maximized client bounds during a cross-monitor move (#363).
+- Refreshed legacy PDF file associations to open the installed app instead of the installer (#393).
+- Corrected Italian translations (#395). (Thanks @bovirus)
+- Restored saving markup to tagged PDFs while preserving their structure, and finished markup processing before overwriting the destination.
 
 ### Added
 
+- Added startup update checks, enabled by default, with confirmation before updating and a shared toggle in About and the update dialog.
+- Added Ctrl+R and Ctrl+Shift+R to rotate selected pages clockwise and counterclockwise.
+- Added a keyboard shortcut toggle with an always-available Ctrl+Shift+K recovery chord (#405).
 - Added page size selection with current-page, Letter, A4, Legal, and custom dimensions when inserting blank pages (#400).
 - Added Open Containing Folder to document tab menus (#399).
 - Added a `--batch-render` command that renders pages of a file or tree to PNG with a per-page timing log.
