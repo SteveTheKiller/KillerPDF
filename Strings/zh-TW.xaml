@@ -1030,4 +1030,6 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_KS_ToggleTip">啟用或停用應用程式的所有快速鍵。Ctrl+Shift+K 一律有效。</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">鍵盤快速鍵已啟用</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">鍵盤快速鍵已停用。按 Ctrl+Shift+K 即可啟用。</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">啟動時檢查更新</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} 已推出。要立即下載並安裝嗎？&#10;&#10;應用程式將關閉並自動重新開啟。</sys:String>
 </ResourceDictionary>

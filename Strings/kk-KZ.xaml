@@ -1047,4 +1047,6 @@ Windows параметрлері - Әдепкі қолданбалар ашыл�
     <sys:String x:Key="Str_KS_ToggleTip">Қолданбадағы барлық пернелер тіркесімін қосу немесе өшіру. Ctrl+Shift+K әрқашан жұмыс істейді.</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">Пернелер тіркесімі қосулы</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Пернелер тіркесімі өшірулі. Қосу үшін Ctrl+Shift+K басыңыз.</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">Іске қосылғанда жаңартуларды тексеру</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} қолжетімді. Оны қазір жүктеп, орнатқыңыз келе ме?&#10;&#10;Қолданба автоматты түрде жабылып, қайта ашылады.</sys:String>
 </ResourceDictionary>

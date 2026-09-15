@@ -60,7 +60,8 @@ namespace KillerPDF
 
         bool IAboutHost.UpdateEnabled { set => AboutUpdateButton.IsEnabled = value; }
 
-        bool IAboutHost.IsDirty => _isDirty;
+        bool IAboutHost.IsDirty => Viewer.IsDirtyRef || ViewerB.IsDirtyRef
+            || AllSessions().Any(session => session.IsDirty);
 
         string? IAboutHost.FileToReopen => _originalFile ?? _currentFile;
 
@@ -98,6 +99,8 @@ namespace KillerPDF
 
         private void BuildAboutStaticContent()
         {
+            StartupUpdateCheck.IsChecked = Services.ReleaseUpdateCheck.IsEnabled(
+                App.GetSetting(Services.ReleaseUpdateCheck.Setting));
             // Reuse the main window's film-grain texture on the About card.
             if (GrainBrush?.ImageSource != null) AboutGrainBrush.ImageSource = GrainBrush.ImageSource;
 
@@ -210,6 +213,10 @@ namespace KillerPDF
             => CloseAboutOverlay();
 
         private void AboutUpdateButton_Click(object sender, RoutedEventArgs e) => About.Update();
+
+        private void StartupUpdateCheck_Click(object sender, RoutedEventArgs e)
+            => App.SetSetting(Services.ReleaseUpdateCheck.Setting,
+                StartupUpdateCheck.IsChecked == true ? "1" : "0");
 
         /// <summary>
         /// "Clear all Data" footer link: wipes settings, downloaded OCR language packs, and temp

@@ -1036,4 +1036,6 @@ Przeskalować je do obsługiwanego rozmiaru? Strony zachowują swój wygląd i p
     <sys:String x:Key="Str_KS_ToggleTip">Włącz lub wyłącz wszystkie skróty aplikacji. Ctrl+Shift+K zawsze działa.</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">Skróty klawiaturowe włączone</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Skróty klawiaturowe wyłączone. Naciśnij Ctrl+Shift+K, aby je włączyć.</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">Sprawdzaj aktualizacje przy uruchamianiu</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Dostępny jest KillerPDF {0}. Czy chcesz go teraz pobrać i zainstalować?&#10;&#10;Aplikacja zamknie się i otworzy ponownie automatycznie.</sys:String>
 </ResourceDictionary>

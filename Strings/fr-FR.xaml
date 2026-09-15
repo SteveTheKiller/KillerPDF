@@ -1048,4 +1048,6 @@ Les redimensionner à une taille prise en charge ? Les pages conservent leur app
     <sys:String x:Key="Str_KS_ToggleTip">Activez ou désactivez tous les raccourcis de l'application. Ctrl+Shift+K fonctionne toujours.</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">Raccourcis clavier activés</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Raccourcis clavier désactivés. Appuyez sur Ctrl+Shift+K pour les activer.</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">Rechercher les mises à jour au démarrage</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} est disponible. Voulez-vous le télécharger et l'installer maintenant ?&#10;&#10;L'application se fermera et rouvrira automatiquement.</sys:String>
 </ResourceDictionary>

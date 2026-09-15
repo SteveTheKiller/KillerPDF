@@ -1033,4 +1033,6 @@ Změnit jejich velikost na podporovanou? Stránky si zachovají vzhled i proporc
     <sys:String x:Key="Str_KS_ToggleTip">Zapnout nebo vypnout všechny zkratky aplikace. Ctrl+Shift+K funguje vždy.</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">Klávesové zkratky jsou zapnuté</sys:String>
     <sys:String x:Key="Str_KS_DisabledStatus">Klávesové zkratky jsou vypnuté. Zapnete je stisknutím Ctrl+Shift+K.</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">Kontrolovat aktualizace při spuštění</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Je k dispozici KillerPDF {0}. Chcete jej nyní stáhnout a nainstalovat?&#10;&#10;Aplikace se zavře a automaticky znovu otevře.</sys:String>
 </ResourceDictionary>

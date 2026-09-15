@@ -29,6 +29,8 @@ namespace KillerPDF.Features
 
         /// <summary>"vX.Y.Z" of the available update, set by the update check. Null until one is found.</summary>
         private string? _updateTag;
+        private bool _startupCheckStarted;
+        private bool _updateInProgress;
 
         internal AboutController(IAboutHost host) => _host = host;
 
@@ -96,39 +98,37 @@ namespace KillerPDF.Features
 
         // ---- Update check --------------------------------------------------------------------
 
-        /// <summary>
-        /// Quietly checks GitHub for a newer release when the About card opens. Runs only on demand
-        /// (no background service), times out fast, and silently does nothing if there is no
-        /// internet or the request fails. Shows the update button only if a newer tag exists.
-        /// </summary>
-        private async void CheckForUpdateAsync(System.Version? current)
+        /// <summary>Checks for stable releases without a background service.</summary>
+        private async void CheckForUpdateAsync(System.Version? current, bool startup = false)
         {
-            if (current is null) return;
+            if (current is null || _updateInProgress) return;
+            if (startup && !Services.ReleaseUpdateCheck.IsEnabled(
+                    App.GetSetting(Services.ReleaseUpdateCheck.Setting))) return;
             try
             {
                 using var http = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(4) };
-                http.DefaultRequestHeaders.UserAgent.ParseAdd("KillerPDF-UpdateCheck");
-                var json = await http.GetStringAsync($"{Repo.Replace("github.com", "api.github.com/repos")}/releases/latest")
+                string? tag = await Services.ReleaseUpdateCheck.FindNewerReleaseAsync(http, current)
                     .ConfigureAwait(true);
+                if (tag is null || _updateInProgress) return;
 
-                using var doc = System.Text.Json.JsonDocument.Parse(json);
-                if (!doc.RootElement.TryGetProperty("tag_name", out var tagEl)) return;
-                var tag = tagEl.GetString();
-                if (string.IsNullOrWhiteSpace(tag)) return;
-                // System.Version spelled out: this class has a string property called Version, which
-                // shadows the type in expression position, so a bare "Version.TryParse" binds to
-                // string.TryParse and does not compile.
-                if (!System.Version.TryParse(tag!.TrimStart('v', 'V').Trim(), out var latest)) return;
-
-                var cur = new System.Version(current.Major, current.Minor, current.Build < 0 ? 0 : current.Build);
-                var lat = new System.Version(latest.Major, latest.Minor, latest.Build < 0 ? 0 : latest.Build);
-                if (lat <= cur) return;
-
-                _updateTag = $"v{lat.ToString(3)}";
-                _host.UpdateText    = string.Format(_host.Loc("Str_UpdateAvailable"), _updateTag);
+                _updateTag = tag;
+                _host.UpdateText = string.Format(_host.Loc("Str_UpdateAvailable"), tag);
                 _host.UpdateVisible = true;
+                if (startup && Services.ReleaseUpdateCheck.IsEnabled(
+                        App.GetSetting(Services.ReleaseUpdateCheck.Setting))
+                    && _host.Window.IsLoaded && _host.Window.IsVisible
+                    && _host.Window.OwnedWindows.Count == 0)
+                    UpdateCore(startup: true);
             }
-            catch { /* offline, timeout, or API error - quietly do nothing */ }
+            catch { /* closing, offline, or unavailable UI: leave the next check to About */ }
+        }
+
+        internal void CheckOnStartup()
+        {
+            if (_startupCheckStarted) return;
+            _startupCheckStarted = true;
+            CheckForUpdateAsync(System.Reflection.Assembly.GetExecutingAssembly().GetName().Version,
+                startup: true);
         }
 
         // ---- Self-update ---------------------------------------------------------------------
@@ -138,42 +138,57 @@ namespace KillerPDF.Features
         /// copies hand it the same payload-based install command used by a manual upgrade; portable
         /// copies replace their original launcher after both launcher and inner app have exited.
         /// </summary>
-        internal async void Update()
+        internal void Update() => UpdateCore(startup: false);
+
+        private async void UpdateCore(bool startup)
         {
             var tag = _updateTag;
-            if (string.IsNullOrEmpty(tag)) return;
+            if (string.IsNullOrEmpty(tag) || _updateInProgress) return;
 
-            if (_host.IsDirty)
+            _updateInProgress = true;
+            string? newExe = null;
+            try
             {
-                KillerDialog.Show(_host.Window, _host.Loc("Str_Dlg_SaveBeforeUpdate"),
-                    "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                if (_host.IsDirty)
+                {
+                    if (!startup)
+                        KillerDialog.Show(_host.Window, _host.Loc("Str_Dlg_SaveBeforeUpdate"),
+                            "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var confirm = KillerDialog.Show(_host.Window,
+                    string.Format(_host.Loc(startup ? "Str_StartupUpdatePrompt" : "Str_UpdatePrompt"), tag),
+                    "KillerPDF", startup ? MessageBoxButton.YesNo : MessageBoxButton.OKCancel,
+                    MessageBoxImage.Question);
+                if (confirm != (startup ? MessageBoxResult.Yes : MessageBoxResult.OK)) return;
+
+                _host.UpdateEnabled = false;
+                _host.UpdateText = _host.Loc("Str_UpdateDownloading");
+                newExe = await DownloadVerifiedAsync(tag).ConfigureAwait(true);
+                if (newExe is null)
+                {
+                    OpenUrl($"{Repo}/releases/latest");
+                    return;
+                }
+
+                // Documents can change while the download is in flight.
+                if (!_host.Window.IsLoaded) return;
+                if (_host.IsDirty)
+                {
+                    KillerDialog.Show(_host.Window, _host.Loc("Str_Dlg_SaveBeforeUpdate"),
+                        "KillerPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                if (LaunchSwapAndExit(newExe)) newExe = null;
             }
-
-            var confirm = KillerDialog.Show(_host.Window,
-                string.Format(_host.Loc("Str_UpdatePrompt"), tag),
-                "KillerPDF", MessageBoxButton.OKCancel, MessageBoxImage.Question);
-            if (confirm != MessageBoxResult.OK) return;
-
-            _host.UpdateEnabled = false;
-            _host.UpdateText    = _host.Loc("Str_UpdateDownloading");
-
-            string? newExe = await DownloadVerifiedAsync(tag!).ConfigureAwait(true);
-            if (newExe is null)
+            finally
             {
-                // Offline, timed out, or verification failed: restore the button and open the
-                // releases page so the user can update manually.
+                if (newExe is not null)
+                    try { File.Delete(newExe); } catch { }
+                _updateInProgress = false;
                 _host.UpdateEnabled = true;
-                _host.UpdateText    = string.Format(_host.Loc("Str_UpdateAvailable"), tag);
-                OpenUrl($"{Repo}/releases/latest");
-                return;
-            }
-
-            if (!LaunchSwapAndExit(newExe))
-            {
-                try { if (File.Exists(newExe)) File.Delete(newExe); } catch { }
-                _host.UpdateEnabled = true;
-                _host.UpdateText    = string.Format(_host.Loc("Str_UpdateAvailable"), tag);
+                _host.UpdateText = string.Format(_host.Loc("Str_UpdateAvailable"), tag);
             }
         }
 
