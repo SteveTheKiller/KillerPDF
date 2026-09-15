@@ -40,7 +40,7 @@ $utf8 = New-Object System.Text.UTF8Encoding($false)
 # select a user install, so this machine-scoped manifest advertises silent modes only.
 $installer = @"
 # Created by the KillerPDF release workflow
-# yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.12.0.schema.json
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
 
 PackageIdentifier: SteveTheKiller.KillerPDF
 PackageVersion: $version
@@ -68,11 +68,11 @@ Installers:
   InstallerUrl: $url
   InstallerSha256: $hash
 ManifestType: installer
-ManifestVersion: 1.12.0
+ManifestVersion: 1.9.0
 "@
 $locale = @"
 # Created by the KillerPDF release workflow
-# yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.12.0.schema.json
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
 
 PackageIdentifier: SteveTheKiller.KillerPDF
 PackageVersion: $version
@@ -89,17 +89,17 @@ ShortDescription: PDF editor for Windows. No account, no subscription, no teleme
 Moniker: killerpdf
 ReleaseNotesUrl: https://github.com/SteveTheKiller/KillerPDF/releases/tag/$Tag
 ManifestType: defaultLocale
-ManifestVersion: 1.12.0
+ManifestVersion: 1.9.0
 "@
 $manifest = @"
 # Created by the KillerPDF release workflow
-# yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.12.0.schema.json
+# yaml-language-server: `$schema=https://aka.ms/winget-manifest.version.1.9.0.schema.json
 
 PackageIdentifier: SteveTheKiller.KillerPDF
 PackageVersion: $version
 DefaultLocale: en-US
 ManifestType: version
-ManifestVersion: 1.12.0
+ManifestVersion: 1.9.0
 "@
 [IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.installer.yaml'), ($installer -replace '\r?\n', "`r`n"), $utf8)
 [IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.locale.en-US.yaml'), ($locale -replace '\r?\n', "`r`n"), $utf8)
