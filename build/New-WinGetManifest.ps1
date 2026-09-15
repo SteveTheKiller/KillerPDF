@@ -101,7 +101,7 @@ DefaultLocale: en-US
 ManifestType: version
 ManifestVersion: 1.12.0
 "@
-[IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.installer.yaml'), $installer, $utf8)
-[IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.locale.en-US.yaml'), $locale, $utf8)
-[IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.yaml'), $manifest, $utf8)
+[IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.installer.yaml'), ($installer -replace '\r?\n', "`r`n"), $utf8)
+[IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.locale.en-US.yaml'), ($locale -replace '\r?\n', "`r`n"), $utf8)
+[IO.File]::WriteAllText((Join-Path $directory 'SteveTheKiller.KillerPDF.yaml'), ($manifest -replace '\r?\n', "`r`n"), $utf8)
 Write-Host "Generated WinGet manifests for $Tag with SHA256 $hash in $directory"
