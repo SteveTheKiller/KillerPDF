@@ -255,14 +255,50 @@
   var langToggle = document.getElementById('langToggle');
   var langMenu = document.getElementById('langMenu');
 
+  var labelKeys = {"Theme":"ui_Theme","Language":"ui_Language","Dark":"ui_Theme_Dark","Light":"ui_Theme_Light","Black":"ui_Theme_Black","Blood":"ui_Theme_Blood","Greed":"ui_Theme_Greed","Cyanotic":"ui_Theme_Cyanotic","98SE":"ui_Theme_98SE","Ectoplasm":"ui_Theme_Ectoplasm","Decay":"ui_Theme_Decay","Mourning":"ui_Theme_Mourning","Sepulchre":"ui_Theme_Sepulchre","Delirium":"ui_Theme_Delirium","Malaise":"ui_Theme_Malaise","Close":"ui_Lbl_Close","Ctrl":"ui_Key_Ctrl","Alt":"ui_Key_Alt","Shift":"ui_Key_Shift","Delete":"ui_Key_Delete","Enter":"ui_Key_Enter","Esc":"ui_Key_Esc","Menu":"ui_Key_Menu","Home":"ui_Key_Home","End":"ui_Key_End","PgUp":"ui_Key_PgUp","PgDn":"ui_Key_PgDn","Tab":"ui_Key_Tab","Scroll":"ui_Key_Scroll","Click":"ui_Key_Click","or":"ui_Key_Or","Wheel on view":"ui_Key_WheelView","Wheel on logo":"ui_Key_WheelLogo","Middle drag":"ui_Key_MiddleDrag","Space + drag":"ui_Key_SpaceDrag","Accent color":"ui_extra_0","Red":"ui_extra_1","Orange":"ui_extra_2","Green":"ui_extra_3","Teal":"ui_extra_4","Blue":"ui_extra_5","Purple":"ui_extra_6","Previous feature":"ui_extra_7","Next feature":"ui_extra_8","Choose a feature":"ui_extra_9","Expanded KillerPDF screenshot":"ui_extra_10","version":"ui_extra_11","released":"ui_extra_12","size":"ui_extra_13","platform":"ui_extra_14","BASE":"ui_extra_15","Choose theme":"ui_Theme","High Contrast":"ui_Theme_Black","KillerPDF features":"features_h"};
+  function translateLabels(dict) {
+    labelKeys['Corpus figures'] = 'corpus_stats_aria';
+    function lookup(text) {
+      var key = labelKeys[text];
+      return key && dict[key] != null ? dict[key] : text;
+    }
+    document.querySelectorAll('[title], [aria-label], [alt]').forEach(function (node) {
+      ['title', 'aria-label', 'alt'].forEach(function (attribute) {
+        var saved = 'data-en-' + attribute;
+        var original = node.getAttribute(saved) || node.getAttribute(attribute);
+        if (!original || !labelKeys[original]) return;
+        node.setAttribute(saved, original);
+        node.setAttribute(attribute, lookup(original));
+      });
+    });
+    document.querySelectorAll('.kbd-row .k').forEach(function (node) {
+      var original = node.getAttribute('data-en-keys') || node.textContent;
+      node.setAttribute('data-en-keys', original);
+      var direct = lookup(original);
+      node.textContent = direct !== original ? direct : original.replace(
+        /\b(?:Ctrl|Shift|Alt|Delete|Enter|Escape|Menu|Home|End|PgUp|PgDn|Tab|Scroll|Click|or|previous)\b/g,
+        function (token) {
+          if (token === 'previous') return dict.kb_previous_result || token;
+          return lookup(token === 'Escape' ? 'Esc' : token);
+        });
+    });
+  }
+  var englishTitle = document.title;
   function applyLang(lang) {
     if (LANGS.indexOf(lang) < 0) lang = 'en';
     root.setAttribute('lang', lang === 'zh' ? 'zh-Hant' : (lang === 'zh-cn' ? 'zh-Hans' : lang));
     var dict = (lang === 'en') ? EN : (I18N[lang] || {});
+    var pageName = window.location.pathname.split('/').pop();
+    var titleKey = pageName === 'help.html' ? 'nav_help' :
+      (pageName === 'technical.html' ? 'nav_tech' : null);
+    if (lang === 'en') document.title = englishTitle;
+    else if (titleKey && dict[titleKey]) document.title = 'KillerPDF | ' + dict[titleKey];
+    else if (!pageName || pageName === 'index.html') document.title = 'KillerPDF';
     document.querySelectorAll('[data-i18n]').forEach(function (n) {
       var k = n.getAttribute('data-i18n');
       n.innerHTML = normalizeCurrentFacts(k, (dict && dict[k] != null) ? dict[k] : EN[k]);
     });
+    translateLabels(dict);
     langItems.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.lang === lang ? 'true' : 'false'); });
     if (langToggle) langToggle.innerHTML = FLAGS[lang] || FLAGS.en;
     try { localStorage.setItem('kpdf-lang', lang); } catch (e) {}

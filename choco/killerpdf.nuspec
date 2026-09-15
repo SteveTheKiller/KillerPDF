@@ -16,11 +16,11 @@
     <bugTrackerUrl>https://github.com/SteveTheKiller/KillerPDF/issues</bugTrackerUrl>
     <tags>pdf viewer editor annotate merge split sign ocr cli portable</tags>
     <summary>Open-source PDF editor for Windows with text editing, OCR, annotations, signatures, forms and page organization.</summary>
-    <description>PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or a phone-home.
+    <description>PDF editor for Windows. View, annotate, OCR, merge, split, edit text, draw, sign, fill forms, print, flatten, and open password-protected PDFs without an Adobe subscription or telemetry.
 
 **Features:**
 
-- High-quality rendering via PDFium
+- PDF rendering and text extraction through The KillerPDF.Engine
 - Four view modes (Single, Continuous, Two-Page, Grid) and tabbed documents, each restoring its page, zoom, and view mode; split pane (F10) shows two documents side by side
 - Inline text editing with font matching against the original document
 - Text boxes, freehand drawing, straight lines, and highlights, with a full RGB color picker and screen eyedropper
@@ -35,8 +35,9 @@
 - Full-text search across the entire document with result highlighting
 - Undo and redo across annotations, page operations, and document edits, plus browser-style jump history (Alt+arrows)
 - Print with a real in-app preview (scale, position, margins, pages-per-sheet, two-sided); Save Flattened to make a page uneditable
-- Six themes with per-theme accent colors; localized in ten languages
-- Keyboard shortcut overlay (F1) with a list view and a visual keyboard view, color-coded by category
+- Thirteen themes with per-theme accent colors; localized in fifteen languages
+- Keyboard shortcut overlay (F1) with list and keyboard views, plus a shortcut toggle and an always-available Ctrl+Shift+K recovery chord
+- Optional startup update checks, enabled by default, with confirmation before downloading or installing
 - Separate compact installer and self-contained portable downloads; the installed build uses the .NET 10 Desktop Runtime
 - GPLv3, local-only, no account, no telemetry
     </description>

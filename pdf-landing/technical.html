@@ -51,7 +51,7 @@
 </defs></svg>
 
 <div class="topbar">
-<a href="index.html" class="tb-home" title="KillerPDF home">
+<a href="index.html" class="tb-home" title="KillerPDF">
 <img class="tb-icon" src="kp-icon.png" alt="KillerPDF" width="44" height="44">
 <img class="wm-logo tb-wm" src="brand/killerpdf-logo-dark-green.svg" alt="KillerPDF">
 </a>
@@ -124,7 +124,7 @@
 <a href="#temp-files" class="sub" data-i18n="pt_50">Temp files</a>
 <a href="#clear-all-data" class="sub" data-i18n="pt_52">Clear all data</a>
 <a href="#arch" data-i18n="pt_6">Architecture</a>
-<a href="#source-size" class="sub">Source size</a>
+<a href="#source-size" class="sub" data-i18n="pt_219">Source size</a>
 <a href="#two-render-pipelines" class="sub" data-i18n="pt_56">Two render pipelines</a>
 <a href="#per-tab-sessions-an-lru-cache" class="sub" data-i18n="pt_58">Per-tab sessions &amp; an LRU cache</a>
 <a href="#canvas-overlay-maps" class="sub" data-i18n="pt_60">Canvas &amp; overlay maps</a>
@@ -143,13 +143,13 @@
 <a href="#why-structural-edits-reload" class="sub" data-i18n="pt_106">Why structural edits reload</a>
 <a href="#robust" data-i18n="pt_12">Robustness</a>
 <a href="#the-open-fallback-ladder" class="sub" data-i18n="pt_110">The open fallback ladder</a>
-<a href="#encryption-is-stripped-at-open" class="sub">Encryption and permissions</a>
+<a href="#encryption-is-stripped-at-open" class="sub" data-i18n="pt_221">Encryption and permissions</a>
 <a href="#network-and-partial-reads" class="sub" data-i18n="pt_126">Network and partial reads</a>
 <a href="#repair-works-on-a-copy" class="sub" data-i18n="pt_128">Repair works on a copy</a>
 <a href="#conformance" data-i18n="pt_conf_1">Standards conformance</a>
 <a href="#how-the-test-works" class="sub" data-i18n="pt_conf_2">How the test works</a>
 <a href="#the-numbers" class="sub" data-i18n="pt_conf_3">The numbers</a>
-<a href="#patching-the-write-engine" class="sub">Owning the document engine</a>
+<a href="#patching-the-write-engine" class="sub" data-i18n="pt_236">Owning the document engine</a>
 <a href="#i18n" data-i18n="pt_13">Localization</a>
 <a href="#captions-and-tooltips-are-separate-strings" class="sub" data-i18n="pt_132">Captions and tooltips are separate strings</a>
 <a href="#specs" data-i18n="pt_14">Constants</a>
@@ -170,11 +170,11 @@
 <h2 data-i18n="pt_16">Tech stack</h2>
 <p data-i18n="pt_217">KillerPDF is a native Windows application built on modern .NET. There is no Electron and no browser engine. The installed edition uses the .NET 10 Desktop Runtime; the portable edition carries its own runtime. Each major subsystem has a deliberately narrow job:</p>
 <table class="spec-table"><tr><th data-i18n="pt_18">Component</th><th data-i18n="pt_19">Library</th></tr>
-<tr><td>UI</td><td>WPF on .NET 10 for Windows, x64, with custom window chrome</td></tr>
+<tr><td>UI</td><td data-i18n="tech_ui_stack">WPF on .NET 10 for Windows, x64, with custom window chrome</td></tr>
 <tr><td data-i18n="pt_22">Rendering</td><td data-i18n="pt_23">PDFium via Docnet.Core 2.6 - every page bitmap and thumbnail</td></tr>
 <tr><td data-i18n="pt_24">Text</td><td data-i18n="pt_25">PdfPig 0.1.15 - search, selection, font sniffing</td></tr>
-<tr><td>Document engine</td><td><a href="./engine/index.html">The KillerPDF.Engine</a> - parsing, authoring, preservation, page operations, forms, annotations, encryption, signatures, PDF 2.0, PDF/A and PDF/UA</td></tr>
-<tr><td>Signing</td><td>The KillerPDF.Engine - byte-preserving detached CMS signatures, certification permissions, field locks and verification</td></tr>
+<tr><td data-i18n="tech_document_engine">Document engine</td><td data-i18n="tech_document_stack"><a href="./engine/index.html">The KillerPDF.Engine</a>: parsing, authoring, preservation, page operations, forms, annotations, encryption, signatures, PDF 2.0, PDF/A and PDF/UA</td></tr>
+<tr><td data-i18n="tech_signing">Signing</td><td data-i18n="tech_signing_stack">The KillerPDF.Engine: byte-preserving detached CMS signatures, certification permissions, field locks and verification</td></tr>
 <tr><td data-i18n="pt_30">OCR</td><td data-i18n="pt_31">Tesseract 5.2 - native libs embedded, language packs on demand</td></tr>
 <tr><td data-i18n="pt_32">Packaging</td><td data-i18n="pt_33">A compact framework-dependent installer and a self-contained portable launcher, each carrying a compressed, SHA-256-verified payload</td></tr>
 </table>
@@ -182,6 +182,9 @@
 
 <div class="tech-sec" id="install">
 <h2 data-i18n="pt_34">Install, folders &amp; data</h2>
+<h3 data-i18n="release_185_heading">In 1.8.5</h3>
+<p data-i18n="release_185_updates">KillerPDF checks GitHub for newer stable versions at startup by default and asks before installing an update. Always check on startup in the confirmation dialog shares the About setting and saves your choice even if you decline the update. There is no separate background service.</p>
+<p data-i18n="release_185_shortcuts">At the bottom of the shortcut list, you can turn off all application keyboard shortcuts. Ctrl+Shift+K always works to turn them on or off, even when the others are disabled.</p>
 <p data-i18n="pt_35">KillerPDF ships in two forms. The compact installer is the standard download and supports per-user or all-users installation. The larger portable edition contains its own runtime and runs from anywhere without installation.</p>
 <h3 id="what-the-installer-does" data-i18n="pt_36">What the installer does</h3>
 <p data-i18n="pt_37">The installer verifies and extracts the framework-dependent application to <code>%LOCALAPPDATA%\Programs\KillerPDF\</code>, or to <code>%ProgramFiles%\KillerPDF\</code> after an elevation prompt for all users. Installed shortcuts launch <code>KillerPDF.App.exe</code> directly. The portable edition verifies and extracts its self-contained payload for the current run. Installed copies register the PDF handler and <code>killerpdf:</code> protocol at the matching scope and create an Add/Remove Programs entry.</p>
@@ -438,7 +441,7 @@
 <tr><td data-i18n="pt_145">Render-cache tabs (LRU)</td><td data-i18n="pt_146_172">3 most-recently-used; ~160 MB per tab; 48-entry hard cap</td></tr>
 <tr><td data-i18n="pt_147">Folder / zip import cap</td><td data-i18n="pt_148">50 files</td></tr>
 <tr><td data-i18n="pt_149">Signature reservation</td><td data-i18n="pt_150">16,384 bytes, SHA-256, whole chain</td></tr>
-<tr><td>Languages / themes</td><td>15 locales / 13 themes + accent variants</td></tr>
+<tr><td data-i18n="tech_languages_themes">Languages / themes</td><td data-i18n="tech_languages_themes_value">15 locales / 13 themes + accent variants</td></tr>
 </table>
 <p style="margin-top:14px" data-i18n="pt_153_172">A full 50-page technical brochure (the same facts, with the interactive forms and theme gallery) ships in the repo as <a href="https://github.com/SteveTheKiller/KillerPDF/blob/main/KillerPDF.pdf" target="_blank" rel="noopener"><code style="color:inherit">KillerPDF.pdf</code></a> - open it in KillerPDF itself.</p>
 </div>
@@ -450,7 +453,7 @@
 <tr><td data-i18n="pt_158">Annotation</td><td data-i18n="pt_159">Anything you add on top of a PDF: a highlight, text box, drawn line, signature, or image. It sits on the overlay, separate from the original page, and only becomes part of the file when you save (see Flatten).</td></tr>
 <tr><td data-i18n="pt_160">Bitmap</td><td data-i18n="pt_161">A grid of colored pixels. To display a page, KillerPDF draws (rasterizes) it into a bitmap at a resolution chosen from your zoom and screen density.</td></tr>
 <tr><td data-i18n="pt_162">CMS signature</td><td data-i18n="pt_163">Cryptographic Message Syntax, the standard format for a digital signature embedded in a PDF. KillerPDF signs using SHA-256 over the whole file.</td></tr>
-<tr><td>Costura (Costura.Fody)</td><td>A build-time bundler retained for ordinary development builds. Release packaging produces explicit framework-dependent and self-contained payloads for the installer and portable launcher.</td></tr>
+<tr><td>Costura (Costura.Fody)</td><td data-i18n="tech_costura_desc">A build-time bundler retained for ordinary development builds. Release packaging produces explicit framework-dependent and self-contained payloads for the installer and portable launcher.</td></tr>
 <tr><td data-i18n="pt_166">Cover / cover-pair</td><td data-i18n="pt_167">A Cover is an opaque box that hides the original words on a page. To edit existing PDF text, KillerPDF lays a Cover over the old text and a Text box on top holding your replacement; the two are locked together as a cover-pair.</td></tr>
 <tr><td data-i18n="pt_168">Cross-reference table (xref)</td><td data-i18n="pt_169">The index near the end of a PDF that records where every internal object is stored. If it is damaged, many readers fail to open the file, so KillerPDF has recovery paths that rebuild it.</td></tr>
 <tr><td data-i18n="pt_170">Device-independent pixel (DIP)</td><td data-i18n="pt_171">The unit KillerPDF's drawing surface uses. One DIP is a fixed physical size regardless of how dense the screen is, so layouts look the same across monitors.</td></tr>
@@ -461,13 +464,13 @@
 <tr><td data-i18n="pt_180">Ink</td><td data-i18n="pt_181">A freehand drawn stroke. The Line tool is stored as ink as well.</td></tr>
 <tr><td data-i18n="pt_182">Linearized PDF</td><td data-i18n="pt_183">A PDF arranged so a viewer can start showing the first page before the whole file has loaded (sometimes called "fast web view"). These files often keep their structure in object streams.</td></tr>
 <tr><td data-i18n="pt_184">LRU cache (least recently used)</td><td data-i18n="pt_185_172">A memory-saving rule that keeps the most recently used items and drops the oldest. KillerPDF retains drawn-page caches for only the three most recent tabs, with an approximately 160 MB per-tab budget and 48-entry hard cap.</td></tr>
-<tr><td>.NET 10</td><td>The modern .NET runtime used by both the Windows application and The KillerPDF.Engine. The installer detects or installs the Desktop Runtime; the portable package carries it.</td></tr>
+<tr><td>.NET 10</td><td data-i18n="tech_runtime_desc">The modern .NET runtime used by both the Windows application and The KillerPDF.Engine. The installer detects or installs the Desktop Runtime; the portable package carries it.</td></tr>
 <tr><td data-i18n="pt_188">Object stream</td><td data-i18n="pt_189">A compressed container inside modern PDFs (version 1.5 and later) that bundles many of the file's internal objects together. Some libraries cannot read them, which is why KillerPDF falls back to PDFium for certain jobs.</td></tr>
 <tr><td data-i18n="pt_190">OCR (optical character recognition)</td><td data-i18n="pt_191">Reading the actual text out of a scanned image so it can be searched, selected, or copied. KillerPDF uses Tesseract.</td></tr>
 <tr><td data-i18n="pt_192">Overlay</td><td data-i18n="pt_193">The transparent sheet drawn directly on top of a page image, where your annotations are painted. The page image underneath is never changed.</td></tr>
 <tr><td data-i18n="pt_194">PDFium</td><td data-i18n="pt_195">Google's PDF engine (the same one inside Chrome). KillerPDF uses it to render pages to images and to read structures other libraries cannot.</td></tr>
 <tr><td data-i18n="pt_196">PdfPig</td><td data-i18n="pt_197">A .NET library KillerPDF uses to read text from a PDF: search, selection, and detecting each letter's font and size.</td></tr>
-<tr><td>The KillerPDF.Engine</td><td>KillerPDF's independent, UI-free .NET document library for reading, validating, authoring, editing, signing, encrypting and writing PDF files. It does not render pages or provide desktop controls.</td></tr>
+<tr><td>The KillerPDF.Engine</td><td data-i18n="tech_engine_glossary">KillerPDF's independent, UI-free .NET document library for reading, validating, authoring, editing, signing, encrypting and writing PDF files.</td></tr>
 <tr><td data-i18n="pt_200">Point</td><td data-i18n="pt_201">The PDF's own unit of length. One point is 1/72 of an inch.</td></tr>
 <tr><td data-i18n="pt_202">Rasterize</td><td data-i18n="pt_203">To convert a page's text and shapes into a grid of pixels (a bitmap) for display.</td></tr>
 <tr><td data-i18n="pt_204">Render-dim space</td><td data-i18n="pt_205">KillerPDF's fixed internal coordinate system for a page, sized so the longer side is 2048 units and unrelated to zoom or screen pixels. Annotation positions are stored here so they never drift as you zoom or change view mode.</td></tr>
@@ -484,12 +487,12 @@
 </div>
 </div>
 <footer class="statusbar">
-<span class="left"><a href="https://github.com/SteveTheKiller/KillerPDF" target="_blank" rel="noopener" data-i18n="pt_216">Source on GitHub</a> &middot; GPLv3 &middot; Part of <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span>
-<span class="right"><span id="verEgg" title="click me">v1.8.4</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
+<span class="left"><a href="https://github.com/SteveTheKiller/KillerPDF" target="_blank" rel="noopener" data-i18n="pt_216">Source on GitHub</a> &middot; GPLv3 &middot; <span data-i18n="ph_201">Part of</span> <a href="https://killertools.net" target="_blank" rel="noopener">killertools.net</a></span>
+<span class="right"><span id="verEgg" title="Click">v1.8.4</span> &middot; &copy; 2026 <b><a href="https://thekiller.net" target="_blank" rel="noopener">Steve the Killer</a></b></span>
 </footer>
 <div class="egg-toast" id="eggToast"></div>
 <script src="kp-i18n.js?v=12"></script>
-<script src="kp.js?v=14"></script>
+<script src="kp.js?v=15"></script>
 <script>
 // COLLAPSIBLE OUTLINE. The page has thirteen sections and twenty-four subsections, and listing
 // all thirty-seven flat made the sidebar a wall you had to read to navigate.
