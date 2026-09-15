@@ -53,7 +53,7 @@
     <!-- ── About overlay ─────────────────────────────────────────────── -->
     <sys:String x:Key="Str_About_Version">VERSIONE</sys:String>
     <sys:String x:Key="Str_About_Publisher">EDITORE</sys:String>
-    <sys:String x:Key="Str_About_Thumbprint">Impronta del certificato</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">IMPRONTA CERTIFICATO</sys:String>
     <sys:String x:Key="Str_About_ExeSha">EXE SHA256</sys:String>
     <sys:String x:Key="Str_About_Computing">Informatica...</sys:String>
     <sys:String x:Key="Str_Tagline">Un toolkit PDF veloce e gratuito per Windows con strumenti di annotazione, unione, OCR, firma e moduli. Un'utilità GPLv3 da {0}.</sys:String>
@@ -531,11 +531,11 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Ctx_DeletePage">Elimina pagina</sys:String>
     <sys:String x:Key="Str_Ctx_DuplicatePage">Duplica pagina</sys:String>
     <sys:String x:Key="Str_Ctx_AddBlankPage">Aggiungi pagina vuota</sys:String>
-    <sys:String x:Key="Str_Blank_CurrentPage">Pagina corrente</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Pagina attuale</sys:String>
     <sys:String x:Key="Str_Blank_Custom">Personalizzata</sys:String>
-    <sys:String x:Key="Str_Blank_InvalidSize">Inserisci larghezza e altezza comprese tra 0,1 e 200 pollici.</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Inserisci larghezza/altezza comprese tra 0,1 e 200 pollici.</sys:String>
     <sys:String x:Key="Str_Ctx_CloseTab">Chiudi scheda</sys:String>
-    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Apri cartella contenente</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Apri cartella contenitore</sys:String>
     <sys:String x:Key="Str_Ctx_CloseOthers">Chiudi altre schede</sys:String>
 
     <!-- Transform tool -->
@@ -1038,14 +1038,14 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Measurement_Unavailable">Misurazione non disponibile</sys:String>
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Riparazione non riuscita - il file è troppo danneggiato per essere recuperato.&#10;&#10;Prova ad aprire l’originale in un’altra applicazione (Adobe Acrobat o un browser), che potrebbe offrire ulteriori opzioni di recupero.</sys:String>
     <sys:String x:Key="Str_KS_Enabled">Abilita scorciatoie tastiera</sys:String>
-    <sys:String x:Key="Str_KS_Toggle">Attiva o disattiva scorciatoie tastiera</sys:String>
-    <sys:String x:Key="Str_KS_ToggleTip">Attiva o disattiva tutte le scorciatoie dell'app. Ctrl+Shift+K funziona sempre.</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Attiva/disattiva scorciatoie tastiera</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Attiva/disattiva tutte le scorciatoie dell'app. Ctrl+Miausc+K funziona sempre.</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">Scorciatoie tastiera abilitate</sys:String>
-    <sys:String x:Key="Str_KS_DisabledStatus">Scorciatoie tastiera disabilitate. Premi Ctrl+Shift+K per abilitarle.</sys:String>
-    <sys:String x:Key="Str_StartupUpdateCheck">Cerca aggiornamenti all'avvio</sys:String>
-    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">KillerPDF {0} è disponibile. Vuoi scaricarlo e installarlo ora?&#10;&#10;L'app si chiuderà e si riaprirà automaticamente.</sys:String>
-    <sys:String x:Key="Str_AlwaysCheckOnStartup">Controlla sempre gli aggiornamenti all'avvio</sys:String>
-    <sys:String x:Key="Str_PasswordProtected">“{0}” è protetto da password.</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Scorciatoie tastiera disabilitate. Premi Ctrl+Miausc+K per abilitarle.</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">All'avvio cerca aggiornamenti</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">È disponibile KillerPDF {0}.&#10;Vuoi scaricarlo e installarlo ora?&#10;&#10;L'app si chiuderà e si riaprirà automaticamente.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">All'avvio controlla sempre aggiornamenti</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">'{0}' è protetto da password.</sys:String>
     <sys:String x:Key="Str_About_Aka">Conosciuto anche come</sys:String>
     <sys:String x:Key="Str_Btn_Run">Esegui</sys:String>
 </ResourceDictionary>
