@@ -94,7 +94,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Localized the remaining validation messages and audited interface text across all 15 languages. The localization gate now rejects hardcoded UI labels and tooltips (#227).
 - Added installer file details and the installed size in Windows' program list (#361).
 
-## [1.8.5] - Unreleased
+## [1.8.5] - 2026-09-14
 
 1.8.5 adds a headless page-render benchmark command.
 
