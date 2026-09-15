@@ -1,8 +1,9 @@
 <Window x:Class="KillerLauncher.InstallerWizard"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:KillerLauncher"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
-        Title="KillerPDF Setup" Width="650" Height="350"
+        Title="{local:Loc SetupTitle}" Width="650" MinHeight="350" SizeToContent="Height"
         WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="NoResize"
         AllowsTransparency="True" Background="Transparent" FontFamily="Segoe UI" Foreground="#e0e0e0"
         TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType"
@@ -112,10 +113,10 @@
                     </Image>
                     <StackPanel Grid.Row="1" Margin="0,14,0,0">
                         <TextBlock><TextBlock.Effect><DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Direction="270" Opacity="0.65"/></TextBlock.Effect><Run Text="Killer" FontFamily="{StaticResource Wordmark}" FontSize="26"/><Run Text="PDF" FontFamily="{StaticResource Wordmark}" FontSize="33" FontWeight="Bold" Foreground="{StaticResource Green}"/></TextBlock>
-                        <TextBlock Text="SETUP  •  1.8.1" FontFamily="Consolas" FontSize="9.5" Foreground="#a0a0a0" Margin="1,2,0,0"/>
+                        <TextBlock x:Name="SetupVersionLabel" FontFamily="Consolas" FontSize="9.5" Foreground="#a0a0a0" Margin="1,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Row="2" Margin="1,24,5,0" TextWrapping="Wrap" Foreground="#d0d0d0" LineHeight="17"
-                               Text="A free and modern PDF editor, built from scratch for privacy and speed."/>
+                               Text="{local:Loc Tagline}"/>
                     <TextBlock Grid.Row="3" FontFamily="Consolas" FontSize="10" Foreground="#a0a0a0">
                         <Run Text="&#x00A9; 2026 "/><Hyperlink NavigateUri="https://thekiller.net" Click="Website_Click" Style="{StaticResource FooterLink}"><Run Text="Steve the Killer"/></Hyperlink>
                     </TextBlock>
@@ -136,26 +137,26 @@
                         </Button>
                         <Grid Margin="24,20,24,14">
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
-                            <TextBlock x:Name="Heading" FontSize="18" FontWeight="SemiBold" Margin="0,0,28,0"/>
+                            <TextBlock x:Name="Heading" TextWrapping="Wrap" FontSize="18" FontWeight="SemiBold" Margin="0,0,28,0"/>
                             <TextBlock x:Name="Copy" Grid.Row="1" Foreground="#a8a8a8" Margin="0,5,25,12"
                                        TextWrapping="Wrap" LineStackingStrategy="BlockLineHeight" LineHeight="19"/>
                             <StackPanel x:Name="Options" Grid.Row="2">
-                                <RadioButton x:Name="CurrentUser" Content="Install for my account" IsChecked="True" Checked="Scope_Checked"/>
-                                <RadioButton x:Name="AllUsers" Content="Install for everyone on this computer" Checked="Scope_Checked"/>
+                                <RadioButton x:Name="CurrentUser" IsChecked="True" Checked="Scope_Checked"><TextBlock Text="{local:Loc CurrentAccount}" TextWrapping="Wrap"/></RadioButton>
+                                <RadioButton x:Name="AllUsers" Checked="Scope_Checked"><TextBlock Text="{local:Loc Everyone}" TextWrapping="Wrap"/></RadioButton>
                                 <Separator Margin="0,2,0,5" Background="#505050"/>
-                                <TextBlock Text="Install folder" FontSize="11" Foreground="#bdbdbd" Margin="0,0,0,4"/>
+                                <TextBlock Text="{local:Loc InstallFolder}" FontSize="11" Foreground="#bdbdbd" Margin="0,0,0,4"/>
                                 <Grid Margin="0,0,0,3">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                     <TextBox x:Name="InstallFolder" VerticalContentAlignment="Center"/>
-                                    <Button Grid.Column="1" Content="Browse..." Style="{StaticResource WizardButton}" Height="27" MinWidth="72" Click="Browse_Click"/>
+                                    <Button Grid.Column="1" Content="{local:Loc Browse}" Style="{StaticResource WizardButton}" Height="27" MinWidth="72" Click="Browse_Click"/>
                                 </Grid>
-                                <CheckBox x:Name="DesktopShortcut" Content="Create a desktop shortcut" IsChecked="True"/>
+                                <CheckBox x:Name="DesktopShortcut" IsChecked="True"><TextBlock Text="{local:Loc DesktopShortcut}" TextWrapping="Wrap"/></CheckBox>
                             </StackPanel>
-                            <Grid Grid.Row="3" Margin="0,6,0,9" Height="14">
-                                <TextBlock x:Name="RuntimeStatus" FontFamily="Consolas" FontSize="10.5" HorizontalAlignment="Right"/>
+                            <Grid Grid.Row="3" Margin="0,6,0,9" MinHeight="14">
+                                <TextBlock x:Name="RuntimeStatus" TextWrapping="Wrap" FontFamily="Consolas" FontSize="10.5" HorizontalAlignment="Right"/>
                                 <Grid x:Name="InstallProgress" Visibility="Collapsed">
                                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-                                    <TextBlock Text="INSTALLING" FontFamily="Consolas" FontSize="9" Foreground="#a8a8a8"
+                                    <TextBlock Text="{local:Loc InstallingLabel}" FontFamily="Consolas" FontSize="9" Foreground="#a8a8a8"
                                                VerticalAlignment="Center" Margin="0,0,10,0"/>
                                     <Border Grid.Column="1" Height="3" Background="#242424" CornerRadius="1.5"
                                             VerticalAlignment="Center" ClipToBounds="True">
@@ -185,9 +186,9 @@
                                 </Grid>
                             </Grid>
                             <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-                                <Button x:Name="BackButton" Content="Back" Style="{StaticResource WizardButton}" Click="Back_Click"/>
-                                <Button x:Name="CancelButton" Content="Cancel" Style="{StaticResource WizardButton}" Click="Cancel_Click"/>
-                                <Button x:Name="NextButton" Content="Next" Style="{StaticResource PrimaryButton}" Click="Next_Click"/>
+                                <Button x:Name="BackButton" Content="{local:Loc Back}" Style="{StaticResource WizardButton}" Click="Back_Click"/>
+                                <Button x:Name="CancelButton" Content="{local:Loc Cancel}" Style="{StaticResource WizardButton}" Click="Cancel_Click"/>
+                                <Button x:Name="NextButton" Content="{local:Loc Next}" Style="{StaticResource PrimaryButton}" Click="Next_Click"/>
                             </StackPanel>
                         </Grid>
                     </Grid>
@@ -214,7 +215,7 @@
                         </Grid>
                         <TextBlock x:Name="NoticeMessage" Grid.Row="1" Margin="42,13,0,20" Foreground="#c8c8c8"
                                    LineHeight="18" TextWrapping="Wrap"/>
-                        <Button x:Name="NoticeOk" Grid.Row="2" Content="OK" Style="{StaticResource PrimaryButton}"
+                        <Button x:Name="NoticeOk" Grid.Row="2" Content="{local:Loc OK}" Style="{StaticResource PrimaryButton}"
                                 HorizontalAlignment="Right" IsDefault="True" Click="NoticeOk_Click"/>
                     </Grid>
                 </Border>

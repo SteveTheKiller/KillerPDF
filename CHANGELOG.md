@@ -49,6 +49,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Completed remaining dialog and installer translations and refreshed the website guides.
+
 - Moved the keyboard shortcut toggle to the footer beside the online guide.
 
 - Evenly spaced About options, moved startup update checks to the bottom, and aligned Clear all Data with the top row.

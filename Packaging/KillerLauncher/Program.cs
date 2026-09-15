@@ -66,7 +66,7 @@ namespace KillerLauncher
 #else
                 if (args.Any(PortableLauncherPolicy.IsInstallationArgument))
                     throw new InvalidOperationException(
-                        "This is the portable package. Use KillerPDF Setup to install the application.");
+                        LauncherStrings.Get("PortablePackage"));
 
                 return RunPortable(args);
 #endif
@@ -84,7 +84,7 @@ namespace KillerLauncher
                 return InstallerWizard.ShowFailure(ex.Message);
 #else
                 MessageBox.Show(
-                    ProductName + " could not start.\n\n" + ex.Message,
+                    LauncherStrings.Format("StartFailed", ex.Message),
                     ProductName,
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error);
@@ -118,7 +118,7 @@ namespace KillerLauncher
 
                 using (var child = Process.Start(start))
                 {
-                    if (child == null) throw new InvalidOperationException("The application process could not be created.");
+                    if (child == null) throw new InvalidOperationException(LauncherStrings.Get("ProcessFailed"));
                     WritePortableMarker(directory, version, child);
                     child.WaitForExit();
                     return child.ExitCode;
@@ -137,15 +137,14 @@ namespace KillerLauncher
         {
             if (!IsTrustedForInstall(CurrentExecutablePath()))
                 throw new InvalidOperationException(
-                    "Installation was refused because this download does not have a valid KillerPDF digital signature.");
+                    LauncherStrings.Get("SignatureInvalid"));
 
             string? testRoot = Environment.GetEnvironmentVariable(TestInstallRootEnvironmentVariable);
             if (string.IsNullOrWhiteSpace(testRoot) && !machine &&
                 (File.Exists(Path.Combine(MachineInstallDirectory, InnerExeName)) ||
                  File.Exists(Path.Combine(MachineInstallDirectory, "KillerPDF.exe"))))
                 throw new InvalidOperationException(
-                    "KillerPDF is already installed for everyone on this computer. Update that installation, " +
-                    "or uninstall it before choosing a per-user install. KillerPDF will not create two installed copies.");
+                    LauncherStrings.Get("AlreadyMachine"));
 
             string destination = !string.IsNullOrWhiteSpace(testRoot)
                 ? Path.GetFullPath(testRoot)
@@ -154,7 +153,7 @@ namespace KillerLauncher
                 CloseInstalledCopies(machine
                     ? new[] { destination, UserInstallDirectory }
                     : new[] { destination });
-            string parent = Path.GetDirectoryName(destination) ?? throw new InvalidOperationException("Invalid install directory.");
+            string parent = Path.GetDirectoryName(destination) ?? throw new InvalidOperationException(LauncherStrings.Get("InvalidDirectory"));
             Directory.CreateDirectory(parent);
 
             string staging = destination + ".staging-" + Guid.NewGuid().ToString("N");
@@ -176,7 +175,7 @@ namespace KillerLauncher
                     ? 0
                     : RunRegistration(destination, machine, desktop);
                 if (registrationExit != 0)
-                    throw new InvalidOperationException("Windows integration could not be registered (exit " + registrationExit + ").");
+                    throw new InvalidOperationException(LauncherStrings.Format("RegistrationFailed", registrationExit));
 
                 // A machine-wide install supersedes the current account's per-user copy. This
                 // also covers unattended /silent installs that do not return through the portable
@@ -247,13 +246,13 @@ namespace KillerLauncher
                     if (process.HasExited) continue;
                     if (!process.CloseMainWindow())
                         throw new InvalidOperationException(
-                            "KillerPDF is still running. Close it, then choose Install again.");
+                            LauncherStrings.Get("StillRunning"));
                 }
                 foreach (Process process in running)
                 {
                     if (!process.HasExited && !process.WaitForExit(60000))
                         throw new InvalidOperationException(
-                            "KillerPDF is still open. Finish saving or close its window, then choose Install again.");
+                            LauncherStrings.Get("StillOpen"));
                 }
             }
             finally
@@ -265,13 +264,13 @@ namespace KillerLauncher
         internal static string ValidateInstallDirectory(string directory)
         {
             if (string.IsNullOrWhiteSpace(directory))
-                throw new InvalidOperationException("Choose an installation folder.");
+                throw new InvalidOperationException(LauncherStrings.Get("ChooseDirectory"));
             string path = Path.GetFullPath(Environment.ExpandEnvironmentVariables(directory.Trim()));
             string? root = Path.GetPathRoot(path);
             if (string.IsNullOrEmpty(root) || string.Equals(
                     path.TrimEnd(Path.DirectorySeparatorChar), root.TrimEnd(Path.DirectorySeparatorChar),
                     StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("KillerPDF cannot be installed directly in the root of a drive.");
+                throw new InvalidOperationException(LauncherStrings.Get("DriveRoot"));
             return path.TrimEnd(Path.DirectorySeparatorChar);
         }
 
@@ -287,7 +286,7 @@ namespace KillerLauncher
             string? value = args.FirstOrDefault(a => a.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
             if (value == null) return null;
             try { return Encoding.UTF8.GetString(Convert.FromBase64String(value.Substring(prefix.Length))); }
-            catch (FormatException) { throw new InvalidOperationException("The requested installation folder is invalid."); }
+            catch (FormatException) { throw new InvalidOperationException(LauncherStrings.Get("RequestedDirectoryInvalid")); }
         }
 
         internal static bool HasDesktopRuntime10()
@@ -335,11 +334,11 @@ namespace KillerLauncher
             Directory.CreateDirectory(destination);
             using (var payload = Assembly.GetExecutingAssembly().GetManifestResourceStream(PayloadResourceName))
             {
-                if (payload == null) throw new InvalidOperationException("The application payload is missing.");
+                if (payload == null) throw new InvalidOperationException(LauncherStrings.Get("PayloadMissing"));
                 using (var archive = new ZipArchive(payload, ZipArchiveMode.Read, leaveOpen: false))
                 {
                     var manifestEntry = archive.GetEntry(ManifestName)
-                        ?? throw new InvalidDataException("The payload manifest is missing.");
+                        ?? throw new InvalidDataException(LauncherStrings.Get("ManifestMissing"));
                     Dictionary<string, ManifestFile> manifest;
                     using (var reader = new StreamReader(manifestEntry.Open(), Encoding.UTF8, true))
                         manifest = ReadManifest(reader);
@@ -349,14 +348,14 @@ namespace KillerLauncher
                         .ToDictionary(e => NormalizeRelativePath(e.FullName), StringComparer.OrdinalIgnoreCase);
 
                     if (payloadEntries.Count != manifest.Count || manifest.Keys.Any(k => !payloadEntries.ContainsKey(k)))
-                        throw new InvalidDataException("The payload contents do not match its manifest.");
+                        throw new InvalidDataException(LauncherStrings.Get("ManifestMismatch"));
 
                     string destinationRoot = EnsureTrailingSeparator(Path.GetFullPath(destination));
                     foreach (var item in manifest.OrderBy(p => p.Key, StringComparer.Ordinal))
                     {
                         string outputPath = Path.GetFullPath(Path.Combine(destination, item.Key.Replace('/', Path.DirectorySeparatorChar)));
                         if (!outputPath.StartsWith(destinationRoot, StringComparison.OrdinalIgnoreCase))
-                            throw new InvalidDataException("The payload contains an unsafe path.");
+                            throw new InvalidDataException(LauncherStrings.Get("UnsafePath"));
 
                         Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? destination);
                         using (var input = payloadEntries[item.Key].Open())
@@ -365,7 +364,7 @@ namespace KillerLauncher
 
                         var info = new FileInfo(outputPath);
                         if (info.Length != item.Value.Size || !string.Equals(HashFile(outputPath), item.Value.Sha256, StringComparison.OrdinalIgnoreCase))
-                            throw new InvalidDataException("Payload verification failed for " + item.Key + ".");
+                            throw new InvalidDataException(LauncherStrings.Format("VerificationFailed", item.Key));
                     }
 
                     File.WriteAllLines(Path.Combine(destination, ManifestName),
@@ -377,7 +376,7 @@ namespace KillerLauncher
             }
 
             if (!File.Exists(Path.Combine(destination, InnerExeName)))
-                throw new InvalidDataException("The payload does not contain " + InnerExeName + ".");
+                throw new InvalidDataException(LauncherStrings.Format("ExecutableMissing", InnerExeName));
         }
 
         private static Dictionary<string, ManifestFile> ReadManifest(TextReader reader)
@@ -390,10 +389,10 @@ namespace KillerLauncher
                 var parts = line.Split(new[] { '\t' }, 3);
                 if (parts.Length != 3 || parts[0].Length != 64 || !long.TryParse(parts[1], NumberStyles.None,
                         CultureInfo.InvariantCulture, out long size) || size < 0)
-                    throw new InvalidDataException("The payload manifest is invalid.");
+                    throw new InvalidDataException(LauncherStrings.Get("ManifestInvalid"));
                 string path = NormalizeRelativePath(parts[2]);
                 if (result.ContainsKey(path))
-                    throw new InvalidDataException("The payload manifest contains a duplicate path.");
+                    throw new InvalidDataException(LauncherStrings.Get("DuplicatePath"));
                 result.Add(path, new ManifestFile(parts[0], size));
             }
             return result;
@@ -404,7 +403,7 @@ namespace KillerLauncher
             string normalized = path.Replace('\\', '/').TrimStart('/');
             if (string.IsNullOrWhiteSpace(normalized) || Path.IsPathRooted(path) || normalized.Contains(":") ||
                 normalized.Split('/').Any(p => p.Length == 0 || p == "." || p == ".."))
-                throw new InvalidDataException("The payload contains an unsafe path: " + path);
+                throw new InvalidDataException(LauncherStrings.Format("UnsafePathDetail", path));
             return normalized;
         }
 
@@ -458,7 +457,7 @@ namespace KillerLauncher
         private static void DeleteDirectoryWithRetries(string directory)
         {
             if (!PortableDirectoryCleanup.TryDelete(directory))
-                throw new IOException("The temporary installation directory could not be removed: " + directory);
+                throw new IOException(LauncherStrings.Format("CleanupFailed", directory));
         }
 
         private static bool IsTrustedForInstall(string path)

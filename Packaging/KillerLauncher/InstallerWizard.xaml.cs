@@ -19,6 +19,8 @@ namespace KillerLauncher
         private InstallerWizard()
         {
             InitializeComponent();
+            SetupVersionLabel.Text = LauncherStrings.Format("SetupVersion",
+                typeof(InstallerWizard).Assembly.GetName().Version!.ToString(3));
             InstallFolder.Text = Program.DefaultInstallDirectory(false);
             ImageBrush grain = CreateGrain();
             GrainLayer.Background = grain;
@@ -41,7 +43,7 @@ namespace KillerLauncher
             var application = new System.Windows.Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             var wizard = new InstallerWizard { _closeAfterNotice = true };
             wizard.Loaded += (_, _) => wizard.ShowNotice(
-                "Installation could not continue", message, NoticeKind.Error);
+                LauncherStrings.Get("CannotContinue"), message, NoticeKind.Error);
             wizard.ShowDialog();
             application.Shutdown();
             return 1;
@@ -56,32 +58,32 @@ namespace KillerLauncher
             CancelButton.Visibility = _installed ? Visibility.Collapsed : Visibility.Visible;
             if (_page == 0)
             {
-                Heading.Text = "Welcome to KillerPDF!";
-                Copy.Text = "Fast, private PDF editing is only a few clicks away.\nLet's get you set up.";
-                NextButton.Content = "Next";
+                Heading.Text = LauncherStrings.Get("Welcome");
+                Copy.Text = LauncherStrings.Get("WelcomeCopy");
+                NextButton.Content = LauncherStrings.Get("Next");
             }
             else if (options)
             {
-                Heading.Text = "Make it yours";
-                Copy.Text = "Choose where KillerPDF lives and who gets to use it.";
+                Heading.Text = LauncherStrings.Get("OptionsHeading");
+                Copy.Text = LauncherStrings.Get("OptionsCopy");
                 SetRuntimeStatus();
-                NextButton.Content = "Next";
+                NextButton.Content = LauncherStrings.Get("Next");
             }
             else
             {
-                Heading.Text = _installed ? "You're all set!" : "Ready to go!";
-                Copy.Text = _installed ? "KillerPDF is installed and ready to make PDFs less painful." :
-                    (AllUsers.IsChecked == true ? "All users" : "Current user") +
-                    (DesktopShortcut.IsChecked == true ? "  •  Desktop shortcut" : "  •  No desktop shortcut");
+                Heading.Text = _installed ? LauncherStrings.Get("CompleteHeading") : LauncherStrings.Get("ReadyHeading");
+                Copy.Text = _installed ? LauncherStrings.Get("CompleteCopy") :
+                    (AllUsers.IsChecked == true ? LauncherStrings.Get("AllUsers") : LauncherStrings.Get("CurrentUser")) +
+                    (DesktopShortcut.IsChecked == true ? "  •  " + LauncherStrings.Get("WithShortcut") : "  •  " + LauncherStrings.Get("WithoutShortcut"));
                 SetRuntimeStatus();
-                NextButton.Content = _installed ? "Launch" : "Install";
+                NextButton.Content = _installed ? LauncherStrings.Get("Launch") : LauncherStrings.Get("Install");
             }
         }
 
         private void SetRuntimeStatus()
         {
             bool ready = Program.HasDesktopRuntime10();
-            RuntimeStatus.Text = ready ? ".NET 10 Desktop Runtime detected" : ".NET 10 Desktop Runtime required";
+            RuntimeStatus.Text = ready ? LauncherStrings.Get("RuntimeDetected") : LauncherStrings.Get("RuntimeRequired");
             RuntimeStatus.Foreground = new SolidColorBrush(ready
                 ? Color.FromRgb(30, 165, 76) : Color.FromRgb(255, 190, 80));
         }
@@ -103,21 +105,21 @@ namespace KillerLauncher
                 RenderPage();
                 InstallFolder.Focus();
                 InstallFolder.SelectAll();
-                ShowNotice("Check installation options", ex.Message, NoticeKind.Warning);
+                ShowNotice(LauncherStrings.Get("CheckOptions"), ex.Message, NoticeKind.Warning);
                 return;
             }
             if (!Program.HasDesktopRuntime10())
             {
                 Process.Start(new ProcessStartInfo("https://dotnet.microsoft.com/en-us/download/dotnet/10.0") { UseShellExecute = true });
-                ShowNotice(".NET 10 Desktop Runtime required",
-                    "Install the .NET 10 Desktop Runtime, then return to setup.", NoticeKind.Information);
+                ShowNotice(LauncherStrings.Get("RuntimeRequired"),
+                    LauncherStrings.Get("InstallRuntime"), NoticeKind.Information);
                 return;
             }
             try
             {
                 NextButton.IsEnabled = BackButton.IsEnabled = CancelButton.IsEnabled = false;
-                Heading.Text = "Installing KillerPDF";
-                Copy.Text = "Almost there. We're putting everything in place...";
+                Heading.Text = LauncherStrings.Get("Installing");
+                Copy.Text = LauncherStrings.Get("InstallingCopy");
                 RuntimeStatus.Visibility = Visibility.Collapsed;
                 InstallProgress.Visibility = Visibility.Visible;
                 bool machine = AllUsers.IsChecked == true;
@@ -126,7 +128,7 @@ namespace KillerLauncher
                     : Program.Install(false, desktop, installDirectory));
                 await Task.WhenAll(install, Task.Delay(2000));
                 int result = install.Result;
-                if (result != 0) throw new InvalidOperationException("Setup returned " + result + ".");
+                if (result != 0) throw new InvalidOperationException(LauncherStrings.Format("SetupReturned", result));
                 _installedDirectory = installDirectory;
                 _installed = true;
                 NextButton.IsEnabled = true;
@@ -138,7 +140,7 @@ namespace KillerLauncher
                 NextButton.IsEnabled = BackButton.IsEnabled = CancelButton.IsEnabled = true;
                 InstallProgress.Visibility = Visibility.Collapsed;
                 RenderPage();
-                ShowNotice("Installation failed", ex.Message, NoticeKind.Error);
+                ShowNotice(LauncherStrings.Get("InstallFailed"), ex.Message, NoticeKind.Error);
             }
         }
 
@@ -192,7 +194,7 @@ namespace KillerLauncher
         {
             using var dialog = new System.Windows.Forms.FolderBrowserDialog
             {
-                Description = "Choose where KillerPDF will be installed",
+                Description = LauncherStrings.Get("ChooseFolder"),
                 ShowNewFolderButton = true,
                 SelectedPath = Directory.Exists(InstallFolder.Text) ? InstallFolder.Text :
                     (Directory.Exists(Path.GetDirectoryName(InstallFolder.Text)) ? Path.GetDirectoryName(InstallFolder.Text) : string.Empty)

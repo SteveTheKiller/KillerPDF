@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Xml" />
+    <EmbeddedResource Include="Strings.xml" LogicalName="KillerLauncher.Strings.xml" />
   </ItemGroup>
 
   <ItemGroup Condition="Exists('$(PayloadZip)')">
