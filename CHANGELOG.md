@@ -49,6 +49,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Evenly spaced About options, moved startup update checks to the bottom, and aligned Clear all Data with the top row.
+
 - Corrected WinGet release manifests to run the installer and include the required desktop runtime (#386).
 - Kept scroll and manual zoom settings independent between document tabs and restored them when reopening files (#399).
 - Kept selected-page transforms when retained pages contain inconsistent font-width metadata.

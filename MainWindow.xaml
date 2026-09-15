@@ -3116,14 +3116,14 @@
                                    Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Button}}}"/>
                     </Button>
                     <!-- Footer row: the recent-files privacy toggle (#146) sits left, the tiny
-                         destructive Clear-all-Data link bottom-right (red on hover) - the About
+                         destructive Clear-all-Data link top-right (red on hover). The About
                          window is where the data-hygiene controls live. -->
                     <DockPanel Margin="0,12,0,0" LastChildFill="False">
                     <!-- Stacked, not side by side: the SHA-256 line is the only thing allowed to
                          set the card's width (family rule), and two checkboxes on one row would
                          overrun it. -->
                     <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
-                        <CheckBox x:Name="NoRecentCheck"
+                        <CheckBox x:Name="NoRecentCheck" Margin="0"
                                   Content="{DynamicResource Str_NoRecentSetting}"
                                   Style="{StaticResource ThemeCheck}" FontSize="11"
                                   Checked="NoRecentCheck_Toggled" Unchecked="NoRecentCheck_Toggled"/>
@@ -3131,18 +3131,18 @@
                              panel and came back here when that panel was dissolved: About is where
                              the data-hygiene and safety controls live. Off by default, so link
                              clicks stay immediate unless you ask for the prompt. -->
+                        <CheckBox x:Name="LinkConfirmCheck" Margin="0,6,0,0"
+                                  Content="{DynamicResource Str_LinkConfirmSetting}"
+                                  Style="{StaticResource ThemeCheck}" FontSize="11"
+                                  Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled"/>
                         <CheckBox x:Name="StartupUpdateCheck" Margin="0,6,0,0"
                                   Style="{StaticResource ThemeCheck}" FontSize="11"
                                   Click="StartupUpdateCheck_Click">
                             <TextBlock Text="{DynamicResource Str_StartupUpdateCheck}" TextWrapping="Wrap"/>
                         </CheckBox>
-                        <CheckBox x:Name="LinkConfirmCheck" Margin="0,6,0,0"
-                                  Content="{DynamicResource Str_LinkConfirmSetting}"
-                                  Style="{StaticResource ThemeCheck}" FontSize="11"
-                                  Checked="LinkConfirmCheck_Toggled" Unchecked="LinkConfirmCheck_Toggled"/>
                     </StackPanel>
                     <TextBlock DockPanel.Dock="Right" FontFamily="Consolas" FontSize="10"
-                               VerticalAlignment="Center">
+                               VerticalAlignment="Top" Margin="0,6,0,0">
                         <Hyperlink TextDecorations="None" Cursor="Hand" Click="AboutClearData_Click">
                             <Hyperlink.Style>
                                 <Style TargetType="Hyperlink">
