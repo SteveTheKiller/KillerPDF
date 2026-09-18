@@ -51,16 +51,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         shell: pwsh
 
-      - name: Sync the winget-pkgs fork
-        run: |
-          gh api --method POST repos/SteveTheKiller/winget-pkgs/merge-upstream -f branch=master
-          if ($LASTEXITCODE -ne 0) {
-              throw "Fork sync failed. Check the API response above for token access or branch conflicts."
-          }
-        env:
-          GH_TOKEN: ${{ secrets.WINGET_TOKEN }}
-        shell: pwsh
-
       - name: Submit to WinGet
         run: |
           $manifestDirectory = Join-Path $env:RUNNER_TEMP ("winget-" + [guid]::NewGuid())
