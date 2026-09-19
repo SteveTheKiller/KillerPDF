@@ -15,6 +15,7 @@ using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using KillerPdf.Engine.Authoring;
+using KillerPdf.Engine.Diagnostics;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Writing;
 using KillerPDF.Services;
@@ -59,7 +60,7 @@ namespace KillerPDF.Features
             "--color-mode", "--threshold", "--compression", "--jpeg-quality",
             "--every", "--parts", "--bookmarks", "--max-size", "--name", "--strip",
             "--template", "--edge", "--align", "--number-format", "--font-size",
-            "--start", "--digits", "--prefix", "--suffix",
+            "--start", "--digits", "--prefix", "--suffix", "--profile",
         ];
 
         /// <summary>
@@ -84,6 +85,7 @@ namespace KillerPDF.Features
                 Eq(a, "--verify") || Eq(a, "/verify") ||
                 Eq(a, "--merge") || Eq(a, "--extract-pages") || Eq(a, "--split") ||
                 Eq(a, "--optimize") || Eq(a, "--number-pages") || Eq(a, "--bates") ||
+                Eq(a, "--preflight") || Eq(a, "--accessibility") || Eq(a, "--attachments") ||
                 Eq(a, "--decrypt") || Eq(a, "--to-image") || Eq(a, "--flatten") ||
                 Eq(a, "--print") || Eq(a, "--ocr"));
             if (command is null) return false;
@@ -119,6 +121,15 @@ namespace KillerPDF.Features
                         break;
                     case "--optimize":
                         exitCode = CliOptimize(positionals, options, con);
+                        break;
+                    case "--preflight":
+                        exitCode = CliPreflight(positionals, options, con);
+                        break;
+                    case "--accessibility":
+                        exitCode = CliAccessibility(positionals, options, con);
+                        break;
+                    case "--attachments":
+                        exitCode = CliAttachments(positionals, options, con);
                         break;
                     case "--number-pages":
                         exitCode = CliNumberPages(positionals, options, con);
@@ -190,6 +201,11 @@ namespace KillerPDF.Features
             "                                           [--prefix <text>] [--suffix <text>] [--edge ...]",
             "                                           [--align ...] [--font-size <n>]",
             "                                           stamp one continuous Bates sequence across files",
+            "  --preflight <in.pdf> [--profile general|attachments|print|<profile.json>]",
+            "                                           [--json] [--password <p>]   exit 3 when findings",
+            "  --accessibility <in.pdf> [--json]        report accessibility findings; exit 3 when found",
+            "  --attachments <in.pdf> [<outDir>] [--json]",
+            "                                           list embedded files, or extract them to a folder",
             "  --decrypt <in.pdf> <out.pdf> [--password <p>]",
             "                                           remove encryption (lossless when possible)",
             "  --to-image <in.pdf> <outDir> [--dpi <n>] [--format png|jpg] [--pages <range>] [--transparent]",
@@ -564,6 +580,160 @@ namespace KillerPDF.Features
                 : "0.0";
             con.WriteLine($"Optimized {result.OriginalSize} to {result.OutputSize} bytes "
                 + $"({percent}% smaller, {result.OriginalObjectCount} to {result.OutputObjectCount} objects)");
+            return 0;
+        }
+
+        // ============================================================
+        // --preflight <in.pdf> [--profile <name|file>] [--json] [--password <p>]
+        // ============================================================
+        // Exit 3 means the document was read and findings were reported, which is
+        // different from exit 1, where the document could not be checked at all.
+        private static int CliPreflight(
+            List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count != 1)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --preflight <in.pdf> "
+                    + "[--profile general|attachments|print|<profile.json>] [--json] "
+                    + "[--password <password>]");
+                return 2;
+            }
+            string inPath = Path.GetFullPath(pos[0]);
+            if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
+
+            PdfPreflightProfile profile = PdfPreflightProfile.General;
+            if (options.TryGetValue("--profile", out string? profileName))
+            {
+                switch (profileName.ToLowerInvariant())
+                {
+                    case "general": profile = PdfPreflightProfile.General; break;
+                    case "attachments": profile = PdfPreflightProfile.Attachments; break;
+                    case "print": profile = PdfPreflightProfile.PrintProduction; break;
+                    default:
+                        string profilePath = Path.GetFullPath(profileName);
+                        if (!File.Exists(profilePath))
+                        {
+                            con.WriteLine("--profile must be general, attachments, print, "
+                                + "or the path of a saved profile.");
+                            return 2;
+                        }
+                        try
+                        {
+                            profile = PdfPreflightProfile.FromJson(File.ReadAllText(profilePath));
+                        }
+                        catch (Exception ex) when (ex is ArgumentException
+                            or InvalidOperationException or NotSupportedException
+                            or System.Text.Json.JsonException)
+                        {
+                            con.WriteLine("Could not read the profile: " + ex.Message);
+                            return 2;
+                        }
+                        break;
+                }
+            }
+
+            options.TryGetValue("--password", out string? password);
+            PdfPreflightReport report;
+            try
+            {
+                report = PdfPreflightRunner.Run(File.ReadAllBytes(inPath), profile, password);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException
+                or NotSupportedException or ArgumentException or FormatException)
+            {
+                con.WriteLine("Could not check the document: " + ex.Message);
+                return 1;
+            }
+            con.WriteLine(options.ContainsKey("--json") ? report.ToJson(true) : report.ToText());
+            return report.Passed && report.Complete ? 0 : 3;
+        }
+
+        // ============================================================
+        // --accessibility <in.pdf> [--json]
+        // ============================================================
+        private static int CliAccessibility(
+            List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count != 1)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --accessibility <in.pdf> [--json]");
+                return 2;
+            }
+            string inPath = Path.GetFullPath(pos[0]);
+            if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
+
+            PdfAccessibilityReport report;
+            try
+            {
+                report = PdfAccessibilityInspector.Inspect(
+                    PdfDocument.Open(File.ReadAllBytes(inPath)));
+            }
+            catch (Exception ex) when (ex is InvalidOperationException
+                or NotSupportedException or ArgumentException or FormatException)
+            {
+                con.WriteLine("Could not check the document: " + ex.Message);
+                return 1;
+            }
+            con.WriteLine(options.ContainsKey("--json") ? report.ToJson(true) : report.ToText());
+            return report.PassesImplementedChecks ? 0 : 3;
+        }
+
+        // ============================================================
+        // --attachments <in.pdf> [<outDir>] [--json]
+        // ============================================================
+        private static int CliAttachments(
+            List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count is < 1 or > 2)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --attachments <in.pdf> [<outputFolder>] [--json]");
+                return 2;
+            }
+            string inPath = Path.GetFullPath(pos[0]);
+            if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
+
+            PdfDocument document;
+            IReadOnlyList<PdfAttachmentInfo> attachments;
+            try
+            {
+                document = PdfDocument.Open(File.ReadAllBytes(inPath));
+                attachments = PdfAttachmentReader.Read(document);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException
+                or NotSupportedException or ArgumentException or FormatException)
+            {
+                con.WriteLine("Could not read the document: " + ex.Message);
+                return 1;
+            }
+
+            if (pos.Count == 1)
+            {
+                con.WriteLine(options.ContainsKey("--json")
+                    ? PdfAttachmentReader.ToJson(document, true)
+                    : PdfAttachmentReader.ToText(document));
+                return 0;
+            }
+
+            string outDir = Path.GetFullPath(pos[1]);
+            if (attachments.Count == 0)
+            {
+                con.WriteLine("The document has no embedded files.");
+                return 0;
+            }
+            Directory.CreateDirectory(outDir);
+            IReadOnlyList<string> written;
+            try
+            {
+                written = PdfAttachmentReader.ExtractAll(attachments, outDir, overwrite: true);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException
+                or NotSupportedException or ArgumentException or IOException
+                or UnauthorizedAccessException)
+            {
+                con.WriteLine("Could not extract the embedded files: " + ex.Message);
+                return 1;
+            }
+            con.WriteLine($"Extracted {written.Count} embedded files into {outDir}");
             return 0;
         }
 
