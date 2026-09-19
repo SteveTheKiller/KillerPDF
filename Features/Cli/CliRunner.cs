@@ -58,6 +58,8 @@ namespace KillerPDF.Features
             "--log", "--dpi", "--format", "--pages", "--printer", "--lang", "--password", "--copies",
             "--color-mode", "--threshold", "--compression", "--jpeg-quality",
             "--every", "--parts", "--bookmarks", "--max-size", "--name", "--strip",
+            "--template", "--edge", "--align", "--number-format", "--font-size",
+            "--start", "--digits", "--prefix", "--suffix",
         ];
 
         /// <summary>
@@ -81,7 +83,7 @@ namespace KillerPDF.Features
                 Eq(a, "--version") || Eq(a, "-v") ||
                 Eq(a, "--verify") || Eq(a, "/verify") ||
                 Eq(a, "--merge") || Eq(a, "--extract-pages") || Eq(a, "--split") ||
-                Eq(a, "--optimize") ||
+                Eq(a, "--optimize") || Eq(a, "--number-pages") || Eq(a, "--bates") ||
                 Eq(a, "--decrypt") || Eq(a, "--to-image") || Eq(a, "--flatten") ||
                 Eq(a, "--print") || Eq(a, "--ocr"));
             if (command is null) return false;
@@ -117,6 +119,12 @@ namespace KillerPDF.Features
                         break;
                     case "--optimize":
                         exitCode = CliOptimize(positionals, options, con);
+                        break;
+                    case "--number-pages":
+                        exitCode = CliNumberPages(positionals, options, con);
+                        break;
+                    case "--bates":
+                        exitCode = CliBates(positionals, options, con);
                         break;
                     case "--decrypt":
                         exitCode = CliDecrypt(positionals, options, con);
@@ -172,6 +180,16 @@ namespace KillerPDF.Features
             "                                           reduce file size; strip takes any of metadata,",
             "                                           attachments, javascript, comments, thumbnails,",
             "                                           bookmarks, forms, xfa, openaction, layers",
+            "  --number-pages <in.pdf> <out.pdf> [--template <text>] [--pages <range>]",
+            "                                           [--edge header|footer] [--align left|center|right]",
+            "                                           [--number-format decimal|upper-roman|lower-roman|",
+            "                                           upper-letters|lower-letters] [--font-size <n>]",
+            "                                           tokens: {page} {pages} {label} {filename} {title}",
+            "                                           {author} {date}",
+            "  --bates <outDir> <in1.pdf> [in2.pdf ...] [--start <n>] [--digits <n>]",
+            "                                           [--prefix <text>] [--suffix <text>] [--edge ...]",
+            "                                           [--align ...] [--font-size <n>]",
+            "                                           stamp one continuous Bates sequence across files",
             "  --decrypt <in.pdf> <out.pdf> [--password <p>]",
             "                                           remove encryption (lossless when possible)",
             "  --to-image <in.pdf> <outDir> [--dpi <n>] [--format png|jpg] [--pages <range>] [--transparent]",
@@ -547,6 +565,196 @@ namespace KillerPDF.Features
             con.WriteLine($"Optimized {result.OriginalSize} to {result.OutputSize} bytes "
                 + $"({percent}% smaller, {result.OriginalObjectCount} to {result.OutputObjectCount} objects)");
             return 0;
+        }
+
+        // ============================================================
+        // --number-pages <in.pdf> <out.pdf> [...]
+        // ============================================================
+        private static int CliNumberPages(
+            List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count != 2)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --number-pages <in.pdf> <out.pdf> "
+                    + "[--template <text>] [--pages <range>] [--edge header|footer] "
+                    + "[--align left|center|right] [--number-format <format>] [--font-size <n>]");
+                return 2;
+            }
+            string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
+            if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
+
+            if (!TryReadFurnitureLayout(options, con,
+                PdfPageFurnitureEdge.Footer, PdfPageFurnitureAlignment.Center,
+                out PdfPageFurnitureEdge edge, out PdfPageFurnitureAlignment align,
+                out double fontSize)) return 2;
+
+            var numberFormat = PdfPageNumberFormat.Decimal;
+            if (options.TryGetValue("--number-format", out string? formatRaw))
+            {
+                switch (formatRaw.ToLowerInvariant())
+                {
+                    case "decimal": numberFormat = PdfPageNumberFormat.Decimal; break;
+                    case "upper-roman": numberFormat = PdfPageNumberFormat.UpperRoman; break;
+                    case "lower-roman": numberFormat = PdfPageNumberFormat.LowerRoman; break;
+                    case "upper-letters": numberFormat = PdfPageNumberFormat.UpperLetters; break;
+                    case "lower-letters": numberFormat = PdfPageNumberFormat.LowerLetters; break;
+                    default:
+                        con.WriteLine("--number-format must be decimal, upper-roman, lower-roman, "
+                            + "upper-letters, or lower-letters.");
+                        return 2;
+                }
+            }
+
+            byte[] source = File.ReadAllBytes(inPath);
+            List<int>? pages = null;
+            if (options.TryGetValue("--pages", out string? rangeSpec))
+            {
+                int pageCount;
+                try
+                {
+                    pageCount = PdfPageInformation.Read(PdfDocument.Open(source)).Count;
+                }
+                catch (Exception ex) when (ex is InvalidOperationException
+                    or NotSupportedException or ArgumentException or FormatException)
+                {
+                    con.WriteLine("Could not read the document: " + ex.Message);
+                    return 1;
+                }
+                pages = CliParsePageRange(rangeSpec, pageCount, out string error);
+                if (pages is null) { con.WriteLine(error); return 2; }
+            }
+
+            var settings = new PdfPageNumberMacroOptions
+            {
+                Template = options.TryGetValue("--template", out string? template)
+                    && template.Length > 0 ? template : "{page}",
+                Date = DateOnly.FromDateTime(DateTime.Now),
+                FileName = Path.GetFileName(inPath),
+                Edge = edge,
+                Alignment = align,
+                NumberFormat = numberFormat,
+                FontSize = fontSize,
+                PageIndices = pages,
+                AllowCollisions = true
+            };
+
+            try
+            {
+                ReadOnlyMemory<byte> output = PdfPageFurnitureMacro.Execute(
+                    PdfPageFurnitureMacro.NumberPagesStep(settings), source);
+                File.WriteAllBytes(outPath, output.ToArray());
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException
+                or ArgumentException or FormatException or KeyNotFoundException)
+            {
+                con.WriteLine("Could not number the pages: " + ex.Message);
+                return ex is KeyNotFoundException or FormatException ? 2 : 1;
+            }
+            con.WriteLine($"Numbered pages into {outPath}");
+            return 0;
+        }
+
+        // ============================================================
+        // --bates <outDir> <in1.pdf> [in2.pdf ...] [...]
+        // ============================================================
+        // One continuous sequence across every input, the way a legal production is stamped.
+        private static int CliBates(
+            List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count < 2)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --bates <outputFolder> <in1.pdf> [in2.pdf ...] "
+                    + "[--start <n>] [--digits <n>] [--prefix <text>] [--suffix <text>] "
+                    + "[--edge header|footer] [--align left|center|right] [--font-size <n>]");
+                return 2;
+            }
+            string outDir = Path.GetFullPath(pos[0]);
+            string[] inputs = [.. pos.Skip(1).Select(Path.GetFullPath)];
+            foreach (string input in inputs)
+                if (!File.Exists(input)) { con.WriteLine($"Input not found: {input}"); return 2; }
+
+            if (!TryReadFurnitureLayout(options, con,
+                PdfPageFurnitureEdge.Footer, PdfPageFurnitureAlignment.Right,
+                out PdfPageFurnitureEdge edge, out PdfPageFurnitureAlignment align,
+                out double fontSize)) return 2;
+
+            long start = 1;
+            if (options.TryGetValue("--start", out string? startRaw)
+                && (!long.TryParse(startRaw, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out start) || start < 0))
+            { con.WriteLine("--start must be a whole number of zero or more."); return 2; }
+            int digits = ParseBoundedIntOption(options, "--digits", 6, 1, 18);
+
+            var settings = new PdfBatesMacroOptions
+            {
+                StartNumber = start,
+                DigitCount = digits,
+                Prefix = options.TryGetValue("--prefix", out string? prefix) ? prefix : string.Empty,
+                Suffix = options.TryGetValue("--suffix", out string? suffix) ? suffix : string.Empty,
+                Edge = edge,
+                Alignment = align,
+                FontSize = fontSize,
+                AllowCollisions = true
+            };
+
+            Directory.CreateDirectory(outDir);
+            IReadOnlyList<byte[]> stamped;
+            try
+            {
+                stamped = PdfPageFurnitureMacro.ExecuteBatesBatch(
+                    PdfPageFurnitureMacro.BatesBatchStep(settings),
+                    [.. inputs.Select(input => (ReadOnlyMemory<byte>)File.ReadAllBytes(input))]);
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException
+                or ArgumentException or FormatException or KeyNotFoundException)
+            {
+                con.WriteLine("Could not stamp the documents: " + ex.Message);
+                return ex is KeyNotFoundException or FormatException ? 2 : 1;
+            }
+            for (int index = 0; index < stamped.Count; index++)
+                File.WriteAllBytes(
+                    Path.Combine(outDir, Path.GetFileName(inputs[index])), stamped[index]);
+            con.WriteLine($"Stamped {stamped.Count} files into {outDir}");
+            return 0;
+        }
+
+        private static bool TryReadFurnitureLayout(
+            Dictionary<string, string> options, TextWriter con,
+            PdfPageFurnitureEdge defaultEdge, PdfPageFurnitureAlignment defaultAlignment,
+            out PdfPageFurnitureEdge edge, out PdfPageFurnitureAlignment alignment,
+            out double fontSize)
+        {
+            edge = defaultEdge;
+            alignment = defaultAlignment;
+            fontSize = 10;
+            if (options.TryGetValue("--edge", out string? edgeRaw))
+            {
+                switch (edgeRaw.ToLowerInvariant())
+                {
+                    case "header": edge = PdfPageFurnitureEdge.Header; break;
+                    case "footer": edge = PdfPageFurnitureEdge.Footer; break;
+                    default: con.WriteLine("--edge must be header or footer."); return false;
+                }
+            }
+            if (options.TryGetValue("--align", out string? alignRaw))
+            {
+                switch (alignRaw.ToLowerInvariant())
+                {
+                    case "left": alignment = PdfPageFurnitureAlignment.Left; break;
+                    case "center": alignment = PdfPageFurnitureAlignment.Center; break;
+                    case "right": alignment = PdfPageFurnitureAlignment.Right; break;
+                    default:
+                        con.WriteLine("--align must be left, center, or right.");
+                        return false;
+                }
+            }
+            if (options.TryGetValue("--font-size", out string? sizeRaw))
+            {
+                if (!double.TryParse(sizeRaw, NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out fontSize) || !double.IsFinite(fontSize) || fontSize < 1 || fontSize > 400)
+                { con.WriteLine("--font-size must be between 1 and 400."); return false; }
+            }
+            return true;
         }
 
         // ============================================================
