@@ -422,8 +422,9 @@ namespace KillerPDF.Controls
                     string capturedKey   = f.FieldName;
                     double capturedScale = f.Scale;
                     tb.GotFocus  += (_, _) => { _selectedFormFieldName = capturedKey; tb.SetResourceReference(Control.BorderBrushProperty, "HeaderLineBrush"); ShowFormSizeBar(tb, capturedKey, capturedScale); };
-                    tb.LostFocus += (_, _) => { tb.BorderBrush = f.IsComb ? Brushes.Transparent : restingBorder; HideFormSizeBar(); };
+                    tb.LostFocus += (_, _) => { tb.BorderBrush = f.IsComb ? Brushes.Transparent : restingBorder; HideFormSizeBar(); RecalculateFormFields(); };
                     tb.TextChanged += (_, _) => { _formTextValues[capturedKey] = tb.Text; MarkDirty(true); };
+                    RegisterFormValueBox(capturedKey, tb);
                     ctrl = f.IsComb ? new CombTextBox(tb, f.MaxLen, fontSize) : tb;
                 }
 
@@ -487,6 +488,7 @@ namespace KillerPDF.Controls
                         {
                             _formChoiceValues[capturedKey] = selectedExport;
                             MarkDirty(true);
+                            RecalculateFormFields();
                         }
                     };
                     ctrl = combo;

@@ -95,6 +95,15 @@ public static partial class PdfFormCalculation
         return Array.AsReadOnly(scripts.ToArray());
     }
 
+    /// <summary>Reads the stored value of every AcroForm field in field tree order.</summary>
+    public static IReadOnlyDictionary<string, string> ReadValues(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (FormField field in ReadFields(document)) values[field.Name] = field.Value;
+        return values;
+    }
+
     /// <summary>Evaluates supported calculation, format, and validation scripts in order.</summary>
     public static PdfFormCalculationReport Evaluate(PdfDocument document,
         IReadOnlyDictionary<string, string>? values = null)
