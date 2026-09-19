@@ -61,6 +61,8 @@ namespace KillerPDF.Features
             "--every", "--parts", "--bookmarks", "--max-size", "--name", "--strip",
             "--template", "--edge", "--align", "--number-format", "--font-size",
             "--start", "--digits", "--prefix", "--suffix", "--profile",
+            "--sheet", "--margin", "--gutter", "--creep", "--binding", "--grid",
+            "--min-size", "--depth", "--pattern",
         ];
 
         /// <summary>
@@ -86,6 +88,7 @@ namespace KillerPDF.Features
                 Eq(a, "--merge") || Eq(a, "--extract-pages") || Eq(a, "--split") ||
                 Eq(a, "--optimize") || Eq(a, "--number-pages") || Eq(a, "--bates") ||
                 Eq(a, "--preflight") || Eq(a, "--accessibility") || Eq(a, "--attachments") ||
+                Eq(a, "--booklet") || Eq(a, "--nup") || Eq(a, "--auto-bookmarks") ||
                 Eq(a, "--decrypt") || Eq(a, "--to-image") || Eq(a, "--flatten") ||
                 Eq(a, "--print") || Eq(a, "--ocr"));
             if (command is null) return false;
@@ -121,6 +124,15 @@ namespace KillerPDF.Features
                         break;
                     case "--optimize":
                         exitCode = CliOptimize(positionals, options, con);
+                        break;
+                    case "--booklet":
+                        exitCode = CliImpose(positionals, options, con, booklet: true);
+                        break;
+                    case "--nup":
+                        exitCode = CliImpose(positionals, options, con, booklet: false);
+                        break;
+                    case "--auto-bookmarks":
+                        exitCode = CliAutoBookmarks(positionals, options, con);
                         break;
                     case "--preflight":
                         exitCode = CliPreflight(positionals, options, con);
@@ -201,6 +213,13 @@ namespace KillerPDF.Features
             "                                           [--prefix <text>] [--suffix <text>] [--edge ...]",
             "                                           [--align ...] [--font-size <n>]",
             "                                           stamp one continuous Bates sequence across files",
+            "  --booklet <in.pdf> <out.pdf> [--sheet <name|WxH>] [--margin <n>] [--gutter <n>]",
+            "                                           [--creep <n>] [--binding long|short] [--marks]",
+            "                                           two-up saddle-stitch imposition",
+            "  --nup <in.pdf> <out.pdf> --grid <cols>x<rows> [--sheet <name|WxH>] [--margin <n>]",
+            "                                           [--gutter <n>] [--marks]   place several pages per sheet",
+            "  --auto-bookmarks <in.pdf> <out.pdf> [--min-size <pt>] [--depth <n>] [--pattern <regex>]",
+            "                                           build an outline from detected headings",
             "  --preflight <in.pdf> [--profile general|attachments|print|<profile.json>]",
             "                                           [--json] [--password <p>]   exit 3 when findings",
             "  --accessibility <in.pdf> [--json]        report accessibility findings; exit 3 when found",
@@ -581,6 +600,208 @@ namespace KillerPDF.Features
             con.WriteLine($"Optimized {result.OriginalSize} to {result.OutputSize} bytes "
                 + $"({percent}% smaller, {result.OriginalObjectCount} to {result.OutputObjectCount} objects)");
             return 0;
+        }
+
+        // ============================================================
+        // --booklet / --nup <in.pdf> <out.pdf> [...]
+        // ============================================================
+        private static int CliImpose(List<string> pos, Dictionary<string, string> options,
+            TextWriter con, bool booklet)
+        {
+            string verb = booklet ? "--booklet" : "--nup";
+            if (pos.Count != 2)
+            {
+                con.WriteLine($"Usage: KillerPDF.exe {verb} <in.pdf> <out.pdf> "
+                    + (booklet ? string.Empty : "--grid <cols>x<rows> ")
+                    + "[--sheet <name|WxH>] [--margin <n>] [--gutter <n>] "
+                    + (booklet ? "[--creep <n>] [--binding long|short] " : string.Empty)
+                    + "[--marks]");
+                return 2;
+            }
+            string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
+            if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
+
+            double sheetWidth = 612, sheetHeight = 792;
+            bool namedSheet = true;
+            if (options.TryGetValue("--sheet", out string? sheet)
+                && !TryParseSheet(sheet, out sheetWidth, out sheetHeight, out namedSheet))
+            {
+                con.WriteLine("--sheet must be letter, legal, tabloid, a3, a4, a5, "
+                    + "or a width and height in points such as 842x1191.");
+                return 2;
+            }
+            // A saddle-stitch sheet is folded down the middle, so a named size is used
+            // landscape. An explicit width and height is taken exactly as written.
+            if (booklet && namedSheet && sheetHeight > sheetWidth)
+                (sheetWidth, sheetHeight) = (sheetHeight, sheetWidth);
+
+            int columns = 2, rows = 1;
+            if (!booklet)
+            {
+                if (!options.TryGetValue("--grid", out string? grid)
+                    || !TryParseGrid(grid, out columns, out rows))
+                {
+                    con.WriteLine("--grid must be columns by rows, such as 2x2.");
+                    return 2;
+                }
+            }
+
+            if (!TryReadNonNegative(options, "--margin", 0, con, out double margin)
+                || !TryReadNonNegative(options, "--gutter", 0, con, out double gutter)
+                || !TryReadNonNegative(options, "--creep", 0, con, out double creep)) return 2;
+
+            var binding = PdfImpositionBindingEdge.Long;
+            if (options.TryGetValue("--binding", out string? bindingRaw))
+            {
+                switch (bindingRaw.ToLowerInvariant())
+                {
+                    case "long": binding = PdfImpositionBindingEdge.Long; break;
+                    case "short": binding = PdfImpositionBindingEdge.Short; break;
+                    default: con.WriteLine("--binding must be long or short."); return 2;
+                }
+            }
+            bool marks = options.ContainsKey("--marks");
+
+            PdfImpositionPreset preset;
+            PdfMacroStep step;
+            try
+            {
+                preset = new PdfImpositionPreset(
+                    booklet ? "Booklet" : $"{columns} by {rows}",
+                    columns, rows, sheetWidth, sheetHeight, margin, gutter,
+                    duplex: booklet, rotateToFit: true,
+                    includeCropMarks: marks, includeRegistrationMarks: marks,
+                    creepPerSheet: creep, includeFoldMarks: marks && booklet,
+                    bindingEdge: binding);
+                step = booklet
+                    ? PdfImpositionMacro.BookletStep(preset)
+                    : PdfImpositionMacro.NUpStep(preset);
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+            {
+                con.WriteLine("Could not build the layout: " + ex.Message);
+                return 2;
+            }
+
+            try
+            {
+                ReadOnlyMemory<byte> output = PdfImpositionMacro.Execute(
+                    step, File.ReadAllBytes(inPath));
+                File.WriteAllBytes(outPath, output.ToArray());
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException
+                or ArgumentException or FormatException or KeyNotFoundException)
+            {
+                con.WriteLine("Could not impose the document: " + ex.Message);
+                return 1;
+            }
+            con.WriteLine($"Imposed onto {sheetWidth:0.##} by {sheetHeight:0.##} point sheets "
+                + $"-> {outPath}");
+            return 0;
+        }
+
+        // ============================================================
+        // --auto-bookmarks <in.pdf> <out.pdf> [...]
+        // ============================================================
+        private static int CliAutoBookmarks(
+            List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count != 2)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --auto-bookmarks <in.pdf> <out.pdf> "
+                    + "[--min-size <points>] [--depth <n>] [--pattern <regex>]");
+                return 2;
+            }
+            string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
+            if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
+
+            if (!TryReadNonNegative(options, "--min-size", 14, con, out double minimumSize))
+                return 2;
+            if (minimumSize <= 0) { con.WriteLine("--min-size must be greater than zero."); return 2; }
+            int depth = ParseBoundedIntOption(options, "--depth", 6, 1, 16);
+
+            var detection = new PdfBookmarkDetectionOptions
+            {
+                MinimumPointSize = minimumSize,
+                MaximumDepth = depth,
+                TitlePattern = options.TryGetValue("--pattern", out string? pattern)
+                    && pattern.Length > 0 ? pattern : null
+            };
+
+            try
+            {
+                PdfDocument document = PdfDocument.Open(File.ReadAllBytes(inPath));
+                IReadOnlyList<PdfBookmarkProposal> proposals =
+                    PdfBookmarkGeneration.DetectHeadings(document, detection);
+                if (proposals.Count == 0)
+                {
+                    con.WriteLine("No headings were detected. Try a smaller --min-size.");
+                    return 3;
+                }
+                byte[] output = PdfBookmarkGeneration.Apply(document,
+                    proposals.Select(proposal => proposal with
+                    {
+                        Decision = PdfBookmarkProposalDecision.Accepted
+                    }));
+                File.WriteAllBytes(outPath, output);
+                con.WriteLine($"Added {proposals.Count} bookmarks -> {outPath}");
+                return 0;
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or NotSupportedException
+                or ArgumentException or FormatException or KeyNotFoundException
+                or System.Text.RegularExpressions.RegexParseException)
+            {
+                con.WriteLine("Could not build the outline: " + ex.Message);
+                return ex is ArgumentException or System.Text.RegularExpressions.RegexParseException
+                    ? 2 : 1;
+            }
+        }
+
+        private static bool TryReadNonNegative(Dictionary<string, string> options, string name,
+            double fallback, TextWriter con, out double value)
+        {
+            value = fallback;
+            if (!options.TryGetValue(name, out string? raw)) return true;
+            if (double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && double.IsFinite(value) && value >= 0) return true;
+            con.WriteLine($"{name} must be a number of zero or more.");
+            return false;
+        }
+
+        private static bool TryParseGrid(string text, out int columns, out int rows)
+        {
+            columns = 0;
+            rows = 0;
+            string[] parts = text.Split('x', 'X', '*');
+            return parts.Length == 2
+                && int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out columns) && columns is > 0 and <= 64
+                && int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                    out rows) && rows is > 0 and <= 64;
+        }
+
+        private static bool TryParseSheet(string text, out double width, out double height,
+            out bool named)
+        {
+            named = true;
+            switch (text.Trim().ToLowerInvariant())
+            {
+                case "letter": width = 612; height = 792; return true;
+                case "legal": width = 612; height = 1008; return true;
+                case "tabloid": width = 792; height = 1224; return true;
+                case "a3": width = 841.89; height = 1190.55; return true;
+                case "a4": width = 595.28; height = 841.89; return true;
+                case "a5": width = 419.53; height = 595.28; return true;
+            }
+            named = false;
+            width = 0;
+            height = 0;
+            string[] parts = text.Split('x', 'X', '*');
+            return parts.Length == 2
+                && double.TryParse(parts[0], NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out width) && double.IsFinite(width) && width > 0
+                && double.TryParse(parts[1], NumberStyles.Float, CultureInfo.InvariantCulture,
+                    out height) && double.IsFinite(height) && height > 0;
         }
 
         // ============================================================
