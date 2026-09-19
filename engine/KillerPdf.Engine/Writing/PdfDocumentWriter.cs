@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using KillerPdf.Engine.CrossReference;
 using KillerPdf.Engine.Documents;
@@ -536,8 +537,7 @@ public static class PdfDocumentWriter
                     if (value is not PdfIndirectReference reference) continue;
                     var identity = (reference.ObjectNumber, reference.Generation);
                     if (replacements.ContainsKey(identity)) continue;
-                    string key = category + ":" + Convert.ToHexString(
-                        PdfObjectWriter.Write(document.Resolve(reference)));
+                    string key = category + ":" + ResourceFingerprint(document.Resolve(reference));
                     if (canonical.TryGetValue(key, out var retained)
                         && retained != identity)
                         replacements[identity] = retained;
@@ -559,6 +559,14 @@ public static class PdfDocumentWriter
         objects.RemoveAll(item => replacements.ContainsKey(
             (item.ObjectNumber, item.Generation)));
     }
+
+    // A resource entry can be a stream, such as an image XObject or a shading pattern.
+    // A stream has no direct serialization, so its identity comes from its dictionary
+    // together with a digest of the payload rather than from writing the object itself.
+    private static string ResourceFingerprint(PdfObject value) => value is PdfStream stream
+        ? Convert.ToHexString(PdfObjectWriter.Write(stream.Dictionary)) + ":"
+            + Convert.ToHexString(SHA256.HashData(stream.EncodedData.Span))
+        : Convert.ToHexString(PdfObjectWriter.Write(value));
 
     private static PdfObject RewriteReferences(PdfObject value,
         IReadOnlyDictionary<(int ObjectNumber, int Generation),

@@ -800,8 +800,7 @@ public static class PdfOptimizer
         var aliases = new Dictionary<PdfName, PdfName>();
         foreach ((PdfName name, PdfObject value) in dictionary)
         {
-            string identity = Convert.ToHexString(PdfObjectWriter.Write(
-                Resolve(document, value)));
+            string identity = ResourceFingerprint(Resolve(document, value));
             if (canonical.TryGetValue(identity, out PdfName? first))
                 aliases[name] = first;
             else
@@ -809,6 +808,15 @@ public static class PdfOptimizer
         }
         return aliases;
     }
+
+    // A resource entry can be a stream, such as an image XObject. A stream has no direct
+    // serialization, so its identity comes from its dictionary together with a digest of
+    // the payload rather than from writing the object itself.
+    private static string ResourceFingerprint(PdfObject value) => value is PdfStream stream
+        ? Convert.ToHexString(PdfObjectWriter.Write(stream.Dictionary)) + ":"
+            + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+                stream.EncodedData.Span))
+        : Convert.ToHexString(PdfObjectWriter.Write(value));
 
     private static PdfName Name(string value) => new(System.Text.Encoding.ASCII.GetBytes(value));
 

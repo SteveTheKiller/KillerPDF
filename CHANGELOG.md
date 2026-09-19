@@ -51,6 +51,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Restored document rewriting, optimization, and resource pruning for documents whose page resources include image, shading, or pattern streams.
+
 - Completed remaining dialog and installer translations and refreshed the website guides.
 
 - Moved the keyboard shortcut toggle to the footer beside the online guide.
