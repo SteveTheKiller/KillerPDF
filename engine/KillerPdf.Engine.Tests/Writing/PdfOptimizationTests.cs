@@ -5,12 +5,29 @@ using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Writing;
+using KillerPdf.Engine.Syntax;
 using Xunit;
 
 namespace KillerPdf.Engine.Tests.Writing;
 
 public sealed class PdfOptimizationTests
 {
+    [Fact]
+    public void ForDocumentKeepsOlderDocumentsOffCrossReferenceStreams()
+    {
+        PdfDocument modern = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage().Build());
+
+        PdfOptimizationOptions settings = PdfOptimizationOptions.ForDocument(modern);
+
+        Assert.True(settings.PruneUnreachableObjects);
+        Assert.True(settings.PruneUnusedPageResources);
+        Assert.True(settings.CompressUnfilteredStreams);
+        Assert.Equal(modern.Header.Version.CompareTo(new PdfVersion(1, 5)) >= 0,
+            settings.PackObjects);
+        Assert.Equal(settings.PackObjects, settings.CompressStructure);
+    }
+
     [Fact]
     public void PlanAppliesAndReportsPreviewedHarmlessRepairs()
     {

@@ -16,6 +16,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using KillerPdf.Engine.Authoring;
 using KillerPdf.Engine.Documents;
+using KillerPdf.Engine.Writing;
 using KillerPDF.Services;
 // The scrubs, bitmap helpers, and import helpers all live in Services
 // (BitmapHelpers.cs and PdfImport.cs; KillerUI refactor,
@@ -56,7 +57,7 @@ namespace KillerPDF.Features
         [
             "--log", "--dpi", "--format", "--pages", "--printer", "--lang", "--password", "--copies",
             "--color-mode", "--threshold", "--compression", "--jpeg-quality",
-            "--every", "--parts", "--bookmarks", "--max-size", "--name",
+            "--every", "--parts", "--bookmarks", "--max-size", "--name", "--strip",
         ];
 
         /// <summary>
@@ -80,6 +81,7 @@ namespace KillerPDF.Features
                 Eq(a, "--version") || Eq(a, "-v") ||
                 Eq(a, "--verify") || Eq(a, "/verify") ||
                 Eq(a, "--merge") || Eq(a, "--extract-pages") || Eq(a, "--split") ||
+                Eq(a, "--optimize") ||
                 Eq(a, "--decrypt") || Eq(a, "--to-image") || Eq(a, "--flatten") ||
                 Eq(a, "--print") || Eq(a, "--ocr"));
             if (command is null) return false;
@@ -112,6 +114,9 @@ namespace KillerPDF.Features
                         break;
                     case "--split":
                         exitCode = CliSplit(positionals, options, con);
+                        break;
+                    case "--optimize":
+                        exitCode = CliOptimize(positionals, options, con);
                         break;
                     case "--decrypt":
                         exitCode = CliDecrypt(positionals, options, con);
@@ -163,6 +168,10 @@ namespace KillerPDF.Features
             "                                           [--bookmarks <level>] a part per bookmark at that level",
             "                                           [--max-size <n[KB|MB]>] grow parts up to a size budget",
             "                                           [--name <template>] {name} {index} {first} {last} {title}",
+            "  --optimize <in.pdf> <out.pdf> [--strip <list>] [--report]",
+            "                                           reduce file size; strip takes any of metadata,",
+            "                                           attachments, javascript, comments, thumbnails,",
+            "                                           bookmarks, forms, xfa, openaction, layers",
             "  --decrypt <in.pdf> <out.pdf> [--password <p>]",
             "                                           remove encryption (lossless when possible)",
             "  --to-image <in.pdf> <outDir> [--dpi <n>] [--format png|jpg] [--pages <range>] [--transparent]",
@@ -460,6 +469,84 @@ namespace KillerPDF.Features
             }
             catch (OverflowException) { return false; }
             return true;
+        }
+
+        // ============================================================
+        // --optimize <in.pdf> <out.pdf> [--strip <list>] [--report]
+        // ============================================================
+        // Acrobat calls this Reduce File Size plus Sanitize. The defaults prune what the
+        // trailer can no longer reach, drop resources the pages no longer name, and
+        // recompress unfiltered streams. Everything destructive is opt in through --strip.
+        private static int CliOptimize(
+            List<string> pos, Dictionary<string, string> options, TextWriter con)
+        {
+            if (pos.Count != 2)
+            {
+                con.WriteLine("Usage: KillerPDF.exe --optimize <in.pdf> <out.pdf> "
+                    + "[--strip <list>] [--report]");
+                return 2;
+            }
+            string inPath = Path.GetFullPath(pos[0]), outPath = Path.GetFullPath(pos[1]);
+            if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
+
+            PdfDocument document;
+            try
+            {
+                document = PdfDocument.Open(File.ReadAllBytes(inPath));
+            }
+            catch (Exception ex) when (ex is InvalidOperationException
+                or NotSupportedException or ArgumentException or FormatException)
+            {
+                con.WriteLine("Could not read the document: " + ex.Message);
+                return 1;
+            }
+
+            PdfOptimizationOptions settings = PdfOptimizationOptions.ForDocument(document);
+            if (options.TryGetValue("--strip", out string? strip))
+            {
+                foreach (string item in strip.Split(',',
+                    StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    switch (item.ToLowerInvariant())
+                    {
+                        case "metadata": settings = settings with { RemoveMetadata = true }; break;
+                        case "attachments": settings = settings with { RemoveAttachments = true }; break;
+                        case "javascript": settings = settings with { RemoveDocumentJavaScript = true }; break;
+                        case "comments": settings = settings with { RemoveComments = true }; break;
+                        case "thumbnails": settings = settings with { RemovePageThumbnails = true }; break;
+                        case "bookmarks": settings = settings with { RemoveBookmarks = true }; break;
+                        case "forms": settings = settings with { RemoveFormFields = true }; break;
+                        case "xfa": settings = settings with { RemoveXfaData = true }; break;
+                        case "openaction": settings = settings with { RemoveOpenAction = true }; break;
+                        case "layers": settings = settings with { FlattenOptionalContent = true }; break;
+                        default:
+                            con.WriteLine($"--strip does not recognize '{item}'.");
+                            return 2;
+                    }
+                }
+            }
+            settings = settings with { RepairHarmlessArtifacts = true };
+
+            PdfOptimizationResult result;
+            try
+            {
+                result = PdfOptimizer.CreatePlan(document, settings).Apply();
+            }
+            catch (Exception ex) when (ex is InvalidOperationException
+                or NotSupportedException or ArgumentException or FormatException)
+            {
+                con.WriteLine("Could not optimize the document: " + ex.Message);
+                return 1;
+            }
+            File.WriteAllBytes(outPath, result.Data.ToArray());
+            if (options.ContainsKey("--report")) con.WriteLine(result.ToJson(true));
+            long saved = result.OriginalSize - (long)result.OutputSize;
+            string percent = result.OriginalSize > 0
+                ? (saved * 100.0 / result.OriginalSize).ToString("0.0", CultureInfo.InvariantCulture)
+                : "0.0";
+            con.WriteLine($"Optimized {result.OriginalSize} to {result.OutputSize} bytes "
+                + $"({percent}% smaller, {result.OriginalObjectCount} to {result.OutputObjectCount} objects)");
+            return 0;
         }
 
         // ============================================================

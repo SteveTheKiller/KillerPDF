@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
+using KillerPdf.Engine.Syntax;
 
 namespace KillerPdf.Engine.Writing;
 
@@ -84,6 +85,25 @@ public sealed record PdfOptimizationOptions
     public bool CompressStructure { get; init; } = true;
     /// <summary>Gets whether signatures may be invalidated by the required full rewrite.</summary>
     public bool AllowSignatureInvalidation { get; init; }
+
+    /// <summary>
+    /// Creates size-reduction settings a document can actually be rewritten with. Object
+    /// streams and cross-reference streams need PDF 1.5, so an older document keeps its
+    /// original structure instead of failing on its declared version.
+    /// </summary>
+    public static PdfOptimizationOptions ForDocument(PdfDocument document)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+        bool modern = document.Header.Version.CompareTo(new PdfVersion(1, 5)) >= 0;
+        return new PdfOptimizationOptions
+        {
+            PruneUnreachableObjects = true,
+            PruneUnusedPageResources = true,
+            CompressUnfilteredStreams = true,
+            PackObjects = modern,
+            CompressStructure = modern
+        };
+    }
 }
 
 /// <summary>A completed optimization and its measured size change.</summary>

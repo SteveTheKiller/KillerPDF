@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Text;
 using KillerPdf.Engine.Editing;
-using KillerPdf.Engine.Syntax;
 using KillerPdf.Engine.Writing;
 
 namespace KillerPdf.Engine.Documents;
@@ -172,20 +171,14 @@ public static class PdfDocumentSplitter
         {
             return built;
         }
-        // Object streams and cross-reference streams need PDF 1.5. An older document keeps
-        // its original structure so the rewrite cannot fail on its declared version.
-        bool modern = part.Header.Version.CompareTo(new PdfVersion(1, 5)) >= 0;
+        PdfOptimizationOptions settings = PdfOptimizationOptions.ForDocument(part);
         foreach (bool pruneResources in (bool[])[true, false])
         {
             try
             {
-                return PdfOptimizer.CreatePlan(part, new PdfOptimizationOptions
-                {
-                    PruneUnreachableObjects = true,
-                    PruneUnusedPageResources = pruneResources,
-                    PackObjects = modern,
-                    CompressStructure = modern
-                }).Apply().Data.ToArray();
+                return PdfOptimizer.CreatePlan(part,
+                    settings with { PruneUnusedPageResources = pruneResources })
+                    .Apply().Data.ToArray();
             }
             catch (Exception exception) when (exception is InvalidOperationException
                 or NotSupportedException or ArgumentException or FormatException)
