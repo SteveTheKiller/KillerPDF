@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -55,6 +56,7 @@ namespace KillerPDF.Features
         [
             "--log", "--dpi", "--format", "--pages", "--printer", "--lang", "--password", "--copies",
             "--color-mode", "--threshold", "--compression", "--jpeg-quality",
+            "--every", "--parts", "--bookmarks", "--max-size", "--name",
         ];
 
         /// <summary>
@@ -109,7 +111,7 @@ namespace KillerPDF.Features
                         exitCode = CliExtractPages(positionals, con);
                         break;
                     case "--split":
-                        exitCode = CliSplit(positionals, con);
+                        exitCode = CliSplit(positionals, options, con);
                         break;
                     case "--decrypt":
                         exitCode = CliDecrypt(positionals, options, con);
@@ -156,6 +158,11 @@ namespace KillerPDF.Features
             "  --extract-pages <in.pdf> <pages> <out.pdf>",
             "                                           pull pages into a new PDF (pages like 1-3,5,9-12)",
             "  --split <in.pdf> <outDir>                write one PDF per page",
+            "                                           [--every <n>] fixed page count per part",
+            "                                           [--parts <n>] equal parts",
+            "                                           [--bookmarks <level>] a part per bookmark at that level",
+            "                                           [--max-size <n[KB|MB]>] grow parts up to a size budget",
+            "                                           [--name <template>] {name} {index} {first} {last} {title}",
             "  --decrypt <in.pdf> <out.pdf> [--password <p>]",
             "                                           remove encryption (lossless when possible)",
             "  --to-image <in.pdf> <outDir> [--dpi <n>] [--format png|jpg] [--pages <range>] [--transparent]",
@@ -319,29 +326,140 @@ namespace KillerPDF.Features
         // ============================================================
         // --split <in.pdf> <outDir>
         // ============================================================
-        private static int CliSplit(List<string> pos, TextWriter con)
+        private static int CliSplit(List<string> pos, Dictionary<string, string> options, TextWriter con)
         {
             if (pos.Count != 2)
             {
-                con.WriteLine("Usage: KillerPDF.exe --split <in.pdf> <outputFolder>");
+                con.WriteLine("Usage: KillerPDF.exe --split <in.pdf> <outputFolder> "
+                    + "[--every <n> | --parts <n> | --bookmarks <level> | --max-size <n[KB|MB]>] "
+                    + "[--name <template>]");
                 return 2;
             }
             string inPath = Path.GetFullPath(pos[0]), outDir = Path.GetFullPath(pos[1]);
             if (!File.Exists(inPath)) { con.WriteLine($"Input not found: {inPath}"); return 2; }
-            Directory.CreateDirectory(outDir);
 
             byte[] source = File.ReadAllBytes(inPath);
-            IReadOnlyList<byte[]> pages = PdfEngineIntegration.SplitPages(source);
             string baseName = Path.GetFileNameWithoutExtension(inPath);
-            int digits = Math.Max(3, pages.Count.ToString().Length);
-            for (int i = 0; i < pages.Count; i++)
+            PdfSplitOptions? rule = ParseSplitRule(options, con, out bool invalid);
+            if (invalid) return 2;
+
+            Directory.CreateDirectory(outDir);
+            if (rule is null)
             {
-                File.WriteAllBytes(
-                    Path.Combine(outDir, $"{baseName}-page-{(i + 1).ToString().PadLeft(digits, '0')}.pdf"),
-                    pages[i]);
+                // Default, unchanged: one PDF per page.
+                IReadOnlyList<byte[]> pages = PdfEngineIntegration.SplitPages(source);
+                int digits = Math.Max(3, pages.Count.ToString().Length);
+                for (int i = 0; i < pages.Count; i++)
+                {
+                    File.WriteAllBytes(
+                        Path.Combine(outDir, $"{baseName}-page-{(i + 1).ToString().PadLeft(digits, '0')}.pdf"),
+                        pages[i]);
+                }
+                con.WriteLine($"Split {pages.Count} pages into {outDir}");
+                return 0;
             }
-            con.WriteLine($"Split {pages.Count} pages into {outDir}");
+
+            IReadOnlyList<PdfSplitOutput> parts;
+            try
+            {
+                parts = PdfDocumentSplitter.Split(PdfDocument.Open(source), rule, baseName);
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+            {
+                con.WriteLine(ex.Message);
+                return 2;
+            }
+            foreach (PdfSplitOutput part in parts)
+                File.WriteAllBytes(Path.Combine(outDir, part.Name + ".pdf"), part.Document.ToArray());
+            con.WriteLine($"Split into {parts.Count} files in {outDir}");
             return 0;
+        }
+
+        // Returns null when no split rule flag was supplied, so --split keeps its
+        // original one-file-per-page behavior. Sets invalid when a flag is malformed.
+        private static PdfSplitOptions? ParseSplitRule(
+            Dictionary<string, string> options, TextWriter con, out bool invalid)
+        {
+            invalid = false;
+            string[] rules = ["--every", "--parts", "--bookmarks", "--max-size"];
+            string[] supplied = [.. rules.Where(options.ContainsKey)];
+            if (supplied.Length == 0) return null;
+            if (supplied.Length > 1)
+            {
+                con.WriteLine("Use only one of --every, --parts, --bookmarks, or --max-size.");
+                invalid = true;
+                return null;
+            }
+            string template = options.TryGetValue("--name", out string? name)
+                && !string.IsNullOrWhiteSpace(name) ? name : "{name}-{index}";
+            string raw = options[supplied[0]];
+            if (supplied[0] == "--max-size")
+            {
+                if (!TryParseByteSize(raw, out long bytes))
+                {
+                    con.WriteLine("--max-size must be a byte count, optionally suffixed KB, MB, or GB.");
+                    invalid = true;
+                    return null;
+                }
+                return new PdfSplitOptions
+                {
+                    Mode = PdfSplitMode.MaximumBytes,
+                    MaximumBytes = bytes,
+                    NameTemplate = template
+                };
+            }
+            if (!int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out int value) || value <= 0)
+            {
+                con.WriteLine($"{supplied[0]} must be a whole number greater than zero.");
+                invalid = true;
+                return null;
+            }
+            return supplied[0] switch
+            {
+                "--every" => new PdfSplitOptions
+                {
+                    Mode = PdfSplitMode.PageCount,
+                    PagesPerPart = value,
+                    NameTemplate = template
+                },
+                "--parts" => new PdfSplitOptions
+                {
+                    Mode = PdfSplitMode.PartCount,
+                    PartCount = value,
+                    NameTemplate = template
+                },
+                _ => new PdfSplitOptions
+                {
+                    Mode = PdfSplitMode.BookmarkLevel,
+                    BookmarkLevel = value,
+                    NameTemplate = template
+                }
+            };
+        }
+
+        private static bool TryParseByteSize(string text, out long bytes)
+        {
+            bytes = 0;
+            if (string.IsNullOrWhiteSpace(text)) return false;
+            string trimmed = text.Trim();
+            long multiplier = 1;
+            foreach ((string suffix, long scale) in new[]
+                { ("GB", 1L << 30), ("MB", 1L << 20), ("KB", 1L << 10) })
+            {
+                if (!trimmed.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)) continue;
+                multiplier = scale;
+                trimmed = trimmed[..^suffix.Length].Trim();
+                break;
+            }
+            if (!long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out long count) || count <= 0) return false;
+            try
+            {
+                bytes = checked(count * multiplier);
+            }
+            catch (OverflowException) { return false; }
+            return true;
         }
 
         // ============================================================

@@ -15,6 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Added a keyboard shortcut toggle with an always-available Ctrl+Shift+K recovery chord (#405).
 - Added structured document export from the Save menu to Word, Excel, PowerPoint, HTML, Markdown, plain text, and JSON, with page selection and loss warnings.
 - Added engine-first rendering and OCR across the viewer, thumbnails, print, export, transforms, and OCR, with lower-memory document opening, paths, shadings, font outlines, installed Courier aliases and emoji fallback, JPEG, JPEG 2000, JBIG2, fax, transparency, forms, attachment-only encrypted documents, preprocessing, layout analysis, recognition, and normalized fallback confidence.
+- Added command-line document splitting by page count, equal parts, page ranges, bookmark level, or maximum file size, with a part name template. Each part drops the objects the removed pages leave behind.
 - Added calculated form fields that recalculate while filling, covering the built-in number, percent, date, time, special, calculation, and range functions plus a bounded arithmetic field-script subset, without executing document JavaScript.
 - Added safe XFA inspection, editing, rendering, calculation, conversion, and compatibility reports (#330).
 - Added complete FDF and XFDF form-data and review-annotation interchange with safe previews and reports (#329).
