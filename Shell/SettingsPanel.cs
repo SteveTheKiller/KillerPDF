@@ -648,7 +648,7 @@ namespace KillerPDF
                         typeface, emSize, System.Windows.Media.Brushes.Black, pixelsPerDip);
                     if (ft.WidthIncludingTrailingWhitespace > max) max = ft.WidthIncludingTrailingWhitespace;
                 }
-                ZoomBox.Width = System.Math.Clamp(System.Math.Ceiling(max) + 28, 70, 92);
+                ZoomBox.Width = System.Math.Clamp(System.Math.Ceiling(max) + 28, 70, 220);
             }
             catch { /* best-effort; leave the XAML default width */ }
         }
