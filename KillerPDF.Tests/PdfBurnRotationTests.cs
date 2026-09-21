@@ -147,6 +147,34 @@ public sealed class PdfBurnRotationTests
         Assert.False(HasQuarterTurnCm(pdf));
     }
 
+    [Fact]
+    public void CroppedPage_BurnsInsideTheVisiblePageBox()
+    {
+        string path = Path.Combine(Path.GetTempPath(), $"killerpdf-crop-burn-{Guid.NewGuid():N}.pdf");
+        try
+        {
+            byte[] source = new PdfIncrementalPageEditor(EngineDocument.Open(
+                new PdfDocumentBuilder().AddBlankPage(612, 792).Build()))
+                .SetCropBox(0, 36, 54, 540, 684).Build();
+            File.WriteAllBytes(path, source);
+            var annotations = new Dictionary<int, List<PageAnnotation>>
+            {
+                [0] = [new InkAnnotation
+                {
+                    PageIndex = 0,
+                    Points = [new Point(500, 640), new Point(520, 660)],
+                    StrokeWidth = 3
+                }]
+            };
+
+            PdfEngineBurn.Burn(path, annotations,
+                new Dictionary<int, (int w, int h)> { [0] = (540, 684) });
+
+            Assert.Contains("1 0 0 -1 36 738 cm", AllDecodedStreams(path));
+        }
+        finally { if (File.Exists(path)) File.Delete(path); }
+    }
+
     // Native /Rotate on a freshly opened file (the 1.7.1 fallback - the rotation map is empty),
     // and both quarter turns.
     [Theory]

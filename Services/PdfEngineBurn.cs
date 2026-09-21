@@ -55,7 +55,7 @@ internal static class PdfEngineBurn
             double visualWidth = rotation is 90 or 270 ? page.Height : page.Width;
             double visualHeight = rotation is 90 or 270 ? page.Width : page.Height;
             var content = new PdfContentStreamBuilder().SaveState();
-            ApplyVisualTransform(content, page.Width, page.Height, rotation);
+            ApplyVisualTransform(content, page.X, page.Y, page.Width, page.Height, rotation);
 
             if (hasWatermark) DrawWatermark(content, stamps!, watermark, visualWidth, visualHeight, fonts);
             if (hasNumber) DrawNumber(content, stamps!, pageIndex, firstNumberPage, pages.Count,
@@ -414,15 +414,15 @@ internal static class PdfEngineBurn
         finally { bitmap.UnlockBits(locked); }
     }
 
-    private static void ApplyVisualTransform(PdfContentStreamBuilder content, double width,
-        double height, int rotation)
+    private static void ApplyVisualTransform(PdfContentStreamBuilder content, double x, double y,
+        double width, double height, int rotation)
     {
         switch (rotation)
         {
-            case 0: content.Transform(1, 0, 0, -1, 0, height); break;
-            case 90: content.Transform(0, 1, 1, 0, 0, 0); break;
-            case 180: content.Transform(-1, 0, 0, 1, width, 0); break;
-            case 270: content.Transform(0, -1, -1, 0, width, height); break;
+            case 0: content.Transform(1, 0, 0, -1, x, y + height); break;
+            case 90: content.Transform(0, 1, 1, 0, x, y); break;
+            case 180: content.Transform(-1, 0, 0, 1, x + width, y); break;
+            case 270: content.Transform(0, -1, -1, 0, x + width, y + height); break;
         }
     }
 

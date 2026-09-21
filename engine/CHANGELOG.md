@@ -4,12 +4,13 @@ All notable changes to The KillerPDF.Engine are documented here. Application cha
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.5] - Unreleased
+## [1.8.6] - Unreleased
 
-The 1.8.5 engine package matches the engine source shipped with KillerPDF 1.8.5.
+The 1.8.6 engine package matches the engine source shipped with KillerPDF 1.8.6.
 
 ### Fixed
 
+- Preserved effective page-box origins when adding content to cropped pages (#418).
 - Preserved source cross-reference format when signing and supported visible appearances on existing signature widgets (#381).
 - Kept normalized page sizes within supported limits for extreme page coordinates (#401). (Thanks @Matthew-Selvam)
 - Added described overlays that extend existing PDF structure trees when saving markup.

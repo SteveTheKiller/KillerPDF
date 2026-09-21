@@ -6,6 +6,10 @@ namespace KillerPdf.Engine.Documents;
 /// <summary>Describes the effective display geometry of one PDF page.</summary>
 public sealed record PdfPageInformation
 {
+    /// <summary>Gets the effective page box's lower-left X coordinate in PDF points.</summary>
+    public double X { get; init; }
+    /// <summary>Gets the effective page box's lower-left Y coordinate in PDF points.</summary>
+    public double Y { get; init; }
     /// <summary>Gets the page width in PDF points before rotation.</summary>
     public required double Width { get; init; }
     /// <summary>Gets the page height in PDF points before rotation.</summary>
@@ -58,6 +62,8 @@ public sealed record PdfPageInformation
             }
             result[index] = new PdfPageInformation
             {
+                X = Math.Min(x1, x2),
+                Y = Math.Min(y1, y2),
                 Width = width,
                 Height = height,
                 Rotation = rotation
