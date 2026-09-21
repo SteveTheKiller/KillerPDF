@@ -1792,6 +1792,19 @@ namespace KillerPDF.Controls
             PagePreviewPanel.ScrollToVerticalOffset(offset * _zoomLevel / Math.Max(0.01, previousZoom));
         }
 
+        // A fresh Continuous fit must not inherit a horizontal position from the previous view.
+        // Repeat after layout because WPF can briefly retain the old extent while the scaled strip
+        // is being rebuilt. Tab restores bypass this path and keep their saved manual position.
+        private void ResetContinuousFitHorizontalOffset()
+        {
+            PagePreviewPanel.ScrollToHorizontalOffset(0);
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
+            {
+                if (_viewMode == ViewMode.Continuous)
+                    PagePreviewPanel.ScrollToHorizontalOffset(0);
+            }));
+        }
+
         internal void FitToWidth(bool lite = false, FitScroll scroll = FitScroll.PageTop)
         {
             double viewW = PagePreviewPanel.ActualWidth - 40;
@@ -1809,7 +1822,11 @@ namespace KillerPDF.Controls
                 ApplyZoom(lite);
                 int ci = State.CurrentPage;   // this pane's page, never the shared sidebar's (see ApplyZoom)
                 if (lite || scroll == FitScroll.KeepOffset) CarryContinuousOffset(previousZoom);
-                else if (ci >= 0) NavigateContinuousToPage(ci);
+                else
+                {
+                    ResetContinuousFitHorizontalOffset();
+                    if (ci >= 0) NavigateContinuousToPage(ci);
+                }
                 if (ci >= 0 && _doc != null)
                     SetStatus(string.Format(Loc("Str_FitWidth"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
                 return;
@@ -1852,7 +1869,11 @@ namespace KillerPDF.Controls
                     Math.Min(viewW / _continuousPageW, viewH / dipH)));
                 ApplyZoom(lite);
                 if (lite || scroll == FitScroll.KeepOffset) CarryContinuousOffset(previousZoom);
-                else NavigateContinuousToPage(ci);
+                else
+                {
+                    ResetContinuousFitHorizontalOffset();
+                    NavigateContinuousToPage(ci);
+                }
                 SetStatus(string.Format(Loc("Str_FitPage"), ci + 1, _doc.PageCount, $"{DisplayZoomPct():F0}"));
                 return;
             }
