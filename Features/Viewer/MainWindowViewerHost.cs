@@ -202,7 +202,7 @@ namespace KillerPDF
         void IViewerHost.CollapseZoomTextSelection()
         {
             if (_zoomBox.Template?.FindName("PART_EditableTextBox", _zoomBox) is System.Windows.Controls.TextBox box)
-                box.Select(box.Text.Length, 0);
+                box.Select(0, 0);
         }
 
         // The host contract reports the new value, while comparison reads the true visible zoom
