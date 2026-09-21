@@ -636,6 +636,7 @@ KillerPDF 不會建立兩個已安裝的複本。</sys:String>
     <sys:String x:Key="Str_DocInfo_Subject">主旨</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">關鍵字</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">建立者</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">製作工具</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">儲存</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">取消</sys:String>
     <sys:String x:Key="Str_LinkRemoveFailed">移除連結失敗:</sys:String>

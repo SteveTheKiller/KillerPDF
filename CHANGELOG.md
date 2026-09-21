@@ -56,6 +56,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Localized Document Info metadata and keyboard map layer labels (#407).
 - Restored the full page display when switching to Continuous view or applying a fit command.
 
 - Restored document rewriting, optimization, and resource pruning for documents whose page resources include image, shading, or pattern streams.

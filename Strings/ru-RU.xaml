@@ -117,6 +117,7 @@
     <sys:String x:Key="Str_DocInfo_Subject">Предмет</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">Ключевые слова</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">Создатель</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Производитель</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">Сохранить</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">Отменить</sys:String>
     <sys:String x:Key="Str_KS_Find">Найти / поиск</sys:String>

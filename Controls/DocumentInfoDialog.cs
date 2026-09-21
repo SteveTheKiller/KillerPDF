@@ -88,7 +88,7 @@ namespace KillerPDF
         {
             var parts = new List<string>();
             string producer = _info.Producer ?? "";
-            if (producer.Length > 0) parts.Add($"Producer: {producer}");
+            if (producer.Length > 0) parts.Add($"{L("Str_DocInfo_Producer")}: {producer}");
             parts.Add($"{L("Str_Print_Pages")}: {_info.PageCount}");
             parts.Add($"PDF {_info.Version.Major}.{_info.Version.Minor}");
             try { if (!string.IsNullOrEmpty(filePath) && File.Exists(filePath)) parts.Add($"{new FileInfo(filePath).Length / 1024.0:N0} KB"); } catch { }

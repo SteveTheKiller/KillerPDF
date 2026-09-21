@@ -117,6 +117,7 @@
     <sys:String x:Key="Str_DocInfo_Subject">件名</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">キーワード</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">作成ソフト</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">生成ソフト</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">保存</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">キャンセル</sys:String>
     <sys:String x:Key="Str_KS_Find">検索</sys:String>

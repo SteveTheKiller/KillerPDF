@@ -634,6 +634,7 @@ Abre Configuración de Windows - Aplicaciones predeterminadas.</sys:String>
     <sys:String x:Key="Str_DocInfo_Subject">Asunto</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">Palabras clave</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">Creador</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Productor</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">Guardar</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">Cancelar</sys:String>
     <sys:String x:Key="Str_LinkRemoveFailed">No se pudo quitar el enlace:</sys:String>

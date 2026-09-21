@@ -128,6 +128,19 @@ public sealed class LocalizationParityTests
     }
 
     [Fact]
+    public void Issue407DocumentInfoAndKeyboardLayersUseLocalizedText()
+    {
+        string root = Directory.GetParent(StringsDirectory)!.FullName;
+        string documentInfo = File.ReadAllText(Path.Combine(root, "Controls", "DocumentInfoDialog.cs"));
+        string keyboardMap = File.ReadAllText(Path.Combine(root, "Shell", "KeyboardMapOverlay.cs"));
+
+        Assert.DoesNotContain("Producer: {producer}", documentInfo);
+        Assert.DoesNotContain("(KbLayer.Shift, \"SHIFT\")", keyboardMap);
+        Assert.Contains("Str_DocInfo_Producer", documentInfo);
+        Assert.Contains("Str_Key_Shift", keyboardMap);
+    }
+
+    [Fact]
     public void BrowserHandoffMessagesAreNotHardcoded()
     {
         string root = Directory.GetParent(StringsDirectory)!.FullName;

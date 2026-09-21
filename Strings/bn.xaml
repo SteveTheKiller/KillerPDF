@@ -634,6 +634,7 @@ Windows সেটিংস - ডিফল্ট অ্যাপ খুলবে�
     <sys:String x:Key="Str_DocInfo_Subject">বিষয়</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">কীওয়ার্ড</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">নির্মাতা</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">প্রযোজক</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">সংরক্ষণ</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">বাতিল</sys:String>
     <sys:String x:Key="Str_LinkRemoveFailed">লিঙ্ক সরানো যায়নি:</sys:String>

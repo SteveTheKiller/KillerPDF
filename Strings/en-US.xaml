@@ -117,6 +117,7 @@
     <sys:String x:Key="Str_DocInfo_Subject">Subject</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">Keywords</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">Creator</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Producer</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">Save</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">Cancel</sys:String>
     <sys:String x:Key="Str_KS_Find">Find / search</sys:String>

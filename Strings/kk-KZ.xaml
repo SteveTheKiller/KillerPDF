@@ -116,6 +116,7 @@
     <sys:String x:Key="Str_DocInfo_Subject">Тақырыпша</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">Кілт сөздер</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">Жасаушы</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Өндіруші</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">Сақтау</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">Болдырмау</sys:String>
     <sys:String x:Key="Str_KS_Find">Табу / іздеу</sys:String>
