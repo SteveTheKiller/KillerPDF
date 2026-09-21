@@ -173,15 +173,17 @@ html[data-theme="light"] .page-title { text-shadow: none; }
    back the opaque track and the arrow buttons on the content area. */
 @supports not selector(::-webkit-scrollbar) {
   * { scrollbar-width: thin; scrollbar-color: var(--scroll-thumb) transparent; }
+  html,
+  body,
+  .content-scroll,
+  .sb-thumbs,
+  .outline,
+  .kbmap-scroll,
+  .codeblock,
+  .code-block { scrollbar-color: var(--accent) transparent; }
 }
-html,
-body,
-.content-scroll,
-.sb-thumbs,
-.outline,
-.kbmap-scroll,
-.codeblock,
-.code-block { scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+/* Keep every scrollbar-width/scrollbar-color declaration inside the @supports block above.
+   Anything outside it brings the arrow buttons back in Chrome/Edge. */
 ::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
 ::-webkit-scrollbar-track,
 ::-webkit-scrollbar-track-piece { background: transparent; }
