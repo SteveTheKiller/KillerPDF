@@ -56,6 +56,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Restored the full page display when switching to Continuous view or applying a fit command.
+
 - Restored document rewriting, optimization, and resource pruning for documents whose page resources include image, shading, or pattern streams.
 
 - Read documents whose information dictionary carries a null /Trapped entry, which had blocked page extraction, page numbering, and document information.
