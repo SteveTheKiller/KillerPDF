@@ -117,6 +117,7 @@
     <sys:String x:Key="Str_DocInfo_Subject">Tárgy</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">Kulcsszavak</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">Létrehozó</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Gyártó</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">Mentés</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">Mégse</sys:String>
     <sys:String x:Key="Str_KS_Find">Keresés</sys:String>

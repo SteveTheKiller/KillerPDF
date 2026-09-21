@@ -633,6 +633,7 @@ Desteklenen bir boyuta ölçeklensin mi? Sayfaların görünümü ve oranları k
     <sys:String x:Key="Str_DocInfo_Subject">Konu</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">Anahtar kelimeler</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">Oluşturan</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Üretici</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">Kaydet</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">İptal</sys:String>
     <sys:String x:Key="Str_LinkRemoveFailed">Bağlantı kaldırılamadı:</sys:String>

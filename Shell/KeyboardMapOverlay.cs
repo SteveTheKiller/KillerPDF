@@ -60,11 +60,19 @@ namespace KillerPDF
              ("","",0.6), ("Left","\u2190",1),("Down","\u2193",1),("Right","\u2192",1)],
         ];
 
-        private static readonly (KbLayer Layer, string Caption)[] KbLayerButtons =
+        private static readonly KbLayer[] KbLayerButtons =
         [
-            (KbLayer.Base, "BASE"), (KbLayer.Ctrl, "CTRL"), (KbLayer.CtrlShift, "CTRL+SHIFT"),
-            (KbLayer.Shift, "SHIFT"), (KbLayer.Alt, "ALT"),
+            KbLayer.Base, KbLayer.Ctrl, KbLayer.CtrlShift, KbLayer.Shift, KbLayer.Alt,
         ];
+
+        private static string KbLayerCaption(KbLayer layer) => layer switch
+        {
+            KbLayer.Ctrl => Loc("Str_Key_Ctrl").ToUpperInvariant(),
+            KbLayer.CtrlShift => $"{Loc("Str_Key_Ctrl").ToUpperInvariant()}+{Loc("Str_Key_Shift").ToUpperInvariant()}",
+            KbLayer.Shift => Loc("Str_Key_Shift").ToUpperInvariant(),
+            KbLayer.Alt => Loc("Str_Key_Alt").ToUpperInvariant(),
+            _ => "BASE",
+        };
 
         private static string? KbCapResource(string id) => id switch
         {
@@ -132,11 +140,11 @@ namespace KillerPDF
 
             // Layer captions row.
             var layerRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 0, 10) };
-            foreach (var (layer, caption) in KbLayerButtons)
+            foreach (var layer in KbLayerButtons)
             {
                 // Use the shared command-button factory. In 98SE this supplies the raised two-tone
                 // face and inverted pressed bevel; the old hand-built flat template bypassed it.
-                var b = UiKit.Make(caption, accent: false);
+                var b = UiKit.Make(KbLayerCaption(layer), accent: false);
                 b.FontFamily = UiKit.MonoFont;
                 b.FontSize = 11;
                 b.Padding = new Thickness(10, 4, 10, 4);

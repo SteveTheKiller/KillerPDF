@@ -589,6 +589,14 @@ namespace KillerPDF
             // pen labels switch immediately.
             RefreshSignaturePopupLanguage();
 
+            if (_kbBuilt)
+            {
+                var layer = _kbLayer;
+                _kbBuilt = false;
+                BuildKeyboardView();
+                SetKbLayer(layer);
+            }
+
             // The fit-mode terms differ in length per language; resize the zoom box so the longest never clips.
             AdjustZoomBoxWidth();
         }

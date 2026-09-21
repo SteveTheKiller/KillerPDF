@@ -639,6 +639,7 @@ Auf eine unterstützte Größe skalieren? Aussehen und Proportionen der Seiten b
     <sys:String x:Key="Str_DocInfo_Subject">Betreff</sys:String>
     <sys:String x:Key="Str_DocInfo_Keywords">Schlüsselwörter</sys:String>
     <sys:String x:Key="Str_DocInfo_Creator">Ersteller</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Produzent</sys:String>
     <sys:String x:Key="Str_DocInfo_Save">Speichern</sys:String>
     <sys:String x:Key="Str_DocInfo_Cancel">Abbrechen</sys:String>
     <sys:String x:Key="Str_LinkRemoveFailed">Entfernen des Links fehlgeschlagen:</sys:String>
