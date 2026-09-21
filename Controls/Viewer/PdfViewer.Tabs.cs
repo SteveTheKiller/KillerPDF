@@ -565,6 +565,10 @@ namespace KillerPDF.Controls
 
             DocumentSession session = _active;
             int viewportRestore = _tabViewportRestoreGate.Begin();
+            // Snapshot before rebuilding the viewport. The rebuild raises ScrollChanged while the
+            // incoming session is already active, so those layout-only events can overwrite its
+            // saved offsets with the outgoing tab's position before the deferred restore runs.
+            double sh = session.ScrollH, sv = session.ScrollV;
 
             FileNameLabel.Text = System.IO.Path.GetFileName(_active.OriginalFile ?? "");
             _annotationCanvas.Children.Clear();
@@ -575,7 +579,6 @@ namespace KillerPDF.Controls
 
             // Restore the saved scroll position after the Background zoom pass queued inside
             // BootstrapDocumentView has run (ContextIdle is lower priority than Background).
-            double sh = session.ScrollH, sv = session.ScrollV;
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ContextIdle, (Action)(() =>
             {
                 if (!ReferenceEquals(_active, session) || !_tabViewportRestoreGate.IsCurrent(viewportRestore)) return;
