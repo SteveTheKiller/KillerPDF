@@ -47,11 +47,11 @@ namespace KillerPDF
                 handled = true;
                 return new IntPtr(WmNcHitTest(hwnd, msg, wParam, lParam));
             }
-            if (msg == WM_ERASEBKGND)
+            if (msg == WM_ERASEBKGND && _inWindowSizeMove)
             {
                 // WPF paints the whole client area itself, so let nothing erase the background to a flat
-                // fill underneath it during a resize - that erase is a flash that reads as part of the
-                // edge "jitter". Claim the message as handled and report success (1) without painting.
+                // fill underneath it during a live resize. Outside that loop, Windows must retain its
+                // normal repaint path so a restored or reactivated window cannot keep a black surface.
                 handled = true;
                 return new IntPtr(1);
             }
