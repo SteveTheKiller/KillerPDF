@@ -57,6 +57,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Prevented packaged application metadata from drifting from compiled resources.
 - Restored the KillerPDF icon on Windows 11 taskbar buttons after slower portable launches.
 - Restored the document display after minimizing or switching back from another window (#415).
 - Allowed page extraction to ignore malformed optional thumbnail images (#423).

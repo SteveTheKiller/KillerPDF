@@ -66,6 +66,21 @@ if (-not $RepackOnly) {
     throw 'RepackOnly requested but the prepared payload is missing.'
 }
 
+$payloadAssembly = Join-Path $payloadDir 'KillerPDF.App.dll'
+if (-not [IO.File]::Exists($payloadAssembly)) {
+    throw "Payload assembly is missing: $payloadAssembly"
+}
+$actualAssemblyVersion = [Reflection.AssemblyName]::GetAssemblyName($payloadAssembly).Version.ToString()
+if ($actualAssemblyVersion -ne $fileVersion) {
+    throw "Payload assembly version $actualAssemblyVersion does not match project file version $fileVersion."
+}
+
+$payloadApp = Join-Path $payloadDir 'KillerPDF.App.exe'
+$payloadSmoke = Start-Process -FilePath $payloadApp -ArgumentList '--version' -Wait -PassThru
+if ($payloadSmoke.ExitCode -ne 0) {
+    throw "Payload startup smoke test failed with exit code $($payloadSmoke.ExitCode)."
+}
+
 $manifestPath = Join-Path $payloadDir 'payload.manifest'
 $payloadFiles = @([IO.Directory]::GetFiles($payloadDir, '*', [IO.SearchOption]::AllDirectories) |
     Where-Object { -not [string]::Equals($_, $manifestPath, [StringComparison]::OrdinalIgnoreCase) } |
