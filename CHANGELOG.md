@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Added Vietnamese application, installer, and OCR support. (Thanks @vuanhvu11982)
+- Added Vietnamese application, installer, OCR, website, and engine documentation support. (Thanks @vuanhvu11982)
 - Added startup update checks, enabled by default, with confirmation before updating and a shared toggle in About and the update dialog.
 - Added Ctrl+R and Ctrl+Shift+R to rotate selected pages clockwise and counterclockwise.
 - Added a keyboard shortcut toggle with an always-available Ctrl+Shift+K recovery chord (#405).
