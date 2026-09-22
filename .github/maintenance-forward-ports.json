@@ -308,6 +308,16 @@
       "maintenanceCommit": "393e0f667ff515858bb4e26032657b20e9c590bd",
       "developmentCommit": "0ee5e5d10a4529cb86ee04522d8a7f2998e8a57d",
       "reason": "Vietnamese contributor credits and locale metadata are present across the 1.9 application and website commits."
+    },
+    {
+      "maintenanceCommit": "2710273b31b081576e4e580a54e4a7a964bd4b9d",
+      "developmentCommit": "5e9aae6f6010054e6859d095b82da62a5ba97db5",
+      "reason": "The maintenance policy now includes the reviewed records already committed to the 1.9 policy."
+    },
+    {
+      "maintenanceCommit": "2da1b5aa2687ebfa848b4d52feba7d66d361ecdb",
+      "developmentCommit": "2f71ec9efc524b2160383f693d31a7d60bd7aef4",
+      "reason": "The 1.9 extraction path applies the same malformed-thumbnail tolerance through its adapted document model."
     }
   ]
 }
