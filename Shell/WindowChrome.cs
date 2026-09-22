@@ -204,7 +204,12 @@ namespace KillerPDF
         private void WmGetMinMaxInfo(IntPtr hwnd, IntPtr lParam)
         {
             var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
-            IntPtr monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            // During a cross-monitor drag the HWND can still belong to the source monitor when
+            // Windows requests the final maximize bounds. The pointer is already on the target
+            // monitor, so use it for this live move and keep the HWND path for ordinary requests.
+            IntPtr monitor = _inWindowSizeMove && GetCursorPos(out POINT cursor)
+                ? MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST)
+                : MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
             if (monitor != IntPtr.Zero)
             {
                 var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
@@ -239,6 +244,13 @@ namespace KillerPDF
 
         [LibraryImport("user32.dll", EntryPoint = "MonitorFromRect")]
         private static partial IntPtr MonitorFromRect(ref RECT rect, uint flags);
+
+        [LibraryImport("user32.dll", EntryPoint = "MonitorFromPoint")]
+        private static partial IntPtr MonitorFromPoint(POINT point, uint flags);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static partial bool GetCursorPos(out POINT point);
 
         [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
         [return: MarshalAs(UnmanagedType.Bool)]
