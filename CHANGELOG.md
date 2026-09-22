@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Kept localized Fit Page and Fit Width choices fully visible (#419).
 - Preserved each document tab's saved scroll position while rebuilding its viewport (#399).
 - Kept drawings and signatures aligned when saving or printing cropped pages (#418).
+- Used the destination monitor for the first maximize after a cross-monitor drag (#363).
 - Restored the full page display when switching to Continuous view or applying a fit command.
 
 ## [1.8.5] - 2026-09-14
