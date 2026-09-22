@@ -1,0 +1,1058 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ================================================================
+         KillerPDF  -  Chuỗi tiếng Việt (vi-VN)
+         ================================================================ -->
+
+    <!-- ── Chú thích công cụ trên thanh công cụ ─────────────────────── -->
+    <sys:String x:Key="Str_TT_Open">Mở (Ctrl+O)</sys:String>
+    <sys:String x:Key="Str_TT_NewBlank">Tài liệu trống mới (Ctrl+N)</sys:String>
+    <sys:String x:Key="Str_TT_CloseFile">Đóng tệp (Ctrl+W)</sys:String>
+    <sys:String x:Key="Str_TT_Save">Lưu (Ctrl+S)</sys:String>
+
+    <!-- ── Vùng thả tệp / trạng thái trống ──────────────────────────── -->
+    <sys:String x:Key="Str_Drop_Title">Thả tệp PDF vào đây</sys:String>
+    <sys:String x:Key="Str_Drop_Sub">hoặc nhấp để duyệt tìm</sys:String>
+    <sys:Double x:Key="ZoomBoxWidth">96</sys:Double>
+    <sys:String x:Key="Str_TT_SaveAs">Lưu thành (Ctrl+Shift+S)</sys:String>
+    <sys:String x:Key="Str_TT_SaveFlattened">Lưu PDF đã làm phẳng (chuyển đổi tất cả trang thành dạng ảnh - hoàn toàn không thể chỉnh sửa)</sys:String>
+    <sys:String x:Key="Str_TT_Print">In (Ctrl+P)</sys:String>
+    <sys:String x:Key="Str_TT_MergePDFs">Gộp các tệp PDF (kết hợp các tệp PDF bổ sung vào tệp này)</sys:String>
+    <sys:String x:Key="Str_TT_ExtractPages">Trích xuất trang (lưu các trang đã chọn thành tệp PDF mới)</sys:String>
+    <sys:String x:Key="Str_TT_DeletePages">Xóa các trang đã chọn</sys:String>
+    <sys:String x:Key="Str_TT_MovePageUp">Di chuyển trang lên trên (sắp xếp lại)</sys:String>
+    <sys:String x:Key="Str_TT_MovePageDown">Di chuyển trang xuống dưới (sắp xếp lại)</sys:String>
+    <sys:String x:Key="Str_TT_SelectTool">Công cụ chọn - nhấp vào chú thích, kéo để chọn văn bản, nhấp đúp để chỉnh sửa (V)</sys:String>
+    <sys:String x:Key="Str_TT_TextTool">Công cụ văn bản - nhấp để thêm văn bản (T)</sys:String>
+    <sys:String x:Key="Str_TT_FormFieldTool">Trường văn bản điền được - tạo, chọn, di chuyển, thay đổi kích thước hoặc xóa các trường; nhấp chuột phải để đổi màu tô (F)</sys:String>
+    <sys:String x:Key="Str_TT_HighlightTool">Công cụ đánh dấu - kéo để tô sáng văn bản (H)</sys:String>
+    <sys:String x:Key="Str_TT_StrikeTool">Gạch ngang - kéo qua văn bản</sys:String>
+    <sys:String x:Key="Str_TT_UnderlineTool">Gạch chân - kéo qua văn bản</sys:String>
+    <sys:String x:Key="Str_TT_DrawTool">Công cụ vẽ - viết/vẽ tay tự do (D)</sys:String>
+    <sys:String x:Key="Str_TT_ShapeTool">Hình vẽ - hình chữ nhật, hình elip, hoặc đa giác tự do</sys:String>
+    <sys:String x:Key="Str_TT_SignatureTool">Chữ ký - tạo và đặt chữ ký (G)</sys:String>
+    <sys:String x:Key="Str_TT_ImageTool">Công cụ hình ảnh - nhấp để chèn hình ảnh vào trang (I)</sys:String>
+    <sys:String x:Key="Str_TT_CropTool">Công cụ cắt - kéo để đặt vùng cắt, sau đó áp dụng cho (các) trang (C)</sys:String>
+    <sys:String x:Key="Str_TT_MeasureTool">Đo khoảng cách và kiểm tra kích thước trang</sys:String>
+    <sys:String x:Key="Str_TT_RotateTool">Chuyển đổi trang - xoay / làm thẳng (tính năng thu phóng sắp ra mắt) (R)</sys:String>
+    <sys:String x:Key="Str_TT_ClearAnnotations">Xóa tất cả chú thích</sys:String>
+    <sys:String x:Key="Str_TT_Search">Tìm kiếm (Ctrl+F)</sys:String>
+    <sys:String x:Key="Str_TT_UndoLast">Hoàn tác thao tác cuối (Ctrl+Z)</sys:String>
+    <sys:String x:Key="Str_TT_MultiPageGrid">Xem lưới nhiều trang (F8)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomOut">Thu nhỏ (Ctrl+-)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomLevel">Mức thu phóng (Ctrl+cuộn · Ctrl++/- · Ctrl+0=đặt lại)</sys:String>
+    <sys:String x:Key="Str_TT_ZoomIn">Phóng to (Ctrl++)</sys:String>
+    <sys:String x:Key="Str_TT_GoToPage">Đi đến trang (Nhấn Enter để chuyển)</sys:String>
+    <sys:String x:Key="Str_TT_CollapseSidebar">Thu gọn thanh bên (F9)</sys:String>
+    <sys:String x:Key="Str_TT_ExpandSidebar">Mở rộng thanh bên (F9)</sys:String>
+    <sys:String x:Key="Str_TT_KeyboardShortcuts">Phím tắt (F1)</sys:String>
+    <sys:String x:Key="Str_TT_About">Giới thiệu về KillerPDF (F12)</sys:String>
+
+    <!-- ── Lớp thông tin Giới thiệu ─────────────────────────────────── -->
+    <sys:String x:Key="Str_About_Version">PHIÊN BẢN</sys:String>
+    <sys:String x:Key="Str_About_Publisher">NHÀ PHÁT HÀNH</sys:String>
+    <sys:String x:Key="Str_About_Thumbprint">VÂN TAY CHỨNG THƯ</sys:String>
+    <sys:String x:Key="Str_About_ExeSha">SHA256 EXE</sys:String>
+    <sys:String x:Key="Str_About_Computing">Đang tính toán...</sys:String>
+    <sys:String x:Key="Str_Tagline">Bộ công cụ PDF nhanh và miễn phí cho Windows tích hợp các tính năng chú thích, gộp, OCR, ký tên và biểu mẫu. Tiện ích GPLv3 từ {0}.</sys:String>
+
+    <!-- ── Các tab thanh bên ─────────────────────────────────────────── -->
+    <sys:String x:Key="Str_TabPages">TRANG</sys:String>
+    <sys:String x:Key="Str_TabOutlines">MỤC LỤC</sys:String>
+    <sys:String x:Key="Str_Outline_CollapseAll">Thu gọn tất cả</sys:String>
+    <sys:String x:Key="Str_Outline_ExpandAll">Mở rộng tất cả</sys:String>
+    <sys:String x:Key="Str_PageLabel">Trang {0}</sys:String>
+    <sys:String x:Key="Str_Outline_Untitled">(không có tiêu đề)</sys:String>
+
+    <!-- ── Bảng cài đặt ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Theme">Giao diện</sys:String>
+    <sys:String x:Key="Str_Language">Ngôn ngữ</sys:String>
+    <sys:String x:Key="Str_Toolbar">THANH CÔNG CỤ</sys:String>
+    <sys:String x:Key="Str_Toolbar_Header">Thanh công cụ</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextNone">Không có văn bản</sys:String>
+    <sys:String x:Key="Str_Toolbar_SmallIcons">Biểu tượng nhỏ</sys:String>
+    <sys:String x:Key="Str_Toolbar_LargeIcons">Biểu tượng lớn</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextBeside">Văn bản cạnh biểu tượng</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextUnder">Văn bản dưới biểu tượng</sys:String>
+    <sys:String x:Key="Str_Toolbar_TextOnly">Chỉ văn bản</sys:String>
+    <sys:String x:Key="Str_Toolbar_Hide">Ẩn thanh công cụ</sys:String>
+    <sys:String x:Key="Str_St_ToolbarHidden">Đã ẩn thanh công cụ - Nhấn Alt+M để hiện lại</sys:String>
+    <sys:String x:Key="Str_St_ToolbarShown">Đã hiển thị thanh công cụ</sys:String>
+    <sys:String x:Key="Str_Lang_English">English</sys:String>
+    <sys:String x:Key="Str_Lang_Spanish">Español</sys:String>
+    <sys:String x:Key="Str_Lang_Chinese">中文 (繁體)</sys:String>
+
+    <!-- ── Lớp phím tắt bàn phím ────────────────────────────────────── -->
+    <sys:String x:Key="Str_KS_Title">Phím tắt bàn phím</sys:String>
+    <sys:String x:Key="Str_KS_FormField">Trường văn bản điền được</sys:String>
+    <sys:String x:Key="Str_KS_File">TỆP</sys:String>
+    <sys:String x:Key="Str_KS_Open">Mở</sys:String>
+    <sys:String x:Key="Str_KS_CloseFile">Đóng tệp</sys:String>
+    <sys:String x:Key="Str_KS_CloseOthers">Đóng các tab khác</sys:String>
+    <sys:String x:Key="Str_KS_CloseAll">Đóng tất cả</sys:String>
+    <sys:String x:Key="Str_KS_NewBlank">Tài liệu trống mới</sys:String>
+    <sys:String x:Key="Str_KS_SaveAs">Lưu thành</sys:String>
+    <sys:String x:Key="Str_KS_Print">In</sys:String>
+    <sys:String x:Key="Str_KS_Navigation">ĐIỀU HƯỚNG</sys:String>
+    <sys:String x:Key="Str_KS_PrevNext">Trang trước / trang sau</sys:String>
+    <sys:String x:Key="Str_KS_ScrollView">Cuộn (lật trang ở các cạnh)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomCursor">Phóng to / thu nhỏ (neo theo con trỏ)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomInOut">Phóng to / thu nhỏ</sys:String>
+    <sys:String x:Key="Str_KS_ResetZoom">Đặt lại thu phóng về 100%</sys:String>
+    <sys:String x:Key="Str_KS_PanView">Đẩy khung nhìn</sys:String>
+    <sys:String x:Key="Str_KS_Editing">CHỈNH SỬA</sys:String>
+    <sys:String x:Key="Str_KS_Undo">Hoàn tác</sys:String>
+    <sys:String x:Key="Str_KS_DeleteAnnot">Xóa chú thích đã chọn</sys:String>
+    <sys:String x:Key="Str_KS_ConfirmCancel">Xác nhận / hủy văn bản hoặc vùng cắt</sys:String>
+    <sys:String x:Key="Str_KS_SearchSelect">TÌM KIẾM &amp; CHỌN</sys:String>
+    <sys:String x:Key="Str_KS_Ocr">OCR</sys:String>
+
+    <!-- Document Info dialog -->
+    <sys:String x:Key="Str_TT_DocInfo">Thông tin tài liệu (F4)</sys:String>
+    <sys:String x:Key="Str_DocInfo_Suffix">Thông tin tài liệu</sys:String>
+    <sys:String x:Key="Str_DocInfo_Title">Tiêu đề</sys:String>
+    <sys:String x:Key="Str_DocInfo_Author">Tác giả</sys:String>
+    <sys:String x:Key="Str_DocInfo_Subject">Chủ đề</sys:String>
+    <sys:String x:Key="Str_DocInfo_Keywords">Từ khóa</sys:String>
+    <sys:String x:Key="Str_DocInfo_Creator">Người tạo</sys:String>
+    <sys:String x:Key="Str_DocInfo_Producer">Nhà sản xuất</sys:String>
+    <sys:String x:Key="Str_DocInfo_Save">Lưu</sys:String>
+    <sys:String x:Key="Str_DocInfo_Cancel">Hủy</sys:String>
+    <sys:String x:Key="Str_KS_Find">Tìm / tìm kiếm</sys:String>
+    <sys:String x:Key="Str_KS_NextPrevResult">Kết quả tiếp theo / trước đó</sys:String>
+    <sys:String x:Key="Str_KS_SelectAll">Chọn toàn bộ văn bản trên trang</sys:String>
+    <sys:String x:Key="Str_KS_CopyText">Sao chép văn bản đã chọn</sys:String>
+    <sys:String x:Key="Str_KS_Help">TRỢ GIÚP</sys:String>
+    <sys:String x:Key="Str_KS_ThisList">Danh sách phím tắt này</sys:String>
+    <sys:String x:Key="Str_KS_About">Hộp thoại giới thiệu</sys:String>
+    <sys:String x:Key="Str_KS_DocInfo">Thông tin tài liệu</sys:String>
+    <sys:String x:Key="Str_KS_OnlineHelp">Hướng dẫn đầy đủ &amp; cách sử dụng trực tuyến</sys:String>
+    <sys:String x:Key="Str_KS_Tools">CÔNG CỤ</sys:String>
+    <sys:String x:Key="Str_KS_Paste">Dán hình ảnh / văn bản</sys:String>
+    <sys:String x:Key="Str_KS_TextStyle">Đậm / nghiêng / gạch chân (hộp văn bản)</sys:String>
+    <sys:String x:Key="Str_KS_MultiSelect">Thêm vào vùng chọn</sys:String>
+
+    <!-- ── Thanh trạng thái ────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ready">Sẵn sàng</sys:String>
+    <sys:String x:Key="Str_Portable">DI ĐỘNG (PORTABLE)</sys:String>
+    <sys:String x:Key="Str_InstallBtn">Cài đặt KillerPDF</sys:String>
+
+    <!-- ── Thông báo trạng thái (chuỗi định dạng - sử dụng string.Format) ── -->
+    <sys:String x:Key="Str_Opened">Đã mở {0} - {1} trang</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnly">Đã mở {0} (chỉ đọc - hạn chế từ chủ sở hữu) - {1} trang</sys:String>
+    <sys:String x:Key="Str_OpenedReadOnlyXRef">Đã mở {0} (chỉ đọc - bảng XRef không chuẩn) - {1} trang</sys:String>
+    <sys:String x:Key="Str_OpenedRepaired">Đã mở {0} (bản sao đã sửa chữa - hãy lưu lại để giữ các thay đổi) - {1} trang</sys:String>
+    <sys:String x:Key="Str_OpenedRasterRepair">Đã mở {0} (đã sửa bằng cách rasterize - hãy lưu lại để giữ các thay đổi) - {1} trang</sys:String>
+    <sys:String x:Key="Str_PageOf">Trang {0} / {1}</sys:String>
+    <sys:String x:Key="Str_PageOfLinks">Trang {0} / {1}  ({2} liên kết)</sys:String>
+    <sys:String x:Key="Str_PageFormFields">Trang {0} / {1} - trang này chứa các trường biểu mẫu có thể điền</sys:String>
+    <sys:String x:Key="Str_PageRenderError">Trang {0} - không thể kết xuất</sys:String>
+    <sys:String x:Key="Str_RenderError">Lỗi kết xuất: {0}</sys:String>
+    <sys:String x:Key="Str_Rotated">Đã xoay {0} trang</sys:String>
+    <sys:String x:Key="Str_Cropped">Đã cắt {0} trang</sys:String>
+    <sys:String x:Key="Str_CropFailed">Cắt thất bại: {0}</sys:String>
+    <sys:String x:Key="Str_RemovedCrop">Đã xóa CropBox khỏi {0} trang</sys:String>
+    <sys:String x:Key="Str_RemoveCropFailed">Xóa vùng cắt thất bại: {0}</sys:String>
+    <sys:String x:Key="Str_Extracted">Đã trích xuất {0} trang tới {1}</sys:String>
+    <sys:String x:Key="Str_Deleted">Đã xóa {0} trang - còn lại {1}</sys:String>
+    <sys:String x:Key="Str_Printed">Đã gửi {0} trang tới máy in</sys:String>
+    <sys:String x:Key="Str_LinkRemoved">Đã xóa liên kết.</sys:String>
+    <sys:String x:Key="Str_LinkRemoveFailed">Xóa liên kết thất bại:</sys:String>
+    <sys:String x:Key="Str_LinkBlocked">Đã chặn liên kết (loại không được hỗ trợ):</sys:String>
+    <sys:String x:Key="Str_LinkOpenFailed">Không thể mở liên kết</sys:String>
+    <sys:String x:Key="Str_LinkConfirmBody">Mở liên kết này trong trình duyệt của bạn?</sys:String>
+    <sys:String x:Key="Str_LinkConfirmTitle">Mở liên kết?</sys:String>
+    <sys:String x:Key="Str_LinkDontAsk">Không hỏi lại</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenLink">Mở liên kết</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyLink">Sao chép địa chỉ liên kết</sys:String>
+    <sys:String x:Key="Str_Ctx_CopyEmail">Sao chép địa chỉ email</sys:String>
+    <sys:String x:Key="Str_Ctx_RemoveLink">Xóa liên kết khỏi PDF</sys:String>
+    <sys:String x:Key="Str_LinksSection">LIÊN KẾT</sys:String>
+    <sys:String x:Key="Str_PrivacySection">QUYỀN RIÊNG TƯ</sys:String>
+    <sys:String x:Key="Str_NoRecentSetting">Không ghi nhớ các tệp đã mở gần đây</sys:String>
+    <sys:String x:Key="Str_Menu_ExportImages">Xuất trang thành hình ảnh...</sys:String>
+    <sys:String x:Key="Str_Menu_ExportDocument">Xuất tài liệu...</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Suffix">Xuất tài liệu</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Hint">Xuất có cấu trúc sẽ giữ lại nội dung dễ đọc và bố cục khi định dạng được chọn hỗ trợ. Bạn có thể xem lại mọi mất mát đã biết trước khi lưu.</sys:String>
+    <sys:String x:Key="Str_ExportDoc_LossWarning">Định dạng này không thể biểu diễn {0} mục từ các trang đã chọn. Tiếp tục xuất?</sys:String>
+    <sys:String x:Key="Str_ExportDoc_Done">Đã xuất tài liệu sang {0}</sys:String>
+    <sys:String x:Key="Str_Menu_RemovePassword">Xóa mật khẩu</sys:String>
+    <sys:String x:Key="Str_St_SavedNoPassword">Đã lưu không có bảo vệ bằng mật khẩu - {0}</sys:String>
+    <sys:String x:Key="Str_ExportImg_Suffix">Xuất trang thành hình ảnh</sys:String>
+    <sys:String x:Key="Str_ExportImg_Format">Định dạng</sys:String>
+    <sys:String x:Key="Str_ExportImg_Dpi">Độ phân giải (DPI)</sys:String>
+    <sys:String x:Key="Str_OutputPixels">{0} x {1} px</sys:String>
+    <sys:String x:Key="Str_ExportImg_Export">Xuất</sys:String>
+    <sys:String x:Key="Str_ExportImg_Done">Đã xuất {0} trang tới {1}</sys:String>
+    <sys:String x:Key="Str_Print_AllPages">Tất cả trang</sys:String>
+    <sys:String x:Key="Str_Print_OddOnly">Chỉ trang lẻ</sys:String>
+    <sys:String x:Key="Str_Print_EvenOnly">Chỉ trang chẵn</sys:String>
+    <sys:String x:Key="Str_DocInvertSetting">Đảo ngược màu tài liệu</sys:String>
+    <sys:String x:Key="Str_TT_DocInvert">Đảo ngược màu tài liệu (N)</sys:String>
+    <sys:String x:Key="Str_TT_SplitPane">Chia đôi khung - hai tài liệu song song nhau (F10)</sys:String>
+    <sys:String x:Key="Str_TT_CloseTab">Đóng tab</sys:String>
+    <sys:String x:Key="Str_TT_TabOverflow">Tất cả các tab đang mở</sys:String>
+    <sys:String x:Key="Str_InvertImagesToo">Đảo ngược cả hình ảnh</sys:String>
+    <sys:String x:Key="Str_Font_NoGlyphs" xml:space="preserve">Không có phông chữ nào trên máy tính này có thể hiển thị các ký tự này, vì vậy chúng sẽ xuất hiện dưới dạng ô vuông trong tệp PDF được lưu:&#10;&#10;{0}&#10;&#10;Hãy cài đặt phông chữ hỗ trợ các ký tự này, hoặc chọn một phông chữ khác cho đoạn văn bản này.</sys:String>
+    <sys:String x:Key="Str_TT_AppSize">Cuộn để thay đổi kích thước toàn bộ ứng dụng (Ctrl+Shift++/-/0)</sys:String>
+    <sys:String x:Key="Str_St_AppSize">Kích thước ứng dụng {0}%</sys:String>
+    <sys:String x:Key="Str_KS_AppSize">Thu phóng toàn bộ ứng dụng (trợ năng)</sys:String>
+    <sys:String x:Key="Str_KS_FileSize">Hiển thị kích thước tệp hiện tại</sys:String>
+    <sys:String x:Key="Str_KS_SplitPane">Chia đôi khung - hai tài liệu song song nhau</sys:String>
+    <sys:String x:Key="Str_LinkConfirmSetting">Xác nhận trước khi mở liên kết</sys:String>
+    <sys:String x:Key="Str_InvalidRange">Phạm vi không hợp lệ - ví dụ sử dụng 1-3,5,7</sys:String>
+    <sys:String x:Key="Str_CropNoDoc">Cắt: chưa mở tài liệu nào</sys:String>
+    <sys:String x:Key="Str_CropNoPage">Cắt: chưa chọn trang nào</sys:String>
+    <sys:String x:Key="Str_CropNoDims">Cắt: không có kích thước trang</sys:String>
+    <sys:String x:Key="Str_RotateFailed">Xoay thất bại: {0}</sys:String>
+
+    <!-- ── Chuỗi hộp thoại ───────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Dlg_SaveOtherPaneDirty" xml:space="preserve">Khung bên kia cũng đang mở "{0}" và có các thay đổi chưa được lưu.
+
+Lưu ngay bây giờ sẽ ghi đè lên tệp và các thay đổi đó sẽ bị mất. Hãy lưu khung bên kia trước nếu bạn muốn giữ lại chúng.</sys:String>
+    <sys:String x:Key="Str_St_SplitOn">Đã bật chia đôi khung - Nhấn F10 để đóng</sys:String>
+    <sys:String x:Key="Str_St_SplitOff">Đã tắt chia đôi khung</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallTitle">Cài đặt KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallMsg" xml:space="preserve">Cài đặt KillerPDF trên máy tính này?
+
+Việc cài đặt sẽ sao chép ứng dụng vào thư mục Chương trình (Programs) của bạn để khởi động nhanh hơn và thêm lối tắt vào menu Bắt đầu (Start menu). Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateMachineMsg" xml:space="preserve">Cập nhật bản cài đặt KillerPDF hiện tại cho tất cả người dùng?
+
+Thao tác này sẽ thay thế bản sao trong Program Files bằng phiên bản nhiều tệp nhanh hơn. Mọi bản sao cũ dành cho từng người dùng sẽ bị xóa để KillerPDF chỉ xuất hiện một lần duy nhất. Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
+    <sys:String x:Key="Str_Dlg_UpdateUserMsg" xml:space="preserve">Cập nhật bản cài đặt KillerPDF hiện tại của bạn?
+
+Thao tác này sẽ thay thế bản đã cài đặt bằng phiên bản nhiều tệp nhanh hơn. Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
+    <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF đã được cài đặt cho mọi người dùng trên máy tính này. Hãy cập nhật bản cài đặt đó, hoặc gỡ cài đặt trước khi chọn cài đặt cho riêng người dùng hiện tại.
+
+KillerPDF sẽ không tạo ra hai bản sao đã cài đặt.</sys:String>
+    <sys:String x:Key="Str_Btn_DoInstall">Cài đặt</sys:String>
+    <sys:String x:Key="Str_Btn_DoUpdate">Cập nhật</sys:String>
+    <sys:String x:Key="Str_Chk_Desktop">Thêm lối tắt trên màn hình nền</sys:String>
+    <sys:String x:Key="Str_Chk_AllUsers">Cài đặt cho mọi người dùng trên máy tính này (cần quyền quản trị viên)</sys:String>
+    <sys:String x:Key="Str_Status_InstallFailed">Cài đặt không hoàn tất - KillerPDF vẫn đang chạy ở chế độ di động (portable).</sys:String>
+    <sys:String x:Key="Str_Dlg_SetDefaultPdfMsg" xml:space="preserve">Bạn có muốn đặt KillerPDF làm trình xem PDF mặc định không?
+
+Sẽ mở Cài đặt Windows - Ứng dụng mặc định.</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedClose">Bạn có các thay đổi chưa được lưu. Đóng tệp này mà không lưu?</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedExit">Bạn có các thay đổi chưa được lưu. Đóng KillerPDF mà không lưu?</sys:String>
+    <sys:String x:Key="Str_Dlg_PageOutOfRange" xml:space="preserve">Tài liệu này có {0} trang có kích thước nằm ngoài mức hỗ trợ của Adobe Reader (3 đến 14.400 điểm mỗi cạnh) - Adobe hiển thị các trang này là trang trống.
+
+Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn giữ nguyên giao diện và tỷ lệ.</sys:String>
+    <sys:String x:Key="Str_Dlg_FailedOpen" xml:space="preserve">Không thể mở tệp PDF:
+{0}</sys:String>
+    <sys:String x:Key="Str_Dlg_AppTitle">KillerPDF</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocs">Bạn có {0} tài liệu đang mở. Bạn có muốn KillerPDF đóng tất cả khi thoát ứng dụng không?</sys:String>
+    <sys:String x:Key="Str_Dlg_CloseAllDocsOne">Bạn có 1 tài liệu đang mở. Bạn có muốn KillerPDF đóng tài liệu đó khi thoát ứng dụng không?</sys:String>
+    <sys:String x:Key="Str_Dlg_RememberChoice">Nhớ lựa chọn của tôi</sys:String>
+
+
+    <!-- ── Tên giao diện ──────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Theme_Dark">Tối</sys:String>
+    <sys:String x:Key="Str_Theme_Light">Sáng</sys:String>
+    <sys:String x:Key="Str_Theme_Black">Đen tuyền</sys:String>
+    <sys:String x:Key="Str_Theme_Blood">Máu</sys:String>
+    <sys:String x:Key="Str_Theme_Greed">Lòng tham</sys:String>
+    <sys:String x:Key="Str_Theme_Cyanotic">Tím tái</sys:String>
+    <sys:String x:Key="Str_Theme_98SE">98SE</sys:String>
+    <sys:String x:Key="Str_Theme_Ectoplasm">Chất ngoại cảm</sys:String>
+    <sys:String x:Key="Str_Theme_Decay">Phân hủy</sys:String>
+    <sys:String x:Key="Str_Theme_Mourning">Tang lễ</sys:String>
+    <sys:String x:Key="Str_Theme_Sepulchre">Hầm mộ</sys:String>
+    <sys:String x:Key="Str_Theme_Delirium">Mê sảng</sys:String>
+    <sys:String x:Key="Str_Theme_Malaise">Khó ở</sys:String>
+
+    <!-- ── Menu thả xuống thu phóng ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Zoom_FitWidth">Vừa chiều rộng</sys:String>
+    <sys:String x:Key="Str_Zoom_FitPage">Vừa trang</sys:String>
+    <sys:String x:Key="Str_FitWidth">Trang {0} / {1} - Vừa chiều rộng ({2}%)</sys:String>
+    <sys:String x:Key="Str_FitPage">Trang {0} / {1} - Vừa trang ({2}%)</sys:String>
+
+    <!-- ── Kích thước phông chữ lớp phủ KS (sys:Double) ────────────────── -->
+    <sys:Double x:Key="Str_KS_FontSize">11</sys:Double>
+
+
+    <!-- ── Chế độ xem ─────────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_ViewMode">CHẾ ĐỘ XEM</sys:String>
+    <sys:String x:Key="Str_View_Single">Một trang</sys:String>
+    <sys:String x:Key="Str_View_Continuous">Liên tục</sys:String>
+    <sys:String x:Key="Str_View_TwoPage">Hai trang</sys:String>
+    <sys:String x:Key="Str_View_Grid">Lưới</sys:String>
+    <sys:String x:Key="Str_View_BookMode">Bố cục sách</sys:String>
+    <sys:String x:Key="Str_Continuous_EditMsg">Chuyển sang chế độ Một trang để sử dụng công cụ chỉnh sửa</sys:String>
+
+    <!-- ── Menu tràn + nhãn mục menu ──────────────────────────────────── -->
+    <sys:String x:Key="Str_Lbl_Merge">Gộp các PDF</sys:String>
+    <sys:String x:Key="Str_Lbl_Extract">Trích xuất trang</sys:String>
+    <sys:String x:Key="Str_Lbl_Delete">Xóa trang</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveUp">Di chuyển trang lên trên</sys:String>
+    <sys:String x:Key="Str_Lbl_MoveDown">Di chuyển trang xuống dưới</sys:String>
+    <sys:String x:Key="Str_Lbl_Text">Văn bản</sys:String>
+    <sys:String x:Key="Str_Lbl_FormField">Biểu mẫu (F)</sys:String>
+    <sys:String x:Key="Str_Lbl_Highlight">Đánh dấu</sys:String>
+    <sys:String x:Key="Str_Lbl_Strike">Gạch ngang</sys:String>
+    <sys:String x:Key="Str_Lbl_Underline">Gạch chân</sys:String>
+    <sys:String x:Key="Str_Lbl_Bold">Đậm</sys:String>
+    <sys:String x:Key="Str_Lbl_Italic">Nghiêng</sys:String>
+    <sys:String x:Key="Str_Lbl_Draw">Vẽ</sys:String>
+    <sys:String x:Key="Str_Lbl_Shape">Hình vẽ</sys:String>
+    <sys:String x:Key="Str_Lbl_Crop">Cắt</sys:String>
+    <sys:String x:Key="Str_Lbl_Measure">Đo lường</sys:String>
+    <sys:String x:Key="Str_Lbl_Rotate">Chuyển đổi</sys:String>
+    <sys:String x:Key="Str_Lbl_Stamp">Con dấu</sys:String>
+    <sys:String x:Key="Str_Lbl_Image">Thêm hình ảnh</sys:String>
+    <sys:String x:Key="Str_Lbl_Signature">Chữ ký</sys:String>
+    <sys:String x:Key="Str_Lbl_Undo">Hoàn tác</sys:String>
+    <sys:String x:Key="Str_Lbl_Clear">Xóa tất cả</sys:String>
+    <sys:String x:Key="Str_Lbl_New">Mới</sys:String>
+    <sys:String x:Key="Str_Lbl_Open">Mở</sys:String>
+    <sys:String x:Key="Str_Lbl_Close">Đóng</sys:String>
+    <sys:String x:Key="Str_Lbl_Save">Lưu</sys:String>
+    <sys:String x:Key="Str_Lbl_Flatten">Làm phẳng</sys:String>
+    <sys:String x:Key="Str_Lbl_Print">In</sys:String>
+    <sys:String x:Key="Str_Lbl_Select">Chọn</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomOut">Thu nhỏ</sys:String>
+    <sys:String x:Key="Str_Lbl_ZoomIn">Phóng to</sys:String>
+    <sys:String x:Key="Str_Lbl_Search">Tìm kiếm</sys:String>
+
+    <!-- ── Nhãn menu chuột phải ────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Ctx_CopyText">Sao chép văn bản</sys:String>
+    <sys:String x:Key="Str_Ctx_Print">In</sys:String>
+    <sys:String x:Key="Str_Ctx_OcrPage">OCR trang (Sao chép văn bản)</sys:String>
+    <sys:String x:Key="Str_Lbl_Ocr">OCR</sys:String>
+    <sys:String x:Key="Str_TT_Ocr">OCR trang (sao chép văn bản) (Ctrl+Shift+O)</sys:String>
+    <sys:String x:Key="Str_Ocr_Region">OCR vùng...</sys:String>
+    <sys:String x:Key="Str_Ocr_SearchablePdf">Tạo PDF có thể tìm kiếm...</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractText">Trích xuất toàn bộ văn bản...</sys:String>
+    <sys:String x:Key="Str_Ocr_Language">Ngôn ngữ</sys:String>
+    <sys:String x:Key="Str_Ocr_FormAware">OCR nhận biết biểu mẫu</sys:String>
+    <sys:String x:Key="Str_Ocr_NoDoc">Hãy mở tệp PDF trước</sys:String>
+    <sys:String x:Key="Str_Ocr_ComingSoon">{0} - sắp ra mắt</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectTool">Công cụ chọn</sys:String>
+    <sys:String x:Key="Str_Ctx_TextTool">Công cụ văn bản</sys:String>
+    <sys:String x:Key="Str_Ctx_HighlightTool">Công cụ đánh dấu</sys:String>
+    <sys:String x:Key="Str_Ctx_DrawTool">Công cụ vẽ</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCW">Xoay trang theo chiều kim đồng hồ</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCW">Xoay trang ngược chiều kim đồng hồ</sys:String>
+    <sys:String x:Key="Str_Ctx_StampNumbers">Đóng dấu số trang...</sys:String>
+    <sys:String x:Key="Str_Ctx_DeleteSel">Xóa phần đã chọn</sys:String>
+    <sys:String x:Key="Str_Ctx_UndoLast">Hoàn tác thao tác cuối</sys:String>
+    <sys:String x:Key="Str_Ctx_ClearPage">Xóa chú thích trang</sys:String>
+    <sys:String x:Key="Str_Ctx_InsertBlank">Chèn trang trống vào sau</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCWShort">Xoay theo chiều kim đồng hồ</sys:String>
+    <sys:String x:Key="Str_Ctx_RotateCCWShort">Xoay ngược chiều kim đồng hồ</sys:String>
+    <sys:String x:Key="Str_Ctx_ExtractPages">Trích xuất (các) trang</sys:String>
+    <sys:String x:Key="Str_Ctx_ExportPageImage">Xuất trang thành hình ảnh</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePages">Xóa (các) trang</sys:String>
+
+    <!-- ── Hộp thoại Đóng dấu số trang ────────────────────────────────── -->
+    <sys:String x:Key="Str_Stamp_Title">Đóng dấu số trang</sys:String>
+    <sys:String x:Key="Str_Stamp_StartAt">Bắt đầu từ</sys:String>
+    <sys:String x:Key="Str_Stamp_Format">Định dạng</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint">Sử dụng {n} cho số trang, {N} cho tổng số trang</sys:String>
+    <sys:String x:Key="Str_Stamp_Hint2">Ví dụ: "Trang {n} / {N}"</sys:String>
+    <sys:String x:Key="Str_Stamp_Position">Vị trí</sys:String>
+    <sys:String x:Key="Str_Stamp_FontSize">Cỡ chữ (pt)</sys:String>
+    <sys:String x:Key="Str_Stamp_Cancel">Hủy</sys:String>
+    <sys:String x:Key="Str_Stamp_Stamp">Đóng dấu</sys:String>
+    <sys:String x:Key="Str_Stamp_Suffix">Đóng dấu trang</sys:String>
+    <sys:String x:Key="Str_Stamp_SecNumbers">Số trang</sys:String>
+    <sys:String x:Key="Str_Stamp_SecWatermark">Hình mờ</sys:String>
+    <sys:String x:Key="Str_Stamp_Color">Màu sắc</sys:String>
+    <sys:String x:Key="Str_Stamp_Pages">Trang</sys:String>
+    <sys:String x:Key="Str_Stamp_WmText">Văn bản</sys:String>
+    <sys:String x:Key="Str_Stamp_WmImage">Hình ảnh</sys:String>
+    <sys:String x:Key="Str_Stamp_WmTextLabel">Văn bản hình mờ</sys:String>
+    <sys:String x:Key="Str_Stamp_ChooseImage">Chọn hình ảnh...</sys:String>
+    <sys:String x:Key="Str_Stamp_Scale">Tỷ lệ</sys:String>
+    <sys:String x:Key="Str_Stamp_Angle">Góc</sys:String>
+    <sys:String x:Key="Str_Stamp_Opacity">Độ mờ</sys:String>
+    <sys:String x:Key="Str_Stamp_Mirror">Đối xứng trên các trang đối diện (cạnh ngoài)</sys:String>
+    <sys:String x:Key="Str_Stamp_Applied">Đã đóng dấu {0} trang</sys:String>
+    <sys:String x:Key="Str_TT_StampTool">Đóng dấu trang (S)</sys:String>
+    <sys:String x:Key="Str_Ctx_StampPages">Đóng dấu trang</sys:String>
+    <sys:String x:Key="Str_Pos_BottomCenter">Giữa dưới</sys:String>
+    <sys:String x:Key="Str_Pos_BottomRight">Phải dưới</sys:String>
+    <sys:String x:Key="Str_Pos_BottomLeft">Trái dưới</sys:String>
+    <sys:String x:Key="Str_Pos_TopCenter">Giữa trên</sys:String>
+    <sys:String x:Key="Str_Pos_TopRight">Phải trên</sys:String>
+    <sys:String x:Key="Str_Pos_TopLeft">Trái trên</sys:String>
+
+    <!-- ── Hộp thoại In ───────────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Print_Title">KillerPDF - In</sys:String>
+    <sys:String x:Key="Str_Print_Printer">Máy in</sys:String>
+    <sys:String x:Key="Str_Print_Paper">Kích thước giấy</sys:String>
+    <sys:String x:Key="Str_Print_PaperAuto">Khớp với tài liệu</sys:String>
+    <sys:String x:Key="Str_Print_Source">Nguồn giấy</sys:String>
+    <sys:String x:Key="Str_Print_SourceAuto">Mặc định của máy in</sys:String>
+    <sys:String x:Key="Str_Print_SecPrinter">MÁY IN</sys:String>
+    <sys:String x:Key="Str_Print_SecLayout">BỐ CỤC</sys:String>
+    <sys:String x:Key="Str_Print_SecOutput">ĐẦU RA</sys:String>
+    <sys:String x:Key="Str_Print_Orientation">Hướng giấy</sys:String>
+    <sys:String x:Key="Str_Print_Portrait">Dọc</sys:String>
+    <sys:String x:Key="Str_Print_Landscape">Ngang</sys:String>
+    <sys:String x:Key="Str_Print_Scale">Tỷ lệ</sys:String>
+    <sys:String x:Key="Str_Print_Fit">Vừa trang</sys:String>
+    <sys:String x:Key="Str_Print_Actual">Kích thước thực (100%)</sys:String>
+    <sys:String x:Key="Str_Print_Custom">Tùy chỉnh %</sys:String>
+    <sys:String x:Key="Str_Print_ScaleHint">Phần trăm tỷ lệ (ví dụ: 50 hoặc 50.23)</sys:String>
+    <sys:String x:Key="Str_Print_Copies">Số bản in</sys:String>
+    <sys:String x:Key="Str_Print_Pages">Trang</sys:String>
+    <sys:String x:Key="Str_Print_PagesHint">ví dụ: 1-3,5 (để trống = tất cả)</sys:String>
+    <sys:String x:Key="Str_Print_NoPages">Không có trang nào</sys:String>
+    <sys:String x:Key="Str_Print_Margins">Lề</sys:String>
+    <sys:String x:Key="Str_Margin_None">Không có</sys:String>
+    <sys:String x:Key="Str_Margin_Narrow">Hẹp</sys:String>
+    <sys:String x:Key="Str_Margin_Normal">Bình thường</sys:String>
+    <sys:String x:Key="Str_Margin_Wide">Rộng</sys:String>
+    <sys:String x:Key="Str_Print_PagesPerSheet">Số trang trên mỗi tờ</sys:String>
+    <sys:String x:Key="Str_Print_TwoSided">In hai mặt</sys:String>
+    <sys:String x:Key="Str_Print_Color">Màu</sys:String>
+    <sys:String x:Key="Str_Print_BW">Đen trắng</sys:String>
+    <sys:String x:Key="Str_Pos_Center">Giữa</sys:String>
+    <sys:String x:Key="Str_Pos_Custom">Tùy chỉnh (kéo trên bản xem trước)</sys:String>
+    <sys:String x:Key="Str_Pos_Top">Trên</sys:String>
+    <sys:String x:Key="Str_Pos_Bottom">Dưới</sys:String>
+    <sys:String x:Key="Str_Pos_Left">Trái</sys:String>
+    <sys:String x:Key="Str_Pos_Right">Phải</sys:String>
+
+    <!-- ── Lưu / tệp gần đây + hộp thoại chữ ký ───────────────────── -->
+    <sys:String x:Key="Str_Menu_Save">Lưu</sys:String>
+    <sys:String x:Key="Str_Menu_SaveAs">Lưu thành...</sys:String>
+    <sys:String x:Key="Str_Menu_SaveNothing">Không có gì để lưu</sys:String>
+    <sys:String x:Key="Str_Menu_RecentNone">Không có tệp gần đây</sys:String>
+    <sys:String x:Key="Str_Menu_ClearList">Xóa danh sách</sys:String>
+    <sys:String x:Key="Str_Menu_RemoveFromRecents">Xóa khỏi danh sách gần đây</sys:String>
+
+    <!-- ── Nhập hình ảnh dưới dạng PDF / Nén thành ZIP ──────────────────── -->
+    <sys:String x:Key="Str_Menu_Import">Nhập hình ảnh dưới dạng PDF</sys:String>
+    <sys:String x:Key="Str_Menu_CompressZip">Nén thành tệp ZIP</sys:String>
+    <sys:String x:Key="Str_Filter_Images">Hình ảnh</sys:String>
+    <sys:String x:Key="Str_Filter_AllFiles">Tất cả các tệp</sys:String>
+    <sys:String x:Key="Str_Filter_Zip">Tệp lưu trữ ZIP</sys:String>
+    <sys:String x:Key="Str_Status_Imported">Đã nhập {0} hình ảnh - chưa được lưu</sys:String>
+    <sys:String x:Key="Str_Err_ImportFailed">Nhập thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_NoImages">Không thể đọc hình ảnh nào.</sys:String>
+    <sys:String x:Key="Str_Drop_Prompt">Bạn đã thả {0} tệp. Bạn muốn mở chúng như thế nào?</sys:String>
+    <sys:String x:Key="Str_Drop_Merge">Gộp thành một tệp PDF</sys:String>
+    <sys:String x:Key="Str_Drop_Separate">Mở riêng biệt</sys:String>
+    <sys:String x:Key="Str_Drop_NothingOpenable">Không tìm thấy tệp PDF hoặc hình ảnh nào có thể mở.</sys:String>
+    <sys:String x:Key="Str_Drop_ManyTabs">Thao tác này sẽ mở {0} tab riêng biệt. Tiếp tục?</sys:String>
+    <sys:String x:Key="Str_Drop_TooMany">Thư mục hoặc tệp lưu trữ này có {0} tệp. KillerPDF sẽ chỉ mở {1} tệp đầu tiên. Tiếp tục?</sys:String>
+    <sys:String x:Key="Str_Status_Merged">Đã gộp {0} tệp - chưa được lưu</sys:String>
+    <sys:String x:Key="Str_Drop_Merging">Đang gộp các tệp...</sys:String>
+    <sys:String x:Key="Str_Drop_MergeCanceled">Đã hủy gộp</sys:String>
+    <sys:String x:Key="Str_Dlg_UnsavedCloseAll">Đóng tất cả tài liệu? Các thay đổi chưa lưu sẽ bị mất.</sys:String>
+    <sys:String x:Key="Str_Msg_OpenFirst">Hãy mở tệp PDF trước.</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveBeforeZip">Lưu các thay đổi trước khi nén thành tệp ZIP?</sys:String>
+    <sys:String x:Key="Str_Status_Zipped">Đã nén thành {0} - {1} (kích thước cũ {2})</sys:String>
+    <sys:String x:Key="Str_Err_ZipFailed">Nén thành tệp ZIP thất bại:</sys:String>
+    <sys:String x:Key="Str_Sig_Title">Chữ ký</sys:String>
+    <sys:String x:Key="Str_Sig_None">Không có chữ ký nào được lưu</sys:String>
+    <sys:String x:Key="Str_Sig_Create">Tạo chữ ký</sys:String>
+    <sys:String x:Key="Str_Sig_Import">Nhập hình ảnh</sys:String>
+    <sys:String x:Key="Str_Sig_DrawHere">Vẽ chữ ký của bạn vào đây</sys:String>
+    <sys:String x:Key="Str_Sig_Clear">Xóa</sys:String>
+    <sys:String x:Key="Str_Sig_SaveSig">Lưu chữ ký</sys:String>
+
+    <!-- Mẹo công cụ thanh xác nhận cắt -->
+    <sys:String x:Key="Str_TT_CropThisPage">Cắt trang này (Enter)</sys:String>
+    <sys:String x:Key="Str_TT_CropRange">Cắt các trang trong phạm vi được chỉ định</sys:String>
+    <sys:String x:Key="Str_TT_CropRemove">Xóa Hộp cắt (CropBox) và Hộp viền (TrimBox) khỏi trang này</sys:String>
+    <sys:String x:Key="Str_TT_CropRemoveAll">Xóa Hộp cắt (CropBox) khỏi tất cả các trang</sys:String>
+    <sys:String x:Key="Str_TT_CropCancel">Hủy (Escape)</sys:String>
+
+    <!-- ── Công cụ đường thẳng, menu lớp / nhóm (đã thêm v1.5.x) ── -->
+    <sys:String x:Key="Str_Lbl_Line">Đường thẳng</sys:String>
+    <sys:String x:Key="Str_TT_LineTool">Đường thẳng - kéo để vẽ đường thẳng (L)</sys:String>
+    <sys:String x:Key="Str_Ctx_Edit">Chỉnh sửa</sys:String>
+    <sys:String x:Key="Str_Ctx_Raise">Đưa lên trên</sys:String>
+    <sys:String x:Key="Str_Ctx_Lower">Đưa xuống dưới</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectCover">Chọn lớp phủ che</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectText">Chọn văn bản</sys:String>
+    <sys:String x:Key="Str_Ctx_Unpair">Hủy ghép nối văn bản + lớp phủ che</sys:String>
+    <sys:String x:Key="Str_Ctx_Group">Nhóm phần đã chọn</sys:String>
+    <sys:String x:Key="Str_Ctx_Ungroup">Bỏ nhóm</sys:String>
+    <sys:String x:Key="Str_Ctx_RemoveFromGroup">Xóa khỏi nhóm</sys:String>
+    <sys:String x:Key="Str_Ctx_Copy">Sao chép</sys:String>
+    <sys:String x:Key="Str_Ctx_Paste">Dán</sys:String>
+    <!-- ── Nhãn thanh chú thích ────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Bar_Color">Màu sắc:</sys:String>
+    <sys:String x:Key="Str_Bar_Fill">Màu tô:</sys:String>
+    <sys:String x:Key="Str_Bar_Size">Kích thước:</sys:String>
+    <sys:String x:Key="Str_Bar_LetterSpacing">Khoảng cách chữ:</sys:String>
+    <sys:String x:Key="Str_Bar_Opacity">Độ mờ:</sys:String>
+    <sys:String x:Key="Str_Bar_FillOpacity">Độ mờ màu tô:</sys:String>
+    <sys:String x:Key="Str_Bar_Font">Phông chữ:</sys:String>
+    <sys:String x:Key="Str_Bar_Level">Mức</sys:String>
+    <sys:String x:Key="Str_Bar_Eraser">Cục tẩy</sys:String>
+    <sys:String x:Key="Str_Bar_AnnotationEraser">Cục tẩy chú thích</sys:String>
+    <sys:String x:Key="Str_Bar_MoreColors">Thêm màu...</sys:String>
+    <sys:String x:Key="Str_Bar_ShapeFill">Tô màu hình</sys:String>
+    <sys:String x:Key="Str_Sig_Signatures">Chữ ký</sys:String>
+    <sys:String x:Key="Str_Sig_Initials">Tên viết tắt</sys:String>
+    <sys:String x:Key="Str_Sig_Pen">Bút</sys:String>
+    <sys:String x:Key="Str_Sig_Thin">Mỏng</sys:String>
+    <sys:String x:Key="Str_Sig_Medium">Vừa</sys:String>
+    <sys:String x:Key="Str_Sig_Thick">Đậm</sys:String>
+    <!-- ── Hộp thoại Chữ ký số ────────────────────────────────────────── -->
+    <sys:String x:Key="Str_Sign_Desc">Đóng dấu {0} bằng chứng chỉ và lưu bản đã ký.</sys:String>
+    <sys:String x:Key="Str_Sign_Certificate">Chứng chỉ</sys:String>
+    <sys:String x:Key="Str_Sign_FromFile">Từ tệp (.pfx / .p12)</sys:String>
+    <sys:String x:Key="Str_Sign_FromStore">Từ kho lưu trữ chứng chỉ Windows / Token USB</sys:String>
+    <sys:String x:Key="Str_Sign_Browse">Duyệt...</sys:String>
+    <sys:String x:Key="Str_Sign_Password">Mật khẩu</sys:String>
+    <sys:String x:Key="Str_Sign_Reason">Lý do (tùy chọn)</sys:String>
+    <sys:String x:Key="Str_Sign_Location">Địa điểm (tùy chọn)</sys:String>
+    <sys:String x:Key="Str_Sign_Contact">Liên hệ (tùy chọn)</sys:String>
+    <sys:String x:Key="Str_Sign_VisibleAppearance">Hiển thị chữ ký trực quan</sys:String>
+    <sys:String x:Key="Str_Sign_AppearanceText">Văn bản chữ ký</sys:String>
+    <sys:String x:Key="Str_Sign_AppearanceDefault">Được ký kỹ thuật số bởi {name}&#10;Ngày: {date}&#10;Lý do: {reason}&#10;Địa điểm: {location}</sys:String>
+    <sys:String x:Key="Str_Sign_Page">Trang</sys:String>
+    <sys:String x:Key="Str_Sign_Position">Vị trí</sys:String>
+    <sys:String x:Key="Str_Sign_BottomLeft">Trái dưới</sys:String>
+    <sys:String x:Key="Str_Sign_BottomRight">Phải dưới</sys:String>
+    <sys:String x:Key="Str_Sign_TopLeft">Trái trên</sys:String>
+    <sys:String x:Key="Str_Sign_TopRight">Phải trên</sys:String>
+    <sys:String x:Key="Str_Sign_Width">Chiều rộng</sys:String>
+    <sys:String x:Key="Str_Sign_Height">Chiều cao</sys:String>
+    <sys:String x:Key="Str_Sign_FontSize">Kỡ chữ</sys:String>
+    <sys:String x:Key="Str_Sign_PreviewSigner">Chủ sở hữu chứng chỉ</sys:String>
+    <sys:String x:Key="Str_Sign_BadAppearance">Kiểm tra lại trang chữ ký, kích thước và cỡ chữ.</sys:String>
+    <sys:String x:Key="Str_Sign_SaveAs">Lưu bản đã ký thành</sys:String>
+    <sys:String x:Key="Str_Sign_Sign">Ký</sys:String>
+    <sys:String x:Key="Str_Sign_Cancel">Hủy</sys:String>
+    <sys:String x:Key="Str_Sign_TitleSuffix">Chữ ký số</sys:String>
+    <sys:String x:Key="Str_Lbl_DigitalSig">Chữ ký số...</sys:String>
+    <sys:String x:Key="Str_Sidebar">THANH BÊN</sys:String>
+    <sys:String x:Key="Str_Sidebar_Left">Trái</sys:String>
+    <sys:String x:Key="Str_Sidebar_Right">Phải</sys:String>
+    <sys:String x:Key="Str_KS_ToggleSidebar">Bật/tắt thanh bên</sys:String>
+    <sys:String x:Key="Str_KS_ToolbarStyle">Giao diện thanh công cụ</sys:String>
+    <sys:String x:Key="Str_KS_SidebarSide">Di chuyển thanh bên trái / phải</sys:String>
+    <sys:String x:Key="Str_KS_CycleView">Chuyển đổi vòng lặp chế độ xem</sys:String>
+    <sys:String x:Key="Str_TT_ViewMode">Chế độ xem</sys:String>
+    <sys:String x:Key="Str_KS_NextTab">Tab tiếp theo (Shift: tab trước)</sys:String>
+    <sys:String x:Key="Str_Ctx_DeletePage">Xóa trang</sys:String>
+    <sys:String x:Key="Str_Ctx_DuplicatePage">Nhân bản trang</sys:String>
+    <sys:String x:Key="Str_Ctx_AddBlankPage">Thêm trang trống</sys:String>
+    <sys:String x:Key="Str_Blank_CurrentPage">Trang hiện tại</sys:String>
+    <sys:String x:Key="Str_Blank_Custom">Tùy chỉnh</sys:String>
+    <sys:String x:Key="Str_Blank_InvalidSize">Nhập chiều rộng và chiều cao trong khoảng từ 0,1 đến 200 inch.</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseTab">Đóng tab</sys:String>
+    <sys:String x:Key="Str_Ctx_OpenContainingFolder">Mở thư mục chứa</sys:String>
+    <sys:String x:Key="Str_Ctx_CloseOthers">Đóng các tab khác</sys:String>
+
+    <!-- Công cụ chuyển đổi -->
+    <sys:String x:Key="Str_ColorCorrection">Chỉnh màu</sys:String>
+    <sys:String x:Key="Str_Tf_Suffix">Chuyển đổi</sys:String>
+    <sys:String x:Key="Str_Tf_Rotate">XOAY</sys:String>
+    <sys:String x:Key="Str_Tf_Scale">THU PHÓNG</sys:String>
+    <sys:String x:Key="Str_Tf_Flip">LẬT</sys:String>
+    <sys:String x:Key="Str_Tf_Skew">XIÊN</sys:String>
+    <sys:String x:Key="Str_Tf_Angle">Góc</sys:String>
+    <sys:String x:Key="Str_Tf_Size">Kích thước</sys:String>
+    <sys:String x:Key="Str_Tf_WhenScaling">Khi thu phóng:</sys:String>
+    <sys:String x:Key="Str_Tf_ResizePage">Thay đổi kích thước toàn bộ trang</sys:String>
+    <sys:String x:Key="Str_Tf_KeepSize">Giữ nguyên kích thước trang (thêm lề)</sys:String>
+    <sys:String x:Key="Str_Tf_FlipH">Lật ngang</sys:String>
+    <sys:String x:Key="Str_Tf_FlipV">Lật dọc</sys:String>
+    <sys:String x:Key="Str_Tf_LevelLine">Vẽ một đường thăng bằng</sys:String>
+    <sys:String x:Key="Str_Tf_SkewHint">Kéo dọc theo bất kỳ thứ gì cần giữ thăng bằng (cạnh, dòng văn bản). Trang sẽ xoay để khớp.</sys:String>
+    <sys:String x:Key="Str_Tf_Perspective">PHỐI CẢNH</sys:String>
+    <sys:String x:Key="Str_Tf_Levels">MỨC ĐỘ</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsBlack">Điểm đen</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsWhite">Điểm trắng</sys:String>
+    <sys:String x:Key="Str_Tf_LevelsGamma">Tông trung gian</sys:String>
+    <sys:String x:Key="Str_Tf_Quality">CHẤT LƯỢNG TRANG</sys:String>
+    <sys:String x:Key="Str_Tf_ColorMode">Chế độ màu</sys:String>
+    <sys:String x:Key="Str_Tf_Grayscale">Thang độ xám</sys:String>
+    <sys:String x:Key="Str_Tf_BlackWhite">Đen trắng</sys:String>
+    <sys:String x:Key="Str_Tf_Threshold">Ngưỡng đen trắng</sys:String>
+    <sys:String x:Key="Str_Tf_SetDpi">Đặt độ phân giải đầu ra (DPI)</sys:String>
+    <sys:String x:Key="Str_Tf_UseJpeg">Sử dụng nén JPEG</sys:String>
+    <sys:String x:Key="Str_Tf_CorrectPerspective">Sửa méo hình thang</sys:String>
+    <sys:String x:Key="Str_Tf_PerspectiveHint">Kéo bốn góc vào đường viền trang được chụp ảnh. Nút Áp dụng sẽ làm thẳng trang thành hình chữ nhật.</sys:String>
+    <sys:String x:Key="Str_Tf_ResetCorners">Đặt lại các góc</sys:String>
+    <sys:String x:Key="Str_Tf_Output">Đầu ra: {0} × {1} in</sys:String>
+    <sys:String x:Key="Str_Tf_ResetAll">Đặt lại tất cả</sys:String>
+    <sys:String x:Key="Str_Tf_Reset">Đặt lại</sys:String>
+    <sys:String x:Key="Str_Tf_Cancel">Hủy</sys:String>
+    <sys:String x:Key="Str_Tf_Apply">Áp dụng</sys:String>
+    <sys:String x:Key="Str_Tf_Warn">Chuyển đổi trang (xoay hoặc thu phóng) sẽ chuyển trang thành dạng raster: trang được lưu lại dưới dạng hình ảnh, do đó mọi văn bản có thể chọn trên trang sẽ bị mất. Bạn có thể chạy OCR sau đó để làm cho trang có thể tìm kiếm lại được.</sys:String>
+    <sys:String x:Key="Str_Tf_DontWarn">Không hiển thị lại cảnh báo này</sys:String>
+    <sys:String x:Key="Str_Tf_Done">Đã chuyển đổi trang {0}</sys:String>
+    <sys:String x:Key="Str_Tf_DoneBatch">Đã chuyển đổi {0} trang</sys:String>
+    <sys:String x:Key="Str_Tf_NoRender">Không thể kết xuất trang - vui lòng thử lại sau giây lát.</sys:String>
+    <sys:String x:Key="Str_Tf_Failed">Chuyển đổi thất bại: {0}</sys:String>
+
+    <!-- Thanh cắt -->
+    <sys:String x:Key="Str_Crop_Position">Vị trí</sys:String>
+    <sys:String x:Key="Str_Crop_Size">Kích thước</sys:String>
+    <sys:String x:Key="Str_Crop_Pages">Trang</sys:String>
+    <sys:String x:Key="Str_Crop_All">Tất cả</sys:String>
+    <sys:String x:Key="Str_Crop_Apply">Cắt</sys:String>
+    <sys:String x:Key="Str_Crop_RangeTip">Phạm vi trang, ví dụ: 1-3,5 (để trống = trang hiện tại)</sys:String>
+    <sys:String x:Key="Str_Crop_AllTip">Cắt mọi trang</sys:String>
+
+    <!-- Phím tắt chế độ xem + toàn màn hình -->
+    <sys:String x:Key="Str_KS_View">XEM</sys:String>
+    <sys:String x:Key="Str_KS_FullScreen">Toàn màn hình</sys:String>
+    <sys:String x:Key="Str_FullScreen_Hint">Nhấn F11 hoặc Esc để thoát chế độ toàn màn hình</sys:String>
+    <!-- Thông báo thoát (tiêu chuẩn gia đình) -->
+    <sys:String x:Key="Str_Dlg_QuitMsg">Thoát KillerPDF?</sys:String>
+    <sys:String x:Key="Str_Chk_CloseTabs">Đóng các tab đang mở của tôi</sys:String>
+    <sys:String x:Key="Str_Btn_Quit">Thoát</sys:String>
+    <sys:String x:Key="Str_Btn_CancelDlg">Hủy</sys:String>
+
+
+    <!-- Status-bar messages (extracted from code) -->
+    <sys:String x:Key="Str_St_DataCleared">Đã xóa toàn bộ dữ liệu của KillerPDF</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionCanceled">Đã hủy chọn vùng OCR</sys:String>
+    <sys:String x:Key="Str_St_Erased">Đã tẩy</sys:String>
+    <sys:String x:Key="Str_St_Ungrouped">Đã bỏ nhóm</sys:String>
+    <sys:String x:Key="Str_St_RemovedFromGroup">Đã xóa khỏi nhóm</sys:String>
+    <sys:String x:Key="Str_St_NothingToUndo">Không có gì để hoàn tác</sys:String>
+    <sys:String x:Key="Str_St_UndidAnnotation">Đã hoàn tác chú thích cuối cùng</sys:String>
+    <sys:String x:Key="Str_St_UndidTextEdit">Đã hoàn tác chỉnh sửa văn bản</sys:String>
+    <sys:String x:Key="Str_St_RemovedStamps">Đã xóa số trang được đóng dấu</sys:String>
+    <sys:String x:Key="Str_St_RestoredAnnotations">Đã khôi phục các chú thích đã xóa</sys:String>
+    <sys:String x:Key="Str_St_Undone">Đã hoàn tác</sys:String>
+    <sys:String x:Key="Str_St_UndidDocChange">Đã hoàn tác thay đổi tài liệu</sys:String>
+    <sys:String x:Key="Str_St_ClearedPageAnnotations">Đã xóa các chú thích trên trang này</sys:String>
+    <sys:String x:Key="Str_St_NoAnnotationsToClear">Không có chú thích nào để xóa</sys:String>
+    <sys:String x:Key="Str_St_RepairCanceled">Đã hủy sửa chữa</sys:String>
+    <sys:String x:Key="Str_St_Canceled">Đã hủy</sys:String>
+    <sys:String x:Key="Str_St_DocInfoUpdated">Đã cập nhật thông tin tài liệu - hãy lưu tệp để giữ các thay đổi</sys:String>
+    <sys:String x:Key="Str_St_FlattenCanceled">Đã hủy làm phẳng (không có tệp nào được ghi)</sys:String>
+    <sys:String x:Key="Str_St_FlattenPrintFailed">Không thể làm phẳng chú thích để in; đang tiến hành in mà không có chúng.</sys:String>
+    <sys:String x:Key="Str_St_HqDownloadCanceled">Đã hủy tải xuống chất lượng cao</sys:String>
+    <sys:String x:Key="Str_St_LangDownloadCanceled">Đã hủy tải xuống ngôn ngữ</sys:String>
+    <sys:String x:Key="Str_St_OcrCanceled">Đã hủy OCR</sys:String>
+    <sys:String x:Key="Str_St_OcrDragBox">Kéo một khung bao quanh vùng cần nhận dạng</sys:String>
+    <sys:String x:Key="Str_St_OcrRegionTooSmall">Vùng OCR quá nhỏ</sys:String>
+    <sys:String x:Key="Str_St_OcrNoText">OCR: không tìm thấy văn bản trong vùng đã chọn</sys:String>
+    <sys:String x:Key="Str_St_SearchablePdfCanceled">Đã hủy tạo PDF có thể tìm kiếm (không có tệp nào được ghi)</sys:String>
+    <sys:String x:Key="Str_St_TextExtractCanceled">Đã hủy trích xuất văn bản (không có tệp nào được ghi)</sys:String>
+    <sys:String x:Key="Str_St_NoTextOnPage">Không tìm thấy văn bản trên trang này</sys:String>
+    <sys:String x:Key="Str_St_NoTextSelected">Chưa chọn văn bản - kéo để chọn văn bản</sys:String>
+    <sys:String x:Key="Str_St_NoTextInSelection">Không tìm thấy văn bản trong phần đã chọn</sys:String>
+    <sys:String x:Key="Str_St_NoTextUseShapes">Không có văn bản ở đây - Công cụ Hình vẽ đang bật 4</sys:String>
+    <sys:String x:Key="Str_St_SignaturePlaced">Đã đặt chữ ký - kéo để định vị lại, sử dụng tay nắm góc để thay đổi kích thước</sys:String>
+    <sys:String x:Key="Str_St_FieldCleared">Đã xóa trường</sys:String>
+    <sys:String x:Key="Str_St_FieldSigned">Đã ký trường</sys:String>
+    <sys:String x:Key="Str_St_SignatureSaved">Đã lưu chữ ký - nhấp vào trang để đặt chữ ký</sys:String>
+    <sys:String x:Key="Str_St_ImageLoaded">Đã tải hình ảnh - nhấp vào trang để đặt hình ảnh</sys:String>
+    <sys:String x:Key="Str_St_EditingText">Đang chỉnh sửa văn bản - thay đổi kích thước/màu sắc ở trên, nhấn Enter để lưu</sys:String>
+    <sys:String x:Key="Str_St_AlreadyEditHere">Đã có một chỉnh sửa ở đây - nhấp vào văn bản để chỉnh sửa lại, hoặc kéo lớp phủ che</sys:String>
+    <sys:String x:Key="Str_St_NoTextLine">Không tìm thấy dòng văn bản nào tại vị trí này</sys:String>
+    <sys:String x:Key="Str_St_LineAlreadyEdited">Dòng này đã được chỉnh sửa - nhấp vào văn bản để thay đổi</sys:String>
+    <sys:String x:Key="Str_St_ImagePlaced">Đã đặt hình ảnh - kéo để định vị lại, sử dụng tay nắm góc để thay đổi kích thước</sys:String>
+    <sys:String x:Key="Str_St_ClipImageUnreadable">Không thể đọc hình ảnh từ khay nhớ tạm</sys:String>
+    <sys:String x:Key="Str_St_PastedImage">Đã dán hình ảnh - kéo để định vị lại, sử dụng tay nắm góc để thay đổi kích thước</sys:String>
+    <sys:String x:Key="Str_St_ClipNoText">Khay nhớ tạm không có văn bản để dán</sys:String>
+    <sys:String x:Key="Str_St_PastedText">Đã dán văn bản - kéo để định vị lại, nhấn Delete để xóa</sys:String>
+    <sys:String x:Key="Str_St_ClipEmpty">Khay nhớ tạm không có gì để dán</sys:String>
+
+    <!-- Dialog / message-box strings (extracted from code) -->
+    <sys:String x:Key="Str_Dlg_SaveBeforeUpdate">Vui lòng lưu các thay đổi trước khi cập nhật.</sys:String>
+    <sys:String x:Key="Str_Dlg_Uninstalled">KillerPDF đã được gỡ cài đặt.</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectExtract">Chọn các trang để trích xuất.</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectDelete">Chọn các trang để xóa.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoPrinter">Không có máy in khả dụng.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoValidPages">Không có trang hợp lệ trong phạm vi đó.</sys:String>
+    <sys:String x:Key="Str_Dlg_SignedSavedTo">Đã lưu bản đã ký vào:</sys:String>
+    <sys:String x:Key="Str_Dlg_DrawSignatureFirst">Hãy vẽ chữ ký trước.</sys:String>
+
+    <!-- ── Chỉnh sửa dấu trang (#133, đã thêm trong v1.6.4) ───────────── -->
+    <sys:String x:Key="Str_TT_AddBookmark">Thêm dấu trang cho trang hiện tại</sys:String>
+    <sys:String x:Key="Str_Ctx_BmAdd">Thêm dấu trang</sys:String>
+    <sys:String x:Key="Str_Ctx_BmAddChild">Thêm dấu trang con</sys:String>
+    <sys:String x:Key="Str_Ctx_BmRename">Đổi tên</sys:String>
+    <sys:String x:Key="Str_Ctx_BmDelete">Xóa</sys:String>
+    <sys:String x:Key="Str_Bm_DefaultTitle">Trang {0}</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteKids">Xóa dấu trang này và {0} dấu trang con của nó?</sys:String>
+    <sys:String x:Key="Str_Ctx_BmMoveUp">Di chuyển lên</sys:String>
+    <sys:String x:Key="Str_Ctx_BmMoveDown">Di chuyển xuống</sys:String>
+    <sys:String x:Key="Str_Ctx_BmSetDest">Trỏ tới trang hiện tại</sys:String>
+    <sys:String x:Key="Str_Ctx_BmDeleteAll">Xóa tất cả dấu trang</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteMulti">Xóa {0} dấu trang?</sys:String>
+    <sys:String x:Key="Str_Bm_DeleteAllConfirm">Xóa tất cả dấu trang khỏi tài liệu này?</sys:String>
+
+    <sys:String x:Key="Str_Ctx_Redo">Làm lại</sys:String>
+    <sys:String x:Key="Str_St_Redone">Đã làm lại</sys:String>
+    <sys:String x:Key="Str_St_NothingToRedo">Không có gì để làm lại</sys:String>
+    <sys:String x:Key="Str_KS_FirstLast">Trang đầu / trang cuối</sys:String>
+    <sys:String x:Key="Str_KS_BackForward">Quay lại / chuyển tiếp (lịch sử chuyển trang)</sys:String>
+    <sys:String x:Key="Str_KS_ZoomPresets">Kích thước thực / vừa chiều rộng / vừa trang</sys:String>
+    <sys:String x:Key="Str_KS_ContextMenu">Menu ngữ cảnh tại phần đã chọn</sys:String>
+
+    <sys:String x:Key="Str_KS_ViewList">DANH SÁCH</sys:String>
+    <sys:String x:Key="Str_KS_ViewKeyboard">BÀN PHÍM</sys:String>
+    <sys:String x:Key="Str_KS_HoldHint">Giữ phím Ctrl, Shift hoặc Alt để xem trước lớp đó - di chuột qua phím sáng để xem hành động của phím đó</sys:String>
+    <sys:String x:Key="Str_Zoom_ActualSize">Kích thước thực</sys:String>
+    <sys:String x:Key="Str_KS_PrevTab">Tab trước</sys:String>
+
+    <sys:String x:Key="Str_Kb_PrevPage">Trang trước</sys:String>
+    <sys:String x:Key="Str_Kb_NextPage">Trang tiếp theo</sys:String>
+    <sys:String x:Key="Str_Kb_FirstPage">Trang đầu</sys:String>
+    <sys:String x:Key="Str_Kb_LastPage">Trang cuối</sys:String>
+    <sys:String x:Key="Str_Kb_Back">Quay lại</sys:String>
+    <sys:String x:Key="Str_Kb_Forward">Chuyển tiếp</sys:String>
+    <sys:String x:Key="Str_Kb_NextResult">Kết quả tiếp theo</sys:String>
+    <sys:String x:Key="Str_Kb_PrevResult">Kết quả trước</sys:String>
+    <sys:String x:Key="Str_Kb_Confirm">Xác nhận</sys:String>
+    <sys:String x:Key="Str_Kb_Cancel">Hủy</sys:String>
+
+    <!-- Menu hệ thống Windows theo chủ đề (nhấp chuột phải vào thanh tiêu đề / phím tắt Alt+Space) -->
+    <sys:String x:Key="Str_Sys_Restore">Khôi phục</sys:String>
+    <sys:String x:Key="Str_Sys_Move">Di chuyển</sys:String>
+    <sys:String x:Key="Str_Sys_Size">Kích thước</sys:String>
+    <sys:String x:Key="Str_Sys_Minimize">Thu nhỏ</sys:String>
+    <sys:String x:Key="Str_Sys_Maximize">Phóng to</sys:String>
+    <sys:String x:Key="Str_Sys_Close">Đóng</sys:String>
+    <sys:String x:Key="Str_Btn_Cancel">Hủy</sys:String>
+
+    <!-- Biểu tượng chữ (wordmark) của ứng dụng, được chia thành hai phần của dòng chữ: từ đầu tiên mang màu trung tính, từ thứ hai
+         mang màu điểm nhấn. Trình chọn tệp đọc các giá trị này thay vì cố định tên trong mã, nhờ đó hộp thoại sau khi biên dịch
+         sẽ hiển thị đúng tên của ứng dụng đang lưu trữ nó. -->
+    <!-- Tên các phím cho lớp phủ phím tắt (#230). Được kết hợp thành các tổ hợp phím bởi
+         ShortcutsOverlay.FillKeyInlines, giúp các dịch giả nhận được từ ngữ mà không phải bận tâm về cú pháp. -->
+    <sys:String x:Key="Str_Key_Ctrl">Ctrl</sys:String>
+    <sys:String x:Key="Str_Key_Alt">Alt</sys:String>
+    <sys:String x:Key="Str_Key_Shift">Shift</sys:String>
+    <sys:String x:Key="Str_Key_Delete">Delete</sys:String>
+    <sys:String x:Key="Str_Key_Enter">Enter</sys:String>
+    <sys:String x:Key="Str_Key_Esc">Esc</sys:String>
+    <sys:String x:Key="Str_Key_Menu">Menu</sys:String>
+    <sys:String x:Key="Str_Key_Home">Home</sys:String>
+    <sys:String x:Key="Str_Key_End">End</sys:String>
+    <sys:String x:Key="Str_Key_PgUp">PgUp</sys:String>
+    <sys:String x:Key="Str_Key_PgDn">PgDn</sys:String>
+    <sys:String x:Key="Str_Key_Tab">Tab</sys:String>
+    <sys:String x:Key="Str_Key_Scroll">Cuộn</sys:String>
+    <sys:String x:Key="Str_Key_Click">Nhấp</sys:String>
+    <sys:String x:Key="Str_Key_Or">hoặc</sys:String>
+    <sys:String x:Key="Str_Key_WheelView">Lăn chuột trên vùng xem</sys:String>
+    <sys:String x:Key="Str_Key_WheelLogo">Lăn chuột trên logo</sys:String>
+    <sys:String x:Key="Str_Key_MiddleDrag">Kéo bằng nút giữa</sys:String>
+    <sys:String x:Key="Str_Key_SpaceDrag">Space + kéo</sys:String>
+    <sys:String x:Key="Str_Wordmark_A">Killer</sys:String>
+    <sys:String x:Key="Str_Wordmark_B">PDF</sys:String>
+    <sys:String x:Key="Str_Btn_Open">Mở</sys:String>
+    <sys:String x:Key="Str_Btn_Replace">Thay thế</sys:String>
+    <sys:String x:Key="Str_Btn_Save">Lưu</sys:String>
+    <sys:String x:Key="Str_Col_Modified">đã sửa đổi</sys:String>
+    <sys:String x:Key="Str_Col_Name">tên</sys:String>
+    <sys:String x:Key="Str_Col_Size">kích thước</sys:String>
+    <sys:String x:Key="Str_Ctx_Cut">Cắt</sys:String>
+    <sys:String x:Key="Str_Ctx_SelectAll">Chọn tất cả</sys:String>
+    <sys:String x:Key="Str_Dlg_AllFiles">Tất cả các tệp</sys:String>
+    <sys:String x:Key="Str_Dlg_FileName">Tên tệp:</sys:String>
+    <sys:String x:Key="Str_Dlg_FileType">Loại tệp:</sys:String>
+    <sys:String x:Key="Str_Dlg_NoMatchingFiles">Không có mục nào khớp với loại tệp hiện tại.</sys:String>
+    <sys:String x:Key="Str_Dlg_Preview">Xem trước</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFile">Tệp đó không tồn tại.</sys:String>
+    <sys:String x:Key="Str_Dlg_NoSuchFolder">Thư mục đó không tồn tại.</sys:String>
+    <sys:String x:Key="Str_Dlg_OverwriteMsg">Thay thế {0}?</sys:String>
+    <sys:String x:Key="Str_Menu_PinPlace">Ghim vào danh mục</sys:String>
+    <sys:String x:Key="Str_Menu_UnpinPlace">Xóa khỏi danh mục</sys:String>
+    <sys:String x:Key="Str_QA_Desktop">Màn hình nền</sys:String>
+    <sys:String x:Key="Str_QA_Documents">Tài liệu</sys:String>
+    <sys:String x:Key="Str_QA_Downloads">Tải xuống</sys:String>
+    <sys:String x:Key="Str_QA_Home">Trang chủ</sys:String>
+    <sys:String x:Key="Str_QA_Pictures">Hình ảnh</sys:String>
+    <sys:String x:Key="Str_Sum_Counts">{0} thư mục, {1} tệp</sys:String>
+    <sys:String x:Key="Str_TT_RecentLocations">Vị trí gần đây</sys:String>
+    <sys:String x:Key="Str_TT_ShowHidden">Hiển thị các mục ẩn và hệ thống</sys:String>
+    <sys:String x:Key="Str_TT_Up">Lên một thư mục</sys:String>
+    <sys:String x:Key="Str_TT_ViewDetails">Chế độ xem chi tiết</sys:String>
+    <sys:String x:Key="Str_TT_ViewIcons">Chế độ xem biểu tượng</sys:String>
+    <sys:String x:Key="Str_TT_ViewList">Chế độ xem danh sách</sys:String>
+
+    <!-- 1.7.4 đợt quét chuỗi mã cứng (#227): tiêu đề hộp thoại, bộ lọc hộp thoại tệp và các giá trị mặc định
+         vốn là chuỗi tiếng Anh cố định trong mã và ẩn đối với các dịch giả. -->
+    <sys:String x:Key="Str_Color_Name">Màu sắc</sys:String>
+    <sys:String x:Key="Str_Color_Pick">Chọn một màu</sys:String>
+    <sys:String x:Key="Str_Color_Hex">Mã Hex</sys:String>
+    <sys:String x:Key="Str_Color_Replace">Thay thế</sys:String>
+    <sys:String x:Key="Str_Color_Reset">Đặt lại</sys:String>
+    <sys:String x:Key="Str_Color_ReplaceTT">Nhấp, sau đó nhấp vào một ô màu để đặt nó thành màu hiện tại</sys:String>
+    <sys:String x:Key="Str_Color_ResetTT">Đặt lại các ô màu về mặc định</sys:String>
+    <sys:String x:Key="Str_Color_EyedropTT">Chọn một màu từ bất kỳ đâu trên màn hình</sys:String>
+    <sys:String x:Key="Str_Color_SwatchSetTT">Nhấp để đặt ô màu này thành màu hiện tại</sys:String>
+    <sys:String x:Key="Str_Color_SwatchUseTT">Nhấp để sử dụng màu này</sys:String>
+    <sys:String x:Key="Str_Search_DragTT">Kéo để di chuyển</sys:String>
+    <sys:String x:Key="Str_Sign_Name">Chữ ký số</sys:String>
+    <sys:String x:Key="Str_Sign_ChooseCert">Chọn chứng chỉ ký</sys:String>
+    <sys:String x:Key="Str_Sign_ImportImage">Nhập hình ảnh chữ ký</sys:String>
+    <sys:String x:Key="Str_Filter_Pdf">Tệp PDF</sys:String>
+    <sys:String x:Key="Str_Filter_Cert">Tệp chứng chỉ</sys:String>
+    <sys:String x:Key="Str_Filter_Text">Tệp văn bản</sys:String>
+    <sys:String x:Key="Str_Print_Sending">Đang gửi đến máy in…</sys:String>
+    <sys:String x:Key="Str_Forms_FontSize">Cỡ chữ:</sys:String>
+    <sys:String x:Key="Str_Ocr_SaveSearchable">Lưu PDF có thể tìm kiếm</sys:String>
+    <sys:String x:Key="Str_Ocr_ExtractAllText">Trích xuất tất cả văn bản</sys:String>
+    <sys:String x:Key="Str_Ocr_HighQuality">Sử dụng mô hình chất lượng cao</sys:String>
+    <sys:String x:Key="Str_Dlg_OpenPdf">Mở PDF</sys:String>
+    <sys:String x:Key="Str_Dlg_SelectMerge">Chọn PDF để hợp nhất</sys:String>
+    <sys:String x:Key="Str_Dlg_SavePdfAs">Lưu PDF thành</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveFlattened">Lưu PDF đã làm phẳng</sys:String>
+    <sys:String x:Key="Str_Dlg_SaveExtractedAs">Lưu các trang đã trích xuất thành</sys:String>
+    <sys:String x:Key="Str_Dlg_InsertImage">Chèn hình ảnh</sys:String>
+    <sys:String x:Key="Str_Dlg_InstallShortcut">Tạo lối tắt trên màn hình nền</sys:String>
+    <sys:String x:Key="Str_Stamp_DefaultText">BẢN NHÁP</sys:String>
+    <sys:String x:Key="Str_Sign_NeedCertFile">Hãy chọn tệp chứng chỉ (.pfx / .p12) trước.</sys:String>
+    <sys:String x:Key="Str_Sign_NoStoreCert">Không có chứng chỉ ký nào khả dụng trong kho lưu trữ của Windows.</sys:String>
+    <sys:String x:Key="Str_Sign_NeedOutput">Chọn nơi lưu bản đã ký.</sys:String>
+    <sys:String x:Key="Str_Sign_BadCert" xml:space="preserve">Không thể mở chứng chỉ.&#10;&#10;Mật khẩu có thể không đúng hoặc tệp không phải là chứng chỉ .pfx / .p12 hợp lệ.</sys:String>
+    <sys:String x:Key="Str_Sign_CertLoadFailed">Không thể tải chứng chỉ:</sys:String>
+    <sys:String x:Key="Str_Sign_Failed">Ký thất bại:</sys:String>
+    <sys:String x:Key="Str_St_ShapeHint">Nhấp để thêm điểm - nhấp vào điểm đầu tiên hoặc nhấp đúp để đóng, Esc để hủy, Backspace để xóa điểm cuối cùng</sys:String>
+    <sys:String x:Key="Str_St_ShapeCanceled">Đã hủy hình vẽ</sys:String>
+
+    <!-- Tiền tố hộp thoại lỗi (mã nguồn sẽ nối thêm chi tiết ngoại lệ phía sau dấu xuống dòng) -->
+    <sys:String x:Key="Str_Err_PrintFailed">In thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_OcrFailed">OCR thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_PrepareDoc">Không thể chuẩn bị tài liệu:</sys:String>
+    <sys:String x:Key="Str_Err_SearchableFailed">Tạo PDF có thể tìm kiếm thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_ExtractFailed">Trích xuất văn bản thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_DuplicateFailed">Nhân bản thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_RepairFailed">Sửa chữa thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_OpenProtected">Không thể mở tệp PDF được bảo vệ:</sys:String>
+    <sys:String x:Key="Str_Err_NewDocFailed">Không thể tạo tài liệu mới:</sys:String>
+    <sys:String x:Key="Str_Err_FileNotFound">Không tìm thấy tệp:</sys:String>
+    <sys:String x:Key="Str_Err_MergeFailed">Hợp nhất thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_SaveFailed">Lưu thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_FlattenFailed">Làm phẳng thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_ExportFailed">Xuất thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_SplitFailed">Chia tách thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_DeleteFailed">Xóa thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_InsertFailed">Chèn thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_AddPageFailed">Thêm trang thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_ImportImageFailed">Nhập hình ảnh thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_LoadImageFailed">Không thể tải hình ảnh:</sys:String>
+    <sys:String x:Key="Str_Err_PasteFailed">Không thể dán:</sys:String>
+    <sys:String x:Key="Str_Err_HqDownloadFailed">Tải xuống chất lượng cao thất bại:</sys:String>
+    <sys:String x:Key="Str_Err_ModelDownloadFailed">Không thể tải xuống mô hình ngôn ngữ:</sys:String>
+    <sys:String x:Key="Str_Err_LangDataFailed">Không thể tải xuống dữ liệu ngôn ngữ {0}:</sys:String>
+    <sys:String x:Key="Str_Dlg_DownloadTimeout">Quá thời gian tải xuống {0}. Vui lòng kiểm tra kết nối và thử lại.</sys:String>
+    <sys:String x:Key="Str_Dlg_CancelBusy">Hủy {0} hiện tại?</sys:String>
+    <sys:String x:Key="Str_Dlg_DeletePage1">Xóa trang này?</sys:String>
+    <sys:String x:Key="Str_Dlg_DeletePagesN">Xóa {0} trang?</sys:String>
+
+    <!-- Nhãn tác vụ có thể hủy (điền {0} vào Str_Dlg_CancelBusy) và thông báo lớp phủ bận -->
+    <sys:String x:Key="Str_Op_Repair">sửa chữa</sys:String>
+    <sys:String x:Key="Str_Op_Operation">thao tác</sys:String>
+    <sys:String x:Key="Str_Op_Flatten">làm phẳng</sys:String>
+    <sys:String x:Key="Str_Op_Export">xuất</sys:String>
+    <sys:String x:Key="Str_Op_Merge">hợp nhất</sys:String>
+    <sys:String x:Key="Str_Op_LangDownload">tải xuống ngôn ngữ</sys:String>
+    <sys:String x:Key="Str_Op_Ocr">thao tác OCR</sys:String>
+    <sys:String x:Key="Str_Op_OcrRegion">vùng OCR</sys:String>
+    <sys:String x:Key="Str_Busy_Ocr">Đang chạy OCR...</sys:String>
+    <sys:String x:Key="Str_Busy_Region">Đang nhận dạng vùng...</sys:String>
+    <sys:String x:Key="Str_Busy_Searchable">Đang tạo PDF có thể tìm kiếm...</sys:String>
+    <sys:String x:Key="Str_Busy_Extracting">Đang trích xuất văn bản...</sys:String>
+    <sys:String x:Key="Str_Busy_Repairing">Đang sửa chữa PDF...</sys:String>
+    <sys:String x:Key="Str_Busy_HqModels">Đang tải xuống các mô hình ngôn ngữ chất lượng cao...</sys:String>
+    <sys:String x:Key="Str_Busy_Model">Đang tải xuống mô hình ngôn ngữ...</sys:String>
+
+    <!-- Thông báo dòng trạng thái ({0}/{1}/{2} được điền bằng string.Format) -->
+    <sys:String x:Key="Str_Print_Preparing">Đang chuẩn bị trang {0} của {1}…</sys:String>
+    <sys:String x:Key="Str_St_AnnotSelected">Đã chọn {0} - {1}</sys:String>
+    <sys:String x:Key="Str_St_AnnotHowText">kéo góc bên để đặt chiều rộng, nhấp đúp để chỉnh sửa, nhấn Delete để xóa</sys:String>
+    <sys:String x:Key="Str_St_AnnotHowGeneric">kéo bất kỳ góc nào để thay đổi kích thước, nhấn Delete để xóa</sys:String>
+    <sys:String x:Key="Str_St_AnnotSelectedSimple">Đã chọn {0} chú thích - nhấn Delete để xóa</sys:String>
+    <sys:String x:Key="Str_St_SelectedOne">Đã chọn 1 chú thích</sys:String>
+    <sys:String x:Key="Str_St_SelectedMany">Đã chọn {0} chú thích</sys:String>
+    <sys:String x:Key="Str_St_Grouped">Đã nhóm {0} chú thích - chúng giờ đây sẽ di chuyển cùng nhau</sys:String>
+    <sys:String x:Key="Str_St_ClearedAll">Đã xóa tất cả chú thích ({0})</sys:String>
+    <sys:String x:Key="Str_St_CopiedWords">Đã sao chép {0} từ vào khay nhớ tạm</sys:String>
+    <sys:String x:Key="Str_St_HighlightedLines">Đã đánh dấu {0} dòng</sys:String>
+    <sys:String x:Key="Str_St_StruckLines">Đã gạch ngang {0} dòng</sys:String>
+    <sys:String x:Key="Str_St_UnderlinedLines">Đã gạch chân {0} dòng</sys:String>
+    <sys:String x:Key="Str_St_SelectAllCopied">Đã chọn tất cả văn bản - đã sao chép vào khay nhớ tạm</sys:String>
+    <sys:String x:Key="Str_St_SelectAllError">Lỗi chọn tất cả: {0}</sys:String>
+    <sys:String x:Key="Str_St_Copied">Đã sao chép vào khay nhớ tạm</sys:String>
+    <sys:String x:Key="Str_St_ExtractError">Lỗi trích xuất văn bản: {0}</sys:String>
+    <sys:String x:Key="Str_St_AlreadyOpen">Đã mở: {0}</sys:String>
+    <sys:String x:Key="Str_St_TextEditError">Lỗi chỉnh sửa văn bản: {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrNoTextPage">OCR: không tìm thấy văn bản trên trang {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPage">OCR: đã sao chép {0} ký tự từ trang {1} (độ tin cậy {2})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedPages">OCR: đã sao chép {0} ký tự từ {1} trang (độ tin cậy {2})</sys:String>
+    <sys:String x:Key="Str_St_OcrCopiedRegion">OCR: đã sao chép {0} ký tự từ vùng đã chọn (độ tin cậy {1})</sys:String>
+    <sys:String x:Key="Str_St_SearchableSaved">Đã lưu PDF có thể tìm kiếm: {0} trang, nhận dạng được {1} từ</sys:String>
+    <sys:String x:Key="Str_St_TextExtracted">Đã trích xuất văn bản từ {0} trang -> {1}</sys:String>
+    <sys:String x:Key="Str_St_DuplicatedPage">Đã nhân bản trang {0}</sys:String>
+    <sys:String x:Key="Str_St_Merged">Đã hợp nhất {0} tệp - tổng cộng {1} trang</sys:String>
+    <sys:String x:Key="Str_St_Saved">Đã lưu - {0}</sys:String>
+    <sys:String x:Key="Str_St_SavedWithAnnots">Đã lưu kèm theo chú thích vào {0}</sys:String>
+    <sys:String x:Key="Str_St_SavedTo">Đã lưu vào {0}</sys:String>
+    <sys:String x:Key="Str_St_FlattenedSaved">Đã lưu PDF đã làm phẳng vào {0}</sys:String>
+    <sys:String x:Key="Str_St_OcrLanguage">Ngôn ngữ OCR: {0}</sys:String>
+    <sys:String x:Key="Str_St_LangInstalled">Đã cài đặt {0} - ngôn ngữ OCR: {1}</sys:String>
+    <sys:String x:Key="Str_St_LangCanceled">Đã hủy tải xuống {0}</sys:String>
+    <sys:String x:Key="Str_St_HqFailed">Đã cài đặt các mô hình chất lượng cao; thất bại: {0}</sys:String>
+    <sys:String x:Key="Str_St_HqInstalled">Đã cài đặt các mô hình chất lượng cao cho: {0}</sys:String>
+    <sys:String x:Key="Str_St_InsertedBlank">Đã chèn trang trống tại vị trí {0}</sys:String>
+    <sys:String x:Key="Str_St_AddedBlank">Đã thêm trang trống (hiện có {0} trang)</sys:String>
+    <sys:String x:Key="Str_St_RestorePane">Không thể khôi phục khung thứ hai: {0}</sys:String>
+
+    <!-- Nhãn loại chú thích cho văn bản trạng thái vùng chọn -->
+    <sys:String x:Key="Str_Annot_Signature">Chữ ký (&amp;S)</sys:String>
+    <sys:String x:Key="Str_Annot_Image">Hình ảnh (&amp;I)</sys:String>
+    <sys:String x:Key="Str_Annot_TextBox">Hộp văn bản (&amp;T)</sys:String>
+    <sys:String x:Key="Str_Annot_Cover">Lớp phủ văn bản (&amp;C)</sys:String>
+    <sys:String x:Key="Str_Annot_Strikethrough">Gạch ngang (&amp;K)</sys:String>
+    <sys:String x:Key="Str_Annot_Underline">Gạch chân (&amp;U)</sys:String>
+    <sys:String x:Key="Str_Annot_Highlight">Đánh dấu (&amp;H)</sys:String>
+    <sys:String x:Key="Str_Annot_Drawing">Bản vẽ (&amp;D)</sys:String>
+    <sys:String x:Key="Str_Annot_Item">Mục (&amp;M)</sys:String>
+    <sys:String x:Key="Str_Busy_SearchablePage">Đang tạo PDF có thể tìm kiếm... trang {0} của {1} (Nhấn Esc để hủy)</sys:String>
+    <sys:String x:Key="Str_Busy_ExtractingPage">Đang trích xuất văn bản... trang {0} của {1} (Nhấn Esc để hủy)</sys:String>
+    <sys:String x:Key="Str_Busy_LangData">Đang tải xuống dữ liệu ngôn ngữ {0}...</sys:String>
+    <sys:String x:Key="Str_Busy_Downloading">Đang tải xuống {0}...</sys:String>
+    <sys:String x:Key="Str_Busy_DownloadingHq">Đang tải xuống {0} (Chất lượng cao) - {1} / {2} -</sys:String>
+    <sys:String x:Key="Str_Busy_Opening">Đang mở PDF...</sys:String>
+    <sys:String x:Key="Str_Busy_OpeningProtected">Đang mở PDF được bảo vệ...</sys:String>
+    <sys:String x:Key="Str_St_HqAlready">Tất cả các ngôn ngữ đã chọn đều đã ở chất lượng cao</sys:String>
+    <sys:String x:Key="Str_St_HqNextTime">Các mô hình chất lượng cao sẽ được sử dụng vào lần chạy OCR tiếp theo</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownload">(tải xuống)</sys:String>
+    <sys:String x:Key="Str_Ocr_SuffixDownloadHq">(tải xuống chất lượng cao)</sys:String>
+    <sys:String x:Key="Str_Dlg_SearchableSaved" xml:space="preserve">Đã lưu PDF có thể tìm kiếm:&#10;{0}&#10;&#10;Đã xử lý {1} trang, nhận dạng được {2} từ.</sys:String>
+    <sys:String x:Key="Str_Dlg_Repaired" xml:space="preserve">"{0}" đã được sửa chữa thành công.&#10;&#10;Dấu trang, biểu mẫu và các tính năng tương tác khác có thể đã bị mất. Sử dụng Lưu thành để ghi tệp đã sửa chữa vào một vị trí mới.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairedRaster" xml:space="preserve">"{0}" đã được sửa chữa bằng cách chuyển thành dạng mẻ qua PDFium.&#10;&#10;Không thể chọn văn bản trong bản sao đã sửa chữa. Sử dụng Lưu thành để ghi tệp vào một vị trí mới.</sys:String>
+    <sys:String x:Key="Str_Dlg_RepairAsk" xml:space="preserve">"{0}" có cấu trúc bị hỏng và không thể thêm được.&#10;&#10;Bạn có muốn KillerPDF thử sửa chữa không? Một bản sao đã sửa chữa sẽ được tạo - tệp gốc sẽ không bị thay đổi.&#10;&#10;Lưu ý: các tệp được sửa chữa có thể bị mất dấu trang, biểu mẫu và các tính năng tương tác khác.</sys:String>
+    <sys:String x:Key="Str_Dlg_LangDownloadAsk" xml:space="preserve">Một mô hình ngôn ngữ ({0}) sẽ được tải xuống ngay bây giờ để OCR có thể chạy.&#10;&#10;Bạn có thể thêm nhiều ngôn ngữ hơn hoặc chuyển sang các mô hình chất lượng cao hơn bất cứ lúc nào từ menu OCR.</sys:String>
+    <sys:String x:Key="Str_Bar_More">Thêm cài đặt</sys:String>
+    <sys:String x:Key="Str_Bar_TT_Level">Giữ đường thẳng trên trục gần nhất (ngang hoặc dọc)</sys:String>
+    <sys:String x:Key="Str_Bar_TT_EraserBox">Kéo một khung để xóa mọi chú thích bên trong nó</sys:String>
+    <sys:String x:Key="Str_Bar_TT_EraserBrush">Quét cọ qua các chú thích để xóa chúng</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeBox">Hộp - kéo một hình chữ nhật</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeEllipse">Hình elip - kéo một hình bầu dục</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeFreeform">Tự do - nhấp các điểm; nhấp vào điểm đầu tiên hoặc nhấp đúp để đóng, Esc để hủy, Backspace để xóa điểm cuối cùng</sys:String>
+    <sys:String x:Key="Str_Bar_TT_ShapeFill">Làm đầy bên trong hình dạng</sys:String>
+    <sys:String x:Key="Str_TT_RecentFiles">Tệp gần đây</sys:String>
+    <sys:String x:Key="Str_TT_SaveOptions">Tùy chọn lưu</sys:String>
+    <sys:String x:Key="Str_TT_OcrOptions">Tùy chọn OCR</sys:String>
+    <sys:String x:Key="Str_RecentHeading">GẦN ĐÂY</sys:String>
+    <sys:String x:Key="Str_KS_WindowTitle">KillerPDF - Phím tắt</sys:String>
+    <sys:String x:Key="Str_UpdateAvailable">Có bản cập nhật mới: {0}</sys:String>
+    <sys:String x:Key="Str_UpdatePrompt" xml:space="preserve">Tải xuống và cài đặt KillerPDF {0}?&#10;&#10;Ứng dụng sẽ tự động đóng và mở lại.</sys:String>
+    <sys:String x:Key="Str_UpdateDownloading">Đang tải xuống...</sys:String>
+    <sys:String x:Key="Str_ClearAllData">Xóa toàn bộ dữ liệu</sys:String>
+    <sys:String x:Key="Str_ClearDataConfirm" xml:space="preserve">Thao tác này sẽ xóa tất cả cài đặt đã lưu, gói ngôn ngữ OCR đã tải xuống và các tệp tạm thời.&#10;&#10;Các tệp PDF của bạn sẽ không bị ảnh hưởng. Bạn có muốn tiếp tục không?</sys:String>
+    <sys:String x:Key="Str_ClearDataDone" xml:space="preserve">Đã xóa cài đặt, gói ngôn ngữ và tệp tạm thời.&#10;&#10;Hãy khởi động lại KillerPDF để hoàn tất việc dọn dẹp mọi tệp vẫn đang được sử dụng trong phiên này.</sys:String>
+    <sys:String x:Key="Str_Crash_Title">KillerPDF - Lỗi không mong muốn</sys:String>
+    <sys:String x:Key="Str_Crash_Log">Nhật ký: {0}</sys:String>
+    <sys:String x:Key="Str_Crash_Copy">Sao chép báo cáo</sys:String>
+    <sys:String x:Key="Str_Crash_OpenLogs">Mở nhật ký</sys:String>
+    <sys:String x:Key="Str_Crash_Report">Báo cáo trên GitHub</sys:String>
+    <sys:String x:Key="Str_Crash_Continue">Tiếp tục</sys:String>
+    <sys:String x:Key="Str_Crash_Quit">Thoát</sys:String>
+    <!-- Văn bản dùng chung không bao giờ được bỏ qua ngôn ngữ đang hoạt động (#227) -->
+    <sys:String x:Key="Str_Btn_OK">OK</sys:String>
+    <sys:String x:Key="Str_Btn_Yes">Có</sys:String>
+    <sys:String x:Key="Str_Btn_No">Không</sys:String>
+    <sys:String x:Key="Str_RecentMissing">thiếu</sys:String>
+    <sys:String x:Key="Str_St_PlaceSignature">Nhấp vào trang để đặt chữ ký của bạn</sys:String>
+    <sys:String x:Key="Str_St_PlaceInitials">Nhấp vào trang để đặt tên viết tắt của bạn</sys:String>
+    <sys:String x:Key="Str_St_SelectionCleared">Đã hủy chọn</sys:String>
+    <sys:String x:Key="Str_St_AnnotationsSelected">Đã chọn {0} chú thích - nhấn Delete để xóa</sys:String>
+    <sys:String x:Key="Str_St_CopiedAnnotationOne">Đã sao chép 1 chú thích</sys:String>
+    <sys:String x:Key="Str_St_CopiedAnnotationMany">Đã sao chép {0} chú thích</sys:String>
+    <sys:String x:Key="Str_St_PastedAnnotationOne">Đã dán 1 chú thích</sys:String>
+    <sys:String x:Key="Str_St_PastedAnnotationMany">Đã dán {0} chú thích</sys:String>
+    <sys:String x:Key="Str_St_DeletedAnnotationOne">Đã xóa chú thích đã chọn</sys:String>
+    <sys:String x:Key="Str_St_DeletedAnnotationMany">Đã xóa {0} chú thích</sys:String>
+    <sys:String x:Key="Str_Search_NoMatches">Không tìm thấy kết quả phù hợp</sys:String>
+    <sys:String x:Key="Str_Search_Error">Lỗi tìm kiếm</sys:String>
+    <sys:String x:Key="Str_Search_Summary">{0} kết quả phù hợp trên {1} trang</sys:String>
+    <sys:String x:Key="Str_Search_PreviousTT">Kết quả trước (Shift+Enter)</sys:String>
+    <sys:String x:Key="Str_Search_NextTT">Kết quả tiếp theo (Enter)</sys:String>
+    <sys:String x:Key="Str_Search_CloseTT">Đóng (Esc)</sys:String>
+    <sys:String x:Key="Str_Busy_FlattenPage">Đang làm phẳng trang {0} của {1}...</sys:String>
+    <sys:String x:Key="Str_Busy_ExportPage">Đang xuất trang {0} của {1}...</sys:String>
+    <sys:String x:Key="Str_Busy_CancelHint">(Nhấn Esc để hủy)</sys:String>
+    <sys:String x:Key="Str_Busy_DownloadingMany">Đang tải xuống {0} - {1} / {2} -</sys:String>
+    <!-- So sánh PDF (#160) -->
+    <sys:String x:Key="Str_TT_ComparePDFs">So sánh các tệp PDF</sys:String>
+    <sys:String x:Key="Str_TT_ExitComparison">Thoát chế độ so sánh</sys:String>
+    <sys:String x:Key="Str_Compare_OpenOriginal">Mở tệp PDF gốc trước khi bắt đầu so sánh.</sys:String>
+    <sys:String x:Key="Str_Compare_SelectTitle">Chọn tệp PDF để so sánh</sys:String>
+    <sys:String x:Key="Str_Compare_ChooseDifferent">Chọn một tệp PDF khác để so sánh.</sys:String>
+    <sys:String x:Key="Str_Compare_Ended">Đã kết thúc so sánh PDF</sys:String>
+    <sys:String x:Key="Str_Compare_MissingRight">Không có trang tương ứng trong tệp PDF so sánh</sys:String>
+    <sys:String x:Key="Str_Compare_MissingLeft">Không có trang tương ứng trong tệp PDF gốc</sys:String>
+    <sys:String x:Key="Str_Compare_PageOnlyOne">Trang {0} chỉ tồn tại trong tệp PDF {1}</sys:String>
+    <sys:String x:Key="Str_Compare_Original">gốc</sys:String>
+    <sys:String x:Key="Str_Compare_Comparison">so sánh</sys:String>
+    <sys:String x:Key="Str_Compare_Changed">Trang {0}: {1} đã thay đổi</sys:String>
+    <sys:String x:Key="Str_Compare_NoDifferences">Trang {0}: không có sự khác biệt trực quan</sys:String>
+    <sys:String x:Key="Str_Compare_DimensionsDiffer">Trang {0}: kích thước trang khác nhau</sys:String>
+    <sys:String x:Key="Str_Compare_Failed">So sánh thất bại: {0}</sys:String>
+    <sys:String x:Key="Str_Compare_OpenTabs">So sánh với một tab đang mở</sys:String>
+    <sys:String x:Key="Str_Compare_NoOpenTabs">Không có tab PDF nào khác đang mở</sys:String>
+    <sys:String x:Key="Str_Compare_Browse">Chọn tệp PDF khác...</sys:String>
+    <sys:String x:Key="Str_Compare_Bar">SO SÁNH</sys:String>
+    <sys:String x:Key="Str_Compare_Comparing">Đang so sánh...</sys:String>
+    <sys:String x:Key="Str_Compare_ChangedAndDimensions">Trang {0}: kích thước khác nhau; {1} đã thay đổi</sys:String>
+    <sys:String x:Key="Str_Compare_ViewLocked">Chế độ so sánh sử dụng chế độ xem một trang đã khóa</sys:String>
+    <sys:String x:Key="Str_Compare_ViewDetails">Xem báo cáo so sánh hoàn chỉnh</sys:String>
+    <sys:String x:Key="Str_Compare_BuildingReport">Đang kiểm tra từng trang...</sys:String>
+    <sys:String x:Key="Str_Compare_DetailsTitle">Chi tiết so sánh PDF</sys:String>
+
+    <!-- ── Từ chối chuyển giao trình duyệt ────────────────────────────────────── -->
+    <sys:String x:Key="Str_Handoff_Failed">KillerPDF không thể mở tệp PDF trên trình duyệt.</sys:String>
+    <sys:String x:Key="Str_Handoff_UnknownCommand">Lệnh trình duyệt đó không có trong cơ sở dữ liệu của KillerPDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_MissingUrl">Quá trình chuyển đổi không bao gồm địa chỉ PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_MalformedUrl">Không thể đọc địa chỉ PDF trong quá trình chuyển đổi.</sys:String>
+    <sys:String x:Key="Str_Handoff_SchemeNotAllowed">KillerPDF chỉ mở các thao tác chuyển đổi trên trình duyệt qua giao thức https.</sys:String>
+    <sys:String x:Key="Str_Handoff_Unusable">Không thể sử dụng tính năng chuyển đổi trên trình duyệt.</sys:String>
+    <sys:String x:Key="Str_Handoff_TooLarge">Tệp PDF lớn hơn giới hạn 256 MB cho phép của trình duyệt.</sys:String>
+    <sys:String x:Key="Str_Handoff_NotPdf">Tệp đã tải xuống không phải là tệp PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_DownloadFailed">KillerPDF không thể tải xuống tệp PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_TimedOut">Quá thời gian tải xuống tệp PDF.</sys:String>
+    <sys:String x:Key="Str_Handoff_FileError">KillerPDF không thể lưu hoặc đọc tệp PDF đã tải xuống.</sys:String>
+    <sys:String x:Key="Str_St_FormFieldDrag">Kéo để tạo trường văn bản có thể điền (&amp;D)</sys:String>
+    <sys:String x:Key="Str_St_FormFieldCanceled">Đã hủy trường văn bản có thể điền</sys:String>
+    <sys:String x:Key="Str_St_FormFieldCreateFailed">Không thể tạo trường văn bản có thể điền</sys:String>
+    <sys:String x:Key="Str_St_FormFieldCreated">Đã tạo trường văn bản có thể điền {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldResizing">Đang thay đổi kích thước trường {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldMoving">Đang di chuyển trường {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldDeleted">Đã xóa trường {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldFillChanged">Đã thay đổi màu tô cho {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldResized">Đã thay đổi kích thước trường {0}</sys:String>
+    <sys:String x:Key="Str_St_FormFieldMoved">Đã di chuyển trường {0}</sys:String>
+    <sys:String x:Key="Str_St_PageCopiedHere">Đã sao chép 1 trang vào tài liệu này.</sys:String>
+    <sys:String x:Key="Str_St_PagesCopiedHere">Đã sao chép {0} trang vào tài liệu này.</sys:String>
+    <sys:String x:Key="Str_Err_PageCopyFailed">Sao chép trang thất bại:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Err_FileRepairFailed">&quot;{0}&quot; không thể sửa chữa được.</sys:String>
+    <sys:String x:Key="Str_St_TextEditDetectedFont">Đang chỉnh sửa bằng {0}, {1} pt. Các chỉ số phông chữ có thể khác với bản gốc.</sys:String>
+    <sys:String x:Key="Str_St_TextEditFontSubstituted">Phông chữ {0} không khả dụng. Đang chỉnh sửa bằng {1}, {2} pt.</sys:String>
+    <sys:String x:Key="Str_Print_NoTwoSidedSupport">Máy in được chọn không hỗ trợ in hai mặt.</sys:String>
+    <sys:String x:Key="Str_Form_ClickInitials">Nhấp để thêm tên viết tắt của bạn (&amp;I)</sys:String>
+    <sys:String x:Key="Str_Form_ClickSign">Nhấp để ký (&amp;S)</sys:String>
+    <sys:String x:Key="Str_Form_Initial">Tên viết tắt</sys:String>
+    <sys:String x:Key="Str_Compare_PreviousRegion">Vùng thay đổi trước đó</sys:String>
+    <sys:String x:Key="Str_Compare_NextRegion">Vùng thay đổi tiếp theo</sys:String>
+    <sys:String x:Key="Str_Portable_InstallTip">Chế độ di động - tải phiên bản đã cài đặt</sys:String>
+    <sys:String x:Key="Str_Print_PreviewFailed">Không thể hiển thị bản xem trước:&#10;{0}</sys:String>
+    <sys:String x:Key="Str_Print_PreparingToPrint">Đang chuẩn bị in...</sys:String>
+    <sys:String x:Key="Str_Link_GoToPage">Đi đến trang {0}</sys:String>
+    <sys:String x:Key="Str_Measurement_Unavailable">Không có sẵn phép đo</sys:String>
+    <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Sửa chữa thất bại - tệp bị hỏng quá nặng và không thể khôi phục.&#10;&#10;Hãy thử mở tệp gốc bằng ứng dụng khác (Adobe Acrobat hoặc trình duyệt), các ứng dụng này có thể có thêm các tùy chọn khôi phục.</sys:String>
+    <sys:String x:Key="Str_KS_Enabled">Bật phím tắt (&amp;E)</sys:String>
+    <sys:String x:Key="Str_KS_Toggle">Bật/tắt phím tắt</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Bật hoặc tắt tất cả phím tắt của ứng dụng. Phím Ctrl+Shift+K luôn hoạt động.</sys:String>
+    <sys:String x:Key="Str_KS_EnabledStatus">Đã bật phím tắt</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Đã tắt phím tắt. Nhấn Ctrl+Shift+K để bật lại.</sys:String>
+    <sys:String x:Key="Str_StartupUpdateCheck">Kiểm tra cập nhật khi khởi động</sys:String>
+    <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">Phiên bản KillerPDF {0} đã có sẵn. Bạn có muốn tải xuống và cài đặt ngay bây giờ không?&#10;&#10;Ứng dụng sẽ tự động đóng và mở lại.</sys:String>
+    <sys:String x:Key="Str_AlwaysCheckOnStartup">Luôn kiểm tra khi khởi động</sys:String>
+    <sys:String x:Key="Str_PasswordProtected">“{0}” được bảo vệ bằng mật khẩu.</sys:String>
+    <sys:String x:Key="Str_About_Aka">CÒN GỌI LÀ</sys:String>
+    <sys:String x:Key="Str_Btn_Run">Chạy</sys:String>
+</ResourceDictionary>
