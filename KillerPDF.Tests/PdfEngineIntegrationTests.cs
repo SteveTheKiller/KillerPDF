@@ -8,6 +8,7 @@ using KillerPdf.Engine.Documents;
 using KillerPdf.Engine.Editing;
 using KillerPdf.Engine.Objects;
 using KillerPdf.Engine.Security;
+using KillerPdf.Engine.Writing;
 using KillerPDF.Services;
 using Xunit;
 using PigDocument = UglyToad.PdfPig.PdfDocument;
@@ -986,6 +987,23 @@ public sealed class PdfEngineIntegrationTests
     }
 
     [Fact]
+    public void ExtractAndSplitPages_IgnoreMalformedOptionalPageThumbnail()
+    {
+        byte[] source = MalformedThumbnailSource();
+
+        byte[] extracted = PdfEngineIntegration.ExtractPages(source, [0]);
+        IReadOnlyList<byte[]> split = PdfEngineIntegration.SplitPages(source);
+
+        Assert.Equal(1, PdfDocumentInformation.Read(PdfDocument.Open(extracted)).PageCount);
+        Assert.Single(split);
+        Assert.Equal(1, PdfDocumentInformation.Read(PdfDocument.Open(split[0])).PageCount);
+        Assert.False(Page(PdfDocument.Open(extracted), 0)
+            .ContainsKey(new PdfName("Thumb"u8)));
+        Assert.False(Page(PdfDocument.Open(split[0]), 0)
+            .ContainsKey(new PdfName("Thumb"u8)));
+    }
+
+    [Fact]
     public void ReplacePagesAndCompact_ReplacesSelectedTaggedPageWithRasterPage()
     {
         string path = Path.Combine(Path.GetTempPath(), $"killerpdf-tagged-transform-{Guid.NewGuid():N}.pdf");
@@ -1688,6 +1706,32 @@ public sealed class PdfEngineIntegrationTests
     private static long PageRotation(PdfDocument document, int pageIndex)
     {
         return Assert.IsType<PdfInteger>(Page(document, pageIndex)[new PdfName("Rotate"u8)]).Value;
+    }
+
+    private static byte[] MalformedThumbnailSource()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .Build());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(original.Resolve(
+            Assert.IsType<PdfIndirectReference>(original.Trailer[new PdfName("Root"u8)])));
+        PdfDictionary pages = Assert.IsType<PdfDictionary>(original.Resolve(
+            Assert.IsType<PdfIndirectReference>(catalog[new PdfName("Pages"u8)])));
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[new PdfName("Kids"u8)])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(original.Resolve(pageReference));
+        var update = new PdfIncrementalUpdateBuilder(original);
+        PdfIndirectReference thumbnail = update.AddObject(new PdfStream(
+            new PdfDictionary([
+                new(new PdfName("Type"u8), new PdfName("XObject"u8)),
+                new(new PdfName("Width"u8), new PdfInteger(10)),
+                new(new PdfName("Height"u8), new PdfInteger(10))
+            ]), []));
+        update.ReplaceObject(pageReference.ObjectNumber, new PdfDictionary(page
+            .Where(entry => !entry.Key.Equals(new PdfName("Thumb"u8)))
+            .Append(new KeyValuePair<PdfName, PdfObject>(
+                new PdfName("Thumb"u8), thumbnail))));
+        return update.Build();
     }
 
     private static double[] PageBox(PdfDocument document, int pageIndex, string name)

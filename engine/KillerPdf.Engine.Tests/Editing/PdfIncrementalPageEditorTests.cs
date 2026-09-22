@@ -8845,6 +8845,36 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void Build_ClearsInvalidImportedPageThumbnailWithoutValidatingIt()
+    {
+        PdfDocument original = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .Build());
+        (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(original);
+        var update = new PdfIncrementalUpdateBuilder(original);
+        PdfIndirectReference thumbnail = update.AddObject(new PdfStream(
+            new PdfDictionary([
+                new(Name("Type"), Name("XObject")),
+                new(Name("Width"), new PdfInteger(10)),
+                new(Name("Height"), new PdfInteger(10))
+            ]), []));
+        PdfDictionary page = new(pages[0]
+            .Where(entry => !entry.Key.Equals(Name("Thumb")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Thumb"), thumbnail)));
+        update.ReplaceObject(references[0].ObjectNumber, page);
+        PdfDocument source = PdfDocument.Open(update.Build());
+
+        byte[] output = new PdfIncrementalPageEditor(
+                PdfDocument.Open(new PdfDocumentBuilder().Build()))
+            .AddImportedPage(source, 0)
+            .ClearPageThumbnail(0)
+            .Build();
+
+        Assert.False(FlatPages(PdfDocument.Open(output)).Pages[0]
+            .ContainsKey(Name("Thumb")));
+    }
+
+    [Fact]
     public void ExistingTaggedDocument_AllowsIntentionalUntaggedPageReplacement()
     {
         PdfDocument target = PdfDocument.Open(BuildTaggedDocument());
