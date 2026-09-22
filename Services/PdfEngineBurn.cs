@@ -44,7 +44,7 @@ internal static class PdfEngineBurn
         {
             if (onlyPage.HasValue && pageIndex != onlyPage.Value) continue;
             bool hasAnnotations = annotations.TryGetValue(pageIndex, out var pageAnnotations)
-                && pageAnnotations.Count > 0 && renderDims.ContainsKey(pageIndex);
+                && pageAnnotations.Count > 0;
             bool hasNumber = numberPages.Contains(pageIndex);
             bool hasWatermark = watermarkPages.Contains(pageIndex);
             if (!hasAnnotations && !hasNumber && !hasWatermark) continue;
@@ -62,14 +62,13 @@ internal static class PdfEngineBurn
                 visualWidth, visualHeight, fonts);
             if (hasAnnotations)
             {
-                var (renderWidth, renderHeight) = renderDims[pageIndex];
-                if (renderWidth > 0 && renderHeight > 0)
-                {
-                    double sx = visualWidth / renderWidth;
-                    double sy = visualHeight / renderHeight;
-                    foreach (PageAnnotation annotation in pageAnnotations!)
-                        DrawAnnotation(content, annotation, sx, sy, fonts);
-                }
+                var (renderWidth, renderHeight) = renderDims.TryGetValue(pageIndex, out var storedDims)
+                    && storedDims.w > 0 && storedDims.h > 0
+                    ? storedDims : CanonicalRenderDimensions(visualWidth, visualHeight);
+                double sx = visualWidth / renderWidth;
+                double sy = visualHeight / renderHeight;
+                foreach (PageAnnotation annotation in pageAnnotations!)
+                    DrawAnnotation(content, annotation, sx, sy, fonts);
             }
 
             content.RestoreState();
@@ -90,6 +89,13 @@ internal static class PdfEngineBurn
         }
 
         Replace(path, editor.Build());
+    }
+
+    private static (int Width, int Height) CanonicalRenderDimensions(double width, double height)
+    {
+        double longest = Math.Max(1, Math.Max(width, height));
+        return (Math.Max(1, (int)Math.Round(2048 * width / longest)),
+            Math.Max(1, (int)Math.Round(2048 * height / longest)));
     }
 
     private static void DrawAnnotation(PdfContentStreamBuilder content, PageAnnotation annotation,

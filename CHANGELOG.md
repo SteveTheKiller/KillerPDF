@@ -14,6 +14,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Preserved annotations during normal saves when cached page dimensions are unavailable.
 - Refined Italian application and installer translations. (Thanks @bovirus)
 - Localized Document Info metadata and keyboard map layer labels (#407).
 - Kept localized Fit Page and Fit Width choices fully visible (#419).
