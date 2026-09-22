@@ -11725,7 +11725,8 @@ public sealed class PdfIncrementalPageEditor
         PdfPageTreeEntry source = state.ImportedEntry!;
         var entries = source.Dictionary
             .Where(entry => !entry.Key.Equals(ParentName)
-                && !InheritableNames.Contains(entry.Key))
+                && !InheritableNames.Contains(entry.Key)
+                && !(state.RemoveThumbnail && entry.Key.Equals(ThumbnailName)))
             .Select(entry => entry.Key.Equals(Name("Contents"))
                 ? new KeyValuePair<PdfName, PdfObject>(
                     entry.Key, ImportPageContents(entry.Value))

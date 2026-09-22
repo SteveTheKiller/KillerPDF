@@ -728,7 +728,10 @@ internal static class PdfEngineIntegration
         PdfDocument empty = PdfDocument.Open(new PdfDocumentBuilder().Build());
         var editor = new PdfIncrementalPageEditor(empty);
         foreach (int pageIndex in pageIndices)
+        {
             editor.AddImportedPage(sourceDocument, pageIndex);
+            editor.ClearPageThumbnail(editor.PageCount - 1);
+        }
         return editor.Build();
     }
 
@@ -742,9 +745,10 @@ internal static class PdfEngineIntegration
         for (int pageIndex = 0; pageIndex < pageCount; pageIndex++)
         {
             PdfDocument empty = PdfDocument.Open(new PdfDocumentBuilder().Build());
-            results[pageIndex] = new PdfIncrementalPageEditor(empty)
-                .AddImportedPage(sourceDocument, pageIndex)
-                .Build();
+            var editor = new PdfIncrementalPageEditor(empty)
+                .AddImportedPage(sourceDocument, pageIndex);
+            editor.ClearPageThumbnail(0);
+            results[pageIndex] = editor.Build();
         }
         return results;
     }
@@ -1226,8 +1230,11 @@ internal static class PdfEngineIntegration
         var editor = new PdfIncrementalPageEditor(empty)
             .InsertImportedPages(0, source, pageIndices);
         for (int outputIndex = 0; outputIndex < pageIndices.Count; outputIndex++)
+        {
+            editor.ClearPageThumbnail(outputIndex);
             editor.SetRotation(outputIndex,
                 rotations.TryGetValue(pageIndices[outputIndex], out int rotation) ? rotation : 0);
+        }
         ReplaceWithBuiltResult(destinationPath, editor.Build());
     }
 
