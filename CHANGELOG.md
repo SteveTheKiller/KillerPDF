@@ -10,7 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Added
 
-- Added Vietnamese application, installer, and OCR support. (Thanks @vuanhvu11982)
+- Added Vietnamese application, installer, OCR, website, and engine documentation support. (Thanks @vuanhvu11982)
 
 ### Fixed
 
