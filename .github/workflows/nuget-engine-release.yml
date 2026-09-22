@@ -59,32 +59,26 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Release source checkout failed.' }
           [xml]$app = Get-Content 'KillerPDF.csproj'
           [xml]$engine = Get-Content 'engine/KillerPdf.Engine/KillerPdf.Engine.csproj'
-          if ($app.SelectSingleNode('/Project/PropertyGroup/Version').InnerText -ne $version) {
-            throw 'App and release versions must match.'
+          if ($app.SelectSingleNode('/Project/PropertyGroup/Version').InnerText -ne $version -or
+              $engine.SelectSingleNode('/Project/PropertyGroup/Version').InnerText -ne $version) {
+            throw 'App, engine, and release versions must match.'
           }
-          $engineVersion = $engine.SelectSingleNode('/Project/PropertyGroup/Version').InnerText
-          "version=$engineVersion" >> $env:GITHUB_OUTPUT
-          "publish=$($engineVersion -eq $version)".ToLowerInvariant() >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
 
       - uses: actions/setup-dotnet@v4
-        if: steps.release.outputs.publish == 'true'
         with:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        if: steps.release.outputs.publish == 'true'
         run: dotnet restore engine/KillerPdf.Engine.Tests/KillerPdf.Engine.Tests.csproj
 
       - name: Test
-        if: steps.release.outputs.publish == 'true'
         run: dotnet test engine/KillerPdf.Engine.Tests/KillerPdf.Engine.Tests.csproj -c Release --no-restore
 
       - name: Pack
-        if: steps.release.outputs.publish == 'true'
         run: dotnet pack engine/KillerPdf.Engine/KillerPdf.Engine.csproj -c Release --no-restore -o artifacts/nuget
 
       - name: Preserve packages
-        if: steps.release.outputs.publish == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: engine-${{ steps.release.outputs.version }}
@@ -92,14 +86,12 @@ jobs:
           if-no-files-found: error
 
       - name: Sign in to NuGet
-        if: steps.release.outputs.publish == 'true'
         id: nuget-login
         uses: NuGet/login@v1
         with:
           user: StevetheKiller
 
       - name: Publish package and symbols
-        if: steps.release.outputs.publish == 'true'
         shell: pwsh
         env:
           ENGINE_VERSION: ${{ steps.release.outputs.version }}
