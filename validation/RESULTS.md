@@ -2,6 +2,8 @@
 
 ## Release records
 
+- **1.8.6:** [Corpus benchmark and release comparison](benchmarks/1.8.6/CORPUS.md),
+  including five measured passes and exact comparison with 1.8.4.
 - **1.8.4:** [Corpus benchmark and release comparison](benchmarks/1.8.4/CORPUS.md),
   including five measured passes of the official release payload and exact comparison with 1.8.3.
 - **1.8.3:** [Corpus benchmark and release comparison](benchmarks/1.8.3/CORPUS.md),
@@ -10,7 +12,7 @@
   including complete per-file logs and five measured passes.
 - **1.8.1:** The standards-conformance run is preserved below.
 
-The 1.8.4 benchmark reproduced every 1.8.3 file outcome and diagnostic detail across
+The 1.8.6 benchmark reproduced every 1.8.4 file outcome and diagnostic detail across
 46,944 normal inputs and 80 damaged inputs. These open/save benchmarks and the
 standards checks below measure different things.
 
