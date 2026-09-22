@@ -318,6 +318,11 @@
       "maintenanceCommit": "2da1b5aa2687ebfa848b4d52feba7d66d361ecdb",
       "developmentCommit": "2f71ec9efc524b2160383f693d31a7d60bd7aef4",
       "reason": "The 1.9 extraction path applies the same malformed-thumbnail tolerance through its adapted document model."
+    },
+    {
+      "maintenanceCommit": "1b0cac2b14d2da50a3043e9463691cf2bd95c2ad",
+      "developmentCommit": "d4be4ebfc17a6685a911c73c6ba0ed7c6ca5135d",
+      "reason": "The 1.8.6 release date remains maintenance metadata while active 1.9 development correctly remains Unreleased."
     }
   ]
 }
