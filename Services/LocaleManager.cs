@@ -5,7 +5,7 @@ using System.Windows;
 
 namespace KillerPDF.Services
 {
-    internal enum Locale { EnUS, Bn, CsCZ, De, Es, Fr, HuHU, ItIT, JaJP, KkKZ, PlPL, RuRU, TrTR, ZhCN, ZhTW }
+    internal enum Locale { EnUS, Bn, CsCZ, De, Es, Fr, HuHU, ItIT, JaJP, KkKZ, PlPL, RuRU, TrTR, ViVN, ZhCN, ZhTW }
 
     internal static class LocaleManager
     {
@@ -76,6 +76,7 @@ namespace KillerPDF.Services
                 "pl" => Locale.PlPL,
                 "ru" => Locale.RuRU,
                 "tr" => Locale.TrTR,
+                "vi" => Locale.ViVN,
                 _ => Locale.EnUS,
             };
         }
@@ -125,6 +126,7 @@ namespace KillerPDF.Services
                 Locale.PlPL => new Uri("pack://application:,,,/Strings/pl-PL.xaml"),
                 Locale.RuRU => new Uri("pack://application:,,,/Strings/ru-RU.xaml"),
                 Locale.TrTR => new Uri("pack://application:,,,/Strings/tr-TR.xaml"),
+                Locale.ViVN => new Uri("pack://application:,,,/Strings/vi-VN.xaml"),
                 Locale.ZhCN => new Uri("pack://application:,,,/Strings/zh-CN.xaml"),
                 Locale.ZhTW => new Uri("pack://application:,,,/Strings/zh-TW.xaml"),
                 _           => null,   // English: base only

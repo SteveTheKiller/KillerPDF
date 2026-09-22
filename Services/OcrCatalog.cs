@@ -36,6 +36,7 @@ namespace KillerPDF.Services
             ("pol", "Polish"),
             ("rus", "Russian"),
             ("tur", "Turkish"),
+            ("vie", "Vietnamese"),
             ("chi_sim", "Chinese (Simplified)"),
             ("chi_tra", "Chinese (Traditional)"),
         ];
@@ -57,6 +58,7 @@ namespace KillerPDF.Services
             ("pl-PL", "pol"),
             ("ru-RU", "rus"),
             ("tr-TR", "tur"),
+            ("vi-VN", "vie"),
             ("zh-CN", "chi_sim"),
             ("zh-TW", "chi_tra"),
         ];
