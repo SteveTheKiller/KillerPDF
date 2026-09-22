@@ -323,6 +323,11 @@
       "maintenanceCommit": "1b0cac2b14d2da50a3043e9463691cf2bd95c2ad",
       "developmentCommit": "d4be4ebfc17a6685a911c73c6ba0ed7c6ca5135d",
       "reason": "The 1.8.6 release date remains maintenance metadata while active 1.9 development correctly remains Unreleased."
+    },
+    {
+      "maintenanceCommit": "0dbd5ebb6f34e099a5b7d5fe8aba2c72b38b5009",
+      "developmentCommit": "d62366aaf8ac67a2ce7187c27120dc4330814432",
+      "reason": "The 1.8.6 benchmark report, measured runs, performance record, landing results, and localized claims are preserved in 1.9."
     }
   ]
 }
