@@ -220,7 +220,7 @@ Thao tác này sẽ thay thế bản sao trong Program Files bằng phiên bản
 Thao tác này sẽ thay thế bản đã cài đặt bằng phiên bản nhiều tệp nhanh hơn. Bạn có thể giữ lại hoặc xóa tệp di động này sau đó.</sys:String>
     <sys:String x:Key="Str_Dlg_OneInstallOnly" xml:space="preserve">KillerPDF đã được cài đặt cho mọi người dùng trên máy tính này. Hãy cập nhật bản cài đặt đó, hoặc gỡ cài đặt trước khi chọn cài đặt cho riêng người dùng hiện tại.
 
-KillerPDF sẽ không tạo ra hai bản sao đã cài đặt.</sys:String>    
+KillerPDF sẽ không tạo ra hai bản sao đã cài đặt.</sys:String>
     <sys:String x:Key="Str_Btn_DoInstall">Cài đặt</sys:String>
     <sys:String x:Key="Str_Btn_DoUpdate">Cập nhật</sys:String>
     <sys:String x:Key="Str_Chk_Desktop">Thêm lối tắt trên màn hình nền</sys:String>
@@ -308,7 +308,7 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Lbl_Select">Chọn</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomOut">Thu nhỏ</sys:String>
     <sys:String x:Key="Str_Lbl_ZoomIn">Phóng to</sys:String>
-    <sys:String x:Key="Str_Lbl_Search">Tìm kiếm</sys:String>    
+    <sys:String x:Key="Str_Lbl_Search">Tìm kiếm</sys:String>
 
     <!-- ── Nhãn menu chuột phải ────────────────────────────────────────── -->
     <sys:String x:Key="Str_Ctx_CopyText">Sao chép văn bản</sys:String>
@@ -707,10 +707,10 @@ Thu phóng chúng về kích thước được hỗ trợ? Các trang vẫn gi�
     <sys:String x:Key="Str_Sys_Close">Đóng</sys:String>
     <sys:String x:Key="Str_Btn_Cancel">Hủy</sys:String>
 
-    <!-- Biểu tượng chữ (wordmark) của ứng dụng, được chia thành hai phần của dòng chữ: từ đầu tiên mang màu trung tính, từ thứ hai 
-         mang màu điểm nhấn. Trình chọn tệp đọc các giá trị này thay vì cố định tên trong mã, nhờ đó hộp thoại sau khi biên dịch 
+    <!-- Biểu tượng chữ (wordmark) của ứng dụng, được chia thành hai phần của dòng chữ: từ đầu tiên mang màu trung tính, từ thứ hai
+         mang màu điểm nhấn. Trình chọn tệp đọc các giá trị này thay vì cố định tên trong mã, nhờ đó hộp thoại sau khi biên dịch
          sẽ hiển thị đúng tên của ứng dụng đang lưu trữ nó. -->
-    <!-- Tên các phím cho lớp phủ phím tắt (#230). Được kết hợp thành các tổ hợp phím bởi 
+    <!-- Tên các phím cho lớp phủ phím tắt (#230). Được kết hợp thành các tổ hợp phím bởi
          ShortcutsOverlay.FillKeyInlines, giúp các dịch giả nhận được từ ngữ mà không phải bận tâm về cú pháp. -->
     <sys:String x:Key="Str_Key_Ctrl">Ctrl</sys:String>
     <sys:String x:Key="Str_Key_Alt">Alt</sys:String>
