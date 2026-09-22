@@ -145,11 +145,6 @@
       "reason": "The 1.8.4 corpus report, measured runs, results page, and release-performance section are retained. Corpus landing results and the index summary match maintenance."
     },
     {
-      "maintenanceCommit": "064e2fa6b5fb44ef23edb112d75c1f3449fb91f3",
-      "developmentCommit": "a2fce27e2df77b2b42607651cf1708a5262df62c",
-      "reason": "The install-instruction alignment, brochure link, translations, and cache-version edits match across all six files; surrounding release-version text differs between branches."
-    },
-    {
       "maintenanceCommit": "fbf02cd5f7f99c836ddb117a8191ea56467525e8",
       "developmentCommit": "973e1cc909466bf66d31d9370d9ba6fb2e9c9530",
       "reason": "The latest stable corresponding-source URL points to the 1.8.4 archive while retaining the development README wording."
@@ -175,9 +170,144 @@
       "reason": "All five landing pages and all 14 translated footers now match maintenance release metadata and its later installer-hash correction. The only HTML difference from local main is the refreshed translation cache version."
     },
     {
-      "maintenanceCommit": "f5306b6b5c3507026558f11dd4397487f8eca3c6",
-      "developmentCommit": "cc972637d15a24fe48b352cef20bdfd7f72a3e91",
-      "reason": "The feature-focused Chocolatey summary, package-manager commands, brochure link, shortened hero notes, and subsequent alignment refinements match local main across all seven affected files. Landing HTML differs only by the refreshed translation cache version."
+      "maintenanceCommit": "4cd50968ca70efba28d58cca6281151d132e8a26",
+      "developmentCommit": "32fc2938277fdd2aa90a961d4bdfa7e5f2bc6a9c",
+      "reason": "The 1.8 series brochure is release-series material and does not replace the separate 1.9 brochure. Both were reviewed during this forward-port audit."
+    },
+    {
+      "maintenanceCommit": "37ed75a0102437196557e63baef1daf132f9e869",
+      "developmentCommit": "bb8d13d921e0bb4fd99a3d54910f017c72034046",
+      "reason": "The 1.9 landing pages retain the download layout through the later combined corpus and download-layout verification."
+    },
+    {
+      "maintenanceCommit": "65cce2cac1f21131b7cb831e8bb37bc2fbc574d1",
+      "developmentCommit": "f39f1034b7c5951595ce582e5f0963d5156b7de3",
+      "reason": "Selected-page transform handling matches the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "e8a3b77c896376586b08c47a6de267c2bc645eab",
+      "developmentCommit": "b9cfff98d7378088d3c8e359a50638862c06bc9e",
+      "reason": "Tab scroll and zoom isolation matches the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "9c05f40cf44d0d102b11ac2c7f7b9cf425c03230",
+      "developmentCommit": "b00a645254f5f858185d297a7e1405e76e638ce6",
+      "reason": "The 1.9 page-dimension implementation and tests preserve the normalization fix; its release note lives in the 1.9 changelog."
+    },
+    {
+      "maintenanceCommit": "fc30ab7fa82f2602a4cd870d49db299f8135438e",
+      "developmentCommit": "1ad526353feb61eab682ce1bbe9712a05e6c5564",
+      "reason": "The global keyboard shortcut toggle matches the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "12d3d9d2f275cfe14fddee41522cb5624f2650af",
+      "developmentCommit": "bc4aa93dcd72507d4aedc0308a0f5709f667dfb1",
+      "reason": "Signature revision formatting and existing appearance preservation match the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "44b776aae4f5f4aba93d5e14f4a4f5f509def926",
+      "developmentCommit": "1b5fc4b5f53b0e3c179378bd95c807e1205f0cf3",
+      "reason": "Optional startup update checks and their tests match the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "7ad1b478ee034a8c05600f8ab221b0b8b53f0525",
+      "developmentCommit": "8bae2ef2e822754c1bf23a9d1678668848121895",
+      "reason": "WinGet installer manifest publication matches the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "eaa947483f8f8bb364d42dd5b7a1586ce53959a5",
+      "developmentCommit": "db09d80c6005b7aea7505f92bbf3978c1fd88b1c",
+      "reason": "The shared startup update setting and confirmation behavior match the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "58772effda01b7237d842f6cf81fa28310477b3b",
+      "developmentCommit": "1b5fc4b5f53b0e3c179378bd95c807e1205f0cf3",
+      "reason": "The final 1.9 startup update interface excludes the temporary preview just as maintenance does."
+    },
+    {
+      "maintenanceCommit": "9bd21d28a5d9d5e3295ec2fc101fd3858d9e56bf",
+      "developmentCommit": "28502d69c72a3955da502d9920ee8ec63ca53c48",
+      "reason": "Installer and portable launcher localization matches the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "fec291f64766ced103a20900c158bfeffd8d404c",
+      "developmentCommit": "8fc07e4ad47047b1452707fa503bdbeb5d249d14",
+      "reason": "Localized website guides and release descriptions match the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "df125dcee29d6311674174bdc51a6d8b2aa1db4e",
+      "developmentCommit": "57428d008406d723ec0ab78c72d9e70104e2495f",
+      "reason": "Localized page rotation shortcuts and documentation match the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "21f72c86c0863bd65d9aea55c1a2944c677d9eb1",
+      "developmentCommit": "32fc2938277fdd2aa90a961d4bdfa7e5f2bc6a9c",
+      "reason": "The 1.8.5 release date remains in maintenance history while active 1.9 development correctly remains Unreleased."
+    },
+    {
+      "maintenanceCommit": "6955e44ef039bf2a41d10c455d2d92b04aed6602",
+      "developmentCommit": "32fc2938277fdd2aa90a961d4bdfa7e5f2bc6a9c",
+      "reason": "The stable source link remains tied to the 1.8.5 release and does not replace the active 1.9 development source reference."
+    },
+    {
+      "maintenanceCommit": "0e38d3538ecc6144fc0e13f5868410ef44c947d2",
+      "developmentCommit": "d03421bd7ecfa42f148b048587b72f6688389b11",
+      "reason": "The 1.8.5 landing release metadata is retained as stable-release information while the 1.9 landing remains development content."
+    },
+    {
+      "maintenanceCommit": "b0a526ab29ca5a6db4a0f00908eb4118729a1fe7",
+      "developmentCommit": "0b1b6aedf8e5028e7e8eaaffa7a0caa91edc2e09",
+      "reason": "The translated landing release-field validation is preserved in the 1.9 release script."
+    },
+    {
+      "maintenanceCommit": "18082bfa0dd1b5f09563e3e8d3cd1434587abbab",
+      "developmentCommit": "93a7c518d6eac19690e2aa5dc04414162eb38b29",
+      "reason": "The localized About-page maker biography matches the maintenance implementation."
+    },
+    {
+      "maintenanceCommit": "a8cc49730a20a717827b35c372cdd6cadd959c2d",
+      "developmentCommit": "5b4d449355be386260d9e399a0c25181da6d82cc",
+      "reason": "Continuous view fitting matches the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "151cce7b9a49518caa57280bf890484d36cd1467",
+      "developmentCommit": "05b5515fd5a4258a6963f24b22ce7b8b25418870",
+      "reason": "Remaining Italian labels match the maintenance localization fix."
+    },
+    {
+      "maintenanceCommit": "5da1654d7b079efd36f3bc6881351a21b5dba5ab",
+      "developmentCommit": "c6c28c85ccb6c507d2b04db009f6d07aa047861c",
+      "reason": "Localized zoom choices match the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "6546f1dbf4904226dd16edc75c6e501ec623528f",
+      "developmentCommit": "8459bf44960baccec27b78f07d7799c496b81d5b",
+      "reason": "Tab scroll restoration matches the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "05f154308e89cfecaa283af00e6de87b715bf5ed",
+      "developmentCommit": "66148171ddbc764b79be1ed7923f5001270e8131",
+      "reason": "Cropped-page annotation placement matches the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "25aed9615617eb47092a2f6478d3baae98e143a1",
+      "developmentCommit": "6338d09a5f5443ccefdaaf5814050893124b8b73",
+      "reason": "First maximize behavior on the destination monitor matches the maintenance fix."
+    },
+    {
+      "maintenanceCommit": "ade0fccb64cfbc75f9fff125d163a540c639fb7d",
+      "developmentCommit": "01c19a9e7a543c4e34be645ff53183a0125e83ad",
+      "reason": "Refined Italian application and installer translations match maintenance."
+    },
+    {
+      "maintenanceCommit": "a65ae02ca751a4089e2b43ff73d6ac138c49fcbf",
+      "developmentCommit": "bff410185c3d2a7d80faa7a087e82bce240e077a",
+      "reason": "Vietnamese application, installer, and OCR support match maintenance."
+    },
+    {
+      "maintenanceCommit": "393e0f667ff515858bb4e26032657b20e9c590bd",
+      "developmentCommit": "0ee5e5d10a4529cb86ee04522d8a7f2998e8a57d",
+      "reason": "Vietnamese contributor credits and locale metadata are present across the 1.9 application and website commits."
     }
   ]
 }
