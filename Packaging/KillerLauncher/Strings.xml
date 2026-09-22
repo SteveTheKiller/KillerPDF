@@ -479,7 +479,7 @@ Procediamo con la configurazione.</string>
     <string key="SetupReturned">Il programma di installazione ha restituito {0}.</string>
     <string key="InstallFailed">Installazione non riuscita</string>
     <string key="ChooseFolder">Scegli dove installare KillerPDF</string>
-    <string key="PortablePackage">Questo è il pacchetto portatile. Per installare l'applicazione usa il programma di installazione di KillerPDF .</string>
+    <string key="PortablePackage">Questo è il pacchetto portatile. Per installare l'applicazione usa il programma di installazione di KillerPDF.</string>
     <string key="StartFailed">Impossibile avviare KillerPDF.
 
 {0}</string>

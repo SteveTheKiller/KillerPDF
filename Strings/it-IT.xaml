@@ -1039,9 +1039,9 @@ Vuoi ridimensionare le pagine ad una dimensione supportata? Le pagine manterrann
     <sys:String x:Key="Str_Repair_Unrecoverable" xml:space="preserve">Riparazione non riuscita - il file è troppo danneggiato per essere recuperato.&#10;&#10;Prova ad aprire l’originale in un’altra applicazione (Adobe Acrobat o un browser), che potrebbe offrire ulteriori opzioni di recupero.</sys:String>
     <sys:String x:Key="Str_KS_Enabled">Abilita scorciatoie tastiera</sys:String>
     <sys:String x:Key="Str_KS_Toggle">Attiva/disattiva scorciatoie tastiera</sys:String>
-    <sys:String x:Key="Str_KS_ToggleTip">Attiva/disattiva tutte le scorciatoie dell'app. Ctrl+Miausc+K funziona sempre.</sys:String>
+    <sys:String x:Key="Str_KS_ToggleTip">Attiva/disattiva tutte le scorciatoie dell'app. Ctrl+Maiusc+K funziona sempre.</sys:String>
     <sys:String x:Key="Str_KS_EnabledStatus">Scorciatoie tastiera abilitate</sys:String>
-    <sys:String x:Key="Str_KS_DisabledStatus">Scorciatoie tastiera disabilitate. Premi Ctrl+Miausc+K per abilitarle.</sys:String>
+    <sys:String x:Key="Str_KS_DisabledStatus">Scorciatoie tastiera disabilitate. Premi Ctrl+Maiusc+K per abilitarle.</sys:String>
     <sys:String x:Key="Str_StartupUpdateCheck">All'avvio cerca aggiornamenti</sys:String>
     <sys:String x:Key="Str_StartupUpdatePrompt" xml:space="preserve">È disponibile KillerPDF {0}.&#10;Vuoi scaricarlo e installarlo ora?&#10;&#10;L'app si chiuderà e si riaprirà automaticamente.</sys:String>
     <sys:String x:Key="Str_AlwaysCheckOnStartup">All'avvio controlla sempre aggiornamenti</sys:String>
