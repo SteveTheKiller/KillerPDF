@@ -298,6 +298,10 @@ namespace KillerPDF
         public MainWindow()
         {
             InitializeComponent();
+            // Windows 11 can create the taskbar button before WPF publishes the XAML icon when
+            // portable startup takes longer. Assign a fresh image after load so the button refreshes.
+            Loaded += (_, _) => Icon = new BitmapImage(
+                new Uri("pack://application:,,,/Resources/kp-icon.ico", UriKind.Absolute));
             VersionLabel.Text = $"v{AppVersion.Display}";
             // Accept dropped files/folders/archives anywhere on the window (not just the empty drop zone),
             // so dropping onto an open document works too. The empty-state DropZone marks its own drop
