@@ -77,6 +77,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Fixed
 
+- Allowed valid recursive Form XObject resource graphs to be imported during page merges (#421).
 - Preserved source cross-reference format when signing and supported visible appearances on existing signature widgets (#381).
 - Prevented small idle scratch buffers from forcing repeated large rendering allocations.
 - Restored missing content on large pages while keeping parsing memory bounded.

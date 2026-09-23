@@ -2577,6 +2577,55 @@ public sealed class PdfIncrementalPageEditorTests
     }
 
     [Fact]
+    public void Build_ImportsRecursiveFormXObjectResourcesOnce()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(200, 300)
+            .Build());
+        (_, PdfIndirectReference[] references, PdfDictionary[] pages) = FlatPages(source);
+        var firstUpdate = new PdfIncrementalUpdateBuilder(source);
+        PdfIndirectReference formReference = firstUpdate.AddObject(new PdfStream(
+            new PdfDictionary([
+                new(Name("Type"), Name("XObject")),
+                new(Name("Subtype"), Name("Form")),
+                new(Name("BBox"), new PdfArray([
+                    new PdfInteger(0), new PdfInteger(0),
+                    new PdfInteger(10), new PdfInteger(10)
+                ]))
+            ]), []));
+        var pageResources = new PdfDictionary([
+            new(Name("XObject"), new PdfDictionary([new(Name("Form"), formReference)]))
+        ]);
+        firstUpdate.ReplaceObject(references[0].ObjectNumber, new PdfDictionary(pages[0]
+            .Where(entry => !entry.Key.Equals(Name("Resources")))
+            .Append(new KeyValuePair<PdfName, PdfObject>(Name("Resources"), pageResources))));
+        source = PdfDocument.Open(firstUpdate.Build());
+
+        var recursiveResources = new PdfDictionary([
+            new(Name("XObject"), new PdfDictionary([new(Name("Self"), formReference)]))
+        ]);
+        var secondUpdate = new PdfIncrementalUpdateBuilder(source);
+        secondUpdate.ReplaceObject(formReference.ObjectNumber, new PdfStream(
+            new PdfDictionary([
+                new(Name("Type"), Name("XObject")),
+                new(Name("Subtype"), Name("Form")),
+                new(Name("BBox"), new PdfArray([
+                    new PdfInteger(0), new PdfInteger(0),
+                    new PdfInteger(10), new PdfInteger(10)
+                ])),
+                new(Name("Resources"), recursiveResources)
+            ]), []));
+        source = PdfDocument.Open(secondUpdate.Build());
+
+        byte[] merged = new PdfIncrementalPageEditor(
+                PdfDocument.Open(new PdfDocumentBuilder().Build()))
+            .AddImportedPage(source, 0)
+            .Build();
+
+        Assert.Equal(1, new PdfIncrementalPageEditor(PdfDocument.Open(merged)).PageCount);
+    }
+
+    [Fact]
     public void Build_RejectsMistypedImportedPageResourceEntries()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

@@ -12288,7 +12288,8 @@ public sealed class PdfIncrementalPageEditor
     }
 
     private static void ValidateNestedPageResources(
-        PdfDocument document, PdfDictionary resources, string description, int depth)
+        PdfDocument document, PdfDictionary resources, string description, int depth,
+        HashSet<PdfStream>? validatedXObjects = null)
     {
         if (depth > 32)
             throw new NotSupportedException("An imported resource graph is too deeply nested.");
@@ -12327,7 +12328,8 @@ public sealed class PdfIncrementalPageEditor
                 switch (categoryName)
                 {
                     case "XObject" when resolvedEntry is PdfStream xObject:
-                        ValidatePageXObject(document, xObject, entryDescription, depth + 1);
+                        ValidatePageXObject(document, xObject, entryDescription, depth + 1,
+                            validatedXObjects);
                         break;
                     case "Font" when resolvedEntry is PdfDictionary font:
                         ValidatePageFontResource(document, font, entryDescription);
@@ -14275,8 +14277,11 @@ public sealed class PdfIncrementalPageEditor
     }
 
     private static void ValidatePageXObject(
-        PdfDocument document, PdfStream stream, string description, int depth = 0)
+        PdfDocument document, PdfStream stream, string description, int depth = 0,
+        HashSet<PdfStream>? validatedXObjects = null)
     {
+        validatedXObjects ??= new(ReferenceEqualityComparer.Instance);
+        if (!validatedXObjects.Add(stream)) return;
         if (depth > 32)
             throw new NotSupportedException("An imported XObject graph is too deeply nested.");
         PdfDictionary dictionary = stream.Dictionary;
@@ -14387,7 +14392,7 @@ public sealed class PdfIncrementalPageEditor
                 if (resolvedMask is PdfStream maskStream)
                 {
                     ValidatePageXObject(document, maskStream,
-                        $"{description} /Mask value", depth + 1);
+                        $"{description} /Mask value", depth + 1, validatedXObjects);
                     if (!maskStream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? explicitMask)
                         || Resolve(explicitMask) is not PdfBoolean explicitMaskValue
                         || !explicitMaskValue.Value)
@@ -14431,7 +14436,7 @@ public sealed class PdfIncrementalPageEditor
                     ?? throw new InvalidOperationException(
                         $"{description} /SMask value is not an image stream.");
                 ValidatePageXObject(document, maskStream,
-                    $"{description} /SMask value", depth + 1);
+                    $"{description} /SMask value", depth + 1, validatedXObjects);
                 if (maskStream.Dictionary.TryGetValue(Name("Subtype"), out PdfObject? maskSubtype)
                     && (Resolve(maskSubtype) is not PdfName maskSubtypeName
                         || maskSubtypeName.ValueAsLatin1() != "Image"))
@@ -14486,7 +14491,8 @@ public sealed class PdfIncrementalPageEditor
                         throw new InvalidOperationException(
                             $"{description} alternate image has no /Image stream.");
                     ValidatePageXObject(document, alternateStream,
-                        $"{description} alternate /Image value", depth + 1);
+                        $"{description} alternate /Image value", depth + 1,
+                        validatedXObjects);
                     if (alternate.TryGetValue(Name("DefaultForPrinting"), out PdfObject? printing)
                         && Resolve(printing) is not PdfBoolean)
                         throw new InvalidOperationException(
@@ -14532,7 +14538,7 @@ public sealed class PdfIncrementalPageEditor
             if (dictionary.TryGetValue(Name("Resources"), out PdfObject? formResources))
                 ValidateNestedPageResources(document,
                     (PdfDictionary)Resolve(formResources),
-                    $"{description} /Resources", depth + 1);
+                    $"{description} /Resources", depth + 1, validatedXObjects);
             if (dictionary.TryGetValue(Name("Group"), out PdfObject? groupValue))
                 ValidatePageGroupAttributes(document, groupValue,
                     $"{description} /Group");
