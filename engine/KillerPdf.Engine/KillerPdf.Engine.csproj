@@ -7,7 +7,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <RootNamespace>KillerPdf.Engine</RootNamespace>
     <AssemblyName>KillerPdf.Engine</AssemblyName>
-    <Version>1.8.6</Version>
+    <Version>1.8.70</Version>
     <PackageId>KillerPdf.Engine</PackageId>
     <Title>The KillerPDF.Engine</Title>
     <Authors>Steve the Killer</Authors>
@@ -32,7 +32,7 @@
     <XmlPeek XmlInputPath="$(MSBuildThisFileDirectory)../../KillerPDF.csproj" Query="/Project/PropertyGroup/Version/text()">
       <Output TaskParameter="Result" PropertyName="KillerAppVersion" />
     </XmlPeek>
-    <Error Condition="'$(KillerAppVersion)' != '1.8.61' and '$(Version)' != '$(KillerAppVersion)'" Text="Engine version $(Version) must match app version $(KillerAppVersion). Update both before building or packaging." />
+    <Error Condition="'$(Version)' != '$(KillerAppVersion)'" Text="Engine version $(Version) must match app version $(KillerAppVersion). Update both before building or packaging." />
   </Target>
 
   <ItemGroup>
