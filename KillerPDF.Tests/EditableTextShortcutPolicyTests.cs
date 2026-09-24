@@ -7,6 +7,28 @@ namespace KillerPDF.Tests;
 public sealed class EditableTextShortcutPolicyTests
 {
     [Theory]
+    [InlineData(ModifierKeys.None, false)]
+    [InlineData(ModifierKeys.Shift, false)]
+    [InlineData(ModifierKeys.Control, true)]
+    [InlineData(ModifierKeys.Control | ModifierKeys.Shift, true)]
+    public void CtrlEnterCommitsWhileEnterAddsALine(ModifierKeys modifiers, bool expected)
+    {
+        Assert.Equal(expected,
+            EditableTextShortcutPolicy.CommitsTextBox(Key.Enter, modifiers));
+    }
+
+    [Theory]
+    [InlineData(100, 20, 90)]
+    [InlineData(5, 20, 0)]
+    [InlineData(10, -4, 10)]
+    public void TextPlacementCentersTheFirstLineOnThePointer(
+        double pointerY, double fontSize, double expected)
+    {
+        Assert.Equal(expected,
+            EditableTextShortcutPolicy.TextBoxTop(pointerY, fontSize));
+    }
+
+    [Theory]
     [InlineData(Key.A)]
     [InlineData(Key.C)]
     [InlineData(Key.V)]
