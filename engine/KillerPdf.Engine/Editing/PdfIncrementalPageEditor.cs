@@ -4008,19 +4008,27 @@ public sealed class PdfIncrementalPageEditor
 
     private static bool IsKillerPdfIdentityFont(AppearanceFontResource font)
     {
-        if (!font.Dictionary.TryGetValue(EncodingName, out PdfObject? value)
-            || ResolveValue(font.Document, value) is not PdfStream stream) return false;
-        return Encoding.ASCII.GetString(PdfStreamDecoder.Decode(stream))
-            .Contains("/CMapName /KillerPDF-Identity", StringComparison.Ordinal);
+        if (!font.Dictionary.TryGetValue(EncodingName, out PdfObject? value)) return false;
+        return ResolveValue(font.Document, value) switch
+        {
+            PdfName name => name.ValueAsLatin1() == "Identity-H",
+            PdfStream stream => Encoding.ASCII.GetString(PdfStreamDecoder.Decode(stream))
+                .Contains("/CMapName /KillerPDF-Identity", StringComparison.Ordinal),
+            _ => false
+        };
     }
 
     private static bool CMapCovers(
         AppearanceFontResource source, AppearanceFontResource destination, PdfName key)
     {
         if (!(source.Dictionary.TryGetValue(key, out PdfObject? sourceValue)
-            && destination.Dictionary.TryGetValue(key, out PdfObject? destinationValue)
-            && ResolveValue(source.Document, sourceValue) is PdfStream sourceStream
-            && ResolveValue(destination.Document, destinationValue) is PdfStream destinationStream))
+            && destination.Dictionary.TryGetValue(key, out PdfObject? destinationValue))) return false;
+        PdfObject required = ResolveValue(source.Document, sourceValue);
+        PdfObject available = ResolveValue(destination.Document, destinationValue);
+        if (required is PdfName requiredName && available is PdfName availableName)
+            return requiredName.ValueAsLatin1() == "Identity-H"
+                && availableName.ValueAsLatin1() == "Identity-H";
+        if (required is not PdfStream sourceStream || available is not PdfStream destinationStream)
             return false;
         return CMapBytesCover(PdfStreamDecoder.Decode(sourceStream),
             PdfStreamDecoder.Decode(destinationStream));

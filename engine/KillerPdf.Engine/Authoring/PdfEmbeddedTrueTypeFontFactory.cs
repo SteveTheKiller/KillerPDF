@@ -80,9 +80,11 @@ internal static class PdfEmbeddedTrueTypeFontFactory
         PdfDictionary cidFont = Dictionary([.. cidEntries]);
         var toUnicode = CompressedStream(BuildToUnicodeMap(mappings));
         var encoding = CompressedStream(BuildEncodingMap(mappings));
+        PdfObject type0Encoding = mappings.All(mapping => mapping.Key == mapping.Value.Glyph)
+            ? Name("Identity-H") : encodingReference;
         PdfDictionary type0 = Dictionary(
             ("Type", Name("Font")), ("Subtype", Name("Type0")),
-            ("BaseFont", baseFont), ("Encoding", encodingReference),
+            ("BaseFont", baseFont), ("Encoding", type0Encoding),
             ("DescendantFonts", new PdfArray([cidFontReference])),
             ("ToUnicode", toUnicodeReference));
         return new EmbeddedTrueTypeFontObjects(type0, cidFont, descriptor, fontFile, toUnicode, encoding);
