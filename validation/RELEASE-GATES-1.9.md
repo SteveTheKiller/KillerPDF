@@ -1447,3 +1447,25 @@ RunLength expansion at 1.12 percent, and embedded-alpha separation at 1.05
 percent. The remaining JPEG 2000 costs are inside the vendored decoder and
 remain slower than 1.8. All 4,132 engine tests and 431 app tests pass, and the
 Release build completes with no warnings or errors.
+
+### Reduced image soft-mask detail checkpoint (2026-09-24)
+
+Reduced images now interpolate ordinary image soft masks at destination pixel
+centers. Images rendered at their source size or enlarged retain their previous
+sampling behavior. A focused regression distinguishes the interpolated 32 and
+224 alpha samples from the former nearest-neighbor 64 and 255 samples.
+
+At 1448 by 2048 pixels, `22060_A1_01_Plans.pdf` improved from a mean RGB delta
+of 6.779707 to 5.834920 against PDFium and from 6.764102 to 6.092859 against
+Poppler. The fraction of pixels with any channel more than 16 levels from
+PDFium fell from 0.111339 to 0.107007. The Poppler fraction moved from 0.110566
+to 0.111645, while its mean delta still improved. PDFium and Poppler have a
+mean delta of 2.278972 from each other. The result was visually inspected at
+its delivered size and retains the fine plan lines cleanly.
+
+Direct comparison with Pillow's libjpeg decoder already placed the engine's
+half-resolution JPEG output within one channel level, so the retained change
+is limited to the independently verified soft-mask sampling defect. Full
+validation passes with 4,133 engine tests, 431 app tests, and a Release build
+with no warnings or errors. This is a focused image-detail checkpoint, not a
+new whole-corpus parity run.

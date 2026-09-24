@@ -4767,6 +4767,8 @@ public sealed partial class PdfPageRenderer
         }
         int destinationWidth = right - left, destinationHeight = bottom - top;
         if (destinationWidth <= 0 || destinationHeight <= 0) return;
+        bool interpolateSoftMask = softMask is not null
+            && (sourceWidth > destinationWidth || sourceHeight > destinationHeight);
 
         // Build a bounded plane in destination colors. Average unmasked reduced images
         // across their source footprints so thin features survive the final nearest lookup.
@@ -4946,9 +4948,12 @@ public sealed partial class PdfPageRenderer
                             if (alpha == 0) continue;
                             if (softMask is not null)
                             {
-                                int maskX = Math.Min((int)(unitX * softMask.Width), softMask.Width - 1);
-                                int maskY = Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1);
-                                alpha = (alpha * softMask.Sample(maskX, maskY) + 127) / 255;
+                                byte maskSample = interpolateSoftMask
+                                    ? softMask.SampleBilinear(unitX, 1 - unitY)
+                                    : softMask.Sample(
+                                        Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
+                                        Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
+                                alpha = (alpha * maskSample + 127) / 255;
                                 if (alpha == 0) continue;
                             }
                             int clipCover = 255;
@@ -5034,9 +5039,11 @@ public sealed partial class PdfPageRenderer
                     // Full clip coverage leaves the compositor's opacity at exactly one, so the
                     // direct ink write applies under antialiased clips as well.
                     int clipCoverage = rectangularClips ? 255 : ClipCoverage(clips, x, y);
-                    byte imageMaskSample = softMask is null ? (byte)255 : softMask.Sample(
-                        Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
-                        Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
+                    byte imageMaskSample = softMask is null ? (byte)255
+                        : interpolateSoftMask ? softMask.SampleBilinear(unitX, 1 - unitY)
+                        : softMask.Sample(
+                            Math.Min((int)(unitX * softMask.Width), softMask.Width - 1),
+                            Math.Min((int)((1 - unitY) * softMask.Height), softMask.Height - 1));
                     if (imageMaskSample == 0)
                     {
                         if ((knockout is not null || target.GroupShape is not null)
@@ -6365,6 +6372,23 @@ public sealed partial class PdfPageRenderer
             double decoded = DecodeStart + value / (double)((1u << Bits) - 1)
                 * (DecodeEnd - DecodeStart);
             return (byte)Math.Round(Math.Clamp(decoded, 0, 1) * 255);
+        }
+
+        internal byte SampleBilinear(double unitX, double unitY)
+        {
+            double sourceX = unitX * Width - 0.5;
+            double sourceY = unitY * Height - 0.5;
+            int rawX = (int)Math.Floor(sourceX);
+            int rawY = (int)Math.Floor(sourceY);
+            int x0 = Math.Clamp(rawX, 0, Width - 1);
+            int y0 = Math.Clamp(rawY, 0, Height - 1);
+            int x1 = Math.Clamp(rawX + 1, 0, Width - 1);
+            int y1 = Math.Clamp(rawY + 1, 0, Height - 1);
+            double xWeight = Math.Clamp(sourceX - rawX, 0, 1);
+            double yWeight = Math.Clamp(sourceY - rawY, 0, 1);
+            double top = Sample(x0, y0) * (1 - xWeight) + Sample(x1, y0) * xWeight;
+            double bottom = Sample(x0, y1) * (1 - xWeight) + Sample(x1, y1) * xWeight;
+            return (byte)Math.Round(top * (1 - yWeight) + bottom * yWeight);
         }
     }
     /// <summary>

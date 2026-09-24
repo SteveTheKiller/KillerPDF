@@ -17,9 +17,9 @@ public sealed class PdfGray16LookupTests
     [InlineData(false, true, false, "90B21014ED288AC1B1A6C6E6984C15D68FBEF561E5EC485136668E36EAD8DD9D")]
     [InlineData(false, true, true, "6614E8089C1275EE880D648734EF9B685928EE9E97A42F582B0FCD387BE648EC")]
     [InlineData(true, false, false, "919FC5904E1F61D787E741A9D2F26BC36FCAE98F62816A3104B015528031ED52")]
-    [InlineData(true, false, true, "53FD892B48E7738DF76E8D18B5E69A27EB301C6B0CDC9DEE71E668B73A28EF5B")]
+    [InlineData(true, false, true, "174B6E0B131D02B2B42EFE33E17AE58ED3582C81B33653221C49135E31CF2D93")]
     [InlineData(true, true, false, "CA95DEA41F951AC1F5D400EA190256E2DDE6480DD581D112D3DDA1C90393F6B9")]
-    [InlineData(true, true, true, "4B5CB1211EFE8C19820873E23FE385EAC2FC078FA29E11202EE17444A43254A0")]
+    [InlineData(true, true, true, "B279AD0E23ABBCE47EFC6E6AA897ABD6C443AEA60B232D3A6CCBC9A8BD357728")]
     public void FullSampleRangeMatchesUncachedReference(bool matte, bool inverted, bool reduced, string expected)
     {
         // References precede 16-bit lookup caching. Every sample occurs twice,

@@ -1397,6 +1397,29 @@ public sealed class PdfPageRendererTests
     }
 
     [Fact]
+    public void Render_InterpolatesSoftMaskWhenImageIsReduced()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgba(4, 1, new byte[]
+                {
+                    255, 0, 0, 128, 255, 0, 0, 128,
+                    255, 0, 0, 128, 255, 0, 0, 128
+                }), 0, 0, 2, 1))
+            .Build());
+        PdfDocument document = ReplaceImageSoftMask(
+            source, 8, Compress([0, 64, 192, 255]));
+
+        PdfRenderedPage page = new PdfPageRenderer(document).Render(
+            0, new PdfRenderOptions(2, 1, transparentBackground: true,
+                includeAnnotations: false, includeFormFields: false));
+
+        Assert.Equal([0, 0, 255, 32], Pixel(page, 0, 0));
+        Assert.Equal([0, 0, 255, 224], Pixel(page, 1, 0));
+        Assert.Empty(page.Diagnostics);
+    }
+
+    [Fact]
     public void Render_AveragesThinSoftMaskLinesWhenReducing()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

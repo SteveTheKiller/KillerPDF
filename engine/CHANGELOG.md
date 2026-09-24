@@ -49,6 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
+- Improved fine detail when reducing images with soft masks.
 - Used the standard identity encoding for embedded fonts when possible, improving searchable OCR text extraction compatibility.
 - Reused parsed extraction fonts across pages, reducing text extraction time on multipage documents.
 - Reduced parsed content-instruction allocation by compiling numeric path, text, matrix, and graphics-state operands directly into compact storage with unchanged rendering output.
