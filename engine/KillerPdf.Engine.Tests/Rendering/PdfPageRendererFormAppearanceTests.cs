@@ -155,6 +155,29 @@ public sealed class PdfPageRendererFormAppearanceTests
             .Render(0, options).Pixels.ToArray(), value => Assert.Equal(255, value));
     }
 
+    [Fact]
+    public void MissingComboAppearanceDrawsArrowButton()
+    {
+        var result = new PdfPageRenderer(Create(true, "", false, true,
+            missingAppearance: true)).Render(0, new PdfRenderOptions(120, 40));
+
+        Assert.Contains("A requested form-field text appearance was regenerated.", result.Diagnostics);
+        Assert.True(BlackPixels(80, 120) > BlackPixels(40, 80));
+
+        int BlackPixels(int left, int right)
+        {
+            int count = 0;
+            for (int y = 0; y < 40; y++)
+                for (int x = left; x < right; x++)
+                {
+                    int offset = (y * 120 + x) * 4;
+                    if (result.Pixels.Span[offset] < 32 && result.Pixels.Span[offset + 1] < 32
+                        && result.Pixels.Span[offset + 2] < 32) count++;
+                }
+            return count;
+        }
+    }
+
     [Theory]
     [InlineData("S")]
     [InlineData("D")]

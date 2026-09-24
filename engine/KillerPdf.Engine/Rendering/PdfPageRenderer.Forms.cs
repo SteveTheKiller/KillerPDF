@@ -35,6 +35,7 @@ public sealed partial class PdfPageRenderer
         long flags = Field("Ff") is PdfInteger flagValue ? flagValue.Value : 0;
         bool multiline = kind == "/Tx" && (flags & (1L << 12)) != 0;
         bool listBox = kind == "/Ch" && (flags & (1L << 17)) == 0;
+        bool comboBox = kind == "/Ch" && !listBox;
         int combCells = 0;
         if (kind == "/Tx" && (flags & (1L << 24)) != 0)
         {
@@ -48,7 +49,7 @@ public sealed partial class PdfPageRenderer
             if (widget.TryGetValue(Name("F"), out PdfObject? visibility)
                 && Resolve(visibility) is PdfInteger annotationFlags
                 && (annotationFlags.Value & 35) != 0) return null;
-            saved = MissingFieldAppearance(widget);
+            saved = MissingFieldAppearance(widget, comboBox);
             if (saved is null) return Unsupported("missing or unsupported appearance geometry");
         }
         string text;
@@ -219,7 +220,8 @@ public sealed partial class PdfPageRenderer
             : legacyBorder is { Count: >= 3 } ? Number(Resolve(legacyBorder[2])) : 1;
         if (inset < 0) return Unsupported("negative border width");
         if (border is not null && NameValue(border, "S") is "B" or "I") inset *= 2;
-        double interiorWidth = width - 2 * inset, interiorHeight = height - 2 * inset;
+        double trailingInset = comboBox ? inset + Math.Min(width, height) : inset;
+        double interiorWidth = width - inset - trailingInset, interiorHeight = height - 2 * inset;
         if (interiorWidth <= 0 || interiorHeight <= 0) return Unsupported("empty field interior");
         if (size == 0)
         {
@@ -232,8 +234,8 @@ public sealed partial class PdfPageRenderer
         int alignment = Field("Q") is PdfInteger q ? (int)q.Value : 0;
         double x = alignment switch
         {
-            1 => Math.Max(inset, (width - advance * size) / 2),
-            2 => Math.Max(inset, width - advance * size - inset),
+            1 => Math.Max(inset, inset + (interiorWidth - advance * size) / 2),
+            2 => Math.Max(inset, width - advance * size - trailingInset),
             _ => inset
         };
         double y = Math.Max(1, (height - (extraction.Ascent + extraction.Descent) * size / 1000) / 2);
@@ -349,7 +351,7 @@ public sealed partial class PdfPageRenderer
         }
     }
 
-    private PdfStream? MissingFieldAppearance(PdfDictionary widget)
+    private PdfStream? MissingFieldAppearance(PdfDictionary widget, bool comboBox)
     {
         if (!widget.TryGetValue(Name("Rect"), out PdfObject? rectangleValue)) return null;
         PdfArray rectangle = ResolveArray(rectangleValue, 4, "Widget rectangle");
@@ -446,6 +448,31 @@ public sealed partial class PdfPageRenderer
                 }
                 instructions.Add(I("Q"));
             }
+        }
+        if (comboBox)
+        {
+            double buttonWidth = Math.Min(fieldWidth, fieldHeight);
+            double buttonLeft = fieldWidth - buttonWidth;
+            double centerX = buttonLeft + buttonWidth / 2;
+            double centerY = fieldHeight / 2;
+            double arrowHalfWidth = buttonWidth * 0.18;
+            double arrowHalfHeight = buttonWidth * 0.1;
+            instructions.Add(I("q"));
+            instructions.Add(I("g", R(0.85)));
+            instructions.Add(I("re", R(buttonLeft), R(0), R(buttonWidth), R(fieldHeight)));
+            instructions.Add(I("f"));
+            instructions.Add(I("G", R(0)));
+            instructions.Add(I("w", R(Math.Max(0.5, buttonWidth / 40))));
+            instructions.Add(I("m", R(buttonLeft), R(0)));
+            instructions.Add(I("l", R(buttonLeft), R(fieldHeight)));
+            instructions.Add(I("S"));
+            instructions.Add(I("g", R(0)));
+            instructions.Add(I("m", R(centerX - arrowHalfWidth), R(centerY + arrowHalfHeight)));
+            instructions.Add(I("l", R(centerX + arrowHalfWidth), R(centerY + arrowHalfHeight)));
+            instructions.Add(I("l", R(centerX), R(centerY - arrowHalfHeight)));
+            instructions.Add(I("h"));
+            instructions.Add(I("f"));
+            instructions.Add(I("Q"));
         }
         instructions.Add(I("BMC", Name("Tx")));
         instructions.Add(I("EMC"));
