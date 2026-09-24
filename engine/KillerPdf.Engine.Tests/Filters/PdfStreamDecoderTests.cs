@@ -117,6 +117,18 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Fact]
+    public void Decode_CompatibilityRecoveryTreatsEmptyParameterArrayAsOmitted()
+    {
+        PdfStream stream = Stream("34313E>"u8.ToArray(),
+            Pair("Filter", new PdfArray([
+                Name("ASCIIHexDecode"), Name("ASCIIHexDecode")])),
+            Pair("DecodeParms", new PdfArray([])));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal([0x41], PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
+    }
+
+    [Fact]
     public void Decode_EnforcesFinalLimitAfterBoundedMultiFilterIntermediate()
     {
         byte[] compressed = Compress([0x41, 0x42]);
@@ -619,6 +631,17 @@ public sealed class PdfStreamDecoderTests
         PdfStream extended = Stream(jpeg, Pair("Filter", Name("DCTDecode")));
 
         Assert.Equal(decoded, PdfStreamDecoder.Decode(extended, 8 * 8 * 3));
+
+        int scanMarker = Enumerable.Range(1, jpeg.Length - 1)
+            .Single(index => jpeg[index - 1] == 0xFF && jpeg[index] == 0xDA);
+        int componentCount = jpeg[scanMarker + 3];
+        jpeg[scanMarker + 5 + componentCount * 2] = 0;
+        PdfStream malformedScan = Stream(jpeg, Pair("Filter", Name("DCTDecode")));
+
+        Assert.Throws<PdfFilterException>(() =>
+            PdfStreamDecoder.Decode(malformedScan, 8 * 8 * 3));
+        Assert.Equal(decoded, PdfStreamDecoder.DecodeWithCompatibilityRecovery(
+            malformedScan, 8 * 8 * 3));
     }
 
     [Fact]
@@ -634,6 +657,37 @@ public sealed class PdfStreamDecoderTests
         AssertPixelNear(decoded, 17, 0, 0, 0, 1, 0);
         AssertPixelNear(decoded, 17, 8, 6, 104, 115, 99);
         AssertPixelNear(decoded, 17, 16, 12, 209, 225, 198);
+    }
+
+    [Fact]
+    public void Decode_DecodesOnePixelRedJpeg()
+    {
+        byte[] jpeg = Convert.FromHexString(string.Concat(
+            "ffd8ffe000104a46494600010100000100010000ffdb004300030202020202030202020303030304",
+            "060404040404080606050609080a0a090809090a0c0f0c0a0b0e0b09090d110d0e0f101011100a0c",
+            "12131210130f101010ffdb00430103030304030408040408100b090b101010101010101010101010",
+            "1010101010101010101010101010101010101010101010101010101010101010101010101010ffc0",
+            "0011080001000103011100021101031101ffc40014000100000000000000000000000000000008ff",
+            "c40014100100000000000000000000000000000000ffc40015010101000000000000000000000000",
+            "00000709ffc40014110100000000000000000000000000000000ffda000c03010002110311003f00",
+            "3a03154dffd9"));
+        PdfStream stream = Stream(jpeg, Pair("Filter", Name("DCTDecode")));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, 3);
+
+        AssertPixelNear(decoded, 1, 0, 0, 255, 0, 0);
+
+        PdfStream filtered = Stream(
+            Encoding.ASCII.GetBytes(Convert.ToHexString(jpeg) + ">"),
+            Pair("Filter", new PdfArray([
+                Name("ASCIIHexDecode"), Name("DCTDecode")])),
+            Pair("DecodeParms", new PdfArray([])));
+        JpegDecodedImage recovered = PdfStreamDecoder.DecodeJpegImage(
+            filtered, value => value, 3, 1, compatibilityRecovery: true);
+
+        Assert.Equal(1, recovered.Width);
+        Assert.Equal(1, recovered.Height);
+        AssertPixelNear(recovered.Samples, 1, 0, 0, 255, 0, 0);
     }
 
     [Fact]

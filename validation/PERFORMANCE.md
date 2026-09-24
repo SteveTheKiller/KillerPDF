@@ -88,10 +88,10 @@ the only page of `empty.pdf` and the first three pages of `tracemonkey.pdf` at
 | Skipped files | 21 | 18 |
 | Failed pages | 3 | 0 |
 
-There are 1,090 shared PNGs. Dimensions match on 1,089. The exception is page
-two of malformed `boundingBox_invalid.pdf`: the engine uses 1582 by 2048 while
-PDFium uses 2048 by 1536. Both paint the expected `Empty /CropBox` label, but
-the geometry difference remains open.
+There are 1,090 shared PNGs. The original pass matched dimensions on 1,089.
+The follow-up fixes the exception on page two of malformed
+`boundingBox_invalid.pdf`: both renderers now use the valid 800 by 600 media
+box and produce a 2048 by 1536 image with the expected `Empty /CropBox` label.
 
 For ranking only, each dimension-matched pair was reduced to a 256-pixel
 thumbnail before measuring mean RGB channel difference. The median is 0.0704;
@@ -99,13 +99,19 @@ thumbnail before measuring mean RGB channel difference. The median is 0.0704;
 identical. These thumbnail measurements find review targets and are not a
 pixel-equivalence gate.
 
-The largest differences were inspected in both outputs. They include known
-unsupported image diagnostics in `xobject-image.pdf` and
-`issue12841_reduced.pdf`; JBIG2 cases where the engine paints the test image and
-PDFium paints a black rectangle; expected calibrated-gray and CMYK color
-conversion differences; and `issue13343.pdf`, where the engine paints CJK text
-that PDFium omits. These are recorded as file-specific follow-ups rather than
-hidden behind a shared tolerance.
+The largest differences were inspected in both outputs. They include JBIG2
+cases where the engine paints the test image and PDFium paints a black
+rectangle; expected calibrated-gray and CMYK color conversion differences; and
+`issue13343.pdf`, where the engine paints CJK text that PDFium omits. These are
+recorded as file-specific follow-ups rather than hidden behind a shared
+tolerance.
+
+The follow-up also closes the blank output in `xobject-image.pdf` and
+`issue12841_reduced.pdf`. The first now unwraps its ASCII hexadecimal filter
+before reading the final JPEG and is byte-identical to the PDFium red page. The
+second recovers its incorrect sequential JPEG spectral-end marker and paints
+the full photograph. Fresh 2048-pixel renders report no diagnostic for either
+file, and both were visually inspected.
 
 The audit exposed one current failure in `issue11045.pdf`. Its transparency
 group stores `/CS null`; the CMYK group detector now treats that as an omitted

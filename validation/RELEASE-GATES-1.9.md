@@ -1595,3 +1595,26 @@ At 2048 pixels, the engine and PDFium each successfully rendered the only page
 of `empty.pdf` at 1582 by 2048 and the first three pages of `tracemonkey.pdf` at
 1582 by 2048. Since each alias has identical bytes, those four canonical input
 pages complete the requested alias coverage without adding duplicate files.
+
+### Malformed image and page-box recovery checkpoint (2026-09-24)
+
+Viewer compatibility recovery now accepts an empty `/DecodeParms` array as
+omitted while strict stream decoding still rejects the mismatched array. A
+filter chain ending in DCTDecode unwraps its earlier filters before reading the
+JPEG frame dimensions and samples. At 2048 pixels, `xobject-image.pdf` now
+produces the expected red page with no diagnostic and its PNG is byte-identical
+to PDFium.
+
+Compatibility recovery also treats the exact sequential JPEG scan marker
+combination `Ss=0`, `Se=0`, and `AhAl=0` as the normal complete sequential scan.
+Strict decoding still rejects it. This restores the full photograph in
+`issue12841_reduced.pdf` without broadening accepted progressive scan states or
+changing writer behavior.
+
+An unusable crop box now falls back to a usable media box before the existing
+US Letter fallback. Page two of `boundingBox_invalid.pdf` therefore uses its
+800 by 600 media box and matches PDFium's 2048 by 1536 output geometry. All
+three targeted renders complete without diagnostics and were visually
+inspected. Validation passes with 4,139 engine tests, 431 app tests, and a
+Release application build with no warnings or errors. Evidence is retained in
+`C:/Users/steve/kp-bench-render/unsupported-recovery-20260924`.

@@ -2512,7 +2512,7 @@ public sealed partial class PdfPageRenderer
         int width = PositiveInteger(stream.Dictionary, "Width");
         int height = PositiveInteger(stream.Dictionary, "Height");
         bool jpeg2000 = IsSoleJpeg2000Filter(stream.Dictionary);
-        bool jpeg = IsSoleDctFilter(stream.Dictionary);
+        bool jpeg = EndsWithDctFilter(stream.Dictionary);
         bool recoveredPng = _document.UsesCompatibilityRecovery
             && jpeg
             && PdfPngDecoder.HasSignature(stream.EncodedData.Span);
@@ -2770,11 +2770,15 @@ public sealed partial class PdfPageRenderer
         return resolved is PdfName name && name.ValueAsLatin1() is "JPXDecode" or "JPX";
     }
 
-    private bool IsSoleDctFilter(PdfDictionary dictionary)
+    private bool EndsWithDctFilter(PdfDictionary dictionary)
     {
         if (!dictionary.TryGetValue(Name("Filter"), out PdfObject? value)) return false;
         PdfObject resolved = Resolve(value);
-        if (resolved is PdfArray filters && filters.Count == 1) resolved = Resolve(filters[0]);
+        if (resolved is PdfArray filters)
+        {
+            if (filters.Count == 0) return false;
+            resolved = Resolve(filters[^1]);
+        }
         return resolved is PdfName name && name.ValueAsLatin1() is "DCTDecode" or "DCT";
     }
 

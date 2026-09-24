@@ -72,13 +72,19 @@ public sealed record PdfPageInformation
             }
             catch (InvalidOperationException) when (document.UsesCompatibilityRecovery)
             {
-                // Mainstream viewers fall back to US Letter for an unusable page box.
-                x1 = 0;
-                y1 = 0;
-                x2 = 612;
-                y2 = 792;
-                width = 612;
-                height = 792;
+                // An unusable crop box does not invalidate a usable media box.
+                if (crop is null || !TryReadCompatibilityMediaBox(
+                    document, page, index, out x1, out y1, out x2, out y2,
+                    out width, out height))
+                {
+                    // Mainstream viewers fall back to US Letter when no usable box remains.
+                    x1 = 0;
+                    y1 = 0;
+                    x2 = 612;
+                    y2 = 792;
+                    width = 612;
+                    height = 792;
+                }
             }
             int rotation = 0;
             if (page.InheritedValues.TryGetValue(Name("Rotate"), out PdfObject? rotationValue))
@@ -108,6 +114,34 @@ public sealed record PdfPageInformation
             };
         }
         return result;
+    }
+
+    private static bool TryReadCompatibilityMediaBox(
+        PdfDocument document, PdfPageTreeEntry page, int pageIndex,
+        out double x1, out double y1, out double x2, out double y2,
+        out double width, out double height)
+    {
+        x1 = y1 = x2 = y2 = width = height = 0;
+        if (!page.InheritedValues.TryGetValue(Name("MediaBox"), out PdfObject? value))
+            return false;
+        try
+        {
+            PdfArray box = ResolveArray(document, value,
+                $"Page {pageIndex + 1} media box");
+            if (box.Count != 4) return false;
+            x1 = Number(document, box[0], pageIndex);
+            y1 = Number(document, box[1], pageIndex);
+            x2 = Number(document, box[2], pageIndex);
+            y2 = Number(document, box[3], pageIndex);
+            width = Math.Abs(x2 - x1);
+            height = Math.Abs(y2 - y1);
+            return double.IsFinite(width) && double.IsFinite(height)
+                && width > 0 && height > 0;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static double Number(PdfDocument document, PdfObject value, int pageIndex) =>

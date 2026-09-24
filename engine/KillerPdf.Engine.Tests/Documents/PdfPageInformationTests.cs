@@ -52,6 +52,35 @@ public sealed class PdfPageInformationTests
         Assert.Equal(792, page.Height);
     }
 
+    [Fact]
+    public void Read_CompatibilityRecoveryUsesMediaBoxForDegenerateCropBox()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddBlankPage(800, 600).Build());
+        PdfDictionary catalog = Assert.IsType<PdfDictionary>(source.Resolve(
+            Assert.IsType<PdfIndirectReference>(source.Trailer[new PdfName("Root"u8)])));
+        PdfDictionary pages = Assert.IsType<PdfDictionary>(source.Resolve(
+            Assert.IsType<PdfIndirectReference>(catalog[new PdfName("Pages"u8)])));
+        PdfIndirectReference pageReference = Assert.IsType<PdfIndirectReference>(
+            Assert.IsType<PdfArray>(pages[new PdfName("Kids"u8)])[0]);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(source.Resolve(pageReference));
+        PdfDictionary replacement = new(page.Append(
+            new KeyValuePair<PdfName, PdfObject>(new PdfName("CropBox"u8),
+                new PdfArray([new PdfInteger(0), new PdfInteger(0),
+                    new PdfInteger(0), new PdfInteger(0)]))));
+        PdfDocument strict = PdfDocument.Open(new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(pageReference.ObjectNumber, replacement).Build());
+
+        Assert.Throws<InvalidOperationException>(() => PdfPageInformation.Read(strict));
+        PdfPageInformation recovered = Assert.Single(PdfPageInformation.Read(
+            PdfDocument.OpenWithCompatibilityRecovery(strict.Source)));
+
+        Assert.Equal(0, recovered.Left);
+        Assert.Equal(0, recovered.Bottom);
+        Assert.Equal(800, recovered.Width);
+        Assert.Equal(600, recovered.Height);
+    }
+
     private static PdfDocument MissingMediaBoxDocument()
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()

@@ -60,13 +60,34 @@ public static class PdfStreamDecoder
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentNullException.ThrowIfNull(resolve);
         List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
-        if (filters.Count != 1
-            || filters[0].ValueAsLatin1() is not ("DCTDecode" or "DCT"))
-            throw new PdfFilterException("Reduced JPEG decoding requires one DCTDecode filter.");
-        PdfDictionary? parameters = ReadParameters(
-            stream.Dictionary, filters.Count, resolve)[0];
-        return PdfJpegDecoder.DecodeImage(stream.EncodedData,
-            maximumDecodedBytes, reduction, GetDctColorTransform(parameters, resolve),
+        if (filters.Count == 0
+            || filters[^1].ValueAsLatin1() is not ("DCTDecode" or "DCT"))
+            throw new PdfFilterException("Reduced JPEG decoding requires a final DCTDecode filter.");
+        PdfDictionary?[] parameters = ReadParameters(
+            stream.Dictionary, filters.Count, resolve, compatibilityRecovery);
+        ReadOnlyMemory<byte> encoded = stream.EncodedData;
+        if (filters.Count > 1)
+        {
+            int prefixCount = filters.Count - 1;
+            PdfObject prefixFilters = prefixCount == 1
+                ? filters[0] : new PdfArray(filters.Take(prefixCount));
+            PdfObject prefixParameters = prefixCount == 1
+                ? parameters[0] is PdfDictionary single ? single : PdfNull.Instance
+                : new PdfArray(parameters.Take(prefixCount)
+                    .Select(parameter => (PdfObject?)parameter ?? PdfNull.Instance));
+            PdfDictionary prefixDictionary = new(stream.Dictionary
+                .Where(entry => !entry.Key.Equals(FilterName)
+                    && !entry.Key.Equals(DecodeParmsName))
+                .Append(new KeyValuePair<PdfName, PdfObject>(FilterName, prefixFilters))
+                .Append(new KeyValuePair<PdfName, PdfObject>(
+                    DecodeParmsName, prefixParameters)));
+            encoded = DecodeCore(PdfStream.FromOwnedData(prefixDictionary, encoded), resolve,
+                Math.Max(maximumDecodedBytes, encoded.Length), 0,
+                compatibilityRecovery);
+        }
+        return PdfJpegDecoder.DecodeImage(encoded,
+            maximumDecodedBytes, reduction,
+            GetDctColorTransform(parameters[^1], resolve),
             compatibilityRecovery);
     }
 
@@ -76,7 +97,8 @@ public static class PdfStreamDecoder
     {
         List<PdfName> filters = ReadFilters(stream.Dictionary, resolve);
         if (filters.Count == 0) return ReadEncodedStream(stream.EncodedData);
-        PdfDictionary?[] parameters = ReadParameters(stream.Dictionary, filters.Count, resolve);
+        PdfDictionary?[] parameters = ReadParameters(
+            stream.Dictionary, filters.Count, resolve, compatibilityRecovery);
         if (filters.Count == 1 && filters[0].ValueAsLatin1() is "FlateDecode" or "Fl"
             && (parameters[0] is not { } predictor || GetInteger(predictor, PredictorName, 1, resolve) == 1))
             return new ZLibStream(ReadEncodedStream(stream.EncodedData), CompressionMode.Decompress);
@@ -105,7 +127,7 @@ public static class PdfStreamDecoder
             return stream.EncodedData.ToArray();
         }
         PdfDictionary?[] parameters = ReadParameters(
-            stream.Dictionary, filters.Count, resolve);
+            stream.Dictionary, filters.Count, resolve, compatibilityRecovery);
 
         ReadOnlyMemory<byte> current = stream.EncodedData;
         byte[]? result = null;
@@ -547,13 +569,17 @@ public static class PdfStreamDecoder
 
     private static PdfDictionary?[] ReadParameters(
         PdfDictionary dictionary, int filterCount,
-        Func<PdfIndirectReference, PdfObject>? resolve)
+        Func<PdfIndirectReference, PdfObject>? resolve,
+        bool compatibilityRecovery = false)
     {
         var result = new PdfDictionary?[filterCount];
         if (!dictionary.TryGetValue(DecodeParmsName, out PdfObject parameters))
             return result;
         parameters = Resolve(parameters, resolve, "stream /DecodeParms");
         if (parameters is PdfNull) return result;
+
+        if (compatibilityRecovery && parameters is PdfArray { Count: 0 })
+            return result;
 
         if (parameters is PdfDictionary single)
         {

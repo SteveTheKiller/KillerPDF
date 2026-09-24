@@ -253,7 +253,13 @@ internal static class PdfJpegDecoder
             _successiveLow = approximation & 15;
             if (!_progressive && (_spectralStart != 0 || _spectralEnd != 63
                 || approximation != 0))
-                throw Error("Only sequential JPEG scan parameters are implemented.");
+            {
+                if (compatibilityRecovery && _spectralStart == 0
+                    && _spectralEnd == 0 && approximation == 0)
+                    _spectralEnd = 63;
+                else
+                    throw Error("Only sequential JPEG scan parameters are implemented.");
+            }
             if (_progressive && (_spectralStart > _spectralEnd || _spectralEnd > 63
                 || _successiveHigh > 13 || _successiveLow > 13
                 || _successiveHigh != 0 && _successiveHigh != _successiveLow + 1

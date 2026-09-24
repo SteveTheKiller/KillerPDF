@@ -62,6 +62,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Kept region-copy selection outlines visible after releasing the mouse.
 - Localized key names throughout the website Help keyboard guide (#230).
 - Kept localized toolbar captions fully visible after language changes.
+- Recovered malformed JPEG filter chains and used a valid media box when a crop box is unusable.
 - Stabilized precision-touchpad pinch zoom without queued page jumps.
 - Aligned new text with the insertion cursor and made Enter add lines while Ctrl+Enter finishes editing.
 - Allowed valid recursive Form XObject resource graphs to be imported during page merges (#421).
