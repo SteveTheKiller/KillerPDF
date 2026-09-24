@@ -418,9 +418,9 @@
 
     <sys:Double x:Key="ScrollArrowSize" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">16</sys:Double>
 
-    <!-- The pane overlaps the scrollbar's outermost top row. Draw the up-button bevel one
-         pixel inside its own template instead of patching it above the pane afterward. -->
-    <Thickness x:Key="ScrollArrowTopBevelMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0,1,0,0</Thickness>
+    <!-- Keep the up-button's raised top edge inside the button itself. Offsetting the bevel
+         exposed stray face-color pixels above the arrow when the pane scrollbar appeared. -->
+    <Thickness x:Key="ScrollArrowTopBevelMargin" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation">0</Thickness>
 
     <!-- Raised Win98 panel edge. The markup crosses these historic key names against the
          opposite-side thicknesses, so the colors here intentionally produce white/face on the
