@@ -29,6 +29,45 @@ The builds were 1.8.x commit `259c5f8` with application DLL SHA256
 Raw per-file logs and retained PNGs are archived locally in
 `C:/Users/steve/kp-bench-render/broad-regression-isolated-20260924`.
 
+## KillerPDF 1.9.0 expanded visual comparison
+
+Measured September 24, 2026, with the same fresh 1.8.x and 1.9.0 builds. The
+comparison now records dimensions, mean RGB channel delta, root mean square
+delta, and the percentage of pixels whose largest channel delta exceeds 16 or
+32. It covers all 600 mutually rendered first pages at 1024 pixels, plus 74
+pages from the 40-file difficult set at 2048 pixels.
+
+All 674 shared pages have matching dimensions. Across the 600-page set, the
+median page mean channel delta is 0.6121 and the mean is 2.5504. The difficult
+set adds 49 transparency-bearing pages, 14 annotation pages, two pages with
+authored appearances, three widget pages, and five pages from documents with
+form fields. Large differences remain investigation targets rather than being
+hidden behind a collection-wide tolerance.
+
+Eight additional 2048-pixel pages close the geometry and appearance gaps:
+three rotated and cropped pages from `421197.pdf`, three cropped pages from
+`027613.pdf`, the authored annotation appearance in
+`PDF 2.0 UTF-8 string and annotation.pdf`, and the widget appearance on page
+one of `Montenegro2021.pdf`. Both builds produced the same dimensions for all
+eight. Their mean channel deltas range from 0 through 0.7542, with 0 through
+1.336% of pixels exceeding a 16-level channel delta. Both renderers' retained
+images were visually inspected for orientation, crop boundaries, and visible
+appearances.
+
+Accepted differences remain file-specific. The large deltas for
+`pdfa2-6-1-13-bfo-t04-fail.pdf` and `pdfa2-6-1-13-bfo-t06-pass.pdf` are retained
+because the engine preserves the intended red rectangle while PDFium is blank.
+`GWG220_ColorConversionIndicator_x4.pdf` and
+`GWG221_OutputIntentChangeIndicator_x4.pdf` retain their reviewed disposition:
+the engine avoids the prominent error crosses present in the PDFium output.
+No shared threshold was raised, and other high-delta pages remain open review
+targets.
+
+Raw metrics and PNGs are archived locally in
+`C:/Users/steve/kp-bench-render/broad-regression-isolated-20260924`,
+`C:/Users/steve/kp-bench-render/visual-multipage-isolated-20260924`, and
+`C:/Users/steve/kp-bench-render/visual-targeted-isolated-20260924`.
+
 ## KillerPDF 1.9.0 exact-output speed follow-up
 
 September 8, 2026. Six engine and app commits (`d92dc82` through `f8b9343`) speed
