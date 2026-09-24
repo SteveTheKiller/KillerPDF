@@ -546,6 +546,7 @@ namespace KillerLauncher
         private static readonly Guid VerifyGeneric = new Guid("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
 
         [DllImport("wintrust.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+        [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
         private static extern uint WinVerifyTrust(IntPtr window, ref Guid action, IntPtr trustData);
 
         internal static bool IsValid(string path)
