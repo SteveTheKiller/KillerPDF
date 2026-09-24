@@ -193,6 +193,9 @@ previews, text and image targets, batch outcomes, and combined output.
 See [structural document comparison](docs/comparison.md) for interpreted page
 differences, report categories, cancellation, and visual-equivalence limits.
 
+See [permanent redaction](docs/redaction.md) for candidate review, host-sanitized
+raster rebuilds, selective comment and attachment removal, and verification limits.
+
 ## Repository layout
 
 ```text
