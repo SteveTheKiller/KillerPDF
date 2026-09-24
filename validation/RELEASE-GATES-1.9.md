@@ -1355,3 +1355,30 @@ confirm one document-owned source buffer, bounded decoded-image caching, and
 release of session-owned data. The probe used the engine's null font resolver,
 which does not affect these image-retention targets. Broader memory and
 performance parity remain open.
+
+### Reusable glyph coverage checkpoint (2026-09-24)
+
+A temporary counter build measured glyph-mask requests and cache misses after
+the vectorized dense-clip work. On the source-study UnknownFilter page, the
+first 1024-pixel render reused 462 of 740 requested masks and created 278 cache
+entries. Every request in four later renders was a cache hit. Compacted PDF
+syntax reused 33 of 113 requests on its first render and all 113 afterward.
+Ghent ALL page 2 reused 1,226 of 3,586 requests on its first render and all
+3,586 afterward. Each target kept one stable pixel hash across its repeated
+renders. The counters were removed after the measurement; production source
+was verified clean.
+
+Two reversed-order pairs then compared the enabled and disabled cache on the
+source-study page. Each process performed 60 renders, with the final 30 used
+for warmed medians. Cache-on versus cache-off medians were 8.152/12.748 ms and
+8.069/12.865 ms. Median per-render allocation was 2,973,736 bytes with the
+cache and 9,202,968 bytes without it, a 67.7 percent reduction. Each mode kept
+a stable pixel hash. The different hashes between modes are the existing,
+tested quarter-pixel placement tradeoff rather than run-to-run instability.
+
+Cold first renders were recorded separately at 383.325 and 390.511 ms with the
+cache, and 418.132 and 412.373 ms without it. They include process startup,
+first-use parsing, and tiered compilation, so they do not establish a cold-path
+speed claim. The consistent warmed pairs and request counts confirm that the
+bounded glyph-mask cache still covers substantial reusable work. Broader
+rendering and performance parity remain open.
