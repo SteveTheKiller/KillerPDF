@@ -89,6 +89,21 @@ public sealed partial class PdfPageRenderer
             IsEmpty ? Empty : new(Left + dx, Top + dy, Right + dx, Bottom + dy, Coverage,
                 repeatedMiddleRows: _repeatedMiddleRows);
 
+        /// <summary>Returns whether both masks describe the same pixel coverage.</summary>
+        internal bool HasSameCoverage(CoverageMask other)
+        {
+            if (ReferenceEquals(this, other)) return true;
+            if (Left != other.Left || Top != other.Top || Right != other.Right
+                || Bottom != other.Bottom || (Coverage is null) != (other.Coverage is null))
+                return false;
+            if (Coverage is null) return true;
+            for (int y = Top; y < Bottom; y++)
+                if (!Coverage.AsSpan(RowOffset(y), Width)
+                    .SequenceEqual(other.Coverage!.AsSpan(other.RowOffset(y), Width)))
+                    return false;
+            return true;
+        }
+
         /// <summary>Intersects two masks by multiplying coverage.</summary>
         internal static CoverageMask Intersect(CoverageMask first, CoverageMask second)
         {
@@ -1169,6 +1184,10 @@ public sealed partial class PdfPageRenderer
         if (right <= left || bottom <= top) return;
         graphicsSoftMask = graphicsSoftMask?.ForBounds(left, top, right, bottom);
         bool perPixelClip = clips.Count > 0 && !rectangularClips;
+        // Applying an identical geometric clip is idempotent. Multiplying two separately
+        // rasterized copies would square their antialiased edge coverage and lighten it.
+        if (perPixelClip && clips.Count == 1 && mask.HasSameCoverage(clips[0].Mask))
+            perPixelClip = false;
         // Group alpha is maintained alongside the direct RGB paths with the compositor's own
         // formula, so tracked groups take the same fast paths as plain pages.
         bool simpleBlend = pixels.Ink is null && pixels.RgbProfile is null && graphicsSoftMask is null && knockout is null

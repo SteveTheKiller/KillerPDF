@@ -1527,3 +1527,28 @@ same text, spacing, and final right edge, but its Courier antialiasing moves
 several other edge thresholds by one pixel. Visual inspection confirms that
 the reported width difference is rasterizer edge coverage, not page geometry,
 font selection, glyph advance, or text placement. No source change is warranted.
+
+### Coincident clip coverage checkpoint (2026-09-24)
+
+Geometrically identical paint and clip masks now reuse one antialiased coverage
+value instead of multiplying two separately rasterized copies. This preserves
+the idempotence of clipping and prevents a coincident fractional edge from
+becoming artificially light. Other antialiased clip intersections retain their
+existing multiplication behavior.
+
+`bug1978317.pdf` repeats 15,004 half-point blue strokes inside clipping
+rectangles with the same bounds. Removing only those redundant clips in a
+diagnostic copy made the engine's representative line pixels match PDFium
+within one channel level, confirming the cause. The retained fix produces the
+same result without altering the document. At 2048 pixels, the whole-page mean
+RGB delta from PDFium improved from 2.627582 to 2.138881, and the fraction of
+pixels with any channel more than 16 levels apart fell from 0.075619 to
+0.062670. In the blue-content region, the mean delta improved from 14.379199
+to 11.603420. Visual inspection confirms the repeated blue rules are darker
+and match the reference more closely.
+
+A regression compares a fractional-width stroke with and without an identical
+clip. Full validation passes with 4,136 engine tests, 431 app tests, and a
+Release build with no warnings or errors. Finer glyph-cache positioning and a
+no-cache trial changed the remaining embedded Times New Roman edge differences
+only marginally, so neither broader performance tradeoff was retained.

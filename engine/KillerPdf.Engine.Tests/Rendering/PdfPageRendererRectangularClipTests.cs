@@ -73,6 +73,20 @@ public sealed class PdfPageRendererRectangularClipTests
     }
 
     [Fact]
+    public void Render_CoincidentAntialiasedClipDoesNotReduceStrokeCoverage()
+    {
+        PdfRenderedPage unclipped = Render(new PdfContentStreamBuilder()
+            .SetStrokeRgb(0, 0, 0.933333).SetLineWidth(0.75)
+            .MoveTo(10, 10.375).LineTo(30, 10.375).Stroke(), 100, 80);
+        PdfRenderedPage clipped = Render(new PdfContentStreamBuilder()
+            .Rectangle(10, 10, 20, 0.75).Clip()
+            .SetStrokeRgb(0, 0, 0.933333).SetLineWidth(0.75)
+            .MoveTo(10, 10.375).LineTo(30, 10.375).Stroke(), 100, 80);
+
+        Assert.Equal(unclipped.Pixels.ToArray(), clipped.Pixels.ToArray());
+    }
+
+    [Fact]
     public void Render_AntialiasedClipStillAppliesPerPixelCoverageToImages()
     {
         PdfImage image = GradientImage(16, 16, 3);
