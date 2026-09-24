@@ -75,7 +75,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 - Allowed valid recursive Form XObject resource graphs to be imported during page merges (#421).
 - Preserved annotation position and orientation when saving PDFs whose page content leaves a transform active.
 - Prevented packaged application metadata from drifting from compiled resources.
-- Restored the KillerPDF icon on Windows 11 taskbar buttons after slower portable launches.
+- Kept the KillerPDF icon visible on Windows 11 taskbar buttons throughout slower portable launches.
 - Restored the document display after minimizing or switching back from another window (#415).
 - Allowed page extraction to ignore malformed optional thumbnail images (#423).
 - Preserved annotations during normal saves when cached page dimensions are unavailable.
