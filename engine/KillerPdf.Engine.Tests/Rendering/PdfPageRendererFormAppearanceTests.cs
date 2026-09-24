@@ -47,6 +47,30 @@ public sealed class PdfPageRendererFormAppearanceTests
     }
 
     [Fact]
+    public void ListBoxHonorsTopIndexAndSelectedOptionLayout()
+    {
+        var options = new PdfRenderOptions(120, 40);
+        var scrolled = new PdfPageRenderer(Create(true, "", false, true,
+            choiceOptions: ["Zero", "One", "Two"], selectedChoiceIndex: 2, topIndex: 1))
+            .Render(0, options);
+        var equivalent = new PdfPageRenderer(Create(true, "", false, true,
+            choiceOptions: ["One", "Two"], selectedChoiceIndex: 1))
+            .Render(0, options);
+
+        Assert.Equal(equivalent.Pixels.ToArray(), scrolled.Pixels.ToArray());
+        Assert.Contains("A requested form-field text appearance was regenerated.", scrolled.Diagnostics);
+        Assert.Contains(BluePixels(), value => value);
+
+        IEnumerable<bool> BluePixels()
+        {
+            for (int offset = 0; offset < scrolled.Pixels.Length; offset += 4)
+                yield return scrolled.Pixels.Span[offset] > 180
+                    && scrolled.Pixels.Span[offset + 1] is > 80 and < 180
+                    && scrolled.Pixels.Span[offset + 2] < 40;
+        }
+    }
+
+    [Fact]
     public void MultilineTextRegeneratesSeparateVisibleLines()
     {
         var options = new PdfRenderOptions(120, 40);
@@ -293,7 +317,8 @@ public sealed class PdfPageRendererFormAppearanceTests
         bool artwork = false, bool inheritedResources = false, bool missingAppearance = false,
         string? borderStyle = null, int annotationFlags = 0, string textValue = "Man",
         double? widgetBorderWidth = null, int alignment = 0, int? maximumLength = null,
-        bool missingTextSection = false, bool legacyBorder = false)
+        bool missingTextSection = false, bool legacyBorder = false,
+        string[]? choiceOptions = null, int selectedChoiceIndex = 0, int topIndex = 0)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(120, 40).Build());
         PdfPageTree tree = PdfPageTree.Read(source);
@@ -320,11 +345,20 @@ public sealed class PdfPageRendererFormAppearanceTests
         string textSection = missingTextSection ? "" : $"/Tx BMC {previousText} EMC";
         var appearance = update.AddObject(new PdfStream(appearanceDictionary, Encoding.ASCII.GetBytes(
             $"1 1 0 rg 0 0 120 40 re f {borderContent} {outsideText} {textSection}")));
+        PdfArray optionArray = choiceOptions is null
+            ? new PdfArray([new PdfArray([S("export"), S("Man")])])
+            : new PdfArray(choiceOptions.Select(value => (PdfObject)S(value)));
+        string choiceValue = choiceOptions is null ? "export" : choiceOptions[selectedChoiceIndex];
         var parentDictionary = D(("FT", N(choice ? "Ch" : "Tx")),
             ("Q", new PdfInteger(alignment)),
-            ("V", S(choice ? "export" : textValue)), ("DA", S(defaultAppearance)),
-            ("Ff", new PdfInteger(choice ? 131072 : flags)),
-            ("Opt", new PdfArray([new PdfArray([S("export"), S("Man")])])));
+            ("V", S(choice ? choiceValue : textValue)), ("DA", S(defaultAppearance)),
+            ("Ff", new PdfInteger(choice && choiceOptions is null ? 131072 : flags)),
+            ("Opt", optionArray));
+        if (choiceOptions is not null)
+            parentDictionary = new PdfDictionary(parentDictionary
+                .Append(new KeyValuePair<PdfName, PdfObject>(N("I"),
+                    new PdfArray([new PdfInteger(selectedChoiceIndex)])))
+                .Append(new KeyValuePair<PdfName, PdfObject>(N("TI"), new PdfInteger(topIndex))));
         if (maximumLength.HasValue)
             parentDictionary = new PdfDictionary(parentDictionary.Append(
                 new KeyValuePair<PdfName, PdfObject>(N("MaxLen"), new PdfInteger(maximumLength.Value))));

@@ -34,8 +34,7 @@ public sealed partial class PdfPageRenderer
         if (kind is not "/Tx" and not "/Ch") return saved;
         long flags = Field("Ff") is PdfInteger flagValue ? flagValue.Value : 0;
         bool multiline = kind == "/Tx" && (flags & (1L << 12)) != 0;
-        if (kind == "/Ch" && (flags & (1L << 17)) == 0)
-            return Unsupported("list-box layout");
+        bool listBox = kind == "/Ch" && (flags & (1L << 17)) == 0;
         int combCells = 0;
         if (kind == "/Tx" && (flags & (1L << 24)) != 0)
         {
@@ -52,27 +51,83 @@ public sealed partial class PdfPageRenderer
             saved = MissingFieldAppearance(widget);
             if (saved is null) return Unsupported("missing or unsupported appearance geometry");
         }
-        if (Field("V") is not PdfString textValue) return saved;
-        string text = PdfUnicodeEncoding.DecodeTextString(textValue.Bytes.Span, "A form field value");
-        if (text.Length > 32768) return Unsupported("field text limit");
-        if (kind == "/Ch" && Field("Opt") is PdfArray choices)
+        string text;
+        var selectedLines = new HashSet<int>();
+        if (listBox)
         {
-            foreach (PdfObject optionValue in choices)
+            if (Field("Opt") is not PdfArray choices || choices.Count > 32768)
+                return Unsupported("missing or excessive list-box options");
+            var selectedValues = new HashSet<string>(StringComparer.Ordinal);
+            if (Field("V") is PdfString selectedValue)
+                selectedValues.Add(PdfUnicodeEncoding.DecodeTextString(selectedValue.Bytes.Span, "A form field value"));
+            else if (Field("V") is PdfArray selectedArray)
+            {
+                if (selectedArray.Count > 32768) return Unsupported("excessive list-box selection");
+                foreach (PdfObject value in selectedArray)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (Resolve(value) is not PdfString item) return Unsupported("invalid list-box selection");
+                    selectedValues.Add(PdfUnicodeEncoding.DecodeTextString(item.Bytes.Span, "A form field value"));
+                }
+            }
+            long topValue = Field("TI") is PdfInteger top ? top.Value : 0;
+            if (topValue < 0 || topValue > choices.Count) return Unsupported("invalid list-box top index");
+            int topIndex = (int)topValue;
+            var optionLines = new List<string>(choices.Count - topIndex);
+            for (int optionIndex = topIndex; optionIndex < choices.Count; optionIndex++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (Resolve(optionValue) is PdfArray { Count: 2 } pair
-                    && Resolve(pair[0]) is PdfString export
-                    && Resolve(pair[1]) is PdfString display
-                    && PdfUnicodeEncoding.DecodeTextString(export.Bytes.Span, "A choice export") == text)
+                PdfObject option = Resolve(choices[optionIndex]);
+                PdfString? export = option as PdfString;
+                PdfString? display = export;
+                if (option is PdfArray { Count: 2 } pair)
                 {
-                    text = PdfUnicodeEncoding.DecodeTextString(display.Bytes.Span, "A choice label");
-                    break;
+                    export = Resolve(pair[0]) as PdfString;
+                    display = Resolve(pair[1]) as PdfString;
+                }
+                if (export is null || display is null) return Unsupported("invalid list-box option");
+                string exportText = PdfUnicodeEncoding.DecodeTextString(export.Bytes.Span, "A choice export");
+                string displayText = PdfUnicodeEncoding.DecodeTextString(display.Bytes.Span, "A choice label")
+                    .Replace('\r', ' ').Replace('\n', ' ');
+                if (selectedValues.Contains(exportText)) selectedLines.Add(optionLines.Count);
+                optionLines.Add(displayText);
+            }
+            if (Field("I") is PdfArray selectedIndices)
+            {
+                if (selectedIndices.Count > 32768) return Unsupported("excessive list-box selection");
+                selectedLines.Clear();
+                foreach (PdfObject item in selectedIndices)
+                {
+                    if (Resolve(item) is not PdfInteger index || index.Value < topIndex || index.Value >= choices.Count)
+                        continue;
+                    selectedLines.Add((int)index.Value - topIndex);
+                }
+            }
+            text = string.Join('\n', optionLines);
+        }
+        else
+        {
+            if (Field("V") is not PdfString textValue) return saved;
+            text = PdfUnicodeEncoding.DecodeTextString(textValue.Bytes.Span, "A form field value");
+            if (kind == "/Ch" && Field("Opt") is PdfArray choices)
+            {
+                foreach (PdfObject optionValue in choices)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (Resolve(optionValue) is PdfArray { Count: 2 } pair
+                        && Resolve(pair[0]) is PdfString export
+                        && Resolve(pair[1]) is PdfString display
+                        && PdfUnicodeEncoding.DecodeTextString(export.Bytes.Span, "A choice export") == text)
+                    {
+                        text = PdfUnicodeEncoding.DecodeTextString(display.Bytes.Span, "A choice label");
+                        break;
+                    }
                 }
             }
         }
         if (text.Length > 32768) return Unsupported("field text limit");
         if ((flags & (1L << 13)) != 0) text = new string('*', text.EnumerateRunes().Count());
-        string[] textLines = multiline
+        string[] textLines = multiline || listBox
             ? text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n').Split('\n')
             : [text.Replace('\r', ' ').Replace('\n', ' ')];
         if (text.Length == 0 && originalSaved is null)
@@ -169,7 +224,7 @@ public sealed partial class PdfPageRenderer
         if (size == 0)
         {
             double longestAdvance = advances.Count == 0 ? 0 : advances.Max();
-            size = Math.Min(multiline ? interiorHeight / Math.Max(1, encodedLines.Count) : interiorHeight,
+            size = Math.Min(multiline || listBox ? interiorHeight / Math.Max(1, encodedLines.Count) : interiorHeight,
                 combCells > 0 && encoded.Length > 0
                     ? interiorWidth / combCells / Math.Max(0.001, encoded.Max(code => extraction.GetWidth(code) / 1000))
                     : longestAdvance > 0 ? interiorWidth / longestAdvance : interiorHeight);
@@ -187,8 +242,25 @@ public sealed partial class PdfPageRenderer
         var replacement = new List<PdfContentInstruction>
         {
             I("q"), I("re", R(left + inset), R(bottom + inset), R(interiorWidth), R(interiorHeight)),
-            I("W"), I("n"), I("BT")
+            I("W"), I("n")
         };
+        double lineLeading = defaultInstructions.LastOrDefault(item => item.Operator == "TL") is { Operands.Count: 1 } leadingInstruction
+            ? Number(leadingInstruction.Operands[0]) : 0;
+        if (lineLeading <= 0) lineLeading = size * 1.2;
+        if (listBox)
+        {
+            double firstBaseline = bottom + height - inset - extraction.Ascent * size / 1000;
+            foreach (int selectedLine in selectedLines)
+            {
+                double rowBottom = firstBaseline - selectedLine * lineLeading + extraction.Descent * size / 1000;
+                replacement.Add(I("q"));
+                replacement.Add(I("rg", R(0), R(0.45), R(0.9)));
+                replacement.Add(I("re", R(left + inset), R(rowBottom), R(interiorWidth), R(lineLeading)));
+                replacement.Add(I("f"));
+                replacement.Add(I("Q"));
+            }
+        }
+        replacement.Add(I("BT"));
         // Only text and color defaults belong inside the regenerated text object.
         replacement.AddRange(defaultInstructions.Where(item => item.Operator is
             "g" or "rg" or "k" or "Tc" or "Tw" or "Tz" or "TL" or "Tr" or "Ts"));
@@ -212,11 +284,8 @@ public sealed partial class PdfPageRenderer
                 replacement.Add(I("Tj", new PdfString(new byte[] { code }, PdfStringForm.Hexadecimal)));
             }
         }
-        else if (multiline)
+        else if (multiline || listBox)
         {
-            double leading = defaultInstructions.LastOrDefault(item => item.Operator == "TL") is { Operands.Count: 1 } leadingInstruction
-                ? Number(leadingInstruction.Operands[0]) : 0;
-            if (leading <= 0) leading = size * 1.2;
             double lineY = bottom + height - inset - extraction.Ascent * size / 1000;
             for (int index = 0; index < encodedLines.Count && lineY >= bottom + inset - size; index++)
             {
@@ -229,7 +298,7 @@ public sealed partial class PdfPageRenderer
                 };
                 replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(left + lineX), R(lineY)));
                 replacement.Add(I("Tj", new PdfString(encodedLines[index], PdfStringForm.Hexadecimal)));
-                lineY -= leading;
+                lineY -= lineLeading;
             }
         }
         else
