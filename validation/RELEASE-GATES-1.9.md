@@ -1469,3 +1469,28 @@ is limited to the independently verified soft-mask sampling defect. Full
 validation passes with 4,133 engine tests, 431 app tests, and a Release build
 with no warnings or errors. This is a focused image-detail checkpoint, not a
 new whole-corpus parity run.
+
+### Focused font-shape disposition (2026-09-24)
+
+Fresh 2048-pixel production renders of `issue5244.pdf`, `issue4575.pdf`, and
+all three pages of `issue8088.pdf` match the retained application PNG hashes
+byte for byte. The production renderer resolves the non-embedded
+`TimesNewRoman,Bold` and standard `Times-Roman` resources through the installed
+Times New Roman faces. The recovered composite-font text and every expected
+numeral are present.
+
+Against PDFium, `issue5244.pdf` has a mean grayscale delta of 0.081142 and a
+binary ink-mask disagreement of 0.003640 over the ink union. `issue4575.pdf`
+measures 0.068834 and 0.006496. The three `issue8088.pdf` pages measure mean
+deltas of 0.139082, 0.143620, and 0.141873, with binary disagreements of
+0.011124, 0.011065, and 0.011252. Every glyph's horizontal ink run matches
+PDFium, apart from isolated left or right antialias edges crossing the
+128-level threshold by one pixel. Page and text bounds otherwise match.
+
+Poppler independently renders the same text and placement, but uses different
+substitute-font rasterization and reports that the non-embedded identity font
+in `issue5244.pdf` is unavailable. Its larger edge differences therefore do
+not justify replacing the production Windows face. Visual inspection confirms
+that the remaining differences are rasterizer edge coverage, not font choice,
+Unicode recovery, glyph shape, advance width, or numeral selection. No source
+change is warranted, and broader visual parity remains open.
