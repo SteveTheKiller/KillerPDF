@@ -1330,3 +1330,28 @@ are 0.046875 and 0.046599 for `form_two_pages.pdf`, 0.783946 and 0.887495 for
 `prefilled_f1040.pdf`, and 0, 0, and 0.315479 for
 `text_field_own_canvas_calc.pdf`. This is a focused visual and pixel audit, not
 a new whole-corpus or performance run. Broader rendering parity remains open.
+
+### Source and decoded-image retention checkpoint (2026-09-24)
+
+A focused forced-GC probe now separates document ownership, renderer lifetime,
+shared-cache lifetime, and full release. It opens each file through a stream,
+renders into caller-owned buffers, and records live managed memory only. It
+does not report timing. Each target was run twice in a fresh process; both runs
+produced the same stage values and pixel hashes.
+
+Altona technical page 1 retains 127,898,408 bytes at the document stage for
+its 127,724,771-byte source. After 1024, 2048, and 2560 pixel renders, the
+document plus shared cache retain 135,249,672 bytes above the warmed baseline.
+The page's roughly 92 MiB decoded Flate image therefore does not remain in the
+64 MiB shared cache. Full release returns within 233,768 bytes of baseline.
+
+The 698,427-byte JPEG 2000 balloon retains 48,910,648 bytes through the shared
+cache, then returns to 10,487,040 bytes above its warmed baseline after full
+release. Ghent ALL page 2 retains 35,809,128 bytes through the shared cache,
+including its 15,454,633-byte document source, then returns to 4,780,744 bytes
+above baseline. These stable post-release values are process-level codec and
+runtime retention, not document or renderer ownership. The focused results
+confirm one document-owned source buffer, bounded decoded-image caching, and
+release of session-owned data. The probe used the engine's null font resolver,
+which does not affect these image-retention targets. Broader memory and
+performance parity remain open.
