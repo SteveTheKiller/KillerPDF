@@ -1311,3 +1311,22 @@ producing an input PDF; only the v2 fixture is evidence. The payload is
 Validation here is focused; the latest 674-page comparison belongs to the
 preceding nested-knockout checkpoint. Fractional shape coverage, alpha-is-shape
 behavior, and the broader parity gates still require verification.
+
+### Regenerated form appearance audit (2026-09-24)
+
+The remaining apparent font-shape gap in `bug1844576.pdf`, `bug1844583.pdf`,
+and `issue19389.pdf` came from a standalone audit renderer that omitted the
+desktop app's installed-font resolver. With the production Helvetica-to-Arial
+mapping, fresh output exactly matches the existing application corpus output.
+The regenerated values, password masking, button caption, borders, and text
+placement were visually inspected against PDFium. Remaining differences are
+limited to rasterization edges rather than field layout or glyph selection.
+
+The audit also covered all later pages in three focused multi-page form files:
+both pages of `form_two_pages.pdf` and `prefilled_f1040.pdf`, plus all three
+pages of `text_field_own_canvas_calc.pdf`. Every fresh image matches its
+existing application output byte for byte. PDFium thumbnail mean RGB deltas
+are 0.046875 and 0.046599 for `form_two_pages.pdf`, 0.783946 and 0.887495 for
+`prefilled_f1040.pdf`, and 0, 0, and 0.315479 for
+`text_field_own_canvas_calc.pdf`. This is a focused visual and pixel audit, not
+a new whole-corpus or performance run. Broader rendering parity remains open.
