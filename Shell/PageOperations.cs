@@ -93,10 +93,30 @@ namespace KillerPDF
             {
                 var indices = new List<int>();
                 foreach (PageThumbnailVm vm in selected) indices.Add(vm.PageIndex);
-                SaveTempAndReload(
-                    finalizeSavedFile: path => PdfEngineIntegration.RemovePages(path, indices),
-                    remapRotations: rotations =>
-                        PdfEngineIntegration.RemapRotationsAfterPageRemoval(rotations, indices));
+                UndoEntry? documentUndo = CaptureDocumentUndo();
+                var annotationBackup = _annotations.ToDictionary(
+                    pair => pair.Key, pair => pair.Value);
+                try
+                {
+                    PageAnnotationInsertion.RemovePages(_annotations, indices);
+                    SaveTempAndReload(
+                        keepAnnotations: true,
+                        finalizeSavedFile: path => PdfEngineIntegration.RemovePages(path, indices),
+                        remapRotations: rotations =>
+                            PdfEngineIntegration.RemapRotationsAfterPageRemoval(rotations, indices),
+                        documentUndo: documentUndo);
+                }
+                catch
+                {
+                    _annotations.Clear();
+                    foreach (var pair in annotationBackup)
+                    {
+                        foreach (PageAnnotation annotation in pair.Value)
+                            annotation.PageIndex = pair.Key;
+                        _annotations[pair.Key] = pair.Value;
+                    }
+                    throw;
+                }
                 SetStatus(string.Format(Loc("Str_Deleted"), indices.Count, _doc?.PageCount));
             }
             catch (Exception ex)
