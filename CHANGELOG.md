@@ -6,12 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ## [1.8.70] - 2026-09-24
 
-1.8.70 continues the 1.8 maintenance line with rendering, document compatibility, and interface fixes.
+1.8.70 hardens releases, repairs difficult PDF editing and saving cases, and polishes comparison, tabs, localization, and other interface behavior.
 
 ### Fixed
 
 - Hardened native library loading and release artifact verification.
-- Rounded modern flyout corners and restored category colors in the shortcut list.
+- Rounded modern flyout corners, restored shortcut-list category colors, and docked comparison controls below the documents.
 - Corrected 98SE document tab shading and bounded tab widths.
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
 - Kept text editing active while choosing a font from the dropdown (#428).

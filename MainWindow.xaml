@@ -2503,6 +2503,10 @@
                  to occupy the row a window-level tab band would use. The -1 top margin lives on the
                  card INSIDE the control, since it tucks the card under that pane's own strip. -->
             <Grid x:Name="SplitHost" Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" Margin="{DynamicResource SplitHostMargin}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Name="PaneACol" Width="*"/>
                     <ColumnDefinition x:Name="PaneGutterCol" Width="0"/>
@@ -2529,21 +2533,20 @@
 
                 <ctrl:PdfViewer x:Name="ViewerB" Grid.Column="2" Visibility="Collapsed"/>
 
-                <Border x:Name="ComparisonBar" Grid.ColumnSpan="3" Panel.ZIndex="100"
-                        Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Top"
-                        Margin="16,44,16,0" Padding="0"
-                        Background="{DynamicResource MenuBackgroundBrush}" BorderBrush="{DynamicResource PrimaryBrush}"
-                        BorderThickness="1" CornerRadius="{DynamicResource ControlCornerRadius}">
-                    <Border.Effect>
-                        <DropShadowEffect Color="Black" BlurRadius="14" ShadowDepth="3" Direction="270" Opacity="0.35"/>
-                    </Border.Effect>
+                <Border x:Name="ComparisonBar" Grid.Row="1" Grid.ColumnSpan="3" Panel.ZIndex="100"
+                        Visibility="Collapsed" HorizontalAlignment="Stretch"
+                        Margin="0,4,0,0" Padding="0"
+                        Background="{DynamicResource MenuBackgroundBrush}"
+                        BorderThickness="0" CornerRadius="0">
                     <Grid>
                         <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Border Grid.Column="0" Background="{DynamicResource PrimaryBrush}" Padding="9,4" Margin="-1,-1,0,-1"
-                                CornerRadius="{DynamicResource ControlCornerRadius}">
+                        <Border Grid.Column="1" Background="{DynamicResource PrimaryBrush}" Padding="9,4"
+                                CornerRadius="0">
                             <StackPanel Orientation="Horizontal">
                                 <Grid Width="15" Height="13" Margin="0,1,7,0" VerticalAlignment="Center">
                                     <Border Width="6" Height="11" HorizontalAlignment="Left" VerticalAlignment="Center"
@@ -2559,7 +2562,7 @@
                                            Foreground="{DynamicResource OnPrimaryBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="1" Padding="6,2,4,2">
+                        <Border Grid.Column="2" Padding="6,2,4,2">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock x:Name="ComparisonFilesText" Foreground="{DynamicResource TextBrush}"
                                            VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="390"/>
@@ -2597,13 +2600,13 @@
                                 </Button>
                             </StackPanel>
                         </Border>
-                        <Border Grid.ColumnSpan="2" CornerRadius="{DynamicResource ControlCornerRadius}"
+                        <Border Grid.ColumnSpan="4" CornerRadius="0"
                                 IsHitTestVisible="False" Background="{StaticResource GrainBrushShared}"
                                 Opacity="{DynamicResource GrainOpacity}"/>
                     </Grid>
                 </Border>
                 <Popup x:Name="ComparisonDetailsPopup" PlacementTarget="{Binding ElementName=ComparisonResultButton}"
-                       Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                       Placement="Top" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
                     <Border Width="430" MaxHeight="360" Margin="8" Padding="12"
                             Background="{DynamicResource MenuBackgroundBrush}" BorderBrush="{DynamicResource PrimaryBrush}"
                             BorderThickness="1" CornerRadius="{DynamicResource FlyoutCornerRadius}">
