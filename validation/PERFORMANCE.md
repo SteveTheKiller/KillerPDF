@@ -71,9 +71,16 @@ Raw metrics and PNGs are archived locally in
 ## KillerPDF 1.9.0 expanded PDFjs audit
 
 Measured September 24, 2026, at 2048 pixels and up to three pages per file.
-The current PDFjs corpus contains 977 of the 979 files in the retained September
-7 run. `test/pdfs/empty#hash.pdf` and
-`web/compressed.tracemonkey-pldi-09.pdf` are no longer present locally.
+The retained source list contains 979 PDF paths and the current corpus correctly
+stores 977 unique files. The import manifest records `test/pdfs/empty#hash.pdf`
+as an exact duplicate of `test/pdfs/empty.pdf`, and records
+`web/compressed.tracemonkey-pldi-09.pdf` as an exact duplicate of
+`test/pdfs/tracemonkey.pdf`. Their byte counts and SHA-256 digests match, so the
+two aliases remain formally excluded instead of duplicating corpus data.
+
+The canonical files also close the alias render check. Both renderers completed
+the only page of `empty.pdf` and the first three pages of `tracemonkey.pdf` at
+2048 pixels. All eight output rows are successful and use matching dimensions.
 
 | Outcome | 1.8.x PDFium | 1.9.0 engine |
 | --- | ---: | ---: |

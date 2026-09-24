@@ -1578,3 +1578,20 @@ experiment. The 20-file payload grew from approximately 47.15 MiB to 60.29 MiB,
 about 28 percent. The mixed workload result and package growth do not justify
 changing publish settings. No ReadyToRun property was added. Interactive
 first-page, scrolling, and zoom validation remains open in the release table.
+
+### PDF.js duplicate-path disposition (2026-09-24)
+
+The two paths absent from the 977-file PDF.js corpus are intentional exact
+duplicates, not missing inputs. The pinned import manifest maps
+`test/pdfs/empty#hash.pdf` to retained `test/pdfs/empty.pdf`; both are 4,920
+bytes with SHA-256
+`FCEE6184C0D776126782CD2799797B106373278C8EA0A4354EE4E33CD8663D51`.
+It maps `web/compressed.tracemonkey-pldi-09.pdf` to retained
+`test/pdfs/tracemonkey.pdf`; both are 1,016,315 bytes with SHA-256
+`3662FF519E485810520552BF301D8C3B2B917FD2F83303F4965D7ABED367E113`.
+The source audit therefore remains 979 paths and 977 unique PDFs.
+
+At 2048 pixels, the engine and PDFium each successfully rendered the only page
+of `empty.pdf` at 1582 by 2048 and the first three pages of `tracemonkey.pdf` at
+1582 by 2048. Since each alias has identical bytes, those four canonical input
+pages complete the requested alias coverage without adding duplicate files.
