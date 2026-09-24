@@ -157,8 +157,11 @@ public sealed partial class PdfPageRenderer
         double width = Number(Resolve(bounds[2])) - left, height = Number(Resolve(bounds[3])) - bottom;
         PdfDictionary? border = widget.TryGetValue(Name("BS"), out PdfObject? borderValue)
             ? Resolve(borderValue) as PdfDictionary : null;
+        PdfArray? legacyBorder = border is null && widget.TryGetValue(Name("Border"), out PdfObject? legacyBorderValue)
+            ? Resolve(legacyBorderValue) as PdfArray : null;
         double inset = border is not null && border.TryGetValue(Name("W"), out PdfObject? borderWidth)
-            ? Number(Resolve(borderWidth)) : 1;
+            ? Number(Resolve(borderWidth))
+            : legacyBorder is { Count: >= 3 } ? Number(Resolve(legacyBorder[2])) : 1;
         if (inset < 0) return Unsupported("negative border width");
         if (border is not null && NameValue(border, "S") is "B" or "I") inset *= 2;
         double interiorWidth = width - 2 * inset, interiorHeight = height - 2 * inset;
@@ -325,9 +328,14 @@ public sealed partial class PdfPageRenderer
         {
             PdfDictionary? border = widget.TryGetValue(Name("BS"), out PdfObject? bs)
                 ? Resolve(bs) as PdfDictionary : null;
+            PdfArray? legacyBorder = border is null && widget.TryGetValue(Name("Border"), out PdfObject? legacy)
+                ? Resolve(legacy) as PdfArray : null;
             double borderWidth = border is not null && border.TryGetValue(Name("W"), out PdfObject? bw)
-                ? Number(Resolve(bw)) : 1;
-            string style = border is null ? "S" : NameValue(border, "S") ?? "S";
+                ? Number(Resolve(bw))
+                : legacyBorder is { Count: >= 3 } ? Number(Resolve(legacyBorder[2])) : 1;
+            string style = border is not null ? NameValue(border, "S") ?? "S"
+                : legacyBorder is { Count: >= 4 } && Resolve(legacyBorder[3]) is PdfArray { Count: > 0 }
+                    ? "D" : "S";
             if (borderWidth < 0 || style is not "S" and not "D" and not "U" and not "B" and not "I") return null;
             if (borderWidth > 0)
             {
@@ -352,7 +360,8 @@ public sealed partial class PdfPageRenderer
                     if (style == "D")
                     {
                         PdfObject pattern = border is not null
-                            && border.TryGetValue(Name("D"), out PdfObject? dash) ? Resolve(dash) : A(3);
+                            && border.TryGetValue(Name("D"), out PdfObject? dash) ? Resolve(dash)
+                            : legacyBorder is { Count: >= 4 } ? Resolve(legacyBorder[3]) : A(3);
                         instructions.Add(I("d", pattern, R(0)));
                     }
                     double inset = borderWidth / 2;

@@ -148,6 +148,19 @@ public sealed class PdfPageRendererFormAppearanceTests
     }
 
     [Theory]
+    [InlineData("S")]
+    [InlineData("D")]
+    public void MissingAppearanceHonorsLegacyBorderArray(string borderStyle)
+    {
+        var options = new PdfRenderOptions(120, 40);
+        var expected = new PdfPageRenderer(Create(true, "", false, false,
+            borderStyle: borderStyle)).Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, "", false, false,
+            missingAppearance: true, borderStyle: borderStyle, legacyBorder: true)).Render(0, options);
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+    }
+
+    [Theory]
     [InlineData(1)]
     [InlineData(2)]
     [InlineData(32)]
@@ -280,7 +293,7 @@ public sealed class PdfPageRendererFormAppearanceTests
         bool artwork = false, bool inheritedResources = false, bool missingAppearance = false,
         string? borderStyle = null, int annotationFlags = 0, string textValue = "Man",
         double? widgetBorderWidth = null, int alignment = 0, int? maximumLength = null,
-        bool missingTextSection = false)
+        bool missingTextSection = false, bool legacyBorder = false)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(120, 40).Build());
         PdfPageTree tree = PdfPageTree.Read(source);
@@ -323,7 +336,12 @@ public sealed class PdfPageRendererFormAppearanceTests
                 new KeyValuePair<PdfName, PdfObject>(N("BC"), new PdfArray([new PdfInteger(0)]))));
         var widgetDictionary = D(("Subtype", N("Widget")), ("Parent", parent),
             ("Rect", box), ("MK", characteristics), ("F", new PdfInteger(annotationFlags)));
-        if (borderStyle is not null || widgetBorderWidth.HasValue)
+        if (legacyBorder)
+            widgetDictionary = new PdfDictionary(widgetDictionary.Append(
+                new KeyValuePair<PdfName, PdfObject>(N("Border"), new PdfArray([
+                    new PdfInteger(0), new PdfInteger(0), new PdfReal(widgetBorderWidth ?? 2),
+                    borderStyle == "D" ? new PdfArray([new PdfInteger(3), new PdfInteger(2)]) : new PdfArray([])]))));
+        else if (borderStyle is not null || widgetBorderWidth.HasValue)
             widgetDictionary = new PdfDictionary(widgetDictionary.Append(
                 new KeyValuePair<PdfName, PdfObject>(N("BS"), D(("S", N(borderStyle ?? "S")),
                     ("W", new PdfReal(widgetBorderWidth ?? 2)), ("D", new PdfArray([new PdfInteger(3), new PdfInteger(2)]))))));
