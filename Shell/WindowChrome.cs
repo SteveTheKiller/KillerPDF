@@ -30,6 +30,12 @@ namespace KillerPDF
         private const int  WM_ENTERSIZEMOVE   = 0x0231;
         private const int  WM_EXITSIZEMOVE    = 0x0232;
         private const int  WM_ERASEBKGND      = 0x0014;
+        private const int  WM_SETICON          = 0x0080;
+        private const int  ICON_SMALL          = 0;
+        private const int  ICON_BIG            = 1;
+        private const int  APPLICATION_ICON_RESOURCE_ID = 32512;
+        private const uint IMAGE_ICON           = 1;
+        private const uint LR_SHARED            = 0x00008000;
         private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
         private const uint SWP_NOZORDER       = 0x0004;
         private const uint SWP_NOACTIVATE     = 0x0010;
@@ -261,6 +267,46 @@ namespace KillerPDF
 
         [LibraryImport("user32.dll", EntryPoint = "SendMessageW")]
         private static partial IntPtr SendMessage(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam);
+
+        [LibraryImport("kernel32.dll", EntryPoint = "GetModuleHandleW", StringMarshalling = StringMarshalling.Utf16)]
+        private static partial IntPtr GetModuleHandle(string? moduleName);
+
+        [LibraryImport("user32.dll", EntryPoint = "LoadImageW")]
+        private static partial IntPtr LoadImage(
+            IntPtr instance, IntPtr name, uint type, int width, int height, uint loadFlags);
+
+        private void InitializeTaskbarIcons(IntPtr hwnd)
+        {
+            IntPtr module = GetModuleHandle(null);
+            if (module == IntPtr.Zero) return;
+
+            IntPtr largeIcon = LoadImage(module, new IntPtr(APPLICATION_ICON_RESOURCE_ID),
+                IMAGE_ICON, 32, 32, LR_SHARED);
+            IntPtr smallIcon = LoadImage(module, new IntPtr(APPLICATION_ICON_RESOURCE_ID),
+                IMAGE_ICON, 16, 16, LR_SHARED);
+
+            ApplyTaskbarIcons(hwnd, largeIcon, smallIcon);
+
+            // Explorer can create the taskbar button after SourceInitialized during a slower launch.
+            // Repeat once after startup work is idle so the shell cannot keep its generic placeholder.
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.ApplicationIdle,
+                (Action)(() => ApplyTaskbarIcons(hwnd, largeIcon, smallIcon)));
+        }
+
+        private static void ApplyTaskbarIcons(IntPtr hwnd, IntPtr largeIcon, IntPtr smallIcon)
+        {
+            if (largeIcon != IntPtr.Zero)
+            {
+                SendMessage(hwnd, WM_SETICON, new IntPtr(ICON_BIG), IntPtr.Zero);
+                SendMessage(hwnd, WM_SETICON, new IntPtr(ICON_BIG), largeIcon);
+            }
+
+            if (smallIcon != IntPtr.Zero)
+            {
+                SendMessage(hwnd, WM_SETICON, new IntPtr(ICON_SMALL), IntPtr.Zero);
+                SendMessage(hwnd, WM_SETICON, new IntPtr(ICON_SMALL), smallIcon);
+            }
+        }
 
         [LibraryImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
