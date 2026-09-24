@@ -877,6 +877,23 @@ public sealed class PdfStreamDecoderTests
         Assert.Equal(new byte[20], PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
     }
 
+    [Theory]
+    [InlineData(0, "00189C", 0b1110_0011)]
+    [InlineData(1, "001C4E", 0b1110_0011)]
+    public void Decode_CompatibilityRecoveryFindsUndeclaredCcittEndOfLine(
+        int k, string encoded, byte expected)
+    {
+        PdfStream stream = Stream(Convert.FromHexString(encoded),
+            Pair("Filter", Name("CCITTFaxDecode")),
+            Pair("DecodeParms", Dictionary(
+                Pair("K", new PdfInteger(k)),
+                Pair("Columns", new PdfInteger(8)))));
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal(new[] { expected },
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
+    }
+
     [Fact]
     public void Decode_ExpandsCcittMakeupRuns()
     {

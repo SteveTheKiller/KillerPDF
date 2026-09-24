@@ -4486,9 +4486,16 @@ public sealed partial class PdfPageRenderer
 
     private SoftMask ReadExplicitImageMask(PdfStream stream)
     {
+        bool declaredMask = stream.Dictionary.TryGetValue(
+                Name("ImageMask"), out PdfObject? maskValue)
+            && Resolve(maskValue) is PdfBoolean { Value: true };
+        bool recoveredGrayMask = _document.UsesCompatibilityRecovery
+            && !stream.Dictionary.ContainsKey(Name("ImageMask"))
+            && NameValue(stream.Dictionary, "ColorSpace") == "DeviceGray"
+            && stream.Dictionary.TryGetValue(Name("BitsPerComponent"), out PdfObject? bitsValue)
+            && Resolve(bitsValue) is PdfInteger { Value: 1 };
         if (NameValue(stream.Dictionary, "Subtype") != "Image"
-            || !stream.Dictionary.TryGetValue(Name("ImageMask"), out PdfObject? maskValue)
-            || Resolve(maskValue) is not PdfBoolean { Value: true }
+            || !(declaredMask || recoveredGrayMask)
             || stream.Dictionary.ContainsKey(Name("Mask"))
             || stream.Dictionary.ContainsKey(Name("SMask")))
             throw new NotSupportedException();
@@ -4506,6 +4513,9 @@ public sealed partial class PdfPageRenderer
             byte[] packed = _document.DecodeStream(stream, expected);
             if (packed.Length != expected)
                 throw new FormatException("Image mask sample data has an invalid length.");
+            if (recoveredGrayMask)
+                return new DecodedImage(packed, width, height, MaskBits: 1,
+                    MaskDecodeStart: 0, MaskDecodeEnd: 1);
             bool paintsOne = StencilPaintsOne(stream.Dictionary);
             return new DecodedImage(packed, width, height, MaskBits: 1,
                 MaskDecodeStart: paintsOne ? 0 : 1, MaskDecodeEnd: paintsOne ? 1 : 0);

@@ -113,6 +113,17 @@ second recovers its incorrect sequential JPEG spectral-end marker and paints
 the full photograph. Fresh 2048-pixel renders report no diagnostic for either
 file, and both were visually inspected.
 
+The remaining four targeted image cases are also dispositioned. The invalid
+four-byte JPEG in `issue18042.pdf` is skipped by both renderers; the first three
+engine pages are byte-identical to PDFium. Compatibility recovery now detects
+undeclared CCITT end-of-line markers in `issue5747.pdf` and
+`ccitt_EndOfBlock_false.pdf`. Their fresh 2048-pixel outputs contain the full
+scanned text page and all six fax samples with no diagnostic. It also treats an
+undeclared one-bit DeviceGray `/Mask` stream as grayscale alpha in
+`issue6621.pdf`, restoring the full seal. Strict stream decoding and strict
+mask validation remain unchanged. The three repaired images were visually
+compared with PDFium at matching dimensions.
+
 The audit exposed one current failure in `issue11045.pdf`. Its transparency
 group stores `/CS null`; the CMYK group detector now treats that as an omitted
 optional color space. The file renders again at both 1024 and 2048 pixels.
@@ -129,7 +140,10 @@ regressions by hash alone.
 Raw logs, comparison rankings, and PNGs are archived locally in
 `C:/Users/steve/kp-bench-render/pdfjs-current-1024-20260924`,
 `C:/Users/steve/kp-bench-render/pdfjs-current-2048-pages3-20260924`, and
-`C:/Users/steve/kp-bench-render/pdfjs-pdfium-2048-pages3-20260924`.
+`C:/Users/steve/kp-bench-render/pdfjs-pdfium-2048-pages3-20260924`. Focused
+recovery evidence is in
+`C:/Users/steve/kp-bench-render/ccitt-recovery-20260924` and
+`C:/Users/steve/kp-bench-render/mask-recovery-20260924`.
 
 ## KillerPDF 1.9.0 exact-output speed follow-up
 

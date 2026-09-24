@@ -1599,6 +1599,33 @@ public sealed class PdfPageRendererTests
         Assert.DoesNotContain("Masked-image rendering is not implemented.", page.Diagnostics);
     }
 
+    [Fact]
+    public void Render_CompatibilityRecoveryAcceptsUndeclaredOneBitGrayExplicitMask()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(2, 1, new PdfContentStreamBuilder().DrawImage(
+                PdfImage.FromRgb(2, 1, new byte[]
+                {
+                    255, 0, 0,
+                    0, 255, 0
+                }), 0, 0, 2, 1))
+            .Build());
+        PdfDocument malformed = AddExplicitImageMask(
+            source, [0b0100_0000], declareImageMask: false);
+        var options = new PdfRenderOptions(2, 1, transparentBackground: true,
+            includeAnnotations: false, includeFormFields: false);
+
+        PdfRenderedPage strict = new PdfPageRenderer(malformed).Render(0, options);
+        PdfDocument recoveredDocument = PdfDocument.OpenWithCompatibilityRecovery(
+            PdfDocumentWriter.Write(malformed));
+        PdfRenderedPage recovered = new PdfPageRenderer(recoveredDocument).Render(0, options);
+
+        Assert.Contains("Masked-image rendering is not implemented.", strict.Diagnostics);
+        Assert.Equal([255, 255, 255, 0], Pixel(recovered, 0, 0));
+        Assert.Equal([0, 255, 0, 255], Pixel(recovered, 1, 0));
+        Assert.Empty(recovered.Diagnostics);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -5164,7 +5191,8 @@ public sealed class PdfPageRendererTests
     }
 
     private static PdfDocument AddExplicitImageMask(PdfDocument source, byte[] samples,
-        int width = 2, int height = 1, bool? inverted = null)
+        int width = 2, int height = 1, bool? inverted = null,
+        bool declareImageMask = true)
     {
         PdfDictionary catalog = ResolveDictionary(source, source.Trailer[Name("Root")]);
         PdfDictionary pages = ResolveDictionary(source, catalog[Name("Pages")]);
@@ -5176,13 +5204,24 @@ public sealed class PdfPageRendererTests
             xObjects[Name("Im1")]);
         PdfStream image = Assert.IsType<PdfStream>(source.Resolve(imageReference));
         var update = new PdfIncrementalUpdateBuilder(source);
-        var maskDictionary = new PdfDictionary([
+        var maskEntries = new List<KeyValuePair<PdfName, PdfObject>>
+        {
             new KeyValuePair<PdfName, PdfObject>(Name("Type"), Name("XObject")),
             new KeyValuePair<PdfName, PdfObject>(Name("Subtype"), Name("Image")),
             new KeyValuePair<PdfName, PdfObject>(Name("Width"), new PdfInteger(width)),
-            new KeyValuePair<PdfName, PdfObject>(Name("Height"), new PdfInteger(height)),
-            new KeyValuePair<PdfName, PdfObject>(Name("ImageMask"), new PdfBoolean(true))
-        ]);
+            new KeyValuePair<PdfName, PdfObject>(Name("Height"), new PdfInteger(height))
+        };
+        if (declareImageMask)
+            maskEntries.Add(new KeyValuePair<PdfName, PdfObject>(
+                Name("ImageMask"), new PdfBoolean(true)));
+        else
+        {
+            maskEntries.Add(new KeyValuePair<PdfName, PdfObject>(
+                Name("BitsPerComponent"), new PdfInteger(1)));
+            maskEntries.Add(new KeyValuePair<PdfName, PdfObject>(
+                Name("ColorSpace"), Name("DeviceGray")));
+        }
+        var maskDictionary = new PdfDictionary(maskEntries);
         if (inverted is bool reverse)
             maskDictionary = new PdfDictionary(maskDictionary.Append(
                 new KeyValuePair<PdfName, PdfObject>(Name("Decode"), new PdfArray([

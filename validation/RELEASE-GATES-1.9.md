@@ -1618,3 +1618,28 @@ three targeted renders complete without diagnostics and were visually
 inspected. Validation passes with 4,139 engine tests, 431 app tests, and a
 Release application build with no warnings or errors. Evidence is retained in
 `C:/Users/steve/kp-bench-render/unsupported-recovery-20260924`.
+
+### CCITT and explicit-mask recovery checkpoint (2026-09-24)
+
+Compatibility recovery now retries CCITT data with end-of-line markers when a
+malformed image dictionary omits `/EndOfLine true`. Strict decoding still
+rejects the mismatch. Fresh 2048-pixel renders of `issue5747.pdf` and
+`ccitt_EndOfBlock_false.pdf` complete without diagnostics. Visual comparison
+with PDFium confirms the full scanned text page and all six K=-1, K=0, and K=1
+fax samples. Their mean RGBA channel deltas are 3.776178 and 0.765086 across
+matching output dimensions.
+
+Compatibility recovery also accepts a one-bit DeviceGray image as an explicit
+`/Mask` when the malformed mask stream omits `/ImageMask true`. Its grayscale
+polarity remains separate from standards-compliant stencil-mask polarity.
+`issue6621.pdf` now renders the full West Virginia court seal with no diagnostic
+and matching 2048 by 2048 geometry. Its mean RGBA channel delta from PDFium is
+0.166742. Strict rendering continues to report the malformed mask.
+
+`issue18042.pdf` contains only four bytes, `1234`, where its image dictionary
+claims a 7300 by 7600 JPEG. Both renderers correctly skip that image. The first
+three engine pages are byte-identical to PDFium, so no decoder relaxation is
+warranted. Validation passes with 4,142 engine tests, 431 app tests, and a
+Release application build with no warnings or errors. Evidence is retained in
+`C:/Users/steve/kp-bench-render/ccitt-recovery-20260924` and
+`C:/Users/steve/kp-bench-render/mask-recovery-20260924`.

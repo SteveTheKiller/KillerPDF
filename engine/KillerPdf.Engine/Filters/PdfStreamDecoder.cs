@@ -191,15 +191,31 @@ public static class PdfStreamDecoder
         ReadOnlySpan<byte> encoded, PdfCcittFaxOptions options,
         int maximumDecodedBytes, bool compatibilityRecovery)
     {
-        try
-        {
+        if (!compatibilityRecovery)
             return PdfCcittFaxDecoder.Decode(encoded, options, maximumDecodedBytes);
-        }
-        catch (PdfFilterException) when (compatibilityRecovery && options.EncodedByteAlign)
+
+        PdfCcittFaxOptions[] candidates = options.EndOfLine
+            ? options.EncodedByteAlign
+                ? [options, options with { EncodedByteAlign = false }]
+                : [options]
+            : options.EncodedByteAlign
+                ? [options, options with { EncodedByteAlign = false },
+                    options with { EndOfLine = true },
+                    options with { EndOfLine = true, EncodedByteAlign = false }]
+                : [options, options with { EndOfLine = true }];
+        PdfFilterException? failure = null;
+        foreach (PdfCcittFaxOptions candidate in candidates)
         {
-            return PdfCcittFaxDecoder.Decode(encoded,
-                options with { EncodedByteAlign = false }, maximumDecodedBytes);
+            try
+            {
+                return PdfCcittFaxDecoder.Decode(encoded, candidate, maximumDecodedBytes);
+            }
+            catch (PdfFilterException error)
+            {
+                failure = error;
+            }
         }
+        throw failure!;
     }
 
     private static int PredictorEncodedLimit(
