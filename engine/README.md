@@ -196,6 +196,9 @@ differences, report categories, cancellation, and visual-equivalence limits.
 See [permanent redaction](docs/redaction.md) for candidate review, host-sanitized
 raster rebuilds, selective comment and attachment removal, and verification limits.
 
+See [calibrated measurement](docs/measurement.md) for profiles, geometry,
+snapping, editable dimension annotations, reports, and trust boundaries.
+
 ## Repository layout
 
 ```text
