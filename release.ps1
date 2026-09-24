@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    KillerPDF release script: build payload → sign inner app → pack launcher → sign launcher → verify → publish.
+    KillerPDF release script: build payload, sign inner app, pack launcher, sign launcher, verify, and publish.
 .DESCRIPTION
     1. Builds the ordinary multi-file KillerPDF.App payload without Costura/Fody weaving.
     2. Signs KillerPDF.App.exe, regenerates its hash manifest, compresses that payload once,
@@ -45,6 +45,10 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+if ($SkipSign -and -not $DryRun) {
+    throw "-SkipSign is only allowed with -DryRun. Unsigned artifacts cannot be published."
+}
+
 $proj         = Join-Path $PSScriptRoot "KillerPDF.csproj"
 $publishDir   = Join-Path $PSScriptRoot "bin\Release\net10.0-windows\publish"
 $portableExe   = Join-Path $publishDir "KillerPDF-Portable.exe"
@@ -85,6 +89,66 @@ function Get-DefaultBranch {
     return $null
 }
 
+function Assert-ReleaseArtifactVersion([string]$Path, [string]$ExpectedVersion) {
+    if (-not [IO.File]::Exists($Path)) { throw "Release artifact not found at: $Path" }
+    $actualVersion = [Reflection.AssemblyName]::GetAssemblyName($Path).Version.ToString()
+    if ($actualVersion -ne $ExpectedVersion) {
+        throw "Release artifact $([IO.Path]::GetFileName($Path)) is version $actualVersion, expected $ExpectedVersion. Rebuild before publishing."
+    }
+}
+
+function Test-ReleaseArtifacts(
+    [string]$InstallerPath,
+    [string]$PortablePath,
+    [string]$ExpectedVersion,
+    [bool]$RequireValidSignature
+) {
+    Write-Host "`n==> Testing final release artifacts..." -ForegroundColor Cyan
+    foreach ($artifact in @($InstallerPath, $PortablePath)) {
+        Assert-ReleaseArtifactVersion $artifact $ExpectedVersion
+        if ($RequireValidSignature) {
+            $signature = Get-AuthenticodeSignature -LiteralPath $artifact
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+                throw "Authenticode validation failed for $artifact with status $($signature.Status)."
+            }
+        }
+    }
+
+    $portableProcess = Start-Process -FilePath $PortablePath -ArgumentList '--version' -Wait -PassThru
+    if ($portableProcess.ExitCode -ne 0) {
+        throw "Portable startup smoke test failed with exit code $($portableProcess.ExitCode)."
+    }
+
+    $installRoot = Join-Path $env:TEMP ('KillerPDF-release-install-' + [Guid]::NewGuid().ToString('N'))
+    $previousTestRoot = [Environment]::GetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT')
+    $previousSkipRegistration = [Environment]::GetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION')
+    try {
+        [Environment]::SetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT', $installRoot)
+        [Environment]::SetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION', '1')
+        $installProcess = Start-Process -FilePath $InstallerPath -ArgumentList '/install-user' -Wait -PassThru
+        if ($installProcess.ExitCode -ne 0) {
+            throw "Signed installer smoke test failed with exit code $($installProcess.ExitCode)."
+        }
+
+        $installedExe = Join-Path $installRoot 'KillerPDF.App.exe'
+        $installedAssembly = Join-Path $installRoot 'KillerPDF.App.dll'
+        Assert-ReleaseArtifactVersion $installedAssembly $ExpectedVersion
+        if (-not [IO.File]::Exists($installedExe)) {
+            throw "Signed installer smoke test did not install KillerPDF.App.exe."
+        }
+        $installedProcess = Start-Process -FilePath $installedExe -ArgumentList '--version' -Wait -PassThru
+        if ($installedProcess.ExitCode -ne 0) {
+            throw "Installed application startup smoke test failed with exit code $($installedProcess.ExitCode)."
+        }
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable('KILLERPDF_TEST_INSTALL_ROOT', $previousTestRoot)
+        [Environment]::SetEnvironmentVariable('KILLERPDF_SKIP_REGISTRATION', $previousSkipRegistration)
+        if ([IO.Directory]::Exists($installRoot)) { [IO.Directory]::Delete($installRoot, $true) }
+    }
+    Write-Host "    Installer, installed app, and portable startup checks passed." -ForegroundColor Green
+}
+
 Write-Host "`n==> Release metadata preflight..." -ForegroundColor Cyan
 $csprojRaw = Get-Content -Path $proj -Raw
 if ($csprojRaw -notmatch '<Version>([0-9]+\.[0-9]+\.[0-9]+)</Version>') {
@@ -123,6 +187,16 @@ if ($releaseDate -ne $changelogDate) {
 }
 Write-Host "    Release date: $releaseDate"
 
+Write-Host "`n==> Auditing package vulnerabilities..." -ForegroundColor Cyan
+$auditOutput = @(dotnet list $proj package --vulnerable --include-transitive 2>&1)
+$auditExitCode = $LASTEXITCODE
+$auditText = ($auditOutput | Out-String).TrimEnd()
+if ($auditText) { Write-Host $auditText }
+if ($auditExitCode -ne 0) { throw "Package vulnerability audit failed to run." }
+if ($auditText -match '(?i)has the following vulnerable packages') {
+    throw "Vulnerable packages were found. Update them before releasing."
+}
+
 Write-Host "`n==> Git preflight..." -ForegroundColor Cyan
 Push-Location $PSScriptRoot
 try {
@@ -147,15 +221,19 @@ try {
     Pop-Location
 }
 
-Write-Host "`n==> Checking WinGet fork synchronization..." -ForegroundColor Cyan
-gh api --method POST repos/SteveTheKiller/winget-pkgs/merge-upstream -f branch=master
-if ($LASTEXITCODE -ne 0) {
-    throw "WinGet fork synchronization failed. Resolve the GitHub API error above before publishing."
+if ($DryRun) {
+    Write-Host "`n==> DryRun: skipping WinGet fork synchronization." -ForegroundColor Yellow
+} else {
+    Write-Host "`n==> Checking WinGet fork synchronization..." -ForegroundColor Cyan
+    gh api --method POST repos/SteveTheKiller/winget-pkgs/merge-upstream -f branch=master
+    if ($LASTEXITCODE -ne 0) {
+        throw "WinGet fork synchronization failed. Resolve the GitHub API error above before publishing."
+    }
 }
 
 if (-not $PublishOnly) {
 
-# ── 0. SimplySign preflight ──────────────────────────────────────────────────
+# 0. SimplySign preflight
 if (-not $SkipSign) {
     $ssProc = Get-Process -Name "SimplySignDesktop" -ErrorAction SilentlyContinue
     if (-not $ssProc) {
@@ -169,7 +247,7 @@ if (-not $SkipSign) {
     }
 }
 
-# ── 0. Translation parity ───────────────────────────────────────────────────
+# 0. Translation parity
 # Every localization must carry the complete English key set, and the placeholders have to match:
 # a translation loads perfectly and still throws at runtime when string.Format is handed a value
 # the translation dropped or renumbered. Ported from KillerNotes, which took it from Killendar.
@@ -251,9 +329,9 @@ foreach ($locale in $siteLocales) {
 }
 Write-Host "    Landing translations OK: $($requiredSiteKeys.Count) used keys across $($siteLocales.Count) locales" -ForegroundColor Green
 
-# ── 1. Build the portable and installed packages ─────────────────────────────
+# 1. Build the portable and installed packages
 Write-Host "`n==> Building portable and installer packages..." -ForegroundColor Cyan
-& powershell -NoProfile -ExecutionPolicy Bypass -File $packageBuild -RequireSignature
+& powershell -NoProfile -ExecutionPolicy Bypass -File $packageBuild -RequireSignature:$(-not $SkipSign)
 if ($LASTEXITCODE -ne 0) { throw "Package build failed." }
 foreach ($artifact in @($portableExe, $installerExe) + $innerExes) {
     if (-not (Test-Path $artifact)) { throw "Release artifact not found at: $artifact" }
@@ -261,7 +339,7 @@ foreach ($artifact in @($portableExe, $installerExe) + $innerExes) {
 Write-Host "    Portable : $portableExe" -ForegroundColor Green
 Write-Host "    Installer: $installerExe" -ForegroundColor Green
 
-# ── 3. Sign ─────────────────────────────────────────────────────────────────
+# 3. Sign
 if (-not $SkipSign) {
     Write-Host "`n==> Locating signtool..." -ForegroundColor Cyan
     $signtool = $null
@@ -317,7 +395,7 @@ if (-not $SkipSign) {
         if (-not $signed) { throw "Signing failed on all TSA endpoints: $publicExe" }
     }
 
-    # ── Post-sign verification gate ─────────────────────────────────────────
+    # Post-sign verification gate
     Write-Host "`n==> Verifying signature chain (/pa)..." -ForegroundColor Cyan
     foreach ($publicExe in @($portableExe, $installerExe)) {
         & $signtool verify /pa /v $publicExe
@@ -365,37 +443,51 @@ if ($LASTEXITCODE -ne 0) { throw "Source bundle failed." }
 } else {
     # PublishOnly: the artifacts from the last full run are the release.
     Write-Host "`n==> PublishOnly: skipping build and sign, using existing artifacts." -ForegroundColor Yellow
+    $expectedAssemblyVersion = "$Version.0"
     foreach ($artifact in @($portableExe, $installerExe)) {
-        if (-not (Test-Path $artifact)) { throw "PublishOnly: no built artifact at $artifact" }
+        Assert-ReleaseArtifactVersion $artifact $expectedAssemblyVersion
     }
     $actualThumb = "(existing signature)"
     $actualCN    = "(existing signature)"
 }
 
-# ── 4. SHA256 (final EXEs) ──────────────────────────────────────────────────
+# 4. SHA256 (final EXEs)
+$expectedAssemblyVersion = "$Version.0"
+Test-ReleaseArtifacts $installerExe $portableExe $expectedAssemblyVersion (-not $SkipSign)
+
 Write-Host "`n==> Computing final EXE SHA256 values..." -ForegroundColor Cyan
 $portableHash  = (Get-FileHash $portableExe -Algorithm SHA256).Hash
 $installerHash = (Get-FileHash $installerExe -Algorithm SHA256).Hash
 Write-Host "    KillerPDF-Portable.exe : $portableHash" -ForegroundColor Green
 Write-Host "    KillerPDF.exe          : $installerHash" -ForegroundColor Green
 
-# ── 5. Source zip ────────────────────────────────────────────────────────────
-$srcZip = Get-ChildItem $publishDir -Filter "*-src.zip" -ErrorAction SilentlyContinue |
-          Sort-Object LastWriteTime -Descending | Select-Object -First 1
-
-if ($srcZip) {
-    Write-Host "`n==> Source zip: $($srcZip.FullName)" -ForegroundColor Green
-} else {
-    Write-Host "`n    (No source zip found - did bundle-source.ps1 run?)" -ForegroundColor Yellow
+# 5. Source zip
+$srcZipPath = Join-Path $publishDir "KillerPDF-$Version-src.zip"
+if (-not [IO.File]::Exists($srcZipPath)) {
+    throw "The exact source archive for $Version is missing: $srcZipPath"
 }
+$srcZip = Get-Item -LiteralPath $srcZipPath
+Write-Host "`n==> Source zip: $($srcZip.FullName)" -ForegroundColor Green
 
-# ── 6. Write SHA256SUMS.txt ──────────────────────────────────────────────────
+# 6. Write SHA256SUMS.txt
 # Written into the publish folder next to both public executables and the source archive, so every file you
 # upload to the GitHub release is in one place. The updater reads this from the release assets.
 $sumsPath = Join-Path $publishDir "SHA256SUMS.txt"
 if ($PublishOnly -and (Test-Path $sumsPath)) {
-    # Keep the full-run file produced by the signed package build.
-    Write-Host "`n==> PublishOnly: keeping existing SHA256SUMS.txt." -ForegroundColor Yellow
+    # Keep the full-run file only after proving it belongs to these exact artifacts.
+    $srcHash = (Get-FileHash $srcZip.FullName -Algorithm SHA256).Hash
+    $sumsRaw = Get-Content -LiteralPath $sumsPath -Raw
+    foreach ($expected in @(
+        @{ Name = 'KillerPDF.exe'; Hash = $installerHash },
+        @{ Name = 'KillerPDF-Portable.exe'; Hash = $portableHash },
+        @{ Name = $srcZip.Name; Hash = $srcHash }
+    )) {
+        $pattern = '(?im)^' + [regex]::Escape($expected.Name) + '\s+' + [regex]::Escape($expected.Hash) + '\s*$'
+        if ($sumsRaw -notmatch $pattern) {
+            throw "SHA256SUMS.txt does not match $($expected.Name). Run a full release build before publishing."
+        }
+    }
+    Write-Host "`n==> PublishOnly: existing checksums match the exact release artifacts." -ForegroundColor Green
 } else {
 $lines    = [System.Collections.Generic.List[string]]::new()
 $lines.Add("KillerPDF.exe           $installerHash")
@@ -408,8 +500,8 @@ if ($srcZip) {
 Write-Host "`n==> SHA256SUMS.txt written to: $sumsPath" -ForegroundColor Green
 }
 
-# ── 7. Summary ───────────────────────────────────────────────────────────────
-Write-Host "`n╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+# 7. Summary
+Write-Host "`n==============================================================" -ForegroundColor Cyan
 Write-Host   "  KillerPDF release artifacts" -ForegroundColor White
 Write-Host   "  SETUP   : $installerExe"
 Write-Host   "  PORTABLE: $portableExe"
@@ -423,7 +515,7 @@ Write-Host   "  Thumbprint: $actualThumb"
 Write-Host   ""
 Write-Host   "  pdf-landing's hero (version/date/size/sha256) is updated automatically"
 Write-Host   "  in the publish preflight below - no hand-pasting."
-Write-Host "╚══════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "==============================================================" -ForegroundColor Cyan
 
 # ============================================================================
 # Publish phases (ported from the KillerNotes release script): notes from the
@@ -431,7 +523,7 @@ Write-Host "╚═════════════════════�
 # .github/workflows/winget-release.yml, the single WinGet submission path.
 # ============================================================================
 
-# ── 8. Version + publish preflight ───────────────────────────────────────────
+# 8. Version + publish preflight
 Write-Host "`n==> Publish preflight..." -ForegroundColor Cyan
 $csprojRaw = Get-Content -Path $proj -Raw
 if ($csprojRaw -notmatch '<Version>([0-9]+\.[0-9]+\.[0-9]+)</Version>') {
@@ -463,13 +555,13 @@ try {
         } else {
             Write-Host "    Updating README source link to $Tag"
             [System.IO.File]::WriteAllText($readmePath, $readmeNew)
-            git commit README.md -m "Point README source link at $Tag" --quiet
+            git commit README.md -m "v${Version}: point README source link at release" --quiet
             git push origin $defaultBranch --quiet
             if ($LASTEXITCODE -ne 0) { throw "README source-link commit failed to push" }
         }
     }
 
-    # ── Landing page release info (pdf-landing) ──────────────────────────────
+    # Landing page release info (pdf-landing)
     # Ported from Killendar's release.ps1 step 7 (the family standard - KillerNotes has it
     # too; KillerPDF was the odd one out and its hero went stale by hand every release).
     # killerpdf.net is a MANUAL Cloudflare Pages drop, so nothing here deploys - the hero
@@ -595,7 +687,7 @@ try {
 
     Write-Host "    Preflight OK" -ForegroundColor Green
 
-    # ── 9. Release notes from the CHANGELOG section ──────────────────────────
+    # 9. Release notes from the CHANGELOG section
     Write-Host "`n==> Extracting release notes from CHANGELOG.md..." -ForegroundColor Cyan
     $clLines = Get-Content -Path (Join-Path $PSScriptRoot 'CHANGELOG.md')
     $notes = New-Object System.Collections.Generic.List[string]
@@ -616,13 +708,13 @@ try {
         exit 0
     }
 
-    # ── 10. Tag + push ───────────────────────────────────────────────────────
+    # 10. Tag + push
     Write-Host "`n==> Tagging $Tag..." -ForegroundColor Cyan
     git tag -a $Tag -m "KillerPDF $Tag"
     git push origin $Tag
     if ($LASTEXITCODE -ne 0) { throw "Tag push failed" }
 
-    # ── 11. GitHub release ───────────────────────────────────────────────────
+    # 11. GitHub release
     Write-Host "`n==> Creating GitHub release..." -ForegroundColor Cyan
     $assets = @($installerExe, $portableExe)
     if ($srcZip) { $assets += $srcZip.FullName }
