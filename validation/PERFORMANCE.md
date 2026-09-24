@@ -68,6 +68,56 @@ Raw metrics and PNGs are archived locally in
 `C:/Users/steve/kp-bench-render/visual-multipage-isolated-20260924`, and
 `C:/Users/steve/kp-bench-render/visual-targeted-isolated-20260924`.
 
+## KillerPDF 1.9.0 expanded PDFjs audit
+
+Measured September 24, 2026, at 2048 pixels and up to three pages per file.
+The current PDFjs corpus contains 977 of the 979 files in the retained September
+7 run. `test/pdfs/empty#hash.pdf` and
+`web/compressed.tracemonkey-pldi-09.pdf` are no longer present locally.
+
+| Outcome | 1.8.x PDFium | 1.9.0 engine |
+| --- | ---: | ---: |
+| Rendered pages | 1,092 | 1,099 |
+| Skipped files | 21 | 18 |
+| Failed pages | 3 | 0 |
+
+There are 1,090 shared PNGs. Dimensions match on 1,089. The exception is page
+two of malformed `boundingBox_invalid.pdf`: the engine uses 1582 by 2048 while
+PDFium uses 2048 by 1536. Both paint the expected `Empty /CropBox` label, but
+the geometry difference remains open.
+
+For ranking only, each dimension-matched pair was reduced to a 256-pixel
+thumbnail before measuring mean RGB channel difference. The median is 0.0704;
+887 of 1,089 pairs are below 1, 996 are below 5, and 138 thumbnail pairs are
+identical. These thumbnail measurements find review targets and are not a
+pixel-equivalence gate.
+
+The largest differences were inspected in both outputs. They include known
+unsupported image diagnostics in `xobject-image.pdf` and
+`issue12841_reduced.pdf`; JBIG2 cases where the engine paints the test image and
+PDFium paints a black rectangle; expected calibrated-gray and CMYK color
+conversion differences; and `issue13343.pdf`, where the engine paints CJK text
+that PDFium omits. These are recorded as file-specific follow-ups rather than
+hidden behind a shared tolerance.
+
+The audit exposed one current failure in `issue11045.pdf`. Its transparency
+group stores `/CS null`; the CMYK group detector now treats that as an omitted
+optional color space. The file renders again at both 1024 and 2048 pixels.
+Commit `5d7692a` passes all 4,122 engine tests, all 431 app tests, and a clean
+Release build.
+
+The retained 1024-pixel hashes are no longer a valid all-output invariant. Of
+957 historical successful pages whose source and current output are available,
+247 current PNGs remain byte-identical. Renderer changes since September 7
+include intentional font, annotation, recovery, color, and antialiasing work,
+so changed hashes require file-specific review and are not classified as
+regressions by hash alone.
+
+Raw logs, comparison rankings, and PNGs are archived locally in
+`C:/Users/steve/kp-bench-render/pdfjs-current-1024-20260924`,
+`C:/Users/steve/kp-bench-render/pdfjs-current-2048-pages3-20260924`, and
+`C:/Users/steve/kp-bench-render/pdfjs-pdfium-2048-pages3-20260924`.
+
 ## KillerPDF 1.9.0 exact-output speed follow-up
 
 September 8, 2026. Six engine and app commits (`d92dc82` through `f8b9343`) speed
