@@ -144,6 +144,64 @@ public sealed class OcrModelFilesTests
         }
     }
 
+    [Fact]
+    public void AutomaticSelectionPrefersACompleteEngineBackend()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            WriteEngineModel(directory, "eng");
+            File.WriteAllBytes(Path.Combine(directory, "eng.traineddata"), []);
+
+            Assert.Equal("engine", OcrModelFiles.SelectProvider(directory, ["eng"]));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ExplicitTesseractSelectionOverridesTheEngineBackend()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            WriteEngineModel(directory, "eng");
+            File.WriteAllBytes(Path.Combine(directory, "eng.traineddata"), []);
+
+            Assert.Equal("tesseract", OcrModelFiles.SelectProvider(directory, ["eng"],
+                new PdfOcrProviderPreference("tesseract")));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ExplicitSelectionRejectsAnIncompleteLanguageSet()
+    {
+        string directory = CreateDirectory();
+        try
+        {
+            WriteEngineModel(directory, "eng");
+            File.WriteAllBytes(Path.Combine(directory, "eng.traineddata"), []);
+            File.WriteAllBytes(Path.Combine(directory, "spa.traineddata"), []);
+
+            InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
+                OcrModelFiles.SelectProvider(directory, ["eng", "spa"],
+                    new PdfOcrProviderPreference("engine")));
+            Assert.Contains("not installed", error.Message, StringComparison.Ordinal);
+            Assert.Equal("tesseract",
+                OcrModelFiles.SelectProvider(directory, ["eng", "spa"]));
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static string CreateDirectory()
     {
         string directory = Path.Combine(Path.GetTempPath(), "KillerPDF.Tests", Guid.NewGuid().ToString("N"));

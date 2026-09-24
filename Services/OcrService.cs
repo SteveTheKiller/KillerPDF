@@ -12,6 +12,7 @@ namespace KillerPDF.Services
         private readonly string _dataPath;
         private readonly string _language;
         private readonly bool _usesDefaultDataPath;
+        private readonly string _selectedProviderId;
         private readonly IPdfOcrRasterProvider? _engineProvider;
         private readonly PdfOcrLanguageModel? _engineLanguageModel;
         private readonly PdfOcrOptions _engineRasterOptions;
@@ -19,7 +20,8 @@ namespace KillerPDF.Services
 
         /// <param name="tessDataPath">Folder holding installed OCR models. Defaults to the persistent OCR model folder.</param>
         /// <param name="language">Tesseract language code(s), e.g. "eng" or "eng+ben".</param>
-        public OcrService(string? tessDataPath = null, string language = "eng")
+        public OcrService(string? tessDataPath = null, string language = "eng",
+            PdfOcrProviderPreference? providerPreference = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(language);
             _usesDefaultDataPath = tessDataPath is null;
@@ -29,7 +31,9 @@ namespace KillerPDF.Services
                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
                 deskew: false, correctOrientation: false, removeBackground: true,
                 removeNoise: true, detectPageSegments: true);
-            if (PdfOcrRecognitionModelFiles.TryCreateCatalog(
+            _selectedProviderId = OcrModelFiles.SelectProvider(_dataPath,
+                _engineRasterOptions.Languages, providerPreference);
+            if (_selectedProviderId == "engine" && PdfOcrRecognitionModelFiles.TryCreateCatalog(
                 _dataPath, language, out PdfOcrRecognitionModelCatalog? models))
             {
                 PdfOcrRecognitionModelFiles.TryLoadLanguageCombined(
@@ -39,6 +43,8 @@ namespace KillerPDF.Services
                     _ => _engineLanguageModel);
             }
         }
+
+        internal string SelectedProviderId => _selectedProviderId;
 
         /// <summary>
         /// OCR a rendered page straight from the render pipeline (raw BGRA, 4 bytes/pixel).
