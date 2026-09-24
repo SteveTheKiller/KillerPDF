@@ -11,7 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Hardened native library loading and release artifact verification.
-- Rounded flyout corners in every modern theme.
+- Rounded modern flyout corners and restored category colors in the shortcut list.
 - Corrected 98SE document tab shading and bounded tab widths.
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
 - Kept text editing active while choosing a font from the dropdown (#428).

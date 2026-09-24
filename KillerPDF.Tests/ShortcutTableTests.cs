@@ -257,5 +257,16 @@ namespace KillerPDF.Tests
             Assert.True(offenders.Count == 0,
                 "these rows still carry hardcoded English key names: " + string.Join(" | ", offenders));
         }
+
+        [Fact]
+        public void ListHeadingsUseTheKeyboardMapCategoryBrushes()
+        {
+            string source = File.ReadAllText(Path.Combine(RepoRoot(), "Shell", "ShortcutsOverlay.cs"));
+
+            Assert.Contains(
+                "header.SetResourceReference(TextBlock.ForegroundProperty, \"KsCat\" + section.Cat);",
+                source,
+                StringComparison.Ordinal);
+        }
     }
 }
