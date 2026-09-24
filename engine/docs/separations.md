@@ -92,9 +92,9 @@ made transparent, or covered by other content.
 The inventory is not a complete preflight of every possible color source. In
 particular, do not rely on it alone to classify process channels inside image
 samples, patterns, shadings, ICC-based conversions, or other alternate color
-paths. `PdfPrintProductionReport` combines page box, output-intent, and
-separation facts, but an independent prepress tool is still required when
-complete production evidence matters.
+paths. The [print-production report](print-production.md) combines page box,
+output-intent, and separation facts, but an independent prepress tool is still
+required when complete production evidence matters.
 
 ## Failure behavior
 

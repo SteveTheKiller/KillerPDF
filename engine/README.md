@@ -202,6 +202,9 @@ snapping, editable dimension annotations, reports, and trust boundaries.
 See [separation inspection and preview planning](docs/separations.md) for used
 plate inventory, validated page selections, rendering boundaries, and failures.
 
+See [print-production reports](docs/print-production.md) for effective page
+boxes, colorants, output intents, preflight, and approval boundaries.
+
 ## Repository layout
 
 ```text
