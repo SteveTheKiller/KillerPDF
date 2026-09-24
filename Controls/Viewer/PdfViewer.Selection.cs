@@ -433,15 +433,27 @@ namespace KillerPDF.Controls
         /// nothing to flow along, and this is also what the annotation box-select falls back to.</summary>
         private void ExtractTextFromRegion(int pageIdx, Rect canvasBounds)
         {
-            if (_currentFile is null || pageIdx < 0) return;
-            if (!_renderDims.TryGetValue(pageIdx, out var renderDimensions)) return;
+            if (_currentFile is null || pageIdx < 0)
+            {
+                ClearTextSelection();
+                return;
+            }
+            if (!_renderDims.TryGetValue(pageIdx, out var renderDimensions))
+            {
+                ClearTextSelection();
+                return;
+            }
 
             try
             {
                 var (renderW, renderH) = renderDimensions;
 
                 using var pigDoc = PdfPigDoc.Open(_currentFile);
-                if (pageIdx >= pigDoc.NumberOfPages) return;
+                if (pageIdx >= pigDoc.NumberOfPages)
+                {
+                    ClearTextSelection();
+                    return;
+                }
                 var page = pigDoc.GetPage(pageIdx + 1); // PdfPig is 1-based
 
                 double pdfW = page.Width;
