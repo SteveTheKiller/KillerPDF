@@ -205,6 +205,9 @@ plate inventory, validated page selections, rendering boundaries, and failures.
 See [print-production reports](docs/print-production.md) for effective page
 boxes, colorants, output intents, preflight, and approval boundaries.
 
+See [RFC 3161 timestamp integration](docs/timestamping.md) for signature
+timestamps, document-timestamp verification, host duties, and writer limits.
+
 ## Repository layout
 
 ```text
