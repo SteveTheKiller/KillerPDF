@@ -100,6 +100,20 @@ public sealed class PdfPageRendererFormAppearanceTests
         Assert.DoesNotContain(actual.Diagnostics, text => text.Contains("not implemented"));
     }
 
+    [Fact]
+    public void RegenerationAddsMissingTextSectionWithoutRemovingArtwork()
+    {
+        var options = new PdfRenderOptions(120, 40);
+        var expected = new PdfPageRenderer(Create(true, "", false, false, artwork: true))
+            .Render(0, options);
+        var actual = new PdfPageRenderer(Create(true, "", false, false, artwork: true,
+            missingTextSection: true)).Render(0, options);
+
+        Assert.Equal(expected.Pixels.ToArray(), actual.Pixels.ToArray());
+        Assert.Contains("A requested form-field text appearance was regenerated.", actual.Diagnostics);
+        Assert.DoesNotContain(actual.Diagnostics, text => text.Contains("not implemented"));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -263,7 +277,8 @@ public sealed class PdfPageRendererFormAppearanceTests
         bool choice, int flags = 0, string defaultAppearance = "0 g /F1 11 Tf",
         bool artwork = false, bool inheritedResources = false, bool missingAppearance = false,
         string? borderStyle = null, int annotationFlags = 0, string textValue = "Man",
-        double? widgetBorderWidth = null, int alignment = 0, int? maximumLength = null)
+        double? widgetBorderWidth = null, int alignment = 0, int? maximumLength = null,
+        bool missingTextSection = false)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(120, 40).Build());
         PdfPageTree tree = PdfPageTree.Read(source);
@@ -285,8 +300,9 @@ public sealed class PdfPageRendererFormAppearanceTests
             "U" => "q 0 G 2 w 0 1 m 120 1 l S Q",
             _ => ""
         };
+        string textSection = missingTextSection ? "" : $"/Tx BMC {previousText} EMC";
         var appearance = update.AddObject(new PdfStream(appearanceDictionary, Encoding.ASCII.GetBytes(
-            $"1 1 0 rg 0 0 120 40 re f {borderContent} {outsideText} /Tx BMC {previousText} EMC")));
+            $"1 1 0 rg 0 0 120 40 re f {borderContent} {outsideText} {textSection}")));
         var parentDictionary = D(("FT", N(choice ? "Ch" : "Tx")),
             ("Q", new PdfInteger(alignment)),
             ("V", S(choice ? "export" : textValue)), ("DA", S(defaultAppearance)),

@@ -259,7 +259,8 @@ public sealed partial class PdfPageRenderer
             }
             else output.Add(instruction);
         }
-        if (!replaced || markedDepth != 0) return Unsupported("missing or unbalanced text appearance section");
+        if (markedDepth != 0) return Unsupported("unbalanced text appearance section");
+        if (!replaced) output.AddRange(replacement);
         resourceEntries[Name("Font")] = new PdfDictionary(fonts);
         var dictionary = new Dictionary<PdfName, PdfObject>(saved.Dictionary);
         dictionary.Remove(Name("Filter"));
