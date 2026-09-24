@@ -504,8 +504,8 @@ namespace KillerPDF.Controls
                 double sy = EnsureEngineDocumentSession().Pages[pageIdx].Height / rdims.h;
                 if (sy > 0) fontCanvas = _textFontSize / sy;
             }
-            // A default-size box dropped at the click point. Width is fixed (text wraps to it) and the
-            // box auto-grows downward as you type; resize the width later via the corner handles.
+            // Center the first line on the I-beam hotspot. The TextBox top edge previously started at
+            // the hotspot, which made the typed text appear about half a line below the click.
             var tb = new TextBox
             {
                 Background = TextEditBackground(),
@@ -525,7 +525,7 @@ namespace KillerPDF.Controls
                 Tag = pageIdx
             };
             Canvas.SetLeft(tb, pos.X);
-            Canvas.SetTop(tb, pos.Y);
+            Canvas.SetTop(tb, EditableTextShortcutPolicy.TextBoxTop(pos.Y, fontCanvas));
             TextEditorLayerFor(_activeCanvas).Children.Add(tb);
             _activeTextBox = tb;
             StyleEditBox(tb);   // current typeface + B/I/S
@@ -628,8 +628,7 @@ namespace KillerPDF.Controls
             return null;
         }
 
-        // Attached as PreviewKeyDown (tunneling) so Enter is caught before the TextBox inserts a line
-        // break: Enter commits, Shift+Enter falls through to make a newline (the box is AcceptsReturn).
+        // Enter inserts a line break. Ctrl+Enter commits the text box without requiring a pointer click.
         private void TextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Escape)
@@ -646,7 +645,7 @@ namespace KillerPDF.Controls
                 CancelActiveTextEdit();
                 e.Handled = true;
             }
-            else if (e.Key == Key.Enter && Keyboard.Modifiers != ModifierKeys.Shift)
+            else if (EditableTextShortcutPolicy.CommitsTextBox(e.Key, Keyboard.Modifiers))
             {
                 CommitActiveTextBox();
                 e.Handled = true;

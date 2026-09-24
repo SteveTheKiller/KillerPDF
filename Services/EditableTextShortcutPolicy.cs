@@ -5,6 +5,12 @@ namespace KillerPDF.Services;
 /// <summary>Separates text-editing gestures from window-level application shortcuts.</summary>
 internal static class EditableTextShortcutPolicy
 {
+    internal static bool CommitsTextBox(Key key, ModifierKeys modifiers) =>
+        key == Key.Enter && (modifiers & ModifierKeys.Control) == ModifierKeys.Control;
+
+    internal static double TextBoxTop(double pointerY, double fontSize) =>
+        Math.Max(0, pointerY - Math.Max(0, fontSize) / 2.0);
+
     internal static bool KeepInTextBox(Key key, ModifierKeys modifiers,
         Key systemKey = Key.None)
     {
