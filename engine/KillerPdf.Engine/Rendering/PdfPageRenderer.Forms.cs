@@ -172,39 +172,62 @@ public sealed partial class PdfPageRenderer
         int fontIndex = 0;
         do { fontName = Name($"KpFieldFont{fontIndex++}"); } while (fonts.ContainsKey(fontName));
         fonts[fontName] = fontValue;
-        if (IsName(font, "Subtype", "Type0")) return Unsupported("composite-font text encoding");
         var extraction = ReadFont(font);
-        var encoding = new Dictionary<string, byte>(StringComparer.Ordinal);
-        for (int code = 0; code < 256; code++)
+        var encoding = new Dictionary<string, (byte[] Bytes, uint Code)>(StringComparer.Ordinal);
+        if (IsName(font, "Subtype", "Type0"))
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            var decoded = extraction.Decode(new byte[] { (byte)code });
-            if (decoded.Count == 1 && decoded[0].Text.Length > 0 && decoded[0].Text != "\uFFFD")
-                encoding.TryAdd(decoded[0].Text, (byte)code);
+            foreach (var mapping in extraction.Unicode.Mappings)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (mapping.Text.Length == 0 || mapping.Text == "\uFFFD") continue;
+                var bytes = new byte[mapping.ByteLength];
+                uint value = mapping.Code;
+                for (int index = bytes.Length - 1; index >= 0; index--)
+                {
+                    bytes[index] = (byte)value;
+                    value >>= 8;
+                }
+                encoding.TryAdd(mapping.Text, (bytes, mapping.Code));
+            }
+        }
+        else
+        {
+            for (int code = 0; code < 256; code++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var decoded = extraction.Decode(new byte[] { (byte)code });
+                if (decoded.Count == 1 && decoded[0].Text.Length > 0 && decoded[0].Text != "\uFFFD")
+                    encoding.TryAdd(decoded[0].Text, (new byte[] { (byte)code }, (uint)code));
+            }
         }
         var encodedLines = new List<byte[]>(textLines.Length);
+        var glyphLines = new List<List<(byte[] Bytes, uint Code)>>(textLines.Length);
         var advances = new List<double>(textLines.Length);
         foreach (string line in textLines)
         {
             var encodedLine = new List<byte>(line.Length);
+            var glyphLine = new List<(byte[] Bytes, uint Code)>(line.Length);
             double lineAdvance = 0;
             foreach (Rune rune in line.EnumerateRunes())
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (combCells > 0 && encodedLine.Count == combCells)
+                if (combCells > 0 && glyphLine.Count == combCells)
                 {
                     diagnostics.Add("A comb field value exceeded MaxLen; only the declared cells were rendered.");
                     break;
                 }
-                if (!encoding.TryGetValue(rune.ToString(), out byte code))
+                if (!encoding.TryGetValue(rune.ToString(), out var glyph))
                     return Unsupported("unmapped field character");
-                encodedLine.Add(code);
-                lineAdvance += extraction.GetWidth(code) / 1000;
+                encodedLine.AddRange(glyph.Bytes);
+                glyphLine.Add(glyph);
+                lineAdvance += extraction.GetWidth(glyph.Code) / 1000;
             }
             encodedLines.Add(encodedLine.ToArray());
+            glyphLines.Add(glyphLine);
             advances.Add(lineAdvance);
         }
         byte[] encoded = encodedLines[0];
+        List<(byte[] Bytes, uint Code)> glyphs = glyphLines[0];
         double advance = advances[0];
         if (!saved.Dictionary.TryGetValue(Name("BBox"), out PdfObject? boundsValue))
             return Unsupported("missing saved appearance bounds");
@@ -227,8 +250,8 @@ public sealed partial class PdfPageRenderer
         {
             double longestAdvance = advances.Count == 0 ? 0 : advances.Max();
             size = Math.Min(multiline || listBox ? interiorHeight / Math.Max(1, encodedLines.Count) : interiorHeight,
-                combCells > 0 && encoded.Length > 0
-                    ? interiorWidth / combCells / Math.Max(0.001, encoded.Max(code => extraction.GetWidth(code) / 1000))
+                combCells > 0 && glyphs.Count > 0
+                    ? interiorWidth / combCells / Math.Max(0.001, glyphs.Max(glyph => extraction.GetWidth(glyph.Code) / 1000))
                     : longestAdvance > 0 ? interiorWidth / longestAdvance : interiorHeight);
         }
         int alignment = Field("Q") is PdfInteger q ? (int)q.Value : 0;
@@ -272,18 +295,18 @@ public sealed partial class PdfPageRenderer
             double cellWidth = interiorWidth / combCells;
             int firstCell = alignment switch
             {
-                1 => (combCells - encoded.Length) / 2,
-                2 => combCells - encoded.Length,
+                1 => (combCells - glyphs.Count) / 2,
+                2 => combCells - glyphs.Count,
                 _ => 0
             };
-            for (int index = 0; index < encoded.Length; index++)
+            for (int index = 0; index < glyphs.Count; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                byte code = encoded[index];
-                double glyphWidth = extraction.GetWidth(code) * size / 1000;
+                var glyph = glyphs[index];
+                double glyphWidth = extraction.GetWidth(glyph.Code) * size / 1000;
                 double cellX = left + inset + (firstCell + index + 0.5) * cellWidth - glyphWidth / 2;
                 replacement.Add(I("Tm", R(1), R(0), R(0), R(1), R(cellX), R(bottom + y)));
-                replacement.Add(I("Tj", new PdfString(new byte[] { code }, PdfStringForm.Hexadecimal)));
+                replacement.Add(I("Tj", new PdfString(glyph.Bytes, PdfStringForm.Hexadecimal)));
             }
         }
         else if (multiline || listBox)

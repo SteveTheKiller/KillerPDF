@@ -335,20 +335,49 @@ public sealed class PdfPageRendererFormAppearanceTests
         Assert.Contains(actual.Diagnostics, text => text.Contains("comb"));
     }
 
+    [Fact]
+    public void CompositeFontFieldTextUsesExistingUnicodeMapping()
+    {
+        var result = new PdfPageRenderer(Create(true, "", false, false,
+            compositeFont: true)).Render(0, new PdfRenderOptions(120, 40));
+
+        Assert.Contains("A requested form-field text appearance was regenerated.", result.Diagnostics);
+        Assert.DoesNotContain(result.Diagnostics, text => text.Contains("not implemented"));
+        Assert.Contains(result.Pixels.ToArray(), value => value == 0);
+    }
+
     private static PdfDocument Create(bool requested, string previousText, bool recovery,
         bool choice, int flags = 0, string defaultAppearance = "0 g /F1 11 Tf",
         bool artwork = false, bool inheritedResources = false, bool missingAppearance = false,
         string? borderStyle = null, int annotationFlags = 0, string textValue = "Man",
         double? widgetBorderWidth = null, int alignment = 0, int? maximumLength = null,
         bool missingTextSection = false, bool legacyBorder = false,
-        string[]? choiceOptions = null, int selectedChoiceIndex = 0, int topIndex = 0)
+        string[]? choiceOptions = null, int selectedChoiceIndex = 0, int topIndex = 0,
+        bool compositeFont = false)
     {
         PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder().AddBlankPage(120, 40).Build());
         PdfPageTree tree = PdfPageTree.Read(source);
         var update = new PdfIncrementalUpdateBuilder(source);
         var box = new PdfArray([new PdfInteger(0), new PdfInteger(0), new PdfInteger(120), new PdfInteger(40)]);
-        var font = D(("Type", N("Font")), ("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
-            ("Encoding", N("WinAnsiEncoding")));
+        PdfDictionary font;
+        if (compositeFont)
+        {
+            var unicode = update.AddObject(new PdfStream(D(), Encoding.ASCII.GetBytes(
+                "1 begincodespacerange <0000> <FFFF> endcodespacerange " +
+                "3 beginbfchar <0001> <004D> <0002> <0061> <0003> <006E> endbfchar")));
+            var cidFont = D(("Type", N("Font")), ("Subtype", N("CIDFontType2")),
+                ("BaseFont", N("Helvetica")),
+                ("CIDSystemInfo", D(("Registry", S("Adobe")), ("Ordering", S("Identity")),
+                    ("Supplement", new PdfInteger(0)))), ("DW", new PdfInteger(500)),
+                ("W", new PdfArray([new PdfInteger(1), new PdfArray([
+                    new PdfInteger(833), new PdfInteger(556), new PdfInteger(500)])])));
+            font = D(("Type", N("Font")), ("Subtype", N("Type0")), ("BaseFont", N("Helvetica")),
+                ("Encoding", N("Identity-H")), ("DescendantFonts", new PdfArray([cidFont])),
+                ("ToUnicode", unicode));
+        }
+        else
+            font = D(("Type", N("Font")), ("Subtype", N("Type1")), ("BaseFont", N("Helvetica")),
+                ("Encoding", N("WinAnsiEncoding")));
         var resources = D(("Font", D(("F1", font))));
         var artworkResources = artwork ? D(("Font", D(("F1", D(("Type", N("Font")),
             ("Subtype", N("Type1")), ("BaseFont", N("Courier"))))))) : resources;

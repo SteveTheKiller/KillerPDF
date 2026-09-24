@@ -26,6 +26,9 @@ public sealed class PdfToUnicodeMap
 
     internal string? Lookup(uint code, int length) => _characters.GetValueOrDefault((code, length));
 
+    internal IEnumerable<PdfDecodedCharacter> Mappings => _characters.Select(pair =>
+        new PdfDecodedCharacter(pair.Key.Code, pair.Key.Length, pair.Value));
+
     internal static PdfToUnicodeMap CreateCodeSpaces(IEnumerable<(uint Low, uint High, int Length)> spaces)
     {
         var map = new PdfToUnicodeMap();
