@@ -76,14 +76,15 @@
                          FocusVisualStyle nulled: a ScrollViewer is focusable, and once focus lands
                          here WPF draws its stock dotted rectangle around the whole strip. -->
                     <ScrollViewer x:Name="TabScroll" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled"
-                                  Background="Transparent" FocusVisualStyle="{x:Null}"
+                                  Background="Transparent" FocusVisualStyle="{x:Null}" HorizontalContentAlignment="Left"
                                   UseLayoutRounding="True" SnapsToDevicePixels="True"
                                   MouseLeftButtonDown="TabScroll_MouseLeftButtonDown">
                         <!-- Keep the edge overlays in the SAME viewport as the tab containers.
                              When they were siblings of the ScrollViewer they started from the
                              band's origin while the tabs started from the viewport's origin,
                              producing the three-pixel vertical mismatch at the scrollbar corner. -->
-                        <Grid UseLayoutRounding="True" SnapsToDevicePixels="True">
+                        <Grid x:Name="TabStripHost" HorizontalAlignment="Left"
+                              UseLayoutRounding="True" SnapsToDevicePixels="True">
                         <ItemsControl x:Name="TabStrip" UseLayoutRounding="True" SnapsToDevicePixels="True">
                             <!-- The ACTIVE tab draws above its neighbors. Items paint in index
                                  order, so the tab to the RIGHT of the active one painted over the
@@ -110,20 +111,17 @@
                                 </Style>
                             </ItemsControl.ItemContainerStyle>
                             <ItemsControl.ItemsPanel>
-                                <!-- Tabs share the band equally and fill it, browser-style, instead
-                                     of hugging their titles and leaving dead space on the right.
-                                     This is also what makes the last tab always REACH the strip's
-                                     right edge, so edge ownership is a fact rather than something
-                                     that has to be measured after every reflow. -->
+                                <!-- Tabs share the bounded host equally. The host grows until each
+                                     tab reaches its maximum width, then leaves the rest of the band
+                                     open instead of stretching a few tabs across the whole pane. -->
                                 <ItemsPanelTemplate><UniformGrid Rows="1"/></ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <!-- No DataType: the item is PdfViewer.DocumentSession, an internal
                                      nested type, which x:Type cannot name. -->
                                 <DataTemplate>
-                                    <!-- No MaxWidth: it would cap each cell and put the dead space
-                                         back. The MinWidth floor is low so a lot of open tabs still
-                                         divide the band rather than overflowing it.
+                                    <!-- The host keeps every visible tab between the same minimum
+                                         and maximum widths while UniformGrid keeps them equal.
                                          CornerRadius matches the card's 6: the rightmost tab sits
                                          directly above the card's top-right corner, and a 4px curve
                                          stacked on a 6px one reads as a mistake rather than as two
@@ -138,7 +136,7 @@
                                          segment, which is what breaks that line exactly at the tab
                                          and makes the browser-tab join. -->
                                     <Border x:Name="tabBd" CornerRadius="{DynamicResource TabCornerRadius}" Margin="{DynamicResource TabMargin}" Padding="{DynamicResource TabPadding}"
-                                            MinWidth="60"
+                                            MinWidth="120" MaxWidth="240"
                                             UseLayoutRounding="True" SnapsToDevicePixels="True"
                                             Cursor="Hand" Background="Transparent"
                                             BorderThickness="0,0,1,0" BorderBrush="{DynamicResource PaneEdgeBrush}"
@@ -322,6 +320,24 @@
                                                 <Condition Binding="{Binding PaneFocused}" Value="True"/>
                                             </MultiDataTrigger.Conditions>
                                             <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource FocusedPaneBrush}"/>
+                                        </MultiDataTrigger>
+                                        <!-- 98SE document tabs use their own face colors. Pane focus still
+                                             shades the document card, but it does not reverse selected and
+                                             unselected tab emphasis. -->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding UseRetroTabChrome}" Value="True"/>
+                                                <Condition Binding="{Binding IsActive}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource TabInactiveBrush}"/>
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding UseRetroTabChrome}" Value="True"/>
+                                                <Condition Binding="{Binding IsActive}" Value="True"/>
+                                                <Condition Binding="{Binding PaneDimmed}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter TargetName="tabBd" Property="Background" Value="{DynamicResource TabActiveBrush}"/>
                                         </MultiDataTrigger>
                                         <!-- The OUTERMOST side is the band's to draw (TabEdgeLeft /
                                              TabEdgeRight), so the first and last tab must not draw

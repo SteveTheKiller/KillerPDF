@@ -69,8 +69,10 @@
     <SolidColorBrush x:Key="BgCanvas" Color="#aaaaaa" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <!-- 98SE communicates split-pane focus by shading the complete live pane, not by drawing
-         the accent halo used by the rounded themes. The selected tab uses this same brush. -->
+         the accent halo used by the rounded themes. -->
     <SolidColorBrush x:Key="FocusedPaneBrush" Color="#9f9f9f" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
+
+    <SolidColorBrush x:Key="TabInactiveBrush" Color="#9f9f9f" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
     <SolidColorBrush x:Key="TableHeaderBrush" Color="#c0c0c0" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" />
 
