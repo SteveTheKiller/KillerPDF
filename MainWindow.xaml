@@ -2535,74 +2535,114 @@
 
                 <Border x:Name="ComparisonBar" Grid.Row="1" Grid.ColumnSpan="3" Panel.ZIndex="100"
                         Visibility="Collapsed" HorizontalAlignment="Stretch"
-                        Margin="0,4,0,0" Padding="0"
-                        Background="{DynamicResource MenuBackgroundBrush}"
+                        Margin="0" Padding="0" Background="Transparent"
                         BorderThickness="0" CornerRadius="0">
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Border Grid.Column="1" Background="{DynamicResource PrimaryBrush}" Padding="9,4"
-                                CornerRadius="0">
-                            <StackPanel Orientation="Horizontal">
-                                <Grid Width="15" Height="13" Margin="0,1,7,0" VerticalAlignment="Center">
-                                    <Border Width="6" Height="11" HorizontalAlignment="Left" VerticalAlignment="Center"
-                                            BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
-                                        <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
-                                    </Border>
-                                    <Border Width="6" Height="11" HorizontalAlignment="Right" VerticalAlignment="Center"
-                                            BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
-                                        <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
-                                    </Border>
-                                </Grid>
-                                <TextBlock Text="{DynamicResource Str_Compare_Bar}" FontWeight="SemiBold"
-                                           Foreground="{DynamicResource OnPrimaryBrush}" VerticalAlignment="Center"/>
-                            </StackPanel>
+                        <Border Margin="12,0" IsHitTestVisible="False">
+                            <Border.OpacityMask>
+                                <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+                                    <GradientStop Color="Transparent" Offset="0"/>
+                                    <GradientStop Color="Black" Offset="0.045"/>
+                                    <GradientStop Color="Black" Offset="0.955"/>
+                                    <GradientStop Color="Transparent" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.OpacityMask>
+                            <Grid>
+                                <Grid.OpacityMask>
+                                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                                        <GradientStop Color="Transparent" Offset="0"/>
+                                        <GradientStop Color="Black" Offset="0.16"/>
+                                        <GradientStop Color="Black" Offset="0.84"/>
+                                        <GradientStop Color="Transparent" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Grid.OpacityMask>
+                                <Border Background="{DynamicResource MenuBackgroundBrush}"/>
+                                <Border Background="{StaticResource GrainBrushShared}"
+                                        Opacity="{DynamicResource GrainOpacity}"/>
+                            </Grid>
                         </Border>
-                        <Border Grid.Column="2" Padding="6,2,4,2">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="ComparisonFilesText" Foreground="{DynamicResource TextBrush}"
-                                           VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="390"/>
-                                <Rectangle Width="1" Margin="10,2" Fill="{DynamicResource CardBorderBrush}"/>
-                                <Button x:Name="ComparisonResultButton" Width="300" Height="24" Margin="0" Padding="5,1"
-                                        Style="{StaticResource ToolbarButton}" Click="ComparisonDetails_Click"
-                                        ToolTip="{DynamicResource Str_Compare_ViewDetails}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock x:Name="ComparisonResultText" FontFamily="{DynamicResource MenuFontFamily}"
-                                                   FontSize="{DynamicResource MenuFontSize}" Foreground="{DynamicResource MutedTextBrush}"
-                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="280"/>
-                                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                                   Foreground="{DynamicResource MutedTextBrush}" Margin="8,0,1,0" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Button>
-                                <StackPanel x:Name="ComparisonRegionNavigation" Orientation="Horizontal" Margin="5,0,0,0" Visibility="Collapsed">
-                                    <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
-                                            Click="ComparisonPreviousDifference_Click" ToolTip="{DynamicResource Str_Compare_PreviousRegion}">
-                                        <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                        <Grid HorizontalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" Background="{DynamicResource PrimaryBrush}" Padding="8,0"
+                                    Margin="0,2,6,2" CornerRadius="3">
+                                <StackPanel Orientation="Horizontal">
+                                    <Grid Width="15" Height="13" Margin="0,1,7,0" VerticalAlignment="Center">
+                                        <Border Width="6" Height="11" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
+                                            <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
+                                        </Border>
+                                        <Border Width="6" Height="11" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
+                                            <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
+                                        </Border>
+                                    </Grid>
+                                    <TextBlock Text="{DynamicResource Str_Compare_Bar}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource OnPrimaryBrush}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Padding="6,2,4,2">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock x:Name="ComparisonFilesText" Foreground="{DynamicResource TextBrush}"
+                                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="390"/>
+                                    <Rectangle Width="1" Margin="10,2" Fill="{DynamicResource CardBorderBrush}"/>
+                                    <Button x:Name="ComparisonResultButton" Width="300" Height="24" Margin="0" Padding="5,1"
+                                            Style="{StaticResource ToolbarButton}" Click="ComparisonDetails_Click"
+                                            ToolTip="{DynamicResource Str_Compare_ViewDetails}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock x:Name="ComparisonResultText" FontFamily="{DynamicResource MenuFontFamily}"
+                                                       FontSize="{DynamicResource MenuFontSize}" Foreground="{DynamicResource MutedTextBrush}"
+                                                       VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="280"/>
+                                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="12"
+                                                       Foreground="{DynamicResource MutedTextBrush}" Margin="8,0,1,0" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </Button>
-                                    <TextBlock x:Name="ComparisonRegionText" MinWidth="38" TextAlignment="Center"
-                                               FontFamily="{DynamicResource MenuFontFamily}" FontSize="{DynamicResource MenuFontSize}"
-                                               Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
-                                    <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
-                                            Click="ComparisonNextDifference_Click" ToolTip="{DynamicResource Str_Compare_NextRegion}">
-                                        <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                                    <StackPanel x:Name="ComparisonRegionNavigation" Orientation="Horizontal" Margin="5,0,0,0" Visibility="Collapsed">
+                                        <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
+                                                Click="ComparisonPreviousDifference_Click" ToolTip="{DynamicResource Str_Compare_PreviousRegion}">
+                                            <TextBlock Text="&#xE76B;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                                        </Button>
+                                        <TextBlock x:Name="ComparisonRegionText" MinWidth="38" TextAlignment="Center"
+                                                   FontFamily="{DynamicResource MenuFontFamily}" FontSize="{DynamicResource MenuFontSize}"
+                                                   Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center"/>
+                                        <Button Width="24" Height="24" Padding="0" Style="{StaticResource ToolbarButton}"
+                                                Click="ComparisonNextDifference_Click" ToolTip="{DynamicResource Str_Compare_NextRegion}">
+                                            <TextBlock Text="&#xE76C;" FontFamily="Segoe MDL2 Assets" FontSize="11"/>
+                                        </Button>
+                                    </StackPanel>
+                                    <Button Width="25" Height="24" Padding="0" Margin="5,0,0,0"
+                                            Style="{StaticResource ToolbarButtonDanger}" Click="ComparisonClose_Click" ToolTip="{DynamicResource Str_TT_ExitComparison}">
+                                        <Grid Width="11" Height="11">
+                                            <Path Stroke="{DynamicResource DangerRed}" StrokeThickness="1.5" StrokeStartLineCap="Square" StrokeEndLineCap="Square" Data="M 1,1 L 10,10"/>
+                                            <Path Stroke="{DynamicResource DangerRed}" StrokeThickness="1.5" StrokeStartLineCap="Square" StrokeEndLineCap="Square" Data="M 10,1 L 1,10"/>
+                                        </Grid>
                                     </Button>
                                 </StackPanel>
-                                <Button Width="25" Height="24" Padding="0" Margin="5,0,0,0"
-                                        Style="{StaticResource ToolbarButtonDanger}" Click="ComparisonClose_Click" ToolTip="{DynamicResource Str_TT_ExitComparison}">
-                                    <Grid Width="11" Height="11">
-                                        <Path Stroke="{DynamicResource DangerRed}" StrokeThickness="1.5" StrokeStartLineCap="Square" StrokeEndLineCap="Square" Data="M 1,1 L 10,10"/>
-                                        <Path Stroke="{DynamicResource DangerRed}" StrokeThickness="1.5" StrokeStartLineCap="Square" StrokeEndLineCap="Square" Data="M 10,1 L 1,10"/>
+                            </Border>
+                            <Border Grid.Column="2" Background="{DynamicResource PrimaryBrush}" Padding="8,0"
+                                    Margin="6,2,0,2" CornerRadius="3">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{DynamicResource Str_Compare_Bar}" FontWeight="SemiBold"
+                                               Foreground="{DynamicResource OnPrimaryBrush}" VerticalAlignment="Center"/>
+                                    <Grid Width="15" Height="13" Margin="7,1,0,0" VerticalAlignment="Center">
+                                        <Border Width="6" Height="11" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
+                                            <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
+                                        </Border>
+                                        <Border Width="6" Height="11" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                BorderBrush="{DynamicResource OnPrimaryBrush}" BorderThickness="1" CornerRadius="1">
+                                            <Rectangle Height="1" Margin="1" VerticalAlignment="Center" Fill="{DynamicResource OnPrimaryBrush}"/>
+                                        </Border>
                                     </Grid>
-                                </Button>
-                            </StackPanel>
-                        </Border>
-                        <Border Grid.ColumnSpan="4" CornerRadius="0"
-                                IsHitTestVisible="False" Background="{StaticResource GrainBrushShared}"
-                                Opacity="{DynamicResource GrainOpacity}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.ColumnSpan="3" IsHitTestVisible="False"
+                                    Background="{StaticResource GrainBrushShared}"
+                                    Opacity="{DynamicResource GrainOpacity}"/>
+                        </Grid>
                     </Grid>
                 </Border>
                 <Popup x:Name="ComparisonDetailsPopup" PlacementTarget="{Binding ElementName=ComparisonResultButton}"
