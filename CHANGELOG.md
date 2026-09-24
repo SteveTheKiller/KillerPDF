@@ -58,6 +58,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Corrected 98SE document tab shading and bounded tab widths.
 - Preserved shapes and other annotations on retained pages when deleting PDF pages (#429).
 - Kept text editing active while choosing a font from the dropdown (#428).
 - Restored pane 2's saved fit mode when reopening a split-view session.

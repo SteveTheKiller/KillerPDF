@@ -12,15 +12,14 @@ namespace KillerPDF.Controls
     // other pane.
     //
     // Ported from KillerShell (FilePane.xaml + Tabs.cs + DualPane.cs + PaneDrag.cs). The strip is an
-    // ItemsControl bound to _sessions over a UniformGrid, and every visual decision below is a
+    // ItemsControl bound to _sessions over a UniformGrid in a bounded host, and every visual decision below is a
     // NOTIFYING FLAG ON THE SESSION that a template trigger reads - not a property written onto a
     // code-built Border. That is the whole point: there is one place each rule is expressed, so a
     // fix to one edge case cannot break the next one.
     //
     // Two consequences worth knowing before changing anything here:
-    //   * UniformGrid divides the band equally, so the last visible tab ALWAYS reaches the strip's
-    //     right edge. Edge ownership is decided, never measured. The old strip measured it after
-    //     every reflow, which is why the halo came and went with the pane width.
+    //   * UniformGrid divides the bounded host equally. The host grows only until the tabs reach
+    //     their maximum width, so a few tabs do not stretch across the whole pane.
     //   * A collapsed child is not counted when UniformGrid divides the band, so windowing tabs out
     //     into the chevron needs no width arithmetic at all - the survivors fill the band on their own.
     public partial class PdfViewer
@@ -127,6 +126,8 @@ namespace KillerPDF.Controls
             // side to the band, which drew that side at the band's edge - past the chevron, as an
             // accent stripe up the far right with nothing under it.
             bool chevron = TabOverflowBtn.Visibility == Visibility.Visible;
+            bool hostFillsBand = TabStripHost != null &&
+                                 TabStripHost.Width >= Math.Max(0, TabStripBorder.ActualWidth - (chevron ? TabChevronWidth : 0)) - 0.5;
 
             var strip = _sessions.Where(t => t.IsStripVisible).ToList();
             foreach (var t in _sessions)
@@ -141,14 +142,14 @@ namespace KillerPDF.Controls
             if (strip.Count > 0)
             {
                 strip[0].IsFirst              = true;
-                strip[^1].IsLast = !chevron;
+                strip[^1].IsLast = !chevron && hostFillsBand;
 
                 int activeIndex = strip.IndexOf(_active!);
                 if (retroTabs && activeIndex >= 0)
                 {
                     if (activeIndex > 0) strip[activeIndex - 1].RetroBeforeActive = true;
                     if (activeIndex + 1 < strip.Count) strip[activeIndex + 1].RetroAfterActive = true;
-                    if (!chevron && !strip[^1].IsActive) strip[^1].RetroLastInactive = true;
+                    if (!chevron && hostFillsBand && !strip[^1].IsActive) strip[^1].RetroLastInactive = true;
                 }
             }
 
@@ -183,6 +184,9 @@ namespace KillerPDF.Controls
         /// </remarks>
         private const double TabFloorWidth = 120;
 
+        /// <summary>Widest a tab may grow when only a few documents are open.</summary>
+        private const double TabCeilingWidth = 240;
+
         /// <summary>What the chevron takes out of the band while it is showing.</summary>
         private const double TabChevronWidth = 26;
 
@@ -206,7 +210,12 @@ namespace KillerPDF.Controls
         private void ApplyTabWindow()
         {
             int n = _sessions.Count;
-            if (n == 0) { TabOverflowBtn.Visibility = Visibility.Collapsed; return; }
+            if (n == 0)
+            {
+                TabOverflowBtn.Visibility = Visibility.Collapsed;
+                if (TabStripHost != null) TabStripHost.Width = 0;
+                return;
+            }
 
             // ActualWidth is 0 until the band has been measured once - on the first pass, and on any
             // pass that runs while the pane is hidden. Falling back to the pane's own width keeps the
@@ -226,6 +235,10 @@ namespace KillerPDF.Controls
             }
 
             TabOverflowBtn.Visibility = overflow ? Visibility.Visible : Visibility.Collapsed;
+
+            double stripAvail = Math.Max(0, avail - (overflow ? TabChevronWidth : 0));
+            if (TabStripHost != null)
+                TabStripHost.Width = Math.Max(TabFloorWidth, Math.Min(stripAvail, cap * TabCeilingWidth));
 
             int start = 0;
             if (overflow)
@@ -399,9 +412,9 @@ namespace KillerPDF.Controls
             }
 
             PaneBorder?.SetResourceReference(Border.BackgroundProperty,
-                    retro ? (paneActive ? "FocusedPaneBrush" : "TabInactiveBrush") : "BgCanvas");
+                    retro ? (paneActive ? "TabActiveBrush" : "TabInactiveBrush") : "BgCanvas");
             PaneShadow?.SetResourceReference(Border.BackgroundProperty,
-                    retro ? (paneActive ? "FocusedPaneBrush" : "TabInactiveBrush") : "BgCanvas");
+                    retro ? (paneActive ? "TabActiveBrush" : "TabInactiveBrush") : "BgCanvas");
 
             // Same ownership rule the card's corner rounding uses, read off the tab rather than
             // recomputed: with the strip windowed the tab on an edge is not the one at the end of the

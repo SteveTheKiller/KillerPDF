@@ -284,6 +284,7 @@ namespace KillerPDF.Services
             Alias("RadioAccent", "PrimaryBrush");
             Alias("BgCanvas", "PaneBrush");
             Alias("FocusedPaneBrush", "BgCanvas");
+            Alias("TabActiveBrush", "BgCanvas");
             // Keep a solid fallback for controls that cannot use the full-window gradient.
             if (!d.Contains("SolidBackgroundBrush"))
             {
