@@ -232,7 +232,11 @@ namespace KillerPDF.Controls
             // the other pane also holds the file. FocusPane captures the outgoing pane BEFORE the
             // swap, so the pane being LEFT still counts as focused here - the rule this yields is
             // "the most recently used pane wins". A pane holding the only copy always writes.
-            if (Host == null || Host.IsViewerFocused(this) || !Host.OtherViewerHasFile(this, s.OriginalFile))
+            // A restored lazy tab has a path but no loaded document yet. Theme and locale refreshes
+            // can briefly enter its pane before materialization; its placeholder 100% view must not
+            // replace the real saved view state that OpenFile is about to restore.
+            if (s.Doc != null
+                && (Host == null || Host.IsViewerFocused(this) || !Host.OtherViewerHasFile(this, s.OriginalFile)))
                 SaveDocState(s.OriginalFile, s.Fit, s.ZoomLevel, s.View, s.PageIndex,
                     s.ScrollH, s.ScrollV);
         }

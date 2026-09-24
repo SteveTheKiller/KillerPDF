@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Restored pane 2's saved fit mode when reopening a split-view session.
 - Closed 98SE tab seams and restored the vertical scrollbar's top bevel.
 - Kept region-copy selection outlines visible after releasing the mouse.
 - Localized key names throughout the website Help keyboard guide (#230).
