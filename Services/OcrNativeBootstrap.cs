@@ -1,6 +1,7 @@
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 
 namespace KillerPDF.Services
 {
@@ -14,19 +15,18 @@ namespace KillerPDF.Services
     {
         private const string NativePrefix = "KillerPDF.OcrNative.";
         private const string TessDataPrefix = "KillerPDF.OcrTessData.";
+        private const string LeptonicaFileName = "leptonica-1.82.0.dll";
+        private const string TesseractFileName = "tesseract50.dll";
+        private const uint LoadLibrarySearchDllLoadDir = 0x00000100;
+        private const uint LoadLibrarySearchSystem32 = 0x00000800;
 
         private static readonly Lock _gate = new();
         private static bool _langReady;
         private static bool _nativeReady;
 
-        [LibraryImport("kernel32", EntryPoint = "SetDllDirectoryW", SetLastError = true,
+        [LibraryImport("kernel32", EntryPoint = "LoadLibraryExW", SetLastError = true,
             StringMarshalling = StringMarshalling.Utf16)]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        private static partial bool SetDllDirectory(string lpPathName);
-
-        [LibraryImport("kernel32", EntryPoint = "LoadLibraryW", SetLastError = true,
-            StringMarshalling = StringMarshalling.Utf16)]
-        private static partial IntPtr LoadLibrary(string lpFileName);
+        private static partial IntPtr LoadLibraryEx(string lpFileName, IntPtr hFile, uint dwFlags);
 
         /// <summary>
         /// Version-independent tessdata folder. The bundled English is extracted here on first use, and
@@ -105,15 +105,10 @@ namespace KillerPDF.Services
                 }
                 catch { /* fall through to the preload */ }
 
-                // Belt and suspenders: add the native dir to the DLL search path and preload the libs.
+                // Load the exact bundled libraries without changing the process-wide DLL search path.
                 // leptonica must load before tesseract50, which depends on it.
-                try
-                {
-                    SetDllDirectory(nativeDir);
-                    foreach (string dll in Directory.GetFiles(nativeDir, "leptonica*.dll")) LoadLibrary(dll);
-                    foreach (string dll in Directory.GetFiles(nativeDir, "tesseract*.dll")) LoadLibrary(dll);
-                }
-                catch { /* loader search paths above still apply */ }
+                LoadNativeLibrary(Path.Combine(nativeDir, LeptonicaFileName));
+                LoadNativeLibrary(Path.Combine(nativeDir, TesseractFileName));
 
                 _nativeReady = true;
                 return TessDataDir;
@@ -124,19 +119,39 @@ namespace KillerPDF.Services
         {
             // Language data is extracted only-if-missing: a user-downloaded pack (e.g. a high-quality model,
             // or an HQ English) must never be clobbered by the bundled copy on the next launch. Native libs
-            // keep the length check so a version change refreshes them.
+            // are hash-checked so a same-length replacement cannot be trusted.
             if (onlyIfMissing && File.Exists(targetPath)) return;
 
             using var src = asm.GetManifestResourceStream(resourceName);
             if (src == null) return;
 
-            if (!onlyIfMissing && File.Exists(targetPath) && new FileInfo(targetPath).Length == src.Length) return;
+            if (!onlyIfMissing && File.Exists(targetPath))
+            {
+                byte[] expectedHash = SHA256.HashData(src);
+                using var existing = File.OpenRead(targetPath);
+                byte[] existingHash = SHA256.HashData(existing);
+                if (CryptographicOperations.FixedTimeEquals(expectedHash, existingHash)) return;
+                src.Position = 0;
+            }
 
-            string tmp = targetPath + ".tmp";
-            using (var dst = File.Create(tmp))
-                src.CopyTo(dst);
-            if (File.Exists(targetPath)) File.Delete(targetPath);
-            File.Move(tmp, targetPath);
+            string tmp = targetPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try
+            {
+                using (var dst = new FileStream(tmp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    src.CopyTo(dst);
+                File.Move(tmp, targetPath, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(tmp)) File.Delete(tmp);
+            }
+        }
+
+        private static void LoadNativeLibrary(string path)
+        {
+            const uint flags = LoadLibrarySearchDllLoadDir | LoadLibrarySearchSystem32;
+            if (LoadLibraryEx(path, IntPtr.Zero, flags) == IntPtr.Zero)
+                throw new DllNotFoundException($"Could not load the bundled OCR library '{Path.GetFileName(path)}'. Windows error {Marshal.GetLastWin32Error()}.");
         }
     }
 }
