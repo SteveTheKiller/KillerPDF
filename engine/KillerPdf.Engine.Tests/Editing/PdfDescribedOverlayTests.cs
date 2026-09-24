@@ -55,7 +55,8 @@ public sealed class PdfDescribedOverlayTests
             Assert.Equal((save + 2) * 2, numbers.Count);
             Assert.Equal(originalEntry, PdfObjectWriter.Write(numbers[1]));
             var streams = Assert.IsType<PdfArray>(page[N("Contents")]);
-            Assert.Equal(PdfObjectWriter.Write(originalContents), PdfObjectWriter.Write(streams[0]));
+            Assert.Equal(PdfObjectWriter.Write(originalContents),
+                PdfObjectWriter.Write(streams[save + 1]));
             var resources = D(document, page[N("Resources")]);
             var forms = D(document, resources[N("XObject")]);
             Assert.Equal(save + 1, forms.Count);
