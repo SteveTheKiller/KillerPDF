@@ -703,15 +703,27 @@ namespace KillerPDF.Controls
             {
                 Dispatcher.BeginInvoke(new Action(() =>
                 {
-                    // Keep the edit box open if focus moved into the size/color bar so the
-                    // user can restyle (the Size ComboBox takes focus; color swatches do not).
-                    if (_textSettingsBar is not null && Keyboard.FocusedElement is DependencyObject fe
-                        && IsDescendantOf(fe, _textSettingsBar))
-                        return;
+                    // A ComboBox popup has its own visual tree, so its focused item is not a
+                    // descendant of the settings bar. Check the owning ComboBox as well.
+                    if (_textSettingsBar is not null)
+                    {
+                        bool focusInBar = Keyboard.FocusedElement is DependencyObject fe
+                            && IsDescendantOf(fe, _textSettingsBar);
+                        if (focusInBar || ContainsOpenComboBox(_textSettingsBar)) return;
+                    }
                     CommitActiveTextBox();
                 }),
                 System.Windows.Threading.DispatcherPriority.Background);
             }
+        }
+
+        private static bool ContainsOpenComboBox(DependencyObject root)
+        {
+            if (root is ComboBox { IsDropDownOpen: true }) return true;
+            int childCount = VisualTreeHelper.GetChildrenCount(root);
+            for (int i = 0; i < childCount; i++)
+                if (ContainsOpenComboBox(VisualTreeHelper.GetChild(root, i))) return true;
+            return false;
         }
 
         private void CommitActiveTextBox()
