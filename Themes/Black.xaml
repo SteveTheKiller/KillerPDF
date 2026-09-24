@@ -99,7 +99,7 @@
     <CornerRadius x:Key="PanelCornerRadius">6</CornerRadius>
     <CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>
     <CornerRadius x:Key="SmallCornerRadius">3</CornerRadius>
-    <CornerRadius x:Key="FlyoutCornerRadius">0,0,4,4</CornerRadius>
+    <CornerRadius x:Key="FlyoutCornerRadius">4</CornerRadius>
     <CornerRadius x:Key="AccentSwatchCornerRadius">9</CornerRadius>
     <SolidColorBrush x:Key="TitleBarBrush" Color="#000000" po:Freeze="True"/>
 
