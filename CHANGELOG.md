@@ -10,6 +10,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Closed 98SE tab seams and restored the vertical scrollbar's top bevel.
 - Kept region-copy selection outlines visible after releasing the mouse.
 - Localized key names throughout the website Help keyboard guide (#230).
 - Kept localized toolbar captions fully visible after language changes.
