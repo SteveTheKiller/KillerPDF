@@ -190,6 +190,9 @@ placement review, recognized marks, replacement, and continuous numbering.
 See [data merge and template generation](docs/data-merge.md) for record mapping,
 previews, text and image targets, batch outcomes, and combined output.
 
+See [structural document comparison](docs/comparison.md) for interpreted page
+differences, report categories, cancellation, and visual-equivalence limits.
+
 ## Repository layout
 
 ```text
