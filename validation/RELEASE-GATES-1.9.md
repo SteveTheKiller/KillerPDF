@@ -1512,3 +1512,18 @@ inspected and match the PDFium character selection, spacing, and placement.
 Two focused width cases cover explicit default and per-CID metrics. Full
 validation passes with 4,135 engine tests, 431 app tests, and a Release build
 with no warnings or errors. Broader visual parity remains open.
+
+### Page-tree reference text-width disposition (2026-09-24)
+
+A fresh 2048-pixel production render of `Pages-tree-refs.pdf` matches the
+retained application PNG byte for byte. Its full text ink bounds are identical
+to PDFium at x 76 through 765 and y 69 through 112. All 20 Courier glyph runs
+align. Only the right edge of `c` and the left edge of the second `a` cross the
+250-level ink threshold by one pixel between the two rasterizers.
+
+The mean grayscale delta from PDFium is 0.018841, with 0.056589 percent of
+pixels differing by more than 16 levels. Poppler independently preserves the
+same text, spacing, and final right edge, but its Courier antialiasing moves
+several other edge thresholds by one pixel. Visual inspection confirms that
+the reported width difference is rasterizer edge coverage, not page geometry,
+font selection, glyph advance, or text placement. No source change is warranted.
