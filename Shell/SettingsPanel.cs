@@ -919,7 +919,8 @@ namespace KillerPDF
             // Text under the icon: the icon stacked over a small caption, while it still fits.
             if (under && withLabel)
             {
-                btn.Width = double.NaN; btn.MinWidth = 0; btn.Height = large ? 56 : 52; btn.Padding = new Thickness(6, 4, 6, 4);
+                btn.Width = double.NaN; btn.MinWidth = 0; btn.Height = double.NaN;
+                btn.MinHeight = large ? 56 : 52; btn.Padding = new Thickness(6, 4, 6, 4);
                 var col = new StackPanel { Orientation = Orientation.Vertical, HorizontalAlignment = HorizontalAlignment.Center };
                 col.Children.Add(MakeToolbarGlyph(glyph, glyphSize));
                 col.Children.Add(new TextBlock
@@ -928,8 +929,10 @@ namespace KillerPDF
                     FontFamily = UiKit.UiFont,
                     FontSize = 10,
                     Margin = new Thickness(0, 2, 0, 0),
+                    MaxWidth = 96,
                     HorizontalAlignment = HorizontalAlignment.Center,
-                    TextAlignment = TextAlignment.Center
+                    TextAlignment = TextAlignment.Center,
+                    TextWrapping = TextWrapping.Wrap
                 });
                 btn.Content = col;
                 return;
