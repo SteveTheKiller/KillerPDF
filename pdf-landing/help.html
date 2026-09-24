@@ -200,7 +200,7 @@ html[data-theme="light"] .kbmap { --kc-file:#009e99; --kc-tools:#a67c00; --kc-ed
 .kbmap-board { display: inline-block; transform-origin: 0 0; }
 .kbmap-row { display: flex; margin-bottom: 4px; }
 .kb-key { flex: none; margin-right: 4px; height: 44px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; font-family: Consolas, monospace; color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 5px 2px 3px; transition: transform .09s ease; }
-.kb-key .cap { font-size: 11.5px; line-height: 1; }
+.kb-key .cap { font-size: 11.5px; line-height: 1; max-width: 100%; white-space: nowrap; transform-origin: center; }
 .kb-key .act { font-size: 8.5px; line-height: 1; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding: 0 2px; visibility: hidden; }
 .kb-key .act > span { display: inline; }
 .kb-key .act.scrolling { text-overflow: clip; }
@@ -289,6 +289,30 @@ function kbText(fallback, key){
 }
 function kbAction(s){ return kbText(s,KBT[s]); }
 function kbCategory(c){ var v=CATNAME[c]; return kbText(v[0],v[1]); }
+var KEY_CAPS = {
+  Ctrl:['Ctrl','ui_Key_Ctrl'], RCtrl:['Ctrl','ui_Key_Ctrl'],
+  Alt:['Alt','ui_Key_Alt'], RAlt:['Alt','ui_Key_Alt'],
+  Shift:['Shift','ui_Key_Shift'], RShift:['Shift','ui_Key_Shift'],
+  Del:['Del','ui_Key_Delete'], Enter:['Enter','ui_Key_Enter'], Esc:['Esc','ui_Key_Esc'],
+  Menu:['Menu','ui_Key_Menu'], Home:['Home','ui_Key_Home'], End:['End','ui_Key_End'],
+  PgUp:['PgUp','ui_Key_PgUp'], PgDn:['PgDn','ui_Key_PgDn'], Tab:['Tab','ui_Key_Tab']
+};
+function kbKey(id, fallback){ var v=KEY_CAPS[id]; return v ? kbText(v[0],v[1]) : fallback; }
+function localizeShortcutLabels(){
+  document.querySelector('[data-kblayer="ctrl"]').textContent=kbText('Ctrl','ui_Key_Ctrl');
+  document.querySelector('[data-kblayer="ctrlshift"]').textContent=kbText('Ctrl','ui_Key_Ctrl')+'+'+kbText('Shift','ui_Key_Shift');
+  document.querySelector('[data-kblayer="shift"]').textContent=kbText('Shift','ui_Key_Shift');
+  document.querySelector('[data-kblayer="alt"]').textContent=kbText('Alt','ui_Key_Alt');
+  Object.keys(keys).forEach(function(id){
+    var cap=keys[id].firstChild;
+    cap.style.transform='';
+    cap.textContent=kbKey(id,keys[id].getAttribute('data-key-cap')||'');
+    requestAnimationFrame(function(){
+      var available=keys[id].clientWidth-6;
+      if(cap.scrollWidth>available) cap.style.transform='scaleX('+(available/cap.scrollWidth)+')';
+    });
+  });
+}
 var KBROWS = [
 [['Esc','Esc',1],['',0.8],['F1','F1',1],['F2','F2',1],['F3','F3',1],['F4','F4',1],['',0.6],['F5','F5',1],['F6','F6',1],['F7','F7',1],['F8','F8',1],['',0.6],['F9','F9',1],['F10','F10',1],['F11','F11',1],['F12','F12',1]],
 [['Grave','`',1],['D1','1',1],['D2','2',1],['D3','3',1],['D4','4',1],['D5','5',1],['D6','6',1],['D7','7',1],['D8','8',1],['D9','9',1],['D0','0',1],['Minus','-',1],['Equals','=',1],['Back','⌫',2],['',0.6],['Ins','Ins',1],['Home','Home',1],['PgUp','PgUp',1]],
@@ -319,7 +343,8 @@ KBROWS.forEach(function(row){
     if (!c[0]) { var g = document.createElement('div'); g.style.cssText = 'flex:none;width:' + (U * c[1]) + 'px'; r.appendChild(g); return; }
     var k = document.createElement('div'); k.className = 'kb-key'; k.style.width = (U * c[2] - 4) + 'px';
     k.innerHTML = '<span class="cap"></span><span class="act"><span></span></span><span class="bar"></span>';
-    k.firstChild.textContent = c[1];
+    k.setAttribute('data-key-cap',c[1]);
+    k.firstChild.textContent = kbKey(c[0],c[1]);
     var id = c[0], act = k.querySelector('.act'), m = act.firstChild;
     k._h = { k: k, act: act, m: m, id: id };
     k.addEventListener('mouseenter', function(){
@@ -360,7 +385,8 @@ function sync(e){
 }
 window.addEventListener('keydown', sync);
 window.addEventListener('keyup', sync);
-document.addEventListener('kpdf-languagechange', paint);
+document.addEventListener('kpdf-languagechange', function(){ localizeShortcutLabels(); paint(); });
+localizeShortcutLabels();
 paint();
 // Scale the board down to the column width instead of scrolling, like the app's Viewbox.
 function fit(){
