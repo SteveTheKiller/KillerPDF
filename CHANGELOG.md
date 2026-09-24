@@ -11,6 +11,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Allowed PDFs with recursive Form XObject resources to be combined (#421).
+- Preserved annotation position and orientation when saving PDFs whose page content leaves a transform active.
 
 ## [1.8.61] - 2026-09-22
 

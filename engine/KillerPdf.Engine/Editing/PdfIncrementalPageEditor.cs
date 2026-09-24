@@ -3860,14 +3860,21 @@ public sealed class PdfIncrementalPageEditor
             return;
         }
 
-        PdfIndirectReference appended = update.AddObject(
-            new PdfStream(new PdfDictionary([]), state.Content!));
         if (!page.TryGetValue(ContentsName, out PdfObject? existing))
         {
-            replacements[ContentsName] = appended;
+            replacements[ContentsName] = update.AddObject(
+                new PdfStream(new PdfDictionary([]), state.Content!));
             return;
         }
+        byte[] appendedBytes = state.IsolateExistingContent
+            ? [.. "Q\n"u8, .. state.Content!]
+            : state.Content!;
+        PdfIndirectReference appended = update.AddObject(
+            new PdfStream(new PdfDictionary([]), appendedBytes));
         var items = ExistingPageContentItems(update, existing);
+        if (state.IsolateExistingContent)
+            items.Insert(0, update.AddObject(new PdfStream(
+                new PdfDictionary([]), "q\n"u8.ToArray())));
         items.Add(appended);
         replacements[ContentsName] = new PdfArray(items);
     }
@@ -3947,6 +3954,7 @@ public sealed class PdfIncrementalPageEditor
         state.ContentUpdate = state.ContentUpdate is PageContentUpdate.None or PageContentUpdate.ArtifactAppend
             && state.TypedOverlays.All(overlay => overlay.Artifact || overlay.Description is not null)
                 ? PageContentUpdate.ArtifactAppend : PageContentUpdate.Append;
+        state.IsolateExistingContent = true;
 
         static PdfPageTreeEntry AssertSinglePage(PdfDocument document)
         {
@@ -11060,17 +11068,32 @@ public sealed class PdfIncrementalPageEditor
                 entry => entry.Key, entry => entry.Value);
             if (state.ContentUpdate == PageContentUpdate.Replace)
                 contentEntries.Remove(ContentsName);
-            PdfIndirectReference? newContent = state.Content is { Length: > 0 }
+            bool isolateExistingContent = state.IsolateExistingContent
+                && state.ContentUpdate is PageContentUpdate.Append or PageContentUpdate.ArtifactAppend
+                && contentEntries.ContainsKey(ContentsName);
+            byte[]? newContentBytes = state.Content is { Length: > 0 }
+                ? isolateExistingContent ? [.. "Q\n"u8, .. state.Content] : state.Content
+                : null;
+            PdfIndirectReference? newContent = newContentBytes is not null
                 ? update.AddObject(new PdfStream(
-                    new PdfDictionary([]), state.Content)) : null;
+                    new PdfDictionary([]), newContentBytes)) : null;
             if (state.ContentUpdate is PageContentUpdate.Append or PageContentUpdate.ArtifactAppend
                 && newContent is not null
                 && contentEntries.TryGetValue(
                     ContentsName, out PdfObject? existingContent))
             {
-                contentEntries[ContentsName] = existingContent is PdfArray array
-                    ? new PdfArray([.. array, newContent])
-                    : new PdfArray([existingContent, newContent]);
+                if (isolateExistingContent)
+                {
+                    PdfIndirectReference prefix = update.AddObject(new PdfStream(
+                        new PdfDictionary([]), "q\n"u8.ToArray()));
+                    contentEntries[ContentsName] = existingContent is PdfArray isolatedArray
+                        ? new PdfArray([prefix, .. isolatedArray, newContent])
+                        : new PdfArray([prefix, existingContent, newContent]);
+                }
+                else
+                    contentEntries[ContentsName] = existingContent is PdfArray array
+                        ? new PdfArray([.. array, newContent])
+                        : new PdfArray([existingContent, newContent]);
             }
             else if (newContent is not null)
                 contentEntries[ContentsName] = newContent;
@@ -17687,6 +17710,7 @@ public sealed class PdfIncrementalPageEditor
         internal bool RemoveThumbnail { get; set; }
         internal byte[]? Content { get; set; }
         internal PageContentUpdate ContentUpdate { get; set; }
+        internal bool IsolateExistingContent { get; set; }
         internal List<TypedOverlay> TypedOverlays { get; } = [];
         internal bool ReplaceAnnotations { get; set; }
         internal PdfArray? Annotations { get; set; }

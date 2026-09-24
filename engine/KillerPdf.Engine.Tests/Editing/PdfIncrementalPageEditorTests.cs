@@ -382,6 +382,7 @@ public sealed class PdfIncrementalPageEditorTests
     public void Build_AppendsTypedContentWithIsolatedResources()
     {
         var originalContent = new PdfContentStreamBuilder()
+            .Transform(1, 0, 0, -1, 0, 300)
             .BeginText()
             .SetFont(PdfStandardFont.Helvetica, 10)
             .SetTextMatrix(1, 0, 0, 1, 10, 20)
@@ -412,13 +413,16 @@ public sealed class PdfIncrementalPageEditorTests
             reopened, form.Dictionary[Name("Resources")]);
         PdfArray contents = Assert.IsType<PdfArray>(page[Name("Contents")]);
 
+        Assert.Equal(3, contents.Count);
+        Assert.Equal("q\n", Encoding.ASCII.GetString(
+            PdfStreamDecoder.Decode(ResolveStream(reopened, contents[0]))));
         Assert.True(ResolveDictionary(reopened,
             resources[Name("Font")]).ContainsKey(Name("F1")));
         Assert.True(ResolveDictionary(reopened,
             formResources[Name("Font")]).ContainsKey(Name("F1")));
         Assert.Contains("Searchable", Encoding.Latin1.GetString(
             PdfStreamDecoder.Decode(form)));
-        Assert.Equal("q /KPO1 Do Q\n", Encoding.ASCII.GetString(
+        Assert.Equal("Q\nq /KPO1 Do Q\n", Encoding.ASCII.GetString(
             PdfStreamDecoder.Decode(ResolveStream(reopened, contents[^1]))));
         Assert.True(updated.AsSpan(0, sourceBytes.Length).SequenceEqual(sourceBytes));
     }
@@ -566,8 +570,11 @@ public sealed class PdfIncrementalPageEditorTests
         Assert.Equal(PdfObjectWriter.Write(originalPage[Name("StructParents")]),
             PdfObjectWriter.Write(page[Name("StructParents")]));
         PdfArray streams = Assert.IsType<PdfArray>(page[Name("Contents")]);
-        Assert.Equal(PdfObjectWriter.Write(originalPage[Name("Contents")]), PdfObjectWriter.Write(streams[0]));
-        Assert.Equal("/Artifact BMC\nq /KPO1 Do Q\nEMC\n",
+        Assert.Equal(3, streams.Count);
+        Assert.Equal("q\n", Encoding.ASCII.GetString(
+            PdfStreamDecoder.Decode(ResolveStream(result, streams[0]))));
+        Assert.Equal(PdfObjectWriter.Write(originalPage[Name("Contents")]), PdfObjectWriter.Write(streams[1]));
+        Assert.Equal("Q\n/Artifact BMC\nq /KPO1 Do Q\nEMC\n",
             Encoding.ASCII.GetString(PdfStreamDecoder.Decode(ResolveStream(result, streams[^1]))));
         Assert.True(updated.AsSpan(0, original.Length).SequenceEqual(original));
 

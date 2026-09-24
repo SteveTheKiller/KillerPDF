@@ -11,6 +11,7 @@ The 1.8.70 engine package continues document compatibility work for KillerPDF 1.
 ### Fixed
 
 - Allowed valid recursive Form XObject resources when importing or combining pages (#421).
+- Isolated appended page overlays from inherited source graphics transforms.
 
 ## [1.8.6] - 2026-09-22
 
