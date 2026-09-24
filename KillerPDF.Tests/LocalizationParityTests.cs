@@ -11,6 +11,18 @@ public sealed class LocalizationParityTests
     private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
 
     [Fact]
+    public void ToolbarCaptionsCanWrapAndGrowForLocalizedText()
+    {
+        string root = Directory.GetParent(StringsDirectory)!.FullName;
+        string source = File.ReadAllText(Path.Combine(root, "Shell", "SettingsPanel.cs"));
+
+        Assert.Contains("btn.Height = double.NaN;", source);
+        Assert.Contains("btn.MinHeight = large ? 56 : 52;", source);
+        Assert.Contains("MaxWidth = 96,", source);
+        Assert.Contains("TextWrapping = TextWrapping.Wrap", source);
+    }
+
+    [Fact]
     public void EveryLocaleHasTheEnglishKeysAndPlaceholders()
     {
         var english = ReadStrings(Path.Combine(StringsDirectory, "en-US.xaml"));

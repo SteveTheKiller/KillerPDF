@@ -57,6 +57,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 
 ### Fixed
 
+- Kept localized toolbar captions fully visible after language changes.
 - Stabilized precision-touchpad pinch zoom without queued page jumps.
 - Aligned new text with the insertion cursor and made Enter add lines while Ctrl+Enter finishes editing.
 - Allowed valid recursive Form XObject resource graphs to be imported during page merges (#421).
