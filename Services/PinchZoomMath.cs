@@ -5,6 +5,24 @@ internal readonly record struct PinchZoomResult(
 
 internal static class PinchZoomMath
 {
+    internal static (double X, double Y) CaptureAnchor(
+        double zoom, double horizontalOffset, double verticalOffset,
+        double originX, double originY)
+    {
+        if (!double.IsFinite(zoom) || zoom <= 0) zoom = 1;
+        return ((horizontalOffset + originX) / zoom,
+            (verticalOffset + originY) / zoom);
+    }
+
+    internal static PinchZoomResult ApplyAtAnchor(
+        double zoom, double anchorX, double anchorY, double originX, double originY)
+    {
+        double newHorizontal = anchorX * zoom - originX;
+        double newVertical = anchorY * zoom - originY;
+        return new PinchZoomResult(zoom,
+            Math.Max(0, newHorizontal), Math.Max(0, newVertical));
+    }
+
     internal static PinchZoomResult Apply(
         double oldZoom, double scale, double minimumZoom, double maximumZoom,
         double horizontalOffset, double verticalOffset, double originX, double originY)

@@ -29,6 +29,10 @@ namespace KillerPDF.Controls
     {
         private readonly WheelPageFlipGate _wheelPageFlipGate = new();
         private bool _pinchZooming;
+        private bool _wheelZoomAnchorActive;
+        private double _wheelZoomAnchorX;
+        private double _wheelZoomAnchorY;
+        private long _wheelZoomRevision;
 
         // ============================================================
         // Zoom
@@ -57,12 +61,15 @@ namespace KillerPDF.Controls
                 e.Handled = true;
                 if (_viewMode == ViewMode.Grid) { GridZoomStep(e.Delta < 0); return; }
 
-                // Capture cursor position and scroll offsets BEFORE zoom changes so we can
-                // compute the new offsets that keep the point under the cursor stationary.
                 Point cursorInViewport = e.GetPosition(PagePreviewPanel);
-                double oldZoom = _zoomLevel;
-                double oldHOff = PagePreviewPanel.HorizontalOffset;
-                double oldVOff = PagePreviewPanel.VerticalOffset;
+                if (!_wheelZoomAnchorActive)
+                {
+                    (_wheelZoomAnchorX, _wheelZoomAnchorY) = PinchZoomMath.CaptureAnchor(
+                        _zoomLevel, PagePreviewPanel.HorizontalOffset,
+                        PagePreviewPanel.VerticalOffset,
+                        cursorInViewport.X, cursorInViewport.Y);
+                    _wheelZoomAnchorActive = true;
+                }
 
                 // Smooth wheel zoom. Two parts:
                 // 1) A multiplicative step - every notch changes the zoom by the same RATIO. The
@@ -79,15 +86,15 @@ namespace KillerPDF.Controls
                 ApplyZoom(lite: true);
                 StartZoomSettleTimer();
 
-                // After layout settles, reposition the scroll so the cursor point stays fixed.
-                // Formula: newOffset = (oldOffset + cursorPos) * (newZoom / oldZoom) - cursorPos
-                double ratio = _zoomLevel / oldZoom;
-                double newHOff = (oldHOff + cursorInViewport.X) * ratio - cursorInViewport.X;
-                double newVOff = (oldVOff + cursorInViewport.Y) * ratio - cursorInViewport.Y;
+                PinchZoomResult anchored = PinchZoomMath.ApplyAtAnchor(
+                    _zoomLevel, _wheelZoomAnchorX, _wheelZoomAnchorY,
+                    cursorInViewport.X, cursorInViewport.Y);
+                long revision = ++_wheelZoomRevision;
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, (Action)(() =>
                 {
-                    PagePreviewPanel.ScrollToHorizontalOffset(Math.Max(0, newHOff));
-                    PagePreviewPanel.ScrollToVerticalOffset(Math.Max(0, newVOff));
+                    if (revision != _wheelZoomRevision) return;
+                    PagePreviewPanel.ScrollToHorizontalOffset(anchored.HorizontalOffset);
+                    PagePreviewPanel.ScrollToVerticalOffset(anchored.VerticalOffset);
                 }));
                 return;
             }
@@ -244,6 +251,8 @@ namespace KillerPDF.Controls
                 _zoomSettleTimer.Tick += (_, _) =>
                 {
                     _zoomSettleTimer!.Stop();
+                    _wheelZoomAnchorActive = false;
+                    _wheelZoomRevision++;
                     if (_doc is null) return;
                     ApplyZoom();
                     if (_currentPage >= 0)
