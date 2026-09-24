@@ -6,6 +6,24 @@ namespace KillerPDF.Tests;
 public sealed class PinchZoomMathTests
 {
     [Fact]
+    public void ReusesOneContentAnchorAcrossRapidWheelUpdates()
+    {
+        (double x, double y) = PinchZoomMath.CaptureAnchor(
+            zoom: 1, horizontalOffset: 100, verticalOffset: 200,
+            originX: 300, originY: 250);
+
+        PinchZoomResult first = PinchZoomMath.ApplyAtAnchor(
+            zoom: 1.1, x, y, originX: 300, originY: 250);
+        PinchZoomResult second = PinchZoomMath.ApplyAtAnchor(
+            zoom: 1.21, x, y, originX: 300, originY: 250);
+
+        Assert.Equal(140, first.HorizontalOffset, 6);
+        Assert.Equal(245, first.VerticalOffset, 6);
+        Assert.Equal(184, second.HorizontalOffset, 6);
+        Assert.Equal(294.5, second.VerticalOffset, 6);
+    }
+
+    [Fact]
     public void ZoomsAroundTheGestureOrigin()
     {
         PinchZoomResult result = PinchZoomMath.Apply(
