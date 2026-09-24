@@ -243,6 +243,7 @@ public static class PdfStreamDecoder
         var output = new List<byte>();
         Span<byte> tuple = stackalloc byte[5];
         int count = 0;
+        bool damagedTuple = false;
         bool ended = false;
         for (int index = 0; index < encoded.Length; index++)
         {
@@ -253,38 +254,78 @@ public static class PdfStreamDecoder
                 int next = index + 1;
                 while (next < encoded.Length && IsWhiteSpace(encoded[next])) next++;
                 if (next >= encoded.Length || encoded[next] != '>')
-                    throw new PdfFilterException("ASCII85 data has an invalid end marker.");
-                ended = true;
-                break;
+                {
+                    if (!compatibilityRecovery)
+                        throw new PdfFilterException("ASCII85 data has an invalid end marker.");
+                    damagedTuple = true;
+                    value = (byte)'!';
+                }
+                else
+                {
+                    ended = true;
+                    break;
+                }
             }
             if (value == 'z')
             {
-                if (count != 0) throw new PdfFilterException("ASCII85 'z' appears inside a tuple.");
-                for (int item = 0; item < 4; item++) AddBounded(output, 0, maximumDecodedBytes);
-                continue;
+                if (count != 0)
+                {
+                    if (!compatibilityRecovery)
+                        throw new PdfFilterException("ASCII85 'z' appears inside a tuple.");
+                    damagedTuple = true;
+                    value = (byte)'!';
+                }
+                else
+                {
+                    for (int item = 0; item < 4; item++)
+                        AddBounded(output, 0, maximumDecodedBytes);
+                    continue;
+                }
             }
             if (value is < (byte)'!' or > (byte)'u')
-                throw new PdfFilterException("ASCII85 data contains an invalid byte.");
+            {
+                if (!compatibilityRecovery)
+                    throw new PdfFilterException("ASCII85 data contains an invalid byte.");
+                damagedTuple = true;
+                value = (byte)'!';
+            }
             tuple[count++] = value;
-            if (count == 5) { WriteAscii85Tuple(tuple, 4, output, maximumDecodedBytes); count = 0; }
+            if (count == 5)
+            {
+                WriteAscii85Tuple(tuple, 4, output, maximumDecodedBytes,
+                    compatibilityRecovery, damagedTuple);
+                count = 0;
+                damagedTuple = false;
+            }
         }
         if (!ended && !compatibilityRecovery)
             throw new PdfFilterException("ASCII85 data has no end marker.");
-        if (count == 1) throw new PdfFilterException("ASCII85 data ends with an incomplete tuple.");
+        if (count == 1)
+            throw new PdfFilterException("ASCII85 data ends with an incomplete tuple.");
         if (count > 1)
         {
             tuple[count..].Fill((byte)'u');
-            WriteAscii85Tuple(tuple, count - 1, output, maximumDecodedBytes);
+            WriteAscii85Tuple(tuple, count - 1, output, maximumDecodedBytes,
+                compatibilityRecovery, damagedTuple);
         }
         return [.. output];
     }
 
     private static void WriteAscii85Tuple(
-        ReadOnlySpan<byte> tuple, int bytesToWrite, ICollection<byte> output, int maximumDecodedBytes)
+        ReadOnlySpan<byte> tuple, int bytesToWrite, ICollection<byte> output,
+        int maximumDecodedBytes, bool compatibilityRecovery = false, bool damagedTuple = false)
     {
         ulong value = 0;
         for (int index = 0; index < 5; index++) value = value * 85 + (uint)(tuple[index] - '!');
-        if (value > uint.MaxValue) throw new PdfFilterException("ASCII85 tuple exceeds 32 bits.");
+        if (damagedTuple || value > uint.MaxValue)
+        {
+            if (!compatibilityRecovery)
+                throw new PdfFilterException(value > uint.MaxValue
+                    ? "ASCII85 tuple exceeds 32 bits."
+                    : "ASCII85 data contains an invalid byte.");
+            while (bytesToWrite-- > 0) AddBounded(output, (byte)' ', maximumDecodedBytes);
+            return;
+        }
         for (int shift = 24; bytesToWrite > 0; shift -= 8, bytesToWrite--)
             AddBounded(output, (byte)(value >> shift), maximumDecodedBytes);
     }

@@ -214,6 +214,11 @@ public static class PdfContentStreamReader
                 {
                     Resynchronize(Math.Max(error.Offset, token.Offset));
                 }
+                catch (Exception error) when (compatibilityRecovery
+                    && error is NotSupportedException or InvalidDataException)
+                {
+                    Resynchronize(token.Offset);
+                }
                 continue;
             }
             if (operation is "R" or "obj" or "endobj" or "stream" or "endstream" or "ID" or "EI")

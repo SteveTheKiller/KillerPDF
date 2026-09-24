@@ -341,10 +341,24 @@ public sealed class PdfStreamDecoderTests
     }
 
     [Theory]
+    [InlineData("!!!!!v!!!!!!!!!~>")]
+    [InlineData("!!!!!uuuuu!!!!!~>")]
+    [InlineData("!!!!!!z!!!!!!!!~>")]
+    [InlineData("!!!!!!~!!!!!!!!~>")]
+    public void Decode_RecoveryReplacesDamagedAscii85TuplesAndContinues(string encoded)
+    {
+        PdfStream stream = Stream(Encoding.ASCII.GetBytes(encoded),
+            Pair("Filter", Name("ASCII85Decode")));
+        byte[] expected = [0, 0, 0, 0, 32, 32, 32, 32, 0, 0, 0, 0];
+
+        Assert.Throws<PdfFilterException>(() => PdfStreamDecoder.Decode(stream));
+        Assert.Equal(expected, PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream));
+        Assert.Throws<PdfFilterException>(() =>
+            PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream, expected.Length - 1));
+    }
+
+    [Theory]
     [InlineData("!")]
-    [InlineData("!z")]
-    [InlineData("v")]
-    [InlineData("uuuuu")]
     [InlineData("z~")]
     public void Decode_RecoveryPreservesAscii85TupleValidation(string encoded)
     {

@@ -105,6 +105,19 @@ public sealed class PdfInlineImageTests
         Read("BI /F /Unsupported ID ", " EI "u8.ToArray(), "EI Q"));
 
     [Fact]
+    public void CompatibilityRecoverySkipsUnsupportedInlineImageAndContinues()
+    {
+        byte[] content = "q BI /F /Unsupported ID junk EI 0 0 1 rg 0 0 1 1 re f Q"u8.ToArray();
+        Assert.Throws<NotSupportedException>(() => PdfContentStreamReader.Read(content));
+
+        IReadOnlyList<PdfContentInstruction> result = PdfContentStreamReader.Read(
+            content, compatibilityRecovery: true);
+
+        Assert.Contains(result, instruction => instruction.Operator == "re");
+        Assert.Equal("Q", result[^1].Operator);
+    }
+
+    [Fact]
     public void ResolvesResourceNamedColorSpace()
     {
         var result = PdfContentStreamReader.Read("BI /W 1 /H 1 /BPC 8 /CS /Cs1 ID abc EI Q"u8.ToArray(),

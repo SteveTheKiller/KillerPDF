@@ -38,6 +38,43 @@ public sealed class PdfPageRendererTests
         Assert.Contains(page.Diagnostics, diagnostic => diagnostic.Contains("/XXXDecode"));
     }
 
+    [Fact]
+    public void Render_RecoveryPreservesContentAfterDamagedAscii85Tuple()
+    {
+        string prefix = "0 0 1 rg 0 0 5 10 re f ";
+        prefix = prefix.PadRight((prefix.Length + 3) / 4 * 4);
+        string suffix = "1 0 0 rg 5 0 5 10 re f";
+        suffix = suffix.PadRight((suffix.Length + 3) / 4 * 4);
+        string encoded = EncodeAscii85(Encoding.ASCII.GetBytes(prefix))
+            + "uuuuu"
+            + EncodeAscii85(Encoding.ASCII.GetBytes(suffix))
+            + "~>";
+
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(10, 10, Encoding.ASCII.GetBytes("0 0 m")).Build());
+        PdfDictionary page = ResolveDictionary(source, PdfPageTree.Read(source).Pages[0].Reference);
+        PdfIndirectReference contentReference = Assert.IsType<PdfIndirectReference>(
+            page[Name("Contents")]);
+        var stream = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("Filter"), Name("ASCII85Decode"))]),
+            Encoding.ASCII.GetBytes(encoded));
+        Assert.Equal(prefix + "    " + suffix, Encoding.ASCII.GetString(
+            KillerPdf.Engine.Filters.PdfStreamDecoder.DecodeWithCompatibilityRecovery(stream)));
+        byte[] bytes = new PdfIncrementalUpdateBuilder(source)
+            .ReplaceObject(contentReference.ObjectNumber, stream).Build();
+        var options = new PdfRenderOptions(10, 10,
+            includeAnnotations: false, includeFormFields: false);
+
+        Assert.Throws<KillerPdf.Engine.Filters.PdfFilterException>(() =>
+            new PdfPageRenderer(PdfDocument.Open(bytes)).Render(0, options));
+        PdfRenderedPage rendered = new PdfPageRenderer(
+            PdfDocument.OpenWithCompatibilityRecovery(bytes)).Render(0, options);
+
+        Assert.Equal(new byte[] { 255, 0, 0, 255 }, Pixel(rendered, 2, 5));
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, Pixel(rendered, 7, 5));
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Theory]
     [InlineData(PdfTextRenderingMode.Fill, "B")]
     [InlineData(PdfTextRenderingMode.Fill, "BA")]
@@ -4880,6 +4917,24 @@ public sealed class PdfPageRendererTests
 
     private static byte[] Pixel(PdfRenderedPage page, int x, int y) =>
         page.Pixels.Slice((y * page.Width + x) * 4, 4).ToArray();
+
+    private static string EncodeAscii85(ReadOnlySpan<byte> source)
+    {
+        Assert.Equal(0, source.Length % 4);
+        var output = new StringBuilder(source.Length / 4 * 5);
+        Span<char> tuple = stackalloc char[5];
+        for (int offset = 0; offset < source.Length; offset += 4)
+        {
+            uint value = BinaryPrimitives.ReadUInt32BigEndian(source[offset..]);
+            for (int index = tuple.Length - 1; index >= 0; index--)
+            {
+                tuple[index] = (char)('!' + value % 85);
+                value /= 85;
+            }
+            output.Append(tuple);
+        }
+        return output.ToString();
+    }
 
     private static void AssertNear(byte[] expected, byte[] actual, int tolerance)
     {
