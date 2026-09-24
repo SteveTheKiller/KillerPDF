@@ -314,11 +314,32 @@ public static class PdfFontResourceReader
                 }
                 return new PdfGlyphOutline(contours.AsReadOnly());
             }
+            double HostCidOffset(uint code, ushort glyph)
+            {
+                uint cid = cidSelector?.Invoke(code) ?? code;
+                return useHostCidGlyphs && embedded is not null && !widths.ContainsKey(cid)
+                    ? (defaultWidth - embedded.GetPdfAdvanceWidth(glyph)) / 2 : 0;
+            }
+            var centeredHostOutlines = new Dictionary<uint, PdfGlyphOutline>();
             PdfGlyphOutline? TrueTypeOutline(uint code)
             {
                 ushort glyph = Glyph(code);
                 // A missing host glyph must allow the bundled font fallback, not paint .notdef.
-                return glyph == 0 && resolvedData is not null ? null : embeddedOutlines?.Outline(glyph);
+                PdfGlyphOutline? outline = glyph == 0 && resolvedData is not null
+                    ? null : embeddedOutlines?.Outline(glyph);
+                if (outline is null) return null;
+                double offset = HostCidOffset(code, glyph);
+                if (offset == 0) return outline;
+                lock (centeredHostOutlines)
+                {
+                    if (centeredHostOutlines.TryGetValue(code, out PdfGlyphOutline? centered))
+                        return centered;
+                    centered = new PdfGlyphOutline(Array.AsReadOnly([.. outline.Contours.Select(
+                        contour => new PdfGlyphContour(Array.AsReadOnly([.. contour.Points.Select(
+                            point => point with { X = point.X + offset })])))]));
+                    centeredHostOutlines.Add(code, centered);
+                    return centered;
+                }
             }
             var fittedSubstitutes = new Dictionary<uint, PdfGlyphOutline>();
             PdfGlyphOutline? SubstituteOutline(uint code)
@@ -376,6 +397,13 @@ public static class PdfFontResourceReader
                         ?? cff?.GetBounds(CffGlyph(code))
                         ?? (!composite && code < glyphNames.Length ? type1?.GetBounds(glyphNames[code]) : null)
                         ?? (!composite && code < glyphNames.Length ? PdfStandardGlyphBounds.Get(standardMetricsName, glyphNames[code]) : null);
+                    double offset = glyph == 0 ? 0 : HostCidOffset(code, glyph);
+                    if (box is { } centered && offset != 0)
+                        box = centered with
+                        {
+                            Left = centered.Left + offset,
+                            Right = centered.Right + offset
+                        };
                     return box is { } b && b.Right > b.Left && b.Top > b.Bottom ? box : null;
                 },
                 OutlineReader = code => TrueTypeOutline(code)

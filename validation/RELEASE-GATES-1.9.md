@@ -1494,3 +1494,21 @@ not justify replacing the production Windows face. Visual inspection confirms
 that the remaining differences are rasterizer edge coverage, not font choice,
 Unicode recovery, glyph shape, advance width, or numeral selection. No source
 change is warranted, and broader visual parity remains open.
+
+### Host Identity-font glyph placement checkpoint (2026-09-24)
+
+Host-resolved Identity fonts now center natural glyph outlines inside CID cells
+whose widths are omitted from the PDF. Explicit `/W` entries remain unchanged,
+and an explicit `/DW` supplies the cell width used for centering. Outline bounds
+receive the same offset so extraction geometry remains aligned with rendering.
+
+At 2048 pixels, `issue15443.pdf` improved from a mean grayscale delta of
+10.425529 to 0.115934 against PDFium. `issue15594_reduced.pdf` improved from
+12.764485 to 0.064265. The glyph runs now match PDFium apart from isolated
+one-pixel antialias edges, while the five explicitly sized glyphs in
+`issue15443.pdf` retain their prior placement. Both results were visually
+inspected and match the PDFium character selection, spacing, and placement.
+
+Two focused width cases cover explicit default and per-CID metrics. Full
+validation passes with 4,135 engine tests, 431 app tests, and a Release build
+with no warnings or errors. Broader visual parity remains open.

@@ -479,9 +479,39 @@ public sealed class PdfFontResourceReaderTests
         PdfExtractionFont font = PdfFontResourceReader.Read(document,
             Type0(D(entries.ToArray()), N("Identity-H")), new TestFontResolver(bytes));
 
-        Assert.Single(Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(code)).Contours);
+        PdfGlyphOutline outline = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(code));
+        Assert.Single(outline.Contours);
+        Assert.Equal(200, outline.Contours.SelectMany(contour => contour.Points)
+            .Min(point => point.X));
         Assert.Equal("A", Assert.Single(font.Decode(new byte[] { 0, code })).Text);
+        Assert.Equal(1000, font.GetWidth(code));
         Assert.Null(font.GetGlyphOutline(65535));
+    }
+
+    [Theory]
+    [InlineData(true, 777)]
+    [InlineData(false, 900)]
+    public void HostIdentityFontKeepsDeclaredWidthMetrics(bool defaultWidth, int expected)
+    {
+        byte[] bytes = TrueTypeFontTests.BuildTestFont(false, includeOutlines: true);
+        var entries = new List<(string Name, PdfObject Value)>
+        {
+            ("Subtype", N("CIDFontType2")),
+            ("CIDSystemInfo", D(("Registry", Text("Adobe")),
+                ("Ordering", Text("Identity"))))
+        };
+        if (defaultWidth)
+            entries.Add(("DW", new PdfInteger(expected)));
+        else
+            entries.Add(("W", new PdfArray([
+                new PdfInteger(1), new PdfArray([new PdfInteger(expected)])])));
+        PdfExtractionFont font = PdfFontResourceReader.Read(Document,
+            Type0(D(entries.ToArray()), N("Identity-H")), new TestFontResolver(bytes));
+
+        Assert.Equal(expected, font.GetWidth(1));
+        PdfGlyphOutline outline = Assert.IsType<PdfGlyphOutline>(font.GetGlyphOutline(1));
+        Assert.Equal(defaultWidth ? 88.5 : 0,
+            outline.Contours.SelectMany(contour => contour.Points).Min(point => point.X));
     }
 
     [Fact]

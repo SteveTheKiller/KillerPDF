@@ -49,6 +49,7 @@ The 1.9.0 engine adds page-content extraction and complete engine-owned page ren
 
 ### Changed
 
+- Centered host-resolved Identity glyphs when their widths are omitted from the PDF.
 - Improved fine detail when reducing images with soft masks.
 - Used the standard identity encoding for embedded fonts when possible, improving searchable OCR text extraction compatibility.
 - Reused parsed extraction fonts across pages, reducing text extraction time on multipage documents.
