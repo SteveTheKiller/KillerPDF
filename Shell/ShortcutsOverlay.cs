@@ -132,11 +132,8 @@ namespace KillerPDF
                     Margin     = new Thickness(0, s == 0 ? 0 : 12, 0, 4),
                 };
                 header.SetResourceReference(TextBlock.TextProperty, section.TitleKey);
-                // Category color, the same KsCat* brushes the keyboard map lights its keys with,
-                // so a section reads as the same color in both views (KillerShell's layout).
-                // Category color remains visible on the keyboard border and bar. List headings use
-                // the theme's readable text foreground so every family has consistent contrast.
-                header.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
+                // Use the same per-theme category brush as the keyboard map.
+                header.SetResourceReference(TextBlock.ForegroundProperty, "KsCat" + section.Cat);
                 host.Children.Add(header);
 
                 for (int r = 0; r < section.Rows.Length; r++)
