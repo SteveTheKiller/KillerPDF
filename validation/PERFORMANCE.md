@@ -1,5 +1,34 @@
 # Performance validation results
 
+## KillerPDF 1.9.0 isolated broad render comparison
+
+Measured September 24, 2026, against the current 1.8.x branch. All 649 PDFs in
+the conformance collection were rendered one file per process at 1024 pixels,
+page one, with a 20-second timeout per build and file. The order alternated by
+file. This isolates expensive PDFium font cases so one stalled file cannot block
+the rest of the collection.
+
+| Outcome | 1.8.x | 1.9.0 engine |
+| --- | ---: | ---: |
+| Rendered | 600 | 614 |
+| Skipped | 41 | 35 |
+| Failed | 8 | 0 |
+| Timed out | 0 | 0 |
+
+The historical PDFium Unifont stalls did not reproduce in either fresh build.
+All 600 pages rendered by both builds had matching output dimensions. The 1.9.0
+engine additionally recovered 14 files that PDFium skipped or failed. Six files
+that PDFium failed were classified as having no pages by the engine. This pass
+establishes bounded completion and outcome coverage, not pixel equivalence or a
+throughput result. Visual and multipage comparisons remain separate gates.
+
+The builds were 1.8.x commit `259c5f8` with application DLL SHA256
+`D8C974745D7DF23113BB25F68B8F72076EBDB312C84759577F94F8AA6D513E3A`, and
+1.9.0 commit `10552be` with application DLL SHA256
+`EBB5DDB3226EEB223C3B2DF09879BEB1B7E36E973660F9A582B518F996E28D4F`.
+Raw per-file logs and retained PNGs are archived locally in
+`C:/Users/steve/kp-bench-render/broad-regression-isolated-20260924`.
+
 ## KillerPDF 1.9.0 exact-output speed follow-up
 
 September 8, 2026. Six engine and app commits (`d92dc82` through `f8b9343`) speed
