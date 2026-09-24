@@ -221,6 +221,36 @@ foreach ($localeFile in Get-ChildItem $stringsDir -Filter '*.xaml') {
 }
 Write-Host "    Translations OK: $($englishStrings.Count) keys across $((Get-ChildItem $stringsDir -Filter '*.xaml').Count) languages" -ForegroundColor Green
 
+Write-Host "`n==> Checking landing page translations..." -ForegroundColor Cyan
+$landingDir = Join-Path $PSScriptRoot 'pdf-landing'
+$siteI18nRaw = Get-Content -Path (Join-Path $landingDir 'kp-i18n.js') -Raw
+$siteI18nMatch = [regex]::Match($siteI18nRaw, '(?s)^var I18N = (?<json>\{.*?\n\});')
+if (-not $siteI18nMatch.Success) { throw "Could not read the landing page translation dictionary." }
+$siteI18n = $siteI18nMatch.Groups['json'].Value | ConvertFrom-Json
+$siteLocales = @($siteI18n.PSObject.Properties)
+if ($siteLocales.Count -eq 0) { throw "Landing page translation dictionary contains no locales." }
+$requiredSiteKeys = New-Object 'System.Collections.Generic.HashSet[string]'
+foreach ($htmlFile in Get-ChildItem $landingDir -Filter '*.html') {
+    $html = Get-Content -Path $htmlFile.FullName -Raw
+    foreach ($match in [regex]::Matches($html, 'data-i18n="([^"]+)"')) { [void]$requiredSiteKeys.Add($match.Groups[1].Value) }
+    foreach ($match in [regex]::Matches($html, '\bui_Key_[A-Za-z0-9_]+\b')) { [void]$requiredSiteKeys.Add($match.Value) }
+}
+foreach ($jsFile in Get-ChildItem $landingDir -Filter '*.js') {
+    $javascript = Get-Content -Path $jsFile.FullName -Raw
+    foreach ($match in [regex]::Matches($javascript, '\bui_Key_[A-Za-z0-9_]+\b')) { [void]$requiredSiteKeys.Add($match.Value) }
+}
+foreach ($locale in $siteLocales) {
+    $localizedKeys = @($locale.Value.PSObject.Properties.Name)
+    $missing = @($requiredSiteKeys | Where-Object { $_ -notin $localizedKeys } | Sort-Object)
+    $empty = @($locale.Value.PSObject.Properties | Where-Object { $_.Name -in $requiredSiteKeys -and [string]::IsNullOrWhiteSpace([string]$_.Value) } | ForEach-Object Name | Sort-Object)
+    if ($missing.Count -or $empty.Count) {
+        if ($missing.Count) { Write-Host "    missing: $($missing -join ', ')" -ForegroundColor Yellow }
+        if ($empty.Count)   { Write-Host "    empty:   $($empty -join ', ')" -ForegroundColor Yellow }
+        throw "Landing page locale $($locale.Name) is incomplete: missing=$($missing.Count), empty=$($empty.Count)"
+    }
+}
+Write-Host "    Landing translations OK: $($requiredSiteKeys.Count) used keys across $($siteLocales.Count) locales" -ForegroundColor Green
+
 # ── 1. Build the portable and installed packages ─────────────────────────────
 Write-Host "`n==> Building portable and installer packages..." -ForegroundColor Cyan
 & powershell -NoProfile -ExecutionPolicy Bypass -File $packageBuild -RequireSignature

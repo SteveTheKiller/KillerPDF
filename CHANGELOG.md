@@ -58,6 +58,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this
 ### Fixed
 
 - Kept region-copy selection outlines visible after releasing the mouse.
+- Localized key names throughout the website Help keyboard guide (#230).
 - Kept localized toolbar captions fully visible after language changes.
 - Stabilized precision-touchpad pinch zoom without queued page jumps.
 - Aligned new text with the insertion cursor and made Enter add lines while Ctrl+Enter finishes editing.
