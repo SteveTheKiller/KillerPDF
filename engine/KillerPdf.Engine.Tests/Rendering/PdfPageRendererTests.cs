@@ -2353,7 +2353,7 @@ public sealed class PdfPageRendererTests
             new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
             new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
             new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]),
-            Encoding.ASCII.GetBytes("{ pop dup dup }") );
+            Encoding.ASCII.GetBytes("{ pop dup dup }"));
         var shading = new PdfDictionary([
             new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(1)),
             new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
@@ -2369,6 +2369,35 @@ public sealed class PdfPageRendererTests
         Assert.Equal([25, 25, 25, 255], Pixel(rendered, 2, 6));
         Assert.Equal([230, 230, 230, 255], Pixel(rendered, 6, 6));
         Assert.Empty(rendered.Diagnostics);
+    }
+
+    [Fact]
+    public void Render_ParallelFunctionShadingMatchesSequentialPixels()
+    {
+        PdfDocument source = PdfDocument.Open(new PdfDocumentBuilder()
+            .AddPage(100, 100, Encoding.ASCII.GetBytes("/Sh1 sh")).Build());
+        var function = new PdfStream(new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("FunctionType"), new PdfInteger(4)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Range"), Reals(0, 1, 0, 1, 0, 1))]),
+            Encoding.ASCII.GetBytes("{ pop dup dup }") );
+        var shading = new PdfDictionary([
+            new KeyValuePair<PdfName, PdfObject>(Name("ShadingType"), new PdfInteger(1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("ColorSpace"), Name("DeviceRGB")),
+            new KeyValuePair<PdfName, PdfObject>(Name("Domain"), Reals(0, 1, 0, 1)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Matrix"), Reals(100, 0, 0, 100, 0, 0)),
+            new KeyValuePair<PdfName, PdfObject>(Name("Function"), function)]);
+        PdfDocument document = AddShadingResource(source, shading);
+        var sequentialOptions = new PdfRenderOptions(512, 512,
+            includeAnnotations: false, includeFormFields: false);
+        var parallelOptions = sequentialOptions with { MaximumParallelism = 4 };
+
+        PdfRenderedPage sequential = new PdfPageRenderer(document).Render(0, sequentialOptions);
+        PdfRenderedPage parallel = new PdfPageRenderer(document).Render(0, parallelOptions);
+
+        Assert.Equal(sequential.Pixels.ToArray(), parallel.Pixels.ToArray());
+        Assert.Empty(sequential.Diagnostics);
+        Assert.Empty(parallel.Diagnostics);
     }
 
     [Theory]

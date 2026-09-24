@@ -3827,27 +3827,35 @@ public sealed partial class PdfPageRenderer
             state.Clips, bounds, targetWidth, targetHeight, scaleX, scaleY);
         state = state with { GraphicsSoftMask = state.GraphicsSoftMask?.ForBounds(left, top, right, bottom) };
         Point[][]? boundsPolygons = bounds is null ? null : [bounds];
-        for (int y = top; y < bottom; y++)
+        ForEachRow(top, bottom, (long)(right - left) * (bottom - top),
+            cancellationToken, PaintRows);
+        return true;
+
+        void PaintRows(int rowStart, int rowEnd)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            for (int x = left; x < right; x++)
+            for (int y = rowStart; y < rowEnd; y++)
             {
-                double pageX = (x + 0.5) / scaleX;
-                double pageY = (targetHeight - y - 0.5) / scaleY;
-                double clipAlpha = ClipAlpha(state.Clips, x, y);
-                if (clipAlpha <= 0) continue;
-                if (boundsPolygons is not null && !Contains(boundsPolygons, false, pageX, pageY)) continue;
-                Point point = pageToShading.Apply(pageX, pageY);
-                if (point.X < domain[0] || point.X > domain[1]
-                    || point.Y < domain[2] || point.Y > domain[3]) continue;
-                Color color = OverprintColor(function([point.X, point.Y]), colorSpace,
-                    state.FillOverprint, state.OverprintMode);
-                SetPixel(target, targetWidth, x, y, color,
-                    state.FillAlpha * clipAlpha, state.BlendMode, state.GraphicsSoftMask,
-                    state.Knockout, shape: clipAlpha, alphaIsShape: state.AlphaIsShape);
+                cancellationToken.ThrowIfCancellationRequested();
+                for (int x = left; x < right; x++)
+                {
+                    double pageX = (x + 0.5) / scaleX;
+                    double pageY = (targetHeight - y - 0.5) / scaleY;
+                    double clipAlpha = ClipAlpha(state.Clips, x, y);
+                    if (clipAlpha <= 0) continue;
+                    if (boundsPolygons is not null
+                        && !Contains(boundsPolygons, false, pageX, pageY)) continue;
+                    Point point = pageToShading.Apply(pageX, pageY);
+                    if (point.X < domain[0] || point.X > domain[1]
+                        || point.Y < domain[2] || point.Y > domain[3]) continue;
+                    Color color = OverprintColor(function([point.X, point.Y]), colorSpace,
+                        state.FillOverprint, state.OverprintMode);
+                    SetPixel(target, targetWidth, x, y, color,
+                        state.FillAlpha * clipAlpha, state.BlendMode,
+                        state.GraphicsSoftMask, state.Knockout, shape: clipAlpha,
+                        alphaIsShape: state.AlphaIsShape);
+                }
             }
         }
-        return true;
     }
 
     private bool RenderFreeFormMeshShading(PdfStream stream, PdfDictionary resources,

@@ -18,7 +18,7 @@ behind an overall average.
 | Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
-| Builds and regression suites | Passing development checkpoint | September 9: 3,939 engine tests, 370 app tests, and the Release payload publish pass, including transparent nested knockout content, nested groups, blends, masks and backdrop removal, mesh overlap, shading backgrounds, pattern graphics state and transparency, zero-length and tiny transformed dashes, reduced stencil, packed coverage, and blend endpoint regressions. Earlier blend tests and the exhaustive RGB check pass with hardware intrinsics disabled. The packed engine works in an isolated JPEG 2000 consumer. Repeat required checks for the final release build; these checks alone do not close other gates. |
+| Builds and regression suites | Passing development checkpoint | September 24: 4,131 engine tests, 431 app tests, and the Release build pass, including exact-pixel sequential versus parallel function shading coverage. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
 
 Current paired evidence is archived locally under
 `C:/Users/steve/kp-bench-render/review-20260909/stencil-area-paired*`.
@@ -1382,3 +1382,33 @@ first-use parsing, and tiered compilation, so they do not establish a cold-path
 speed claim. The consistent warmed pairs and request counts confirm that the
 bounded glyph-mask cache still covers substantial reusable work. Broader
 rendering and performance parity remain open.
+
+### Codec and non-axial shading performance checkpoint (2026-09-24)
+
+A six-file non-conformance sample extended paired 2048-pixel application
+throughput to function, lattice, and radial shadings plus JPEG, JPEG 2000, and
+Flate images. Four alternating passes per version produced 1.8 versus 1.9
+medians of 1,432 versus 920 ms for function shading, 907 versus 363 ms for
+lattice shading, 101 versus 80.5 ms for radial shading, 337 versus 1,307.5 ms
+for JPEG, 635 versus 1,188 ms for JPEG 2000, and 3.5 versus 74 ms for Flate.
+The six-file median total remains slower at 3,938.5 versus 3,423.5 ms because
+the two image codecs dominate it. Broader throughput parity remains open.
+
+Fresh-process and warmed measurements were separated for the four expensive
+targets. At 1024 pixels, first versus warmed medians were 654.674 versus
+373.229 ms for function shading, 407.493 versus 208.003 ms for lattice
+shading, 797.959 versus 441.064 ms for JPEG 2000, and 1,131.140 versus
+379.932 ms for JPEG. CPU traces identify calculator execution as the main
+function-shading cost, soft-mask reduction and CoreJ2K packet decoding as the
+main JPEG 2000 costs, and Huffman decoding, block output, and soft-mask
+reduction as the main JPEG costs.
+
+Reusing one function-input array per shading worker regressed warmed rendering
+and was discarded. Bounded row parallelism was retained instead. Two
+reversed-order pairs reduced the same function-shading page from 323.567 and
+321.562 ms with one worker to 96.251 and 91.397 ms with four workers, with one
+stable SHA-256 pixel hash in every run. All six application PNGs also match
+the pre-change 1.9 outputs byte for byte. The apparent lattice improvement is
+not attributed to this function-shading change because session load and
+tiered compilation varied. All 4,131 engine tests and 431 app tests pass, and
+the Release build completes with no warnings or errors.
