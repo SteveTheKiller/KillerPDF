@@ -1898,19 +1898,17 @@ namespace KillerPDF.Controls
                 _isSelecting = false;
                 var gc = _gestureCanvas ?? _activeCanvas;   // the canvas the marquee was drawn against
                 gc?.ReleaseMouseCapture();
-                // Drop the shaded marquee rectangle now that the drag is over - the selection it made is
-                // kept, but the box itself shouldn't linger on the page.
-                if (_selectRect is not null)
-                {
-                    (_selectRect.Parent as Canvas)?.Children.Remove(_selectRect);
-                    _selectRect = null;
-                }
                 var pos = e.GetPosition(gc);
                 double dragW = Math.Abs(pos.X - _selectStart.X);
                 double dragH = Math.Abs(pos.Y - _selectStart.Y);
 
                 if (_ocrRegionMode)
                 {
+                    if (_selectRect is not null)
+                    {
+                        (_selectRect.Parent as Canvas)?.Children.Remove(_selectRect);
+                        _selectRect = null;
+                    }
                     _ocrRegionMode = false;
                     if (dragW >= 4 && dragH >= 4)
                         OcrRegion(pageIdx, new Rect(Math.Min(pos.X, _selectStart.X), Math.Min(pos.Y, _selectStart.Y), dragW, dragH));
@@ -1963,6 +1961,11 @@ namespace KillerPDF.Controls
                     }
                     if (hits.Count > 0)
                     {
+                        if (_selectRect is not null)
+                        {
+                            (_selectRect.Parent as Canvas)?.Children.Remove(_selectRect);
+                            _selectRect = null;
+                        }
                         ClearSelection();
                         foreach (var (a, b, cv) in hits) ToggleMultiSelect(a, b, cv);
                         SetStatus(hits.Count == 1 ? Loc("Str_St_SelectedOne") : string.Format(Loc("Str_St_SelectedMany"), hits.Count));
