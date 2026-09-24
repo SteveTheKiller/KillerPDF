@@ -11,7 +11,8 @@ public sealed partial class PdfPageRenderer
     {
         if (!container.TryGetValue(Name("Group"), out PdfObject? groupValue)
             || Resolve(groupValue) is not PdfDictionary group
-            || !group.TryGetValue(Name("CS"), out PdfObject? spaceValue)) return inherited;
+            || !group.TryGetValue(Name("CS"), out PdfObject? spaceValue)
+            || Resolve(spaceValue) is PdfNull) return inherited;
         if (container.TryGetValue(Name("Resources"), out PdfObject? resourcesValue)
             && Resolve(resourcesValue) is PdfDictionary ownResources) resources = ownResources;
         ImageColorSpace space = ReadColorSpace(spaceValue, resources, 0);

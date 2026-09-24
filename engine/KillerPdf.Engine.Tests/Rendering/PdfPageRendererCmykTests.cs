@@ -10,6 +10,29 @@ namespace KillerPdf.Engine.Tests.Rendering;
 
 public sealed class PdfPageRendererCmykTests
 {
+    [Fact]
+    public void Render_NullTransparencyGroupColorSpaceUsesInheritedMode()
+    {
+        var content = new PdfContentStreamBuilder().SetFillRgb(1, 0, 0)
+            .Rectangle(0, 0, 1, 1).Fill();
+        var source = PdfDocument.Open(new PdfDocumentBuilder().AddPage(1, 1, content).Build());
+        PdfName Name(string value) => new(Encoding.ASCII.GetBytes(value));
+        var catalog = (PdfDictionary)source.Resolve((PdfIndirectReference)source.Trailer[Name("Root")]);
+        var pages = (PdfDictionary)source.Resolve((PdfIndirectReference)catalog[Name("Pages")]);
+        var reference = (PdfIndirectReference)((PdfArray)pages[Name("Kids")])[0];
+        var page = (PdfDictionary)source.Resolve(reference);
+        var group = new PdfDictionary([
+            new(Name("S"), Name("Transparency")), new(Name("CS"), PdfNull.Instance)]);
+        var update = new PdfIncrementalUpdateBuilder(source).ReplaceObject(reference.ObjectNumber,
+            new PdfDictionary(page.Append(new KeyValuePair<PdfName, PdfObject>(Name("Group"), group))));
+
+        PdfRenderedPage rendered = new PdfPageRenderer(PdfDocument.Open(update.Build()))
+            .Render(0, new PdfRenderOptions(1, 1));
+
+        Assert.Equal(new byte[] { 0, 0, 255, 255 }, rendered.Pixels.ToArray());
+        Assert.Empty(rendered.Diagnostics);
+    }
+
     [Theory]
     [InlineData(37, false)]
     [InlineData(37, true)]
