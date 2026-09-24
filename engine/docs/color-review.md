@@ -1,5 +1,41 @@
 # Color rendering development review
 
+## September 24 remaining-difference disposition
+
+The current 2048-pixel engine and PDFium comparison was reviewed for the
+remaining named color targets. All pages of `bug1703683_page2_reduced.pdf`,
+`calgray.pdf`, `function_based_shading_cmyk.pdf`, `issue18529.pdf`, and
+`poppler-91414-0-53.pdf` / `poppler-91414-0-54.pdf` now have identical output
+dimensions. The thumbnail mean RGB deltas for the bug, issue, and two Poppler
+fixtures are 0.031158, 0.172219, and 0.002405 respectively, with no sampled
+pixel exceeding a 16-level channel difference.
+
+The larger `calgray.pdf` differences are renderer-model differences rather
+than evidence for a production correction. The engine applies the declared
+CalGray gamma, white point, XYZ conversion, and sRGB transfer function. For
+gamma 1 and neutral white, input 0.5 therefore displays near RGB 188. The
+retained PDFium image displays it near 128. An independent Poppler render
+matches the engine's graduated gray values.
+
+The two-dimensional sampled DeviceCMYK shading likewise agrees visually with
+the independent Poppler render in its corner hues and transitions. PDFium uses
+a different hue layout on this fixture. Changing the sampled-function ordering
+or calibrated-gray conversion to reduce these PDFium differences would move
+the engine away from the PDF color definitions and the independent renderer.
+
+Ghent color work remains bounded by the patch indicators already recorded in
+this review. The engine removes the stated error crosses for the reviewed
+conversion, overprint, DeviceN, and knockout patches, while PDFium retains
+several of them. The retained same-renderer reference comparisons also favor
+the engine for all nine reviewed text soft-mask effects. These results justify
+leaving the current color paths unchanged, but they do not claim full ICC or
+Ghent conformance.
+
+Evidence is retained under `pdfjs-current-2048-pages3-20260924`,
+`pdfjs-pdfium-2048-pages3-20260924`, and `color-independent-20260924` in the
+local benchmark root. This closes the named difference investigation without
+a renderer change. Broader color conformance remains a release-level concern.
+
 ## September 9 color-indicator review
 
 The current `binary-count-Shared` images and retained

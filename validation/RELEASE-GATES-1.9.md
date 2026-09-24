@@ -15,7 +15,7 @@ behind an overall average.
 | --- | --- | --- |
 | Memory at parity or close to the PDFium pipeline | Shared batch lower; difficult batch higher; interactive use unverified | September 9 installed-layout median peak working set is 495.5 versus 614.6 MiB shared and 283.7 versus 260.3 MiB difficult, including complete large-map rendering. Shared engine peaks range from 461.9 to 501.1 MiB; difficult peaks range from 278.6 to 288.9 MiB. Verify representative interactive document use and an explicit acceptable tolerance before release. |
 | Rendering and whole-pass speed without regression | Open | Three alternating installed-layout measured runs put shared render medians at 15.687 versus 12.240 seconds; shared wall time is 27.350 versus 23.023 seconds. Difficult render time is 10.356 versus 5.479 seconds and wall time is 15.749 versus 11.011 seconds. Timing varies substantially across sessions; these paired results do not establish general speed parity. |
-| Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. Absolute color, font, other compositing, and fine-detail differences still need disposition; RGB-to-CMYK conversion remains an approximation. |
+| Rendering fidelity without regression | Open | All 600 shared and 74 difficult output dimensions match PDFium. The latest stencil correction improves pixel agreement on 12 pages and leaves 662 unchanged. Installed-font aliases and pattern fixes are also retained. Complete large-map rendering, CMYK swatch compatibility, and engine-correct Ghent softmask effects remain preserved. The named remaining color differences are dispositioned below. Absolute color conformance, font, other compositing, and fine-detail differences remain open; RGB-to-CMYK conversion remains an approximation. |
 | Startup, first-page display, scrolling, and zoom without regression | Unverified | Controlled interactive measurements; the startup marker does not measure first-page completion or scrolling. |
 | Existing 1.8 functionality and maintenance fixes preserved | Partially verified; open for release | Recorded 35 verified maintenance ports against local main at 5dd609f. The guard now reports only the 1.8-series brochure PDF commit 4cd5096 as missing. All five landing pages match maintenance except for the translation cache version; all 14 translated footers and the package summary match exactly. The stable source link and development release-date metadata are corrected. Applicable feature workflows still need release-build verification. |
 | Builds and regression suites | Passing development checkpoint | September 24: 4,132 engine tests, 431 app tests, and the Release build pass, including exact-pixel sequential versus parallel function shading and soft-mask reduction coverage. Earlier focused payload publishing, hardware-intrinsics-disabled RGB coverage, and isolated JPEG 2000 consumer checks also pass. Repeat required checks for the final release build; these checks alone do not close other gates. |
@@ -1063,6 +1063,24 @@ native pixel differences are positive indicator results, not evidence that the
 engine should reproduce native output. See `engine/docs/color-review.md` for
 sample values, retained evidence, and the limits of this finding. Absolute color
 accuracy and overall visual parity remain open.
+
+### Remaining color-difference disposition
+
+The September 24 2048-pixel comparison confirms matching engine and PDFium
+dimensions for every page of the remaining named fixtures. The bug1703683,
+issue18529, and two poppler-91414 pages have thumbnail mean RGB deltas from
+0.002405 through 0.172219, with no sampled pixel exceeding a 16-level channel
+difference. Their earlier one-pixel size differences are no longer present.
+
+The larger CalGray and sampled DeviceCMYK differences were checked against an
+independent Poppler render. Poppler agrees with the engine's CalGray transfer
+and the sampled CMYK shading's hue layout, while PDFium differs. Existing Ghent
+indicator and same-renderer reference checks also show cases where matching
+PDFium would reproduce the test page's stated error indicator. No renderer
+change is justified by these named differences. Exact comparison values,
+reasoning, and evidence locations are recorded in
+`engine/docs/color-review.md`. This disposition does not claim full color,
+ICC, or Ghent conformance.
 
 The subsequent GWG161 comparison supports all 16 sampled DeviceCMYK knockout
 patches: engine center/background differences are at most one channel level,
