@@ -1552,3 +1552,29 @@ clip. Full validation passes with 4,136 engine tests, 431 app tests, and a
 Release build with no warnings or errors. Finer glyph-cache positioning and a
 no-cache trial changed the remaining embedded Times New Roman edge differences
 only marginally, so neither broader performance tradeoff was retained.
+
+### Startup, packaged rendering, and ReadyToRun disposition (2026-09-24)
+
+The retained September 8 startup traces cover five launches of both loose
+installed-layout applications. The first measured 1.9 process reached the
+main-window ready marker in 2,619.7 ms versus 2,904.5 ms for 1.8. The four warm
+1.9 launches have a 2,387.2 ms median versus 2,119.0 ms for 1.8. Warm loader
+time is lower at 215.5 versus 237.3 ms, while median main-window construction
+is higher at 588.1 versus 458.3 ms. The warm regression is therefore after the
+runtime loader. These are first-process and warm-cache measurements, not an OS
+cache flush, and the marker does not measure first-page display or interaction.
+
+The retained September 9 installed-layout package runs cover three measured
+alternating passes after warmup. Engine 1.9 medians are 15.687 seconds of render
+time and 27.350 seconds wall time for the 600-page shared set, versus 12.240 and
+23.023 seconds for the PDFium application. The 74-page difficult set measures
+10.356 and 15.749 seconds versus 5.479 and 11.011 seconds. These results remain
+a release-performance gap, not an optimization claim.
+
+The separate ReadyToRun package was also measured and remains rejected. Its
+shared render median was 11.829 seconds, but the difficult median rose to
+10.643 seconds and the shared whole-pass median was 24.836 seconds in that
+experiment. The 20-file payload grew from approximately 47.15 MiB to 60.29 MiB,
+about 28 percent. The mixed workload result and package growth do not justify
+changing publish settings. No ReadyToRun property was added. Interactive
+first-page, scrolling, and zoom validation remains open in the release table.
