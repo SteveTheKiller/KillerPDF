@@ -199,6 +199,9 @@ raster rebuilds, selective comment and attachment removal, and verification limi
 See [calibrated measurement](docs/measurement.md) for profiles, geometry,
 snapping, editable dimension annotations, reports, and trust boundaries.
 
+See [separation inspection and preview planning](docs/separations.md) for used
+plate inventory, validated page selections, rendering boundaries, and failures.
+
 ## Repository layout
 
 ```text
